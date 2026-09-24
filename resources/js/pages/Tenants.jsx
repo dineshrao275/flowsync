@@ -353,9 +353,9 @@ export default function Tenants() {
         setPage(1);
     }
 
-    async function impersonate(user) {
+    async function impersonate(tenant, user) {
         try {
-            await api.post('/impersonate', { user_id: user.id });
+            await api.post('/impersonate', { user_id: user.id, tenant_id: tenant.id });
             await refresh();
             toast.success(`Viewing panel as ${user.name}.`);
             navigate('/dashboard', { replace: true });
@@ -608,7 +608,7 @@ export default function Tenants() {
                                                 tenant={tenant}
                                                 onEdited={startEdit}
                                                 onChanged={notify}
-                                                onImpersonate={impersonate}
+                                                onImpersonate={(user) => impersonate(tenant, user)}
                                             />
                                         </td>
                                     </tr>

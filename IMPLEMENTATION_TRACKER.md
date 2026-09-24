@@ -430,13 +430,40 @@ touched) · `npm run build` when frontend touched · AGENTS.md updated when arch
       `?tab=${…}` / `&section=${…}` templates; no stray `?tab=` literals left in pages) ·
       image rebuilt/app healthy · live: `/workspaces/1?tab=time`, `/projects/1?tab=tasks&task=…&section=activity`,
       home, asset all 200.
-- [ ] **8. Super-admin tenant management** — `index` gains q/status/plan filters + sort + pagination
+- [x] **8. Super-admin tenant management** — `index` gains q/status/plan filters + sort + pagination
       (users_count via routing); add `update` (profile), `destroy` (soft), `restore`,
       `activate|suspend`; table view with row menu (View/Edit/Enable-Disable/Impersonate/Delete/Restore);
       project/task counts lazy on `TenantDetail` (cached 60s); remove card grid.
-- [ ] **9. Impersonation fix** — `ImpersonationController::startIsolated` accepts `tenant_id` + resolves
-      route scoped `where('tenant_id', …)` (fixes user-id collision picking wrong tenant / always Acme);
-      frontend passes tenant id; tests for cloned local ids across two tenants; banner/stop flow stays.
+      **Verified:** `TenantController::index` — validated `q`/`status`/`plan_id`/`trashed`/`sort`(`name|slug|
+      status|created_at|updated_at|users_count`)/`dir`/`per_page`, `onlyTrashed()`, `users_count` via
+      `routingUsers` withCount (users_count sort) + routing pluck per page, subscription+plan eager-loaded and
+      inlined (`plan_slug/plan_name/subscription_status`), `LengthAwarePaginator`→`{tenants, pagination}` (default
+      per_page 15 keeps old consumers truthful) · `destroy`(soft)+`restore`/`suspend`/`activate` (TenantLifecycle
+      transitions + `audit_logs` rows `tenant.deleted|restored|status_changed`; `POST …/restore` uses
+      `->withTrashed()` so trashed rows route, while suspend/activate on a trashed tenant 404) · new
+      `GET /tenants/{tenant}/stats` reads the tenant DB via `TenantDatabaseManager::using()` and
+      `Cache::remember(…, 60)` (`users/workspaces/projects/tasks`; `tasks` whereNull deleted_at) · `Tenant`
+      gained `routingUsers()` HasMany · `Tenants.jsx` rewritten as a table (q/status/plan/sort filters incl.
+      "Include deleted", per-tenant ⋯ row menu View/Edit/View-as-user-impersonate/Enable-Disable/Delete-Restore,
+      edit modal, pagination footer; per-row subscription lazy fetch dropped — fields now inline) ·
+      `TenantDetail.jsx` gained a Usage card (lazy `/stats`, 60s server cache) · pint ✓ · full suite
+      296/2121 (6 new tests: filters/sort/pagination incl. `per_page`/`sort=slug` ordering, suspend+activate
+      with audit pair, delete+restore+trashed-list+404-on-trashed, stats shape + cache) · `npm run build` ✓
+      (bundle has "Enable (activate)"/"Include deleted"/"Live counts from the tenant DB") · image rebuilt/app
+      healthy · live: created a throwaway "Bakery" trial tenant → q/status/trial/sort-users/pagination filters
+      correct, suspend→suspended, activate→active, delete→excluded, `?trashed=1`→listed with deleted_at,
+      suspend on trashed→404, restore→back active; `/stats` across acme/bakery/globex returns per-tenant
+      postgres counts (4/1/1 users, 0 workspaces).
+- [x] **9. Impersonation fix** — tenant-local `user_id`s collide across tenant DBs (every tenant's owner
+      is local id 1), so `startIsolated`'s unscoped routing lookup could hit the wrong tenant.
+      **Verified:** `ImpersonationController::start` accepts optional `tenant_id`, routing lookup scoped
+      `where('tenant_id', …)` when given; `Tenants.jsx` row menu sends `tenant_id: tenant.id`; test locks
+      the collision case (same cloned local id on acme+globex → `tenant_id` picks the right tenant,
+      `impersonation_logs` row scoped, stop restores SA, then the other tenant's clone resolves) ·
+      pint ✓ · full suite 297/2138 · `npm run build` ✓ · image rebuilt/app healthy · **live:** acme u1 =
+      `owner@acme.test`, globex u1 = `owner@globex.test`; `{user_id:1, tenant_id:globex}` →
+      `owner@globex.test` (impersonating true), stop → superadmin, `{user_id:1, tenant_id:acme}` →
+      `owner@acme.test`; banner/stop flow unchanged.
 - [ ] **10. Super-admin panel expansion** — new sidebar modules + pages: Dashboard, Tenants (from #8),
       Subscriptions, Plans (exists), Users, Analytics, Audit Logs, Feature Management, System Settings;
       `platform_settings` + features catalogs; read-only audit endpoint over `audit_logs` +
@@ -460,7 +487,7 @@ touched) · `npm run build` when frontend touched · AGENTS.md updated when arch
 settings/features + website CMS) · `me()` payload gains `modules` + subscription summary · `module:`
 middleware alias registered in `bootstrap/app.php` priority before `SubstituteBindings`.
 
-**Initiative status:** 7/13 items complete.
+**Initiative status:** 9/13 items complete.
 
 ---
 

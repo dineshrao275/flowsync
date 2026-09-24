@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Models\AuditLog;
 use App\Models\ImpersonationLog;
 use App\Models\Tenant;
+use App\Models\TenantUserRouting;
 use App\Models\User;
 use Tests\IsolatesDatabase;
 use Tests\TestCase;
@@ -203,6 +204,32 @@ class TenantTest extends TestCase
         ], $transitions);
     }
 
+    public function test_super_admin_can_read_tenant_stats(): void
+    {
+        $this->postJson('/api/auth/login', [
+            'email' => 'superadmin@flowsync.test',
+            'password' => 'password',
+        ])->assertOk();
+
+        $acme = $this->acme();
+
+        $this->getJson("/api/tenants/{$acme->id}/stats")
+            ->assertOk()
+            ->assertJsonStructure(['stats' => ['users', 'workspaces', 'projects', 'tasks']]);
+
+        // Isolated-test acme has seeded users but no domain objects yet.
+        $stats = json_decode($this->getJson("/api/tenants/{$acme->id}/stats")->getContent(), true)['stats'];
+        $this->assertGreaterThanOrEqual(1, $stats['users']);
+        $this->assertSame(0, $stats['workspaces']);
+        $this->assertSame(0, $stats['projects']);
+        $this->assertSame(0, $stats['tasks']);
+
+        // A second read is served from cache — the shape stays consistent.
+        $this->getJson("/api/tenants/{$acme->id}/stats")
+            ->assertOk()
+            ->assertJsonPath('stats.projects', 0);
+    }
+
     public function test_super_admin_can_soft_delete_and_restore_tenant(): void
     {
         $this->postJson('/api/auth/login', [
@@ -242,5 +269,50 @@ class TenantTest extends TestCase
 
         $this->assertDatabaseHas('audit_logs', ['action' => 'tenant.deleted']);
         $this->assertDatabaseHas('audit_logs', ['action' => 'tenant.restored']);
+    }
+
+    public function test_impersonation_with_tenant_id_targets_the_right_cloned_user(): void
+    {
+        $this->postJson('/api/auth/login', [
+            'email' => 'superadmin@flowsync.test',
+            'password' => 'password',
+        ])->assertOk();
+
+        $acme = $this->acme();
+        $globex = $this->globex();
+
+        // Tenant-local ids are cloned across tenant DBs: each tenant's first user (the
+        // provisioned owner) is local id 1, so routing rows collide on user_id=1.
+        $acmeRoute = TenantUserRouting::where('tenant_id', $acme->id)->orderBy('user_id')->first();
+        $globexRoute = TenantUserRouting::where('tenant_id', $globex->id)->orderBy('user_id')->first();
+        $this->assertNotNull($acmeRoute);
+        $this->assertNotNull($globexRoute);
+        $this->assertSame($acmeRoute->user_id, $globexRoute->user_id);
+        $this->assertSame('owner@acme.test', $acmeRoute->email);
+        $this->assertSame('owner@globex.test', $globexRoute->email);
+        $clonedId = $acmeRoute->user_id;
+
+        // Without tenant_id the lookup is ambiguous; the UI always sends it, so scope it.
+        $this->postJson('/api/impersonate', ['user_id' => $clonedId, 'tenant_id' => $globex->id])
+            ->assertOk()
+            ->assertJsonPath('user.email', 'owner@globex.test')
+            ->assertJsonPath('user.impersonating', true);
+
+        $log = ImpersonationLog::where('tenant_id', $globex->id)->first();
+        $this->assertNotNull($log);
+        $this->assertSame($clonedId, $log->impersonated_user_id);
+
+        $this->postJson('/api/impersonate/stop')
+            ->assertOk()
+            ->assertJsonPath('user.email', 'superadmin@flowsync.test');
+
+        // The same id against the other tenant resolves to acme's clone.
+        $this->postJson('/api/impersonate', ['user_id' => $clonedId, 'tenant_id' => $acme->id])
+            ->assertOk()
+            ->assertJsonPath('user.email', 'owner@acme.test');
+
+        $this->postJson('/api/impersonate/stop')
+            ->assertOk()
+            ->assertJsonPath('user.email', 'superadmin@flowsync.test');
     }
 }

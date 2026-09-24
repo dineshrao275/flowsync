@@ -3,10 +3,12 @@
 use App\Http\Controllers\ActivityController;
 use App\Http\Controllers\AnalyticsController;
 use App\Http\Controllers\AttachmentController;
+use App\Http\Controllers\AuditLogsController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\CommentController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\DependencyController;
+use App\Http\Controllers\FeatureManagementController;
 use App\Http\Controllers\ForgotPasswordController;
 use App\Http\Controllers\GlobalSearchController;
 use App\Http\Controllers\ImpersonationController;
@@ -24,6 +26,9 @@ use App\Http\Controllers\ResetPasswordController;
 use App\Http\Controllers\RoleController;
 use App\Http\Controllers\SearchController;
 use App\Http\Controllers\StatusController;
+use App\Http\Controllers\SystemAnalyticsController;
+use App\Http\Controllers\SystemSettingsController;
+use App\Http\Controllers\SystemUsersController;
 use App\Http\Controllers\TaskController;
 use App\Http\Controllers\TaskMoveController;
 use App\Http\Controllers\TenantController;
@@ -100,6 +105,7 @@ Route::prefix('api')->group(function () {
             Route::get('tenants/{tenant}/profile', [TenantController::class, 'getProfile']);
             Route::put('tenants/{tenant}/profile', [TenantController::class, 'updateProfile']);
             Route::get('tenants/{tenant}/users', [TenantController::class, 'users']);
+            Route::get('tenants/{tenant}/stats', [TenantController::class, 'stats']);
             Route::delete('tenants/{tenant}', [TenantController::class, 'destroy']);
             Route::post('tenants/{tenant}/restore', [TenantController::class, 'restore'])->withTrashed();
             Route::post('tenants/{tenant}/suspend', [TenantController::class, 'suspend']);
@@ -121,6 +127,16 @@ Route::prefix('api')->group(function () {
             Route::post('tenants/{tenant}/subscription/renew', [TenantSubscriptionController::class, 'renew']);
             Route::post('tenants/{tenant}/subscription/suspend', [TenantSubscriptionController::class, 'suspend']);
             Route::get('tenants/{tenant}/subscription/events', [TenantSubscriptionController::class, 'events']);
+
+            // Platform management (item 10): settings, accounts, audit feed,
+            // cross-tenant analytics, and the module × plan feature grid.
+            Route::get('system/settings', [SystemSettingsController::class, 'index']);
+            Route::put('system/settings', [SystemSettingsController::class, 'update']);
+            Route::apiResource('system/users', SystemUsersController::class)->only(['index', 'store']);
+            Route::get('system/audit-logs', [AuditLogsController::class, 'index']);
+            Route::get('system/analytics', [SystemAnalyticsController::class, 'index']);
+            Route::get('system/features', [FeatureManagementController::class, 'index']);
+            Route::put('system/features/{subscriptionPlan}', [FeatureManagementController::class, 'update']);
 
             Route::post('impersonate', [ImpersonationController::class, 'start']);
         });

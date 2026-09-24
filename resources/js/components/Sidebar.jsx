@@ -37,8 +37,19 @@ const superAdminSections = [
     {
         label: 'Administration',
         items: [
+            { to: '/admin', label: 'Overview', permission: 'dashboard.view', icon: 'M4 13h6V3H4v10zm0 8h6v-6H4v6zm10 0h6V11h-6v10zm0-18v6h6V3h-6z' },
             { to: '/tenants', label: 'Tenants', permission: 'dashboard.view', icon: 'M3 20h18M6 8V6a3 3 0 013-3h6a3 3 0 013 3v2m-12 0h12a3 3 0 013 3v5a3 3 0 01-3 3H9a3 3 0 01-3-3v-5a3 3 0 013-3z' },
             { to: '/plans', label: 'Plans', permission: 'dashboard.view', icon: 'M9 3h6l4 4v14H5V7l4-4zm0 5h6m-4 4h4m-4 4h4' },
+            { to: '/admin/features', label: 'Features', permission: 'dashboard.view', icon: 'M12 3l8 4v13H4V7l8-4zm0 5a2.5 2.5 0 00-2.5 2.5c0 1.5 2.5 3 2.5 3s2.5-1.5 2.5-3A2.5 2.5 0 0012 8zm0 10a2 2 0 100-4 2 2 0 000 4z' },
+        ],
+    },
+    {
+        label: 'Platform',
+        items: [
+            { to: '/admin/users', label: 'Users', permission: 'dashboard.view', icon: 'M17 20h5v-2a4 4 0 00-3-3.87M9 20H4v-2a4 4 0 013-3.87m4-1.13a4 4 0 10-4-4 4 4 0 004 4zm6 2a3 3 0 10-3-3' },
+            { to: '/admin/analytics', label: 'Analytics', permission: 'dashboard.view', icon: 'M3 3v18h18M8 17V9m4 8V5m4 12v-6' },
+            { to: '/admin/audit-logs', label: 'Audit Logs', permission: 'dashboard.view', icon: 'M4 7V5a2 2 0 012-2h8l2 2h6v14a2 2 0 01-2 2H6a2 2 0 01-2-2v-2m0 0V7h18M8 12h8M8 16h8' },
+            { to: '/admin/settings', label: 'Settings', permission: 'dashboard.view', icon: 'M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 001.065-2.572c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z M15 12a3 3 0 11-6 0 3 3 0 016 0z' },
         ],
     },
 ];

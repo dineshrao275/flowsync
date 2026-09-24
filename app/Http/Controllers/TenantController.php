@@ -8,10 +8,12 @@ use App\Models\Tenant;
 use App\Models\TenantUserRouting;
 use App\Services\TenantLifecycle;
 use App\Support\TenantContext;
+use App\Support\TenantDatabaseManager;
 use Database\Seeders\SubscriptionPlanSeeder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Arr;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
@@ -289,6 +291,28 @@ class TenantController extends Controller
             ]);
 
         return response()->json(['users' => $users]);
+    }
+
+    /**
+     * Live domain counts read from the tenant's own database. Cheap enough to
+     * recompute, so results are cached for 60 seconds per tenant.
+     */
+    public function stats(Tenant $tenant): JsonResponse
+    {
+        $stats = Cache::remember("tenants.stats.{$tenant->id}", 60, function () use ($tenant) {
+            return app(TenantDatabaseManager::class)->using($tenant, function () {
+                $db = DB::connection('tenant');
+
+                return [
+                    'users' => $db->table('users')->count(),
+                    'workspaces' => $db->table('workspaces')->count(),
+                    'projects' => $db->table('projects')->count(),
+                    'tasks' => $db->table('tasks')->whereNull('deleted_at')->count(),
+                ];
+            });
+        });
+
+        return response()->json(['stats' => $stats]);
     }
 
     private function counts(Tenant $tenant): Tenant

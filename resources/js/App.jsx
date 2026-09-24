@@ -29,6 +29,12 @@ import Tenants from './pages/Tenants';
 import TenantDetail from './pages/TenantDetail';
 import Plans from './pages/Plans';
 import Subscription from './pages/Subscription';
+import SystemDashboard from './pages/SystemDashboard';
+import SystemAnalytics from './pages/SystemAnalytics';
+import SystemUsers from './pages/SystemUsers';
+import SystemSettings from './pages/SystemSettings';
+import AuditLogs from './pages/AuditLogs';
+import FeatureManagement from './pages/FeatureManagement';
 import Forbidden from './pages/Forbidden';
 import NotFound from './pages/NotFound';
 
@@ -68,10 +74,16 @@ function AppRoutes() {
 
                 <Route element={<ProtectedRoute />}>
                     <Route element={<AdminLayout />}>
-                        <Route path="/" element={<Navigate to="/dashboard" replace />} />
+                        <Route path="/" element={<Navigate to={userIsSuperAdmin ? '/admin' : '/dashboard'} replace />} />
                         <Route path="/onboarding" element={<Onboarding />} />
                         {userIsSuperAdmin && (
                             <Route element={<ProtectedRoute permission="dashboard.view" />}>
+                                <Route path="/admin" element={<SystemDashboard />} />
+                                <Route path="/admin/analytics" element={<SystemAnalytics />} />
+                                <Route path="/admin/users" element={<SystemUsers />} />
+                                <Route path="/admin/settings" element={<SystemSettings />} />
+                                <Route path="/admin/audit-logs" element={<AuditLogs />} />
+                                <Route path="/admin/features" element={<FeatureManagement />} />
                                 <Route path="/tenants" element={<Tenants />} />
                                 <Route path="/tenants/:tenantId" element={<TenantDetail />} />
                                 <Route path="/plans" element={<Plans />} />

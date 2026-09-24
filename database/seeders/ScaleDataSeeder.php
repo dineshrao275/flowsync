@@ -74,7 +74,6 @@ class ScaleDataSeeder extends Seeder
         $this->createSuperAdmin();
 
         $statusConfig = collect(config('task_statuses.statuses'));
-        $priorityConfig = config('priorities.priorities');
 
         $bar = $this->command ? $this->command->getOutput()->createProgressBar($tenants) : null;
 
@@ -171,6 +170,10 @@ class ScaleDataSeeder extends Seeder
         $users = [];
         $roleSlugs = Role::orderBy('name')->pluck('slug')->all();
 
+        if (empty($roleSlugs)) {
+            return [$owner];
+        }
+
         $extra = max(0, $count - 1);
         for ($u = 1; $u <= $extra; $u++) {
             $email = "user-{$tenant->slug}-{$u}@example.test";
@@ -252,24 +255,26 @@ class ScaleDataSeeder extends Seeder
         }
 
         if ($project->members()->count() === 0) {
-            $leadRoleId = $projectRoleIds->get('lead');
-            $devRoleId = $projectRoleIds->get('developer');
-            $viewerRoleId = $projectRoleIds->get('viewer');
+            $leadRoleId = $projectRoleIds->get('lead') ?? $projectRoleIds->first();
+            $devRoleId = $projectRoleIds->get('developer') ?? $projectRoleIds->first();
+            $viewerRoleId = $projectRoleIds->get('viewer') ?? $projectRoleIds->first();
 
-            $rows = [];
-            foreach (array_values($users) as $i => $user) {
-                $roleId = $i === 0 ? $leadRoleId : ($i % 2 === 1 ? $devRoleId : $viewerRoleId);
-                $now = now()->toDateTimeString();
-                $rows[] = [
-                    'project_id' => $project->id,
-                    'user_id' => $user->id,
-                    'project_role_id' => $roleId,
-                    'added_by' => $users[0]->id,
-                    'created_at' => $now,
-                    'updated_at' => $now,
-                ];
+            if ($leadRoleId !== null && $devRoleId !== null && $viewerRoleId !== null) {
+                $rows = [];
+                foreach (array_values($users) as $i => $user) {
+                    $roleId = $i === 0 ? $leadRoleId : ($i % 2 === 1 ? $devRoleId : $viewerRoleId);
+                    $now = now()->toDateTimeString();
+                    $rows[] = [
+                        'project_id' => $project->id,
+                        'user_id' => $user->id,
+                        'project_role_id' => $roleId,
+                        'added_by' => $users[0]->id,
+                        'created_at' => $now,
+                        'updated_at' => $now,
+                    ];
+                }
+                DB::table('project_members')->insert($rows);
             }
-            DB::table('project_members')->insert($rows);
         }
 
         return $project;
@@ -385,7 +390,7 @@ class ScaleDataSeeder extends Seeder
         $statusIds,
     ): void {
         $workers = array_slice($users, 0, max(1, count($users) - 2));
-        $actorId = $users[0]->id;
+        $actorId = $users[0]->id ?? null;
 
         $comments = [];
         $logs = [];

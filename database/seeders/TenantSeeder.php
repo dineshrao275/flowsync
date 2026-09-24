@@ -2,6 +2,7 @@
 
 namespace Database\Seeders;
 
+use App\Models\PlatformSetting;
 use App\Models\Role;
 use App\Models\SystemUser;
 use App\Models\Tenant;
@@ -26,6 +27,13 @@ class TenantSeeder extends Seeder
         );
 
         $this->call(SubscriptionPlanSeeder::class);
+
+        collect([
+            'app_name' => 'FlowSync',
+            'public_registration' => config('onboarding.enabled') ? '1' : '0',
+            'default_plan_id' => null,
+            'maintenance_mode' => '0',
+        ])->each(fn ($value, $key) => PlatformSetting::firstOrCreate(['key' => $key], ['value' => $value]));
 
         $acme = Tenant::firstOrCreate(
             ['slug' => 'acme'],

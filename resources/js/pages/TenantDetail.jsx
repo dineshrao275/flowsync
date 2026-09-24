@@ -62,6 +62,15 @@ const FIELDS = {
     brand_primary_color: 'Primary color',
 };
 
+function StatCell({ label, value }) {
+    return (
+        <div className="rounded-lg bg-white p-3 text-center shadow-sm">
+            <p className="text-xl font-bold text-gray-800">{value}</p>
+            <p className="text-xs text-gray-400">{label}</p>
+        </div>
+    );
+}
+
 function Group({ section, form, setForm, errors }) {
     return (
         <section>
@@ -92,6 +101,7 @@ export default function TenantDetail() {
     const setCrumbs = useSetCrumbs();
     const [tenant, setTenant] = useState(null);
     const [profile, setProfile] = useState(emptyProfile);
+    const [stats, setStats] = useState(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
     const [saving, setSaving] = useState(false);
@@ -122,6 +132,12 @@ export default function TenantDetail() {
     }, [tenantId]);
 
     usePageTitle(tenant?.name ? `${tenant.name} · Tenant` : 'Tenant');
+
+    useEffect(() => {
+        api.get(`/tenants/${tenantId}/stats`)
+            .then(({ data }) => setStats(data.stats))
+            .catch(() => {});
+    }, [tenantId]);
 
     async function saveProfile(e) {
         e.preventDefault();
@@ -241,6 +257,21 @@ export default function TenantDetail() {
                                 {tenant?.trial_ends_at ? new Date(tenant.trial_ends_at).toLocaleDateString() : '—'}
                             </p>
                         </div>
+                    </div>
+
+                    <div className="mt-6">
+                        <Card title="Usage" subtitle="Live counts from the tenant DB (cached 60s)">
+                            {stats ? (
+                                <div className="grid grid-cols-2 gap-3">
+                                    <StatCell label="Users" value={stats.users} />
+                                    <StatCell label="Workspaces" value={stats.workspaces} />
+                                    <StatCell label="Projects" value={stats.projects} />
+                                    <StatCell label="Tasks" value={stats.tasks} />
+                                </div>
+                            ) : (
+                                <p className="py-2 text-sm text-gray-400">Unavailable.</p>
+                            )}
+                        </Card>
                     </div>
                 </div>
             </div>

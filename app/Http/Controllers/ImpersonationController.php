@@ -17,6 +17,7 @@ class ImpersonationController extends Controller
     {
         $data = $request->validate([
             'user_id' => ['required', 'integer'],
+            'tenant_id' => ['nullable', 'integer'],
         ]);
 
         $superAdmin = $request->user();
@@ -60,12 +61,21 @@ class ImpersonationController extends Controller
     }
 
     /**
-     * Isolated impersonation: `user_id` is the id of a user inside a tenant DB.
-     * Resolve the owning tenant via the central routing index, connect, and log in.
+     * Isolated impersonation: `user_id` is the id of a user INSIDE a tenant DB,
+     * so it is only unique per tenant — the same id is cloned across tenants.
+     * Resolve the owning tenant via the central routing index, scoped to the
+     * optional `tenant_id` disambiguator (the super admin UI always sends it),
+     * connect, and log in.
      */
     private function startIsolated(Request $request, array $data, User $superAdmin): JsonResponse
     {
-        $route = TenantUserRouting::where('user_id', $data['user_id'])->with('tenant')->first();
+        $query = TenantUserRouting::with('tenant');
+
+        if (! empty($data['tenant_id'])) {
+            $query->where('tenant_id', $data['tenant_id']);
+        }
+
+        $route = $query->where('user_id', $data['user_id'])->first();
 
         if (! $route || ! $route->tenant || ! $route->tenant->isServiceable()) {
             throw ValidationException::withMessages([

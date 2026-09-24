@@ -10,7 +10,7 @@ Laravel 12 + React 19 SPA. Session-based auth **without** Breeze/Fortify/Sanctum
   `tenants:provision` + seeds demo data (superadmin + acme + globex). Reset from scratch:
   `docker-compose down -v` then `up -d` (app entrypoint re-initializes; `RUN_INIT=true` only for `app`.
   No PHP/composer needed on the host — the image is `flowsync:latest`, envs in `.env.docker`).
-- `php artisan test` — run test suite (Phase 13: **isolated, per-tenant file DBs** via `Tests\IsolatesDatabase`; current gate: **292 tests / 2061 assertions passing**)
+- `php artisan test` — run test suite (Phase 13: **isolated, per-tenant file DBs** via `Tests\IsolatesDatabase`; current gate: **297 tests / 2138 assertions passing**)
 - `npm run build` / `npm run dev` — frontend build / Vite dev server
 - `./vendor/bin/pint` — PHP code style (run over whole repo; `--dirty` only works in git)
 - `php artisan migrate:fresh --seed` — reset the **system** DB (migrations now live under `database/migrations/system`; run it as `migrate:fresh --database=system --path=database/migrations/system --seed` — plain `migrate` runs nothing, see Pitfalls) + seed via `Database\Seeders\TenantSeeder` (provisions acme + globex tenant DBs)
@@ -171,6 +171,9 @@ Hierarchy: **Tenant → Workspace → Project → Task** (subtask `tasks.parent_
 ## Impersonation (super admin → tenant user)
 - Session key `impersonate` = `['log_id', 'tenant_id', 'original_user_id', 'original_user_name']`; then `Auth::login($target)` + `session()->regenerate()`.
 - Controllers: `ImpersonationController@start` (super_admin | `POST api/impersonate`) and `@stop` (`POST api/impersonate/stop`, only `auth`, works while impersonating).
+- **Tenant-local id collision gotcha:** `user_id` is a per-tenant DB id (every tenant's owner is local id
+  1), so the routing lookup must be disambiguated by `tenant_id` — `start` accepts an optional
+  `tenant_id` and scopes `TenantUserRouting` `where('tenant_id', …)`; the super-admin UI always sends it.
 - Audit rows in `impersonation_logs` (`super_admin_id`, `tenant_id`, `impersonated_user_id`, `ip_address`, `started_at`, `ended_at`).
 - Stop must resolve the original super admin from the system DB (`connectSystem()` before the lookup).
 - Cannot impersonate super admins; `AuthController::me`/`logout` include impersonation state.
@@ -244,6 +247,18 @@ Hierarchy: **Tenant → Workspace → Project → Task** (subtask `tasks.parent_
   or `Auth::attempt` builds `where tenant = ?` against `users` and fails. `ImpersonationController`
   gained `startIsolated()` (routing-based resolve) + connects system on stop. `TenantController` store
   → isolated: pending + dispatch job (202); `users()`/`counts()`/`index()` read via routing.
+  Super-admin tenant management: `index` now validates `q`/`status`/`plan_id`/`trashed`/`sort`(`name|slug|
+  status|created_at|updated_at|users_count`)/`dir`/`per_page` and returns `{tenants, pagination}` —
+  `users_count` via `Tenant::routingUsers()` withCount (when sorting by it) or a per-page routing pluck;
+  `subscription.plan` eager-loaded and inlined as `plan_slug/plan_name/subscription_status`. Added
+  `destroy` (soft) + `POST …/restore` (**route declared `->withTrashed()`** so a trashed tenant still binds,
+  while `suspend`/`activate` on a trashed tenant 404s) + `suspend`/`activate` via `TenantLifecycle`
+  transitions; each writes an `audit_logs` row (`tenant.deleted|restored|status_changed`). `GET
+  /tenants/{tenant}/stats` counts `users/workspaces/projects/tasks` on the tenant DB through
+  `TenantDatabaseManager::using()` and `Cache::remember(…, 60)`. Frontend `Tenants.jsx` is a filterable
+  table (filters, sort, "Include deleted", per-tenant ⋯ menu: View/Edit/View-as-user/Enable-Disable/
+  Delete-Restore, edit modal, pagination footer; row subscription fields inline — no per-row lazy fetch);
+  `TenantDetail` shows a lazy Usage card from `/stats`.
   `ProvisionTenants` command repairs isolated tenants. Tenant DBs run the **full current migration set**
   (central-table clutter accepted pre-cutover).
 - **P13 cutover shipped** (see the Tenant-isolation section above; full test suite now runs through

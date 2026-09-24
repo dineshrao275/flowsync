@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Jobs\ProvisionTenantJob;
+use App\Models\PlatformSetting;
 use App\Models\SubscriptionPlan;
 use App\Models\SystemUser;
 use App\Models\Tenant;
@@ -33,7 +34,7 @@ class RegisterController extends Controller
 
     public function store(Request $request, AuthController $auth): JsonResponse
     {
-        if (! config('onboarding.enabled')) {
+        if (! PlatformSetting::bool('public_registration', config('onboarding.enabled') ? '1' : '0')) {
             abort(403, 'Self-registration is currently disabled.');
         }
 
