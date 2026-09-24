@@ -1,0 +1,216 @@
+@import 'tailwindcss';
+
+@source '../../vendor/laravel/framework/src/Illuminate/Pagination/resources/views/*.blade.php';
+@source '../../storage/framework/views/*.php';
+@source '../**/*.blade.php';
+@source '../**/*.{js,jsx}';
+
+@theme {
+    --font-sans: 'Instrument Sans', ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji',
+        'Segoe UI Symbol', 'Noto Color Emoji';
+
+    --shadow-card: 0 1px 2px rgba(15, 23, 42, 0.04), 0 2px 8px -2px rgba(15, 23, 42, 0.06);
+    --shadow-popover: 0 4px 12px -2px rgba(15, 23, 42, 0.08), 0 12px 32px -8px rgba(15, 23, 42, 0.14);
+    --shadow-drawer: -12px 0 40px -12px rgba(15, 23, 42, 0.25);
+}
+
+:root {
+    --sidebar-bg: #0f172a;
+    --sidebar-hover: #1e293b;
+    --active-menu: #6366f1;
+    --sidebar-text: #cbd5e1;
+    --dashboard-bg: #f1f5f9;
+    --header-bg: #ffffff;
+    --header-text: #0f172a;
+    --card-bg: #ffffff;
+    --accent: #6366f1;
+}
+
+@keyframes fade-in {
+    from {
+        opacity: 0;
+    }
+
+    to {
+        opacity: 1;
+    }
+}
+
+@keyframes fade-in-up {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+
+    to {
+        opacity: 1;
+        transform: none;
+    }
+}
+
+@keyframes scale-in {
+    from {
+        opacity: 0;
+        transform: scale(0.96);
+    }
+
+    to {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+@keyframes backdrop-in {
+    from {
+        opacity: 0;
+    }
+
+    to {
+        opacity: 1;
+    }
+}
+
+@keyframes bounce-soft {
+
+    0%,
+    100% {
+        transform: translateY(0);
+    }
+
+    50% {
+        transform: translateY(-2px);
+    }
+}
+
+.animate-fade-in {
+    animation: fade-in 0.3s ease-out both;
+}
+
+.animate-fade-in-up {
+    animation: fade-in-up 0.35s ease-out both;
+}
+
+.animate-scale-in {
+    animation: scale-in 0.22s ease-out both;
+}
+
+.animate-backdrop-in {
+    animation: backdrop-in 0.25s ease-out both;
+}
+
+.animate-bounce-soft {
+    animation: bounce-soft 2.4s ease-in-out infinite;
+}
+
+@keyframes spin-slow {
+    from {
+        transform: rotate(0deg);
+    }
+
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+.animate-spin-slow {
+    animation: spin-slow 8s linear infinite;
+}
+
+@keyframes from-right {
+    from {
+        opacity: 0;
+        transform: translateX(24px);
+    }
+
+    to {
+        opacity: 1;
+        transform: none;
+    }
+}
+
+.animate-from-right {
+    animation: from-right 0.24s ease-out both;
+}
+
+@keyframes toast-in {
+    from {
+        opacity: 0;
+        transform: translateX(28px) scale(0.96);
+    }
+
+    to {
+        opacity: 1;
+        transform: none;
+    }
+}
+
+@keyframes toast-out {
+    from {
+        opacity: 1;
+        transform: none;
+    }
+
+    to {
+        opacity: 0;
+        transform: translateX(28px) scale(0.96);
+    }
+}
+
+.animate-toast-in {
+    animation: toast-in 0.28s ease-out both;
+}
+
+.animate-toast-out {
+    animation: toast-out 0.3s ease-in both;
+}
+
+/*
+ * Visible scrollbar for scrollable regions where a scrollbar is desirable
+ * (e.g. the Kanban board). The global rule below hides scrollbars everywhere;
+ * this class re-enables a thin one inside specific containers only.
+ */
+.board-scroll {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(100, 116, 139, 0.5) transparent;
+    -ms-overflow-style: auto;
+}
+
+.board-scroll::-webkit-scrollbar {
+    display: block;
+    height: 8px;
+}
+
+.board-scroll::-webkit-scrollbar-thumb {
+    border-radius: 9999px;
+    background-color: rgba(100, 116, 139, 0.35);
+}
+
+.board-scroll::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+html,
+body {
+    overflow-x: hidden;
+}
+
+* {
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+}
+
+*::-webkit-scrollbar {
+    display: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+
+    *,
+    *::before,
+    *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+        scroll-behavior: auto !important;
+    }
+}

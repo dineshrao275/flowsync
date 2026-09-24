@@ -1,0 +1,130 @@
+# =============================================================================
+# FlowSync — Docker Compose
+#
+# Services:
+#   db       — PostgreSQL 17 (system + tenant databases)
+#   app      — Laravel + built React SPA (php artisan serve)
+#   queue    — Laravel queue worker (database driver)
+#   reverb   — Laravel Reverb WebSocket server
+#
+# Usage:
+#   docker compose up --build -d          # start everything
+#   docker compose logs -f app            # watch app logs
+#   docker compose exec app php artisan tinker
+#   docker compose down -v                # stop + remove volumes
+# =============================================================================
+
+services:
+
+  # ---------------------------------------------------------------------------
+  # PostgreSQL 17 — primary datastore
+  # ---------------------------------------------------------------------------
+  db:
+    image: postgres:17-alpine
+    container_name: flowsync-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: flowsync_system
+      POSTGRES_USER: flowsync
+      POSTGRES_PASSWORD: secret
+    ports:
+      - "5432:5432"
+    volumes:
+      - flowsync_pgdata:/var/lib/postgresql/data
+      # Init script: create tenant DB placeholder (used in isolated mode)
+      - ./docker/postgres-init.sql:/docker-entrypoint-initdb.d/01-init.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U flowsync -d flowsync_system"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 10s
+
+  # ---------------------------------------------------------------------------
+  # Laravel application — serves the React SPA + API via artisan serve
+  # ---------------------------------------------------------------------------
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        VITE_APP_NAME: "FlowSync"
+        VITE_REVERB_APP_KEY: "3epdhhaqs959bljmaety"
+        VITE_REVERB_HOST: "localhost"
+        VITE_REVERB_PORT: "8080"
+        VITE_REVERB_SCHEME: "http"
+    image: flowsync:latest
+    container_name: flowsync-app
+    restart: unless-stopped
+    env_file: .env.docker
+    environment:
+      RUN_INIT: "true"
+    ports:
+      - "8000:8000"
+    depends_on:
+      db:
+        condition: service_healthy
+    volumes:
+      - flowsync_storage:/app/storage/app
+      - flowsync_logs:/app/storage/logs
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://localhost:8000/up || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+
+  # ---------------------------------------------------------------------------
+  # Laravel queue worker — processes database queue jobs
+  # ---------------------------------------------------------------------------
+  queue:
+    image: flowsync:latest
+    container_name: flowsync-queue
+    restart: unless-stopped
+    env_file: .env.docker
+    environment:
+      RUN_INIT: "false"
+    command: >
+      php artisan queue:work database
+        --tries=3
+        --backoff=3
+        --sleep=1
+        --max-time=3600
+        --memory=256
+    depends_on:
+      app:
+        condition: service_healthy
+    volumes:
+      - flowsync_storage:/app/storage/app
+      - flowsync_logs:/app/storage/logs
+
+  # ---------------------------------------------------------------------------
+  # Laravel Reverb — WebSocket server for real-time features
+  # ---------------------------------------------------------------------------
+  reverb:
+    image: flowsync:latest
+    container_name: flowsync-reverb
+    restart: unless-stopped
+    env_file: .env.docker
+    environment:
+      RUN_INIT: "false"
+    command: >
+      php artisan reverb:start
+        --host=0.0.0.0
+        --port=8080
+        --no-interaction
+    ports:
+      - "8080:8080"
+    depends_on:
+      app:
+        condition: service_healthy
+    volumes:
+      - flowsync_logs:/app/storage/logs
+
+volumes:
+  flowsync_pgdata:
+    driver: local
+  flowsync_storage:
+    driver: local
+  flowsync_logs:
+    driver: local

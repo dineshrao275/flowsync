@@ -1,0 +1,45 @@
+# Version control
+.git
+.gitignore
+.gitattributes
+
+# Dependencies (installed inside the image)
+node_modules
+vendor
+
+# Build artifacts (generated inside the image)
+public/build
+public/hot
+
+# Runtime files
+storage/logs/*
+storage/framework/cache/*
+storage/framework/sessions/*
+storage/framework/views/*
+database/database.sqlite
+database/tenants/
+
+# Local env files (use .env.docker via env_file in compose)
+.env
+.env.production
+.env.testing
+
+# IDE / editor configs
+.idea
+.vscode
+.editorconfig
+
+# Docker files (not needed inside image)
+.dockerignore
+docker-compose.yml
+docker-compose.override.yml
+
+# Test cache + results
+.phpunit.cache
+.phpunit.result.cache
+tests/
+
+# Docs (not needed at runtime)
+docs/
+README.md
+IMPLEMENTATION_TRACKER.md
