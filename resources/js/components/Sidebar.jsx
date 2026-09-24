@@ -25,6 +25,12 @@ const sections = [
             { to: '/settings', label: 'Settings', permission: 'settings.view', icon: 'M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 001.065-2.572c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z M15 12a3 3 0 11-6 0 3 3 0 016 0z' },
         ],
     },
+{
+        label: 'Billing',
+        items: [
+            { to: '/subscription', label: 'Subscription', icon: 'M3 17l5-2 8 3 5-2v6H3v-5zm5-4l5-2 8 3 3-1v-3l-3-1-8-3-5 2-5-2 3 2v3l2 1z' },
+        ],
+    },
 ];
 
 const superAdminSections = [
@@ -99,7 +105,7 @@ export default function Sidebar({ open, collapsed, onClose, onToggleCollapse }) 
     const isSuperAdmin = user?.is_super_admin && !user?.impersonating;
 
     const items = (isSuperAdmin ? superAdminSections : sections)
-        .map((section) => ({ ...section, items: section.items.filter((item) => can(item.permission)) }))
+        .map((section) => ({ ...section, items: section.items.filter((item) => !item.permission || can(item.permission)) }))
         .filter((section) => section.items.length > 0);
 
     return (

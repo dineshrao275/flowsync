@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Middleware\EnsureOnboardingComplete;
 use App\Http\Middleware\EnsurePermission;
 use App\Http\Middleware\EnsureSuperAdmin;
 use App\Http\Middleware\EnsureTenantContext;
@@ -39,6 +40,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'tenant' => SetTenantContext::class,
             'tenant_context' => EnsureTenantContext::class,
             'super_admin' => EnsureSuperAdmin::class,
+            'onboarding_complete' => EnsureOnboardingComplete::class,
         ]);
 
         // Middleware priority (Laravel SortedMiddleware) — the framework sorts the
@@ -60,6 +62,7 @@ return Application::configure(basePath: dirname(__DIR__))
             EnsureTenantContext::class,
             EnsureSuperAdmin::class,
             EnsurePermission::class,
+            EnsureOnboardingComplete::class,
             ThrottleRequests::class,
             ThrottleRequestsWithRedis::class,
             AuthenticatesSessions::class,

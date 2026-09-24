@@ -10,7 +10,7 @@ Laravel 12 + React 19 SPA. Session-based auth **without** Breeze/Fortify/Sanctum
   `tenants:provision` + seeds demo data (superadmin + acme + globex). Reset from scratch:
   `docker-compose down -v` then `up -d` (app entrypoint re-initializes; `RUN_INIT=true` only for `app`.
   No PHP/composer needed on the host — the image is `flowsync:latest`, envs in `.env.docker`).
-- `php artisan test` — run test suite (Phase 13: **isolated, per-tenant file DBs** via `Tests\IsolatesDatabase`; current gate: **261 tests / 1884 assertions passing**)
+- `php artisan test` — run test suite (Phase 13: **isolated, per-tenant file DBs** via `Tests\IsolatesDatabase`; current gate: **289 tests / 2035 assertions passing**)
 - `npm run build` / `npm run dev` — frontend build / Vite dev server
 - `./vendor/bin/pint` — PHP code style (run over whole repo; `--dirty` only works in git)
 - `php artisan migrate:fresh --seed` — reset the **system** DB (migrations now live under `database/migrations/system`; run it as `migrate:fresh --database=system --path=database/migrations/system --seed` — plain `migrate` runs nothing, see Pitfalls) + seed via `Database\Seeders\TenantSeeder` (provisions acme + globex tenant DBs)
@@ -289,10 +289,62 @@ Hierarchy: **Tenant → Workspace → Project → Task** (subtask `tasks.parent_
 - Frontend: `pages/Plans.jsx` at `/plans` (sideber super-admin entry; CRUD modal incl. module toggles);
   `Tenants.jsx` create form gained a plan picker + trial days and tenant cards show a subscription pill
   (lazy `GET /tenants/{id}/subscription`).
+- **Tenant-facing self-service** (Item 5): `GET api/my-subscription` (current subscription + plan +
+  recent events + tenant), `GET api/my-usage` (TenantLimits counts per users/seats/workspaces/projects/
+  tasks + effective limits + modules), `GET api/plans` (**role-aware** — one route now: super admin sees
+  the full catalog, any tenant user the active plans only), `POST api/my-subscription/switch|cancel|renew`
+  (all admin-gated via `hasRole('admin')` 403; a non-impersonating super admin gets 404 — no tenant
+  context). These live in the plain `auth → tenant` group (OUTSIDE the onboarding gate so the wizard's
+  subscription step can read plans). `MySubscriptionController` self-scopes via `TenantContext`.
+  Frontend: `pages/Subscription.jsx` at `/subscription` (current plan card, usage meters, included/
+  excluded modules, upgrade grid, cancel/renew only for admins) + a Billing sidebar section (items with
+  no `permission` are always shown — sidebar filter now keeps `!item.permission`).
+  **`actor_id` gotcha:** tenant admins are NOT central `users` rows, so passing `auth()->id()` as
+  `SubscriptionEvent.actor_id` violates the FK → tenant-side actions omit the actor (the actor travels
+  in `data.actor` for switches; null for cancel/renew).
+  **`exists:` rule gotcha:** the `exists:subscription_plans,id` validation rule resolves against the
+  DEFAULT connection — on a tenant request that's the tenant DB (no `subscription_plans`), so
+  `MySubscriptionController` uses a `SubscriptionPlan::find()` + 422 instead of the rule (the SA
+  controller keeps the rule safely because SA requests run on the system connection).
 - Latent bugs fixed: `ProvisionTenantJob::handle()` **lacked the `TenantProvisioner $provisioner`
   parameter** (undefined-variable crash); `IsolatedProvisioningTest` asserted a local `tenants` row +
   `users.tenant_id` + a void return from `provisionIsolated` (rewritten for Phase 13 reality).
 - Phase plan + Jira-feature expansion map + security/testing/migration strategy: see the doc (§14, §10, §12, §13, §11).
+
+## Tenant onboarding (Phase 14)
+- Optional self-service onboarding for new tenants, behind `config/onboarding.php` `enabled` (env
+  `ONBOARDING_ENABLED`, **default off** → public registration is 403). Toggling + `docker-compose up -d app`
+  re-reads it (read at boot). Steps catalog: business → admin → subscription → configuration (optional) →
+  verification (optional) → completion (required) — all persisted to `tenants.onboarding_meta` JSON.
+- `app/Services/TenantOnboarding.php` (singleton-service): `status()` (per-step complete + overall
+  pending/in_progress/complete), `start()` (self-registration entry), `markStep()` (**rejects the terminal
+  `completion` step** — only `business/admin/subscription/configuration/verification` via `completableSteps()`
+  with full-catalog `validate`; overview + `complete()` mark everything), `complete()`, `reset()` (SA repair),
+  `isComplete()`. **Gating rule:** completed_at set → complete; **never started the wizard → complete**
+  (admin/seed/SA-provisioned tenants bypass automatically — self-registration is the only entry point);
+  otherwise all required steps done.
+- `app/Http/Middleware/EnsureOnboardingComplete.php` (**alias `onboarding_complete`**, registered in
+  `bootstrap/app.php` priority BEFORE `SubstituteBindings`) 403s the whole domain route group
+  (`switch_tenant → auth → tenant → tenant_context → onboarding_complete` at `routes/web.php`) until the
+  tenant completes. Non-impersonating SA bypasses (no tenant context). The wizard's own endpoints live in the
+  plain `auth → tenant` group (next to `tenant/profile`): `GET onboarding`, `PUT onboarding/step`,
+  `POST onboarding/complete`; SA: `GET|PUT tenants/{tenant}/onboarding` (`step` = step key | `complete` |
+  `reset`).
+- **Public registration:** `POST api/register` (`RegisterController::store`, `throttle:10,1`) creates the
+  central tenant (pending, `trial_ends_at` set for the selected/default plan's trial) — **flag `onboarding_meta`
+  started BEFORE provisioning** (same Phase-14 pattern as `trial_ends_at`) — then `Bus::dispatchSync(
+  ProvisionTenantJob(...))` (sync so the registrant can log in immediately), re-`syncRouting` after claiming,
+  and auto-logs in via `AuthController::establishTenantSession()` (**runs the payload build inside
+  `TenantDatabaseManager::using($tenant)`** so `$user->load('roles')` hits THAT tenant's DB, not the restored default).
+  The provisioned `owner@{slug}.test` account is claimed for the registrant (name/email/password swap) and its
+  stale `tenant_users` routing row is deleted afterward. Emails are unique per register (checked against
+  `tenant_users` routing + central `SystemUser`). Colliding slugs get a `-2/-3…` suffix.
+- `AuthController::payload` now carries `onboarding_complete` (true for no-tenant SA + never-started tenants).
+- Frontend: `pages/auth/Register.jsx` at `/register` (GuestRoute; link on Login footer) → on success navigates
+  `/onboarding`; `pages/Onboarding.jsx` wizard at `/onboarding` (progress bar, per-step actions, business
+  mini-profile form → PUT `/tenant/profile` then marks the step, `Finish` → `POST /onboarding/complete` →
+  `refresh()` + `/dashboard`). `AdminLayout` redirects any tenant user with `onboarding_complete === false`
+  (except on `/onboarding` itself) to the wizard. `AuthContext.register()` mirrors `login()`.
 
 ## Pitfalls / gotchas
 - **Laravel `SortedMiddleware` reorders route middleware by the Kernel `$middlewarePriority` list.**

@@ -381,16 +381,31 @@ touched) · `npm run build` when frontend touched · AGENTS.md updated when arch
       `npm run build` (bundle contains "Company profile"/"Legal & registration") · image rebuilt/app
       healthy · live SA read+update round-trip → "Tenant profile updated." (industry Software, legal Acme
       Corp) + tenant-admin `GET /tenant/profile` → acme persisted.
-- [ ] **4. Tenant onboarding** — `config/onboarding.php` step catalog (business→admin→subscription→
+- [x] **4. Tenant onboarding** — `config/onboarding.php` step catalog (business→admin→subscription→
       configuration→verification→completion); `TenantOnboarding` service persists `onboarding_meta`;
       `EnsureOnboardingComplete` middleware gates domain routes (403 until complete; demo tenants seeded
       complete); super-admin step API + tenant-side step API; **public `POST /api/register` behind
       system-settings toggle (default off)** + `Register.jsx` + `Onboarding.jsx` wizard (auto-login
       after self-register).
-- [ ] **5. Tenant subscription self-service** — tenant routes `GET /my-subscription`, `GET /my-usage`
+      **Verified:** pint ✓ · full suite 281/1989 (12 new tests: RegisterTest + OnboardingTest — toggle-403,
+      register→PG-provision→auto-login, stale-routing purge, gate 403→partial-steps 403→complete→200,
+      SA read/drive/reset, superadmin bypass, admin-provisioned never-started=complete) · `npm run build`
+      (bundle has wizard strings) · image rebuilt/app healthy · live: default register 403 → with
+      `ONBOARDING_ENABLED=true` full loop (register 200 + tenant 4 provisioned on PG, gate 403, me
+      onboarding_complete false→true, dashboard 403→200, invalid step 422, SA reset/re-complete) →
+      toggle reverted (register 403 again).
+- [x] **5. Tenant subscription self-service** — tenant routes `GET /my-subscription`, `GET /my-usage`
       (`TenantLimits::currentCount` vs limits), `GET /plans`, `POST /my-subscription/switch` +
       cancel/renew (admin-gated); `Subscription.jsx` page (plan card, features, usage meters, dates/
       renewal/remaining, upgrade grid); sidebar item.
+      **Verified:** pint ✓ · full suite 289/2035 (8 new tests: MySubscriptionTest — read own
+      subscription/null/no-subscription, usage counts vs limits, active-only tenant catalog vs full SA
+      catalog, admin switch→cancel→renew + plan_changed event, same-plan no-op, inactive-plan 422,
+      editor 403, SA 404; SubscriptionPlanTest GET /plans updated for tenant-read) · `npm run build`
+      (bundle has "Compare plans"/"Auto-renew") · image rebuilt/app healthy · live: tenant GET plans
+      [starter,pro,enterprise], usage {users:4,…}, switch→pro (plan_changed), usage limits now pro
+      (users 50…modules time_tracking/reports/global_search), cancel→canceled/auto_renew false,
+      renew→active, editor switch 403, SA my-subscription 404.
 - [ ] **6. Dashboard & analytics** — `GET /api/analytics/overview` (workspaces/projects/open-done-
       overdue, per-project progress, work-log totals + daily series, due-this-week, user activity,
       task-created 14/30d trend); add **Recharts**; extend `Dashboard.jsx` with project-progress +
@@ -430,7 +445,7 @@ touched) · `npm run build` when frontend touched · AGENTS.md updated when arch
 settings/features + website CMS) · `me()` payload gains `modules` + subscription summary · `module:`
 middleware alias registered in `bootstrap/app.php` priority before `SubstituteBindings`.
 
-**Initiative status:** 3/13 items complete.
+**Initiative status:** 5/13 items complete.
 
 ---
 

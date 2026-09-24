@@ -10,11 +10,14 @@ use App\Http\Controllers\ForgotPasswordController;
 use App\Http\Controllers\GlobalSearchController;
 use App\Http\Controllers\ImpersonationController;
 use App\Http\Controllers\LabelController;
+use App\Http\Controllers\MySubscriptionController;
 use App\Http\Controllers\NotificationController;
+use App\Http\Controllers\OnboardingController;
 use App\Http\Controllers\PlanController;
 use App\Http\Controllers\ProjectController;
 use App\Http\Controllers\ProjectMemberController;
 use App\Http\Controllers\ProjectRoleController;
+use App\Http\Controllers\RegisterController;
 use App\Http\Controllers\ReportsController;
 use App\Http\Controllers\ResetPasswordController;
 use App\Http\Controllers\RoleController;
@@ -36,6 +39,10 @@ Route::prefix('api')->group(function () {
     Route::post('auth/forgot-password', [ForgotPasswordController::class, 'create'])->middleware('throttle:6,1');
     Route::post('auth/reset-password', [ResetPasswordController::class, 'update'])->middleware('throttle:6,1');
 
+    // Phase 4 (onboarding): public self-registration — 403 unless
+    // onboarding.enabled (config ONBOARDING_ENABLED, default off).
+    Route::post('register', [RegisterController::class, 'store'])->middleware('throttle:10,1');
+
     Route::middleware(['switch_tenant', 'auth', 'tenant'])->group(function () {
         Route::post('auth/logout', [AuthController::class, 'logout']);
         Route::get('auth/me', [AuthController::class, 'me']);
@@ -52,6 +59,23 @@ Route::prefix('api')->group(function () {
         // Tenant-facing profile (self-scoped via TenantContext; no tenant_context
         // needed because a tenant user resolves their own central tenant row).
         Route::get('tenant/profile', [TenantController::class, 'selfProfile']);
+
+        // Onboarding wizard (self-scoped via TenantContext; deliberately OUTSIDE
+        // the onboarding_complete-gated domain group so an in-progress tenant can
+        // finish the wizard).
+        Route::get('onboarding', [OnboardingController::class, 'show']);
+        Route::put('onboarding/step', [OnboardingController::class, 'updateStep']);
+        Route::post('onboarding/complete', [OnboardingController::class, 'complete']);
+
+        // Phase 14: tenant subscription self-service (self-scoped via TenantContext;
+        // mutations gated to tenant admins in the controller). Also OUTSIDE the
+        // onboarding gate so the wizard's subscription step can read plan data.
+        Route::get('my-subscription', [MySubscriptionController::class, 'show']);
+        Route::get('my-usage', [MySubscriptionController::class, 'usage']);
+        Route::post('my-subscription/switch', [MySubscriptionController::class, 'switch']);
+        Route::post('my-subscription/cancel', [MySubscriptionController::class, 'cancel']);
+        Route::post('my-subscription/renew', [MySubscriptionController::class, 'renew']);
+        Route::get('plans', [PlanController::class, 'index']);
 
         // Phase 9: global multi-entity search. Lives OUTSIDE tenant_context so a
         // non-impersonating super admin can search across all tenants (the
@@ -76,8 +100,11 @@ Route::prefix('api')->group(function () {
             Route::put('tenants/{tenant}/profile', [TenantController::class, 'updateProfile']);
             Route::get('tenants/{tenant}/users', [TenantController::class, 'users']);
 
+            // Onboarding state per tenant (super-admin view + repair).
+            Route::get('tenants/{tenant}/onboarding', [OnboardingController::class, 'showFor']);
+            Route::put('tenants/{tenant}/onboarding', [OnboardingController::class, 'updateFor']);
+
             // Phase 14: subscription catalog + per-tenant subscription lifecycle.
-            Route::get('plans', [PlanController::class, 'index']);
             Route::post('plans', [PlanController::class, 'store']);
             Route::put('plans/{plan}', [PlanController::class, 'update']);
             Route::delete('plans/{plan}', [PlanController::class, 'destroy']);
@@ -96,7 +123,7 @@ Route::prefix('api')->group(function () {
         Route::post('impersonate/stop', [ImpersonationController::class, 'stop']);
     });
 
-    Route::middleware(['switch_tenant', 'auth', 'tenant', 'tenant_context'])->group(function () {
+    Route::middleware(['switch_tenant', 'auth', 'tenant', 'tenant_context', 'onboarding_complete'])->group(function () {
         // Phase 1+: workspace management. Object-level authorization is
         // enforced by WorkspacePolicy (membership roles owner/admin/member);
         // 'tenant_context' rejects non-impersonating super admins.

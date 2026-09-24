@@ -8,15 +8,27 @@ use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
 
 /**
- * Phase 14 — platform subscription-plan catalog CRUD (system DB, super admin only).
+ * Phase 14 — subscription-plan catalog (system DB). Reads are role-aware:
+ * super admins get the full catalog, tenants the active plans; mutations are
+ * super admin only.
  */
 class PlanController extends Controller
 {
-    public function index(): JsonResponse
+    /**
+     * Plan catalog. Super admins see every plan (admin page); any other
+     * authenticated user sees the active plans only (tenant subscription page).
+     */
+    public function index(Request $request): JsonResponse
     {
-        return response()->json([
-            'plans' => SubscriptionPlan::orderBy('sort_order')->orderBy('id')->get(),
-        ]);
+        $isSuperAdmin = (bool) $request->user()?->is_super_admin;
+
+        $query = SubscriptionPlan::orderBy('sort_order')->orderBy('id');
+
+        if (! $isSuperAdmin) {
+            $query->where('is_active', true);
+        }
+
+        return response()->json(['plans' => $query->get()]);
     }
 
     public function store(Request $request): JsonResponse

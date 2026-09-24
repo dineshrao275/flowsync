@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { Outlet, useLocation } from 'react-router-dom';
+import { useEffect, useState } from 'react';
+import { Outlet, useLocation, useNavigate } from 'react-router-dom';
 import Sidebar from './Sidebar';
 import Topbar from './Topbar';
 import ThemeSettingsDrawer from './ThemeSettingsDrawer';
@@ -16,9 +16,19 @@ export default function AdminLayout() {
     const [sidebarOpen, setSidebarOpen] = useState(false);
     const [searchOpen, setSearchOpen] = useState(false);
     const [themeOpen, setThemeOpen] = useState(false);
-    const { can } = useAuth();
+    const { can, user } = useAuth();
     const location = useLocation();
+    const navigate = useNavigate();
     const showSearch = can('workspaces.view');
+
+    // Route tenants with an unfinished onboarding wizard to the wizard. Tenants
+    // that never started onboarding (admin/seed provisioned) and super admins are
+    // unaffected (onboarding_complete === true).
+    useEffect(() => {
+        if (user && user.onboarding_complete === false && location.pathname !== '/onboarding') {
+            navigate('/onboarding', { replace: true });
+        }
+    }, [user, location.pathname, navigate]);
 
     const [collapsed, setCollapsed] = useState(() => {
         try {

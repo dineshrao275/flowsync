@@ -10,8 +10,10 @@ import AdminLayout from './components/AdminLayout';
 import Spinner from './components/ui/Spinner';
 
 import Login from './pages/auth/Login';
+import Register from './pages/auth/Register';
 import ForgotPassword from './pages/auth/ForgotPassword';
 import ResetPassword from './pages/auth/ResetPassword';
+import Onboarding from './pages/Onboarding';
 import Dashboard from './pages/Dashboard';
 import Workspaces from './pages/Workspaces';
 import WorkspaceDetail from './pages/WorkspaceDetail';
@@ -26,6 +28,7 @@ import Notifications from './pages/Notifications';
 import Tenants from './pages/Tenants';
 import TenantDetail from './pages/TenantDetail';
 import Plans from './pages/Plans';
+import Subscription from './pages/Subscription';
 import Forbidden from './pages/Forbidden';
 import NotFound from './pages/NotFound';
 
@@ -58,6 +61,7 @@ function AppRoutes() {
             <Routes>
                 <Route element={<GuestRoute />}>
                     <Route path="/login" element={<Login />} />
+                    <Route path="/register" element={<Register />} />
                     <Route path="/forgot-password" element={<ForgotPassword />} />
                     <Route path="/reset-password" element={<ResetPassword />} />
                 </Route>
@@ -65,6 +69,7 @@ function AppRoutes() {
                 <Route element={<ProtectedRoute />}>
                     <Route element={<AdminLayout />}>
                         <Route path="/" element={<Navigate to="/dashboard" replace />} />
+                        <Route path="/onboarding" element={<Onboarding />} />
                         {userIsSuperAdmin && (
                             <Route element={<ProtectedRoute permission="dashboard.view" />}>
                                 <Route path="/tenants" element={<Tenants />} />
@@ -76,6 +81,7 @@ function AppRoutes() {
                             <Route path="/dashboard" element={<Dashboard />} />
                         </Route>
                         <Route path="/notifications" element={<Notifications />} />
+                        <Route path="/subscription" element={<Subscription />} />
                         <Route element={<ProtectedRoute permission="workspaces.view" />}>
                             <Route path="/workspaces" element={<Workspaces />} />
                             <Route path="/workspaces/:workspaceId" element={<WorkspaceDetail />} />

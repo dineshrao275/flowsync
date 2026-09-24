@@ -6,6 +6,7 @@ use App\Models\ImpersonationLog;
 use App\Models\Tenant;
 use App\Models\TenantUserRouting;
 use App\Models\User;
+use App\Services\TenantOnboarding;
 use App\Support\TenantContext;
 use App\Support\TenantDatabaseManager;
 use Illuminate\Http\JsonResponse;
@@ -47,6 +48,28 @@ class AuthController extends Controller
         $this->applyTenantContext($request->user());
 
         return response()->json($this->payload($request));
+    }
+
+    /**
+     * Authenticate a tenant user against their tenant DB and build the session
+     * (used by self-registration auto-login). The whole payload build runs inside
+     * `using($tenant)` so `$user->load('roles')` resolves against THAT tenant's
+     * database — after the block the default connection is restored.
+     */
+    public function establishTenantSession(Request $request, User $user, Tenant $tenant): JsonResponse
+    {
+        return app(TenantDatabaseManager::class)->using($tenant, function () use ($request, $user, $tenant): JsonResponse {
+            Auth::login($user);
+
+            $request->session()->put('login.tenant_id', $tenant->id);
+            $request->session()->forget('impersonate');
+
+            $this->applyTenantContext($request->user());
+
+            $request->session()->regenerate();
+
+            return response()->json($this->payload($request));
+        });
     }
 
     /**
@@ -164,6 +187,7 @@ class AuthController extends Controller
                 'permissions' => $isSuperAdmin ? [] : $user->permissionSlugs(),
                 'impersonating' => $impersonation !== null,
                 'impersonated_by' => $impersonation['original_user_id'] ?? null,
+                'onboarding_complete' => ! $tenant || app(TenantOnboarding::class)->isComplete($tenant),
             ],
             'theme' => $isSuperAdmin
                 ? config('theme.defaults')

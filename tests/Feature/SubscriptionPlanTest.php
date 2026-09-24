@@ -89,14 +89,19 @@ class SubscriptionPlanTest extends TestCase
         $this->assertDatabaseHas('subscription_plans', ['slug' => 'pro']);
     }
 
-    public function test_tenant_admin_cannot_manage_plans(): void
+    public function test_tenant_admin_can_read_but_not_manage_plans(): void
     {
         $this->postJson('/api/auth/login', [
             'email' => 'admin@flowsync.test',
             'password' => 'password',
         ])->assertOk();
 
-        $this->getJson('/api/plans')->assertForbidden();
+        // Tenant-facing read (subscription self-service): the active catalog.
+        $this->getJson('/api/plans')
+            ->assertOk()
+            ->assertJsonCount(3, 'plans');
+
+        // Mutations remain super-admin-only.
         $this->postJson('/api/plans', [
             'name' => 'Sneaky',
             'slug' => 'sneaky',

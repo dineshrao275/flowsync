@@ -32,6 +32,13 @@ export function AuthProvider({ children }) {
         return data;
     }, []);
 
+    const register = useCallback(async (credentials) => {
+        const { data } = await api.post('/register', credentials);
+        setUser(data.user);
+        setTheme(data.theme);
+        return data;
+    }, []);
+
     const logout = useCallback(async () => {
         try {
             await api.post('/auth/logout');
@@ -64,12 +71,13 @@ export function AuthProvider({ children }) {
             setTheme,
             loading,
             login,
+            register,
             logout,
             stopImpersonation,
             can,
             refresh: loadSession,
         }),
-        [user, theme, loading, login, logout, stopImpersonation, can, loadSession],
+        [user, theme, loading, login, register, logout, stopImpersonation, can, loadSession],
     );
 
     return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

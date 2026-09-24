@@ -47,7 +47,10 @@ export default function Login() {
             subtitle="Sign in to your admin account"
             footer={
                 <span className="text-sm text-slate-500">
-                    Access is managed by your tenant administrator.
+                    Access is managed by your tenant administrator.{' '}
+                    <Link to="/register" className="font-medium text-indigo-600 hover:text-indigo-500">
+                        New here? Create a workspace
+                    </Link>
                 </span>
             }
         >
