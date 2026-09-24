@@ -6,6 +6,7 @@ import Badge from '../components/ui/Badge';
 import Spinner from '../components/ui/Spinner';
 import Alert from '../components/ui/Alert';
 import { useSetCrumbs } from '../context/BreadcrumbContext';
+import usePageTitle from '../hooks/usePageTitle';
 
 const ROLE_LABELS = {
     lead: 'Lead',
@@ -14,6 +15,7 @@ const ROLE_LABELS = {
 };
 
 export default function Projects() {
+    usePageTitle('Projects');
     const setCrumbs = useSetCrumbs();
     const [projects, setProjects] = useState([]);
     const [loading, setLoading] = useState(true);

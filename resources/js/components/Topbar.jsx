@@ -1,24 +1,15 @@
 import { useEffect, useRef, useState } from 'react';
-import { useLocation, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
+import { usePageTitleContext } from '../context/PageTitleContext';
 import { useClickOutside } from '../hooks/useClickOutside';
 import NotificationBell from './NotificationBell';
 import Avatar from './ui/Avatar';
 
-const titles = {
-    '/dashboard': 'Dashboard',
-    '/reports': 'Reports',
-    '/users': 'Users',
-    '/roles': 'Roles & Permissions',
-    '/settings': 'Settings',
-    '/tenants': 'Tenants',
-};
-
 export default function Topbar({ onOpenTheme, onToggleSidebar, onOpenSearch, showSearch }) {
     const { user, logout } = useAuth();
     const toast = useToast();
-    const location = useLocation();
     const navigate = useNavigate();
     const [menuOpen, setMenuOpen] = useState(false);
     const menuRef = useRef(null);
@@ -37,7 +28,7 @@ export default function Topbar({ onOpenTheme, onToggleSidebar, onOpenSearch, sho
         return () => document.removeEventListener('keydown', onKey);
     }, [showSearch, onOpenSearch]);
 
-    const title = titles[location.pathname] || 'FlowSync';
+    const { title } = usePageTitleContext();
 
     async function handleLogout() {
         await logout();

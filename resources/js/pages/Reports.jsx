@@ -6,6 +6,7 @@ import Alert from '../components/ui/Alert';
 import TimeSummary from '../components/time/TimeSummary';
 import { useSetCrumbs } from '../context/BreadcrumbContext';
 import { fieldClass } from '../components/ui/fieldStyles';
+import usePageTitle from '../hooks/usePageTitle';
 
 function Distribution({ title, subtitle, items }) {
     const max = Math.max(...items.map((item) => item.count), 1);
@@ -43,6 +44,7 @@ function Distribution({ title, subtitle, items }) {
 }
 
 export default function Reports() {
+    usePageTitle('Reports');
     const setCrumbs = useSetCrumbs();
     const [data, setData] = useState(null);
     const [error, setError] = useState(null);

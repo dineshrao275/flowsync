@@ -7,8 +7,10 @@ import Spinner from '../components/ui/Spinner';
 import Alert from '../components/ui/Alert';
 import { useSetCrumbs } from '../context/BreadcrumbContext';
 import { fieldClass } from '../components/ui/fieldStyles';
+import usePageTitle from '../hooks/usePageTitle';
 
 export default function Search() {
+    usePageTitle('Search');
     const setCrumbs = useSetCrumbs();
     const [filters, setFilters] = useState({});
     const [params, setParams] = useState({});

@@ -10,6 +10,7 @@ import Input from '../components/ui/Input';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
 import { useClickOutside } from '../hooks/useClickOutside';
+import usePageTitle from '../hooks/usePageTitle';
 
 function ImpersonateMenu({ tenant, onClose, onPick }) {
     const ref = useRef(null);
@@ -73,6 +74,7 @@ function ImpersonateMenu({ tenant, onClose, onPick }) {
 }
 
 export default function Tenants() {
+    usePageTitle('Tenants');
     const { refresh } = useAuth();
     const toast = useToast();
     const navigate = useNavigate();

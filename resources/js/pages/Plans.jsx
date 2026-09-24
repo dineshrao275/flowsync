@@ -8,6 +8,7 @@ import Button from '../components/ui/Button';
 import Input from '../components/ui/Input';
 import Modal from '../components/ui/Modal';
 import { useToast } from '../context/ToastContext';
+import usePageTitle from '../hooks/usePageTitle';
 
 const MODULES = ['time_tracking', 'reports', 'global_search', 'api', 'branding', 'audit_export'];
 
@@ -124,6 +125,7 @@ function formatPrice(plan) {
 }
 
 export default function Plans() {
+    usePageTitle('Plans');
     const toast = useToast();
     const [plans, setPlans] = useState([]);
     const [loading, setLoading] = useState(true);

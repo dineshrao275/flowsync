@@ -16,6 +16,7 @@ import FiltersBar from '../components/tasks/FiltersBar';
 import CreateTaskModal from '../components/tasks/CreateTaskModal';
 import TaskDetail from '../components/tasks/TaskDetail';
 import TimeSummary from '../components/time/TimeSummary';
+import usePageTitle from '../hooks/usePageTitle';
 
 const ROLE_LABELS = {
     lead: 'Lead',
@@ -57,6 +58,7 @@ export default function ProjectDetail() {
     const { user, can } = useAuth();
     const toast = useToast();
     const setCrumbs = useSetCrumbs();
+    usePageTitle(project?.name || 'Project');
     const [project, setProject] = useState(null);
     const [members, setMembers] = useState([]);
     const [roles, setRoles] = useState([]);

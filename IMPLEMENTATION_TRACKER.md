@@ -365,9 +365,14 @@ touched) · `npm run build` when frontend touched · AGENTS.md updated when arch
       (AdminLayout already wired `open`/`onClose`). **Verified:** `npm run build` ✓ · rebuilt
       `flowsync:latest` + `up -d` (app healthy) · login 200 · `GET/PUT /api/theme` round-trip returns
       the saved theme (drawer's `save()` posts `draft` flat to `/theme`).
-- [ ] **2. Dynamic page titles** — `usePageTitle(title)` hook → `document.title = "{title} · FlowSync"`;
-      every page sets its own title (static names + resource names: workspace/project/task/tenant);
-      replace Topbar's static `titles` map with the same source.
+- [x] **2. Dynamic page titles** — `usePageTitle(title)` hook sets `document.title = "{title} · FlowSync"`
+      + feeds a shared `PageTitleContext`; `PageTitleProvider` in AdminLayout keeps a static default map
+      (reset on route change) that Topbar now reads too (its own hardcoded `titles` map removed). Every
+      page sets its own title: static (Dashboard/Workspaces/Projects/Users/Roles/Settings/Tenants/Plans/
+      Search/Reports/Notifications/Sign in/Forgot password/Reset password/Forbidden/Page not found) +
+      resource names (WorkspaceDetail/ProjectDetail → loaded `workspace/project` name). **Verified:**
+      `npm run build` ✓ · rebuilt image + `up -d` (app healthy) · new bundle served (titles present) ·
+      login round-trip 200.
 - [ ] **3. Tenant information expansion** — migration `000017` adds profile columns (legal/tax/address,
       website/industry/size, billing, timezone/locale, branding, contact phone); `TenantController@update`
       + `GET|PUT /tenants/{id}/profile` (SA) + `GET /api/tenant/profile` (tenant); profile form (grouped
@@ -421,7 +426,7 @@ touched) · `npm run build` when frontend touched · AGENTS.md updated when arch
 settings/features + website CMS) · `me()` payload gains `modules` + subscription summary · `module:`
 middleware alias registered in `bootstrap/app.php` priority before `SubstituteBindings`.
 
-**Initiative status:** 1/13 items complete.
+**Initiative status:** 2/13 items complete.
 
 ---
 

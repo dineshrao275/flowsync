@@ -11,6 +11,7 @@ import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
 import { useSetCrumbs } from '../context/BreadcrumbContext';
 import TimeSummary from '../components/time/TimeSummary';
+import usePageTitle from '../hooks/usePageTitle';
 
 const ROLE_LABELS = {
     owner: 'Owner',
@@ -56,6 +57,7 @@ export default function WorkspaceDetail() {
     const toast = useToast();
     const setCrumbs = useSetCrumbs();
     const [workspace, setWorkspace] = useState(null);
+    usePageTitle(workspace?.name || 'Workspace');
     const [members, setMembers] = useState([]);
     const [labels, setLabels] = useState([]);
     const [projects, setProjects] = useState([]);

@@ -8,8 +8,10 @@ import Alert from '../components/ui/Alert';
 import { useNotifications } from '../context/NotificationContext';
 import { useSetCrumbs } from '../context/BreadcrumbContext';
 import { describeNotification, notificationHref, timeAgo } from '../utils/notifications';
+import usePageTitle from '../hooks/usePageTitle';
 
 export default function Notifications() {
+    usePageTitle('Notifications');
     const { markAllRead, markRead } = useNotifications();
     const setCrumbs = useSetCrumbs();
     const navigate = useNavigate();

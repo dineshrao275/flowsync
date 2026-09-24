@@ -8,8 +8,10 @@ import Button from '../components/ui/Button';
 import Input from '../components/ui/Input';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
+import usePageTitle from '../hooks/usePageTitle';
 
 export default function Users() {
+    usePageTitle('Users');
     const { can } = useAuth();
     const toast = useToast();
     const [users, setUsers] = useState([]);

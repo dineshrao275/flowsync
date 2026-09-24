@@ -7,6 +7,7 @@ import ImpersonationBanner from './ImpersonationBanner';
 import Breadcrumbs from './Breadcrumbs';
 import CommandPalette from './search/CommandPalette';
 import { BreadcrumbProvider } from '../context/BreadcrumbContext';
+import { PageTitleProvider } from '../context/PageTitleContext';
 import { useAuth } from '../context/AuthContext';
 
 const COLLAPSE_KEY = 'flowsync.sidebar.collapsed';
@@ -40,8 +41,9 @@ export default function AdminLayout() {
     }
 
     return (
-        <div style={{ backgroundColor: 'var(--dashboard-bg)' }}>
-            <ImpersonationBanner />
+        <PageTitleProvider>
+            <div style={{ backgroundColor: 'var(--dashboard-bg)' }}>
+                <ImpersonationBanner />
             <Sidebar
                 open={sidebarOpen}
                 collapsed={collapsed}
@@ -79,7 +81,8 @@ export default function AdminLayout() {
             </div>
 
             <ThemeSettingsDrawer open={themeOpen} onClose={() => setThemeOpen(false)} />
-            <CommandPalette open={searchOpen && showSearch} onClose={() => setSearchOpen(false)} />
-        </div>
+                <CommandPalette open={searchOpen && showSearch} onClose={() => setSearchOpen(false)} />
+            </div>
+        </PageTitleProvider>
     );
 }

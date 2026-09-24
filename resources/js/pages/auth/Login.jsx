@@ -7,8 +7,10 @@ import Button from '../../components/ui/Button';
 import Input from '../../components/ui/Input';
 import Alert from '../../components/ui/Alert';
 import AuthShell from '../../components/ui/AuthShell';
+import usePageTitle from '../../hooks/usePageTitle';
 
 export default function Login() {
+    usePageTitle('Sign in');
     const { login } = useAuth();
     const toast = useToast();
     const navigate = useNavigate();

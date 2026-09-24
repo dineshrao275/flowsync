@@ -6,6 +6,7 @@ import Spinner from '../components/ui/Spinner';
 import Alert from '../components/ui/Alert';
 import { useAuth } from '../context/AuthContext';
 import { useSetCrumbs } from '../context/BreadcrumbContext';
+import usePageTitle from '../hooks/usePageTitle';
 
 function TaskRow({ task, dateLabel = null }) {
     return (
@@ -50,6 +51,7 @@ const overdueLabel = (task) => `Overdue · was due ${task.due_date}`;
 const recentLabel = (task) => `${task.project.name} · updated ${new Date(task.updated_at).toLocaleDateString()}`;
 
 export default function Dashboard() {
+    usePageTitle('Dashboard');
     const [data, setData] = useState(null);
     const [error, setError] = useState(null);
     const { user } = useAuth();

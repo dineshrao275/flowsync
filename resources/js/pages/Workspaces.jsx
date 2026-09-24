@@ -10,6 +10,7 @@ import Input from '../components/ui/Input';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
 import { useSetCrumbs } from '../context/BreadcrumbContext';
+import usePageTitle from '../hooks/usePageTitle';
 
 const icons = {
     owner: 'M7 21a4 4 0 01-4-4V5a2 2 0 012-2h1V2h2v1h8V2h2v1h1a2 2 0 012 2v12a4 4 0 01-4 4H7zm0-2h10a2 2 0 002-2V8H5v9a2 2 0 002 2zm1-6h8v2H8v-2zm0-4h8v2H8V7z',
@@ -26,6 +27,7 @@ function MemberIcon({ role }) {
 }
 
 export default function Workspaces() {
+    usePageTitle('Workspaces');
     const { can } = useAuth();
     const toast = useToast();
     const setCrumbs = useSetCrumbs();

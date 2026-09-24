@@ -5,8 +5,10 @@ import Button from '../../components/ui/Button';
 import Input from '../../components/ui/Input';
 import Alert from '../../components/ui/Alert';
 import AuthShell from '../../components/ui/AuthShell';
+import usePageTitle from '../../hooks/usePageTitle';
 
 export default function ResetPassword() {
+    usePageTitle('Reset password');
     const [searchParams] = useSearchParams();
     const emailParam = searchParams.get('email') || '';
     const token = searchParams.get('token') || '';

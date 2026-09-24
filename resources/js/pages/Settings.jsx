@@ -1,7 +1,9 @@
 import Card from '../components/ui/Card';
 import { useAuth } from '../context/AuthContext';
+import usePageTitle from '../hooks/usePageTitle';
 
 export default function Settings() {
+    usePageTitle('Settings');
     const { user } = useAuth();
 
     return (
