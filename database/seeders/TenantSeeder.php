@@ -25,6 +25,8 @@ class TenantSeeder extends Seeder
             ['name' => 'Super Admin', 'password' => 'password', 'is_super_admin' => true]
         );
 
+        $this->call(SubscriptionPlanSeeder::class);
+
         $acme = Tenant::firstOrCreate(
             ['slug' => 'acme'],
             ['name' => 'Acme Corp', 'description' => 'Primary demo tenant']
@@ -32,7 +34,7 @@ class TenantSeeder extends Seeder
 
         $provisioner->provisionIsolated($acme, $dbm, $lifecycle);
 
-        $dbm->using($acme, function () use ($acme): void {
+        $dbm->using($acme, function (): void {
             foreach ([
                 ['email' => 'admin@flowsync.test', 'name' => 'Admin User', 'role' => 'admin'],
                 ['email' => 'editor@flowsync.test', 'name' => 'Editor User', 'role' => 'editor'],

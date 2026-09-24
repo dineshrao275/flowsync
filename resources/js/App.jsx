@@ -24,6 +24,7 @@ import Reports from './pages/Reports';
 import Search from './pages/Search';
 import Notifications from './pages/Notifications';
 import Tenants from './pages/Tenants';
+import Plans from './pages/Plans';
 import Forbidden from './pages/Forbidden';
 import NotFound from './pages/NotFound';
 
@@ -66,6 +67,7 @@ function AppRoutes() {
                         {userIsSuperAdmin && (
                             <Route element={<ProtectedRoute permission="dashboard.view" />}>
                                 <Route path="/tenants" element={<Tenants />} />
+                                <Route path="/plans" element={<Plans />} />
                             </Route>
                         )}
                         <Route element={<ProtectedRoute permission="dashboard.view" />}>

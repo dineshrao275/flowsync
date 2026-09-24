@@ -4,25 +4,14 @@ namespace Tests\Feature;
 
 use App\Models\Project;
 use App\Models\ProjectRole;
-use App\Models\Tenant;
 use App\Models\User;
 use App\Models\Workspace;
-use Database\Seeders\TenantSeeder;
-use Illuminate\Foundation\Testing\RefreshDatabase;
+use Tests\IsolatesDatabase;
 use Tests\TestCase;
 
 class ProjectMemberTest extends TestCase
 {
-    use RefreshDatabase;
-
-    private ?Tenant $acme = null;
-
-    protected function setUp(): void
-    {
-        parent::setUp();
-        $this->seed(TenantSeeder::class);
-        $this->acme = Tenant::where('slug', 'acme')->first();
-    }
+    use IsolatesDatabase;
 
     private function login(string $email): void
     {
@@ -50,7 +39,6 @@ class ProjectMemberTest extends TestCase
     private function makeWorkspace(): Workspace
     {
         $workspace = Workspace::create([
-            'tenant_id' => $this->acme->id,
             'created_by' => $this->admin()->id,
             'name' => 'Design',
             'slug' => 'design',
@@ -66,7 +54,6 @@ class ProjectMemberTest extends TestCase
     {
         $ws = $this->makeWorkspace();
         $project = Project::create([
-            'tenant_id' => $this->acme->id,
             'workspace_id' => $ws->id,
             'created_by' => $this->admin()->id,
             'lead_user_id' => $this->admin()->id,
@@ -93,6 +80,7 @@ class ProjectMemberTest extends TestCase
     {
         $project = $this->makeProject();
         $this->login('admin@flowsync.test');
+        $this->connectTenant('acme');
 
         $this->postJson("/api/projects/{$project->id}/members", [
             'user_id' => $this->viewer()->id,
@@ -129,6 +117,7 @@ class ProjectMemberTest extends TestCase
         $project = $this->makeProject();
         $this->addMember($project, $this->editor(), 'developer');
         $this->login('editor@flowsync.test');
+        $this->connectTenant('acme');
 
         $this->postJson("/api/projects/{$project->id}/members", [
             'user_id' => $this->viewer()->id,
@@ -144,6 +133,7 @@ class ProjectMemberTest extends TestCase
             ['project_role_id' => $this->createRoleWith('members.manage') ?? $this->roleId('lead'), 'added_by' => $this->admin()->id]
         );
         $this->login('editor@flowsync.test');
+        $this->connectTenant('acme');
 
         $this->postJson("/api/projects/{$project->id}/members", [
             'user_id' => $this->viewer()->id,
@@ -154,11 +144,23 @@ class ProjectMemberTest extends TestCase
     public function test_cannot_add_user_from_different_tenant(): void
     {
         $project = $this->makeProject();
-        $globex = User::whereHas('tenant', fn ($q) => $q->where('slug', 'globex'))->first();
+        $this->dbm->using($this->globex(), fn () => User::create([
+            'name' => 'Globex Owner',
+            'email' => 'owner2@globex.test',
+            'password' => 'password',
+        ]));
+
+        // Phase 13: user ids are tenant-LOCAL — a Globex id has no meaning in
+        // the Acme tenant database, so any id that fails to resolve there is
+        // rejected. (A naive `$globex->id` can coincidentally match an Acme
+        // user, so use an id that is guaranteed absent.)
+        $missingId = $this->dbm->using($this->acme(), fn () => User::max('id')) + 100;
+
         $this->login('admin@flowsync.test');
+        $this->connectTenant('acme');
 
         $this->postJson("/api/projects/{$project->id}/members", [
-            'user_id' => $globex->id,
+            'user_id' => $missingId,
             'role_id' => $this->roleId('viewer'),
         ])->assertUnprocessable()
             ->assertJsonValidationErrors('user_id');
@@ -168,12 +170,12 @@ class ProjectMemberTest extends TestCase
     {
         $project = $this->makeProject();
         $orphan = User::create([
-            'tenant_id' => $this->acme->id,
             'name' => 'Orphan',
             'email' => 'orphan@acme.test',
             'password' => 'password',
         ]);
         $this->login('admin@flowsync.test');
+        $this->connectTenant('acme');
 
         $this->postJson("/api/projects/{$project->id}/members", [
             'user_id' => $orphan->id,
@@ -187,6 +189,7 @@ class ProjectMemberTest extends TestCase
         $project = $this->makeProject();
         $this->addMember($project, $this->viewer());
         $this->login('admin@flowsync.test');
+        $this->connectTenant('acme');
 
         $this->postJson("/api/projects/{$project->id}/members", [
             'user_id' => $this->viewer()->id,
@@ -200,6 +203,7 @@ class ProjectMemberTest extends TestCase
         $project = $this->makeProject();
         $this->addMember($project, $this->viewer(), 'viewer');
         $this->login('admin@flowsync.test');
+        $this->connectTenant('acme');
 
         $this->putJson("/api/projects/{$project->id}/members/{$this->viewer()->id}", [
             'role_id' => $this->roleId('developer'),
@@ -216,6 +220,7 @@ class ProjectMemberTest extends TestCase
     {
         $project = $this->makeProject();
         $this->login('admin@flowsync.test');
+        $this->connectTenant('acme');
 
         $this->deleteJson("/api/projects/{$project->id}/members/{$this->admin()->id}")
             ->assertUnprocessable();
@@ -227,6 +232,7 @@ class ProjectMemberTest extends TestCase
         $project = $this->makeProject();
         $this->addMember($project, $this->viewer(), 'viewer');
         $this->login('viewer@flowsync.test');
+        $this->connectTenant('acme');
 
         $this->postJson("/api/projects/{$project->id}/members", [
             'user_id' => $this->editor()->id,
@@ -237,7 +243,6 @@ class ProjectMemberTest extends TestCase
     private function createRoleWith(string $permission): int
     {
         $role = ProjectRole::create([
-            'tenant_id' => $this->acme->id,
             'name' => 'Member Manager',
             'slug' => 'member-manager',
             'is_system' => false,

@@ -11,6 +11,7 @@ use App\Http\Controllers\GlobalSearchController;
 use App\Http\Controllers\ImpersonationController;
 use App\Http\Controllers\LabelController;
 use App\Http\Controllers\NotificationController;
+use App\Http\Controllers\PlanController;
 use App\Http\Controllers\ProjectController;
 use App\Http\Controllers\ProjectMemberController;
 use App\Http\Controllers\ProjectRoleController;
@@ -22,6 +23,7 @@ use App\Http\Controllers\StatusController;
 use App\Http\Controllers\TaskController;
 use App\Http\Controllers\TaskMoveController;
 use App\Http\Controllers\TenantController;
+use App\Http\Controllers\TenantSubscriptionController;
 use App\Http\Controllers\ThemeController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\WorkLogController;
@@ -61,10 +63,25 @@ Route::prefix('api')->group(function () {
         Route::put('roles/{role}', [RoleController::class, 'update'])->middleware('permission:roles.manage');
 
         Route::middleware('super_admin')->group(function () {
+            // Phase 13: tenancy platform (central DB index across tenant DBs).
             Route::get('tenants', [TenantController::class, 'index']);
             Route::post('tenants', [TenantController::class, 'store']);
             Route::get('tenants/{tenant}', [TenantController::class, 'show']);
             Route::get('tenants/{tenant}/users', [TenantController::class, 'users']);
+
+            // Phase 14: subscription catalog + per-tenant subscription lifecycle.
+            Route::get('plans', [PlanController::class, 'index']);
+            Route::post('plans', [PlanController::class, 'store']);
+            Route::put('plans/{plan}', [PlanController::class, 'update']);
+            Route::delete('plans/{plan}', [PlanController::class, 'destroy']);
+
+            Route::get('tenants/{tenant}/subscription', [TenantSubscriptionController::class, 'show']);
+            Route::post('tenants/{tenant}/subscription', [TenantSubscriptionController::class, 'assign']);
+            Route::post('tenants/{tenant}/subscription/trial', [TenantSubscriptionController::class, 'startTrial']);
+            Route::post('tenants/{tenant}/subscription/cancel', [TenantSubscriptionController::class, 'cancel']);
+            Route::post('tenants/{tenant}/subscription/renew', [TenantSubscriptionController::class, 'renew']);
+            Route::post('tenants/{tenant}/subscription/suspend', [TenantSubscriptionController::class, 'suspend']);
+            Route::get('tenants/{tenant}/subscription/events', [TenantSubscriptionController::class, 'events']);
 
             Route::post('impersonate', [ImpersonationController::class, 'start']);
         });

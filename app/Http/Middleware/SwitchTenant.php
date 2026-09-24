@@ -25,7 +25,6 @@ class SwitchTenant
         $session = $request->session();
         $impersonation = $session->get('impersonate');
         $tenantId = $impersonation['tenant_id'] ?? $session->get('login.tenant_id');
-
         $tenant = $tenantId ? Tenant::find($tenantId) : null;
 
         if ($tenant && $tenant->isServiceable()) {

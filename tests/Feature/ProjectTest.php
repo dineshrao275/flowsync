@@ -6,25 +6,14 @@ use App\Models\Project;
 use App\Models\ProjectRole;
 use App\Models\Task;
 use App\Models\TaskStatus;
-use App\Models\Tenant;
 use App\Models\User;
 use App\Models\Workspace;
-use Database\Seeders\TenantSeeder;
-use Illuminate\Foundation\Testing\RefreshDatabase;
+use Tests\IsolatesDatabase;
 use Tests\TestCase;
 
 class ProjectTest extends TestCase
 {
-    use RefreshDatabase;
-
-    private ?Tenant $acme = null;
-
-    protected function setUp(): void
-    {
-        parent::setUp();
-        $this->seed(TenantSeeder::class);
-        $this->acme = Tenant::where('slug', 'acme')->first();
-    }
+    use IsolatesDatabase;
 
     private function login(string $email): void
     {
@@ -52,7 +41,6 @@ class ProjectTest extends TestCase
     private function makeWorkspace(): Workspace
     {
         $workspace = Workspace::create([
-            'tenant_id' => $this->acme->id,
             'created_by' => $this->admin()->id,
             'name' => 'Design',
             'slug' => 'design',
@@ -71,6 +59,7 @@ class ProjectTest extends TestCase
     {
         $ws = $this->makeWorkspace();
         $this->login('admin@flowsync.test');
+        $this->connectTenant('acme');
 
         $this->postJson("/api/workspaces/{$ws->id}/projects", [
             'name' => 'Website Redesign',
@@ -90,6 +79,7 @@ class ProjectTest extends TestCase
     {
         $ws = $this->makeWorkspace();
         $this->login('admin@flowsync.test');
+        $this->connectTenant('acme');
 
         $this->postJson("/api/workspaces/{$ws->id}/projects", ['name' => 'Website Redesign'])->assertCreated();
         $this->postJson("/api/workspaces/{$ws->id}/projects", ['name' => 'Website Redesign 2'])
@@ -179,7 +169,6 @@ class ProjectTest extends TestCase
         $ws = $this->makeWorkspace();
         $project = $this->createProject($ws, 'Alpha', 'ALPHA');
         $role = ProjectRole::create([
-            'tenant_id' => $this->acme->id,
             'name' => 'Contributor',
             'slug' => 'contributor',
             'is_system' => false,
@@ -217,6 +206,7 @@ class ProjectTest extends TestCase
         $ws = $this->makeWorkspace();
         $project = $this->createProject($ws, 'Alpha', 'ALPHA');
         $this->login('admin@flowsync.test');
+        $this->connectTenant('acme');
 
         $this->postJson("/api/projects/{$project->id}/archive")->assertOk();
         $this->assertNotNull($project->fresh()->archived_at);
@@ -234,7 +224,6 @@ class ProjectTest extends TestCase
         $project = $this->createProject($ws, 'Alpha', 'ALPHA');
 
         Task::create([
-            'tenant_id' => $this->acme->id,
             'workspace_id' => $ws->id,
             'project_id' => $project->id,
             'created_by' => $this->admin()->id,
@@ -245,6 +234,7 @@ class ProjectTest extends TestCase
         ]);
 
         $this->login('admin@flowsync.test');
+        $this->connectTenant('acme');
 
         $this->deleteJson("/api/projects/{$project->id}")
             ->assertUnprocessable()
@@ -264,7 +254,6 @@ class ProjectTest extends TestCase
     private function createProject(Workspace $workspace, string $name, string $key): Project
     {
         $project = Project::create([
-            'tenant_id' => $this->acme->id,
             'workspace_id' => $workspace->id,
             'created_by' => $this->admin()->id,
             'lead_user_id' => $this->admin()->id,
@@ -290,7 +279,6 @@ class ProjectTest extends TestCase
         foreach (config('task_statuses.statuses') as $status) {
             $position++;
             TaskStatus::create([
-                'tenant_id' => $this->acme->id,
                 'project_id' => $project->id,
                 'name' => $status['name'],
                 'slug' => $status['slug'],

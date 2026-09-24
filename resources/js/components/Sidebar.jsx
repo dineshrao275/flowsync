@@ -32,6 +32,7 @@ const superAdminSections = [
         label: 'Administration',
         items: [
             { to: '/tenants', label: 'Tenants', permission: 'dashboard.view', icon: 'M3 20h18M6 8V6a3 3 0 013-3h6a3 3 0 013 3v2m-12 0h12a3 3 0 013 3v5a3 3 0 01-3 3H9a3 3 0 01-3-3v-5a3 3 0 013-3z' },
+            { to: '/plans', label: 'Plans', permission: 'dashboard.view', icon: 'M9 3h6l4 4v14H5V7l4-4zm0 5h6m-4 4h4m-4 4h4' },
         ],
     },
 ];

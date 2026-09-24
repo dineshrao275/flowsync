@@ -7,35 +7,29 @@ use App\Models\Project;
 use App\Models\ProjectRole;
 use App\Models\Task;
 use App\Models\TaskStatus;
-use App\Models\Tenant;
 use App\Models\User;
 use App\Models\WorkLog;
 use App\Models\Workspace;
 use App\Services\NotificationService;
 use App\Services\WorkLogService;
-use App\Support\TenantContext;
-use Database\Seeders\TenantSeeder;
-use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Event;
+use Tests\IsolatesDatabase;
 use Tests\TestCase;
 
 class WorkLogTest extends TestCase
 {
-    use RefreshDatabase;
-
-    private Tenant $acme;
+    use IsolatesDatabase;
 
     protected function setUp(): void
     {
         parent::setUp();
-        $this->seed(TenantSeeder::class);
-        $this->acme = Tenant::where('slug', 'acme')->first();
-        app(TenantContext::class)->setTenantId($this->acme->id);
     }
 
     private function login(string $email): void
     {
         $this->postJson('/api/auth/login', ['email' => $email, 'password' => 'password'])->assertOk();
+
+        $this->connectTenant('acme');
     }
 
     private function admin(): User
@@ -56,7 +50,6 @@ class WorkLogTest extends TestCase
     private function createProjectWithLead(string $name = 'Website', string $key = 'WEB', string $workspaceName = 'Design', string $workspaceSlug = 'design'): Project
     {
         $workspace = Workspace::create([
-            'tenant_id' => $this->acme->id,
             'created_by' => $this->admin()->id,
             'name' => $workspaceName,
             'slug' => $workspaceSlug,
@@ -69,7 +62,6 @@ class WorkLogTest extends TestCase
     private function createProjectIn(Workspace $workspace, string $name, string $key): Project
     {
         $project = Project::create([
-            'tenant_id' => $this->acme->id,
             'workspace_id' => $workspace->id,
             'created_by' => $this->admin()->id,
             'lead_user_id' => $this->admin()->id,
@@ -83,7 +75,6 @@ class WorkLogTest extends TestCase
         foreach (config('task_statuses.statuses') as $status) {
             $position++;
             TaskStatus::create([
-                'tenant_id' => $this->acme->id,
                 'project_id' => $project->id,
                 'name' => $status['name'],
                 'slug' => $status['slug'],
@@ -112,7 +103,6 @@ class WorkLogTest extends TestCase
             : $project->statuses()->where('is_default', true)->first();
 
         return Task::create([
-            'tenant_id' => $this->acme->id,
             'workspace_id' => $project->workspace_id,
             'project_id' => $project->id,
             'created_by' => $this->admin()->id,
@@ -315,7 +305,6 @@ class WorkLogTest extends TestCase
     public function test_workspace_summary_aggregates_across_projects(): void
     {
         $workspace = Workspace::create([
-            'tenant_id' => $this->acme->id,
             'created_by' => $this->admin()->id,
             'name' => 'Shared',
             'slug' => 'shared',

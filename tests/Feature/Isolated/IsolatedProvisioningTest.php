@@ -4,16 +4,22 @@ namespace Tests\Feature\Isolated;
 
 use App\Jobs\ProvisionTenantJob;
 use App\Models\ProvisioningRun;
+use App\Models\Subscription;
+use App\Models\SubscriptionEvent;
+use App\Models\SubscriptionPlan;
+use App\Models\SystemUser;
 use App\Models\Tenant;
 use App\Models\TenantUserRouting;
 use App\Models\User;
 use App\Services\TenantLifecycle;
 use App\Support\TenantDatabaseManager;
 use App\Support\TenantProvisioner;
+use Database\Seeders\SubscriptionPlanSeeder;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\File;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
 use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
@@ -62,7 +68,7 @@ class IsolatedProvisioningTest extends TestCase
 
     protected function tearDown(): void
     {
-        Config::set('tenancy.driver', 'shared');
+        Config::set('tenancy.driver', 'isolated');
         Config::set('tenancy.system.connection', 'system');
         Config::set('tenancy.tenant.driver', 'pgsql');
         Config::set('tenancy.tenant.db_path', database_path('tenants'));
@@ -114,27 +120,27 @@ class IsolatedProvisioningTest extends TestCase
     {
         $tenant = $this->pendingTenant();
 
-        $localId = $this->provisioner->provisionIsolated($tenant, $this->dbm, $this->lifecycle);
+        $this->provisioner->provisionIsolated($tenant, $this->dbm, $this->lifecycle);
 
         $this->assertFileExists($this->dbm->tenantDatabasePath($tenant));
+
+        // Phase 13: no local `tenants` row and no `tenant_id` columns — the tenant
+        // DB holds the domain schema only; the central Tenant row is authoritative.
+        // (switch onto the tenant connection so the schema probe hits the tenant DB)
+        $this->dbm->connect($tenant);
+        $this->assertFalse(Schema::hasTable('tenants'));
 
         $tenant->refresh();
         $this->assertSame(Tenant::STATUS_ACTIVE, $tenant->status);
         $this->assertSame(Tenant::PROVISIONING_PROVISIONED, $tenant->provisioning_status);
         $this->assertNotNull($tenant->provisioned_at);
 
-        // Local tenants row inside the tenant DB.
-        $localTenant = $this->dbm->using($tenant, fn () => DB::table('tenants')->where('slug', $tenant->slug)->first());
-        $this->assertNotNull($localTenant);
-        $this->assertSame($localId, (int) $localTenant->id);
-
-        // Owner admin user lives in the tenant DB, FKed to the local tenants row.
+        // Owner admin user lives in the tenant DB with the admin role.
         $owner = $this->dbm->using(
             $tenant,
             fn () => User::where('email', $this->ownerEmail($tenant))->with('roles')->first()
         );
         $this->assertNotNull($owner);
-        $this->assertSame($localId, (int) $owner->tenant_id);
         $this->assertSame('admin', $owner->roles->first()->slug);
 
         // Routing index mirrors the owner for login routing.
@@ -188,6 +194,52 @@ class IsolatedProvisioningTest extends TestCase
         $this->assertSame(Tenant::STATUS_ACTIVE, $tenant->status);
         $this->assertSame(Tenant::PROVISIONING_PROVISIONED, $tenant->provisioning_status);
         $this->assertFileExists($this->dbm->tenantDatabasePath($tenant));
+    }
+
+    #[Test]
+    public function job_provisions_trial_subscription_when_plan_requested(): void
+    {
+        $this->dbm->connectSystem();
+        (new SubscriptionPlanSeeder)->run();
+
+        $starter = SubscriptionPlan::where('slug', 'starter')->firstOrFail();
+
+        $tenant = $this->pendingTenant();
+        $tenant->update(['trial_ends_at' => now()->addDays(30)]);
+
+        // Phase 14: dispatch with plan + trial → the job provisions the DB, then
+        // re-stamps the subscription as trialing + writes trial_started.
+        ProvisionTenantJob::dispatch($tenant, $starter->id, 30);
+
+        $tenant->refresh();
+        $this->assertSame(Tenant::STATUS_TRIAL, $tenant->status);
+        $this->assertSame(Tenant::PROVISIONING_PROVISIONED, $tenant->provisioning_status);
+
+        $subscription = Subscription::where('tenant_id', $tenant->id)->firstOrFail();
+        $this->assertSame(Subscription::STATUS_TRIALING, $subscription->status);
+        $this->assertSame($starter->id, $subscription->plan_id);
+        $this->assertNotNull($subscription->trial_ends_at);
+        $this->assertSame($subscription->id, $tenant->subscription_id);
+
+        $event = SubscriptionEvent::where('tenant_id', $tenant->id)->firstOrFail();
+        $this->assertSame(Subscription::EVENT_TRIAL_STARTED, $event->type);
+        $this->assertSame(30, $event->data['days']);
+    }
+
+    #[Test]
+    public function provisioning_without_plan_skips_subscription(): void
+    {
+        $this->dbm->connectSystem();
+        (new SubscriptionPlanSeeder)->run();
+
+        $tenant = $this->pendingTenant();
+
+        ProvisionTenantJob::dispatch($tenant);
+
+        $tenant->refresh();
+        $this->assertSame(Tenant::STATUS_ACTIVE, $tenant->status);
+        $this->assertNull($tenant->subscription_id);
+        $this->assertSame(0, Subscription::where('tenant_id', $tenant->id)->count());
     }
 
     #[Test]
@@ -249,9 +301,9 @@ class IsolatedProvisioningTest extends TestCase
             fn () => User::where('email', $this->ownerEmail($tenant))->value('id')
         );
 
-        // Super admin lives in the system DB.
+        // Super admin lives in the system DB (SystemUser pins the `users` table).
         $this->dbm->connectSystem();
-        User::create([
+        SystemUser::create([
             'name' => 'Platform Admin',
             'email' => 'superadmin@flowsync.test',
             'password' => 'password',

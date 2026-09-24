@@ -14,6 +14,10 @@ use Illuminate\Validation\ValidationException;
 
 class ProjectService
 {
+    public function __construct(
+        private readonly TenantLimits $limits,
+    ) {}
+
     public function listFor(Workspace $workspace, User $user): Collection
     {
         $query = Project::where('workspace_id', $workspace->id)
@@ -46,6 +50,8 @@ class ProjectService
 
     public function create(Workspace $workspace, array $data, User $creator): Project
     {
+        $this->limits->assertQuota('projects');
+
         $key = $this->uniqueProjectKey($data['key'] ?? $this->suggestKey($data['name']));
 
         $project = Project::create([

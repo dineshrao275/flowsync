@@ -8,34 +8,28 @@ use App\Models\Project;
 use App\Models\ProjectRole;
 use App\Models\Task;
 use App\Models\TaskStatus;
-use App\Models\Tenant;
 use App\Models\User;
 use App\Models\Workspace;
 use App\Services\ProjectService;
 use App\Services\WorkspaceService;
-use App\Support\TenantContext;
-use Database\Seeders\TenantSeeder;
-use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
+use Tests\IsolatesDatabase;
 use Tests\TestCase;
 
 class HardeningTest extends TestCase
 {
-    use RefreshDatabase;
-
-    private Tenant $acme;
+    use IsolatesDatabase;
 
     protected function setUp(): void
     {
         parent::setUp();
-        $this->seed(TenantSeeder::class);
-        $this->acme = Tenant::where('slug', 'acme')->first();
-        app(TenantContext::class)->setTenantId($this->acme->id);
     }
 
     private function login(string $email): void
     {
         $this->postJson('/api/auth/login', ['email' => $email, 'password' => 'password'])->assertOk();
+
+        $this->connectTenant('acme');
     }
 
     private function admin(): User
@@ -51,7 +45,6 @@ class HardeningTest extends TestCase
     private function createProject(string $name = 'Hardening', string $key = 'HARD'): array
     {
         $workspace = Workspace::create([
-            'tenant_id' => $this->acme->id,
             'created_by' => $this->admin()->id,
             'name' => $name.' Workspace',
             'slug' => strtolower($key.'-ws'),
@@ -59,7 +52,6 @@ class HardeningTest extends TestCase
         $workspace->members()->attach($this->admin()->id, ['role' => 'owner', 'added_by' => $this->admin()->id]);
 
         $project = Project::create([
-            'tenant_id' => $this->acme->id,
             'workspace_id' => $workspace->id,
             'created_by' => $this->admin()->id,
             'lead_user_id' => $this->admin()->id,
@@ -73,7 +65,6 @@ class HardeningTest extends TestCase
         foreach (config('task_statuses.statuses') as $status) {
             $position++;
             TaskStatus::create([
-                'tenant_id' => $this->acme->id,
                 'project_id' => $project->id,
                 'name' => $status['name'],
                 'slug' => $status['slug'],
@@ -98,10 +89,9 @@ class HardeningTest extends TestCase
     {
         $project->increment('last_task_sequence');
         $status = $project->statuses()->where('is_default', true)->first();
-        $priority = Priority::where('tenant_id', $this->acme->id)->where('is_default', true)->first();
+        $priority = Priority::where('is_default', true)->first();
 
         return Task::create([
-            'tenant_id' => $this->acme->id,
             'workspace_id' => $project->workspace_id,
             'project_id' => $project->id,
             'created_by' => $this->admin()->id,
@@ -120,7 +110,7 @@ class HardeningTest extends TestCase
     public function test_workspace_list_computes_role_without_extra_queries(): void
     {
         foreach (['A', 'B', 'C'] as $i) {
-            $workspace = Workspace::create(['tenant_id' => $this->acme->id, 'name' => "WS $i", 'slug' => "ws-$i"]);
+            $workspace = Workspace::create(['name' => "WS $i", 'slug' => "ws-$i"]);
             $workspace->members()->attach($this->admin()->id, ['role' => 'owner']);
         }
 
@@ -213,7 +203,6 @@ class HardeningTest extends TestCase
         $task = $this->makeTask($project);
 
         $comment = Comment::create([
-            'tenant_id' => $this->acme->id,
             'task_id' => $task->id,
             'user_id' => $this->viewer()->id,
             'comment' => 'Hello!',
@@ -239,7 +228,6 @@ class HardeningTest extends TestCase
     public function test_non_impersonating_super_admin_is_blocked_from_global_reads(): void
     {
         $this->createProject();
-        app(TenantContext::class)->setTenantId(null);
         $this->login('superadmin@flowsync.test');
 
         $this->getJson('/api/dashboard')->assertForbidden();
@@ -251,7 +239,6 @@ class HardeningTest extends TestCase
     {
         [, $project] = $this->createProject();
         $this->makeTask($project);
-        app(TenantContext::class)->setTenantId(null);
         $this->login('superadmin@flowsync.test');
 
         $target = $this->admin();

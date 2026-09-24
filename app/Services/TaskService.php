@@ -16,10 +16,13 @@ class TaskService
 {
     public function __construct(
         private readonly KeyGenerator $keyGenerator,
+        private readonly TenantLimits $limits,
     ) {}
 
     public function create(Project $project, array $data, User $creator): Task
     {
+        $this->limits->assertQuota('tasks');
+
         $status = $this->resolveStatus($project, $data['status_id'] ?? null);
         $priority = $this->resolvePriority($project, $data['priority_id'] ?? null);
         $assignee = $this->resolveAssignee($project, $data['assignee_id'] ?? null);

@@ -8,33 +8,27 @@ use App\Models\ProjectRole;
 use App\Models\Task;
 use App\Models\TaskDependency;
 use App\Models\TaskStatus;
-use App\Models\Tenant;
 use App\Models\User;
 use App\Models\Workspace;
 use App\Services\NotificationService;
-use App\Support\TenantContext;
-use Database\Seeders\TenantSeeder;
-use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Event;
+use Tests\IsolatesDatabase;
 use Tests\TestCase;
 
 class NotificationTest extends TestCase
 {
-    use RefreshDatabase;
-
-    private Tenant $acme;
+    use IsolatesDatabase;
 
     protected function setUp(): void
     {
         parent::setUp();
-        $this->seed(TenantSeeder::class);
-        $this->acme = Tenant::where('slug', 'acme')->first();
-        app(TenantContext::class)->setTenantId($this->acme->id);
     }
 
     private function login(string $email): void
     {
         $this->postJson('/api/auth/login', ['email' => $email, 'password' => 'password'])->assertOk();
+
+        $this->connectTenant('acme');
     }
 
     private function admin(): User
@@ -55,7 +49,6 @@ class NotificationTest extends TestCase
     private function createProjectWithLead(string $name = 'Website', string $key = 'WEB', string $workspaceName = 'Design', string $workspaceSlug = 'design'): Project
     {
         $workspace = Workspace::create([
-            'tenant_id' => $this->acme->id,
             'created_by' => $this->admin()->id,
             'name' => $workspaceName,
             'slug' => $workspaceSlug,
@@ -63,7 +56,6 @@ class NotificationTest extends TestCase
         $workspace->members()->attach($this->admin()->id, ['role' => 'owner', 'added_by' => $this->admin()->id]);
 
         $project = Project::create([
-            'tenant_id' => $this->acme->id,
             'workspace_id' => $workspace->id,
             'created_by' => $this->admin()->id,
             'lead_user_id' => $this->admin()->id,
@@ -77,7 +69,6 @@ class NotificationTest extends TestCase
         foreach (config('task_statuses.statuses') as $status) {
             $position++;
             TaskStatus::create([
-                'tenant_id' => $this->acme->id,
                 'project_id' => $project->id,
                 'name' => $status['name'],
                 'slug' => $status['slug'],
@@ -104,7 +95,6 @@ class NotificationTest extends TestCase
         $default = $project->statuses()->where('is_default', true)->first();
 
         return Task::create([
-            'tenant_id' => $this->acme->id,
             'workspace_id' => $project->workspace_id,
             'project_id' => $project->id,
             'created_by' => $this->admin()->id,

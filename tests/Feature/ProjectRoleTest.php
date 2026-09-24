@@ -4,22 +4,14 @@ namespace Tests\Feature;
 
 use App\Models\Project;
 use App\Models\ProjectRole;
-use App\Models\Tenant;
 use App\Models\User;
 use App\Models\Workspace;
-use Database\Seeders\TenantSeeder;
-use Illuminate\Foundation\Testing\RefreshDatabase;
+use Tests\IsolatesDatabase;
 use Tests\TestCase;
 
 class ProjectRoleTest extends TestCase
 {
-    use RefreshDatabase;
-
-    protected function setUp(): void
-    {
-        parent::setUp();
-        $this->seed(TenantSeeder::class);
-    }
+    use IsolatesDatabase;
 
     private function login(string $email): void
     {
@@ -29,14 +21,10 @@ class ProjectRoleTest extends TestCase
         ])->assertOk();
     }
 
-    private function acme(): Tenant
-    {
-        return Tenant::where('slug', 'acme')->first();
-    }
-
     public function test_tenant_admin_can_create_custom_role(): void
     {
         $this->login('admin@flowsync.test');
+        $this->connectTenant('acme');
 
         $this->postJson('/api/project-roles', [
             'name' => 'QA Engineer',
@@ -46,7 +34,6 @@ class ProjectRoleTest extends TestCase
             ->assertJsonPath('role.is_system', false);
 
         $this->assertDatabaseHas('project_roles', [
-            'tenant_id' => $this->acme()->id,
             'slug' => 'qa-engineer',
             'is_system' => false,
         ]);
@@ -76,8 +63,8 @@ class ProjectRoleTest extends TestCase
     public function test_owner_can_update_custom_role_permissions(): void
     {
         $this->login('admin@flowsync.test');
+        $this->connectTenant('acme');
         $role = ProjectRole::create([
-            'tenant_id' => $this->acme()->id,
             'name' => 'QA Engineer',
             'slug' => 'qa-engineer',
             'is_system' => false,
@@ -95,6 +82,7 @@ class ProjectRoleTest extends TestCase
     public function test_system_role_cannot_be_modified_or_deleted(): void
     {
         $this->login('admin@flowsync.test');
+        $this->connectTenant('acme');
         $lead = ProjectRole::where('slug', 'lead')->first();
 
         $this->putJson("/api/project-roles/{$lead->id}", [
@@ -108,22 +96,20 @@ class ProjectRoleTest extends TestCase
     public function test_role_assigned_to_members_cannot_be_deleted(): void
     {
         $this->login('admin@flowsync.test');
+        $this->connectTenant('acme');
         $viewer = User::where('email', 'admin@flowsync.test')->first();
         $role = ProjectRole::create([
-            'tenant_id' => $this->acme()->id,
             'name' => 'QA Engineer',
             'slug' => 'qa-engineer',
             'is_system' => false,
             'permissions' => ['tasks.view'],
         ]);
         $ws = Workspace::create([
-            'tenant_id' => $this->acme()->id,
             'created_by' => $viewer->id,
             'name' => 'Design',
             'slug' => 'design',
         ]);
         $project = Project::create([
-            'tenant_id' => $this->acme()->id,
             'workspace_id' => $ws->id,
             'created_by' => $viewer->id,
             'lead_user_id' => $viewer->id,
@@ -139,8 +125,8 @@ class ProjectRoleTest extends TestCase
     public function test_unused_custom_role_can_be_deleted(): void
     {
         $this->login('admin@flowsync.test');
+        $this->connectTenant('acme');
         $role = ProjectRole::create([
-            'tenant_id' => $this->acme()->id,
             'name' => 'Temp',
             'slug' => 'temp',
             'is_system' => false,
@@ -153,9 +139,14 @@ class ProjectRoleTest extends TestCase
 
     public function test_cross_tenant_role_is_not_accessible(): void
     {
-        $acmeRole = ProjectRole::where('tenant_id', $this->acme()->id)
-            ->where('slug', 'lead')
-            ->first();
+        // Phase 13: ids are per-tenant-local (both tenants have a "lead" with the
+        // same id), so prove isolation with a role that only exists in Acme.
+        $acmeRole = ProjectRole::create([
+            'name' => 'Acme only',
+            'slug' => 'acme-only',
+            'is_system' => false,
+            'permissions' => ['tasks.view'],
+        ]);
 
         $this->login('owner@globex.test');
 

@@ -16,6 +16,13 @@ class SystemUser extends User
 {
     use CentralConnection;
 
+    /**
+     * Platform super admins live in the central `users` table (no separate
+     * `system_users` table exists); pin it explicitly — Eloquent would otherwise
+     * infer `system_users` from this class name.
+     */
+    protected $table = 'users';
+
     protected $fillable = [
         'name',
         'email',

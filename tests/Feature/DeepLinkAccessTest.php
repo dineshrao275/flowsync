@@ -6,32 +6,21 @@ use App\Models\Project;
 use App\Models\ProjectRole;
 use App\Models\Task;
 use App\Models\TaskStatus;
-use App\Models\Tenant;
 use App\Models\User;
 use App\Models\Workspace;
 use App\Services\NotificationService;
-use App\Support\TenantContext;
-use Database\Seeders\TenantSeeder;
-use Illuminate\Foundation\Testing\RefreshDatabase;
+use Tests\IsolatesDatabase;
 use Tests\TestCase;
 
 class DeepLinkAccessTest extends TestCase
 {
-    use RefreshDatabase;
-
-    private Tenant $acme;
-
-    protected function setUp(): void
-    {
-        parent::setUp();
-        $this->seed(TenantSeeder::class);
-        $this->acme = Tenant::where('slug', 'acme')->first();
-        app(TenantContext::class)->setTenantId($this->acme->id);
-    }
+    use IsolatesDatabase;
 
     private function login(string $email): void
     {
         $this->postJson('/api/auth/login', ['email' => $email, 'password' => 'password'])->assertOk();
+
+        $this->connectTenant('acme');
     }
 
     private function admin(): User
@@ -47,7 +36,6 @@ class DeepLinkAccessTest extends TestCase
     private function makeWorkspace(): Workspace
     {
         $workspace = Workspace::create([
-            'tenant_id' => $this->acme->id,
             'created_by' => $this->admin()->id,
             'name' => 'Design',
             'slug' => 'design',
@@ -60,7 +48,6 @@ class DeepLinkAccessTest extends TestCase
     private function makeProject(Workspace $workspace): Project
     {
         $project = Project::create([
-            'tenant_id' => $this->acme->id,
             'workspace_id' => $workspace->id,
             'created_by' => $this->admin()->id,
             'lead_user_id' => $this->admin()->id,
@@ -72,7 +59,6 @@ class DeepLinkAccessTest extends TestCase
 
         foreach (config('task_statuses.statuses') as $status) {
             TaskStatus::create([
-                'tenant_id' => $this->acme->id,
                 'project_id' => $project->id,
                 'name' => $status['name'],
                 'slug' => $status['slug'],
@@ -92,7 +78,6 @@ class DeepLinkAccessTest extends TestCase
         $status = TaskStatus::where('project_id', $project->id)->where('slug', 'to-do')->first();
 
         return Task::create([
-            'tenant_id' => $this->acme->id,
             'workspace_id' => $project->workspace_id,
             'project_id' => $project->id,
             'created_by' => $this->admin()->id,
@@ -135,18 +120,18 @@ class DeepLinkAccessTest extends TestCase
         $project = $this->makeProject($workspace);
         $this->makeTask($project);
 
-        app(TenantContext::class)->setTenantId(null);
-        $globex = Tenant::where('slug', 'globex')->first();
-        $globexOwner = User::withoutTenantScope()->where('tenant_id', $globex->id)->first();
-        app(TenantContext::class)->setTenantId($this->acme->id);
+        $globexOwner = $this->dbm->using($this->globex(), fn () => User::where('email', 'owner@globex.test')->first());
 
-        $project->update(['tenant_id' => $globex->id]);
+        // Cross-tenant deep link: the Acme project does not exist in the Globex tenant database.
+        $this->postJson('/api/auth/login', [
+            'email' => $globexOwner->email,
+            'password' => 'password',
+        ])->assertOk();
 
-        $this->login('admin@flowsync.test');
-
-        // Scoped to the Acme tenant context, the Globex project is invisible.
         $this->getJson("/api/projects/{$project->id}")->assertNotFound();
-        $this->assertSame($globex->id, Project::withoutTenantScope()->find($project->id)->tenant_id);
+
+        $this->connectTenant('acme');
+        $this->assertSame($project->id, Project::find($project->id)->id);
     }
 
     public function test_notification_payload_carries_deep_link_fields(): void

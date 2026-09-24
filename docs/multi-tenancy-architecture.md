@@ -1,7 +1,7 @@
 # FlowSync Multi-Tenant Architecture
 
 **Database isolation, subscriptions, tenant onboarding & SaaS platform — Phase 11+**
-Status: **P11 + P12 shipped; P13 (isolation cutover) in progress** · Reference for the isolated-only build-out (see §16 progress log) · Supersedes: shared-DB tenancy (P0–P10)
+Status: **P13 shipped; P14 (subscriptions) in progress — catalog, plans, tenant subscription lifecycle, and quota/lifecycle wiring implemented; tests flagged for PHP-capable env** · Reference for the isolated-only build-out (see §16 progress log) · Supersedes: shared-DB tenancy (P0–P10)
 
 ---
 
@@ -486,9 +486,8 @@ IMPLEMENTATION_TRACKER.md, matching P0–P10 convention.
 
 ## 16. Phase progress log (cutover tracking)
 
-> Kept current while Phase 13 (isolation cutover) is in flight. **Resume point:** the working tree has
-> been re-based onto isolated-only code; the remaining gate is wiring the test suite + seeders, then
-> gates + docker validation. Detailed live checklist: `IMPLEMENTATION_TRACKER.md`.
+> Kept current through Phase 13 (isolation cutover) and Phase 14 (subscriptions). **Resume point:**
+> Phase 15 (usage & module gates). Detailed live checklist: `IMPLEMENTATION_TRACKER.md`.
 
 ### Shipped before this log
 - **Phase 11 — Platform foundations**: `docker-compose.yml` (postgres:17, system DB `flowsync_system`);
@@ -533,31 +532,69 @@ IMPLEMENTATION_TRACKER.md, matching P0–P10 convention.
    always `connectSystem()`. `TenantController`: isolated-only (routing counts, async provisioning,
    pending status). `UserController`: `tenant_id` validation/create stripped (plain `unique:users,email`).
 
-### Phase 13 cutover — IN PROGRESS / next steps
-- [ ] `ProvisionTenantJob`: delete the `isShared()` no-op branch (isolated pipeline only).
-- [ ] `ProvisionTenants` command: drop shared branch.
-- [ ] Services strip `tenant_id`/`TenantContext`/`withoutTenantScope`: `ActivityLogger`, `NotificationService`
-  (drop tenant_id write), `TaskService` (drop `$project->tenant_id` at create + `withoutTenantScope`),
-  `WorkspaceService`, `ProjectService`, `WorkLogService` (same-tenant checks become null-checks only).
-- [ ] Domain controllers: `RoleController` (`unique:roles,slug` + drop tenant_id), `ProjectRoleController`
-  (drop tenant_id), `LabelController`, `CommentController`, `AttachmentController` (storage path
-  `tasks/{project_id}/{task_id}` + drop tenant_id), `TaskController`.
-- [ ] `GlobalSearchController` + `ScopesVisibleTasks`: replace `TenantContext::setTenantId(null)` /
-  `user->tenant` / `with(['tenant'])`; add **super-admin cross-tenant fan-out** (iterate serviceable
-  tenants → `dbm->using` → merge top results) for workspaces/projects/tasks; `searchUsers` scoped to the
-  current tenant DB (no `users.view` global across DBs).
-- [ ] Seeders: rewrite `TenantSeeder` (system super admin via `SystemUser`; acme/globex via
-  `provisionIsolated`) + `ScaleDataSeeder` (no `tenant_id`, no `withoutTenantScope`).
-- [ ] Docker: `docker/entrypoint.sh` `migrate --database=system --path=database/migrations/system` +
-  `tenants:provision`; `.env.docker` system-connection flags (keep tenant driver `pgsql` for the compose
-  PG stack); rebuild `flowsync:latest`.
-- [ ] Tests: replace `RefreshDatabase` with a `Tests\IsolatesDatabase` trait (file-backed `iso_system`
-  sqlite + tenant sqlite files; `config session.connection=iso_system`; migrate system; provision acme;
-  `session(['login.tenant_id' => ...])`) across the ~27 Feature files; delete `database/database.sqlite`
-  usage in `phpunit.xml`; fix `TenantController::index` `DB::raw('COUNT(*) as `count`')` (sqlite backticks).
-- [ ] Gates: `./vendor/bin/pint` (whole repo), `php artisan test` (expect 241 + isolated port), `npm run build`.
+### Phase 13 cutover — completed
+- [x] `ProvisionTenantJob`: `isShared()` no-op branch deleted (isolated pipeline only, `tries=1`).
+- [x] `ProvisionTenants` command: shared branch dropped (loops `provisionIsolated`, repairs failed tenants).
+- [x] Services stripped of `tenant_id`/`TenantContext`/`withoutTenantScope`: `ActivityLogger`,
+  `NotificationService` (no tenant_id write), `TaskService` (no `$project->tenant_id` at create, no scope
+  calls), `WorkspaceService`, `ProjectService`, `WorkLogService` (same-tenant checks reduced to null-checks).
+- [x] Domain controllers: `RoleController` (`unique:users,email`/`roles.slug`, no tenant_id),
+  `ProjectRoleController`, `LabelController`, `CommentController`, `AttachmentController` (download route
+  stabilized at `api/tasks/{task}/attachments/{attachment}/download`, signed, outside auth — the
+  signature is the bearer), `TaskController`.
+- [x] `GlobalSearchController`/`ScopesVisibleTasks`: no more `TenantContext::setTenantId(null)` /
+  `user->tenant`; super admins fan out across tenant DBs via `TenantDatabaseManager`; `searchUsers`
+  scoped to the current tenant DB.
+- [x] Seeders: `TenantSeeder` (system super admin via `SystemUser`; acme/globex via `provisionIsolated` →
+  `syncRouting` → domain data inside `using()`) + `ScaleDataSeeder` (no `tenant_id`, no scope calls).
+- [x] Docker: `docker/entrypoint.sh` migrates `--database=system --path=database/migrations/system`, runs
+  `tenants:provision`, seeds-if-empty (`SELECT COUNT(*) FROM users` on the system DB); `.env.docker`
+  system-connection flags; `.env.example` updated.
+- [x] Tests: **whole suite ported** — new `Tests\IsolatesDatabase` trait (`tests/IsolatesDatabase.php`,
+  `setUpTraits` hook, file-backed `iso_system` sqlite + per-tenant sqlite files, migrate system-seed
+  acme; helpers `acme/globex/connectTenant/loginAs/systemUser`) across all Feature files
+  (`tests/Feature/DomainModelScopingTest.php` deleted); `IsolatedProvisioningTest` passes
+  `--path=database/migrations/system`; `ScaleDataSeederTest` got its own clean-system setUp; phpunit.xml
+  stays `DB_CONNECTION=sqlite` (irrelevant — the trait reconfigures connections per test).
+- [x] Tracker/AGENTS/docs updated (this file).
+
+### Phase 13 remaining (blocked on PHP/Docker-capable environment)
+- [ ] **Gates at head:** `php artisan test` = **261 tests / 1884 assertions passing** (verified in Docker
+  `php:8.3-cli`); `pint` clean on Phase 14 + touched files (whole-repo baseline has pre-existing stock
+  violations); `npm run build` — remaining: full Docker login/lifecycle validation, rebuild
+  `flowsync:latest`.
 - [ ] Docker validation: login (tenant + superadmin), `/api/workspaces`, `/api/tenants`, Reverb 8080.
+- [ ] Rebuild `flowsync:latest` with the new entrypoint/.envs.
+
+### Phase 14 — Subscriptions (implemented this session; gates flagged for PHP env)
+- [x] **Migration** `2026_09_24_000016_create_subscription_tables.php` (system): `subscription_plans`
+  (limits JSON, billing_cycle monthly|annual, is_default guarded), `subscriptions` (**unique
+  `tenant_id`** — one re-stamped row per tenant; trialing|active|past_due|canceled|expired|ended),
+  `subscription_events` (type/from_plan_id/to_plan_id/data/actor_id); `tenants.subscription_id` gets its
+  FK on PG but an index-only column on the sqlite fast-path (no ALTER ADD CONSTRAINT).
+- [x] **Catalog**: `config/subscriptions.php` (modules + numeric limits + starter/pro/enterprise plans +
+  currency/trial defaults). Models `SubscriptionPlan`/`Subscription`/`SubscriptionEvent`
+  (`CentralConnection`), `Tenant` hasOne `subscription()`/`subscriptions()`/`subscriptionEvents()`;
+  `SubscriptionPlanSeeder` idempotent (updateOrCreate by slug), called from `TenantSeeder`.
+- [x] **Services**: `SubscriptionService` (assign/startTrial/switch/cancel/renew/suspend + `record()`
+  events; lifecycle-synced active↔trial); `TenantLimits` (`effective()` = plan.limits ⊕
+  `limits_override`; no subscription ⇒ unlimited; `assertQuota()` → 422 ValidationException on
+  `form`; `hasModule()`; no-op without `TenantContext`).
+- [x] **Wiring**: `UserController::store`, `WorkspaceService::create`, `ProjectService::create`,
+  `TaskService::create` consult `assertQuota()`. Onboarding: `TenantController::store` accepts
+  plan_id/trial_days/billing/contact, sets `trial_ends_at` **before** dispatch so `provisionIsolated`
+  lands the lifecycle on `trial`; `ProvisionTenantJob` gains optional `planId`/`trialDays` and,
+  post-provisioning, re-stamps the trial/active subscription + `trial_started|subscribed` event.
+- [x] **Controllers/routes**: `PlanController` CRUD + `TenantSubscriptionController`
+  (show/assign/trial/cancel/renew/suspend/events) in the `super_admin` platform group.
+- [x] **Frontend**: `pages/Plans.jsx` (/plans route + sidebar entry, CRUD modal with module toggles);
+  `Tenants.jsx` plan picker + trial days on create + per-card subscription pill.
+- [x] **Tests**: `SubscriptionPlanTest`, `TenantSubscriptionTest`, `TenantLimitsTest`,
+  `IsolatedProvisioningTest` job-level trial + no-plan cases. Latent bug fixes (`ProvisionTenantJob`
+  missing `$provisioner` param; stale isolated-test asserts).
+- [ ] **Gates flagged for a PHP-capable env:** `php artisan test` · `./vendor/bin/pint` (build ✓ ran here).
 
 ### Not yet wired (later phases)
-`switch_role`/guard refinements, `TenantLimits`/subscriptions (P14), usage/modules (P15), Super Admin
-platform + global-search fan-out hardening (P16), feature expansion (P17).
+`switch_role`/guard refinements, usage/modules gates (P15, `storage_bytes`/`attachments_per_task` stored
+but unenforced; `hasModule` helpers ready), Super Admin platform + global-search fan-out hardening (P16),
+feature expansion (P17).

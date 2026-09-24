@@ -4,12 +4,17 @@ namespace App\Http\Controllers;
 
 use App\Models\Role;
 use App\Models\User;
+use App\Services\TenantLimits;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
 
 class UserController extends Controller
 {
+    public function __construct(
+        private readonly TenantLimits $limits,
+    ) {}
+
     public function index(Request $request): JsonResponse
     {
         $users = User::with('roles')
@@ -27,6 +32,8 @@ class UserController extends Controller
 
     public function store(Request $request): JsonResponse
     {
+        $this->limits->assertQuota('users');
+
         $data = $request->validate([
             'name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'string', 'email', 'max:255', Rule::unique('users', 'email')],

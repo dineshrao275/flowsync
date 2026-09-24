@@ -112,16 +112,22 @@ class TenantDatabaseManager
         $role = $tenant->db_user ?: $dbName;
         $password = $tenant->db_password ?: Str::random(32);
 
-        if (! $this->postgresDatabaseExists($dbName)) {
-            $pdo = $this->postgresAdminConnection();
+        $pdo = $this->postgresAdminConnection();
 
-            $pdo->exec(sprintf('CREATE DATABASE "%s"', $dbName));
+        // The tenant role must own its database to CREATE in the 'public' schema
+        // (PostgreSQL 15+ revoked default CREATE/usage for non-owner roles).
+        if (! $this->postgresRoleExists($role)) {
+            $pdo->exec(sprintf('CREATE ROLE "%s" LOGIN PASSWORD %s', $role, $pdo->quote($password)));
+        } elseif (! $tenant->db_password) {
+            // The role predates the tenant row's stored password — align it so the
+            // connection credentials match the DB we generated.
+            $pdo->exec(sprintf('ALTER ROLE "%s" WITH LOGIN PASSWORD %s', $role, $pdo->quote($password)));
+        }
 
-            if (! $this->postgresRoleExists($role)) {
-                $pdo->exec(sprintf('CREATE ROLE "%s" LOGIN PASSWORD %s', $role, $pdo->quote($password)));
-            }
-
-            $pdo->exec(sprintf('GRANT CONNECT ON DATABASE "%s" TO "%s"', $dbName, $role));
+        if ($this->postgresDatabaseExists($dbName)) {
+            $pdo->exec(sprintf('ALTER DATABASE "%s" OWNER TO "%s"', $dbName, $role));
+        } else {
+            $pdo->exec(sprintf('CREATE DATABASE "%s" OWNER "%s"', $dbName, $role));
         }
 
         $tenant->update([
@@ -172,11 +178,22 @@ class TenantDatabaseManager
 
     public function connect(Tenant $tenant): void
     {
+        $previousTenantId = $this->context->currentId();
         $this->context->setTenantId($tenant->id);
 
         $connection = config('tenancy.tenant.connection', self::TENANT_CONNECTION);
         Config::set("database.connections.{$connection}", $this->buildConnectionConfig($tenant));
-        $this->switchDefault($connection);
+
+        // The 'tenant' connection is cached by the connection manager under the
+        // same name across ALL tenants, so switching from one tenant to another
+        // must always purge it — otherwise the memoized PDO keeps pointing at the
+        // PREVIOUS tenant's database. (The tenant connection is never an
+        // in-memory sqlite, so purging is always safe here — the purge-protection
+        // only matters for the central/system connection in connectSystem().)
+        if ($previousTenantId !== $tenant->id) {
+            DB::purge($connection);
+        }
+        DB::setDefaultConnection($connection);
     }
 
     public function connectSystem(): void
@@ -235,6 +252,20 @@ class TenantDatabaseManager
     private function restore(string $connection, ?int $tenantId): void
     {
         $this->context->setTenantId($tenantId);
+
+        // If we're restoring the default to the tenant connection name, rebuild
+        // the tenant config for the tenant that was active BEFORE the using()
+        // block — otherwise the 'tenant' connection would keep pointing at the
+        // tenant that the block just connected to.
+        if ($connection === config('tenancy.tenant.connection', self::TENANT_CONNECTION) && $tenantId) {
+            $tenant = Tenant::find($tenantId);
+            if ($tenant) {
+                $this->connect($tenant);
+
+                return;
+            }
+        }
+
         $this->switchDefault($connection);
     }
 

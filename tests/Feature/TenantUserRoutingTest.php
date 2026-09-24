@@ -7,7 +7,7 @@ use App\Models\Tenant;
 use App\Models\TenantUserRouting;
 use App\Support\TenantDatabaseManager;
 use Illuminate\Database\QueryException;
-use Illuminate\Support\Facades\Str;
+use Illuminate\Support\Str;
 use PHPUnit\Framework\Attributes\Test;
 use Tests\IsolatesDatabase;
 use Tests\TestCase;

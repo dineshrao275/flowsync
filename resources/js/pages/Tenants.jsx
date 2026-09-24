@@ -77,18 +77,37 @@ export default function Tenants() {
     const toast = useToast();
     const navigate = useNavigate();
     const [tenants, setTenants] = useState([]);
+    const [plans, setPlans] = useState([]);
+    const [subscriptions, setSubscriptions] = useState({});
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
     const [openMenu, setOpenMenu] = useState(null);
     const [creating, setCreating] = useState(false);
-    const [form, setForm] = useState({ name: '', slug: '', description: '' });
+    const [form, setForm] = useState({ name: '', slug: '', description: '', plan_id: '', trial_days: '' });
     const [errors, setErrors] = useState({});
     const [saving, setSaving] = useState(false);
 
     const load = useCallback(async () => {
         try {
-            const { data } = await api.get('/tenants');
-            setTenants(data.tenants);
+            const [{ data: tenantData }, { data: planData }] = await Promise.all([
+                api.get('/tenants'),
+                api.get('/plans').catch(() => ({ data: { plans: [] } })),
+            ]);
+            setTenants(tenantData.tenants);
+            setPlans(planData.plans);
+
+            const subs = {};
+            await Promise.all(
+                tenantData.tenants.map(async (tenant) => {
+                    try {
+                        const { data } = await api.get(`/tenants/${tenant.id}/subscription`);
+                        subs[tenant.id] = data.subscription;
+                    } catch {
+                        subs[tenant.id] = null;
+                    }
+                })
+            );
+            setSubscriptions(subs);
         } catch {
             setError('Unable to load tenants.');
         } finally {
@@ -118,7 +137,7 @@ export default function Tenants() {
         try {
             await api.post('/tenants', form);
             setCreating(false);
-            setForm({ name: '', slug: '', description: '' });
+            setForm({ name: '', slug: '', description: '', plan_id: '', trial_days: '' });
             toast.success(`Tenant "${form.name}" created and provisioned.`);
             await load();
         } catch (e) {
@@ -173,7 +192,7 @@ export default function Tenants() {
                             error={errors.slug}
                             required
                         />
-                        <Input
+<Input
                             label="Description (optional)"
                             name="description"
                             placeholder="What this tenant does"
@@ -181,6 +200,34 @@ export default function Tenants() {
                             onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))}
                             error={errors.description}
                         />
+                        <div className="grid grid-cols-2 gap-4">
+                            <label className="block text-sm font-medium text-gray-700">
+                                Plan
+                                <select
+                                    name="plan_id"
+                                    value={form.plan_id}
+                                    onChange={(e) => setForm((f) => ({ ...f, plan_id: e.target.value }))}
+                                    className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200"
+                                >
+                                    <option value="">No subscription</option>
+                                    {plans.map((plan) => (
+                                        <option key={plan.id} value={plan.id}>
+                                            {plan.name}
+                                        </option>
+                                    ))}
+                                </select>
+                                {errors.plan_id && <span className="mt-1 block text-xs text-red-500">{errors.plan_id}</span>}
+                            </label>
+                            <Input
+                                label="Trial days (optional)"
+                                type="number"
+                                name="trial_days"
+                                placeholder="e.g. 14"
+                                value={form.trial_days}
+                                onChange={(e) => setForm((f) => ({ ...f, trial_days: e.target.value }))}
+                                error={errors.trial_days}
+                            />
+                        </div>
                         <div className="flex gap-2 pt-1">
                             <Button type="button" variant="secondary" onClick={() => setCreating(false)}>
                                 Cancel
@@ -238,9 +285,22 @@ export default function Tenants() {
                                     <p className="text-xs text-gray-500">Roles</p>
                                 </div>
                             </div>
-                            <p className="mt-4 text-xs text-gray-400">
-                                Created {new Date(tenant.created_at).toLocaleDateString()} &middot; fully tenant-isolated
-                            </p>
+                            <div className="mt-4 flex items-center justify-between text-xs text-gray-500">
+                                <span>
+                                    Created {new Date(tenant.created_at).toLocaleDateString()} &middot; fully tenant-isolated
+                                </span>
+                                {(() => {
+                                    const sub = subscriptions[tenant.id];
+                                    return sub?.plan ? (
+                                        <span className="flex items-center gap-1.5">
+                                            <Badge>{sub.plan.slug}</Badge>
+                                            <span className="capitalize">{sub.status.replace('_', ' ')}</span>
+                                        </span>
+                                    ) : (
+                                        <span className="text-gray-400">No subscription</span>
+                                    );
+                                })()}
+                            </div>
                         </Card>
                     </div>
                 ))}

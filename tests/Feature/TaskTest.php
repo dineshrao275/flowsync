@@ -11,25 +11,19 @@ use App\Models\ProjectRole;
 use App\Models\Task;
 use App\Models\TaskDependency;
 use App\Models\TaskStatus;
-use App\Models\Tenant;
 use App\Models\User;
 use App\Models\Workspace;
-use Database\Seeders\TenantSeeder;
-use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Event;
+use Tests\IsolatesDatabase;
 use Tests\TestCase;
 
 class TaskTest extends TestCase
 {
-    use RefreshDatabase;
-
-    private Tenant $acme;
+    use IsolatesDatabase;
 
     protected function setUp(): void
     {
         parent::setUp();
-        $this->seed(TenantSeeder::class);
-        $this->acme = Tenant::where('slug', 'acme')->first();
     }
 
     private function login(string $email): void
@@ -38,6 +32,8 @@ class TaskTest extends TestCase
             'email' => $email,
             'password' => 'password',
         ])->assertOk();
+
+        $this->connectTenant('acme');
     }
 
     private function admin(): User
@@ -58,7 +54,6 @@ class TaskTest extends TestCase
     private function makeWorkspace(string $name = 'Design', string $slug = 'design'): Workspace
     {
         $workspace = Workspace::create([
-            'tenant_id' => $this->acme->id,
             'created_by' => $this->admin()->id,
             'name' => $name,
             'slug' => $slug,
@@ -76,7 +71,6 @@ class TaskTest extends TestCase
     private function createProject(Workspace $workspace, string $name = 'Website', string $key = 'WEB'): Project
     {
         $project = Project::create([
-            'tenant_id' => $this->acme->id,
             'workspace_id' => $workspace->id,
             'created_by' => $this->admin()->id,
             'lead_user_id' => $this->admin()->id,
@@ -102,7 +96,6 @@ class TaskTest extends TestCase
         foreach (config('task_statuses.statuses') as $status) {
             $position++;
             TaskStatus::create([
-                'tenant_id' => $this->acme->id,
                 'project_id' => $project->id,
                 'name' => $status['name'],
                 'slug' => $status['slug'],
@@ -121,7 +114,6 @@ class TaskTest extends TestCase
         $project->increment('last_task_sequence');
 
         return Task::create(array_merge([
-            'tenant_id' => $this->acme->id,
             'workspace_id' => $project->workspace_id,
             'project_id' => $project->id,
             'created_by' => $this->admin()->id,
@@ -188,8 +180,8 @@ class TaskTest extends TestCase
         $project = $this->createProject($ws);
         $this->addProjectMember($project, $this->editor());
         $status = $project->statuses()->where('slug', 'in-progress')->first();
-        $priority = Priority::where('tenant_id', $this->acme->id)->where('slug', 'high')->first();
-        $label = Label::create(['tenant_id' => $this->acme->id, 'workspace_id' => $ws->id, 'name' => 'UX', 'color' => '#f97316']);
+        $priority = Priority::where('slug', 'high')->first();
+        $label = Label::create(['workspace_id' => $ws->id, 'name' => 'UX', 'color' => '#f97316']);
 
         $this->login('admin@flowsync.test');
 
@@ -264,7 +256,7 @@ class TaskTest extends TestCase
         $ws = $this->makeWorkspace();
         $project = $this->createProject($ws);
         $otherWs = $this->makeWorkspace('Mobile', 'mobile');
-        $label = Label::create(['tenant_id' => $this->acme->id, 'workspace_id' => $otherWs->id, 'name' => 'Other']);
+        $label = Label::create(['workspace_id' => $otherWs->id, 'name' => 'Other']);
         $this->login('admin@flowsync.test');
 
         $this->postJson("/api/projects/{$project->id}/tasks", [
@@ -307,7 +299,7 @@ class TaskTest extends TestCase
         $project = $this->createProject($ws);
         $this->addProjectMember($project, $this->editor());
         $task = $this->makeTask($project, 'Mutable');
-        $label = Label::create(['tenant_id' => $this->acme->id, 'workspace_id' => $ws->id, 'name' => 'API']);
+        $label = Label::create(['workspace_id' => $ws->id, 'name' => 'API']);
 
         $this->login('admin@flowsync.test');
 
@@ -329,7 +321,6 @@ class TaskTest extends TestCase
         $ws = $this->makeWorkspace();
         $project = $this->createProject($ws);
         $role = ProjectRole::create([
-            'tenant_id' => $this->acme->id,
             'name' => 'Contributor',
             'slug' => 'contributor',
             'is_system' => false,
@@ -398,8 +389,8 @@ class TaskTest extends TestCase
         $project = $this->createProject($ws);
         $this->addProjectMember($project, $this->editor());
         $inProgress = $project->statuses()->where('slug', 'in-progress')->first();
-        $high = Priority::where('tenant_id', $this->acme->id)->where('slug', 'high')->first();
-        $label = Label::create(['tenant_id' => $this->acme->id, 'workspace_id' => $ws->id, 'name' => 'P1']);
+        $high = Priority::where('slug', 'high')->first();
+        $label = Label::create(['workspace_id' => $ws->id, 'name' => 'P1']);
 
         $todo = $this->makeTask($project, 'Backlog-y');
         $inProgressTask = $this->makeTask($project, 'Doing it', [

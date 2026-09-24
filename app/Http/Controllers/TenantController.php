@@ -5,8 +5,10 @@ namespace App\Http\Controllers;
 use App\Jobs\ProvisionTenantJob;
 use App\Models\Tenant;
 use App\Models\TenantUserRouting;
+use Database\Seeders\SubscriptionPlanSeeder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 
@@ -34,17 +36,29 @@ class TenantController extends Controller
             'name' => ['required', 'string', 'max:255'],
             'slug' => ['required', 'string', 'max:255', 'alpha_dash', 'unique:tenants,slug'],
             'description' => ['nullable', 'string', 'max:255'],
+            // Phase 14: onboarding plan + trial (provisioned after the DB exists).
+            'plan_id' => ['nullable', 'integer', 'exists:subscription_plans,id'],
+            'trial_days' => ['nullable', 'integer', 'min:0', 'max:3650'],
+            'billing_email' => ['nullable', 'email', 'max:255'],
+            'contact_name' => ['nullable', 'string', 'max:255'],
+            'contact_email' => ['nullable', 'email', 'max:255'],
         ]);
 
+        // The plan catalog must exist before the provisioning job plans anything.
+        (new SubscriptionPlanSeeder)->run();
+
+        $trialDays = $data['trial_days'] ?? null;
+
         $tenant = Tenant::create([
-            ...$data,
+            ...Arr::except($data, ['plan_id', 'trial_days']),
             'slug' => Str::slug($data['slug']),
             'status' => Tenant::STATUS_PENDING,
             'provisioning_status' => Tenant::PROVISIONING_PENDING,
+            'trial_ends_at' => $trialDays ? now()->addDays((int) $trialDays) : null,
         ]);
 
         // Async provisioning (QUEUE sync in tests runs it inline).
-        ProvisionTenantJob::dispatch($tenant);
+        ProvisionTenantJob::dispatch($tenant, $data['plan_id'] ?? null, $trialDays);
 
         return response()->json([
             'message' => 'Tenant creation queued for provisioning.',

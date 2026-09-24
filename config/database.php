@@ -46,8 +46,8 @@ return [
 
         // Multi-tenant SaaS (Phase 11+): central "system" database holds global
         // management data (tenants/lifecycle, plans/subscriptions, login routing,
-        // platform admins, audit, infrastructure). Used when TENANCY_DRIVER=isolated;
-        // dormant in shared mode (single DB, TENANCY_DRIVER=shared).
+        // platform admins, audit, infrastructure). Always the platform store
+        // (isolation is the only driver since Phase 13).
         'system' => [
             'driver' => 'pgsql',
             'url' => env('DB_URL'),

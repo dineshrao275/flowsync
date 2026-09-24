@@ -27,8 +27,12 @@ class TenantProvisioner
 
         // Idempotent repair: only re-enter the provisioning status when the tenant
         // is not already serviceable (lifecycle forbids active/trial → provisioning).
+        // A serviceable-but-half-provisioned tenant (e.g. stuck after a failed
+        // migration) is repaired in place without a forbidden lifecycle transition.
         if (! $tenant->isServiceable() || ! $tenant->isProvisioned()) {
-            $lifecycle->transition($tenant, Tenant::STATUS_PROVISIONING);
+            if ($lifecycle->canTransition($tenant, Tenant::STATUS_PROVISIONING)) {
+                $lifecycle->transition($tenant, Tenant::STATUS_PROVISIONING);
+            }
         }
 
         $dbm->createDatabase($tenant);

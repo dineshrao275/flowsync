@@ -131,10 +131,7 @@ class ScaleDataSeederTest extends TestCase
         foreach (Tenant::all() as $tenant) {
             $this->dbm->using($tenant, function (): void {
                 foreach (Project::with('tasks')->get() as $project) {
-                    $this->assertSame($project->tenant_id, $project->workspace->tenant_id);
-
                     foreach ($project->tasks as $task) {
-                        $this->assertSame($project->tenant_id, $task->tenant_id);
                         $this->assertSame($project->workspace_id, $task->workspace_id);
                         $this->assertSame($project->id, $task->project_id);
                     }
@@ -180,41 +177,55 @@ class ScaleDataSeederTest extends TestCase
         $tenants = Tenant::orderBy('id')->take(2)->get();
         [$first, $second] = $tenants;
 
-        $firstUsers = $this->dbm->using($first, fn () => User::pluck('id'));
-        $secondUsers = $this->dbm->using($second, fn () => User::pluck('id'));
+        // Phase 13: one database per tenant — ids restart from 1 in every tenant
+        // DB, so cross-tenant uniqueness is proven via email content, not numeric ids.
+        $firstUserEmails = $this->dbm->using($first, fn () => User::pluck('email'));
+        $secondUserEmails = $this->dbm->using($second, fn () => User::pluck('email'));
+        $this->assertTrue($firstUserEmails->intersect($secondUserEmails)->isEmpty());
 
-        $this->assertTrue($firstUsers->intersect($secondUsers)->isEmpty());
+        $firstUsers = $this->dbm->using($first, fn () => User::pluck('id'));
 
         $firstWsIds = $this->dbm->using($first, fn () => Workspace::pluck('id'));
         $secondWsIds = $this->dbm->using($second, fn () => Workspace::pluck('id'));
 
-        $firstMembershipUsers = $this->dbm->using(
+        $firstMemberEmails = $this->dbm->using(
             $first,
-            fn () => DB::table('workspace_members')->whereIn('workspace_id', $firstWsIds)->pluck('user_id')
+            fn () => DB::table('workspace_members')
+                ->join('users', 'users.id', '=', 'workspace_members.user_id')
+                ->whereIn('workspace_members.workspace_id', $firstWsIds)
+                ->pluck('users.email')
         );
-        $this->assertTrue($firstMembershipUsers->diff($firstUsers)->isEmpty());
+        $this->assertTrue($firstMemberEmails->diff($firstUserEmails)->isEmpty());
 
-        $secondMembershipUsers = $this->dbm->using(
+        $secondMemberEmails = $this->dbm->using(
             $second,
-            fn () => DB::table('workspace_members')->whereIn('workspace_id', $secondWsIds)->pluck('user_id')
+            fn () => DB::table('workspace_members')
+                ->join('users', 'users.id', '=', 'workspace_members.user_id')
+                ->whereIn('workspace_members.workspace_id', $secondWsIds)
+                ->pluck('users.email')
         );
-        $this->assertTrue($secondMembershipUsers->diff($secondUsers)->isEmpty());
-        $this->assertTrue($firstMembershipUsers->intersect($secondMembershipUsers)->isEmpty());
+        $this->assertTrue($secondMemberEmails->diff($secondUserEmails)->isEmpty());
+        $this->assertTrue($firstMemberEmails->intersect($secondMemberEmails)->isEmpty());
 
         $firstProjectIds = $this->dbm->using($first, fn () => Project::pluck('id'));
         $secondProjectIds = $this->dbm->using($second, fn () => Project::pluck('id'));
 
-        $firstProjectMembers = $this->dbm->using(
+        $firstProjectMemberEmails = $this->dbm->using(
             $first,
-            fn () => DB::table('project_members')->whereIn('project_id', $firstProjectIds)->pluck('user_id')
+            fn () => DB::table('project_members')
+                ->join('users', 'users.id', '=', 'project_members.user_id')
+                ->whereIn('project_members.project_id', $firstProjectIds)
+                ->pluck('users.email')
         );
-        $secondProjectMembers = $this->dbm->using(
+        $secondProjectMemberEmails = $this->dbm->using(
             $second,
-            fn () => DB::table('project_members')->whereIn('project_id', $secondProjectIds)->pluck('user_id')
+            fn () => DB::table('project_members')
+                ->join('users', 'users.id', '=', 'project_members.user_id')
+                ->whereIn('project_members.project_id', $secondProjectIds)
+                ->pluck('users.email')
         );
-
-        $this->assertTrue($firstProjectMembers->diff($firstUsers)->isEmpty());
-        $this->assertTrue($firstProjectMembers->intersect($secondProjectMembers)->isEmpty());
+        $this->assertTrue($firstProjectMemberEmails->diff($firstUserEmails)->isEmpty());
+        $this->assertTrue($firstProjectMemberEmails->intersect($secondProjectMemberEmails)->isEmpty());
 
         $firstTasks = $this->dbm->using(
             $first,

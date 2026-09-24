@@ -104,15 +104,23 @@ class WorkspaceMemberTest extends TestCase
     public function test_cannot_add_user_from_different_tenant(): void
     {
         $ws = $this->makeWorkspace();
-        $globexViewer = $this->dbm->using($this->globex(), fn () => User::create([
+        $this->dbm->using($this->globex(), fn () => User::create([
             'name' => 'Globex User',
             'email' => 'gv@globex.test',
             'password' => 'password',
         ]));
+
+        // Phase 13: user ids are tenant-LOCAL — a Globex id has no meaning in
+        // the Acme tenant database, so any id that fails to resolve there is
+        // rejected. (A naive `$globexViewer->id` can coincidentally match an
+        // Acme user, so use an id that is guaranteed absent.)
+        $missingId = $this->dbm->using($this->acme(), fn () => User::max('id')) + 100;
+
         $this->login('admin@flowsync.test');
+        $this->connectTenant('acme');
 
         $this->postJson("/api/workspaces/{$ws->id}/members", [
-            'user_id' => $globexViewer->id,
+            'user_id' => $missingId,
             'role' => 'member',
         ])->assertUnprocessable()
             ->assertJsonValidationErrors('user_id');

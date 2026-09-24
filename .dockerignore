@@ -16,6 +16,8 @@ storage/logs/*
 storage/framework/cache/*
 storage/framework/sessions/*
 storage/framework/views/*
+storage/framework/testing/*
+storage/app/testing/*
 database/database.sqlite
 database/tenants/
 

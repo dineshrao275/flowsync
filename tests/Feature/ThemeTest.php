@@ -3,21 +3,21 @@
 namespace Tests\Feature;
 
 use App\Models\User;
-use Database\Seeders\TenantSeeder;
-use Illuminate\Foundation\Testing\RefreshDatabase;
+use Tests\IsolatesDatabase;
 use Tests\TestCase;
 
 class ThemeTest extends TestCase
 {
-    use RefreshDatabase;
+    use IsolatesDatabase;
 
     private function loginAs(string $email): User
     {
-        $this->seed(TenantSeeder::class);
         $this->postJson('/api/auth/login', [
             'email' => $email,
             'password' => 'password',
         ])->assertOk();
+
+        $this->connectTenant('acme');
 
         return User::where('email', $email)->first();
     }

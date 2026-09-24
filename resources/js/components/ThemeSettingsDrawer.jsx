@@ -39,6 +39,7 @@ export default function ThemeSettingsDrawer({ open, onClose }) {
 
         if (result.ok) {
             toast.success('Theme updated successfully.');
+            onClose();
         } else {
             toast.error(result.message);
         }

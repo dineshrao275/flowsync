@@ -1,16 +1,21 @@
 # FlowSync — Multi-Tenant Admin Panel
 
-Laravel 12 + React 19 SPA. Session-based auth **without** Breeze/Fortify/Sanctum. SQLite storage. Vite 7 + Tailwind v4 + axios.
+Laravel 12 + React 19 SPA. Session-based auth **without** Breeze/Fortify/Sanctum. **Phase 13: one database per tenant** (PostgreSQL in prod; sqlite files for local/dev/tests) + a central `system` DB. **Phase 14 (subscriptions) shipped code:** plans/subscriptions/events (central), onboarding trials, and plan-limit enforcement — gates pending a PHP-capable env. Vite 7 + Tailwind v4 + axios. See `docs/multi-tenancy-architecture.md`.
 
 **Keep this file current** — update the relevant section whenever changes touch architecture, migrations, middleware, routes, key components, npm/Composer deps, or test counts.
 
 ## Commands
-- `php artisan test` — run test suite (**241 tests / 2101 assertions**: Auth, Permission, Theme, Tenant, + Domain Foundation P0, Workspaces P1, Projects P2, Tasks P3, Collaboration P4, Notifications P5, Time Tracking P6, Search & Reporting P7, Hardening P8, Global Search/UI P9, Scale Seed Data/Deep Links P10, + Multi-Tenant Foundation P11, + Multi-Tenant Provisioning & Routing P12)
+- Docker (full stack: postgres + app :8000 + reverb :8080 + queue): `docker-compose build && docker-compose up -d`
+  — first boot auto-runs `migrate --database=system --path=database/migrations/system` +
+  `tenants:provision` + seeds demo data (superadmin + acme + globex). Reset from scratch:
+  `docker-compose down -v` then `up -d` (app entrypoint re-initializes; `RUN_INIT=true` only for `app`.
+  No PHP/composer needed on the host — the image is `flowsync:latest`, envs in `.env.docker`).
+- `php artisan test` — run test suite (Phase 13: **isolated, per-tenant file DBs** via `Tests\IsolatesDatabase`; current gate: **261 tests / 1884 assertions passing**)
 - `npm run build` / `npm run dev` — frontend build / Vite dev server
 - `./vendor/bin/pint` — PHP code style (run over whole repo; `--dirty` only works in git)
-- `php artisan migrate:fresh --seed` — reset DB + seed via `Database\Seeders\TenantSeeder`
-- `php artisan tenants:provision` — idempotently backfill permissions/roles/priorities/project-roles for existing tenants (`--tenant=ID` for one)
-- `php artisan tenants:seed-scale` — large realistic scale seed (defaults 100 tenants / 10 users each / 5 workspaces / 5 projects / 100 tasks per project; `--tenants --users --workspaces --projects --tasks --no-related`); same-tenant isolation enforced (see P10)
+- `php artisan migrate:fresh --seed` — reset the **system** DB (migrations now live under `database/migrations/system`; run it as `migrate:fresh --database=system --path=database/migrations/system --seed` — plain `migrate` runs nothing, see Pitfalls) + seed via `Database\Seeders\TenantSeeder` (provisions acme + globex tenant DBs)
+- `php artisan tenants:provision` — idempotently provision/repair tenant DBs (`provisionIsolated` pipeline) + backfill permissions/roles/priorities/project-roles (`--tenant=ID` for one)
+- `php artisan tenants:seed-scale` — large realistic scale seed (defaults 100 tenants / 10 users each / 5 workspaces / 5 projects / 100 tasks per project; `--tenants --users --workspaces --projects --tasks --no-related`); provisions real tenants through the onboarding pipeline (see P10)
 - `composer run dev` — concurrently runs serve + queue + pail(logs) + Vite **+ Reverb websockets**
 - Entry: `resources/js/main.jsx` (imports `./bootstrap`, React StrictMode). `resources/js/app.js` is unused stock; ignore it.
 
@@ -20,26 +25,45 @@ Laravel 12 + React 19 SPA. Session-based auth **without** Breeze/Fortify/Sanctum
 - `owner@globex.test` (admin) — Globex tenant
 
 ## Tenant isolation (core design)
-Single shared DB; `tenant_id` nullable FK on `users`, `roles`, `permissions`. `users.is_super_admin` bool — super admin has `tenant_id = null` (global).
-- `app/Support/TenantContext.php` — singleton (`tenantId`, `impersonating`); bound in `AppServiceProvider`.
-- `app/Models/Concerns/TenantScoped.php` — global scope `tenant` applied to User/Role/Permission but **only when `currentId()` is non-null** (avoids scoping during login/auth). For global queries use `withoutTenantScope()`.
-- Middleware order on tenant routes: `auth` → `tenant` → `permission`/`super_admin`; domain routes (P1+) use `auth` → `tenant` → `tenant_context` → `permission`.
-  - `SetTenantContext` (`tenant`) resolves tenant from session `impersonate.tenant_id` else `user->tenant_id`.
+**One database per tenant** (Phase 13 shipped): tenant DBs hold the full domain schema **without `tenant_id`
+columns** (uniqueness is global-within-DB), and the central **system** DB holds platform data (`tenants`,
+`tenant_users`, `provisioning_runs`, `impersonation_logs`, infra sessions/jobs/cache, platform RBAC,
+`audit_logs`) + the super admin (`users` table with `is_super_admin`; model `SystemUser`).
+- `app/Support/TenantDatabaseManager.php` — singleton managing the two connection names: `system`
+  (central, alias `iso_system` in tests) and `tenant` (the current tenant's DB). `connect()/connectSystem()`
+  switch the default in-app connection; `using($tenant, fn)` scopes a closure to a tenant DB; central models
+  use the `CentralConnection` trait (`getConnectionName()` → `centralConnectionName()`).
+- `app/Support/TenantContext.php` — guard-intent singleton (`tenantId`, `impersonating`) set by
+  `SetTenantContext` from session keys; no row-scoping branch anymore.
+- Middleware order on routes: `switch_tenant` → `auth` → `tenant` → `permission`/`super_admin`; domain routes
+  (P1+) use `switch_tenant` → `auth` → `tenant` → `tenant_context` → `permission`.
+  - `SwitchTenant` resolves the per-tenant connection from session `login.tenant_id` / `impersonate.tenant_id`
+    (**central** ids) and calls `TenantDatabaseManager::using()`.
+  - `SetTenantContext` (`tenant`) sets the singleton from session keys (isolated branch only).
   - `EnsureSuperAdmin` (`super_admin`) requires `is_super_admin`.
-  - `EnsureTenantContext` (`tenant_context`) aborts 403 unless a tenant context exists — blocks non-impersonating super admins from domain (unscoped) routes.
+  - `EnsureTenantContext` (`tenant_context`) aborts 403 unless a tenant context exists — blocks non-impersonating super admins from domain routes.
   - `EnsurePermission` (`permission:slug`) + `Gate::define('permission')` bypass for super admin — **unless impersonating** (then scoped to target tenant).
-- Uniqueness is per-tenant: `roles.slug`, `permissions.slug`, domain `slug`/`key` columns are `unique(tenant_id, slug)` etc.; `users.email` is `unique(tenant_id, email)`. Super admin rows have null tenant (email unique not enforced there).
+- Login routes to a tenant via central `tenant_users` routing (`AuthController::loginIsolated`, optional
+  `tenant` slug disambiguator); super admins fall back to the system DB. Impersonation resolves the target
+  user's tenant-LOCAL id through routing; `stop` returns to the system connection.
 
 ## Task-management domain (Phase 0 foundation + P1+)
-Hierarchy: **Tenant → Workspace → Project → Task** (subtask `tasks.parent_id` self-FK). Every domain table carries `tenant_id`; all directly-queried domain models use `TenantScoped`.
-- New tables (migrations `2026_09_23_000005` → `000010`): `workspaces`, `workspace_members` (role owner/admin/member), `project_roles` (tenant catalog, `permissions` JSON), `priorities` (tenant catalog), `projects` (+ `last_task_sequence`, unique `(tenant_id, key)`), `project_members` (+ `project_role_id`), `task_statuses` (per-project, `category` enum drives board columns, `is_done`), `tasks` (SoftDeletes, `position`, `status_id`, `priority_id`, unique `(project_id, key|sequence)`), `labels` + `task_label`, `comments` (SoftDeletes), `attachments`, `work_logs`, `task_dependencies` (blocks/related_to), `activities` (polymorphic audit), `notifications` (custom; NOT Laravel's `Notifiable` method table).
+Hierarchy: **Tenant → Workspace → Project → Task** (subtask `tasks.parent_id` self-FK). Tenant DBs hold the full domain schema **without `tenant_id`** — tenant isolation is the physical DB (no `TenantScoped`).
+- New tables (migrations `2026_09_23_000005` → `000010`): `workspaces`, `workspace_members` (role owner/admin/member), `project_roles` (tenant catalog, `permissions` JSON), `priorities` (tenant catalog), `projects` (+ `last_task_sequence`, unique `key`), `project_members` (+ `project_role_id`), `task_statuses` (per-project, `category` enum drives board columns, `is_done`), `tasks` (SoftDeletes, `position`, `status_id`, `priority_id`, unique `(project_id, key|sequence)`), `labels` + `task_label`, `comments` (SoftDeletes), `attachments`, `work_logs`, `task_dependencies` (blocks/related_to), `activities` (polymorphic audit), `notifications` (custom; NOT Laravel's `Notifiable` method table).
 - Index optimization (migration `2026_09_23_000011_add_task_search_indexes`): B-tree indexes on `tasks.workspace_id`, `tasks.status_id`, `tasks.assignee_id`, `tasks.due_date`, and `(tasks.project_id, tasks.updated_at)` — until Phase 7 the `tasks` table only carried its two unique composites and no plain FK indexes.
-- FK-composite hardening (migration `2026_09_23_000012_add_hardening_indexes`): indexes on `projects.workspace_id`, `tasks.parent_id`, `task_label.label_id`, `comments(task_id,parent_id)`+`user_id`, `attachments.task_id|user_id`, `work_logs(task_id,started_at)`+`user_id`, `task_dependencies.depends_on_task_id`, `activities(tenant_id,subject_type,subject_id)`, `role_user.user_id`, `permission_role.role_id`.
+- FK-composite hardening (migration `2026_09_23_000012_add_hardening_indexes`): indexes on `projects.workspace_id`, `tasks.parent_id`, `task_label.label_id`, `comments(task_id,parent_id)`+`user_id`, `attachments.task_id|user_id`, `work_logs(task_id,started_at)`+`user_id`, `task_dependencies.depends_on_task_id`, `activities(subject_type,subject_id)`, `role_user.user_id`, `permission_role.role_id`.
 - N+1 guard: `Workspace::memberRole()` / `Project::memberRole()` short-circuit to the **loaded** `members` relation (no per-row pivot query); the list services (`WorkspaceService::listFor`, `ProjectService::listFor|listAll`) eager-load `members` constrained to the current user so role resolution never re-queries. New global/read queries should follow the same pattern (see `ScopesVisibleTasks`).
 - Soft deletes: `tasks` + `comments` use `SoftDeletes`; trashed rows 404 via implicit route binding and are excluded from board/list/search/dashboard/reports/subtasks by the global scope (no `withTrashed`-based restore surfaces; deletions broadcast `TaskSynced`) — `tests/Feature/HardeningTest.php` locks all of this in.
 - Enums in `app/Enums`: `WorkspaceMemberRole`, `TaskStatusCategory`, `TaskDependencyType`.
 - Default catalogs: `config/permissions.php` (tenant perms incl. `workspaces.view|create|manage`), `config/project_roles.php` (project-role perms, seeded lead=`*`/developer/viewer), `config/priorities.php` (highest→lowest, default medium), `config/task_statuses.php` (per-project default statuses, seeded on project create).
-- `TenantProvisioner::provision()` clones perms+roles+priorities+project_roles **idempotently** and pins `TenantContext` to null internally (safe to call anytime). `php artisan tenants:provision` backfills existing tenants.
+- `TenantProvisioner::provisionIsolated()` provisions/clones perms+roles+priorities+project_roles **idempotently** (pins `TenantContext` to null internally — safe to call anytime). `php artisan tenants:provision` provisions/repairs existing tenants.
+- PostgreSQL provisioning (exercised by the docker compose stack): `createPostgresDatabase()` creates the
+  tenant role FIRST then `CREATE DATABASE … OWNER role` (or `ALTER DATABASE … OWNER` when repairing an
+  existing DB) — PG15+ revokes CREATE on the `public` schema for non-owners, so without ownership the
+  tenant role gets 42501 on tenant migrations; `Tenant::$hidden` includes `db_password` (never expose the
+  per-tenant DB credential in API JSON), and `provisionIsolated` only lifecycle-transitions to
+  `provisioning` when `TenantLifecycle::canTransition()` permits (a serviceable-but-half-provisioned
+  tenant repairs in place instead of throwing active→provisioning).
 - Task keys generated by `app/Services/KeyGenerator::nextTaskKey()` — returns `[key, sequence]` tuple (atomic `last_task_sequence` bump in a transaction → `KEY-N`).
 - Policies in `app/Policies/` gate membership + project-role (P1+ fills these in; policy scaffolding per model).
 
@@ -74,7 +98,7 @@ Hierarchy: **Tenant → Workspace → Project → Task** (subtask `tasks.parent_
 - Access: all endpoints in `routes/web.php` sit in the domain group `auth → tenant → tenant_context → permission:workspaces.view`. Controllers MUST declare `Project $project` alongside `Task $task` in every method signature — Laravel binds `{project}`/`{task}` from the **controller signature** (ImplicitRouteBinding); omitting `Project` leaves it a raw string spliced positionally → TypeError.
 - Comments: `GET|POST projects/{project}/tasks/{task}/comments`, `PUT|DELETE …/comments/{comment}`. `index` returns a nested tree `{comments:[{…, replies:[…]}]}` (top-level `parent_id IS NULL`, one level deep). `store` validates `parent_id` is a same-task **top-level** comment (else 422 `parent_id`). Mutations gated by `CommentPolicy` (auto-discovered): create via `authorize('create', [Comment::class, $task])` (note the array form so the policy resolves to CommentPolicy); update/delete by owner OR project-role `comments.edit|delete` OR tenant admin; route-model-bound `{comment}` verified `task_id === $task->id` else 404; soft-deleted/trashed comments 404. `present()` emits `id/comment/edited_at/deleted_at/created_at/user{id,name,email}` (no `parent_id` — tree nesting carries it). Broadcasts `App\Events\CommentSynced` on `private('project.'.$comment->task->project_id)` with `broadcastAs('comment.synced')` (action created/updated/deleted, queued).
 - Dependencies: `GET|POST projects/{project}/tasks/{task}/dependencies`, `DELETE …/dependencies/{dependency}`. `index` returns `{blocked_by:[…], blocks:[…]}` — **blocked_by** = tasks this task depends on (`task_id === $task->id`, exposing `dependsOn`), **blocks** = tasks that depend on it (`depends_on_task_id === $task->id`, exposing `task`); entries carry `{id, type, task_id, depends_on_task_id, task:{id,key,title,status_id,completed_at}}`. `store` (gated `authorize('edit', $task)` = `tasks.edit`) rejects self-dep (422 `depends_on_task_id`), cross-project blocker (422 `depends_on_task_id` — `$task->project->tasks()->find()`), duplicates (422 `form`), and BFS-detected cycles (422 `form`). Hard-block integration: `open_blockers_count` (`withCount('openBlockers')`) on task show payload; `TaskMoveController::move` rejects Done when `hasOpenBlockers()`. `TaskDependency` has **no tenant_id** (only `task_id`/`depends_on_task_id`/`type` enum).
-- Attachments: `GET|POST projects/{project}/tasks/{task}/attachments`, `DELETE …/attachments/{attachment}`, plus **signed download** `GET api/tasks/{task}/attachments/{attachment}/download` → `attachments.download`, middleware `signed` (alias registered in `bootstrap/app.php`), intentionally **outside** the auth/tenant groups so a fresh-browser-tab GET works — the signature is the bearer token. Validation: `File::types([jpeg,png,gif,webp,svg,pdf,doc,docx,xls,xlsx,ppt,pptx,txt,md,csv,zip,json])->max(10 * 1024)`; stored on `local` disk (root `storage/app/private`) at `tasks/{tenant_id}/{task_id}/{uuid}.{ext}`. `AttachmentPolicy`: view=`tasks.view`, create (`[Attachment::class, $task]`) = `attachments.create`, delete = owner OR `attachments.delete` OR tenant admin. `present()` includes `download_url` = `url()->temporarySignedRoute('attachments.download', now()->addHours(1), ['task' => $attachment->task_id, 'attachment' => $attachment->id])`. Delete also removes the file via `Storage::disk($attachment->disk)->delete($path)`. Model `url()` uses `Storage::temporaryUrl` (local-disk has no temp URLs — prefer the signed route).
+- Attachments: `GET|POST projects/{project}/tasks/{task}/attachments`, `DELETE …/attachments/{attachment}`, plus **signed download** `GET api/tasks/{task}/attachments/{attachment}/download` → `attachments.download`, middleware `signed` (alias registered in `bootstrap/app.php`), intentionally **outside** the auth/tenant groups so a fresh-browser-tab GET works — the signature is the bearer token. Validation: `File::types([jpeg,png,gif,webp,svg,pdf,doc,docx,xls,xlsx,ppt,pptx,txt,md,csv,zip,json])->max(10 * 1024)`; stored on `local` disk (root `storage/app/private`) at `tasks/{project_id}/{task_id}/{uuid}.{ext}`. `AttachmentPolicy`: view=`tasks.view`, create (`[Attachment::class, $task]`) = `attachments.create`, delete = owner OR `attachments.delete` OR tenant admin. `present()` includes `download_url` = `url()->temporarySignedRoute('attachments.download', now()->addHours(1), ['task' => $attachment->task_id, 'attachment' => $attachment->id])`. Delete also removes the file via `Storage::disk($attachment->disk)->delete($path)`. Model `url()` uses `Storage::temporaryUrl` (local-disk has no temp URLs — prefer the signed route).
 - Activity timeline: `GET projects/{project}/tasks/{task}/activities` (Task subject) and `GET projects/{project}/activities` (Project subject + its task ids). Both `orderByDesc('id')` (second-precision `created_at` ties are non-deterministic — never order by `created_at` alone), limit 100/200, `with('actor')`; `present()` = `{id, action, data, created_at, actor:{id,name}, subject_type}`. `ActivityLogger::log(subjectType, subjectId, action, data?, actor?, ipAddress?)` writes a polymorphic `activities` row (tenant from `TenantContext`). Wired on: task create/update/delete (`task.created|updated|deleted`, data `{key,title}`/`{key,fields}`), move (`task.moved`, data `{from_status:{id,name}, to_status:{id,name}}`), comment (`task.commented`, `{comment_id, snippet}`), dependency create/delete (`task.dependency_created|deleted`, `{depends_on_task_id,type}`), attachment create/delete (`task.attachment_created|deleted`, `{attachment_id,name,size}`).
 - Frontend: sub-tabs inside the `TaskDetail` drawer (`details` = edit form kept as-is; plus `comments`/`attachments`/`dependencies`/`time`/`activity`). `CommentThread` subscribes `window.Echo.private('project.{id}')` `.comment.synced` → refetch (only while mounted). `AttachmentList` uses `multipart/form-data` `{headers:{'Content-Type':'multipart/form-data'}}` + `fieldErrors`, download links open `download_url` in a new tab. `DependencyPanel` picker uses `topLevelTasks` (board tasks) for `depends_on_task_id`. Activities rendered via `describe(action, data)` label map (moved shows `from/to` status names, commented shows snippet).
 - **Binding gotcha:** because `ImplicitRouteBinding` substitutes only the controller signature's model params, every collab method takes `(Request $request, Project $project, Task $task, …)` even when `$project` is unused — the extra bound param is what keeps the raw `{project}` string out of positional argument splicing. (See also the `ResolvesRouteDependencies` value-matching behavior.)
@@ -110,7 +134,7 @@ Hierarchy: **Tenant → Workspace → Project → Task** (subtask `tasks.parent_
   - `workspaces`: same-tenant (visible scope), carries `tenant` name, `projects_count`.
   - `projects`: visible scope (tenant-manager → all; else project member), carries `workspace` name, `tasks_count`.
   - `tasks`: via `visibleTaskQuery()` (see Phase 7) **plus** the new `ScopesVisibleTasks::userManagesAllTasks()` bypass that treats a **non-impersonating super admin** as a tenant-wide manager; capped to 8, `orderByDesc('tasks.updated_at')`.
-  - `users`: gated `users.view` (or super admin), scoped `tenant_id`, matches name/email local part, sorted by name; **no navigation action** client-side.
+  - `users`: gated `users.view` (or super admin), scoped to the current tenant DB, matches name/email local part, sorted by name; **no navigation action** client-side.
 - Frontend: `resources/js/components/search/CommandPalette.jsx` — Jira-style quick search. Triggered via global `⌘K`/`Ctrl+K` (Topbar keydown effect) and a Topbar "Search… ⌘K" button/icon; state owned by `AdminLayout`, gated on `can('workspaces.view')`. Debounced 250ms `GET /search/global` (AbortController), grouped results (Tasks/Projects/Workspaces/People) with entity icons, ↑/↓/↵/esc keyboard nav + mouse, min 2 chars. Navigates: task → `/projects/{id}?tab=tasks&task=KEY`; project → `/projects/{id}`; workspace → `/workspaces/{id}`.
 - Task deep-link: `ProjectDetail` reads `?task=KEY` — forces the Tasks tab via tab-init (`?tab` wins) and an effect auto-opens the task drawer once the board/list pool contains it (ref-guarded so board refetches don't re-open). The query string is **kept in the URL** (no `replaceState` strip) so the link survives refresh/direct-tab — see Phase 10 for the section-aware form.
 - UI primitives now live in `resources/js/components/ui/` (`Select`, `Modal`, `Drawer`, `EmptyState`, `Avatar`, `Spinner`, `fieldStyles.js`; enriched `Button`, `Input`, `Card`). Sidebar is collapsible (`w-64 ↔ w-16`, persisted via localStorage key `flowsync.sidebar.collapsed`, sectioned nav + active pill + accent bar). Toasts were modernized — compact tinted card, no progress bar, `warning` type added. Kanban board scrolls horizontally in one row (`board-scroll`) instead of a wrapping grid (fixes Done column dropping below Backlog). `TaskDetail` uses the shared `Drawer` (footer actions, meta-rail layout). Remaining grid/flex selects use `fieldClass`/`fieldClassCompact` directly (`Select` is label-wrapping and unfit for inline cells).
@@ -147,7 +171,7 @@ Hierarchy: **Tenant → Workspace → Project → Task** (subtask `tasks.parent_
 - Session key `impersonate` = `['log_id', 'tenant_id', 'original_user_id', 'original_user_name']`; then `Auth::login($target)` + `session()->regenerate()`.
 - Controllers: `ImpersonationController@start` (super_admin | `POST api/impersonate`) and `@stop` (`POST api/impersonate/stop`, only `auth`, works while impersonating).
 - Audit rows in `impersonation_logs` (`super_admin_id`, `tenant_id`, `impersonated_user_id`, `ip_address`, `started_at`, `ended_at`).
-- Stop must resolve the original super admin with `User::withoutTenantScope()` (global scope would hide it).
+- Stop must resolve the original super admin from the system DB (`connectSystem()` before the lookup).
 - Cannot impersonate super admins; `AuthController::me`/`logout` include impersonation state.
 
 ## Theming
@@ -168,15 +192,16 @@ Hierarchy: **Tenant → Workspace → Project → Task** (subtask `tasks.parent_
 - Tasks UI: ProjectDetail's **Tasks** tab owns board/list state (`view`, `filters`, `board`, `listTasks`, `taskOptions`, `selectedTask`); tasks load lazily (`tab === 'tasks'`) and refetch on `view`/`filters` change and on `task.synced` broadcasts. Board/list modal+drawer (`CreateTaskModal`, `TaskDetail`) take `options` from the response's `filters` payload; opens fetch full detail via `GET tasks/{task}` (`openTask`), saves refetch the board (`updateTask`/`deleteTask`/`createTask` throw on error so forms can surface `fieldErrors`). Drag-drop posts `{status_id, index}` then refetches.
 - Notifications UI: `NotificationBell` in the Topbar (badge = unread count, dropdown = latest 8 with avatar/message/relative-time, click marks read + navigates to the task via `notificationHref`) and `/notifications` page (paginated list, per-item mark-read on click, "Mark all as read", breadcrumb). Live updates come from `NotificationContext` (Echo `user.{id}` `.notification.sent` → toast via `describeNotification`; 30s unread poll fallback when Reverb is off).
 
-## Multi-tenant SaaS architecture (Phase 11 + 12, in progress)
+## Multi-tenant SaaS architecture (Phase 11 → 13 shipped; P14+ in progress)
 - **Read `docs/multi-tenancy-architecture.md` before any architectural work.** Direction: PostgreSQL
-  **one database per tenant** + central system DB. Dual-mode build-out: `TENANCY_DRIVER=shared`
-  (default, current 241-test suite stays green on a single SQLite DB) vs `isolated` (per-tenant DBs).
+  **one database per tenant** + central system DB. **Phase 13 shipped: the app is isolated-only** —
+  `TENANCY_DRIVER=shared` no longer exists (default `isolated`); tenant DBs are PostgreSQL in prod and
+  sqlite **files** (fast-path) for local/dev/tests, plus a central `system` DB.
 - **Phase 11 shipped (foundations):** `docker-compose.yml` (postgres:17, system DB `flowsync_system`);
   `config/database.php` gains `system` + `tenant` pg connections; `config/tenancy.php`
   (driver/connection/db-prefix). `app/Support/TenantDatabaseManager.php` (singleton, bound in
-  `AppServiceProvider`) — `dsn()`, `connect()`, `connectSystem()`, `using()`; shared mode = connection
-  no-op + TenantContext row scoping, isolated mode = per-request connection switch. Tenant model
+  `AppServiceProvider`) — `dsn()`, `connect()`, `connectSystem()`, `using()`, `centralConnectionName()`,
+  `tenantDriver()`, `tenantDatabasePath()`, `createDatabase()`, `migrateTenant()`. Tenant model
   expanded by migration `000013` (status/provisioning_status/provisioning_error/provisioned_at,
   `db_name|host|port|user|password` encrypted via `encrypted` casts, `subscription_id` index only —
   FK lands with the subscriptions table in P14, billing/contact/trial, `limits_override|features_override
@@ -193,20 +218,19 @@ Hierarchy: **Tenant → Workspace → Project → Task** (subtask `tasks.parent_
   `app/Models/Concerns/CentralConnection.php` trait (`getConnectionName()` →
   `TenantDatabaseManager::centralConnectionName()`: shared → `database.default`, isolated →
   `tenancy.system.connection`) is applied to all central models (`Tenant`, `ImpersonationLog`,
-  `AuditLog`, `PlatformRole`, `PlatformPermission`, + new `TenantUserRouting`, `ProvisioningRun`).
-  `TenantScoped` row-scoping now no-ops in isolated mode (tenant `tenant_id` cols hold **local** ids).
+  `AuditLog`, `PlatformRole`, `PlatformPermission`, + new `TenantUserRouting`, `ProvisioningRun`). (The old `TenantScoped` row-scoping was removed entirely in
+  Phase 13 — tenant `tenant_id` columns no longer exist; the DB is the boundary.)
   `config/tenancy.php` adds `tenant.driver` (env `TENANT_DB_DRIVER`, default `pgsql`, `sqlite` =
   first-class local/dev/test fast-path via `tenant.db_path` env `TENANT_DB_PATH` files
   `{slug}_{id}.sqlite`) — PG paths (`createDatabase`/`createPostgresDatabase`/`postgresAdminConnection`)
-  are behind the same code but only exercised when a PG is reachable. `TenantDatabaseManager` gains
-  `centralConnectionName()/tenantDriver()/tenantDatabasePath()/createDatabase()/migrateTenant()` and a
+  are behind the same code but only exercised when a PG is reachable. `TenantDatabaseManager` has a
   safe `switchDefault()` that **only purges the target connection when it differs from the current
   default** (purging an in-memory sqlite `:memory:` connection wipes the test DB — never
   `connectSystem()` while default is `:memory:` sqlite; isolated tests use a file-backed custom
   `iso_system` connection). `TenantProvisioner::provisionIsolated()` is the idempotent pipeline
-  (connect → `createDatabase` → `migrateTenant` → **insert local `tenants` row** (FKs) → seed → owner
-  `createAdmin` → `syncRouting` tenant_users → trial/active; skipped re-transition when already
-  serviceable+provisioned). `app/Jobs/ProvisionTenantJob.php` (`tries=1`, no auto-retry; repair via
+  (connect → `createDatabase` → `migrateTenant` → seed → owner local `createAdmin` → `syncRouting`
+  tenant_users → trial/active; skipped re-transition when already serviceable+provisioned).
+  `app/Jobs/ProvisionTenantJob.php` (`tries=1`, no auto-retry; repair via
   `tenants:provision`) records `provisioning_runs`, transitions to provisioning, and on failure marks
   tenant `provisioning_failed` + `provisioning_error`. `app/Http/Middleware/SwitchTenant.php`
   (`switch_tenant` alias in `bootstrap/app.php`) — both authenticated route groups now start
@@ -221,19 +245,83 @@ Hierarchy: **Tenant → Workspace → Project → Task** (subtask `tasks.parent_
   → isolated: pending + dispatch job (202); `users()`/`counts()`/`index()` read via routing.
   `ProvisionTenants` command repairs isolated tenants. Tenant DBs run the **full current migration set**
   (central-table clutter accepted pre-cutover).
-- **Not yet wired (later phases):** `switch_role`/guard refinements, `TenantLimits`/subscriptions (P14),
-  Super Admin platform (P16). Look for `TENANCY_DRIVER=isolated` cutover in P13.
+- **P13 cutover shipped** (see the Tenant-isolation section above; full test suite now runs through
+  `Tests\IsolatesDatabase` on per-tenant sqlite files).
+- **Phase 14 (subscriptions) shipped code** — see the Subscriptions section below.
+- **Not yet wired (later phases):** `switch_role`/guard refinements, usage + module gates (P15),
+  Super Admin platform (P16).
+- Phase plan + Jira-feature expansion map + security/testing/migration strategy: see the doc (§14, §10, §12, §13, §11).
+
+## Subscriptions (Phase 14)
+- **Central/system** (migration `2026_09_24_000016_create_subscription_tables.php`):
+  `subscription_plans` (limits JSON), `subscriptions` (**unique `tenant_id`** — one re-stamped row per
+  tenant; statuses trialing|active|past_due|canceled|expired|ended), `subscription_events`
+  (type subscribed|plan_changed|renewed|trial_started|trial_expired|canceled|reactivated|paused|
+  payment_failed|seats_changed, from/to_plan_id, data, actor_id → system users). `tenants.subscription_id`
+  FK lands **only on PostgreSQL** — the sqlite fast-path can't ALTER ADD CONSTRAINT, so it gets a plain
+  index (app-level FK via the model).
+- `config/subscriptions.php` = machine-readable catalog (modules: time_tracking/reports/global_search/
+  api/branding/audit_export; numeric limits: users/seats/workspaces/projects/tasks/storage_bytes/
+  attachments_per_task; default plans starter/pro/enterprise). Seeded idempotently by
+  `SubscriptionPlanSeeder` (`updateOrCreate` by slug, `is_default` guarded), which runs inside
+  `TenantSeeder` and `TenantController::store`.
+- Models `SubscriptionPlan` (`limit($key)`/`hasModule($module)`/`periodEnd(?Carbon)`),
+  `Subscription` (`isActive()`/`onTrial()`; `Subscription::EVENT_*` constants), `SubscriptionEvent` —
+  all `CentralConnection`; `Tenant` gained `subscription()`/`subscriptions()`/`subscriptionEvents()`.
+- `app/Services/SubscriptionService.php` — `assign` (first subscribe **or** re-stamp + `plan_changed`),
+  `startTrial` (updates `tenant.trial_ends_at`, lifecycle → TRIAL), `switch`, `cancel`, `renew`
+  (reactivated vs renewed), `suspend` (past_due + `paused`), `record()` event writer. Lifecycle-synced:
+  active↔trial via `TenantLifecycle`.
+- `app/Services/TenantLimits.php` — `effective(Tenant)` = plan.limits ⊕ `tenants.limits_override`
+  (override wins); **no subscription ⇒ unlimited** (keeps seeded acme/globex and legacy tenants running);
+  `assertQuota(resource, context)` counts on the tenant (default) connection and throws
+  `ValidationException` → 422 `form`; **no-op when `TenantContext::currentId()` is null**
+  (provisioning/seeders/direct-service tests). Consulted by `UserController::store` + every create in
+  `WorkspaceService`/`ProjectService`/`TaskService`. `hasModule()` helpers ready for P15 gates.
+- Onboarding: `TenantController::store` validates plan_id (exists:subscription_plans,id), trial_days,
+  billing_email/contact_*; sets `trial_ends_at` **before** dispatching so `provisionIsolated` lands the
+  lifecycle on `trial`. `ProvisionTenantJob` constructor gained optional `?int $planId` / `?int $trialDays`
+  and, post-provisioning, creates/re-stamps the subscription + `trial_started|subscribed` event
+  (falls back to default plan; no-op when no plans exist).
+- Routes (super_admin group, system scope): `GET|POST /api/plans`, `PUT|DELETE /api/plans/{plan}`;
+  `GET|POST /api/tenants/{tenant}/subscription`, `POST …/subscription/trial|cancel|renew|suspend`,
+  `GET …/subscription/events`. Controllers: `PlanController`, `TenantSubscriptionController`.
+- Frontend: `pages/Plans.jsx` at `/plans` (sideber super-admin entry; CRUD modal incl. module toggles);
+  `Tenants.jsx` create form gained a plan picker + trial days and tenant cards show a subscription pill
+  (lazy `GET /tenants/{id}/subscription`).
+- Latent bugs fixed: `ProvisionTenantJob::handle()` **lacked the `TenantProvisioner $provisioner`
+  parameter** (undefined-variable crash); `IsolatedProvisioningTest` asserted a local `tenants` row +
+  `users.tenant_id` + a void return from `provisionIsolated` (rewritten for Phase 13 reality).
 - Phase plan + Jira-feature expansion map + security/testing/migration strategy: see the doc (§14, §10, §12, §13, §11).
 
 ## Pitfalls / gotchas
+- **Laravel `SortedMiddleware` reorders route middleware by the Kernel `$middlewarePriority` list.**
+  Any custom middleware that must run BEFORE route-model binding (Swizzlen i.e. `SwitchTenant`,
+  `SetTenantContext`, `EnsureTenantContext`, `EnsureSuperAdmin`, `EnsurePermission`) MUST be registered
+  in `$middleware->priority([...])` in `bootstrap/app.php` (positioned before `SubstituteBindings`) —
+  otherwise binding runs on the connection the previous request left behind (the central DB in tests →
+  "no such table: <table>" 500s on iso_system). If you add a new DB-switching middleware to a route
+  group, update that priority list.
+- **`TenantDatabaseManager::connect()` purges the `tenant` connection whenever the tenant id changes**
+  (the connection manager caches it by name across all tenants, so without the purge a `using($tenant)`
+  for a second tenant silently re-hits the first tenant's DB) and `restore()` rebuilds the tenant
+  connection from the previously-active tenant — `using()` is therefore safe to nest across different
+  tenants. Never add a purge-skip for the *tenant* name; the purge-protection lives in
+  `switchDefault()` and only guards the central/system connection.
 - No `/register` route, page, or endpoint — tenant admins create users via `POST /api/users`; create roles via `POST /api/roles`.
 - React requires `@vitejs/plugin-react@5` (v6 needs Vite 8); `app.blade.php` needs `@viteReactRefresh` with `react()` plugin in `vite.config.js`.
 - CSS: global scrollbar hiding + `html/body overflow-x:hidden` in `resources/css/app.css` (keeps theme drawer off-screen).
-- DB is SQLite: schema changes requiring drops need explicit `dropUnique`/`addUnique` rebuilds.
+- DB is SQLite (tenant fast-path): schema changes requiring drops need explicit `dropUnique`/`addUnique` rebuilds.
+- **Laravel 12 `Migrator` uses non-recursive `glob($path.'/*_*.php')`** — migration paths must always be
+  passed explicitly: system DB `--path=database/migrations/system`, tenant DBs
+  `--path=database/migrations/tenant`. Plain `php artisan migrate`/`migrate:fresh --seed` runs **nothing**
+  (reset via `migrate:fresh --database=system --path=database/migrations/system --seed`). Tests do this
+  automatically inside `Tests\IsolatesDatabase` and `TenantProvisioner::provisionIsolated`.
 - Broadcast events fire through the queue: `QUEUE_CONNECTION` must be `sync` in tests, and `Event::fake()` (NOT `Broadcast::fake()`) intercepts queued broadcasts. Channel auth should be tested by invoking `Broadcast::driver()->getChannels()` callbacks directly (NullBroadcaster returns 200/empty in tests).
 - Inline test routes that pass through `tenant`/`tenant_context` need the `web` middleware group (or you get "Session store not set on request").
-- `Config::set('tenancy.driver', 'isolated')` alone is NOT enough in tests — `TenantDatabaseManager` is a
-  singleton cached across the app lifecycle, so tests must run in a dedicated process (e.g. `tests/Feature/Isolated/`,
-  new phpunit suite) or re-bind/reset the singleton; the isolated suite uses a file-backed `iso_system`
-  connection because `config('tenancy.system.connection')` in shared mode points at `database.default`
-  (the `:memory:` test DB), and purging/reconnecting that wipes it.
+- Test isolation is handled by the **`Tests\IsolatesDatabase` trait** (hooks via `setUpTraits()`) — it
+  creates a file-backed `iso_system` sqlite + per-tenant sqlite files under
+  `tenancy.tenant.db_path`, migrates/seeds them, and leaves the default connection on `acme`.
+  Wild `Config::set('tenancy.driver', 'isolated')` is NOT enough (the `TenantDatabaseManager` singleton
+  is cached); never `connectSystem()` while the default connection is `:memory:` sqlite — purging that
+  connection wipes the test DB.

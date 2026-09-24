@@ -6,11 +6,23 @@ use App\Http\Middleware\EnsureTenantContext;
 use App\Http\Middleware\SetTenantContext;
 use App\Http\Middleware\SwitchTenant;
 use Illuminate\Auth\AuthenticationException;
+use Illuminate\Auth\Middleware\Authenticate;
+use Illuminate\Auth\Middleware\Authorize;
+use Illuminate\Contracts\Session\Middleware\AuthenticatesSessions;
+use Illuminate\Cookie\Middleware\AddQueuedCookiesToResponse;
+use Illuminate\Cookie\Middleware\EncryptCookies;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
+use Illuminate\Foundation\Http\Middleware\HandlePrecognitiveRequests;
+use Illuminate\Foundation\Http\Middleware\ValidateCsrfToken;
 use Illuminate\Http\Request;
+use Illuminate\Routing\Middleware\SubstituteBindings;
+use Illuminate\Routing\Middleware\ThrottleRequests;
+use Illuminate\Routing\Middleware\ThrottleRequestsWithRedis;
 use Illuminate\Routing\Middleware\ValidateSignature;
+use Illuminate\Session\Middleware\StartSession;
+use Illuminate\View\Middleware\ShareErrorsFromSession;
 
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
@@ -27,6 +39,32 @@ return Application::configure(basePath: dirname(__DIR__))
             'tenant' => SetTenantContext::class,
             'tenant_context' => EnsureTenantContext::class,
             'super_admin' => EnsureSuperAdmin::class,
+        ]);
+
+        // Middleware priority (Laravel SortedMiddleware) — the framework sorts the
+        // route middleware by this map, so any custom middleware that must run
+        // BEFORE route-model binding (SwitchTenant/tenant context/authorship) has to
+        // be listed here, ahead of SubstituteBindings. Without this, binding runs
+        // against whatever the previous request left as the default connection
+        // (the central DB in isolated/RTL mode), producing "no such table" 500s.
+        $middleware->priority([
+            HandlePrecognitiveRequests::class,
+            EncryptCookies::class,
+            AddQueuedCookiesToResponse::class,
+            StartSession::class,
+            ShareErrorsFromSession::class,
+            ValidateCsrfToken::class,
+            SwitchTenant::class,
+            Authenticate::class,
+            SetTenantContext::class,
+            EnsureTenantContext::class,
+            EnsureSuperAdmin::class,
+            EnsurePermission::class,
+            ThrottleRequests::class,
+            ThrottleRequestsWithRedis::class,
+            AuthenticatesSessions::class,
+            SubstituteBindings::class,
+            Authorize::class,
         ]);
 
         $middleware->redirectGuestsTo('/login');

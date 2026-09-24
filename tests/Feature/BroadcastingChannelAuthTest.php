@@ -4,20 +4,15 @@ namespace Tests\Feature;
 
 use App\Models\Project;
 use App\Models\ProjectRole;
-use App\Models\Tenant;
 use App\Models\User;
 use App\Models\Workspace;
-use App\Support\TenantContext;
-use Database\Seeders\TenantSeeder;
-use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Broadcast;
+use Tests\IsolatesDatabase;
 use Tests\TestCase;
 
 class BroadcastingChannelAuthTest extends TestCase
 {
-    use RefreshDatabase;
-
-    private Tenant $acme;
+    use IsolatesDatabase;
 
     private User $member;
 
@@ -32,28 +27,22 @@ class BroadcastingChannelAuthTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        $this->seed(TenantSeeder::class);
-        $this->acme = Tenant::where('slug', 'acme')->first();
-
-        app(TenantContext::class)->setTenantId($this->acme->id);
 
         $this->member = User::where('email', 'admin@flowsync.test')->first();
         $this->outsider = User::where('email', 'editor@flowsync.test')->first();
 
         $this->workspace = Workspace::create([
-            'tenant_id' => $this->acme->id,
             'name' => 'Eng',
             'slug' => 'eng',
         ]);
 
         $this->project = Project::create([
-            'tenant_id' => $this->acme->id,
             'workspace_id' => $this->workspace->id,
             'name' => 'Backend',
             'key' => 'be',
         ]);
 
-        $lead = ProjectRole::where('tenant_id', $this->acme->id)->where('slug', 'lead')->first();
+        $lead = ProjectRole::where('slug', 'lead')->first();
         $this->project->members()->attach($this->member->id, ['project_role_id' => $lead->id]);
 
         $this->channels = Broadcast::driver()->getChannels()->all();

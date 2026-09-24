@@ -5,6 +5,7 @@ namespace App\Models;
 use App\Models\Concerns\CentralConnection;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Tenant extends Model
@@ -69,6 +70,10 @@ class Tenant extends Model
         'settings',
     ];
 
+    protected $hidden = [
+        'db_password',
+    ];
+
     protected function casts(): array
     {
         return [
@@ -86,6 +91,21 @@ class Tenant extends Model
     public function impersonationLogs(): HasMany
     {
         return $this->hasMany(ImpersonationLog::class);
+    }
+
+    public function subscription(): HasOne
+    {
+        return $this->hasOne(Subscription::class);
+    }
+
+    public function subscriptions(): HasMany
+    {
+        return $this->hasMany(Subscription::class);
+    }
+
+    public function subscriptionEvents(): HasMany
+    {
+        return $this->hasMany(SubscriptionEvent::class);
     }
 
     public function isTrial(): bool

@@ -11,6 +11,10 @@ use Illuminate\Validation\ValidationException;
 
 class WorkspaceService
 {
+    public function __construct(
+        private readonly TenantLimits $limits,
+    ) {}
+
     public function listFor(User $user): Collection
     {
         $query = Workspace::withCount(['members', 'projects', 'labels'])
@@ -26,6 +30,8 @@ class WorkspaceService
 
     public function create(array $data, User $creator): Workspace
     {
+        $this->limits->assertQuota('workspaces');
+
         $slug = $data['slug'] ?? Str::slug($data['name']);
         $slug = $this->uniqueSlug($slug);
 

@@ -3,17 +3,15 @@
 namespace Tests\Feature;
 
 use App\Models\User;
-use Database\Seeders\TenantSeeder;
-use Illuminate\Foundation\Testing\RefreshDatabase;
+use Tests\IsolatesDatabase;
 use Tests\TestCase;
 
 class PermissionTest extends TestCase
 {
-    use RefreshDatabase;
+    use IsolatesDatabase;
 
     public function test_admin_can_access_protected_resources(): void
     {
-        $this->seed(TenantSeeder::class);
         $this->postJson('/api/auth/login', [
             'email' => 'admin@flowsync.test',
             'password' => 'password',
@@ -25,11 +23,12 @@ class PermissionTest extends TestCase
 
     public function test_user_without_permission_gets_403(): void
     {
-        $this->seed(TenantSeeder::class);
         $this->postJson('/api/auth/login', [
             'email' => 'viewer@flowsync.test',
             'password' => 'password',
         ])->assertOk();
+
+        $this->connectTenant('acme');
 
         $viewer = User::where('email', 'viewer@flowsync.test')->first();
         $editor = User::where('email', 'editor@flowsync.test')->first();
@@ -41,7 +40,6 @@ class PermissionTest extends TestCase
 
     public function test_viewer_can_customize_own_theme(): void
     {
-        $this->seed(TenantSeeder::class);
         $this->postJson('/api/auth/login', [
             'email' => 'viewer@flowsync.test',
             'password' => 'password',

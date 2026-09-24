@@ -6,22 +6,14 @@ use App\Models\Project;
 use App\Models\ProjectRole;
 use App\Models\Task;
 use App\Models\TaskStatus;
-use App\Models\Tenant;
 use App\Models\User;
 use App\Models\Workspace;
-use Database\Seeders\TenantSeeder;
-use Illuminate\Foundation\Testing\RefreshDatabase;
+use Tests\IsolatesDatabase;
 use Tests\TestCase;
 
 class StatusTest extends TestCase
 {
-    use RefreshDatabase;
-
-    protected function setUp(): void
-    {
-        parent::setUp();
-        $this->seed(TenantSeeder::class);
-    }
+    use IsolatesDatabase;
 
     private function login(string $email): void
     {
@@ -29,11 +21,6 @@ class StatusTest extends TestCase
             'email' => $email,
             'password' => 'password',
         ])->assertOk();
-    }
-
-    private function acme(): Tenant
-    {
-        return Tenant::where('slug', 'acme')->first();
     }
 
     private function admin(): User
@@ -54,7 +41,6 @@ class StatusTest extends TestCase
     private function makeProject(): Project
     {
         $ws = Workspace::create([
-            'tenant_id' => $this->acme()->id,
             'created_by' => $this->admin()->id,
             'name' => 'Design',
             'slug' => 'design',
@@ -62,7 +48,6 @@ class StatusTest extends TestCase
         $ws->members()->attach($this->admin()->id, ['role' => 'owner', 'added_by' => $this->admin()->id]);
 
         $project = Project::create([
-            'tenant_id' => $this->acme()->id,
             'workspace_id' => $ws->id,
             'created_by' => $this->admin()->id,
             'lead_user_id' => $this->admin()->id,
@@ -74,7 +59,6 @@ class StatusTest extends TestCase
         foreach (config('task_statuses.statuses') as $status) {
             $position++;
             TaskStatus::create([
-                'tenant_id' => $this->acme()->id,
                 'project_id' => $project->id,
                 'name' => $status['name'],
                 'slug' => $status['slug'],
@@ -120,6 +104,7 @@ class StatusTest extends TestCase
     {
         $project = $this->makeProject();
         $this->login('admin@flowsync.test');
+        $this->connectTenant('acme');
 
         $this->postJson("/api/projects/{$project->id}/statuses", [
             'name' => 'Blocked',
@@ -176,6 +161,7 @@ class StatusTest extends TestCase
     {
         $project = $this->makeProject();
         $this->login('admin@flowsync.test');
+        $this->connectTenant('acme');
         $todo = $project->statuses()->where('slug', 'to-do')->first();
 
         $this->putJson("/api/projects/{$project->id}/statuses/{$todo->id}", [
@@ -197,10 +183,10 @@ class StatusTest extends TestCase
     {
         $project = $this->makeProject();
         $this->login('admin@flowsync.test');
+        $this->connectTenant('acme');
         $todo = $project->statuses()->where('slug', 'to-do')->first();
 
         Task::create([
-            'tenant_id' => $this->acme()->id,
             'workspace_id' => $project->workspace_id,
             'project_id' => $project->id,
             'created_by' => $this->admin()->id,
@@ -219,6 +205,7 @@ class StatusTest extends TestCase
     {
         $project = $this->makeProject();
         $this->login('admin@flowsync.test');
+        $this->connectTenant('acme');
 
         foreach ($project->statuses()->orderByDesc('position')->get() as $status) {
             if ($project->statuses()->count() > 1) {
@@ -235,6 +222,7 @@ class StatusTest extends TestCase
     {
         $project = $this->makeProject();
         $this->login('admin@flowsync.test');
+        $this->connectTenant('acme');
         $review = $project->statuses()->where('slug', 'in-review')->first();
 
         $this->deleteJson("/api/projects/{$project->id}/statuses/{$review->id}")->assertOk();

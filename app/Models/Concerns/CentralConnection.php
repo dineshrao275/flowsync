@@ -7,11 +7,9 @@ use App\Support\TenantDatabaseManager;
 /**
  * Pins a model to the central/system database.
  *
- * Shared mode  (TENANCY_DRIVER=shared): resolves to the single default database,
- *               so central models behave exactly as today.
- * Isolated mode (TENANCY_DRIVER=isolated): resolves to the 'system' connection
- *               (config tenancy.system.connection), regardless of which tenant
- *               database the request currently uses as its default.
+ * Isolated mode (the only mode since Phase 13): resolves to the 'system' connection
+ * (config tenancy.system.connection), regardless of which tenant database the
+ * request currently uses as its default.
  */
 trait CentralConnection
 {

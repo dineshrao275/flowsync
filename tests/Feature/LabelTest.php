@@ -2,25 +2,14 @@
 
 namespace Tests\Feature;
 
-use App\Models\Tenant;
 use App\Models\User;
 use App\Models\Workspace;
-use Database\Seeders\TenantSeeder;
-use Illuminate\Foundation\Testing\RefreshDatabase;
+use Tests\IsolatesDatabase;
 use Tests\TestCase;
 
 class LabelTest extends TestCase
 {
-    use RefreshDatabase;
-
-    private ?Tenant $acme = null;
-
-    protected function setUp(): void
-    {
-        parent::setUp();
-        $this->seed(TenantSeeder::class);
-        $this->acme = Tenant::where('slug', 'acme')->first();
-    }
+    use IsolatesDatabase;
 
     private function login(string $email): void
     {
@@ -43,7 +32,6 @@ class LabelTest extends TestCase
     private function makeWorkspace(): Workspace
     {
         $workspace = Workspace::create([
-            'tenant_id' => $this->acme->id,
             'created_by' => $this->admin()->id,
             'name' => 'Design',
             'slug' => 'design',
@@ -57,6 +45,7 @@ class LabelTest extends TestCase
     {
         $ws = $this->makeWorkspace();
         $this->login('admin@flowsync.test');
+        $this->connectTenant('acme');
 
         $this->postJson("/api/workspaces/{$ws->id}/labels", [
             'name' => 'bug',
@@ -64,7 +53,6 @@ class LabelTest extends TestCase
         ])->assertCreated();
 
         $this->assertDatabaseHas('labels', [
-            'tenant_id' => $this->acme->id,
             'workspace_id' => $ws->id,
             'name' => 'bug',
         ]);
@@ -74,7 +62,6 @@ class LabelTest extends TestCase
     {
         $ws = $this->makeWorkspace();
         $ws2 = Workspace::create([
-            'tenant_id' => $this->acme->id,
             'created_by' => $this->admin()->id,
             'name' => 'Marketing',
             'slug' => 'marketing',
@@ -110,7 +97,7 @@ class LabelTest extends TestCase
     {
         $ws = $this->makeWorkspace();
         $ws->members()->attach($this->viewer()->id, ['role' => 'member', 'added_by' => $this->admin()->id]);
-        $ws->labels()->create(['tenant_id' => $this->acme->id, 'name' => 'bug', 'color' => '#ef4444']);
+        $ws->labels()->create(['name' => 'bug', 'color' => '#ef4444']);
         $this->login('viewer@flowsync.test');
 
         $this->getJson("/api/workspaces/{$ws->id}/labels")
@@ -122,8 +109,9 @@ class LabelTest extends TestCase
     public function test_owner_can_update_and_delete_label(): void
     {
         $ws = $this->makeWorkspace();
-        $label = $ws->labels()->create(['tenant_id' => $this->acme->id, 'name' => 'bug', 'color' => '#ef4444']);
+        $label = $ws->labels()->create(['name' => 'bug', 'color' => '#ef4444']);
         $this->login('admin@flowsync.test');
+        $this->connectTenant('acme');
 
         $this->putJson("/api/labels/{$label->id}", ['name' => 'defect', 'color' => '#f59e0b'])
             ->assertOk()
@@ -137,7 +125,7 @@ class LabelTest extends TestCase
     {
         $ws = $this->makeWorkspace();
         $ws->members()->attach($this->viewer()->id, ['role' => 'member', 'added_by' => $this->admin()->id]);
-        $label = $ws->labels()->create(['tenant_id' => $this->acme->id, 'name' => 'bug']);
+        $label = $ws->labels()->create(['name' => 'bug']);
         $this->login('viewer@flowsync.test');
 
         $this->putJson("/api/labels/{$label->id}", ['name' => 'defect'])->assertForbidden();
@@ -147,7 +135,7 @@ class LabelTest extends TestCase
     public function test_cross_tenant_label_is_not_accessible(): void
     {
         $ws = $this->makeWorkspace();
-        $label = $ws->labels()->create(['tenant_id' => $this->acme->id, 'name' => 'bug']);
+        $label = $ws->labels()->create(['name' => 'bug']);
         $this->login('owner@globex.test');
 
         $this->getJson("/api/workspaces/{$ws->id}/labels")->assertNotFound();

@@ -13,29 +13,29 @@ use App\Models\TaskStatus;
 use App\Models\Tenant;
 use App\Models\User;
 use App\Models\Workspace;
-use Database\Seeders\TenantSeeder;
-use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Storage;
+use Tests\IsolatesDatabase;
 use Tests\TestCase;
 
 class CollaborationTest extends TestCase
 {
-    use RefreshDatabase;
+    use IsolatesDatabase;
 
     private Tenant $acme;
 
     protected function setUp(): void
     {
         parent::setUp();
-        $this->seed(TenantSeeder::class);
         $this->acme = Tenant::where('slug', 'acme')->first();
     }
 
     private function login(string $email): void
     {
         $this->postJson('/api/auth/login', ['email' => $email, 'password' => 'password'])->assertOk();
+
+        $this->connectTenant('acme');
     }
 
     private function admin(): User
@@ -56,7 +56,6 @@ class CollaborationTest extends TestCase
     private function makeWorkspace(string $name = 'Design', string $slug = 'design'): Workspace
     {
         $workspace = Workspace::create([
-            'tenant_id' => $this->acme->id,
             'created_by' => $this->admin()->id,
             'name' => $name,
             'slug' => $slug,
@@ -70,7 +69,6 @@ class CollaborationTest extends TestCase
     {
         $workspace = $this->makeWorkspace($workspaceName, $workspaceSlug);
         $project = Project::create([
-            'tenant_id' => $this->acme->id,
             'workspace_id' => $workspace->id,
             'created_by' => $this->admin()->id,
             'lead_user_id' => $this->admin()->id,
@@ -84,7 +82,6 @@ class CollaborationTest extends TestCase
         foreach (config('task_statuses.statuses') as $status) {
             $position++;
             TaskStatus::create([
-                'tenant_id' => $this->acme->id,
                 'project_id' => $project->id,
                 'name' => $status['name'],
                 'slug' => $status['slug'],
@@ -110,7 +107,6 @@ class CollaborationTest extends TestCase
         $project->increment('last_task_sequence');
 
         return Task::create([
-            'tenant_id' => $this->acme->id,
             'workspace_id' => $project->workspace_id,
             'project_id' => $project->id,
             'created_by' => $this->admin()->id,
@@ -156,7 +152,6 @@ class CollaborationTest extends TestCase
         $this->addProjectMember($project, $this->viewer());
         $task = $this->makeTask($project, 'Thread');
         $adminComment = $task->comments()->create([
-            'tenant_id' => $this->acme->id,
             'task_id' => $task->id,
             'user_id' => $this->admin()->id,
             'comment' => 'From the lead',
@@ -181,7 +176,6 @@ class CollaborationTest extends TestCase
         $a = $this->makeTask($project, 'A');
         $b = $this->makeTask($project, 'B');
         $comment = $a->comments()->create([
-            'tenant_id' => $this->acme->id,
             'task_id' => $a->id,
             'user_id' => $this->admin()->id,
             'comment' => 'On A',
@@ -354,7 +348,6 @@ class CollaborationTest extends TestCase
         $file = UploadedFile::fake()->create('notes.txt', 100, 'text/plain');
         $path = $file->storeAs("tasks/{$this->acme->id}/{$task->id}", 'abc.txt', ['disk' => 'local']);
         $attachment = Attachment::create([
-            'tenant_id' => $this->acme->id,
             'task_id' => $task->id,
             'user_id' => $this->admin()->id,
             'stored_name' => 'abc.txt',
@@ -402,7 +395,6 @@ class CollaborationTest extends TestCase
 
         $this->login('admin@flowsync.test');
         $attachment = Attachment::create([
-            'tenant_id' => $this->acme->id,
             'task_id' => $task->id,
             'user_id' => $this->admin()->id,
             'stored_name' => 'keep.txt',

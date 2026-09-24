@@ -2,37 +2,27 @@
 
 namespace Tests\Feature;
 
+use App\Models\Permission;
 use App\Models\Priority;
 use App\Models\Project;
 use App\Models\ProjectRole;
 use App\Models\Role;
 use App\Models\Task;
 use App\Models\TaskStatus;
-use App\Models\Tenant;
 use App\Models\User;
 use App\Models\Workspace;
-use App\Support\TenantContext;
-use Database\Seeders\TenantSeeder;
-use Illuminate\Foundation\Testing\RefreshDatabase;
+use Tests\IsolatesDatabase;
 use Tests\TestCase;
 
 class DiscoveryTest extends TestCase
 {
-    use RefreshDatabase;
-
-    private Tenant $acme;
-
-    protected function setUp(): void
-    {
-        parent::setUp();
-        $this->seed(TenantSeeder::class);
-        $this->acme = Tenant::where('slug', 'acme')->first();
-        app(TenantContext::class)->setTenantId($this->acme->id);
-    }
+    use IsolatesDatabase;
 
     private function login(string $email): void
     {
         $this->postJson('/api/auth/login', ['email' => $email, 'password' => 'password'])->assertOk();
+
+        $this->connectTenant('acme');
     }
 
     private function admin(): User
@@ -53,7 +43,6 @@ class DiscoveryTest extends TestCase
     private function createProject(string $name, string $key, string $workspaceSlug): Project
     {
         $workspace = Workspace::create([
-            'tenant_id' => $this->acme->id,
             'created_by' => $this->admin()->id,
             'name' => $name,
             'slug' => $workspaceSlug,
@@ -61,7 +50,6 @@ class DiscoveryTest extends TestCase
         $workspace->members()->attach($this->admin()->id, ['role' => 'owner', 'added_by' => $this->admin()->id]);
 
         $project = Project::create([
-            'tenant_id' => $this->acme->id,
             'workspace_id' => $workspace->id,
             'created_by' => $this->admin()->id,
             'lead_user_id' => $this->admin()->id,
@@ -75,7 +63,6 @@ class DiscoveryTest extends TestCase
         foreach (config('task_statuses.statuses') as $status) {
             $position++;
             TaskStatus::create([
-                'tenant_id' => $this->acme->id,
                 'project_id' => $project->id,
                 'name' => $status['name'],
                 'slug' => $status['slug'],
@@ -102,10 +89,9 @@ class DiscoveryTest extends TestCase
         $status = $statusSlug
             ? $project->statuses()->where('slug', $statusSlug)->first()
             : $project->statuses()->where('is_default', true)->first();
-        $defaultPriority = Priority::where('tenant_id', $this->acme->id)->where('is_default', true)->first();
+        $defaultPriority = Priority::where('is_default', true)->first();
 
         return Task::create(array_merge([
-            'tenant_id' => $this->acme->id,
             'workspace_id' => $project->workspace_id,
             'project_id' => $project->id,
             'created_by' => $this->admin()->id,
@@ -164,7 +150,7 @@ class DiscoveryTest extends TestCase
         $this->addProjectMember($project, $this->viewer());
         $this->makeTask($project, 'One');
         $this->makeTask($project, 'Two', 'done', ['assignee_id' => $this->viewer()->id, 'due_date' => '2026-03-01']);
-        $priority = Priority::where('tenant_id', $this->acme->id)->where('is_default', true)->first();
+        $priority = Priority::where('is_default', true)->first();
         $status = $project->statuses()->where('slug', 'done')->first();
         $this->login('viewer@flowsync.test');
 
@@ -277,8 +263,8 @@ class DiscoveryTest extends TestCase
 
     public function test_discovery_endpoints_respect_permission_gates(): void
     {
-        $reportsView = $this->acme->permissions()->where('slug', 'reports.view')->first();
-        $role = Role::where('slug', 'editor')->where('tenant_id', $this->acme->id)->first();
+        $reportsView = Permission::where('slug', 'reports.view')->first();
+        $role = Role::where('slug', 'editor')->first();
         $role->permissions()->detach($reportsView->id);
         $this->login('editor@flowsync.test');
 
