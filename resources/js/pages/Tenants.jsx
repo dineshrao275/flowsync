@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import api, { fieldErrors } from '../services/api';
 import Card from '../components/ui/Card';
 import Badge from '../components/ui/Badge';
@@ -252,10 +252,10 @@ export default function Tenants() {
                         <Card
                             className="h-full"
                             title={
-                                <span className="flex items-center gap-2">
+                                <Link to={`/tenants/${tenant.id}`} className="flex items-center gap-2 hover:text-indigo-600">
                                     {tenant.name}
                                     <Badge>{tenant.slug}</Badge>
-                                </span>
+                                </Link>
                             }
                             subtitle={tenant.description || 'No description'}
                             actions={

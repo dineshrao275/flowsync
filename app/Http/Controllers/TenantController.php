@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Jobs\ProvisionTenantJob;
 use App\Models\Tenant;
 use App\Models\TenantUserRouting;
+use App\Support\TenantContext;
 use Database\Seeders\SubscriptionPlanSeeder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -71,6 +72,80 @@ class TenantController extends Controller
         return response()->json([
             'tenant' => $this->counts($tenant),
         ]);
+    }
+
+    public function update(Request $request, Tenant $tenant): JsonResponse
+    {
+        $data = $request->validate([
+            'name' => ['required', 'string', 'max:255'],
+            'slug' => ['required', 'string', 'max:255', 'alpha_dash', 'unique:tenants,slug,'.$tenant->id],
+            'description' => ['nullable', 'string', 'max:255'],
+        ]);
+
+        $tenant->update([
+            'name' => $data['name'],
+            'slug' => Str::slug($data['slug']),
+            'description' => $data['description'] ?? null,
+        ]);
+
+        return response()->json([
+            'message' => 'Tenant updated.',
+            'tenant' => $this->counts($tenant),
+        ]);
+    }
+
+    public function getProfile(Tenant $tenant): JsonResponse
+    {
+        return response()->json([
+            'tenant' => $tenant,
+        ]);
+    }
+
+    public function updateProfile(Request $request, Tenant $tenant): JsonResponse
+    {
+        $data = $request->validate([
+            'legal_name' => ['nullable', 'string', 'max:255'],
+            'registration_number' => ['nullable', 'string', 'max:255'],
+            'tax_id' => ['nullable', 'string', 'max:255'],
+            'country' => ['nullable', 'string', 'max:2'],
+            'street' => ['nullable', 'string', 'max:255'],
+            'city' => ['nullable', 'string', 'max:255'],
+            'state' => ['nullable', 'string', 'max:255'],
+            'postal_code' => ['nullable', 'string', 'max:32'],
+            'website' => ['nullable', 'url', 'max:255'],
+            'industry' => ['nullable', 'string', 'max:255'],
+            'company_size' => ['nullable', 'string', 'max:255'],
+            'contact_phone' => ['nullable', 'string', 'max:64'],
+            'billing_email' => ['nullable', 'email', 'max:255'],
+            'billing_address' => ['nullable', 'string', 'max:500'],
+            'billing_currency' => ['nullable', 'string', 'max:3'],
+            'timezone' => ['nullable', 'string', 'max:128'],
+            'locale' => ['nullable', 'string', 'max:16'],
+            'brand_domain' => ['nullable', 'string', 'max:255'],
+            'brand_logo_url' => ['nullable', 'url', 'max:255'],
+            'brand_primary_color' => ['nullable', 'string', 'max:9'],
+        ]);
+
+        $tenant->update($data);
+
+        return response()->json([
+            'message' => 'Tenant profile updated.',
+            'tenant' => $tenant,
+        ]);
+    }
+
+    /**
+     * Tenant-facing profile read: the current tenant user resolves their own
+     * (central) tenant via TenantContext and reads its profile. Requires a
+     * tenant context (a non-impersonating super admin has none).
+     */
+    public function selfProfile(Request $request): JsonResponse
+    {
+        abort_unless(app(TenantContext::class)->currentId(), 404);
+
+        $tenant = Tenant::findOrFail(app(TenantContext::class)->currentId());
+
+        return response()->json(['tenant' => $tenant]);
     }
 
     public function users(Tenant $tenant): JsonResponse

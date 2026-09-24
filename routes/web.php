@@ -49,6 +49,10 @@ Route::prefix('api')->group(function () {
         Route::post('notifications/{notification}/read', [NotificationController::class, 'markRead']);
         Route::post('notifications/mark-all-read', [NotificationController::class, 'markAllRead']);
 
+        // Tenant-facing profile (self-scoped via TenantContext; no tenant_context
+        // needed because a tenant user resolves their own central tenant row).
+        Route::get('tenant/profile', [TenantController::class, 'selfProfile']);
+
         // Phase 9: global multi-entity search. Lives OUTSIDE tenant_context so a
         // non-impersonating super admin can search across all tenants (the
         // controller fans out over the central tenancy index via TenantDatabaseManager).
@@ -67,6 +71,9 @@ Route::prefix('api')->group(function () {
             Route::get('tenants', [TenantController::class, 'index']);
             Route::post('tenants', [TenantController::class, 'store']);
             Route::get('tenants/{tenant}', [TenantController::class, 'show']);
+            Route::put('tenants/{tenant}', [TenantController::class, 'update']);
+            Route::get('tenants/{tenant}/profile', [TenantController::class, 'getProfile']);
+            Route::put('tenants/{tenant}/profile', [TenantController::class, 'updateProfile']);
             Route::get('tenants/{tenant}/users', [TenantController::class, 'users']);
 
             // Phase 14: subscription catalog + per-tenant subscription lifecycle.

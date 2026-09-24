@@ -373,10 +373,14 @@ touched) · `npm run build` when frontend touched · AGENTS.md updated when arch
       resource names (WorkspaceDetail/ProjectDetail → loaded `workspace/project` name). **Verified:**
       `npm run build` ✓ · rebuilt image + `up -d` (app healthy) · new bundle served (titles present) ·
       login round-trip 200.
-- [ ] **3. Tenant information expansion** — migration `000017` adds profile columns (legal/tax/address,
+- [x] **3. Tenant information expansion** — migration `000017` adds profile columns (legal/tax/address,
       website/industry/size, billing, timezone/locale, branding, contact phone); `TenantController@update`
       + `GET|PUT /tenants/{id}/profile` (SA) + `GET /api/tenant/profile` (tenant); profile form (grouped
-      sections + extensible `settings` JSON) in TenantDetail.
+      sections + extensible `settings` JSON) in TenantDetail. **Verified:** pint ✓ (2 fixes) · full suite
+      269/1918 + 8 new `TenantProfileTest` (SA update/validation/403s, self-404, tenant self read) ·
+      `npm run build` (bundle contains "Company profile"/"Legal & registration") · image rebuilt/app
+      healthy · live SA read+update round-trip → "Tenant profile updated." (industry Software, legal Acme
+      Corp) + tenant-admin `GET /tenant/profile` → acme persisted.
 - [ ] **4. Tenant onboarding** — `config/onboarding.php` step catalog (business→admin→subscription→
       configuration→verification→completion); `TenantOnboarding` service persists `onboarding_meta`;
       `EnsureOnboardingComplete` middleware gates domain routes (403 until complete; demo tenants seeded
@@ -426,7 +430,7 @@ touched) · `npm run build` when frontend touched · AGENTS.md updated when arch
 settings/features + website CMS) · `me()` payload gains `modules` + subscription summary · `module:`
 middleware alias registered in `bootstrap/app.php` priority before `SubstituteBindings`.
 
-**Initiative status:** 2/13 items complete.
+**Initiative status:** 3/13 items complete.
 
 ---
 
