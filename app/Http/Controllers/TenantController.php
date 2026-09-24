@@ -3,8 +3,10 @@
 namespace App\Http\Controllers;
 
 use App\Jobs\ProvisionTenantJob;
+use App\Models\AuditLog;
 use App\Models\Tenant;
 use App\Models\TenantUserRouting;
+use App\Services\TenantLifecycle;
 use App\Support\TenantContext;
 use Database\Seeders\SubscriptionPlanSeeder;
 use Illuminate\Http\JsonResponse;
@@ -12,23 +14,97 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
+use Illuminate\Validation\Rule;
 
 class TenantController extends Controller
 {
-    public function index(): JsonResponse
+    protected const SORTABLE = ['name', 'slug', 'status', 'created_at', 'updated_at', 'users_count'];
+
+    public function index(Request $request): JsonResponse
     {
         // users/roles live in per-tenant DBs; surface the routing-index counts.
+        $data = $request->validate([
+            'q' => ['nullable', 'string', 'max:255'],
+            'status' => ['nullable', 'string', Rule::in([
+                Tenant::STATUS_PENDING,
+                Tenant::STATUS_PROVISIONING,
+                Tenant::STATUS_TRIAL,
+                Tenant::STATUS_ACTIVE,
+                Tenant::STATUS_SUSPENDED,
+                Tenant::STATUS_EXPIRED,
+                Tenant::STATUS_DEACTIVATED,
+                Tenant::STATUS_PROVISIONING_FAILED,
+            ])],
+            'plan_id' => ['nullable', 'integer', 'exists:subscription_plans,id'],
+            'trashed' => ['nullable', 'boolean'],
+            'sort' => ['nullable', 'string', Rule::in(self::SORTABLE)],
+            'dir' => ['nullable', 'string', Rule::in(['asc', 'desc'])],
+            'per_page' => ['nullable', 'integer', 'min:1', 'max:100'],
+        ]);
+
+        $query = Tenant::query();
+
+        if (! empty($data['q'])) {
+            $q = $data['q'];
+            $query->where(function ($sub) use ($q): void {
+                $sub->where('name', 'like', "%{$q}%")
+                    ->orWhere('slug', 'like', "%{$q}%")
+                    ->orWhere('description', 'like', "%{$q}%");
+            });
+        }
+
+        if (! empty($data['status'])) {
+            $query->where('status', $data['status']);
+        }
+
+        if (! empty($data['plan_id'])) {
+            $query->whereHas('subscription', fn ($sub) => $sub->where('plan_id', $data['plan_id']));
+        }
+
+        if (filter_var($data['trashed'] ?? false, FILTER_VALIDATE_BOOL)) {
+            $query->onlyTrashed();
+        }
+
+        $dir = $data['dir'] ?? 'asc';
+        $sort = $data['sort'] ?? 'name';
+        if ($sort === 'users_count') {
+            $query->withCount('routingUsers as users_count')->orderBy('users_count', $dir);
+        } else {
+            $query->orderBy($sort, $dir);
+        }
+
+        $perPage = (int) ($data['per_page'] ?? 15);
+        $paginator = $query->paginate($perPage);
+        $paginator->load(['subscription.plan']);
+
         $counts = TenantUserRouting::query()
+            ->whereIn('tenant_id', $paginator->pluck('id'))
             ->select('tenant_id', DB::raw('COUNT(*) as user_count'))
             ->groupBy('tenant_id')
             ->pluck('user_count', 'tenant_id');
 
-        $tenants = Tenant::orderBy('name')->get()->each(function (Tenant $tenant) use ($counts): void {
+        $tenants = $paginator->getCollection()->map(function (Tenant $tenant) use ($counts) {
             $tenant->setAttribute('users_count', (int) ($counts[$tenant->id] ?? 0));
             $tenant->setAttribute('roles_count', 0);
+
+            $subscription = $tenant->subscription;
+            $tenant->setAttribute('plan_slug', $subscription?->plan?->slug);
+            $tenant->setAttribute('plan_name', $subscription?->plan?->name);
+            $tenant->setAttribute('subscription_status', $subscription?->status);
+            $tenant->setAttribute('subscription_ends_at', $subscription?->ends_at);
+
+            return $tenant;
         });
 
-        return response()->json(['tenants' => $tenants]);
+        return response()->json([
+            'tenants' => $tenants->values(),
+            'pagination' => [
+                'current_page' => $paginator->currentPage(),
+                'last_page' => $paginator->lastPage(),
+                'per_page' => $paginator->perPage(),
+                'total' => $paginator->total(),
+            ],
+        ]);
     }
 
     public function store(Request $request): JsonResponse
@@ -146,6 +222,58 @@ class TenantController extends Controller
         $tenant = Tenant::findOrFail(app(TenantContext::class)->currentId());
 
         return response()->json(['tenant' => $tenant]);
+    }
+
+    public function destroy(Tenant $tenant): JsonResponse
+    {
+        $tenant->delete();
+
+        AuditLog::create([
+            'subject_type' => Tenant::class,
+            'subject_id' => $tenant->id,
+            'action' => 'tenant.deleted',
+            'data' => ['name' => $tenant->name, 'slug' => $tenant->slug],
+            'actor_id' => auth()->id(),
+            'ip_address' => request()->ip(),
+        ]);
+
+        return response()->json(['message' => 'Tenant deleted.']);
+    }
+
+    public function restore(Tenant $tenant): JsonResponse
+    {
+        $tenant->restore();
+
+        AuditLog::create([
+            'subject_type' => Tenant::class,
+            'subject_id' => $tenant->id,
+            'action' => 'tenant.restored',
+            'data' => ['name' => $tenant->name, 'slug' => $tenant->slug],
+            'actor_id' => auth()->id(),
+            'ip_address' => request()->ip(),
+        ]);
+
+        return response()->json(['message' => 'Tenant restored.', 'tenant' => $this->counts($tenant)]);
+    }
+
+    public function suspend(Tenant $tenant): JsonResponse
+    {
+        app(TenantLifecycle::class)->transition($tenant, Tenant::STATUS_SUSPENDED, auth()->user());
+
+        return response()->json([
+            'message' => 'Tenant suspended.',
+            'tenant' => $this->counts($tenant),
+        ]);
+    }
+
+    public function activate(Tenant $tenant): JsonResponse
+    {
+        app(TenantLifecycle::class)->transition($tenant, Tenant::STATUS_ACTIVE, auth()->user());
+
+        return response()->json([
+            'message' => 'Tenant activated.',
+            'tenant' => $this->counts($tenant),
+        ]);
     }
 
     public function users(Tenant $tenant): JsonResponse

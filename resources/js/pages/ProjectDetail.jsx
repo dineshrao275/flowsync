@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import api, { fieldErrors } from '../services/api';
 import Card from '../components/ui/Card';
 import Badge from '../components/ui/Badge';
@@ -64,10 +64,17 @@ export default function ProjectDetail() {
     const [roles, setRoles] = useState([]);
     const [statuses, setStatuses] = useState([]);
     const [candidateUsers, setCandidateUsers] = useState([]);
+    const [searchParams] = useSearchParams();
     const [tab, setTab] = useState(
-        () => new URLSearchParams(window.location.search).get('tab')
-            ?? (new URLSearchParams(window.location.search).get('task') ? 'tasks' : 'overview'),
+        () => searchParams.get('tab')
+            ?? (searchParams.get('task') ? 'tasks' : 'overview'),
     );
+    useEffect(() => {
+        const next = searchParams.get('tab')
+            ?? (searchParams.get('task') ? 'tasks' : 'overview');
+        setTab((cur) => (cur === next ? cur : next));
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [searchParams]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
     const [updating, setUpdating] = useState(false);
@@ -221,8 +228,7 @@ export default function ProjectDetail() {
 
     const openedDeepTaskRef = useRef(null);
     useEffect(() => {
-        const params = new URLSearchParams(window.location.search);
-        const deepKey = params.get('task');
+        const deepKey = searchParams.get('task');
         if (!project || tab !== 'tasks' || !deepKey || openedDeepTaskRef.current === deepKey) return;
         const pool = view === 'board'
             ? board?.statuses.flatMap((s) => s.tasks) ?? []
@@ -230,11 +236,23 @@ export default function ProjectDetail() {
         const found = pool.find((t) => t.key === deepKey);
         if (found) {
             openedDeepTaskRef.current = deepKey;
-            const section = params.get('section');
+            const section = searchParams.get('section');
             openTask(found, DEEP_SECTIONS.includes(section) ? section : null);
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [project, tab, view, board, listTasks]);
+    }, [project, tab, view, board, listTasks, searchParams]);
+
+    function changeTab(next) {
+        if (next === tab) return;
+        setTab(next);
+        const params = new URLSearchParams(searchParams.toString());
+        params.set('tab', next);
+        if (next !== 'tasks') {
+            params.delete('task');
+            params.delete('section');
+        }
+        navigate(`?${params.toString()}`);
+    }
 
     function handleDragEnd({ active, over }) {
         if (!over || active.id === over.id || !board) return;
@@ -518,7 +536,7 @@ export default function ProjectDetail() {
                 </div>
             </div>
 
-            <Tabs tabs={tabs} active={tab} onChange={setTab} />
+            <Tabs tabs={tabs} active={tab} onChange={changeTab} />
 
             {tab === 'overview' && (
                 <div className="grid grid-cols-1 gap-5 lg:grid-cols-3">

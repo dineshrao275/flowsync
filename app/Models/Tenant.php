@@ -112,6 +112,11 @@ class Tenant extends Model
         return $this->hasMany(ImpersonationLog::class);
     }
 
+    public function routingUsers(): HasMany
+    {
+        return $this->hasMany(TenantUserRouting::class);
+    }
+
     public function subscription(): HasOne
     {
         return $this->hasOne(Subscription::class);

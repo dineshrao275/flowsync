@@ -8,6 +8,7 @@ import Alert from '../components/ui/Alert';
 import { useSetCrumbs } from '../context/BreadcrumbContext';
 import { fieldClass } from '../components/ui/fieldStyles';
 import usePageTitle from '../hooks/usePageTitle';
+import { projectUrl } from '../utils/deepLinks';
 
 export default function Search() {
     usePageTitle('Search');
@@ -199,7 +200,7 @@ export default function Search() {
                         {tasks.map((task) => (
                             <li key={task.id}>
                                 <Link
-                                    to={`/projects/${task.project.id}?tab=tasks`}
+                                    to={projectUrl(task.project.id, 'tasks')}
                                     className="flex flex-wrap items-center gap-x-4 gap-y-1 px-4 py-3 transition hover:bg-gray-50"
                                 >
                                     <span className="flex min-w-0 flex-1 items-start gap-2">

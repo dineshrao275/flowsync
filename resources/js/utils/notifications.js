@@ -1,3 +1,5 @@
+import { projectUrl, taskUrl, workspaceUrl } from './deepLinks';
+
 export function describeNotification(type, data = {}, actorName = 'Someone') {
     const key = data.key || 'task';
     switch (type) {
@@ -30,14 +32,11 @@ export function notificationHref(data = {}, type = '') {
     const { project_id, workspace_id, key } = data || {};
 
     if (project_id && key) {
-        let query = `tab=tasks&task=${encodeURIComponent(key)}`;
-        const section = SECTION_BY_TYPE[type];
-        if (section) query += `&section=${section}`;
-        return `/projects/${project_id}?${query}`;
+        return taskUrl(project_id, key, SECTION_BY_TYPE[type] ?? null);
     }
 
-    if (project_id) return `/projects/${project_id}`;
-    if (workspace_id) return `/workspaces/${workspace_id}`;
+    if (project_id) return projectUrl(project_id);
+    if (workspace_id) return workspaceUrl(workspace_id);
     return '/';
 }
 

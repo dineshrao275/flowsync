@@ -406,15 +406,30 @@ touched) · `npm run build` when frontend touched · AGENTS.md updated when arch
       [starter,pro,enterprise], usage {users:4,…}, switch→pro (plan_changed), usage limits now pro
       (users 50…modules time_tracking/reports/global_search), cancel→canceled/auto_renew false,
       renew→active, editor switch 403, SA my-subscription 404.
-- [ ] **6. Dashboard & analytics** — `GET /api/analytics/overview` (workspaces/projects/open-done-
+- [x] **6. Dashboard & analytics** — `GET /api/analytics/overview` (workspaces/projects/open-done-
       overdue, per-project progress, work-log totals + daily series, due-this-week, user activity,
       task-created 14/30d trend); add **Recharts**; extend `Dashboard.jsx` with project-progress +
       hours + weekly-trend charts.
-- [ ] **7. Deep links (query-param convention)** — canonical `/workspaces/:id?tab=…` and
+      **Verified:** pint ✓ · full suite 292/2061 (3 new tests: AnalyticsTest — counts/series/progress/
+      top-contributors exactness on isolated data, non-manager visible-scope exclusion, unauth 401) ·
+      `npm run build` (recharts bundled; bundle has "Project progress"/"Hours logged"/"Top contributors") ·
+      image rebuilt/app healthy · live: GET /api/analytics/overview 200, correct 14-day series rework
+      (acme has no data → zeroed shape), home:200.
+- [x] **7. Deep links (query-param convention)** — canonical `/workspaces/:id?tab=…` and
       `/projects/:id?tab=…&task={key}&section={…}`; `WorkspaceDetail` tab into `useSearchParams`;
       `ProjectDetail` writes tab/search back on change (back/forward + refresh-safe); centralize
       URL building in `utils/deepLinks.js` (CommandPalette/notifications/dashboard/search reuse);
       permissions stay server-enforced (existing 403).
+      **Verified:** `resources/js/utils/deepLinks.js` (`taskUrl`/`projectUrl`/`workspaceUrl`) is the single
+      `?tab=`/`&task=`/`&section=` builder — CommandPalette `hrefFor`, `notificationHref`, Dashboard
+      TaskRow, Search results all route through it · `WorkspaceDetail` tabs fully URL-driven
+      (`useSearchParams`, derived `activeTab` validated against the computed tab set, `changeTab` pushes
+      `?tab=`/clears) · `ProjectDetail` reads initial tab from search params, sync-effect keeps `tab`
+      state in lockstep with the URL (refresh/back/forward), `changeTab` writes `?tab=` back and prunes
+      `task`/`section` when leaving Tasks · `npm run build` ✓ (bundle contains `tab=tasks&task=` /
+      `?tab=${…}` / `&section=${…}` templates; no stray `?tab=` literals left in pages) ·
+      image rebuilt/app healthy · live: `/workspaces/1?tab=time`, `/projects/1?tab=tasks&task=…&section=activity`,
+      home, asset all 200.
 - [ ] **8. Super-admin tenant management** — `index` gains q/status/plan filters + sort + pagination
       (users_count via routing); add `update` (profile), `destroy` (soft), `restore`,
       `activate|suspend`; table view with row menu (View/Edit/Enable-Disable/Impersonate/Delete/Restore);
@@ -445,7 +460,7 @@ touched) · `npm run build` when frontend touched · AGENTS.md updated when arch
 settings/features + website CMS) · `me()` payload gains `modules` + subscription summary · `module:`
 middleware alias registered in `bootstrap/app.php` priority before `SubstituteBindings`.
 
-**Initiative status:** 5/13 items complete.
+**Initiative status:** 7/13 items complete.
 
 ---
 

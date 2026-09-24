@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../../services/api';
 import Spinner from '../ui/Spinner';
+import { projectUrl, taskUrl, workspaceUrl } from '../../utils/deepLinks';
 
 const groupDefs = [
     {
@@ -35,9 +36,9 @@ function subtitleFor(group, item) {
 }
 
 function hrefFor(group, item) {
-    if (group === 'tasks') return `/projects/${item.project?.id}?tab=tasks&task=${encodeURIComponent(item.key)}`;
-    if (group === 'projects') return `/projects/${item.id}`;
-    if (group === 'workspaces') return `/workspaces/${item.id}`;
+    if (group === 'tasks') return taskUrl(item.project?.id, item.key);
+    if (group === 'projects') return projectUrl(item.id);
+    if (group === 'workspaces') return workspaceUrl(item.id);
     return null;
 }
 

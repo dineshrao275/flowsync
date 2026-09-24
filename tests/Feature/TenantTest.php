@@ -2,7 +2,9 @@
 
 namespace Tests\Feature;
 
+use App\Models\AuditLog;
 use App\Models\ImpersonationLog;
+use App\Models\Tenant;
 use App\Models\User;
 use Tests\IsolatesDatabase;
 use Tests\TestCase;
@@ -117,5 +119,128 @@ class TenantTest extends TestCase
         $this->postJson('/api/impersonate', ['user_id' => 999999])
             ->assertUnprocessable()
             ->assertJsonValidationErrors('user_id');
+    }
+
+    public function test_super_admin_can_filter_sort_and_paginate_tenants(): void
+    {
+        $this->postJson('/api/auth/login', [
+            'email' => 'superadmin@flowsync.test',
+            'password' => 'password',
+        ])->assertOk();
+
+        // Default list is paginated and carries routing-based counts.
+        $this->getJson('/api/tenants')
+            ->assertOk()
+            ->assertJsonPath('pagination.total', 2)
+            ->assertJsonCount(2, 'tenants');
+
+        // q filter matches name/slug/description.
+        $this->getJson('/api/tenants?q=globex')
+            ->assertOk()
+            ->assertJsonCount(1, 'tenants')
+            ->assertJsonPath('tenants.0.slug', 'globex');
+
+        $this->getJson('/api/tenants?q=nope')
+            ->assertOk()
+            ->assertJsonCount(0, 'tenants');
+
+        // status filter.
+        $this->getJson('/api/tenants?status=active')
+            ->assertOk()
+            ->assertJsonCount(2, 'tenants');
+
+        $this->getJson('/api/tenants?status=suspended')
+            ->assertOk()
+            ->assertJsonCount(0, 'tenants');
+
+        // pagination slice.
+        $this->getJson('/api/tenants?per_page=1&sort=slug&dir=asc')
+            ->assertOk()
+            ->assertJsonCount(1, 'tenants')
+            ->assertJsonPath('pagination.total', 2)
+            ->assertJsonPath('pagination.last_page', 2)
+            ->assertJsonPath('tenants.0.slug', 'acme');
+
+        $this->getJson('/api/tenants?per_page=1&sort=slug&dir=desc&page=1')
+            ->assertOk()
+            ->assertJsonPath('tenants.0.slug', 'globex');
+    }
+
+    public function test_super_admin_can_suspend_and_activate_tenant(): void
+    {
+        $this->postJson('/api/auth/login', [
+            'email' => 'superadmin@flowsync.test',
+            'password' => 'password',
+        ])->assertOk();
+
+        $tenant = $this->globex();
+
+        $this->postJson("/api/tenants/{$tenant->id}/suspend")
+            ->assertOk()
+            ->assertJsonPath('tenant.status', 'suspended');
+
+        $tenant->refresh();
+        $this->assertSame('suspended', $tenant->status);
+
+        $this->postJson("/api/tenants/{$tenant->id}/activate")
+            ->assertOk()
+            ->assertJsonPath('tenant.status', 'active');
+
+        $tenant->refresh();
+        $this->assertSame('active', $tenant->status);
+
+        $this->assertDatabaseCount('audit_logs', 2);
+
+        $transitions = AuditLog::where('action', 'tenant.status_changed')
+            ->get()
+            ->map(fn ($log) => [$log->data['from'], $log->data['to']])
+            ->sortBy(0)
+            ->values()
+            ->all();
+        $this->assertSame([
+            ['active', 'suspended'],
+            ['suspended', 'active'],
+        ], $transitions);
+    }
+
+    public function test_super_admin_can_soft_delete_and_restore_tenant(): void
+    {
+        $this->postJson('/api/auth/login', [
+            'email' => 'superadmin@flowsync.test',
+            'password' => 'password',
+        ])->assertOk();
+
+        $tenant = $this->globex();
+
+        $this->deleteJson("/api/tenants/{$tenant->id}")
+            ->assertOk();
+        $this->assertNull(Tenant::find($tenant->id));
+        $this->assertNotNull(Tenant::withTrashed()->find($tenant->id));
+
+        // Trashed tenants are excluded by default but listed with trashed=true.
+        $this->getJson('/api/tenants')
+            ->assertOk()
+            ->assertJsonCount(1, 'tenants');
+
+        $this->getJson('/api/tenants?trashed=1')
+            ->assertOk()
+            ->assertJsonCount(1, 'tenants')
+            ->assertJsonPath('tenants.0.slug', 'globex');
+
+        // A trashed tenant is not route-bound (404): no accidental re-activation.
+        $this->postJson("/api/tenants/{$tenant->id}/suspend")
+            ->assertNotFound();
+
+        $this->postJson("/api/tenants/{$tenant->id}/restore")
+            ->assertOk()
+            ->assertJsonPath('tenant.status', $tenant->status);
+
+        $this->assertNotNull(Tenant::find($tenant->id));
+        $this->getJson('/api/tenants')
+            ->assertOk()
+            ->assertJsonCount(2, 'tenants');
+
+        $this->assertDatabaseHas('audit_logs', ['action' => 'tenant.deleted']);
+        $this->assertDatabaseHas('audit_logs', ['action' => 'tenant.restored']);
     }
 }

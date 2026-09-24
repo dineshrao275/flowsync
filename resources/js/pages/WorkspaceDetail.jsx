@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Link, useNavigate, useParams } from 'react-router-dom';
+import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import api, { fieldErrors } from '../services/api';
 import Card from '../components/ui/Card';
 import Badge from '../components/ui/Badge';
@@ -62,7 +62,7 @@ export default function WorkspaceDetail() {
     const [labels, setLabels] = useState([]);
     const [projects, setProjects] = useState([]);
     const [candidateUsers, setCandidateUsers] = useState([]);
-    const [tab, setTab] = useState('projects');
+    const [searchParams, setSearchParams] = useSearchParams();
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
     const [updating, setUpdating] = useState(false);
@@ -296,6 +296,17 @@ export default function WorkspaceDetail() {
         ...(isOwner ? [{ key: 'settings', label: 'Settings' }] : []),
     ];
 
+    const tabParam = searchParams.get('tab');
+    const activeTab = tabs.some((t) => t.key === tabParam) ? tabParam : 'projects';
+
+    function changeTab(next) {
+        if (next === 'projects') {
+            setSearchParams({});
+        } else {
+            setSearchParams({ tab: next });
+        }
+    }
+
     return (
         <div className="space-y-6">
             <div className="flex flex-wrap items-start justify-between gap-3">
@@ -329,9 +340,9 @@ export default function WorkspaceDetail() {
                 )}
             </div>
 
-            <Tabs tabs={tabs} active={tab} onChange={setTab} />
+            <Tabs tabs={tabs} active={activeTab} onChange={changeTab} />
 
-            {tab === 'projects' && (
+            {activeTab === 'projects' && (
                 <div className="space-y-5">
                     <Card
                         title={`Projects in ${workspace.name}`}
@@ -432,7 +443,7 @@ export default function WorkspaceDetail() {
                 </div>
             )}
 
-            {tab === 'members' && (
+            {activeTab === 'members' && (
                 <div className="space-y-5">
                     {isManager && (
                         <Card title="Add member" subtitle="Only users from your tenant can be added.">
@@ -523,7 +534,7 @@ export default function WorkspaceDetail() {
                 </div>
             )}
 
-            {tab === 'labels' && (
+            {activeTab === 'labels' && (
                 <div className="space-y-5">
                     {isManager && (
                         <Card title="New label">
@@ -586,13 +597,13 @@ export default function WorkspaceDetail() {
                 </div>
             )}
 
-            {tab === 'time' && (
+            {activeTab === 'time' && (
                 <Card title="Time logged" subtitle="Filters apply to all work logs across projects in this workspace.">
                     <TimeSummary url={`/workspaces/${workspace.id}/time-summary`} />
                 </Card>
             )}
 
-            {tab === 'settings' && isOwner && (
+            {activeTab === 'settings' && isOwner && (
                 <Card title="Workspace settings" subtitle={`slug: ${workspace.slug}`}>
                     <form
                         className="space-y-4"

@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\ActivityController;
+use App\Http\Controllers\AnalyticsController;
 use App\Http\Controllers\AttachmentController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\CommentController;
@@ -99,6 +100,10 @@ Route::prefix('api')->group(function () {
             Route::get('tenants/{tenant}/profile', [TenantController::class, 'getProfile']);
             Route::put('tenants/{tenant}/profile', [TenantController::class, 'updateProfile']);
             Route::get('tenants/{tenant}/users', [TenantController::class, 'users']);
+            Route::delete('tenants/{tenant}', [TenantController::class, 'destroy']);
+            Route::post('tenants/{tenant}/restore', [TenantController::class, 'restore'])->withTrashed();
+            Route::post('tenants/{tenant}/suspend', [TenantController::class, 'suspend']);
+            Route::post('tenants/{tenant}/activate', [TenantController::class, 'activate']);
 
             // Onboarding state per tenant (super-admin view + repair).
             Route::get('tenants/{tenant}/onboarding', [OnboardingController::class, 'showFor']);
@@ -220,6 +225,8 @@ Route::prefix('api')->group(function () {
         Route::get('search/tasks', [SearchController::class, 'tasks'])->middleware('permission:workspaces.view');
 
         Route::get('dashboard', [DashboardController::class, '__invoke'])->middleware('permission:dashboard.view');
+
+        Route::get('analytics/overview', [AnalyticsController::class, '__invoke'])->middleware('permission:dashboard.view');
 
         Route::get('reports/overview', [ReportsController::class, 'overview'])->middleware('permission:reports.view');
 
