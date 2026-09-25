@@ -2,8 +2,8 @@ import { Navigate, Outlet, useLocation } from 'react-router-dom';
 import Spinner from './ui/Spinner';
 import { useAuth } from '../context/AuthContext';
 
-export default function ProtectedRoute({ permission }) {
-    const { user, loading, can } = useAuth();
+export default function ProtectedRoute({ permission, module }) {
+    const { user, loading, can, hasModule } = useAuth();
     const location = useLocation();
 
     if (loading) {
@@ -19,6 +19,10 @@ export default function ProtectedRoute({ permission }) {
     }
 
     if (permission && !can(permission)) {
+        return <Navigate to="/403" replace />;
+    }
+
+    if (module && !hasModule(module)) {
         return <Navigate to="/403" replace />;
     }
 

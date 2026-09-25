@@ -2,11 +2,10 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\FeatureModuleToggleRequest;
 use App\Models\AuditLog;
 use App\Models\SubscriptionPlan;
 use Illuminate\Http\JsonResponse;
-use Illuminate\Http\Request;
-use Illuminate\Validation\Rule;
 
 /**
  * Module × plan feature grid. Reads the canonical module catalog from
@@ -33,12 +32,9 @@ class FeatureManagementController extends Controller
         ]);
     }
 
-    public function update(Request $request, SubscriptionPlan $subscriptionPlan): JsonResponse
+    public function update(FeatureModuleToggleRequest $request, SubscriptionPlan $subscriptionPlan): JsonResponse
     {
-        $data = $request->validate([
-            'module' => ['required', 'string', Rule::in(config('subscriptions.modules', []))],
-            'enabled' => ['required', 'boolean'],
-        ]);
+        $data = $request->validated();
 
         $modules = collect($subscriptionPlan->limit('modules') ?? [])
             ->reject(fn (string $m) => $m === $data['module'])

@@ -4,6 +4,7 @@ import Card from '../components/ui/Card';
 import Badge from '../components/ui/Badge';
 import Spinner from '../components/ui/Spinner';
 import Button from '../components/ui/Button';
+import Pagination from '../components/ui/Pagination';
 import usePageTitle from '../hooks/usePageTitle';
 import { useSetCrumbs } from '../context/BreadcrumbContext';
 
@@ -118,14 +119,13 @@ export default function AuditLogs() {
                 )}
             </Card>
 
-            {pagination && pagination.last_page > 1 && (
-                <div className="flex items-center justify-between text-sm">
-                    <span className="text-gray-400">Page {pagination.current_page} of {pagination.last_page}</span>
-                    <div className="flex gap-2">
-                        <Button variant="ghost" disabled={pagination.current_page <= 1} onClick={() => fetchLogs(pagination.current_page - 1)}>Prev</Button>
-                        <Button variant="ghost" disabled={pagination.current_page >= pagination.last_page} onClick={() => fetchLogs(pagination.current_page + 1)}>Next</Button>
-                    </div>
-                </div>
+            {pagination && (
+                <Pagination
+                    placement="sides"
+                    page={pagination.current_page}
+                    pages={pagination.last_page}
+                    onChange={fetchLogs}
+                />
             )}
         </div>
     );

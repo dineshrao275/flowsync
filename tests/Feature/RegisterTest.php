@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Models\PlatformSetting;
 use App\Models\Tenant;
 use App\Models\TenantUserRouting;
 use App\Support\TenantDatabaseManager;
@@ -16,6 +17,9 @@ class RegisterTest extends TestCase
     protected function enableRegistration(): void
     {
         Config::set('onboarding.enabled', true);
+        // Item 10: the platform settings table is the primary gate (config is
+        // only the seed-time fallback), so enable it explicitly.
+        PlatformSetting::set('public_registration', '1');
     }
 
     public function test_register_is_disabled_by_default(): void

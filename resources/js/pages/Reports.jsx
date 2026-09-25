@@ -4,6 +4,7 @@ import Card from '../components/ui/Card';
 import Spinner from '../components/ui/Spinner';
 import Alert from '../components/ui/Alert';
 import TimeSummary from '../components/time/TimeSummary';
+import { useAuth } from '../context/AuthContext';
 import { useSetCrumbs } from '../context/BreadcrumbContext';
 import { fieldClass } from '../components/ui/fieldStyles';
 import usePageTitle from '../hooks/usePageTitle';
@@ -45,6 +46,7 @@ function Distribution({ title, subtitle, items }) {
 
 export default function Reports() {
     usePageTitle('Reports');
+    const { hasModule } = useAuth();
     const setCrumbs = useSetCrumbs();
     const [data, setData] = useState(null);
     const [error, setError] = useState(null);
@@ -129,42 +131,44 @@ export default function Reports() {
                 <Distribution title="By project" subtitle="Task volume per project" items={data.by_project} />
             </div>
 
-            <Card title="Time logged" subtitle="Work logs for a workspace or project of your choice">
-                <div className="mb-4 flex flex-wrap items-end gap-3">
-                    <div>
-                        <label className="mb-1.5 block text-sm font-medium text-gray-700">Workspace</label>
-                        <select
-                            className={fieldClass}
-                            value={scope.workspace_id}
-                            onChange={(e) => setScope({ workspace_id: e.target.value, project_id: '' })}
-                        >
-                            <option value="">Choose a workspace…</option>
-                            {workspaces.map((workspace) => (
-                                <option key={workspace.id} value={workspace.id}>
-                                    {workspace.name}
-                                </option>
-                            ))}
-                        </select>
+            {hasModule('time_tracking') && (
+                <Card title="Time logged" subtitle="Work logs for a workspace or project of your choice">
+                    <div className="mb-4 flex flex-wrap items-end gap-3">
+                        <div>
+                            <label className="mb-1.5 block text-sm font-medium text-gray-700">Workspace</label>
+                            <select
+                                className={fieldClass}
+                                value={scope.workspace_id}
+                                onChange={(e) => setScope({ workspace_id: e.target.value, project_id: '' })}
+                            >
+                                <option value="">Choose a workspace…</option>
+                                {workspaces.map((workspace) => (
+                                    <option key={workspace.id} value={workspace.id}>
+                                        {workspace.name}
+                                    </option>
+                                ))}
+                            </select>
+                        </div>
+                        <div>
+                            <label className="mb-1.5 block text-sm font-medium text-gray-700">Project</label>
+                            <select
+                                className={fieldClass}
+                                value={scope.project_id}
+                                disabled={!scope.workspace_id}
+                                onChange={(e) => setScope((s) => ({ ...s, project_id: e.target.value }))}
+                            >
+                                <option value="">Whole workspace</option>
+                                {projects.map((project) => (
+                                    <option key={project.id} value={project.id}>
+                                        {project.name} ({project.key})
+                                    </option>
+                                ))}
+                            </select>
+                        </div>
                     </div>
-                    <div>
-                        <label className="mb-1.5 block text-sm font-medium text-gray-700">Project</label>
-                        <select
-                            className={fieldClass}
-                            value={scope.project_id}
-                            disabled={!scope.workspace_id}
-                            onChange={(e) => setScope((s) => ({ ...s, project_id: e.target.value }))}
-                        >
-                            <option value="">Whole workspace</option>
-                            {projects.map((project) => (
-                                <option key={project.id} value={project.id}>
-                                    {project.name} ({project.key})
-                                </option>
-                            ))}
-                        </select>
-                    </div>
-                </div>
-                {timeUrl ? <TimeSummary key={timeUrl} url={timeUrl} /> : <p className="py-8 text-center text-sm text-gray-400">Pick a workspace or project above.</p>}
-            </Card>
+                    {timeUrl ? <TimeSummary key={timeUrl} url={timeUrl} /> : <p className="py-8 text-center text-sm text-gray-400">Pick a workspace or project above.</p>}
+                </Card>
+            )}
         </div>
     );
 }

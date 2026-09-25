@@ -2,11 +2,11 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\SystemUserIndexRequest;
+use App\Http\Requests\SystemUserStoreRequest;
 use App\Models\AuditLog;
 use App\Models\SystemUser;
 use Illuminate\Http\JsonResponse;
-use Illuminate\Http\Request;
-use Illuminate\Validation\Rule;
 
 /**
  * Super-admin platform accounts (central `users` with is_super_admin). List +
@@ -14,12 +14,9 @@ use Illuminate\Validation\Rule;
  */
 class SystemUsersController extends Controller
 {
-    public function index(Request $request): JsonResponse
+    public function index(SystemUserIndexRequest $request): JsonResponse
     {
-        $data = $request->validate([
-            'q' => ['nullable', 'string', 'max:255'],
-            'per_page' => ['nullable', 'integer', 'min:1', 'max:100'],
-        ]);
+        $data = $request->validated();
 
         $query = SystemUser::query();
 
@@ -34,16 +31,20 @@ class SystemUsersController extends Controller
             ->withQueryString()
             ->through(fn (SystemUser $user) => $user->only(['id', 'name', 'email', 'is_super_admin', 'created_at']));
 
-        return response()->json(['users' => $users->items(), 'pagination' => $users->toArray()]);
+        return response()->json([
+            'users' => $users->items(),
+            'pagination' => [
+                'current_page' => $users->currentPage(),
+                'last_page' => $users->lastPage(),
+                'per_page' => $users->perPage(),
+                'total' => $users->total(),
+            ],
+        ]);
     }
 
-    public function store(Request $request): JsonResponse
+    public function store(SystemUserStoreRequest $request): JsonResponse
     {
-        $data = $request->validate([
-            'name' => ['required', 'string', 'max:255'],
-            'email' => ['required', 'string', 'email', 'max:255', Rule::unique('users', 'email')],
-            'password' => ['required', 'string', 'min:8'],
-        ]);
+        $data = $request->validated();
 
         $user = SystemUser::create([
             'name' => $data['name'],

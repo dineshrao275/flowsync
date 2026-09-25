@@ -5,6 +5,7 @@ use App\Http\Controllers\AnalyticsController;
 use App\Http\Controllers\AttachmentController;
 use App\Http\Controllers\AuditLogsController;
 use App\Http\Controllers\AuthController;
+use App\Http\Controllers\CmsController;
 use App\Http\Controllers\CommentController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\DependencyController;
@@ -20,6 +21,7 @@ use App\Http\Controllers\PlanController;
 use App\Http\Controllers\ProjectController;
 use App\Http\Controllers\ProjectMemberController;
 use App\Http\Controllers\ProjectRoleController;
+use App\Http\Controllers\PublicSiteController;
 use App\Http\Controllers\RegisterController;
 use App\Http\Controllers\ReportsController;
 use App\Http\Controllers\ResetPasswordController;
@@ -53,8 +55,8 @@ Route::prefix('api')->group(function () {
         Route::post('auth/logout', [AuthController::class, 'logout']);
         Route::get('auth/me', [AuthController::class, 'me']);
 
-        Route::get('theme', [ThemeController::class, 'show']);
-        Route::put('theme', [ThemeController::class, 'update'])->middleware('permission:settings.theme');
+        Route::get('theme', [ThemeController::class, 'show'])->middleware('ensure_module:branding');
+        Route::put('theme', [ThemeController::class, 'update'])->middleware(['permission:settings.theme', 'ensure_module:branding']);
 
         // Personal notifications (self-scoped by user_id; no tenant_context needed).
         Route::get('notifications', [NotificationController::class, 'index']);
@@ -86,7 +88,7 @@ Route::prefix('api')->group(function () {
         // Phase 9: global multi-entity search. Lives OUTSIDE tenant_context so a
         // non-impersonating super admin can search across all tenants (the
         // controller fans out over the central tenancy index via TenantDatabaseManager).
-        Route::get('search/global', GlobalSearchController::class)->middleware('permission:workspaces.view');
+        Route::get('search/global', GlobalSearchController::class)->middleware(['permission:workspaces.view', 'ensure_module:global_search']);
 
         Route::get('users', [UserController::class, 'index'])->middleware('permission:users.view');
         Route::post('users', [UserController::class, 'store'])->middleware('permission:users.manage');
@@ -137,6 +139,13 @@ Route::prefix('api')->group(function () {
             Route::get('system/analytics', [SystemAnalyticsController::class, 'index']);
             Route::get('system/features', [FeatureManagementController::class, 'index']);
             Route::put('system/features/{subscriptionPlan}', [FeatureManagementController::class, 'update']);
+            Route::get('system/pages', [CmsController::class, 'index']);
+            Route::post('system/pages', [CmsController::class, 'store']);
+            Route::get('system/pages/{websitePage}', [CmsController::class, 'show']);
+            Route::put('system/pages/{websitePage}', [CmsController::class, 'update']);
+            Route::delete('system/pages/{websitePage}', [CmsController::class, 'destroy']);
+            Route::post('system/pages/{websitePage}/publish', [CmsController::class, 'publish']);
+            Route::post('system/pages/{websitePage}/unpublish', [CmsController::class, 'unpublish']);
 
             Route::post('impersonate', [ImpersonationController::class, 'start']);
         });
@@ -221,14 +230,17 @@ Route::prefix('api')->group(function () {
             Route::get('projects/{project}/activities', [ActivityController::class, 'project']);
 
             // Phase 6: time tracking. Work logs per task (work_logs.* project-role
-            // perms + own-log rules), plus project/workspace time summaries.
-            Route::get('projects/{project}/tasks/{task}/work-logs', [WorkLogController::class, 'index']);
-            Route::post('projects/{project}/tasks/{task}/work-logs', [WorkLogController::class, 'store']);
-            Route::put('projects/{project}/tasks/{task}/work-logs/{workLog}', [WorkLogController::class, 'update']);
-            Route::delete('projects/{project}/tasks/{task}/work-logs/{workLog}', [WorkLogController::class, 'destroy']);
+            // perms + own-log rules), plus project/workspace time summaries. The
+            // whole block is gated on the `time_tracking` subscription module.
+            Route::group(['middleware' => ['ensure_module:time_tracking']], function () {
+                Route::get('projects/{project}/tasks/{task}/work-logs', [WorkLogController::class, 'index']);
+                Route::post('projects/{project}/tasks/{task}/work-logs', [WorkLogController::class, 'store']);
+                Route::put('projects/{project}/tasks/{task}/work-logs/{workLog}', [WorkLogController::class, 'update']);
+                Route::delete('projects/{project}/tasks/{task}/work-logs/{workLog}', [WorkLogController::class, 'destroy']);
 
-            Route::get('projects/{project}/time-summary', [WorkLogController::class, 'projectTime']);
-            Route::get('workspaces/{workspace}/time-summary', [WorkLogController::class, 'workspaceTime']);
+                Route::get('projects/{project}/time-summary', [WorkLogController::class, 'projectTime']);
+                Route::get('workspaces/{workspace}/time-summary', [WorkLogController::class, 'workspaceTime']);
+            });
 
             // Project-role catalog (tenant-level). Reading is open within the
             // domain so project member managers can populate a role picker.
@@ -238,13 +250,13 @@ Route::prefix('api')->group(function () {
         // Phase 7: discovery + reporting on the same tenant_context scope.
         // Global task search rides the domain `workspaces.view` permission;
         // dashboard and reports are gated by their own tenant permissions.
-        Route::get('search/tasks', [SearchController::class, 'tasks'])->middleware('permission:workspaces.view');
+        Route::get('search/tasks', [SearchController::class, 'tasks'])->middleware(['permission:workspaces.view', 'ensure_module:global_search']);
 
         Route::get('dashboard', [DashboardController::class, '__invoke'])->middleware('permission:dashboard.view');
 
         Route::get('analytics/overview', [AnalyticsController::class, '__invoke'])->middleware('permission:dashboard.view');
 
-        Route::get('reports/overview', [ReportsController::class, 'overview'])->middleware('permission:reports.view');
+        Route::get('reports/overview', [ReportsController::class, 'overview'])->middleware(['permission:reports.view', 'ensure_module:reports']);
 
         Route::post('workspaces', [WorkspaceController::class, 'store'])->middleware('permission:workspaces.create');
         Route::post('project-roles', [ProjectRoleController::class, 'store'])->middleware('permission:roles.manage');
@@ -261,6 +273,12 @@ Route::prefix('api')->group(function () {
         ->name('attachments.download');
 });
 
-Route::get('/{path?}', function () {
-    return view('app');
-})->where('path', '^(?!api($|/)|up$).*');
+// Public marketing site (server-rendered from the DB-backed CMS pages).
+Route::get('/', [PublicSiteController::class, 'home']);
+Route::get('page/{slug}', [PublicSiteController::class, 'page']);
+Route::get('sitemap.xml', [PublicSiteController::class, 'sitemap'])->name('sitemap');
+Route::get('robots.txt', [PublicSiteController::class, 'robots'])->name('robots');
+
+// SPA app at /app (the root path belongs to the public site).
+Route::view('/app', 'app');
+Route::view('/app/{any}', 'app')->where('any', '.*');

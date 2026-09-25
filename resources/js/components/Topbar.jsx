@@ -7,7 +7,7 @@ import { useClickOutside } from '../hooks/useClickOutside';
 import NotificationBell from './NotificationBell';
 import Avatar from './ui/Avatar';
 
-export default function Topbar({ onOpenTheme, onToggleSidebar, onOpenSearch, showSearch }) {
+export default function Topbar({ onOpenTheme, onToggleSidebar, onOpenSearch, showSearch, showTheme = true }) {
     const { user, logout } = useAuth();
     const toast = useToast();
     const navigate = useNavigate();
@@ -84,16 +84,18 @@ export default function Topbar({ onOpenTheme, onToggleSidebar, onOpenSearch, sho
                     </button>
                 )}
                 <NotificationBell />
-                <button
-                    onClick={onOpenTheme}
-                    className="rounded-lg p-2 transition-all duration-150 hover:rotate-12 hover:bg-black/5 active:scale-90"
-                    title="Theme settings"
-                    style={{ color: 'var(--header-text)' }}
-                >
-                    <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-                        <path d="M7.5 21a3.5 3.5 0 01-3.5-3.5c0-1.1.5-2.1 1.3-2.7l4.7-4.1a5 5 0 104-5.6L16.3 9l-.4 7.8c-.3 1.4-1.6 2.3-2.9 2.3l-3.7-1.2-.1 1.1c0 1-.8 1.9-1.7 2z" opacity=".9" />
-                    </svg>
-                </button>
+                {showTheme && (
+                    <button
+                        onClick={onOpenTheme}
+                        className="rounded-lg p-2 transition-all duration-150 hover:rotate-12 hover:bg-black/5 active:scale-90"
+                        title="Theme settings"
+                        style={{ color: 'var(--header-text)' }}
+                    >
+                        <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                            <path d="M7.5 21a3.5 3.5 0 01-3.5-3.5c0-1.1.5-2.1 1.3-2.7l4.7-4.1a5 5 0 104-5.6L16.3 9l-.4 7.8c-.3 1.4-1.6 2.3-2.9 2.3l-3.7-1.2-.1 1.1c0 1-.8 1.9-1.7 2z" opacity=".9" />
+                        </svg>
+                    </button>
+                )}
 
                 <div className="relative" ref={menuRef}>
                     <button

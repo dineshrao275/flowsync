@@ -2,7 +2,7 @@
 
 namespace App\Http\Controllers;
 
-use App\Enums\TaskDependencyType;
+use App\Http\Requests\DependencyStoreRequest;
 use App\Models\Project;
 use App\Models\Task;
 use App\Models\TaskDependency;
@@ -37,14 +37,11 @@ class DependencyController extends Controller
         ]);
     }
 
-    public function store(Request $request, Project $project, Task $task): JsonResponse
+    public function store(DependencyStoreRequest $request, Project $project, Task $task): JsonResponse
     {
         $this->authorize('edit', $task);
 
-        $data = $request->validate([
-            'depends_on_task_id' => ['required', 'integer'],
-            'type' => ['required', 'in:'.implode(',', array_column(TaskDependencyType::cases(), 'value'))],
-        ]);
+        $data = $request->validated();
 
         $blockerId = (int) $data['depends_on_task_id'];
 

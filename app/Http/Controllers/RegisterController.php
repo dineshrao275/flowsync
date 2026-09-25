@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\RegisterRequest;
 use App\Jobs\ProvisionTenantJob;
 use App\Models\PlatformSetting;
 use App\Models\SubscriptionPlan;
@@ -13,7 +14,6 @@ use App\Services\TenantOnboarding;
 use App\Support\TenantDatabaseManager;
 use App\Support\TenantProvisioner;
 use Illuminate\Http\JsonResponse;
-use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Bus;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
@@ -32,20 +32,13 @@ class RegisterController extends Controller
         private readonly TenantProvisioner $provisioner,
     ) {}
 
-    public function store(Request $request, AuthController $auth): JsonResponse
+    public function store(RegisterRequest $request, AuthController $auth): JsonResponse
     {
         if (! PlatformSetting::bool('public_registration', config('onboarding.enabled') ? '1' : '0')) {
             abort(403, 'Self-registration is currently disabled.');
         }
 
-        $data = $request->validate([
-            'name' => ['required', 'string', 'max:255'],
-            'email' => ['required', 'string', 'email', 'max:255'],
-            'password' => ['required', 'string', 'min:8', 'confirmed'],
-            'business_name' => ['required', 'string', 'max:255'],
-            'slug' => ['nullable', 'string', 'max:255', 'alpha_dash'],
-            'plan_id' => ['nullable', 'integer', 'exists:subscription_plans,id'],
-        ]);
+        $data = $request->validated();
 
         $email = Str::lower($data['email']);
 

@@ -16,10 +16,11 @@ export default function AdminLayout() {
     const [sidebarOpen, setSidebarOpen] = useState(false);
     const [searchOpen, setSearchOpen] = useState(false);
     const [themeOpen, setThemeOpen] = useState(false);
-    const { can, user } = useAuth();
+    const { check, user } = useAuth();
     const location = useLocation();
     const navigate = useNavigate();
-    const showSearch = can('workspaces.view');
+    const showSearch = check('workspaces.view') && check('module:global_search');
+    const showTheme = check('module:branding');
 
     // Route tenants with an unfinished onboarding wizard to the wizard. Tenants
     // that never started onboarding (admin/seed provisioned) and super admins are
@@ -71,6 +72,7 @@ export default function AdminLayout() {
                     onToggleSidebar={() => setSidebarOpen((open) => !open)}
                     onOpenSearch={() => setSearchOpen(true)}
                     showSearch={showSearch}
+                    showTheme={showTheme}
                 />
 
                 <main className="flex-1 px-4 py-6 sm:px-6 lg:px-8">

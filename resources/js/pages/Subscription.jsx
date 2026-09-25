@@ -8,6 +8,7 @@ import Badge from '../components/ui/Badge';
 import Spinner from '../components/ui/Spinner';
 import Alert from '../components/ui/Alert';
 import Button from '../components/ui/Button';
+import { formatDate, formatPrice } from '../utils/format';
 
 const RESOURCES = [
     { key: 'users', label: 'Users' },
@@ -35,20 +36,9 @@ const STATUS_LABELS = {
     ended: 'Ended',
 };
 
-function formatDate(iso) {
-    if (!iso) return '—';
-    return new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
-}
-
 function daysRemaining(iso) {
     if (!iso) return null;
     return Math.max(0, Math.ceil((new Date(iso) - new Date()) / 86400000));
-}
-
-function formatPrice(plan) {
-    const cents = Number(plan?.price_cents || 0);
-    const value = cents === 0 ? '$0' : (cents / 100).toLocaleString('en-US', { style: 'currency', currency: plan?.currency || 'USD' });
-    return plan?.billing_cycle === 'annual' ? `${value}/mo billed annually` : `${value}/mo`;
 }
 
 function UsageRow({ label, used, limit }) {

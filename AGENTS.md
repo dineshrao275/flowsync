@@ -10,7 +10,7 @@ Laravel 12 + React 19 SPA. Session-based auth **without** Breeze/Fortify/Sanctum
   `tenants:provision` + seeds demo data (superadmin + acme + globex). Reset from scratch:
   `docker-compose down -v` then `up -d` (app entrypoint re-initializes; `RUN_INIT=true` only for `app`.
   No PHP/composer needed on the host — the image is `flowsync:latest`, envs in `.env.docker`).
-- `php artisan test` — run test suite (Phase 13: **isolated, per-tenant file DBs** via `Tests\IsolatesDatabase`; current gate: **297 tests / 2138 assertions passing**)
+- `php artisan test` — run test suite (Phase 13: **isolated, per-tenant file DBs** via `Tests\IsolatesDatabase`; current gate: **312 tests / 2284 assertions passing**)
 - `npm run build` / `npm run dev` — frontend build / Vite dev server
 - `./vendor/bin/pint` — PHP code style (run over whole repo; `--dirty` only works in git)
 - `php artisan migrate:fresh --seed` — reset the **system** DB (migrations now live under `database/migrations/system`; run it as `migrate:fresh --database=system --path=database/migrations/system --seed` — plain `migrate` runs nothing, see Pitfalls) + seed via `Database\Seeders\TenantSeeder` (provisions acme + globex tenant DBs)
@@ -138,13 +138,38 @@ Hierarchy: **Tenant → Workspace → Project → Task** (subtask `tasks.parent_
   - `users`: gated `users.view` (or super admin), scoped to the current tenant DB, matches name/email local part, sorted by name; **no navigation action** client-side.
 - Frontend: `resources/js/components/search/CommandPalette.jsx` — Jira-style quick search. Triggered via global `⌘K`/`Ctrl+K` (Topbar keydown effect) and a Topbar "Search… ⌘K" button/icon; state owned by `AdminLayout`, gated on `can('workspaces.view')`. Debounced 250ms `GET /search/global` (AbortController), grouped results (Tasks/Projects/Workspaces/People) with entity icons, ↑/↓/↵/esc keyboard nav + mouse, min 2 chars. Navigates: task → `/projects/{id}?tab=tasks&task=KEY`; project → `/projects/{id}`; workspace → `/workspaces/{id}`.
 - Task deep-link: `ProjectDetail` reads `?task=KEY` — forces the Tasks tab via tab-init (`?tab` wins) and an effect auto-opens the task drawer once the board/list pool contains it (ref-guarded so board refetches don't re-open). The query string is **kept in the URL** (no `replaceState` strip) so the link survives refresh/direct-tab — see Phase 10 for the section-aware form.
-- UI primitives now live in `resources/js/components/ui/` (`Select`, `Modal`, `Drawer`, `EmptyState`, `Avatar`, `Spinner`, `fieldStyles.js`; enriched `Button`, `Input`, `Card`). Sidebar is collapsible (`w-64 ↔ w-16`, persisted via localStorage key `flowsync.sidebar.collapsed`, sectioned nav + active pill + accent bar). Toasts were modernized — compact tinted card, no progress bar, `warning` type added. Kanban board scrolls horizontally in one row (`board-scroll`) instead of a wrapping grid (fixes Done column dropping below Backlog). `TaskDetail` uses the shared `Drawer` (footer actions, meta-rail layout). Remaining grid/flex selects use `fieldClass`/`fieldClassCompact` directly (`Select` is label-wrapping and unfit for inline cells).
+- UI primitives now live in `resources/js/components/ui/` (`Select`, `Modal`, `Drawer`, `EmptyState`, `Avatar`, `Spinner`, `fieldStyles.js`, `Pagination`; enriched `Button`, `Input`, `Card`). Sidebar is collapsible (`w-64 ↔ w-16`, persisted via localStorage key `flowsync.sidebar.collapsed`, sectioned nav + active pill + accent bar). Toasts were modernized — compact tinted card, no progress bar, `warning` type added. Kanban board scrolls horizontally in one row (`board-scroll`) instead of a wrapping grid (fixes Done column dropping below Backlog). `TaskDetail` uses the shared `Drawer` (footer actions, meta-rail layout). Remaining grid/flex selects use `fieldClass`/`fieldClassCompact` directly (`Select` is label-wrapping and unfit for inline cells).
 
 ## Scale Seed Data & Deep Links (Phase 10)
 - `database/seeders/ScaleDataSeeder.php` — `run(tenants=100, usersPerTenant=10, workspacesPerTenant=5, projectsPerWorkspace=5, tasksPerProject=100, related=true)` builds realistic same-tenant-isolated scale data: 1 super admin, tenants `tenant-{NNN}` (provisioned: default permissions/roles/priorities/project-roles + `owner@{slug}.test` admin), `usersPerTenant-1` extra users (roles cycle admin/editor/viewer), workspaces `w1..wN` with owner/admin/member pivots, projects keyed `{last-3-of-slug}-{w}-{p}` + 5 default statuses + lead/developer/viewer members, and **exactly `tasksPerProject` tasks** (bulk `DB::table` inserts — Carbon must be string-cast; ids captured via `DB::getPdo()->lastInsertId() - (tasksPerProject - 1)`) distributed `STATUS_WEIGHTS=[15,20,30,15,20]` (sums exactly to N), cycling priorities/assignees (`i%8===0 → null`), `due_date` on open tasks, `estimate_minutes` null on `i%3===0`, `completed_at` for done statuses, per-status column positions. Related data: comments `offset%7===0`, work logs `(offset+1)%5===0`, `task.assigned` notifications per worker at `offset=(u*4)%tasksPerProject` (data carries `task_id/key/title/project_id/project_name/workspace_id`). Enabled by `php artisan tenants:seed-scale [--tenants --users --workspaces --projects --tasks --no-related]`.
 - Seeder test gotcha: `$this->seed(DatabaseSeeder::class)` runs via `db:seed --class` and accepts **no params** — tests invoke the seeder directly: `app(ScaleDataSeeder::class)->run(...)`.
 - Deep links (SPA): workspace `/workspaces/{id}?tab=…`; project `/projects/{id}?tab=…`; task `/projects/{id}?tab=tasks&task={key}[&section=comments|attachments|dependencies|time|activity]`. **All** `?tab=`/`&task=`/`&section=` URL building lives in `resources/js/utils/deepLinks.js` (`taskUrl(projectId,key,section)`/`projectUrl(id,tab)`/`workspaceUrl(id,tab)`) — reused by `CommandPalette` `hrefFor`, `utils/notifications.js` `notificationHref(data,type)` (**type-aware** — `task.commented` → `section=comments`, `task.work_logged` → `section=time`; falls back to `/workspaces/{id}` when only `workspace_id` is present), Dashboard `TaskRow`, and Search results. `ProjectDetail` keeps the query **in the URL** (refresh/direct-tab safe), initializes/keeps `tab` in lockstep with `useSearchParams` (sync effect → back/forward safe), and `changeTab` writes `?tab=` back while pruning `task`/`section` when leaving Tasks; forces board view for deep links, auto-opens the drawer via `openedDeepTaskRef` (reads `searchParams`), and `openTask(task, section)` passes the section down; `TaskDetail` accepts an `initialSection` prop and forces that drawer sub-tab on `[task]` change (validated against details/comments/attachments/dependencies/time/activity). `WorkspaceDetail` tabs are fully URL-driven (derived `activeTab` validated against the computed tab set; `changeTab` pushes `?tab=` and clears it for projects). `ProtectedRoute` preserves `pathname + search` through the login redirect so an unauthenticated deep link resumes after login.
 - Access denied: `ProjectController::show` 403s non-members (tenant admins bypass; cross-tenant 404 via tenant scope). Frontend `ProjectDetail`/`WorkspaceDetail` catch `err.response?.status === 403` → `navigate('/403', {replace:true})` (existing Forbidden page); other load failures keep the generic error state.
+
+## Website management / CMS + public site (Phase 14, item 11)
+- **SPA moved to `/app`** — `BrowserRouter basename="/app"` in `resources/js/App.jsx`; the root
+  `/` path now belongs to the public marketing site. `services/api.js` 401 redirect targets
+  `/app/login`. `tests/Feature/ExampleTest.php` asserts `GET /app` (the old `GET /` needed the system DB).
+- **`website_pages`** (system DB, migration `2026_09_24_000019`) = DB-backed CMS pages:
+  `slug` unique, `title`, `content` JSON blocks (ordered array of `hero|features|text|cta`), `status`
+  (`draft|published`), `seo_title`, `meta_description`, `og_image`, `sitemap_include`, `sort_order`,
+  `published_at`. Model `App\Models\WebsitePage` (CentralConnection; `content` array cast;
+  `isPublished()/publish()/unpublish()`). Seeded idempotently in `TenantSeeder::seedWebsitePages()`
+  (home published with hero/features/cta; about draft; privacy/terms published but `sitemap_include=false`).
+- **Admin CRUD** (super_admin group at `api/system/pages*`): `CmsController` index/show/store/update/
+  destroy + `POST …/{page}/publish|unpublish`; writes central `audit_logs` rows
+  `cms.page_created|updated|published|unpublished|deleted` (data `{slug,title,status}`); saving as
+  `published` stamps `published_at` (preserved on later published edits); the `home` page can't be
+  deleted (422). Frontend: `pages/CmsPages.jsx` at `/admin/pages` (sidebar "Website" under
+  Administration) — table + `PageFormModal` with a typed block editor (add/reorder/remove blocks,
+  inline CTA fields, per-block fields).
+- **Public server-rendered site** (`PublicSiteController`, no auth): `GET /` renders the published
+  `home` page (404-ish text if unseeded), `GET /page/{slug}` (published only, drafts 404),
+  `GET /sitemap.xml` (published pages with `sitemap_include=true`, home always first; `lastmod` from
+  `updated_at`), `GET /robots.txt` (Allow all + Sitemap line). Blade: `resources/views/layouts/site.blade.php`
+  (inline CSS, brand/nav/footer; links to `/app/login` + `/app/register`) + `resources/views/public/page.blade.php`
+  (block switch: hero/features/cta/text; text paragraphs split on double newlines). Content editing
+  publishes live without code changes.
 
 ## Realtime (Reverb + Echo, Phase 0 base)
 - Composer `laravel/reverb`; npm `laravel-echo` + `pusher-js` (+ `@dnd-kit/*` for the board, `recharts` for analytics). `BROADCAST_CONNECTION=reverb`.
@@ -185,7 +210,7 @@ Hierarchy: **Tenant → Workspace → Project → Task** (subtask `tasks.parent_
 
 ## Frontend conventions
 - Routing in `resources/js/App.jsx`: `GuestRoute` (login/forgot/reset only — **no register**), `ProtectedRoute` (optional `permission` prop), super-admin-only `/tenants` route.
-- `context/AuthContext.jsx`: `user`, `theme`, `loading`, `login`, `logout`, `stopImpersonation`, `can()`, `refresh`. `can()` returns true for super admin unless `user.impersonating`; tenant users rely on `user.permissions`.
+- `context/AuthContext.jsx`: `user`, `theme`, `loading`, `login`, `logout`, `stopImpersonation`, `can()`, `hasModule()`, `check()`, `refresh`. `can()` returns true for super admin unless `user.impersonating`; tenant users rely on `user.permissions`. `hasModule(module)` gates plan modules; `check(capability)` is the combined guard — `'permission:slug'` or `'module:name'` prefixes (backend `me()` fills `user.modules`).
 - `context/ThemeContext.jsx` (live draft + save/reset), `context/ToastContext.jsx` (success/info/error).
 - `services/api.js`: axios base `/api`, `withCredentials`, `withXSRFToken`; on 401 redirects to `/login`; `fieldErrors()` helper.
 - In `AdminLayout`, **only the page-content div is keyed by `location.pathname`** — never wrap the whole `<Routes>` (causes remount blink).
@@ -259,6 +284,21 @@ Hierarchy: **Tenant → Workspace → Project → Task** (subtask `tasks.parent_
   table (filters, sort, "Include deleted", per-tenant ⋯ menu: View/Edit/View-as-user/Enable-Disable/
   Delete-Restore, edit modal, pagination footer; row subscription fields inline — no per-row lazy fetch);
   `TenantDetail` shows a lazy Usage card from `/stats`.
+  **Platform management (item 10):** `platform_settings` key-value table (system, migration `000018`) +
+  `PlatformSetting` (`value()/bool()/set()`, seeded idempotently: app_name, public_registration,
+  default_plan_id, maintenance_mode). `SystemSettingsController` GET/PUT (`platform.settings_updated`
+  audit; `default_plan_id` must be an **active** plan). `public_registration` now gates the public
+  `/register` endpoint (RegisterController reads the setting, onboarding config is seed-time fallback —
+  RegisterTest's `enableRegistration()` must flip the setting too). `SystemUsersController`
+  (list + create SA accounts, `system.user_created` audit). `AuditLogsController` feeds a merged,
+  paginated feed of central `audit_logs` + `impersonation_logs` (type/q/tenant_id filters, latest-100
+  caps per source, sorted desc by created_at). `SystemAnalyticsController` (tenant/subscription status
+  by-status from central DB + cross-tenant resource totals via capped fan-out of the first 100
+  serviceable tenants, `Cache::remember 300s`). `FeatureManagementController` (module catalog × plan
+  toggle grid persisting `plans.limits.modules`, `plan.module_toggled` audit — drives P15 gates).
+  Frontend: `/admin` (SA Overview, `/` redirects SA here), `/admin/analytics|users|audit-logs|features|
+  settings` pages + expanded SA sidebar (Administration: Overview/Tenants/Plans/Features; Platform:
+  Users/Analytics/Audit Logs/Settings).
   `ProvisionTenants` command repairs isolated tenants. Tenant DBs run the **full current migration set**
   (central-table clutter accepted pre-cutover).
 - **P13 cutover shipped** (see the Tenant-isolation section above; full test suite now runs through
@@ -299,6 +339,15 @@ Hierarchy: **Tenant → Workspace → Project → Task** (subtask `tasks.parent_
   lifecycle on `trial`. `ProvisionTenantJob` constructor gained optional `?int $planId` / `?int $trialDays`
   and, post-provisioning, creates/re-stamps the subscription + `trial_started|subscribed` event
   (falls back to default plan; no-op when no plans exist).
+- **Refactor (item 13) conventions:** controller input validation lives in `app/Http/Requests/` FormRequests
+  (Login/ForgotPassword/ResetPassword/Register/ImpersonationStart/ThemeUpdate/FeatureModuleToggle/
+  SystemSettingsUpdate/SystemUser index+store/GlobalSearch/SearchTasks/DependencyStore/AttachmentStore/
+  Status store+update/CmsPage) — controllers type-hint the request and use `$request->validated()`.
+  `CmsPageRequest` does `Rule::unique('website_pages','slug')->ignore($this->route('websitePage'))`.
+  **Pagination payloads are uniform** `{current_page,last_page,per_page,total}` (never `->toArray()`);
+  frontend renders them via the shared `components/ui/Pagination.jsx`. Date/price formatting helpers live
+  in `utils/format.js` (`formatDate`/`formatDateTime`/`formatPrice`); deep-link/notification/time helpers
+  in `utils/deepLinks.js`/`utils/notifications.js`/`utils/time.js`.
 - Routes (super_admin group, system scope): `GET|POST /api/plans`, `PUT|DELETE /api/plans/{plan}`;
   `GET|POST /api/tenants/{tenant}/subscription`, `POST …/subscription/trial|cancel|renew|suspend`,
   `GET …/subscription/events`. Controllers: `PlanController`, `TenantSubscriptionController`.
@@ -326,6 +375,26 @@ Hierarchy: **Tenant → Workspace → Project → Task** (subtask `tasks.parent_
   parameter** (undefined-variable crash); `IsolatedProvisioningTest` asserted a local `tenants` row +
   `users.tenant_id` + a void return from `provisionIsolated` (rewritten for Phase 13 reality).
 - Phase plan + Jira-feature expansion map + security/testing/migration strategy: see the doc (§14, §10, §12, §13, §11).
+
+## Subscription module gates (plan-driven feature toggles)
+- `app/Http/Middleware/EnsureModule.php` (alias **`ensure_module`**, registered in `bootstrap/app.php`
+  priority before `SubstituteBindings`) 403s a route group when the tenant's effective plan lacks the
+  module: **bypass when `TenantContext::currentId()` is null** (non-impersonating SA / provisioning /
+  seeders — included in the ModuleGateTest bypass case); otherwise `TenantLimits::hasModule($tenant,$module)`.
+  An **impersonating** super admin HAS a tenant context and is bound to the target tenant's plan.
+- Route gates in `routes/web.php`: theme `GET|PUT /theme` → `ensure_module:branding`;
+  `search/global` + `search/tasks` → `global_search`; `reports/overview` → `reports`; the whole
+  work-log + project/workspace time-summary block → `time_tracking`. Modules catalog +
+  per-plan lists in `config/subscriptions.php`; Feature Management (item 10) persists
+  `plans.limits.modules` (audit `plan.module_toggled`). A tenant with **no subscription is unlimited**
+  (`TenantLimits::hasModule` true) — keeps seeded/demo tenants working.
+- `AuthController::payload` (`me()`) carries `user.modules` = effective plan modules, falling back to
+  the full catalog for no-subscription tenants (SA non-tenant = full catalog).
+- Frontend: `AuthContext.hasModule()` (SA non-impersonating → true; tenant users vs `user.modules`)
+  + `ProtectedRoute` accepts `module` prop (redirects to `/403`). `/search` rides
+  `module="global_search"`, `/reports` `module="reports"`; Sidebar Search/Reports items, the Topbar
+  theme button, and the CommandPalette are gated; `time_tracking` hides the Time tab set in
+  ProjectDetail/WorkspaceDetail, TaskDetail's Time sub-tab, and Reports' time-scope card.
 
 ## Tenant onboarding (Phase 14)
 - Optional self-service onboarding for new tenants, behind `config/onboarding.php` `enabled` (env

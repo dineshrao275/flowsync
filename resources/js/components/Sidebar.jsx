@@ -5,24 +5,24 @@ const sections = [
     {
         label: 'Main',
         items: [
-            { to: '/dashboard', label: 'Dashboard', permission: 'dashboard.view', icon: 'M3 12l9-9 9 9M5 10v10h14V10' },
-            { to: '/workspaces', label: 'Workspaces', permission: 'workspaces.view', icon: 'M3 7a2 2 0 012-2h4l2 2h8a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2V7z' },
-            { to: '/projects', label: 'Projects', permission: 'workspaces.view', icon: 'M2 4h20v16H2V4zm2 2v2h16V6H4zm0 6h16v-2H4v2zm0 4h16v-2H4v2z' },
-            { to: '/search', label: 'Search', permission: 'workspaces.view', icon: 'M21 21l-4.35-4.35M17 11a6 6 0 11-12 0 6 6 0 0112 0z' },
+            { to: '/dashboard', label: 'Dashboard', capabilities: ['dashboard.view'], icon: 'M3 12l9-9 9 9M5 10v10h14V10' },
+            { to: '/workspaces', label: 'Workspaces', capabilities: ['workspaces.view'], icon: 'M3 7a2 2 0 012-2h4l2 2h8a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2V7z' },
+            { to: '/projects', label: 'Projects', capabilities: ['workspaces.view'], icon: 'M2 4h20v16H2V4zm2 2v2h16V6H4zm0 6h16v-2H4v2zm0 4h16v-2H4v2z' },
+            { to: '/search', label: 'Search', capabilities: ['workspaces.view', 'module:global_search'], icon: 'M21 21l-4.35-4.35M17 11a6 6 0 11-12 0 6 6 0 0112 0z' },
         ],
     },
     {
         label: 'Insights',
         items: [
-            { to: '/reports', label: 'Reports', permission: 'reports.view', icon: 'M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z' },
+            { to: '/reports', label: 'Reports', capabilities: ['reports.view', 'module:reports'], icon: 'M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z' },
         ],
     },
     {
         label: 'Administration',
         items: [
-            { to: '/users', label: 'Users', permission: 'users.view', icon: 'M17 20h5v-2a4 4 0 00-3-3.87M9 20H4v-2a4 4 0 013-3.87m4-1.13a4 4 0 10-4-4 4 4 0 004 4zm6 2a3 3 0 10-3-3' },
-            { to: '/roles', label: 'Roles', permission: 'roles.view', icon: 'M12 2l8 4v6c0 5-3.5 8-8 10-4.5-2-8-5-8-10V6l8-4zm-1 10l-2-2-1 1 3 3 5-5-1-1-4 4z' },
-            { to: '/settings', label: 'Settings', permission: 'settings.view', icon: 'M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 001.065-2.572c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z M15 12a3 3 0 11-6 0 3 3 0 016 0z' },
+            { to: '/users', label: 'Users', capabilities: ['users.view'], icon: 'M17 20h5v-2a4 4 0 00-3-3.87M9 20H4v-2a4 4 0 013-3.87m4-1.13a4 4 0 10-4-4 4 4 0 004 4zm6 2a3 3 0 10-3-3' },
+            { to: '/roles', label: 'Roles', capabilities: ['roles.view'], icon: 'M12 2l8 4v6c0 5-3.5 8-8 10-4.5-2-8-5-8-10V6l8-4zm-1 10l-2-2-1 1 3 3 5-5-1-1-4 4z' },
+            { to: '/settings', label: 'Settings', capabilities: ['settings.view'], icon: 'M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 001.065-2.572c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z M15 12a3 3 0 11-6 0 3 3 0 016 0z' },
         ],
     },
 {
@@ -37,19 +37,20 @@ const superAdminSections = [
     {
         label: 'Administration',
         items: [
-            { to: '/admin', label: 'Overview', permission: 'dashboard.view', icon: 'M4 13h6V3H4v10zm0 8h6v-6H4v6zm10 0h6V11h-6v10zm0-18v6h6V3h-6z' },
-            { to: '/tenants', label: 'Tenants', permission: 'dashboard.view', icon: 'M3 20h18M6 8V6a3 3 0 013-3h6a3 3 0 013 3v2m-12 0h12a3 3 0 013 3v5a3 3 0 01-3 3H9a3 3 0 01-3-3v-5a3 3 0 013-3z' },
-            { to: '/plans', label: 'Plans', permission: 'dashboard.view', icon: 'M9 3h6l4 4v14H5V7l4-4zm0 5h6m-4 4h4m-4 4h4' },
-            { to: '/admin/features', label: 'Features', permission: 'dashboard.view', icon: 'M12 3l8 4v13H4V7l8-4zm0 5a2.5 2.5 0 00-2.5 2.5c0 1.5 2.5 3 2.5 3s2.5-1.5 2.5-3A2.5 2.5 0 0012 8zm0 10a2 2 0 100-4 2 2 0 000 4z' },
+            { to: '/admin', label: 'Overview', capabilities: ['dashboard.view'], icon: 'M4 13h6V3H4v10zm0 8h6v-6H4v6zm10 0h6V11h-6v10zm0-18v6h6V3h-6z' },
+            { to: '/tenants', label: 'Tenants', capabilities: ['dashboard.view'], icon: 'M3 20h18M6 8V6a3 3 0 013-3h6a3 3 0 013 3v2m-12 0h12a3 3 0 013 3v5a3 3 0 01-3 3H9a3 3 0 01-3-3v-5a3 3 0 013-3z' },
+            { to: '/plans', label: 'Plans', capabilities: ['dashboard.view'], icon: 'M9 3h6l4 4v14H5V7l4-4zm0 5h6m-4 4h4m-4 4h4' },
+            { to: '/admin/features', label: 'Features', capabilities: ['dashboard.view'], icon: 'M12 3l8 4v13H4V7l8-4zm0 5a2.5 2.5 0 00-2.5 2.5c0 1.5 2.5 3 2.5 3s2.5-1.5 2.5-3A2.5 2.5 0 0012 8zm0 10a2 2 0 100-4 2 2 0 000 4z' },
+            { to: '/admin/pages', label: 'Website', capabilities: ['dashboard.view'], icon: 'M12 3l8 4v13H4V7l8-4zm2 6v6m-4-6v2' },
         ],
     },
     {
         label: 'Platform',
         items: [
-            { to: '/admin/users', label: 'Users', permission: 'dashboard.view', icon: 'M17 20h5v-2a4 4 0 00-3-3.87M9 20H4v-2a4 4 0 013-3.87m4-1.13a4 4 0 10-4-4 4 4 0 004 4zm6 2a3 3 0 10-3-3' },
-            { to: '/admin/analytics', label: 'Analytics', permission: 'dashboard.view', icon: 'M3 3v18h18M8 17V9m4 8V5m4 12v-6' },
-            { to: '/admin/audit-logs', label: 'Audit Logs', permission: 'dashboard.view', icon: 'M4 7V5a2 2 0 012-2h8l2 2h6v14a2 2 0 01-2 2H6a2 2 0 01-2-2v-2m0 0V7h18M8 12h8M8 16h8' },
-            { to: '/admin/settings', label: 'Settings', permission: 'dashboard.view', icon: 'M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 001.065-2.572c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z M15 12a3 3 0 11-6 0 3 3 0 016 0z' },
+            { to: '/admin/users', label: 'Users', capabilities: ['dashboard.view'], icon: 'M17 20h5v-2a4 4 0 00-3-3.87M9 20H4v-2a4 4 0 013-3.87m4-1.13a4 4 0 10-4-4 4 4 0 004 4zm6 2a3 3 0 10-3-3' },
+            { to: '/admin/analytics', label: 'Analytics', capabilities: ['dashboard.view'], icon: 'M3 3v18h18M8 17V9m4 8V5m4 12v-6' },
+            { to: '/admin/audit-logs', label: 'Audit Logs', capabilities: ['dashboard.view'], icon: 'M4 7V5a2 2 0 012-2h8l2 2h6v14a2 2 0 01-2 2H6a2 2 0 01-2-2v-2m0 0V7h18M8 12h8M8 16h8' },
+            { to: '/admin/settings', label: 'Settings', capabilities: ['dashboard.view'], icon: 'M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 001.065-2.572c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z M15 12a3 3 0 11-6 0 3 3 0 016 0z' },
         ],
     },
 ];
@@ -112,11 +113,14 @@ function SidebarSection({ section, collapsed, onClose }) {
 }
 
 export default function Sidebar({ open, collapsed, onClose, onToggleCollapse }) {
-    const { can, user } = useAuth();
+    const { check, user } = useAuth();
     const isSuperAdmin = user?.is_super_admin && !user?.impersonating;
 
     const items = (isSuperAdmin ? superAdminSections : sections)
-        .map((section) => ({ ...section, items: section.items.filter((item) => !item.permission || can(item.permission)) }))
+        .map((section) => ({
+            ...section,
+            items: section.items.filter((item) => !item.capabilities?.length || item.capabilities.every((capability) => check(capability))),
+        }))
         .filter((section) => section.items.length > 0);
 
     return (

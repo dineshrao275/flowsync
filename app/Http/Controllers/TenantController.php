@@ -87,7 +87,6 @@ class TenantController extends Controller
 
         $tenants = $paginator->getCollection()->map(function (Tenant $tenant) use ($counts) {
             $tenant->setAttribute('users_count', (int) ($counts[$tenant->id] ?? 0));
-            $tenant->setAttribute('roles_count', 0);
 
             $subscription = $tenant->subscription;
             $tenant->setAttribute('plan_slug', $subscription?->plan?->slug);
@@ -318,7 +317,6 @@ class TenantController extends Controller
     private function counts(Tenant $tenant): Tenant
     {
         $tenant->setAttribute('users_count', TenantUserRouting::where('tenant_id', $tenant->id)->count());
-        $tenant->setAttribute('roles_count', 0);
 
         return $tenant;
     }

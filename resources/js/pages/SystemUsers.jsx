@@ -6,6 +6,7 @@ import Spinner from '../components/ui/Spinner';
 import Button from '../components/ui/Button';
 import Input from '../components/ui/Input';
 import Modal from '../components/ui/Modal';
+import Pagination from '../components/ui/Pagination';
 import { useToast } from '../context/ToastContext';
 import usePageTitle from '../hooks/usePageTitle';
 import { useSetCrumbs } from '../context/BreadcrumbContext';
@@ -113,14 +114,13 @@ export default function SystemUsers() {
                 )}
             </Card>
 
-            {pagination && pagination.last_page > 1 && (
-                <div className="flex items-center justify-between text-sm">
-                    <span className="text-gray-400">Page {pagination.current_page} of {pagination.last_page}</span>
-                    <div className="flex gap-2">
-                        <Button variant="ghost" disabled={pagination.current_page <= 1} onClick={() => fetchUsers(pagination.current_page - 1)}>Prev</Button>
-                        <Button variant="ghost" disabled={pagination.current_page >= pagination.last_page} onClick={() => fetchUsers(pagination.current_page + 1)}>Next</Button>
-                    </div>
-                </div>
+            {pagination && (
+                <Pagination
+                    placement="sides"
+                    page={pagination.current_page}
+                    pages={pagination.last_page}
+                    onChange={fetchUsers}
+                />
             )}
 
             {showCreate && (

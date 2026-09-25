@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\AttachmentStoreRequest;
 use App\Models\Attachment;
 use App\Models\Project;
 use App\Models\Task;
@@ -10,16 +11,10 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
-use Illuminate\Validation\Rules\File;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class AttachmentController extends Controller
 {
-    private const ALLOWED_MIMES = [
-        'jpeg', 'png', 'gif', 'webp', 'svg', 'pdf', 'doc', 'docx',
-        'xls', 'xlsx', 'ppt', 'pptx', 'txt', 'md', 'csv', 'zip', 'json',
-    ];
-
     public function __construct(
         private readonly ActivityLogger $logger,
     ) {}
@@ -37,16 +32,11 @@ class AttachmentController extends Controller
         ]);
     }
 
-    public function store(Request $request, Project $project, Task $task): JsonResponse
+    public function store(AttachmentStoreRequest $request, Project $project, Task $task): JsonResponse
     {
         $this->authorize('create', [Attachment::class, $task]);
 
-        $data = $request->validate([
-            'file' => [
-                'required',
-                File::types(self::ALLOWED_MIMES)->max(10 * 1024),
-            ],
-        ]);
+        $data = $request->validated();
 
         $file = $data['file'];
         $extension = $file->getClientOriginalExtension() ?: pathinfo($file->getClientOriginalName(), PATHINFO_EXTENSION);

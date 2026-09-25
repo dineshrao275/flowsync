@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Http\Controllers\Concerns\ScopesVisibleTasks;
+use App\Http\Requests\GlobalSearchRequest;
 use App\Models\Project;
 use App\Models\Tenant;
 use App\Models\User;
@@ -16,13 +17,9 @@ class GlobalSearchController extends Controller
 {
     use ScopesVisibleTasks;
 
-    public function __invoke(Request $request, TenantDatabaseManager $dbm): JsonResponse
+    public function __invoke(GlobalSearchRequest $request, TenantDatabaseManager $dbm): JsonResponse
     {
-        $validated = $request->validate([
-            'q' => ['required', 'string', 'min:2', 'max:100'],
-        ]);
-
-        $q = trim($validated['q']);
+        $q = trim($request->validated('q'));
         $user = $request->user();
 
         // A non-impersonating super admin searches across all provisioned

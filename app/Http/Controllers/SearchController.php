@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Http\Controllers\Concerns\ScopesVisibleTasks;
+use App\Http\Requests\SearchTasksRequest;
 use App\Models\Label;
 use App\Models\Priority;
 use App\Models\Project;
@@ -12,28 +13,15 @@ use App\Models\User;
 use App\Models\Workspace;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
-use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
 class SearchController extends Controller
 {
     use ScopesVisibleTasks;
 
-    public function tasks(Request $request): JsonResponse
+    public function tasks(SearchTasksRequest $request): JsonResponse
     {
-        $filters = $request->validate([
-            'q' => ['nullable', 'string', 'max:200'],
-            'status_id' => ['nullable', 'integer'],
-            'priority_id' => ['nullable', 'integer'],
-            'assignee_id' => ['nullable', 'integer'],
-            'project_id' => ['nullable', 'integer'],
-            'workspace_id' => ['nullable', 'integer'],
-            'label_id' => ['nullable', 'integer'],
-            'due_from' => ['nullable', 'date'],
-            'due_to' => ['nullable', 'date'],
-            'assignee' => ['nullable', 'in:me'],
-            'per_page' => ['nullable', 'integer', 'min:1', 'max:100'],
-        ]);
+        $filters = $request->validated();
 
         $user = $request->user();
 

@@ -15,6 +15,7 @@ const DEFAULT_TITLES = {
     '/search': 'Search',
     '/notifications': 'Notifications',
     '/plans': 'Plans',
+    '/admin/pages': 'Website Pages',
 };
 
 function defaultTitleFor(pathname) {

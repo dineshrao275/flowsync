@@ -11,6 +11,7 @@ import AttachmentList from './AttachmentList';
 import DependencyPanel from './DependencyPanel';
 import ActivityFeed from './ActivityFeed';
 import WorkLogPanel from './WorkLogPanel';
+import { useAuth } from '../../context/AuthContext';
 import { fieldClass } from '../ui/fieldStyles';
 
 export default function TaskDetail({
@@ -33,6 +34,7 @@ export default function TaskDetail({
     onUpdate,
     onDelete,
 }) {
+    const { hasModule } = useAuth();
     const [form, setForm] = useState(null);
     const [errors, setErrors] = useState({});
     const [tab, setTab] = useState('details');
@@ -92,7 +94,7 @@ export default function TaskDetail({
         { key: 'comments', label: 'Comments' },
         { key: 'attachments', label: 'Attachments' },
         { key: 'dependencies', label: 'Dependencies' },
-        { key: 'time', label: 'Time' },
+        ...(hasModule('time_tracking') ? [{ key: 'time', label: 'Time' }] : []),
         { key: 'activity', label: 'Activity' },
     ];
 
@@ -302,7 +304,7 @@ export default function TaskDetail({
                                     allTasks={topLevelTasks}
                                 />
                             )}
-                            {tab === 'time' && (
+                            {tab === 'time' && hasModule('time_tracking') && (
                                 <WorkLogPanel
                                     task={task}
                                     projectId={projectId}

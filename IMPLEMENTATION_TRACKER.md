@@ -464,30 +464,94 @@ touched) · `npm run build` when frontend touched · AGENTS.md updated when arch
       `owner@acme.test`, globex u1 = `owner@globex.test`; `{user_id:1, tenant_id:globex}` →
       `owner@globex.test` (impersonating true), stop → superadmin, `{user_id:1, tenant_id:acme}` →
       `owner@acme.test`; banner/stop flow unchanged.
-- [ ] **10. Super-admin panel expansion** — new sidebar modules + pages: Dashboard, Tenants (from #8),
-      Subscriptions, Plans (exists), Users, Analytics, Audit Logs, Feature Management, System Settings;
-      `platform_settings` + features catalogs; read-only audit endpoint over `audit_logs` +
-      `impersonation_logs`; cross-tenant Analytics (capped fan-out); `PlatformRole/Permission` stay
-      schema-only (still `is_super_admin` gate).
-- [ ] **11. Website management** — CMS admin + public rendering: `website_pages` (slug/title/content
+- [x] **10. Super-admin panel expansion** — new sidebar modules + pages: Overview (`/admin`), Tenants
+      (#8), Plans, Users, Analytics, Audit Logs, Feature Management, System Settings.
+      **Verified:** migration `000018` `platform_settings` (system DB, key-value) + `PlatformSetting`
+      model (`value()/bool()/set()`) seeded idempotently in TenantSeeder (app_name, public_registration,
+      default_plan_id, maintenance_mode) · `SystemSettingsController` GET/PUT (validates whitelist,
+      `default_plan_id` → active-plan check, audit `platform.settings_updated`); **`public_registration`
+      now drives the public `/register` gate** (403 when off — RegisterController reads the platform
+      setting with the onboarding config as seed-time fallback; RegisterTest rewired to set the setting) ·
+      `SystemUsersController` (paginated `GET /system/users` + `POST` create SA, audit `system.user_created`) ·
+      `AuditLogsController` (merged feed over central `audit_logs` + `impersonation_logs`, type/q/tenant_id
+      filters, 100-row caps per source, paginated) · `SystemAnalyticsController` (tenant status/subscription
+      by-status from central DB; cross-tenant resource totals via capped fan-out of serviceable tenants —
+      `Cache::remember 300s`) · `FeatureManagementController` (module catalog × plan toggle grid persisting
+      `plans.limits.modules`, audit `plan.module_toggled`) · routes all in the super_admin group · Sidebar
+      gains Overview/Features (Administration) + Users/Analytics/Audit Logs/Settings (Platform);
+      `/` for SA now redirects to `/admin` · 6 new pages (`SystemDashboard`, `SystemAnalytics`,
+      `SystemUsers`, `AuditLogs`, `FeatureManagement`, `SystemSettings`) · pint ✓ · full suite **303/2223**
+      (new `SystemAdminTest` 6 tests/85 assertions: settings CRUD+audit, register gate off/on,
+      system-user list/create/dedupe, merged audit feed incl. impersonation rows, module toggle round-trip,
+      analytics shape + totals) — also fixed a latent **ScaleDataSeeder `Undefined variable $priorityConfig`**
+      (dead closure capture, priorities come from the model; broke only when warnings surface) · `npm run
+      build` ✓ · image rebuilt/app healthy · **live:** settings GET/PUT round-trip 200, users list/create
+      200/201, audit feed returns mixed impersonation/event rows incl. prior item-8/9 activity, analytics
+      200 (104 tenants, cross-tenant resource sums + top-5 by users), module toggle on/off persists,
+      register gated 403 when `public_registration=false` and 200 auto-login when true, all `/admin/*` SPA
+      shells 200.
+- [x] **11. Website management** — CMS admin + public rendering: `website_pages` (slug/title/content
       JSON blocks/status/SEO/OG/meta/sitemap_include/sort); `CmsPageEditor.jsx`; public server-rendered
       `GET /`, `/page/{slug}`, `/sitemap.xml`, `/robots.txt` from DB (SPA at `/app`); publish without
       code changes.
-- [ ] **12. Subscription-based feature control** — `EnsureModule` middleware 403s
+      **Verified:** migration `2026_09_24_000019_create_website_pages_table` (system) + `WebsitePage`
+      (CentralConnection, `content` array cast) + `TenantSeeder` seeds home/about/privacy/terms
+      (idempotent updateOrCreate) · `CmsController` CRUD + publish/unpublish (super_admin group at
+      `system/pages*`, `cms.page_created|updated|published|unpublished|deleted` audit rows, home page
+      delete-blocked 422) · `PublicSiteController` home/page/sitemap/robots + Blade layout + block
+      renderer (hero/features/text/cta) · SPA moved to `/app` (BrowserRouter `basename="/app"`,
+      axios 401 redirect now `/app/login`, root catch-all split: public `/`, `/page/{slug}`,
+      `/sitemap.xml`, `/robots.txt`; test `ExampleTest` hits `/app` now) · frontend `CmsPages.jsx`
+      list + block editor + Sidebar "Website" + `/admin/pages` route · `CmsTest` 4 tests/41 assertions
+      (admin lifecycle + home protection + public rendering incl. draft 404 + sitemap/robots derived
+      from CMS) · full suite **307/2264** green · `npm run build` clean · pint clean.
+- [x] **12. Subscription-based feature control** — `EnsureModule` middleware 403s
       `reports`/`time_tracking`/`global_search`/`branding`/`api`/`audit_export` route groups when plan
       lacks module (SA non-impersonating bypasses; impersonating follows target's plan); frontend gates
-      sidebar/pages on `user.modules` (via `can()`-style helper + `ProtectedRoute module` prop);
-      Feature Management (#10) drives `plans.limits.modules` + `features_override`; tests: module-off →
-      menu hidden, direct-URL 403, API 403.
-- [ ] **13. Refactor (last)** — consolidate utils/components, FormRequest validation, unify
+      sidebar/pages on `user.modules` (via `hasModule()` + `ProtectedRoute module` prop); Feature
+      Management (#10) drives `plans.limits.modules`; tests: module-off → menu hidden, direct-URL 403,
+      API 403.
+      **Verified:** `app/Http/Middleware/EnsureModule.php` (alias `ensure_module` in `bootstrap/app.php`
+      priority, bypass when `TenantContext::currentId()` null, else `TenantLimits::hasModule` → 403) ·
+      route gates: theme GET/PUT → `branding`, `search/global` + `search/tasks` → `global_search`,
+      `reports/overview` → `reports`, work-logs + project/workspace time-summary block →
+      `time_tracking` · `me()` payload gains `user.modules` (effective plan modules, full catalog for
+      no-subscription tenants) · frontend `AuthContext.hasModule()`, `ProtectedRoute module` prop (→
+      `/403`), `/search` + `/reports` wrapped, Sidebar Search/Reports/Topbar-theme/CommandPalette gated,
+      ProjectDetail/WorkspaceDetail Time tab set + TaskDetail Time sub-tab + Reports time-scope card all
+      `hasModule('time_tracking')` · new `tests/Feature/ModuleGateTest.php` 5 tests/20 assertions
+      (no-subscription unlimited, pro gates reports/search/time vs theme 403, removed module → 403 on
+      its routes while global_search stays 200, `me()` modules reflect effective plan, non-impersonating
+      SA bypass) · full suite **312/2284** green · pint clean · `npm run build` clean · image rebuilt/app
+      healthy · live: acme on pro → theme 403, reports/search/time-summary 200; SA toggles `branding`
+      on pro via Feature Management → acme theme PUT 200 → toggle off → 403 (=acme `me()` modules
+      round-trip).
+- [x] **13. Refactor (last)** — consolidate utils/components, FormRequest validation, unify
       permission+module helper, delete dead code (stock `app.js`, hardcoded `roles_count`), normalize
       API shapes, pint + build + full suite, refresh AGENTS.md/tracker.
+      **Verified:** deleted `resources/js/app.js` + both `$tenant->setAttribute('roles_count', 0)` lines
+      in `TenantController` · `AuthContext` unified permission+module helper — `unrestricted()`,
+      `hasAccess(capability)`, `can()`, `hasModule()`, combined `check(capability)` understanding
+      `module:<name>` (backend `module:` prefix), exposed `check` in context value · `Sidebar`
+      converted to a single `capabilities: [...]` array via `check()`, `AdminLayout` uses `check()` ·
+      17 FormRequests in `app/Http/Requests/` (Login/ForgotPassword/ResetPassword/Register/
+      ImpersonationStart/ThemeUpdate dynamic-config/FeatureModuleToggle/SystemSettingsUpdate/
+      SystemUser index+store/GlobalSearch/SearchTasks/DependencyStore/AttachmentStore (moved
+      ALLOWED_MIMES)/Status store+update/CmsPage) — controllers rewired to `$request->validated()`
+      with byte-identical rules; `ThemeController` partial-payload 422 + `CmsController` `Rule::unique
+      (...)->ignore($this->route('websitePage'))` preserved · API shape normalization: all 7 pagination
+      payloads now the uniform `{current_page,last_page,per_page,total}` subset (AuditLogs/SystemUsers
+      trimmed from full DTO `toArray()`) · frontend consolidation: new `components/ui/Pagination.jsx`
+      (prev/next + `Page X of Y · total`, `between`|`sides` placement) replaces 5 near-identical footers
+      (Search/Notifications/AuditLogs/SystemUsers/Tenants) + new `utils/format.js` (`formatDate`,
+      `formatDateTime`, `formatPrice`) dedupes the two copies in Subscription/Plans · **full suite
+      312/2284 green** · pint clean (whole repo incl. migrations/tests) · `npm run build` clean.
 
 **Groundwork (done with item 5/12 wire-up):** migration `000017` wave (tenant profile + platform
 settings/features + website CMS) · `me()` payload gains `modules` + subscription summary · `module:`
 middleware alias registered in `bootstrap/app.php` priority before `SubstituteBindings`.
 
-**Initiative status:** 9/13 items complete.
+**Initiative status:** 13/13 items complete.
 
 ---
 

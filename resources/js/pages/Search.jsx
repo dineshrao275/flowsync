@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import api from '../services/api';
 import Card from '../components/ui/Card';
 import Button from '../components/ui/Button';
+import Pagination from '../components/ui/Pagination';
 import Spinner from '../components/ui/Spinner';
 import Alert from '../components/ui/Alert';
 import { useSetCrumbs } from '../context/BreadcrumbContext';
@@ -251,24 +252,16 @@ export default function Search() {
                 )}
             </Card>
 
-            {pagination && pagination.last_page > 1 && (
-                <div className="flex items-center justify-between">
-                    <Button variant="secondary" disabled={page <= 1} onClick={() => {
-                        setPage(page - 1);
-                        load(page - 1, params);
-                    }}>
-                        Previous
-                    </Button>
-                    <span className="text-sm text-gray-500">
-                        Page {pagination.current_page} of {pagination.last_page} · {pagination.total} results
-                    </span>
-                    <Button variant="secondary" disabled={page >= pagination.last_page} onClick={() => {
-                        setPage(page + 1);
-                        load(page + 1, params);
-                    }}>
-                        Next
-                    </Button>
-                </div>
+            {pagination && (
+                <Pagination
+                    page={page}
+                    pages={pagination.last_page}
+                    total={pagination.total}
+                    onChange={(p) => {
+                        setPage(p);
+                        load(p, params);
+                    }}
+                />
             )}
         </div>
     );

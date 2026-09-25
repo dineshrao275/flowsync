@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\ThemeUpdateRequest;
 use App\Models\UserSettings;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -15,15 +16,9 @@ class ThemeController extends Controller
         ]);
     }
 
-    public function update(Request $request): JsonResponse
+    public function update(ThemeUpdateRequest $request): JsonResponse
     {
-        $defaults = config('theme.defaults');
-
-        $validated = $request->validate([
-            ...array_fill_keys(array_keys($defaults), [
-                'required', 'string', 'regex:/^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/',
-            ]),
-        ]);
+        $validated = $request->validated();
 
         $settings = UserSettings::firstOrCreate(['user_id' => $request->user()->id]);
 

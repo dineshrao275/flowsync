@@ -55,7 +55,7 @@ function Tabs({ tabs, active, onChange }) {
 export default function ProjectDetail() {
     const { projectId } = useParams();
     const navigate = useNavigate();
-    const { user, can } = useAuth();
+    const { user, can, hasModule } = useAuth();
     const toast = useToast();
     const setCrumbs = useSetCrumbs();
     usePageTitle(project?.name || 'Project');
@@ -495,7 +495,7 @@ export default function ProjectDetail() {
         { key: 'tasks', label: 'Tasks' },
         { key: 'members', label: `Members (${members.length})` },
         { key: 'workflow', label: 'Workflow' },
-        { key: 'time', label: 'Time' },
+        ...(hasModule('time_tracking') ? [{ key: 'time', label: 'Time' }] : []),
         ...(isProjectManager ? [{ key: 'settings', label: 'Settings' }] : []),
     ];
 

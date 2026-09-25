@@ -1,6 +1,14 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import api from '../services/api';
 
+const MODULE_PREFIX = 'module:';
+
+// Extracts the module name from a `module:<name>` capability string, else null.
+const moduleName = (capability) =>
+    typeof capability === 'string' && capability.startsWith(MODULE_PREFIX)
+        ? capability.slice(MODULE_PREFIX.length)
+        : null;
+
 const AuthContext = createContext(null);
 
 export function AuthProvider({ children }) {
@@ -55,14 +63,25 @@ export function AuthProvider({ children }) {
         return data;
     }, []);
 
-    const can = useCallback(
-        (permission) => {
+    const unrestricted = useCallback(() => Boolean(user?.is_super_admin && !user.impersonating), [user]);
+
+    const hasAccess = useCallback(
+        (capability) => {
             if (!user) return false;
-            if (user.is_super_admin && !user.impersonating) return true;
-            return Boolean(user.permissions?.includes(permission));
+            if (moduleName(capability)) {
+                return unrestricted() || Boolean(user.modules?.includes(moduleName(capability)));
+            }
+            return unrestricted() || Boolean(user.permissions?.includes(capability));
         },
-        [user],
+        [user, unrestricted],
     );
+
+    const can = useCallback((permission) => hasAccess(permission), [hasAccess]);
+
+    const hasModule = useCallback((module) => hasAccess(`module:${module}`), [hasAccess]);
+
+    // Single entry that understands "permission" and "module:<name>" scopes.
+    const check = useCallback((capability) => hasAccess(capability), [hasAccess]);
 
     const value = useMemo(
         () => ({
@@ -75,9 +94,11 @@ export function AuthProvider({ children }) {
             logout,
             stopImpersonation,
             can,
+            hasModule,
+            check,
             refresh: loadSession,
         }),
-        [user, theme, loading, login, register, logout, stopImpersonation, can, loadSession],
+        [user, theme, loading, login, register, logout, stopImpersonation, can, hasModule, check, loadSession],
     );
 
     return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

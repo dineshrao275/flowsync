@@ -82,7 +82,7 @@ class ScaleDataSeeder extends Seeder
             $tenant = $this->firstOrCreateTenant($slug, $t);
             $provisioner->provisionIsolated($tenant, $dbm, $lifecycle);
 
-            $dbm->using($tenant, function () use ($tenant, $usersPerTenant, $workspacesPerTenant, $projectsPerWorkspace, $tasksPerProject, $related, $statusConfig, $priorityConfig): void {
+            $dbm->using($tenant, function () use ($tenant, $usersPerTenant, $workspacesPerTenant, $projectsPerWorkspace, $tasksPerProject, $related, $statusConfig): void {
                 $roleIds = Role::pluck('id', 'slug');
                 $priorityIds = Priority::pluck('id', 'slug');
                 $projectRoleIds = ProjectRole::pluck('id', 'slug');

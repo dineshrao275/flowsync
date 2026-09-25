@@ -6,6 +6,7 @@ import Badge from '../components/ui/Badge';
 import Spinner from '../components/ui/Spinner';
 import Alert from '../components/ui/Alert';
 import Button from '../components/ui/Button';
+import Pagination from '../components/ui/Pagination';
 import Input from '../components/ui/Input';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
@@ -619,29 +620,17 @@ export default function Tenants() {
                 </div>
 
                 {!loading && pagination.last_page > 1 && (
-                    <div className="flex items-center justify-between border-t border-gray-100 px-4 py-3 text-sm text-gray-500">
-                        <span>
-                            {pagination.total} tenants &middot; page {pagination.current_page} of {pagination.last_page}
-                        </span>
-                        <div className="flex gap-2">
-                            <Button
-                                variant="secondary"
-                                size="sm"
-                                disabled={pagination.current_page <= 1}
-                                onClick={() => setPage((p) => Math.max(1, p - 1))}
-                            >
-                                Prev
-                            </Button>
-                            <Button
-                                variant="secondary"
-                                size="sm"
-                                disabled={pagination.current_page >= pagination.last_page}
-                                onClick={() => setPage((p) => Math.min(pagination.last_page, p + 1))}
-                            >
-                                Next
-                            </Button>
-                        </div>
-                    </div>
+                    <Pagination
+                        placement="sides"
+                        variant="secondary"
+                        size="sm"
+                        page={pagination.current_page}
+                        pages={pagination.last_page}
+                        total={pagination.total}
+                        label={`${pagination.total} tenants · page ${pagination.current_page} of ${pagination.last_page}`}
+                        className="border-t border-gray-100 px-4 py-3"
+                        onChange={setPage}
+                    />
                 )}
             </Card>
         </div>

@@ -8,6 +8,7 @@ import Button from '../components/ui/Button';
 import Input from '../components/ui/Input';
 import Modal from '../components/ui/Modal';
 import { useToast } from '../context/ToastContext';
+import { formatPrice } from '../utils/format';
 import usePageTitle from '../hooks/usePageTitle';
 
 const MODULES = ['time_tracking', 'reports', 'global_search', 'api', 'branding', 'audit_export'];
@@ -116,12 +117,6 @@ function PlanForm({ initial, onSave, onCancel }) {
             </div>
         </form>
     );
-}
-
-function formatPrice(plan) {
-    const cents = Number(plan.price_cents || 0);
-    const value = (cents / 100).toLocaleString('en-US', { style: 'currency', currency: plan.currency || 'USD' });
-    return plan.billing_cycle === 'annual' ? `${value}/mo billed annually` : `${value}/mo`;
 }
 
 export default function Plans() {

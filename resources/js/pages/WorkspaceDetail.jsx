@@ -53,7 +53,7 @@ function Tabs({ tabs, active, onChange }) {
 export default function WorkspaceDetail() {
     const { workspaceId } = useParams();
     const navigate = useNavigate();
-    const { user, can } = useAuth();
+    const { user, can, hasModule } = useAuth();
     const toast = useToast();
     const setCrumbs = useSetCrumbs();
     const [workspace, setWorkspace] = useState(null);
@@ -292,7 +292,7 @@ export default function WorkspaceDetail() {
         { key: 'projects', label: 'Projects' },
         { key: 'members', label: `Members (${members.length})` },
         { key: 'labels', label: `Labels (${labels.length})` },
-        { key: 'time', label: 'Time' },
+        ...(hasModule('time_tracking') ? [{ key: 'time', label: 'Time' }] : []),
         ...(isOwner ? [{ key: 'settings', label: 'Settings' }] : []),
     ];
 

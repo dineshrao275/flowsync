@@ -35,6 +35,7 @@ import SystemUsers from './pages/SystemUsers';
 import SystemSettings from './pages/SystemSettings';
 import AuditLogs from './pages/AuditLogs';
 import FeatureManagement from './pages/FeatureManagement';
+import CmsPages from './pages/CmsPages';
 import Forbidden from './pages/Forbidden';
 import NotFound from './pages/NotFound';
 
@@ -84,6 +85,7 @@ function AppRoutes() {
                                 <Route path="/admin/settings" element={<SystemSettings />} />
                                 <Route path="/admin/audit-logs" element={<AuditLogs />} />
                                 <Route path="/admin/features" element={<FeatureManagement />} />
+                                <Route path="/admin/pages" element={<CmsPages />} />
                                 <Route path="/tenants" element={<Tenants />} />
                                 <Route path="/tenants/:tenantId" element={<TenantDetail />} />
                                 <Route path="/plans" element={<Plans />} />
@@ -99,9 +101,11 @@ function AppRoutes() {
                             <Route path="/workspaces/:workspaceId" element={<WorkspaceDetail />} />
                             <Route path="/projects" element={<Projects />} />
                             <Route path="/projects/:projectId" element={<ProjectDetail />} />
+                        </Route>
+                        <Route element={<ProtectedRoute permission="workspaces.view" module="global_search" />}>
                             <Route path="/search" element={<Search />} />
                         </Route>
-                        <Route element={<ProtectedRoute permission="reports.view" />}>
+                        <Route element={<ProtectedRoute permission="reports.view" module="reports" />}>
                             <Route path="/reports" element={<Reports />} />
                         </Route>
                         <Route element={<ProtectedRoute permission="users.view" />}>
@@ -125,7 +129,7 @@ function AppRoutes() {
 
 export default function App() {
     return (
-        <BrowserRouter>
+        <BrowserRouter basename="/app">
             <ScrollToTop />
             <AuthProvider>
                 <ToastProvider>

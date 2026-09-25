@@ -2,11 +2,11 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\SystemSettingsUpdateRequest;
 use App\Models\AuditLog;
 use App\Models\PlatformSetting;
 use App\Models\SubscriptionPlan;
 use Illuminate\Http\JsonResponse;
-use Illuminate\Http\Request;
 
 class SystemSettingsController extends Controller
 {
@@ -17,14 +17,9 @@ class SystemSettingsController extends Controller
         return response()->json(['settings' => $this->all()]);
     }
 
-    public function update(Request $request): JsonResponse
+    public function update(SystemSettingsUpdateRequest $request): JsonResponse
     {
-        $data = $request->validate([
-            'app_name' => ['nullable', 'string', 'max:255'],
-            'public_registration' => ['nullable', 'boolean'],
-            'default_plan_id' => ['nullable', 'integer', 'min:1'],
-            'maintenance_mode' => ['nullable', 'boolean'],
-        ]);
+        $data = $request->validated();
 
         // The exists: rule resolves against the default connection; here SA
         // requests run on the system connection anyway, but stay explicit.

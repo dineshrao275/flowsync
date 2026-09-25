@@ -2,10 +2,12 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\LoginRequest;
 use App\Models\ImpersonationLog;
 use App\Models\Tenant;
 use App\Models\TenantUserRouting;
 use App\Models\User;
+use App\Services\TenantLimits;
 use App\Services\TenantOnboarding;
 use App\Support\TenantContext;
 use App\Support\TenantDatabaseManager;
@@ -18,13 +20,9 @@ use Illuminate\Validation\ValidationException;
 
 class AuthController extends Controller
 {
-    public function login(Request $request): JsonResponse
+    public function login(LoginRequest $request): JsonResponse
     {
-        $credentials = $request->validate([
-            'email' => ['required', 'string', 'email'],
-            'password' => ['required', 'string'],
-            'tenant' => ['sometimes', 'nullable', 'string', 'alpha_dash'],
-        ]);
+        $credentials = $request->validated();
 
         return $this->loginIsolated($request, $credentials);
     }
@@ -185,6 +183,9 @@ class AuthController extends Controller
                 'tenant' => $tenant?->only(['id', 'name', 'slug']),
                 'roles' => $isSuperAdmin ? [] : $user->roleSlugs(),
                 'permissions' => $isSuperAdmin ? [] : $user->permissionSlugs(),
+                'modules' => $tenant
+                    ? (app(TenantLimits::class)->limit($tenant, 'modules') ?? config('subscriptions.modules'))
+                    : config('subscriptions.modules'),
                 'impersonating' => $impersonation !== null,
                 'impersonated_by' => $impersonation['original_user_id'] ?? null,
                 'onboarding_complete' => ! $tenant || app(TenantOnboarding::class)->isComplete($tenant),

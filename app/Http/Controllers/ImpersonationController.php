@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\ImpersonationStartRequest;
 use App\Models\ImpersonationLog;
 use App\Models\TenantUserRouting;
 use App\Models\User;
@@ -13,12 +14,9 @@ use Illuminate\Validation\ValidationException;
 
 class ImpersonationController extends Controller
 {
-    public function start(Request $request): JsonResponse
+    public function start(ImpersonationStartRequest $request): JsonResponse
     {
-        $data = $request->validate([
-            'user_id' => ['required', 'integer'],
-            'tenant_id' => ['nullable', 'integer'],
-        ]);
+        $data = $request->validated();
 
         $superAdmin = $request->user();
 

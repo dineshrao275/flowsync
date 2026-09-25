@@ -2,13 +2,13 @@
 
 namespace App\Http\Controllers;
 
-use App\Enums\TaskStatusCategory;
+use App\Http\Requests\StatusStoreRequest;
+use App\Http\Requests\StatusUpdateRequest;
 use App\Models\Project;
 use App\Models\TaskStatus;
 use App\Services\ProjectService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Validation\Rule;
 
 class StatusController extends Controller
 {
@@ -24,16 +24,11 @@ class StatusController extends Controller
         return response()->json(['statuses' => $statuses]);
     }
 
-    public function store(Request $request, Project $project): JsonResponse
+    public function store(StatusStoreRequest $request, Project $project): JsonResponse
     {
         $this->authorize('manageWorkflow', $project);
 
-        $data = $request->validate([
-            'name' => ['required', 'string', 'max:255'],
-            'category' => ['required', Rule::enum(TaskStatusCategory::class)],
-            'color' => ['nullable', 'string', 'max:16'],
-            'position' => ['nullable', 'integer', 'min:1'],
-        ]);
+        $data = $request->validated();
 
         $status = $this->service->addStatus($project, $data);
 
@@ -43,17 +38,11 @@ class StatusController extends Controller
         ], 201);
     }
 
-    public function update(Request $request, Project $project, TaskStatus $status): JsonResponse
+    public function update(StatusUpdateRequest $request, Project $project, TaskStatus $status): JsonResponse
     {
         $this->authorize('manageWorkflow', $project);
 
-        $data = $request->validate([
-            'name' => ['nullable', 'string', 'max:255'],
-            'category' => ['nullable', Rule::enum(TaskStatusCategory::class)],
-            'color' => ['nullable', 'string', 'max:16'],
-            'position' => ['nullable', 'integer', 'min:1'],
-            'is_done' => ['nullable', 'boolean'],
-        ]);
+        $data = $request->validated();
 
         return response()->json([
             'message' => 'Status updated.',

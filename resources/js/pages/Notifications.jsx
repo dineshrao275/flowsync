@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import api from '../services/api';
 import Card from '../components/ui/Card';
 import Button from '../components/ui/Button';
+import Pagination from '../components/ui/Pagination';
 import Spinner from '../components/ui/Spinner';
 import Alert from '../components/ui/Alert';
 import { useNotifications } from '../context/NotificationContext';
@@ -103,19 +104,7 @@ export default function Notifications() {
                 )}
             </Card>
 
-            {pagination && pagination.last_page > 1 && (
-                <div className="flex items-center justify-between">
-                    <Button variant="secondary" disabled={page <= 1} onClick={() => setPage(page - 1)}>
-                        Previous
-                    </Button>
-                    <span className="text-sm text-gray-500">
-                        Page {pagination.current_page} of {pagination.last_page}
-                    </span>
-                    <Button variant="secondary" disabled={page >= pagination.last_page} onClick={() => setPage(page + 1)}>
-                        Next
-                    </Button>
-                </div>
-            )}
+            <Pagination page={page} pages={pagination.last_page} onChange={setPage} />
         </div>
     );
 }
