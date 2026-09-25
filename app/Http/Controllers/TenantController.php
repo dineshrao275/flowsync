@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Http\Controllers\Concerns\NormalizesBooleanInput;
+use App\Http\Controllers\Concerns\ValidatesResourceLimits;
 use App\Jobs\ProvisionTenantJob;
 use App\Models\AuditLog;
 use App\Models\Tenant;
@@ -22,6 +23,7 @@ use Illuminate\Validation\Rule;
 class TenantController extends Controller
 {
     use NormalizesBooleanInput;
+    use ValidatesResourceLimits;
 
     protected const SORTABLE = ['name', 'slug', 'status', 'created_at', 'updated_at', 'users_count'];
 
@@ -164,12 +166,16 @@ class TenantController extends Controller
             'name' => ['required', 'string', 'max:255'],
             'slug' => ['required', 'string', 'max:255', 'alpha_dash', 'unique:tenants,slug,'.$tenant->id],
             'description' => ['nullable', 'string', 'max:255'],
+            // Per-tenant caps that win over the plan's (null key = unlimited).
+            'limits_override' => ['nullable', 'array'],
+            ...$this->resourceLimitRules('limits_override'),
         ]);
 
         $tenant->update([
             'name' => $data['name'],
             'slug' => Str::slug($data['slug']),
             'description' => $data['description'] ?? null,
+            'limits_override' => $this->cleanResourceLimits($data['limits_override'] ?? null, 'limits_override'),
         ]);
 
         return response()->json([

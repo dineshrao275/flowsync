@@ -6,6 +6,7 @@ import Spinner from '../components/ui/Spinner';
 import Alert from '../components/ui/Alert';
 import Button from '../components/ui/Button';
 import Input from '../components/ui/Input';
+import { Table, Th, Td, TableEmpty } from '../components/ui/Table';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
 import usePageTitle from '../hooks/usePageTitle';
@@ -182,97 +183,103 @@ export default function Users() {
                 </Card>
             )}
 
-            <Card>
-                <div className="overflow-x-auto">
-                    <table className="w-full text-left text-sm">
-                        <thead>
-                            <tr className="border-b border-gray-200 text-xs uppercase tracking-wide text-gray-400">
-                                <th className="py-3 pr-4 font-semibold">Name</th>
-                                <th className="py-3 pr-4 font-semibold">Email</th>
-                                <th className="py-3 pr-4 font-semibold">Roles</th>
-                                <th className="py-3 text-right font-semibold">Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody className="divide-y divide-gray-100">
-                            {users.map((user, index) => (
-                                <tr key={user.id} className="animate-fade-in transition-colors duration-150 hover:bg-gray-50" style={{ animationDelay: `${index * 30}ms` }}>
-                                    <td className="py-3.5 pr-4">
-                                        <div className="flex items-center gap-3">
-                                            <span
-                                                className="flex h-8 w-8 items-center justify-center rounded-full text-xs font-semibold text-white"
+            <Table>
+                <thead>
+                    <tr>
+                        <Th>Name</Th>
+                        <Th>Email</Th>
+                        <Th>Roles</Th>
+                        <Th align="right">Actions</Th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {users.length === 0 ? (
+                        <TableEmpty colSpan={4}>No users yet.</TableEmpty>
+                    ) : (
+                        users.map((user, index) => (
+                            <tr
+                                key={user.id}
+                                className="animate-fade-in transition-colors duration-150 hover:bg-gray-50"
+                                style={{ animationDelay: `${index * 30}ms` }}
+                            >
+                                <Td>
+                                    <div className="flex items-center gap-3">
+                                        <span
+                                            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-xs font-semibold text-white"
+                                            style={{ backgroundColor: 'var(--accent)' }}
+                                        >
+                                            {user.name.charAt(0).toUpperCase()}
+                                        </span>
+                                        <span className="font-medium text-gray-800">{user.name}</span>
+                                    </div>
+                                </Td>
+                                <Td>
+                                    <span className="text-gray-500">{user.email}</span>
+                                </Td>
+                                <Td>
+                                    <div className="flex flex-wrap gap-1">
+                                        {editing === user.id ? (
+                                            <select
+                                                multiple
+                                                value={user.roles}
+                                                onChange={(e) => {
+                                                    const selected = Array.from(
+                                                        e.target.selectedOptions,
+                                                        (o) => o.value,
+                                                    );
+                                                    setUsers((current) =>
+                                                        current.map((u) =>
+                                                            u.id === user.id ? { ...u, roles: selected } : u,
+                                                        ),
+                                                    );
+                                                }}
+                                                className="rounded border border-gray-300 text-xs"
+                                            >
+                                                {roleOptions.map((r) => (
+                                                    <option key={r.value} value={r.value}>
+                                                        {r.label}
+                                                    </option>
+                                                ))}
+                                            </select>
+                                        ) : (
+                                            user.roles.map((role) => <Badge key={role}>{role}</Badge>)
+                                        )}
+                                    </div>
+                                </Td>
+                                <Td align="right">
+                                    {manageable &&
+                                        (editing === user.id ? (
+                                            <div className="flex justify-end gap-2">
+                                                <Button
+                                                    variant="secondary"
+                                                    size="sm"
+                                                    onClick={() => setEditing(null)}
+                                                >
+                                                    Cancel
+                                                </Button>
+                                                <Button
+                                                    size="sm"
+                                                    loading={saving}
+                                                    onClick={() => saveRoles(user)}
+                                                >
+                                                    Save
+                                                </Button>
+                                            </div>
+                                        ) : (
+                                            <button
+                                                onClick={() => setEditing(user.id)}
+                                                className="rounded-lg px-3 py-1.5 text-xs font-medium text-white transition-all duration-150 hover:-translate-y-px hover:shadow-md active:scale-95"
                                                 style={{ backgroundColor: 'var(--accent)' }}
                                             >
-                                                {user.name.charAt(0).toUpperCase()}
-                                            </span>
-                                            <span className="font-medium text-gray-800">{user.name}</span>
-                                        </div>
-                                    </td>
-                                    <td className="py-3.5 pr-4 text-gray-500">{user.email}</td>
-                                    <td className="py-3.5 pr-4">
-                                        <div className="flex flex-wrap gap-1">
-                                            {editing === user.id ? (
-                                                <select
-                                                    multiple
-                                                    value={user.roles}
-                                                    onChange={(e) => {
-                                                        const selected = Array.from(
-                                                            e.target.selectedOptions,
-                                                            (o) => o.value,
-                                                        );
-                                                        setUsers((current) =>
-                                                            current.map((u) =>
-                                                                u.id === user.id ? { ...u, roles: selected } : u,
-                                                            ),
-                                                        );
-                                                    }}
-                                                    className="rounded border border-gray-300 text-xs"
-                                                >
-                                                    {roleOptions.map((r) => (
-                                                        <option key={r.value} value={r.value}>
-                                                            {r.label}
-                                                        </option>
-                                                    ))}
-                                                </select>
-                                            ) : (
-                                                user.roles.map((role) => <Badge key={role}>{role}</Badge>)
-                                            )}
-                                        </div>
-                                    </td>
-                                    <td className="py-3.5 text-right">
-                                        {manageable &&
-                                            (editing === user.id ? (
-                                                <div className="flex justify-end gap-2">
-                                                    <Button
-                                                        variant="secondary"
-                                                        size="sm"
-                                                        onClick={() => setEditing(null)}
-                                                    >
-                                                        Cancel
-                                                    </Button>
-                                                    <Button
-                                                        size="sm"
-                                                        loading={saving}
-                                                        onClick={() => saveRoles(user)}
-                                                    >
-                                                        Save
-                                                    </Button>
-                                                </div>
-                                            ) : (
-                                                <button
-                                                    onClick={() => setEditing(user.id)}
-                                                    className="rounded-lg px-3 py-1.5 text-xs font-medium text-white transition-all duration-150 hover:-translate-y-px hover:shadow-md active:scale-95"
-                                                    style={{ backgroundColor: 'var(--accent)' }}
-                                                >
-                                                    Edit roles
-                                                </button>
-                                            ))}
-                                    </td>
-                                </tr>
-                            ))}
-                        </tbody>
-                    </table>
-                </div>
-            </Card>
+                                                Edit roles
+                                            </button>
+                                        ))}
+                                </Td>
+                            </tr>
+                        ))
+                    )}
+                </tbody>
+            </Table>
         </div>
     );
 }

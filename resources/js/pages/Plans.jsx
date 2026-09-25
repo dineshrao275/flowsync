@@ -1,12 +1,13 @@
 import { useCallback, useEffect, useState } from 'react';
 import api, { fieldErrors } from '../services/api';
-import Card from '../components/ui/Card';
 import Badge from '../components/ui/Badge';
 import Spinner from '../components/ui/Spinner';
 import Alert from '../components/ui/Alert';
 import Button from '../components/ui/Button';
 import Input from '../components/ui/Input';
 import Modal from '../components/ui/Modal';
+import { Table, Th, Td, TableEmpty } from '../components/ui/Table';
+import LimitsEditor, { limitValue, formatBytes } from '../components/billing/LimitsEditor';
 import { useToast } from '../context/ToastContext';
 import { formatPrice } from '../utils/format';
 import usePageTitle from '../hooks/usePageTitle';
@@ -25,6 +26,28 @@ const emptyForm = {
     is_default: false,
     sort_order: 0,
 };
+
+function LimitSummary({ plan }) {
+    const cells = [
+        ['Users', limitValue(plan.limits, 'users')],
+        ['Workspaces', limitValue(plan.limits, 'workspaces')],
+        ['Projects', limitValue(plan.limits, 'projects')],
+        ['Tasks', limitValue(plan.limits, 'tasks')],
+    ];
+
+    return (
+        <span className="flex flex-wrap gap-x-3 gap-y-0.5 text-xs text-gray-500">
+            {cells.map(([label, value]) => (
+                <span key={label}>
+                    <span className="tabular-nums font-semibold text-gray-800">{value === null ? '∞' : value}</span> {label.toLowerCase()}
+                </span>
+            ))}
+            <span>
+                <span className="font-semibold text-gray-800">{formatBytes(limitValue(plan.limits, 'storage_bytes'))}</span> storage
+            </span>
+        </span>
+    );
+}
 
 function PlanForm({ initial, onSave, onCancel }) {
     const [form, setForm] = useState(initial);
@@ -72,6 +95,14 @@ function PlanForm({ initial, onSave, onCancel }) {
                 onChange={(e) => set('description', e.target.value)}
                 error={errors.description}
                 placeholder="What this plan includes"
+            />
+            <LimitsEditor
+                key={initial.id ?? 'new'}
+                limits={form.limits}
+                errors={errors}
+                legend="Per-tenant resource limits"
+                hint="Caps applied to every tenant on this plan. Blank = unlimited. Enforced on create; a tenant's own override wins over these."
+                onChange={(next) => set('limits', next ? { ...(form.limits || {}), ...next } : { modules: [] })}
             />
             <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
                 <Input label="Price (cents)" type="number" name="price_cents" value={form.price_cents} onChange={(e) => set('price_cents', Number(e.target.value))} error={errors.price_cents} />
@@ -181,7 +212,7 @@ export default function Plans() {
                 <div>
                     <h2 className="text-2xl font-bold text-gray-900">Subscription plans</h2>
                     <p className="mt-1 text-sm text-gray-500">
-                        Plan limits and feature modules drive tenant quotas and entitlements.
+                        Cap users, projects, workspaces and tasks per tenant, and pick the modules each plan unlocks.
                     </p>
                 </div>
                 <Button size="md" onClick={() => setCreating((open) => !open)}>
@@ -195,7 +226,7 @@ export default function Plans() {
                 open={creating}
                 onClose={() => setCreating(false)}
                 title="Create plan"
-                subtitle="Machines-read limits: max out numeric caps, list modules that unlock features."
+                subtitle="Set the numeric caps per tenant and list the modules that unlock features."
                 size="lg"
             >
                 <PlanForm
@@ -220,47 +251,56 @@ export default function Plans() {
                 )}
             </Modal>
 
-            <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
-                {plans.map((plan, index) => (
-                    <div key={plan.id} className="animate-fade-in-up" style={{ animationDelay: `${index * 60}ms` }}>
-                        <Card
-                            className="h-full"
-                            title={
-                                <span className="flex items-center gap-2">
-                                    {plan.name}
-                                    {plan.is_default && <Badge>default</Badge>}
+            <Table>
+                <thead>
+                    <tr>
+                        <Th>Plan</Th>
+                        <Th>Price</Th>
+                        <Th>Billing</Th>
+                        <Th>Limits</Th>
+                        <Th>Modules</Th>
+                        <Th>Status</Th>
+                        <Th align="right">Actions</Th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {plans.length === 0 && <TableEmpty colSpan={7}>No plans yet.</TableEmpty>}
+                    {plans.map((plan) => (
+                        <tr key={plan.id} className="hover:bg-gray-50/60">
+                            <Td>
+                                <span className="font-medium text-gray-900">{plan.name}</span>
+                                {plan.is_default && <span className="ml-2"><Badge>default</Badge></span>}
+                                <span className="mt-0.5 block text-xs text-gray-500">
+                                    {plan.slug}
+                                    {plan.description ? ` · ${plan.description}` : ''}
                                 </span>
-                            }
-                            subtitle={plan.description || 'No description'}
-                            actions={
-                                <span className="flex items-center gap-2">
-                                    <Badge>{plan.is_active ? 'active' : 'inactive'}</Badge>
-                                    <Badge>{plan.billing_cycle}</Badge>
-                                </span>
-                            }
-                        >
-                        <p className="text-sm font-semibold text-gray-900">{formatPrice(plan)}</p>
-                        {plan.trial_duration_days && (
-                            <p className="mt-0.5 text-xs text-gray-500">{plan.trial_duration_days}-day trial</p>
-                        )}
-                        <div className="mt-4 space-y-1.5 text-sm text-gray-600">
-                            <p><span className="font-medium text-gray-900">{plan.limits?.users ?? '∞'}</span> users</p>
-                            <p><span className="font-medium text-gray-900">{plan.limits?.projects ?? '∞'}</span> projects</p>
-                            <p><span className="font-medium text-gray-900">{plan.limits?.tasks ?? '∞'}</span> tasks</p>
-                            <p><span className="font-medium text-gray-900">{(plan.limits?.modules || []).length}</span> modules</p>
-                        </div>
-                        <div className="mt-4 flex items-center gap-3 border-t border-gray-100 pt-3">
-                            <button type="button" className="text-sm font-medium text-indigo-600 hover:text-indigo-800" onClick={() => setEditing(plan)}>
-                                Edit
-                            </button>
-                            <button type="button" className="text-sm font-medium text-red-500 hover:text-red-700" onClick={() => remove(plan)}>
-                                Delete
-                            </button>
-                        </div>
-                        </Card>
-                    </div>
-                ))}
-            </div>
+                            </Td>
+                            <Td className="whitespace-nowrap font-medium text-gray-900">{formatPrice(plan)}</Td>
+                            <Td className="whitespace-nowrap">
+                                {plan.billing_cycle}
+                                {plan.trial_duration_days ? (
+                                    <span className="mt-0.5 block text-xs text-gray-500">{plan.trial_duration_days}-day trial</span>
+                                ) : null}
+                            </Td>
+                            <Td>
+                                <LimitSummary plan={plan} />
+                            </Td>
+                            <Td className="tabular-nums">{(plan.limits?.modules || []).length}</Td>
+                            <Td>
+                                <Badge>{plan.is_active ? 'active' : 'inactive'}</Badge>
+                            </Td>
+                            <Td align="right" className="whitespace-nowrap">
+                                <button type="button" className="text-sm font-medium text-indigo-600 hover:text-indigo-800" onClick={() => setEditing(plan)}>
+                                    Edit
+                                </button>
+                                <button type="button" className="ml-3 text-sm font-medium text-red-500 hover:text-red-700" onClick={() => remove(plan)}>
+                                    Delete
+                                </button>
+                            </Td>
+                        </tr>
+                    ))}
+                </tbody>
+            </Table>
         </div>
     );
 }

@@ -1,6 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useState } from 'react';
 import api, { fieldErrors } from '../services/api';
-import { applyTheme, DEFAULT_THEME } from '../theme';
+import { applyTheme, DEFAULT_THEME, resolveMode, watchSystemScheme } from '../theme';
 import { useAuth } from './AuthContext';
 
 const ThemeContext = createContext(null);
@@ -13,6 +13,9 @@ export function ThemeProvider({ children }) {
         applyTheme(theme || DEFAULT_THEME);
         setDraft(theme || DEFAULT_THEME);
     }, [theme]);
+
+    // `mode: system` follows the OS while the tab stays open.
+    useEffect(() => watchSystemScheme(() => applyTheme(theme || DEFAULT_THEME)), [theme]);
 
     const preview = useCallback((key, value) => {
         setDraft((current) => {
@@ -44,7 +47,7 @@ export function ThemeProvider({ children }) {
         previewFull(DEFAULT_THEME);
     }, [previewFull]);
 
-    const value = { draft, setDraft, preview, previewFull, save, reset, defaults: DEFAULT_THEME };
+    const value = { draft, setDraft, preview, previewFull, save, reset, defaults: DEFAULT_THEME, resolvedMode: resolveMode(draft?.mode) };
 
     return <ThemeContext.Provider value={value}>{children}</ThemeContext.Provider>;
 }

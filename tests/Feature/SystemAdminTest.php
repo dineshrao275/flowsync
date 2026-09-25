@@ -216,9 +216,58 @@ class SystemAdminTest extends TestCase
                 'subscriptions' => ['total', 'by_status'],
                 'resources' => ['users', 'workspaces', 'projects', 'tasks'],
                 'top_tenants' => [['id', 'tenant', 'users']],
+                'growth' => [['date', 'label', 'tenants']],
+                'plans' => ['rows' => [['plan', 'slug', 'subscriptions', 'price_cents', 'monthly_cents']], 'monthly_cents', 'active_subscriptions'],
             ])
             ->assertJsonPath('tenants.total', 2)
             ->assertJsonPath('resources.users', 5) // acme 4 + globex 1
             ->assertJsonPath('top_tenants.0.users', 4); // acme biggest
+    }
+
+    public function test_platform_analytics_reports_30_day_signup_trend_and_plan_mix(): void
+    {
+        $this->loginSuperAdmin();
+
+        $response = $this->getJson('/api/system/analytics')->assertOk();
+
+        // 30 daily buckets, ending today, each carrying the signup count.
+        $growth = $response->json('growth');
+        $this->assertCount(30, $growth);
+        $this->assertSame(
+            now()->format('Y-m-d'),
+            $growth[29]['date'],
+        );
+        $this->assertSame(
+            array_sum(array_column($growth, 'tenants')),
+            $response->json('tenants.total'),
+        );
+
+        // Plan mix covers the whole catalog, zero counts before anyone subscribes.
+        $rows = collect($response->json('plans.rows'));
+        $this->assertSame(['starter', 'pro', 'enterprise'], $rows->pluck('slug')->all());
+        $this->assertSame(0, $rows->sum('subscriptions'));
+        $this->assertSame(0, $response->json('plans.active_subscriptions'));
+        $this->assertSame(0, $response->json('plans.monthly_cents'));
+
+        // Subscribing shows up in the mix and the monthly rollup.
+        $pro = SubscriptionPlan::where('slug', 'pro')->firstOrFail();
+        $this->postJson('/api/tenants/'.$this->acme()->id.'/subscription', [
+            'plan_id' => $pro->id,
+        ])->assertOk();
+
+        $this->getJson('/api/system/analytics')
+            ->assertOk()
+            ->assertJsonPath('plans.rows.1.slug', 'pro')
+            ->assertJsonPath('plans.rows.1.subscriptions', 1)
+            ->assertJsonPath('plans.rows.1.monthly_cents', $pro->price_cents)
+            ->assertJsonPath('plans.monthly_cents', $pro->price_cents)
+            ->assertJsonPath('plans.active_subscriptions', 1);
+
+        // Annual plans are normalized to a monthly figure for the rollup.
+        $pro->update(['billing_cycle' => 'annual', 'price_cents' => 12000]);
+        $this->getJson('/api/system/analytics')
+            ->assertOk()
+            ->assertJsonPath('plans.rows.1.monthly_cents', 1000)
+            ->assertJsonPath('plans.monthly_cents', 1000);
     }
 }

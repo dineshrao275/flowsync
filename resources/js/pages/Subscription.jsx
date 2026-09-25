@@ -3,11 +3,11 @@ import api, { fieldErrors } from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
 import usePageTitle from '../hooks/usePageTitle';
-import Card from '../components/ui/Card';
 import Badge from '../components/ui/Badge';
 import Spinner from '../components/ui/Spinner';
 import Alert from '../components/ui/Alert';
 import Button from '../components/ui/Button';
+import { Table, Th, Td, TableEmpty } from '../components/ui/Table';
 import { formatDate, formatPrice } from '../utils/format';
 
 const RESOURCES = [
@@ -41,26 +41,35 @@ function daysRemaining(iso) {
     return Math.max(0, Math.ceil((new Date(iso) - new Date()) / 86400000));
 }
 
-function UsageRow({ label, used, limit }) {
-    const unlimited = limit === null || limit === undefined;
-    const pct = unlimited ? (used > 0 ? 100 : 0) : Math.min(100, Math.round((used / Math.max(1, limit)) * 100));
-    const over = !unlimited && used > limit;
-
+function ModuleList({ title, modules, tone }) {
     return (
-        <div className="py-2">
-            <div className="flex items-center justify-between text-sm">
-                <span className="font-medium text-gray-700">{label}</span>
-                <span className={over ? 'font-semibold text-red-600' : 'text-gray-500'}>
-                    {used.toLocaleString()} / {unlimited ? '∞' : limit.toLocaleString()}
-                </span>
-            </div>
-            <div className="mt-1.5 h-2 w-full overflow-hidden rounded-full bg-gray-100">
-                <div
-                    className={`h-full rounded-full ${over ? 'bg-red-500' : 'bg-indigo-500'}`}
-                    style={{ width: `${Math.min(100, pct)}%` }}
-                />
-            </div>
-            {over && <p className="mt-1 text-xs text-red-600">Over the plan limit — you may not be able to create more.</p>}
+        <div>
+            <p className="text-xs font-semibold uppercase tracking-wide text-gray-400">{title}</p>
+            {modules.length === 0 ? (
+                <p className="mt-2 text-sm text-gray-500">None.</p>
+            ) : (
+                <ul className="mt-2 space-y-1.5">
+                    {modules.map((m) => (
+                        <li
+                            key={m}
+                            className={`flex items-center gap-2 text-sm ${
+                                tone === 'included' ? 'font-medium text-emerald-700' : 'text-gray-500'
+                            }`}
+                        >
+                            {tone === 'included' ? (
+                                <svg className="h-4 w-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                    <path d="M20 6L9 17l-5-5" />
+                                </svg>
+                            ) : (
+                                <svg className="h-4 w-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                    <path d="M18 6L6 18M6 6l12 12" />
+                                </svg>
+                            )}
+                            {MODULE_LABELS[m] || m}
+                        </li>
+                    ))}
+                </ul>
+            )}
         </div>
     );
 }
@@ -157,6 +166,7 @@ export default function Subscription() {
     const endDate = subscription?.trial_ends_at || subscription?.current_period_end;
     const includedModules = modules || plan?.limits?.modules || [];
     const excludedModules = modulesAvailable.filter((m) => !includedModules.includes(m));
+    const usageResources = RESOURCES.filter((r) => limits[r.key] !== undefined);
 
     return (
         <div className="space-y-6">
@@ -167,163 +177,197 @@ export default function Subscription() {
                 </p>
             </div>
 
-            <Card
-                title="Current plan"
-                subtitle={plan ? formatPrice(plan) : 'No active plan'}
-                actions={
-                    <span className="flex items-center gap-2">
-                        {subscription && <Badge>{STATUS_LABELS[subscription.status] || subscription.status}</Badge>}
-                        {plan && <Badge>{plan.billing_cycle}</Badge>}
-                    </span>
-                }
-            >
+            <section>
+                <h3 className="mb-2 text-sm font-semibold text-gray-900">Current plan</h3>
                 {!subscription ? (
                     <Alert>No subscription yet. Pick a plan below to get started.</Alert>
                 ) : (
-                    <div className="space-y-4">
-                        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-                            <div>
-                                <p className="text-xs font-semibold uppercase tracking-wide text-gray-400">Plan</p>
-                                <p className="mt-1 text-lg font-bold text-gray-900">{plan?.name || '—'}</p>
-                            </div>
-                            <div>
-                                <p className="text-xs font-semibold uppercase tracking-wide text-gray-400">
-                                    {subscription.trial_ends_at ? 'Trial ends' : 'Period ends'}
-                                </p>
-                                <p className="mt-1 text-lg font-bold text-gray-900">{formatDate(endDate)}</p>
-                            </div>
-                            <div>
-                                <p className="text-xs font-semibold uppercase tracking-wide text-gray-400">Days remaining</p>
-                                <p className="mt-1 text-lg font-bold text-gray-900">
-                                    {daysRemaining(endDate) === null ? '—' : `${daysRemaining(endDate)}d`}
-                                </p>
-                            </div>
-                            <div>
-                                <p className="text-xs font-semibold uppercase tracking-wide text-gray-400">Auto-renew</p>
-                                <p className="mt-1 text-lg font-bold text-gray-900">
-                                    {subscription.auto_renew ? 'On' : 'Off'}
-                                </p>
-                            </div>
-                        </div>
+                    <>
+                        <p className="flex flex-wrap items-center gap-2 text-sm text-gray-700">
+                            <span className="text-lg font-bold text-gray-900">{plan?.name || '—'}</span>
+                            <Badge>{STATUS_LABELS[subscription.status] || subscription.status}</Badge>
+                            {plan && <Badge>{plan.billing_cycle}</Badge>}
+                            <span className="text-gray-500">{plan ? formatPrice(plan) : 'No active plan'}</span>
+                        </p>
+                        <p className="mt-1 flex flex-wrap gap-x-6 gap-y-1 text-sm text-gray-500">
+                            <span>
+                                <span className="text-gray-400">{subscription.trial_ends_at ? 'Trial ends' : 'Period ends'}:</span>{' '}
+                                {formatDate(endDate)}
+                            </span>
+                            <span>
+                                <span className="text-gray-400">Days remaining:</span>{' '}
+                                {daysRemaining(endDate) === null ? '—' : `${daysRemaining(endDate)}d`}
+                            </span>
+                            <span>
+                                <span className="text-gray-400">Auto-renew:</span> {subscription.auto_renew ? 'On' : 'Off'}
+                            </span>
+                        </p>
                         {subscription.canceled_at && (
-                            <p className="text-sm text-amber-600">
+                            <p className="mt-1 text-sm text-amber-600">
                                 Canceled {formatDate(subscription.canceled_at)} — access continues until the period end.
                             </p>
                         )}
-                    </div>
+                    </>
                 )}
-                {canManage && (
-                    <div className="mt-4 flex items-center gap-2 border-t border-gray-100 pt-4">
-                        {subscription?.status === 'canceled' || subscription?.status === 'expired' ? (
+                {canManage && subscription && (
+                    <div className="mt-4 flex items-center gap-2">
+                        {subscription.status === 'canceled' || subscription.status === 'expired' ? (
                             <Button size="md" onClick={renew} loading={action}>
                                 Renew
                             </Button>
-                        ) : subscription && subscription.status !== 'past_due' ? (
+                        ) : subscription.status !== 'past_due' ? (
                             <Button size="md" variant="danger" onClick={cancel} loading={action}>
                                 Cancel subscription
                             </Button>
                         ) : null}
                     </div>
                 )}
-            </Card>
+            </section>
 
             {subscription && (
-                <Card title="Usage" subtitle="Current counts against your plan limits">
-                    <div className="divide-y divide-gray-100">
-                        {RESOURCES.filter((r) => limits[r.key] !== undefined).map((r) => (
-                            <UsageRow key={r.key} label={r.label} used={usage[r.key] ?? 0} limit={limits[r.key]} />
-                        ))}
-                    </div>
-                </Card>
+                <section>
+                    <h3 className="mb-2 text-sm font-semibold text-gray-900">Usage</h3>
+                    <p className="mb-2 text-xs text-gray-500">Current counts against your plan limits</p>
+                    <Table>
+                        <thead>
+                            <tr>
+                                <Th>Resource</Th>
+                                <Th align="right">Used</Th>
+                                <Th align="right">Limit</Th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {usageResources.length === 0 ? (
+                                <TableEmpty colSpan={3}>No limits apply to this plan.</TableEmpty>
+                            ) : (
+                                usageResources.map((r) => {
+                                    const used = usage[r.key] ?? 0;
+                                    const limit = limits[r.key];
+                                    const unlimited = limit === null || limit === undefined;
+                                    const over = !unlimited && used > limit;
+
+                                    return (
+                                        <tr key={r.key} className="transition-colors duration-150 hover:bg-gray-50/60">
+                                            <Td>
+                                                <span className="font-medium text-gray-800">{r.label}</span>
+                                                {over && (
+                                                    <span className="mt-0.5 block text-xs text-red-600">
+                                                        Over the plan limit — you may not be able to create more.
+                                                    </span>
+                                                )}
+                                            </Td>
+                                            <Td align="right" className={`tabular-nums ${over ? 'font-semibold text-red-600' : 'text-gray-700'}`}>
+                                                {used.toLocaleString()}
+                                            </Td>
+                                            <Td align="right" className="whitespace-nowrap tabular-nums text-gray-500">
+                                                {unlimited ? 'Unlimited' : limit.toLocaleString()}
+                                            </Td>
+                                        </tr>
+                                    );
+                                })
+                            )}
+                        </tbody>
+                    </Table>
+                </section>
             )}
 
-            <Card title="Included features" subtitle="Modules unlocked by your plan">
-                <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3">
-                    {includedModules.length === 0 && <p className="text-sm text-gray-500">No feature modules included.</p>}
-                    {includedModules.map((m) => (
-                        <div key={m} className="flex items-center gap-2 rounded-lg border border-emerald-100 bg-emerald-50 px-3 py-2 text-sm font-medium text-emerald-700">
-                            <svg className="h-4 w-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                <path d="M20 6L9 17l-5-5" />
-                            </svg>
-                            {MODULE_LABELS[m] || m}
-                        </div>
-                    ))}
-                    {excludedModules.map((m) => (
-                        <div key={m} className="flex items-center gap-2 rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-gray-500">
-                            <svg className="h-4 w-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                <path d="M18 6L6 18M6 6l12 12" />
-                            </svg>
-                            {MODULE_LABELS[m] || m}
-                        </div>
-                    ))}
+            <section>
+                <h3 className="mb-2 text-sm font-semibold text-gray-900">Included features</h3>
+                <p className="mb-3 text-xs text-gray-500">Modules unlocked by your plan</p>
+                {includedModules.length === 0 && <p className="mb-3 text-sm text-gray-500">No feature modules included.</p>}
+                <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
+                    {includedModules.length > 0 && (
+                        <ModuleList title="Included modules" modules={includedModules} tone="included" />
+                    )}
+                    <ModuleList title="Not included" modules={excludedModules} />
                 </div>
-            </Card>
+            </section>
 
-            <div>
+            <section>
                 <h3 className="mb-3 text-lg font-bold text-gray-900">Compare plans</h3>
                 {plans.length === 0 && <Alert>No plans are currently available.</Alert>}
-                <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
-                    {plans.map((p, index) => {
-                        const isCurrent = plan?.id === p.id;
-                        return (
-                            <div key={p.id} className="animate-fade-in-up" style={{ animationDelay: `${index * 60}ms` }}>
-                                <Card
-                                    className={`h-full ${isCurrent ? 'ring-2 ring-indigo-500' : ''}`}
-                                    title={
-                                        <span className="flex items-center gap-2">
-                                            {p.name}
-                                            {p.is_default && <Badge>default</Badge>}
-                                            {isCurrent && (
-                                                <span className="inline-flex items-center rounded-full bg-indigo-600 px-2.5 py-0.5 text-xs font-medium text-white">
-                                                    current
-                                                </span>
+                {plans.length > 0 && (
+                    <Table>
+                        <thead>
+                            <tr>
+                                <Th>Plan</Th>
+                                <Th>Price</Th>
+                                <Th>Trial</Th>
+                                <Th align="right">Modules</Th>
+                                <Th>Current</Th>
+                                <Th align="right">Actions</Th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {plans.map((p) => {
+                                const isCurrent = plan?.id === p.id;
+
+                                return (
+                                    <tr key={p.id} className="transition-colors duration-150 hover:bg-gray-50/60">
+                                        <Td>
+                                            <span className="font-medium text-gray-900">{p.name}</span>
+                                            {p.is_default && <span className="ml-2"><Badge>default</Badge></span>}
+                                            <span className="mt-0.5 block text-xs text-gray-500">
+                                                {p.description || 'No description'}
+                                            </span>
+                                            <span className="mt-0.5 block text-xs text-gray-500">
+                                                <span className="tabular-nums font-semibold text-gray-800">{p.limits?.users ?? '∞'}</span> users ·{' '}
+                                                <span className="tabular-nums font-semibold text-gray-800">{p.limits?.projects ?? '∞'}</span> projects ·{' '}
+                                                <span className="tabular-nums font-semibold text-gray-800">{p.limits?.tasks ?? '∞'}</span> tasks
+                                            </span>
+                                        </Td>
+                                        <Td className="whitespace-nowrap font-medium text-gray-900">{formatPrice(p)}</Td>
+                                        <Td className="whitespace-nowrap text-gray-500">
+                                            {p.trial_duration_days ? `${p.trial_duration_days} days` : '—'}
+                                        </Td>
+                                        <Td align="right" className="tabular-nums">{(p.limits?.modules || []).length}</Td>
+                                        <Td>{isCurrent ? <Badge>current</Badge> : <span className="text-gray-400">—</span>}</Td>
+                                        <Td align="right" className="whitespace-nowrap">
+                                            {canManage ? (
+                                                <Button size="sm" variant={isCurrent ? 'secondary' : 'primary'} disabled={isCurrent} onClick={() => switchPlan(p)} loading={action}>
+                                                    {isCurrent ? 'Current plan' : `Switch to ${p.name}`}
+                                                </Button>
+                                            ) : (
+                                                <span className="text-sm text-gray-400">{isCurrent ? 'Your current plan' : 'Ask an admin to switch plans.'}</span>
                                             )}
-                                        </span>
-                                    }
-                                    subtitle={p.description || 'No description'}
-                                >
-                                    <p className="text-sm font-semibold text-gray-900">{formatPrice(p)}</p>
-                                    {p.trial_duration_days && <p className="mt-0.5 text-xs text-gray-500">{p.trial_duration_days}-day trial</p>}
-                                    <div className="mt-4 space-y-1.5 text-sm text-gray-600">
-                                        <p><span className="font-medium text-gray-900">{p.limits?.users ?? '∞'}</span> users</p>
-                                        <p><span className="font-medium text-gray-900">{p.limits?.projects ?? '∞'}</span> projects</p>
-                                        <p><span className="font-medium text-gray-900">{p.limits?.tasks ?? '∞'}</span> tasks</p>
-                                        <p><span className="font-medium text-gray-900">{(p.limits?.modules || []).length}</span> modules</p>
-                                    </div>
-                                    <div className="mt-4 border-t border-gray-100 pt-3">
-                                        {canManage ? (
-                                            <Button size="md" variant={isCurrent ? 'secondary' : 'primary'} disabled={isCurrent} onClick={() => switchPlan(p)} loading={action}>
-                                                {isCurrent ? 'Current plan' : `Switch to ${p.name}`}
-                                            </Button>
-                                        ) : (
-                                            <p className="text-sm text-gray-400">{isCurrent ? 'Your current plan' : 'Ask an admin to switch plans.'}</p>
-                                        )}
-                                    </div>
-                                </Card>
-                            </div>
-                        );
-                    })}
-                </div>
-            </div>
+                                        </Td>
+                                    </tr>
+                                );
+                            })}
+                        </tbody>
+                    </Table>
+                )}
+            </section>
 
             {events.length > 0 && (
-                <Card title="Billing activity" subtitle="Recent subscription events">
-                    <ul className="divide-y divide-gray-100">
-                        {events.map((e) => (
-                            <li key={e.id} className="flex items-center justify-between py-2.5 text-sm">
-                                <div>
-                                    <span className="font-medium capitalize text-gray-900">{String(e.type).replace(/_/g, ' ')}</span>
-                                    {e.from_plan && e.to_plan && e.from_plan.id !== e.to_plan.id && (
-                                        <span className="ml-2 text-gray-500">
-                                            {e.from_plan.name} → {e.to_plan.name}
-                                        </span>
-                                    )}
-                                </div>
-                                <span className="text-xs text-gray-400">{formatDate(e.created_at)}</span>
-                            </li>
-                        ))}
-                    </ul>
-                </Card>
+                <section>
+                    <h3 className="mb-2 text-sm font-semibold text-gray-900">Billing activity</h3>
+                    <p className="mb-2 text-xs text-gray-500">Recent subscription events</p>
+                    <Table>
+                        <thead>
+                            <tr>
+                                <Th>Event</Th>
+                                <Th>Plan change</Th>
+                                <Th align="right">When</Th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {events.map((e) => (
+                                <tr key={e.id} className="transition-colors duration-150 hover:bg-gray-50/60">
+                                    <Td className="font-medium capitalize text-gray-900">{String(e.type).replace(/_/g, ' ')}</Td>
+                                    <Td className="text-gray-500">
+                                        {e.from_plan && e.to_plan && e.from_plan.id !== e.to_plan.id
+                                            ? `${e.from_plan.name} → ${e.to_plan.name}`
+                                            : '—'}
+                                    </Td>
+                                    <Td align="right" className="whitespace-nowrap text-xs text-gray-400">
+                                        {formatDate(e.created_at)}
+                                    </Td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </Table>
+                </section>
             )}
         </div>
     );

@@ -1,10 +1,10 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import api from '../services/api';
-import Card from '../components/ui/Card';
 import Badge from '../components/ui/Badge';
 import Spinner from '../components/ui/Spinner';
 import Alert from '../components/ui/Alert';
+import { Table, Th, Td, TableEmpty } from '../components/ui/Table';
 import { useSetCrumbs } from '../context/BreadcrumbContext';
 import usePageTitle from '../hooks/usePageTitle';
 
@@ -66,48 +66,83 @@ export default function Projects() {
             {error && <Alert>{error}</Alert>}
 
             {projects.length === 0 ? (
-                <Card>
-                    <p className="text-sm text-gray-500">No projects yet. Create one from a workspace.</p>
-                </Card>
+                <Table>
+                    <thead>
+                        <tr>
+                            <Th>Project</Th>
+                            <Th>Description</Th>
+                            <Th>Your role</Th>
+                            <Th align="right">Tasks</Th>
+                            <Th align="right">Members</Th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <TableEmpty colSpan={5}>No projects yet. Create one from a workspace.</TableEmpty>
+                    </tbody>
+                </Table>
             ) : (
-                Object.entries(grouped).map(([workspaceName, { workspaceId, projects: wsProjects }]) => (
-                    <Card key={workspaceName} title={workspaceName}>
-                        <ul className="divide-y divide-gray-100">
-                            {wsProjects.map((project) => (
-                                <li key={project.id}>
-                                    <Link
-                                        to={`/projects/${project.id}`}
-                                        className="flex flex-wrap items-center justify-between gap-3 py-3 transition hover:bg-gray-50"
+                Object.entries(grouped).map(([workspaceName, { projects: wsProjects }]) => (
+                    <div key={workspaceName} className="space-y-3">
+                        <h3 className="text-sm font-semibold text-gray-900">{workspaceName}</h3>
+                        <Table>
+                            <thead>
+                                <tr>
+                                    <Th>Project</Th>
+                                    <Th>Description</Th>
+                                    <Th>Your role</Th>
+                                    <Th align="right">Tasks</Th>
+                                    <Th align="right">Members</Th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {wsProjects.map((project, index) => (
+                                    <tr
+                                        key={project.id}
+                                        className="animate-fade-in transition-colors duration-150 hover:bg-gray-50"
+                                        style={{ animationDelay: `${index * 30}ms` }}
                                     >
-                                        <div className="flex items-center gap-3">
-                                            <span
-                                                className="flex h-10 w-10 items-center justify-center rounded-lg text-xs font-bold text-white"
-                                                style={{ backgroundColor: 'var(--accent)' }}
+                                        <Td>
+                                            <Link
+                                                to={`/projects/${project.id}`}
+                                                className="flex items-center gap-3 font-medium text-gray-900 hover:text-indigo-600"
                                             >
-                                                {project.key}
-                                            </span>
-                                            <div>
-                                                <p className="flex flex-wrap items-center gap-2 text-sm font-medium text-gray-900">
-                                                    {project.name}
-                                                    {project.my_role && (
-                                                        <Badge>{ROLE_LABELS[project.my_role]?.toLowerCase() || project.my_role}</Badge>
-                                                    )}
+                                                <span
+                                                    className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-xs font-bold text-white"
+                                                    style={{ backgroundColor: 'var(--accent)' }}
+                                                >
+                                                    {project.key}
+                                                </span>
+                                                <span className="flex min-w-0 flex-wrap items-center gap-2">
+                                                    <span className="truncate">{project.name}</span>
                                                     {project.archived_at && <Badge>archived</Badge>}
-                                                </p>
-                                                <p className="mt-0.5 line-clamp-1 text-xs text-gray-400">
-                                                    {project.description || 'No description'}
-                                                </p>
-                                            </div>
-                                        </div>
-                                        <div className="flex items-center gap-4 text-xs text-gray-400">
-                                            <span>{project.tasks_count} tasks</span>
-                                            <span>{project.members_count} members</span>
-                                        </div>
-                                    </Link>
-                                </li>
-                            ))}
-                        </ul>
-                    </Card>
+                                                </span>
+                                            </Link>
+                                        </Td>
+                                        <Td>
+                                            <span className="block max-w-md truncate text-gray-500">
+                                                {project.description || 'No description'}
+                                            </span>
+                                        </Td>
+                                        <Td>
+                                            {project.my_role ? (
+                                                <Badge>
+                                                    {ROLE_LABELS[project.my_role]?.toLowerCase() || project.my_role}
+                                                </Badge>
+                                            ) : (
+                                                <span className="text-gray-400">—</span>
+                                            )}
+                                        </Td>
+                                        <Td align="right" className="tabular-nums">
+                                            {project.tasks_count}
+                                        </Td>
+                                        <Td align="right" className="tabular-nums">
+                                            {project.members_count}
+                                        </Td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </Table>
+                    </div>
                 ))
             )}
         </div>

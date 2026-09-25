@@ -4,6 +4,55 @@ import { useToast } from '../context/ToastContext';
 import { THEME_FIELDS, THEME_PRESETS } from '../theme';
 import Button from './ui/Button';
 
+const SCHEMES = [
+    {
+        value: 'light',
+        label: 'Light',
+        hint: 'Bright surfaces',
+        swatch: 'bg-white border-gray-300',
+    },
+    {
+        value: 'dark',
+        label: 'Dark',
+        hint: 'Easy on the eyes',
+        swatch: 'bg-gray-900 border-gray-700',
+    },
+    {
+        value: 'system',
+        label: 'System',
+        hint: 'Follow this device',
+        swatch: 'bg-gradient-to-br from-white to-gray-900',
+    },
+];
+
+function SchemeField({ value, onChange }) {
+    return (
+        <div className="grid grid-cols-3 gap-2">
+            {SCHEMES.map((scheme) => {
+                const active = value === scheme.value;
+
+                return (
+                    <button
+                        key={scheme.value}
+                        type="button"
+                        onClick={() => onChange('mode', scheme.value)}
+                        aria-pressed={active}
+                        className={`flex flex-col items-center gap-1.5 rounded-lg border p-2.5 transition-all duration-150 hover:-translate-y-px hover:shadow-sm active:scale-95 ${
+                            active
+                                ? 'border-indigo-500 bg-indigo-50 text-indigo-700'
+                                : 'border-gray-200 text-gray-700 hover:border-gray-300 hover:bg-gray-50'
+                        }`}
+                    >
+                        <span className={`h-5 w-9 rounded border ${scheme.swatch}`} />
+                        <span className="text-xs font-semibold">{scheme.label}</span>
+                        <span className="text-[10px] text-gray-500">{scheme.hint}</span>
+                    </button>
+                );
+            })}
+        </div>
+    );
+}
+
 function ColorField({ field, value, onChange }) {
     return (
         <div className="flex items-center justify-between gap-3 rounded-lg border border-gray-200 px-3 py-2.5 transition-all duration-150 hover:border-gray-300 hover:shadow-sm">
@@ -61,7 +110,7 @@ export default function ThemeSettingsDrawer({ open, onClose }) {
                 <div className="flex animate-fade-in-up items-center justify-between border-b border-gray-200 px-6 py-4">
                     <div>
                         <h2 className="text-base font-semibold text-gray-900">Theme Settings</h2>
-                        <p className="text-sm text-gray-500">Personalize your admin panel appearance</p>
+                        <p className="text-sm text-gray-500">Switch to dark, or personalize your own colors</p>
                     </div>
                     <button
                         onClick={onClose}
@@ -76,11 +125,19 @@ export default function ThemeSettingsDrawer({ open, onClose }) {
 
                 <div className="flex-1 space-y-6 animate-fade-in-up overflow-y-auto px-6 py-5" style={{ animationDelay: '40ms' }}>
                     <section>
+                        <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-gray-500">Appearance</h3>
+                        <SchemeField
+                            value={draft.mode ?? 'system'}
+                            onChange={preview}
+                        />
+                    </section>
+
+                    <section>
                         <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-gray-500">Presets</h3>
                         <div className="grid grid-cols-2 gap-2">
                             {THEME_PRESETS.map((preset) => {
-                                const active = Object.entries(draft).every(
-                                    ([k, v]) => preset.theme[k] === v,
+                                const active = THEME_FIELDS.every(
+                                    (field) => preset.theme[field.key] === draft[field.key],
                                 );
                                 return (
                                     <button

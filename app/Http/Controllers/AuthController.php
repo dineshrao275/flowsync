@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Http\Requests\LoginRequest;
 use App\Models\ImpersonationLog;
+use App\Models\PlatformSetting;
 use App\Models\Tenant;
 use App\Models\TenantUserRouting;
 use App\Models\User;
@@ -11,6 +12,7 @@ use App\Services\TenantLimits;
 use App\Services\TenantOnboarding;
 use App\Support\TenantContext;
 use App\Support\TenantDatabaseManager;
+use App\Support\ThemeMode;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Arr;
@@ -190,9 +192,31 @@ class AuthController extends Controller
                 'impersonated_by' => $impersonation['original_user_id'] ?? null,
                 'onboarding_complete' => ! $tenant || app(TenantOnboarding::class)->isComplete($tenant),
             ],
-            'theme' => $isSuperAdmin
-                ? config('theme.defaults')
-                : ($user->settings?->settings['theme'] ?? config('theme.defaults')),
+            // `mode` (light/dark/system) sits next to the colors but is not part
+            // of theme.defaults, so it is merged in explicitly. A platform super
+            // admin must never touch the tenant-only `settings` relation.
+            'theme' => array_merge(
+                $isSuperAdmin
+                    ? array_merge(config('theme.defaults'), $this->platformTheme($user))
+                    : ($user->settings?->settings['theme'] ?? config('theme.defaults')),
+                ['mode' => $isSuperAdmin
+                    ? ThemeMode::resolve($this->platformTheme($user)['mode'] ?? null)
+                    : ThemeMode::resolve($user->settings?->settings['theme']['mode'] ?? null)],
+            ),
         ];
+    }
+
+    /**
+     * A platform super admin's stored theme lives in the central key-value
+     * settings (see ThemeController), never in the tenant `settings` relation.
+     *
+     * @return array<string, mixed>
+     */
+    private function platformTheme(object $user): array
+    {
+        $raw = PlatformSetting::value('theme.user.'.$user->id);
+        $decoded = is_string($raw) ? json_decode($raw, true) : null;
+
+        return is_array($decoded) ? $decoded : [];
     }
 }

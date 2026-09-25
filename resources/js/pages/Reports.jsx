@@ -1,46 +1,52 @@
 import { useEffect, useState } from 'react';
 import api from '../services/api';
-import Card from '../components/ui/Card';
 import Spinner from '../components/ui/Spinner';
 import Alert from '../components/ui/Alert';
+import StatRow from '../components/ui/StatRow';
 import TimeSummary from '../components/time/TimeSummary';
+import { Table, Th, Td, TableEmpty } from '../components/ui/Table';
 import { useAuth } from '../context/AuthContext';
 import { useSetCrumbs } from '../context/BreadcrumbContext';
 import { fieldClass } from '../components/ui/fieldStyles';
 import usePageTitle from '../hooks/usePageTitle';
 
 function Distribution({ title, subtitle, items }) {
-    const max = Math.max(...items.map((item) => item.count), 1);
-
     return (
-        <Card title={title} subtitle={subtitle}>
-            <ul className="space-y-2">
-                {items.length === 0 ? (
-                    <li className="py-6 text-center text-sm text-gray-400">No data.</li>
-                ) : (
-                    items.map((item) => (
-                        <li key={item.key} className="text-sm">
-                            <div className="flex items-center justify-between gap-3">
-                                <span className="flex min-w-0 items-center gap-2">
-                                    <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ backgroundColor: item.color }} />
-                                    <span className="truncate font-medium text-gray-700">{item.label}</span>
-                                </span>
-                                <span className="shrink-0 text-xs text-gray-400">
-                                    {item.open} open · {item.done} done
-                                </span>
-                                <span className="shrink-0 font-semibold text-gray-900">{item.count}</span>
-                            </div>
-                            <div className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-gray-100">
-                                <div
-                                    className="h-full rounded-full"
-                                    style={{ width: `${Math.max(2, (item.count / max) * 100)}%`, backgroundColor: item.color }}
-                                />
-                            </div>
-                        </li>
-                    ))
-                )}
-            </ul>
-        </Card>
+        <section>
+            <div className="mb-2">
+                <h3 className="text-sm font-semibold text-gray-900">{title}</h3>
+                {subtitle && <p className="text-xs text-gray-500">{subtitle}</p>}
+            </div>
+            <Table>
+                <thead>
+                    <tr>
+                        <Th>Label</Th>
+                        <Th align="right">Open</Th>
+                        <Th align="right">Done</Th>
+                        <Th align="right">Total</Th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {items.length === 0 ? (
+                        <TableEmpty colSpan={4}>No data.</TableEmpty>
+                    ) : (
+                        items.map((item) => (
+                            <tr key={item.key} className="transition-colors duration-150 hover:bg-gray-50/60">
+                                <Td>
+                                    <span className="flex items-center gap-2">
+                                        <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ backgroundColor: item.color }} />
+                                        <span className="truncate font-medium text-gray-800">{item.label}</span>
+                                    </span>
+                                </Td>
+                                <Td align="right" className="tabular-nums">{item.open}</Td>
+                                <Td align="right" className="tabular-nums">{item.done}</Td>
+                                <Td align="right" className="tabular-nums font-semibold text-gray-900">{item.count}</Td>
+                            </tr>
+                        ))
+                    )}
+                </tbody>
+            </Table>
+        </section>
     );
 }
 
@@ -95,13 +101,6 @@ export default function Reports() {
         );
     }
 
-    const totals = [
-        { label: 'Total tasks', value: data.totals.total },
-        { label: 'Open', value: data.totals.open },
-        { label: 'Done', value: data.totals.done },
-        { label: 'Overdue', value: data.totals.overdue, danger: data.totals.overdue > 0 },
-    ];
-
     return (
         <div className="space-y-6">
             <div>
@@ -111,20 +110,16 @@ export default function Reports() {
                 </p>
             </div>
 
-            <div className="grid grid-cols-2 gap-4 xl:grid-cols-4">
-                {totals.map((total, index) => (
-                    <div
-                        key={total.label}
-                        className="animate-fade-in-up rounded-xl border border-gray-200/70 p-5 shadow-sm"
-                        style={{ backgroundColor: 'var(--card-bg)', animationDelay: `${index * 50}ms` }}
-                    >
-                        <p className="text-sm text-gray-500">{total.label}</p>
-                        <p className={`mt-1 text-2xl font-bold ${total.danger ? 'text-red-600' : 'text-gray-900'}`}>{total.value}</p>
-                    </div>
-                ))}
-            </div>
+            <StatRow
+                stats={[
+                    { label: 'Total tasks', value: data.totals.total },
+                    { label: 'Open', value: data.totals.open },
+                    { label: 'Done', value: data.totals.done },
+                    { label: 'Overdue', value: data.totals.overdue, tone: data.totals.overdue > 0 ? 'danger' : undefined },
+                ]}
+            />
 
-            <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+            <div className="space-y-6">
                 <Distribution title="By status" subtitle="Open vs done per status" items={data.by_status} />
                 <Distribution title="By priority" subtitle="Open vs done per priority" items={data.by_priority} />
                 <Distribution title="By assignee" subtitle="Where the work sits" items={data.by_assignee} />
@@ -132,7 +127,11 @@ export default function Reports() {
             </div>
 
             {hasModule('time_tracking') && (
-                <Card title="Time logged" subtitle="Work logs for a workspace or project of your choice">
+                <section>
+                    <div className="mb-3">
+                        <h3 className="text-sm font-semibold text-gray-900">Time logged</h3>
+                        <p className="text-xs text-gray-500">Work logs for a workspace or project of your choice</p>
+                    </div>
                     <div className="mb-4 flex flex-wrap items-end gap-3">
                         <div>
                             <label className="mb-1.5 block text-sm font-medium text-gray-700">Workspace</label>
@@ -167,7 +166,7 @@ export default function Reports() {
                         </div>
                     </div>
                     {timeUrl ? <TimeSummary key={timeUrl} url={timeUrl} /> : <p className="py-8 text-center text-sm text-gray-400">Pick a workspace or project above.</p>}
-                </Card>
+                </section>
             )}
         </div>
     );

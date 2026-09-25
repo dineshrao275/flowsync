@@ -9,6 +9,7 @@ import Button from '../components/ui/Button';
 import Pagination from '../components/ui/Pagination';
 import Input from '../components/ui/Input';
 import { useAuth } from '../context/AuthContext';
+import LimitsEditor from '../components/billing/LimitsEditor';
 import { useToast } from '../context/ToastContext';
 import { useClickOutside } from '../hooks/useClickOutside';
 import usePageTitle from '../hooks/usePageTitle';
@@ -269,7 +270,7 @@ export default function Tenants() {
     const [errors, setErrors] = useState({});
     const [saving, setSaving] = useState(false);
     const [editing, setEditing] = useState(null);
-    const [editForm, setEditForm] = useState({ name: '', slug: '', description: '' });
+    const [editForm, setEditForm] = useState({ name: '', slug: '', description: '', limits_override: null });
     const [editErrors, setEditErrors] = useState({});
     const [editSaving, setEditSaving] = useState(false);
 
@@ -327,7 +328,12 @@ export default function Tenants() {
 
     function startEdit(tenant) {
         setEditing(tenant);
-        setEditForm({ name: tenant.name, slug: tenant.slug, description: tenant.description || '' });
+        setEditForm({
+            name: tenant.name,
+            slug: tenant.slug,
+            description: tenant.description || '',
+            limits_override: tenant.limits_override || null,
+        });
         setEditErrors({});
     }
 
@@ -451,7 +457,7 @@ export default function Tenants() {
             )}
 
             {editing && (
-                <Card title={`Edit ${editing.name}`} subtitle="Rename the tenant or adjust its slug.">
+                <Card title={`Edit ${editing.name}`} subtitle="Rename the tenant, adjust its slug, or cap its resources.">
                     <form onSubmit={saveEdit} className="space-y-4">
                         <Input
                             label="Tenant name"
@@ -475,6 +481,14 @@ export default function Tenants() {
                             value={editForm.description}
                             onChange={(e) => setEditForm((f) => ({ ...f, description: e.target.value }))}
                             error={editErrors.description}
+                        />
+                        <LimitsEditor
+                            key={editing.id}
+                            limits={editForm.limits_override}
+                            errors={editErrors}
+                            legend="Resource limits override"
+                            hint="Blank = inherit the plan limit. Anything set here wins over the tenant's plan."
+                            onChange={(next) => setEditForm((f) => ({ ...f, limits_override: next }))}
                         />
                         <div className="flex gap-2 pt-1">
                             <Button type="button" variant="secondary" onClick={() => setEditing(null)}>

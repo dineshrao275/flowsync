@@ -1,10 +1,10 @@
 import { useCallback, useEffect, useState } from 'react';
 import api from '../services/api';
-import Card from '../components/ui/Card';
 import Badge from '../components/ui/Badge';
 import Spinner from '../components/ui/Spinner';
 import Button from '../components/ui/Button';
 import Pagination from '../components/ui/Pagination';
+import { Table, Th, Td, TableEmpty } from '../components/ui/Table';
 import usePageTitle from '../hooks/usePageTitle';
 import { useSetCrumbs } from '../context/BreadcrumbContext';
 
@@ -91,33 +91,75 @@ export default function AuditLogs() {
                 </form>
             </div>
 
-            <Card>
-                {loading ? (
+            {loading ? (
+                <div className="flex justify-center py-12">
                     <Spinner />
-                ) : (
-                    <ul className="divide-y divide-gray-100">
-                        {items.map((item) => (
-                            <li key={item.id} className="flex items-start gap-3 py-3">
-                                <Badge>{item.type === 'impersonation' ? 'impersonation' : 'event'}</Badge>
-                                <div className="min-w-0 flex-1">
-                                    <p className="truncate text-sm font-medium text-gray-800">{describe(item.action, item.data)}</p>
-                                    <p className="truncate text-xs text-gray-400">
-                                        {item.actor?.name || 'System'} {item.actor?.email ? `(${item.actor.email})` : ''}
-                                        {item.tenant?.name ? ` · ${item.tenant.name}` : ''}
-                                        {item.subject_type ? ` · ${item.subject_type}` : ''}
-                                    </p>
-                                </div>
-                                <span className="shrink-0 text-xs text-gray-400">
-                                    {item.created_at ? new Date(item.created_at).toLocaleString() : '—'}
-                                </span>
-                            </li>
-                        ))}
-                        {items.length === 0 && (
-                            <li className="py-6 text-center text-gray-400">Nothing logged yet.</li>
+                </div>
+            ) : (
+                <Table>
+                    <thead>
+                        <tr>
+                            <Th align="right">When</Th>
+                            <Th>Actor</Th>
+                            <Th>Action</Th>
+                            <Th>Target</Th>
+                            <Th>Tenant</Th>
+                            <Th align="right">IP</Th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {items.length === 0 ? (
+                            <TableEmpty colSpan={6}>Nothing logged yet.</TableEmpty>
+                        ) : (
+                            items.map((item, index) => {
+                                const targetId = item.subject_id ?? item.data?.impersonated_user_id ?? null;
+
+                                return (
+                                    <tr
+                                        key={item.id}
+                                        className="animate-fade-in transition-colors duration-150 hover:bg-gray-50/60"
+                                        style={{ animationDelay: `${index * 30}ms` }}
+                                    >
+                                        <Td align="right" className="whitespace-nowrap text-xs text-gray-400">
+                                            {item.created_at ? new Date(item.created_at).toLocaleString() : '—'}
+                                        </Td>
+                                        <Td>
+                                            <span className="block truncate font-medium text-gray-800">
+                                                {item.actor?.name || 'System'}
+                                            </span>
+                                            {item.actor?.email && (
+                                                <span className="block truncate text-xs text-gray-400">{item.actor.email}</span>
+                                            )}
+                                        </Td>
+                                        <Td>
+                                            <Badge>{item.type === 'impersonation' ? 'impersonation' : 'event'}</Badge>
+                                            <span className="mt-0.5 block truncate font-medium text-gray-800">
+                                                {describe(item.action, item.data)}
+                                            </span>
+                                        </Td>
+                                        <Td className="whitespace-nowrap text-gray-600">
+                                            {item.subject_type || targetId ? (
+                                                <span>
+                                                    {item.subject_type ?? '—'}
+                                                    {targetId ? <span className="tabular-nums"> #{targetId}</span> : null}
+                                                </span>
+                                            ) : (
+                                                '—'
+                                            )}
+                                        </Td>
+                                        <Td className="whitespace-nowrap">
+                                            {item.tenant?.name ?? <span className="text-gray-400">—</span>}
+                                        </Td>
+                                        <Td align="right" className="whitespace-nowrap text-xs text-gray-400">
+                                            {item.ip_address ?? '—'}
+                                        </Td>
+                                    </tr>
+                                );
+                            })
                         )}
-                    </ul>
-                )}
-            </Card>
+                    </tbody>
+                </Table>
+            )}
 
             {pagination && (
                 <Pagination

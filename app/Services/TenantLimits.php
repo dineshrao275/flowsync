@@ -93,11 +93,10 @@ class TenantLimits
         if ($count >= $limit) {
             throw ValidationException::withMessages([
                 'form' => sprintf(
-                    'This %s has reached its plan limit (%d of %d). %s',
-                    $resource === 'seats' ? 'tenant' : $resource,
-                    $count,
+                    'Your plan allows at most %d %s (%d in use). Upgrade your plan or contact support to add more.',
                     $limit,
-                    'Upgrade your plan or contact support to add more.'
+                    $resource === 'seats' ? 'seats' : $resource,
+                    $count,
                 ),
             ]);
         }

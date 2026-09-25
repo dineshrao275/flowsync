@@ -26,6 +26,115 @@
     --accent: #6366f1;
 }
 
+/*
+ * Dark scheme driven by a class on <html> (see theme.js `applyTheme`), so
+ * `mode: system` can follow the OS. The Tailwind `dark:` variant is
+ * re-pointed from `prefers-color-scheme` to this class.
+ */
+@custom-variant dark (&:where(.dark, .dark *));
+
+/*
+ * The app paints surfaces with Tailwind utilities (bg-white, text-gray-900,
+ * border-gray-200, …) which resolve to `var(--color-*)` theme tokens. Remapping
+ * that gray scale inside `.dark` re-themes every component at once, without
+ * touching the JSX. `white` is deliberately NOT remapped: `text-white` sits on
+ * accent fills and must stay white — only the `bg-white` *surface* is retinted
+ * below.
+ */
+.dark {
+    --color-gray-50: #171d2b;
+    --color-gray-100: #1e2534;
+    --color-gray-200: #28303f;
+    --color-gray-300: #364052;
+    --color-gray-400: #8a93a5;
+    --color-gray-500: #a7afbe;
+    --color-gray-600: #c2c9d5;
+    --color-gray-700: #d8dce3;
+    --color-gray-800: #e8eaef;
+    --color-gray-900: #f2f4f8;
+    --color-gray-950: #ffffff;
+
+    /* `slate` is used like a neutral (text-slate-900/500, to-slate-100). */
+    --color-slate-50: #171d2b;
+    --color-slate-100: #1e2534;
+    --color-slate-200: #28303f;
+    --color-slate-300: #364052;
+    --color-slate-400: #8a93a5;
+    --color-slate-500: #a7afbe;
+    --color-slate-600: #c2c9d5;
+    --color-slate-700: #d8dce3;
+    --color-slate-800: #e8eaef;
+    --color-slate-900: #f2f4f8;
+    --color-slate-950: #ffffff;
+
+
+    --color-indigo-50: #1f2446;
+    --color-indigo-100: #252b57;
+    --color-indigo-200: #2e336b;
+    --color-indigo-600: #e0e0fc;
+    --color-indigo-700: #ecedfd;
+    --color-indigo-800: #f7f7fe;
+
+    --color-emerald-50: #123235;
+    --color-emerald-100: #123f3c;
+    --color-emerald-200: #114f45;
+    --color-emerald-600: #cff1e6;
+    --color-emerald-700: #e2f7f0;
+    --color-emerald-800: #f3fcf9;
+
+    --color-red-50: #351f2b;
+    --color-red-100: #47232d;
+    --color-red-200: #5d2730;
+    --color-red-600: #fcdada;
+    --color-red-700: #fde9e9;
+    --color-red-800: #fef6f6;
+
+    --color-amber-50: #362d22;
+    --color-amber-100: #483820;
+    --color-amber-200: #5f461d;
+    --color-amber-600: #fdecce;
+    --color-amber-700: #fef3e2;
+    --color-amber-800: #fefaf3;
+
+    --color-sky-50: #112f45;
+    --color-sky-100: #113a55;
+    --color-sky-200: #114868;
+    --color-sky-600: #cfedfb;
+    --color-sky-700: #e2f4fc;
+    --color-sky-800: #f3fafe;
+
+    --color-rose-50: #361e2f;
+    --color-rose-100: #482133;
+    --color-rose-200: #5f2539;
+    --color-rose-600: #fdd9df;
+    --color-rose-700: #fee8ec;
+    --color-rose-800: #fef5f7;
+
+    --color-blue-50: #192947;
+    --color-blue-100: #1c3158;
+    --color-blue-200: #203c6d;
+    --color-blue-600: #d8e6fd;
+    --color-blue-700: #e7f0fe;
+    --color-blue-800: #f5f9ff;
+
+    --color-green-50: #15342f;
+    --color-green-100: #164233;
+    --color-green-200: #175339;
+    --color-green-600: #d3f3df;
+    --color-green-700: #e4f8ec;
+    --color-green-800: #f4fcf7;
+}
+
+.dark .bg-white {
+    background-color: var(--card-bg, #171d2b);
+}
+
+.dark .bg-white\/20,
+.dark .bg-white\/30 {
+    background-color: rgb(255 255 255 / 0.12);
+}
+
+
 @keyframes fade-in {
     from {
         opacity: 0;

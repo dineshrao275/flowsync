@@ -6,6 +6,7 @@ import Spinner from '../components/ui/Spinner';
 import Alert from '../components/ui/Alert';
 import Button from '../components/ui/Button';
 import Input from '../components/ui/Input';
+import { Table, Th, Td, TableEmpty } from '../components/ui/Table';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
 import usePageTitle from '../hooks/usePageTitle';
@@ -190,97 +191,129 @@ export default function Roles() {
                 </Card>
             )}
 
-            <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
-                {roles.map((role, index) => {
-                    const selectedIds = role.permissions?.map((p) => p.id) || [];
+            <Table>
+                <thead>
+                    <tr>
+                        <Th>Role</Th>
+                        <Th>Slug</Th>
+                        <Th>Permissions</Th>
+                        <Th align="right">Members</Th>
+                        <Th align="right">Actions</Th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {roles.length === 0 ? (
+                        <TableEmpty colSpan={5}>No roles yet.</TableEmpty>
+                    ) : (
+                        roles.map((role, index) => {
+                            const selectedIds = role.permissions?.map((p) => p.id) || [];
+                            const editing = manageable && editingId === role.id;
+                            const granted = permissions
+                                .filter((permission) => selectedIds.includes(permission.id))
+                                .map((permission) => `${permission.name} (${permission.slug})`);
 
-                    return (
-                        <Card key={role.id} className="h-full animate-fade-in-up" title={
-                            <span className="flex items-center gap-2 capitalize">
-                                {editingId === role.id ? (
-                                    <input
-                                        value={role.name}
-                                        onChange={(e) =>
-                                            setRoles((current) =>
-                                                current.map((r) =>
-                                                    r.id === role.id ? { ...r, name: e.target.value } : r,
-                                                ),
-                                            )
-                                        }
-                                        className="rounded border border-gray-300 px-2 py-1 text-sm capitalize"
-                                    />
-                                ) : (
-                                    role.name
-                                )}
-                                <Badge>{role.slug}</Badge>
-                            </span>
-                        }
-                            subtitle={`${role.users_count} member(s)`}
-                        >
-                            <ul className="space-y-2">
-                                {permissions.map((permission) => {
-                                    const checked = selectedIds.includes(permission.id);
-                                    return (
-                                        <li key={permission.id}>
-                                            <label
-                                                className={`flex cursor-pointer items-start gap-3 rounded-lg px-2 py-1.5 transition ${
-                                                    manageable ? 'hover:bg-gray-50' : 'cursor-default'
-                                                }`}
-                                            >
-                                                <input
-                                                    type="checkbox"
-                                                    checked={checked}
-                                                    disabled={!manageable}
-                                                    onChange={() => togglePermission(role.id, permission.id)}
-                                                    className="mt-0.5 h-4 w-4 rounded border-gray-300 text-indigo-600 accent-indigo-600 transition-all duration-150 focus:ring-indigo-500 disabled:cursor-not-allowed disabled:opacity-50"
-                                                />
-                                                <span className="text-sm text-gray-700">
-                                                    {permission.name}
-                                                    <span className="block text-xs text-gray-400">
-                                                        {permission.slug}
-                                                    </span>
-                                                </span>
-                                            </label>
-                                        </li>
-                                    );
-                                })}
-                            </ul>
-
-                            {manageable && editingId === role.id && (
-                                <div className="mt-4 flex gap-2">
-                                    <Button
-                                        variant="secondary"
-                                        size="sm"
-                                        className="flex-1"
-                                        onClick={() => setEditingId(null)}
-                                    >
-                                        Cancel
-                                    </Button>
-                                    <Button
-                                        size="sm"
-                                        className="flex-1"
-                                        loading={savingId === role.id}
-                                        onClick={() => save(role)}
-                                    >
-                                        Save role
-                                    </Button>
-                                </div>
-                            )}
-
-                            {manageable && editingId !== role.id && (
-                                <Button
-                                    variant="secondary"
-                                    size="sm"
-                                    className="mt-4 w-full"
-                                    onClick={() => setEditingId(role.id)}
+                            return (
+                                <tr
+                                    key={role.id}
+                                    className="animate-fade-in align-top transition-colors duration-150 hover:bg-gray-50"
+                                    style={{ animationDelay: `${index * 30}ms` }}
                                 >
-                                    Edit permissions
-                                </Button>
-                            )}
-                        </Card>
-                    );
-                })}
-            </div>
+                                    <Td>
+                                        <span className="block font-medium capitalize">
+                                            {editingId === role.id ? (
+                                                <input
+                                                    value={role.name}
+                                                    onChange={(e) =>
+                                                        setRoles((current) =>
+                                                            current.map((r) =>
+                                                                r.id === role.id ? { ...r, name: e.target.value } : r,
+                                                            ),
+                                                        )
+                                                    }
+                                                    className="rounded border border-gray-300 px-2 py-1 text-sm capitalize"
+                                                />
+                                            ) : (
+                                                role.name
+                                            )}
+                                        </span>
+                                    </Td>
+                                    <Td>
+                                        <Badge>{role.slug}</Badge>
+                                    </Td>
+                                    <Td>
+                                        {editing ? (
+                                            <ul className="grid grid-cols-1 gap-1 sm:grid-cols-2 xl:grid-cols-3">
+                                                {permissions.map((permission) => {
+                                                    const checked = selectedIds.includes(permission.id);
+                                                    return (
+                                                        <li key={permission.id}>
+                                                            <label
+                                                                className={`flex cursor-pointer items-start gap-2 rounded-lg px-2 py-1.5 text-sm transition ${
+                                                                    manageable ? 'hover:bg-gray-50' : 'cursor-default'
+                                                                }`}
+                                                            >
+                                                                <input
+                                                                    type="checkbox"
+                                                                    checked={checked}
+                                                                    disabled={!manageable}
+                                                                    onChange={() => togglePermission(role.id, permission.id)}
+                                                                    className="mt-0.5 h-4 w-4 rounded border-gray-300 text-indigo-600 accent-indigo-600 transition-all duration-150 focus:ring-indigo-500 disabled:cursor-not-allowed disabled:opacity-50"
+                                                                />
+                                                                <span className="text-gray-700">
+                                                                    {permission.name}
+                                                                    <span className="block text-xs text-gray-400">
+                                                                        {permission.slug}
+                                                                    </span>
+                                                                </span>
+                                                            </label>
+                                                        </li>
+                                                    );
+                                                })}
+                                            </ul>
+                                        ) : (
+                                            <span className="text-sm text-gray-500">
+                                                {granted.length ? granted.join(', ') : 'No permissions'}
+                                            </span>
+                                        )}
+                                    </Td>
+                                    <Td align="right" className="tabular-nums">
+                                        {role.users_count}
+                                    </Td>
+                                    <Td align="right">
+                                        {manageable &&
+                                            (editingId === role.id ? (
+                                                <div className="flex justify-end gap-2">
+                                                    <Button
+                                                        variant="secondary"
+                                                        size="sm"
+                                                        onClick={() => setEditingId(null)}
+                                                    >
+                                                        Cancel
+                                                    </Button>
+                                                    <Button
+                                                        size="sm"
+                                                        loading={savingId === role.id}
+                                                        onClick={() => save(role)}
+                                                    >
+                                                        Save role
+                                                    </Button>
+                                                </div>
+                                            ) : (
+                                                <Button
+                                                    variant="secondary"
+                                                    size="sm"
+                                                    onClick={() => setEditingId(role.id)}
+                                                >
+                                                    Edit permissions
+                                                </Button>
+                                            ))}
+                                    </Td>
+                                </tr>
+                            );
+                        })
+                    )}
+                </tbody>
+            </Table>
         </div>
     );
 }
