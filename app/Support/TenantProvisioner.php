@@ -89,6 +89,7 @@ class TenantProvisioner
         $this->provisionPriorities();
         $this->provisionProjectRoles();
         $this->createAdmin($tenant, $adminRole);
+        $this->ensureDefaultUser($adminRole);
     }
 
     private function provisionPriorities(): void
@@ -137,6 +138,26 @@ class TenantProvisioner
         );
 
         $user->roles()->syncWithoutDetaching([$adminRole->id]);
+    }
+
+    /**
+     * Every tenant DB has exactly one undeletable default user. New tenants get
+     * the provisioned owner; existing ones are repaired here (idempotent, so
+     * `tenants:provision` backfills tenants created before the column existed).
+     */
+    private function ensureDefaultUser(?Role $adminRole): void
+    {
+        if (User::query()->default()->exists()) {
+            return;
+        }
+
+        $candidate = $adminRole
+            ? User::query()->whereHas('roles', fn ($query) => $query->whereKey($adminRole->getKey()))->orderBy('id')->first()
+            : null;
+
+        $candidate ??= User::query()->orderBy('id')->first();
+
+        $candidate?->update(['is_default' => true]);
     }
 
     /**

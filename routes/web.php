@@ -93,9 +93,6 @@ Route::prefix('api')->group(function () {
         // controller fans out over the central tenancy index via TenantDatabaseManager).
         Route::get('search/global', GlobalSearchController::class)->middleware(['permission:workspaces.view', 'ensure_module:global_search']);
 
-        Route::get('users', [UserController::class, 'index'])->middleware('permission:users.view');
-        Route::post('users', [UserController::class, 'store'])->middleware('permission:users.manage');
-        Route::put('users/{user}/roles', [UserController::class, 'updateRoles'])->middleware('permission:users.manage');
 
         Route::get('roles', [RoleController::class, 'index'])->middleware('permission:roles.view');
         Route::post('roles', [RoleController::class, 'store'])->middleware('permission:roles.manage');
@@ -157,6 +154,19 @@ Route::prefix('api')->group(function () {
     });
 
     Route::middleware(['switch_tenant', 'auth', 'tenant', 'tenant_context', 'onboarding_complete'])->group(function () {
+        // Tenant user administration. Lives in the tenant_context group because
+        // the users table lives in the tenant's own database: a non-impersonating
+        // super admin has nothing to route to and is rejected by the middleware
+        // (an impersonating super admin is the impersonated tenant user, so the
+        // tenant-context + `users.manage` checks both apply to them).
+        Route::get('users', [UserController::class, 'index'])->middleware('permission:users.view');
+        Route::post('users', [UserController::class, 'store'])->middleware('permission:users.manage');
+        Route::put('users/{user}/roles', [UserController::class, 'updateRoles'])->middleware('permission:users.manage');
+        // The tenant's protected default user: shiftable by a tenant admin or a
+        // super admin (onto another admin), and never deletable.
+        Route::put('users/{user}/default', [UserController::class, 'makeDefault'])->middleware('permission:users.manage');
+        Route::delete('users/{user}', [UserController::class, 'destroy'])->middleware('permission:users.manage');
+
         // Phase 1+: workspace management. Object-level authorization is
         // enforced by WorkspacePolicy (membership roles owner/admin/member);
         // 'tenant_context' rejects non-impersonating super admins.

@@ -13,7 +13,7 @@ import usePageTitle from '../hooks/usePageTitle';
 
 export default function Users() {
     usePageTitle('Users');
-    const { can } = useAuth();
+    const { can, user: currentUser } = useAuth();
     const toast = useToast();
     const [users, setUsers] = useState([]);
     const [roles, setRoles] = useState([]);
@@ -64,6 +64,36 @@ export default function Users() {
         }
     }
 
+    async function makeDefault(user) {
+        setSaving(true);
+        try {
+            const { data } = await api.put(`/users/${user.id}/default`);
+            setUsers((current) =>
+                current.map((u) => ({ ...u, is_default: u.id === user.id })),
+            );
+            toast.success(data.message);
+        } catch (e) {
+            setError(fieldErrors(e).form || 'Failed to shift the default user.');
+        } finally {
+            setSaving(false);
+        }
+    }
+
+    async function deleteUser(user) {
+        if (!window.confirm(`Delete ${user.name}? This cannot be undone.`)) return;
+
+        setSaving(true);
+        try {
+            await api.delete(`/users/${user.id}`);
+            setUsers((current) => current.filter((u) => u.id !== user.id));
+            toast.success(`${user.name} was deleted.`);
+        } catch (e) {
+            setError(fieldErrors(e).form || 'Failed to delete the user.');
+        } finally {
+            setSaving(false);
+        }
+    }
+
     async function createUser(e) {
         e.preventDefault();
         setSaving(true);
@@ -96,7 +126,9 @@ export default function Users() {
             <div className="flex flex-wrap items-center justify-between gap-3">
                 <div>
                     <h2 className="text-2xl font-bold text-gray-900">Users</h2>
-                    <p className="mt-1 text-sm text-gray-500">Accounts within your tenant.</p>
+                    <p className="mt-1 text-sm text-gray-500">
+                        Accounts within your tenant. The default user is protected from deletion.
+                    </p>
                 </div>
                 {manageable && (
                     <Button onClick={() => setCreating((open) => !open)}>Add user</Button>
@@ -211,6 +243,11 @@ export default function Users() {
                                             {user.name.charAt(0).toUpperCase()}
                                         </span>
                                         <span className="font-medium text-gray-800">{user.name}</span>
+                                        {user.is_default && (
+                                            <Badge tone="accent" title="Protected from deletion">
+                                                Default
+                                            </Badge>
+                                        )}
                                     </div>
                                 </Td>
                                 <Td>
@@ -266,13 +303,40 @@ export default function Users() {
                                                 </Button>
                                             </div>
                                         ) : (
-                                            <button
-                                                onClick={() => setEditing(user.id)}
-                                                className="rounded-lg px-3 py-1.5 text-xs font-medium text-white transition-all duration-150 hover:-translate-y-px hover:shadow-md active:scale-95"
-                                                style={{ backgroundColor: 'var(--accent)' }}
-                                            >
-                                                Edit roles
-                                            </button>
+                                            <div className="flex items-center justify-end gap-2">
+                                                <Button
+                                                    size="sm"
+                                                    variant="secondary"
+                                                    onClick={() => setEditing(user.id)}
+                                                >
+                                                    Edit roles
+                                                </Button>
+                                                {!user.is_default && (
+                                                    <Button
+                                                        size="sm"
+                                                        variant="subtle"
+                                                        loading={saving}
+                                                        onClick={() => makeDefault(user)}
+                                                    >
+                                                        Make default
+                                                    </Button>
+                                                )}
+                                                {user.id !== currentUser?.id && (
+                                                    <Button
+                                                        size="sm"
+                                                        variant="danger"
+                                                        disabled={user.is_default}
+                                                        title={
+                                                            user.is_default
+                                                                ? 'The default user cannot be deleted. Shift the default to another admin first.'
+                                                                : 'Delete user'
+                                                        }
+                                                        onClick={() => deleteUser(user)}
+                                                    >
+                                                        Delete
+                                                    </Button>
+                                                )}
+                                            </div>
                                         ))}
                                 </Td>
                             </tr>

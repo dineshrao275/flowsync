@@ -4,11 +4,13 @@ namespace App\Models;
 
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Database\Factories\UserFactory;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use Illuminate\Validation\ValidationException;
 
 class User extends Authenticatable
 {
@@ -24,6 +26,7 @@ class User extends Authenticatable
         'name',
         'email',
         'password',
+        'is_default',
     ];
 
     /**
@@ -47,7 +50,33 @@ class User extends Authenticatable
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
             'is_super_admin' => 'boolean',
+            'is_default' => 'boolean',
         ];
+    }
+
+    /**
+     * The tenant's protected default user can never be deleted — not by the
+     * API, and not by any other code path that deletes a User model.
+     */
+    protected static function booted(): void
+    {
+        static::deleting(function (self $user) {
+            if ($user->is_default) {
+                throw ValidationException::withMessages([
+                    'form' => 'The default user cannot be deleted. Shift the default to another admin first.',
+                ]);
+            }
+        });
+    }
+
+    public function scopeDefault(Builder $query): Builder
+    {
+        return $query->where('is_default', true);
+    }
+
+    public static function defaultUser(): ?self
+    {
+        return static::query()->default()->orderBy('id')->first();
     }
 
     public function roles(): BelongsToMany
