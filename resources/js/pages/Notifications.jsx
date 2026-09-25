@@ -147,7 +147,7 @@ export default function Notifications() {
                                             <span className="text-xs text-gray-400">Read</span>
                                         ) : (
                                             <span className="inline-flex items-center gap-1.5 text-xs font-medium text-indigo-600">
-                                                <span className="h-2 w-2 rounded-full bg-indigo-500" />
+                                                <span className="h-2 w-2 rounded-full bg-[var(--accent)]" />
                                                 Unread
                                             </span>
                                         )}

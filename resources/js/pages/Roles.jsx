@@ -169,7 +169,7 @@ export default function Roles() {
                                                         : [...f.permissions, permission.id],
                                                 }))
                                             }
-                                            className="h-4 w-4 rounded border-gray-300 text-indigo-600 accent-indigo-600 focus:ring-indigo-500"
+                                            className="h-4 w-4 rounded border-gray-300 text-[var(--accent)] accent-[var(--accent)] focus:ring-[var(--accent-ring)]"
                                         />
                                         <span>{permission.name}</span>
                                     </label>
@@ -257,7 +257,7 @@ export default function Roles() {
                                                                     checked={checked}
                                                                     disabled={!manageable}
                                                                     onChange={() => togglePermission(role.id, permission.id)}
-                                                                    className="mt-0.5 h-4 w-4 rounded border-gray-300 text-indigo-600 accent-indigo-600 transition-all duration-150 focus:ring-indigo-500 disabled:cursor-not-allowed disabled:opacity-50"
+                                                                    className="mt-0.5 h-4 w-4 rounded border-gray-300 text-[var(--accent)] accent-[var(--accent)] transition-all duration-150 focus:ring-[var(--accent-ring)] disabled:cursor-not-allowed disabled:opacity-50"
                                                                 />
                                                                 <span className="text-gray-700">
                                                                     {permission.name}

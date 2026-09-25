@@ -20,7 +20,7 @@ function Toggle({ label, hint, checked, onChange, disabled }) {
                 checked={checked}
                 disabled={disabled}
                 onChange={(e) => onChange(e.target.checked)}
-                className="h-5 w-5 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                className="h-5 w-5 rounded border-gray-300 text-[var(--accent)] focus:ring-[var(--accent-ring)]"
             />
         </label>
     );

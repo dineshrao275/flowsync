@@ -47,7 +47,7 @@ export default function Login() {
             footer={
                 <span className="text-sm text-slate-500">
                     Access is managed by your tenant administrator.{' '}
-                    <Link to="/register" className="font-medium text-indigo-600 hover:text-indigo-500">
+                    <Link to="/register" className="font-medium text-[var(--accent)] hover:text-indigo-500">
                         New here? Create a workspace
                     </Link>
                 </span>
@@ -83,13 +83,13 @@ export default function Login() {
                             type="checkbox"
                             checked={form.remember}
                             onChange={(e) => update('remember', e.target.checked)}
-                            className="h-4 w-4 rounded border-slate-300 text-indigo-600 accent-indigo-600 transition-all duration-150 focus:ring-indigo-500"
+                            className="h-4 w-4 rounded border-slate-300 text-[var(--accent)] accent-[var(--accent)] transition-all duration-150 focus:ring-[var(--accent-ring)]"
                         />
                         Remember me
                     </label>
                     <Link
                         to="/forgot-password"
-                        className="text-sm font-medium text-indigo-600 hover:text-indigo-500"
+                        className="text-sm font-medium text-[var(--accent)] hover:text-indigo-500"
                     >
                         Forgot password?
                     </Link>

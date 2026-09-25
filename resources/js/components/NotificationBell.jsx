@@ -91,7 +91,7 @@ export default function NotificationBell() {
                                                 </span>
                                                 <span className="block text-xs text-gray-400">{timeAgo(notification.created_at)}</span>
                                             </span>
-                                            {!notification.read_at && <span className="mt-2 h-2 w-2 shrink-0 rounded-full bg-indigo-500" />}
+                                            {!notification.read_at && <span className="mt-2 h-2 w-2 shrink-0 rounded-full bg-[var(--accent)]" />}
                                         </button>
                                     </li>
                                 ))}

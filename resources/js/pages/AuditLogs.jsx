@@ -72,7 +72,7 @@ export default function AuditLogs() {
                             type="button"
                             onClick={() => setType(key)}
                             className={`px-3 py-2 text-sm font-medium ${
-                                type === key ? 'bg-indigo-600 text-white' : 'bg-white text-gray-600 hover:bg-gray-50'
+                                type === key ? 'bg-[var(--accent)] text-[var(--accent-contrast)]' : 'bg-white text-gray-600 hover:bg-gray-50'
                             }`}
                         >
                             {label}

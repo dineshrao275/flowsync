@@ -32,7 +32,7 @@ const STATUS_STYLES = {
     expired: 'bg-rose-100 text-rose-700',
     deactivated: 'bg-gray-200 text-gray-600',
     pending: 'bg-gray-100 text-gray-600',
-    provisioning: 'bg-indigo-100 text-indigo-600',
+    provisioning: 'bg-indigo-100 text-[var(--accent)]',
     provisioning_failed: 'bg-rose-100 text-rose-700',
 };
 
@@ -551,7 +551,7 @@ export default function Tenants() {
                             type="checkbox"
                             checked={trashed}
                             onChange={(e) => applyFilter({ trashed: e.target.checked })}
-                            className="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                            className="h-4 w-4 rounded border-gray-300 text-[var(--accent)] focus:ring-[var(--accent-ring)]"
                         />
                         Include deleted
                     </label>
@@ -590,7 +590,7 @@ export default function Tenants() {
                                         <td className="px-4 py-3">
                                             <Link
                                                 to={`/tenants/${tenant.id}`}
-                                                className="flex items-center gap-2 font-medium text-gray-800 hover:text-indigo-600"
+                                                className="flex items-center gap-2 font-medium text-gray-800 hover:text-[var(--accent)]"
                                             >
                                                 {tenant.name}
                                                 <Badge>{tenant.slug}</Badge>

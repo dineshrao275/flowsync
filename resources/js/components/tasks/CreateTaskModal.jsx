@@ -135,7 +135,7 @@ export default function CreateTaskModal({ options, topLevelTasks, projectKey, sa
                                     onClick={() => toggleLabel(label.id)}
                                     className={`rounded-full px-3 py-1 text-xs font-medium transition ${
                                         form.labels.includes(label.id)
-                                            ? 'bg-indigo-600 text-white'
+                                            ? 'bg-[var(--accent)] text-[var(--accent-contrast)]'
                                             : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                                     }`}
                                 >

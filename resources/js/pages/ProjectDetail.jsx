@@ -609,7 +609,7 @@ export default function ProjectDetail() {
                                 <button
                                     type="button"
                                     onClick={() => setView('board')}
-                                    className={`rounded-md px-3 py-1.5 text-sm font-medium transition ${view === 'board' ? 'bg-indigo-600 text-white' : 'text-gray-600 hover:bg-gray-100'
+                                    className={`rounded-md px-3 py-1.5 text-sm font-medium transition ${view === 'board' ? 'bg-[var(--accent)] text-[var(--accent-contrast)]' : 'text-gray-600 hover:bg-gray-100'
                                         }`}
                                 >
                                     Board
@@ -617,7 +617,7 @@ export default function ProjectDetail() {
                                 <button
                                     type="button"
                                     onClick={() => setView('list')}
-                                    className={`rounded-md px-3 py-1.5 text-sm font-medium transition ${view === 'list' ? 'bg-indigo-600 text-white' : 'text-gray-600 hover:bg-gray-100'
+                                    className={`rounded-md px-3 py-1.5 text-sm font-medium transition ${view === 'list' ? 'bg-[var(--accent)] text-[var(--accent-contrast)]' : 'text-gray-600 hover:bg-gray-100'
                                         }`}
                                 >
                                     List

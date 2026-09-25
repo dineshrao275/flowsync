@@ -66,7 +66,7 @@ export default function ActivityFeed({ task, projectId }) {
         <ol className="space-y-1 border-l border-gray-200 pl-4">
             {activities.map((activity) => (
                 <li key={activity.id} className="relative py-1.5">
-                    <span className="absolute -left-[21px] top-3 h-2.5 w-2.5 rounded-full border-2 border-white bg-indigo-500 shadow" />
+                    <span className="absolute -left-[21px] top-3 h-2.5 w-2.5 rounded-full border-2 border-white bg-[var(--accent)] shadow" />
                     <p className="text-sm text-gray-700">
                         <span className="font-medium text-gray-900">{activity.actor?.name ?? 'Someone'}</span>{' '}
                         {describe(activity.action, activity.data)}

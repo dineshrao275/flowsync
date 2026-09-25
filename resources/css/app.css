@@ -24,6 +24,15 @@
     --header-text: #0f172a;
     --card-bg: #ffffff;
     --accent: #6366f1;
+    /* Accent-derived tokens; re-computed in resources/js/theme.js whenever the
+       admin changes `accent`, and mirrored here so the first paint is themed. */
+    --accent-hover: #7c7ff3;
+    --accent-active: #585bd5;
+    --accent-contrast: #ffffff;
+    --accent-soft: #eef0fe;
+    --accent-soft-hover: #e0e3fd;
+    --accent-soft-text: #4f46e5;
+    --accent-ring: #c7c9f9;
 }
 
 /*

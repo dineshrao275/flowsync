@@ -83,6 +83,49 @@ export const THEME_PRESETS = [
  * Structural surfaces used when the dark scheme is active. The admin's own
  * `accent` / `active_menu` colors are kept so branding survives the switch.
  */
+const THEME_VARS_KEY = 'flowsync.theme.vars';
+
+function hexToRgb(hex) {
+    const value = String(hex || '').replace('#', '').trim();
+    const full = value.length === 3 ? value.split('').map((c) => c + c).join('') : value;
+
+    if (!/^[0-9a-fA-F]{6}$/.test(full)) return { r: 99, g: 102, b: 241 };
+
+    return {
+        r: parseInt(full.slice(0, 2), 16),
+        g: parseInt(full.slice(2, 4), 16),
+        b: parseInt(full.slice(4, 6), 16),
+    };
+}
+
+function rgbToHex({ r, g, b }) {
+    const clamp = (n) => Math.max(0, Math.min(255, Math.round(n)));
+
+    return `#${[r, g, b].map((n) => clamp(n).toString(16).padStart(2, '0')).join('')}`;
+}
+
+function mix(from, to, amount) {
+    const a = hexToRgb(from);
+    const b = hexToRgb(to);
+
+    return rgbToHex({
+        r: a.r + (b.r - a.r) * amount,
+        g: a.g + (b.g - a.g) * amount,
+        b: a.b + (b.b - a.b) * amount,
+    });
+}
+
+function luminance(hex) {
+    const { r, g, b } = hexToRgb(hex);
+    const channel = (v) => {
+        const s = v / 255;
+
+        return s <= 0.03928 ? s / 12.92 : ((s + 0.055) / 1.055) ** 2.4;
+    };
+
+    return 0.2126 * channel(r) + 0.7152 * channel(g) + 0.0722 * channel(b);
+}
+
 export const DARK_SURFACES = {
     sidebar_bg: '#0b0f1a',
     sidebar_hover: '#1b2333',
@@ -92,6 +135,29 @@ export const DARK_SURFACES = {
     header_text: '#e8eaf0',
     card_bg: '#171d2b',
 };
+
+/**
+ * Every accent-driven control (buttons, active toggles, chips, links, focus
+ * rings) reads these instead of a hardcoded indigo, so changing `accent` in
+ * the theme drawer re-skins the whole UI.
+ */
+export function accentTokens(accent, dark = false) {
+    const base = /^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/.test(String(accent || '').trim())
+        ? accent
+        : DEFAULT_THEME.accent;
+    const canvas = dark ? '#121826' : '#ffffff';
+
+    return {
+        '--accent': base,
+        '--accent-hover': dark ? mix(base, '#ffffff', 0.16) : mix(base, '#ffffff', 0.15),
+        '--accent-active': mix(base, '#000000', 0.14),
+        '--accent-contrast': luminance(base) > 0.55 ? '#0f172a' : '#ffffff',
+        '--accent-soft': mix(canvas, base, dark ? 0.22 : 0.1),
+        '--accent-soft-hover': mix(canvas, base, dark ? 0.3 : 0.16),
+        '--accent-soft-text': dark ? mix(base, '#ffffff', 0.35) : mix(base, '#000000', 0.22),
+        '--accent-ring': mix(canvas, base, dark ? 0.4 : 0.25),
+    };
+}
 
 const CSS_VARS = THEME_FIELDS.map((field) => field.key);
 
@@ -150,8 +216,14 @@ export function applyTheme(theme) {
         root.style.setProperty(cssVar(key), dark && key in DARK_SURFACES ? DARK_SURFACES[key] : merged[key]);
     });
 
+    const tokens = accentTokens(merged.accent, dark);
+    Object.entries(tokens).forEach(([name, value]) => root.style.setProperty(name, value));
+
     try {
         window.localStorage.setItem(THEME_STORAGE_KEY, JSON.stringify(merged));
+        // Cached so the pre-hydration boot script can paint accent-driven
+        // buttons without duplicating this color math inline.
+        window.localStorage.setItem(THEME_VARS_KEY, JSON.stringify(tokens));
     } catch {
         // Private mode / storage disabled — the theme still applies for this page.
     }
@@ -190,4 +262,14 @@ export function bootStoredTheme() {
 
     root.classList.toggle('dark', dark);
     root.style.colorScheme = dark ? 'dark' : 'light';
+
+    try {
+        const cached = JSON.parse(window.localStorage.getItem(THEME_VARS_KEY) || 'null');
+
+        if (cached) {
+            Object.entries(cached).forEach(([name, value]) => root.style.setProperty(name, value));
+        }
+    } catch {
+        // React applies the real values on mount.
+    }
 }

@@ -152,7 +152,7 @@ export default function Onboarding() {
                     <span className="text-gray-500">{progress}%</span>
                 </div>
                 <div className="mt-2 h-2 overflow-hidden rounded-full bg-gray-200">
-                    <div className="h-full rounded-full bg-indigo-600 transition-all" style={{ width: `${progress}%` }} />
+                    <div className="h-full rounded-full bg-[var(--accent)] transition-all" style={{ width: `${progress}%` }} />
                 </div>
             </div>
 

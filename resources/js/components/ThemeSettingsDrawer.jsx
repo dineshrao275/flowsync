@@ -39,7 +39,7 @@ function SchemeField({ value, onChange }) {
                         aria-pressed={active}
                         className={`flex flex-col items-center gap-1.5 rounded-lg border p-2.5 transition-all duration-150 hover:-translate-y-px hover:shadow-sm active:scale-95 ${
                             active
-                                ? 'border-indigo-500 bg-indigo-50 text-indigo-700'
+                                ? 'border-[var(--accent)] bg-[var(--accent-soft)] text-[var(--accent-soft-text)]'
                                 : 'border-gray-200 text-gray-700 hover:border-gray-300 hover:bg-gray-50'
                         }`}
                     >
@@ -145,7 +145,7 @@ export default function ThemeSettingsDrawer({ open, onClose }) {
                                         onClick={() => previewFull(preset.theme)}
                                         className={`rounded-lg border p-2 text-left text-xs font-medium transition-all duration-150 hover:-translate-y-px hover:shadow-sm active:scale-95 ${
                                             active
-                                                ? 'border-indigo-500 bg-indigo-50 text-indigo-700'
+                                                ? 'border-[var(--accent)] bg-[var(--accent-soft)] text-[var(--accent-soft-text)]'
                                                 : 'border-gray-200 text-gray-700 hover:border-gray-300 hover:bg-gray-50'
                                         }`}
                                     >

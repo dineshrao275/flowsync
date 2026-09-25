@@ -90,7 +90,7 @@ export default function FeatureManagement() {
                                                 onClick={() => toggle(plan, module, !on)}
                                                 aria-label={`${on ? 'Disable' : 'Enable'} ${MODULE_LABEL[module] || module} for ${plan.name}`}
                                                 className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors ${
-                                                    on ? 'bg-indigo-600' : 'bg-gray-200'
+                                                    on ? 'bg-[var(--accent)]' : 'bg-gray-200'
                                                 }`}
                                             >
                                                 <span
