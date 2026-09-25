@@ -18,7 +18,7 @@ const MODULE_LABEL = {
 export default function FeatureManagement() {
     usePageTitle('Feature Management');
     useSetCrumbs([{ label: 'Platform', to: '/admin' }, { label: 'Features' }]);
-    const { toast } = useToast();
+    const toast = useToast();
     const [data, setData] = useState(null);
     const [busy, setBusy] = useState(null);
 

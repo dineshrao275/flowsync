@@ -208,7 +208,7 @@ function PageFormModal({ initial, onClose, onSave }) {
 export default function CmsPages() {
     usePageTitle('Website Pages');
     useSetCrumbs([{ label: 'Platform', to: '/admin' }, { label: 'Website' }]);
-    const { toast } = useToast();
+    const toast = useToast();
     const [pages, setPages] = useState([]);
     const [loading, setLoading] = useState(true);
     const [editor, setEditor] = useState(null);

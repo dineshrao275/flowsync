@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Controllers\Concerns\NormalizesBooleanInput;
 use App\Models\SubscriptionPlan;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -14,6 +15,8 @@ use Illuminate\Validation\Rule;
  */
 class PlanController extends Controller
 {
+    use NormalizesBooleanInput;
+
     /**
      * Plan catalog. Super admins see every plan (admin page); any other
      * authenticated user sees the active plans only (tenant subscription page).
@@ -73,6 +76,10 @@ class PlanController extends Controller
 
     private function validateData(Request $request, ?SubscriptionPlan $plan = null): array
     {
+        // Form payloads may carry "true"/"false" strings; a real boolean is
+        // required so the model's boolean cast can't turn "false" into true.
+        $this->normalizeRequestBooleans($request, ['is_active', 'is_default']);
+
         return $request->validate([
             'name' => ['required', 'string', 'max:255'],
             'slug' => [

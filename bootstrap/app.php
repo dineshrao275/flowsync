@@ -30,7 +30,11 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
         web: __DIR__.'/../routes/web.php',
         commands: __DIR__.'/../routes/console.php',
-        channels: __DIR__.'/../routes/channels.php',
+        // NOTE: `channels` is intentionally NOT registered here. Laravel would
+        // then register /broadcasting/auth with the bare `web` group, so the
+        // session user would be resolved on the default (system) connection
+        // where tenant users don't exist -> channel auth always 403s. It is
+        // registered in routes/web.php with `switch_tenant` instead.
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {

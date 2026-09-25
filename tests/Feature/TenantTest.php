@@ -167,6 +167,40 @@ class TenantTest extends TestCase
             ->assertJsonPath('tenants.0.slug', 'globex');
     }
 
+    public function test_tenant_list_accepts_boolean_ish_query_strings(): void
+    {
+        $this->postJson('/api/auth/login', [
+            'email' => 'superadmin@flowsync.test',
+            'password' => 'password',
+        ])->assertOk();
+
+        // The UI serializes the checkbox into the query string as "false"/"true";
+        // a strict `boolean` rule used to 422 on that.
+        $this->getJson('/api/tenants?trashed=false')
+            ->assertOk()
+            ->assertJsonPath('pagination.total', 2)
+            ->assertJsonCount(2, 'tenants');
+
+        $this->getJson('/api/tenants?q=&status=&plan_id=&sort=name&trashed=false&dir=asc&page=1&per_page=10')
+            ->assertOk()
+            ->assertJsonPath('pagination.total', 2);
+
+        // "true" must still select only trashed tenants.
+        $this->deleteJson('/api/tenants/'.Tenant::where('slug', 'globex')->value('id'))->assertOk();
+
+        $this->getJson('/api/tenants?trashed=false')
+            ->assertOk()
+            ->assertJsonCount(1, 'tenants');
+
+        $this->getJson('/api/tenants?trashed=true')
+            ->assertOk()
+            ->assertJsonCount(1, 'tenants')
+            ->assertJsonPath('tenants.0.slug', 'globex');
+
+        // Genuinely invalid values are still rejected.
+        $this->getJson('/api/tenants?trashed=maybe')->assertStatus(422);
+    }
+
     public function test_super_admin_can_suspend_and_activate_tenant(): void
     {
         $this->postJson('/api/auth/login', [

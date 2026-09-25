@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Controllers\Concerns\NormalizesBooleanInput;
 use App\Jobs\ProvisionTenantJob;
 use App\Models\AuditLog;
 use App\Models\Tenant;
@@ -20,11 +21,17 @@ use Illuminate\Validation\Rule;
 
 class TenantController extends Controller
 {
+    use NormalizesBooleanInput;
+
     protected const SORTABLE = ['name', 'slug', 'status', 'created_at', 'updated_at', 'users_count'];
 
     public function index(Request $request): JsonResponse
     {
         // users/roles live in per-tenant DBs; surface the routing-index counts.
+        // The UI sends `trashed=false` in the query string, so normalize the
+        // boolean-ish query values before the strict `boolean` rule runs.
+        $this->normalizeRequestBooleans($request, ['trashed']);
+
         $data = $request->validate([
             'q' => ['nullable', 'string', 'max:255'],
             'status' => ['nullable', 'string', Rule::in([

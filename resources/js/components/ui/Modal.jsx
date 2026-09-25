@@ -1,4 +1,5 @@
 import { useEffect } from 'react';
+import { createPortal } from 'react-dom';
 
 const sizes = {
     sm: 'max-w-md',
@@ -25,7 +26,10 @@ export default function Modal({ open, onClose, title, subtitle, size = 'md', chi
 
     if (!open) return null;
 
-    return (
+    // Portalled to <body> so the overlay always sits above page content: the
+    // page wrapper runs a transform animation, which makes it a containing
+    // block/stacking context that would otherwise trap a nested `fixed` modal.
+    return createPortal(
         <div
             className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-gray-900/40 p-4 animate-backdrop-in sm:p-6"
             onMouseDown={onClose}
@@ -60,6 +64,7 @@ export default function Modal({ open, onClose, title, subtitle, size = 'md', chi
                 )}
                 {children}
             </div>
-        </div>
+        </div>,
+        document.body,
     );
 }

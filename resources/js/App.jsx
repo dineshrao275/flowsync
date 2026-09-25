@@ -38,6 +38,7 @@ import FeatureManagement from './pages/FeatureManagement';
 import CmsPages from './pages/CmsPages';
 import Forbidden from './pages/Forbidden';
 import NotFound from './pages/NotFound';
+import { homeRouteFor } from './utils/deepLinks';
 
 function LoadingScreen() {
     return (
@@ -75,7 +76,7 @@ function AppRoutes() {
 
                 <Route element={<ProtectedRoute />}>
                     <Route element={<AdminLayout />}>
-                        <Route path="/" element={<Navigate to={userIsSuperAdmin ? '/admin' : '/dashboard'} replace />} />
+                        <Route path="/" element={<Navigate to={homeRouteFor(user)} replace />} />
                         <Route path="/onboarding" element={<Onboarding />} />
                         {userIsSuperAdmin && (
                             <Route element={<ProtectedRoute permission="dashboard.view" />}>
@@ -92,7 +93,12 @@ function AppRoutes() {
                             </Route>
                         )}
                         <Route element={<ProtectedRoute permission="dashboard.view" />}>
-                            <Route path="/dashboard" element={<Dashboard />} />
+                            {/* A platform super admin has no tenant context, so the tenant
+                                dashboard endpoints 403 — send them to the platform overview. */}
+                            <Route
+                                path="/dashboard"
+                                element={userIsSuperAdmin ? <Navigate to={homeRouteFor(user)} replace /> : <Dashboard />}
+                            />
                         </Route>
                         <Route path="/notifications" element={<Notifications />} />
                         <Route path="/subscription" element={<Subscription />} />

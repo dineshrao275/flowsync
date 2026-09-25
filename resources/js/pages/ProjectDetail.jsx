@@ -58,8 +58,8 @@ export default function ProjectDetail() {
     const { user, can, hasModule } = useAuth();
     const toast = useToast();
     const setCrumbs = useSetCrumbs();
-    usePageTitle(project?.name || 'Project');
     const [project, setProject] = useState(null);
+    usePageTitle(project?.name || 'Project');
     const [members, setMembers] = useState([]);
     const [roles, setRoles] = useState([]);
     const [statuses, setStatuses] = useState([]);

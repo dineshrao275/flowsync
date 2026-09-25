@@ -1,4 +1,5 @@
 import { useEffect } from 'react';
+import { createPortal } from 'react-dom';
 
 export default function Drawer({ open, onClose, title, subtitle, children, headerExtras, footer, className = '' }) {
     useEffect(() => {
@@ -19,7 +20,10 @@ export default function Drawer({ open, onClose, title, subtitle, children, heade
 
     if (!open) return null;
 
-    return (
+    // Portalled to <body> so the panel always paints above page content: the
+    // page wrapper runs a transform animation, which makes it a containing
+    // block/stacking context that would otherwise trap a nested `fixed` panel.
+    return createPortal(
         <div
             className="fixed inset-0 z-50 flex justify-end bg-gray-900/30 animate-backdrop-in"
             onClick={onClose}
@@ -56,6 +60,7 @@ export default function Drawer({ open, onClose, title, subtitle, children, heade
                 <div className="min-h-0 flex-1 overflow-y-auto">{children}</div>
                 {footer && <div className="shrink-0 border-t border-gray-100 px-6 py-3">{footer}</div>}
             </div>
-        </div>
+        </div>,
+        document.body,
     );
 }

@@ -77,6 +77,38 @@ class SubscriptionPlanTest extends TestCase
         $this->deleteJson("/api/plans/{$default->id}")->assertUnprocessable();
     }
 
+    public function test_plan_creation_accepts_boolean_ish_strings(): void
+    {
+        // Unchecked boxes / hand-rolled payloads send "false" rather than false.
+        // The strict `boolean` rule used to 422 on it, and a raw "false" would
+        // have been cast to true by the model.
+        $this->postJson('/api/plans', [
+            'name' => 'Stringly Typed',
+            'slug' => 'stringly-typed',
+            'is_active' => 'false',
+            'is_default' => 'false',
+            'price_cents' => 0,
+        ])->assertCreated()
+            ->assertJsonPath('plan.is_active', false)
+            ->assertJsonPath('plan.is_default', false);
+
+        $this->assertFalse(SubscriptionPlan::where('slug', 'stringly-typed')->firstOrFail()->is_active);
+
+        $this->postJson('/api/plans', [
+            'name' => 'Truthy',
+            'slug' => 'truthy',
+            'is_active' => '1',
+        ])->assertCreated()
+            ->assertJsonPath('plan.is_active', true);
+
+        // Still strict about genuinely non-boolean values.
+        $this->postJson('/api/plans', [
+            'name' => 'Nope',
+            'slug' => 'nope',
+            'is_active' => 'maybe',
+        ])->assertStatus(422);
+    }
+
     public function test_cannot_delete_a_plan_in_use(): void
     {
         $pro = SubscriptionPlan::where('slug', 'pro')->firstOrFail();

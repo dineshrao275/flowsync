@@ -16,7 +16,7 @@ const emptyForm = { name: '', email: '', password: '' };
 export default function SystemUsers() {
     usePageTitle('Platform Users');
     useSetCrumbs([{ label: 'Platform', to: '/admin' }, { label: 'Users' }]);
-    const { toast } = useToast();
+    const toast = useToast();
     const [users, setUsers] = useState([]);
     const [pagination, setPagination] = useState(null);
     const [q, setQ] = useState('');

@@ -8,6 +8,7 @@ import Input from '../../components/ui/Input';
 import Alert from '../../components/ui/Alert';
 import AuthShell from '../../components/ui/AuthShell';
 import usePageTitle from '../../hooks/usePageTitle';
+import { homeRouteFor } from '../../utils/deepLinks';
 
 export default function Login() {
     usePageTitle('Sign in');
@@ -18,8 +19,6 @@ export default function Login() {
     const [form, setForm] = useState({ email: '', password: '', remember: false });
     const [errors, setErrors] = useState({});
     const [submitting, setSubmitting] = useState(false);
-
-    const from = location.state?.from || '/dashboard';
 
     function update(field, value) {
         setForm((current) => ({ ...current, [field]: value }));
@@ -33,7 +32,7 @@ export default function Login() {
         try {
             const data = await login(form);
             toast.success(`Welcome back, ${data.user.name.split(' ')[0]}!`);
-            navigate(from, { replace: true });
+            navigate(location.state?.from || homeRouteFor(data.user), { replace: true });
         } catch (error) {
             setErrors(fieldErrors(error));
         } finally {

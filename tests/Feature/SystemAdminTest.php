@@ -160,6 +160,51 @@ class SystemAdminTest extends TestCase
         $this->assertFalse($starter->fresh()->hasModule('reports'));
     }
 
+    public function test_super_admin_notification_endpoints_return_empty_payloads(): void
+    {
+        $this->loginSuperAdmin();
+
+        // A platform super admin has no tenant database, so the personal
+        // notification endpoints must answer with empty payloads instead of
+        // hitting the tenant-only `notifications` table.
+        $this->getJson('/api/notifications')
+            ->assertOk()
+            ->assertJsonCount(0, 'notifications')
+            ->assertJsonPath('unread_count', 0)
+            ->assertJsonPath('pagination.total', 0);
+
+        $this->getJson('/api/notifications/unread')->assertOk()->assertJsonPath('count', 0);
+
+        $this->postJson('/api/notifications/mark-all-read')
+            ->assertOk()
+            ->assertJsonPath('count', 0);
+
+        $this->postJson('/api/notifications/1/read')->assertNotFound();
+    }
+
+    public function test_super_admin_remains_blocked_from_tenant_domain_endpoints(): void
+    {
+        $this->loginSuperAdmin();
+
+        $this->getJson('/api/dashboard')->assertForbidden();
+        $this->getJson('/api/analytics/overview')->assertForbidden();
+    }
+
+    public function test_impersonating_super_admin_reads_tenant_notifications(): void
+    {
+        $this->loginSuperAdmin();
+
+        $acme = $this->acme();
+        $this->postJson('/api/impersonate', ['user_id' => 1, 'tenant_id' => $acme->id])->assertOk();
+
+        $this->getJson('/api/notifications')
+            ->assertOk()
+            ->assertJsonPath('unread_count', 0)
+            ->assertJsonCount(0, 'notifications');
+
+        $this->getJson('/api/notifications/unread')->assertOk()->assertJsonPath('count', 0);
+    }
+
     public function test_platform_analytics_aggregates_across_tenants(): void
     {
         $this->loginSuperAdmin();

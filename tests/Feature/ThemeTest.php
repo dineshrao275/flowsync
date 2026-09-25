@@ -98,4 +98,29 @@ class ThemeTest extends TestCase
             ->assertUnprocessable()
             ->assertJsonValidationErrors('sidebar_bg');
     }
+
+    public function test_super_admin_theme_falls_back_to_defaults_without_persisting(): void
+    {
+        // `user_settings` is a tenant table, so a platform super admin must not
+        // hit it — the payload echoes the theme and the defaults are returned.
+        $this->postJson('/api/auth/login', [
+            'email' => 'superadmin@flowsync.test',
+            'password' => 'password',
+        ])->assertOk();
+
+        $this->getJson('/api/theme')
+            ->assertOk()
+            ->assertJsonPath('theme.sidebar_bg', config('theme.defaults.sidebar_bg'));
+
+        $payload = array_fill_keys(array_keys(config('theme.defaults')), '#ffffff');
+        $payload['accent'] = '#00ff00';
+
+        $this->putJson('/api/theme', $payload)
+            ->assertOk()
+            ->assertJsonPath('theme.accent', '#00ff00');
+
+        $this->getJson('/api/theme')
+            ->assertOk()
+            ->assertJsonPath('theme.accent', config('theme.defaults.accent'));
+    }
 }

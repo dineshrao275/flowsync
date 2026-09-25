@@ -40,6 +40,7 @@ use App\Http\Controllers\UserController;
 use App\Http\Controllers\WorkLogController;
 use App\Http\Controllers\WorkspaceController;
 use App\Http\Controllers\WorkspaceMemberController;
+use Illuminate\Support\Facades\Broadcast;
 use Illuminate\Support\Facades\Route;
 
 Route::prefix('api')->group(function () {
@@ -59,6 +60,8 @@ Route::prefix('api')->group(function () {
         Route::put('theme', [ThemeController::class, 'update'])->middleware(['permission:settings.theme', 'ensure_module:branding']);
 
         // Personal notifications (self-scoped by user_id; no tenant_context needed).
+        // A platform super admin has no tenant database, so the controller
+        // short-circuits these to empty payloads instead of querying them.
         Route::get('notifications', [NotificationController::class, 'index']);
         Route::get('notifications/unread', [NotificationController::class, 'unread']);
         Route::post('notifications/{notification}/read', [NotificationController::class, 'markRead']);
@@ -282,3 +285,14 @@ Route::get('robots.txt', [PublicSiteController::class, 'robots'])->name('robots'
 // SPA app at /app (the root path belongs to the public site).
 Route::view('/app', 'app');
 Route::view('/app/{any}', 'app')->where('any', '.*');
+
+// Realtime channel authorization (Echo/Pusher protocol). Registered here rather
+// than through withRouting(channels:) so `switch_tenant` runs first: the
+// authenticated user is a tenant-local row, so it must be resolved on the
+// tenant connection — on the default (system) connection every tenant user
+// resolves to null and the channel callbacks in routes/channels.php return
+// false (HTTP 403). `auth` keeps unauthenticated socket clients from hitting
+// the callbacks at all.
+Broadcast::routes(['middleware' => ['switch_tenant', 'auth']]);
+
+require __DIR__.'/../routes/channels.php';

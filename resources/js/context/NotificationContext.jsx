@@ -11,8 +11,12 @@ export function NotificationProvider({ children }) {
     const toast = useToast();
     const [unreadCount, setUnreadCount] = useState(0);
 
+    // A non-impersonating super admin has no tenant database: personal
+    // notifications live in the tenant DB only, so there is nothing to poll.
+    const platformOnly = Boolean(user?.is_super_admin && !user?.impersonating);
+
     const refresh = useCallback(async () => {
-        if (!user) {
+        if (!user || platformOnly) {
             setUnreadCount(0);
             return;
         }
@@ -22,16 +26,17 @@ export function NotificationProvider({ children }) {
         } catch {
             // keep current count on transient failures
         }
-    }, [user]);
+    }, [user, platformOnly]);
 
     useEffect(() => {
         refresh();
+        if (platformOnly) return undefined;
         const timer = window.setInterval(refresh, 30000);
         return () => window.clearInterval(timer);
-    }, [refresh]);
+    }, [refresh, platformOnly]);
 
     useEffect(() => {
-        if (!user || !window.Echo) return undefined;
+        if (!user || platformOnly || !window.Echo) return undefined;
         const channel = window.Echo.private(`user.${user.id}`);
         const handler = (event) => {
             setUnreadCount((count) => count + 1);
@@ -39,7 +44,7 @@ export function NotificationProvider({ children }) {
         };
         channel.listen('.notification.sent', handler);
         return () => channel.stopListening('.notification.sent');
-    }, [user, toast]);
+    }, [user, platformOnly, toast]);
 
     const markAllRead = useCallback(async () => {
         await api.post('/notifications/mark-all-read');

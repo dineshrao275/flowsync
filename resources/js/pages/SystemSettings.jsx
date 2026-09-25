@@ -29,7 +29,7 @@ function Toggle({ label, hint, checked, onChange, disabled }) {
 export default function SystemSettings() {
     usePageTitle('System Settings');
     useSetCrumbs([{ label: 'Platform', to: '/admin' }, { label: 'Settings' }]);
-    const { toast } = useToast();
+    const toast = useToast();
     const [settings, setSettings] = useState(null);
     const [plans, setPlans] = useState([]);
     const [errors, setErrors] = useState({});
