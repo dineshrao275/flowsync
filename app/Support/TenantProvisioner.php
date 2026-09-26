@@ -66,6 +66,7 @@ class TenantProvisioner
             );
         });
 
+        $slugsBySelector = app(PermissionSelector::class);
         $adminRole = null;
 
         foreach (config('permissions.roles') as $slug => $role) {
@@ -74,12 +75,9 @@ class TenantProvisioner
                 ['name' => $role['name']]
             );
 
-            if ($role['permissions'] === '*') {
-                $model->permissions()->sync($permissions->pluck('id'));
-            } else {
-                $ids = $permissions->whereIn('slug', $role['permissions'])->pluck('id');
-                $model->permissions()->sync($ids);
-            }
+            $allowed = $slugsBySelector->resolve($role['permissions'], $slugsBySelector->catalog());
+
+            $model->permissions()->sync($permissions->whereIn('slug', $allowed)->pluck('id'));
 
             if ($slug === 'admin') {
                 $adminRole = $model;

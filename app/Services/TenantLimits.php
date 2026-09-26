@@ -48,9 +48,24 @@ class TenantLimits
 
     /**
      * Whether a feature module is enabled (absent from the merged limits = on).
+     *
+     * Three layers, in precedence order:
+     *   1. `tenants.features_override.modules` — a per-tenant grant/switch
+     *      written by a super admin. **Additive only** (D2.6): it can grant a
+     *      module the plan omits, and disable one the plan grants, but it can
+     *      never appear in the module list on its own — a tenant with no
+     *      subscription and no override is still unlimited.
+     *   2. `plans.limits.modules` via the subscription.
+     *   3. No subscription at all ⇒ every module is on.
      */
     public function hasModule(Tenant $tenant, string $module): bool
     {
+        $override = $this->moduleOverride($tenant, $module);
+
+        if ($override !== null) {
+            return $override;
+        }
+
         $modules = $this->limit($tenant, 'modules');
 
         if ($modules === null) {
@@ -58,6 +73,93 @@ class TenantLimits
         }
 
         return in_array($module, $modules, true);
+    }
+
+    /**
+     * All modules currently enabled for a tenant, as flat dotted slugs.
+     *
+     * Used by `AuthController::payload` to populate `user.modules` and by the
+     * super-admin entitlement screen. Ordering is the catalog order from
+     * config so the UI tree does not reshuffle between requests.
+     *
+     * @return list<string>
+     */
+    public function enabledModules(Tenant $tenant): array
+    {
+        $modules = $this->limit($tenant, 'modules');
+        $override = data_get($tenant->features_override, 'modules');
+        $override = is_array($override) ? $override : [];
+
+        $catalog = $this->allModules();
+
+        // A tenant with no subscription (or a plan that pins no module list) is
+        // on everything. The override then *refines* that base in both
+        // directions: `false` switches a module off, `true` grants one. This is
+        // the additive-only rule from D2.6 — the override can never be the
+        // reason a tenant gains a module its plan did not already allow.
+        $base = $modules === null ? $catalog : array_values((array) $modules);
+
+        $enabled = array_values(array_filter(
+            $base,
+            fn (string $module): bool => ! $this->toggleOff($override, $module),
+        ));
+
+        foreach ($override as $module => $on) {
+            if ($on && ! in_array($module, $enabled, true)) {
+                $enabled[] = $module;
+            }
+        }
+
+        return array_values(array_filter(
+            $catalog,
+            fn (string $module): bool => in_array($module, $enabled, true),
+        ));
+    }
+
+    /**
+     * Whether the whole HRMS surface is available: any `hrms.*` module enabled.
+     *
+     * The frontend uses this to decide whether to render the People section at
+     * all; individual modules are still gated individually server-side.
+     */
+    public function isHrmsEnabled(Tenant $tenant): bool
+    {
+        return collect($this->enabledModules($tenant))
+            ->contains(fn (string $module): bool => str_starts_with($module, 'hrms.'));
+    }
+
+    /**
+     * The per-tenant module override, or null when the plan decides.
+     *
+     * @return array<string, bool>|null
+     */
+    private function moduleOverride(Tenant $tenant, string $module): ?bool
+    {
+        $override = data_get($tenant->features_override, 'modules');
+
+        if (! is_array($override) || ! array_key_exists($module, $override)) {
+            return null;
+        }
+
+        return (bool) $override[$module];
+    }
+
+    /**
+     * @param  array<string, mixed>  $override
+     */
+    private function toggleOff(array $override, string $module): bool
+    {
+        return array_key_exists($module, $override) && ! $override[$module];
+    }
+
+    /**
+     * Every known module key, in catalog order.
+     *
+     * @return list<string>
+     */
+    private function allModules(): array
+    {
+        return array_values(config('subscriptions.modules', []));
     }
 
     /**

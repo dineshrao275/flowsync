@@ -27,7 +27,7 @@ class TenantSubscriptionTest extends TestCase
         $this->getJson("/api/tenants/{$this->acme()->id}/subscription")
             ->assertOk()
             ->assertJsonPath('subscription', null)
-            ->assertJsonCount(3, 'plans');
+            ->assertJsonCount(count(config('subscriptions.plans')), 'plans');
     }
 
     public function test_assign_creates_and_re_stamps_the_single_subscription_row(): void

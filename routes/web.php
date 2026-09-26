@@ -34,6 +34,7 @@ use App\Http\Controllers\SystemUsersController;
 use App\Http\Controllers\TaskController;
 use App\Http\Controllers\TaskMoveController;
 use App\Http\Controllers\TenantController;
+use App\Http\Controllers\TenantHrmsController;
 use App\Http\Controllers\TenantSubscriptionController;
 use App\Http\Controllers\ThemeController;
 use App\Http\Controllers\UserController;
@@ -116,6 +117,10 @@ Route::prefix('api')->group(function () {
             // Onboarding state per tenant (super-admin view + repair).
             Route::get('tenants/{tenant}/onboarding', [OnboardingController::class, 'showFor']);
             Route::put('tenants/{tenant}/onboarding', [OnboardingController::class, 'updateFor']);
+
+            // Phase 15: per-tenant HRMS entitlement (additive override layer).
+            Route::get('tenants/{tenant}/hrms', [TenantHrmsController::class, 'show']);
+            Route::put('tenants/{tenant}/hrms', [TenantHrmsController::class, 'update']);
 
             // Phase 14: subscription catalog + per-tenant subscription lifecycle.
             Route::post('plans', [PlanController::class, 'store']);

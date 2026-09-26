@@ -73,6 +73,33 @@ return [
             'replace_placeholders' => true,
         ],
 
+        /*
+        |----------------------------------------------------------------------
+        | HRMS Operational Log Channel
+        |----------------------------------------------------------------------
+        |
+        | Separate from `laravel.log` on purpose (D2.17.2): the HRMS trail is
+        | rotated, retained and grepped on its own terms, and never buries the
+        | application log. Every HRMS call site names this channel explicitly
+        | via `Log::channel('hrms')` — never the default.
+        |
+        | The level defaults to `info` in production (per-request `debug` detail
+        | would otherwise be retained for 30 days) and `debug` elsewhere.
+        |
+        | This is the *operational* trail. The product's business record of who
+        | changed which employee/payslip is the `hrms_audit_logs` table, written
+        | by HrmsAuditLogger. Never substitute one for the other.
+        |
+        */
+
+        'hrms' => [
+            'driver' => 'daily',
+            'path' => storage_path('logs/hrms.log'),
+            'level' => env('HRMS_LOG_LEVEL', env('APP_ENV', 'production') === 'production' ? 'info' : 'debug'),
+            'days' => (int) env('HRMS_LOG_DAYS', 30),
+            'replace_placeholders' => true,
+        ],
+
         'slack' => [
             'driver' => 'slack',
             'url' => env('LOG_SLACK_WEBHOOK_URL'),

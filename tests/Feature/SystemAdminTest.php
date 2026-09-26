@@ -136,8 +136,13 @@ class SystemAdminTest extends TestCase
 
         $this->getJson('/api/system/features')
             ->assertOk()
-            ->assertJsonPath('modules.0', 'time_tracking')
-            ->assertJsonStructure(['plans' => [['id', 'slug', 'name', 'modules']]]);
+            // The grid is grouped for display; `modules` is now inside groups.
+            ->assertJsonPath('groups.0.modules.0.key', 'time_tracking')
+            ->assertJsonPath('groups.0.label', 'Platform')
+            ->assertJsonStructure([
+                'groups' => [['key', 'label', 'modules' => [['key', 'label', 'depth']]]],
+                'plans' => [['id', 'slug', 'name', 'modules']],
+            ]);
 
         $starter = SubscriptionPlan::where('slug', 'starter')->firstOrFail();
         $this->assertTrue($starter->hasModule('time_tracking'));
@@ -244,7 +249,10 @@ class SystemAdminTest extends TestCase
 
         // Plan mix covers the whole catalog, zero counts before anyone subscribes.
         $rows = collect($response->json('plans.rows'));
-        $this->assertSame(['starter', 'pro', 'enterprise'], $rows->pluck('slug')->all());
+        $this->assertSame(
+            ['starter', 'pro', 'business', 'enterprise'],
+            $rows->pluck('slug')->all(),
+        );
         $this->assertSame(0, $rows->sum('subscriptions'));
         $this->assertSame(0, $response->json('plans.active_subscriptions'));
         $this->assertSame(0, $response->json('plans.monthly_cents'));

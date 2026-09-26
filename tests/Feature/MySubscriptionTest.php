@@ -82,7 +82,9 @@ class MySubscriptionTest extends TestCase
         $this->loginAs('admin@flowsync.test');
         $this->getJson('/api/plans')
             ->assertOk()
-            ->assertJsonCount(2, 'plans')
+            // Starter was just deactivated, so the tenant sees every other
+            // catalog plan.
+            ->assertJsonCount(count(config('subscriptions.plans')) - 1, 'plans')
             ->assertJsonMissing(['plans' => [['slug' => 'starter']]]);
 
         $this->postJson('/api/auth/login', [
@@ -92,7 +94,7 @@ class MySubscriptionTest extends TestCase
 
         $this->getJson('/api/plans')
             ->assertOk()
-            ->assertJsonCount(3, 'plans');
+            ->assertJsonCount(count(config('subscriptions.plans')), 'plans');
     }
 
     public function test_admin_can_switch_cancel_and_renew(): void

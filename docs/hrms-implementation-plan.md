@@ -1,9 +1,19 @@
 # FlowSync HRMS — Phase-Wise Implementation Plan
 
 **Status:** plan only — no HRMS code exists yet.
-**Baseline at plan time:** `php artisan test` = **354 tests / 2577 assertions passing**.
+**Baseline at plan time:** `php artisan test` = **368 tests / 2629 assertions passing**.
 **Reference inspiration:** Keka's public marketing capability list was used only to enumerate functional
 breadth. No Keka code, assets, copy, or data was consulted or reproduced.
+
+Two standards are **binding on every line of HRMS code** and are specified in
+[D2.16 (code structure & quality)](#d216--code-structure--quality-standard-binding) and
+[D2.17 (observability & logging)](#d217--observability--logging-standard-binding):
+
+1. **Clean, modular, professionally structured code** — strict layering, one class per concern, bounded
+   contexts, FormRequests + presenters + policies, enums instead of raw strings, typed everything.
+2. **Logging wherever it aids debugging** — a dedicated `hrms` channel, dotted event names with
+   structured context, a correlation id on every request/job/command, and a hard ban on logging
+   sensitive data.
 
 Written to be executed **one small task at a time** by an agent (OpenCode) with no memory of the wider
 design. Every task is self-contained: read the phase, do the task, verify, commit.
@@ -37,15 +47,16 @@ document before continuing.
 
 ```
 1. Read  : AGENTS.md (current) + this plan's phase section + the files the task names
-2. Code  : the task's deliverable only
+2. Code  : the task's deliverable only, to the standard of D2.16 (structure) + D2.17 (logging)
 3. Style : ./vendor/bin/pint            # whole repo; --dirty only works in git
 4. Test  : php artisan test --filter=<TheTestClass>
           php artisan test               # FULL SUITE — must stay green (>= baseline)
 5. Build : npm run build                # must succeed
 6. Verify: manual checks from 0.4 — isolation + module gate + permission gate
-7. Update: this document if reality diverged; AGENTS.md if architecture changed
-8. Commit: git add -A && git commit -m "<P><n> <task-slug>: <imperative summary>" && git push
-9. Continue with the next task
+7. Gate  : run the 0.8 checklist — structure, types, enums, logs, no debug leftovers
+8. Update: this document if reality diverged; AGENTS.md if architecture changed
+9. Commit: git add -A && git commit -m "<P><n> <task-slug>: <imperative summary>" && git push
+10. Continue with the next task
 ```
 
 `git remote` is `flowsync https://github.com/dineshrao275/flowsync.git` (push is required by the loop).
@@ -84,6 +95,10 @@ every phase.** A phase that adds tests but does not update the number is incompl
 | New tenant migrations go in `database/migrations/tenant/`, system ones in `database/migrations/system/`, with explicit `--path` | `Migrator` globs non-recursively |
 | Boolean index predicates must be `true`, never `1` | PostgreSQL rejects `boolean = integer`; sqlite silently accepts it |
 | Money in `decimal(14,2)`; never floats | Float drift in payroll totals |
+| Log to the `hrms` channel with a dotted event name + array context | D2.17 — an ungreppable, unstructured log is not a log |
+| Never log sensitive values (salary, bank, PAN/UAN, tokens, bodies) | D2.17.8 / R2 — logs outlive the data they describe |
+| Controllers never build queries or hold business rules | D2.16.1 — layering keeps 22 modules reviewable |
+| Every state field is an enum, never a raw string | D2.16.5 — typos in status strings are silent data bugs |
 
 ### 0.7 Pre-existing bugs that HRMS depends on
 
@@ -116,6 +131,41 @@ section); later phases assume they are fixed.
 a tenant context, billing/entitlement fields unreachable). Regression tests:
 `tests/Feature/TenantUserCreationTest.php` (8 tests, incl. a real login round-trip) and 6 new cases in
 `tests/Feature/TenantProfileTest.php`. Suite: 368 tests / 2629 assertions.
+
+### 0.8 Structure & logging gate (run on every task, before committing)
+
+The executable form of D2.16 + D2.17. A task is not done until every box is true.
+
+**Structure (D2.16)**
+
+- [ ] Controller does validate → authorize → one service call → present; no queries, no business rules
+- [ ] Every write endpoint has a `FormRequest` in `Http/Requests/Hrms/<Context>/`; the controller uses
+      `$request->validated()` and types the request in the signature
+- [ ] Business logic lives in a service under `Services/Hrms/<Context>/`; models hold no orchestration
+- [ ] The response shape comes from a presenter in `Http/Resources/Hrms/<Context>/`; no endpoint returns
+      `$model->toArray()`, no endpoint invents its own key names
+- [ ] Every new state field is a backed enum in `Enums/Hrms/`, used by the model cast, the query and the
+      validation; no raw status strings in code
+- [ ] New file sits in the right context folder; no class added to an unrelated flat namespace
+- [ ] Cross-context use goes through the other context's **service**, not its models
+- [ ] Money uses `Support/Hrms/Money` (integer minor units); no floats, no inline arithmetic
+- [ ] Ceilings respected: class ≤ 300 lines, method ≤ 40 lines, ≤ 4 args, ≤ 3 nesting levels
+- [ ] Every method has a return type; array shapes documented; no new untyped properties
+- [ ] No `dd`/`dump`/`ray`/`var_dump`, no commented-out code, no unexplained `TODO`
+
+**Logging (D2.17)**
+
+- [ ] Every log call names the channel explicitly: `Log::channel('hrms')` (never the default)
+- [ ] Event name is a dotted identifier (`leave.request.approved`) — not a sentence
+- [ ] Context is an array carrying `tenant_id` (+ `user_id`, `employee_id`, and the entity's own id)
+- [ ] Correlated through `CorrelationId` (inherited automatically in jobs/commands)
+- [ ] Each job/command logs start, success (with `count` + `duration_ms`) and failure (with exception)
+- [ ] Each state transition in an approval/payroll/leave flow logs at `info`
+- [ ] Degraded-but-recovered paths log at `warning` with the reason
+- [ ] Row loops log `batch` / `processed` / `failed` / `duration_ms`
+- [ ] **Nothing sensitive logged** (D2.17.8): no salary, bank, PAN/UAN/ESI, national id, document
+      content, password, token, signed URL, or full request body
+- [ ] At least one test asserts the event name + `tenant_id` on the `hrms` channel (Part 6 logging row)
 
 ---
 
@@ -420,6 +470,219 @@ mapping**; if a phase needs a different gate, change 3.5 first. A group whose en
 (`inbox`, `audit`) is deliberately un-gated and relies on the aggregate. Add
 `tests/Feature/ModuleGateTest.php` coverage for every new gate.
 
+### D2.16 — Code structure & quality standard (binding)
+
+HRMS is the largest module in the codebase (~40 tables, 22 module keys, ~50 endpoints). Written
+carelessly it becomes an unmaintainable pile of fat controllers and stringly-typed arrays. This
+decision is **binding on every HRMS file**, and the gate in 0.8 is checked on every task.
+
+**D2.16.1 — Strict layering, one direction of dependency**
+
+```
+Route → FormRequest → Controller → Policy → Service → Model → DB
+```
+
+| Layer | Allowed | Forbidden |
+|---|---|---|
+| **Controller** | resolve the request, call the policy, call **one** service method, hand the result to a presenter | any query building, `Model::create` with conditional arrays, business rules, `if` chains over domain state, calling another controller |
+| **Service** | all business logic, transactions, model writes, logging, notification side-effects | raw HTTP concerns (`Request`, `JsonResponse`, `response()`), reading `$_GET`, depending on a controller |
+| **Model** | relations, casts, scopes, small invariants (`deleting` hooks) | orchestrating other models, issuing HTTP requests, deciding approvals |
+| **Presenter** | turning a model into the API payload | queries, decisions, authorization |
+
+A controller must read like: *validate → authorize → delegate → present*. If a controller exceeds ~40
+lines, the logic belongs in a service.
+
+**D2.16.2 — Bounded contexts, one folder per context**
+
+Never a flat pile of `app/Services/Hrms/LeaveService.php`. Each HRMS phase is a context with its own
+folder, mirroring the phase split:
+
+```
+app/
+  Enums/Hrms/                        one enum per state vocabulary (P1.9)
+  Http/Controllers/Api/Hrms/<Context>/<Resource>Controller.php
+  Http/Requests/Hrms/<Context>/<Action>Request.php        (writes only)
+  Http/Resources/Hrms/<Context>/<Resource>Resource.php    (presenters)
+  Models/Hrms/<Context>/<Model>.php
+  Policies/Hrms/<Context>Policy.php
+  Services/Hrms/<Context>/<Service>.php
+  Jobs/Hrms/<Context>/<Job>.php
+  Console/Commands/Hrms/<Command>.php
+  Support/Hrms/<ValueObject>.php                          (Money, DateRange, Balance…)
+```
+
+Contexts (one folder each, named exactly): `Shared`, `Employee`, `Org`, `Lifecycle`, `Attendance`,
+`Leave`, `CompOff`, `Holiday`, `Payroll`, `Statutory`, `Expense`, `Performance`, `Document`, `Asset`,
+`Inbox`, `Engagement`, `Reporting`, `Audit`, `TaskLink`.
+
+- **Dependency rule:** context A may call context B's **service**, never B's models or queries. If
+  Payroll needs leave balances it calls `LeaveService::balanceFor()`, which it already depends on (D2.5).
+- A context that needs data from another context's tables gets it through that context's service — this
+  is what keeps the circular-dependency risk in R9 visible at review time instead of in production.
+
+**D2.16.3 — Size and complexity ceilings (review-enforced)**
+
+| Thing | Ceiling | Instead of exceeding it |
+|---|---|---|
+| Class length | 300 lines | extract a collaborator class |
+| Method length | 40 lines | extract named private methods |
+| Method arguments | 4 | pass a readonly DTO |
+| Nesting depth | 3 | early returns / guard clauses |
+| Cyclomatic complexity per method | 10 | split into a strategy or a service method |
+| `if`-chains over a state field | any | an enum with `canTransitionTo()` / `label()` |
+
+**D2.16.4 — One payload shape per resource, defined once**
+
+Every resource gets a presenter (`Http/Resources/Hrms/…`) with a single `toArray()`. No endpoint invents
+its own key names, and no endpoint returns `$model->toArray()`. Sensitive fields are masked **in the
+presenter**, never in the controller, and never in a list payload.
+
+**D2.16.5 — Enums over strings, everywhere**
+
+Every state vocabulary is a backed enum in `app/Enums/Hrms/` (`ApprovalStatus`, `LeaveRequestStatus`,
+`EmployeeStatus`, `PayrollRunStatus`, `AttendanceDayStatus`, `AssetCondition`, …). Queries, model casts
+and validation all use the enum. Domain questions live on the enum (`->isTerminal()`, `->canTransitionTo()`,
+`->label()`, `->color()`), so controllers never switch on raw strings.
+
+**D2.16.6 — Readonly value objects for anything numeric**
+
+`Support/Hrms/Money` wraps integer minor units with bcmath-safe add/subtract/multiply/allocate
+(`Money::allocate(1430, 3)` splitting 14.30 three ways without losing a paisa). `DateRange`,
+`LeaveBalanceSnapshot` and `StatutoryProfileSnapshot` are readonly. **No float ever touches money**
+(0.6) and no arithmetic happens inline in a controller or a Blade/React render path.
+
+**D2.16.7 — Typing and naming**
+
+- Every method has a return type; properties are typed; constructor promotion everywhere.
+- Array shapes are documented: `@return array{id:int, code:string, label:string}`.
+- `mixed` only where a framework forces it. No untyped properties, no `$data['x']` chains deeper than
+  one level in a service (map to a DTO at the boundary).
+- Names: `Hrms` prefix for cross-cutting (`HrmsAuditLogger`, `HrmsSetting`), context name for domain
+  (`LeaveService`), verb-noun methods (`approveLeave`, `rebuildBalance`) — never `processLeave`,
+  `handleStuff`, `doIt`.
+- **No abbreviations** (`$emp`, `$usr`, `$cfg`) except the existing tenant-DB convention
+  (`db_name`, `tenant_id`).
+
+**D2.16.8 — Cleanliness**
+
+No commented-out code, no `dd()`/`dump()`/`ray()`/`var_dump()` in committed code, no dead code, no
+unused imports, no `TODO` without an owning issue reference, no `@todo`. Pint is the floor, not the
+ceiling — Pint cannot judge structure, so 0.8 is the human/agent gate.
+
+**D2.16.9 — Tests mirror the structure**
+
+`tests/Feature/Hrms/<Context>Test.php` for endpoint behaviour, `tests/Unit/Hrms/<Context>/` for pure
+services, value objects and enums (fast, no DB). A value object with arithmetic **must** have unit
+tests — that is where payroll bugs are caught cheaply.
+
+### D2.17 — Observability & logging standard (binding)
+
+The repo currently logs almost nothing (one `Log::error` in `ProvisionTenantJob`). HRMS handles payroll,
+PII, and long-running batch work, so "we can see what happened" is a feature, not a nicety. Logging is
+**as binding as** the structure rules above, and it is a correctness concern, not decoration: without it,
+a payroll run that produced wrong numbers is undiagnosable.
+
+**D2.17.1 — Two distinct mechanisms, never conflated**
+
+| Mechanism | Where it goes | Purpose | Who reads it |
+|---|---|---|---|
+| `HrmsAuditLogger` (D2.5) | the `hrms_audit_logs` **table** | business record: *who did what to which record* | HR/admin users, auditors, the Audit page (P19) |
+| `Log::channel('hrms')` | `storage/logs/hrms-*.log` | operational debugging: *what failed, where, how slow* | developers, `tail -f` during support |
+
+A state change writes **both**: the audit row is the product's record, the log line is our trail. Never
+substitute one for the other. Never write a business event only to the log (it is not queryable) or only
+to the table (no stack trace, no timing, no correlation).
+
+**D2.17.2 — A dedicated `hrms` channel (P1.1)**
+
+`config/logging.php` gains a `hrms` channel: `daily` driver, `storage_path('logs/hrms.log')`, `days` from
+`HRMS_LOG_DAYS` (default 30), level from `HRMS_LOG_LEVEL` (default `info` in production, `debug`
+locally). Every HRMS log call names the channel explicitly — never the global default. This keeps
+HRMS noise out of `laravel.log` and lets it be rotated/deleted/grepped on its own terms.
+
+**D2.17.3 — Structured, dotted event names — never sentences**
+
+```php
+Log::channel('hrms')->info('leave.request.approved', [
+    'leave_request_id' => $request->id,
+    'employee_id'      => $request->employee_id,
+    'days'             => 3,
+    'approval_id'      => $approval->id,
+]);
+```
+
+- Event name = `<context>.<entity>.<past-tense-verb>`, lowercase dot-separated, a stable identifier.
+- Context = an **array**, never an interpolated string (`"approved leave for {$name}"` is forbidden).
+- The same event name is reused everywhere that transition happens, so `grep "leave.request.approved"`
+  answers "who had leave approved, when, by whom".
+
+**D2.17.4 — Mandatory context keys**
+
+Set once per unit of work and merged into every entry by a helper (P1.10 `HrmsLog`):
+
+| Key | Source |
+|---|---|
+| `request_id` | correlation id (D2.17.5) |
+| `tenant_id` | `TenantContext::currentId()` (central id) |
+| `user_id` | acting user, when authenticated |
+| `employee_id` | subject employee, on employee-scoped events |
+| `route` + `method` | the HTTP route pattern (never the raw URL with query strings) |
+
+Then the event-specific keys (`leave_request_id`, `payroll_run_id`, `batch`, `count`, `duration_ms`).
+
+**D2.17.5 — Correlation id across requests, jobs and commands**
+
+`App\Support\CorrelationId` + `App\Http\Middleware\AssignCorrelationId` (registered in the `web` group,
+first): reads an inbound `X-Correlation-Id` (or generates a ULID), calls `Log::withContext(['request_id' =>
+...])`, and returns it as an `X-Correlation-Id` response header so a user can quote it in a bug report.
+Queued jobs and console commands inherit it the same way `SwitchesTenantConnectionForQueuedJobs` already
+stamps `tenant_id` (`Queue::createPayloadUsing`), so a payroll job's log lines join up with the request
+that queued them. This is the single highest-value piece of the standard — without it, logs cannot be
+assembled per user action.
+
+**D2.17.6 — What MUST be logged**
+
+- **Lifecycle of every job and command:** start (with the work's identifying keys), success (with
+  `count`/`duration_ms`), failure (with the exception, at `error`).
+- **Every state transition** in an approval engine, a payroll run, a leave request — `info`.
+- **Every provisioning/seed step**, including HRMS defaults and skipped steps, at `debug` (info for
+  failures).
+- **Every sensitive data access** — in addition to the `hrms_data_access_logs` row (D2.8), because a
+  compliance trail is not a debugging trail.
+- **Every caught exception** with full context, at `error`, and rethrown unless the recovery is real.
+- **Every external I/O:** file stored/deleted, signed URL issued, mail/notification dispatched.
+- **Degraded-but-recovered paths** at `warning`: quota exceeded, cache miss fallback, retry used, a
+  stale-tenant repair, a skip-because-no-approver step.
+- **Any loop over rows** logs its `batch`, `processed`, `failed` and `duration_ms` — the first question
+  is always "was it slow, or was it wrong?"
+
+**D2.17.7 — Level discipline**
+
+| Level | Use for | Example |
+|---|---|---|
+| `emergency` | tenant data at risk or a rule violation | statutory totals that do not balance |
+| `error` | an operation failed; a human must look (include the exception) | payroll run threw mid-calculation |
+| `warning` | degraded but recovered | quota hit, retry, cache fallback, step auto-skipped |
+| `info` | significant business/lifecycle events | `leave.request.approved`, job succeeded |
+| `debug` | per-request detail, SQL counts, cache hits | query-count assertions, resolved approver ids |
+
+Never log a plain `ValidationException`/422 at `error` — a rejected form is normal traffic; it goes to
+`debug` at most. Never `Log::info` an entire model.
+
+**D2.17.8 — What must NEVER be logged (hard ban, R2)**
+
+No salary amounts or CTC, no bank account/IFSC, no PAN/Aadhaar/UAN/ESI/PF numbers, no national ids, no
+document contents or file paths that reveal names, no passwords, tokens, signed URLs, or full request
+payloads/bodies for HRMS endpoints. Log **ids and masked values only** (`'bank' => '****1234'`,
+`'employee_id' => 42`). If a value would be sensitive in a support ticket, it does not go in the log.
+
+**D2.17.9 — Testable**
+
+Part 6 gains a logging row: at least one test per phase asserts a `Log::fake`-spied channel (or the
+`hrms` channel's spy) received the event name with `tenant_id` in context for a significant action, and
+that a sensitive-field read produced **no** forbidden key. `Log::fake()`/`Log::spy()` is the only
+assertion mechanism; never assert on real files.
+
 ---
 
 ## Part 3 — Module / permission / data-model reference
@@ -698,11 +961,17 @@ binding and every gate listed there gets a `ModuleGateTest` case (D2.15).
 **Objective:** make `hrms` first-class end-to-end (catalog -> plan -> SA toggle -> middleware -> nav
 placeholder) and land the three primitives every later phase builds on.
 
+**Status: done.** 12 sections (added `departments`, `designations`, `locations` beyond the listed 9). Money-bearing entries are integer minor units / `decimal(14,2)` in later phases; nothing here is a float.
+
 **P1.1 — `config/hrms.php`**
 Create the catalog file (D2.6) with the skeleton and small starter arrays: `settings_defaults`,
 `employment_types`, `leave_types`, `salary_components`, `holidays`, `shift_patterns`,
 `expense_categories`, `document_types`, `statutory_configurations`. Each entry carries a natural key
 (`slug`/`code`) and `is_system => true` where it must not be deletable. Later phases extend the arrays.
+
+**Status: done.** 22 `hrms.*` keys + 3 new numeric limits (`employees`, `assets`,
+`hr_document_bytes`) across all four plans; verified starter 0 / pro 12 / business 18 / enterprise 22
+against the catalog, with no key orphaned in either direction.
 
 **P1.2 — Module catalog + the new `business` plan (`config/subscriptions.php`)**
 Add the 22 module keys from 3.1 to `modules`. Add the `business` plan (D2.2) with `sort_order` 25 and
@@ -712,6 +981,13 @@ numeric limits `employees`, `assets`, `hr_document_bytes` to `limits` and set th
 - This changes what **existing** tenants get the next time the seeder runs. Do **not** re-seed yet —
   P1.5 does that deliberately.
 
+**Status: done.** 47 permissions, 2 new roles. Roles now use a **selector** grammar
+(`'*'`, `'hrms.*'`, `'!hrms.payroll.*'`, exact slug) resolved by the new
+`App\Support\PermissionSelector` against the catalog, so a later phase adding `hrms.foo.manage` reaches
+`hr_manager` automatically instead of needing a hand-edited 40-item list. The selector emits results in
+catalog order so a role's stored permission set is order-stable. `admin`'s bare-string `'*'` is still
+supported. 13 unit tests (pure list algebra, no framework) + provisioning assertions.
+
 **P1.3 — Permission catalog + roles (`config/permissions.php`)**
 Add all `hrms.*` permissions from 3.2. Add `hrms.view` to the `editor` and `viewer` subsets (D2.12).
 Add `hr_manager` and `payroll_manager` roles as specified in 3.2.
@@ -719,10 +995,35 @@ Add `hr_manager` and `payroll_manager` roles as specified in 3.2.
   the config-built collection, so `admin` picks up every new permission on the next
   `tenants:provision` with no extra work.
 
+**Status: done, with two deliberate deviations from the wording above.**
+- `hasModule()` consults `features_override.modules` first (grant *or* switch off), then the plan, then
+  treats a subscription-less tenant as unlimited. A flat string compare is still what makes the dotted
+  keys free — the override is resolved as an exact key, never a glob.
+- Instead of an `isEnabled()` alias (which would just be a second name for
+  `hasModule()`), added `enabledModules(Tenant)` and `isHrmsEnabled(Tenant)`: the first feeds
+  `user.modules` in `AuthController::payload` and keeps catalog ordering, the second is the single
+  predicate the frontend needs for "is any HRMS surface available at all". `hasModule()` stays the
+  per-module check so no existing call site changes.
+- 11 tests in `HrmsEntitlementTest`.
+
 **P1.4 — Feature-override plumbing (`TenantLimits`)**
 - `effective(Tenant)`: merge `features_override.modules` (D2.3); plan stays authoritative for removal.
 - `hasModule()` unchanged (string compare) — that is what makes dotted keys free (D2.1).
 - Add a short-named `isEnabled(Tenant, string $module)` wrapper for readability at call sites.
+
+**Status: done.** 7 tests in `HrmsPlanEntitlementMigrationTest`, including two that would have
+caught real bugs during implementation:
+- `test_numeric_limits_survive_the_merge` — the first implementation replaced the whole `limits`
+  *object* with just the modules array, silently wiping `users`/`workspaces`/`projects`/`tasks` and
+  marking every tenant unlimited. The merge now edits the `modules` **sub-key** and leaves numeric
+  limits to config (the same contract `SubscriptionPlanSeeder` uses).
+- `test_it_never_re_plans_a_tenant` — the first implementation moved `pro` tenants onto `business`,
+  which would have silently changed what customers are billed ($29 → $79/mo) and handed Plan C
+  (expenses, performance, talent, engagement, analytics) to existing Pro accounts for free. A migration
+  must never re-plan a tenant; upgrades stay explicit and audited via `TenantSubscriptionController`.
+
+`down()` is intentionally a no-op: module keys are additive and the dependents are not inferable from
+the catalog, so there is no safe automatic reverse (matches the repo's forward-fix discipline).
 
 **P1.5 — System migration: backfill entitlement + seed the new plan**
 `database/migrations/system/2026_09_27_000014_add_hrms_to_plan_modules.php` (system path — this is a
@@ -2021,6 +2322,7 @@ Every phase must cover these rows for every endpoint it adds.
 | Pagination | >1 page | `{current_page,last_page,per_page,total}` |
 | Audit | any sensitive mutation | an `hrms_audit_logs` row with before/after |
 | Data access | any sensitive read | an `hrms_data_access_logs` row |
+| **Logging** | any significant action / job / command | the dotted event logged to the `hrms` channel with `tenant_id` (+ `request_id`) in context, and **no** forbidden sensitive key present (D2.17.9) |
 | Notification | any notification-triggering action | the right recipient, the right type, skips self |
 
 Feature-test classes to add: `tests/Feature/Hrms/EmployeeTest.php`, `OrgTest.php`,
@@ -2103,6 +2405,8 @@ After any migration task: run both the suite and the real PostgreSQL path
 | R13 | **Performance evidence leaking other people's tasks** | 12, 20 | Every evidence query goes through `ScopesVisibleTasks::visibleTaskQuery`; store the exact task ids counted |
 | R14 | **Scale**: 1,000 employees x daily attendance x monthly payroll | 5, 9, 18 | Composite indexes on every filter column, `chunkById` in commands, `Cache::remember` on aggregates, batch inserts for rollups |
 | R15 | **Scope creep** — HRMS quietly expanding into a full ERP | all | Anything not in Part 3.3 is out of scope; new ideas go into a "Deferred" list at the end of this document |
+| R16 | **Undiagnosable failures** — a payroll run or leave batch produces wrong numbers and no trail explains why | all | D2.17: dedicated `hrms` channel, dotted event names, correlation id across request/job/command, `duration_ms` on every loop, start/success/failure on every job and command, Part 6 logging row |
+| R17 | **Structural decay** — 22 modules collapse into fat controllers and stringly-typed arrays that no one can safely change | all | D2.16: strict layering, bounded-context folders, size ceilings, presenters, enums, FormRequests; the 0.8 gate runs on every task, so rot is caught at the commit that introduces it |
 
 ---
 
@@ -2121,7 +2425,12 @@ The module is done when **all** of the following hold:
 6. `hrms:backfill-employees` and `tenants:provision` have been run on the dev tenants so the module is
    demonstrable with realistic data.
 7. The P19.5 security checklist is fully ticked.
-8. `AGENTS.md` has an HRMS section; this document has no unresolved "TODO" or "blocked" markers.
+8. The 0.8 structure & logging gate passes for every HRMS file (spot-check the 20 largest classes against
+   the D2.16 ceilings), and `grep -r "dd(\|dump(\|ray(" app/` over the HRMS tree returns nothing.
+9. Logging is genuinely useful in production: pick one payroll run, one leave approval and one failed job
+   and reconstruct each from `storage/logs/hrms-*.log` using only the `request_id`, with no database
+   access. If that is not possible, the phase is not done.
+10. `AGENTS.md` has an HRMS section; this document has no unresolved "TODO" or "blocked" markers.
 
 ### Deferred (explicitly out of scope, recorded here for a future plan)
 
