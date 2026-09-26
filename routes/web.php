@@ -93,7 +93,6 @@ Route::prefix('api')->group(function () {
         // controller fans out over the central tenancy index via TenantDatabaseManager).
         Route::get('search/global', GlobalSearchController::class)->middleware(['permission:workspaces.view', 'ensure_module:global_search']);
 
-
         Route::get('roles', [RoleController::class, 'index'])->middleware('permission:roles.view');
         Route::post('roles', [RoleController::class, 'store'])->middleware('permission:roles.manage');
         Route::put('roles/{role}', [RoleController::class, 'update'])->middleware('permission:roles.manage');

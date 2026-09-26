@@ -109,16 +109,25 @@ class TenantDatabaseManager
     {
         $prefix = config('tenancy.tenant.db_prefix', 'flowsync_tenant_');
         $dbName = $tenant->db_name ?: $prefix.$tenant->id;
-        $role = $tenant->db_user ?: $dbName;
-        $password = $tenant->db_password ?: Str::random(32);
+
+        // Managed PostgreSQL (RDS, Cloud SQL, most local devboxes) hands the app a
+        // single login role and never grants CREATEROLE, so we cannot create a role
+        // per tenant. When `tenancy.tenant.pg_role` is set, every tenant database
+        // is owned by that existing shared role instead; the per-tenant role
+        // (created on demand) remains the default when it is not.
+        $sharedRole = config('tenancy.tenant.pg_role') ?: null;
+        $role = $tenant->db_user ?: ($sharedRole ?: $dbName);
+        $isSharedRole = $sharedRole !== null && $role === $sharedRole;
+        $password = $tenant->db_password
+            ?: ($isSharedRole ? (string) config('database.connections.system.password') : Str::random(32));
 
         $pdo = $this->postgresAdminConnection();
 
         // The tenant role must own its database to CREATE in the 'public' schema
         // (PostgreSQL 15+ revoked default CREATE/usage for non-owner roles).
-        if (! $this->postgresRoleExists($role)) {
+        if (! $isSharedRole && ! $this->postgresRoleExists($role)) {
             $pdo->exec(sprintf('CREATE ROLE "%s" LOGIN PASSWORD %s', $role, $pdo->quote($password)));
-        } elseif (! $tenant->db_password) {
+        } elseif (! $isSharedRole && ! $tenant->db_password) {
             // The role predates the tenant row's stored password — align it so the
             // connection credentials match the DB we generated.
             $pdo->exec(sprintf('ALTER ROLE "%s" WITH LOGIN PASSWORD %s', $role, $pdo->quote($password)));

@@ -3,8 +3,10 @@
 namespace App\Http\Controllers;
 
 use App\Models\Role;
+use App\Models\TenantUserRouting;
 use App\Models\User;
 use App\Services\TenantLimits;
+use App\Support\TenantContext;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -20,6 +22,7 @@ class UserController extends Controller
 
     public function __construct(
         private readonly TenantLimits $limits,
+        private readonly TenantContext $tenantContext,
     ) {}
 
     public function index(Request $request): JsonResponse
@@ -92,9 +95,18 @@ class UserController extends Controller
             ]);
         }
 
+        $id = $user->id;
+        $email = $user->email;
+
         // The model refuses to delete the default user (defence in depth for
         // any code path, not just this endpoint).
         $user->delete();
+
+        // Drop the central login-routing row, otherwise the deleted email keeps
+        // routing to this tenant on the next login attempt.
+        TenantUserRouting::where('tenant_id', $this->tenantContext->currentId())
+            ->where('email', $email)
+            ->delete();
 
         return response()->json(['message' => 'User deleted.']);
     }

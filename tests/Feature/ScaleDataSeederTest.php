@@ -241,6 +241,54 @@ class ScaleDataSeederTest extends TestCase
         });
     }
 
+    public function test_range_specs_are_honoured_and_reruns_stay_additive(): void
+    {
+        // setUp seeded 2 workspaces x 2 projects; a wider fixed spec adds the
+        // missing rows without duplicating tasks in the existing projects.
+        app(ScaleDataSeeder::class)->run(
+            tenants: 3,
+            usersPerTenant: 10,
+            workspacesPerTenant: [3, 3],
+            projectsPerWorkspace: [2, 2],
+            tasksPerProject: 25,
+        );
+
+        foreach (Tenant::all() as $tenant) {
+            $this->dbm->using($tenant, function (): void {
+                $this->assertSame(10, User::count());
+                $this->assertSame(3, Workspace::count());
+                $this->assertSame(6, Project::count());
+                $this->assertSame(6 * 25, Task::count());
+
+                foreach (Project::all() as $project) {
+                    $this->assertSame(25, $project->tasks()->count());
+                }
+            });
+        }
+    }
+
+    public function test_each_tenant_lands_inside_the_requested_range(): void
+    {
+        app(ScaleDataSeeder::class)->run(
+            tenants: 3,
+            usersPerTenant: 10,
+            workspacesPerTenant: [2, 4],
+            projectsPerWorkspace: [2, 3],
+            tasksPerProject: 25,
+            seed: 1234,
+        );
+
+        foreach (Tenant::all() as $tenant) {
+            $this->dbm->using($tenant, function (): void {
+                $this->assertGreaterThanOrEqual(2, Workspace::count());
+                $this->assertLessThanOrEqual(4, Workspace::count());
+
+                // Whatever shape was drawn, the task invariant always holds.
+                $this->assertSame(Project::count() * 25, Task::count());
+            });
+        }
+    }
+
     public function test_exactly_one_hundred_tasks_per_default_request(): void
     {
         $tenant = Tenant::orderBy('id')->first();

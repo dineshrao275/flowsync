@@ -1,6 +1,6 @@
 # FlowSync — Multi-Tenant Admin Panel
 
-Laravel 12 + React 19 SPA. Session-based auth **without** Breeze/Fortify/Sanctum. **Phase 13: one database per tenant** (PostgreSQL in prod; sqlite files for local/dev/tests) + a central `system` DB. **Phase 14 (subscriptions) shipped code:** plans/subscriptions/events (central), onboarding trials, and plan-limit enforcement — gates pending a PHP-capable env. Vite 7 + Tailwind v4 + axios. See `docs/multi-tenancy-architecture.md`.
+Laravel 12 + React 19 SPA. Session-based auth **without** Breeze/Fortify/Sanctum. **Phase 13: one database per tenant** (PostgreSQL everywhere incl. this dev host; sqlite files remain the test fast-path) + a central `system` DB. **Phase 14 (subscriptions) shipped code:** plans/subscriptions/events (central), onboarding trials, and plan-limit enforcement — gates pending a PHP-capable env. Vite 7 + Tailwind v4 + axios. See `docs/multi-tenancy-architecture.md`.
 
 **Keep this file current** — update the relevant section whenever changes touch architecture, migrations, middleware, routes, key components, npm/Composer deps, or test counts.
 
@@ -20,13 +20,13 @@ Laravel 12 + React 19 SPA. Session-based auth **without** Breeze/Fortify/Sanctum
   `tenants:provision` + seeds demo data (superadmin + acme + globex). Reset from scratch:
   `docker-compose down -v` then `up -d` (app entrypoint re-initializes; `RUN_INIT=true` only for `app`).
   No PHP/composer needed on the host — envs in `.env.docker`.
-- `php artisan test` — run test suite (Phase 13: **isolated, per-tenant file DBs** via `Tests\IsolatesDatabase`; current gate: **325 tests / 2349 assertions passing**)
+- `php artisan test` — run test suite (Phase 13: **isolated, per-tenant file DBs** via `Tests\IsolatesDatabase`; current gate: **352 tests / 2564 assertions passing**)
 
 - `npm run build` / `npm run dev` — frontend build / Vite dev server
 - `./vendor/bin/pint` — PHP code style (run over whole repo; `--dirty` only works in git)
 - `php artisan migrate:fresh --seed` — reset the **system** DB (migrations now live under `database/migrations/system`; run it as `migrate:fresh --database=system --path=database/migrations/system --seed` — plain `migrate` runs nothing, see Pitfalls) + seed via `Database\Seeders\TenantSeeder` (provisions acme + globex tenant DBs)
 - `php artisan tenants:provision` — idempotently provision/repair tenant DBs (`provisionIsolated` pipeline) + backfill permissions/roles/priorities/project-roles (`--tenant=ID` for one)
-- `php artisan tenants:seed-scale` — large realistic scale seed (defaults 100 tenants / 10 users each / 5 workspaces / 5 projects / 100 tasks per project; `--tenants --users --workspaces --projects --tasks --no-related`); provisions real tenants through the onboarding pipeline (see P10)
+- `php artisan tenants:seed-scale` — large realistic scale seed (defaults 100 tenants / 10 users each / **5-10** workspaces / **5-10** projects / 100 tasks per project; `--tenants --users --workspaces --projects --tasks --no-related --seed --dry-run`); `--workspaces`/`--projects` accept a count **or a min-max range drawn per tenant**; provisions real tenants through the onboarding pipeline and prints a totals table + elapsed time (see P10)
 - `composer run dev` — concurrently runs serve + queue + pail(logs) + Vite **+ Reverb websockets**
 - Entry: `resources/js/main.jsx` (imports `./bootstrap`, React StrictMode). `resources/js/app.js` is unused stock; ignore it.
 
@@ -153,7 +153,7 @@ Hierarchy: **Tenant → Workspace → Project → Task** (subtask `tasks.parent_
 - UI primitives now live in `resources/js/components/ui/` (`Select`, `Modal`, `Drawer`, `EmptyState`, `Avatar`, `Spinner`, `fieldStyles.js`, `Pagination`; enriched `Button`, `Input`, `Card`). **`Modal` + `Drawer` render through `createPortal(…, document.body)`** — the page-content wrapper in `AdminLayout` carries `animate-fade-in-up` (a transform animation with `fill-mode: both`), which makes it a containing block/stacking context, so a nested `fixed` overlay is trapped behind the sidebar/topbar instead of the viewport. Any new full-screen overlay must be portalled too (`CommandPalette` z-[80] and `ThemeSettingsDrawer` are safe only because `AdminLayout` renders them outside the animated wrapper). Sidebar is collapsible (`w-64 ↔ w-16`, persisted via localStorage key `flowsync.sidebar.collapsed`, sectioned nav + active pill + accent bar). Toasts were modernized — compact tinted card, no progress bar, `warning` type added. Kanban board scrolls horizontally in one row (`board-scroll`) instead of a wrapping grid (fixes Done column dropping below Backlog). `TaskDetail` uses the shared `Drawer` (footer actions, meta-rail layout). Remaining grid/flex selects use `fieldClass`/`fieldClassCompact` directly (`Select` is label-wrapping and unfit for inline cells).
 
 ## Scale Seed Data & Deep Links (Phase 10)
-- `database/seeders/ScaleDataSeeder.php` — `run(tenants=100, usersPerTenant=10, workspacesPerTenant=5, projectsPerWorkspace=5, tasksPerProject=100, related=true)` builds realistic same-tenant-isolated scale data: 1 super admin, tenants `tenant-{NNN}` (provisioned: default permissions/roles/priorities/project-roles + `owner@{slug}.test` admin), `usersPerTenant-1` extra users (roles cycle admin/editor/viewer), workspaces `w1..wN` with owner/admin/member pivots, projects keyed `{last-3-of-slug}-{w}-{p}` + 5 default statuses + lead/developer/viewer members, and **exactly `tasksPerProject` tasks** (bulk `DB::table` inserts — Carbon must be string-cast; ids captured via `DB::getPdo()->lastInsertId() - (tasksPerProject - 1)`) distributed `STATUS_WEIGHTS=[15,20,30,15,20]` (sums exactly to N), cycling priorities/assignees (`i%8===0 → null`), `due_date` on open tasks, `estimate_minutes` null on `i%3===0`, `completed_at` for done statuses, per-status column positions. Related data: comments `offset%7===0`, work logs `(offset+1)%5===0`, `task.assigned` notifications per worker at `offset=(u*4)%tasksPerProject` (data carries `task_id/key/title/project_id/project_name/workspace_id`). Enabled by `php artisan tenants:seed-scale [--tenants --users --workspaces --projects --tasks --no-related]`.
+- `database/seeders/ScaleDataSeeder.php` — `run(tenants=100, usersPerTenant=10, workspacesPerTenant=5, projectsPerWorkspace=5, tasksPerProject=100, related=true, seed=null)` where `workspacesPerTenant`/`projectsPerWorkspace` are `int|array` (a fixed count, or a `[min, max]` **range resolved per tenant** via `resolveCount()`+`mt_rand`; pass `seed` to make the draws reproducible). Re-running is additive/idempotent (`firstOrCreate` on slug/key + a `tasks()->count() === 0` guard), and it finishes with a totals table + elapsed seconds builds realistic same-tenant-isolated scale data: 1 super admin, tenants `tenant-{NNN}` (provisioned: default permissions/roles/priorities/project-roles + `owner@{slug}.test` admin), `usersPerTenant-1` extra users (roles cycle admin/editor/viewer), workspaces `w1..wN` with owner/admin/member pivots, projects keyed `{last-3-of-slug}-{w}-{p}` + 5 default statuses + lead/developer/viewer members, and **exactly `tasksPerProject` tasks** (bulk `DB::table` inserts — Carbon must be string-cast; ids captured via `DB::getPdo()->lastInsertId() - (tasksPerProject - 1)`) distributed `STATUS_WEIGHTS=[15,20,30,15,20]` (sums exactly to N), cycling priorities/assignees (`i%8===0 → null`), `due_date` on open tasks, `estimate_minutes` null on `i%3===0`, `completed_at` for done statuses, per-status column positions. Related data: comments `offset%7===0`, work logs `(offset+1)%5===0`, `task.assigned` notifications per worker at `offset=(u*4)%tasksPerProject` (data carries `task_id/key/title/project_id/project_name/workspace_id`). Enabled by `php artisan tenants:seed-scale [--tenants --users --workspaces --projects --tasks --no-related --seed --dry-run]` (`--dry-run` prints the projected 250k-1M task volume without writing). **Seeded on this dev host: 100 tenants (`tenant-001`..`tenant-100`) / 1,000 users / 500 workspaces / 2,500 projects / 250,000 tasks + 37.5k comments / 50k work logs / 20k notifications**, each tenant in its own Postgres database.
 - Seeder test gotcha: `$this->seed(DatabaseSeeder::class)` runs via `db:seed --class` and accepts **no params** — tests invoke the seeder directly: `app(ScaleDataSeeder::class)->run(...)`.
 - Deep links (SPA): workspace `/workspaces/{id}?tab=…`; project `/projects/{id}?tab=…`; task `/projects/{id}?tab=tasks&task={key}[&section=comments|attachments|dependencies|time|activity]`. **All** `?tab=`/`&task=`/`&section=` URL building lives in `resources/js/utils/deepLinks.js` (`taskUrl(projectId,key,section)`/`projectUrl(id,tab)`/`workspaceUrl(id,tab)`) — reused by `CommandPalette` `hrefFor`, `utils/notifications.js` `notificationHref(data,type)` (**type-aware** — `task.commented` → `section=comments`, `task.work_logged` → `section=time`; falls back to `/workspaces/{id}` when only `workspace_id` is present), Dashboard `TaskRow`, and Search results. `ProjectDetail` keeps the query **in the URL** (refresh/direct-tab safe), initializes/keeps `tab` in lockstep with `useSearchParams` (sync effect → back/forward safe), and `changeTab` writes `?tab=` back while pruning `task`/`section` when leaving Tasks; forces board view for deep links, auto-opens the drawer via `openedDeepTaskRef` (reads `searchParams`), and `openTask(task, section)` passes the section down; `TaskDetail` accepts an `initialSection` prop and forces that drawer sub-tab on `[task]` change (validated against details/comments/attachments/dependencies/time/activity). `WorkspaceDetail` tabs are fully URL-driven (derived `activeTab` validated against the computed tab set; `changeTab` pushes `?tab=` and clears it for projects). `ProtectedRoute` preserves `pathname + search` through the login redirect so an unauthenticated deep link resumes after login.
 - Access denied: `ProjectController::show` 403s non-members (tenant admins bypass; cross-tenant 404 via tenant scope). Frontend `ProjectDetail`/`WorkspaceDetail` catch `err.response?.status === 403` → `navigate('/403', {replace:true})` (existing Forbidden page); other load failures keep the generic error state.
@@ -217,6 +217,27 @@ Hierarchy: **Tenant → Workspace → Project → Task** (subtask `tasks.parent_
 - Stop must resolve the original super admin from the system DB (`connectSystem()` before the lookup).
 - Cannot impersonate super admins; `AuthController::me`/`logout` include impersonation state.
 
+## Protected default tenant user
+- Migration `database/migrations/tenant/2026_09_26_000013_add_default_user_to_users_table.php` adds
+  `users.is_default` (boolean, default false) **plus a partial unique index** so a tenant DB can have at
+  most one default (`CREATE UNIQUE INDEX users_default_unique ON users (is_default) WHERE is_default = true`).
+  The predicate **must** be `true`, never `1` — `is_default` is a boolean column and PostgreSQL rejects
+  `boolean = integer` (sqlite silently accepts it, so this only explodes on the PG path). The migration is
+  repair-safe (`Schema::hasColumn` + `DROP INDEX IF EXISTS` first) because `tenants:provision` re-runs
+  migrations that failed partway.
+- `TenantProvisioner::ensureDefaultUser()` runs on every `provisionIsolated()`: the default is the oldest
+  **admin** (falling back to the oldest user) — so `owner@{slug}.test` is the default for freshly
+  provisioned tenants.
+- `App\Models\User` — `scopeDefault()`, `defaultUser()`, `fillable += is_default`, and a `deleting` hook that
+  throws `ValidationException` (`form`) so the default can never be deleted by any code path.
+- `UserController`: `updateRoles()` refuses to drop `admin` from the default user, `destroy()` refuses
+  self-deletion, `makeDefault()` (422 `form`) requires the target to be an admin. `/api/users*` now sits in
+  the **tenant_context group** (the users table lives in the tenant DB — a non-impersonating super admin
+  gets 403 instead of a "no such table: roles" 500), and every user response carries `is_default`.
+- `makeDefault()` must clear + set through the **query builder**, not `$model->update()`: shifting onto the
+  user who is *already* the default is a no-op for Eloquent's dirty check, which would clear the flag and
+  never re-set it, leaving the tenant with **no** default user (regression-tested in `DefaultUserTest`).
+
 ## Theming
 - Per-user theme stored in `user_settings.settings['theme']`; defaults in `config/theme.php`.
 - ThemeController `GET/PUT api/theme` (PUT requires `settings.theme` permission).
@@ -265,9 +286,13 @@ Hierarchy: **Tenant → Workspace → Project → Task** (subtask `tasks.parent_
   `AuditLog`, `PlatformRole`, `PlatformPermission`, + new `TenantUserRouting`, `ProvisioningRun`). (The old `TenantScoped` row-scoping was removed entirely in
   Phase 13 — tenant `tenant_id` columns no longer exist; the DB is the boundary.)
   `config/tenancy.php` adds `tenant.driver` (env `TENANT_DB_DRIVER`, default `pgsql`, `sqlite` =
-  first-class local/dev/test fast-path via `tenant.db_path` env `TENANT_DB_PATH` files
-  `{slug}_{id}.sqlite`) — PG paths (`createDatabase`/`createPostgresDatabase`/`postgresAdminConnection`)
-  are behind the same code but only exercised when a PG is reachable. `TenantDatabaseManager` has a
+  the test fast-path via `tenant.db_path` env `TENANT_DB_PATH` files `{slug}_{id}.sqlite`) plus
+  **`tenant.pg_role` (env `TENANT_DB_PG_ROLE`)** — an existing login role that owns every tenant
+  database. When set, `createPostgresDatabase()` skips the per-tenant `CREATE ROLE` and owns each
+  `flowsync_tenant_{id}` with that shared role (password defaults to the `system` connection's);
+  this host's `flowsync` role has `CREATEDB` but **not** `CREATEROLE`, and managed PG (RDS/Cloud SQL)
+  never grants it, so the shared role is the only way tenant DBs can be created here. Leave it null
+  and each tenant gets its own generated role (unchanged docker-compose/prod behaviour). `TenantDatabaseManager` has a
   safe `switchDefault()` that **only purges the target connection when it differs from the current
   default** (purging an in-memory sqlite `:memory:` connection wipes the test DB — never
   `connectSystem()` while default is `:memory:` sqlite; isolated tests use a file-backed custom
@@ -447,6 +472,10 @@ Hierarchy: **Tenant → Workspace → Project → Task** (subtask `tasks.parent_
   (except on `/onboarding` itself) to the wizard. `AuthContext.register()` mirrors `login()`.
 
 ## Pitfalls / gotchas
+- **PostgreSQL-only SQL slips past the sqlite test fast-path.** The tenant suite runs on sqlite files, so a
+  sqlite-tolerated statement (`WHERE is_default = 1` on a boolean column) only fails once a tenant DB is
+  actually Postgres. When touching a tenant migration, either stay on the schema builder or exercise the PG
+  path (`TENANT_DB_PG_ROLE=... TENANT_DB_DRIVER=pgsql php artisan tenants:provision`).
 - **Laravel `SortedMiddleware` reorders route middleware by the Kernel `$middlewarePriority` list.**
   Any custom middleware that must run BEFORE route-model binding (Swizzlen i.e. `SwitchTenant`,
   `SetTenantContext`, `EnsureTenantContext`, `EnsureSuperAdmin`, `EnsurePermission`) MUST be registered

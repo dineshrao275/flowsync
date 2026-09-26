@@ -14,9 +14,14 @@ return new class extends Migration
 {
     public function up(): void
     {
-        Schema::table('users', function (Blueprint $table) {
-            $table->boolean('is_default')->default(false)->after('password');
-        });
+        // Repair-safe: a previously failed run of this migration may have added
+        // the column (or index) before aborting, and `tenants:provision` re-runs
+        // unrecorded migrations.
+        if (! Schema::hasColumn('users', 'is_default')) {
+            Schema::table('users', function (Blueprint $table) {
+                $table->boolean('is_default')->default(false)->after('password');
+            });
+        }
 
         // Backfill: the oldest admin of an existing tenant becomes the default,
         // falling back to the oldest user when no admin role exists yet.
@@ -32,16 +37,21 @@ return new class extends Migration
             DB::table('users')->where('id', $candidateId)->update(['is_default' => true]);
         }
 
-        // At most one default per tenant DB (supported by sqlite and postgres).
-        DB::statement('CREATE UNIQUE INDEX users_default_unique ON users (is_default) WHERE is_default = 1');
+        // At most one default per tenant DB. The predicate must use `true`, not
+        // `1`: `is_default` is a boolean column and PostgreSQL rejects
+        // `boolean = integer` (sqlite accepts either).
+        DB::statement('DROP INDEX IF EXISTS users_default_unique');
+        DB::statement('CREATE UNIQUE INDEX users_default_unique ON users (is_default) WHERE is_default = true');
     }
 
     public function down(): void
     {
         DB::statement('DROP INDEX IF EXISTS users_default_unique');
 
-        Schema::table('users', function (Blueprint $table) {
-            $table->dropColumn('is_default');
-        });
+        if (Schema::hasColumn('users', 'is_default')) {
+            Schema::table('users', function (Blueprint $table) {
+                $table->dropColumn('is_default');
+            });
+        }
     }
 };

@@ -7,6 +7,7 @@ use App\Models\Project;
 use App\Models\ProjectRole;
 use App\Models\Role;
 use App\Models\SystemUser;
+use App\Models\Task;
 use App\Models\TaskStatus;
 use App\Models\Tenant;
 use App\Models\User;
@@ -58,14 +59,31 @@ class ScaleDataSeeder extends Seeder
         'Backfill covers the current schema but the legacy importer is still brittle. Harden it and add fixtures for each known format.',
     ];
 
+    /**
+     * Seed the full multi-tenant dataset.
+     *
+     * `$workspacesPerTenant` / `$projectsPerWorkspace` accept either a fixed
+     * count (`5`) or an inclusive range (`5-10`, drawn per tenant) so every
+     * tenant gets a slightly different shape. Pass `$seed` to make the drawn
+     * counts reproducible.
+     *
+     * @param  int|int[]  $workspaceCounts  One count, or a [min, max] range.
+     */
     public function run(
         int $tenants = 100,
         int $usersPerTenant = 10,
-        int $workspacesPerTenant = 5,
-        int $projectsPerWorkspace = 5,
+        int|array $workspacesPerTenant = 5,
+        int|array $projectsPerWorkspace = 5,
         int $tasksPerProject = 100,
         bool $related = true,
+        ?int $seed = null,
     ): void {
+        $startedAt = microtime(true);
+
+        if ($seed !== null) {
+            mt_srand($seed);
+        }
+
         $dbm = app(TenantDatabaseManager::class);
         $provisioner = app(TenantProvisioner::class);
         $lifecycle = app(TenantLifecycle::class);
@@ -75,6 +93,8 @@ class ScaleDataSeeder extends Seeder
 
         $statusConfig = collect(config('task_statuses.statuses'));
 
+        $totals = ['tenants' => 0, 'users' => 0, 'workspaces' => 0, 'projects' => 0, 'tasks' => 0];
+
         $bar = $this->command ? $this->command->getOutput()->createProgressBar($tenants) : null;
 
         for ($t = 1; $t <= $tenants; $t++) {
@@ -82,21 +102,25 @@ class ScaleDataSeeder extends Seeder
             $tenant = $this->firstOrCreateTenant($slug, $t);
             $provisioner->provisionIsolated($tenant, $dbm, $lifecycle);
 
-            $dbm->using($tenant, function () use ($tenant, $usersPerTenant, $workspacesPerTenant, $projectsPerWorkspace, $tasksPerProject, $related, $statusConfig): void {
+            // Drawn per tenant so the dataset is not uniformly shaped.
+            $workspaceCount = $this->resolveCount($workspacesPerTenant);
+            $projectCount = $this->resolveCount($projectsPerWorkspace);
+
+            $dbm->using($tenant, function () use ($tenant, $usersPerTenant, $workspaceCount, $projectCount, $tasksPerProject, $related, $statusConfig): void {
                 $roleIds = Role::pluck('id', 'slug');
                 $priorityIds = Priority::pluck('id', 'slug');
                 $projectRoleIds = ProjectRole::pluck('id', 'slug');
 
                 $users = $this->createUsers($tenant, $usersPerTenant);
 
-                for ($w = 1; $w <= $workspacesPerTenant; $w++) {
+                for ($w = 1; $w <= $workspaceCount; $w++) {
                     $workspace = $this->firstOrCreateWorkspace($tenant, $w);
 
                     if ($workspace->members()->count() === 0) {
                         $this->attachWorkspaceMembers($workspace, $users);
                     }
 
-                    for ($p = 1; $p <= $projectsPerWorkspace; $p++) {
+                    for ($p = 1; $p <= $projectCount; $p++) {
                         $project = $this->firstOrCreateProject($tenant, $workspace, $users, $w, $p, $projectRoleIds);
 
                         if ($project->tasks()->count() === 0) {
@@ -117,12 +141,64 @@ class ScaleDataSeeder extends Seeder
             // Mirror users created above into the central routing index (idempotent).
             $provisioner->syncRouting($dbm, $tenant);
 
+            $counts = $dbm->using($tenant, fn (): array => [
+                'users' => User::count(),
+                'workspaces' => Workspace::count(),
+                'projects' => Project::count(),
+                'tasks' => Task::count(),
+            ]);
+
+            $totals['tenants']++;
+            foreach ($counts as $key => $value) {
+                $totals[$key] += $value;
+            }
+
             $bar?->advance();
         }
 
         $bar?->finish();
         $this->command?->newLine();
+
+        $totals['elapsed'] = round(microtime(true) - $startedAt, 1);
+
         $this->command?->info('Scale data seeding complete.');
+        $this->report($totals);
+    }
+
+    /**
+     * Resolve a count spec (fixed `5` or inclusive range `5-10`) to a number.
+     */
+    private function resolveCount(int|array $spec): int
+    {
+        if (is_int($spec)) {
+            return max(1, $spec);
+        }
+
+        [$min, $max] = [max(1, (int) ($spec[0] ?? 1)), max(1, (int) ($spec[1] ?? $spec[0] ?? 1))];
+
+        if ($max < $min) {
+            [$min, $max] = [$max, $min];
+        }
+
+        return $min === $max ? $min : mt_rand($min, $max);
+    }
+
+    /**
+     * @param  array<string, int|float>  $totals
+     */
+    private function report(array $totals): void
+    {
+        if (! $this->command) {
+            return;
+        }
+
+        $rows = [];
+        foreach (['tenants', 'users', 'workspaces', 'projects', 'tasks'] as $label) {
+            $rows[] = [ucfirst($label), number_format($totals[$label])];
+        }
+        $rows[] = ['Elapsed', $totals['elapsed'].'s'];
+
+        $this->command->table(['Metric', 'Total'], $rows);
     }
 
     private function createSuperAdmin(): void

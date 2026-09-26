@@ -3,7 +3,11 @@
 namespace Tests\Feature;
 
 use App\Models\Tenant;
+use App\Models\TenantUserRouting;
 use App\Models\User;
+use App\Services\TenantLifecycle;
+use App\Support\TenantDatabaseManager;
+use App\Support\TenantProvisioner;
 use Illuminate\Validation\ValidationException;
 use Tests\IsolatesDatabase;
 use Tests\TestCase;
@@ -99,6 +103,25 @@ class DefaultUserTest extends TestCase
         $this->deleteJson("/api/users/{$viewer->id}")->assertOk();
 
         $this->assertDatabaseMissing('users', ['id' => $viewer->id]);
+    }
+
+    public function test_deleting_a_user_also_drops_the_login_routing_row(): void
+    {
+        $this->loginAs('admin@flowsync.test');
+
+        $target = User::where('email', 'viewer@flowsync.test')->firstOrFail();
+        $tenantId = $this->acme()->id;
+
+        $this->assertTrue(
+            TenantUserRouting::where('tenant_id', $tenantId)->where('email', $target->email)->exists(),
+            'the seeded user should be present in the central routing index',
+        );
+
+        $this->deleteJson("/api/users/{$target->id}")->assertOk();
+
+        $this->assertFalse(
+            TenantUserRouting::where('tenant_id', $tenantId)->where('email', $target->email)->exists(),
+        );
     }
 
     public function test_a_user_cannot_delete_their_own_account(): void
@@ -258,12 +281,12 @@ class DefaultUserTest extends TestCase
             'provisioning_status' => Tenant::PROVISIONING_PENDING,
         ]);
 
-        $dbm = app(\App\Support\TenantDatabaseManager::class);
+        $dbm = app(TenantDatabaseManager::class);
 
-        app(\App\Support\TenantProvisioner::class)->provisionIsolated(
+        app(TenantProvisioner::class)->provisionIsolated(
             $tenant,
             $dbm,
-            app(\App\Services\TenantLifecycle::class),
+            app(TenantLifecycle::class),
         );
 
         $owner = $dbm->using(
@@ -281,17 +304,17 @@ class DefaultUserTest extends TestCase
     public function test_provisioning_repairs_a_tenant_without_a_default_user(): void
     {
         $tenant = $this->acme();
-        $dbm = app(\App\Support\TenantDatabaseManager::class);
+        $dbm = app(TenantDatabaseManager::class);
 
         // Simulate a tenant created before the column existed.
         $dbm->using($tenant, function () {
             User::query()->update(['is_default' => false]);
         });
 
-        app(\App\Support\TenantProvisioner::class)->provisionIsolated(
+        app(TenantProvisioner::class)->provisionIsolated(
             $tenant,
             $dbm,
-            app(\App\Services\TenantLifecycle::class),
+            app(TenantLifecycle::class),
         );
 
         $default = $dbm->using($tenant, fn () => User::defaultUser());

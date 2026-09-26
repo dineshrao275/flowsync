@@ -27,5 +27,11 @@ return [
         // the full isolated pipeline is exercisable without a Postgres server.
         'driver' => env('TENANT_DB_DRIVER', 'pgsql'),
         'db_path' => env('TENANT_DB_PATH') ?: database_path('tenants'),
+        // Optional existing PostgreSQL role that owns every tenant database.
+        // Leave null to give each tenant its own generated role (needs CREATEROLE);
+        // set it when the server only grants the app a single login role (managed
+        // PostgreSQL, most local devboxes), in which case tenant databases are
+        // created with this role as owner instead of a per-tenant one.
+        'pg_role' => env('TENANT_DB_PG_ROLE'),
     ],
 ];

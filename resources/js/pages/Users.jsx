@@ -316,6 +316,14 @@ export default function Users() {
                                                         size="sm"
                                                         variant="subtle"
                                                         loading={saving}
+                                                        // The default must be an admin; the server
+                                                        // rejects anyone else with 422.
+                                                        disabled={!user.roles?.includes('admin')}
+                                                        title={
+                                                            user.roles?.includes('admin')
+                                                                ? 'Make this user the tenant default'
+                                                                : 'Only an admin can be the default user'
+                                                        }
                                                         onClick={() => makeDefault(user)}
                                                     >
                                                         Make default
