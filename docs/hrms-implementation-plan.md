@@ -1098,6 +1098,45 @@ Two deviations from the wording above, both found by tests written alongside the
 - Tests: fresh tenant DB migrates; running twice is idempotent; the settings row exists with defaults;
   `tenants:provision` creates the tables for a pre-existing tenant.
 
+**Status: done.** 5 models, 4 enums, 2 services, 37 tests. Verified on real PostgreSQL as well as the
+sqlite fast-path: the enum casts round-trip through the `varchar`+CHECK columns, the JSON casts decode,
+and `HrmsAuditLog::getUpdatedAtColumn()` returns empty, so the append-only ledger cannot be updated
+through Eloquent at all.
+
+Four deviations from the wording above, all found by tests written alongside the code:
+- `HrmsAuditLogger::log()` takes the subject as a **model**, not the `subjectType, subjectId` pair the
+  plan specifies. A mismatched pair silently writes a ledger row pointing at the wrong record, and the
+  morph class is the only correct source of the type string.
+- `HrmsAuditLogger` masks on **tokens, not substrings**, and the wording above should be read that way.
+  Substring matching is unusable at this catalog size: `esi` is a substring of `designation`, `pan` of
+  `company`, and `pay` of `repayment`, so a substring implementation silently blanks much of the audit
+  trail — as damaging as leaking a salary. The field name is normalised (camelCase, acronyms and
+  separators collapse to one form) and matched word-by-word, with a small set of whole-name phrases
+  (`date_of_birth`, `bank_account`, `national_id`) on top. The split needs two rules, not one:
+  `ESI Number` normalises to `esi_number` only if the acronym run is kept intact, otherwise it becomes
+  `e_si_number` and ESI numbers start logging verbatim. `maskingProvider()` pins all of this, true
+  positives and false positives side by side.
+- `HrmsAuditLogger::accessed()` normalises the `fields` argument to names. A caller passing
+  `['gross' => 95000]` would have had `array_values()` store the **amounts** and discard the names —
+  exactly backwards, and the precise leak the column exists to prevent.
+- **`ApprovalService::canAct()` has no administrator bypass.** There is no `hrms.approvals.*` permission
+  in the catalog, and adding one was the wrong fix: a tenant admin approving their own payroll revision
+  is precisely the case a review trail must expose. A stuck flow is cleared by cancelling it or by the
+  real approver acting. If an override is ever wanted it needs its own permission and its own audit
+  action, not a `|| true`.
+- Manager/department-head steps are resolved by the **caller** into `user_id`, not by querying
+  `employees` from the Shared context — that table belongs to the Employee context, and the Shared engine
+  stays generic (D2.4). A step whose spec carries no candidate is marked `skipped`, and a chain whose
+  steps are all skipped is resolved immediately rather than sitting pending forever. `current_step` is
+  pointed at the first *actionable* step, so the persisted cursor never disagrees with
+  `currentStepRecord()` when leading steps were skipped.
+
+Note for the next phase: `HrmsSetting::setting()` is deliberately not named `value()` and does not read
+via `get()`. Eloquent proxies unknown model methods to the query builder, so `value()` and `get()` are
+already builder methods — a `value()` here would be shadowed by `Builder::value()` and a `get()` inside it
+would issue a fresh `SELECT` and return a `Collection` instead of the decoded array. Both bugs were live
+before the tests caught them.
+
 **P1.9 — Models, enums, audit + approval services**
 - `app/Models/Hrms/`: `Approval`, `ApprovalStep`, `HrmsAuditLog`, `HrmsDataAccessLog`, `HrmsSetting`.
 - `app/Enums/`: `ApprovalStatus`, `ApprovalStepStatus`, `ApproverType`.
