@@ -20,7 +20,7 @@ Laravel 12 + React 19 SPA. Session-based auth **without** Breeze/Fortify/Sanctum
   `tenants:provision` + seeds demo data (superadmin + acme + globex). Reset from scratch:
   `docker-compose down -v` then `up -d` (app entrypoint re-initializes; `RUN_INIT=true` only for `app`).
   No PHP/composer needed on the host — envs in `.env.docker`.
-- `php artisan test` — run test suite (Phase 13: **isolated, per-tenant file DBs** via `Tests\IsolatesDatabase`; current gate: **354 tests / 2577 assertions passing**)
+- `php artisan test` — run test suite (Phase 13: **isolated, per-tenant file DBs** via `Tests\IsolatesDatabase`; current gate: **368 tests / 2629 assertions passing**)
 
 - `npm run build` / `npm run dev` — frontend build / Vite dev server
 - `./vendor/bin/pint` — PHP code style (run over whole repo; `--dirty` only works in git)
@@ -471,7 +471,46 @@ Hierarchy: **Tenant → Workspace → Project → Task** (subtask `tasks.parent_
   `refresh()` + `/dashboard`). `AdminLayout` redirects any tenant user with `onboarding_complete === false`
   (except on `/onboarding` itself) to the wizard. `AuthContext.register()` mirrors `login()`.
 
+## HRMS module (planned — Phase 15, **no code yet**)
+- **Read `docs/hrms-implementation-plan.md` before any HRMS work.** It is a 22-phase, task-level plan
+  (Parts 0-9) written to be executed one small task per commit, and it is the authoritative spec.
+- The plan's binding design decisions (all in its Part 2): `hrms.*` **dotted module keys** stored in
+  `plans.limits.modules` (so `TenantLimits::hasModule()` + the existing `ensure_module` middleware work
+  unchanged); a new `business` plan inserted between `pro` and `enterprise`; per-tenant SA switching via
+  `tenants.features_override.modules` (**additive** — it can grant, never revoke); `employees.user_id`
+  as a **unique nullable** FK to `users` (a user with no employee row is a service account);
+  `config/hrms.php` as the per-tenant defaults catalog seeded by a new
+  `TenantProvisioner::provisionHrmsDefaults()` step; and three shared primitives built once in the
+  plan's Phase 1 — a generic `approvals`/`approval_steps` engine, an append-only `hrms_audit_logs`
+  (separate from `activities`), and a single-row `hrms_settings`.
+- **Migration numbering is pre-assigned** in the plan's Part 3.3 (`2026_09_27_000014` for the shared
+  tables, through `2026_10_04_000031`), one monolithic tenant migration per phase. Next free timestamp
+  today is still `2026_09_27_000014`.
+- `TenantDatabaseManager::migrateTenant()` runs **pending-only**, so a new tenant migration reaches all
+  102 live dev tenants on the next `php artisan tenants:provision` — and a migration that must backfill
+  existing tenants does the backfill inline, repair-safe (`Schema::hasColumn`, `DROP INDEX IF EXISTS`,
+  `whereNull` guards).
+- Every HRMS file download (documents, payslips, letters, receipts) uses the **signed tenant-scoped**
+  pattern documented in the Collaboration section: the central tenant id rides inside the signature, the
+  route sits outside `switch_tenant`, and the controller resolves `Tenant::find($request->query('tenant'))`
+  + streams inside `TenantDatabaseManager::using()`. Write the `flushSession()` +
+  `DB::setDefaultConnection('iso_system')` regression test with it.
+- Payroll statutory (PF/ESI/PT/TDS/LWF) is a **separate high-risk phase**, jurisdiction-configured per
+  tenant region with no hard-coded thresholds, unit-tested against a fixture corpus, and snapped onto
+  each payslip so a config change can never rewrite a locked one.
+- Performance integrates with tasks via `ScopesVisibleTasks::visibleTaskQuery()` as **evidence only** —
+  automated signals are shown to the reviewer and never converted into a rating or score.
+
 ## Pitfalls / gotchas
+- **A tenant `users` row without a central `tenant_users` row is an account nobody can log into.** In
+  isolated mode `AuthController::loginIsolated` resolves the tenant from the routing index first, so
+  *every* code path that creates a tenant user must write the routing row too: `UserController::store`
+  (Phase 0 fix), `RegisterController` (claims the owner row), `TenantProvisioner::syncRouting` (seeds).
+  `UserController::destroy` removes it. Regression test: `tests/Feature/TenantUserCreationTest.php`.
+- **Lower-case tenant user emails at creation.** Login does `Str::lower(trim($email))` for the routing
+  lookup and then `Auth::attempt`, which matches `users.email` case-sensitively — so a mixed-case stored
+  email is only reachable by typing that exact casing. `UserController::store` normalizes before
+  validation (so `unique:users,email` also checks the normalized form).
 - **PostgreSQL-only SQL slips past the sqlite test fast-path.** The tenant suite runs on sqlite files, so a
   sqlite-tolerated statement (`WHERE is_default = 1` on a boolean column) only fails once a tenant DB is
   actually Postgres. When touching a tenant migration, either stay on the schema builder or exercise the PG

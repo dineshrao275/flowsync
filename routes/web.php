@@ -70,6 +70,7 @@ Route::prefix('api')->group(function () {
         // Tenant-facing profile (self-scoped via TenantContext; no tenant_context
         // needed because a tenant user resolves their own central tenant row).
         Route::get('tenant/profile', [TenantController::class, 'selfProfile']);
+        Route::put('tenant/profile', [TenantController::class, 'updateSelfProfile']);
 
         // Onboarding wizard (self-scoped via TenantContext; deliberately OUTSIDE
         // the onboarding_complete-gated domain group so an in-progress tenant can

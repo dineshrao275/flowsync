@@ -238,6 +238,38 @@ class TenantController extends Controller
         return response()->json(['tenant' => $tenant]);
     }
 
+    /**
+     * Tenant-facing profile write: the onboarding wizard's business step calls
+     * this. Deliberately a narrow subset of `updateProfile` (which is
+     * `super_admin`-gated and takes a route-bound Tenant) — a tenant user may
+     * only fill in the fields the wizard owns, never billing, plan, or
+     * entitlement fields. `nullable` throughout so a partial save cannot blank
+     * a field the wizard did not send.
+     */
+    public function updateSelfProfile(Request $request): JsonResponse
+    {
+        abort_unless(app(TenantContext::class)->currentId(), 404);
+
+        $data = $request->validate([
+            'legal_name' => ['nullable', 'string', 'max:255'],
+            'industry' => ['nullable', 'string', 'max:255'],
+            'company_size' => ['nullable', 'string', 'max:255'],
+            'country' => ['nullable', 'string', 'max:2'],
+            'website' => ['nullable', 'url', 'max:255'],
+        ]);
+
+        $tenant = Tenant::findOrFail(app(TenantContext::class)->currentId());
+
+        // Only write keys the request actually sent, so `null` (absent) does not
+        // overwrite an existing value with null.
+        $tenant->update(array_filter($data, fn ($value) => $value !== null));
+
+        return response()->json([
+            'message' => 'Business profile saved.',
+            'tenant' => $tenant->fresh(),
+        ]);
+    }
+
     public function destroy(Tenant $tenant): JsonResponse
     {
         $tenant->delete();

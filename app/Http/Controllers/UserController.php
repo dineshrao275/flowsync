@@ -10,6 +10,7 @@ use App\Support\TenantContext;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 
@@ -39,6 +40,13 @@ class UserController extends Controller
     {
         $this->limits->assertQuota('users');
 
+        // Normalize before validating, matching `RegisterController` and the
+        // central routing index. Login lower-cases the submitted address before
+        // resolving the tenant, and `Auth::attempt` then matches the tenant DB
+        // row case-sensitively — so a stored `New.Hire@Acme.Test` would only be
+        // reachable by typing that exact casing back in.
+        $request->merge(['email' => Str::lower(trim((string) $request->input('email')))]);
+
         $data = $request->validate([
             'name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'string', 'email', 'max:255', Rule::unique('users', 'email')],
@@ -55,6 +63,20 @@ class UserController extends Controller
 
         $roles = Role::whereIn('slug', $data['roles'])->pluck('id');
         $user->roles()->sync($roles);
+
+        // The central login-routing index is what resolves this email to a
+        // tenant database at login time; without this row the account exists
+        // but can never authenticate (see `AuthController::loginIsolated`).
+        TenantUserRouting::updateOrCreate(
+            [
+                'tenant_id' => $this->tenantContext->currentId(),
+                'email' => $data['email'],
+            ],
+            [
+                'user_id' => (int) $user->id,
+                'name' => $user->name,
+            ]
+        );
 
         return response()->json([
             'message' => 'User created.',
