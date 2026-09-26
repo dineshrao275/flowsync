@@ -1058,6 +1058,23 @@ indeterminate. Preserve the existing save endpoint and the `plan.module_toggled`
 - Tests: unknown module -> 422; `{modules: ['hrms.payroll']}` -> 200 and `features_override` updated on
   `iso_system`; GET reflects it; an audit row is written; a tenant admin gets 403.
 
+**Status: done.** 5 tables on the tenant DB. Verified on real PostgreSQL, not only the sqlite fast-path
+(the AGENTS pitfall about PG-only SQL): `tenants:provision --tenant=1` created all five tables on
+`flowsync_tenant_1`, seeded the `hrms_settings` row (`full_day_minutes` = 480 round-trips through the
+JSON column), left exactly one settings row on a second run, and all four `enum()` columns produced their
+expected CHECK constraints (`approvals_status_check`, `approval_steps_status_check`,
+`approval_steps_approver_type_check`, `hrms_data_access_logs_action_check`). `hrms_audit_logs` has
+`created_at` and **no** `updated_at`, confirmed against `information_schema`.
+
+Two deviations from the wording above, both found by tests written alongside the code:
+- The settings backfill is **insert-if-missing, not `updateOrInsert`**. `tenants:provision` re-runs tenant
+  migrations to repair a database, so an `updateOrInsert` would reset every tenant's customised
+  `currency` / `week_start` / statutory config back to the config defaults on every repair. A seeded
+  default must never overwrite a value the tenant owns.
+- The backfill uses the query builder with explicit `json_encode`, not the `HrmsSetting` model (which P1.9
+  does not create yet, and which a later cast change could otherwise invalidate). Relatedly, the query
+  builder does not honour casts, so the three JSON sections are encoded in the migration.
+
 **P1.8 — Shared migration `000014`**
 `database/migrations/tenant/2026_09_27_000014_create_hrms_shared_tables.php`:
 - `approvals` — `approvable_type`, `approvable_id`, `subject`, `action`, `status`
