@@ -1150,6 +1150,20 @@ before the tests caught them.
 - Tests: happy path; reject; multi-step sequential; a step with no approver is auto-skipped and the
   flow continues; a non-approver gets 403; `cancel` by the requester; an audit row per transition.
 
+**Status: done.** 6 tests. `tenants:provision` run end-to-end against all 102 live dev tenants: every
+database has exactly one `hrms_settings` row.
+
+The wording above says `updateOrInsert` the row from config. That is wrong, and it was wrong in P1.8 too —
+`tenants:provision` is the *repair* path, so it runs on every repair, and an `updateOrInsert` would reset
+the tenant's own currency, week start and statutory configuration back to the config defaults each time
+someone clicked "repair". The hook is insert-only, with an early return when row 1 already exists. There
+is a regression test (`test_re_provisioning_keeps_a_tenants_own_settings`) that customises the row,
+re-provisions, and asserts the customisation survived.
+
+The primary key is a fixed constant rather than user input, so it is assigned directly on the instance
+instead of adding `id` to the model's `$fillable` — loosening fillable on a model a future settings
+endpoint might mass-assign is not a trade worth making for one line of convenience.
+
 **P1.10 — Provisioning hook `provisionHrmsDefaults()`**
 - `TenantProvisioner`: add `private function provisionHrmsDefaults(): void` called from `seed()` right
   after `provisionProjectRoles()`. It `updateOrInsert`s the `hrms_settings` row (`id = 1`) from

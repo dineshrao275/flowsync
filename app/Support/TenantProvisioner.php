@@ -2,6 +2,7 @@
 
 namespace App\Support;
 
+use App\Models\Hrms\Shared\HrmsSetting;
 use App\Models\Permission;
 use App\Models\Priority;
 use App\Models\ProjectRole;
@@ -86,8 +87,38 @@ class TenantProvisioner
 
         $this->provisionPriorities();
         $this->provisionProjectRoles();
+        $this->provisionHrmsDefaults();
         $this->createAdmin($tenant, $adminRole);
         $this->ensureDefaultUser($adminRole);
+    }
+
+    /**
+     * Guarantee the per-tenant HRMS settings singleton exists.
+     *
+     * The `000014` migration already seeds this row, so this is the repair path
+     * for a database that failed partway, and the guarantee that every tenant
+     * has a row even when the HRMS module is switched off — the tables always
+     * exist; the gate is behavioural (`TenantLimits::isHrmsEnabled()`).
+     *
+     * Insert-only, never `updateOrCreate`: `tenants:provision` runs on every
+     * repair, and an update would reset the tenant's own currency, week start
+     * and statutory configuration back to the defaults each time.
+     *
+     * No quota checks and no request-scoped dependencies — this runs inside
+     * provisioning, before there is a session.
+     */
+    private function provisionHrmsDefaults(): void
+    {
+        if (HrmsSetting::query()->whereKey(HrmsSetting::SINGLETON_ID)->exists()) {
+            return;
+        }
+
+        $settings = new HrmsSetting;
+        // The primary key is a fixed constant, not user input, so it is
+        // assigned directly rather than by loosening the model's fillable.
+        $settings->id = HrmsSetting::SINGLETON_ID;
+        $settings->forceFill(config('hrms.settings_defaults', []));
+        $settings->save();
     }
 
     private function provisionPriorities(): void
