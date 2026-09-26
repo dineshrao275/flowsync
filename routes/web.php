@@ -278,8 +278,11 @@ Route::prefix('api')->group(function () {
 
     // Signed temporary download link for task attachments. Intentionally OUTSIDE
     // the auth/tenant groups so a fresh-browser-tab GET works; access is granted
-    // by the signed URL itself (task/attachment bindings carry tenant scoping
-    // when a session exists, and the signature is mandatory).
+    // by the signed URL itself. Because no SwitchTenant has run, the central
+    // tenant id is carried as a signed `tenant` query param and the controller
+    // resolves the attachment inside TenantDatabaseManager::using() — the
+    // task/attachment ids alone are tenant-local and resolve to nothing on the
+    // central connection.
     Route::get('tasks/{task}/attachments/{attachment}/download', [AttachmentController::class, 'download'])
         ->middleware('signed')
         ->name('attachments.download');

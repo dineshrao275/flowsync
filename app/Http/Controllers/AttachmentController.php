@@ -6,7 +6,10 @@ use App\Http\Requests\AttachmentStoreRequest;
 use App\Models\Attachment;
 use App\Models\Project;
 use App\Models\Task;
+use App\Models\Tenant;
 use App\Services\ActivityLogger;
+use App\Support\TenantContext;
+use App\Support\TenantDatabaseManager;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
@@ -17,6 +20,7 @@ class AttachmentController extends Controller
 {
     public function __construct(
         private readonly ActivityLogger $logger,
+        private readonly TenantContext $tenantContext,
     ) {}
 
     public function index(Request $request, Project $project, Task $task): JsonResponse
@@ -98,17 +102,34 @@ class AttachmentController extends Controller
         return response()->json(['message' => 'Attachment deleted.']);
     }
 
-    public function download(Task $task, Attachment $attachment): StreamedResponse
+    /**
+     * The download link is deliberately session-free: it is opened in a fresh
+     * browser tab, so it runs outside the auth/tenant middleware groups and no
+     * SwitchTenant has connected a tenant database. The task/attachment ids are
+     * therefore per-tenant-local and mean nothing on the central connection,
+     * which is why the central tenant id travels inside the signed URL and the
+     * lookup happens inside TenantDatabaseManager::using().
+     */
+    public function download(Request $request, int $task, int $attachment): StreamedResponse
     {
-        if ($attachment->task_id !== $task->id) {
-            abort(404);
-        }
+        $tenant = Tenant::find((int) $request->query('tenant'));
 
-        if (! Storage::disk($attachment->disk)->exists($attachment->path)) {
-            abort(404, 'File no longer exists.');
-        }
+        abort_if($tenant === null, 404);
 
-        return Storage::disk($attachment->disk)->download($attachment->path, $attachment->original_name);
+        return app(TenantDatabaseManager::class)->using($tenant, function () use ($task, $attachment) {
+            $record = Attachment::query()
+                ->where('task_id', $task)
+                ->where('id', $attachment)
+                ->first();
+
+            abort_if($record === null, 404);
+
+            if (! Storage::disk($record->disk)->exists($record->path)) {
+                abort(404, 'File no longer exists.');
+            }
+
+            return Storage::disk($record->disk)->download($record->path, $record->original_name);
+        });
     }
 
     private function present(Attachment $attachment): array
@@ -126,7 +147,11 @@ class AttachmentController extends Controller
             'download_url' => url()->temporarySignedRoute(
                 'attachments.download',
                 now()->addHours(1),
-                ['task' => $attachment->task_id, 'attachment' => $attachment->id],
+                [
+                    'task' => $attachment->task_id,
+                    'attachment' => $attachment->id,
+                    'tenant' => $this->tenantContext->currentId(),
+                ],
             ),
         ];
     }

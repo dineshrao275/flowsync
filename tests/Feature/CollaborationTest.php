@@ -14,8 +14,10 @@ use App\Models\Tenant;
 use App\Models\User;
 use App\Models\Workspace;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\URL;
 use Tests\IsolatesDatabase;
 use Tests\TestCase;
 
@@ -367,6 +369,62 @@ class CollaborationTest extends TestCase
 
         $this->get("/api/tasks/{$task->id}/attachments/{$attachment->id}/download")
             ->assertForbidden();
+    }
+
+    public function test_signed_download_works_without_a_session_on_the_central_connection(): void
+    {
+        Storage::fake('local');
+        $project = $this->createProjectWithLead();
+        $task = $this->makeTask($project, 'Files');
+
+        $file = UploadedFile::fake()->create('notes.txt', 100, 'text/plain');
+        $path = $file->storeAs("tasks/{$this->acme->id}/{$task->id}", 'fresh-tab.txt', ['disk' => 'local']);
+        $attachment = Attachment::create([
+            'task_id' => $task->id,
+            'user_id' => $this->admin()->id,
+            'stored_name' => 'fresh-tab.txt',
+            'original_name' => 'notes.txt',
+            'mime' => 'text/plain',
+            'size' => 100,
+            'disk' => 'local',
+            'path' => $path,
+        ]);
+
+        $this->login('admin@flowsync.test');
+
+        $url = $this->getJson("/api/projects/{$project->id}/tasks/{$task->id}/attachments")
+            ->json('attachments.0.download_url');
+
+        $this->assertStringContainsString('tenant='.$this->acme->id, $url);
+
+        // A brand-new browser tab carries no tenant state at all: no session and
+        // the default connection still pointing at the central system DB. The
+        // signature alone has to be enough to find the tenant and the file.
+        $this->flushSession();
+        DB::setDefaultConnection('iso_system');
+
+        $this->get($url)->assertOk()->assertHeader('content-disposition', 'attachment; filename=notes.txt');
+
+        // Signing the link by hand (rather than reading download_url) keeps this
+        // test honest about the download path itself: task/attachment ids are
+        // tenant-local, so without the signed tenant the binding query would run
+        // against the central database and blow up on "relation tasks does not exist".
+        $handSigned = URL::temporarySignedRoute('attachments.download', now()->addHour(), [
+            'task' => $task->id,
+            'attachment' => $attachment->id,
+            'tenant' => $this->acme->id,
+        ]);
+
+        $this->get($handSigned)->assertOk()->assertHeader('content-disposition', 'attachment; filename=notes.txt');
+
+        // An attachment id from a different tenant must not resolve here.
+        $wrongTenant = URL::temporarySignedRoute('attachments.download', now()->addHour(), [
+            'task' => $task->id,
+            'attachment' => $attachment->id,
+            'tenant' => $this->acme->id + 1,
+        ]);
+
+        $this->get($wrongTenant)->assertNotFound();
     }
 
     public function test_oversized_upload_is_rejected(): void
