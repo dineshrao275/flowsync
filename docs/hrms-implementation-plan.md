@@ -2450,6 +2450,20 @@ Indexes: `(employee_id, status)`, `(expires_at)`, `(status, expires_at)`.
 > `DocumentType` model and its `seedDocumentTypes()` step land with the P13.2
 > service, and `document_types` joins the guard's seeded list in that commit.
 
+> **The HRMS starter-data seeding moved out of `TenantProvisioner` after P13.1.** The
+> file had reached 368 physical lines against this plan's 300-line class ceiling, and
+> `document_types` — the next catalogue to land, in P13.2 — would have pushed it
+> further over. Everything that seeds per-tenant HRMS starter data now lives in
+> `app/Services/Hrms/Defaults/HrmsDefaultsProvisioner.php`, folder-per-context
+> (D2.16.2) like `Employee/` and `Org/`; `TenantProvisioner::seed()` calls it in one
+> line. `provisionHrmsDefaults()` became its public `provision()` entry point. The
+> seven methods moved byte-for-byte — see the plan's standing rule that a refactor
+> which also edits behaviour is a refactor nobody can review.
+>
+> `EmployeeService` is the remaining class over the ceiling (319 lines) and is
+> **not** addressed here; it needs the same treatment as `EmployeeDirectoryQuery`
+> got in P3.4 (extract the self-contained decision, not trim comments).
+
 **P13.2 — Upload/verify service + signed download (D2.13)**
 `app/Services/Hrms/DocumentService.php` — `upload(Employee, type, UploadedFile, meta)`, `verify`, `reject`,
 `markExpired` (a `php artisan hrms:documents-expiry` command flags documents past `expires_at`),

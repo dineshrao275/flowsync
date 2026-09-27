@@ -497,13 +497,13 @@ Hierarchy: **Tenant → Workspace → Project → Task** (subtask `tasks.parent_
   `tenants.features_override.modules` (**additive** — it can grant, never revoke); `employees.user_id`
   as a **unique nullable** FK to `users` (a user with no employee row is a service account);
   `config/hrms.php` as the per-tenant defaults catalog seeded by a new
-  `TenantProvisioner::provisionHrmsDefaults()` step; and three shared primitives built once in the
+  `HrmsDefaultsProvisioner::provision()` step; and three shared primitives built once in the
   plan's Phase 1 — a generic `approvals`/`approval_steps` engine, an append-only `hrms_audit_logs`
   (separate from `activities`), and a single-row `hrms_settings`.
 - **Shipped so far.** P1.1–P1.7 (entitlement foundation: `hrms.*` module keys, 47 permissions, plan
   module lists, per-tenant SA switching, `GET|PUT api/tenants/{tenant}/hrms`); P1.8–P1.10 (the three
   shared primitives: `2026_09_27_000014` migration, `HrmsAuditLogger`, the generic `ApprovalService`,
-  and the `provisionHrmsDefaults()` settings hook); P1.11 (the module-gated `/hrms` SPA shell); P2.1
+  and the HRMS defaults seeding hook); P1.11 (the module-gated `/hrms` SPA shell); P2.1
   (`2026_09_27_000015` — `employment_types`, `employees`, `employee_status_history`); P2.2 (the
   employee domain: enums, models, and the service — see the P2.2 notes below); P2.3
   (`EmployeePolicy` + `EmployeePresenter` + the `Requests/Hrms` family + `Hrms/EmployeeController` +
@@ -517,7 +517,7 @@ Hierarchy: **Tenant → Workspace → Project → Task** (subtask `tasks.parent_
   routes, and the three org FKs finally made writable on the employee — see the P3.3 notes below);
   P3.4 (the org SPA page: `pages/hrms/Org.jsx`, `components/hrms/DepartmentTreeColumn.jsx`, the three
   form modals and the members panel, plus the directory's department filter — see the P3.4 notes);
-  P3.5 (the org starters: `provisionHrmsDefaults()` gains `seedOrgCatalogs()` — see the P3.5 notes);
+  P3.5 (the org starters: the HRMS defaults seeder gains `seedOrgCatalogs()` — see the P3.5 notes);
   and **P13.1** (`2026_10_02_000026` — `document_types` + `employee_documents`, plus
   `tests/Feature/HrmsCatalogTest.php`, the cross-catalogue guard — see the P13.1 notes below). Phase 13
   was jumped to *before* Phase 4 because P4.1's `document_requests.document_type_id` is a real FK to
@@ -688,7 +688,7 @@ Hierarchy: **Tenant → Workspace → Project → Task** (subtask `tasks.parent_
   `tests/Feature/HrmsCatalogTest.php` is the gate that now catches it.** It named `code`,
   `is_confidential` and `validity_months` — no such columns — while omitting `category`, the one
   column the compliance story is built on. The blast radius is identical, because the first
-  consumer is a `seed*()` step inside `provisionHrmsDefaults()`: the error surfaces as **every
+  consumer is a `seed*()` step inside `HrmsDefaultsProvisioner::provision()`: the error surfaces as **every
   tenant in the fleet fails to provision**, not as "the document catalogue is wrong". The guard
   asserts both directions (catalogue key → real column, required column → catalogue key) across the
   catalogues that are seeded today. Two details it depends on, each silent when wrong: the
@@ -727,11 +727,22 @@ Hierarchy: **Tenant → Workspace → Project → Task** (subtask `tasks.parent_
   never enforced. `EmployeeCodeGenerator::retrying()` takes an optional preferred code for callers whose
   code is derived rather than allocated: `EMP-{user_id}` cannot be re-derived, so a collision with a
   service-created employee degrades to an allocated code instead of aborting the run.
-- **`provisionHrmsDefaults()` guards each step individually.** A single "the `hrms_settings` row exists,
+- **`HrmsDefaultsProvisioner::provision()` guards each step individually.** A single "the `hrms_settings` row exists,
   nothing to do" early return meant a tenant provisioned before a catalog was added to that list could
   never receive it, since it short-circuited the whole method — and `tenants:provision` is the repair
   path. Adding a catalog to the config means adding its own guarded step, never wrapping the others in
   one.
+- **The HRMS starter-data seeding lives in `app/Services/Hrms/Defaults/HrmsDefaultsProvisioner.php`,
+  not in `TenantProvisioner`.** It was moved there after P13.1: `TenantProvisioner` had reached 368
+  physical lines against the plan's 300-line class ceiling, and `document_types` (the next catalogue)
+  would have pushed it further over. The concern is cohesive — insert-only starter rows a tenant may
+  then rename — and the move is folder-per-context (D2.16.2) like `Employee/` and `Org/`. The seam is
+  one line in `TenantProvisioner::seed()`: `app(HrmsDefaultsProvisioner::class)->provision()`. That is
+  the place the next catalogue goes.
+- **A refactor commit that also edits behaviour is a refactor nobody can review.** The extraction moved
+  the seven methods byte-for-byte; the only deltas were `provisionHrmsDefaults()` becoming the public
+  `provision()` entry point and the new class closing brace. Verified by diffing the moved block against
+  the pre-commit file, not by reading it.
 - **`TenantLimits::currentCount()` counts `employees` via `Employee::count()`** — omitting the mapping
   made `assertQuota('employees')` a silent no-op, since an unknown resource counts 0.
 - **`employees.manager_id` is `nullOnDelete`, deliberately not `cascadeOnDelete()`.** Unlike
