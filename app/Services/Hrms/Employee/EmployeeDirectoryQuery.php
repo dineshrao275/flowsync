@@ -143,6 +143,14 @@ class EmployeeDirectoryQuery
                 fn (EmployeeStatus $status) => ['value' => $status->value, 'label' => $status->label()],
                 EmployeeStatus::cases(),
             ),
+            // Served from the enum rather than hardcoded in the SPA. A JS copy of
+            // a PHP enum cannot be caught by a failing test — it just quietly
+            // offers a work mode the API rejects — so the catalog travels with the
+            // response and the form renders whatever the server supports.
+            'work_modes' => array_map(
+                fn (WorkMode $mode) => ['value' => $mode->value, 'label' => $mode->label()],
+                WorkMode::cases(),
+            ),
         ];
     }
 

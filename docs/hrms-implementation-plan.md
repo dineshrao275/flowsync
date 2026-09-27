@@ -1404,6 +1404,34 @@ manager, joined range), sortable paginated table, avatar, status pill, and a "Ne
 joining date, manager picker). Follow existing UX rules: write endpoints return `{message}` only, so
 refetch after save; `fieldErrors()` for form errors; `useToast()` un-destructured.
 
+**P2.5 — status: SHIPPED.** `resources/js/pages/hrms/Employees.jsx` (+ `EmployeeFormModal.jsx`),
+and `HrmsOverview.jsx` moved into that folder so the HRMS SPA has one home rather than a file and a
+folder side by side. Filter bar (search, status, work mode, employment type, manager, joined range),
+sortable headers that flip direction on a second click, paginated table, avatar + status pill, and a
+create modal.
+
+**`department` is deliberately absent from the filter bar** even though the plan lists it:
+`employees.department_id` does not exist until P3.1, and a filter the API silently ignores is a filter
+that lies to the user — the list comes back unfiltered and reads as a bug in the search. The module
+route (`HRMS_MODULE_ROUTES['hrms.core']`) now points at the directory, so the overview tile for Employee
+Records is live rather than an inert "Planned" tile. Nav item gated on
+`module:hrms.core` + `permission:hrms.employees.view`, route on `permission:hrms.employees.view`
+inside the existing `module="hrms.core"` gate.
+
+Two things the UI is not allowed to guess, both because a hardcoded JS copy of a PHP enum is drift no
+test can catch:
+
+- **`work_modes` is served by `filterOptions()`** from the `WorkMode` enum rather than hardcoded, so
+  the form cannot offer a work mode the API rejects. Same treatment as `statuses`, which P2.3 already
+  served.
+- **The create modal has three login modes, not two**: "No sign-in account" is a real case (a
+  contractor whose details we keep without an account that can sign in) and making it first-class is
+  what stops the inline-login fields from being the *default* state of a new-person form — a form that
+  opens with a password box is how a directory ends up with accounts nobody chose to create. The
+  payload carries the profile plus only the login fields for the chosen mode, since sending all three
+  modes' fields at once is what the API rejects as an ambiguous create. The role and user pickers are
+  permission-gated and the fetch is *skipped* rather than made-and-failed.
+
 **P2.6 — Frontend profile page + deep link**
 `resources/js/pages/hrms/EmployeeDetail.jsx` at `/hrms/employees/:employeeId?tab=...` with tabs
 `overview|documents|attendance|leave|payroll|performance|assets` — only tabs whose modules are enabled

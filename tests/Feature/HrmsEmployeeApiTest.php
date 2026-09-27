@@ -292,6 +292,12 @@ class HrmsEmployeeApiTest extends TestCase
         $this->assertArrayHasKey('employment_types', $body['filters']);
         $this->assertArrayHasKey('managers', $body['filters']);
         $this->assertArrayHasKey('statuses', $body['filters']);
+        // Served from the enum so the SPA cannot offer a work mode the API
+        // rejects; a JS copy of a PHP enum is drift no test can catch.
+        $this->assertSame(
+            ['office', 'hybrid', 'remote'],
+            array_column($body['filters']['work_modes'], 'value'),
+        );
         $this->assertSame('admin', $body['my_role']);
         $this->assertSame('EMP-1', $body['employees'][0]['employee_code']);
         $this->assertSame('active', $body['employees'][0]['status']);

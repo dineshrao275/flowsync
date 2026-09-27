@@ -23,7 +23,8 @@ import Users from './pages/Users';
 import Roles from './pages/Roles';
 import Settings from './pages/Settings';
 import Reports from './pages/Reports';
-import HrmsOverview from './pages/HrmsOverview';
+import HrmsOverview from './pages/hrms/HrmsOverview';
+import Employees from './pages/hrms/Employees';
 import Search from './pages/Search';
 import Notifications from './pages/Notifications';
 import Tenants from './pages/Tenants';
@@ -117,6 +118,18 @@ function AppRoutes() {
                         </Route>
                         <Route element={<ProtectedRoute module="hrms.core" />}>
                             <Route path="/hrms" element={<HrmsOverview />} />
+                            {/* Before the `:section` catch-all: a static segment
+                                outranks a dynamic one, but relying on the router's
+                                ranking to keep the directory reachable is a trap for
+                                whoever adds the next HRMS page. */}
+                            <Route
+                                path="/hrms/employees"
+                                element={
+                                    <ProtectedRoute permission="hrms.employees.view">
+                                        <Employees />
+                                    </ProtectedRoute>
+                                }
+                            />
                             <Route path="/hrms/:section" element={<HrmsOverview />} />
                         </Route>
                         <Route element={<ProtectedRoute permission="users.view" />}>

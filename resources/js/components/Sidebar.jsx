@@ -20,6 +20,7 @@ const sections = [
     {
         label: 'People',
         items: [
+            { to: '/hrms/employees', label: 'Employees', capabilities: ['module:hrms.core', 'permission:hrms.employees.view'], icon: 'M17 20h5v-2a4 4 0 00-3-3.87M9 20H4v-2a4 4 0 012-4h14a4 4 0 012 4v2a1 1 0 01-1 1H3a1 1 0 01-1-1v-2a1 1 0 011-1zm8-4a2 2 0 100-4 2 2 0 000 4zm-6-4a2 2 0 100-4 2 2 0 000 4zm12 0a2 2 0 100-4 2 2 0 000 4zm-6 8a2 2 0 100-4 2 2 0 000 4z' },
             { to: '/hrms', label: 'HRMS', capabilities: ['module:hrms.core'], icon: 'M17 20h5v-2a4 4 0 00-3-3.87M9 20H4v-2a4 4 0 013-3.87m4-1.13a4 4 0 10-4-4 4 4 0 004 4zm6 2a3 3 0 10-3-3' },
         ],
     },

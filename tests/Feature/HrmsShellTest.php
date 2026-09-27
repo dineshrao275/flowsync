@@ -45,7 +45,7 @@ class HrmsShellTest extends TestCase
         'app/Policies/Hrms',
         'app/Services/HrmsAuditLogger.php',
         'config/hrms.php',
-        'resources/js/pages/HrmsOverview.jsx',
+        'resources/js/pages/hrms',
         'resources/js/utils/hrmsModules.js',
     ];
 
@@ -152,14 +152,33 @@ class HrmsShellTest extends TestCase
 
     public function test_hrms_tiles_only_link_to_sections_the_router_owns(): void
     {
-        // HRMS_MODULE_ROUTES is empty in P1.11, so the overview must render inert
-        // tiles rather than links into routes the SPA does not know.
+        // P2.5 populated HRMS_MODULE_ROUTES with the employee directory, so this
+        // is now the stronger claim: every route the catalog advertises must be
+        // a path the SPA actually owns. A tile that links to a URL the router
+        // does not know lands the user on a blank screen, which reads as a bug
+        // rather than as "not built yet".
         $js = file_get_contents(resource_path('js/utils/hrmsModules.js'));
-        $page = file_get_contents(resource_path('js/pages/HrmsOverview.jsx'));
+        $page = file_get_contents(resource_path('js/pages/hrms/HrmsOverview.jsx'));
+        $app = file_get_contents(resource_path('js/App.jsx'));
 
         $this->assertStringContainsString('HRMS_MODULE_ROUTES', $js);
         $this->assertStringContainsString('item.to', $page);
+
+        // The inert-tile path stays: a module whose phase has not landed still
+        // renders as a non-interactive tile.
         $this->assertStringContainsString('Planned', $page);
+
+        preg_match_all("/'hrms\\.[a-z_.]+': hrmsUrl\\('([a-z]+)'\\)/", $js, $matches);
+
+        $this->assertNotEmpty($matches[1], 'No module route was found to check.');
+
+        foreach ($matches[1] as $section) {
+            $this->assertStringContainsString(
+                'path="/hrms/'.$section.'"',
+                $app,
+                "HRMS_MODULE_ROUTES advertises /hrms/{$section} but the router has no such route.",
+            );
+        }
     }
 
     private function assignPlan(string $slug): void

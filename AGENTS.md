@@ -571,6 +571,12 @@ Hierarchy: **Tenant → Workspace → Project → Task** (subtask `tasks.parent_
   were actually visible *and* were populated; a false row in a sensitive-access ledger is worse than
   none. `EmployeePhotoService` holds the photo's three rules (signed, tenant-scoped, download-logged)
   and its URL carries the reader's id **inside the signature** so the download is attributable.
+- **HRMS SPA pages live in `resources/js/pages/hrms/`** (`HrmsOverview.jsx` moved there in P2.5) behind
+  the `module="hrms.core"` route gate; the directory is `Employees.jsx` on `permission:hrms.employees.view`,
+  with the create modal's three login modes (none / new / link) — "no account" is first-class so the
+  inline-login fields are never the default state of a new-person form. `work_modes` is **served by
+  `filterOptions()`** from the PHP enum, never hardcoded in JS: a JS copy of a PHP enum is drift no test
+  can catch. The `department` filter is absent on purpose until P3.1 adds the column.
 - **`TenantLimits::currentCount()` counts `employees` via `Employee::count()`** — omitting the mapping
   made `assertQuota('employees')` a silent no-op, since an unknown resource counts 0.
 - **`employees.manager_id` is `nullOnDelete`, deliberately not `cascadeOnDelete()`.** Unlike

@@ -1,11 +1,11 @@
 import { Link } from 'react-router-dom';
-import Card from '../components/ui/Card';
-import Badge from '../components/ui/Badge';
-import EmptyState from '../components/ui/EmptyState';
-import { useAuth } from '../context/AuthContext';
-import { hrmsModuleGroups } from '../utils/hrmsModules';
-import { useSetCrumbs } from '../context/BreadcrumbContext';
-import usePageTitle from '../hooks/usePageTitle';
+import Card from '../../components/ui/Card';
+import Badge from '../../components/ui/Badge';
+import EmptyState from '../../components/ui/EmptyState';
+import { useAuth } from '../../context/AuthContext';
+import { hrmsModuleGroups } from '../../utils/hrmsModules';
+import { useSetCrumbs } from '../../context/BreadcrumbContext';
+import usePageTitle from '../../hooks/usePageTitle';
 
 /**
  * HRMS landing page.

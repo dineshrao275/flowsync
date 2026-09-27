@@ -8,6 +8,11 @@
  * fails if the two drift, so a module cannot be added to the catalog without a
  * name and a group (D2.1).
  */
+/** Kept last in this file: `HRMS_MODULE_ROUTES` calls it while the module lives below. */
+function hrmsUrl(section) {
+    return section ? `/hrms/${section}` : '/hrms';
+}
+
 export const HRMS_MODULE_META = {
     'hrms.core': { label: 'Employee Records', group: 'HRMS · Core' },
     'hrms.onboarding': { label: 'Onboarding', group: 'HRMS · Core' },
@@ -46,7 +51,9 @@ export const HRMS_MODULE_META = {
  * sends a user to a URL the router does not know.
  */
 export const HRMS_MODULE_ROUTES = {
-    // Filled in as each phase ships its page.
+    // P2.5 ships the employee directory; the rest of `hrms.core` (onboarding,
+    // offboarding) lands with its own phases.
+    'hrms.core': hrmsUrl('employees'),
 };
 
 /**
