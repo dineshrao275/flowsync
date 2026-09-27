@@ -15,6 +15,19 @@ export function workspaceUrl(workspaceId, tab = null) {
 }
 
 /**
+ * An employee profile, optionally at one of its tabs.
+ *
+ * The tab lives in the URL, not in component state, for the same reason the
+ * project and workspace pages keep theirs there: a link from a notification or
+ * the directory has to be able to land on a specific section and survive a
+ * refresh.
+ */
+export function employeeUrl(employeeId, tab = null) {
+    if (!tab) return `/hrms/employees/${employeeId}`;
+    return `/hrms/employees/${employeeId}?tab=${tab}`;
+}
+
+/**
  * Where a person belongs after signing in. A platform super admin has no tenant
  * context (the tenant dashboard endpoints 403 for them), so it lands on the
  * platform overview instead.

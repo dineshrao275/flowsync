@@ -86,7 +86,11 @@ class EmployeePresenter
         return $employee->statusHistory
             ->map(fn ($entry) => [
                 'id' => $entry->id,
-                'from_status' => $entry->from_status->value,
+                'from_status' => $entry->from_status?->value,
+                // Both labels travel with the row: a ledger that says only
+                // "Probation" has lost the transition, which is the part
+                // someone reads when they ask who moved a person and from where.
+                'from_status_label' => $entry->from_status?->label(),
                 'to_status' => $entry->to_status->value,
                 'to_status_label' => $entry->to_status->label(),
                 'effective_date' => $entry->effective_date?->toDateString(),

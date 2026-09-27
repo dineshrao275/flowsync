@@ -152,6 +152,59 @@ class HrmsEmployeeApiTest extends TestCase
         $this->assertFalse($body['restricted']);
     }
 
+    public function test_a_status_colour_is_a_hex_the_clients_can_actually_style(): void
+    {
+        $this->login('admin@flowsync.test');
+        $employee = $this->makeEmployee('Painted');
+
+        $color = $this->getJson("/api/hrms/employees/{$employee->id}")
+            ->assertOk()
+            ->json('employee.status_color');
+
+        // The directory and the profile both render `backgroundColor: ${color}22`.
+        // A palette name like "emerald" makes that `emerald22`, which is not a
+        // colour, and the pill loses its background silently.
+        $this->assertMatchesRegularExpression('/^#[0-9a-f]{6}$/i', $color);
+    }
+
+    public function test_the_status_history_carries_both_ends_of_every_transition(): void
+    {
+        $this->login('admin@flowsync.test');
+        $employee = $this->makeEmployee('Mover');
+
+        $this->postJson("/api/hrms/employees/{$employee->id}/status", [
+            'to' => 'on_notice',
+            'reason' => 'resignation accepted',
+        ])->assertOk();
+
+        $entry = $this->getJson("/api/hrms/employees/{$employee->id}")
+            ->assertOk()
+            ->json('status_history.0');
+
+        // Both labels, not just the destination: a ledger that reads "On Notice"
+        // alone has lost the transition, which is the part somebody reads when
+        // they ask who moved this person and from where.
+        $this->assertSame('Active', $entry['from_status_label']);
+        $this->assertSame('On Notice', $entry['to_status_label']);
+    }
+
+    public function test_the_show_response_carries_the_manager_picker_options(): void
+    {
+        $employee = $this->makeEmployee('Has A Manager');
+        $manager = $this->makeEmployee('Plain Manager');
+
+        $this->login('admin@flowsync.test');
+        $body = $this->getJson("/api/hrms/employees/{$employee->id}")->assertOk()->json();
+
+        $ids = array_column($body['filters']['managers'], 'id');
+
+        // Everyone, not just the people who already have a report: a new hire
+        // reporting to a first-time manager is an ordinary assignment, and with
+        // a reports-only list the select is empty and the choice cannot be made.
+        $this->assertContains($manager->id, $ids);
+        $this->assertContains($employee->id, $ids);
+    }
+
     public function test_the_directory_masks_the_personal_fields_even_for_a_privileged_reader(): void
     {
         $this->makeEmployee('Listed Person', [

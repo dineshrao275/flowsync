@@ -576,7 +576,20 @@ Hierarchy: **Tenant → Workspace → Project → Task** (subtask `tasks.parent_
   with the create modal's three login modes (none / new / link) — "no account" is first-class so the
   inline-login fields are never the default state of a new-person form. `work_modes` is **served by
   `filterOptions()`** from the PHP enum, never hardcoded in JS: a JS copy of a PHP enum is drift no test
-  can catch. The `department` filter is absent on purpose until P3.1 adds the column.
+  can catch. The `department` filter is absent on purpose until P3.1 adds the column. P2.6 added
+  `EmployeeDetail.jsx` (URL-driven tab via `HRMS_PROFILE_TABS`, module-filtered, **entries only for
+  sections that have shipped**), `StatusHistory.jsx` and `EmployeeEditModal.jsx`; the directory's name
+  cell links via `employeeUrl(id, tab)`.
+- **Never submit a masked value back, and never build a picker from a report list.**
+  `EmployeeEditModal` omits the whole personal block when the record arrived `restricted`, because
+  prefilling it from masked values and posting them would store `p***@***` as somebody's real address.
+  The `managers` option list is **everyone**, not only people who already have a report: a reports-only
+  list cannot seed a reporting line at all, since a new hire reporting to a first-time manager is an
+  ordinary assignment and the select comes back empty for exactly that case.
+- **A `color()` in this app is a hex, never a Tailwind palette name.** The status pills render
+  `backgroundColor: \`${color}22\``, so a palette name silently yields an invalid colour and every
+  status looks identical. `EmployeeStatus::color()` returned `emerald`/`sky`/… and was fixed in
+  P2.6; `config/task_statuses.php` and `config/priorities.php` already store hex. Wire-tested.
 - **`TenantLimits::currentCount()` counts `employees` via `Employee::count()`** — omitting the mapping
   made `assertQuota('employees')` a silent no-op, since an unknown resource counts 0.
 - **`employees.manager_id` is `nullOnDelete`, deliberately not `cascadeOnDelete()`.** Unlike

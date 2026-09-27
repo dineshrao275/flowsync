@@ -1437,6 +1437,43 @@ test can catch:
 `overview|documents|attendance|leave|payroll|performance|assets` — only tabs whose modules are enabled
 render. `utils/deepLinks.js` gains `employeeUrl(id, tab)`. 403 -> `navigate('/403')`.
 
+**P2.6 — status: SHIPPED.** `resources/js/pages/hrms/EmployeeDetail.jsx` at
+`/hrms/employees/:employeeId?tab=…` (tab in the URL, so a link and a refresh land in the same place),
+`employeeUrl(id, tab)` added to `utils/deepLinks.js`, and the directory's name cell is now the deep
+link. `HRMS_PROFILE_TABS` in `hrmsModules.js` holds `{ label, module }` per tab and
+`hrmsProfileTabs(modules)` filters it to the tenant's plan — the same shape as `HRMS_MODULE_ROUTES`,
+and for the same reason: **only a section that has shipped gets an entry.** A tab whose backend does
+not exist yet renders as a dead end, and a profile with six "coming soon" tabs is worse than one with
+none. Each phase adds its own entry.
+
+Read-only apart from two deliberate exceptions — the profile fields and the reporting line — because
+those are the two things an HR admin must be able to correct and nothing else here is a correction.
+Status lives with the offboarding phase that owns those rules, and `EmployeeEditModal` deliberately
+omits `status`, `manager_id`, `employee_code` and every login field: the API rejects them by name, so
+offering them would answer 200 while changing nothing. The manager has its own control calling
+`POST /manager` (new `EmployeeDirectoryQuery::managerOptions()`), because the API splits the two
+decisions for a reason.
+
+Two things found and fixed while wiring it up:
+
+- **The `managers` list could not seed a reporting line.** It held only people who *already had* a
+  report, so a new hire reporting to a first-time manager was impossible to choose — the select was
+  empty for that exact case. It is now everyone; the directory's manager filter uses the same list,
+  where picking a manager with no reports honestly returns nothing.
+- **`EmployeeStatus::color()` returned a Tailwind palette name, not a colour.** The directory and
+  profile both render `backgroundColor: \`${color}22\``, so `emerald` produced `emerald22`, which is
+  not a colour — the status pill lost its background and every status rendered identically, with no
+  error anywhere. It returns a hex now, matching `config/task_statuses.php` and
+  `config/priorities.php`, which store hex for exactly this reason. Regression-tested on the wire.
+
+- **A masked payload must never be submitted back.** `EmployeeEditModal` omits the whole personal
+  block when the record came back `restricted`, because prefilling it from the masked values and
+  posting them would store `p***@***` as somebody's real address. The form says so, rather than
+  rendering a set of fields that look editable and are not.
+
+The response's `status_history` and `filters` are siblings of `employee`, not fields on it: a status
+ledger is not a property of the person, and the manager list is a query result rather than stored data.
+
 **P2.7 — Seed `employment_types` + backfill existing users as employees**
 - Add `employment_types` to `provisionHrmsDefaults()`.
 - Add `php artisan hrms:backfill-employees --tenant=ID|--all` (Console command): for every user without

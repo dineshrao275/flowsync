@@ -12,6 +12,7 @@ use App\Http\Requests\Hrms\EmployeeUpdateRequest;
 use App\Models\Hrms\Employee\Employee;
 use App\Policies\Hrms\Employee\EmployeePolicy;
 use App\Services\Hrms\Employee\EmployeeAccessLogger;
+use App\Services\Hrms\Employee\EmployeeDirectoryQuery;
 use App\Services\Hrms\Employee\EmployeePhotoService;
 use App\Services\Hrms\Employee\EmployeePresenter;
 use App\Services\Hrms\Employee\EmployeeService;
@@ -43,6 +44,7 @@ class EmployeeController extends Controller
         private readonly EmployeePresenter $presenter,
         private readonly EmployeePhotoService $photos,
         private readonly EmployeeAccessLogger $accessLog,
+        private readonly EmployeeDirectoryQuery $directory,
     ) {}
 
     /**
@@ -94,6 +96,9 @@ class EmployeeController extends Controller
         return response()->json([
             'employee' => $this->present($employee, $sensitive, $request),
             'status_history' => $this->presenter->presentHistory($employee),
+            // The manager picker needs its options, and a second request for them
+            // would leave the screen with an empty select for one round trip.
+            'filters' => ['managers' => $this->directory->managerOptions()],
         ]);
     }
 

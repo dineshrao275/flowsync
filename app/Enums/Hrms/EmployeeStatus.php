@@ -55,15 +55,25 @@ enum EmployeeStatus: string
         };
     }
 
+    /**
+     * A hex colour, not a Tailwind palette name.
+     *
+     * The clients render it as `backgroundColor: \`${color}22\``, which is only
+     * a valid colour if this is a hex — a palette name like `emerald` produces
+     * `emerald22`, the pill silently loses its background, and every status
+     * renders identically. Task statuses and priorities already store hex for
+     * the same reason, so this keeps one convention across the app instead of a
+     * second one that looks fine until something is styled with it.
+     */
     public function color(): string
     {
         return match ($this) {
-            self::Active => 'emerald',
-            self::Probation => 'sky',
-            self::OnNotice => 'amber',
-            self::Suspended => 'orange',
-            self::Exited => 'gray',
-            self::Terminated => 'red',
+            self::Active => '#10b981',
+            self::Probation => '#0ea5e9',
+            self::OnNotice => '#f59e0b',
+            self::Suspended => '#f97316',
+            self::Exited => '#6b7280',
+            self::Terminated => '#ef4444',
         };
     }
 }

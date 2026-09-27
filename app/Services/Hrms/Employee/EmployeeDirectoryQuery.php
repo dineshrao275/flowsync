@@ -117,15 +117,36 @@ class EmployeeDirectoryQuery
     }
 
     /**
-     * The distinct values a filter dropdown needs.
+     * Everyone who can be picked as a manager.
+     *
+     * *Everyone*, not just the people who already have a report — that list
+     * cannot seed a reporting line: a new hire reporting to someone who has
+     * never managed anyone is a perfectly ordinary first assignment, and with a
+     * reports-only list the select is empty and the choice is impossible to
+     * make. The same list serves the directory's manager filter, where picking
+     * a manager with no reports honestly returns nothing.
+     *
+     * Separate from {@see filterOptions()} because the profile screen needs only
+     * this list, and building the whole directory scope to get it would run a
+     * count and a per-status group-by on every profile open.
+     *
+     * @return Collection<int, object>
+     */
+    public function managerOptions(): Collection
+    {
+        return Employee::query()
+            ->orderBy('name')
+            ->get(['id', 'name', 'employee_code']);
+    }
+
+    /**
+     * The option lists that go with a directory request.
      *
      * @param  array<string, mixed>  $filters
      * @return array{employment_types: Collection<int, object>, managers: Collection<int, object>, statuses: list<array{value: string, label: string}>}
      */
     public function filterOptions(array $filters = []): array
     {
-        $scoped = $this->build($filters);
-
         return [
             // The whole active catalog, not the types currently in use: a type
             // nobody holds yet is exactly the one a reader wants to filter by
@@ -135,10 +156,8 @@ class EmployeeDirectoryQuery
                 ->orderBy('position')
                 ->orderBy('name')
                 ->get(['id', 'name', 'code']),
-            'managers' => $scoped->whereNotNull('employees.manager_id')
-                ->join('employees as managers', 'employees.manager_id', '=', 'managers.id')
-                ->distinct()
-                ->get(['managers.id', 'managers.name', 'managers.employee_code']),
+            // The picker list, not a reports-only list — see managerOptions().
+            'managers' => $this->managerOptions(),
             'statuses' => array_map(
                 fn (EmployeeStatus $status) => ['value' => $status->value, 'label' => $status->label()],
                 EmployeeStatus::cases(),

@@ -57,6 +57,32 @@ export const HRMS_MODULE_ROUTES = {
 };
 
 /**
+ * The tabs on an employee profile, with the module each one depends on.
+ *
+ * Only a section that has *shipped* gets an entry, on the same principle as
+ * `HRMS_MODULE_ROUTES`: a tab whose backend does not exist yet renders as a
+ * dead end, and a profile with six "coming soon" tabs is worse than one with
+ * none. A tab is added here as its phase lands.
+ */
+export const HRMS_PROFILE_TABS = {
+    overview: { label: 'Overview', module: 'hrms.core' },
+};
+
+/**
+ * The tabs a caller may see, in catalog order, filtered to their plan.
+ *
+ * @param {string[]} modules
+ * @returns {{ key: string, label: string }[]}
+ */
+export function hrmsProfileTabs(modules = []) {
+    const enabled = new Set(modules);
+
+    return Object.entries(HRMS_PROFILE_TABS)
+        .filter(([, tab]) => !tab.module || enabled.has(tab.module))
+        .map(([key, tab]) => ({ key, label: tab.label }));
+}
+
+/**
  * Group enabled modules for rendering, preserving catalog order.
  *
  * @param {string[]} modules

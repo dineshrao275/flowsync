@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import api from '../../services/api';
-import { fieldErrors } from '../../services/api';
+import { Link } from 'react-router-dom';
+import api, { fieldErrors } from '../../services/api';
 import Alert from '../../components/ui/Alert';
 import Avatar from '../../components/ui/Avatar';
 import Button from '../../components/ui/Button';
@@ -13,6 +13,7 @@ import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
 import { useSetCrumbs } from '../../context/BreadcrumbContext';
 import usePageTitle from '../../hooks/usePageTitle';
+import { employeeUrl } from '../../utils/deepLinks';
 import EmployeeFormModal from './EmployeeFormModal';
 
 /**
@@ -258,9 +259,12 @@ export default function Employees() {
                                     <span className="flex items-center gap-2.5">
                                         <Avatar name={employee.display_name} size="sm" />
                                         <span className="min-w-0">
-                                            <span className="block truncate font-medium text-gray-800">
+                                            <Link
+                                                to={employeeUrl(employee.id)}
+                                                className="block truncate font-medium text-gray-800 hover:text-indigo-700"
+                                            >
                                                 {employee.display_name}
-                                            </span>
+                                            </Link>
                                             {employee.user?.email && (
                                                 <span className="block truncate text-xs text-gray-400">
                                                     {employee.user.email}
