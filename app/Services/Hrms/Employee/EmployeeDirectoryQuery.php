@@ -25,48 +25,6 @@ use Illuminate\Support\Collection;
 class EmployeeDirectoryQuery
 {
     /**
-     * Columns the directory may be sorted by.
-     *
-     * A whitelist rather than passing `$filters['sort']` into `orderBy`: that
-     * parameter is user input, and an unvalidated column name is an injection
-     * vector and a way to sort by `password`.
-     *
-     * @var array<string, string>
-     */
-    private const SORTABLE = [
-        'name' => 'employees.name',
-        'code' => 'employees.employee_code',
-        'joining_date' => 'employees.joining_date',
-        'status' => 'employees.status',
-        'designation' => 'employees.designation',
-        'created_at' => 'employees.created_at',
-    ];
-
-    /**
-     * The ORDER BY column, or the default when the request names none we allow.
-     *
-     * @param  array<string, mixed>  $filters
-     */
-    private function sortColumn(array $filters): string
-    {
-        return self::SORTABLE[$filters['sort'] ?? 'name'] ?? 'employees.name';
-    }
-
-    /**
-     * The sort direction, from a whitelist of exactly two values.
-     *
-     * Re-checked here rather than trusted from the request: this query object is
-     * also driven directly by the service and by tests, and a direction reaching
-     * ORDER BY unchecked is a raw string in SQL.
-     *
-     * @param  array<string, mixed>  $filters
-     */
-    private function sortDirection(array $filters): string
-    {
-        return strtolower((string) ($filters['dir'] ?? 'asc')) === 'desc' ? 'desc' : 'asc';
-    }
-
-    /**
      * Apply a filter set to the base employee query.
      *
      * @param  array<string, mixed>  $filters
@@ -93,13 +51,15 @@ class EmployeeDirectoryQuery
      */
     public function paginate(array $filters = []): LengthAwarePaginator
     {
+        $sort = new EmployeeDirectorySort($filters);
+
         return $this->build($filters)
-            ->with($this->relations($filters))
-            ->orderBy($this->sortColumn($filters), $this->sortDirection($filters))
+            ->with($this->relations($filters, $sort))
+            ->orderBy($sort->column(), $sort->direction())
             // The id tiebreak goes the same way: a second sort key disagreeing
             // with the first makes page 2 of a desc-sorted list reshuffle rows
             // the caller has already seen.
-            ->orderBy('employees.id', $this->sortDirection($filters))
+            ->orderBy('employees.id', $sort->direction())
             ->paginate($this->perPage($filters));
     }
 
@@ -177,13 +137,13 @@ class EmployeeDirectoryQuery
      * @param  array<string, mixed>  $filters
      * @return list<string>
      */
-    private function relations(array $filters): array
+    private function relations(array $filters, ?EmployeeDirectorySort $sort = null): array
     {
         $relations = ['user', 'employmentType'];
 
         // Only eager-load the reporting line when something actually renders it,
         // otherwise every row in an unfiltered directory pays for two joins.
-        if (! empty($filters['manager_id']) || ($filters['sort'] ?? null) === 'manager') {
+        if (! empty($filters['manager_id']) || ($sort ?? new EmployeeDirectorySort($filters))->sortsByManager()) {
             $relations[] = 'manager';
         }
 
@@ -264,6 +224,29 @@ class EmployeeDirectoryQuery
 
         if (! empty($filters['manager_id'])) {
             $query->where('employees.manager_id', $filters['manager_id']);
+        }
+
+        $this->applyOrgFilters($query, $filters);
+    }
+
+    /**
+     * The three org references (P3.3), each an exact match.
+     *
+     * Exact, never a subtree: "everyone in Engineering" and "everyone under
+     * Engineering" are different questions, and a directory that quietly
+     * answered the second when asked the first would understate a team's size.
+     * The subtree walk belongs to the org context, which is the only place that
+     * has the tree loaded and can afford to walk it.
+     *
+     * @param  array<string, mixed>  $filters
+     * @param  Builder<Employee>  $query
+     */
+    private function applyOrgFilters(Builder $query, array $filters): void
+    {
+        foreach (['department_id', 'designation_id', 'location_id'] as $column) {
+            if (! empty($filters[$column])) {
+                $query->where("employees.{$column}", $filters[$column]);
+            }
         }
     }
 

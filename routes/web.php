@@ -13,6 +13,10 @@ use App\Http\Controllers\FeatureManagementController;
 use App\Http\Controllers\ForgotPasswordController;
 use App\Http\Controllers\GlobalSearchController;
 use App\Http\Controllers\Hrms\EmployeeController;
+use App\Http\Controllers\Hrms\Org\DepartmentController;
+use App\Http\Controllers\Hrms\Org\DesignationController;
+use App\Http\Controllers\Hrms\Org\LocationController;
+use App\Http\Controllers\Hrms\Org\OrgController;
 use App\Http\Controllers\ImpersonationController;
 use App\Http\Controllers\LabelController;
 use App\Http\Controllers\MySubscriptionController;
@@ -281,6 +285,42 @@ Route::prefix('api')->group(function () {
         Route::post('project-roles', [ProjectRoleController::class, 'store'])->middleware('permission:roles.manage');
         Route::put('project-roles/{role}', [ProjectRoleController::class, 'update'])->middleware('permission:roles.manage');
         Route::delete('project-roles/{role}', [ProjectRoleController::class, 'destroy'])->middleware('permission:roles.manage');
+    });
+
+    // HRMS org structure (Phase 15 P3.3). The same two gates as the employee
+    // surface: `hrms.core` decides whether the module exists for this tenant
+    // and `hrms.view` whether it can be reached, and the org policies then
+    // split reads (`hrms.org.view`) from writes (`hrms.org.manage`) per record.
+    //
+    // Each `reorder` is declared before its own `{resource}` sibling, because
+    // otherwise "reorder" binds as a department/designation/location id and
+    // comes back as a 404 on a perfectly valid drag-and-drop.
+    Route::group(['middleware' => ['ensure_module:hrms.core', 'permission:hrms.view']], function () {
+        Route::get('hrms/org', [OrgController::class, 'index']);
+
+        Route::get('hrms/departments', [DepartmentController::class, 'index']);
+        Route::post('hrms/departments', [DepartmentController::class, 'store']);
+        Route::post('hrms/departments/reorder', [DepartmentController::class, 'reorder']);
+        Route::get('hrms/departments/{department}', [DepartmentController::class, 'show']);
+        Route::put('hrms/departments/{department}', [DepartmentController::class, 'update']);
+        Route::delete('hrms/departments/{department}', [DepartmentController::class, 'destroy']);
+        Route::post('hrms/departments/{department}/deactivate', [DepartmentController::class, 'deactivate']);
+
+        Route::get('hrms/designations', [DesignationController::class, 'index']);
+        Route::post('hrms/designations', [DesignationController::class, 'store']);
+        Route::post('hrms/designations/reorder', [DesignationController::class, 'reorder']);
+        Route::get('hrms/designations/{designation}', [DesignationController::class, 'show']);
+        Route::put('hrms/designations/{designation}', [DesignationController::class, 'update']);
+        Route::delete('hrms/designations/{designation}', [DesignationController::class, 'destroy']);
+        Route::post('hrms/designations/{designation}/deactivate', [DesignationController::class, 'deactivate']);
+
+        Route::get('hrms/locations', [LocationController::class, 'index']);
+        Route::post('hrms/locations', [LocationController::class, 'store']);
+        Route::post('hrms/locations/reorder', [LocationController::class, 'reorder']);
+        Route::get('hrms/locations/{location}', [LocationController::class, 'show']);
+        Route::put('hrms/locations/{location}', [LocationController::class, 'update']);
+        Route::delete('hrms/locations/{location}', [LocationController::class, 'destroy']);
+        Route::post('hrms/locations/{location}/deactivate', [LocationController::class, 'deactivate']);
     });
 
     // HRMS employee records (Phase 15 P2.3). The module gate and `hrms.view`

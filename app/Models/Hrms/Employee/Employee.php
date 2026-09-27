@@ -5,6 +5,9 @@ namespace App\Models\Hrms\Employee;
 use App\Enums\Hrms\EmployeeStatus;
 use App\Enums\Hrms\WorkMode;
 use App\Models\Concerns\CentralConnection;
+use App\Models\Hrms\Org\Department;
+use App\Models\Hrms\Org\Designation;
+use App\Models\Hrms\Org\Location;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
@@ -47,6 +50,9 @@ use Illuminate\Support\Carbon;
  * @property Carbon|null $confirmation_date
  * @property int|null $employment_type_id
  * @property string|null $designation
+ * @property int|null $designation_id
+ * @property int|null $department_id
+ * @property int|null $location_id
  * @property int|null $manager_id
  * @property WorkMode $work_mode
  * @property EmployeeStatus $status
@@ -95,6 +101,12 @@ class Employee extends Model
         'confirmation_date',
         'employment_type_id',
         'designation',
+        // P3.1's org references. `designation` (the free text) stays fillable
+        // beside `designation_id` because a tenant that has not built a
+        // designation catalogue still has employees to describe.
+        'designation_id',
+        'department_id',
+        'location_id',
         'manager_id',
         'work_mode',
         'status',
@@ -116,6 +128,9 @@ class Employee extends Model
             'exit_date' => 'date',
             'user_id' => 'integer',
             'employment_type_id' => 'integer',
+            'designation_id' => 'integer',
+            'department_id' => 'integer',
+            'location_id' => 'integer',
             'manager_id' => 'integer',
         ];
     }
@@ -144,6 +159,28 @@ class Employee extends Model
     public function reports(): HasMany
     {
         return $this->hasMany(self::class, 'manager_id');
+    }
+
+    /**
+     * The org records this person sits in.
+     *
+     * The inverse of the Org models' `employees()`, added with them — without
+     * these a department's member list is reachable only from the department
+     * side, and the directory cannot answer "show me this person's team".
+     */
+    public function department(): BelongsTo
+    {
+        return $this->belongsTo(Department::class);
+    }
+
+    public function designation(): BelongsTo
+    {
+        return $this->belongsTo(Designation::class);
+    }
+
+    public function location(): BelongsTo
+    {
+        return $this->belongsTo(Location::class);
     }
 
     public function statusHistory(): HasMany

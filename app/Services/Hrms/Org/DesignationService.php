@@ -3,6 +3,7 @@
 namespace App\Services\Hrms\Org;
 
 use App\Models\Hrms\Org\Designation;
+use Illuminate\Support\Collection;
 use Illuminate\Validation\ValidationException;
 
 /**
@@ -15,6 +16,18 @@ use Illuminate\Validation\ValidationException;
 class DesignationService
 {
     public function __construct(private readonly OrgNaming $naming) {}
+
+    /**
+     * The flat list, ordered for the picker.
+     */
+    public function all(): Collection
+    {
+        return Designation::query()
+            ->withCount('employees')
+            ->orderBy('position')
+            ->orderBy('name')
+            ->get();
+    }
 
     /**
      * @param  array{name: string, code?: string|null, level?: int|null, department_id?: int|null, is_active?: bool}  $data

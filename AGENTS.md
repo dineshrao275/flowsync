@@ -512,7 +512,9 @@ Hierarchy: **Tenant → Workspace → Project → Task** (subtask `tasks.parent_
   (the SPA directory + `EmployeeDetail`/`StatusHistory`/`EmployeeEditModal`); P2.7
   (`EmployeeBackfill` + `hrms:backfill-employees`); P3.1 (`2026_09_27_000016` — `departments`,
   `designations`, `locations` + the three nullable `employees` FKs); P3.2 (the org models and the
-  `app/Services/Hrms/Org/` bounded context — see the P3.2 notes below).
+  `app/Services/Hrms/Org/` bounded context — see the P3.2 notes below); P3.3 (the org HTTP surface —
+  `app/Policies/Hrms/Org/`, `app/Http/Requests/Hrms/Org/`, `app/Http/Controllers/Hrms/Org/`, the
+  routes, and the three org FKs finally made writable on the employee — see the P3.3 notes below).
 - **Migration numbering is pre-assigned** in the plan's Part 3.3 (`2026_09_27_000014` for the shared
   tables, through `2026_10_04_000031`), one monolithic tenant migration per phase. Next free timestamp
   is now `2026_09_27_000017`.
@@ -617,6 +619,34 @@ Hierarchy: **Tenant → Workspace → Project → Task** (subtask `tasks.parent_
 - **A reorder is intersected with the real siblings first** (`OrgNaming::order()`): a reorder names the
   members of one list, and honouring a foreign id lets a payload drag a row out of a *different*
   parent. Omitted siblings keep their relative order at the end.
+- **`hrms.org.manage` does NOT imply `hrms.org.view`.** `OrgRecordPolicy` checks the two independently
+  and the three subclasses (`DepartmentPolicy`/`DesignationPolicy`/`LocationPolicy`) exist purely so
+  Laravel's convention-based discovery binds a *named* policy to each model. A manager-only role gets a
+  403 on every show, which is deliberate: `manage` is granted to somebody asked to fix a tenant's org
+  chart, and letting it imply reads would hand that person every employee's team. `HrmsOrgApiTest` pins
+  both directions.
+- **Declare each `reorder` route before its own `{resource}` sibling.** `hrms/departments/reorder`
+  declared after `hrms/departments/{department}` binds the literal string "reorder" as a department id
+  and 404s a perfectly valid drag-and-drop.
+- **A field-shaped rule is keyed to its field, not to `form`.** `head_employee_id` → the head picker
+  shows the error; a structural rule (a cycle, a record in use) has no one field to blame and uses
+  `form`. Getting this backwards makes a client attach a banner instead of the field's own message.
+- **P3.1's org FKs were unreachable until P3.3** — the columns existed and P3.2 read them, but no
+  employee *write* path accepted them, so only a seeder or raw SQL could fill them. They now live in
+  `EmployeeProfile::WRITABLE`, `Employee::$fillable` + casts, `EmployeeRequestBase::orgRules()` (split
+  out of `profileRules()` to stay under the 40-line method ceiling) and the audit snapshot, with
+  `department()`/`designation()`/`location()` as the inverse of the Org models' `employees()`.
+  `EmployeePresenter` emits the three as **scalars, not nested objects** — the org page already has
+  every department from the single `GET api/hrms/org` response, so a per-row join buys nothing.
+- **A directory filter on a department is an EXACT match, never a subtree** (`EmployeeDirectoryQuery::
+  applyOrgFilters()`): "everyone in Engineering" and "everyone under Engineering" are different
+  questions, and answering the second when asked the first understates the headcount badge the org
+  page prints. The subtree walk belongs to the org context, the only place holding the tree.
+- **`EmployeeDirectorySort` was extracted, not merged, when the class hit 303 lines.** The three org
+  filters pushed `EmployeeDirectoryQuery` past the 300-line ceiling; trimming comments treats the
+  symptom. The sort whitelist is a self-contained decision (the column list *and* the `ORDER BY` that
+  consumes it), so it became its own class. Watch the ceiling when a `apply*` method is added: the
+  standing split point is already used.
 - **`DepartmentService::update()` is a transaction** because the re-parent is validated *after* the
   scalars are applied — otherwise a rename + cyclic parent commits the rename and then 422s.
 - **`hrms:backfill-employees` is a data migration, and it infers no facts.** P2.7: `EmployeeBackfill`

@@ -919,6 +919,58 @@ class HrmsEmployeeApiTest extends TestCase
         return $employee->fresh();
     }
 
+    /**
+     * P3.3 wired the three org references into the employee write path, so
+     * they have to be assignable, readable back, and filterable — a column that
+     * can be written but never read is a silent no-op from the client's side.
+     */
+    public function test_an_employee_can_be_placed_in_the_org_and_filtered_by_it(): void
+    {
+        $this->actAs($this->userWith(['hrms.view', 'hrms.employees.view', 'hrms.employees.manage', 'hrms.org.view', 'hrms.org.manage']));
+
+        $department = $this->postJson('/api/hrms/departments', ['name' => 'Engineering'])->assertCreated()->json('department.id');
+        $designation = $this->postJson('/api/hrms/designations', ['name' => 'Engineer', 'level' => 3])->assertCreated()->json('designation.id');
+        $location = $this->postJson('/api/hrms/locations', ['name' => 'Pune'])->assertCreated()->json('location.id');
+
+        $placed = $this->postJson('/api/hrms/employees', [
+            'name' => 'Placed Person',
+            'department_id' => $department,
+            'designation_id' => $designation,
+            'location_id' => $location,
+        ])->assertCreated();
+
+        $placed->assertJsonPath('employee.department_id', $department)
+            ->assertJsonPath('employee.designation_id', $designation)
+            ->assertJsonPath('employee.location_id', $location);
+
+        $this->postJson('/api/hrms/employees', ['name' => 'Unplaced Person'])->assertCreated();
+
+        // The directory has to be able to answer the question, or the column is
+        // write-only decoration.
+        $filtered = $this->getJson("/api/hrms/employees?department_id={$department}")->assertOk();
+        $filtered->assertJsonCount(1, 'employees')
+            ->assertJsonPath('employees.0.name', 'Placed Person');
+
+        // An exact match, never a subtree: the org context answers "and their
+        // reports" separately and deliberately.
+        $child = $this->postJson('/api/hrms/departments', ['name' => 'Platform', 'parent_id' => $department])->assertCreated()->json('department.id');
+        $this->postJson('/api/hrms/employees', ['name' => 'Child Person', 'department_id' => $child])->assertCreated();
+
+        $this->getJson("/api/hrms/employees?department_id={$department}")
+            ->assertOk()
+            ->assertJsonCount(1, 'employees')
+            ->assertJsonPath('employees.0.name', 'Placed Person');
+    }
+
+    public function test_a_placement_must_point_at_a_real_org_record(): void
+    {
+        $this->actAs($this->userWith(['hrms.view', 'hrms.employees.view', 'hrms.employees.manage']));
+
+        $this->postJson('/api/hrms/employees', ['name' => 'Misplaced', 'department_id' => 999999])
+            ->assertStatus(422)
+            ->assertJsonValidationErrors('department_id');
+    }
+
     private function setAcmeModules(array $modules): void
     {
         $plan = app(SubscriptionPlan::class)->where('slug', 'pro')->firstOrFail();

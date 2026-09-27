@@ -5,6 +5,7 @@ namespace App\Services\Hrms\Org;
 use App\Enums\Hrms\EmployeeStatus;
 use App\Models\Hrms\Employee\Employee;
 use App\Models\Hrms\Org\Department;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
@@ -21,6 +22,23 @@ class DepartmentService
         private readonly DepartmentTree $tree,
         private readonly OrgNaming $naming,
     ) {}
+
+    /**
+     * The flat list, for pickers and the org page's detail column.
+     *
+     * Counts are eager-loaded: the org page asks for departments, designations
+     * and locations together, and a count per row is the textbook N+1 on the
+     * screen that asks for all three.
+     */
+    public function all(): Collection
+    {
+        return Department::query()
+            ->with('head')
+            ->withCount(['employees', 'children'])
+            ->orderBy('position')
+            ->orderBy('name')
+            ->get();
+    }
 
     /**
      * @param  array{name: string, code?: string|null, parent_id?: int|null, head_employee_id?: int|null, description?: string|null, is_active?: bool}  $data

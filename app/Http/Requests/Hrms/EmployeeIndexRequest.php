@@ -31,6 +31,11 @@ class EmployeeIndexRequest extends FormRequest
             'work_mode' => ['sometimes', 'nullable', Rule::enum(WorkMode::class)],
             'employment_type_id' => ['sometimes', 'nullable', 'integer', 'exists:employment_types,id'],
             'manager_id' => ['sometimes', 'nullable', 'integer', 'exists:employees,id'],
+            // P3.3's org filters, an exact match each — see the note in
+            // EmployeeDirectoryQuery::applyRelations().
+            'department_id' => ['sometimes', 'nullable', 'integer', 'exists:departments,id'],
+            'designation_id' => ['sometimes', 'nullable', 'integer', 'exists:designations,id'],
+            'location_id' => ['sometimes', 'nullable', 'integer', 'exists:locations,id'],
             'joined_from' => ['sometimes', 'nullable', 'date'],
             'joined_to' => ['sometimes', 'nullable', 'date', 'after_or_equal:joined_from'],
             'sort' => ['sometimes', 'nullable', 'string', 'max:32'],

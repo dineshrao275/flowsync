@@ -1595,12 +1595,59 @@ designations CRUD, locations CRUD. `tests/Feature/HrmsOrgServiceTest.php` (37 te
 > applied, so without the transaction a request that renames a department and asks for a cyclic parent
 > commits the rename and then reports 422 — a partial write on a rejected request.
 
-**P3.3 — Policies, requests, controller, routes**
+**P3.3 — Policies, requests, controllers, routes** ✅
 `DepartmentPolicy` / `DesignationPolicy` / `LocationPolicy` (view `hrms.org.view`; manage
-`hrms.org.manage`). `app/Http/Requests/Hrms/…` for each. `OrgController` with `GET|POST
+`hrms.org.manage`). `app/Http/Requests/Hrms/Org/…` for each. `OrgController` with `GET|POST
 api/hrms/departments`, `PUT|DELETE .../departments/{department}`, `POST .../departments/reorder`, the
 same for `designations` and `locations`, plus `GET api/hrms/org` returning the whole tree with headcounts
-in one request (one round trip for the org page).
+in one request (one round trip for the org page). `tests/Feature/HrmsOrgApiTest.php` (28 tests).
+
+> **`hrms.org.manage` does not imply `hrms.org.view`.** The two are independent
+> permissions, so a role can be granted the right to restructure the org without
+> the right to read it, and a department show is a 403 in that arrangement. That
+> sounds like a misconfiguration until the audit trail: whoever holds `manage` is
+> somebody being asked to fix the org chart for a tenant they do not administer,
+> and a "may write" grant that silently produced a readable copy of the whole
+> org would hand the same person every employee's team. `HrmsOrgApiTest` pins
+> both directions, so a future "obviously manage implies view" shortcut fails
+> instead of quietly widening the read surface.
+>
+> **The plan's single `OrgController` is split, per D2.16.2 again.** The one
+> controller would have carried three full CRUD resources plus the combined read,
+> which is well past the `class ≤ 300 lines` ceiling; `OrgController` now owns
+> only `GET api/hrms/org` and the three resource controllers own their own
+> verbs. The policies are split the same way: `OrgRecordPolicy` holds the shared
+> `hrms.org.view` / `hrms.org.manage` decision and the three subclasses exist so
+> Laravel's convention-based discovery binds a *named* policy to each model.
+>
+> **P3.1's org columns were unreachable until this task.** `employees.department_id`
+> / `designation_id` / `location_id` were added by the P3.1 migration, and P3.2
+> read them — but nothing in the employee **write** path accepted them, so the
+> columns could only ever be filled by a seeder or a hand-written SQL. They are
+> now in `EmployeeProfile::WRITABLE`, `Employee::$fillable`, the shared request
+> rules, and the audit snapshot, with the three `belongsTo` relations as the
+> inverse of the Org models' `employees()`. A column that can be written but
+> never read back is a silent no-op to the client, so `EmployeePresenter` emits
+> all three as scalars and `EmployeeDirectoryQuery` filters on each.
+>
+> **A directory filter on a department is an exact match, not a subtree.**
+> "Everyone in Engineering" and "everyone under Engineering" are different
+> questions, and answering the second when asked the first understates a team's
+> size — the number the org page prints as a headcount badge. The subtree walk
+> belongs to the org context, which is the only place holding the tree.
+>
+> **The three org rules are validated on the tenant connection.** `exists:departments,id`
+> resolves against the default connection, which during a tenant request *is* the
+> tenant database, so it checks the tenant's own rows and not a sibling tenant's
+> — the same mechanism (and the same caveat) as the Phase 14 `subscription_plans`
+> note, stated here because the connection is the isolation boundary and this
+> rule is the one place the org surface reaches back across it.
+>
+> **`EmployeeDirectorySort` was extracted to stay under the ceiling.** The three
+> new filters pushed `EmployeeDirectoryQuery` to 303 lines, and trimming comments
+> would have treated the symptom. The sort whitelist is a self-contained decision
+> — the column list and the query that runs `ORDER BY` on it — so it became its
+> own class rather than a shorter file.
 
 **P3.4 — Frontend org page**
 `resources/js/pages/hrms/Org.jsx` — a **tree + detail split view**: a collapsible department tree with

@@ -28,7 +28,7 @@ abstract class EmployeeRequestBase extends FormRequest
      */
     protected function profileRules(bool $nameRequired): array
     {
-        return [
+        return array_merge($this->orgRules(), [
             'name' => [$nameRequired ? 'required' : 'sometimes', 'string', 'max:255'],
             'preferred_name' => ['sometimes', 'nullable', 'string', 'max:255'],
 
@@ -64,6 +64,29 @@ abstract class EmployeeRequestBase extends FormRequest
             'status' => ['sometimes', 'nullable', Rule::enum(EmployeeStatus::class)],
 
             'notes' => ['sometimes', 'nullable', 'string', 'max:2000'],
+        ]);
+    }
+
+    /**
+     * The org references (P3.1's columns, reachable since P3.3), kept apart
+     * from the profile above because they are the one part of this payload
+     * another context owns: a department, a designation catalogue and a
+     * location list each have their own lifecycle and their own delete guards,
+     * and a rule change in any of those should not have to be read next to a
+     * payslip proration field.
+     *
+     * `exists:` resolves on the default connection, which during a tenant
+     * request is the tenant's own database — so it checks the tenant's
+     * departments, not a row from a sibling tenant.
+     *
+     * @return array<string, array<int, mixed>>
+     */
+    protected function orgRules(): array
+    {
+        return [
+            'department_id' => ['sometimes', 'nullable', 'integer', 'exists:departments,id'],
+            'designation_id' => ['sometimes', 'nullable', 'integer', 'exists:designations,id'],
+            'location_id' => ['sometimes', 'nullable', 'integer', 'exists:locations,id'],
         ];
     }
 }

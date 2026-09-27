@@ -60,6 +60,14 @@ class EmployeePresenter
             'status_color' => $employee->status->color(),
             'is_employed' => $employee->status->isEmployed(),
             'employment_type' => $this->employmentType($employee),
+            // The org references as written (P3.3). Scalars, not nested
+            // objects: the directory renders 25 rows at a time and the org
+            // page already has every department in hand from the single
+            // `GET api/hrms/org` response, so a per-row join would buy
+            // nothing the client cannot resolve itself.
+            'department_id' => $employee->department_id,
+            'designation_id' => $employee->designation_id,
+            'location_id' => $employee->location_id,
             'manager' => $this->manager($employee),
             'user' => $this->user($employee),
             // Left null here: only the caller knows the central tenant id, so

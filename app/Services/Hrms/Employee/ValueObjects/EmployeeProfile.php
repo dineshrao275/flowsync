@@ -59,6 +59,13 @@ final readonly class EmployeeProfile
         'confirmation_date',
         'employment_type_id',
         'designation',
+        // P3.1's columns. The free-text `designation` above is what the P2.2
+        // seed wrote and what a P2.7 backfill left behind; these are the
+        // referential replacements, and both are kept because a tenant that
+        // has not built a designation catalogue yet still has employees.
+        'designation_id',
+        'department_id',
+        'location_id',
         'work_mode',
         'notes',
     ];
@@ -77,6 +84,9 @@ final readonly class EmployeeProfile
         'work_mode',
         'status',
         'employment_type_id',
+        'designation_id',
+        'department_id',
+        'location_id',
         'manager_id',
         'joining_date',
     ];
