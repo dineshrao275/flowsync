@@ -507,7 +507,8 @@ Hierarchy: **Tenant → Workspace → Project → Task** (subtask `tasks.parent_
   (`2026_09_27_000015` — `employment_types`, `employees`, `employee_status_history`); P2.2 (the
   employee domain: enums, models, and the service — see the P2.2 notes below); P2.3
   (`EmployeePolicy` + `EmployeePresenter` + the `Requests/Hrms` family + `Hrms/EmployeeController` +
-  routes, with signed photo download).
+  routes, with signed photo download); P2.4 (`SensitiveFieldRedactor` masking + `EmployeeAccessLogger`
+  + `EmployeePhotoService`, with the payload keys identical across both privilege levels).
 - **Migration numbering is pre-assigned** in the plan's Part 3.3 (`2026_09_27_000014` for the shared
   tables, through `2026_10_04_000031`), one monolithic tenant migration per phase. Next free timestamp
   is now `2026_09_27_000016`.
@@ -557,6 +558,19 @@ Hierarchy: **Tenant → Workspace → Project → Task** (subtask `tasks.parent_
   person's photo is readable by anyone holding the URL and revoking it means unpublishing a file.
   The central `tenant` id rides inside the signature and the lookup happens inside
   `TenantDatabaseManager::using()`; `HrmsEmployeeApiTest` covers the flushSession + `iso_system` case.
+- **HRMS PII masking lives in `SensitiveFieldRedactor`** (P2.4) and the *response keys are the same*
+  for both payloads — a non-privileged reader gets masked values plus `restricted: true`, never absent
+  keys. Its `email()` masks the **domain** too (for a personal address the domain is the provider);
+  `dateOfBirth()` takes no argument and returns null (a year alone identifies someone in a small
+  company); `phone()` cuts any `ext`/`x`/`#` **before** extracting digits, or the extension shifts the
+  mask. `SENSITIVE_COLUMNS` is the single source for both what gets masked and what
+  `hrms_data_access_logs.fields` records.
+- **The employee directory masks personal fields even for a privileged reader**, and so is
+  `photo_url` — a list of 50 rows with home addresses is a bulk-harvest surface no single-record
+  screen is. `EmployeeAccessLogger::recordView()` writes the access row only when the personal fields
+  were actually visible *and* were populated; a false row in a sensitive-access ledger is worse than
+  none. `EmployeePhotoService` holds the photo's three rules (signed, tenant-scoped, download-logged)
+  and its URL carries the reader's id **inside the signature** so the download is attributable.
 - **`TenantLimits::currentCount()` counts `employees` via `Employee::count()`** — omitting the mapping
   made `assertQuota('employees')` a silent no-op, since an unknown resource counts 0.
 - **`employees.manager_id` is `nullOnDelete`, deliberately not `cascadeOnDelete()`.** Unlike

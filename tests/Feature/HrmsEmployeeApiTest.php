@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Enums\Hrms\EmployeeStatus;
 use App\Models\Hrms\Employee\Employee;
+use App\Models\Hrms\Shared\HrmsDataAccessLog;
 use App\Models\Permission;
 use App\Models\Role;
 use App\Models\SubscriptionPlan;
@@ -84,13 +85,20 @@ class HrmsEmployeeApiTest extends TestCase
         $this->putJson("/api/hrms/employees/{$mine->id}", ['name' => 'Renamed'])->assertForbidden();
     }
 
-    public function test_the_personal_fields_need_the_sensitive_permission(): void
+    public function test_the_personal_fields_are_masked_without_the_sensitive_permission(): void
     {
         $employee = $this->makeEmployee('Has Personal Data', [
             'personal_email' => 'private@flowsync.test',
             'phone' => '+15550001111',
             'date_of_birth' => '1990-04-01',
+            'gender' => 'female',
+            'marital_status' => 'married',
             'address_line1' => '1 Private Street',
+            'city' => 'Bengaluru',
+            'emergency_contact_name' => 'Ravi Kumar',
+            'emergency_contact_phone' => '+15550002222',
+            'emergency_contact_relation' => 'spouse',
+            'notes' => 'Something the directory has no business showing.',
         ]);
 
         $reader = $this->userWith(['hrms.view', 'hrms.employees.view']);
@@ -98,10 +106,34 @@ class HrmsEmployeeApiTest extends TestCase
         $this->actAs($reader);
         $body = $this->getJson("/api/hrms/employees/{$employee->id}")->assertOk()->json('employee');
 
-        $this->assertArrayNotHasKey('personal_email', $body);
-        $this->assertArrayNotHasKey('phone', $body);
-        $this->assertArrayNotHasKey('address', $body);
+        // Every key present, same shape as the privileged payload. A key that
+        // vanishes forces every call site to ask whether the person has no phone
+        // or the caller simply may not see it.
+        $this->assertArrayHasKey('personal_email', $body);
+        $this->assertArrayHasKey('phone', $body);
+        $this->assertArrayHasKey('date_of_birth', $body);
+        $this->assertArrayHasKey('address', $body);
+        $this->assertArrayHasKey('emergency_contact', $body);
         $this->assertTrue($body['restricted'], 'A restricted record should say so, not look empty.');
+
+        // Masked, and not reconstructible from what is left.
+        $this->assertSame('p***@***', $body['personal_email']);
+        $this->assertStringNotContainsString('flowsync', $body['personal_email']);
+        $this->assertSame('*********11', $body['phone'], 'Nine of eleven digits masked, the last two kept.');
+        $this->assertSame('R***', $body['emergency_contact']['name']);
+        $this->assertSame('*********22', $body['emergency_contact']['phone']);
+
+        // Dropped whole, because there is no partial mask of them worth having.
+        $this->assertNull($body['date_of_birth'], 'A year of birth still identifies someone in a small company.');
+        $this->assertNull($body['gender']);
+        $this->assertNull($body['marital_status']);
+        $this->assertNull($body['address']['line1']);
+        $this->assertNull($body['address']['city']);
+        $this->assertNull($body['emergency_contact']['relation'], '"spouse" is a disclosure about the employee.');
+        $this->assertNull($body['notes']);
+
+        // And a photo is a face, so it is gated the same way.
+        $this->assertNull($body['photo_url']);
 
         $privileged = $this->userWith([
             'hrms.view',
@@ -114,19 +146,136 @@ class HrmsEmployeeApiTest extends TestCase
 
         $this->assertSame('private@flowsync.test', $body['personal_email']);
         $this->assertSame('+15550001111', $body['phone']);
+        $this->assertSame('1990-04-01', $body['date_of_birth']);
         $this->assertSame('1 Private Street', $body['address']['line1']);
+        $this->assertSame('Ravi Kumar', $body['emergency_contact']['name']);
         $this->assertFalse($body['restricted']);
     }
 
-    public function test_the_directory_also_hides_the_personal_fields(): void
+    public function test_the_directory_masks_the_personal_fields_even_for_a_privileged_reader(): void
     {
-        $this->makeEmployee('Listed Person', ['personal_email' => 'private@flowsync.test']);
-        $this->actAs($this->userWith(['hrms.view', 'hrms.employees.view']));
+        $this->makeEmployee('Listed Person', [
+            'personal_email' => 'private@flowsync.test',
+            'phone' => '+15550001111',
+        ]);
+
+        // Deliberately the tenant admin, who may read any single record in full.
+        $this->login('admin@flowsync.test');
 
         $row = $this->getJson('/api/hrms/employees')->assertOk()->json('employees.0');
 
-        $this->assertArrayNotHasKey('personal_email', $row);
+        // A list of fifty people with their home addresses is a bulk-harvest
+        // surface that no single-record screen is, and the directory does not
+        // need a home address to do its job.
+        $this->assertSame('p***@***', $row['personal_email']);
         $this->assertTrue($row['restricted']);
+    }
+
+    // ------------------------------------------------------ access logging
+
+    public function test_reading_the_personal_fields_writes_a_data_access_row(): void
+    {
+        $employee = $this->makeEmployee('Watched', [
+            'personal_email' => 'private@flowsync.test',
+            'phone' => '+15550001111',
+        ]);
+
+        $privileged = $this->userWith([
+            'hrms.view',
+            'hrms.employees.view',
+            'hrms.documents.view_sensitive',
+        ]);
+
+        $this->actAs($privileged);
+        $this->getJson("/api/hrms/employees/{$employee->id}")->assertOk();
+
+        $log = HrmsDataAccessLog::where('record_id', $employee->id)->sole();
+
+        $this->assertSame((new Employee)->getMorphClass(), $log->model);
+        $this->assertSame('view', $log->action->value);
+        $this->assertSame($privileged->id, $log->actor_user_id);
+        $this->assertNotNull($log->ip_address);
+        // Field *names* only — never values. And only what was actually set,
+        // because a log listing all sixteen columns for a record with two filled
+        // cannot tell one read from another.
+        $this->assertSame(['personal_email', 'phone'], $log->fields);
+    }
+
+    public function test_a_masked_read_writes_no_data_access_row(): void
+    {
+        $employee = $this->makeEmployee('Unwatched', ['personal_email' => 'private@flowsync.test']);
+
+        $this->actAs($this->userWith(['hrms.view', 'hrms.employees.view']));
+        $this->getJson("/api/hrms/employees/{$employee->id}")->assertOk();
+
+        // Nothing was exposed, so claiming a read of sensitive data would be a
+        // false record — and it would make a real one look like the anomaly.
+        $this->assertSame(0, HrmsDataAccessLog::where('record_id', $employee->id)->count());
+    }
+
+    public function test_a_record_with_nothing_personal_on_it_writes_no_row(): void
+    {
+        $employee = $this->makeEmployee('Bare');
+
+        $this->actAs($this->userWith([
+            'hrms.view',
+            'hrms.employees.view',
+            'hrms.documents.view_sensitive',
+        ]));
+        $this->getJson("/api/hrms/employees/{$employee->id}")->assertOk();
+
+        $this->assertSame(0, HrmsDataAccessLog::where('record_id', $employee->id)->count());
+    }
+
+    public function test_a_photo_download_writes_a_data_access_row(): void
+    {
+        Storage::fake('public');
+        Storage::disk('public')->put('employees/face.png', 'binary');
+
+        $employee = $this->makeEmployee('Has A Face', [
+            'photo_path' => 'employees/face.png',
+            'personal_email' => 'private@flowsync.test',
+        ]);
+
+        $privileged = $this->userWith([
+            'hrms.view',
+            'hrms.employees.view',
+            'hrms.documents.view_sensitive',
+        ]);
+
+        $this->actAs($privileged);
+        $url = $this->getJson("/api/hrms/employees/{$employee->id}")->assertOk()->json('employee.photo_url');
+
+        $this->assertNotNull($url);
+        $this->get($url)->assertOk();
+
+        $log = HrmsDataAccessLog::where('action', 'download')->sole();
+
+        $this->assertSame($employee->id, $log->record_id);
+        // Attributable, which is the whole point: the download route has no
+        // session, so the actor rides inside the signature instead.
+        $this->assertSame($privileged->id, $log->actor_user_id);
+        $this->assertSame(['photo_path'], $log->fields);
+    }
+
+    public function test_tampering_with_the_signed_actor_does_not_work(): void
+    {
+        Storage::fake('public');
+        Storage::disk('public')->put('employees/face.png', 'binary');
+
+        $employee = $this->makeEmployee('Has A Face', ['photo_path' => 'employees/face.png']);
+
+        $this->actAs($this->userWith([
+            'hrms.view',
+            'hrms.employees.view',
+            'hrms.documents.view_sensitive',
+        ]));
+        $url = $this->getJson("/api/hrms/employees/{$employee->id}")->assertOk()->json('employee.photo_url');
+
+        // Re-pointing the read at another account is exactly what the signature
+        // exists to prevent — otherwise the download log could be forged.
+        $this->get(str_replace('actor=', 'actor=9', $url))->assertForbidden();
+        $this->assertSame(0, HrmsDataAccessLog::where('action', 'download')->count());
     }
 
     // ------------------------------------------------------------- index

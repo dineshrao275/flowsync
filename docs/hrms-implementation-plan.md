@@ -1363,6 +1363,40 @@ Three bugs the tests caught:
 `terminate` writes an `HrmsAuditLogger` row with before/after. Reading a profile with sensitive fields
 visible writes an `hrms_data_access_logs` row.
 
+**P2.4 — status: SHIPPED.** `SensitiveFieldRedactor` owns every masking decision, one named primitive
+per rule, so a mask cannot quietly stop being applied to one field:
+`email()` -> `a***@***` (**the domain is masked too** — for a personal address the domain is the provider,
+and in a company where four people use the same one it narrows the field to a handful of people),
+`phone()` -> all but the last two digits, `name()` -> first character. `dateOfBirth()` takes **no
+argument and returns null**: there is no partial mask of a date that is not a disclosure, since a year
+alone identifies someone in a company small enough to have a directory. `masked()` is the counterpart to
+the presenter's privileged block and has the **same keys** — a vanishing key forces every call site to
+wask whether the person has no phone or the caller may not see it, and `restricted: true` is what
+separates "masked" from "not set". One bug the unit tests caught: `phone()` extracted digits from the
+whole string, so `"+15550001111 ext 4"` was masked as ending `14` — the extension, not the number, and
+the wrong length too; the extension is now cut before the digits are read. 26 unit tests, and the
+`SENSITIVE_COLUMNS` list is the *single* source for both what gets masked and what the access log
+records, so a field cannot be readable through the API yet missing from the log that says who read it.
+
+Two deliberate decisions beyond the plan's wording, both recorded here because they are the kind a
+reader would otherwise assume was an oversight:
+
+- **The directory masks the personal fields even for a privileged reader.** Fifty rows with home
+  addresses and dates of birth is a bulk-harvest surface that no single-record screen is, and paging
+  through it is how a harvest looks. The profile screen is where the real values live.
+- **A photo is a face**, so `photo_url` is gated on `hrms.documents.view_sensitive` exactly like the
+  other personal fields, and the avatar slot falls back to initials. That also gives the download an
+  actor: `EmployeeAccessLogger` decides when a read counts (only when the personal fields were actually
+  visible, and only for columns that are populated — a false row in a sensitive-access ledger is worse
+  than none), and the signed URL now carries the reader's id inside the signature so the download is
+  attributable. `EmployeePhotoService` was extracted to hold the three rules a photo has (signed,
+  tenant-scoped, access-logged), which is also what brought the controller back under the D2.16
+  300-line ceiling. `hrms_data_access_logs` needed no migration — it shipped with the P1.8 primitives.
+
+The plan's `before`/`after` requirement on `update`/`changeStatus`/`terminate` was **already met** by
+P2.2; what was missing was proof, so the two new service tests assert the actual `before`/`after`
+values and that neither the old nor the new personal value reaches the ledger.
+
 **P2.5 — Frontend directory page**
 `resources/js/pages/hrms/Employees.jsx` — filter bar (search, status, employment type, department,
 manager, joined range), sortable paginated table, avatar, status pill, and a "New employee" modal

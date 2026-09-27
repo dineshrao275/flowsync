@@ -701,6 +701,49 @@ class HrmsEmployeeServiceTest extends TestCase
         $this->assertStringContainsString('EMP-', $serialised, 'The audit row should still identify the record');
     }
 
+    public function test_an_update_records_the_before_and_the_after(): void
+    {
+        $employee = $this->service()->create(['name' => 'Before Name']);
+        $id = $employee->id;
+
+        $this->service()->update($employee, ['name' => 'After Name']);
+
+        $log = HrmsAuditLog::where('subject_id', $id)
+            ->where('action', 'employee.updated')
+            ->sole();
+
+        // A ledger row that records only "something changed" cannot answer the
+        // question it exists to answer, which is what the record looked like
+        // before someone with the permission changed it.
+        $this->assertSame('Before Name', $log->data['before']['name']);
+        $this->assertSame('After Name', $log->data['after']['name']);
+    }
+
+    public function test_an_update_never_writes_a_personal_value_to_the_ledger(): void
+    {
+        $employee = $this->service()->create([
+            'name' => 'Reached',
+            'phone' => '+15550001111',
+        ]);
+
+        $this->service()->update($employee, ['phone' => '+15550009999']);
+
+        $log = HrmsAuditLog::where('subject_id', $employee->id)
+            ->where('action', 'employee.updated')
+            ->sole();
+
+        $serialised = json_encode($log->data);
+
+        // Both the old and the new number, since a `before`/`after` pair is
+        // exactly where a personal value would otherwise slip through.
+        foreach (['+15550001111', '+15550009999'] as $secret) {
+            $this->assertStringNotContainsString($secret, $serialised, "Leaked into the audit ledger: {$secret}");
+        }
+
+        $this->assertArrayHasKey('before', $log->data);
+        $this->assertArrayHasKey('after', $log->data);
+    }
+
     // ------------------------------------------------------------ directory
 
     public function test_the_directory_searches_name_code_and_personal_email(): void

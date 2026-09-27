@@ -10,15 +10,19 @@ use App\Models\Hrms\Employee\Employee;
  * Its own class, and not a `present()` on the model, for two reasons. The model
  * is the domain and must not know about HTTP or about who is asking; and the
  * answer to "what may this caller see" is a *different payload*, not the same
- * payload with blanks in it — an absent key and an empty string are not the same
- * to a client, and a masked field that arrives as `""` invites a UI to render a
- * blank space where it should have rendered "restricted".
+ * payload with blanks in it.
  *
- * So the sensitive fields are simply absent for a caller without
- * `hrms.documents.view_sensitive`, and `restricted` says so explicitly.
+ * Both payloads have the **same keys**. A reader without
+ * `hrms.documents.view_sensitive` gets every personal field present and masked
+ * (see {@see SensitiveFieldRedactor}), not absent: a fixed shape means one
+ * client layout instead of two, and a key that vanishes forces every call site
+ * to ask whether the person has no phone or the caller simply may not see it.
+ * `restricted: true` is the flag that separates "masked" from "not set".
  */
 class EmployeePresenter
 {
+    public function __construct(private readonly SensitiveFieldRedactor $redactor) {}
+
     /**
      * The public record: enough for a directory row or a roster.
      *
@@ -29,9 +33,7 @@ class EmployeePresenter
         $record = $this->publicFields($employee);
 
         if (! $includeSensitive) {
-            $record['restricted'] = true;
-
-            return $record;
+            return array_merge($record, $this->redactor->masked($employee));
         }
 
         return array_merge($record, $this->sensitive($employee));

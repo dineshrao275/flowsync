@@ -10,17 +10,15 @@ use App\Http\Requests\Hrms\EmployeeStoreRequest;
 use App\Http\Requests\Hrms\EmployeeTerminateRequest;
 use App\Http\Requests\Hrms\EmployeeUpdateRequest;
 use App\Models\Hrms\Employee\Employee;
-use App\Models\Tenant;
 use App\Policies\Hrms\Employee\EmployeePolicy;
+use App\Services\Hrms\Employee\EmployeeAccessLogger;
+use App\Services\Hrms\Employee\EmployeePhotoService;
 use App\Services\Hrms\Employee\EmployeePresenter;
 use App\Services\Hrms\Employee\EmployeeService;
-use App\Support\TenantContext;
-use App\Support\TenantDatabaseManager;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
-use Illuminate\Support\Facades\Storage;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
 /**
@@ -43,6 +41,8 @@ class EmployeeController extends Controller
     public function __construct(
         private readonly EmployeeService $employees,
         private readonly EmployeePresenter $presenter,
+        private readonly EmployeePhotoService $photos,
+        private readonly EmployeeAccessLogger $accessLog,
     ) {}
 
     /**
@@ -55,8 +55,14 @@ class EmployeeController extends Controller
         $filters = $request->filters();
         $page = $this->employees->list($filters);
 
+        // Masked even for a caller who could read the full record one at a time.
+        // A list of fifty people with their dates of birth and home addresses is
+        // a data-mining surface that no single-record screen is: nothing in the
+        // directory's job needs a home address, and paging through it is how a
+        // bulk harvest looks. The profile screen is where a privileged reader
+        // gets the real values.
         $rows = $page->getCollection()
-            ->map(fn (Employee $employee) => $this->present($employee, $request))
+            ->map(fn (Employee $employee) => $this->presenter->present($employee))
             ->all();
 
         return response()->json([
@@ -79,8 +85,14 @@ class EmployeeController extends Controller
 
         $employee->loadMissing(['manager', 'employmentType', 'user', 'statusHistory.actor']);
 
+        // Resolved once and reused, so the payload and the access log can never
+        // disagree about whether the caller saw the personal fields.
+        $sensitive = $this->maySeeSensitive($request, $employee);
+
+        $this->accessLog->recordView($employee, $request->user(), $request->ip(), $sensitive);
+
         return response()->json([
-            'employee' => $this->present($employee, $request),
+            'employee' => $this->present($employee, $sensitive, $request),
             'status_history' => $this->presenter->presentHistory($employee),
         ]);
     }
@@ -96,7 +108,7 @@ class EmployeeController extends Controller
 
         return response()->json([
             'message' => 'Employee created.',
-            'employee' => $this->present($employee->load(['manager', 'employmentType', 'user']), $request),
+            'employee' => $this->present($employee->load(['manager', 'employmentType', 'user']), $this->maySeeSensitive($request, $employee), $request),
         ], Response::HTTP_CREATED);
     }
 
@@ -111,7 +123,7 @@ class EmployeeController extends Controller
 
         return response()->json([
             'message' => 'Employee updated.',
-            'employee' => $this->present($employee->load(['manager', 'employmentType', 'user']), $request),
+            'employee' => $this->present($employee->load(['manager', 'employmentType', 'user']), $this->maySeeSensitive($request, $employee), $request),
         ]);
     }
 
@@ -149,7 +161,7 @@ class EmployeeController extends Controller
 
         return response()->json([
             'message' => 'Employment status updated.',
-            'employee' => $this->present($employee->load(['manager', 'employmentType', 'user']), $request),
+            'employee' => $this->present($employee->load(['manager', 'employmentType', 'user']), $this->maySeeSensitive($request, $employee), $request),
         ]);
     }
 
@@ -172,7 +184,7 @@ class EmployeeController extends Controller
 
         return response()->json([
             'message' => 'Reporting line updated.',
-            'employee' => $this->present($employee->load(['manager', 'employmentType', 'user']), $request),
+            'employee' => $this->present($employee->load(['manager', 'employmentType', 'user']), $this->maySeeSensitive($request, $employee), $request),
         ]);
     }
 
@@ -194,7 +206,7 @@ class EmployeeController extends Controller
 
         return response()->json([
             'message' => 'Employment ended.',
-            'employee' => $this->present($employee->load(['manager', 'employmentType', 'user']), $request),
+            'employee' => $this->present($employee->load(['manager', 'employmentType', 'user']), $this->maySeeSensitive($request, $employee), $request),
         ]);
     }
 
@@ -209,70 +221,53 @@ class EmployeeController extends Controller
      *
      * @param  int  $employee  Tenant-local id, deliberately unbound.
      */
+    /**
+     * The photo, served from its signed link.
+     *
+     * Intentionally outside the auth/tenant groups, like the task attachment
+     * download: the signature is the credential, so a fresh browser tab or an
+     * <img> tag works. Every value it needs therefore arrives inside the signed
+     * query string.
+     */
     public function photo(Request $request, int $employee): StreamedResponse
     {
-        $tenant = Tenant::find((int) $request->query('tenant'));
+        $actor = $request->query('actor');
 
-        abort_if($tenant === null, 404);
-
-        return app(TenantDatabaseManager::class)->using($tenant, function () use ($employee) {
-            $record = Employee::query()->where('id', $employee)->first();
-
-            abort_if($record === null || $record->photo_path === null, 404);
-
-            if (! Storage::disk('public')->exists($record->photo_path)) {
-                abort(404, 'File no longer exists.');
-            }
-
-            return Storage::disk('public')->download($record->photo_path);
-        });
+        return $this->photos->stream(
+            $employee,
+            (int) $request->query('tenant'),
+            $actor === null ? null : (int) $actor,
+            $request->ip(),
+        );
     }
 
-    /**
-     * Present one record, deciding sensitive access through the policy.
-     *
-     * @return array<string, mixed>
-     */
-    private function present(Employee $employee, Request $request): array
+    private function maySeeSensitive(Request $request, ?Employee $employee = null): bool
     {
-        $record = $this->presenter->present($employee, $request->user()->can('viewSensitive', $employee));
+        $user = $request->user();
 
-        // The presenter has no business knowing the central tenant id, so the
-        // signed URL is built here where the request is.
-        $record['photo_url'] = $this->photoUrl($employee);
+        if ($user === null) {
+            return false;
+        }
+
+        // A class name is a valid second argument: Laravel drops it before
+        // calling the policy, so the policy's `$employee` parameter stays
+        // optional and the class-level case needs no branch here.
+        return $user->can('viewSensitive', $employee ?? Employee::class);
+    }
+
+    private function present(Employee $employee, bool $sensitive, Request $request): array
+    {
+        $record = $this->presenter->present($employee, $sensitive);
+
+        // A photo is a face, so it is gated exactly like the other personal
+        // fields, and the initials fallback in the avatar slot takes the place.
+        $record['photo_url'] = $sensitive
+            ? $this->photos->url($employee, $request->user()?->id)
+            : null;
 
         return $record;
     }
 
-    /**
-     * A signed, tenant-scoped photo URL, or null.
-     *
-     * Not `Storage::url()`: that would serve the photo from the public disk
-     * without a signature, so revoking access to it would mean unpublishing a
-     * file rather than changing a permission.
-     */
-    private function photoUrl(Employee $employee): ?string
-    {
-        if ($employee->photo_path === null || $employee->photo_path === '') {
-            return null;
-        }
-
-        return url()->temporarySignedRoute(
-            'hrms.employees.photo',
-            now()->addHours(1),
-            // The central tenant id rides inside the signature. The employee id
-            // is tenant-local, so on the central connection — which is what the
-            // signed route runs on — it resolves to nothing at all.
-            ['employee' => $employee->id, 'tenant' => app(TenantContext::class)->currentId()],
-        );
-    }
-
-    /**
-     * The uniform pagination payload — never `$page->toArray()`, which carries
-     * the query string and the link headers along with it.
-     *
-     * @return array{current_page: int, last_page: int, per_page: int, total: int}
-     */
     private function pagination(LengthAwarePaginator $page): array
     {
         return [
