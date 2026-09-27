@@ -613,6 +613,13 @@ Hierarchy: **Tenant → Workspace → Project → Task** (subtask `tasks.parent_
   `backgroundColor: \`${color}22\``, so a palette name silently yields an invalid colour and every
   status looks identical. `EmployeeStatus::color()` returned `emerald`/`sky`/… and was fixed in
   P2.6; `config/task_statuses.php` and `config/priorities.php` already store hex. Wire-tested.
+  `WorkMode`, `ApprovalStatus` and `ApprovalStepStatus` carried the same palette names with **no
+  consumer yet** — which is the only reason nobody had hit it, and the reason the next person to
+  render a work-mode or approval pill would have. All three now return hex, and
+  `tests/Unit/Hrms/HrmsEnumColorTest.php` reflects over `app/Enums/Hrms/` to pin the convention for
+  every current and future enum. It needs no application boot, so it locates the directory relative
+  to the test file rather than calling `app_path()`, and it guards `method_exists` before building a
+  `ReflectionMethod` (a missing method throws, and `DataAccessAction` has no `color()`).
 - **P3.2 splits the plan's single `OrgService.php` into `app/Services/Hrms/Org/`.** The literal path
   is superseded by D2.16.2 (P1.9 precedent): `DepartmentTree` (cycle check, descendants, path),
   `DepartmentChart` (the nested read model with headcounts), `DepartmentService`, `DesignationService`,
