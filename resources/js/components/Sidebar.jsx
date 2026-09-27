@@ -18,6 +18,12 @@ const sections = [
         ],
     },
     {
+        label: 'People',
+        items: [
+            { to: '/hrms', label: 'HRMS', capabilities: ['module:hrms.core'], icon: 'M17 20h5v-2a4 4 0 00-3-3.87M9 20H4v-2a4 4 0 013-3.87m4-1.13a4 4 0 10-4-4 4 4 0 004 4zm6 2a3 3 0 10-3-3' },
+        ],
+    },
+    {
         label: 'Administration',
         items: [
             { to: '/users', label: 'Users', capabilities: ['users.view'], icon: 'M17 20h5v-2a4 4 0 00-3-3.87M9 20H4v-2a4 4 0 013-3.87m4-1.13a4 4 0 10-4-4 4 4 0 004 4zm6 2a3 3 0 10-3-3' },

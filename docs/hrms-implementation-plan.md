@@ -1183,6 +1183,43 @@ endpoint might mass-assign is not a trade worth making for one line of convenien
 - Verify: a `starter` tenant sees no People section; a `pro` tenant sees it; a non-impersonating super
   admin is redirected per the existing rules.
 
+**Status: done.** 10 tests / 135 assertions in `tests/Feature/HrmsShellTest.php`; full suite 524 tests /
+3307 assertions; `npm run build` green.
+
+Two deliberate deviations from the wording above:
+
+- **The tiles are inert, not links.** The wording says "listing enabled modules with links (each 403s
+  until its phase lands)". A link to a route that does not exist yet lands the user on a blank screen,
+  which reads as a bug rather than as "not built yet", and a 403 is a worse answer for a module the
+  tenant has paid for than an honest "Planned" badge. So `HRMS_MODULE_ROUTES` is an empty map today and
+  `hrmsModuleGroups()` returns `to: null` for every module, which `HrmsOverview` renders as a dashed,
+  non-interactive tile. Each phase adds its own entry, and the tile becomes a link by data change only —
+  no page edit. The catalogue-drift test asserts the map stays empty until a route exists, so the two
+  cannot fall out of step.
+- **The "read-only until hrms.core" warning was removed as unreachable.** `/hrms` sits inside
+  `<ProtectedRoute module="hrms.core">`, so the page cannot render for a tenant without that module and
+  the conditional below the grid could never be true. Dead code that claims a state the router forbids
+  is worse than no code.
+
+The module names and groups are a literal JS mirror of `config('subscriptions.module_meta')`, so
+`test_the_spa_catalog_matches_the_php_module_catalog` parses both and compares them key by key. The test
+was verified to fail (not just pass) by injecting a label drift, and the drift guard is what makes adding
+a module to the PHP catalogue without a matching tile impossible to miss.
+
+### Delivery gate
+
+Every HRMS task is reviewed and verified, then committed and pushed without waiting to be asked. Two
+tests in `HrmsShellTest` enforce the part that is mechanically checkable:
+
+- `test_every_commit_is_pushed` — HEAD must resolve to the same SHA as the upstream branch. It compares
+  commits only, never the working tree, so the suite stays green while a task is mid-edit and only goes
+  red when a commit was actually left behind unpushed. Skips itself when git or an upstream is absent
+  (CI, an exported tarball) instead of failing for the wrong reason.
+- `test_the_hrms_tree_is_free_of_debug_leftovers` — no `dd()`/`dump()`/`var_dump()`/`print_r()`/`ray()`/
+  `console.log`, and no `TODO`/`FIXME`/`XXX`/`APPEND`, anywhere in the HRMS tree. Function calls need a
+  word boundary, because `ray(` is a substring of `array(` and would otherwise flag every typed property;
+  comments are stripped first so a `dd(` inside a mask pattern is not a false positive.
+
 **Acceptance:** `hrms` can be switched on/off per tenant and per plan; a non-entitled module 403s every
 HRMS route; the three primitives are usable; a new tenant is provisioned with an `hrms_settings` row;
 full suite green; AGENTS.md test count updated.

@@ -20,7 +20,7 @@ Laravel 12 + React 19 SPA. Session-based auth **without** Breeze/Fortify/Sanctum
   `tenants:provision` + seeds demo data (superadmin + acme + globex). Reset from scratch:
   `docker-compose down -v` then `up -d` (app entrypoint re-initializes; `RUN_INIT=true` only for `app`).
   No PHP/composer needed on the host — envs in `.env.docker`.
-- `php artisan test` — run test suite (Phase 13: **isolated, per-tenant file DBs** via `Tests\IsolatesDatabase`; current gate: **514 tests / 3172 assertions passing**)
+- `php artisan test` — run test suite (Phase 13: **isolated, per-tenant file DBs** via `Tests\IsolatesDatabase`; current gate: **524 tests / 3307 assertions passing**)
 
 - `npm run build` / `npm run dev` — frontend build / Vite dev server
 - `./vendor/bin/pint` — PHP code style (run over whole repo; `--dirty` only works in git)
@@ -28,6 +28,15 @@ Laravel 12 + React 19 SPA. Session-based auth **without** Breeze/Fortify/Sanctum
 - `php artisan tenants:provision` — idempotently provision/repair tenant DBs (`provisionIsolated` pipeline) + backfill permissions/roles/priorities/project-roles (`--tenant=ID` for one)
 - `php artisan tenants:seed-scale` — large realistic scale seed (defaults 100 tenants / 10 users each / **5-10** workspaces / **5-10** projects / 100 tasks per project; `--tenants --users --workspaces --projects --tasks --no-related --seed --dry-run`); `--workspaces`/`--projects` accept a count **or a min-max range drawn per tenant**; provisions real tenants through the onboarding pipeline and prints a totals table + elapsed time (see P10)
 - `composer run dev` — concurrently runs serve + queue + pail(logs) + Vite **+ Reverb websockets**
+- **Delivery: commit and push every task yourself — do not wait to be asked.** The HRMS plan
+  (Phase 15) is executed as one reviewed, verified commit per task on `new/hrms-development`. Before
+  committing: read the full `git diff` (new files included), run the focused test, `php artisan test`,
+  `./vendor/bin/pint --test` and `npm run build` when JS changed, then `git add` the intended paths
+  only and `git commit`, then `git push` immediately. `HrmsShellTest::test_every_commit_is_pushed`
+  fails the suite if a commit is ever left local-only, and
+  `HrmsShellTest::test_the_hrms_tree_is_free_of_debug_leftovers` fails it on leftover
+  `dd()`/`dump()`/`console.log`/`TODO` in the HRMS tree. Never commit `.env*`, credentials, or
+  `storage/`; never use `--force`.
 - Entry: `resources/js/main.jsx` (imports `./bootstrap`, React StrictMode). `resources/js/app.js` is unused stock; ignore it.
 
 ## Demo logins (password `password`)

@@ -23,6 +23,7 @@ import Users from './pages/Users';
 import Roles from './pages/Roles';
 import Settings from './pages/Settings';
 import Reports from './pages/Reports';
+import HrmsOverview from './pages/HrmsOverview';
 import Search from './pages/Search';
 import Notifications from './pages/Notifications';
 import Tenants from './pages/Tenants';
@@ -113,6 +114,10 @@ function AppRoutes() {
                         </Route>
                         <Route element={<ProtectedRoute permission="reports.view" module="reports" />}>
                             <Route path="/reports" element={<Reports />} />
+                        </Route>
+                        <Route element={<ProtectedRoute module="hrms.core" />}>
+                            <Route path="/hrms" element={<HrmsOverview />} />
+                            <Route path="/hrms/:section" element={<HrmsOverview />} />
                         </Route>
                         <Route element={<ProtectedRoute permission="users.view" />}>
                             <Route path="/users" element={<Users />} />
