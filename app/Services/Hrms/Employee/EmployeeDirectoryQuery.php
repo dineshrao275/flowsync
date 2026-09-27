@@ -43,6 +43,30 @@ class EmployeeDirectoryQuery
     ];
 
     /**
+     * The ORDER BY column, or the default when the request names none we allow.
+     *
+     * @param  array<string, mixed>  $filters
+     */
+    private function sortColumn(array $filters): string
+    {
+        return self::SORTABLE[$filters['sort'] ?? 'name'] ?? 'employees.name';
+    }
+
+    /**
+     * The sort direction, from a whitelist of exactly two values.
+     *
+     * Re-checked here rather than trusted from the request: this query object is
+     * also driven directly by the service and by tests, and a direction reaching
+     * ORDER BY unchecked is a raw string in SQL.
+     *
+     * @param  array<string, mixed>  $filters
+     */
+    private function sortDirection(array $filters): string
+    {
+        return strtolower((string) ($filters['dir'] ?? 'asc')) === 'desc' ? 'desc' : 'asc';
+    }
+
+    /**
      * Apply a filter set to the base employee query.
      *
      * @param  array<string, mixed>  $filters
@@ -71,8 +95,11 @@ class EmployeeDirectoryQuery
     {
         return $this->build($filters)
             ->with($this->relations($filters))
-            ->orderBy(self::SORTABLE[$filters['sort'] ?? 'name'] ?? 'employees.name')
-            ->orderBy('employees.id')
+            ->orderBy($this->sortColumn($filters), $this->sortDirection($filters))
+            // The id tiebreak goes the same way: a second sort key disagreeing
+            // with the first makes page 2 of a desc-sorted list reshuffle rows
+            // the caller has already seen.
+            ->orderBy('employees.id', $this->sortDirection($filters))
             ->paginate($this->perPage($filters));
     }
 

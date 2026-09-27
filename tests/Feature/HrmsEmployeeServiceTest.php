@@ -882,25 +882,38 @@ class HrmsEmployeeServiceTest extends TestCase
         $this->assertGreaterThan(0, app(TenantLimits::class)->currentCount('users'));
     }
 
-    // ------------------------------------------------------------- photoUrl
+    // -------------------------------------------------------------- delete
 
-    public function test_the_photo_url_is_null_when_there_is_no_photo(): void
+    public function test_a_delete_is_soft_and_keeps_the_ledger(): void
     {
-        $employee = $this->service()->create(['name' => 'No Photo']);
+        // Payroll, leave and attendance rows will reference this person long
+        // after the record leaves the directory, so the delete cannot be hard.
+        $employee = $this->service()->create(['name' => 'Removable']);
+        $this->service()->changeStatus($employee, EmployeeStatus::OnNotice);
+        $id = $employee->id;
 
-        $this->assertNull($this->service()->photoUrl($employee));
-        $this->assertNull($this->service()->photoUrl(null));
+        $this->service()->delete($employee->fresh());
+
+        $this->assertSoftDeleted('employees', ['id' => $id]);
+        $this->assertSame(1, EmployeeStatusHistory::where('employee_id', $id)->count());
+        $this->assertNull(Employee::find($id));
     }
 
-    public function test_the_photo_url_resolves_a_stored_path(): void
+    public function test_a_delete_leaves_the_linked_login_alone(): void
     {
-        $employee = $this->service()->create(['name' => 'Has Photo']);
-        $employee->update(['photo_path' => 'hrms/photos/1.png']);
+        // Disabling someone's ability to sign in is a much larger event than the
+        // one the caller asked for, and it has its own surface.
+        $employee = $this->service()->create([
+            'name' => 'Still Employed',
+            'email' => 'still.here@flowsync.test',
+            'password' => 'password',
+        ]);
+        $userId = $employee->user_id;
 
-        $this->assertStringContainsString(
-            'hrms/photos/1.png',
-            (string) $this->service()->photoUrl($employee->fresh()),
-        );
+        $this->service()->delete($employee->fresh());
+
+        $this->assertNotNull(User::find($userId));
+        $this->assertSame(1, TenantUserRouting::where('email', 'still.here@flowsync.test')->count());
     }
 
     private function assignPlanWithEmployeeLimit(int $employees): void

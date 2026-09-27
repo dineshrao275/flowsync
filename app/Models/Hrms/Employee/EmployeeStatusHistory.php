@@ -3,6 +3,7 @@
 namespace App\Models\Hrms\Employee;
 
 use App\Enums\Hrms\EmployeeStatus;
+use App\Models\User;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Support\Carbon;
@@ -56,5 +57,20 @@ class EmployeeStatusHistory extends Model
     public function employee(): BelongsTo
     {
         return $this->belongsTo(Employee::class);
+    }
+
+    /**
+     * The user who made the change, if the account still exists.
+     *
+     * `nullOnDelete` on `actor_user_id` means this can legitimately be null: the
+     * account was deleted. The row still reads correctly then — an unattributed
+     * change is a fact, not a gap to hide — and it is why the presenter emits
+     * `actor: null` rather than dropping the key.
+     *
+     * @return BelongsTo<User, $this>
+     */
+    public function actor(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'actor_user_id');
     }
 }

@@ -11,7 +11,6 @@ use App\Services\TenantLimits;
 use App\Support\Hrms\EmployeeCodeGenerator;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\ValidationException;
 
 /**
@@ -244,21 +243,29 @@ class EmployeeService
     }
 
     /**
-     * A resolvable URL for the photo, or null when there is none.
+     * Soft-delete an employment record.
      *
-     * Null rather than a URL that 404s: the avatar slot falls back to initials,
-     * and a broken image is worse than a missing one. This is also the only
-     * place that knows a photo is a stored path rather than a URL, so wiring the
-     * signed tenant-scoped route in P16 is a one-line change here instead of a
-     * sweep through the views.
+     * Soft, always, and not because the policy is uncertain — the policy already
+     * decided. A record with payslips, leave history and attendance behind it is
+     * not the caller's to erase, and a hard delete would remove the person from
+     * every report they appear in while leaving the payroll rows that reference
+     * them. A "delete" that only ever hides a row is the honest kind here.
+     *
+     * The linked login is deliberately left alone: it is a separate record with
+     * its own lifecycle, and silently disabling a person's ability to sign in is
+     * a much larger event than the one the caller asked for.
      */
-    public function photoUrl(?Employee $employee): ?string
+    public function delete(Employee $employee, ?User $actor = null): void
     {
-        if ($employee?->photo_path === null || $employee->photo_path === '') {
-            return null;
-        }
+        $employee->delete();
 
-        return Storage::disk('public')->url($employee->photo_path);
+        $this->audit->log(
+            $employee,
+            'employee.deleted',
+            null,
+            EmployeeProfile::auditable($employee),
+            $actor,
+        );
     }
 
     /**

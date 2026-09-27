@@ -1327,6 +1327,36 @@ assignManager/terminate/photo`. Routes in the domain group behind `ensure_module
 `joined_from`, `joined_to`, `sort`, `dir`, `per_page` and returns
 `{employees, pagination, filters, my_role}`.
 
+**P2.3 — status: SHIPPED.** `app/Policies/Hrms/Employee/EmployeePolicy.php` (viewAny/view self-service
+plus the directory permission, `viewSensitive` on `hrms.documents.view_sensitive`, manage-gated
+update/changeStatus/assignManager/terminate, and a `delete` that refuses a departed record without an
+explicit `force`). `EmployeePresenter` withholds the personal fields *entirely* for a reader without
+the sensitive permission and sets `restricted: true`, rather than blanking them. Requests under
+`app/Http/Requests/Hrms/`: a shared `EmployeeRequestBase` (the profile rules live once), plus
+store/update/index/status-change/terminate. `EmployeeUpdateRequest` **rejects** `status`,
+`manager_id`, `employee_code`, `user_id` and the login fields by name — silently dropping them would
+answer 200 to a client that believes it changed a status. Controller at
+`app/Http/Controllers/Hrms/EmployeeController.php` (not `Api/Hrms/`, matching this repo's flat
+controller root), routes in the domain group behind `ensure_module:hrms.core` + `permission:hrms.view`.
+The photo link is **signed and tenant-scoped** like every other HRMS file download, which replaced
+`EmployeeService::photoUrl()`: an unsigned `Storage::url()` would have served a person's photo to
+anyone with the URL, and revoking it would have meant unpublishing a file. `delete` is a service
+method added here (soft, and the linked login is deliberately left alone). 33 tests in
+`HrmsEmployeeApiTest`.
+
+Three bugs the tests caught:
+
+- **`sometimes` ahead of a conditional `required` skips the field entirely.** `password` was
+  `['sometimes', ..., Rule::requiredIf(...)]`; `sometimes` means "skip the remaining rules for this
+  field when the key is absent", so the rule that was supposed to demand a password never ran and an
+  inline hire was created with none. The conditional requirement now comes first and there is no
+  `sometimes`.
+- **`EmployeeDirectoryQuery` ignored `dir`** — `dir=desc` sorted ascending, and the `id` tiebreak had
+  no direction either, so page 2 of a descending list could reshuffle rows already seen. Both are
+  whitelisted in the query (it is also driven directly by the service, so it cannot trust the request).
+- **`EmployeeStatusHistory` had no `actor()` relation**, so the profile drawer 500'd on
+  `statusHistory.actor` and the ledger could never have shown who made a change.
+
 **P2.4 — PII masking + audit**
 `present($employee, User $viewer)` consults `viewSensitive` and redacts `personal_email`, `phone`,
 `emergency_contact_*`, `date_of_birth` for non-privileged viewers. Every `update`/`changeStatus`/

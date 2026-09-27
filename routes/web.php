@@ -12,6 +12,7 @@ use App\Http\Controllers\DependencyController;
 use App\Http\Controllers\FeatureManagementController;
 use App\Http\Controllers\ForgotPasswordController;
 use App\Http\Controllers\GlobalSearchController;
+use App\Http\Controllers\Hrms\EmployeeController;
 use App\Http\Controllers\ImpersonationController;
 use App\Http\Controllers\LabelController;
 use App\Http\Controllers\MySubscriptionController;
@@ -282,6 +283,21 @@ Route::prefix('api')->group(function () {
         Route::delete('project-roles/{role}', [ProjectRoleController::class, 'destroy'])->middleware('permission:roles.manage');
     });
 
+    // HRMS employee records (Phase 15 P2.3). The module gate and `hrms.view`
+    // decide whether the surface exists for this tenant at all;
+    // EmployeePolicy decides what the caller may do with each record inside it
+    // — including reading their own, which no tenant-level permission grants.
+    Route::group(['middleware' => ['ensure_module:hrms.core', 'permission:hrms.view']], function () {
+        Route::get('hrms/employees', [EmployeeController::class, 'index']);
+        Route::post('hrms/employees', [EmployeeController::class, 'store']);
+        Route::get('hrms/employees/{employee}', [EmployeeController::class, 'show']);
+        Route::put('hrms/employees/{employee}', [EmployeeController::class, 'update']);
+        Route::delete('hrms/employees/{employee}', [EmployeeController::class, 'destroy']);
+        Route::post('hrms/employees/{employee}/status', [EmployeeController::class, 'changeStatus']);
+        Route::post('hrms/employees/{employee}/manager', [EmployeeController::class, 'assignManager']);
+        Route::post('hrms/employees/{employee}/terminate', [EmployeeController::class, 'terminate']);
+    });
+
     // Signed temporary download link for task attachments. Intentionally OUTSIDE
     // the auth/tenant groups so a fresh-browser-tab GET works; access is granted
     // by the signed URL itself. Because no SwitchTenant has run, the central
@@ -292,6 +308,15 @@ Route::prefix('api')->group(function () {
     Route::get('tasks/{task}/attachments/{attachment}/download', [AttachmentController::class, 'download'])
         ->middleware('signed')
         ->name('attachments.download');
+
+    // Same shape for an employee photo: outside switch_tenant, so the central
+    // tenant id travels inside the signature and the controller resolves the
+    // record inside TenantDatabaseManager::using(). `employee` is intentionally
+    // an int, not a route-model-bound Employee — binding would query the central
+    // connection, where the employees table does not exist.
+    Route::get('hrms/employees/{employee}/photo', [EmployeeController::class, 'photo'])
+        ->middleware('signed')
+        ->name('hrms.employees.photo');
 });
 
 // Public marketing site (server-rendered from the DB-backed CMS pages).

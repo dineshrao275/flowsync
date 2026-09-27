@@ -30,9 +30,17 @@ Laravel 12 + React 19 SPA. Session-based auth **without** Breeze/Fortify/Sanctum
 - `composer run dev` — concurrently runs serve + queue + pail(logs) + Vite **+ Reverb websockets**
 - **Delivery: commit and push every task yourself — do not wait to be asked.** The HRMS plan
   (Phase 15) is executed as one reviewed, verified commit per task on `new/hrms-development`. Before
-  committing: read the full `git diff` (new files included), run the focused test, `php artisan test`,
-  `./vendor/bin/pint --test` and `npm run build` when JS changed, then `git add` the intended paths
-  only and `git commit`, then `git push` immediately. `HrmsShellTest::test_every_commit_is_pushed`
+  committing: read the full `git diff` (new files included), run the **focused feature tests** and
+  `./vendor/bin/pint --test` (plus `npm run build` when JS changed), then `git add` the intended paths
+  only and `git commit`, then `git push` immediately.
+  - **Test policy: feature-level per task, full suite at the end.** While building features, test only
+    the feature under construction plus the existing functionality it directly affects — the focused
+    test file for the phase, run in full. The application-wide suite is a *final* gate at the end of
+    development, not a per-commit one; running it on every task costs ~14 minutes and buries a real
+    regression in noise. Re-run `php artisan test` before a commit only when the task touched something
+    genuinely cross-cutting (`routes/web.php`, `bootstrap/app.php`, `TenantLimits`, a shared `config/*`,
+    a middleware) — and say so in the commit body. The `## Commands` test-count line still has to be
+    updated on every change that moves it, and the counts it quotes are then verified by the final run. `HrmsShellTest::test_every_commit_is_pushed`
   fails the suite if a commit is ever left local-only, and
   `HrmsShellTest::test_the_hrms_tree_is_free_of_debug_leftovers` fails it on leftover
   `dd()`/`dump()`/`console.log`/`TODO` in the HRMS tree. Never commit `.env*`, credentials, or
@@ -497,7 +505,9 @@ Hierarchy: **Tenant → Workspace → Project → Task** (subtask `tasks.parent_
   shared primitives: `2026_09_27_000014` migration, `HrmsAuditLogger`, the generic `ApprovalService`,
   and the `provisionHrmsDefaults()` settings hook); P1.11 (the module-gated `/hrms` SPA shell); P2.1
   (`2026_09_27_000015` — `employment_types`, `employees`, `employee_status_history`); P2.2 (the
-  employee domain: enums, models, and the service — see the P2.2 notes below).
+  employee domain: enums, models, and the service — see the P2.2 notes below); P2.3
+  (`EmployeePolicy` + `EmployeePresenter` + the `Requests/Hrms` family + `Hrms/EmployeeController` +
+  routes, with signed photo download).
 - **Migration numbering is pre-assigned** in the plan's Part 3.3 (`2026_09_27_000014` for the shared
   tables, through `2026_10_04_000031`), one monolithic tenant migration per phase. Next free timestamp
   is now `2026_09_27_000016`.
@@ -532,6 +542,21 @@ Hierarchy: **Tenant → Workspace → Project → Task** (subtask `tasks.parent_
   episode's date; the first departure keeps its own date and reason in
   `employee_status_history`. Reactivation touches neither field — erasing the
   record of the exit is not what "reactivated" means.
+- **HRMS HTTP surface lives in `app/Http/Controllers/Hrms/`** (not the plan's `Api/Hrms/`) matching
+  this repo's flat controller root, behind `ensure_module:hrms.core` + `permission:hrms.view` with
+  `EmployeePolicy` deciding per record. `view` includes **self** — no tenant permission grants
+  reading your own record, and every later "my payslip" surface depends on it. `EmployeePresenter`
+  **omits** the personal fields for a reader without `hrms.documents.view_sensitive` and sets
+  `restricted: true` rather than blanking them. `EmployeeUpdateRequest` **rejects** `status`,
+  `manager_id`, `employee_code`, `user_id` and the login fields by name — dropping them silently
+  would answer 200 to a client that thinks it changed a status.
+- **Never put `sometimes` before a conditional `required`.** `sometimes` means "skip the remaining
+  rules for this field when the key is absent", so `['sometimes', Rule::requiredIf(...)]` skips the
+  very rule meant to fire — the inline-hire `password` rule was dead and every hire got no password.
+- **Every HRMS photo/file link is signed and tenant-scoped**, never `Storage::url()`: unsigned, a
+  person's photo is readable by anyone holding the URL and revoking it means unpublishing a file.
+  The central `tenant` id rides inside the signature and the lookup happens inside
+  `TenantDatabaseManager::using()`; `HrmsEmployeeApiTest` covers the flushSession + `iso_system` case.
 - **`TenantLimits::currentCount()` counts `employees` via `Employee::count()`** — omitting the mapping
   made `assertQuota('employees')` a silent no-op, since an unknown resource counts 0.
 - **`employees.manager_id` is `nullOnDelete`, deliberately not `cascadeOnDelete()`.** Unlike
