@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Jobs\ProvisionTenantJob;
+use App\Models\Hrms\Employee\EmploymentType;
 use App\Models\Hrms\Shared\HrmsSetting;
 use App\Models\Tenant;
 use App\Services\TenantLifecycle;
@@ -105,6 +106,63 @@ class HrmsProvisioningTest extends TestCase
             $this->assertSame(7, $settings->week_start);
             $this->assertSame('IN', $settings->country);
         });
+    }
+
+    public function test_the_employment_type_catalog_is_seeded_for_every_tenant(): void
+    {
+        foreach (['acme', 'globex'] as $slug) {
+            $this->assertSame(
+                count(config('hrms.employment_types')),
+                $this->typeCount($slug),
+                "Tenant {$slug} should have the employment-type catalog",
+            );
+        }
+    }
+
+    public function test_a_tenant_provisioned_before_the_catalog_existed_gets_it_on_re_provision(): void
+    {
+        $dbm = app(TenantDatabaseManager::class);
+        $tenant = Tenant::on($dbm->centralConnectionName())->where('slug', 'acme')->firstOrFail();
+
+        // The state a tenant is actually in when this ships: provisioned long
+        // ago, settings row present, catalog never written. The old single
+        // "the settings row exists, nothing to do" guard short-circuited the
+        // whole method, so `tenants:provision` could never catch this tenant up.
+        $dbm->using($tenant, function (): void {
+            EmploymentType::query()->delete();
+        });
+
+        $this->assertSame(0, $this->typeCount('acme'));
+
+        app(TenantProvisioner::class)->provisionIsolated($tenant, $dbm, app(TenantLifecycle::class));
+
+        $this->assertSame(count(config('hrms.employment_types')), $this->typeCount('acme'));
+    }
+
+    public function test_re_provisioning_keeps_a_tenants_own_employment_type_names(): void
+    {
+        $dbm = app(TenantDatabaseManager::class);
+        $tenant = Tenant::on($dbm->centralConnectionName())->where('slug', 'acme')->firstOrFail();
+
+        $dbm->using($tenant, function (): void {
+            EmploymentType::query()->where('code', 'full_time')->update(['name' => 'Salaried']);
+        });
+
+        app(TenantProvisioner::class)->provisionIsolated($tenant, $dbm, app(TenantLifecycle::class));
+
+        $dbm->using($tenant, function (): void {
+            // Same rule as the settings row and the project roles: seeding a
+            // default must never overwrite what the tenant owns.
+            $this->assertSame('Salaried', EmploymentType::query()->where('code', 'full_time')->value('name'));
+        });
+    }
+
+    private function typeCount(string $slug): int
+    {
+        $dbm = app(TenantDatabaseManager::class);
+        $tenant = Tenant::on($dbm->centralConnectionName())->where('slug', $slug)->firstOrFail();
+
+        return $dbm->using($tenant, fn () => EmploymentType::query()->count());
     }
 
     public function test_a_tenant_created_through_the_provision_job_gets_a_row(): void

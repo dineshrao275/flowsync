@@ -65,13 +65,20 @@ return [
     |--------------------------------------------------------------------------
     | Employment types
     |--------------------------------------------------------------------------
+    |
+    | No `is_default` entry: `employment_types` has no such column, and a null
+    | `employees.employment_type_id` already means "not set". Nothing infers a
+    | type from the absence of one — a backfilled record stays unclassified
+    | rather than being guessed to be full-time, because that value feeds
+    | payroll.
+    |
     */
 
     'employment_types' => [
-        ['name' => 'Full-time', 'code' => 'full_time', 'is_system' => true, 'is_default' => true],
-        ['name' => 'Part-time', 'code' => 'part_time', 'is_system' => true, 'is_default' => false],
-        ['name' => 'Contractor', 'code' => 'contractor', 'is_system' => true, 'is_default' => false],
-        ['name' => 'Intern', 'code' => 'intern', 'is_system' => true, 'is_default' => false],
+        ['name' => 'Full-time', 'code' => 'full_time', 'is_system' => true],
+        ['name' => 'Part-time', 'code' => 'part_time', 'is_system' => true],
+        ['name' => 'Contractor', 'code' => 'contractor', 'is_system' => true],
+        ['name' => 'Intern', 'code' => 'intern', 'is_system' => true],
     ],
 
     /*

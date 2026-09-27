@@ -2,6 +2,7 @@
 
 namespace App\Support;
 
+use App\Models\Hrms\Employee\EmploymentType;
 use App\Models\Hrms\Shared\HrmsSetting;
 use App\Models\Permission;
 use App\Models\Priority;
@@ -93,21 +94,42 @@ class TenantProvisioner
     }
 
     /**
-     * Guarantee the per-tenant HRMS settings singleton exists.
+     * Guarantee the per-tenant HRMS defaults exist: the settings singleton and
+     * the employment-type catalog.
      *
-     * The `000014` migration already seeds this row, so this is the repair path
-     * for a database that failed partway, and the guarantee that every tenant
-     * has a row even when the HRMS module is switched off — the tables always
-     * exist; the gate is behavioural (`TenantLimits::isHrmsEnabled()`).
+     * The `000014` migration already seeds the settings row, so this is the
+     * repair path for a database that failed partway, and the guarantee that
+     * every tenant has it even when the HRMS module is switched off — the tables
+     * always exist; the gate is behavioural (`TenantLimits::isHrmsEnabled()`).
      *
      * Insert-only, never `updateOrCreate`: `tenants:provision` runs on every
-     * repair, and an update would reset the tenant's own currency, week start
-     * and statutory configuration back to the defaults each time.
+     * repair, and an update would reset the tenant's own currency, week start,
+     * statutory configuration and employment-type names back to the defaults
+     * each time.
      *
      * No quota checks and no request-scoped dependencies — this runs inside
      * provisioning, before there is a session.
+     *
+     * Each step is guarded **individually**, never behind one early return. A
+     * single "the settings row exists, nothing to do" check short-circuited the
+     * whole method, which meant a tenant provisioned before employment types
+     * were added to this list could never receive them — and `tenants:provision`
+     * is the repair path, so it has to be able to catch such a tenant up.
      */
     private function provisionHrmsDefaults(): void
+    {
+        $this->seedHrmsSettings();
+        $this->seedEmploymentTypes();
+    }
+
+    /**
+     * The settings singleton (id = 1).
+     *
+     * Keyed on the fixed id rather than "any row", so a tenant whose row was
+     * deleted is repaired instead of silently keeping a half-provisioned
+     * database.
+     */
+    private function seedHrmsSettings(): void
     {
         if (HrmsSetting::query()->whereKey(HrmsSetting::SINGLETON_ID)->exists()) {
             return;
@@ -119,6 +141,33 @@ class TenantProvisioner
         $settings->id = HrmsSetting::SINGLETON_ID;
         $settings->forceFill(config('hrms.settings_defaults', []));
         $settings->save();
+    }
+
+    /**
+     * The tenant's contract-type catalog.
+     *
+     * Keyed on `code` with `firstOrCreate`, so re-provisioning adds a type the
+     * catalog later gains and leaves the rest alone: a tenant that renamed
+     * "Part-time" keeps its wording, exactly as with the project roles and
+     * priorities this mirrors. `is_system` is what stops the row being deleted
+     * while employees still point at it.
+     */
+    private function seedEmploymentTypes(): void
+    {
+        foreach ((array) config('hrms.employment_types', []) as $index => $type) {
+            EmploymentType::query()->firstOrCreate(
+                ['code' => $type['code']],
+                [
+                    'name' => $type['name'],
+                    'slug' => Str::slug($type['name']),
+                    'is_active' => true,
+                    // 10, 20, 30… so a tenant reordering its own types has room
+                    // to insert one between two existing rows.
+                    'position' => ($index + 1) * 10,
+                    'is_system' => (bool) ($type['is_system'] ?? false),
+                ]
+            );
+        }
     }
 
     private function provisionPriorities(): void

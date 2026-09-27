@@ -47,16 +47,26 @@ class EmployeeCodeGenerator
      * `DB::transaction($callback, attempts: N)` is not usable here — that
      * retries concurrency errors, not uniqueness.
      *
+     * A `$preferred` code is tried on the first attempt only, and falls back to
+     * allocation on collision. That is for the callers whose code is derived
+     * rather than allocated — `hrms:backfill-employees` wants the deterministic
+     * `EMP-{user_id}`, which cannot be re-derived from anything if it turns out
+     * to be taken by an employee created through the service. A preferred code
+     * that collides must degrade to an allocated one rather than abort the run;
+     * a uniqueness violation here means "somebody is already this person".
+     *
      * @template T
      *
      * @param  callable(string): T  $write  Receives the allocated code.
      * @return T
      */
-    public function retrying(callable $write): mixed
+    public function retrying(callable $write, ?string $preferred = null): mixed
     {
         for ($attempt = 1; $attempt <= self::MAX_ATTEMPTS; $attempt++) {
             try {
-                return DB::transaction(fn () => $write($this->next()));
+                $code = $attempt === 1 && $preferred !== null ? $preferred : $this->next();
+
+                return DB::transaction(fn () => $write($code));
             } catch (QueryException $e) {
                 if (! $this->isCodeCollision($e)) {
                     throw $e;

@@ -1474,18 +1474,46 @@ Two things found and fixed while wiring it up:
 The response's `status_history` and `filters` are siblings of `employee`, not fields on it: a status
 ledger is not a property of the person, and the manager list is a query result rather than stored data.
 
-**P2.7 — Seed `employment_types` + backfill existing users as employees**
-- Add `employment_types` to `provisionHrmsDefaults()`.
-- Add `php artisan hrms:backfill-employees --tenant=ID|--all` (Console command): for every user without
-  an `employees` row, create an `active` employee with code `EMP-{id}` (the **default** user first).
-  Idempotent, `--dry-run` supported, prints a summary table. This is what makes the module usable on
-  the 100 seeded dev tenants without hand-creating 1,000 records.
-- Tests: the command creates rows, a second run is a no-op, `--dry-run` writes nothing.
-
-**Acceptance:** create an employee with an inline login in the UI and they can log in immediately; the
-directory filters and paginates; a non-privileged viewer sees masked PII; a `viewer` role cannot write;
-a Globex admin cannot fetch an Acme employee (404); audit rows exist for the mutations.
-
+**P2.7 — Seed `employment_types` + backfill existing users as employees — status: SHIPPED.**
+- `provisionHrmsDefaults()` now seeds the employment-type catalog. **Each step is guarded
+  individually, not behind one early return**: the old "the settings row exists, nothing to do" check
+  short-circuited the whole method, so a tenant provisioned before the catalog existed could *never*
+  receive it — and `tenants:provision` is the repair path, so it has to be able to catch such a tenant
+  up. Regression-tested by deleting the catalog on a seeded tenant and re-provisioning.
+- The catalog is keyed on `code` with `firstOrCreate`, so re-provisioning adds what the config later
+  gains and leaves the rest alone: a tenant that renamed "Part-time" keeps its wording, exactly as with
+  the settings row and the project roles.
+- `config/hrms.php` lost the `is_default` key on employment types: no such column exists (the plan's
+  schema and the migration agree on `name/slug/code/is_active/position/is_system`), and a null
+  `employees.employment_type_id` already means "not set".
+- `php artisan hrms:backfill-employees --tenant=ID|--all [--dry-run]`, with the per-tenant work in
+  `EmployeeBackfill` (D2.16: the command parses arguments and prints, the service holds the rules).
+  Creates an `active` employee for every login that has none, code `EMP-{user_id}`, **default user
+  first** so a run interrupted partway has still covered the tenant owner. Idempotent (the `user_id`
+  unique index plus an explicit `employee()->exists()` check), one transaction per user so a mid-run
+  failure cannot roll back the other 999. Prints a summary table including the resulting headcount
+  against the tenant's plan limit.
+- **`EmployeeCodeGenerator::retrying()` takes an optional preferred code** for the callers whose code
+  is *derived* rather than allocated. `EMP-{user_id}` cannot be re-derived from anything, so a
+  collision — a service-created employee already holding that number — has to degrade to an allocated
+  code rather than abort the run. The generator's existing discipline (read `errorInfo[2]`, never
+  `getMessage()`) still decides what counts as a collision.
+- **It infers no employment facts.** No joining date from `users.created_at` (that is when the account
+  was made, which says nothing about when somebody started work, and a wrong date silently moves a
+  payslip's proration), no employment type ("full-time is the common case" is a guess about a real
+  person, and payroll reads that field), no `personal_email` copied from the login (the personal
+  address is deliberately a different address). It also does not go through
+  `EmployeeService::create()`, which would apply the `employees` plan quota — so a tenant on a
+  25-employee plan could not backfill its own 30 existing logins — and would try to create logins that
+  already exist.
+- One `employee.backfilled` audit row per created record, with a **null actor** (a command has no
+  signed-in user, and a false name in an attribution ledger is worse than none) and a curated payload
+  of `{employee_code, user_id, status}`. No status-history row: that ledger answers "who moved this
+  person", and the answer here is a command line, reported in the run summary instead.
+- Tests: `HrmsBackfillEmployeesTest` (12) — creates, a second run is a byte-identical snapshot, dry run
+  writes nothing, default user first, invents no facts, leaves an existing record alone (name *and*
+  status), falls back on a code collision, one audit row each, one tenant untouched by another, both
+  scopes, both misuse cases.
 ---
 
 ### Phase 3 — Organization structure

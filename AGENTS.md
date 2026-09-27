@@ -590,6 +590,21 @@ Hierarchy: **Tenant → Workspace → Project → Task** (subtask `tasks.parent_
   `backgroundColor: \`${color}22\``, so a palette name silently yields an invalid colour and every
   status looks identical. `EmployeeStatus::color()` returned `emerald`/`sky`/… and was fixed in
   P2.6; `config/task_statuses.php` and `config/priorities.php` already store hex. Wire-tested.
+- **`hrms:backfill-employees` is a data migration, and it infers no facts.** P2.7: `EmployeeBackfill`
+  creates an `active` employee for every login that lacks one (code `EMP-{user_id}`, default user
+  first, one transaction per user). It deliberately does **not** go through `EmployeeService::create()`,
+  which applies the `employees` plan quota — a tenant on a 25-employee plan could not backfill its own
+  30 logins — and does not set `joining_date` (from `users.created_at` it is a guess that moves payslip
+  proration), `employment_type_id` ("full-time is common" is a guess payroll reads) or `personal_email`
+  (deliberately a different address from the login). Plan limits are **reported** in the summary table,
+  never enforced. `EmployeeCodeGenerator::retrying()` takes an optional preferred code for callers whose
+  code is derived rather than allocated: `EMP-{user_id}` cannot be re-derived, so a collision with a
+  service-created employee degrades to an allocated code instead of aborting the run.
+- **`provisionHrmsDefaults()` guards each step individually.** A single "the `hrms_settings` row exists,
+  nothing to do" early return meant a tenant provisioned before a catalog was added to that list could
+  never receive it, since it short-circuited the whole method — and `tenants:provision` is the repair
+  path. Adding a catalog to the config means adding its own guarded step, never wrapping the others in
+  one.
 - **`TenantLimits::currentCount()` counts `employees` via `Employee::count()`** — omitting the mapping
   made `assertQuota('employees')` a silent no-op, since an unknown resource counts 0.
 - **`employees.manager_id` is `nullOnDelete`, deliberately not `cascadeOnDelete()`.** Unlike
