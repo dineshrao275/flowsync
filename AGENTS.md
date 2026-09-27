@@ -20,7 +20,7 @@ Laravel 12 + React 19 SPA. Session-based auth **without** Breeze/Fortify/Sanctum
   `tenants:provision` + seeds demo data (superadmin + acme + globex). Reset from scratch:
   `docker-compose down -v` then `up -d` (app entrypoint re-initializes; `RUN_INIT=true` only for `app`).
   No PHP/composer needed on the host — envs in `.env.docker`.
-- `php artisan test` — run test suite (Phase 13: **isolated, per-tenant file DBs** via `Tests\IsolatesDatabase`; current gate: **524 tests / 3307 assertions passing**)
+- `php artisan test` — run test suite (Phase 13: **isolated, per-tenant file DBs** via `Tests\IsolatesDatabase`; current gate: **545 tests / 3389 assertions passing**)
 
 - `npm run build` / `npm run dev` — frontend build / Vite dev server
 - `./vendor/bin/pint` — PHP code style (run over whole repo; `--dirty` only works in git)
@@ -480,7 +480,7 @@ Hierarchy: **Tenant → Workspace → Project → Task** (subtask `tasks.parent_
   `refresh()` + `/dashboard`). `AdminLayout` redirects any tenant user with `onboarding_complete === false`
   (except on `/onboarding` itself) to the wizard. `AuthContext.register()` mirrors `login()`.
 
-## HRMS module (planned — Phase 15, **no code yet**)
+## HRMS module (Phase 15, in progress — branch `new/hrms-development`)
 - **Read `docs/hrms-implementation-plan.md` before any HRMS work.** It is a 22-phase, task-level plan
   (Parts 0-9) written to be executed one small task per commit, and it is the authoritative spec.
 - The plan's binding design decisions (all in its Part 2): `hrms.*` **dotted module keys** stored in
@@ -492,9 +492,23 @@ Hierarchy: **Tenant → Workspace → Project → Task** (subtask `tasks.parent_
   `TenantProvisioner::provisionHrmsDefaults()` step; and three shared primitives built once in the
   plan's Phase 1 — a generic `approvals`/`approval_steps` engine, an append-only `hrms_audit_logs`
   (separate from `activities`), and a single-row `hrms_settings`.
+- **Shipped so far.** P1.1–P1.7 (entitlement foundation: `hrms.*` module keys, 47 permissions, plan
+  module lists, per-tenant SA switching, `GET|PUT api/tenants/{tenant}/hrms`); P1.8–P1.10 (the three
+  shared primitives: `2026_09_27_000014` migration, `HrmsAuditLogger`, the generic `ApprovalService`,
+  and the `provisionHrmsDefaults()` settings hook); P1.11 (the module-gated `/hrms` SPA shell); P2.1
+  (`2026_09_27_000015` — `employment_types`, `employees`, `employee_status_history`).
 - **Migration numbering is pre-assigned** in the plan's Part 3.3 (`2026_09_27_000014` for the shared
   tables, through `2026_10_04_000031`), one monolithic tenant migration per phase. Next free timestamp
-  today is still `2026_09_27_000014`.
+  is now `2026_09_27_000016`.
+- **Chain `unique()` BEFORE `constrained()` on a `foreignId`.** `constrained()` returns through
+  `references()->on()->foreign()`, so any modifier chained after it is **silently dropped** — the FK is
+  emitted with no unique index and no error. `employees.user_id` shipped with this bug and enforced
+  nothing until `HrmsEmployeeTablesTest::test_a_user_can_back_at_most_one_employee_record` caught it.
+- **`employees.manager_id` is `nullOnDelete`, deliberately not `cascadeOnDelete()`.** Unlike
+  `tasks.parent_id` (which cascades), cascade here would delete an entire department when one manager
+  is removed. `employee_status_history` is the opposite case: it cascades with its employee, because a
+  history row has no meaning without the record, and it `nullOnDelete`s `actor_user_id` so the trail
+  outlives a deleted account.
 - `TenantDatabaseManager::migrateTenant()` runs **pending-only**, so a new tenant migration reaches all
   102 live dev tenants on the next `php artisan tenants:provision` — and a migration that must backfill
   existing tenants does the backfill inline, repair-safe (`Schema::hasColumn`, `DROP INDEX IF EXISTS`,

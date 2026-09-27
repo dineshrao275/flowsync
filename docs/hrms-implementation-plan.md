@@ -1246,6 +1246,43 @@ Indexes: `employees(status)`, `employees(joining_date)`, `employee_status_histor
 **No `tenant_id` column.** `department_id` / `designation_id` / `location_id` / `shift_id` arrive in
 P3/P5 via `ALTER` in those migrations.
 
+**Status: done.** 21 tests / 82 assertions in `tests/Feature/HrmsEmployeeTablesTest.php`; full suite 545
+tests / 3389 assertions. Verified on SQLite *and* real PostgreSQL (`tenants:provision --tenant=1`): the
+`employees_user_id_unique` constraint, both enum CHECK constraints, and all four `ON DELETE SET NULL`
+foreign keys behave as described.
+
+Two decisions worth keeping, both of which look like typos if you do not know the reason:
+
+- **`manager_id` is `nullOnDelete`, not `cascadeOnDelete()`.** The neighbouring `tasks.parent_id` uses
+  cascade, and copying that here would delete every direct report when a manager is removed — an entire
+  department lost to one `DELETE`. Orphaning a report is recoverable; losing a department is not. The
+  test asserts the report *survives* with a null manager, because the more intuitive behaviour is the
+  dangerous one.
+- **`employee_status_history.from_status` is nullable.** The plan lists the column without nullability.
+  An employee's *initial* status has no prior value, so a NOT NULL here would force P2.2's
+  `changeStatus` to invent a sentinel to record how the record was created. `effective_date` is nullable
+  for the same family of reason: a notice period can be back-dated (a payroll correction) or
+  forward-dated (starting next month).
+
+`from_status`/`to_status` repeat the six-value list twice more in this migration. That is deliberate —
+an enum column cannot be widened without an `ALTER`, and all three columns must agree. P2.2 introduces
+`EmployeeStatus` as the single source of truth; a migration cannot depend on a class that does not exist
+yet.
+
+**A Laravel footgun this phase hit, and the test that now guards it:**
+
+```php
+$table->foreignId('user_id')->nullable()->constrained('users')->nullOnDelete()->unique();  // WRONG
+$table->foreignId('user_id')->nullable()->unique()->constrained('users')->nullOnDelete();  // correct
+```
+
+`constrained()` returns through `references()->on()->foreign()`, and **any modifier chained after it is
+silently dropped** — the generated SQL contains the foreign key but no unique index at all, with no
+error and no warning. The first version of this migration looked correct and enforced nothing; the only
+reason it was caught is that `test_a_user_can_back_at_most_one_employee_record` asserts the second
+insert raises. Grepping the repo confirmed no other migration had this shape. If you ever chain
+`unique()` onto a `foreignId`, put `unique()` **first**.
+
 **P2.2 — Model + enums + service**
 `app/Models/Hrms/Employee.php` (tenant DB — **not** `CentralConnection`), relations `user()`,
 `employmentType()`, `manager()`, `reports()`, `statusHistory()`; scopes `active()`, `onNotice()`.
