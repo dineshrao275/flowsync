@@ -508,10 +508,14 @@ Hierarchy: **Tenant → Workspace → Project → Task** (subtask `tasks.parent_
   employee domain: enums, models, and the service — see the P2.2 notes below); P2.3
   (`EmployeePolicy` + `EmployeePresenter` + the `Requests/Hrms` family + `Hrms/EmployeeController` +
   routes, with signed photo download); P2.4 (`SensitiveFieldRedactor` masking + `EmployeeAccessLogger`
-  + `EmployeePhotoService`, with the payload keys identical across both privilege levels).
+  + `EmployeePhotoService`, with the payload keys identical across both privilege levels); P2.5–P2.6
+  (the SPA directory + `EmployeeDetail`/`StatusHistory`/`EmployeeEditModal`); P2.7
+  (`EmployeeBackfill` + `hrms:backfill-employees`); P3.1 (`2026_09_27_000016` — `departments`,
+  `designations`, `locations` + the three nullable `employees` FKs); P3.2 (the org models and the
+  `app/Services/Hrms/Org/` bounded context — see the P3.2 notes below).
 - **Migration numbering is pre-assigned** in the plan's Part 3.3 (`2026_09_27_000014` for the shared
   tables, through `2026_10_04_000031`), one monolithic tenant migration per phase. Next free timestamp
-  is now `2026_09_27_000016`.
+  is now `2026_09_27_000017`.
 - **Chain `unique()` BEFORE `constrained()` on a `foreignId`.** `constrained()` returns through
   `references()->on()->foreign()`, so any modifier chained after it is **silently dropped** — the FK is
   emitted with no unique index and no error. `employees.user_id` shipped with this bug and enforced
@@ -590,6 +594,31 @@ Hierarchy: **Tenant → Workspace → Project → Task** (subtask `tasks.parent_
   `backgroundColor: \`${color}22\``, so a palette name silently yields an invalid colour and every
   status looks identical. `EmployeeStatus::color()` returned `emerald`/`sky`/… and was fixed in
   P2.6; `config/task_statuses.php` and `config/priorities.php` already store hex. Wire-tested.
+- **P3.2 splits the plan's single `OrgService.php` into `app/Services/Hrms/Org/`.** The literal path
+  is superseded by D2.16.2 (P1.9 precedent): `DepartmentTree` (cycle check, descendants, path),
+  `DepartmentChart` (the nested read model with headcounts), `DepartmentService`, `DesignationService`,
+  `LocationService`, `OrgNaming`. Three features follow `parent_id` in both directions, so the walk is
+  stated once. `Department::descendants()` became `DepartmentTree::descendantsOf()`; the plan's
+  `buildTree()` is `DepartmentChart::build()` — split out separately because guards + nesting in one
+  file breached the plan's own 300-line ceiling. `tests/Feature/HrmsOrgServiceTest.php` is the guard
+  (37 tests).
+- **A subtree headcount starts at `direct_count`, never at 0.** `nest()` accumulates upward, so a
+  zero seed reports every parent-only department as 0 staff. `headcount` (subtree) and `direct_count`
+  (this node) are separate keys because they are routinely confused.
+- **A cycle reader must prune, not re-emit.** `assertCanReparent()` stops new cycles, but imported org
+  data can arrive tangled, so `nest()` returns null for a node already on the branch and `build()`
+  surfaces unreachable rows (dangling parent, cycle) at the top level instead of dropping them.
+  A department that renders nowhere is silent data loss.
+- **`is_geo_fenced` is derived from the geometry, never stored as sent** — `applyGeofence()` writes
+  `$wantsFence && $location->hasFenceGeometry()`. Setting the flag by asking `isGeoFenced()` is
+  **circular** (it reads that very column) and silently stored `false`; the split into
+  `hasFenceGeometry()` (stored lat/lng/radius) vs `isGeoFenced()` (flag *and* geometry) is what makes
+  the write checkable.
+- **A reorder is intersected with the real siblings first** (`OrgNaming::order()`): a reorder names the
+  members of one list, and honouring a foreign id lets a payload drag a row out of a *different*
+  parent. Omitted siblings keep their relative order at the end.
+- **`DepartmentService::update()` is a transaction** because the re-parent is validated *after* the
+  scalars are applied — otherwise a rename + cyclic parent commits the rename and then 422s.
 - **`hrms:backfill-employees` is a data migration, and it infers no facts.** P2.7: `EmployeeBackfill`
   creates an `active` employee for every login that lacks one (code `EMP-{user_id}`, default user
   first, one transaction per user). It deliberately does **not** go through `EmployeeService::create()`,

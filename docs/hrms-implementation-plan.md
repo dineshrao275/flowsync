@@ -1547,16 +1547,53 @@ expect.
 > repairing a mid-migration failure: all three columns, their indexes and three
 > `ON DELETE SET NULL` foreign keys present, and the `status`/`work_mode` CHECK
 > constraints untouched.
-**P3.2 — Models + service + tree logic**
-`Department` (`parent()`, `children()`, `head()`, `descendants()`), `Designation`, `Location`
-(`employees()`, `isGeoFenced()`).
-`app/Services/Hrms/OrgService.php` — department tree read (`buildTree()` with depth and child counts),
+**P3.2 — Models + services + tree logic** ✅
+`app/Models/Hrms/Org/{Department,Designation,Location}.php` — `Department` (`parent()`, `children()`,
+`head()`, `employees()`), `Designation`, `Location` (`employees()`, `isGeoFenced()`).
+`app/Services/Hrms/Org/` — `DepartmentTree`, `DepartmentChart`, `DepartmentService`,
+`DesignationService`, `LocationService`, `OrgNaming`: department tree read (`DepartmentChart::build()`
+with depth and headcounts),
 create/update with slug auto-suffix on collision (mirror `WorkspaceService`), **cycle prevention** on
 `parent_id` (BFS, like the task-dependency check in `TaskService`), `position` renumbering 1..N,
-designations CRUD, locations CRUD.
+designations CRUD, locations CRUD. `tests/Feature/HrmsOrgServiceTest.php` (37 tests).
 - Setting `head_employee_id` requires an `active` employee.
-- No hard delete: departments/descriptions/locations get `is_active = false`; deleting a department with
+- No hard delete: departments/designations/locations get `is_active = false`; deleting a department with
   children or employees returns 422 `form` suggesting reassignment or deactivation.
+
+> **The plan's single `OrgService.php` is split, per D2.16.2** (P1.9 precedent): the recursive tree walk
+> is its own class because three features follow `parent_id` in both directions, and one careless loop
+> in shared data would then be shared by all three. The models' `descendants()` moved to
+> `DepartmentTree::descendantsOf()` for the same reason. `DepartmentChart::build()` is the plan's
+> `buildTree()`. The read model is a **separate** class again (`DepartmentChart`) because holding the
+> guards and the nesting in one file breached the plan's own `class ≤ 300 lines` ceiling (D2.16 §0.8);
+> "is this structure safe to walk" and "draw it" are different questions.
+>
+> **`headcount` is seeded from `direct_count`, not from zero.** Nesting accumulates a subtree total
+> upward; starting the accumulator at 0 reports every department with only children as 0 staff. The two
+> numbers are carried separately (`headcount` = subtree, `direct_count` = this node) precisely because
+> they get confused — a parent showing 1 while it "contains" the whole company is that confusion.
+>
+> **A cycle in the *readers* is pruned, not re-emitted.** `assertCanReparent()` stops new cycles, but an
+> org table imported from a spreadsheet can arrive tangled, and the readers cannot be the only thing
+> standing between that and a hung request. `nest()` returns null for a node already on the current
+> branch, so the branch is drawn once and nobody's staff is counted twice; anything the root pass cannot
+> reach (a dangling `parent_id`, a cycle) is surfaced at the top level rather than dropped, because a
+> department that renders nowhere is silent data loss.
+>
+> **`is_geo_fenced` is derived, never accepted as sent.** The write path stores
+> `$wantsFence && hasFenceGeometry()`, so ticking the box without a centre and radius is a 422 rather
+> than a row that claims a fence it does not have. Asking `isGeoFenced()` while setting the flag it
+> reads is circular — that was the first implementation, and it silently stored `false`. Coordinates
+> without a fence are kept: a site is useful on a map before anybody configures geofencing.
+>
+> **A reorder is intersected with the real siblings first** (`OrgNaming::order()`). A reorder names the
+> members of one list; honouring an id that is not a member lets a payload drag a department out of a
+> *different* parent just by naming it. Omitted siblings keep their relative order at the end, so a
+> partial payload cannot drop a row off the end.
+>
+> **`DepartmentService::update()` is one transaction.** A re-parent is validated *after* the scalars are
+> applied, so without the transaction a request that renames a department and asks for a cyclic parent
+> commits the rename and then reports 422 — a partial write on a rejected request.
 
 **P3.3 — Policies, requests, controller, routes**
 `DepartmentPolicy` / `DesignationPolicy` / `LocationPolicy` (view `hrms.org.view`; manage
