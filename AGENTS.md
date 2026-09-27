@@ -517,10 +517,24 @@ Hierarchy: **Tenant → Workspace → Project → Task** (subtask `tasks.parent_
   routes, and the three org FKs finally made writable on the employee — see the P3.3 notes below);
   P3.4 (the org SPA page: `pages/hrms/Org.jsx`, `components/hrms/DepartmentTreeColumn.jsx`, the three
   form modals and the members panel, plus the directory's department filter — see the P3.4 notes);
-  P3.5 (the org starters: `provisionHrmsDefaults()` gains `seedOrgCatalogs()` — see the P3.5 notes).
+  P3.5 (the org starters: `provisionHrmsDefaults()` gains `seedOrgCatalogs()` — see the P3.5 notes);
+  and **P13.1** (`2026_10_02_000026` — `document_types` + `employee_documents`, plus
+  `tests/Feature/HrmsCatalogTest.php`, the cross-catalogue guard — see the P13.1 notes below). Phase 13
+  was jumped to *before* Phase 4 because P4.1's `document_requests.document_type_id` is a real FK to
+  `document_types`, and no migration created that table until P13.1 — the plan's "documents ship
+  first" prerequisite is a hard schema dependency, not a preference.
 - **Migration numbering is pre-assigned** in the plan's Part 3.3 (`2026_09_27_000014` for the shared
-  tables, through `2026_10_04_000031`), one monolithic tenant migration per phase. Next free timestamp
-  is now `2026_09_27_000017`.
+  tables, through `2026_10_04_000031`), one monolithic tenant migration per phase. Landing `000026`
+  ahead of `000017`–`000025` is safe — `Migrator` runs pending files in filename order, so those
+  migrations still apply afterwards — and P13.1 creates no table they depend on.
+- **`Schema::getColumns()` spells "no default" two different ways.** SQLite *omits* the `default` key
+  for a column that has none; PostgreSQL returns the key with a `null` value. Written as
+  `($c['default'] ?? 'sentinel') === null`, every column reads as optional and a "required columns"
+  assertion passes while checking nothing. Use
+  `! array_key_exists('default', $c) || $c['default'] === null`, and verify on **both** grammars. This
+  is the dual of the existing "PostgreSQL-only SQL slips past the sqlite fast-path" note, and it bites
+  the tenant test suite specifically because `IsolatesDatabase` is sqlite-only — nothing in
+  `php artisan test` ever exercises the PG shape.
 - **Chain `unique()` BEFORE `constrained()` on a `foreignId`.** `constrained()` returns through
   `references()->on()->foreign()`, so any modifier chained after it is **silently dropped** — the FK is
   emitted with no unique index and no error. `employees.user_id` shipped with this bug and enforced
@@ -670,6 +684,24 @@ Hierarchy: **Tenant → Workspace → Project → Task** (subtask `tasks.parent_
   gave no `code` to. The starters are keyed on `slug`. The org tables have **no `is_system`
   column** either — what stops a referenced row being deleted is P3.2's service rule, and adding
   the flag would be a second, weaker answer to the same question.
+- **The `document_types` catalogue had the same defect, and
+  `tests/Feature/HrmsCatalogTest.php` is the gate that now catches it.** It named `code`,
+  `is_confidential` and `validity_months` — no such columns — while omitting `category`, the one
+  column the compliance story is built on. The blast radius is identical, because the first
+  consumer is a `seed*()` step inside `provisionHrmsDefaults()`: the error surfaces as **every
+  tenant in the fleet fails to provision**, not as "the document catalogue is wrong". The guard
+  asserts both directions (catalogue key → real column, required column → catalogue key) across the
+  catalogues that are seeded today. Two details it depends on, each silent when wrong: the
+  `default`-key dual above, and the fact that **three seeders derive `slug` themselves**
+  (`employment_types` from `Str::slug($name)`, `departments`/`designations` from `code`), so those
+  are exempted *by name with the derivation recorded* rather than exempting the `slug` column
+  wholesale — which would let a future `slug` with no derivation behind it pass. `document_types`
+  joins the seeded list with the P13.2 service, not with the migration: a catalogue nobody seeds is a
+  guess, and listing it before `seedDocumentTypes()` exists would make the test assert a step that
+  is not there. `validity_months` was **dropped, not mapped** to `retention_months` — how long a
+  passport stays valid is a fact about one row (`employee_documents.expires_at`), retention is how
+  long the tenant keeps the bytes; mapping one onto the other writes a fabricated policy into every
+  tenant.
 - **The starters invent no facts, and a tenant's starter name is not up for grabs.** No
   `parent_id`/`head_employee_id`/`country`/`timezone`; the numeric `designations.level` **is** set.
   `HrmsOrgApiTest::test_a_seeded_department_name_is_not_up_for_grabs` pins that creating a second

@@ -2385,7 +2385,7 @@ state machine rejects out-of-order transitions; acknowledging a review notifies 
 **Objective:** the document store every other phase references — with the signed-download pattern done
 correctly from the first commit.
 
-**P13.1 — `000026` migration**
+**P13.1 — `000026` migration** ✅
 `document_types` (`name`, `slug` unique, `category` enum
 `identity|education|employment|tax|bank|medical|asset|letter|other`, `is_mandatory` bool,
 `requires_expiry` bool, `retention_months` nullable, `is_sensitive` bool, `position`, `is_active`,
@@ -2399,6 +2399,56 @@ Indexes: `(employee_id, status)`, `(expires_at)`, `(status, expires_at)`.
 - Files on the `local` disk at `hrms/{tenant_id}/{employee_id}/{uuid}.{ext}`; the same MIME whitelist as
   attachments (`File::types([jpeg,png,gif,webp,svg,pdf,doc,docx,xls,xlsx,ppt,pptx,txt,md,csv,zip,json])`,
   `max(10 * 1024)` KB, overridable in `hrms_settings`).
+
+> **The `document_types` catalogue in `config/hrms.php` was wrong the whole time,
+> exactly like `locations` was in P3.5.** It carried `code`, `is_confidential` and
+> `validity_months` — none of them columns on the table P13.1 creates — while
+> `category`, the one column the compliance story is built on, was absent. Same
+> failure mode, same blast radius: the first consumer is a `seed*()` step inside
+> `provisionHrmsDefaults()`, so the error surfaces as *every tenant in the fleet
+> fails to provision*, not as "the document catalogue is wrong". Corrected to
+> `name`/`slug`/`category`/`is_mandatory`/`is_sensitive`/`requires_expiry`.
+>
+> `validity_months` was dropped rather than mapped to `retention_months` because
+> they are **different questions**: how long a passport stays valid is a fact
+> about one document (stored per row in `employee_documents.expires_at`), while
+> retention is how long the tenant keeps the bytes. Mapping one onto the other
+> would have written a fabricated expiry policy into every tenant.
+> `retention_months` is null on every starter row — retention is jurisdictional
+> and P10 is where a jurisdiction gets a say (D2.9). `is_mandatory` is the four a
+> report would demand of anybody; PF and ESI are deliberately excluded as
+> India-specific, because a starter catalogue that hard-codes them asserts
+> something false about a tenant in another country.
+>
+> **`tests/Feature/HrmsCatalogTest.php` exists because this bit twice.** It asserts
+> every catalogue key is a real column *and* every required column is a real
+> catalogue key, across the catalogues that are seeded today. A key that maps to no
+> column otherwise sits unreported until provisioning runs.
+>
+> **Two things that guard depends on, both of which are silent when wrong:**
+>
+> - **"No default" is spelled two ways.** SQLite introspection *omits* the
+>   `default` key for a column that has none; PostgreSQL reports it with a `null`
+>   value. Written as `($c['default'] ?? 'sentinel') === null`, every column looks
+>   optional and the required-column half of the guard checks nothing while
+>   passing. It has to be `! array_key_exists('default', $c) || $c['default'] === null`.
+>   Verified on both grammars: `document_types` reports `name, slug, category`
+>   required on PostgreSQL and identically on sqlite.
+> - **The seeder derives `slug` for three catalogues.** `employment_types` from
+>   `Str::slug($name)`, `departments` and `designations` from `code`, so a
+>   catalogue keyed on `code` legitimately has no `slug` key. Those three are
+>   exempted by name with the derivation recorded, rather than exempting the
+>   `slug` column wholesale — which would let a future `slug` with no derivation
+>   behind it sail through.
+>
+> **Verified on the PostgreSQL path, not just sqlite.** `tenants:provision
+> --tenant=1` applied `000026`; all four enum CHECKs survive (the P3.1 lesson), the
+> FK actions are `employee_id` CASCADE / `document_type_id` SET NULL, and all
+> three required indexes exist.
+>
+> **The catalogue is corrected but not yet seeded.** P13.1 is the migration; the
+> `DocumentType` model and its `seedDocumentTypes()` step land with the P13.2
+> service, and `document_types` joins the guard's seeded list in that commit.
 
 **P13.2 — Upload/verify service + signed download (D2.13)**
 `app/Services/Hrms/DocumentService.php` — `upload(Employee, type, UploadedFile, meta)`, `verify`, `reject`,

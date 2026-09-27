@@ -234,23 +234,53 @@ return [
     | Document types
     |--------------------------------------------------------------------------
     |
-    | `is_mandatory` types are counted in the P18 documents-compliance report, and
-    | `is_confidential` types additionally require `hrms.documents.view_sensitive`
-    | (D2.8). The two statutory slots are empty here and filled in P10.
+    | Seeded for every tenant (P13.2). **`category` is required, not optional**:
+    | it is the family a compliance report and the P18 completeness check group
+    | by, and a document with no family is a document no report can find.
+    |
+    | **Keyed on `slug`; `document_types` has no `code` column.** An earlier
+    | revision of this file wrote `'code' => 'passport'`, `'is_confidential'` and
+    | `'validity_months'`, none of which is a column — the same defect the
+    | `locations` starters had. `is_sensitive` is the real column name, and
+    | `validity_months` is not a column at all *and* not the same idea as
+    | `retention_months`: how long a passport stays valid is a fact about one
+    | document (stored per row in `employee_documents.expires_at`), while
+    | retention is how long the tenant keeps the bytes. A type-level validity
+    | figure would be a guess about somebody's passport.
+    |
+    | **`retention_months` is left null on every row**, which means "keep
+    | indefinitely". Retention is a jurisdictional question and the statutory
+    | phase (P10) is where a jurisdiction gets a say; inventing a number here
+    | would put a five-year promise in a tenant's compliance report that nobody
+    | ever agreed to.
+    |
+    | **`is_mandatory` is the four a report would demand of anybody.** PF and
+    | ESI details are deliberately *not* mandatory: they are India-specific
+    | obligations, and a starter catalogue that hard-codes them asserts
+    | something false about a tenant in another country.
+    |
+    | **`is_sensitive` is the D2.8 permission, under a different column name.**
+    | D2.8 gates confidential documents behind `hrms.documents.view_sensitive`
+    | and writes an `hrms_data_access_logs` row on every read; the earlier
+    | `is_confidential` key said the same thing, and the migration settled on
+    | `is_sensitive` for the type and `confidential` for the row. A type-level
+    | flag is the *default* sensitivity of the thing, and a row can still be
+    | marked confidential on top of it — the two are not the same question, and
+    | the service checks both.
     |
     */
 
     'document_types' => [
-        ['name' => 'Passport', 'code' => 'passport', 'is_system' => true, 'is_mandatory' => true, 'is_confidential' => true, 'validity_months' => 120],
-        ['name' => 'National ID', 'code' => 'national_id', 'is_system' => true, 'is_mandatory' => true, 'is_confidential' => true, 'validity_months' => null],
-        ['name' => 'Work Visa', 'code' => 'work_visa', 'is_system' => true, 'is_mandatory' => false, 'is_confidential' => true, 'validity_months' => 36],
-        ['name' => 'Employment Contract', 'code' => 'employment_contract', 'is_system' => true, 'is_mandatory' => true, 'is_confidential' => false, 'validity_months' => null],
-        ['name' => 'Educational Certificate', 'code' => 'education', 'is_system' => true, 'is_mandatory' => false, 'is_confidential' => false, 'validity_months' => null],
-        ['name' => 'Bank Proof', 'code' => 'bank_proof', 'is_system' => true, 'is_mandatory' => true, 'is_confidential' => true, 'validity_months' => null],
-        ['name' => 'Experience Letter', 'code' => 'experience_letter', 'is_system' => true, 'is_mandatory' => false, 'is_confidential' => false, 'validity_months' => null],
-        ['name' => 'Medical Record', 'code' => 'medical_record', 'is_system' => true, 'is_mandatory' => false, 'is_confidential' => true, 'validity_months' => null],
-        ['name' => 'Provident Fund Details', 'code' => 'pf_details', 'is_system' => true, 'is_mandatory' => false, 'is_confidential' => true, 'validity_months' => null],
-        ['name' => 'ESI Details', 'code' => 'esi_details', 'is_system' => true, 'is_mandatory' => false, 'is_confidential' => true, 'validity_months' => null],
+        ['name' => 'Passport', 'slug' => 'passport', 'category' => 'identity', 'is_mandatory' => true, 'is_sensitive' => true, 'requires_expiry' => true],
+        ['name' => 'National ID', 'slug' => 'national_id', 'category' => 'identity', 'is_mandatory' => true, 'is_sensitive' => true, 'requires_expiry' => true],
+        ['name' => 'Work Visa', 'slug' => 'work_visa', 'category' => 'identity', 'is_mandatory' => false, 'is_sensitive' => true, 'requires_expiry' => true],
+        ['name' => 'Employment Contract', 'slug' => 'employment_contract', 'category' => 'employment', 'is_mandatory' => true, 'is_sensitive' => false, 'requires_expiry' => false],
+        ['name' => 'Educational Certificate', 'slug' => 'education', 'category' => 'education', 'is_mandatory' => false, 'is_sensitive' => false, 'requires_expiry' => false],
+        ['name' => 'Bank Proof', 'slug' => 'bank_proof', 'category' => 'bank', 'is_mandatory' => true, 'is_sensitive' => true, 'requires_expiry' => false],
+        ['name' => 'Medical Record', 'slug' => 'medical_record', 'category' => 'medical', 'is_mandatory' => false, 'is_sensitive' => true, 'requires_expiry' => false],
+        ['name' => 'Experience Letter', 'slug' => 'experience_letter', 'category' => 'letter', 'is_mandatory' => false, 'is_sensitive' => false, 'requires_expiry' => false],
+        ['name' => 'Provident Fund Details', 'slug' => 'pf_details', 'category' => 'tax', 'is_mandatory' => false, 'is_sensitive' => true, 'requires_expiry' => false],
+        ['name' => 'ESI Details', 'slug' => 'esi_details', 'category' => 'tax', 'is_mandatory' => false, 'is_sensitive' => true, 'requires_expiry' => false],
     ],
 
     /*
