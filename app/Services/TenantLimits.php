@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Models\Hrms\Employee\Employee;
 use App\Models\Project;
 use App\Models\Task;
 use App\Models\Tenant;
@@ -216,6 +217,10 @@ class TenantLimits
             'workspaces' => Workspace::count(),
             'projects' => Project::count(),
             'tasks' => Task::count(),
+            // HRMS headcount (Phase 15). Without this the key returns 0 for an
+            // unknown resource, so assertQuota('employees') would be a no-op that
+            // looks like it is working.
+            'employees' => Employee::count(),
             default => 0,
         };
     }

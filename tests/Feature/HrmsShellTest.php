@@ -39,6 +39,7 @@ class HrmsShellTest extends TestCase
         'app/Enums/Hrms',
         'app/Models/Hrms',
         'app/Services/Hrms',
+        'app/Support/Hrms',
         'app/Services/HrmsAuditLogger.php',
         'config/hrms.php',
         'resources/js/pages/HrmsOverview.jsx',

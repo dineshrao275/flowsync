@@ -1297,6 +1297,20 @@ insert raises. Grepping the repo confirmed no other migration had this shape. If
 - Employee code `EMP-{sequence}` allocated atomically, mirroring `KeyGenerator::nextTaskKey()`'s
   transactional pattern with a unique-index retry.
 
+**P2.2 — status: SHIPPED.** Enums `EmployeeStatus` (`active|probation|on_notice|suspended|exited|
+terminated`, with `isEmployed()`/`isWorking()`/`isOffboarding()`) and `WorkMode`; models
+`Employee` (+`displayName()`, `tenureOn()`, scopes `active`/`onNotice`/`employed`), `EmploymentType`,
+`EmployeeStatusHistory` (newest-first, no update timestamp — it is append-only). Service:
+`list`/`countMatching`/`filterOptions`/`show`/`create`/`update`/`changeStatus`/`assignManager`/
+`terminate`/`photoUrl`, with `EmployeeDirectoryQuery` (filter + sortable whitelist, LIKE-escaped
+search), `EmployeeUserProvisioner` (inline login + central routing), `ReportingLine` (self and
+ancestor-cycle rejection, cycle-safe subtree walk) and `EmployeeStatusTransition`. `EMP-{n}` codes
+are derived from the highest issued code and never recycled, including across soft deletes.
+`TenantLimits` learned the `employees` quota. 57 tests in `HrmsEmployeeServiceTest`; verified on
+sqlite and on real PostgreSQL. Deviations from the plan text, all deliberate: the bounded-context
+folders above replace the literal paths; the inline user path is ordered (login first) rather than
+"in one transaction", because it spans two connections — see the note in `EmployeeService::create()`.
+
 **P2.3 — Policy + FormRequests + controller**
 `app/Policies/EmployeePolicy.php` — `view` (self OR `hrms.employees.view`); `create`/`update`
 (`hrms.employees.manage`); `changeStatus`/`terminate` (`hrms.employees.manage`); `viewSensitive`

@@ -20,7 +20,7 @@ Laravel 12 + React 19 SPA. Session-based auth **without** Breeze/Fortify/Sanctum
   `tenants:provision` + seeds demo data (superadmin + acme + globex). Reset from scratch:
   `docker-compose down -v` then `up -d` (app entrypoint re-initializes; `RUN_INIT=true` only for `app`).
   No PHP/composer needed on the host — envs in `.env.docker`.
-- `php artisan test` — run test suite (Phase 13: **isolated, per-tenant file DBs** via `Tests\IsolatesDatabase`; current gate: **545 tests / 3389 assertions passing**)
+- `php artisan test` — run test suite (Phase 13: **isolated, per-tenant file DBs** via `Tests\IsolatesDatabase`; current gate: **602 tests / 3532 assertions passing**)
 
 - `npm run build` / `npm run dev` — frontend build / Vite dev server
 - `./vendor/bin/pint` — PHP code style (run over whole repo; `--dirty` only works in git)
@@ -496,7 +496,8 @@ Hierarchy: **Tenant → Workspace → Project → Task** (subtask `tasks.parent_
   module lists, per-tenant SA switching, `GET|PUT api/tenants/{tenant}/hrms`); P1.8–P1.10 (the three
   shared primitives: `2026_09_27_000014` migration, `HrmsAuditLogger`, the generic `ApprovalService`,
   and the `provisionHrmsDefaults()` settings hook); P1.11 (the module-gated `/hrms` SPA shell); P2.1
-  (`2026_09_27_000015` — `employment_types`, `employees`, `employee_status_history`).
+  (`2026_09_27_000015` — `employment_types`, `employees`, `employee_status_history`); P2.2 (the
+  employee domain: enums, models, and the service — see the P2.2 notes below).
 - **Migration numbering is pre-assigned** in the plan's Part 3.3 (`2026_09_27_000014` for the shared
   tables, through `2026_10_04_000031`), one monolithic tenant migration per phase. Next free timestamp
   is now `2026_09_27_000016`.
@@ -504,6 +505,30 @@ Hierarchy: **Tenant → Workspace → Project → Task** (subtask `tasks.parent_
   `references()->on()->foreign()`, so any modifier chained after it is **silently dropped** — the FK is
   emitted with no unique index and no error. `employees.user_id` shipped with this bug and enforced
   nothing until `HrmsEmployeeTablesTest::test_a_user_can_back_at_most_one_employee_record` caught it.
+- **P2.2 (employee domain) — bounded contexts, not top-level files.** The plan's literal
+  `app/Models/Hrms/Employee.php` / `app/Services/Hrms/EmployeeService.php` paths are superseded by
+  D2.16.2 folder-per-context, matching P1.9: `app/Models/Hrms/Employee/{Employee,EmploymentType,EmployeeStatusHistory}.php`,
+  `app/Services/Hrms/Employee/{EmployeeService,EmployeeDirectoryQuery,EmployeeUserProvisioner,ReportingLine,EmployeeStatusTransition}.php`
+  + `ValueObjects/EmployeeProfile.php`, `app/Support/Hrms/EmployeeCodeGenerator.php`, and the
+  `EmployeeStatus`/`WorkMode` enums. `EmployeeService` stays a thin orchestrator; the rules live in
+  `ReportingLine` (self/cycle rejection) and `EmployeeStatusTransition` (record + history row + exit
+  date in one transaction).
+- **Read `QueryException::errorInfo[2]`, never `getMessage()`, to identify a unique violation.**
+  Laravel appends the failing statement to the message, and every insert into `employees` *names*
+  `employee_code` — so matching the full text reports a violation on `user_id`/`email` as a code
+  collision, retries it five times, and finally blames a code failure that never happened.
+  `EmployeeCodeGenerator::isCodeCollision()` reads the driver message only.
+- **The inline-hire path is deliberately ordered, not atomic.** `users` is in the tenant DB and
+  `tenant_users` routing is central, so no transaction covers both; the login is written *before* the
+  employee row because a missing routing row makes a hire un-signable-in and unrepairable from the UI,
+  where a spare account is a visible, deletable record. `TenantProvisioner::syncRouting()` is the
+  repair path. `EmployeeUserProvisioner` resolves roles *before* inserting the user — validating after
+  leaves a real account with no roles and no employee to explain it.
+- **Carbon 2 `diffInYears` is signed and returns a float.** `Employee::tenureOn()` wraps it in `abs()`
+  *and* casts to `int`; without either, a past joining date returns a negative span and the `?int`
+  return type deprecates on PHP 8.3.
+- **`TenantLimits::currentCount()` counts `employees` via `Employee::count()`** — omitting the mapping
+  made `assertQuota('employees')` a silent no-op, since an unknown resource counts 0.
 - **`employees.manager_id` is `nullOnDelete`, deliberately not `cascadeOnDelete()`.** Unlike
   `tasks.parent_id` (which cascades), cascade here would delete an entire department when one manager
   is removed. `employee_status_history` is the opposite case: it cascades with its employee, because a
