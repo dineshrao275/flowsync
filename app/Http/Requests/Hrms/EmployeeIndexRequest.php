@@ -3,6 +3,7 @@
 namespace App\Http\Requests\Hrms;
 
 use App\Enums\Hrms\EmployeeStatus;
+use App\Enums\Hrms\WorkMode;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -23,7 +24,11 @@ class EmployeeIndexRequest extends FormRequest
         return [
             'q' => ['sometimes', 'nullable', 'string', 'max:120'],
             'status' => ['sometimes', 'nullable', Rule::enum(EmployeeStatus::class)],
-            'work_mode' => ['sometimes', 'nullable', 'string', 'max:32'],
+            // Enum, not `string`: the query casts this with WorkMode::from(),
+            // so an unvalidated value is a 500 rather than a 422. The catalog is
+            // served from the same enum in filterOptions(), so the two agree by
+            // construction and cannot drift.
+            'work_mode' => ['sometimes', 'nullable', Rule::enum(WorkMode::class)],
             'employment_type_id' => ['sometimes', 'nullable', 'integer', 'exists:employment_types,id'],
             'manager_id' => ['sometimes', 'nullable', 'integer', 'exists:employees,id'],
             'joined_from' => ['sometimes', 'nullable', 'date'],

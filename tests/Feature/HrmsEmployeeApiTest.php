@@ -152,6 +152,18 @@ class HrmsEmployeeApiTest extends TestCase
         $this->assertFalse($body['restricted']);
     }
 
+    public function test_an_unknown_work_mode_filter_is_a_422_not_a_500(): void
+    {
+        $this->login('admin@flowsync.test');
+
+        // The filter is cast with WorkMode::from(). Validated as a plain string,
+        // an unknown value reaches that cast and the request 500s — a bad query
+        // parameter must never be able to take an endpoint down.
+        $this->getJson('/api/hrms/employees?work_mode=teletubby')
+            ->assertStatus(422)
+            ->assertJsonValidationErrors('work_mode');
+    }
+
     public function test_a_status_colour_is_a_hex_the_clients_can_actually_style(): void
     {
         $this->login('admin@flowsync.test');
