@@ -54,17 +54,17 @@ class HrmsEmployeeTablesTest extends TestCase
         }
     }
 
-    public function test_the_deferred_columns_are_absent(): void
+    public function test_the_shift_column_is_still_absent(): void
     {
-        // department_id / designation_id / location_id / shift_id are P3 and P5.
-        // If a migration ever adds them early, the phase that owns them would
-        // silently skip the ALTER and the two would drift.
-        foreach (['department_id', 'designation_id', 'location_id', 'shift_id'] as $column) {
-            $this->assertFalse(
-                Schema::hasColumn('employees', $column),
-                "employees.{$column} belongs to a later phase",
-            );
-        }
+        // department_id / designation_id / location_id were deferred to P3 and
+        // have since arrived in `000016`; shift_id belongs to P5. If a migration
+        // ever adds it early, the phase that owns it would silently skip the
+        // ALTER and the two would drift. P3.1's own columns are asserted in
+        // HrmsOrgTablesTest.
+        $this->assertFalse(
+            Schema::hasColumn('employees', 'shift_id'),
+            'employees.shift_id belongs to a later phase',
+        );
     }
 
     public function test_there_is_no_tenant_id_column(): void
@@ -264,12 +264,10 @@ class HrmsEmployeeTablesTest extends TestCase
 
     public function test_an_employment_type_may_omit_its_code(): void
     {
-        $id = DB::table('employment_types')->insertGetId([
+        $id = $this->insertEmploymentType([
             'name' => 'Intern',
-            'slug' => 'intern',
+            'slug' => 'intern-'.uniqid(),
             'code' => null,
-            'created_at' => now(),
-            'updated_at' => now(),
         ]);
 
         $this->assertNull(DB::table('employment_types')->where('id', $id)->value('code'));
@@ -277,13 +275,7 @@ class HrmsEmployeeTablesTest extends TestCase
 
     public function test_an_employee_can_reference_an_employment_type(): void
     {
-        $typeId = DB::table('employment_types')->insertGetId([
-            'name' => 'Full-time',
-            'slug' => 'full-time',
-            'is_system' => true,
-            'created_at' => now(),
-            'updated_at' => now(),
-        ]);
+        $typeId = $this->insertEmploymentType();
 
         $employeeId = $this->insertEmployee(['employment_type_id' => $typeId]);
 
@@ -298,11 +290,16 @@ class HrmsEmployeeTablesTest extends TestCase
         $this->insertEmployee();
         $this->insertEmploymentType();
 
+        // P2.7 seeds the employment-type catalog, so the count is only
+        // meaningful as a before/after comparison.
+        $types = DB::table('employment_types')->count();
+        $employees = DB::table('employees')->count();
+
         $this->migration()->up();
         $this->migration()->up();
 
-        $this->assertSame(1, DB::table('employees')->count());
-        $this->assertSame(1, DB::table('employment_types')->count());
+        $this->assertSame($employees, DB::table('employees')->count());
+        $this->assertSame($types, DB::table('employment_types')->count());
     }
 
     public function test_re_running_preserves_existing_rows(): void
@@ -353,16 +350,24 @@ class HrmsEmployeeTablesTest extends TestCase
         ]);
     }
 
-    private function insertEmploymentType(): int
+    /**
+     * @param  array<string, mixed>  $overrides
+     */
+    private function insertEmploymentType(array $overrides = []): int
     {
+        // P2.7 seeds a real catalog on every tenant, so "full-time" already
+        // exists by the time a schema test runs. These tests are about the
+        // column constraints, not about any particular row, so the slug has to
+        // be unique per call.
         return DB::table('employment_types')->insertGetId([
             'name' => 'Full-time',
-            'slug' => 'full-time',
+            'slug' => 'full-time-'.uniqid(),
             'is_active' => true,
             'position' => 1,
             'is_system' => true,
             'created_at' => now(),
             'updated_at' => now(),
+            ...$overrides,
         ]);
     }
 }

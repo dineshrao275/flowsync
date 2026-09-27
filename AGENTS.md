@@ -20,7 +20,7 @@ Laravel 12 + React 19 SPA. Session-based auth **without** Breeze/Fortify/Sanctum
   `tenants:provision` + seeds demo data (superadmin + acme + globex). Reset from scratch:
   `docker-compose down -v` then `up -d` (app entrypoint re-initializes; `RUN_INIT=true` only for `app`).
   No PHP/composer needed on the host — envs in `.env.docker`.
-- `php artisan test` — run test suite (Phase 13: **isolated, per-tenant file DBs** via `Tests\IsolatesDatabase`; current gate: **603 tests / 3537 assertions passing**)
+- `php artisan test` — run test suite (Phase 13: **isolated, per-tenant file DBs** via `Tests\IsolatesDatabase`; current gate: **603 tests / 3537 assertions passing** — that count is the pre-HRMS baseline; the suite has grown every phase since (P1–P2 added ~200 tests) and is re-verified by the final full-suite gate, so treat it as the floor, not today's total)
 
 - `npm run build` / `npm run dev` — frontend build / Vite dev server
 - `./vendor/bin/pint` — PHP code style (run over whole repo; `--dirty` only works in git)
@@ -637,6 +637,19 @@ Hierarchy: **Tenant → Workspace → Project → Task** (subtask `tasks.parent_
   lookup and then `Auth::attempt`, which matches `users.email` case-sensitively — so a mixed-case stored
   email is only reachable by typing that exact casing. `UserController::store` normalizes before
   validation (so `unique:users,email` also checks the normalized form).
+- **`constrained()` inside `Schema::table()` silently DESTROYS other columns' CHECK constraints on
+  sqlite.** A `foreign` command is in `SQLiteGrammar::getAlterCommands()`, so Laravel rebuilds the
+  table through a `__temp__` copy; the rebuild regenerates every column from doctrine introspection,
+  and **doctrine does not report column-level CHECK constraints**. P3.1 hit this adding
+  `employees.department_id`: `employees.status` and `employees.work_mode` came out of the ALTER as
+  bare `varchar` and lost `check ("status" in (...))`. PostgreSQL takes a native
+  `ALTER TABLE ... ADD COLUMN` and never rebuilds, so the loss was invisible there — the test
+  fast-path and any local sqlite file ended up with a **weaker schema than production**, with the
+  enum guards still passing against PG. Fix: add such a column with raw
+  `alter table <t> add column <c> integer null references <ref> (id) on delete set null` (valid on
+  both grammars) and create the index separately — index creation is not a rebuild. `down()` must
+  drop the index **before** the column: sqlite refuses `DROP COLUMN` on an indexed column. P5's
+  `employees.shift_id` has the same trap.
 - **PostgreSQL-only SQL slips past the sqlite test fast-path.** The tenant suite runs on sqlite files, so a
   sqlite-tolerated statement (`WHERE is_default = 1` on a boolean column) only fails once a tenant DB is
   actually Postgres. When touching a tenant migration, either stay on the schema builder or exercise the PG

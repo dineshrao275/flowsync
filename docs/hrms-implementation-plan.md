@@ -1532,6 +1532,15 @@ expect.
   matching slug exists, guarded with `whereNull` so it is re-runnable.
 - PG: `geo_lat`/`geo_lng` as `decimal(10,7)`, never float — float round-trips badly.
 
+
+> **`ALTER employees` cannot use `constrained()`.** Adding a foreign-key column through the schema
+> builder inside `Schema::table()` makes Laravel **rebuild the whole table on SQLite** (a `foreign`
+> command is in `SQLiteGrammar::getAlterCommands()`), and the rebuild regenerates columns from
+> doctrine introspection — which does not report column-level CHECK constraints, so
+> `employees.status` and `employees.work_mode` silently lost `check (... in (...))`. PostgreSQL uses
+> a native `ADD COLUMN` and is unaffected, so the corruption was invisible outside the test
+> fast-path. P3.1 emits raw `add column ... references ... on delete set null` instead, which both
+> grammars accept without touching another column. P5's `shift_id` has the same trap.
 **P3.2 — Models + service + tree logic**
 `Department` (`parent()`, `children()`, `head()`, `descendants()`), `Designation`, `Location`
 (`employees()`, `isGeoFenced()`).
