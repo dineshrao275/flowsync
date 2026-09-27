@@ -67,11 +67,15 @@ class HrmsOrgTablesTest extends TestCase
 
     public function test_a_department_slug_is_unique(): void
     {
-        $id = $this->insertDepartment(['name' => 'Engineering', 'slug' => 'engineering']);
+        // These fixtures insert raw rows with an explicit slug, so they use one
+        // the tenant is **not** seeded with (P3.5 seeds an 'engineering'): a
+        // slug that already exists would fail on the first insert, and the
+        // unique index — the thing under test — would never be exercised.
+        $id = $this->insertDepartment(['name' => 'Widgets', 'slug' => 'widgets']);
 
         $this->expectException(QueryException::class);
 
-        $this->insertDepartment(['name' => 'Engineering (EU)', 'slug' => 'engineering']);
+        $this->insertDepartment(['name' => 'Widgets (EU)', 'slug' => 'widgets']);
     }
 
     public function test_deleting_a_department_leaves_its_children_standing(): void
@@ -79,7 +83,7 @@ class HrmsOrgTablesTest extends TestCase
         // The tempting cascade, and the wrong one: it would destroy an entire
         // subtree when one mid-level department is removed. Orphaning is
         // recoverable — re-parent it, or deactivate it.
-        $parent = $this->insertDepartment(['name' => 'Engineering', 'slug' => 'engineering']);
+        $parent = $this->insertDepartment(['name' => 'Engineering', 'slug' => 'widgets']);
         $child = $this->insertDepartment([
             'name' => 'Platform',
             'slug' => 'platform',
@@ -108,7 +112,7 @@ class HrmsOrgTablesTest extends TestCase
         $head = $this->insertEmployee(['name' => 'Ada Lovelace']);
         $department = $this->insertDepartment([
             'name' => 'Engineering',
-            'slug' => 'engineering',
+            'slug' => 'widgets',
             'head_employee_id' => $head,
         ]);
 
@@ -123,7 +127,7 @@ class HrmsOrgTablesTest extends TestCase
 
     public function test_a_deleted_department_orphans_its_employees_instead_of_deleting_them(): void
     {
-        $department = $this->insertDepartment(['name' => 'Engineering', 'slug' => 'engineering']);
+        $department = $this->insertDepartment(['name' => 'Engineering', 'slug' => 'widgets']);
         $employee = $this->insertEmployee(['name' => 'Grace Hopper', 'department_id' => $department]);
 
         DB::table('departments')->where('id', $department)->delete();
@@ -177,7 +181,7 @@ class HrmsOrgTablesTest extends TestCase
 
     public function test_the_free_text_designation_is_normalized_where_a_matching_slug_exists(): void
     {
-        $department = $this->insertDepartment(['name' => 'Engineering', 'slug' => 'engineering']);
+        $department = $this->insertDepartment(['name' => 'Engineering', 'slug' => 'widgets']);
         $designation = $this->insertDesignation([
             'name' => 'Senior Engineer',
             'slug' => 'senior-engineer',
@@ -221,8 +225,8 @@ class HrmsOrgTablesTest extends TestCase
 
     public function test_the_backfill_never_overwrites_a_department_somebody_set_by_hand(): void
     {
-        $matched = $this->insertDepartment(['name' => 'Engineering', 'slug' => 'engineering']);
-        $handPicked = $this->insertDepartment(['name' => 'Operations', 'slug' => 'operations']);
+        $matched = $this->insertDepartment(['name' => 'Engineering', 'slug' => 'widgets']);
+        $handPicked = $this->insertDepartment(['name' => 'Operations', 'slug' => 'gadgets']);
         $designation = $this->insertDesignation([
             'name' => 'Senior Engineer',
             'slug' => 'senior-engineer',
@@ -278,8 +282,12 @@ class HrmsOrgTablesTest extends TestCase
     {
         // "Manager" is a level, not a department, so most catalog rows have no
         // department_id. Guessing one from the job title is not available.
-        $designation = $this->insertDesignation(['name' => 'Manager', 'slug' => 'manager']);
-        $employee = $this->insertEmployee(['designation' => 'Manager']);
+        // "Principal", not "Manager": a tenant is seeded with a Manager
+        // designation, and the backfill matches on **slug**, so a second 'manager'
+        // row would leave the employee linked to the seeded one — the assertion
+        // below would then pass for the wrong reason.
+        $designation = $this->insertDesignation(['name' => 'Principal', 'slug' => 'principal']);
+        $employee = $this->insertEmployee(['designation' => 'Principal']);
 
         $this->migration()->up();
 

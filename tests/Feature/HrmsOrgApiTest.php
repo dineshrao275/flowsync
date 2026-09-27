@@ -121,14 +121,24 @@ class HrmsOrgApiTest extends TestCase
                 'locations' => [['id', 'name', 'city']],
             ]);
 
-        // The chart is nested, not a flat list the client has to rebuild.
-        $this->assertSame(
-            ['Company', 'Platform'],
-            collect($response->json('tree'))
-                ->flatMap(fn (array $node): array => $this->flatten($node))
-                ->pluck('name')
-                ->all(),
-        );
+        // The chart is nested, not a flat list the client has to rebuild, and
+        // it carries **the whole tenant** in that one request — including the
+        // departments a tenant is seeded with (P3.5) and the ones this test
+        // created. Asserting the row count is what makes "the whole org" a
+        // claim: a payload that silently dropped the starters would still
+        // contain Company and Platform.
+        $names = collect($response->json('tree'))
+            ->flatMap(fn (array $node): array => $this->flatten($node))
+            ->pluck('name')
+            ->all();
+
+        $this->assertContains('Company', $names);
+        $this->assertContains('Platform', $names);
+        $this->assertCount(Department::query()->count(), $names);
+
+        $company = collect($response->json('tree'))->firstWhere('name', 'Company');
+        $this->assertNotNull($company, 'a nested chart is what carries the parent/child edge');
+        $this->assertSame(['Platform'], collect($company['departments'])->pluck('name')->all());
     }
 
     public function test_the_chart_carries_both_headcounts(): void
@@ -147,9 +157,14 @@ class HrmsOrgApiTest extends TestCase
 
         $tree = $this->getJson('/api/hrms/org')->assertOk()->json('tree');
 
-        $this->assertSame(1, $tree[0]['headcount'], 'the subtree total');
-        $this->assertSame(0, $tree[0]['direct_count'], 'this node alone');
-        $this->assertSame(1, $tree[0]['departments'][0]['direct_count']);
+        // By id, not by index — the tenant also carries seeded departments, so
+        // `$tree[0]` is whichever row sorts first and this test's own
+        // department only happened to be it.
+        $node = collect($tree)->firstWhere('id', $parent);
+
+        $this->assertSame(1, $node['headcount'], 'the subtree total');
+        $this->assertSame(0, $node['direct_count'], 'this node alone');
+        $this->assertSame(1, $node['departments'][0]['direct_count']);
     }
 
     public function test_a_department_show_carries_its_path_root_first(): void
@@ -176,13 +191,43 @@ class HrmsOrgApiTest extends TestCase
     {
         $this->actAs($this->userWith(['hrms.view', 'hrms.org.view', 'hrms.org.view', 'hrms.org.manage', 'hrms.employees.manage']));
 
-        $this->postJson('/api/hrms/departments', ['name' => 'Engineering'])
+        // A name the tenant does not already have. The collision against the
+        // seeded "Engineering" is its own test below, because it asserts a
+        // different thing: that a starter's name is not up for grabs.
+        $this->postJson('/api/hrms/departments', ['name' => 'Widgets'])
             ->assertCreated()
-            ->assertJsonPath('department.slug', 'engineering');
+            ->assertJsonPath('department.slug', 'widgets');
 
-        $this->postJson('/api/hrms/departments', ['name' => 'Engineering'])
+        $this->postJson('/api/hrms/departments', ['name' => 'Widgets'])
             ->assertCreated()
-            ->assertJsonPath('department.slug', 'engineering-2');
+            ->assertJsonPath('department.slug', 'widgets-2');
+    }
+
+    /**
+     * A tenant is provisioned with a starter "Engineering" (P3.5), so the name
+     * a new department is most likely to be given is already taken.
+     *
+     * The starter must survive the attempt unchanged — a create that reused the
+     * existing row's slug would either 500 on the unique index or, worse, leave
+     * the tenant with one department where it typed two.
+     */
+    public function test_a_seeded_department_name_is_not_up_for_grabs(): void
+    {
+        $this->actAs($this->userWith(['hrms.view', 'hrms.org.view', 'hrms.org.manage', 'hrms.employees.manage']));
+
+        $before = Department::query()->where('slug', 'engineering')->firstOrFail();
+
+        $created = $this->postJson('/api/hrms/departments', ['name' => 'Engineering'])
+            ->assertCreated()
+            ->json('department');
+
+        $this->assertNotSame('engineering', $created['slug'], 'the starter already holds that slug');
+        $this->assertNotSame($before->id, $created['id'], 'a new row, not the starter re-pointed');
+
+        // And the starter is exactly as it was.
+        $this->assertTrue($before->refresh()->is($before));
+        $this->assertSame('Engineering', $before->name);
+        $this->assertSame('engineering', $before->slug);
     }
 
     public function test_a_client_supplied_slug_is_not_accepted(): void
@@ -193,9 +238,9 @@ class HrmsOrgApiTest extends TestCase
         // slug and gets a different one back has no way to learn its own
         // choice was dropped, and the next rename collides with what it thinks
         // it stored.
-        $this->postJson('/api/hrms/departments', ['name' => 'Engineering', 'slug' => 'mine'])
+        $this->postJson('/api/hrms/departments', ['name' => 'Widgets', 'slug' => 'mine'])
             ->assertCreated()
-            ->assertJsonPath('department.slug', 'engineering');
+            ->assertJsonPath('department.slug', 'widgets');
     }
 
     public function test_a_cyclic_parent_is_refused(): void
@@ -297,9 +342,25 @@ class HrmsOrgApiTest extends TestCase
             ->assertOk()
             ->assertJsonPath('message', 'Departments reordered.');
 
+        $created = Department::whereIn('id', [$a, $b])->orderBy('position')->get();
+
+        $this->assertSame(['B', 'A'], $created->pluck('name')->all());
+        $this->assertSame([1, 2], $created->pluck('position')->all());
+
+        // The seeded departments are roots in this same list and the payload
+        // omitted every one of them. `OrgNaming::order()` promises they keep
+        // their relative order at the end rather than being dropped — a
+        // guarantee a two-row list could never actually test.
+        $seeded = Department::query()
+            ->whereNotIn('id', [$a, $b])
+            ->orderBy('position')
+            ->pluck('name')
+            ->all();
+
         $this->assertSame(
-            ['B', 'A'],
-            Department::where('parent_id', null)->orderBy('position')->pluck('name')->all(),
+            ['Engineering', 'Sales', 'Operations'],
+            $seeded,
+            'siblings the payload omitted keep their relative order at the end',
         );
     }
 
@@ -381,15 +442,18 @@ class HrmsOrgApiTest extends TestCase
     {
         $this->actAs($this->userWith(['hrms.view', 'hrms.org.view', 'hrms.org.manage', 'hrms.employees.manage']));
 
-        $this->postJson('/api/hrms/locations', [
-            'name' => 'Headquarters',
+        // Identified by the id the response hands back, and named something the
+        // tenant is not seeded with: looking a row up by name picks whichever
+        // match sorts first, and a seeded "Headquarters" (P3.5) has no fence.
+        $id = $this->postJson('/api/hrms/locations', [
+            'name' => 'Pune Depot',
             'geo_lat' => 19.076,
             'geo_lng' => 72.8777,
             'geo_radius_m' => 150,
             'is_geo_fenced' => true,
-        ])->assertCreated()->assertJsonPath('location.is_geo_fenced', true);
-
-        $id = Location::where('name', 'Headquarters')->value('id');
+        ])->assertCreated()
+            ->assertJsonPath('location.is_geo_fenced', true)
+            ->json('location.id');
 
         // Read back as a number, and still fenced: the decimal round trip must
         // not lose the trailing precision a radius check depends on.

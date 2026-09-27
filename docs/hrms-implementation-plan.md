@@ -1710,10 +1710,61 @@ modals. `DepartmentTreeColumn` in `resources/js/components/hrms/`, plus
 > component directory that the delivery gate does not inspect is how a `console.log`
 > survives a review.
 
-**P3.5 — Seed starter org data**
-Add `departments`/`designations`/`locations` to `config/hrms.php` and to `provisionHrmsDefaults()`
-(generic starters only — do not invent a company structure for seeded tenants beyond
-"Engineering / Sales / Operations" and "Headquarters / Remote").
+**P3.5 — Seed starter org data** ✅
+The catalogue entries were already in `config/hrms.php` (P1.10) but **nothing read
+them**; this task adds the three guarded steps to `provisionHrmsDefaults()`.
+Starters: `Engineering / Sales / Operations`, `Manager / Team Lead / Senior
+Specialist / Specialist`, `Headquarters / Remote` — the smallest set that is true of
+any company, so a tenant is deleting rows rather than inventing a structure.
+
+> **`locations` has no `code` column.** P3.1 gives `code` to departments and
+> designations only, and the catalogue carried `'code' => 'head_office'` anyway. It
+> was harmless *only* because nothing consumed the array until this task, at which
+> point **every tenant's provisioning failed** with "table locations has no column
+> named code". `Location::$fillable` and `LocationRequest` never carried `code`, so
+> the HTTP surface was right and only the catalogue lied. The starters are keyed on
+> `slug`, and the lesson generalises: **a config key that maps to no column sits
+> unreported until the first thing that reads it** — a catalogue is not a schema
+> description, and a phantom key is a bug waiting for a consumer.
+>
+> **The org tables have no `is_system` column, and must not grow one.** The
+> catalogue claimed one, with the comment that it stops a referenced row being
+> deleted. What actually stops it is P3.2's service refusing a hard delete of a
+> department with children or employees — a *rule*, not a flag. A boolean would be a
+> second, weaker answer to the same question, and the two would disagree: the flag
+> would forbid deleting an empty "Engineering" while staying silent about the empty
+> "Engineering" a tenant created themselves.
+>
+> **The starters invent no facts.** No `parent_id` or `head_employee_id` (a guessed
+> head is a person who does not work there), no `department_id` on a designation
+> ("Manager" is a level, not a department), and no `country`/`timezone` on a location
+> — a site's country is printed on a payslip's tax declaration, so a seeded "US"
+> outranks the tenant's own answer. The numeric `level` **is** set, because a band
+> chart that reads "no data" on four seeded bands is a chart that lies about a tenant
+> that has them.
+>
+> **Seeding org data changes the fixture every org test runs against — 20 of them
+> broke.** Three rules came out of it, and all three are about tests that were
+> quietly depending on the tenant being empty:
+>
+> - *A raw-insert fixture must not reuse a seeded natural key.* `HrmsOrgTablesTest`
+>   inserts rows with explicit slugs, so its "slug is unique" test 500'd on its
+>   **first** insert and never exercised the index. Same trap in the free-text
+>   backfill tests: a second `'manager'` designation would leave the employee linked
+>   to the *seeded* row, so the assertion passed for the wrong reason.
+> - *`$tree[0]` means "whichever row sorts first", not "the one I just made".* Two
+>   chart tests happened to pass only because their fixtures defaulted to
+>   `position => 0`, which sorts ahead of the starters' 10/20/30. They are now
+>   located by id.
+> - *A whole-tenant exact-list assertion is only true while the tenant starts
+>   empty.* Scoping those to the rows a test created is what makes them say
+>   something; `assertCount(Department::count(), $names)` states "nothing vanished"
+>   without coupling the test to how many starters the catalogue has.
+>
+> **The starters also made a previously untestable guarantee testable.**
+> `OrgNaming::order()` promises that siblings the payload omitted keep their
+> relative order at the end — a two-row reorder payload omits nothing, so the
+> guarantee had no coverage at all. It does now.
 
 **Acceptance:** the org page loads in one request; a cycle attempt returns 422; an employee with a
 department shows it in the directory filter; `hrms.org.manage` is required for every write.

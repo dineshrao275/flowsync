@@ -55,23 +55,26 @@ class HrmsOrgServiceTest extends TestCase
 
     public function test_a_department_gets_a_unique_slug(): void
     {
-        $first = $this->departments()->create(['name' => 'Engineering']);
-        $second = $this->departments()->create(['name' => 'Engineering']);
+        // "Widgets", not "Engineering": the tenant is seeded with an
+        // Engineering (P3.5), and a starter name turns a test about the suffix
+        // algorithm into a test about which rows happen to exist.
+        $first = $this->departments()->create(['name' => 'Widgets']);
+        $second = $this->departments()->create(['name' => 'Widgets']);
 
-        $this->assertSame('engineering', $first->slug);
-        $this->assertSame('engineering-2', $second->slug);
+        $this->assertSame('widgets', $first->slug);
+        $this->assertSame('widgets-2', $second->slug);
     }
 
     public function test_renaming_a_department_does_not_collide_with_its_own_slug(): void
     {
-        $department = $this->departments()->create(['name' => 'Engineering']);
+        $department = $this->departments()->create(['name' => 'Widgets']);
 
         // Same name, so the slug resolves to itself. Treating that as a
         // collision would 422 a no-op edit and push the UI into inventing a
         // "-2" the user never asked for.
-        $updated = $this->departments()->update($department, ['name' => 'Engineering']);
+        $updated = $this->departments()->update($department, ['name' => 'Widgets']);
 
-        $this->assertSame('engineering', $updated->slug);
+        $this->assertSame('widgets', $updated->slug);
     }
 
     public function test_a_department_cannot_be_its_own_parent(): void
@@ -143,12 +146,15 @@ class HrmsOrgServiceTest extends TestCase
         DB::table('departments')->where('id', $a)->update(['parent_id' => $b->id]);
 
         $tree = $this->chart()->build();
+        $names = collect($tree)->flatMap(fn (array $node): array => $this->flatten($node))->pluck('name')->all();
 
         $this->assertNotEmpty($tree, 'a tangled tree must render, not vanish');
-        $this->assertSame(
-            ['A', 'B'],
-            collect($tree)->flatMap(fn (array $node): array => $this->flatten($node))->pluck('name')->all(),
-        );
+        // Scoped to the pair rather than an exact list, because the tenant is
+        // seeded with departments (P3.5) that have nothing to do with this
+        // shape — but "nothing vanished" is still asserted for every row.
+        $this->assertContains('A', $names);
+        $this->assertContains('B', $names);
+        $this->assertCount(Department::query()->count(), $names);
     }
 
     public function test_the_path_to_a_department_reads_from_the_root_down(): void
@@ -166,17 +172,17 @@ class HrmsOrgServiceTest extends TestCase
     public function test_the_tree_reports_depth_and_both_headcounts(): void
     {
         $root = $this->insertDepartment(['name' => 'Company']);
-        $engineering = $this->insertDepartment(['name' => 'Engineering', 'parent_id' => $root->id]);
+        $engineering = $this->insertDepartment(['name' => 'Widgets', 'parent_id' => $root->id]);
         $platform = $this->insertDepartment(['name' => 'Platform', 'parent_id' => $engineering->id]);
 
         $this->insertEmployee(['department_id' => $engineering->id]);
         $this->insertEmployee(['department_id' => $engineering->id]);
         $this->insertEmployee(['department_id' => $platform->id]);
 
-        $tree = $this->chart()->build();
-        $this->assertCount(1, $tree);
-
-        $company = $tree[0];
+        // Located by id, never by index: the tenant carries seeded departments
+        // too, so "$tree[0] is the one I just made" was only ever true while
+        // every fixture happened to sort ahead of the seed.
+        $company = $this->node($this->chart()->build(), $root->id);
         $this->assertSame('Company', $company['name']);
         $this->assertSame(0, $company['depth']);
         $this->assertSame(3, $company['headcount'], 'the subtree total');
@@ -224,7 +230,8 @@ class HrmsOrgServiceTest extends TestCase
             ->pluck('name')
             ->all();
 
-        $this->assertSame(['Company', 'Orphan'], $names);
+        $this->assertContains('Company', $names);
+        $this->assertContains('Orphan', $names);
     }
 
     public function test_a_department_head_has_to_be_an_active_employee(): void
@@ -363,12 +370,17 @@ class HrmsOrgServiceTest extends TestCase
 
         $this->assertSame(7, $stranger->refresh()->position);
         $this->assertSame($other->id, $stranger->parent_id);
-        $this->assertSame(
-            // 'Other' is a root too, and the payload omitted it, so it keeps
-            // its relative order at the end rather than being dropped.
-            ['Sales', 'Engineering', 'Other'],
-            Department::where('parent_id', null)->orderBy('position')->pluck('name')->all(),
-        );
+        $created = Department::whereIn('id', [$engineering->id, $sales->id, $other->id])
+            ->orderBy('position')
+            ->get();
+
+        // 'Other' is a root too, and the payload omitted it, so it keeps its
+        // relative order at the end rather than being dropped. Scoped to the
+        // rows this test created: the seeded departments are roots in the same
+        // list and are renumbered alongside them, so a whole-list assertion
+        // would be a test of the starter catalogue's size.
+        $this->assertSame(['Sales', 'Engineering', 'Other'], $created->pluck('name')->all());
+        $this->assertSame([1, 2, 3], $created->pluck('position')->all());
     }
 
     public function test_a_rejected_re_parent_does_not_apply_the_rename(): void
@@ -455,7 +467,9 @@ class HrmsOrgServiceTest extends TestCase
 
         $this->designations()->reorder([$c->id, $b->id, $a->id]);
 
-        $ordered = Designation::orderBy('position')->get();
+        // Only the rows this test created, for the same reason as the department
+        // reorder above: the tenant also holds the seeded starter bands.
+        $ordered = Designation::whereIn('id', [$a->id, $b->id, $c->id])->orderBy('position')->get();
         $this->assertSame(['C', 'B', 'A'], $ordered->pluck('name')->all());
         $this->assertSame([1, 2, 3], $ordered->pluck('position')->all());
     }
@@ -563,6 +577,28 @@ class HrmsOrgServiceTest extends TestCase
     private function flatten(array $node): array
     {
         return [$node, ...collect($node['departments'])->flatMap(fn (array $child): array => $this->flatten($child))->all()];
+    }
+
+    /**
+     * One node of a built chart, by department id.
+     *
+     * Index-based lookups (`$tree[0]`) read as "the one I just created" and
+     * quietly become "whichever row sorts first" as soon as the tenant holds
+     * rows this test did not create — which is the normal state of a
+     * provisioned tenant.
+     *
+     * @param  list<array<string, mixed>>  $tree
+     * @return array<string, mixed>
+     */
+    private function node(array $tree, int $id): array
+    {
+        foreach ($tree as $node) {
+            if ((int) $node['id'] === $id) {
+                return $node;
+            }
+        }
+
+        $this->fail("Department {$id} is missing from the chart.");
     }
 
     private function insertDepartment(array $overrides = []): Department

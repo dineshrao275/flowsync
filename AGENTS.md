@@ -516,7 +516,8 @@ Hierarchy: **Tenant → Workspace → Project → Task** (subtask `tasks.parent_
   `app/Policies/Hrms/Org/`, `app/Http/Requests/Hrms/Org/`, `app/Http/Controllers/Hrms/Org/`, the
   routes, and the three org FKs finally made writable on the employee — see the P3.3 notes below);
   P3.4 (the org SPA page: `pages/hrms/Org.jsx`, `components/hrms/DepartmentTreeColumn.jsx`, the three
-  form modals and the members panel, plus the directory's department filter — see the P3.4 notes).
+  form modals and the members panel, plus the directory's department filter — see the P3.4 notes);
+  P3.5 (the org starters: `provisionHrmsDefaults()` gains `seedOrgCatalogs()` — see the P3.5 notes).
 - **Migration numbering is pre-assigned** in the plan's Part 3.3 (`2026_09_27_000014` for the shared
   tables, through `2026_10_04_000031`), one monolithic tenant migration per phase. Next free timestamp
   is now `2026_09_27_000017`.
@@ -662,6 +663,23 @@ Hierarchy: **Tenant → Workspace → Project → Task** (subtask `tasks.parent_
   picker is superseded: the panel is gated on `hrms.employees.view` and assigns on
   `hrms.employees.manage` **alone** (the write lands on the employee's record, which is what the API
   checks). Adding `hrms.org.manage` on top would give the UI a rule the server does not have.
+- **The org starters are in `config/hrms.php`, and a config key that maps to no column sits
+  unreported until the first thing that reads it.** P3.5's first run failed *every tenant's*
+  provisioning with "table locations has no column named code": the catalogue had carried
+  `'code' => 'head_office'` since P1.10, unconsumed, and `locations` is the one org table P3.1
+  gave no `code` to. The starters are keyed on `slug`. The org tables have **no `is_system`
+  column** either — what stops a referenced row being deleted is P3.2's service rule, and adding
+  the flag would be a second, weaker answer to the same question.
+- **The starters invent no facts, and a tenant's starter name is not up for grabs.** No
+  `parent_id`/`head_employee_id`/`country`/`timezone`; the numeric `designations.level` **is** set.
+  `HrmsOrgApiTest::test_a_seeded_department_name_is_not_up_for_grabs` pins that creating a second
+  "Engineering" cannot re-point the starter's slug.
+- **Seeding org data changes the fixture every org test runs against (20 broke).** Raw-insert
+  fixtures in `HrmsOrgTablesTest` must not reuse a seeded natural key — a second `'manager'`
+  designation makes the free-text backfill link to the *seeded* row, so the assertion passes for
+  the wrong reason. `$tree[0]` is "whichever row sorts first", not "the one I just made" (some
+  tests passed only because their fixtures defaulted to `position => 0`); locate by id. And a
+  whole-tenant exact-list assertion is only true while the tenant starts empty.
 - **`EmployeeDirectoryQuery::orgOptions()` was renamed** — it now lives in `EmployeeFilterOptions` as
   `orgCatalogues()` (private); `filterOptions()` and `managerOptions()` stay public on the query so
   `EmployeeService` and `EmployeeController` are unchanged.

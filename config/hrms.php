@@ -316,28 +316,69 @@ return [
     | Org starters
     |--------------------------------------------------------------------------
     |
-    | Minimal starter rows so a new tenant's org chart is never empty. Deps and
-    | designations are seed data a tenant edits; they are `is_system` so they
-    | cannot be deleted while referenced.
+    | Minimal starter rows so a new tenant's org chart is never empty. Seeded
+    | by `TenantProvisioner::provisionHrmsDefaults()` for every tenant, and
+    | deliberately the smallest set that is true of any company: three
+    | departments and two work sites. A tenant that finds this list wrong
+    | renames it — seeding must not guess a structure (D2.16).
+    |
+    | **These rows have no `is_system` column and must not grow one.** The org
+    | tables (P3.1) carry `is_active`, and the retirement path is deactivation.
+    | What keeps a referenced row from being destroyed is P3.2's service refusing
+    | a hard delete of a department with children or employees and suggesting
+    | deactivation instead — a *rule*, not a flag. A `is_system` boolean would be
+    | a second, weaker answer to the same question, and the two would disagree:
+    | the flag would forbid deleting an empty "Engineering" (harmless) while
+    | staying silent about the empty "Engineering" a tenant created themselves.
+    |
+    | **No `position` key either** — the column is `position` and the seeder
+    | derives it from the array index as 10/20/30, so a tenant reordering its
+    | own rows has room to insert one between two existing ones. This mirrors
+    | `employment_types` above.
+    |
+    | **A starter location is keyed on `slug`, not `code`,** because `locations`
+    | is the one org table with no `code` column (P3.1 gives the column to
+    | departments and designations only). An earlier revision of this file wrote
+    | `'code' => 'head_office'` for the site, which was harmless *only* because
+    | nothing read the array until P3.5 — the seeder then failed with "table
+    | locations has no column named code". `Location::$fillable` and
+    | `LocationRequest` never carried `code` either, so the HTTP surface was
+    | right and only the catalog lied. The natural key of a table is the column
+    | the table has.
+    |
+    | **No country on a starter location.** `settings_defaults.country` is a
+    | fallback for a tenant that has not chosen, and a site's country is printed
+    | on a payslip's tax declaration: guessing "US" writes a wrong fact about an
+    | office in another country, which is worse than the empty field. `null` is
+    | also what lets the P5 attendance geofence and the P9 statutory engine read
+    | one source of truth.
     |
     */
 
     'departments' => [
-        ['name' => 'Engineering', 'code' => 'engineering', 'is_system' => true, 'sequence' => 10],
-        ['name' => 'Sales', 'code' => 'sales', 'is_system' => true, 'sequence' => 20],
-        ['name' => 'Support', 'code' => 'support', 'is_system' => true, 'sequence' => 30],
-        ['name' => 'Finance', 'code' => 'finance', 'is_system' => true, 'sequence' => 40],
-        ['name' => 'People', 'code' => 'people', 'is_system' => true, 'sequence' => 50],
+        ['name' => 'Engineering', 'code' => 'engineering'],
+        ['name' => 'Sales', 'code' => 'sales'],
+        ['name' => 'Operations', 'code' => 'operations'],
     ],
 
+    /*
+    | Generic seniority bands, not job titles. "Senior" is already in the name of
+    | a title ("Senior Engineer"); what a comp matrix, a promotion review and a
+    | headcount-by-level chart need to sort on is the *band*, which is why
+    | `designations.level` is numeric and set here. `department_id` stays null on
+    | purpose: "Manager" is a level, not a department, and a band that belonged to
+    | one department would be invisible to everybody outside it.
+    */
+
     'designations' => [
-        ['name' => 'Manager', 'code' => 'manager', 'is_system' => true, 'sequence' => 10],
-        ['name' => 'Team Lead', 'code' => 'team_lead', 'is_system' => true, 'sequence' => 20],
-        ['name' => 'Senior Specialist', 'code' => 'senior_specialist', 'is_system' => true, 'sequence' => 30],
-        ['name' => 'Specialist', 'code' => 'specialist', 'is_system' => true, 'sequence' => 40],
+        ['name' => 'Manager', 'code' => 'manager', 'level' => 4],
+        ['name' => 'Team Lead', 'code' => 'team_lead', 'level' => 3],
+        ['name' => 'Senior Specialist', 'code' => 'senior_specialist', 'level' => 2],
+        ['name' => 'Specialist', 'code' => 'specialist', 'level' => 1],
     ],
 
     'locations' => [
-        ['name' => 'Head Office', 'code' => 'head_office', 'country' => 'US', 'is_system' => true],
+        ['name' => 'Headquarters', 'slug' => 'headquarters'],
+        ['name' => 'Remote', 'slug' => 'remote'],
     ],
 ];
