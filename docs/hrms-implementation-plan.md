@@ -1541,6 +1541,12 @@ expect.
 > a native `ADD COLUMN` and is unaffected, so the corruption was invisible outside the test
 > fast-path. P3.1 emits raw `add column ... references ... on delete set null` instead, which both
 > grammars accept without touching another column. P5's `shift_id` has the same trap.
+> Identifier quoting must come from `Schema::getConnection()->getQueryGrammar()->wrap()`: backticks
+> are accepted by SQLite and MySQL and rejected by PostgreSQL (`42601`), so a hand-typed
+> backtick fails on the PG path alone. Verified against the dev host's PostgreSQL after
+> repairing a mid-migration failure: all three columns, their indexes and three
+> `ON DELETE SET NULL` foreign keys present, and the `status`/`work_mode` CHECK
+> constraints untouched.
 **P3.2 — Models + service + tree logic**
 `Department` (`parent()`, `children()`, `head()`, `descendants()`), `Designation`, `Location`
 (`employees()`, `isGeoFenced()`).
