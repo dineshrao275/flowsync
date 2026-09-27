@@ -46,6 +46,7 @@ class HrmsShellTest extends TestCase
         'app/Services/HrmsAuditLogger.php',
         'config/hrms.php',
         'resources/js/pages/hrms',
+        'resources/js/components/hrms',
         'resources/js/utils/hrmsModules.js',
     ];
 

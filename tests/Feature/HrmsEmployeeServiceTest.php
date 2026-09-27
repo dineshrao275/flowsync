@@ -7,6 +7,9 @@ use App\Enums\Hrms\WorkMode;
 use App\Models\Hrms\Employee\Employee;
 use App\Models\Hrms\Employee\EmployeeStatusHistory;
 use App\Models\Hrms\Employee\EmploymentType;
+use App\Models\Hrms\Org\Department;
+use App\Models\Hrms\Org\Designation;
+use App\Models\Hrms\Org\Location;
 use App\Models\Hrms\Shared\HrmsAuditLog;
 use App\Models\SubscriptionPlan;
 use App\Models\TenantUserRouting;
@@ -876,6 +879,34 @@ class HrmsEmployeeServiceTest extends TestCase
         );
         $this->assertTrue($options['managers']->contains('id', $boss->id));
         $this->assertCount(count(EmployeeStatus::cases()), $options['statuses']);
+    }
+
+    /**
+     * P3.4's filter bar offers a department/designation/location select, and a
+     * select with no options is a control the API silently ignores — which is
+     * worse than not offering it, because the list comes back unfiltered and
+     * reads as a broken search.
+     */
+    public function test_the_filter_options_offer_the_three_org_catalogues(): void
+    {
+        $department = Department::create(['name' => 'Option Engineering', 'slug' => 'option-engineering']);
+        $designation = Designation::create(['name' => 'Option Engineer', 'slug' => 'option-engineer']);
+        $location = Location::create(['name' => 'Option Pune', 'slug' => 'option-pune']);
+        $retired = Department::create([
+            'name' => 'Option Retired',
+            'slug' => 'option-retired',
+            'is_active' => false,
+        ]);
+
+        $options = $this->service()->filterOptions();
+
+        $this->assertTrue($options['departments']->contains('id', $department->id));
+        $this->assertTrue($options['designations']->contains('id', $designation->id));
+        $this->assertTrue($options['locations']->contains('id', $location->id));
+        $this->assertTrue(
+            $options['departments']->contains('id', $retired->id),
+            'A retired department is exactly the one a reader filters by to find out who is still in it.',
+        );
     }
 
     public function test_the_directory_query_is_reusable_on_its_own(): void

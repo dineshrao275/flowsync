@@ -1649,10 +1649,66 @@ in one request (one round trip for the org page). `tests/Feature/HrmsOrgApiTest.
 > — the column list and the query that runs `ORDER BY` on it — so it became its
 > own class rather than a shorter file.
 
-**P3.4 — Frontend org page**
+**P3.4 — Frontend org page** ✅
 `resources/js/pages/hrms/Org.jsx` — a **tree + detail split view**: a collapsible department tree with
 headcount badges on the left, the selected department's designations and members on the right, forms in
-modals. The employee picker reuses `WorkspaceDetail`'s add-member pattern (gated by `users.view`).
+modals. `DepartmentTreeColumn` in `resources/js/components/hrms/`, plus
+`DepartmentFormModal` / `DesignationFormModal` / `LocationFormModal` / `DepartmentMembersPanel`.
+
+> **The plan's `users.view` picker is an employee picker.** The literal text says the
+> member picker reuses `WorkspaceDetail`'s add-member pattern, which is gated by
+> `users.view` because a workspace member is a *login account*. An org department's
+> members are **employee records**, so the org page searches `GET api/hrms/employees`
+> and the panel is gated on `hrms.employees.view`. The search-and-pick shape of the
+> original is kept; the entity behind it is not the same one.
+>
+> **Reading a roster and moving a person are two different permissions, and only
+> one of them is about the org.** A reader holding `hrms.org.view` sees the shape of
+> the company without being handed a list of names, so the members panel is gated on
+> `hrms.employees.view` and says so when the role lacks it. Assigning is gated on
+> `hrms.employees.manage` **alone** — not additionally on `hrms.org.manage` — because
+> the write lands on the employee's record and that is exactly what the API checks.
+> Requiring the org permission too would give the UI a second rule the server does not
+> have, so the two would disagree the first time somebody held only one of them.
+>
+> **The tree shows two counts, and they are not the same number.** `direct_count` is
+> the row; `headcount` (the whole subtree) is the muted parenthetical beside it.
+> Printing only the subtree figure is how a manager concludes a 400-person company
+> has one person, and only the direct figure is how they conclude a team of 200 is a
+> team of three. The two are carried separately server-side for the same reason.
+>
+> **Ordering is up/down buttons, not drag-and-drop.** The reorder endpoint names a
+> *whole sibling list* — "this list, in this order" — which two buttons express
+> exactly. Dragging a tree also means implementing sibling detection in JS to draw
+> a drop zone, and that second implementation of the server's rule is how a row ends
+> up draggable between two parents. `dnd-kit` is already a dependency for the task
+> board if this is ever revisited.
+>
+> **The selection is a `Link`, and nothing else writes it.** The department lives in
+> `?department=` (via `orgUrl()`), so a node can be shared, bookmarked and
+> middle-clicked, and the router is the only thing that changes the selection — a
+> second `onClick` writing the same parameter is the page state and the router state
+> disagreeing about one value.
+>
+> **The directory's department filter needed option lists, not just the filter.**
+> P3.3 taught `EmployeeDirectoryQuery` to *filter* by department but returned no
+> departments to filter *by*, and a select with no options is a control the API
+> silently ignores — the unfiltered list coming back and reading as a broken search,
+> which is the exact failure the old `Employees.jsx` docblock warned about when it
+> omitted the filter. The three catalogues now ride in `filterOptions()`, and the
+> catalogue half of the class moved to `EmployeeFilterOptions` to stay under the
+> 300-line ceiling (a second split here, after `EmployeeDirectorySort`).
+>
+> **The org lists come from the employee endpoint, never from `GET api/hrms/org`.**
+> A reader with `hrms.employees.view` but without `hrms.org.view` may filter the
+> directory by department and may not read the chart, so borrowing the org endpoint
+> for the options would leave them with a select the API refuses to fill. Retired
+> rows are included on purpose: a department somebody closed is exactly the one a
+> reader filters by to find out who is still in it.
+>
+> **`HrmsShellTest`'s debug-leftover gate now scans `components/hrms`.** A new HRMS
+> component directory that the delivery gate does not inspect is how a `console.log`
+> survives a review.
 
 **P3.5 — Seed starter org data**
 Add `departments`/`designations`/`locations` to `config/hrms.php` and to `provisionHrmsDefaults()`

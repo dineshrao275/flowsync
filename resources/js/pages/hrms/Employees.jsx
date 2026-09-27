@@ -19,10 +19,11 @@ import EmployeeFormModal from './EmployeeFormModal';
 /**
  * The employee directory.
  *
- * `department` is deliberately absent from the filter bar even though the plan
- * lists it: `employees.department_id` does not exist until P3.1 adds it, and a
- * filter the API silently ignores is a filter that lies to the user — the list
- * comes back unfiltered and reads as a bug in the search.
+ * The department filter is an **exact** match on the backend: "everyone in
+ * Engineering" and "everyone under Engineering" are different questions, and a
+ * directory that answered the second when asked the first would print a smaller
+ * number than the headcount badge on the org page. The subtree answer belongs to
+ * the org page, which is holding the tree.
  */
 const FILTER_DEFAULTS = {
     q: '',
@@ -30,6 +31,7 @@ const FILTER_DEFAULTS = {
     work_mode: '',
     employment_type_id: '',
     manager_id: '',
+    department_id: '',
     joined_from: '',
     joined_to: '',
     sort: 'name',
@@ -145,7 +147,7 @@ export default function Employees() {
                 )}
             </div>
 
-            <div className="grid gap-3 rounded-xl border border-gray-200/70 bg-white p-3 sm:grid-cols-2 lg:grid-cols-7">
+            <div className="grid gap-3 rounded-xl border border-gray-200/70 bg-white p-3 sm:grid-cols-2 lg:grid-cols-4">
                 <Input
                     label="Search"
                     placeholder="Name or code"
@@ -193,6 +195,18 @@ export default function Employees() {
                     {(filterOptions.managers ?? []).map((manager) => (
                         <option key={manager.id} value={manager.id}>
                             {manager.name}
+                        </option>
+                    ))}
+                </Select>
+                <Select
+                    label="Department"
+                    value={filters.department_id}
+                    onChange={(e) => setFilter('department_id', e.target.value)}
+                >
+                    <option value="">Any department</option>
+                    {(filterOptions.departments ?? []).map((department) => (
+                        <option key={department.id} value={department.id}>
+                            {department.name}
                         </option>
                     ))}
                 </Select>
@@ -244,7 +258,7 @@ export default function Employees() {
                         </tr>
                     ) : rows.length === 0 ? (
                         <TableEmpty colSpan={COLUMNS.length}>
-                            {filters.q || filters.status || filters.work_mode || filters.employment_type_id || filters.manager_id
+                            {filters.q || filters.status || filters.work_mode || filters.employment_type_id || filters.manager_id || filters.department_id
                                 ? 'No employees match these filters.'
                                 : 'No employees yet.'}
                         </TableEmpty>

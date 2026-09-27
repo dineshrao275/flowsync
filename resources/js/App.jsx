@@ -26,6 +26,7 @@ import Reports from './pages/Reports';
 import HrmsOverview from './pages/hrms/HrmsOverview';
 import Employees from './pages/hrms/Employees';
 import EmployeeDetail from './pages/hrms/EmployeeDetail';
+import Org from './pages/hrms/Org';
 import Search from './pages/Search';
 import Notifications from './pages/Notifications';
 import Tenants from './pages/Tenants';
@@ -136,6 +137,17 @@ function AppRoutes() {
                                 element={
                                     <ProtectedRoute permission="hrms.employees.view">
                                         <EmployeeDetail />
+                                    </ProtectedRoute>
+                                }
+                            />
+                            {/* Before the `:section` catch-all for the same
+                                reason the directory is: a static segment has to
+                                be declared, not left to the router's ranking. */}
+                            <Route
+                                path="/hrms/org"
+                                element={
+                                    <ProtectedRoute permission="hrms.org.view">
+                                        <Org />
                                     </ProtectedRoute>
                                 }
                             />

@@ -5,7 +5,6 @@ namespace App\Services\Hrms\Employee;
 use App\Enums\Hrms\EmployeeStatus;
 use App\Enums\Hrms\WorkMode;
 use App\Models\Hrms\Employee\Employee;
-use App\Models\Hrms\Employee\EmploymentType;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Collection;
@@ -94,43 +93,23 @@ class EmployeeDirectoryQuery
      */
     public function managerOptions(): Collection
     {
-        return Employee::query()
-            ->orderBy('name')
-            ->get(['id', 'name', 'employee_code']);
+        return app(EmployeeFilterOptions::class)->people();
     }
 
     /**
      * The option lists that go with a directory request.
      *
+     * Delegated to {@see EmployeeFilterOptions}: catalogues are not queries,
+     * and this class is the query. Kept as a method here so the one caller that
+     * has a query object in hand (`EmployeeService`) does not have to know a
+     * second class exists.
+     *
      * @param  array<string, mixed>  $filters
-     * @return array{employment_types: Collection<int, object>, managers: Collection<int, object>, statuses: list<array{value: string, label: string}>}
+     * @return array<string, mixed>
      */
     public function filterOptions(array $filters = []): array
     {
-        return [
-            // The whole active catalog, not the types currently in use: a type
-            // nobody holds yet is exactly the one a reader wants to filter by
-            // to confirm it is empty.
-            'employment_types' => EmploymentType::query()
-                ->where('is_active', true)
-                ->orderBy('position')
-                ->orderBy('name')
-                ->get(['id', 'name', 'code']),
-            // The picker list, not a reports-only list — see managerOptions().
-            'managers' => $this->managerOptions(),
-            'statuses' => array_map(
-                fn (EmployeeStatus $status) => ['value' => $status->value, 'label' => $status->label()],
-                EmployeeStatus::cases(),
-            ),
-            // Served from the enum rather than hardcoded in the SPA. A JS copy of
-            // a PHP enum cannot be caught by a failing test — it just quietly
-            // offers a work mode the API rejects — so the catalog travels with the
-            // response and the form renders whatever the server supports.
-            'work_modes' => array_map(
-                fn (WorkMode $mode) => ['value' => $mode->value, 'label' => $mode->label()],
-                WorkMode::cases(),
-            ),
-        ];
+        return app(EmployeeFilterOptions::class)->all($filters);
     }
 
     /**

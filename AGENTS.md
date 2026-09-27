@@ -514,7 +514,9 @@ Hierarchy: **Tenant → Workspace → Project → Task** (subtask `tasks.parent_
   `designations`, `locations` + the three nullable `employees` FKs); P3.2 (the org models and the
   `app/Services/Hrms/Org/` bounded context — see the P3.2 notes below); P3.3 (the org HTTP surface —
   `app/Policies/Hrms/Org/`, `app/Http/Requests/Hrms/Org/`, `app/Http/Controllers/Hrms/Org/`, the
-  routes, and the three org FKs finally made writable on the employee — see the P3.3 notes below).
+  routes, and the three org FKs finally made writable on the employee — see the P3.3 notes below);
+  P3.4 (the org SPA page: `pages/hrms/Org.jsx`, `components/hrms/DepartmentTreeColumn.jsx`, the three
+  form modals and the members panel, plus the directory's department filter — see the P3.4 notes).
 - **Migration numbering is pre-assigned** in the plan's Part 3.3 (`2026_09_27_000014` for the shared
   tables, through `2026_10_04_000031`), one monolithic tenant migration per phase. Next free timestamp
   is now `2026_09_27_000017`.
@@ -645,8 +647,24 @@ Hierarchy: **Tenant → Workspace → Project → Task** (subtask `tasks.parent_
 - **`EmployeeDirectorySort` was extracted, not merged, when the class hit 303 lines.** The three org
   filters pushed `EmployeeDirectoryQuery` past the 300-line ceiling; trimming comments treats the
   symptom. The sort whitelist is a self-contained decision (the column list *and* the `ORDER BY` that
-  consumes it), so it became its own class. Watch the ceiling when a `apply*` method is added: the
-  standing split point is already used.
+  consumes it), so it became its own class. `EmployeeFilterOptions` was then extracted for the same
+  reason (the option *catalogues* are data, not a query) — that class is where `departments` /
+  `designations` / `locations` live now, and `EmployeeDirectoryQuery` delegates. **The ceiling has been
+  reached twice: do not add a fourth concern to either class.**
+- **A filter needs its option lists from the same endpoint that offers the filter.** P3.3 taught the
+  directory to *filter* by department and returned no departments to filter *by*; a select with no
+  options silently sends no filter and the unfiltered list reads as a broken search — exactly the
+  failure `Employees.jsx`'s docblock had documented when it omitted the filter. The org catalogues
+  deliberately do **not** come from `GET api/hrms/org`: a reader with `hrms.employees.view` but no
+  `hrms.org.view` may filter the directory and may not read the chart. Retired rows are included —
+  a closed department is the one a reader filters by to see who is still in it.
+- **The org page's "members" are employee records, not login accounts.** The plan's `users.view`
+  picker is superseded: the panel is gated on `hrms.employees.view` and assigns on
+  `hrms.employees.manage` **alone** (the write lands on the employee's record, which is what the API
+  checks). Adding `hrms.org.manage` on top would give the UI a rule the server does not have.
+- **`EmployeeDirectoryQuery::orgOptions()` was renamed** — it now lives in `EmployeeFilterOptions` as
+  `orgCatalogues()` (private); `filterOptions()` and `managerOptions()` stay public on the query so
+  `EmployeeService` and `EmployeeController` are unchanged.
 - **`DepartmentService::update()` is a transaction** because the re-parent is validated *after* the
   scalars are applied — otherwise a rename + cyclic parent commits the rename and then 422s.
 - **`hrms:backfill-employees` is a data migration, and it infers no facts.** P2.7: `EmployeeBackfill`

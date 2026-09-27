@@ -28,6 +28,18 @@ export function employeeUrl(employeeId, tab = null) {
 }
 
 /**
+ * The org page, optionally with a department selected.
+ *
+ * The selection is a query parameter because the org chart is the one HRMS
+ * screen a person is sent a link to: "the headcount badge on this team is wrong"
+ * is a message about a specific node, and a link that lands on the page with
+ * nothing selected has lost the point of the message.
+ */
+export function orgUrl(departmentId = null) {
+    return departmentId ? `/hrms/org?department=${encodeURIComponent(departmentId)}` : '/hrms/org';
+}
+
+/**
  * Where a person belongs after signing in. A platform super admin has no tenant
  * context (the tenant dashboard endpoints 403 for them), so it lands on the
  * platform overview instead.
