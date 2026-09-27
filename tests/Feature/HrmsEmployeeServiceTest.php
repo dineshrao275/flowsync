@@ -485,6 +485,35 @@ class HrmsEmployeeServiceTest extends TestCase
         $this->assertSame(EmployeeStatus::Terminated, $employee->status);
         $this->assertSame(now()->toDateString(), $employee->exit_date->toDateString());
         $this->assertSame('resigned', $employee->statusHistory->first()->reason);
+        // On the record as well as the ledger: `exited_reason` exists for exactly
+        // this, and a directory query filtering on it would find nothing if only
+        // the history row carried the reason.
+        $this->assertSame('resigned', $employee->exited_reason);
+    }
+
+    public function test_a_re_departure_records_its_own_date_and_reason(): void
+    {
+        $employee = $this->service()->create(['name' => 'Rehired']);
+
+        $this->service()->terminate($employee, 'resigned', 'first episode');
+        $firstExit = $employee->fresh()->exit_date->toDateString();
+
+        $this->service()->changeStatus($employee->fresh(), EmployeeStatus::Active);
+        $this->service()->terminate($employee->fresh(), 'second dismissal', 'second episode');
+
+        $employee = $employee->fresh();
+
+        $this->assertSame('second dismissal', $employee->exited_reason);
+        $this->assertSame(3, $employee->statusHistory()->count());
+
+        // The first episode is not overwritten — the ledger keeps it.
+        $firstExitRow = EmployeeStatusHistory::where('employee_id', $employee->id)
+            ->where('to_status', EmployeeStatus::Terminated)
+            ->orderBy('id')
+            ->first();
+
+        $this->assertSame('resigned', $firstExitRow->reason);
+        $this->assertSame($firstExit, $firstExitRow->effective_date->toDateString());
     }
 
     public function test_terminating_twice_is_rejected(): void

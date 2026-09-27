@@ -20,7 +20,7 @@ Laravel 12 + React 19 SPA. Session-based auth **without** Breeze/Fortify/Sanctum
   `tenants:provision` + seeds demo data (superadmin + acme + globex). Reset from scratch:
   `docker-compose down -v` then `up -d` (app entrypoint re-initializes; `RUN_INIT=true` only for `app`).
   No PHP/composer needed on the host — envs in `.env.docker`.
-- `php artisan test` — run test suite (Phase 13: **isolated, per-tenant file DBs** via `Tests\IsolatesDatabase`; current gate: **602 tests / 3532 assertions passing**)
+- `php artisan test` — run test suite (Phase 13: **isolated, per-tenant file DBs** via `Tests\IsolatesDatabase`; current gate: **603 tests / 3537 assertions passing**)
 
 - `npm run build` / `npm run dev` — frontend build / Vite dev server
 - `./vendor/bin/pint` — PHP code style (run over whole repo; `--dirty` only works in git)
@@ -527,6 +527,11 @@ Hierarchy: **Tenant → Workspace → Project → Task** (subtask `tasks.parent_
 - **Carbon 2 `diffInYears` is signed and returns a float.** `Employee::tenureOn()` wraps it in `abs()`
   *and* casts to `int`; without either, a past joining date returns a negative span and the `?int`
   return type deprecates on PHP 8.3.
+- **`exited_reason` is stamped by the offboarding transition, and re-stamped on a
+  re-departure.** A rehired-then-dismissed person did not leave on the first
+  episode's date; the first departure keeps its own date and reason in
+  `employee_status_history`. Reactivation touches neither field — erasing the
+  record of the exit is not what "reactivated" means.
 - **`TenantLimits::currentCount()` counts `employees` via `Employee::count()`** — omitting the mapping
   made `assertQuota('employees')` a silent no-op, since an unknown resource counts 0.
 - **`employees.manager_id` is `nullOnDelete`, deliberately not `cascadeOnDelete()`.** Unlike

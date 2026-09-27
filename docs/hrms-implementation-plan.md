@@ -1306,6 +1306,8 @@ terminated`, with `isEmployed()`/`isWorking()`/`isOffboarding()`) and `WorkMode`
 search), `EmployeeUserProvisioner` (inline login + central routing), `ReportingLine` (self and
 ancestor-cycle rejection, cycle-safe subtree walk) and `EmployeeStatusTransition`. `EMP-{n}` codes
 are derived from the highest issued code and never recycled, including across soft deletes.
+`exited_reason` is stamped with the exit date by the offboarding transition, again on a
+re-departure, and never cleared by a reactivation.
 `TenantLimits` learned the `employees` quota. 57 tests in `HrmsEmployeeServiceTest`; verified on
 sqlite and on real PostgreSQL. Deviations from the plan text, all deliberate: the bounded-context
 folders above replace the literal paths; the inline user path is ordered (login first) rather than
