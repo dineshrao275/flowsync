@@ -649,7 +649,10 @@ Hierarchy: **Tenant → Workspace → Project → Task** (subtask `tasks.parent_
   `alter table <t> add column <c> integer null references <ref> (id) on delete set null` (valid on
   both grammars) and create the index separately — index creation is not a rebuild. `down()` must
   drop the index **before** the column: sqlite refuses `DROP COLUMN` on an indexed column. P5's
-  `employees.shift_id` has the same trap.
+  `employees.shift_id` has the same trap. When hand-writing the raw statement, take the quoting
+  from the connection's grammar (`Schema::getConnection()->getQueryGrammar()->wrap()`), **not**
+  backticks: SQLite and MySQL accept `` `col` `` but PostgreSQL rejects it with `42601`, so the
+  failure lands on the PG path only — the one path the raw statement exists to protect.
 - **PostgreSQL-only SQL slips past the sqlite test fast-path.** The tenant suite runs on sqlite files, so a
   sqlite-tolerated statement (`WHERE is_default = 1` on a boolean column) only fails once a tenant DB is
   actually Postgres. When touching a tenant migration, either stay on the schema builder or exercise the PG

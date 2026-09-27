@@ -247,7 +247,7 @@ return new class extends Migration
             // carrying a REFERENCES clause.
             DB::statement(sprintf(
                 'alter table %s add column %s integer null references %s (%s) on delete set null',
-                $this->wrap('employees'),
+                $this->wrapTable('employees'),
                 $this->wrap($column),
                 $this->wrap($table),
                 $this->wrap('id'),
@@ -285,22 +285,34 @@ return new class extends Migration
 
             DB::statement(sprintf(
                 'alter table %s drop column %s',
-                $this->wrap('employees'),
+                $this->wrapTable('employees'),
                 $this->wrap($column),
             ));
         }
     }
 
     /**
-     * Identifier quoting for the raw statements above.
+     * Identifier quoting for the raw statements above, via the connection's own
+     * grammar.
      *
-     * Every identifier here is a hardcoded literal from this migration — never
-     * user input — so this is quoting, not escaping. A backtick is accepted by
-     * all three grammars, which is the portable choice.
+     * **Backticks are not a portable choice**, and assuming they were cost a
+     * round trip: SQLite and MySQL accept `` `col` ``, PostgreSQL parses it as
+     * a syntax error (`42601`), and the failure only appeared on the PostgreSQL
+     * path — where the whole point of the raw statement is to preserve the
+     * PostgreSQL schema's CHECK constraints.
+     *
+     * Every identifier here is a hardcoded literal from this migration, never
+     * user input, so this is quoting and not escaping — but it still has to come
+     * from the grammar rather than a hand-typed character.
      */
     private function wrap(string $identifier): string
     {
-        return '`'.$identifier.'`';
+        return Schema::getConnection()->getQueryGrammar()->wrap($identifier);
+    }
+
+    private function wrapTable(string $table): string
+    {
+        return Schema::getConnection()->getQueryGrammar()->wrapTable($table);
     }
 
     /**
