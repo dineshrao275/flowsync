@@ -2,16 +2,20 @@
 
 namespace App\Services\Hrms;
 
+use App\Enums\Hrms\DataAccessAction;
+use App\Enums\Hrms\DocumentCategory;
 use App\Models\Hrms\Document\DocumentType;
 use App\Models\Hrms\Document\EmployeeDocument;
 use App\Models\Hrms\Employee\Employee;
 use App\Models\User;
+use App\Services\Hrms\Document\DocumentDirectoryQuery;
 use App\Services\Hrms\Document\DocumentDownload;
 use App\Services\Hrms\Document\DocumentLifecycle;
 use App\Services\Hrms\Document\DocumentPresenter;
 use App\Services\Hrms\Document\DocumentUpload;
 use App\Services\HrmsAuditLogger;
 use Carbon\Carbon;
+use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
@@ -37,8 +41,97 @@ class DocumentService
         private readonly DocumentLifecycle $lifecycle,
         private readonly DocumentDownload $downloads,
         private readonly DocumentPresenter $presenter,
+        private readonly DocumentDirectoryQuery $directory,
         private readonly HrmsAuditLogger $audit,
     ) {}
+
+    /**
+     * The upload picker’s catalogue: active types, ordered for display.
+     *
+     * @param  array<string, mixed>  $filters
+     * @return Collection<int, DocumentType>
+     */
+    public function types(array $filters = []): Collection
+    {
+        $query = DocumentType::query()->orderBy('position')->orderBy('name');
+
+        if (! empty($filters['q'])) {
+            $term = '%'.mb_strtolower((string) $filters['q']).'%';
+            $query->where(function ($nested) use ($term): void {
+                $nested->whereRaw('LOWER(name) LIKE ?', [$term])
+                    ->orWhereRaw('LOWER(slug) LIKE ?', [$term]);
+            });
+        }
+
+        if (! empty($filters['category'])) {
+            $query->where('category', DocumentCategory::from((string) $filters['category'])->value);
+        }
+
+        if (array_key_exists('active', $filters)) {
+            $query->where('is_active', (bool) $filters['active']);
+        } else {
+            $query->active();
+        }
+
+        return $query->get();
+    }
+
+    /**
+     * One active catalogue row. Retired types 404 rather than resurrect:
+     * uploads may only file under a current type.
+     */
+    public function type(int $id): DocumentType
+    {
+        return DocumentType::active()->findOrFail($id);
+    }
+
+    /**
+     * @param  array<string, mixed>  $filters
+     */
+    public function listFor(User $viewer, array $filters = []): LengthAwarePaginator
+    {
+        return $this->directory->paginateFor($viewer, $filters);
+    }
+
+    /**
+     * @param  array<string, mixed>  $filters
+     */
+    public function mine(User $viewer, array $filters = []): LengthAwarePaginator
+    {
+        return $this->directory->paginateMine($viewer, $filters);
+    }
+
+    /**
+     * @param  array<string, mixed>  $filters
+     */
+    public function expiringFor(User $viewer, int $days, array $filters = []): LengthAwarePaginator
+    {
+        return $this->directory->paginateExpiring($viewer, $days, $filters);
+    }
+
+    /**
+     * One row for its reader, logging a confidential view.
+     *
+     * The signed download logs the file itself; this logs the metadata read,
+     * because the title and original name can name the condition or the
+     * account. Non-confidential rows log nothing — a ledger of ordinary reads
+     * is noise that buries the rows that matter.
+     */
+    public function show(User $reader, EmployeeDocument $document, ?string $ipAddress): array
+    {
+        if ($document->confidential) {
+            $this->audit->accessed(
+                (new EmployeeDocument)->getMorphClass(),
+                $document->id,
+                DataAccessAction::View,
+                ['title', 'original_name'],
+                $reader,
+                $ipAddress,
+            );
+        }
+
+        return $this->present($document, $reader);
+    }
 
     /**
      * Store a file and its row together.

@@ -35,14 +35,18 @@ class DocumentUpload
      * The same allow-list as task attachments, overridable per tenant through
      * `hrms_settings.documents.allowed_mimes` when that section exists.
      *
+     * Public so the upload FormRequest validates the same list the service
+     * enforces for direct callers: two copies of an allow-list is how an
+     * endpoint and a command disagree about what a PDF is.
+     *
      * @var list<string>
      */
-    private const DEFAULT_ALLOWED_MIMES = [
+    public const ALLOWED_MIMES = [
         'jpeg', 'png', 'gif', 'webp', 'svg', 'pdf', 'doc', 'docx', 'xls', 'xlsx', 'ppt',
         'pptx', 'txt', 'md', 'csv', 'zip', 'json',
     ];
 
-    private const MAX_KILOBYTES = 10 * 1024;
+    public const MAX_KILOBYTES = 10 * 1024;
 
     public function __construct(private readonly TenantContext $context) {}
 
@@ -89,7 +93,7 @@ class DocumentUpload
         $settings = HrmsSetting::query()->find(HrmsSetting::SINGLETON_ID);
         $configured = $settings?->setting('documents.allowed_mimes');
 
-        return is_array($configured) && $configured !== [] ? array_values($configured) : self::DEFAULT_ALLOWED_MIMES;
+        return is_array($configured) && $configured !== [] ? array_values($configured) : self::ALLOWED_MIMES;
     }
 
     private function validateFile(UploadedFile $file): void

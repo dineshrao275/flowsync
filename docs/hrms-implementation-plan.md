@@ -2512,7 +2512,7 @@ with `middleware('signed')`, and the controller takes `(Request $request, int $d
 > first needs types to exist. Re-provisioning repairs missing rows without
 > overwriting tenant-owned names.
 
-**P13.3 — Policies, requests, routes**
+**P13.3 — Policies, requests, routes** ✅
 `EmployeeDocumentPolicy` (view self or `hrms.documents.view`; confidential additionally
 `hrms.documents.view_sensitive`; upload self or `hrms.documents.manage`; verify/reject/delete
 `hrms.documents.manage`).
@@ -2520,6 +2520,31 @@ with `middleware('signed')`, and the controller takes `(Request $request, int $d
 rule. Routes: `/api/hrms/documents/types`, `.../types/{type}`, `.../documents`, `.../documents/{document}`,
 `.../documents/{document}/verify|reject`, `.../documents/{document}/download` (signed, outside),
 `.../expiring?days=`, `my/documents`.
+
+> **P13.3 answers three questions the service cannot.** The policy owns the
+> per-record answers — including reading and filing one’s own files, which no
+> tenant permission grants — while a new `DocumentDirectoryQuery` owns the
+> set-level one (which rows a list may contain at all). The two must agree, so
+> both read the same three permissions: directory readers see everything
+> non-confidential, the sensitive permission adds the confidential rows, and
+> anyone else sees only their own files. A list that named a confidential row
+> would leak its existence to someone the policy refuses at the record.
+>
+> **Two deliberate deviations.** `expiring` is declared before `{document}` in
+> the routes file — the P3.3 `reorder` lesson, since “expiring” would otherwise
+> bind as a document id and 404 a valid warning query. And the signed URL
+> carries `actor` as well as `tenant` (P13.2), which is also why every
+> controller response mints `download_url` with the current user as reader:
+> without it a confidential download is unattributable. List filters are
+> validated inline in the controller rather than in a third FormRequest —
+> P13.3 ships exactly the two request classes the plan names, and a query
+> string is not a form.
+>
+> **A confidential show writes an access row too.** The signed download logs
+> the file; the authenticated show logs the metadata read, because the title
+> and original name can name the condition or the account. Non-confidential
+> rows log nothing — a ledger of ordinary reads is noise that buries the rows
+> that matter.
 
 **P13.4 — Frontend**
 `pages/hrms/Documents.jsx` (store filtered by employee/type/status, expiring-soon panel, bulk verify),

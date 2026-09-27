@@ -12,7 +12,9 @@ use App\Http\Controllers\DependencyController;
 use App\Http\Controllers\FeatureManagementController;
 use App\Http\Controllers\ForgotPasswordController;
 use App\Http\Controllers\GlobalSearchController;
+use App\Http\Controllers\Hrms\DocumentController;
 use App\Http\Controllers\Hrms\DocumentDownloadController;
+use App\Http\Controllers\Hrms\DocumentTypeController;
 use App\Http\Controllers\Hrms\EmployeeController;
 use App\Http\Controllers\Hrms\Org\DepartmentController;
 use App\Http\Controllers\Hrms\Org\DesignationController;
@@ -337,6 +339,26 @@ Route::prefix('api')->group(function () {
         Route::post('hrms/employees/{employee}/status', [EmployeeController::class, 'changeStatus']);
         Route::post('hrms/employees/{employee}/manager', [EmployeeController::class, 'assignManager']);
         Route::post('hrms/employees/{employee}/terminate', [EmployeeController::class, 'terminate']);
+    });
+
+    // HRMS employee documents (Phase 15 P13.3). Same two gates as the
+    // employee surface; EmployeeDocumentPolicy decides per record — including
+    // reading and filing one’s own, which no tenant permission grants.
+    //
+    // `expiring` is declared before `{document}`, because otherwise the word
+    // binds as a document id and a valid warning query 404s.
+    Route::group(['middleware' => ['ensure_module:hrms.core', 'permission:hrms.view']], function () {
+        Route::get('hrms/documents/types', [DocumentTypeController::class, 'index']);
+        Route::get('hrms/documents/types/{type}', [DocumentTypeController::class, 'show']);
+
+        Route::get('hrms/documents/expiring', [DocumentController::class, 'expiring']);
+        Route::get('hrms/documents', [DocumentController::class, 'index']);
+        Route::post('hrms/documents', [DocumentController::class, 'store']);
+        Route::get('hrms/documents/{document}', [DocumentController::class, 'show']);
+        Route::delete('hrms/documents/{document}', [DocumentController::class, 'destroy']);
+        Route::post('hrms/documents/{document}/verify', [DocumentController::class, 'verify']);
+        Route::post('hrms/documents/{document}/reject', [DocumentController::class, 'reject']);
+        Route::get('hrms/my/documents', [DocumentController::class, 'mine']);
     });
 
     // Signed temporary download link for task attachments. Intentionally OUTSIDE

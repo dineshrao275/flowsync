@@ -20,7 +20,7 @@ Laravel 12 + React 19 SPA. Session-based auth **without** Breeze/Fortify/Sanctum
   `tenants:provision` + seeds demo data (superadmin + acme + globex). Reset from scratch:
   `docker-compose down -v` then `up -d` (app entrypoint re-initializes; `RUN_INIT=true` only for `app`).
   No PHP/composer needed on the host — envs in `.env.docker`.
-- `php artisan test` — run test suite (Phase 13: **isolated, per-tenant file DBs** via `Tests\IsolatesDatabase`; current gate: **824 tests / 4366 assertions passing** — P13.2; after the `routes/web.php` change the complete suite was verified in disjoint HRMS/unit/non-HRMS chunks with zero omitted files)
+- `php artisan test` — run test suite (Phase 13: **isolated, per-tenant file DBs** via `Tests\IsolatesDatabase`; current gate: **833 tests / 4425 assertions passing** — P13.3; after the `routes/web.php` change the complete suite was verified in disjoint HRMS/unit/non-HRMS chunks with zero omitted files)
 
 - `npm run build` / `npm run dev` — frontend build / Vite dev server
 - `./vendor/bin/pint` — PHP code style (run over whole repo; `--dirty` only works in git)
@@ -522,7 +522,9 @@ Hierarchy: **Tenant → Workspace → Project → Task** (subtask `tasks.parent_
   `tests/Feature/HrmsCatalogTest.php`, the cross-catalogue guard — see the P13.1 notes below); and
   **P13.2** (the document bounded context: `Services/Hrms/DocumentService.php` plus `Services/Hrms/Document/`,
   the `DocumentType`/`EmployeeDocument` models, `seedDocumentTypes()`, the signed `hrms.documents.download`
-  route, and `hrms:documents-expiry` — see the P13.2 notes below). Phase 13
+  route, and `hrms:documents-expiry` — see the P13.2 notes below); and **P13.3** (the document HTTP
+  surface — `Policies/Hrms/Document/`, `Requests/Hrms/` document pair, `Controllers/Hrms/`
+  document pair, and the routes — see the P13.3 notes below). Phase 13
   was jumped to *before* Phase 4 because P4.1's `document_requests.document_type_id` is a real FK to
   `document_types`, and no migration created that table until P13.1 — the plan's "documents ship
   first" prerequisite is a hard schema dependency, not a preference.
@@ -717,6 +719,15 @@ Hierarchy: **Tenant → Workspace → Project → Task** (subtask `tasks.parent_
   signed URL carries `actor` as well as `tenant`: a session-free request has no other identity source
   for the confidential `hrms.documents.view_sensitive` check and access row. Audit snapshots identify
   the row by employee/type/status and omit the title, which can itself be sensitive.
+- **P13.3 splits “may this caller open this row” from “which rows may the list contain”.**
+  `Policies/Hrms/Document/EmployeeDocumentPolicy` owns the per-record answers (self-service included);
+  the new `Services/Hrms/Document/DocumentDirectoryQuery` owns the set-level one, and both read the
+  same three permissions so they cannot disagree. A confidential row is invisible — not merely
+  unreadable — to a reader without the sensitive permission, because a list that names it leaks its
+  existence. `expiring` is declared before `{document}` (the P3.3 `reorder` lesson), and list filters
+  are validated inline so P13.3 ships exactly the two request classes the plan names. A confidential
+  *show* writes an access row like the download does: the title and original name can name the
+  condition or the account.
 - **The starters invent no facts, and a tenant's starter name is not up for grabs.** No
   `parent_id`/`head_employee_id`/`country`/`timezone`; the numeric `designations.level` **is** set.
   `HrmsOrgApiTest::test_a_seeded_department_name_is_not_up_for_grabs` pins that creating a second
