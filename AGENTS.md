@@ -20,7 +20,7 @@ Laravel 12 + React 19 SPA. Session-based auth **without** Breeze/Fortify/Sanctum
   `tenants:provision` + seeds demo data (superadmin + acme + globex). Reset from scratch:
   `docker-compose down -v` then `up -d` (app entrypoint re-initializes; `RUN_INIT=true` only for `app`).
   No PHP/composer needed on the host — envs in `.env.docker`.
-- `php artisan test` — run test suite (Phase 13: **isolated, per-tenant file DBs** via `Tests\IsolatesDatabase`; current gate: **603 tests / 3537 assertions passing** — that count is the pre-HRMS baseline; the suite has grown every phase since (P1–P2 added ~200 tests) and is re-verified by the final full-suite gate, so treat it as the floor, not today's total)
+- `php artisan test` — run test suite (Phase 13: **isolated, per-tenant file DBs** via `Tests\IsolatesDatabase`; current gate: **824 tests / 4366 assertions passing** — P13.2; after the `routes/web.php` change the complete suite was verified in disjoint HRMS/unit/non-HRMS chunks with zero omitted files)
 
 - `npm run build` / `npm run dev` — frontend build / Vite dev server
 - `./vendor/bin/pint` — PHP code style (run over whole repo; `--dirty` only works in git)
@@ -518,8 +518,11 @@ Hierarchy: **Tenant → Workspace → Project → Task** (subtask `tasks.parent_
   P3.4 (the org SPA page: `pages/hrms/Org.jsx`, `components/hrms/DepartmentTreeColumn.jsx`, the three
   form modals and the members panel, plus the directory's department filter — see the P3.4 notes);
   P3.5 (the org starters: the HRMS defaults seeder gains `seedOrgCatalogs()` — see the P3.5 notes);
-  and **P13.1** (`2026_10_02_000026` — `document_types` + `employee_documents`, plus
-  `tests/Feature/HrmsCatalogTest.php`, the cross-catalogue guard — see the P13.1 notes below). Phase 13
+  **P13.1** (`2026_10_02_000026` — `document_types` + `employee_documents`, plus
+  `tests/Feature/HrmsCatalogTest.php`, the cross-catalogue guard — see the P13.1 notes below); and
+  **P13.2** (the document bounded context: `Services/Hrms/DocumentService.php` plus `Services/Hrms/Document/`,
+  the `DocumentType`/`EmployeeDocument` models, `seedDocumentTypes()`, the signed `hrms.documents.download`
+  route, and `hrms:documents-expiry` — see the P13.2 notes below). Phase 13
   was jumped to *before* Phase 4 because P4.1's `document_requests.document_type_id` is a real FK to
   `document_types`, and no migration created that table until P13.1 — the plan's "documents ship
   first" prerequisite is a hard schema dependency, not a preference.
@@ -703,12 +706,17 @@ Hierarchy: **Tenant → Workspace → Project → Task** (subtask `tasks.parent_
   (`employment_types` from `Str::slug($name)`, `departments`/`designations` from `code`), so those
   are exempted *by name with the derivation recorded* rather than exempting the `slug` column
   wholesale — which would let a future `slug` with no derivation behind it pass. `document_types`
-  joins the seeded list with the P13.2 service, not with the migration: a catalogue nobody seeds is a
-  guess, and listing it before `seedDocumentTypes()` exists would make the test assert a step that
-  is not there. `validity_months` was **dropped, not mapped** to `retention_months` — how long a
+  joined the seeded list with the P13.2 service, when `seedDocumentTypes()` first existed. `validity_months` was **dropped, not mapped** to `retention_months` — how long a
   passport stays valid is a fact about one row (`employee_documents.expires_at`), retention is how
   long the tenant keeps the bytes; mapping one onto the other writes a fabricated policy into every
   tenant.
+- **P13.2 keeps the plan's `Services/Hrms/DocumentService.php` path, but not as a monolith.** Upload
+  rules, lifecycle, download serving and presentation together exceeded the 300-line class ceiling, so
+  the service orchestrates `app/Services/Hrms/Document/` (`DocumentUpload`, `DocumentLifecycle`,
+  `DocumentDownload`, `DocumentPresenter`) — the P3.2 `OrgService` split, applied to documents. The
+  signed URL carries `actor` as well as `tenant`: a session-free request has no other identity source
+  for the confidential `hrms.documents.view_sensitive` check and access row. Audit snapshots identify
+  the row by employee/type/status and omit the title, which can itself be sensitive.
 - **The starters invent no facts, and a tenant's starter name is not up for grabs.** No
   `parent_id`/`head_employee_id`/`country`/`timezone`; the numeric `designations.level` **is** set.
   `HrmsOrgApiTest::test_a_seeded_department_name_is_not_up_for_grabs` pins that creating a second

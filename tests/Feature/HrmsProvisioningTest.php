@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Jobs\ProvisionTenantJob;
+use App\Models\Hrms\Document\DocumentType;
 use App\Models\Hrms\Employee\EmploymentType;
 use App\Models\Hrms\Org\Department;
 use App\Models\Hrms\Org\Designation;
@@ -289,6 +290,14 @@ class HrmsProvisioningTest extends TestCase
         return $dbm->using($tenant, fn () => EmploymentType::query()->count());
     }
 
+    private function documentTypeCount(string $slug): int
+    {
+        $dbm = app(TenantDatabaseManager::class);
+        $tenant = Tenant::on($dbm->centralConnectionName())->where('slug', $slug)->firstOrFail();
+
+        return $dbm->using($tenant, fn () => DocumentType::query()->count());
+    }
+
     public function test_a_tenant_created_through_the_provision_job_gets_a_row(): void
     {
         $dbm = app(TenantDatabaseManager::class);
@@ -309,6 +318,62 @@ class HrmsProvisioningTest extends TestCase
         $dbm->using($tenant, function (): void {
             $this->assertSame(1, HrmsSetting::query()->count());
             $this->assertSame('UTC', HrmsSetting::current()->timezone);
+        });
+    }
+
+    /**
+     * P13.2 — the document catalogue joins the provisioned starters.
+     *
+     * The table arrived in P13.1 and sat empty; an empty catalogue is a picker
+     * with no options, which reads as a broken upload form rather than a
+     * tenant with nothing to file.
+     */
+    public function test_the_document_type_catalog_is_seeded_for_every_tenant(): void
+    {
+        foreach (['acme', 'globex'] as $slug) {
+            $this->assertSame(
+                count(config('hrms.document_types')),
+                $this->documentTypeCount($slug),
+                "Tenant {$slug} should have the document-type catalog",
+            );
+        }
+
+        $dbm = app(TenantDatabaseManager::class);
+        $tenant = Tenant::on($dbm->centralConnectionName())->where('slug', 'acme')->firstOrFail();
+
+        $dbm->using($tenant, function (): void {
+            $this->assertSame(0, DocumentType::query()->whereNull('category')->count());
+            $this->assertSame(
+                0,
+                DocumentType::query()->where('is_system', false)->count(),
+                'Starter rows are system rows a tenant may rename, not delete.',
+            );
+        });
+    }
+
+    public function test_re_provisioning_repairs_the_document_catalog_without_renaming_it(): void
+    {
+        $dbm = app(TenantDatabaseManager::class);
+        $tenant = Tenant::on($dbm->centralConnectionName())->where('slug', 'acme')->firstOrFail();
+
+        $dbm->using($tenant, function (): void {
+            DocumentType::query()->delete();
+        });
+
+        $this->assertSame(0, $this->documentTypeCount('acme'));
+
+        app(TenantProvisioner::class)->provisionIsolated($tenant, $dbm, app(TenantLifecycle::class));
+
+        $this->assertSame(count(config('hrms.document_types')), $this->documentTypeCount('acme'));
+
+        $dbm->using($tenant, function (): void {
+            DocumentType::query()->where('slug', 'passport')->update(['name' => 'Travel Passport']);
+        });
+
+        app(TenantProvisioner::class)->provisionIsolated($tenant, $dbm, app(TenantLifecycle::class));
+
+        $dbm->using($tenant, function (): void {
+            $this->assertSame('Travel Passport', DocumentType::query()->where('slug', 'passport')->value('name'));
         });
     }
 

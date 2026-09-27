@@ -53,11 +53,12 @@ class HrmsDocumentTablesTest extends TestCase
 
     public function test_a_document_type_slug_is_unique(): void
     {
-        $id = $this->insertType(['name' => 'Passport', 'slug' => 'passport']);
+        $slug = 'duplicate-'.self::token();
+        $this->insertType(['name' => 'Duplicate Type', 'slug' => $slug]);
 
         $this->expectException(QueryException::class);
 
-        $this->insertType(['name' => 'Passport (EU)', 'slug' => 'passport', 'id' => $id + 1000]);
+        $this->insertType(['name' => 'Duplicate Type Again', 'slug' => $slug]);
     }
 
     public function test_deleting_an_employee_deletes_their_documents(): void
@@ -84,7 +85,7 @@ class HrmsDocumentTablesTest extends TestCase
         // document because somebody retired a type from the picker — and the
         // file on disk would survive, which is the worst of both: data lost
         // from the database, bytes still being retained past their retention.
-        $type = $this->insertType(['name' => 'Work Visa', 'slug' => 'work_visa']);
+        $type = $this->insertType();
         $document = $this->insertDocument(['document_type_id' => $type]);
 
         DB::table('document_types')->where('id', $type)->delete();
@@ -163,12 +164,13 @@ class HrmsDocumentTablesTest extends TestCase
      */
     public function test_the_migration_is_safe_to_run_twice(): void
     {
-        $type = $this->insertType(['name' => 'Passport', 'slug' => 'passport']);
+        $slug = 'repeatable-'.self::token();
+        $type = $this->insertType(['name' => 'Repeatable Type', 'slug' => $slug]);
         $document = $this->insertDocument(['document_type_id' => $type]);
 
         $this->migration()->up();
 
-        $this->assertSame(1, DB::table('document_types')->where('slug', 'passport')->count());
+        $this->assertSame(1, DB::table('document_types')->where('slug', $slug)->count());
         $this->assertSame(1, DB::table('employee_documents')->where('id', $document)->count());
     }
 
@@ -212,9 +214,14 @@ class HrmsDocumentTablesTest extends TestCase
 
     private function insertType(array $overrides = []): int
     {
+        // Seeded tenants already carry the starter catalogue, so fixtures
+        // mint their own natural keys: reusing `passport` would collide with
+        // the seeded row and test the seeder instead of the schema.
+        $token = self::token();
+
         $id = DB::table('document_types')->insertGetId([
-            'name' => 'National ID',
-            'slug' => 'national_id',
+            'name' => 'Test Type '.$token,
+            'slug' => 'test-type-'.$token,
             'category' => 'identity',
             'is_active' => true,
             'is_system' => true,

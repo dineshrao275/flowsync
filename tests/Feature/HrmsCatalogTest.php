@@ -64,6 +64,7 @@ class HrmsCatalogTest extends TestCase
         'departments' => 'departments',
         'designations' => 'designations',
         'locations' => 'locations',
+        'document_types' => 'document_types',
     ];
 
     /**
@@ -150,6 +151,7 @@ class HrmsCatalogTest extends TestCase
             'departments' => 'code',
             'designations' => 'code',
             'locations' => 'slug',
+            'document_types' => 'slug',
         ];
 
         foreach ($keys as $catalogue => $key) {

@@ -2,6 +2,7 @@
 
 namespace App\Services\Hrms\Defaults;
 
+use App\Models\Hrms\Document\DocumentType;
 use App\Models\Hrms\Employee\EmploymentType;
 use App\Models\Hrms\Org\Department;
 use App\Models\Hrms\Org\Designation;
@@ -70,6 +71,7 @@ class HrmsDefaultsProvisioner
         $this->seedHrmsSettings();
         $this->seedEmploymentTypes();
         $this->seedOrgCatalogs();
+        $this->seedDocumentTypes();
     }
 
     /**
@@ -215,6 +217,34 @@ class HrmsDefaultsProvisioner
                     'name' => $location['name'],
                     'is_active' => true,
                     'position' => ($index + 1) * 10,
+                ]
+            );
+        }
+    }
+
+    /**
+     * The starter document catalogue.
+     *
+     * Keyed on `slug`, because `document_types` has no `code` column; a slug
+     * is also the string a compliance report can join against. Insert-only, so
+     * a tenant that renames “National ID” keeps its wording while a catalogue
+     * that later gains a row still repairs that row onto old tenants.
+     */
+    private function seedDocumentTypes(): void
+    {
+        foreach ((array) config('hrms.document_types', []) as $index => $type) {
+            DocumentType::query()->firstOrCreate(
+                ['slug' => $type['slug']],
+                [
+                    'name' => $type['name'],
+                    'category' => $type['category'],
+                    'is_mandatory' => (bool) ($type['is_mandatory'] ?? false),
+                    'requires_expiry' => (bool) ($type['requires_expiry'] ?? false),
+                    'retention_months' => $type['retention_months'] ?? null,
+                    'is_sensitive' => (bool) ($type['is_sensitive'] ?? false),
+                    'position' => ($index + 1) * 10,
+                    'is_active' => true,
+                    'is_system' => (bool) ($type['is_system'] ?? false),
                 ]
             );
         }

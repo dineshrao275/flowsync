@@ -271,16 +271,16 @@ return [
     */
 
     'document_types' => [
-        ['name' => 'Passport', 'slug' => 'passport', 'category' => 'identity', 'is_mandatory' => true, 'is_sensitive' => true, 'requires_expiry' => true],
-        ['name' => 'National ID', 'slug' => 'national_id', 'category' => 'identity', 'is_mandatory' => true, 'is_sensitive' => true, 'requires_expiry' => true],
-        ['name' => 'Work Visa', 'slug' => 'work_visa', 'category' => 'identity', 'is_mandatory' => false, 'is_sensitive' => true, 'requires_expiry' => true],
-        ['name' => 'Employment Contract', 'slug' => 'employment_contract', 'category' => 'employment', 'is_mandatory' => true, 'is_sensitive' => false, 'requires_expiry' => false],
-        ['name' => 'Educational Certificate', 'slug' => 'education', 'category' => 'education', 'is_mandatory' => false, 'is_sensitive' => false, 'requires_expiry' => false],
-        ['name' => 'Bank Proof', 'slug' => 'bank_proof', 'category' => 'bank', 'is_mandatory' => true, 'is_sensitive' => true, 'requires_expiry' => false],
-        ['name' => 'Medical Record', 'slug' => 'medical_record', 'category' => 'medical', 'is_mandatory' => false, 'is_sensitive' => true, 'requires_expiry' => false],
-        ['name' => 'Experience Letter', 'slug' => 'experience_letter', 'category' => 'letter', 'is_mandatory' => false, 'is_sensitive' => false, 'requires_expiry' => false],
-        ['name' => 'Provident Fund Details', 'slug' => 'pf_details', 'category' => 'tax', 'is_mandatory' => false, 'is_sensitive' => true, 'requires_expiry' => false],
-        ['name' => 'ESI Details', 'slug' => 'esi_details', 'category' => 'tax', 'is_mandatory' => false, 'is_sensitive' => true, 'requires_expiry' => false],
+        ['name' => 'Passport', 'slug' => 'passport', 'category' => 'identity', 'is_mandatory' => true, 'is_sensitive' => true, 'requires_expiry' => true, 'is_system' => true],
+        ['name' => 'National ID', 'slug' => 'national_id', 'category' => 'identity', 'is_mandatory' => true, 'is_sensitive' => true, 'requires_expiry' => true, 'is_system' => true],
+        ['name' => 'Work Visa', 'slug' => 'work_visa', 'category' => 'identity', 'is_mandatory' => false, 'is_sensitive' => true, 'requires_expiry' => true, 'is_system' => true],
+        ['name' => 'Employment Contract', 'slug' => 'employment_contract', 'category' => 'employment', 'is_mandatory' => true, 'is_sensitive' => false, 'requires_expiry' => false, 'is_system' => true],
+        ['name' => 'Educational Certificate', 'slug' => 'education', 'category' => 'education', 'is_mandatory' => false, 'is_sensitive' => false, 'requires_expiry' => false, 'is_system' => true],
+        ['name' => 'Bank Proof', 'slug' => 'bank_proof', 'category' => 'bank', 'is_mandatory' => true, 'is_sensitive' => true, 'requires_expiry' => false, 'is_system' => true],
+        ['name' => 'Medical Record', 'slug' => 'medical_record', 'category' => 'medical', 'is_mandatory' => false, 'is_sensitive' => true, 'requires_expiry' => false, 'is_system' => true],
+        ['name' => 'Experience Letter', 'slug' => 'experience_letter', 'category' => 'letter', 'is_mandatory' => false, 'is_sensitive' => false, 'requires_expiry' => false, 'is_system' => true],
+        ['name' => 'Provident Fund Details', 'slug' => 'pf_details', 'category' => 'tax', 'is_mandatory' => false, 'is_sensitive' => true, 'requires_expiry' => false, 'is_system' => true],
+        ['name' => 'ESI Details', 'slug' => 'esi_details', 'category' => 'tax', 'is_mandatory' => false, 'is_sensitive' => true, 'requires_expiry' => false, 'is_system' => true],
     ],
 
     /*

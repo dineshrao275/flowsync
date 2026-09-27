@@ -2464,7 +2464,7 @@ Indexes: `(employee_id, status)`, `(expires_at)`, `(status, expires_at)`.
 > **not** addressed here; it needs the same treatment as `EmployeeDirectoryQuery`
 > got in P3.4 (extract the self-contained decision, not trim comments).
 
-**P13.2 — Upload/verify service + signed download (D2.13)**
+**P13.2 — Upload/verify service + signed download (D2.13)** ✅
 `app/Services/Hrms/DocumentService.php` — `upload(Employee, type, UploadedFile, meta)`, `verify`, `reject`,
 `markExpired` (a `php artisan hrms:documents-expiry` command flags documents past `expires_at`),
 `expireSoon(Employee, $days)`, `delete` (removes the file, the row, and writes an audit entry;
@@ -2481,6 +2481,36 @@ with `middleware('signed')`, and the controller takes `(Request $request, int $d
   bytes; assert a foreign tenant's signed id 404s; assert a tampered `tenant` param 403s.
 - Confidential documents additionally require `hrms.documents.view_sensitive`, checked **inside** the
   `using()` closure after resolving the record, and an access row is written.
+
+> **P13.2 keeps the literal `DocumentService.php`, but not as a monolith.**
+> The upload rules, lifecycle, download serving and response shape together
+> reached 481 lines against this plan’s 300-line class ceiling, so the service
+> is a thin orchestrator over `Services/Hrms/Document/` (`DocumentUpload`,
+> `DocumentLifecycle`, `DocumentDownload`, `DocumentPresenter`). That is the
+> same folder-per-context split P3.2 used for `OrgService`, not a second
+> answer to the same upload: every rule still has one home.
+>
+> **The signed URL carries the reader as well as the tenant.** The P13.2 sketch
+> lists only `document` and `tenant`, but a confidential download must check
+> `hrms.documents.view_sensitive` inside the tenant connection and write an
+> access row. A session-free request has no other identity source, so `actor`
+> rides inside the signature too; tampering with either value invalidates the
+> signature, a foreign tenant resolves to no row, and a trashed row 404s.
+>
+> **The status machine is closed at both ends.** `pending → verified /
+> rejected / expired`; `verified → rejected / expired`; `rejected` and
+> `expired` are terminal because replacing a bad document is a new upload, not
+> an edit to history. Expiry warnings and `hrms:documents-expiry` read only
+> live rows: a rejected document is already closed and must not become
+> “expired” later. Audit snapshots identify the row by employee/type/status
+> and deliberately omit the title, which can itself name the condition or the
+> account.
+>
+> **`seedDocumentTypes()` also landed here.** P13.1 corrected the catalogue but
+> left it unseeded; the model, the provisioner step, `is_system => true`, and
+> the catalogue guard’s `document_types` entry ship with the service that
+> first needs types to exist. Re-provisioning repairs missing rows without
+> overwriting tenant-owned names.
 
 **P13.3 — Policies, requests, routes**
 `EmployeeDocumentPolicy` (view self or `hrms.documents.view`; confidential additionally

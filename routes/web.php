@@ -12,6 +12,7 @@ use App\Http\Controllers\DependencyController;
 use App\Http\Controllers\FeatureManagementController;
 use App\Http\Controllers\ForgotPasswordController;
 use App\Http\Controllers\GlobalSearchController;
+use App\Http\Controllers\Hrms\DocumentDownloadController;
 use App\Http\Controllers\Hrms\EmployeeController;
 use App\Http\Controllers\Hrms\Org\DepartmentController;
 use App\Http\Controllers\Hrms\Org\DesignationController;
@@ -357,6 +358,16 @@ Route::prefix('api')->group(function () {
     Route::get('hrms/employees/{employee}/photo', [EmployeeController::class, 'photo'])
         ->middleware('signed')
         ->name('hrms.employees.photo');
+
+    // Same shape for an employee document: outside switch_tenant, so the
+    // central tenant id travels inside the signature and the controller
+    // resolves the record inside TenantDatabaseManager::using(). `document`
+    // is intentionally an int, not a route-model-bound EmployeeDocument —
+    // binding would query the central connection, where employee_documents
+    // does not exist.
+    Route::get('hrms/documents/{document}/download', DocumentDownloadController::class)
+        ->middleware('signed')
+        ->name('hrms.documents.download');
 });
 
 // Public marketing site (server-rendered from the DB-backed CMS pages).
