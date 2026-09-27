@@ -2546,11 +2546,37 @@ rule. Routes: `/api/hrms/documents/types`, `.../types/{type}`, `.../documents`, 
 > rows log nothing — a ledger of ordinary reads is noise that buries the rows
 > that matter.
 
-**P13.4 — Frontend**
+**P13.4 — Frontend** ✅
 `pages/hrms/Documents.jsx` (store filtered by employee/type/status, expiring-soon panel, bulk verify),
 `pages/hrms/MyDocuments.jsx` (upload, status, download links, expiry warnings),
 `components/hrms/DocumentUploader.jsx` (multipart with `fieldErrors`, the `AttachmentList` pattern). The
 employee profile's `documents` tab embeds a filtered store.
+
+> **P13.4 found the `permission:` gates dead.** Every HRMS call site writes
+> `can('permission:…')`, but `hasAccess` only understood the `module:` prefix
+> and compared the rest verbatim against bare slugs — so every one of those
+> checks was false for every tenant user, and the manage buttons, pickers and
+> nav items they gate never rendered. The fix is one strip in `hasAccess`
+> (bare slugs keep matching, so the older `can('workspaces.manage')` calls are
+> untouched), not a rewrite of every call site. The new pages use the prefixed
+> form throughout, which is what finally makes it true.
+>
+> **Three surfaces share one row component.** The store (`Documents.jsx`,
+> filtered by type/status/search with an expiring-soon panel and bulk verify),
+> “My files” (`MyDocuments.jsx`, self-scoped like notifications — no directory
+> permission needed) and the profile `documents` tab all render
+> `components/hrms/DocumentList.jsx`, so “which buttons does this row get” has
+> one home. The uploader is shared too; it takes the employee id as a prop and
+> only renders a picker when given an employee list, so a self-service caller
+> can never file into someone else’s record by editing a dropdown that should
+> not have been there.
+>
+> **Two small backend touches the frontend needed.** `mine` now returns
+> `employee_id` alongside the rows — there is no “my employee” endpoint, and
+> deriving it from the first row breaks the day the list is empty. And
+> `present()` names the file’s owner, so the store table needs no second
+> request per row. `hrms.documents` joined `HRMS_MODULE_ROUTES` (the shell test
+> pins every advertised section to a router-owned path) and the profile tabs.
 
 **Acceptance:** a document uploaded in a fresh tab downloads via its signed URL with no session; a
 tampered tenant param 403s; a confidential document is 403 without `hrms.documents.view_sensitive` and

@@ -54,6 +54,9 @@ export const HRMS_MODULE_ROUTES = {
     // P2.5 ships the employee directory; the rest of `hrms.core` (onboarding,
     // offboarding) lands with its own phases.
     'hrms.core': hrmsUrl('employees'),
+    // P13.4 ships the document store; the tile must point at a route the
+    // router owns (see the shell test), not at a module with no page.
+    'hrms.documents': hrmsUrl('documents'),
 };
 
 /**
@@ -66,6 +69,9 @@ export const HRMS_MODULE_ROUTES = {
  */
 export const HRMS_PROFILE_TABS = {
     overview: { label: 'Overview', module: 'hrms.core' },
+    // P13.4 ships the profile’s documents tab: a filtered store for this
+    // person, gated on the module like every other tab.
+    documents: { label: 'Documents', module: 'hrms.documents' },
 };
 
 /**

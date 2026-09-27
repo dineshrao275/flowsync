@@ -27,6 +27,18 @@ const sections = [
                 capabilities: ['module:hrms.core', 'permission:hrms.org.view'],
                 icon: 'M4 5h4v4H4V5zm6 0h6v4h-6V5zm6 0h4v4h-4V5zM4 11h4v4H4v-4zm6 0h6v4h-6v-4zm6 0h4v4h-4v-4zM4 17h4v2H4v-2zm6 0h10v2H10v-2z',
             },
+            {
+                to: '/hrms/documents',
+                label: 'Documents',
+                capabilities: ['module:hrms.core', 'permission:hrms.documents.view'],
+                icon: 'M9 3h6l4 4v14H5V7l4-4zm0 5h6m-4 4h4m-4 4h4',
+            },
+            {
+                to: '/hrms/documents/mine',
+                label: 'My files',
+                capabilities: ['module:hrms.core'],
+                icon: 'M3 20h18M6 8V6a3 3 0 013-3h6a3 3 0 013 3v2m-12 0h12a3 3 0 013 3v5a3 3 0 01-3 3H9a3 3 0 01-3-3v-5a3 3 0 013-3z',
+            },
             { to: '/hrms', label: 'HRMS', capabilities: ['module:hrms.core'], icon: 'M17 20h5v-2a4 4 0 00-3-3.87M9 20H4v-2a4 4 0 013-3.87m4-1.13a4 4 0 10-4-4 4 4 0 004 4zm6 2a3 3 0 10-3-3' },
         ],
     },

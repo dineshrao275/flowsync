@@ -15,6 +15,7 @@ import { hrmsProfileTabs } from '../../utils/hrmsModules';
 import { hrmsUrl } from '../../utils/deepLinks';
 import EmployeeEditModal from './EmployeeEditModal';
 import StatusHistory from './StatusHistory';
+import EmployeeDocuments from '../../components/hrms/EmployeeDocuments';
 
 /**
  * One employee's profile.
@@ -252,6 +253,8 @@ export default function EmployeeDetail() {
                     <StatusHistory history={history} />
                 </div>
             )}
+
+            {activeTab === 'documents' && <EmployeeDocuments employee={employee} />}
 
             <div className="pt-2 text-sm">
                 <Link to={hrmsUrl('employees')} className="text-indigo-600 hover:text-indigo-800">

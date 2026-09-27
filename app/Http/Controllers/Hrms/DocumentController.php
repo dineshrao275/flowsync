@@ -164,6 +164,10 @@ class DocumentController extends Controller
      * The caller’s own files. Self-scoped like notifications: no employment
      * record means an empty list, not a 404, because a login without a record
      * must not inherit anyone else’s files.
+     *
+     * `employee_id` travels alongside so the “My files” page can file a new
+     * upload without a second lookup: there is no “my employee” endpoint, and
+     * deriving it from the first row breaks the day the list is empty.
      */
     public function mine(Request $request): JsonResponse
     {
@@ -178,6 +182,7 @@ class DocumentController extends Controller
         return response()->json([
             'documents' => $this->presentPage($page, $request),
             'pagination' => $this->pagination($page),
+            'employee_id' => Employee::where('user_id', $request->user()->id)->value('id'),
         ]);
     }
 

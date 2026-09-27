@@ -95,7 +95,8 @@ class HrmsDocumentApiTest extends TestCase
             ->assertJsonPath('documents.0.title', 'My passport');
 
         // `my/documents` is the same question with a shorter URL.
-        $this->getJson('/api/hrms/my/documents')->assertOk()->assertJsonCount(1, 'documents');
+        $this->getJson('/api/hrms/my/documents')->assertOk()->assertJsonCount(1, 'documents')
+            ->assertJsonPath('employee_id', $mine->id);
 
         // Filing into their own record works; filing into someone else’s is
         // a directory reader’s move, not theirs.

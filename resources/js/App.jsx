@@ -27,6 +27,8 @@ import HrmsOverview from './pages/hrms/HrmsOverview';
 import Employees from './pages/hrms/Employees';
 import EmployeeDetail from './pages/hrms/EmployeeDetail';
 import Org from './pages/hrms/Org';
+import Documents from './pages/hrms/Documents';
+import MyDocuments from './pages/hrms/MyDocuments';
 import Search from './pages/Search';
 import Notifications from './pages/Notifications';
 import Tenants from './pages/Tenants';
@@ -151,6 +153,18 @@ function AppRoutes() {
                                     </ProtectedRoute>
                                 }
                             />
+                            {/* The document store and the self-service files
+                                page, declared before `:section` like every
+                                other static HRMS segment. */}
+                            <Route
+                                path="/hrms/documents"
+                                element={
+                                    <ProtectedRoute permission="hrms.documents.view">
+                                        <Documents />
+                                    </ProtectedRoute>
+                                }
+                            />
+                            <Route path="/hrms/documents/mine" element={<MyDocuments />} />
                             <Route path="/hrms/:section" element={<HrmsOverview />} />
                         </Route>
                         <Route element={<ProtectedRoute permission="users.view" />}>

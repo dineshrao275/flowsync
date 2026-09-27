@@ -20,7 +20,7 @@ Laravel 12 + React 19 SPA. Session-based auth **without** Breeze/Fortify/Sanctum
   `tenants:provision` + seeds demo data (superadmin + acme + globex). Reset from scratch:
   `docker-compose down -v` then `up -d` (app entrypoint re-initializes; `RUN_INIT=true` only for `app`).
   No PHP/composer needed on the host — envs in `.env.docker`.
-- `php artisan test` — run test suite (Phase 13: **isolated, per-tenant file DBs** via `Tests\IsolatesDatabase`; current gate: **833 tests / 4425 assertions passing** — P13.3; after the `routes/web.php` change the complete suite was verified in disjoint HRMS/unit/non-HRMS chunks with zero omitted files)
+- `php artisan test` — run test suite (Phase 13: **isolated, per-tenant file DBs** via `Tests\IsolatesDatabase`; current gate: **833 tests / 4426 assertions passing** — P13.4; after the `routes/web.php` change the complete suite was verified in disjoint HRMS/unit/non-HRMS chunks with zero omitted files)
 
 - `npm run build` / `npm run dev` — frontend build / Vite dev server
 - `./vendor/bin/pint` — PHP code style (run over whole repo; `--dirty` only works in git)
@@ -524,7 +524,9 @@ Hierarchy: **Tenant → Workspace → Project → Task** (subtask `tasks.parent_
   the `DocumentType`/`EmployeeDocument` models, `seedDocumentTypes()`, the signed `hrms.documents.download`
   route, and `hrms:documents-expiry` — see the P13.2 notes below); and **P13.3** (the document HTTP
   surface — `Policies/Hrms/Document/`, `Requests/Hrms/` document pair, `Controllers/Hrms/`
-  document pair, and the routes — see the P13.3 notes below). Phase 13
+  document pair, and the routes — see the P13.3 notes below); and **P13.4** (the document SPA:
+  `pages/hrms/Documents.jsx`, `pages/hrms/MyDocuments.jsx`, `components/hrms/DocumentUploader.jsx`,
+  plus the profile `documents` tab — see the P13.4 notes below). Phase 13
   was jumped to *before* Phase 4 because P4.1's `document_requests.document_type_id` is a real FK to
   `document_types`, and no migration created that table until P13.1 — the plan's "documents ship
   first" prerequisite is a hard schema dependency, not a preference.
@@ -728,6 +730,17 @@ Hierarchy: **Tenant → Workspace → Project → Task** (subtask `tasks.parent_
   are validated inline so P13.3 ships exactly the two request classes the plan names. A confidential
   *show* writes an access row like the download does: the title and original name can name the
   condition or the account.
+- **The document SPA shares one row component, and P13.4 fixed the dead
+  `permission:` gates.** `can('permission:…')` never matched anything because
+  `hasAccess` compared it verbatim against bare slugs — every HRMS manage
+  button, picker and nav item gated that way never rendered for tenant users.
+  One strip in `hasAccess` fixed all call sites (bare slugs still match).
+  `Documents.jsx` (store + expiring panel + bulk verify), `MyDocuments.jsx`
+  (self-scoped, no directory permission), and the profile `documents` tab all
+  render `components/hrms/DocumentList.jsx`; `DocumentUploader.jsx` takes the
+  employee id as a prop and only renders a picker when given a list. `mine`
+  returns `employee_id` (no “my employee” endpoint exists) and `present()`
+  names the owner, so neither page needs a second lookup.
 - **The starters invent no facts, and a tenant's starter name is not up for grabs.** No
   `parent_id`/`head_employee_id`/`country`/`timezone`; the numeric `designations.level` **is** set.
   `HrmsOrgApiTest::test_a_seeded_department_name_is_not_up_for_grabs` pins that creating a second

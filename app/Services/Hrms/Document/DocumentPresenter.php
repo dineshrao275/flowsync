@@ -44,6 +44,12 @@ class DocumentPresenter
                 'category' => $document->type->category->value,
                 'is_sensitive' => $document->type->is_sensitive,
             ] : null,
+            // The store table names the file’s owner without a second
+            // request per row; the relation is already loaded above.
+            'employee' => $document->employee ? [
+                'id' => $document->employee->id,
+                'name' => $document->employee->displayName(),
+            ] : null,
             'download_url' => $this->downloads->url($document, $reader),
         ];
     }
