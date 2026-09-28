@@ -1778,7 +1778,7 @@ department shows it in the directory filter; `hrms.org.manage` is required for e
 > **Prerequisite:** Phase 13 (documents) should ship first, otherwise the document checklist items are
 > plain checklist rows with a null `document_id` until then.
 
-**P4.1 — `000017` migration**
+**P4.1 — `000017` migration** ✅
 `onboarding_templates` (`name`, `slug` unique, `description`, `is_active`, `is_system`),
 `onboarding_template_tasks` (`template_id`, `title`, `description`, `category` enum
 `document|task|asset|access|orientation|other`, `owner_scope` enum `hr|manager|employee|it`,
@@ -1799,6 +1799,28 @@ enum `pending|in_progress|done|skipped|waived`, `completed_at`, `completed_by`, 
 `pending|submitted|accepted|waived|rejected`, `source` enum `onboarding|offboarding|hr`, `case_type` +
 `case_id` nullable pair, `note`).
 Indexes on every filtered `*_id`, plus `(case_id, status)` and `(employee_id, due_date)`.
+
+> **Three deviations from the sketch, all load-bearing.** `document_requests`
+> carries `document_id` (nullable FK to `employee_documents`, nullOnDelete):
+> the sketch omits it, but the phase’s own prerequisite note talks about “a
+> null `document_id`” — and without the column there is no link between a
+> request and its fulfillment, so the hinge story collapses. It also carries
+> `timestamps` and a nullable `due_date`: an open-ended request is ordinary.
+> Case-level `category`/`owner_scope` are plain strings, not enums — the case
+> row is a *snapshot* of the template row at materialisation, and an enum on
+> the snapshot means a new template category needs a migration on old case
+> rows before it can be used. `asset_id`/`expense_claim_id` are bare nullable
+> integers with no FK: assets (P14) and expense claims (P8) do not exist yet,
+> and a constraint against a missing table errors at creation time on both
+> grammars. Both case task tables carry `position`, because a checklist
+> without one renders in id order — creation order only by accident.
+>
+> **`onboarding_cases.employee_id` is unique; offboarding is not.** One
+> onboarding per employee ever — a rehire reopens rather than duplicates.
+> People can leave twice, so each exit is its own case. Verified on the
+> PostgreSQL path (`tenants:provision --tenant=1`): all eight tables, nine
+> enum CHECKs, and the FK actions (`employee_id` CASCADE,
+> `document_type_id`/`document_id` SET NULL).
 
 **P4.2 — Services**
 `app/Services/Hrms/OnboardingService.php` — `templates()`, `createCase(Employee, Template)`
