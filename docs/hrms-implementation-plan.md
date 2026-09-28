@@ -1974,7 +1974,7 @@ outstanding assets, a waived item records a reason and the actor.
 
 **Objective:** shifts, clock-in/out, derived daily records, and regularization.
 
-**P5.1 — `000018` migration**
+**P5.1 — `000018` migration** ✅
 `attendance_shifts` (`name`, `code` unique, `start_time`, `end_time`, `break_minutes`, `grace_minutes`,
 `min_hours` decimal(5,2), `is_night` bool, `is_active`, `position`), `attendance_rosters`
 (`employee_id`, `shift_id`, `effective_from`, `effective_to` nullable, `weekly_offs` JSON int[7],
@@ -1994,6 +1994,22 @@ nullable, `created_by` nullable) with indexes `(employee_id, punch_at)` and `(pu
 `decision_note`).
 - `ALTER employees`: add a nullable `shift_id` FK as a convenience default only; the roster is
   authoritative.
+
+> **P5.1 adds `employees.shift_id` with raw SQL, not `constrained()`.**
+> P3.1 proved why: `Schema::table()` + `constrained()` rebuilds the table
+> through a `__temp__` copy on SQLite, and doctrine introspection drops the
+> column-level CHECKs — the test fast-path ended with a weaker schema than
+> production. The raw `ADD COLUMN … REFERENCES`, grammar-quoted (never
+> backticks: PostgreSQL 42601s those), touches nothing else; the index is
+> separate, and `down()` drops the index before the column. The tables test
+> asserts the CHECKs survive on both grammars, and the PG path confirms
+> `employees_status_check` + `employees_work_mode_check` intact.
+>
+> **Three small calls the sketch leaves open.** `lng` mirrors `lat` at
+> `decimal(10,7)`; every table carries timestamps (the sketch omits them on
+> four); `approval_id` is a real FK to the P1 approvals engine with
+> nullOnDelete. The shift is a convenience default only — the roster is
+> authoritative at compute time.
 
 **P5.2 — Punch service + day computation**
 `app/Services/Hrms/AttendanceService.php`:

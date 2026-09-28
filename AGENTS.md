@@ -20,7 +20,7 @@ Laravel 12 + React 19 SPA. Session-based auth **without** Breeze/Fortify/Sanctum
   `tenants:provision` + seeds demo data (superadmin + acme + globex). Reset from scratch:
   `docker-compose down -v` then `up -d` (app entrypoint re-initializes; `RUN_INIT=true` only for `app`).
   No PHP/composer needed on the host — envs in `.env.docker`.
-- `php artisan test` — run test suite (Phase 13: **isolated, per-tenant file DBs** via `Tests\IsolatesDatabase`; current gate: **879 tests / 4624 assertions passing** — P4.5; after the `routes/web.php` change the complete suite was verified in disjoint HRMS/unit/non-HRMS chunks with zero omitted files)
+- `php artisan test` — run test suite (Phase 13: **isolated, per-tenant file DBs** via `Tests\IsolatesDatabase`; current gate: **892 tests / 4657 assertions passing** — P5.1; after the `routes/web.php` change the complete suite was verified in disjoint HRMS/unit/non-HRMS chunks with zero omitted files)
 
 - `npm run build` / `npm run dev` — frontend build / Vite dev server
 - `./vendor/bin/pint` — PHP code style (run over whole repo; `--dirty` only works in git)
@@ -534,7 +534,12 @@ Hierarchy: **Tenant → Workspace → Project → Task** (subtask `tasks.parent_
   and the terminate → auto-initiate wiring — see the P4.2 notes below); P4.3
   (the lifecycle HTTP surface: `Policies/Hrms/Lifecycle/` bases + markers,
   ten FormRequests, four controllers, `LifecyclePresenter`, routes — see the
-  P4.3 notes below). Phase 13
+  P4.3 notes below); P4.4 (the lifecycle SPA: shared `Checklist.jsx`, case pages,
+  `TemplateEditor.jsx` — see the P4.4 notes below); P4.5 (lifecycle notifications:
+  `onboardingTaskDue`, `hrms:onboarding-reminders`, deep links — see the P4.5
+  notes below); P5.1 (`2026_09_28_000018` — the attendance tables plus raw-SQL
+  `employees.shift_id`, with the CHECK-preservation test — see the P5.1 notes
+  below). Phase 13
   was jumped to *before* Phase 4 because P4.1's `document_requests.document_type_id` is a real FK to
   `document_types`, and no migration created that table until P13.1 — the plan's "documents ship
   first" prerequisite is a hard schema dependency, not a preference.
@@ -767,6 +772,16 @@ Hierarchy: **Tenant → Workspace → Project → Task** (subtask `tasks.parent_
   detail, not the plan’s list-with-param (the list takes no case parameter);
   the JS branches are pinned by string in the shell test since there is no
   JS runner.
+- **P5.1 adds `employees.shift_id` with raw SQL, not `constrained()`.** P3.1 proved
+  why: `Schema::table()` + `constrained()` rebuilds the table through a `__temp__`
+  copy on SQLite, and doctrine introspection drops the column-level CHECKs — the
+  test fast-path ended with a weaker schema than production. The raw
+  `ADD COLUMN … REFERENCES`, grammar-quoted (never backticks: PostgreSQL 42601s
+  those), touches nothing else; the index is separate, and `down()` drops the
+  index before the column. `HrmsAttendanceTablesTest` asserts the CHECKs survive
+  on both grammars, and the PG path confirms both `employees_*_check` constraints
+  intact. Small sketch gaps closed the same way: `lng` mirrors `lat`,
+  timestamps everywhere, `approval_id` a real FK to the P1 engine.
 - **P4.4 shares one checklist and gates detail pages by module, not permission.**
   `components/hrms/Checklist.jsx` serves both phases (separate `canAct`/
   `canWaive` — offboarding has no waive endpoint); the waive reason comes
