@@ -13,9 +13,30 @@ export function describeNotification(type, data = {}, actorName = 'Someone') {
             return `${actorName} moved ${key} to ${data.to_status}`;
         case 'task.unblocked':
             return `${actorName} unblocked ${key}`;
+        case 'hrms.onboarding.task_due':
+            return describeTaskDue(data);
         default:
             return 'You have a new notification';
     }
+}
+
+/**
+ * An onboarding nudge names the item, the hire, and the urgency — not the
+ * actor, because the sender is a command, not a person, and “Someone wants
+ * you to …” would be a lie about who asked.
+ */
+function describeTaskDue(data = {}) {
+    const what = data.title ? `“${data.title}”` : 'An onboarding item';
+    const who = data.employee_name ? ` for ${data.employee_name}` : '';
+
+    if (!data.due_date) return `${what}${who} needs attention`;
+
+    const today = new Date().toISOString().slice(0, 10);
+
+    if (data.due_date < today) return `${what}${who} is overdue since ${data.due_date}`;
+    if (data.due_date === today) return `${what}${who} is due today`;
+
+    return `${what}${who} is due ${data.due_date}`;
 }
 
 const SECTION_BY_TYPE = {
@@ -27,9 +48,16 @@ const SECTION_BY_TYPE = {
  * Builds a deep link for a notification. Task notifications land on the
  * project's Tasks tab with the drawer auto-opened on the relevant section
  * (comments for task.commented, time for task.work_logged, details otherwise).
+ * Onboarding nudges land on the case detail itself — the list page takes no
+ * case parameter, so linking there would drop the reader one click away from
+ * the item they were nudged about.
  */
 export function notificationHref(data = {}, type = '') {
-    const { project_id, workspace_id, key } = data || {};
+    const { project_id, workspace_id, key, onboarding_case_id } = data || {};
+
+    if (type === 'hrms.onboarding.task_due' && onboarding_case_id) {
+        return `/hrms/onboarding/cases/${onboarding_case_id}`;
+    }
 
     if (project_id && key) {
         return taskUrl(project_id, key, SECTION_BY_TYPE[type] ?? null);

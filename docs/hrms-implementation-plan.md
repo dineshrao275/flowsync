@@ -1917,7 +1917,7 @@ offboarding), `pages/hrms/OffboardingCases.jsx`, `OffboardingCaseDetail.jsx` (cl
 — this is the screen an HR manager signs off an exit on, so make the blockers unmissable),
 `TemplateEditor.jsx` (add/reorder/remove items, mirroring `PageFormModal`'s block editor).
 
-**P4.5 — Notifications + deep links**
+**P4.5 — Notifications + deep links** ✅
 `NotificationService` gains `onboardingTaskDue(Employee, CaseTask)` -> `hrms.onboarding.task_due` to
 the task's owner (and the HR manager when `owner_scope = hr`), dispatched on case creation and by a
 daily `php artisan hrms:onboarding-reminders`. `utils/notifications.js` gains the
@@ -1944,6 +1944,25 @@ daily `php artisan hrms:onboarding-reminders`. `utils/notifications.js` gains th
 > storing bytes and answering a question are two writes and the second must
 > not run when the first fails. The clearance panel sits above the checklist
 > on the exit detail: a blocked exit must read as blocked at a glance.
+
+> **P4.5 notifies asymmetrically by design.** The owner always hears
+> about their own item; the manage-holders additionally hear about hr-scoped
+> items, because an hr item with no named owner belongs to the pool and a
+> pool nobody nudges is a pile nobody works. Creation nudges only the
+> starting pile (due within 7 days) — notifying every owner of every item up
+> front trains people to ignore the feature. The daily command covers the
+> rest, at most one nudge per item per week: a notification that arrives
+> daily regardless of action is wallpaper. Dedup reads
+> `where('data->case_task_id', …)`, the portable JSON selector (pluck with a
+> JSON path is not — the test maps rows in PHP instead).
+>
+> **The deep link goes to the case detail, not the plan’s list-with-param.**
+> `hrmsUrl('onboarding', {case})` lands on a list page that takes no case
+> parameter, dropping the reader one click from the item they were nudged
+> about; `/hrms/onboarding/cases/{id}` lands on it. The copy names item,
+> hire and urgency with no actor — the sender is a command, not a person.
+> The JS branches are pinned by string in the shell test: there is no JS
+> runner, so an untested toast copy rots silently.
 
 **Acceptance:** create a template, start a case for a new hire, the checklist materialises with correct
 due dates, completing all mandatory items closes the case, an offboarding case refuses to clear with

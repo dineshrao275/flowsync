@@ -11,8 +11,8 @@ use App\Models\Hrms\Lifecycle\OnboardingCase;
 use App\Models\Hrms\Lifecycle\OnboardingCaseTask;
 use App\Models\Hrms\Lifecycle\OnboardingTemplate;
 use App\Models\User;
-use App\Services\Hrms\OnboardingService;
 use App\Services\HrmsAuditLogger;
+use App\Services\NotificationService;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
@@ -29,6 +29,7 @@ class OnboardingCases
     public function __construct(
         private readonly DocumentRequestService $requests,
         private readonly CaseProgress $progress,
+        private readonly NotificationService $notifications,
         private readonly HrmsAuditLogger $audit,
     ) {}
 
@@ -85,6 +86,19 @@ class OnboardingCases
             }
 
             $this->audit->log($case, 'onboarding.case_started', null, $this->snapshot($case->refresh()), $actor);
+
+            // Nudge the starting pile only: items due within a week of
+            // creation. Everything else ripens into the daily reminders
+            // command instead — notifying every owner of every item up front
+            // would ping people about work due two months out, which trains
+            // them to ignore the one notification this feature owns.
+            $horizon = today()->addDays(7);
+
+            foreach ($case->tasks()->orderBy('position')->get() as $task) {
+                if ($task->due_date !== null && $task->due_date->lte($horizon)) {
+                    $this->notifications->onboardingTaskDue($employee, $task, $actor);
+                }
+            }
 
             return $case->refresh();
         });

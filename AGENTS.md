@@ -20,7 +20,7 @@ Laravel 12 + React 19 SPA. Session-based auth **without** Breeze/Fortify/Sanctum
   `tenants:provision` + seeds demo data (superadmin + acme + globex). Reset from scratch:
   `docker-compose down -v` then `up -d` (app entrypoint re-initializes; `RUN_INIT=true` only for `app`).
   No PHP/composer needed on the host — envs in `.env.docker`.
-- `php artisan test` — run test suite (Phase 13: **isolated, per-tenant file DBs** via `Tests\IsolatesDatabase`; current gate: **874 tests / 4605 assertions passing** — P4.3; after the `routes/web.php` change the complete suite was verified in disjoint HRMS/unit/non-HRMS chunks with zero omitted files)
+- `php artisan test` — run test suite (Phase 13: **isolated, per-tenant file DBs** via `Tests\IsolatesDatabase`; current gate: **879 tests / 4624 assertions passing** — P4.5; after the `routes/web.php` change the complete suite was verified in disjoint HRMS/unit/non-HRMS chunks with zero omitted files)
 
 - `npm run build` / `npm run dev` — frontend build / Vite dev server
 - `./vendor/bin/pint` — PHP code style (run over whole repo; `--dirty` only works in git)
@@ -757,6 +757,16 @@ Hierarchy: **Tenant → Workspace → Project → Task** (subtask `tasks.parent_
   by the exit run itself. The nested `tasks` rules live on the template
   request — without them `validated()` silently drops the checklist and the
   form lies about succeeding.
+- **P4.5 notifies asymmetrically by design.** The owner always hears about
+  their own item; manage-holders additionally hear about hr-scoped items (a
+  pool nobody nudges is a pile nobody works). Creation nudges only items due
+  within 7 days; the daily `hrms:onboarding-reminders` covers the rest, at
+  most one nudge per item per week. Dedup uses the portable
+  `where('data->case_task_id', …)` selector — pluck with a JSON path is not
+  portable, so the test maps rows in PHP. The deep link lands on the case
+  detail, not the plan’s list-with-param (the list takes no case parameter);
+  the JS branches are pinned by string in the shell test since there is no
+  JS runner.
 - **P4.4 shares one checklist and gates detail pages by module, not permission.**
   `components/hrms/Checklist.jsx` serves both phases (separate `canAct`/
   `canWaive` — offboarding has no waive endpoint); the waive reason comes

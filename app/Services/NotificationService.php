@@ -4,6 +4,8 @@ namespace App\Services;
 
 use App\Events\NotificationSent;
 use App\Models\Comment;
+use App\Models\Hrms\Employee\Employee;
+use App\Models\Hrms\Lifecycle\OnboardingCaseTask;
 use App\Models\Task;
 use App\Models\User;
 use App\Models\UserNotification;
@@ -147,6 +149,66 @@ class NotificationService
             'work_log_id' => $log->id,
             'duration_minutes' => $log->duration_minutes,
         ]), $actor);
+    }
+
+    /**
+     * Nudge whoever owns an onboarding checklist item that is coming due.
+     *
+     * Two legs, deliberately asymmetric: the owner always hears about their
+     * own item, and the HR managers additionally hear about hr-scoped items —
+     * because an hr item with no named owner belongs to the pool, and a pool
+     * nobody nudges is a pile nobody works. Anyone else’s item is none of
+     * their business, which is why manager- and employee-scoped items notify
+     * only the owner.
+     *
+     * @return list<UserNotification>
+     */
+    public function onboardingTaskDue(Employee $employee, OnboardingCaseTask $task, ?User $actor = null): array
+    {
+        $recipientIds = collect();
+
+        $owner = $task->owner_employee_id !== null ? Employee::find($task->owner_employee_id) : null;
+
+        if ($owner?->user_id !== null) {
+            $recipientIds->push((int) $owner->user_id);
+        }
+
+        if ($task->owner_scope === 'hr') {
+            $recipientIds = $recipientIds->concat($this->usersWith('hrms.onboarding.manage'));
+        }
+
+        $sent = [];
+        foreach ($recipientIds->unique()->reject(fn ($id) => $actor !== null && (int) $id === $actor->id)->values() as $recipientId) {
+            $recipient = User::find((int) $recipientId);
+
+            if ($recipient === null) {
+                continue;
+            }
+
+            $sent[] = $this->notify($recipient, 'hrms.onboarding.task_due', [
+                'onboarding_case_id' => $task->case_id,
+                'case_task_id' => $task->id,
+                'title' => $task->title,
+                'employee_name' => $employee->displayName(),
+                'due_date' => $task->due_date?->toDateString(),
+            ], $actor);
+        }
+
+        return $sent;
+    }
+
+    /**
+     * Every login holding a permission, for pool-owned notifications (an hr
+     * item belongs to whoever holds manage, not to a named person).
+     *
+     * @return list<int>
+     */
+    private function usersWith(string $permission): array
+    {
+        return User::whereHas('roles.permissions', fn ($query) => $query->where('slug', $permission))
+            ->pluck('id')
+            ->map(fn ($id) => (int) $id)
+            ->all();
     }
 
     /**

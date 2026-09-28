@@ -151,6 +151,19 @@ class HrmsShellTest extends TestCase
         $this->assertStringContainsString('/hrms/${section}', $js);
     }
 
+    public function test_the_notification_helpers_cover_onboarding_nudges(): void
+    {
+        // There is no JS test runner, so the toast copy and the deep link for
+        // the one notification this phase owns are pinned by string: a nudge
+        // that renders “You have a new notification” or lands on `/` is a
+        // notification nobody can act on.
+        $js = file_get_contents(resource_path('js/utils/notifications.js'));
+
+        $this->assertStringContainsString('hrms.onboarding.task_due', $js);
+        $this->assertStringContainsString('onboarding_case_id', $js);
+        $this->assertStringContainsString('/hrms/onboarding/cases/${onboarding_case_id}', $js);
+    }
+
     public function test_hrms_tiles_only_link_to_sections_the_router_owns(): void
     {
         // P2.5 populated HRMS_MODULE_ROUTES with the employee directory, so this
