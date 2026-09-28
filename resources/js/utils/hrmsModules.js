@@ -57,6 +57,9 @@ export const HRMS_MODULE_ROUTES = {
     // P13.4 ships the document store; the tile must point at a route the
     // router owns (see the shell test), not at a module with no page.
     'hrms.documents': hrmsUrl('documents'),
+    // P4.4 ships the lifecycle runs; same rule — no tile without a route.
+    'hrms.onboarding': hrmsUrl('onboarding'),
+    'hrms.offboarding': hrmsUrl('offboarding'),
 };
 
 /**

@@ -757,6 +757,16 @@ Hierarchy: **Tenant → Workspace → Project → Task** (subtask `tasks.parent_
   by the exit run itself. The nested `tasks` rules live on the template
   request — without them `validated()` silently drops the checklist and the
   form lies about succeeding.
+- **P4.4 shares one checklist and gates detail pages by module, not permission.**
+  `components/hrms/Checklist.jsx` serves both phases (separate `canAct`/
+  `canWaive` — offboarding has no waive endpoint); the waive reason comes
+  from `window.prompt`, and the backend 422s an empty one either way. Case
+  detail routes carry no permission gate so a hire can open their own run —
+  the backend policy decides whose case it is; list pages stay view-gated.
+  `LifecyclePresenter::person()` carries `user_id` so the client can answer
+  “is this me”. Pending asks carry an inline upload-then-submit flow, and the
+  exit detail leads with the clearance panel because a blocked exit must read
+  as blocked at a glance.
 - **P13.2 keeps the plan's `Services/Hrms/DocumentService.php` path, but not as a monolith.** Upload
   rules, lifecycle, download serving and presentation together exceeded the 300-line class ceiling, so
   the service orchestrates `app/Services/Hrms/Document/` (`DocumentUpload`, `DocumentLifecycle`,

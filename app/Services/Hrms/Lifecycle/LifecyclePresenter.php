@@ -185,12 +185,17 @@ class LifecyclePresenter
     }
 
     /**
+     * The person a row belongs to. `user_id` travels along so the client can
+     * answer “is this me” without a second request — the same linkage the
+     * self-service policies already enforce server-side.
+     *
      * @return array<string, mixed>
      */
     private function person(Employee $employee): array
     {
         return [
             'id' => $employee->id,
+            'user_id' => $employee->user_id,
             'name' => $employee->displayName(),
             'employee_code' => $employee->employee_code,
         ];

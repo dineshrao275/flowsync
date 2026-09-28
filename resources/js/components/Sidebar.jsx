@@ -39,6 +39,18 @@ const sections = [
                 capabilities: ['module:hrms.core'],
                 icon: 'M3 20h18M6 8V6a3 3 0 013-3h6a3 3 0 013 3v2m-12 0h12a3 3 0 013 3v5a3 3 0 01-3 3H9a3 3 0 01-3-3v-5a3 3 0 013-3z',
             },
+            {
+                to: '/hrms/onboarding',
+                label: 'Onboarding',
+                capabilities: ['module:hrms.core', 'permission:hrms.onboarding.view'],
+                icon: 'M12 3l8 4v13H4V7l8-4zm-1 10l-2-2-1 1 3 3 5-5-1-1-4 4z',
+            },
+            {
+                to: '/hrms/offboarding',
+                label: 'Offboarding',
+                capabilities: ['module:hrms.core', 'permission:hrms.offboarding.view'],
+                icon: 'M9 3h6l4 4v14H5V7l4-4zm-2 8h8m-4-4v8',
+            },
             { to: '/hrms', label: 'HRMS', capabilities: ['module:hrms.core'], icon: 'M17 20h5v-2a4 4 0 00-3-3.87M9 20H4v-2a4 4 0 013-3.87m4-1.13a4 4 0 10-4-4 4 4 0 004 4zm6 2a3 3 0 10-3-3' },
         ],
     },

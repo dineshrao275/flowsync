@@ -29,6 +29,10 @@ import EmployeeDetail from './pages/hrms/EmployeeDetail';
 import Org from './pages/hrms/Org';
 import Documents from './pages/hrms/Documents';
 import MyDocuments from './pages/hrms/MyDocuments';
+import OnboardingCases from './pages/hrms/OnboardingCases';
+import OnboardingCaseDetail from './pages/hrms/OnboardingCaseDetail';
+import OffboardingCases from './pages/hrms/OffboardingCases';
+import OffboardingCaseDetail from './pages/hrms/OffboardingCaseDetail';
 import Search from './pages/Search';
 import Notifications from './pages/Notifications';
 import Tenants from './pages/Tenants';
@@ -165,6 +169,28 @@ function AppRoutes() {
                                 }
                             />
                             <Route path="/hrms/documents/mine" element={<MyDocuments />} />
+                            {/* Lifecycle runs: the lists are HR screens, the
+                                case pages are module-gated so a hire can open
+                                their own run — the backend policy, not the
+                                route, decides whose case it is. */}
+                            <Route
+                                path="/hrms/onboarding"
+                                element={
+                                    <ProtectedRoute permission="hrms.onboarding.view">
+                                        <OnboardingCases />
+                                    </ProtectedRoute>
+                                }
+                            />
+                            <Route path="/hrms/onboarding/cases/:caseId" element={<OnboardingCaseDetail />} />
+                            <Route
+                                path="/hrms/offboarding"
+                                element={
+                                    <ProtectedRoute permission="hrms.offboarding.view">
+                                        <OffboardingCases />
+                                    </ProtectedRoute>
+                                }
+                            />
+                            <Route path="/hrms/offboarding/cases/:caseId" element={<OffboardingCaseDetail />} />
                             <Route path="/hrms/:section" element={<HrmsOverview />} />
                         </Route>
                         <Route element={<ProtectedRoute permission="users.view" />}>

@@ -1909,7 +1909,7 @@ mirrored `/api/hrms/offboarding/*` set plus `POST .../offboarding/cases/{case}/c
 > not by reading: the service-level test passed all along because it never
 > goes through HTTP.
 
-**P4.4 — Frontend**
+**P4.4 — Frontend** ✅
 `pages/hrms/OnboardingCases.jsx` (list + filters + progress bars),
 `pages/hrms/OnboardingCaseDetail.jsx` (checklist grouped by `owner_scope` with due dates, overdue
 highlighting, waive-with-reason modal), `components/hrms/Checklist.jsx` (shared by onboarding and
@@ -1922,6 +1922,28 @@ offboarding), `pages/hrms/OffboardingCases.jsx`, `OffboardingCaseDetail.jsx` (cl
 the task's owner (and the HR manager when `owner_scope = hr`), dispatched on case creation and by a
 daily `php artisan hrms:onboarding-reminders`. `utils/notifications.js` gains the
 `describeNotification` copy and a `notificationHref` branch -> `hrmsUrl('onboarding', {case})`.
+
+> **One `Checklist.jsx` serves both phases.** Onboarding and offboarding
+> tasks share the same shape, so grouping by owner scope, overdue
+> highlighting, and the waive flow live in one component — with separate
+> `canAct`/`canWaive` flags, because offboarding has no waive endpoint and a
+> shared Waive button would call nothing. The waive reason comes from
+> `window.prompt`: a modal for a single text field would be ceremony, and the
+> backend 422s an empty reason either way.
+>
+> **Case detail routes are module-gated, not permission-gated.** A hire
+> reading their own run holds no directory permission, so gating the detail
+> on `hrms.onboarding.view` would 403 exactly the self-service reader the
+> backend policy admits. The list pages stay permission-gated (they are HR
+> screens); the backend policy — not the route — decides whose case opens.
+> The presenter’s `person()` carries `user_id` for the same reason: the
+> client cannot answer “is this me” without it.
+>
+> **A pending ask carries its own upload.** The file posts to the document
+> endpoint first, then the returned id submits the ask — two calls, because
+> storing bytes and answering a question are two writes and the second must
+> not run when the first fails. The clearance panel sits above the checklist
+> on the exit detail: a blocked exit must read as blocked at a glance.
 
 **Acceptance:** create a template, start a case for a new hire, the checklist materialises with correct
 due dates, completing all mandatory items closes the case, an offboarding case refuses to clear with
