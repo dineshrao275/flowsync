@@ -2011,7 +2011,7 @@ nullable, `created_by` nullable) with indexes `(employee_id, punch_at)` and `(pu
 > nullOnDelete. The shift is a convenience default only — the roster is
 > authoritative at compute time.
 
-**P5.2 — Punch service + day computation**
+**P5.2 — Punch service + day computation** ✅
 `app/Services/Hrms/AttendanceService.php`:
 - `punch(Employee, direction, source, meta)` — validates the shift window and duplicate punches, checks
   the IP against `attendance_ip_rules` and lat/lng against the employee's geo-fenced `location`
@@ -2025,6 +2025,38 @@ nullable, `created_by` nullable) with indexes `(employee_id, punch_at)` and `(pu
   credible; it is also why an approved leave must be able to update an existing `attendance_days` row.
 - `regenerate(Employee, $date)` — idempotent recompute, used after a roster change or a regularization.
 - `summary(Employee, $from, $to)` — present/late/absent/leave/holiday/week-off/OT totals.
+
+> **P5.2 splits the plan’s service three ways.** `AttendanceService`
+> orchestrates `Attendance/` (`PunchClock` for admission, `DayComputation`
+> for pairing and math, `DayReading` for merged reads) — the P3.2/P13.2/P4.2
+> rule: the file that would pass 300 lines gets a bounded context, and day
+> math gets exactly one home so two screens never disagree about a morning.
+>
+> **The punch window is asymmetric by design.** An in-punch is bounded both
+> sides; an out-punch only from below — clocking out after the shift ends is
+> overtime, the most ordinary thing in attendance, and an upper bound would
+> make every late evening a 422. Night punches attribute by owning date (a
+> pre-noon punch closes the previous night; noon is the fixed, documented
+> cutoff), and `punch()` recomputes the owning date as well as the punch
+> date — otherwise the night’s row goes stale the moment the out-punch lands
+> the next morning. Every punch lands in exactly one date’s set, so roster
+> changes overnight orphan nothing.
+>
+> **Out-of-range is a flag, never a refusal** — for IPs and geofences alike.
+> A mispinned fence must not lock a person out of recording work; an empty
+> IP rule set means “no network policy”, not “deny everything”; a punch with
+> no coordinates cannot be placed and is not flagged. `regenerate()` is a
+> documented alias for the idempotent `computeDay`, not a second
+> implementation. Leave/holiday merges are branched and waiting for P6/P7.
+>
+> **Two Carbon-3 facts this task re-learned the hard way.** Diffs come back
+> *signed floats* — every pairing and lateness diff is `abs()`-bounded and
+> int-cast, or mornings go negative. And the `date` cast serializes with a
+> time part on SQLite’s typeless columns, so every date lookup is `whereDate`
+> (exact-string `where` misses the row just written and the unique pair 500s
+> on recompute; `whereBetween` with a `Y-m-d` upper bound silently drops the
+> last day). PostgreSQL coerces either form, which is exactly why the bug
+> only bites the fast path.
 
 **P5.3 — Remote clock-in policy (`ensure_module:hrms.attendance.remote`)**
 - `PUT api/hrms/attendance/settings` (tenant admin) writes the `attendance` + `remote_clock_in` JSON in

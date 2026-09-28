@@ -20,7 +20,7 @@ Laravel 12 + React 19 SPA. Session-based auth **without** Breeze/Fortify/Sanctum
   `tenants:provision` + seeds demo data (superadmin + acme + globex). Reset from scratch:
   `docker-compose down -v` then `up -d` (app entrypoint re-initializes; `RUN_INIT=true` only for `app`).
   No PHP/composer needed on the host — envs in `.env.docker`.
-- `php artisan test` — run test suite (Phase 13: **isolated, per-tenant file DBs** via `Tests\IsolatesDatabase`; current gate: **892 tests / 4657 assertions passing** — P5.1; after the `routes/web.php` change the complete suite was verified in disjoint HRMS/unit/non-HRMS chunks with zero omitted files)
+- `php artisan test` — run test suite (Phase 13: **isolated, per-tenant file DBs** via `Tests\IsolatesDatabase`; current gate: **905 tests / 4692 assertions passing** — P5.2; after the `routes/web.php` change the complete suite was verified in disjoint HRMS/unit/non-HRMS chunks with zero omitted files)
 
 - `npm run build` / `npm run dev` — frontend build / Vite dev server
 - `./vendor/bin/pint` — PHP code style (run over whole repo; `--dirty` only works in git)
@@ -539,7 +539,10 @@ Hierarchy: **Tenant → Workspace → Project → Task** (subtask `tasks.parent_
   `onboardingTaskDue`, `hrms:onboarding-reminders`, deep links — see the P4.5
   notes below); P5.1 (`2026_09_28_000018` — the attendance tables plus raw-SQL
   `employees.shift_id`, with the CHECK-preservation test — see the P5.1 notes
-  below). Phase 13
+  below); P5.2 (the punch service: `AttendanceService` orchestrating
+  `Services/Hrms/Attendance/` (`PunchClock`, `DayComputation`, `DayReading`),
+  the models/enums, and the `attendancePunches()` relation — see the P5.2
+  notes below). Phase 13
   was jumped to *before* Phase 4 because P4.1's `document_requests.document_type_id` is a real FK to
   `document_types`, and no migration created that table until P13.1 — the plan's "documents ship
   first" prerequisite is a hard schema dependency, not a preference.
@@ -782,6 +785,16 @@ Hierarchy: **Tenant → Workspace → Project → Task** (subtask `tasks.parent_
   on both grammars, and the PG path confirms both `employees_*_check` constraints
   intact. Small sketch gaps closed the same way: `lng` mirrors `lat`,
   timestamps everywhere, `approval_id` a real FK to the P1 engine.
+- **P5.2 splits the plan’s `AttendanceService` three ways** (`PunchClock`,
+  `DayComputation`, `DayReading` under `Services/Hrms/Attendance/`) — the
+  punch window is asymmetric (in bounded both sides, out from below only, so
+  overtime never 422s), night punches attribute by owning date with a fixed
+  noon cutoff, and out-of-range is a flag for IPs and geofences alike, never
+  a refusal. Two Carbon-3 facts re-learned: diffs are signed floats (every
+  pairing/lateness diff is `abs()`-bounded and int-cast), and the `date`
+  cast serializes with a time part on SQLite — so every date lookup is
+  `whereDate`, never exact-string `where` or a `Y-m-d` `whereBetween` (which
+  misses rows on the fast path while PostgreSQL coerces fine).
 - **P4.4 shares one checklist and gates detail pages by module, not permission.**
   `components/hrms/Checklist.jsx` serves both phases (separate `canAct`/
   `canWaive` — offboarding has no waive endpoint); the waive reason comes

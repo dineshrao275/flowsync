@@ -5,6 +5,7 @@ namespace App\Models\Hrms\Employee;
 use App\Enums\Hrms\EmployeeStatus;
 use App\Enums\Hrms\WorkMode;
 use App\Models\Concerns\CentralConnection;
+use App\Models\Hrms\Attendance\AttendancePunch;
 use App\Models\Hrms\Org\Department;
 use App\Models\Hrms\Org\Designation;
 use App\Models\Hrms\Org\Location;
@@ -186,6 +187,18 @@ class Employee extends Model
     public function statusHistory(): HasMany
     {
         return $this->hasMany(EmployeeStatusHistory::class)->orderByDesc('created_at');
+    }
+
+    /**
+     * The raw clock events behind every derived day.
+     *
+     * Lives here (not on a service) so any reader — the day computation, a
+     * duplicate check, the P5.6 rollup — answers “what did this person punch”
+     * from the same relation instead of each writing its own where clause.
+     */
+    public function attendancePunches(): HasMany
+    {
+        return $this->hasMany(AttendancePunch::class)->orderBy('punch_at');
     }
 
     /** @param  Builder<Employee>  $query */

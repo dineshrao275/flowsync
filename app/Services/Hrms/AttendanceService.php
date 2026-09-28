@@ -1,0 +1,75 @@
+<?php
+
+namespace App\Services\Hrms;
+
+use App\Enums\Hrms\AttendanceDayStatus;
+use App\Enums\Hrms\PunchDirection;
+use App\Enums\Hrms\PunchSource;
+use App\Models\Hrms\Attendance\AttendanceDay;
+use App\Models\Hrms\Attendance\AttendancePunch;
+use App\Models\Hrms\Employee\Employee;
+use App\Models\User;
+use App\Services\Hrms\Attendance\DayComputation;
+use App\Services\Hrms\Attendance\DayReading;
+use App\Services\Hrms\Attendance\PunchClock;
+use Illuminate\Support\Carbon;
+
+/**
+ * Attendance/HRMS — clock events in, day photographs out.
+ *
+ * A thin orchestrator on purpose. Admission rules (window, duplicates,
+ * network, geofence) live in {@see PunchClock}; pairing, rounding and shift
+ * resolution live in {@see DayComputation}. A controller, a command or an
+ * import worker therefore cannot reimplement one rule and drift from the
+ * others.
+ */
+class AttendanceService
+{
+    public function __construct(
+        private readonly PunchClock $clock,
+        private readonly DayComputation $days,
+        private readonly DayReading $reading,
+    ) {}
+
+    /**
+     * @param  array{punch_at?: Carbon|string|null, lat?: float|null, lng?: float|null, ip?: string|null, user_agent?: string|null, device_id?: string|null, location_id?: int|null, note?: string|null}  $meta
+     */
+    public function punch(
+        Employee $employee,
+        PunchDirection|string $direction,
+        PunchSource|string $source = PunchSource::Web,
+        array $meta = [],
+        ?User $actor = null,
+    ): AttendancePunch {
+        return $this->clock->punch($employee, $direction, $source, $meta, $actor);
+    }
+
+    public function computeDay(Employee $employee, Carbon|string $date): AttendanceDay
+    {
+        return $this->days->computeDay($employee, $date);
+    }
+
+    /**
+     * Recompute after an external change — a roster edit, a regularization.
+     * Alias by design, not by accident: recomputing is the same idempotent
+     * operation wherever it is triggered from, and two names for it would
+     * diverge the moment one of them grows a special case.
+     */
+    public function regenerate(Employee $employee, Carbon|string $date): AttendanceDay
+    {
+        return $this->days->computeDay($employee, $date);
+    }
+
+    public function dayStatus(Employee $employee, Carbon|string $date): AttendanceDayStatus
+    {
+        return $this->reading->dayStatus($employee, $date);
+    }
+
+    /**
+     * @return array{days: int, present: int, absent: int, half_day: int, late: int, leave: int, holiday: int, week_off: int, worked_minutes: int, late_minutes: int, overtime_minutes: int}
+     */
+    public function summary(Employee $employee, Carbon|string $from, Carbon|string $to): array
+    {
+        return $this->reading->summary($employee, $from, $to);
+    }
+}
