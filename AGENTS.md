@@ -20,7 +20,7 @@ Laravel 12 + React 19 SPA. Session-based auth **without** Breeze/Fortify/Sanctum
   `tenants:provision` + seeds demo data (superadmin + acme + globex). Reset from scratch:
   `docker-compose down -v` then `up -d` (app entrypoint re-initializes; `RUN_INIT=true` only for `app`).
   No PHP/composer needed on the host — envs in `.env.docker`.
-- `php artisan test` — run test suite (Phase 13: **isolated, per-tenant file DBs** via `Tests\IsolatesDatabase`; current gate: **905 tests / 4692 assertions passing** — P5.2; after the `routes/web.php` change the complete suite was verified in disjoint HRMS/unit/non-HRMS chunks with zero omitted files)
+- `php artisan test` — run test suite (Phase 13: **isolated, per-tenant file DBs** via `Tests\IsolatesDatabase`; current gate: **910 tests / 4713 assertions passing** — P5.3; after the `routes/web.php` change the complete suite was verified in disjoint HRMS/unit/non-HRMS chunks with zero omitted files)
 
 - `npm run build` / `npm run dev` — frontend build / Vite dev server
 - `./vendor/bin/pint` — PHP code style (run over whole repo; `--dirty` only works in git)
@@ -542,7 +542,9 @@ Hierarchy: **Tenant → Workspace → Project → Task** (subtask `tasks.parent_
   below); P5.2 (the punch service: `AttendanceService` orchestrating
   `Services/Hrms/Attendance/` (`PunchClock`, `DayComputation`, `DayReading`),
   the models/enums, and the `attendancePunches()` relation — see the P5.2
-  notes below). Phase 13
+  notes below); P5.3 (remote clock-in policy + punch endpoint: module-or-ownership
+gates, server-observed IP, per-section settings merge, `DayPresenter` — see
+the P5.3 notes below). Phase 13
   was jumped to *before* Phase 4 because P4.1's `document_requests.document_type_id` is a real FK to
   `document_types`, and no migration created that table until P13.1 — the plan's "documents ship
   first" prerequisite is a hard schema dependency, not a preference.
@@ -795,6 +797,13 @@ Hierarchy: **Tenant → Workspace → Project → Task** (subtask `tasks.parent_
   cast serializes with a time part on SQLite — so every date lookup is
   `whereDate`, never exact-string `where` or a `Y-m-d` `whereBetween` (which
   misses rows on the fast path while PostgreSQL coerces fine).
+- **P5.3 gates by module *or* ownership, never both at once.** The punch
+  endpoint takes no permission: it resolves the employment record from the
+  login, so there is nothing to authorize against and no login may punch for
+  another. The 403 is a *module* 403 from `hrms.attendance.remote`. Settings
+  take `hrms.attendance.settings` and merge per section. The IP is
+  server-observed (`$request->ip()`), never client-claimed — a `meta.ip`
+  would let anyone assert they are at the office.
 - **P4.4 shares one checklist and gates detail pages by module, not permission.**
   `components/hrms/Checklist.jsx` serves both phases (separate `canAct`/
   `canWaive` — offboarding has no waive endpoint); the waive reason comes

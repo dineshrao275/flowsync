@@ -12,6 +12,7 @@ use App\Http\Controllers\DependencyController;
 use App\Http\Controllers\FeatureManagementController;
 use App\Http\Controllers\ForgotPasswordController;
 use App\Http\Controllers\GlobalSearchController;
+use App\Http\Controllers\Hrms\Attendance\AttendanceController;
 use App\Http\Controllers\Hrms\DocumentController;
 use App\Http\Controllers\Hrms\DocumentDownloadController;
 use App\Http\Controllers\Hrms\DocumentTypeController;
@@ -407,6 +408,24 @@ Route::prefix('api')->group(function () {
         Route::post('hrms/document-requests/{documentRequest}/accept', [DocumentRequestController::class, 'accept']);
         Route::post('hrms/document-requests/{documentRequest}/waive', [DocumentRequestController::class, 'waive']);
         Route::post('hrms/document-requests/{documentRequest}/reject', [DocumentRequestController::class, 'reject']);
+    });
+
+    // HRMS attendance settings (Phase 15 P5.3). The module gate decides
+    // whether attendance exists for this tenant; `hrms.attendance.settings`
+    // decides who may rewrite its policy. Partial sections merge — a PUT
+    // that blanked unmentioned sections would be a reset disguised as edit.
+    Route::group(['middleware' => ['ensure_module:hrms.attendance']], function () {
+        Route::put('hrms/attendance/settings', [AttendanceController::class, 'settings'])
+            ->middleware('permission:hrms.attendance.settings');
+    });
+
+    // HRMS remote punch (Phase 15 P5.3). Deliberately NO route-level
+    // permission: the endpoint resolves the employment record from the
+    // authenticated user, so there is nothing to authorize against and no
+    // login may punch for another. The module 403 is the upgrade path, not
+    // a permission 403 — the client shows `/403` for the former.
+    Route::group(['middleware' => ['ensure_module:hrms.attendance.remote']], function () {
+        Route::post('hrms/attendance/punch', [AttendanceController::class, 'punch']);
     });
 
     // Signed temporary download link for task attachments. Intentionally OUTSIDE

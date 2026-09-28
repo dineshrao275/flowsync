@@ -54,16 +54,15 @@ class HrmsEmployeeTablesTest extends TestCase
         }
     }
 
-    public function test_the_shift_column_is_still_absent(): void
+    public function test_the_shift_column_has_arrived_with_p5(): void
     {
-        // department_id / designation_id / location_id were deferred to P3 and
-        // have since arrived in `000016`; shift_id belongs to P5. If a migration
-        // ever adds it early, the phase that owns it would silently skip the
-        // ALTER and the two would drift. P3.1's own columns are asserted in
-        // HrmsOrgTablesTest.
-        $this->assertFalse(
+        // This used to assert absence: shift_id belonged to P5, and an early
+        // arrival would have let the owning phase silently skip its ALTER.
+        // P5.1 has now landed it deliberately; the column’s own contract
+        // lives in HrmsAttendanceTablesTest.
+        $this->assertTrue(
             Schema::hasColumn('employees', 'shift_id'),
-            'employees.shift_id belongs to a later phase',
+            'employees.shift_id arrived with P5.1',
         );
     }
 

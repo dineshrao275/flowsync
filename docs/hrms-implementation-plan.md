@@ -2058,12 +2058,28 @@ nullable, `created_by` nullable) with indexes `(employee_id, punch_at)` and `(pu
 > last day). PostgreSQL coerces either form, which is exactly why the bug
 > only bites the fast path.
 
-**P5.3 — Remote clock-in policy (`ensure_module:hrms.attendance.remote`)**
+**P5.3 — Remote clock-in policy** ✅
 - `PUT api/hrms/attendance/settings` (tenant admin) writes the `attendance` + `remote_clock_in` JSON in
   `hrms_settings`: `{allow_remote, require_ip, require_geo, max_punches_per_day, allow_multiple_sessions}`.
 - `POST api/hrms/attendance/punch` is gated by `ensure_module:hrms.attendance.remote`; the UI hides the
   clock widget when the module is absent and the API 403s.
 - The 403 here is a **module** 403, not a permission 403 — the client shows the upgrade path (`/403`).
+
+> **P5.3 gates by module *or* ownership, never both at once.** The punch
+> endpoint takes no permission: it resolves the employment record from the
+> login, so there is nothing to authorize against and no login may punch for
+> another (no record → 404, not a 500 inside the pairing code). The 403 is a
+> *module* 403 from `hrms.attendance.remote` — the client’s upgrade path.
+> Settings take `hrms.attendance.settings` and merge per section, so tuning
+> the rounding step cannot blank the geofence policy beside it.
+>
+> **The IP is server-observed, never client-claimed.** There is deliberately
+> no `meta.ip` on the way in: a client-asserted address would let anyone
+> claim to be at the office, defeating the only thing the IP leg checks.
+> Coordinates must come from the client (the server has no other way to know
+> where a phone is); a punch without them skips the geofence leg. Day shapes
+> come from a `DayPresenter` now, so P5.6 inherits one dialect instead of
+> inventing a second.
 
 **P5.4 — Regularization (shared approval primitive)**
 - `POST api/hrms/attendance/regularizations` — an employee requests a correction for a past date (<= N

@@ -44,6 +44,21 @@ class AttendanceService
         return $this->clock->punch($employee, $direction, $source, $meta, $actor);
     }
 
+    /**
+     * The day a punch belongs to, freshly computed.
+     *
+     * The owning date, not the punch date: a night-shift out-punch lands the
+     * next morning, and the morning’s row is not the day the night belongs
+     * to. Recompute-on-read is idempotent, so this is a fresh photograph
+     * rather than a second implementation of one.
+     */
+    public function dayForPunch(Employee $employee, AttendancePunch $punch): AttendanceDay
+    {
+        [$shift] = $this->days->resolveShift($employee, $punch->punch_at->copy()->startOfDay());
+
+        return $this->days->computeDay($employee, $this->days->owningDate($punch->punch_at, $shift));
+    }
+
     public function computeDay(Employee $employee, Carbon|string $date): AttendanceDay
     {
         return $this->days->computeDay($employee, $date);

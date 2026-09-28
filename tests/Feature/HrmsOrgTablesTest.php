@@ -50,12 +50,14 @@ class HrmsOrgTablesTest extends TestCase
         }
     }
 
-    public function test_the_shift_column_is_still_absent(): void
+    public function test_the_shift_column_has_arrived_with_p5(): void
     {
-        // shift_id belongs to P5, with the shifts table. If this migration ever
-        // adds it early, the P5 migration's ALTER would be skipped and the two
-        // would drift.
-        $this->assertFalse(Schema::hasColumn('employees', 'shift_id'));
+        // This used to assert absence: shift_id belonged to P5, and an early
+        // arrival would have let P5’s ALTER silently skip. P5.1 has now
+        // landed it deliberately, so the guard inverts — the column’s own
+        // contract (raw ALTER, intact CHECKs, FK behavior) lives in
+        // HrmsAttendanceTablesTest.
+        $this->assertTrue(Schema::hasColumn('employees', 'shift_id'));
     }
 
     public function test_there_is_no_tenant_id_column(): void
