@@ -1822,7 +1822,7 @@ Indexes on every filtered `*_id`, plus `(case_id, status)` and `(employee_id, du
 > enum CHECKs, and the FK actions (`employee_id` CASCADE,
 > `document_type_id`/`document_id` SET NULL).
 
-**P4.2 — Services**
+**P4.2 — Services** ✅
 `app/Services/Hrms/OnboardingService.php` — `templates()`, `createCase(Employee, Template)`
 (materialises `onboarding_case_tasks` from the template with `due_date = joining_date + due_offset_days`),
 `completeTask`, `waiveTask` (mandatory items need a reason + `hrms.onboarding.manage`), `progress(Case)`,
@@ -1833,6 +1833,38 @@ claims, revoke system access), `summary(Case)` (the clearance counters), `clear(
 clear while any counter is non-zero** (422 `form` listing the blockers), `complete`.
 - Changing an employee to `exited` (P2) suggests/initiates an offboarding case; `employees.exit_date`
   comes from `last_working_day`.
+
+> **P4.2 keeps the two named services, neither as a monolith.**
+> `OnboardingService` orchestrates `Lifecycle/` (`OnboardingTemplates`,
+> `OnboardingCases`, `CaseProgress`, shared `DocumentRequestService`);
+> `OffboardingService` orchestrates `Lifecycle/OffboardingChecklist`. The
+> splits follow the same rule as P3.2/P13.2: the file that would have passed
+> 300 lines is the file that gets a bounded context, and every rule keeps one
+> home. `CaseProgress` owns both the mandatory definition and the photograph,
+> so waiving and closing can never disagree about what “mandatory” means.
+>
+> **Mandatory is derived, not stored.** Case rows carry no `is_mandatory`
+> column: ad-hoc items are never mandatory, and a template item deleted while
+> its cases run keeps its items mandatory — a deleted catalogue row must not
+> quietly unblock a case. The other half of that contract is in
+> `removeTemplateTask`, which refuses while an *open* case references the
+> item. Closed cases don’t matter.
+>
+> **The clearance counters are task-driven today, record-driven tomorrow.**
+> Assets/leave/expenses get their own phases (P14/P6/P8); until then an open
+> asset-category task *is* a pending asset, and leave days/expense money read
+> an honest 0. The columns are already the right shape, so those phases fill
+> them rather than redesigning them. `clear()` 422s with the blockers named;
+> `complete()` requires the signed clearance.
+>
+> **Terminate opens the exit run.** `EmployeeStatusTransition::terminate()`
+> auto-initiates an offboarding case (last working day = the stamped exit
+> date, reason Other) when none is open — a departure without a checklist is
+> a departure nobody tracks. One direction only: initiating stamps
+> `exit_date` from the last working day, and never touches status, so the two
+> cannot loop. `DocumentRequest::isFulfilled()` exists for the same “file
+> gone” honesty as the migration: a submitted row whose link nulled reads as
+> pending to progress, so a deleted file never quietly completes a checklist.
 
 **P4.3 — Policies, requests, controller, routes**
 `OnboardingPolicy` (view `hrms.onboarding.view` or case owner; manage `hrms.onboarding.manage`),

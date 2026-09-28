@@ -20,7 +20,7 @@ Laravel 12 + React 19 SPA. Session-based auth **without** Breeze/Fortify/Sanctum
   `tenants:provision` + seeds demo data (superadmin + acme + globex). Reset from scratch:
   `docker-compose down -v` then `up -d` (app entrypoint re-initializes; `RUN_INIT=true` only for `app`).
   No PHP/composer needed on the host — envs in `.env.docker`.
-- `php artisan test` — run test suite (Phase 13: **isolated, per-tenant file DBs** via `Tests\IsolatesDatabase`; current gate: **833 tests / 4426 assertions passing** — P13.4; after the `routes/web.php` change the complete suite was verified in disjoint HRMS/unit/non-HRMS chunks with zero omitted files)
+- `php artisan test` — run test suite (Phase 13: **isolated, per-tenant file DBs** via `Tests\IsolatesDatabase`; current gate: **864 tests / 4522 assertions passing** — P4.2; after the `routes/web.php` change the complete suite was verified in disjoint HRMS/unit/non-HRMS chunks with zero omitted files)
 
 - `npm run build` / `npm run dev` — frontend build / Vite dev server
 - `./vendor/bin/pint` — PHP code style (run over whole repo; `--dirty` only works in git)
@@ -528,7 +528,10 @@ Hierarchy: **Tenant → Workspace → Project → Task** (subtask `tasks.parent_
   `pages/hrms/Documents.jsx`, `pages/hrms/MyDocuments.jsx`, `components/hrms/DocumentUploader.jsx`,
   plus the profile `documents` tab — see the P13.4 notes below); P4.1
   (`2026_09_27_000017` — the onboarding/offboarding lifecycle tables, plus
-  `tests/Feature/HrmsLifecycleTablesTest.php` — see the P4.1 notes below). Phase 13
+  `tests/Feature/HrmsLifecycleTablesTest.php` — see the P4.1 notes below); P4.2
+  (the onboarding/offboarding services: `OnboardingService` + `OffboardingService`
+  orchestrating `Services/Hrms/Lifecycle/`, the shared `DocumentRequestService`,
+  and the terminate → auto-initiate wiring — see the P4.2 notes below). Phase 13
   was jumped to *before* Phase 4 because P4.1's `document_requests.document_type_id` is a real FK to
   `document_types`, and no migration created that table until P13.1 — the plan's "documents ship
   first" prerequisite is a hard schema dependency, not a preference.
@@ -726,6 +729,20 @@ Hierarchy: **Tenant → Workspace → Project → Task** (subtask `tasks.parent_
   the template enums (an enum on the snapshot holds new catalogue values
   hostage to a migration on old rows), and `asset_id`/`expense_claim_id` are
   bare nullable integers until P14/P8 exist to constrain them.
+- **P4.2 splits the plan’s two services into a `Lifecycle/` bounded context.**
+  `OnboardingService` orchestrates `OnboardingTemplates`, `OnboardingCases`
+  and `CaseProgress`; `OffboardingService` orchestrates `OffboardingChecklist`;
+  both share `DocumentRequestService` (the request state machine both case
+  types raise from). `CaseProgress` owns the mandatory definition *and* the
+  photograph, so waiving and closing cannot disagree. Mandatory is derived
+  from the template link, never stored: ad-hoc items are never mandatory,
+  and `removeTemplateTask` refuses while an open case references the item so
+  a deleted row cannot quietly unblock a case. Clearance counters are
+  task-driven until P14/P6/P8 wire real records (leave/expense read an honest
+  0); `clear()` 422s naming the blockers, `complete()` requires the signed
+  clearance. `terminate()` auto-initiates an exit run when none is open
+  (last working day = stamped exit date); initiating stamps `exit_date` but
+  never touches status, so the two cannot loop.
 - **P13.2 keeps the plan's `Services/Hrms/DocumentService.php` path, but not as a monolith.** Upload
   rules, lifecycle, download serving and presentation together exceeded the 300-line class ceiling, so
   the service orchestrates `app/Services/Hrms/Document/` (`DocumentUpload`, `DocumentLifecycle`,

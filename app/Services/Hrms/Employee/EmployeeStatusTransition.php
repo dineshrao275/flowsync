@@ -3,9 +3,12 @@
 namespace App\Services\Hrms\Employee;
 
 use App\Enums\Hrms\EmployeeStatus;
+use App\Enums\Hrms\OffboardingReason;
 use App\Models\Hrms\Employee\Employee;
 use App\Models\Hrms\Employee\EmployeeStatusHistory;
+use App\Models\Hrms\Lifecycle\OffboardingCase;
 use App\Models\User;
+use App\Services\Hrms\OffboardingService;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
@@ -23,6 +26,8 @@ use Illuminate\Validation\ValidationException;
  */
 class EmployeeStatusTransition
 {
+    public function __construct(private readonly OffboardingService $offboarding) {}
+
     /**
      * Apply a status change: the record, the history row, the exit date.
      *
@@ -106,6 +111,11 @@ class EmployeeStatusTransition
      * accepting one, and a second call is an error rather than a second exit
      * date on the same record.
      *
+     * An ended employment also opens its exit run: if no offboarding case is
+     * open, one is initiated with the exit date just stamped as the last
+     * working day. The case is the checklist the exit actually runs on, and a
+     * termination without one is a departure nobody tracks.
+     *
      * @throws ValidationException 422 when the employee has already left
      */
     public function terminate(Employee $employee, ?string $reason = null, ?string $note = null, ?User $actor = null): Employee
@@ -116,10 +126,22 @@ class EmployeeStatusTransition
             ]);
         }
 
-        return $this->apply($employee, EmployeeStatus::Terminated, [
+        $employee = $this->apply($employee, EmployeeStatus::Terminated, [
             'effective_date' => now()->toDateString(),
             'reason' => $reason,
             'note' => $note,
         ], $actor);
+
+        if (! OffboardingCase::where('employee_id', $employee->id)->open()->exists()) {
+            $this->offboarding->initiate(
+                $employee,
+                $employee->exit_date ?? today(),
+                OffboardingReason::Other,
+                null,
+                $actor,
+            );
+        }
+
+        return $employee->refresh();
     }
 }
