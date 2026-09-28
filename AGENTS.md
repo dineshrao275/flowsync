@@ -20,7 +20,7 @@ Laravel 12 + React 19 SPA. Session-based auth **without** Breeze/Fortify/Sanctum
   `tenants:provision` + seeds demo data (superadmin + acme + globex). Reset from scratch:
   `docker-compose down -v` then `up -d` (app entrypoint re-initializes; `RUN_INIT=true` only for `app`).
   No PHP/composer needed on the host — envs in `.env.docker`.
-- `php artisan test` — run test suite (Phase 13: **isolated, per-tenant file DBs** via `Tests\IsolatesDatabase`; current gate: **864 tests / 4522 assertions passing** — P4.2; after the `routes/web.php` change the complete suite was verified in disjoint HRMS/unit/non-HRMS chunks with zero omitted files)
+- `php artisan test` — run test suite (Phase 13: **isolated, per-tenant file DBs** via `Tests\IsolatesDatabase`; current gate: **874 tests / 4605 assertions passing** — P4.3; after the `routes/web.php` change the complete suite was verified in disjoint HRMS/unit/non-HRMS chunks with zero omitted files)
 
 - `npm run build` / `npm run dev` — frontend build / Vite dev server
 - `./vendor/bin/pint` — PHP code style (run over whole repo; `--dirty` only works in git)
@@ -531,7 +531,10 @@ Hierarchy: **Tenant → Workspace → Project → Task** (subtask `tasks.parent_
   `tests/Feature/HrmsLifecycleTablesTest.php` — see the P4.1 notes below); P4.2
   (the onboarding/offboarding services: `OnboardingService` + `OffboardingService`
   orchestrating `Services/Hrms/Lifecycle/`, the shared `DocumentRequestService`,
-  and the terminate → auto-initiate wiring — see the P4.2 notes below). Phase 13
+  and the terminate → auto-initiate wiring — see the P4.2 notes below); P4.3
+  (the lifecycle HTTP surface: `Policies/Hrms/Lifecycle/` bases + markers,
+  ten FormRequests, four controllers, `LifecyclePresenter`, routes — see the
+  P4.3 notes below). Phase 13
   was jumped to *before* Phase 4 because P4.1's `document_requests.document_type_id` is a real FK to
   `document_types`, and no migration created that table until P13.1 — the plan's "documents ship
   first" prerequisite is a hard schema dependency, not a preference.
@@ -743,6 +746,17 @@ Hierarchy: **Tenant → Workspace → Project → Task** (subtask `tasks.parent_
   clearance. `terminate()` auto-initiates an exit run when none is open
   (last working day = stamped exit date); initiating stamps `exit_date` but
   never touches status, so the two cannot loop.
+- **P4.3 splits “may this caller open this row” from “which rows may the list contain”.**
+  `Policies/Hrms/Lifecycle/` holds the per-record bases (`OnboardingPolicy`,
+  `OffboardingPolicy`, `DocumentRequestPolicy`) plus empty marker subclasses
+  for convention discovery — one shared class would be discoverable by none
+  of its models (the Org precedent). Set-level scoping lives in the services’
+  `casesFor`/`indexFor`, reading the same permissions. Nested task routes
+  declare both models and verify belonging (a foreign task id 404s). Free
+  document asks attach to onboarding cases only; an offboarding ask is raised
+  by the exit run itself. The nested `tasks` rules live on the template
+  request — without them `validated()` silently drops the checklist and the
+  form lies about succeeding.
 - **P13.2 keeps the plan's `Services/Hrms/DocumentService.php` path, but not as a monolith.** Upload
   rules, lifecycle, download serving and presentation together exceeded the 300-line class ceiling, so
   the service orchestrates `app/Services/Hrms/Document/` (`DocumentUpload`, `DocumentLifecycle`,

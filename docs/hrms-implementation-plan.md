@@ -167,6 +167,15 @@ The executable form of D2.16 + D2.17. A task is not done until every box is true
       content, password, token, signed URL, or full request body
 - [ ] At least one test asserts the event name + `tenant_id` on the `hrms` channel (Part 6 logging row)
 
+### 0.9 Continue automatically (standing instruction)
+
+After completing and testing the current task — committed *and pushed* — immediately move to the
+next task in the documented plan. Do not stop, do not wait for further instructions, do not ask for
+a decision to proceed. Update this document’s progress tracker after each completed task, and
+continue sequentially until the entire development plan is completed and tested. A standing
+instruction stays in force until explicitly lifted; each new instruction is recorded here so the
+next session inherits it verbatim.
+
 ---
 
 ## Part 1 — Architecture analysis (what already exists)
@@ -1866,7 +1875,7 @@ clear while any counter is non-zero** (422 `form` listing the blockers), `comple
 > gone” honesty as the migration: a submitted row whose link nulled reads as
 > pending to progress, so a deleted file never quietly completes a checklist.
 
-**P4.3 — Policies, requests, controller, routes**
+**P4.3 — Policies, requests, controller, routes** ✅
 `OnboardingPolicy` (view `hrms.onboarding.view` or case owner; manage `hrms.onboarding.manage`),
 `OffboardingPolicy` (same shape; `clear` = `hrms.offboarding.manage`).
 Routes: `GET|POST api/hrms/onboarding/templates`, `PUT|DELETE .../templates/{template}`,
@@ -1876,6 +1885,29 @@ mirrored `/api/hrms/offboarding/*` set plus `POST .../offboarding/cases/{case}/c
 - **Nested-param rule:** every method under `cases/{case}/tasks/{task}` declares **both**
   `OnboardingCase $case` and `OnboardingCaseTask $task` and verifies `$task->case_id === $case->id`,
   else 404 (0.6).
+
+> **P4.3 follows the Org policy precedent, not a single policy class.**
+> Laravel discovers a model’s policy by convention, so one `OnboardingPolicy`
+> would be discoverable by none of its three models: the base holds every
+> rule, and `OnboardingCasePolicy` / `OnboardingCaseTaskPolicy` /
+> `OnboardingTemplatePolicy` (plus the offboarding pair) are empty markers.
+> Task routes declare both models and verify belonging — a task id from
+> another run 404s rather than completing the wrong checklist (the P3.3
+> `reorder` lesson, applied to nested params).
+>
+> **Document asks get one controller, not a mirrored pair.** A request is the
+> same thing raised from either case type, so
+> `DocumentRequestController` serves both, with its own policy (self or
+> directory reader to view, manage to answer, the asker’s own hand to
+> submit). Free asks attach to onboarding cases only — an offboarding ask is
+> raised by the exit run itself, and a second path to the same link is a
+> second place to get it wrong.
+>
+> **The nested `tasks` rules live on the template request.** `validated()`
+> drops whatever has no rule, so without them a template “saved” with an
+> empty checklist — the form lying about succeeding. Caught by the API test,
+> not by reading: the service-level test passed all along because it never
+> goes through HTTP.
 
 **P4.4 — Frontend**
 `pages/hrms/OnboardingCases.jsx` (list + filters + progress bars),

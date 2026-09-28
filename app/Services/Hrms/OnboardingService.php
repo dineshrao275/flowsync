@@ -87,6 +87,42 @@ class OnboardingService
         $this->templates->reorderTasks($template, $orderedIds);
     }
 
+    /**
+     * Cases the viewer may list: everything for a directory reader, only
+     * their own run for anyone else. The per-record policy re-checks on
+     * show — a list that leaked another hire’s case would be the policy’s
+     * failure, not this scope’s generosity.
+     *
+     * @param  array{status?: string|null, employee_id?: int|null}  $filters
+     * @return Collection<int, OnboardingCase>
+     */
+    public function casesFor(User $viewer, array $filters = []): Collection
+    {
+        $query = OnboardingCase::query()->with('employee')->orderByDesc('id');
+
+        if (! empty($filters['status'])) {
+            $query->where('status', $filters['status']);
+        }
+
+        if (! empty($filters['employee_id'])) {
+            $query->where('employee_id', (int) $filters['employee_id']);
+        }
+
+        if (! $this->canViewAll($viewer)) {
+            $employeeId = Employee::where('user_id', $viewer->id)->value('id');
+
+            $query->where('employee_id', $employeeId ?? -1);
+        }
+
+        return $query->get();
+    }
+
+    private function canViewAll(User $viewer): bool
+    {
+        return $viewer->hasPermission('hrms.onboarding.view')
+            || $viewer->hasPermission('hrms.onboarding.manage');
+    }
+
     public function createCase(Employee $employee, OnboardingTemplate $template, ?User $actor = null): OnboardingCase
     {
         return $this->cases->createCase($employee, $template, $actor);

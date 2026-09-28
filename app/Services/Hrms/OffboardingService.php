@@ -14,6 +14,7 @@ use App\Services\Hrms\Lifecycle\DocumentRequestService;
 use App\Services\Hrms\Lifecycle\OffboardingChecklist;
 use App\Services\HrmsAuditLogger;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
@@ -102,6 +103,10 @@ class OffboardingService
      * Leave days and expense money read 0 until P6/P8 wire real balances in —
      * the columns are the right shape already, and a zero with a comment is
      * honest where a guessed number would be a fabricated clearance.
+     *
+     * Persisting on every call — including reads — is deliberate: the row is
+     * derived state, recomputed idempotently, so the screen never shows a
+     * stale photograph and `clear()` always decides on fresh counters.
      */
     public function summary(OffboardingCase $case): ExitClearance
     {
@@ -205,6 +210,34 @@ class OffboardingService
 
             return $case->refresh();
         });
+    }
+
+    /**
+     * Cases the viewer may list: everything for a directory reader, only
+     * their own exits for anyone else.
+     *
+     * @param  array{status?: string|null, employee_id?: int|null}  $filters
+     * @return Collection<int, OffboardingCase>
+     */
+    public function casesFor(User $viewer, array $filters = []): Collection
+    {
+        $query = OffboardingCase::query()->with('employee')->orderByDesc('id');
+
+        if (! empty($filters['status'])) {
+            $query->where('status', $filters['status']);
+        }
+
+        if (! empty($filters['employee_id'])) {
+            $query->where('employee_id', (int) $filters['employee_id']);
+        }
+
+        if (! $viewer->hasPermission('hrms.offboarding.view') && ! $viewer->hasPermission('hrms.offboarding.manage')) {
+            $employeeId = Employee::where('user_id', $viewer->id)->value('id');
+
+            $query->where('employee_id', $employeeId ?? -1);
+        }
+
+        return $query->get();
     }
 
     /**

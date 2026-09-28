@@ -16,6 +16,10 @@ use App\Http\Controllers\Hrms\DocumentController;
 use App\Http\Controllers\Hrms\DocumentDownloadController;
 use App\Http\Controllers\Hrms\DocumentTypeController;
 use App\Http\Controllers\Hrms\EmployeeController;
+use App\Http\Controllers\Hrms\Lifecycle\DocumentRequestController;
+use App\Http\Controllers\Hrms\Lifecycle\OffboardingCaseController;
+use App\Http\Controllers\Hrms\Lifecycle\OnboardingCaseController;
+use App\Http\Controllers\Hrms\Lifecycle\OnboardingTemplateController;
 use App\Http\Controllers\Hrms\Org\DepartmentController;
 use App\Http\Controllers\Hrms\Org\DesignationController;
 use App\Http\Controllers\Hrms\Org\LocationController;
@@ -359,6 +363,50 @@ Route::prefix('api')->group(function () {
         Route::post('hrms/documents/{document}/verify', [DocumentController::class, 'verify']);
         Route::post('hrms/documents/{document}/reject', [DocumentController::class, 'reject']);
         Route::get('hrms/my/documents', [DocumentController::class, 'mine']);
+    });
+
+    // HRMS onboarding & offboarding (Phase 15 P4.3). Same two gates as the
+    // rest of the HRMS surface; the lifecycle policies decide per record —
+    // including a hire reading their own checklist, which no tenant
+    // permission grants.
+    //
+    // Every nested route declares both models (`cases/{case}/tasks/{task}`),
+    // and the controller verifies the task belongs to the case: a task id
+    // from another run 404s here rather than completing the wrong checklist.
+    Route::group(['middleware' => ['ensure_module:hrms.core', 'permission:hrms.view']], function () {
+        Route::get('hrms/onboarding/templates', [OnboardingTemplateController::class, 'index']);
+        Route::post('hrms/onboarding/templates', [OnboardingTemplateController::class, 'store']);
+        Route::get('hrms/onboarding/templates/{template}', [OnboardingTemplateController::class, 'show']);
+        Route::put('hrms/onboarding/templates/{template}', [OnboardingTemplateController::class, 'update']);
+        Route::delete('hrms/onboarding/templates/{template}', [OnboardingTemplateController::class, 'destroy']);
+        Route::post('hrms/onboarding/templates/{template}/tasks', [OnboardingTemplateController::class, 'storeTask']);
+        Route::put('hrms/onboarding/templates/{template}/tasks/{task}', [OnboardingTemplateController::class, 'updateTask']);
+        Route::delete('hrms/onboarding/templates/{template}/tasks/{task}', [OnboardingTemplateController::class, 'destroyTask']);
+        Route::post('hrms/onboarding/templates/{template}/tasks/reorder', [OnboardingTemplateController::class, 'reorderTasks']);
+
+        Route::get('hrms/onboarding/cases', [OnboardingCaseController::class, 'index']);
+        Route::post('hrms/onboarding/cases', [OnboardingCaseController::class, 'store']);
+        Route::get('hrms/onboarding/cases/{case}', [OnboardingCaseController::class, 'show']);
+        Route::post('hrms/onboarding/cases/{case}/tasks/{task}/complete', [OnboardingCaseController::class, 'completeTask']);
+        Route::post('hrms/onboarding/cases/{case}/tasks/{task}/waive', [OnboardingCaseController::class, 'waiveTask']);
+        Route::post('hrms/onboarding/cases/{case}/complete', [OnboardingCaseController::class, 'complete']);
+        Route::post('hrms/onboarding/cases/{case}/cancel', [OnboardingCaseController::class, 'cancel']);
+
+        Route::get('hrms/offboarding/cases', [OffboardingCaseController::class, 'index']);
+        Route::post('hrms/offboarding/cases', [OffboardingCaseController::class, 'store']);
+        Route::get('hrms/offboarding/cases/{case}', [OffboardingCaseController::class, 'show']);
+        Route::post('hrms/offboarding/cases/{case}/tasks/{task}/complete', [OffboardingCaseController::class, 'completeTask']);
+        Route::post('hrms/offboarding/cases/{case}/clear', [OffboardingCaseController::class, 'clear']);
+        Route::post('hrms/offboarding/cases/{case}/complete', [OffboardingCaseController::class, 'complete']);
+        Route::post('hrms/offboarding/cases/{case}/cancel', [OffboardingCaseController::class, 'cancel']);
+
+        Route::get('hrms/document-requests', [DocumentRequestController::class, 'index']);
+        Route::post('hrms/document-requests', [DocumentRequestController::class, 'store']);
+        Route::get('hrms/document-requests/{documentRequest}', [DocumentRequestController::class, 'show']);
+        Route::post('hrms/document-requests/{documentRequest}/submit', [DocumentRequestController::class, 'submit']);
+        Route::post('hrms/document-requests/{documentRequest}/accept', [DocumentRequestController::class, 'accept']);
+        Route::post('hrms/document-requests/{documentRequest}/waive', [DocumentRequestController::class, 'waive']);
+        Route::post('hrms/document-requests/{documentRequest}/reject', [DocumentRequestController::class, 'reject']);
     });
 
     // Signed temporary download link for task attachments. Intentionally OUTSIDE

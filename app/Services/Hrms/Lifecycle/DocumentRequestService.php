@@ -173,6 +173,36 @@ class DocumentRequestService
     }
 
     /**
+     * Asks the viewer may list: everything for a directory reader, only
+     * their own for anyone else.
+     *
+     * @param  array{status?: string|null, employee_id?: int|null, source?: string|null}  $filters
+     * @return Collection<int, DocumentRequest>
+     */
+    public function indexFor(User $viewer, array $filters = []): Collection
+    {
+        $query = DocumentRequest::query()->with('type')->orderByDesc('id');
+
+        foreach (['status', 'source'] as $field) {
+            if (! empty($filters[$field])) {
+                $query->where($field, $filters[$field]);
+            }
+        }
+
+        if (! empty($filters['employee_id'])) {
+            $query->where('employee_id', (int) $filters['employee_id']);
+        }
+
+        if (! $viewer->hasPermission('hrms.documents.view') && ! $viewer->hasPermission('hrms.documents.manage')) {
+            $employeeId = Employee::where('user_id', $viewer->id)->value('id');
+
+            $query->where('employee_id', $employeeId ?? -1);
+        }
+
+        return $query->get();
+    }
+
+    /**
      * Every ask raised from one case, oldest first.
      *
      * @return Collection<int, DocumentRequest>
