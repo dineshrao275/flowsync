@@ -2434,9 +2434,20 @@ availability, 422 on shortfall), `approve/reject/cancel`.
 > sections cannot break fresh tenants the same way.
 > `HrmsCompOffServiceTest` (7 tests) is the guard.
 
-**P7.3 — Policies / requests / routes** — `CompOffPolicy` (view self or `hrms.comp_off.view`; approve
+**P7.3 — Policies / requests / routes** ✅ — `CompOffPolicy` (view self or `hrms.comp_off.view`; approve
 `hrms.comp_off.approve`; manage `hrms.comp_off.manage` = configure the accrual policy in
 `hrms_settings`). Routes mirror Phase 6 under `/api/hrms/comp-off/{credits,requests,accrue,settings}`.
+
+> **P7.3 names policies for their models, or discovery denies all.** The
+> plan's singular `CompOffPolicy` would be discoverable by nothing (the
+> P6.4c silent-deny lesson), so `CompOffRequestPolicy` + `CompOffCreditPolicy`
+> split reads (employee-open), asks (self-or-managed, step deciders),
+> manual grants and runs (route-level `manage`). Updates do not exist —
+> re-dating is cancel-and-refile, and notes-only edits buy nothing over it.
+> Settings merge per key; the accrue endpoint runs the command's loop
+> synchronously behind `manage`. `HrmsCompOffApiTest` (7 tests) guards
+> scoping, step 403s, the settings merge, and the run; `ModuleGateTest`
+> pins `hrms.comp_off`.
 
 **P7.4 — Frontend** — `pages/hrms/CompOff.jsx` (credits table, requests queue, balance and
 expiring-soon panel), `pages/hrms/MyCompOff.jsx`.

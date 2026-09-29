@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Models\Hrms\Employee\Employee;
 use App\Models\SubscriptionPlan;
 use App\Models\User;
 use App\Models\Workspace;
@@ -85,6 +86,29 @@ class ModuleGateTest extends TestCase
         $this->setAcmeModules(['hrms.core', 'hrms.leave']);
 
         $this->getJson('/api/hrms/leave/types')->assertOk();
+    }
+
+    public function test_comp_off_routes_gate_on_the_hrms_comp_off_module(): void
+    {
+        $this->assignProToAcme();
+        $this->setAcmeModules(['hrms.core']);
+        $this->login('admin@flowsync.test');
+        $this->connectTenant('acme');
+
+        $this->getJson('/api/hrms/comp-off/credits')->assertForbidden();
+
+        $this->setAcmeModules(['hrms.core', 'hrms.comp_off']);
+
+        // The tenant admin is a service account with no employment record;
+        // give it one so the second leg proves the gate, not the 404.
+        Employee::create([
+            'employee_code' => 'EMP-GATE-1',
+            'name' => 'Gatekeeper',
+            'status' => 'active',
+            'user_id' => User::where('email', 'admin@flowsync.test')->firstOrFail()->id,
+        ]);
+
+        $this->getJson('/api/hrms/comp-off/credits')->assertOk();
     }
 
     private function login(string $email): void

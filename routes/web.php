@@ -15,6 +15,9 @@ use App\Http\Controllers\GlobalSearchController;
 use App\Http\Controllers\Hrms\Attendance\AttendanceController;
 use App\Http\Controllers\Hrms\Attendance\AttendanceRecordsController;
 use App\Http\Controllers\Hrms\Attendance\RegularizationController;
+use App\Http\Controllers\Hrms\CompOff\CompOffCreditController;
+use App\Http\Controllers\Hrms\CompOff\CompOffRequestController;
+use App\Http\Controllers\Hrms\CompOff\CompOffSettingsController;
 use App\Http\Controllers\Hrms\DocumentController;
 use App\Http\Controllers\Hrms\DocumentDownloadController;
 use App\Http\Controllers\Hrms\DocumentTypeController;
@@ -492,6 +495,32 @@ Route::prefix('api')->group(function () {
         Route::post('hrms/leave/exemptions', [LeaveExemptionController::class, 'store']);
         Route::get('hrms/leave/exemptions/{exemption}', [LeaveExemptionController::class, 'show']);
         Route::post('hrms/leave/exemptions/{exemption}/decide', [LeaveExemptionController::class, 'decide']);
+    });
+
+    // HRMS comp-off (Phase 15 P7.3). Module-gated on `hrms.comp_off` with
+    // no route-level permission except the manage-only writes: reads and
+    // asks are policy-gated per record (self-service included, deciding
+    // belongs to the step's approver), while manual grants, settings and
+    // runs take `hrms.comp_off.manage` at the route.
+    Route::group(['middleware' => ['ensure_module:hrms.comp_off']], function () {
+        Route::get('hrms/comp-off/credits', [CompOffCreditController::class, 'index']);
+        Route::post('hrms/comp-off/credits', [CompOffCreditController::class, 'store'])
+            ->middleware('permission:hrms.comp_off.manage');
+
+        Route::get('hrms/comp-off/requests', [CompOffRequestController::class, 'index']);
+        Route::post('hrms/comp-off/requests', [CompOffRequestController::class, 'store']);
+        Route::get('hrms/comp-off/requests/{compOffRequest}', [CompOffRequestController::class, 'show']);
+        Route::delete('hrms/comp-off/requests/{compOffRequest}', [CompOffRequestController::class, 'destroy']);
+        Route::post('hrms/comp-off/requests/{compOffRequest}/cancel', [CompOffRequestController::class, 'cancel']);
+        Route::post('hrms/comp-off/requests/{compOffRequest}/approve', [CompOffRequestController::class, 'approve']);
+        Route::post('hrms/comp-off/requests/{compOffRequest}/reject', [CompOffRequestController::class, 'reject']);
+
+        Route::get('hrms/comp-off/settings', [CompOffSettingsController::class, 'show'])
+            ->middleware('permission:hrms.comp_off.manage');
+        Route::put('hrms/comp-off/settings', [CompOffSettingsController::class, 'update'])
+            ->middleware('permission:hrms.comp_off.manage');
+        Route::post('hrms/comp-off/accrue', [CompOffSettingsController::class, 'accrue'])
+            ->middleware('permission:hrms.comp_off.manage');
     });
 
     // HRMS remote punch (Phase 15 P5.3). Deliberately NO route-level
