@@ -9,6 +9,7 @@ use App\Models\Hrms\Employee\Employee;
 use App\Models\Hrms\Shared\HrmsSetting;
 use App\Models\User;
 use App\Services\Hrms\AttendanceService;
+use App\Services\Hrms\Holiday\HolidayService;
 use App\Services\Hrms\Leave\LeaveCalendar;
 use App\Services\HrmsAuditLogger;
 use Illuminate\Support\Carbon;
@@ -33,6 +34,7 @@ class CompOffCredits
     public function __construct(
         private readonly AttendanceService $attendance,
         private readonly LeaveCalendar $leave,
+        private readonly HolidayService $holidays,
         private readonly HrmsAuditLogger $audit,
     ) {}
 
@@ -182,10 +184,10 @@ class CompOffCredits
     }
 
     /**
-     * Chargeable dates in a range: everything but rostered week-offs.
-     * Holidays join the exclusion when P8 lands. Shared by the calendar
-     * accrual's inverse (redemption pricing) so both sides of the bank
-     * agree on what a range is worth.
+     * Chargeable dates in a range: working days only — week-offs and
+     * holidays stay out, so redeeming on a closed office is impossible.
+     * Shared by redemption pricing so both sides of the bank agree on
+     * what a range is worth.
      *
      * @return list<string> Y-m-d dates
      */
@@ -194,10 +196,12 @@ class CompOffCredits
         $from = $from instanceof Carbon ? $from->copy()->startOfDay() : Carbon::parse((string) $from)->startOfDay();
         $to = $to instanceof Carbon ? $to->copy()->startOfDay() : Carbon::parse((string) $to)->startOfDay();
 
+        $holidayDates = array_flip($this->holidays->holidayDates($employee, $from, $to));
+
         $dates = [];
 
         for ($date = $from->copy(); $date->lessThanOrEqualTo($to); $date->addDay()) {
-            if (! $this->attendance->isWeekOff($employee, $date)) {
+            if (! $this->attendance->isWeekOff($employee, $date) && ! isset($holidayDates[$date->toDateString()])) {
                 $dates[] = $date->toDateString();
             }
         }
@@ -207,9 +211,8 @@ class CompOffCredits
 
     /**
      * Which rest source a date banks, if any: week-offs per the roster when
-     * the tenant banks weekends, holidays when it banks those. Holidays
-     * arrive with P8's calendars — until then the branch answers false and
-     * the weekend leg carries the accrual alone.
+     * the tenant banks weekends, holidays per the calendars when it banks
+     * those — the P8 branch, live since the calendars landed.
      */
     private function creditSource(Employee $employee, string $day): ?CompOffSource
     {
@@ -219,18 +222,11 @@ class CompOffCredits
             return CompOffSource::Weekend;
         }
 
-        if ($this->isHoliday($employee, $day) && $settings->setting('comp_off.from_holidays', true)) {
+        if ($this->holidays->isHoliday($employee, $day) && $settings->setting('comp_off.from_holidays', true)) {
             return CompOffSource::Holiday;
         }
 
         return null;
-    }
-
-    private function isHoliday(Employee $employee, string $day): bool
-    {
-        // P8 owns the calendars; until they land no date is a holiday and
-        // the weekend leg carries the accrual alone.
-        return false;
     }
 
     /**

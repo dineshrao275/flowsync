@@ -2518,10 +2518,21 @@ country/region into concrete rows; idempotent on `(calendar_id, name, date)`).
 > again), defaulting to the tenant's country. `HrmsHolidayServiceTest`
 > (7 tests) is the guard.
 
-**P8.3 — Integration**
+**P8.3 — Integration** ✅
 `AttendanceService::dayStatus()` and `LeaveService::createRequest()` call
 `HolidayService::isWorkingDay()`; `CompOffService::creditFromCalendar()` reads the same calendars.
 This service is the **only** source of truth for non-working days.
+
+> **P8.3 merges through overlays, never rewrites.** `dayStatus`, the month
+> grid and the summary overlay `holiday` onto punch-less days (leave wins
+> ties it cannot usually tie); the leave split flags and uncharges
+> holidays; comp-off banks weekday holidays and refuses to spend on them.
+> `holidayDates` is the bulk twin (recurring rows expand by month/day).
+> The `HolidayService → AttendanceService` edge resolves lazily — DayReading
+> already depends back through the orchestrator, so a constructor edge
+> would close a resolve-time cycle. Verified by the full suite in chunks
+> (643 + 416, zero omitted) since seeded holidays touch shared reads.
+> `HrmsHolidayIntegrationTest` (4 tests) probes Gandhi Jayanti end to end.
 
 **P8.4 — Policies, requests, routes, frontend**
 `HolidayCalendarPolicy` (view `hrms.holidays.view`; manage `hrms.holidays.manage`).

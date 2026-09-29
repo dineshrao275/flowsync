@@ -10,7 +10,7 @@ use App\Models\Hrms\Org\Department;
 use App\Models\Hrms\Org\Designation;
 use App\Models\Hrms\Org\Location;
 use App\Models\Hrms\Shared\HrmsSetting;
-use App\Services\Hrms\Holiday\HolidayService;
+use App\Services\Hrms\Holiday\HolidayYearSeeder;
 use Illuminate\Support\Str;
 
 /**
@@ -318,6 +318,6 @@ class HrmsDefaultsProvisioner
      */
     private function seedHolidayCalendars(): void
     {
-        app(HolidayService::class)->seedFromConfig(today()->year);
+        app(HolidayYearSeeder::class)->seedFromConfig(today()->year);
     }
 }

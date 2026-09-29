@@ -7,6 +7,7 @@ use App\Models\Hrms\Attendance\AttendanceDay;
 use App\Models\Hrms\Attendance\AttendancePunch;
 use App\Models\Hrms\Attendance\AttendanceRoster;
 use App\Models\Hrms\Employee\Employee;
+use App\Services\Hrms\Holiday\HolidayService;
 use App\Services\Hrms\Leave\LeaveCalendar;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
@@ -31,15 +32,17 @@ class DayReading
     public function __construct(
         private readonly DayComputation $days,
         private readonly LeaveCalendar $leave,
+        private readonly HolidayService $holidays,
     ) {}
 
     /**
      * The merged status for a date: attendance first, then the overlays.
      *
      * Weekly offs merge; approved leave merges (an approved ask with no
-     * punches behind it is `leave`, never `absent`); holidays merge when P8
-     * lands. A day with punches is never a week-off or a leave: someone who
-     * clocked in worked, whatever the roster or the ask says.
+     * punches behind it is `leave`, never `absent`); holidays merged in P8.3
+     * (a public or taken-optional day with no punches is `holiday`). A day
+     * with punches is never a week-off, a leave, or a holiday: someone who
+     * clocked in worked, whatever the roster, the ask, or the calendar says.
      */
     public function dayStatus(Employee $employee, Carbon|string $date): AttendanceDayStatus
     {
@@ -60,6 +63,10 @@ class DayReading
 
         if (! $hasPunches && $this->isOnApprovedLeave($employee, $day)) {
             return AttendanceDayStatus::Leave;
+        }
+
+        if (! $hasPunches && $this->holidays->isHoliday($employee, $day)) {
+            return AttendanceDayStatus::Holiday;
         }
 
         return $record?->status ?? AttendanceDayStatus::Absent;
@@ -95,9 +102,10 @@ class DayReading
             ->whereDate('work_date', '<=', $to instanceof Carbon ? $to->toDateString() : $to)
             ->get();
 
-        // One range query for the whole window, flipped for O(1) lookup in
-        // the loop below — never a query per row.
+        // One range query per overlay for the whole window, flipped for O(1)
+        // lookup in the loop below — never a query per row.
         $leaveDates = array_flip($this->leave->approvedLeaveDates($employee, $from, $to));
+        $holidayDates = array_flip($this->holidays->holidayDates($employee, $from, $to));
 
         $counts = [
             'days' => $rows->count(),
@@ -109,8 +117,10 @@ class DayReading
         foreach ($rows as $row) {
             $hasPunches = $row->first_in_at !== null || $row->last_out_at !== null;
 
-            // An approved ask with no punches behind it photographs as
-            // `absent` but reads as `leave` — the overlay, not a rewrite.
+            // Overlays photograph as `absent` but read as their kind — never
+            // a rewrite. Leave before holidays: an approved ask already
+            // excludes holidays from its split, so the two sets rarely meet,
+            // and the ask wins the tie it cannot usually tie.
             $key = match (true) {
                 $row->status === AttendanceDayStatus::Present => 'present',
                 $row->status === AttendanceDayStatus::HalfDay => 'half_day',
@@ -119,6 +129,7 @@ class DayReading
                 $row->status === AttendanceDayStatus::Holiday => 'holiday',
                 $row->status === AttendanceDayStatus::WeekOff => 'week_off',
                 ! $hasPunches && isset($leaveDates[$row->work_date->toDateString()]) => 'leave',
+                ! $hasPunches && isset($holidayDates[$row->work_date->toDateString()]) => 'holiday',
                 default => 'absent',
             };
 
@@ -207,6 +218,7 @@ class DayReading
 
         $days = [];
         $leaveDates = array_flip($this->leave->approvedLeaveDates($employee, $start, $end));
+        $holidayDates = array_flip($this->holidays->holidayDates($employee, $start, $end));
 
         for ($date = $start->copy(); $date->lessThanOrEqualTo($end); $date->addDay()) {
             $record = $rows->get($date->toDateString());
@@ -216,6 +228,8 @@ class DayReading
                 $status = AttendanceDayStatus::WeekOff;
             } elseif (! $hasPunches && isset($leaveDates[$date->toDateString()])) {
                 $status = AttendanceDayStatus::Leave;
+            } elseif (! $hasPunches && isset($holidayDates[$date->toDateString()])) {
+                $status = AttendanceDayStatus::Holiday;
             } else {
                 $status = $record?->status ?? AttendanceDayStatus::Absent;
             }

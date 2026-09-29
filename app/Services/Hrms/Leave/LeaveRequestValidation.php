@@ -8,6 +8,7 @@ use App\Models\Hrms\Employee\Employee;
 use App\Models\Hrms\Leave\LeaveRequest;
 use App\Models\Hrms\Leave\LeaveType;
 use App\Services\Hrms\AttendanceService;
+use App\Services\Hrms\Holiday\HolidayService;
 use Illuminate\Support\Carbon;
 use Illuminate\Validation\ValidationException;
 
@@ -26,6 +27,7 @@ class LeaveRequestValidation
         private readonly LeaveBalanceReading $reading,
         private readonly AttendanceService $attendance,
         private readonly LeaveCalendar $calendar,
+        private readonly HolidayService $holidays,
     ) {}
 
     /**
@@ -47,7 +49,7 @@ class LeaveRequestValidation
         [$total, $split] = $this->splitDays($employee, $type, $from, $to, $data);
 
         if ($total <= 0) {
-            throw ValidationException::withMessages(['form' => 'The range holds no chargeable day — only week-offs.']);
+            throw ValidationException::withMessages(['form' => 'The range holds no chargeable day — only week-offs and holidays.']);
         }
 
         $this->checkQuota($type, $total, $from, $employee);
@@ -123,10 +125,10 @@ class LeaveRequestValidation
     /**
      * Split a range into per-day rows and the charged total.
      *
-     * Week-offs (and holidays, when P8 lands) stay in the table flagged and
-     * out of the total — the record keeps the whole range, the balance sees
-     * only worked days. Endpoint halves apply only to charged days; a half
-     * on a week-off is moot, not an error.
+     * Week-offs and holidays stay in the table flagged and out of the total
+     * — the record keeps the whole range, the balance sees only worked
+     * days. Endpoint halves apply only to charged days; a half on a
+     * week-off is moot, not an error.
      *
      * @param  array{from_half?: string, to_half?: string}  $data
      * @return array{float, list<array{date: string, is_holiday: bool, is_week_off: bool, is_half_day: bool}>}
@@ -146,19 +148,24 @@ class LeaveRequestValidation
             throw ValidationException::withMessages(['from_half' => 'This leave type does not allow half days.']);
         }
 
+        // One range query for the window: the holiday branch of the single
+        // source of truth, read once instead of per date.
+        $holidayDates = array_flip($this->holidays->holidayDates($employee, $from, $to));
+
         $total = 0.0;
         $rows = [];
 
         for ($date = $from->copy(); $date->lessThanOrEqualTo($to); $date->addDay()) {
             $weekOff = $this->attendance->isWeekOff($employee, $date);
+            $holiday = isset($holidayDates[$date->toDateString()]);
             $half = $date->equalTo($from) ? $fromHalf : ($date->equalTo($to) ? $toHalf : LeaveHalf::Full);
-            $charged = ! $weekOff;
+            $charged = ! $weekOff && ! $holiday;
             $fraction = $charged ? $half->days() : 0.0;
 
             $total += $fraction;
             $rows[] = [
                 'date' => $date->toDateString(),
-                'is_holiday' => false,
+                'is_holiday' => $holiday,
                 'is_week_off' => $weekOff,
                 'is_half_day' => $charged && $fraction < 1,
             ];

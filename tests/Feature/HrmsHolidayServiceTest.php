@@ -12,6 +12,7 @@ use App\Models\Hrms\Holiday\HolidayCalendar;
 use App\Models\Hrms\Shared\HrmsAuditLog;
 use App\Services\Hrms\Holiday\HolidayAssignments;
 use App\Services\Hrms\Holiday\HolidayService;
+use App\Services\Hrms\Holiday\HolidayYearSeeder;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Validation\ValidationException;
@@ -39,7 +40,7 @@ class HrmsHolidayServiceTest extends TestCase
         $this->assertSame(10, Holiday::query()->count());
         $this->assertSame('US National', HolidayCalendar::query()->default()->firstOrFail()->name);
 
-        $again = $this->holidays()->seedFromConfig((int) today()->year);
+        $again = $this->seeder()->seedFromConfig((int) today()->year);
 
         $this->assertSame(['calendars' => 0, 'holidays' => 0], $again);
         $this->assertSame(2, HolidayCalendar::query()->count());
@@ -55,7 +56,7 @@ class HrmsHolidayServiceTest extends TestCase
             ],
         ]);
 
-        $result = $this->holidays()->seedFromConfig(2026);
+        $result = $this->seeder()->seedFromConfig(2026);
 
         // The calendar is created; neither row is — February 30th is not a
         // date, and a keyless entry names nothing. Both skip instead of
@@ -160,6 +161,11 @@ class HrmsHolidayServiceTest extends TestCase
     private function holidays(): HolidayService
     {
         return app(HolidayService::class);
+    }
+
+    private function seeder(): HolidayYearSeeder
+    {
+        return app(HolidayYearSeeder::class);
     }
 
     private function assignments(): HolidayAssignments

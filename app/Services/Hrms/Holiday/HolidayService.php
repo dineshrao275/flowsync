@@ -9,13 +9,10 @@ use App\Models\Hrms\Holiday\EmployeeHolidayCalendar;
 use App\Models\Hrms\Holiday\Holiday;
 use App\Models\Hrms\Holiday\HolidayCalendar;
 use App\Models\Hrms\Holiday\HolidayOptionalHoliday;
-use App\Models\Hrms\Shared\HrmsSetting;
 use App\Services\Hrms\AttendanceService;
 use App\Services\HrmsAuditLogger;
-use App\Support\TenantContext;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
-use Illuminate\Support\Facades\Log;
 
 /**
  * Holiday/HRMS — the single source of non-working days.
@@ -28,10 +25,7 @@ use Illuminate\Support\Facades\Log;
  */
 class HolidayService
 {
-    public function __construct(
-        private readonly AttendanceService $attendance,
-        private readonly HrmsAuditLogger $audit,
-    ) {}
+    public function __construct(private readonly HrmsAuditLogger $audit) {}
 
     /**
      * Calendars covering an employee for a year: assignments overlapping
@@ -129,118 +123,97 @@ class HolidayService
      * Whether a date is a working day: neither a weekly off nor a holiday.
      * The one predicate attendance, leave and comp-off share — P8.3 wires
      * them to it instead of each keeping a roster copy.
+     *
+     * The attendance edge resolves lazily, not in the constructor: DayReading
+     * (built by AttendanceService) depends on this service, so a
+     * constructor edge back would close a resolve-time cycle. By the time
+     * this runs, construction is long over.
      */
     public function isWorkingDay(Employee $employee, Carbon|string $date): bool
     {
-        return ! $this->attendance->isWeekOff($employee, $date) && ! $this->isHoliday($employee, $date);
+        return ! app(AttendanceService::class)->isWeekOff($employee, $date)
+            && ! $this->isHoliday($employee, $date);
     }
 
     /**
-     * Expand `config('hrms.holidays')` (country → month/day entries) into
-     * concrete rows for a year, creating per-country calendars as needed.
-     * Idempotent on (calendar, name, date): reruns and repairs find, never
-     * duplicate. Unparseable entries skip with a warning — a typo in
-     * config must not fail every tenant's provisioning.
+     * Every closing date in a window: public holidays across the
+     * employee's calendars, plus taken optionals on their taken dates.
      *
-     * @return array{calendars: int, holidays: int}
+     * The bulk twin of `isHoliday` — one query for the window, never per
+     * date — for the month grid, the summary, and the day splits, which
+     * all loop dates and must not query inside the loop.
+     *
+     * @return list<string> Y-m-d dates
      */
-    public function seedFromConfig(int $year): array
+    public function holidayDates(Employee $employee, Carbon|string $from, Carbon|string $to): array
     {
-        $calendars = 0;
-        $holidays = 0;
+        $from = $from instanceof Carbon ? $from->toDateString() : (string) $from;
+        $to = $to instanceof Carbon ? $to->toDateString() : (string) $to;
 
-        foreach ((array) config('hrms.holidays', []) as $country => $entries) {
-            $calendar = HolidayCalendar::query()->firstOrCreate(
-                ['slug' => 'national-'.strtolower((string) $country)],
-                [
-                    'name' => strtoupper((string) $country).' National',
-                    'country' => strtoupper((string) $country),
-                    'is_active' => true,
-                ],
-            );
+        $calendarIds = EmployeeHolidayCalendar::query()
+            ->where('employee_id', $employee->id)
+            ->whereDate('effective_from', '<=', $to)
+            ->where(fn ($query) => $query->whereNull('effective_to')->orWhereDate('effective_to', '>=', $from))
+            ->pluck('calendar_id')
+            ->all();
 
-            if ($calendar->wasRecentlyCreated) {
-                $calendars++;
-            }
+        $default = HolidayCalendar::query()->default()->value('id');
 
-            foreach ((array) $entries as $entry) {
-                if (! isset($entry['name'], $entry['month'], $entry['day'])) {
-                    Log::channel('hrms')->warning('holiday.seed.skipped', ['entry' => $entry, 'reason' => 'missing name, month, or day']);
+        if ($default !== null) {
+            $calendarIds[] = $default;
+        }
 
-                    continue;
-                }
+        // pluck() skips casts, so the SQLite time part is parsed off —
+        // comparing raw strings would miss every row on the fast path.
+        // Recurring rows expand by month/day (their stored year is just the
+        // seeding's), concrete rows read as stored.
+        $scoped = Holiday::query()
+            ->whereIn('calendar_id', array_unique($calendarIds))
+            ->where('type', HolidayType::Public->value);
 
-                $month = (int) $entry['month'];
-                $day = (int) $entry['day'];
+        $public = (clone $scoped)
+            ->where('is_recurring', false)
+            ->whereDate('date', '>=', $from)
+            ->whereDate('date', '<=', $to)
+            ->pluck('date')
+            ->map(fn ($date): string => Carbon::parse((string) $date)->toDateString());
 
+        $years = range((int) substr($from, 0, 4), (int) substr($to, 0, 4));
+
+        foreach ((clone $scoped)->where('is_recurring', true)->get(['date']) as $row) {
+            $month = (int) Carbon::parse((string) $row->date)->format('m');
+            $day = (int) Carbon::parse((string) $row->date)->format('d');
+
+            foreach ($years as $year) {
                 if (! checkdate($month, $day, $year)) {
-                    Log::channel('hrms')->warning('holiday.seed.skipped', [
-                        'entry' => $entry,
-                        'year' => $year,
-                        'reason' => 'not a calendar date this year',
-                    ]);
-
                     continue;
                 }
 
                 $date = sprintf('%04d-%02d-%02d', $year, $month, $day);
 
-                // An explicit find, never firstOrCreate on the date: the
-                // `date` cast serializes with a time part on SQLite's
-                // typeless columns, so an exact-string match misses the row
-                // just written and the rerun duplicates (the P5.2 trap the
-                // comp-off accrual learned the same way).
-                $row = Holiday::query()
-                    ->where('calendar_id', $calendar->id)
-                    ->where('name', (string) $entry['name'])
-                    ->whereDate('date', $date)
-                    ->first();
-
-                if ($row !== null) {
-                    continue;
+                if ($date >= $from && $date <= $to) {
+                    $public->push($date);
                 }
-
-                Holiday::create([
-                    'calendar_id' => $calendar->id,
-                    'name' => (string) $entry['name'],
-                    'date' => $date,
-                    'type' => ! empty($entry['is_optional']) ? HolidayType::Optional->value : HolidayType::Public->value,
-                    'is_recurring' => true,
-                ]);
-
-                $holidays++;
             }
         }
 
-        $this->ensureDefault();
+        $public = $public->unique()->values();
 
-        Log::channel('hrms')->info('holiday.seed.completed', [
-            'tenant_id' => app(TenantContext::class)->currentId(),
-            'year' => $year,
-            'calendars' => $calendars,
-            'holidays' => $holidays,
-        ]);
+        // Taken optionals count on their taken date; a null taken date
+        // means the holiday's own day.
+        $taken = HolidayOptionalHoliday::query()
+            ->where('employee_id', $employee->id)
+            ->where('status', OptionalHolidayStatus::Taken->value)
+            ->where(fn ($query) => $query
+                ->whereDate('taken_date', '>=', $from)->whereDate('taken_date', '<=', $to)
+                ->orWhereNull('taken_date'))
+            ->with('holiday:id,date')
+            ->get()
+            ->map(fn (HolidayOptionalHoliday $row): string => $row->taken_date?->toDateString()
+                ?? Carbon::parse((string) $row->holiday?->date)->toDateString())
+            ->filter(fn (string $date): bool => $date >= $from && $date <= $to);
 
-        return ['calendars' => $calendars, 'holidays' => $holidays];
-    }
-
-    /**
-     * The tenant fallback: its own country's calendar, else the first one
-     * standing. Set once and left alone — a tenant that chose its default
-     * keeps it across repairs.
-     */
-    private function ensureDefault(): void
-    {
-        if (HolidayCalendar::query()->default()->exists()) {
-            return;
-        }
-
-        $country = strtoupper((string) (HrmsSetting::current()->country ?? 'US'));
-
-        $calendar = HolidayCalendar::query()->where('country', $country)->orderBy('id')->first()
-            ?? HolidayCalendar::query()->orderBy('id')->first();
-
-        $calendar?->update(['is_default' => true]);
+        return $public->concat($taken)->unique()->values()->all();
     }
 
     /**

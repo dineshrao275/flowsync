@@ -54,7 +54,7 @@ class CompOffService
         $total = count($split) * CompOffCredits::DAY_MINUTES;
 
         if ($total <= 0) {
-            throw ValidationException::withMessages(['form' => 'The range holds no chargeable day — only week-offs.']);
+            throw ValidationException::withMessages(['form' => 'The range holds no chargeable day — only week-offs and holidays.']);
         }
 
         $this->checkOverlap($employee, $from, $to);
