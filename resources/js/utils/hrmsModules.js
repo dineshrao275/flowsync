@@ -60,6 +60,9 @@ export const HRMS_MODULE_ROUTES = {
     // P4.4 ships the lifecycle runs; same rule — no tile without a route.
     'hrms.onboarding': hrmsUrl('onboarding'),
     'hrms.offboarding': hrmsUrl('offboarding'),
+    // P5.6b ships the attendance workspace; the remote clock-in capability
+    // stays tile-less (it is a way to punch, not a page).
+    'hrms.attendance': hrmsUrl('attendance'),
 };
 
 /**

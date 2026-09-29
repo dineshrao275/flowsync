@@ -33,6 +33,8 @@ import OnboardingCases from './pages/hrms/OnboardingCases';
 import OnboardingCaseDetail from './pages/hrms/OnboardingCaseDetail';
 import OffboardingCases from './pages/hrms/OffboardingCases';
 import OffboardingCaseDetail from './pages/hrms/OffboardingCaseDetail';
+import Attendance from './pages/hrms/Attendance';
+import AttendanceApprovals from './pages/hrms/AttendanceApprovals';
 import Search from './pages/Search';
 import Notifications from './pages/Notifications';
 import Tenants from './pages/Tenants';
@@ -191,6 +193,20 @@ function AppRoutes() {
                                 }
                             />
                             <Route path="/hrms/offboarding/cases/:caseId" element={<OffboardingCaseDetail />} />
+                            {/* Attendance: the month page is module-gated so
+                                every employee reaches their own curve, while
+                                the review queue needs the regularize
+                                permission — the backend policy, not the
+                                route, decides whose ask is whose. */}
+                            <Route path="/hrms/attendance" element={<Attendance />} />
+                            <Route
+                                path="/hrms/attendance/approvals"
+                                element={
+                                    <ProtectedRoute permission="hrms.attendance.regularize">
+                                        <AttendanceApprovals />
+                                    </ProtectedRoute>
+                                }
+                            />
                             <Route path="/hrms/:section" element={<HrmsOverview />} />
                         </Route>
                         <Route element={<ProtectedRoute permission="users.view" />}>

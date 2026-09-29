@@ -15,6 +15,10 @@ export function describeNotification(type, data = {}, actorName = 'Someone') {
             return `${actorName} unblocked ${key}`;
         case 'hrms.onboarding.task_due':
             return describeTaskDue(data);
+        case 'hrms.attendance.regularization.requested':
+            return `${actorName} requested an attendance correction for ${data.work_date ?? 'a past date'}`;
+        case 'hrms.attendance.regularization.decided':
+            return `Your attendance correction for ${data.work_date ?? 'a past date'} was ${data.status ?? 'decided'}`;
         default:
             return 'You have a new notification';
     }
@@ -57,6 +61,17 @@ export function notificationHref(data = {}, type = '') {
 
     if (type === 'hrms.onboarding.task_due' && onboarding_case_id) {
         return `/hrms/onboarding/cases/${onboarding_case_id}`;
+    }
+
+    // A correction ask lands on the review queue; its decision lands on the
+    // month the decision changed (the queue takes no request parameter, so
+    // linking a decision there would drop the reader one click away).
+    if (type === 'hrms.attendance.regularization.requested') {
+        return '/hrms/attendance/approvals';
+    }
+
+    if (type === 'hrms.attendance.regularization.decided') {
+        return '/hrms/attendance';
     }
 
     if (project_id && key) {

@@ -51,6 +51,18 @@ const sections = [
                 capabilities: ['module:hrms.core', 'permission:hrms.offboarding.view'],
                 icon: 'M9 3h6l4 4v14H5V7l4-4zm-2 8h8m-4-4v8',
             },
+            {
+                to: '/hrms/attendance',
+                label: 'Attendance',
+                capabilities: ['module:hrms.core', 'module:hrms.attendance'],
+                icon: 'M12 3v3m0 12v3M3 12h3m12 0h3M5.6 5.6l2.1 2.1m8.6 8.6l2.1 2.1m0-12.8l-2.1 2.1M7.7 16.3l-2.1 2.1M12 8a4 4 0 100 8 4 4 0 000-8z',
+            },
+            {
+                to: '/hrms/attendance/approvals',
+                label: 'Approvals',
+                capabilities: ['module:hrms.core', 'module:hrms.attendance', 'permission:hrms.attendance.regularize'],
+                icon: 'M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z',
+            },
             { to: '/hrms', label: 'HRMS', capabilities: ['module:hrms.core'], icon: 'M17 20h5v-2a4 4 0 00-3-3.87M9 20H4v-2a4 4 0 013-3.87m4-1.13a4 4 0 10-4-4 4 4 0 004 4zm6 2a3 3 0 10-3-3' },
         ],
     },

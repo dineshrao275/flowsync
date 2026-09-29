@@ -2157,6 +2157,21 @@ late/OT badges), a right-hand punch panel, filters (team/department/shift/status
 > would double its ledger). Shapes come from `DayPresenter` (`monthEntry`,
 > `month`, `today`), so P5.6b inherits the dialect. `tests/Feature/
 > HrmsAttendanceRecordsTest.php` (6 tests) is the guard.
+>
+> **P5.6b — the workspace** ✅ Shared `AttendanceCalendar.jsx` (pure grid,
+> Monday-first, status swatches, `·R` for regularized) + `ClockInWidget.jsx`
+> (next action from the last punch, out-of-range banner, `allowPunch` hides
+> the button when viewing someone else — the punch endpoint only ever clocks
+> the caller). `Attendance.jsx` (picker for `hrms.attendance.view` holders,
+> month nav, client-side status matcher, totals, day detail with correction
+> modal, blob CSV export) + `AttendanceApprovals.jsx` (pending-first queue,
+> approve/reject modals, rejection needs a reason). Routes nest under the
+> `hrms.core` wrapper like every HRMS page; sidebar takes
+> `module:hrms.core + module:hrms.attendance` (+ `regularize` for Approvals);
+> `hrms.attendance` joins `HRMS_MODULE_ROUTES` (remote stays tile-less — a
+> way to punch, not a page). The P5.4 notification types land here too
+> (queue link for the ask, month link for the decision), pinned by string in
+> `HrmsShellTest` like the onboarding nudge.
 
 **Acceptance:** punch in/out produces a day record with correct late/OT math; a leave day shows `leave`
 not `absent`; a regularization changes the day and is audited; a tenant without

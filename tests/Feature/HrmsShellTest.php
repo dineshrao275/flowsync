@@ -164,6 +164,20 @@ class HrmsShellTest extends TestCase
         $this->assertStringContainsString('/hrms/onboarding/cases/${onboarding_case_id}', $js);
     }
 
+    public function test_the_notification_helpers_cover_regularization_nudges(): void
+    {
+        // Same rule as the onboarding pin above: a correction nudge that
+        // renders "You have a new notification" or lands on `/` is one
+        // nobody can act on. The ask lands on the review queue, its decision
+        // on the month the decision changed.
+        $js = file_get_contents(resource_path('js/utils/notifications.js'));
+
+        $this->assertStringContainsString('hrms.attendance.regularization.requested', $js);
+        $this->assertStringContainsString('hrms.attendance.regularization.decided', $js);
+        $this->assertStringContainsString("'/hrms/attendance/approvals'", $js);
+        $this->assertStringContainsString("return '/hrms/attendance';", $js);
+    }
+
     public function test_hrms_tiles_only_link_to_sections_the_router_owns(): void
     {
         // P2.5 populated HRMS_MODULE_ROUTES with the employee directory, so this
