@@ -11,6 +11,7 @@ use App\Models\User;
 use App\Services\Hrms\AttendanceService;
 use App\Services\Hrms\Shared\ApprovalService;
 use App\Services\HrmsAuditLogger;
+use App\Services\NotificationService;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
@@ -19,13 +20,10 @@ use Illuminate\Validation\ValidationException;
  * Leave/HRMS — answering an ask.
  *
  * The deciding half of the lifecycle (asking lives in
- * `LeaveRequestService` — the P5 split rule, one file per concern that
- * would pass 300 lines). Four transitions: approval posts the `availed`
- * row and flips the attendance days to `leave` via regeneration plus the
- * `dayStatus` merge; rejection releases without posting; cancellation
- * reverses a posting with an offsetting row (the ledger is append-only, so
- * the availed row stays); encashment converts posted time into the payable
- * row P9 picks up by reference.
+ * `LeaveRequestService` — the P5 split rule). Approval posts the `availed`
+ * row and flips the days via regeneration plus the merge; rejection
+ * releases; cancellation reverses append-only; encashment leaves the
+ * payable row P9 picks up.
  */
 class LeaveRequestDecisions
 {
@@ -34,6 +32,7 @@ class LeaveRequestDecisions
         private readonly ApprovalService $approvals,
         private readonly AttendanceService $attendance,
         private readonly LeaveCalendar $calendar,
+        private readonly NotificationService $notifications,
         private readonly HrmsAuditLogger $audit,
     ) {}
 
@@ -51,21 +50,39 @@ class LeaveRequestDecisions
     {
         $this->requireDecidable($request);
 
+        $from = $request->status->value;
         $approval = $this->approvals->approve($request->approval, $actor, $note);
 
         if ($approval->status !== ApprovalStatus::Approved) {
             return $request->refresh();
         }
 
-        return DB::transaction(function () use ($request, $actor, $note): LeaveRequest {
-            $this->stampDecision($request, LeaveRequestStatus::Approved, $actor, $note);
+        return $this->finalize($request, $actor, $from, $note);
+    }
+
+    /**
+     * Post an approval the engine already resolved, from `approve()` or
+     * from creation-time auto-approval (which would otherwise sit
+     * `submitted` on a resolved chain). The requester hears through the
+     * same `leaveDecided` path — a silent approval reads as vanishing.
+     */
+    public function finalize(LeaveRequest $request, ?User $actor, string $from, ?string $note = null): LeaveRequest
+    {
+        return DB::transaction(function () use ($request, $actor, $from, $note): LeaveRequest {
+            $request->update([
+                'status' => LeaveRequestStatus::Approved->value,
+                'decided_at' => now(),
+                'decided_by_user_id' => $actor?->id,
+                'decision_note' => $note,
+            ]);
 
             LeaveAdjustment::create($this->ledgerRow($request, LeaveAdjustmentKind::Availed, -1 * abs((float) $request->total_days), $actor));
 
             $this->balances->rebuildBalance($request->employee, $request->type, $this->calendar->leaveYearFor($request->from_date));
             $this->regenerateDates($request);
 
-            $this->audit->log($request, 'leave.approved', ['status' => 'pending'], $this->snapshot($request->refresh()), $actor);
+            $this->audit->log($request, 'leave.approved', ['status' => $from], $this->snapshot($request->refresh()), $actor);
+            $this->notifications->leaveDecided($request->refresh(), $from, $actor);
 
             return $request->refresh();
         });
@@ -85,14 +102,16 @@ class LeaveRequestDecisions
             throw ValidationException::withMessages(['decision_note' => 'A rejection needs a reason the requester can act on.']);
         }
 
+        $from = $request->status->value;
         $this->approvals->reject($request->approval, $actor, $note);
 
-        return DB::transaction(function () use ($request, $actor, $note): LeaveRequest {
+        return DB::transaction(function () use ($request, $actor, $note, $from): LeaveRequest {
             $this->stampDecision($request, LeaveRequestStatus::Rejected, $actor, $note);
 
             // Nothing posted, nothing to release: the availed row is written
             // on approval, never on submission.
-            $this->audit->log($request, 'leave.rejected', ['status' => 'pending'], $this->snapshot($request->refresh()), $actor);
+            $this->audit->log($request, 'leave.rejected', ['status' => $from], $this->snapshot($request->refresh()), $actor);
+            $this->notifications->leaveDecided($request->refresh(), $from, $actor);
 
             return $request->refresh();
         });

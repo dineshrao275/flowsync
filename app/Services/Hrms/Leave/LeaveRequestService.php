@@ -8,6 +8,7 @@ use App\Models\Hrms\Leave\LeaveRequest;
 use App\Models\User;
 use App\Services\Hrms\Shared\ApprovalService;
 use App\Services\HrmsAuditLogger;
+use App\Services\NotificationService;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
@@ -31,6 +32,8 @@ class LeaveRequestService
         private readonly ApprovalService $approvals,
         private readonly LeaveRequestValidation $validation,
         private readonly LeaveApprovalRouting $routing,
+        private readonly LeaveRequestDecisions $decisions,
+        private readonly NotificationService $notifications,
         private readonly HrmsAuditLogger $audit,
     ) {}
 
@@ -98,7 +101,19 @@ class LeaveRequestService
         $request->update(['approval_id' => $approval->id]);
         $this->audit->log($request, 'leave.requested', null, $this->snapshot($request), $actor);
 
-        return $request->refresh();
+        $request = $request->refresh();
+
+        $this->notifications->leaveRequested($request, $actor);
+
+        // A chain with no resolvable approver settles approved at request
+        // time: finalize through the shared path so the ask posts, flips,
+        // audits, and nudges exactly like a decided approval — a silent
+        // approval reads as the ask vanishing.
+        if ($request->approval->fresh()->status->value === 'approved') {
+            return $this->decisions->finalize($request, $actor, LeaveRequestStatus::Submitted->value);
+        }
+
+        return $request;
     }
 
     /**

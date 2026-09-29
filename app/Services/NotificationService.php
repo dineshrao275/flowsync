@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Events\NotificationSent;
 use App\Models\Comment;
 use App\Models\Hrms\Employee\Employee;
+use App\Models\Hrms\Leave\LeaveRequest;
 use App\Models\Hrms\Lifecycle\OnboardingCaseTask;
 use App\Models\Task;
 use App\Models\User;
@@ -152,6 +153,68 @@ class NotificationService
     }
 
     /**
+     * Nudge whoever must act on a leave ask next: the current step's named
+     * approver, or every holder of its role step. Skips the actor, mirroring
+     * taskCommented — a manager filing for a report does not need a toast
+     * about their own filing.
+     *
+     * @return list<UserNotification>
+     */
+    public function leaveRequested(LeaveRequest $request, ?User $actor = null): array
+    {
+        $step = $request->approval?->currentStepRecord();
+
+        if ($step === null) {
+            return [];
+        }
+
+        $recipientIds = $step->approver_user_id !== null
+            ? [(int) $step->approver_user_id]
+            : $this->usersWithRole((int) $step->approver_role_id);
+
+        $sent = [];
+
+        foreach ($recipientIds as $recipientId) {
+            $recipient = User::find($recipientId);
+
+            if ($recipient === null || ($actor !== null && (int) $recipient->id === (int) $actor->id)) {
+                continue;
+            }
+
+            $sent[] = $this->notify($recipient, 'hrms.leave.requested', $this->leavePayload($request), $actor);
+        }
+
+        return $sent;
+    }
+
+    /**
+     * Tell the requester their ask was decided, with the transition named.
+     * Skips the actor: a manager approving from the queue already watched
+     * it happen, but the requester never does.
+     */
+    public function leaveDecided(LeaveRequest $request, string $fromStatus, ?User $actor = null): ?UserNotification
+    {
+        $userId = $request->employee?->user_id;
+
+        if ($userId === null) {
+            return null;
+        }
+
+        $recipient = User::find((int) $userId);
+
+        if ($recipient === null || ($actor !== null && (int) $recipient->id === (int) $actor->id)) {
+            return null;
+        }
+
+        $type = $request->status->value === 'approved' ? 'hrms.leave.approved' : 'hrms.leave.rejected';
+
+        return $this->notify($recipient, $type, array_merge($this->leavePayload($request), [
+            'from_status' => $fromStatus,
+            'to_status' => $request->status->value,
+        ]), $actor);
+    }
+
+    /**
      * Nudge whoever owns an onboarding checklist item that is coming due.
      *
      * Two legs, deliberately asymmetric: the owner always hears about their
@@ -251,5 +314,36 @@ class NotificationService
             'project_name' => $task->project?->name,
             'workspace_id' => $task->workspace_id,
         ];
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function leavePayload(LeaveRequest $request): array
+    {
+        return [
+            'leave_request_id' => $request->id,
+            'employee_id' => $request->employee_id,
+            'employee_name' => $request->employee?->name,
+            'leave_type_id' => $request->leave_type_id,
+            'leave_type_name' => $request->type?->name,
+            'from_date' => $request->from_date->toDateString(),
+            'to_date' => $request->to_date->toDateString(),
+            'total_days' => (float) $request->total_days,
+        ];
+    }
+
+    /**
+     * Every login holding a role id, for role-step approvals (an HR step
+     * belongs to whoever holds the role, not to a named person).
+     *
+     * @return list<int>
+     */
+    private function usersWithRole(int $roleId): array
+    {
+        return User::whereHas('roles', fn ($query) => $query->where('roles.id', $roleId))
+            ->pluck('id')
+            ->map(fn ($id) => (int) $id)
+            ->all();
     }
 }

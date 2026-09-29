@@ -2365,11 +2365,20 @@ calendar day opens a pre-filled request.
 > small CRUD forms while `MyLeave` stays self-scoped; `hrms.leave` joins
 > `HRMS_MODULE_ROUTES` with the router owning `/hrms/leave`.
 
-**P6.6 — Notifications + deep links**
+**P6.6 — Notifications + deep links** ✅
 `NotificationService::leaveRequested(LeaveRequest)` -> `hrms.leave.requested` to the approver (skips
 self, mirroring `taskCommented`); `leaveDecided(LeaveRequest)` -> `hrms.leave.approved|rejected` to the
 requester with the from/to status names. `utils/notifications.js` branches both types ->
 `hrmsUrl('leave', {request})`.
+
+> **P6.6 nudges the chain, not the crowd.** `leaveRequested` resolves the
+> *current* step (named user, or every holder of a role step) and skips the
+> actor; `leaveDecided` names the transition and skips self-viewing. Both
+> fire from the services that own the transitions, and auto-approval
+> finalizes through the shared path so it nudges too. The links land where
+> the item lives — the admin queue for approvers, self-service history for
+> requesters — pinned by string in `HrmsShellTest` like every notifier
+> before it.
 
 **Acceptance:** accrue -> the balance reflects it; a request exceeding balance 422s with the shortfall;
 approval writes the ledger and flips the attendance day to `leave`; rejection notifies the requester and

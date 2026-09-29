@@ -20,7 +20,7 @@ Laravel 12 + React 19 SPA. Session-based auth **without** Breeze/Fortify/Sanctum
   `tenants:provision` + seeds demo data (superadmin + acme + globex). Reset from scratch:
   `docker-compose down -v` then `up -d` (app entrypoint re-initializes; `RUN_INIT=true` only for `app`).
   No PHP/composer needed on the host — envs in `.env.docker`.
-- `php artisan test` — run test suite (Phase 13: **isolated, per-tenant file DBs** via `Tests\IsolatesDatabase`; current gate: **1005 tests / 5160 assertions passing** — P6.5; after the `routes/web.php` change the complete suite was verified in disjoint HRMS/unit/non-HRMS chunks with zero omitted files)
+- `php artisan test` — run test suite (Phase 13: **isolated, per-tenant file DBs** via `Tests\IsolatesDatabase`; current gate: **1010 tests / 5176 assertions passing** — P6.6; after the `routes/web.php` change the complete suite was verified in disjoint HRMS/unit/non-HRMS chunks with zero omitted files)
 
 - `npm run build` / `npm run dev` — frontend build / Vite dev server
 - `./vendor/bin/pint` — PHP code style (run over whole repo; `--dirty` only works in git)
@@ -563,7 +563,8 @@ attendance `leave` merge); P6.3 (`LeaveApprovalRouting`: manager → head →
 HR, no self-approval); P6.4a (catalog HTTP + `hrms.leave` gate, R18 route-group
 finding); P6.4b (balances read + managed accrue runs, `LeaveBalanceReading`
 split); P6.4c (asks/exemptions HTTP, per-record policies); P6.5 (availability
-+ team-calendar reads, `Leave.jsx` admin hub, `MyLeave.jsx`, request modal).
++ team-calendar reads, `Leave.jsx` admin hub, `MyLeave.jsx`, request modal);
+P6.6 (`leaveRequested`/`leaveDecided` notifications + deep links).
 Phase 13
   was jumped to *before* Phase 4 because P4.1's `document_requests.document_type_id` is a real FK to
   `document_types`, and no migration created that table until P13.1 — the plan's "documents ship

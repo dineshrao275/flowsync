@@ -19,6 +19,12 @@ export function describeNotification(type, data = {}, actorName = 'Someone') {
             return `${actorName} requested an attendance correction for ${data.work_date ?? 'a past date'}`;
         case 'hrms.attendance.regularization.decided':
             return `Your attendance correction for ${data.work_date ?? 'a past date'} was ${data.status ?? 'decided'}`;
+        case 'hrms.leave.requested':
+            return `${actorName} requested ${data.total_days ?? ''} day${data.total_days === 1 ? '' : 's'} of ${data.leave_type_name ?? 'leave'} (${data.from_date ?? ''} → ${data.to_date ?? ''})`;
+        case 'hrms.leave.approved':
+            return `Your leave for ${data.from_date ?? 'those dates'} was approved`;
+        case 'hrms.leave.rejected':
+            return `Your leave for ${data.from_date ?? 'those dates'} was rejected`;
         default:
             return 'You have a new notification';
     }
@@ -72,6 +78,17 @@ export function notificationHref(data = {}, type = '') {
 
     if (type === 'hrms.attendance.regularization.decided') {
         return '/hrms/attendance';
+    }
+
+    // A leave ask lands on the admin queue for the approver and on the
+    // self-service history for the requester — each on the page that
+    // actually shows the item, never a list-with-param the list ignores.
+    if (type === 'hrms.leave.requested') {
+        return '/hrms/leave';
+    }
+
+    if (type === 'hrms.leave.approved' || type === 'hrms.leave.rejected') {
+        return '/hrms/leave/mine';
     }
 
     if (project_id && key) {

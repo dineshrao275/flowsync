@@ -15,6 +15,7 @@ use App\Models\Hrms\Leave\LeaveType;
 use App\Models\Hrms\Shared\HrmsAuditLog;
 use App\Models\Role;
 use App\Models\User;
+use App\Models\UserNotification;
 use App\Services\Hrms\AttendanceService;
 use App\Services\Hrms\Leave\LeaveRequestDecisions;
 use App\Services\Hrms\Leave\LeaveRequestService;
@@ -417,17 +418,118 @@ class HrmsLeaveRequestTest extends TestCase
         $this->assertTrue(HrmsAuditLog::query()->where('action', 'leave.encashed')->exists());
     }
 
+    // ------------------------------------------------------------ notifications
+
+    public function test_filing_nudges_the_current_approver(): void
+    {
+        [$manager, $report] = $this->reportingLine();
+        $type = $this->makeType();
+        $this->ledger($report, $type, 'opening', 12);
+
+        $request = $this->requests()->request($report, [
+            'leave_type_id' => $type->id,
+            'from_date' => $this->daysAgo(10),
+            'to_date' => $this->daysAgo(9),
+            'reason' => 'Two days.',
+        ], $report->user);
+
+        $nudged = UserNotification::query()
+            ->where('user_id', $manager->user->id)
+            ->where('type', 'hrms.leave.requested')
+            ->firstOrFail();
+
+        $this->assertSame($request->id, $nudged->data['leave_request_id']);
+        $this->assertSame($report->name, $nudged->data['employee_name']);
+    }
+
+    public function test_a_manager_filing_for_a_report_gets_no_nudge_about_it(): void
+    {
+        [$manager, $report] = $this->reportingLine();
+        $type = $this->makeType();
+        $this->ledger($report, $type, 'opening', 12);
+
+        // Actor and approver are the same login: skip-self, mirroring
+        // taskCommented — nobody needs a toast about their own filing.
+        $this->requests()->request($report, [
+            'leave_type_id' => $type->id,
+            'from_date' => $this->daysAgo(10),
+            'to_date' => $this->daysAgo(9),
+            'reason' => 'Filed for my report.',
+        ], $manager->user);
+
+        $this->assertSame(0, UserNotification::query()
+            ->where('user_id', $manager->user->id)
+            ->where('type', 'hrms.leave.requested')
+            ->count());
+    }
+
+    public function test_decisions_nudge_the_requester_with_the_transition(): void
+    {
+        [$manager, $report] = $this->reportingLine();
+        $type = $this->makeType();
+        $this->ledger($report, $type, 'opening', 12);
+
+        $ask = $this->requests()->request($report, [
+            'leave_type_id' => $type->id,
+            'from_date' => $this->daysAgo(6),
+            'to_date' => $this->daysAgo(6),
+            'reason' => 'One day.',
+        ], $report->user);
+
+        $this->approveFully($ask, $manager->user);
+
+        $approved = UserNotification::query()
+            ->where('user_id', $report->user->id)
+            ->where('type', 'hrms.leave.approved')
+            ->firstOrFail();
+
+        $this->assertSame($ask->id, $approved->data['leave_request_id']);
+        $this->assertSame('submitted', $approved->data['from_status']);
+        $this->assertSame('approved', $approved->data['to_status']);
+
+        $refused = $this->requests()->request($report, [
+            'leave_type_id' => $type->id,
+            'from_date' => $this->daysAgo(12),
+            'to_date' => $this->daysAgo(11),
+            'reason' => 'Will be refused.',
+        ], $report->user);
+
+        $this->decisions()->reject($refused->refresh(), $manager->user, 'Blackout.');
+
+        $this->assertTrue(UserNotification::query()
+            ->where('user_id', $report->user->id)
+            ->where('type', 'hrms.leave.rejected')
+            ->exists());
+    }
+
+    public function test_an_auto_approved_ask_still_tells_its_requester(): void
+    {
+        // No manager and no HR role: every step skips, so the engine
+        // auto-approves at request time instead of stranding the ask.
+        Role::query()->where('slug', 'hr_manager')->delete();
+
+        $user = $this->makeUser();
+        $employee = $this->makeEmployee('Solo Asker', ['user_id' => $user->id]);
+        $type = $this->makeType();
+        $this->ledger($employee, $type, 'opening', 12);
+
+        // No login acting: the engine auto-approves and the requester hears
+        // about it instead of watching the ask vanish.
+        $request = $this->requests()->request($employee, [
+            'leave_type_id' => $type->id,
+            'from_date' => $this->daysAgo(6),
+            'to_date' => $this->daysAgo(6),
+            'reason' => 'Solo day.',
+        ]);
+
+        $this->assertSame('approved', $request->status->value);
+        $this->assertTrue(UserNotification::query()
+            ->where('user_id', $user->id)
+            ->where('type', 'hrms.leave.approved')
+            ->exists());
+    }
+
     // ------------------------------------------------------------ helpers
-
-    private function requests(): LeaveRequestService
-    {
-        return app(LeaveRequestService::class);
-    }
-
-    private function decisions(): LeaveRequestDecisions
-    {
-        return app(LeaveRequestDecisions::class);
-    }
 
     /**
      * Walk the routed chain to approval: manager, manager-again for the
@@ -451,6 +553,16 @@ class HrmsLeaveRequestTest extends TestCase
         $user->roles()->sync([$role->id]);
 
         return $user;
+    }
+
+    private function requests(): LeaveRequestService
+    {
+        return app(LeaveRequestService::class);
+    }
+
+    private function decisions(): LeaveRequestDecisions
+    {
+        return app(LeaveRequestDecisions::class);
     }
 
     /**
