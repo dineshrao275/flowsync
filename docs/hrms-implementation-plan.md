@@ -2849,7 +2849,7 @@ review checklist.
 > behind the statutory module gate. Configurations/declarations/TDS HTTP
 > stays in P10.6.
 
-**P10.6 — Policies, requests, routes, frontend** (split: `P10.6a` rulebook + declaration HTTP ✅, `P10.6b` TDS HTTP + frontend)
+**P10.6 — Policies, requests, routes, frontend** (split: `P10.6a` rulebook + declaration HTTP ✅, `P10.6b` TDS HTTP + frontend ✅)
 `StatutoryConfigurationPolicy` (manage `hrms.payroll.statutory.manage`), `StatutoryProfilePolicy` (view
 self OR manage; write manage). The whole group sits behind `ensure_module:hrms.payroll.statutory`:
 `/api/hrms/payroll/statutory/configurations`, `.../profiles`, `.../profiles/{employee}`,
@@ -2857,6 +2857,14 @@ self OR manage; write manage). The whole group sits behind `ensure_module:hrms.p
 Frontend: `pages/hrms/Statutory.jsx` (config editor with a jurisdiction picker, per-employee profile
 form, declarations, TDS projection table with under-deduction warnings), visibly marked as restricted
 data with a read-receipt note in the UI copy.
+
+> **P10.6b as shipped.** `TdsProjectPolicy` (read self-or-manage, move
+> manage-alone), `TdsProjectController` (queue, project, surrender, plus
+> the artisan command's run twin answering to the run's own calculate
+> ability), and `Statutory.jsx` (rulebooks with JSON editing, masked
+> profiles with logged reveals, claims with verify/reject, projection
+> table with surrender, run recompute). `HrmsStatutoryTdsApiTest`
+> (4 tests). `StatutoryProfilePolicy` landed in P10.5 with the profiles.
 
 **Risk gates before this phase ships (Part 8, R1-R4):** domain-expert review of each rule, a
 `config/hrms.php` fixture corpus with expected outputs, and an explicit "statutory figures are advisory"

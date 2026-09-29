@@ -44,6 +44,7 @@ import Compensation from './pages/hrms/Compensation';
 import Payroll from './pages/hrms/Payroll';
 import PayrollRunDetail from './pages/hrms/PayrollRunDetail';
 import MyPayslips from './pages/hrms/MyPayslips';
+import Statutory from './pages/hrms/Statutory';
 import Search from './pages/Search';
 import Notifications from './pages/Notifications';
 import Tenants from './pages/Tenants';
@@ -281,6 +282,13 @@ function AppRoutes() {
                                 }
                             />
                             <Route path="/hrms/payroll/mine" element={<MyPayslips />} />
+                            {/* Statutory: the whole page rides the statutory
+                                module; internal gating splits rulebooks and
+                                decisions (manage) from claims filing and
+                                masked reads. */}
+                            <Route element={<ProtectedRoute module="hrms.payroll.statutory" />}>
+                                <Route path="/hrms/statutory" element={<Statutory />} />
+                            </Route>
                             <Route path="/hrms/:section" element={<HrmsOverview />} />
                         </Route>
                         <Route element={<ProtectedRoute permission="users.view" />}>

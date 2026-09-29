@@ -49,6 +49,7 @@ use App\Http\Controllers\Hrms\Payroll\SalaryStructureController;
 use App\Http\Controllers\Hrms\Payroll\StatutoryConfigurationController;
 use App\Http\Controllers\Hrms\Payroll\StatutoryDeclarationController;
 use App\Http\Controllers\Hrms\Payroll\StatutoryProfileController;
+use App\Http\Controllers\Hrms\Payroll\TdsProjectController;
 use App\Http\Controllers\ImpersonationController;
 use App\Http\Controllers\LabelController;
 use App\Http\Controllers\MySubscriptionController;
@@ -649,6 +650,16 @@ Route::prefix('api')->group(function () {
         Route::post('hrms/payroll/statutory/declarations/{declaration}/submit', [StatutoryDeclarationController::class, 'submit']);
         Route::post('hrms/payroll/statutory/declarations/{declaration}/verify', [StatutoryDeclarationController::class, 'verify']);
         Route::post('hrms/payroll/statutory/declarations/{declaration}/reject', [StatutoryDeclarationController::class, 'reject']);
+
+        // HRMS TDS projections and the run recompute twin (Phase 15
+        // P10.6b). Same gates; the project policy splits reading (self or
+        // manage) from moving (manage alone), and the recompute answers to
+        // the run's own calculate ability.
+        Route::get('hrms/payroll/statutory/tds-projects', [TdsProjectController::class, 'index']);
+        Route::post('hrms/payroll/statutory/tds-projects', [TdsProjectController::class, 'project']);
+        Route::get('hrms/payroll/statutory/tds-projects/{project}', [TdsProjectController::class, 'show']);
+        Route::post('hrms/payroll/statutory/tds-projects/{project}/surrender', [TdsProjectController::class, 'surrender']);
+        Route::post('hrms/payroll/statutory/recompute', [TdsProjectController::class, 'recompute']);
     });
 
     // HRMS remote punch (Phase 15 P5.3). Deliberately NO route-level
