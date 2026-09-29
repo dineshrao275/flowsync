@@ -474,6 +474,8 @@ Route::prefix('api')->group(function () {
         // reason where DELETE stays reason-free, per the plan's routes.
         Route::get('hrms/leave/requests', [LeaveRequestController::class, 'index']);
         Route::post('hrms/leave/requests', [LeaveRequestController::class, 'store']);
+        Route::get('hrms/leave/requests/availability', [LeaveRequestController::class, 'availability']);
+        Route::get('hrms/leave/requests/calendar', [LeaveRequestController::class, 'calendar']);
         Route::get('hrms/leave/requests/{leaveRequest}', [LeaveRequestController::class, 'show']);
         Route::put('hrms/leave/requests/{leaveRequest}', [LeaveRequestController::class, 'update']);
         Route::delete('hrms/leave/requests/{leaveRequest}', [LeaveRequestController::class, 'destroy']);

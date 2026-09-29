@@ -63,6 +63,18 @@ const sections = [
                 capabilities: ['module:hrms.core', 'module:hrms.attendance', 'permission:hrms.attendance.regularize'],
                 icon: 'M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z',
             },
+            {
+                to: '/hrms/leave',
+                label: 'Leave',
+                capabilities: ['module:hrms.core', 'module:hrms.leave', 'permission:hrms.leave.manage'],
+                icon: 'M8 3h8v4H8V3zm-2 4h12v14H6V7zm3 4h6m-6 4h6',
+            },
+            {
+                to: '/hrms/leave/mine',
+                label: 'My leave',
+                capabilities: ['module:hrms.core', 'module:hrms.leave'],
+                icon: 'M5 3h14v18H5V3zm3 5h8m-8 4h8m-8 4h5',
+            },
             { to: '/hrms', label: 'HRMS', capabilities: ['module:hrms.core'], icon: 'M17 20h5v-2a4 4 0 00-3-3.87M9 20H4v-2a4 4 0 013-3.87m4-1.13a4 4 0 10-4-4 4 4 0 004 4zm6 2a3 3 0 10-3-3' },
         ],
     },

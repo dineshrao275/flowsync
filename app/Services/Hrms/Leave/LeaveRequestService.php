@@ -8,6 +8,7 @@ use App\Models\Hrms\Leave\LeaveRequest;
 use App\Models\User;
 use App\Services\Hrms\Shared\ApprovalService;
 use App\Services\HrmsAuditLogger;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
@@ -43,6 +44,21 @@ class LeaveRequestService
         $input = $this->validation->validate($employee, $data);
 
         return DB::transaction(fn (): LeaveRequest => $this->buildAsk($employee, $input, $actor));
+    }
+
+    /**
+     * Price a range without judging it: the availability preview's entry
+     * point, straight through to the shared split math.
+     */
+    public function previewTotal(
+        Employee $employee,
+        int $typeId,
+        Carbon|string $from,
+        Carbon|string $to,
+        ?string $fromHalf = null,
+        ?string $toHalf = null,
+    ): float {
+        return $this->validation->previewTotal($employee, $typeId, $from, $to, $fromHalf, $toHalf);
     }
 
     /**

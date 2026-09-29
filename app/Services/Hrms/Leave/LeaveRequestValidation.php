@@ -68,6 +68,42 @@ class LeaveRequestValidation
         );
     }
 
+    /**
+     * The charged total for a range without any affordability judgment.
+     *
+     * The availability preview's numerator: same split math as validation
+     * (halves, week-offs), none of its verdicts. Throws on malformed shape
+     * (unknown type, backward range, bad halves) but never on quotas,
+     * overlaps, or shortfalls — a preview that 422s on an empty balance
+     * could never warn about it.
+     *
+     * @throws ValidationException on an unknown type or a bad window
+     */
+    public function previewTotal(
+        Employee $employee,
+        int $typeId,
+        Carbon|string $from,
+        Carbon|string $to,
+        ?string $fromHalf = null,
+        ?string $toHalf = null,
+    ): float {
+        $type = $this->resolveType($typeId);
+
+        $from = $from instanceof Carbon ? $from->copy()->startOfDay() : Carbon::parse((string) $from)->startOfDay();
+        $to = $to instanceof Carbon ? $to->copy()->startOfDay() : Carbon::parse((string) $to)->startOfDay();
+
+        if ($from->greaterThan($to)) {
+            throw ValidationException::withMessages(['to_date' => 'The range ends before it starts.']);
+        }
+
+        [$total] = $this->splitDays($employee, $type, $from, $to, [
+            'from_half' => $fromHalf,
+            'to_half' => $toHalf,
+        ]);
+
+        return $total;
+    }
+
     /** @throws ValidationException on an unknown or inactive type */
     private function resolveType(int $typeId): LeaveType
     {

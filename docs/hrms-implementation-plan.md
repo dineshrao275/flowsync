@@ -2349,12 +2349,21 @@ api/hrms/leave/policies`, `PUT|DELETE .../policies/{leavePolicy}`, `GET api/hrms
 > message fixed to say "recorded" until the chain resolves.
 > `HrmsLeaveRequestApiTest` (6) + `HrmsLeaveExemptionApiTest` (5) guard.
 
-**P6.5 — Frontend**
+**P6.5 — Frontend** ✅
 `pages/hrms/Leave.jsx` (tabs: requests | types | policies | balances | exemptions),
 `components/hrms/LeaveRequestModal.jsx` (live available-days and a shortfall warning; a small month
 calendar showing team absences), `components/hrms/LeaveBalanceTable.jsx` (accrued/availed/remaining per
 type per year), `pages/hrms/MyLeave.jsx` (self-service: balances, request, cancel, history). Clicking a
 calendar day opens a pre-filled request.
+
+> **P6.5 pairs the pages with the two reads they need.** `GET availability`
+> prices without judging (never 422s on shortfall — a preview that refuses
+> an empty balance cannot warn about it) and `GET calendar` shows approved
+> cover for self plus direct reports (HR sees its reports, never the
+> tenant). The modal pairs the quote with a team mini-grid; the admin hub
+> (`requests|types|policies|balances|exemptions`, manage-gated) colocates
+> small CRUD forms while `MyLeave` stays self-scoped; `hrms.leave` joins
+> `HRMS_MODULE_ROUTES` with the router owning `/hrms/leave`.
 
 **P6.6 — Notifications + deep links**
 `NotificationService::leaveRequested(LeaveRequest)` -> `hrms.leave.requested` to the approver (skips

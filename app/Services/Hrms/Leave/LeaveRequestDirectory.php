@@ -4,7 +4,11 @@ namespace App\Services\Hrms\Leave;
 
 use App\Models\Hrms\Employee\Employee;
 use App\Models\Hrms\Leave\LeaveRequest;
+use App\Models\Hrms\Leave\LeaveRequestDay;
 use App\Models\User;
+use App\Services\Hrms\Employee\ReportingLine;
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
 
 /**
@@ -18,6 +22,8 @@ use Illuminate\Support\Collection;
  */
 class LeaveRequestDirectory
 {
+    public function __construct(private readonly ReportingLine $reporting) {}
+
     /**
      * @param  array{status?: string|null, employee_id?: int|null}  $filters
      * @return Collection<int, LeaveRequest>
@@ -47,5 +53,56 @@ class LeaveRequestDirectory
     {
         return $viewer->hasPermission('hrms.leave.view')
             || $viewer->hasPermission('hrms.leave.manage');
+    }
+
+    /**
+     * Approved leave across a month for the viewer's team: themselves plus
+     * their direct reports — the people whose cover the request modal shows
+     * before filing. HR sees its reports, not the whole tenant; the
+     * tenant-wide view belongs to analytics (P18), not to a filing modal.
+     *
+     * One query for the window, grouped in PHP: the modal renders a month,
+     * not a ledger.
+     *
+     * @return array<string, list<array{employee_id: int, employee_name: string, type_name: string}>>
+     */
+    public function teamCalendar(Employee $viewer, int $year, int $month): array
+    {
+        $start = Carbon::create($year, $month, 1)->startOfDay();
+        $end = $start->copy()->endOfMonth()->startOfDay();
+
+        $teamIds = [$viewer->id];
+
+        foreach ($this->reporting->reportsOf($viewer) as $report) {
+            $teamIds[] = $report->id;
+        }
+
+        $rows = LeaveRequestDay::query()
+            ->whereHas('request', fn (Builder $query) => $query
+                ->whereIn('employee_id', $teamIds)
+                ->where('status', 'approved'))
+            ->whereDate('date', '>=', $start->toDateString())
+            ->whereDate('date', '<=', $end->toDateString())
+            ->where('is_week_off', false)
+            ->where('is_holiday', false)
+            ->with(['request.employee:id,name', 'request.type:id,name'])
+            ->orderBy('date')
+            ->get();
+
+        $calendar = [];
+
+        foreach ($rows as $row) {
+            // pluck() would skip casts; here the model carries them, but the
+            // SQLite time part rides the attribute either way — parse it off.
+            $date = Carbon::parse((string) $row->date)->toDateString();
+
+            $calendar[$date][] = [
+                'employee_id' => $row->request->employee_id,
+                'employee_name' => $row->request->employee?->name ?? 'Unknown',
+                'type_name' => $row->request->type?->name ?? 'Leave',
+            ];
+        }
+
+        return $calendar;
     }
 }

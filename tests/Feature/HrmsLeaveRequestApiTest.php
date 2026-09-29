@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Enums\Hrms\EmployeeStatus;
 use App\Models\Hrms\Employee\Employee;
 use App\Models\Hrms\Leave\LeaveAdjustment;
+use App\Models\Hrms\Leave\LeaveRequest;
 use App\Models\Hrms\Leave\LeaveType;
 use App\Models\Hrms\Shared\HrmsAuditLog;
 use App\Models\Permission;
@@ -178,6 +179,76 @@ class HrmsLeaveRequestApiTest extends TestCase
         $this->assertTrue(HrmsAuditLog::query()->where('action', 'leave.approved')->exists());
     }
 
+    public function test_availability_prices_without_judging(): void
+    {
+        $user = $this->userWith(['hrms.view']);
+        $employee = $this->makeEmployee('Previewer', ['user_id' => $user->id]);
+        $this->actAs($user);
+
+        $type = LeaveType::query()->where('code', 'annual')->firstOrFail();
+        $this->ledger($employee, $type, 5);
+
+        // Funded: totals, availability, no shortfall.
+        $body = $this->getJson('/api/hrms/leave/requests/availability?'.http_build_query([
+            'leave_type_id' => $type->id,
+            'from_date' => $this->daysAgo(9),
+            'to_date' => $this->daysAgo(8),
+        ]))->assertOk()->json();
+
+        $this->assertSame(2.0, (float) $body['total_days']);
+        $this->assertSame(5.0, (float) $body['available_days']);
+        $this->assertSame(0.0, (float) $body['shortfall_days']);
+
+        // Unfunded: still 200 — a preview that 422s on an empty balance
+        // could never warn about it.
+        $poor = $this->makeEmployee('Broke Previewer');
+        $poorUser = $this->makeUser();
+        $poor->update(['user_id' => $poorUser->id]);
+        $this->actAs($poorUser);
+
+        $short = $this->getJson('/api/hrms/leave/requests/availability?'.http_build_query([
+            'leave_type_id' => $type->id,
+            'from_date' => $this->daysAgo(9),
+            'to_date' => $this->daysAgo(8),
+        ]))->assertOk()->json();
+
+        $this->assertSame(2.0, (float) $short['total_days']);
+        $this->assertSame(0.0, (float) $short['available_days']);
+        $this->assertSame(2.0, (float) $short['shortfall_days']);
+    }
+
+    public function test_the_team_calendar_shows_reports_and_self(): void
+    {
+        [$manager, $report] = $this->reportingLine();
+        $type = LeaveType::query()->where('code', 'annual')->firstOrFail();
+        $this->ledger($report, $type, 12);
+        $this->ledger($manager, $type, 12);
+        $day = $this->daysAgo(6);
+
+        $this->actAs($report->user);
+        $this->postJson('/api/hrms/leave/requests', [
+            'leave_type_id' => $type->id,
+            'from_date' => $day,
+            'to_date' => $day,
+            'reason' => 'Mine.',
+        ])->assertCreated();
+
+        // A pending ask is not cover yet: the calendar shows approved only.
+        $this->actAs($manager->user);
+        $empty = $this->getJson('/api/hrms/leave/requests/calendar')->assertOk()->json();
+        $this->assertSame([], $empty['days']);
+
+        $id = LeaveRequest::query()
+            ->where('employee_id', $report->id)
+            ->value('id');
+
+        $this->approveFully($id, $manager->user);
+
+        $full = $this->getJson('/api/hrms/leave/requests/calendar')->assertOk()->json();
+
+        $this->assertSame([$report->name], array_column($full['days'][$day], 'employee_name'));
+    }
+
     public function test_rejection_and_cancellation_flows(): void
     {
         [$manager, $report] = $this->reportingLine();
@@ -252,6 +323,22 @@ class HrmsLeaveRequestApiTest extends TestCase
         $user->roles()->sync([$role->id]);
 
         return $user;
+    }
+
+    /**
+     * Walk the routed chain over HTTP: manager, manager-again for the
+     * fallback seat, then HR. Leaves the session on the manager.
+     */
+    private function approveFully(int $requestId, User $manager): void
+    {
+        $this->actAs($manager);
+        $this->postJson("/api/hrms/leave/requests/{$requestId}/approve")->assertOk();
+        $this->postJson("/api/hrms/leave/requests/{$requestId}/approve")->assertOk();
+
+        $this->actAs($this->hrUser());
+        $this->postJson("/api/hrms/leave/requests/{$requestId}/approve")->assertOk();
+
+        $this->actAs($manager);
     }
 
     /**

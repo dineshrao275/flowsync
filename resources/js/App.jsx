@@ -35,6 +35,8 @@ import OffboardingCases from './pages/hrms/OffboardingCases';
 import OffboardingCaseDetail from './pages/hrms/OffboardingCaseDetail';
 import Attendance from './pages/hrms/Attendance';
 import AttendanceApprovals from './pages/hrms/AttendanceApprovals';
+import Leave from './pages/hrms/Leave';
+import MyLeave from './pages/hrms/MyLeave';
 import Search from './pages/Search';
 import Notifications from './pages/Notifications';
 import Tenants from './pages/Tenants';
@@ -207,6 +209,18 @@ function AppRoutes() {
                                     </ProtectedRoute>
                                 }
                             />
+                            {/* Leave: the admin hub needs the manage
+                                permission, the self-service page rides the
+                                module alone like My files. */}
+                            <Route
+                                path="/hrms/leave"
+                                element={
+                                    <ProtectedRoute permission="hrms.leave.manage">
+                                        <Leave />
+                                    </ProtectedRoute>
+                                }
+                            />
+                            <Route path="/hrms/leave/mine" element={<MyLeave />} />
                             <Route path="/hrms/:section" element={<HrmsOverview />} />
                         </Route>
                         <Route element={<ProtectedRoute permission="users.view" />}>

@@ -63,6 +63,9 @@ export const HRMS_MODULE_ROUTES = {
     // P5.6b ships the attendance workspace; the remote clock-in capability
     // stays tile-less (it is a way to punch, not a page).
     'hrms.attendance': hrmsUrl('attendance'),
+    // P6.5 ships the leave admin hub; the self-service page needs no tile
+    // (it hangs off the hub like My files hangs off the store).
+    'hrms.leave': hrmsUrl('leave'),
 };
 
 /**
