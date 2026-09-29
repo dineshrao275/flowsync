@@ -2820,11 +2820,18 @@ configuration change must not alter a locked payslip — the snapshot is the rec
 > scope plus `--run`. Region comes from settings — employment records
 > carry no region.
 
-**P10.4 — TDS projection**
+**P10.4 — TDS projection** ✅
 `StatutoryService::projectTds(Employee, fiscalYear)` — annualise the last 3 months of payslips, add
 declared exemptions, apply the slab config, split into quarterly `tds_projects` rows, and surface
 under-deduction as a warning on the payroll run. `POST .../tds-projects/{project}/surrender` records a
 challan reference plus an audit row.
+
+> **P10.4 as shipped.** Annual tax reuses the engine's slab walk
+> (`annualTax()` — no second tax law); quarterly splits use
+> `Money::allocate` so four quarters sum back to the year; deducted reads
+> the snapshots; re-projection never touches a surrender; warnings return
+> for the P10.6 run surface (plus the operational log). The HTTP surrender
+> stays in P10.6 with the rest of the routes.
 
 **P10.5 — PII protection**
 `StatutoryProfileController` accepts `pan|aadhaar|uan|esi_number|pf_number|bank_account` on write and

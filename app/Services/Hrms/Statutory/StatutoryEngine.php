@@ -249,6 +249,23 @@ class StatutoryEngine
     }
 
     /**
+     * Annual slab tax on a taxable figure: the projection's core, exposed
+     * because the monthly `tds()` already prices through it and the TDS
+     * projection must read the same bands — a second slab walk would be a
+     * second tax law waiting to diverge.
+     */
+    public function annualTax(array $config, string $taxableAnnual): string
+    {
+        $rule = $config['tds'] ?? [];
+
+        if (($rule['enabled'] ?? false) !== true || ($rule['slabs'] ?? []) === []) {
+            return Money::zero()->toDecimal();
+        }
+
+        return $this->slabTax(Money::fromDecimal($taxableAnnual), (array) $rule['slabs'])->toDecimal();
+    }
+
+    /**
      * Progressive slab tax: each band prices its own slice at its own rate,
      * so a gross straddling two bands pays both rates on the right slices —
      * never the top rate on the whole.

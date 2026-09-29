@@ -54,8 +54,7 @@ class StatutoryResolver
         }
 
         $settings = HrmsSetting::current();
-        $country = $employee->country ?? $settings->country;
-        $configuration = $this->resolveConfig((string) $country, $settings->region);
+        $configuration = $this->configurationFor($employee);
 
         if ($configuration === null) {
             return [];
@@ -88,6 +87,20 @@ class StatutoryResolver
         $tenantId = $this->context->currentId();
 
         return $tenantId === null ? null : Tenant::find($tenantId);
+    }
+
+    /**
+     * The active rulebook: region-specific beats country-wide, and either
+     * beats nothing. An empty country resolves nothing — guessing a
+     * jurisdiction would price the wrong law. Public because the TDS
+     * projection reads the same rulebook the monthly engine prices from.
+     */
+    public function configurationFor(Employee $employee): ?StatutoryConfiguration
+    {
+        $settings = HrmsSetting::current();
+        $country = $employee->country ?? $settings->country;
+
+        return $this->resolveConfig((string) $country, $settings->region);
     }
 
     /**
