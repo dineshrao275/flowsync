@@ -2251,6 +2251,21 @@ bool) **unique `(leave_request_id, date)`**, `leave_exemption_requests` (`employ
 - `encash(Request)` — only for `encashable` types; writes an `encashed` ledger row and leaves a payable
   reference that P9's payroll picks up (store the reference, do not couple the services).
 
+> **P6.2c splits asking from deciding.** `LeaveRequestService` (validate +
+> persist + manager step) vs `LeaveRequestDecisions` (approve/reject/cancel/
+> encash) vs `LeaveRequestValidation` (quotas, overlap, shortfall) vs
+> `LeaveRequestInput` (boundary DTO) — the 300-line ceiling forced the cut,
+> and the calendar trio (`leaveYearFor`, `leaveYearRange`,
+> `approvedLeaveDates`) became dependency-free `LeaveCalendar` so both the
+> balance math and the attendance merge read one boundary. Submitted holds
+> but never posts; approval posts `availed`, rebuilds, and regenerates every
+> covered date so the `dayStatus` merge flips it to `leave`; rejection needs
+> a reason; cancellation is the requester's hand on open chains (HR rejects
+> instead) and reverses postings append-only; encashment returns time then
+> debits it, leaving the `encashed` row as P9's payable reference — the
+> balance drops because time left as cash. The manager step is single until
+> P6.3 upgrades routing. `HrmsLeaveRequestTest` (12 tests) is the guard.
+
 > **P6.2b owns the money half.** `Services/Hrms/Leave/LeaveBalanceService`
 > (the request lifecycle lands in `LeaveRequestService` next — the P5 split
 > rule, one bounded context per file that would pass 300 lines):

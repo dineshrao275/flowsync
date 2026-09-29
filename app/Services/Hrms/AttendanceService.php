@@ -121,6 +121,18 @@ class AttendanceService
     }
 
     /**
+     * Whether a date is the employee's weekly off.
+     *
+     * The Leave context's day split reads the roster through here, never the
+     * roster table (D2.16.2) — the only cross-context edge this feature
+     * needs, and it points one way.
+     */
+    public function isWeekOff(Employee $employee, Carbon|string $date): bool
+    {
+        return $this->reading->isWeekOff($employee, $date);
+    }
+
+    /**
      * @return array{year: int, month: int, days: list<array{date: string, status: AttendanceDayStatus, record: AttendanceDay|null}>, summary: array{days: int, present: int, absent: int, half_day: int, late: int, leave: int, holiday: int, week_off: int, worked_minutes: int, late_minutes: int, overtime_minutes: int}}
      */
     public function month(Employee $employee, int $year, int $month): array

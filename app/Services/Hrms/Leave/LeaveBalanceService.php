@@ -8,7 +8,6 @@ use App\Enums\Hrms\LeaveRequestStatus;
 use App\Models\Hrms\Employee\Employee;
 use App\Models\Hrms\Leave\LeaveAdjustment;
 use App\Models\Hrms\Leave\LeaveBalance;
-use App\Models\Hrms\Leave\LeavePolicy;
 use App\Models\Hrms\Leave\LeaveRequest;
 use App\Models\Hrms\Leave\LeaveType;
 use App\Models\User;
@@ -37,7 +36,10 @@ use Illuminate\Validation\ValidationException;
  */
 class LeaveBalanceService
 {
-    public function __construct(private readonly HrmsAuditLogger $audit) {}
+    public function __construct(
+        private readonly HrmsAuditLogger $audit,
+        private readonly LeaveCalendar $calendar,
+    ) {}
 
     /**
      * Credit one period's accrual, or return the existing row when this
@@ -68,9 +70,9 @@ class LeaveBalanceService
             return null;
         }
 
-        if ($this->leaveYearFor($asOf) !== $year) {
+        if ($this->calendar->leaveYearFor($asOf) !== $year) {
             throw ValidationException::withMessages([
-                'year' => "The date falls in leave year {$this->leaveYearFor($asOf)}, not {$year}.",
+                'year' => "The date falls in leave year {$this->calendar->leaveYearFor($asOf)}, not {$year}.",
             ]);
         }
 
@@ -187,9 +189,9 @@ class LeaveBalanceService
         $balance = LeaveBalance::query()
             ->where('employee_id', $employee->id)
             ->where('leave_type_id', $type->id)
-            ->where('year', $this->leaveYearFor($from))
+            ->where('year', $this->calendar->leaveYearFor($from))
             ->first()
-            ?? $this->rebuildBalance($employee, $type, $this->leaveYearFor($from));
+            ?? $this->rebuildBalance($employee, $type, $this->calendar->leaveYearFor($from));
 
         // whereDate pairs, not whereBetween: a 'Y-m-d' upper bound
         // string-compares below the stored 'Y-m-d H:i:s' value on SQLite and
@@ -200,21 +202,6 @@ class LeaveBalanceService
             ->sum('total_days');
 
         return round((float) $balance->balance - $reserved, 2);
-    }
-
-    /**
-     * The leave year a date belongs to under the default policy.
-     *
-     * Falls back to the calendar year when no default policy exists — a
-     * tenant that deleted every policy still accrues, just on January
-     * boundaries, rather than 422ing every accrual until someone remakes one.
-     */
-    public function leaveYearFor(Carbon|string $date): int
-    {
-        $date = $date instanceof Carbon ? $date : Carbon::parse((string) $date);
-        $startMonth = LeavePolicy::query()->default()->value('start_month') ?? 1;
-
-        return $date->month >= $startMonth ? $date->year : $date->year - 1;
     }
 
     /**

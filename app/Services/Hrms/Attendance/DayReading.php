@@ -7,6 +7,7 @@ use App\Models\Hrms\Attendance\AttendanceDay;
 use App\Models\Hrms\Attendance\AttendancePunch;
 use App\Models\Hrms\Attendance\AttendanceRoster;
 use App\Models\Hrms\Employee\Employee;
+use App\Services\Hrms\Leave\LeaveCalendar;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
 
@@ -16,21 +17,29 @@ use Illuminate\Support\Collection;
  * Split from {@see DayComputation} because computing a day and reading one
  * are different directions: the computation writes the photograph from the
  * punches, and this merges that photograph with everything else a date
- * means (weekly offs today; leave and holidays when P6/P7 land). Reads stay
- * pure here — a reader that also writes is how two code paths disagree
- * about a day.
+ * means (weekly offs; approved leave since P6.2c; holidays when P8 lands).
+ * Reads stay pure here — a reader that also writes is how two code paths
+ * disagree about a day.
+ *
+ * The leave merge reads through `LeaveCalendar`, never the leave
+ * tables directly: the Attendance context may call the Leave context's
+ * service (D2.16.2), and the calendar owns no attendance dependency,
+ * so the edge stays acyclic.
  */
 class DayReading
 {
-    public function __construct(private readonly DayComputation $days) {}
+    public function __construct(
+        private readonly DayComputation $days,
+        private readonly LeaveCalendar $leave,
+    ) {}
 
     /**
      * The merged status for a date: attendance first, then the overlays.
      *
-     * Weekly offs merge today; approved leave and holidays merge when P6/P7
-     * land — the branches are here so those phases fill them rather than
-     * redesigning the merge. A day with punches is never a week-off: someone
-     * who clocked in on a Sunday worked, whatever the roster says.
+     * Weekly offs merge; approved leave merges (an approved ask with no
+     * punches behind it is `leave`, never `absent`); holidays merge when P8
+     * lands. A day with punches is never a week-off or a leave: someone who
+     * clocked in worked, whatever the roster or the ask says.
      */
     public function dayStatus(Employee $employee, Carbon|string $date): AttendanceDayStatus
     {
@@ -45,11 +54,30 @@ class DayReading
 
         $hasPunches = $record !== null && ($record->first_in_at !== null || $record->last_out_at !== null);
 
-        if (! $hasPunches && $this->isWeeklyOff($roster, $day)) {
+        if (! $hasPunches && $this->matchesWeeklyOff($roster, $day)) {
             return AttendanceDayStatus::WeekOff;
         }
 
+        if (! $hasPunches && $this->isOnApprovedLeave($employee, $day)) {
+            return AttendanceDayStatus::Leave;
+        }
+
         return $record?->status ?? AttendanceDayStatus::Absent;
+    }
+
+    /**
+     * Whether a date is the employee's weekly off under the active roster.
+     *
+     * Public for the Leave context: the day split excludes weekly offs from
+     * charged totals, and the roster is attendance-owned — Leave reads it
+     * through this service edge (D2.16.2), never the roster table.
+     */
+    public function isWeekOff(Employee $employee, Carbon|string $date): bool
+    {
+        $day = $date instanceof Carbon ? $date->copy()->startOfDay() : Carbon::parse((string) $date)->startOfDay();
+        [, $roster] = $this->days->resolveShift($employee, $day);
+
+        return $this->matchesWeeklyOff($roster, $day);
     }
 
     /**
@@ -67,6 +95,10 @@ class DayReading
             ->whereDate('work_date', '<=', $to instanceof Carbon ? $to->toDateString() : $to)
             ->get();
 
+        // One range query for the whole window, flipped for O(1) lookup in
+        // the loop below — never a query per row.
+        $leaveDates = array_flip($this->leave->approvedLeaveDates($employee, $from, $to));
+
         $counts = [
             'days' => $rows->count(),
             'present' => 0, 'absent' => 0, 'half_day' => 0, 'late' => 0,
@@ -75,20 +107,22 @@ class DayReading
         ];
 
         foreach ($rows as $row) {
-            $key = match ($row->status) {
-                AttendanceDayStatus::Present => 'present',
-                AttendanceDayStatus::Absent => 'absent',
-                AttendanceDayStatus::HalfDay => 'half_day',
-                AttendanceDayStatus::Late => 'late',
-                AttendanceDayStatus::Leave => 'leave',
-                AttendanceDayStatus::Holiday => 'holiday',
-                AttendanceDayStatus::WeekOff => 'week_off',
-                default => null,
+            $hasPunches = $row->first_in_at !== null || $row->last_out_at !== null;
+
+            // An approved ask with no punches behind it photographs as
+            // `absent` but reads as `leave` — the overlay, not a rewrite.
+            $key = match (true) {
+                $row->status === AttendanceDayStatus::Present => 'present',
+                $row->status === AttendanceDayStatus::HalfDay => 'half_day',
+                $row->status === AttendanceDayStatus::Late => 'late',
+                $row->status === AttendanceDayStatus::Leave => 'leave',
+                $row->status === AttendanceDayStatus::Holiday => 'holiday',
+                $row->status === AttendanceDayStatus::WeekOff => 'week_off',
+                ! $hasPunches && isset($leaveDates[$row->work_date->toDateString()]) => 'leave',
+                default => 'absent',
             };
 
-            if ($key !== null) {
-                $counts[$key]++;
-            }
+            $counts[$key]++;
 
             $counts['worked_minutes'] += $row->worked_minutes;
             $counts['late_minutes'] += $row->late_by_minutes;
@@ -98,7 +132,7 @@ class DayReading
         return $counts;
     }
 
-    private function isWeeklyOff(?AttendanceRoster $roster, Carbon $day): bool
+    private function matchesWeeklyOff(?AttendanceRoster $roster, Carbon $day): bool
     {
         $offs = $roster?->weekly_offs;
 
@@ -111,11 +145,24 @@ class DayReading
     }
 
     /**
+     * Whether the employee holds an approved ask over a date.
+     *
+     * One range query per caller, never per date: the month grid and the
+     * summary hand a window, `dayStatus` hands a single day as a degenerate
+     * window.
+     */
+    private function isOnApprovedLeave(Employee $employee, Carbon $day): bool
+    {
+        return $this->leave->approvedLeaveDates($employee, $day, $day) !== [];
+    }
+
+    /**
      * One employee's month for the grid: every lived date carries its merged
      * status, future dates are omitted (the grid blanks them as upcoming).
      *
      * Pure like every other read here — missing past dates read `absent`
-     * (or `week_off`) without writing a row; the rollup owns materializing.
+     * (or `week_off`, or `leave` under an approved ask) without writing a
+     * row; the rollup owns materializing.
      * Rosters and rows are preloaded once, so the per-date loop issues no
      * queries no matter how far back the month is.
      *
@@ -145,14 +192,19 @@ class DayReading
             ->get();
 
         $days = [];
+        $leaveDates = array_flip($this->leave->approvedLeaveDates($employee, $start, $end));
 
         for ($date = $start->copy(); $date->lessThanOrEqualTo($end); $date->addDay()) {
             $record = $rows->get($date->toDateString());
             $hasPunches = $record !== null && ($record->first_in_at !== null || $record->last_out_at !== null);
 
-            $status = ! $hasPunches && $this->isWeeklyOff($this->rosterOn($rosters, $date), $date)
-                ? AttendanceDayStatus::WeekOff
-                : ($record?->status ?? AttendanceDayStatus::Absent);
+            if (! $hasPunches && $this->matchesWeeklyOff($this->rosterOn($rosters, $date), $date)) {
+                $status = AttendanceDayStatus::WeekOff;
+            } elseif (! $hasPunches && isset($leaveDates[$date->toDateString()])) {
+                $status = AttendanceDayStatus::Leave;
+            } else {
+                $status = $record?->status ?? AttendanceDayStatus::Absent;
+            }
 
             $days[] = ['date' => $date->toDateString(), 'status' => $status, 'record' => $record];
         }

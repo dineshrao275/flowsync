@@ -12,6 +12,7 @@ use App\Models\Hrms\Leave\LeaveRequest;
 use App\Models\Hrms\Leave\LeaveType;
 use App\Models\Hrms\Shared\HrmsAuditLog;
 use App\Services\Hrms\Leave\LeaveBalanceService;
+use App\Services\Hrms\Leave\LeaveCalendar;
 use Illuminate\Support\Carbon;
 use Illuminate\Validation\ValidationException;
 use Tests\IsolatesDatabase;
@@ -159,8 +160,10 @@ class HrmsLeaveBalanceTest extends TestCase
     {
         LeavePolicy::query()->default()->update(['start_month' => 4]);
 
-        $this->assertSame(2025, $this->balances()->leaveYearFor(Carbon::parse('2026-03-31')));
-        $this->assertSame(2026, $this->balances()->leaveYearFor(Carbon::parse('2026-04-01')));
+        $calendar = app(LeaveCalendar::class);
+
+        $this->assertSame(2025, $calendar->leaveYearFor(Carbon::parse('2026-03-31')));
+        $this->assertSame(2026, $calendar->leaveYearFor(Carbon::parse('2026-04-01')));
     }
 
     public function test_an_accrual_writes_an_audit_row(): void
