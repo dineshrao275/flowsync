@@ -10,8 +10,10 @@ use App\Models\Hrms\Attendance\AttendanceShift;
 use App\Models\Hrms\Employee\Employee;
 use App\Models\Hrms\Leave\LeaveAdjustment;
 use App\Models\Hrms\Leave\LeaveBalance;
+use App\Models\Hrms\Leave\LeaveRequest;
 use App\Models\Hrms\Leave\LeaveType;
 use App\Models\Hrms\Shared\HrmsAuditLog;
+use App\Models\Role;
 use App\Models\User;
 use App\Services\Hrms\AttendanceService;
 use App\Services\Hrms\Leave\LeaveRequestDecisions;
@@ -221,7 +223,15 @@ class HrmsLeaveRequestTest extends TestCase
             'reason' => 'One day.',
         ], $report->user);
 
-        $decided = $this->decisions()->approve($request, $manager->user, 'Enjoy.');
+        // The routed chain is manager, manager-again (no department, so the
+        // fallback names them), then HR: the first approval advances without
+        // posting, the last one posts.
+        $this->decisions()->approve($request->refresh(), $manager->user, 'Fine.');
+        $this->assertSame(LeaveRequestStatus::Submitted, $request->refresh()->status);
+        $this->assertSame(0, LeaveAdjustment::query()->where('kind', LeaveAdjustmentKind::Availed->value)->count());
+
+        $this->decisions()->approve($request->refresh(), $manager->user, 'Still fine.');
+        $decided = $this->decisions()->approve($request->refresh(), $this->hrUser(), 'HR clear.');
 
         $this->assertSame(LeaveRequestStatus::Approved, $decided->status);
 
@@ -307,7 +317,7 @@ class HrmsLeaveRequestTest extends TestCase
             'reason' => 'One day.',
         ], $report->user);
 
-        $this->decisions()->approve($ask, $manager->user);
+        $this->approveFully($ask->refresh(), $manager->user);
         $this->assertSame(4.0, (float) LeaveBalance::query()->firstOrFail()->balance);
 
         $undone = $this->decisions()->cancelRequest($ask->refresh(), $report->user, 'Coming in after all.');
@@ -371,7 +381,7 @@ class HrmsLeaveRequestTest extends TestCase
             'reason' => 'Also two days.',
         ], $report->user);
 
-        $this->decisions()->approve($unencashable, $manager->user);
+        $this->approveFully($unencashable->refresh(), $manager->user);
 
         try {
             $this->decisions()->encash($unencashable->refresh());
@@ -387,7 +397,7 @@ class HrmsLeaveRequestTest extends TestCase
             'reason' => 'One payable day.',
         ], $report->user);
 
-        $this->decisions()->approve($ask, $manager->user);
+        $this->approveFully($ask->refresh(), $manager->user);
         $this->assertSame(4.0, (float) LeaveBalance::query()->where('leave_type_id', $type->id)->firstOrFail()->balance);
 
         $this->decisions()->encash($ask->refresh(), $manager->user);
@@ -417,6 +427,30 @@ class HrmsLeaveRequestTest extends TestCase
     private function decisions(): LeaveRequestDecisions
     {
         return app(LeaveRequestDecisions::class);
+    }
+
+    /**
+     * Walk the routed chain to approval: manager, manager-again for the
+     * department fallback seat (these fixtures sit in no department), then
+     * HR. Returns the decided ask.
+     */
+    private function approveFully(LeaveRequest $request, User $manager): LeaveRequest
+    {
+        $decisions = $this->decisions();
+
+        $decisions->approve($request->refresh(), $manager);
+        $decisions->approve($request->refresh(), $manager);
+
+        return $decisions->approve($request->refresh(), $this->hrUser());
+    }
+
+    private function hrUser(): User
+    {
+        $role = Role::query()->where('slug', 'hr_manager')->firstOrFail();
+        $user = $this->makeUser();
+        $user->roles()->sync([$role->id]);
+
+        return $user;
     }
 
     /**

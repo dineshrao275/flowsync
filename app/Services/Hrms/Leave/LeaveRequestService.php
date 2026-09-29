@@ -2,14 +2,11 @@
 
 namespace App\Services\Hrms\Leave;
 
-use App\Enums\Hrms\ApproverType;
 use App\Enums\Hrms\LeaveRequestStatus;
 use App\Models\Hrms\Employee\Employee;
 use App\Models\Hrms\Leave\LeaveRequest;
 use App\Models\User;
-use App\Services\Hrms\Employee\ReportingLine;
 use App\Services\Hrms\Shared\ApprovalService;
-use App\Services\Hrms\Shared\ValueObjects\ApproverSpec;
 use App\Services\HrmsAuditLogger;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
@@ -20,19 +17,19 @@ use Illuminate\Validation\ValidationException;
  * The asking half of the lifecycle (deciding lives in
  * `LeaveRequestDecisions`, the money in `LeaveBalanceService` — the P5
  * split rule). Validate through `LeaveRequestValidation`, persist the row
- * with its day split, and open the manager step; everything after
+ * with its day split, and open the routed chain; everything after
  * `submitted` belongs to the decider.
  *
- * The approval chain is a single manager step for now — P6.3 upgrades it to
- * manager-then-HR, and the engine's step model means the upgrade touches
- * routing, not this file's transitions.
+ * Routing lives in `LeaveApprovalRouting` (manager, department head, HR) —
+ * P6.3 upgraded the single manager step, and the engine's step model meant
+ * the upgrade touched routing, not this file's transitions.
  */
 class LeaveRequestService
 {
     public function __construct(
         private readonly ApprovalService $approvals,
-        private readonly ReportingLine $reporting,
         private readonly LeaveRequestValidation $validation,
+        private readonly LeaveApprovalRouting $routing,
         private readonly HrmsAuditLogger $audit,
     ) {}
 
@@ -72,10 +69,8 @@ class LeaveRequestService
             $request->days()->create($row);
         }
 
-        $manager = $this->reporting->managerOf($employee);
-
         $approval = $this->approvals->request(
-            new ApproverSpec(ApproverType::Manager, userId: $manager?->user_id, employeeId: $manager?->id),
+            $this->routing->stepsFor($employee),
             $request,
             'leave.request',
             'Leave request',

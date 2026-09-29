@@ -2,6 +2,7 @@
 
 namespace App\Services\Hrms\Leave;
 
+use App\Enums\Hrms\ApprovalStatus;
 use App\Enums\Hrms\LeaveAdjustmentKind;
 use App\Enums\Hrms\LeaveRequestStatus;
 use App\Models\Hrms\Leave\LeaveAdjustment;
@@ -37,8 +38,12 @@ class LeaveRequestDecisions
     ) {}
 
     /**
-     * Approve the current step: post the availed row, rebuild, and flip the
-     * attendance days to `leave` through regeneration plus the merge.
+     * Approve the current step, finalizing when the chain itself resolves.
+     *
+     * Intermediate approvals only advance — the availed row, the rebuild
+     * and the attendance flip land once, when the last step resolves. A
+     * three-step chain therefore posts nothing until HR clears it, and the
+     * ask reads `submitted` until then.
      *
      * @throws ValidationException on a decided ask or a non-approver
      */
@@ -46,7 +51,11 @@ class LeaveRequestDecisions
     {
         $this->requireDecidable($request);
 
-        $this->approvals->approve($request->approval, $actor, $note);
+        $approval = $this->approvals->approve($request->approval, $actor, $note);
+
+        if ($approval->status !== ApprovalStatus::Approved) {
+            return $request->refresh();
+        }
 
         return DB::transaction(function () use ($request, $actor, $note): LeaveRequest {
             $this->stampDecision($request, LeaveRequestStatus::Approved, $actor, $note);

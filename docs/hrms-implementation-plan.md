@@ -2279,12 +2279,26 @@ bool) **unique `(leave_request_id, date)`**, `leave_exemption_requests` (`employ
 > materializes a missing projection instead of reporting a stale zero.
 > `HrmsLeaveBalanceTest` (9 tests) is the guard.
 
-**P6.3 — Approval routing**
+**P6.3 — Approval routing** ✅
 `ApprovalService::request(['steps' => [['approver_type' => 'manager'], ['approver_type' => 'role',
 'approver_role_id' => $hrRoleId]]], $leaveRequest, 'leave.request', 'Leave request')` — manager first,
 then HR. `department_head` resolves via `departments.head_employee_id` with a fallback to the employee's
 manager. A step with no resolvable approver is `skipped` and the flow continues (explicitly tested in
 P1.9).
+
+> **P6.3 routes manager → head → HR, and nobody approves their own
+> leave.** `LeaveApprovalRouting::stepsFor()` adapts the sketch to the real
+> engine (`list<ApproverSpec>`, not a `steps` array): the head falls back to
+> the manager (which may name the step-one approver — the same human
+> approving twice is explicit ledger, not a collapsed step), a head asking
+> for time off drops to its manager, and an HR-role holder loses the role
+> step (the engine cannot exclude one holder, so the step is omitted).
+> Missing people emit candidate-less and skip visibly. The upgrade also
+> fixed a real bug the single-step era hid: `approve()` finalized on every
+> step, so a first approval posted before HR cleared — finalization now
+> waits for the chain to resolve. `HrmsLeaveApprovalRoutingTest` (7 tests)
+> walks the full three-human chain; the P6.2c suite grew an `approveFully`
+> helper for the routed topology.
 
 **P6.4 — Policies, requests, controller, routes**
 `LeaveTypePolicy` / `LeavePolicyPolicy` (view `hrms.leave.view`; manage `hrms.leave.manage`),
