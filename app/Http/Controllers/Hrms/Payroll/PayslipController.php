@@ -53,4 +53,16 @@ class PayslipController extends Controller
             'payslip' => $this->reading->show($request->user(), $payslip, $request->ip()),
         ]);
     }
+
+    /**
+     * The caller's own payslips. Self-scoped like notifications — no
+     * employment record means an empty list, and no policy check, because
+     * there is nothing to authorize against beyond the login itself.
+     */
+    public function mine(Request $request): JsonResponse
+    {
+        return response()->json(
+            $this->reading->payslipsMine($request->user(), $request->ip()),
+        );
+    }
 }

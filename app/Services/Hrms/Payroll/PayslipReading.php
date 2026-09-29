@@ -3,6 +3,7 @@
 namespace App\Services\Hrms\Payroll;
 
 use App\Enums\Hrms\DataAccessAction;
+use App\Models\Hrms\Employee\Employee;
 use App\Models\Hrms\Payroll\PayrollRun;
 use App\Models\Hrms\Payroll\Payslip;
 use App\Models\User;
@@ -50,6 +51,32 @@ class PayslipReading
         $payslip->loadMissing(['employee:id,employee_code,name,user_id', 'adjustments', 'run']);
 
         return $this->logged($reader, $payslip, $ipAddress);
+    }
+
+    /**
+     * The caller's own payslips across runs, newest first, each logged.
+     * Self-scoped like notifications: no employment record means an empty
+     * list, not a 404, because a login without a record must not inherit
+     * anyone else's pay.
+     *
+     * @return array{payslips: list<array<string, mixed>>, employee_id: int|null}
+     */
+    public function payslipsMine(User $viewer, ?string $ipAddress): array
+    {
+        $employeeId = Employee::where('user_id', $viewer->id)->value('id');
+
+        if ($employeeId === null) {
+            return ['payslips' => [], 'employee_id' => null];
+        }
+
+        $payslips = Payslip::query()->where('employee_id', $employeeId)
+            ->with(['employee:id,employee_code,name,user_id', 'adjustments', 'run'])
+            ->orderByDesc('id')
+            ->get()
+            ->map(fn (Payslip $payslip): array => $this->logged($viewer, $payslip, $ipAddress))
+            ->all();
+
+        return ['payslips' => $payslips, 'employee_id' => $employeeId];
     }
 
     /**

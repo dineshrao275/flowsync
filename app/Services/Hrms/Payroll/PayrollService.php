@@ -6,6 +6,7 @@ use App\Enums\Hrms\PayrollRunStatus;
 use App\Models\Hrms\Employee\Employee;
 use App\Models\Hrms\Payroll\PayrollRun;
 use App\Models\Hrms\Payroll\Payslip;
+use App\Models\Hrms\Payroll\PayslipAdjustment;
 use App\Models\User;
 use App\Services\HrmsAuditLogger;
 use App\Support\Hrms\Money;
@@ -164,6 +165,64 @@ class PayrollService
     }
 
     /**
+     * Hand a bonus or recovery onto a review payslip: the row is created and
+     * the snapshot totals are recomputed from the stored heads plus every
+     * adjustment, so the totals always equal their inputs. Paid runs refuse —
+     * a correction after approval is a recalculation, not a quiet edit.
+     *
+     * @param  array<string, mixed>  $data
+     *
+     * @throws ValidationException outside review
+     */
+    public function addAdjustment(Payslip $payslip, array $data, ?User $actor = null): Payslip
+    {
+        $this->requireReview($payslip->run);
+
+        $amount = Money::fromDecimal((string) ($data['amount'] ?? '0'));
+
+        if ($amount->isNegative() || $amount->isZero()) {
+            throw ValidationException::withMessages(['amount' => 'An adjustment moves positive money — pick the kind for the direction.']);
+        }
+
+        return DB::transaction(function () use ($payslip, $data, $actor): Payslip {
+            $adjustment = $payslip->adjustments()->create([...$data, 'actor_user_id' => $actor?->id, 'created_at' => now()]);
+            $this->refreshTotals($payslip->fresh());
+
+            $this->audit->log($payslip->run, 'payroll.adjustment_added', null, [
+                'payslip_id' => $payslip->id,
+                'kind' => $adjustment->kind,
+            ], $actor);
+
+            return $payslip->refresh();
+        });
+    }
+
+    /**
+     * Take a hand-added line back off a review payslip, recomputing the
+     * snapshot totals the same way.
+     *
+     * @throws ValidationException outside review
+     */
+    public function removeAdjustment(PayslipAdjustment $adjustment, ?User $actor = null): Payslip
+    {
+        $payslip = $adjustment->payslip;
+        $this->requireReview($payslip->run);
+
+        return DB::transaction(function () use ($payslip, $adjustment, $actor): Payslip {
+            $kind = $adjustment->kind;
+            $adjustment->delete();
+            $this->refreshTotals($payslip->refresh());
+
+            $this->audit->log($payslip->run, 'payroll.adjustment_removed', null, [
+                'payslip_id' => $payslip->id,
+                'kind' => $kind,
+            ], $actor);
+
+            return $payslip->refresh();
+        });
+    }
+
+    /**
      * Hand-added lines keyed by employee, values as plain attributes the
      * calculator folds back into the rebuilt totals.
      *
@@ -234,6 +293,59 @@ class PayrollService
             'total_deductions' => $deductions->toDecimal(),
             'net_pay' => $net->toDecimal(),
         ];
+    }
+
+    /**
+     * Recompute one payslip's snapshot totals from its stored heads plus
+     * every adjustment row, then roll the run totals up. The same equation
+     * the calculator writes at build time — a later adjustment must land on
+     * identical math, or review compares two different arithmetics.
+     */
+    private function refreshTotals(Payslip $payslip): void
+    {
+        $currency = $payslip->assignment?->structure->currency ?? 'INR';
+        $gross = Money::zero($currency);
+        $deductions = Money::zero($currency);
+
+        foreach ($payslip->earnings ?? [] as $line) {
+            $gross = $gross->add(Money::fromDecimal((string) ($line['monthly'] ?? '0'), $currency));
+        }
+
+        foreach ($payslip->deductions ?? [] as $line) {
+            $deductions = $deductions->add(Money::fromDecimal((string) ($line['monthly'] ?? '0'), $currency));
+        }
+
+        $earnAdjust = Money::zero($currency);
+        $dedAdjust = Money::zero($currency);
+
+        foreach ($payslip->adjustments as $row) {
+            $amount = Money::fromDecimal((string) $row->amount, $currency);
+
+            if ($row->kind === 'deduction') {
+                $dedAdjust = $dedAdjust->add($amount);
+            } else {
+                $earnAdjust = $earnAdjust->add($amount);
+            }
+        }
+
+        $payslip->update([
+            'gross_pay' => $gross->toDecimal(),
+            'total_deductions' => $deductions->add($dedAdjust)->toDecimal(),
+            'net_pay' => $gross->sub($deductions)->add($earnAdjust)->sub($dedAdjust)->toDecimal(),
+        ]);
+
+        $run = $payslip->run;
+        $run->update(['totals' => $this->runTotals($run)]);
+    }
+
+    /**
+     * @throws ValidationException outside review
+     */
+    private function requireReview(PayrollRun $run): void
+    {
+        if ($run->status !== PayrollRunStatus::Review) {
+            throw ValidationException::withMessages(['run' => 'Only a run in review accepts adjustments.']);
+        }
     }
 
     /**

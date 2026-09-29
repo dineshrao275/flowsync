@@ -35,6 +35,16 @@ class PayslipPolicy
     }
 
     /**
+     * Hand a bonus or recovery onto a review payslip. A runner tool, like
+     * the grid — the run's own state machine (review-only) is the second
+     * half of the answer, enforced in the service.
+     */
+    public function adjust(User $user, Payslip $payslip): bool
+    {
+        return $user->hasPermission('hrms.payroll.run');
+    }
+
+    /**
      * Whether this payslip is the caller's own.
      *
      * `user_id` is the link, not the email — the same rule as

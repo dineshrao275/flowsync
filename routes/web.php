@@ -40,6 +40,8 @@ use App\Http\Controllers\Hrms\Org\DesignationController;
 use App\Http\Controllers\Hrms\Org\LocationController;
 use App\Http\Controllers\Hrms\Org\OrgController;
 use App\Http\Controllers\Hrms\Payroll\EmployeeSalaryController;
+use App\Http\Controllers\Hrms\Payroll\PayrollRunController;
+use App\Http\Controllers\Hrms\Payroll\PayslipAdjustmentController;
 use App\Http\Controllers\Hrms\Payroll\PayslipController;
 use App\Http\Controllers\Hrms\Payroll\PayslipDownloadController;
 use App\Http\Controllers\Hrms\Payroll\SalaryComponentController;
@@ -599,6 +601,22 @@ Route::prefix('api')->group(function () {
         Route::get('hrms/payroll/employees/{employee}/revisions', [EmployeeSalaryController::class, 'revisions']);
         Route::post('hrms/payroll/employees/{employee}/revisions', [EmployeeSalaryController::class, 'revise']);
         Route::post('hrms/payroll/employees/{employee}/revisions/{revision}/apply', [EmployeeSalaryController::class, 'applyRevision']);
+
+        // HRMS payroll runs (Phase 15 P9.5b). Same two gates; the run policy
+        // answers every step with the one runner permission, and adjustments
+        // ride the payslip's `adjust` ability with both models bound.
+        Route::get('hrms/payroll/runs', [PayrollRunController::class, 'index']);
+        Route::post('hrms/payroll/runs', [PayrollRunController::class, 'store']);
+        Route::get('hrms/payroll/runs/{run}', [PayrollRunController::class, 'show']);
+        Route::post('hrms/payroll/runs/{run}/calculate', [PayrollRunController::class, 'calculate']);
+        Route::post('hrms/payroll/runs/{run}/approve', [PayrollRunController::class, 'approve']);
+        Route::post('hrms/payroll/runs/{run}/publish', [PayrollRunController::class, 'publish']);
+        Route::post('hrms/payroll/runs/{run}/mark-paid', [PayrollRunController::class, 'markPaid']);
+        Route::post('hrms/payroll/runs/{run}/lock', [PayrollRunController::class, 'lock']);
+
+        Route::post('hrms/payroll/payslips/{payslip}/adjustments', [PayslipAdjustmentController::class, 'store']);
+        Route::delete('hrms/payroll/payslips/{payslip}/adjustments/{adjustment}', [PayslipAdjustmentController::class, 'destroy']);
+        Route::get('hrms/payroll/my-payslips', [PayslipController::class, 'mine']);
     });
 
     // HRMS remote punch (Phase 15 P5.3). Deliberately NO route-level
