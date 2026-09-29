@@ -53,6 +53,11 @@ return [
             'require_geofence' => false,
             'max_distance_meters' => 200,
         ],
+        'comp_off' => [
+            'from_weekends' => true,            // bank rostered week-offs (P7)
+            'from_holidays' => true,            // bank calendar holidays (P8 fills the branch)
+            'validity_months' => 3,             // credits expire this far out; null = never
+        ],
         'statutory' => [
             'enabled' => false,                // jurisdiction-configured in P10
             'country' => null,

@@ -133,6 +133,17 @@ class AttendanceService
     }
 
     /**
+     * Whether any punch was recorded for a date.
+     *
+     * The comp-off accrual's skip rule: worked time stays in attendance and
+     * payroll, so a punched date never banks rest time on top.
+     */
+    public function hasPunches(Employee $employee, Carbon|string $date): bool
+    {
+        return $this->reading->hasPunches($employee, $date);
+    }
+
+    /**
      * @return array{year: int, month: int, days: list<array{date: string, status: AttendanceDayStatus, record: AttendanceDay|null}>, summary: array{days: int, present: int, absent: int, half_day: int, late: int, leave: int, holiday: int, week_off: int, worked_minutes: int, late_minutes: int, overtime_minutes: int}}
      */
     public function month(Employee $employee, int $year, int $month): array

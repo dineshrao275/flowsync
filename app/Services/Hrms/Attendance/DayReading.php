@@ -157,6 +157,20 @@ class DayReading
     }
 
     /**
+     * Whether any punch was recorded for a date.
+     *
+     * The comp-off accrual's skip rule reads through here: worked time
+     * stays in attendance and payroll, so a date with punches behind it
+     * never banks rest time on top.
+     */
+    public function hasPunches(Employee $employee, Carbon|string $date): bool
+    {
+        $day = $date instanceof Carbon ? $date->toDateString() : (string) $date;
+
+        return AttendancePunch::forEmployee($employee->id)->whereDate('punch_at', $day)->exists();
+    }
+
+    /**
      * One employee's month for the grid: every lived date carries its merged
      * status, future dates are omitted (the grid blanks them as upcoming).
      *

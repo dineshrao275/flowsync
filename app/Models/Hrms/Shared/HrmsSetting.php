@@ -22,6 +22,7 @@ use Illuminate\Database\Eloquent\Model;
  * @property int $leave_year_start_month
  * @property array<string, mixed>|null $attendance
  * @property array<string, mixed>|null $remote_clock_in
+ * @property array<string, mixed>|null $comp_off
  * @property array<string, mixed>|null $statutory
  * @property bool $mask_sensitive
  * @property int $data_retention_months
@@ -42,6 +43,7 @@ class HrmsSetting extends Model
         'leave_year_start_month',
         'attendance',
         'remote_clock_in',
+        'comp_off',
         'statutory',
         'mask_sensitive',
         'data_retention_months',
@@ -55,6 +57,7 @@ class HrmsSetting extends Model
             'leave_year_start_month' => 'integer',
             'attendance' => 'array',
             'remote_clock_in' => 'array',
+            'comp_off' => 'array',
             'statutory' => 'array',
             'mask_sensitive' => 'boolean',
             'data_retention_months' => 'integer',

@@ -2410,13 +2410,29 @@ staleness bug factory.
 > null; minutes are unsigned. `HrmsCompOffTablesTest` (10 tests) pins
 > uniques, cascades, enum CHECKs, rerun-safety and down().
 
-**P7.2 — Service**
+**P7.2 — Service** ✅
 `app/Services/Hrms/CompOffService.php` — `creditFromCalendar(Employee, $from, $to)` (walks dates, skips
 days with approved leave or attendance `present`, credits weekly offs + holidays + special days per
 `hrms_settings.comp_off.{from_weekends, from_holidays, validity_months}`), `creditManual`,
 `balance(Employee, $asOf)`, `expiredBalance(Employee, $asOf)`, `createRequest` (splits days, validates
 availability, 422 on shortfall), `approve/reject/cancel`.
 `php artisan hrms:comp-off-accrue [--all] [--tenant=ID]` runs the calendar accrual monthly.
+
+> **P7.2 banks unworked rest days, nothing else.** `CompOffCredits` (bank +
+> derived balances) vs `CompOffService` (redeem) at the ceiling split; one
+> standard day (480 min) on both sides keeps bank and spend fair with no
+> shift lookup. The calendar credits rostered week-offs with no presence
+> and no approved leave behind them — worked time stays in attendance, so
+> presence disqualifies rather than credits; holidays merge when P8 lands.
+> The balance is derived (unexpired credits minus approved asks), so
+> cancellation restores by status alone. Reruns find instead of writing
+> (the SQLite date-cast trap ruled out `firstOrCreate`), count only fresh
+> writes, and the command dry-runs the same loop. `config.comp_off`
+> needed a column that did not exist: `000022` in P7's date block adds it
+> (P9's `000022` shares the NN, not the filename) and backfills null rows
+> only, while `000014`'s seeder now inserts only real columns so future
+> sections cannot break fresh tenants the same way.
+> `HrmsCompOffServiceTest` (7 tests) is the guard.
 
 **P7.3 — Policies / requests / routes** — `CompOffPolicy` (view self or `hrms.comp_off.view`; approve
 `hrms.comp_off.approve`; manage `hrms.comp_off.manage` = configure the accrual policy in

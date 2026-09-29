@@ -251,11 +251,19 @@ return new class extends Migration
 
         // The query builder does not honour casts, so the JSON columns are
         // encoded here rather than relying on a model.
-        foreach (['attendance', 'remote_clock_in', 'statutory'] as $key) {
+        foreach (['attendance', 'remote_clock_in', 'comp_off', 'statutory'] as $key) {
             if (isset($defaults[$key]) && is_array($defaults[$key])) {
                 $defaults[$key] = json_encode($defaults[$key]);
             }
         }
+
+        // Insert only keys that are real columns *yet*: a config section
+        // added later (like `comp_off` in P7.2) lands in a follow-up
+        // migration that runs after this one, and inserting its key here
+        // would fail fresh tenants with "no such column". The follow-up
+        // backfills its own section for rows missing it.
+        $columns = Schema::getColumnListing('hrms_settings');
+        $defaults = array_intersect_key($defaults, array_flip($columns));
 
         $now = now();
 
