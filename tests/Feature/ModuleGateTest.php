@@ -69,6 +69,24 @@ class ModuleGateTest extends TestCase
         $this->getJson('/api/search/global?q=acme')->assertOk();
     }
 
+    public function test_leave_routes_gate_on_the_hrms_leave_module(): void
+    {
+        $this->assignProToAcme();
+        $this->setAcmeModules(['hrms.core']);
+        $this->login('admin@flowsync.test');
+
+        // HRMS routes resolve their tenant the same way every HRMS test
+        // does: the operator connects the tenant explicitly, because these
+        // routes sit outside the per-request switching group by design.
+        $this->connectTenant('acme');
+
+        $this->getJson('/api/hrms/leave/types')->assertForbidden();
+
+        $this->setAcmeModules(['hrms.core', 'hrms.leave']);
+
+        $this->getJson('/api/hrms/leave/types')->assertOk();
+    }
+
     private function login(string $email): void
     {
         $this->postJson('/api/auth/login', ['email' => $email, 'password' => 'password'])->assertOk();

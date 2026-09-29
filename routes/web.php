@@ -19,6 +19,8 @@ use App\Http\Controllers\Hrms\DocumentController;
 use App\Http\Controllers\Hrms\DocumentDownloadController;
 use App\Http\Controllers\Hrms\DocumentTypeController;
 use App\Http\Controllers\Hrms\EmployeeController;
+use App\Http\Controllers\Hrms\Leave\LeavePolicyController;
+use App\Http\Controllers\Hrms\Leave\LeaveTypeController;
 use App\Http\Controllers\Hrms\Lifecycle\DocumentRequestController;
 use App\Http\Controllers\Hrms\Lifecycle\OffboardingCaseController;
 use App\Http\Controllers\Hrms\Lifecycle\OnboardingCaseController;
@@ -439,6 +441,22 @@ Route::prefix('api')->group(function () {
         Route::get('hrms/attendance/month', [AttendanceRecordsController::class, 'month']);
         Route::get('hrms/attendance/today', [AttendanceRecordsController::class, 'today']);
         Route::get('hrms/attendance/export', [AttendanceRecordsController::class, 'export']);
+    });
+
+    // HRMS leave catalogue (Phase 15 P6.4a). Module-gated on `hrms.leave`
+    // with no route-level permission: reads are employee-open (filing needs
+    // the catalogue) and writes take `hrms.leave.manage`, both answered by
+    // the policy — the same self-service shape as the attendance reads.
+    Route::group(['middleware' => ['ensure_module:hrms.leave']], function () {
+        Route::get('hrms/leave/types', [LeaveTypeController::class, 'index']);
+        Route::post('hrms/leave/types', [LeaveTypeController::class, 'store']);
+        Route::put('hrms/leave/types/{leaveType}', [LeaveTypeController::class, 'update']);
+        Route::delete('hrms/leave/types/{leaveType}', [LeaveTypeController::class, 'destroy']);
+
+        Route::get('hrms/leave/policies', [LeavePolicyController::class, 'index']);
+        Route::post('hrms/leave/policies', [LeavePolicyController::class, 'store']);
+        Route::put('hrms/leave/policies/{leavePolicy}', [LeavePolicyController::class, 'update']);
+        Route::delete('hrms/leave/policies/{leavePolicy}', [LeavePolicyController::class, 'destroy']);
     });
 
     // HRMS remote punch (Phase 15 P5.3). Deliberately NO route-level

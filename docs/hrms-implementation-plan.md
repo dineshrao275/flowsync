@@ -2300,7 +2300,7 @@ P1.9).
 > walks the full three-human chain; the P6.2c suite grew an `approveFully`
 > helper for the routed topology.
 
-**P6.4 — Policies, requests, controller, routes**
+**P6.4 — Policies, requests, controller, routes** (split: `P6.4a` catalogue ✅, `P6.4b` balances + accrue, `P6.4c` asks + exemptions)
 `LeaveTypePolicy` / `LeavePolicyPolicy` (view `hrms.leave.view`; manage `hrms.leave.manage`),
 `LeaveRequestPolicy` (view self OR `hrms.leave.view`; create self OR `hrms.leave.manage`; approve
 `hrms.leave.approve`; cancel self while `pending` OR `hrms.leave.manage`), `LeaveExemptionPolicy`.
@@ -2312,6 +2312,18 @@ api/hrms/leave/policies`, `PUT|DELETE .../policies/{leavePolicy}`, `GET api/hrms
 `GET|PUT|DELETE .../requests/{leaveRequest}`, `POST .../requests/{leaveRequest}/cancel`,
 `GET|POST api/hrms/leave/exemptions`, `POST .../exemptions/{exemption}/decide`.
 `POST api/hrms/leave/accrue` requires `hrms.leave.manage` and writes an audit row (bulk mutation).
+
+> **P6.4a ships the catalogue.** `LeaveCatalogService` (system rows rename
+> but never restructure — structural edits 422; deletion refused while
+> referenced; default promotion demotes the predecessor in-transaction),
+> `LeaveTypePolicy`/`LeavePolicyPolicy` (employee-open reads so filing
+> works without `leave.view`, `manage` writes), single-class FormRequests
+> with server-allocated slugs, `LeavePresenter`, and two thin controllers
+> under `ensure_module:hrms.leave` with no route permission. The module gate
+> itself is pinned in `ModuleGateTest`. `HrmsLeaveCatalogApiTest` (8 tests)
+> is the guard. R18 records the route-group discrepancy this task surfaced
+> (HRMS groups run outside the switching group); the routes follow the
+> established shape and the fix is a dedicated task.
 
 **P6.5 — Frontend**
 `pages/hrms/Leave.jsx` (tabs: requests | types | policies | balances | exemptions),
@@ -3401,6 +3413,7 @@ After any migration task: run both the suite and the real PostgreSQL path
 | R15 | **Scope creep** — HRMS quietly expanding into a full ERP | all | Anything not in Part 3.3 is out of scope; new ideas go into a "Deferred" list at the end of this document |
 | R16 | **Undiagnosable failures** — a payroll run or leave batch produces wrong numbers and no trail explains why | all | D2.17: dedicated `hrms` channel, dotted event names, correlation id across request/job/command, `duration_ms` on every loop, start/success/failure on every job and command, Part 6 logging row |
 | R17 | **Structural decay** — 22 modules collapse into fat controllers and stringly-typed arrays that no one can safely change | all | D2.16: strict layering, bounded-context folders, size ceilings, presenters, enums, FormRequests; the 0.8 gate runs on every task, so rot is caught at the commit that introduces it |
+| R18 | **HRMS routes run outside the switching group** — every `hrms/*` group carries only `web → ensure_module (+permission)`, while 3.5 and D2.14 describe `switch_tenant → auth → tenant → tenant_context → ensure_module`. `php artisan route:list -v` proves it for all HRMS routes since P2.3. In tests this surfaces as: a bare session-authenticated request runs on the central connection with a null tenant context (EnsureModule bypasses, tenant-only queries 500), which is why every HRMS feature test connects the tenant explicitly and the P6.4a module-gate test does too. Moving the groups inside the domain group changes auth semantics (401 vs 403 for guests, SA handling) for every HRMS route at once — a dedicated task with a full-suite run, not a drive-by | all | P6.4a records it here instead of fixing it; verify against the live host with a real session before moving anything |
 
 ---
 
