@@ -2,6 +2,7 @@
 
 namespace App\Services\Hrms\Leave;
 
+use App\Models\Hrms\Leave\LeaveBalance;
 use App\Models\Hrms\Leave\LeavePolicy;
 use App\Models\Hrms\Leave\LeaveType;
 
@@ -64,6 +65,32 @@ class LeavePresenter
             'is_default' => $policy->is_default,
             'is_active' => $policy->is_active,
             'types_count' => (int) ($policy->types_count ?? 0),
+        ];
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    public function balance(LeaveBalance $balance): array
+    {
+        return [
+            'employee_id' => $balance->employee_id,
+            'leave_type_id' => $balance->leave_type_id,
+            'year' => $balance->year,
+            'type' => $balance->type === null ? null : [
+                'id' => $balance->type->id,
+                'name' => $balance->type->name,
+                'code' => $balance->type->code,
+                'is_paid' => $balance->type->is_paid,
+            ],
+            'opening' => (float) $balance->opening,
+            'accrued' => (float) $balance->accrued,
+            'availed' => (float) $balance->availed,
+            'encashed' => (float) $balance->encashed,
+            'lapsed' => (float) $balance->lapsed,
+            'carried_forward' => (float) $balance->carried_forward,
+            'adjusted' => (float) $balance->adjusted,
+            'balance' => (float) $balance->balance,
         ];
     }
 }

@@ -19,6 +19,7 @@ use App\Http\Controllers\Hrms\DocumentController;
 use App\Http\Controllers\Hrms\DocumentDownloadController;
 use App\Http\Controllers\Hrms\DocumentTypeController;
 use App\Http\Controllers\Hrms\EmployeeController;
+use App\Http\Controllers\Hrms\Leave\LeaveBalanceController;
 use App\Http\Controllers\Hrms\Leave\LeavePolicyController;
 use App\Http\Controllers\Hrms\Leave\LeaveTypeController;
 use App\Http\Controllers\Hrms\Lifecycle\DocumentRequestController;
@@ -457,6 +458,13 @@ Route::prefix('api')->group(function () {
         Route::post('hrms/leave/policies', [LeavePolicyController::class, 'store']);
         Route::put('hrms/leave/policies/{leavePolicy}', [LeavePolicyController::class, 'update']);
         Route::delete('hrms/leave/policies/{leavePolicy}', [LeavePolicyController::class, 'destroy']);
+
+        // HRMS leave balances + accrual runs (Phase 15 P6.4b). Reads ride
+        // the same employee-open policy as the catalogue; the run itself
+        // takes `hrms.leave.manage` at the route and audits as a bulk.
+        Route::get('hrms/leave/balances', [LeaveBalanceController::class, 'index']);
+        Route::post('hrms/leave/accrue', [LeaveBalanceController::class, 'accrue'])
+            ->middleware('permission:hrms.leave.manage');
     });
 
     // HRMS remote punch (Phase 15 P5.3). Deliberately NO route-level

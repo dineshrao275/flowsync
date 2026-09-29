@@ -23,7 +23,7 @@ use Illuminate\Validation\ValidationException;
 class LeaveRequestValidation
 {
     public function __construct(
-        private readonly LeaveBalanceService $balances,
+        private readonly LeaveBalanceReading $reading,
         private readonly AttendanceService $attendance,
         private readonly LeaveCalendar $calendar,
     ) {}
@@ -194,7 +194,7 @@ class LeaveRequestValidation
             return;
         }
 
-        $available = $this->balances->availableDays($employee, $type, $from, $to);
+        $available = $this->reading->availableDays($employee, $type, $from, $to);
 
         if ($available < $total) {
             throw ValidationException::withMessages([

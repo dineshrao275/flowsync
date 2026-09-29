@@ -4,15 +4,12 @@ namespace App\Services\Hrms\Leave;
 
 use App\Enums\Hrms\LeaveAccrualMethod;
 use App\Enums\Hrms\LeaveAdjustmentKind;
-use App\Enums\Hrms\LeaveRequestStatus;
 use App\Models\Hrms\Employee\Employee;
 use App\Models\Hrms\Leave\LeaveAdjustment;
 use App\Models\Hrms\Leave\LeaveBalance;
-use App\Models\Hrms\Leave\LeaveRequest;
 use App\Models\Hrms\Leave\LeaveType;
 use App\Models\User;
 use App\Services\HrmsAuditLogger;
-use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -70,11 +67,7 @@ class LeaveBalanceService
             return null;
         }
 
-        if ($this->calendar->leaveYearFor($asOf) !== $year) {
-            throw ValidationException::withMessages([
-                'year' => "The date falls in leave year {$this->calendar->leaveYearFor($asOf)}, not {$year}.",
-            ]);
-        }
+        $this->requireInLeaveYear($year, $asOf);
 
         $key = $this->periodKey($method, $year, $asOf);
 
@@ -173,48 +166,58 @@ class LeaveBalanceService
     }
 
     /**
-     * Days free for a new ask in a window: the stored balance minus asks
-     * already holding some of it.
+     * Credit one type across one employee or every active one, then write
+     * the bulk audit row. The endpoint's whole job in one call: resolve the
+     * scope, loop idempotent accruals, report credited vs skipped.
      *
-     * Only `submitted`/`pending` asks reserve — approved ones already posted
-     * their `availed` row into the balance, and counting them again would
-     * charge twice. A missing projection row is rebuilt on the fly so a
-     * reader never sees a stale zero.
+     * @return array{employees: int, credited: int, skipped: int, year: int}
      */
-    public function availableDays(Employee $employee, LeaveType $type, Carbon|string $from, Carbon|string $to): float
+    public function accrueFor(LeaveType $type, ?Employee $employee, ?int $year, ?Carbon $asOf, ?User $actor = null): array
     {
-        $from = $from instanceof Carbon ? $from->copy()->startOfDay() : Carbon::parse((string) $from)->startOfDay();
-        $to = $to instanceof Carbon ? $to->copy()->startOfDay() : Carbon::parse((string) $to)->startOfDay();
+        $asOf ??= now();
+        $year ??= $this->calendar->leaveYearFor($asOf);
 
-        $balance = LeaveBalance::query()
-            ->where('employee_id', $employee->id)
-            ->where('leave_type_id', $type->id)
-            ->where('year', $this->calendar->leaveYearFor($from))
-            ->first()
-            ?? $this->rebuildBalance($employee, $type, $this->calendar->leaveYearFor($from));
+        // Fail fast on a crossed year/date pair even when the scope is
+        // empty: with no employees the per-row guard would never run and a
+        // typo'd year would report success with zeros.
+        $this->requireInLeaveYear($year, $asOf);
 
-        // whereDate pairs, not whereBetween: a 'Y-m-d' upper bound
-        // string-compares below the stored 'Y-m-d H:i:s' value on SQLite and
-        // silently drops the window's last day (the P5.2 trap).
-        $reserved = (float) $this->openRequests($employee, $type)
-            ->whereDate('from_date', '<=', $to->toDateString())
-            ->whereDate('to_date', '>=', $from->toDateString())
-            ->sum('total_days');
+        $employees = $employee !== null
+            ? collect([$employee])
+            : Employee::query()->active()->orderBy('id')->get();
 
-        return round((float) $balance->balance - $reserved, 2);
+        $credited = 0;
+        $skipped = 0;
+
+        foreach ($employees as $row) {
+            $done = $this->accrue($row, $type, $year, $asOf, $actor);
+
+            // An idempotent hit returns the existing row, which must not
+            // count as a credit: only freshly written rows did any work.
+            if ($done === null || ! $done->wasRecentlyCreated) {
+                $skipped++;
+            } else {
+                $credited++;
+            }
+        }
+
+        $result = ['employees' => $employees->count(), 'credited' => $credited, 'skipped' => $skipped, 'year' => $year];
+
+        $this->audit->log($type, 'leave.accrue_bulk', null, $result, $actor);
+
+        return $result;
     }
 
     /**
-     * Asks currently holding balance for an employee and type.
-     *
-     * @return Builder<LeaveRequest>
+     * @throws ValidationException when the date falls outside the year
      */
-    private function openRequests(Employee $employee, LeaveType $type): Builder
+    private function requireInLeaveYear(int $year, Carbon $asOf): void
     {
-        return LeaveRequest::query()
-            ->where('employee_id', $employee->id)
-            ->where('leave_type_id', $type->id)
-            ->whereIn('status', [LeaveRequestStatus::Submitted->value, LeaveRequestStatus::Pending->value]);
+        if ($this->calendar->leaveYearFor($asOf) !== $year) {
+            throw ValidationException::withMessages([
+                'year' => "The date falls in leave year {$this->calendar->leaveYearFor($asOf)}, not {$year}.",
+            ]);
+        }
     }
 
     /**

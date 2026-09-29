@@ -11,6 +11,7 @@ use App\Models\Hrms\Leave\LeavePolicy;
 use App\Models\Hrms\Leave\LeaveRequest;
 use App\Models\Hrms\Leave\LeaveType;
 use App\Models\Hrms\Shared\HrmsAuditLog;
+use App\Services\Hrms\Leave\LeaveBalanceReading;
 use App\Services\Hrms\Leave\LeaveBalanceService;
 use App\Services\Hrms\Leave\LeaveCalendar;
 use Illuminate\Support\Carbon;
@@ -139,12 +140,12 @@ class HrmsLeaveBalanceTest extends TestCase
 
         // No asks: the whole balance is free, and reading it materializes
         // the missing projection row rather than reporting a stale zero.
-        $this->assertSame(12.0, $this->balances()->availableDays($employee, $type, '2026-10-06', '2026-10-07'));
+        $this->assertSame(12.0, $this->reading()->availableDays($employee, $type, '2026-10-06', '2026-10-07'));
         $this->assertTrue(LeaveBalance::query()->exists());
 
         $this->ask($employee, $type, '2026-10-06', '2026-10-07', 2, LeaveRequestStatus::Pending);
 
-        $this->assertSame(10.0, $this->balances()->availableDays($employee, $type, '2026-10-06', '2026-10-10'));
+        $this->assertSame(10.0, $this->reading()->availableDays($employee, $type, '2026-10-06', '2026-10-10'));
 
         // An approved ask already posted its availed row into the balance —
         // counting it again here would charge twice. (Approvals rebuild
@@ -153,7 +154,7 @@ class HrmsLeaveBalanceTest extends TestCase
         $this->balances()->rebuildBalance($employee, $type, 2026);
         $this->ask($employee, $type, '2026-10-06', '2026-10-07', 2, LeaveRequestStatus::Approved);
 
-        $this->assertSame(8.0, $this->balances()->availableDays($employee, $type, '2026-10-06', '2026-10-10'));
+        $this->assertSame(8.0, $this->reading()->availableDays($employee, $type, '2026-10-06', '2026-10-10'));
     }
 
     public function test_the_leave_year_follows_the_default_policys_start_month(): void
@@ -181,6 +182,11 @@ class HrmsLeaveBalanceTest extends TestCase
     private function balances(): LeaveBalanceService
     {
         return app(LeaveBalanceService::class);
+    }
+
+    private function reading(): LeaveBalanceReading
+    {
+        return app(LeaveBalanceReading::class);
     }
 
     private function makeEmployee(): Employee

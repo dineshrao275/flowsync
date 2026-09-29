@@ -2300,7 +2300,7 @@ P1.9).
 > walks the full three-human chain; the P6.2c suite grew an `approveFully`
 > helper for the routed topology.
 
-**P6.4 — Policies, requests, controller, routes** (split: `P6.4a` catalogue ✅, `P6.4b` balances + accrue, `P6.4c` asks + exemptions)
+**P6.4 — Policies, requests, controller, routes** (split: `P6.4a` catalogue ✅, `P6.4b` balances + accrue ✅, `P6.4c` asks + exemptions)
 `LeaveTypePolicy` / `LeavePolicyPolicy` (view `hrms.leave.view`; manage `hrms.leave.manage`),
 `LeaveRequestPolicy` (view self OR `hrms.leave.view`; create self OR `hrms.leave.manage`; approve
 `hrms.leave.approve`; cancel self while `pending` OR `hrms.leave.manage`), `LeaveExemptionPolicy`.
@@ -2324,6 +2324,18 @@ api/hrms/leave/policies`, `PUT|DELETE .../policies/{leavePolicy}`, `GET api/hrms
 > is the guard. R18 records the route-group discrepancy this task surfaced
 > (HRMS groups run outside the switching group); the routes follow the
 > established shape and the fix is a dedicated task.
+>
+> **P6.4b reads through the new balance policy.** `GET balances`
+> (self-or-`leave.view`, materializing via rebuild rather than zero-filling)
+> and `POST accrue` (route-level `manage`, one `accrueFor` call scoping the
+> idempotent loop, one `leave.accrue_bulk` audit row). Two real fixes fell
+> out of its tests: reruns returned the existing row (non-null) and counted
+> as credits — only freshly written rows count now; and an empty scope never
+> reached the per-row year guard, so the pairing is validated up front too.
+> Reads moved to `LeaveBalanceReading` when the writer passed its ceiling
+> (the computation/reading split). Whole-number floats lose `.0` in JSON,
+> so HTTP assertions cast back before `assertSame`. `HrmsLeaveBalanceApiTest`
+> (5 tests) is the guard.
 
 **P6.5 — Frontend**
 `pages/hrms/Leave.jsx` (tabs: requests | types | policies | balances | exemptions),
