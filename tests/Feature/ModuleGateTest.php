@@ -111,6 +111,20 @@ class ModuleGateTest extends TestCase
         $this->getJson('/api/hrms/comp-off/credits')->assertOk();
     }
 
+    public function test_holiday_routes_gate_on_the_hrms_holidays_module(): void
+    {
+        $this->assignProToAcme();
+        $this->setAcmeModules(['hrms.core']);
+        $this->login('admin@flowsync.test');
+        $this->connectTenant('acme');
+
+        $this->getJson('/api/hrms/holidays/calendars')->assertForbidden();
+
+        $this->setAcmeModules(['hrms.core', 'hrms.holidays']);
+
+        $this->getJson('/api/hrms/holidays/calendars')->assertOk();
+    }
+
     private function login(string $email): void
     {
         $this->postJson('/api/auth/login', ['email' => $email, 'password' => 'password'])->assertOk();

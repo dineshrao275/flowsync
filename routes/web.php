@@ -22,6 +22,8 @@ use App\Http\Controllers\Hrms\DocumentController;
 use App\Http\Controllers\Hrms\DocumentDownloadController;
 use App\Http\Controllers\Hrms\DocumentTypeController;
 use App\Http\Controllers\Hrms\EmployeeController;
+use App\Http\Controllers\Hrms\Holiday\HolidayCalendarController;
+use App\Http\Controllers\Hrms\Holiday\HolidayController;
 use App\Http\Controllers\Hrms\Leave\LeaveBalanceController;
 use App\Http\Controllers\Hrms\Leave\LeaveExemptionController;
 use App\Http\Controllers\Hrms\Leave\LeavePolicyController;
@@ -521,6 +523,26 @@ Route::prefix('api')->group(function () {
             ->middleware('permission:hrms.comp_off.manage');
         Route::post('hrms/comp-off/accrue', [CompOffSettingsController::class, 'accrue'])
             ->middleware('permission:hrms.comp_off.manage');
+    });
+
+    // HRMS holidays (Phase 15 P8.4a). Module-gated on `hrms.holidays` with
+    // no route-level permission except the seed-year run: reads and writes
+    // answer per record through the policies. Nested holiday creation
+    // authorizes against the parent calendar, and `seed-year` is declared
+    // before any `{calendar}` sibling so a literal never binds as an id
+    // (the P3.3 `reorder` lesson).
+    Route::group(['middleware' => ['ensure_module:hrms.holidays']], function () {
+        Route::get('hrms/holidays/calendars', [HolidayCalendarController::class, 'index']);
+        Route::post('hrms/holidays/calendars', [HolidayCalendarController::class, 'store']);
+        Route::post('hrms/holidays/seed-year', [HolidayCalendarController::class, 'seedYear'])
+            ->middleware('permission:hrms.holidays.manage');
+        Route::put('hrms/holidays/calendars/{calendar}', [HolidayCalendarController::class, 'update']);
+        Route::delete('hrms/holidays/calendars/{calendar}', [HolidayCalendarController::class, 'destroy']);
+
+        Route::get('hrms/holidays/calendars/{calendar}/holidays', [HolidayCalendarController::class, 'holidays']);
+        Route::post('hrms/holidays/calendars/{calendar}/holidays', [HolidayCalendarController::class, 'storeHoliday']);
+        Route::put('hrms/holidays/{holiday}', [HolidayController::class, 'update']);
+        Route::delete('hrms/holidays/{holiday}', [HolidayController::class, 'destroy']);
     });
 
     // HRMS remote punch (Phase 15 P5.3). Deliberately NO route-level

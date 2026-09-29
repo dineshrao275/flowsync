@@ -2534,7 +2534,7 @@ This service is the **only** source of truth for non-working days.
 > (643 + 416, zero omitted) since seeded holidays touch shared reads.
 > `HrmsHolidayIntegrationTest` (4 tests) probes Gandhi Jayanti end to end.
 
-**P8.4 — Policies, requests, routes, frontend**
+**P8.4 — Policies, requests, routes, frontend** (split: `P8.4a` calendars + seed-year ✅, `P8.4b` assignments + resolved view, `P8.4c` SPA)
 `HolidayCalendarPolicy` (view `hrms.holidays.view`; manage `hrms.holidays.manage`).
 Routes: `GET|POST api/hrms/holidays/calendars`, `PUT|DELETE .../calendars/{calendar}`,
 `GET|POST .../calendars/{calendar}/holidays`, `PUT|DELETE .../holidays/{holiday}`,
@@ -2543,6 +2543,16 @@ Routes: `GET|POST api/hrms/holidays/calendars`, `PUT|DELETE .../calendars/{calen
 `GET|POST api/hrms/holidays/optional`.
 Frontend: `pages/hrms/Holidays.jsx` (calendar list plus a year grid with month tabs, bulk add
 common-holiday presets, optional-holiday declaration panel).
+
+> **P8.4a ships the catalogue.** `HolidayCalendarService` (server-allocated
+> slugs, default promotion in-transaction, deletion refused while
+> referenced), per-model policies (shared reference data: `view` reads,
+> `manage` writes), single-class FormRequests, `HolidayPresenter`, and two
+> thin controllers — nested creation authorizing against the parent
+> calendar. The seed-year run (route-level `manage`) shares the P8.2
+> seeder so provisioning and on-demand years cannot disagree.
+> `HrmsHolidayApiTest` (5 tests) guards CRUD, promotion, refusals, and
+> seed-year idempotency; `ModuleGateTest` pins `hrms.holidays`.
 
 **Acceptance:** a public holiday turns an attendance day into `holiday` and reduces a leave request's
 `total_days`; a restricted holiday is a working day; an optional holiday is honoured when taken;
