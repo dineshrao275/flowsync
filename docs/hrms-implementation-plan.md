@@ -2184,7 +2184,7 @@ not `absent`; a regularization changes the day and is audited; a tenant without
 **Objective:** leave types, policies, an accrual **ledger**, balances, requests, multi-step approval, and
 per-day rows that attendance and payroll both read.
 
-**P6.1 — `000019` migration**
+**P6.1 — `000019` migration** ✅
 `leave_types` (`name`, `slug` unique, `code`, `is_paid`, `accrual_method` enum
 `none|annual|monthly|quarterly|per_payroll`, `accrual_rate` decimal(6,3), `max_balance`,
 `carry_forward` bool, `carry_forward_cap` decimal(6,2), `encashable` bool, `requires_document_after_days`
@@ -2211,6 +2211,17 @@ bool) **unique `(leave_request_id, date)`**, `leave_exemption_requests` (`employ
 - **The ledger is the source of truth;** `leave_balances` is a materialised projection rebuilt from it by
   `rebuildBalance(Employee, LeaveType, year)`. That makes "why is my balance 4.5?" answerable and makes
   accrual reruns safe.
+
+> **P6.1 sketch gaps, closed.** `carry_forward_date` ships as
+> `carry_forward_day` (a day-of-month, not a date); the table inventory
+> above is otherwise exact. `leave_type_id` on asks is NO ACTION — the
+> service refuses the delete and the database backstops it instead of
+> cascading history away — while employee-owned rows cascade and
+> approval/document/user links null. `quantity` is signed (the sign *is*
+> the direction). `leave_policy_types` and `leave_request_days` carry no
+> timestamps (pure pivots/derived rows, the Laravel convention).
+> `HrmsLeaveTablesTest` (11 tests) pins uniques, cascades, the
+> type-refusal, enum CHECKs, rerun-safety and down().
 
 **P6.2 — Balance engine**
 `app/Services/Hrms/LeaveService.php`:

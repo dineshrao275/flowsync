@@ -20,7 +20,7 @@ Laravel 12 + React 19 SPA. Session-based auth **without** Breeze/Fortify/Sanctum
   `tenants:provision` + seeds demo data (superadmin + acme + globex). Reset from scratch:
   `docker-compose down -v` then `up -d` (app entrypoint re-initializes; `RUN_INIT=true` only for `app`).
   No PHP/composer needed on the host — envs in `.env.docker`.
-- `php artisan test` — run test suite (Phase 13: **isolated, per-tenant file DBs** via `Tests\IsolatesDatabase`; current gate: **935 tests / 4829 assertions passing** — P5.6b; after the `routes/web.php` change the complete suite was verified in disjoint HRMS/unit/non-HRMS chunks with zero omitted files)
+- `php artisan test` — run test suite (Phase 13: **isolated, per-tenant file DBs** via `Tests\IsolatesDatabase`; current gate: **946 tests / 4877 assertions passing** — P6.1; after the `routes/web.php` change the complete suite was verified in disjoint HRMS/unit/non-HRMS chunks with zero omitted files)
 
 - `npm run build` / `npm run dev` — frontend build / Vite dev server
 - `./vendor/bin/pint` — PHP code style (run over whole repo; `--dirty` only works in git)
@@ -549,7 +549,12 @@ manager step from `ReportingLine::managerOf()`, supersede-don't-edit apply,
 policy-decides-from-the-step, `Regularization*` bounded context — see the
 P5.4 notes below); P5.5 (scheduled roll-up: `hrms:attendance-rollup` +
 `AttendanceRollupJob` over one `AttendanceService::rollup()` loop — see the
-P5.5 notes below). Phase 13
+P5.5 notes below); P5.6a (attendance reads: month grid, today widget payload,
+and audited CSV export behind one `AttendanceDayPolicy`); P5.6b (the
+attendance SPA: `Attendance.jsx`, `AttendanceApprovals.jsx`, `ClockInWidget`,
+`AttendanceCalendar`, regularization notification branches); P6.1
+(`2026_09_28_000019` — the leave tables: types/policies/balances/ledger/
+requests/days/exemptions, plus `HrmsLeaveTablesTest`). Phase 13
   was jumped to *before* Phase 4 because P4.1's `document_requests.document_type_id` is a real FK to
   `document_types`, and no migration created that table until P13.1 — the plan's "documents ship
   first" prerequisite is a hard schema dependency, not a preference.
