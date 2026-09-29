@@ -75,6 +75,18 @@ const sections = [
                 capabilities: ['module:hrms.core', 'module:hrms.leave'],
                 icon: 'M5 3h14v18H5V3zm3 5h8m-8 4h8m-8 4h5',
             },
+            {
+                to: '/hrms/comp-off',
+                label: 'Comp-off',
+                capabilities: ['module:hrms.core', 'module:hrms.comp_off', 'permission:hrms.comp_off.manage'],
+                icon: 'M12 3v3m0 12v3M3 12h3m12 0h3M7 7l3 3m6 6l3 3m0-12l-3 3M7 17l-3 3M12 8a4 4 0 100 8 4 4 0 000-8z',
+            },
+            {
+                to: '/hrms/comp-off/mine',
+                label: 'My comp-off',
+                capabilities: ['module:hrms.core', 'module:hrms.comp_off'],
+                icon: 'M5 3h14v18H5V3zm3 5h8m-8 4h4m-4 4h5',
+            },
             { to: '/hrms', label: 'HRMS', capabilities: ['module:hrms.core'], icon: 'M17 20h5v-2a4 4 0 00-3-3.87M9 20H4v-2a4 4 0 013-3.87m4-1.13a4 4 0 10-4-4 4 4 0 004 4zm6 2a3 3 0 10-3-3' },
         ],
     },

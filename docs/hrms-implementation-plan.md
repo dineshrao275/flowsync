@@ -2449,8 +2449,17 @@ availability, 422 on shortfall), `approve/reject/cancel`.
 > scoping, step 403s, the settings merge, and the run; `ModuleGateTest`
 > pins `hrms.comp_off`.
 
-**P7.4 — Frontend** — `pages/hrms/CompOff.jsx` (credits table, requests queue, balance and
+**P7.4 — Frontend** ✅ — `pages/hrms/CompOff.jsx` (credits table, requests queue, balance and
 expiring-soon panel), `pages/hrms/MyCompOff.jsx`.
+
+> **P7.4 pairs a manage-gated hub with a self-scoped twin.** `CompOff.jsx`
+> (bank viewer, redemption queue with decide modals, manual-grant modal,
+> one-click accrual run over last month) and `MyCompOff.jsx` (bank cards,
+> filing, history, withdraw) share the minutes-everywhere convention —
+> `formatMinutes` renders, the wire never formats. `/hrms/comp-off/mine`
+> follows the leave self-service shape; `hrms.comp_off` joins the module
+> routes (the shell tile↔router regex now spans hyphens so the entry is
+> verified, not merely present).
 
 **P7.5 — Notifications** — `hrms.comp_off.requested|approved|rejected`, deep-linked via `hrmsUrl`.
 

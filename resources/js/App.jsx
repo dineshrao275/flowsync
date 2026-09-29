@@ -37,6 +37,8 @@ import Attendance from './pages/hrms/Attendance';
 import AttendanceApprovals from './pages/hrms/AttendanceApprovals';
 import Leave from './pages/hrms/Leave';
 import MyLeave from './pages/hrms/MyLeave';
+import CompOff from './pages/hrms/CompOff';
+import MyCompOff from './pages/hrms/MyCompOff';
 import Search from './pages/Search';
 import Notifications from './pages/Notifications';
 import Tenants from './pages/Tenants';
@@ -221,6 +223,18 @@ function AppRoutes() {
                                 }
                             />
                             <Route path="/hrms/leave/mine" element={<MyLeave />} />
+                            {/* Comp-off: same split — the hub needs the manage
+                                permission, the self-service page rides the
+                                module alone. */}
+                            <Route
+                                path="/hrms/comp-off"
+                                element={
+                                    <ProtectedRoute permission="hrms.comp_off.manage">
+                                        <CompOff />
+                                    </ProtectedRoute>
+                                }
+                            />
+                            <Route path="/hrms/comp-off/mine" element={<MyCompOff />} />
                             <Route path="/hrms/:section" element={<HrmsOverview />} />
                         </Route>
                         <Route element={<ProtectedRoute permission="users.view" />}>

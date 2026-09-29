@@ -210,7 +210,7 @@ class HrmsShellTest extends TestCase
         // renders as a non-interactive tile.
         $this->assertStringContainsString('Planned', $page);
 
-        preg_match_all("/'hrms\\.[a-z_.]+': hrmsUrl\\('([a-z]+)'\\)/", $js, $matches);
+        preg_match_all("/'hrms\\.[a-z_.]+': hrmsUrl\\('([a-z-]+)'\\)/", $js, $matches);
 
         $this->assertNotEmpty($matches[1], 'No module route was found to check.');
 

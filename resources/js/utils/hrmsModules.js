@@ -66,6 +66,8 @@ export const HRMS_MODULE_ROUTES = {
     // P6.5 ships the leave admin hub; the self-service page needs no tile
     // (it hangs off the hub like My files hangs off the store).
     'hrms.leave': hrmsUrl('leave'),
+    // P7.4 ships the comp-off hub on the same split.
+    'hrms.comp_off': hrmsUrl('comp-off'),
 };
 
 /**
