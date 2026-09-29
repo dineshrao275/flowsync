@@ -46,6 +46,7 @@ use App\Http\Controllers\Hrms\Payroll\PayslipController;
 use App\Http\Controllers\Hrms\Payroll\PayslipDownloadController;
 use App\Http\Controllers\Hrms\Payroll\SalaryComponentController;
 use App\Http\Controllers\Hrms\Payroll\SalaryStructureController;
+use App\Http\Controllers\Hrms\Payroll\StatutoryProfileController;
 use App\Http\Controllers\ImpersonationController;
 use App\Http\Controllers\LabelController;
 use App\Http\Controllers\MySubscriptionController;
@@ -617,6 +618,18 @@ Route::prefix('api')->group(function () {
         Route::post('hrms/payroll/payslips/{payslip}/adjustments', [PayslipAdjustmentController::class, 'store']);
         Route::delete('hrms/payroll/payslips/{payslip}/adjustments/{adjustment}', [PayslipAdjustmentController::class, 'destroy']);
         Route::get('hrms/payroll/my-payslips', [PayslipController::class, 'mine']);
+    });
+
+    // HRMS statutory identifiers (Phase 15 P10.5). The whole group sits
+    // behind the statutory module gate — jurisdictions a tenant never
+    // enabled have no profile surface at all — with the usual `hrms.view`
+    // surface gate inside it. Reads are self-or-manage, writes and the
+    // cleartext reveal are manage-alone (see the policy); configurations,
+    // declarations, projections and the surrender land in P10.6.
+    Route::group(['middleware' => ['ensure_module:hrms.core', 'ensure_module:hrms.payroll.statutory', 'permission:hrms.view']], function () {
+        Route::get('hrms/payroll/statutory/profiles/{employee}', [StatutoryProfileController::class, 'show']);
+        Route::put('hrms/payroll/statutory/profiles/{employee}', [StatutoryProfileController::class, 'update']);
+        Route::post('hrms/payroll/statutory/profiles/{employee}/reveal', [StatutoryProfileController::class, 'reveal']);
     });
 
     // HRMS remote punch (Phase 15 P5.3). Deliberately NO route-level

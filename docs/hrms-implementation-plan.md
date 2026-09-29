@@ -2833,12 +2833,21 @@ challan reference plus an audit row.
 > for the P10.6 run surface (plus the operational log). The HTTP surrender
 > stays in P10.6 with the rest of the routes.
 
-**P10.5 — PII protection**
+**P10.5 — PII protection** ✅
 `StatutoryProfileController` accepts `pan|aadhaar|uan|esi_number|pf_number|bank_account` on write and
 returns only masked values plus `has_*` booleans on read (`pan: 'XXXXX1234Y'`, `bank_account:
 '****1234'`). Reading an unmasked value requires `hrms.payroll.statutory.manage` and writes an
 `hrms_data_access_logs` row. Add `StatutoryProfile` to a "never `$model->toArray()` in a list endpoint"
 review checklist.
+
+> **P10.5 as shipped.** Mask primitives in `StatutoryIdentifierMask` (PAN
+> keeps the spec's last-five shape, bank fixed `****` + last four, full
+> aadhaar never stored); `StatutoryProfileService` (upsert/present/reveal
+> with populated-only access fields); the controller authorizes in the
+> array form (`[StatutoryProfile::class, $employee]`) because discovery
+> would bind `Employee` to `EmployeePolicy`; the reveal is a POST; routes
+> behind the statutory module gate. Configurations/declarations/TDS HTTP
+> stays in P10.6.
 
 **P10.6 — Policies, requests, routes, frontend**
 `StatutoryConfigurationPolicy` (manage `hrms.payroll.statutory.manage`), `StatutoryProfilePolicy` (view
