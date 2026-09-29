@@ -2300,7 +2300,7 @@ P1.9).
 > walks the full three-human chain; the P6.2c suite grew an `approveFully`
 > helper for the routed topology.
 
-**P6.4 — Policies, requests, controller, routes** (split: `P6.4a` catalogue ✅, `P6.4b` balances + accrue ✅, `P6.4c` asks + exemptions)
+**P6.4 — Policies, requests, controller, routes** (split: `P6.4a` catalogue ✅, `P6.4b` balances + accrue ✅, `P6.4c` asks + exemptions ✅)
 `LeaveTypePolicy` / `LeavePolicyPolicy` (view `hrms.leave.view`; manage `hrms.leave.manage`),
 `LeaveRequestPolicy` (view self OR `hrms.leave.view`; create self OR `hrms.leave.manage`; approve
 `hrms.leave.approve`; cancel self while `pending` OR `hrms.leave.manage`), `LeaveExemptionPolicy`.
@@ -2336,6 +2336,18 @@ api/hrms/leave/policies`, `PUT|DELETE .../policies/{leavePolicy}`, `GET api/hrms
 > (the computation/reading split). Whole-number floats lose `.0` in JSON,
 > so HTTP assertions cast back before `assertSame`. `HrmsLeaveBalanceApiTest`
 > (5 tests) is the guard.
+>
+> **P6.4c authorizes per record, never per route.** `LeaveRequestPolicy`
+> (self-or-`leave.view`, filing for self-or-managed, deciding from the
+> step) and `LeaveExemptionRequestPolicy` (manage-gated queue, step
+> deciders) — the exemption policy first shipped misnamed, which
+> convention-discovery answered with a silent deny-all until the tests
+> caught it. Updates edit notes only (dates/type/halves `prohibited` by
+> name); DELETE and POST-cancel both withdraw. Exemptions walk the same
+> routed chain through a small `LeaveExemptionService` (no ledger, ever)
+> under their own `hrms.leave.exemption` gate per 3.5, with the intermediate
+> message fixed to say "recorded" until the chain resolves.
+> `HrmsLeaveRequestApiTest` (6) + `HrmsLeaveExemptionApiTest` (5) guard.
 
 **P6.5 — Frontend**
 `pages/hrms/Leave.jsx` (tabs: requests | types | policies | balances | exemptions),

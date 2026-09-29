@@ -3,7 +3,9 @@
 namespace App\Services\Hrms\Leave;
 
 use App\Models\Hrms\Leave\LeaveBalance;
+use App\Models\Hrms\Leave\LeaveExemptionRequest;
 use App\Models\Hrms\Leave\LeavePolicy;
+use App\Models\Hrms\Leave\LeaveRequest;
 use App\Models\Hrms\Leave\LeaveType;
 
 /**
@@ -91,6 +93,96 @@ class LeavePresenter
             'carried_forward' => (float) $balance->carried_forward,
             'adjusted' => (float) $balance->adjusted,
             'balance' => (float) $balance->balance,
+        ];
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    public function request(LeaveRequest $request): array
+    {
+        $request->loadMissing(['employee:id,name,employee_code', 'type:id,name,code', 'days', 'approval:id,status,current_step', 'decider:id,name']);
+
+        return [
+            'id' => $request->id,
+            'employee' => $request->employee === null ? null : [
+                'id' => $request->employee->id,
+                'name' => $request->employee->name,
+                'employee_code' => $request->employee->employee_code,
+            ],
+            'type' => $request->type === null ? null : [
+                'id' => $request->type->id,
+                'name' => $request->type->name,
+                'code' => $request->type->code,
+            ],
+            'from_date' => $request->from_date->toDateString(),
+            'to_date' => $request->to_date->toDateString(),
+            'from_half' => $request->from_half->value,
+            'to_half' => $request->to_half->value,
+            'total_days' => (float) $request->total_days,
+            'reason' => $request->reason,
+            'contact_during_leave' => $request->contact_during_leave,
+            'status' => $request->status->value,
+            'status_label' => $request->status->label(),
+            'approval' => $request->approval === null ? null : [
+                'id' => $request->approval->id,
+                'status' => $request->approval->status->value,
+                'current_step' => $request->approval->current_step,
+            ],
+            'days' => $request->days->map(fn ($day): array => [
+                'date' => $day->date->toDateString(),
+                'is_holiday' => $day->is_holiday,
+                'is_week_off' => $day->is_week_off,
+                'is_half_day' => $day->is_half_day,
+            ])->all(),
+            'decided_at' => $request->decided_at?->toISOString(),
+            'decided_by' => $request->decider === null ? null : [
+                'id' => $request->decider->id,
+                'name' => $request->decider->name,
+            ],
+            'decision_note' => $request->decision_note,
+            'cancel_reason' => $request->cancel_reason,
+            'created_at' => $request->created_at?->toISOString(),
+        ];
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    public function exemption(LeaveExemptionRequest $request): array
+    {
+        $request->loadMissing(['employee:id,name,employee_code', 'type:id,name,code', 'approval:id,status,current_step', 'decider:id,name']);
+
+        return [
+            'id' => $request->id,
+            'employee' => $request->employee === null ? null : [
+                'id' => $request->employee->id,
+                'name' => $request->employee->name,
+                'employee_code' => $request->employee->employee_code,
+            ],
+            'type' => $request->type === null ? null : [
+                'id' => $request->type->id,
+                'name' => $request->type->name,
+                'code' => $request->type->code,
+            ],
+            'from_date' => $request->from_date->toDateString(),
+            'to_date' => $request->to_date->toDateString(),
+            'days' => (float) $request->days,
+            'reason' => $request->reason,
+            'status' => $request->status->value,
+            'status_label' => $request->status->label(),
+            'approval' => $request->approval === null ? null : [
+                'id' => $request->approval->id,
+                'status' => $request->approval->status->value,
+                'current_step' => $request->approval->current_step,
+            ],
+            'fiscal_year' => $request->fiscal_year,
+            'decided_at' => $request->decided_at?->toISOString(),
+            'decided_by' => $request->decider === null ? null : [
+                'id' => $request->decider->id,
+                'name' => $request->decider->name,
+            ],
+            'created_at' => $request->created_at?->toISOString(),
         ];
     }
 }

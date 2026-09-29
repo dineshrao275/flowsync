@@ -20,7 +20,9 @@ use App\Http\Controllers\Hrms\DocumentDownloadController;
 use App\Http\Controllers\Hrms\DocumentTypeController;
 use App\Http\Controllers\Hrms\EmployeeController;
 use App\Http\Controllers\Hrms\Leave\LeaveBalanceController;
+use App\Http\Controllers\Hrms\Leave\LeaveExemptionController;
 use App\Http\Controllers\Hrms\Leave\LeavePolicyController;
+use App\Http\Controllers\Hrms\Leave\LeaveRequestController;
 use App\Http\Controllers\Hrms\Leave\LeaveTypeController;
 use App\Http\Controllers\Hrms\Lifecycle\DocumentRequestController;
 use App\Http\Controllers\Hrms\Lifecycle\OffboardingCaseController;
@@ -465,6 +467,29 @@ Route::prefix('api')->group(function () {
         Route::get('hrms/leave/balances', [LeaveBalanceController::class, 'index']);
         Route::post('hrms/leave/accrue', [LeaveBalanceController::class, 'accrue'])
             ->middleware('permission:hrms.leave.manage');
+
+        // HRMS leave asks (Phase 15 P6.4c). Same gate shape: module-gated,
+        // policy-authorized per record (self-service included, deciding
+        // belongs to the step's approver). `cancel` carries an optional
+        // reason where DELETE stays reason-free, per the plan's routes.
+        Route::get('hrms/leave/requests', [LeaveRequestController::class, 'index']);
+        Route::post('hrms/leave/requests', [LeaveRequestController::class, 'store']);
+        Route::get('hrms/leave/requests/{leaveRequest}', [LeaveRequestController::class, 'show']);
+        Route::put('hrms/leave/requests/{leaveRequest}', [LeaveRequestController::class, 'update']);
+        Route::delete('hrms/leave/requests/{leaveRequest}', [LeaveRequestController::class, 'destroy']);
+        Route::post('hrms/leave/requests/{leaveRequest}/cancel', [LeaveRequestController::class, 'cancel']);
+        Route::post('hrms/leave/requests/{leaveRequest}/approve', [LeaveRequestController::class, 'approve']);
+        Route::post('hrms/leave/requests/{leaveRequest}/reject', [LeaveRequestController::class, 'reject']);
+    });
+
+    // HRMS statutory exemptions (Phase 15 P6.4c). Its own module gate per
+    // the 3.5 mapping — an exemption is jurisdiction trail, not leave
+    // administration, and the two entitlements move separately.
+    Route::group(['middleware' => ['ensure_module:hrms.leave.exemption']], function () {
+        Route::get('hrms/leave/exemptions', [LeaveExemptionController::class, 'index']);
+        Route::post('hrms/leave/exemptions', [LeaveExemptionController::class, 'store']);
+        Route::get('hrms/leave/exemptions/{exemption}', [LeaveExemptionController::class, 'show']);
+        Route::post('hrms/leave/exemptions/{exemption}/decide', [LeaveExemptionController::class, 'decide']);
     });
 
     // HRMS remote punch (Phase 15 P5.3). Deliberately NO route-level

@@ -85,6 +85,47 @@ class LeaveRequestService
         return $request->refresh();
     }
 
+    /**
+     * Edit an ask's notes without touching its priced range.
+     *
+     * Dates, halves and type are rejected by name in the FormRequest — this
+     * only ever sees reason, contact and document. Re-dating is
+     * cancel-and-refile, because the balance already prices the old range.
+     *
+     * @param  array{reason?: string, contact_during_leave?: string|null, document_id?: int|null}  $data
+     *
+     * @throws ValidationException on a terminal ask
+     */
+    public function updateAsk(LeaveRequest $request, array $data, ?User $actor = null): LeaveRequest
+    {
+        if ($request->status->isTerminal()) {
+            throw ValidationException::withMessages(['form' => 'A decided ask cannot be edited.']);
+        }
+
+        $before = ['reason' => $request->reason];
+        $updates = [];
+
+        if (isset($data['reason'])) {
+            $updates['reason'] = trim((string) $data['reason']);
+        }
+
+        if (array_key_exists('contact_during_leave', $data)) {
+            $updates['contact_during_leave'] = $data['contact_during_leave'];
+        }
+
+        if (array_key_exists('document_id', $data)) {
+            $updates['document_id'] = $data['document_id'];
+        }
+
+        if ($updates !== []) {
+            $request->update($updates);
+        }
+
+        $this->audit->log($request, 'leave.updated', $before, ['reason' => $request->refresh()->reason], $actor);
+
+        return $request->refresh();
+    }
+
     /** @return array<string, mixed> */
     private function snapshot(LeaveRequest $request): array
     {
