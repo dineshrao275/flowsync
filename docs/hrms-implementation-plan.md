@@ -2644,6 +2644,15 @@ semantics — **never floats**.
 > `000024` follow-up (P10 reserves `000023`; NN shared with P11's file,
 > never the filename) plus a null-row-only backfill. `HrmsCompensationSeedTest`
 > pins starters, settings, and insert-only repair.
+>
+> **P9.2b prices in integers.** `CompensationService` (structures with
+> allocated slugs, assignments that close-and-open, CTC math off basic)
+> and `SalaryRevisionService` (threshold routing with exact bcmath
+> comparison, cuts always through approval, apply reusing assign, letters
+> materialised as real files). Below threshold applies immediately; above
+> waits for the chain. Audit rows carry identifiers and state only — CTC
+> figures never enter logs (D2.17.8). `HrmsCompensationTest` (8 tests)
+> pins the math, the routing, the letter bytes, and the refusals.
 
 **P9.3 — Payroll engine**
 `app/Services/Hrms/PayrollService.php`:

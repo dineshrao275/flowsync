@@ -55,6 +55,21 @@ class MoneyTest extends TestCase
         $this->assertSame(167, Money::fromDecimal('1.00')->multiply('1.667')->minor);
     }
 
+    public function test_divided_by_splits_monthly_half_up(): void
+    {
+        // 700000.00 across 12 months: 58333.33 rounds to 58333.
+        $this->assertSame(5833333, Money::fromDecimal('700000')->dividedBy('12')->minor);
+        $this->assertSame(5000000, Money::fromDecimal('600000')->dividedBy('12')->minor);
+        $this->assertSame(4, Money::fromDecimal('0.07')->dividedBy('2')->minor);
+    }
+
+    public function test_divided_by_zero_throws(): void
+    {
+        $this->expectException(InvalidArgumentException::class);
+
+        Money::fromDecimal('100')->dividedBy('0');
+    }
+
     public function test_allocate_loses_no_paisa(): void
     {
         $parts = Money::allocate(1430, 3);

@@ -115,6 +115,29 @@ final readonly class Money
     }
 
     /**
+     * Split by a decimal divisor string, half-up (`700000.00 / 12`).
+     * The monthly-CTCs-everywhere operation: annual figures arrive as
+     * decimals, months do not divide them evenly, and the remainder must
+     * round, not vanish.
+     */
+    public function dividedBy(string $divisor): Money
+    {
+        $divisor = trim($divisor);
+
+        if (! preg_match('/^-?\d+(\.\d+)?$/', $divisor) || bccomp($divisor, '0', 6) === 0) {
+            throw new InvalidArgumentException("Not a usable divisor: {$divisor}.");
+        }
+
+        // One guard place, then half away from zero on the sign — the same
+        // rule `toMinorUnits` applies, so division and parsing never
+        // disagree about a halfway paisa.
+        $scaled = bcdiv((string) $this->minor, $divisor, 1);
+        $negative = str_starts_with(ltrim($scaled), '-');
+
+        return new self((int) ($negative ? bcsub($scaled, '0.5', 0) : bcadd($scaled, '0.5', 0)), $this->currency);
+    }
+
+    /**
      * A percentage of this amount (`percent('12')` of 50000.00 → 6000.00),
      * half-up.
      */
