@@ -2654,8 +2654,10 @@ semantics — **never floats**.
 > figures never enter logs (D2.17.8). `HrmsCompensationTest` (8 tests)
 > pins the math, the routing, the letter bytes, and the refusals.
 
-**P9.3 — Payroll engine** (split: `P9.3a` domain + reads ✅, `P9.3b` calculator + lifecycle)
-`app/Services/Hrms/PayrollService.php`:
+**P9.3 — Payroll engine** (split: `P9.3a` domain + reads ✅, `P9.3b` calculator + lifecycle ✅)
+`app/Services/Hrms/Payroll/PayrollService.php` (+ `Payroll/` bounded context —
+`PayslipCalculator`, `PayrollLifecycle` — split for the 300-line ceiling, the
+P4.2 rule):
 - `openRun(year, month, payPeriodStart, payPeriodEnd, payDate)` creates a `draft` run.
 - `calculate(Run)` sets `status = calculating`, then per employee builds the payslip:
   1. resolve the active `employee_salary_structures` row where `effective_from <= pay_date`;
@@ -2682,6 +2684,15 @@ semantics — **never floats**.
 > straight time by default) via the `000025` follow-up with null-row-only
 > backfill. `HrmsPayrollReadsTest` (4 tests) pins each edge alone, so the
 > engine composes verified parts.
+>
+> > **P9.3b composes them.** `PayslipCalculator::build()` implements the LOP
+> > equation (`lop = F + 0.5H + U`, `paid = W − lop`), prorates flagged
+> > earnings, and prices overtime off `payroll.ot_rate`; `PayrollService`
+> > opens/calculates/recalculates (review reruns preserve adjustments);
+> > `PayrollLifecycle` walks review → approved → processing → paid → locked
+> > with an audit row per step and amount-free `hrms.payroll.published`
+> > notifications. `HrmsPayrollEngineTest` (9 tests) pins the math, the
+> > preservation, the refusals, and the chain.
 
 **P9.4 — Sensitive access + payslip documents**
 - `GET api/hrms/payroll/runs/{run}/payslips` requires `hrms.payroll.run`;

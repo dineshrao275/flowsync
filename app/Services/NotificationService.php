@@ -8,6 +8,7 @@ use App\Models\Hrms\CompOff\CompOffRequest;
 use App\Models\Hrms\Employee\Employee;
 use App\Models\Hrms\Leave\LeaveRequest;
 use App\Models\Hrms\Lifecycle\OnboardingCaseTask;
+use App\Models\Hrms\Payroll\PayrollRun;
 use App\Models\Task;
 use App\Models\User;
 use App\Models\UserNotification;
@@ -316,6 +317,41 @@ class NotificationService
                 'title' => $task->title,
                 'employee_name' => $employee->displayName(),
                 'due_date' => $task->due_date?->toDateString(),
+            ], $actor);
+        }
+
+        return $sent;
+    }
+
+    /**
+     * Tell everyone on a published run their payslip is ready. Amounts
+     * never travel in notification data (D2.17.8 / R2) — the payslip
+     * itself carries the numbers behind its own access log.
+     *
+     * @return list<UserNotification>
+     */
+    public function payrollPublished(PayrollRun $run, ?User $actor = null): array
+    {
+        $sent = [];
+
+        foreach ($run->payslips()->with('employee:id,user_id')->get() as $payslip) {
+            $userId = $payslip->employee?->user_id;
+
+            if ($userId === null) {
+                continue;
+            }
+
+            $recipient = User::find((int) $userId);
+
+            if ($recipient === null || ($actor !== null && (int) $recipient->id === (int) $actor->id)) {
+                continue;
+            }
+
+            $sent[] = $this->notify($recipient, 'hrms.payroll.published', [
+                'payroll_run_id' => $run->id,
+                'period_year' => $run->period_year,
+                'period_month' => $run->period_month,
+                'payslip_id' => $payslip->id,
             ], $actor);
         }
 

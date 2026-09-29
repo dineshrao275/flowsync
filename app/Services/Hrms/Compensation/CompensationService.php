@@ -135,7 +135,7 @@ class CompensationService
      * `gross_monthly` is monthly CTC minus employer contributions, never a
      * sum: the sum would double-count heads payroll nets separately.
      *
-     * @return array{monthly_ctc: string, gross_monthly: string, employer_monthly: string, components: list<array{code: string, name: string, type: string, monthly: string, annual: string}>}
+     * @return array{monthly_ctc: string, gross_monthly: string, employer_monthly: string, components: list<array{code: string, name: string, type: string, is_prorated: bool, monthly: string, annual: string}>}
      *
      * @throws ValidationException on a formula head or a circular basic
      */
@@ -166,6 +166,7 @@ class CompensationService
                 'code' => $component->code,
                 'name' => $component->name,
                 'type' => $component->type->value,
+                'is_prorated' => $component->is_prorated,
                 'monthly' => $amount->toDecimal(),
                 'annual' => $amount->multiply('12')->toDecimal(),
             ];
