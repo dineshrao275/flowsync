@@ -2137,13 +2137,26 @@ the tenant context or wrap its own `TenantDatabaseManager::using()`.
 > `--dry-run` reporting headcounts. `tests/Feature/HrmsAttendanceRollupTest.php`
 > (8 tests) is the guard.
 
-**P5.6 — Frontend**
+**P5.6 — Frontend** (split: `P5.6a` backend reads ✅, `P5.6b` SPA below)
 `pages/hrms/Attendance.jsx` — month calendar grid (per day: status pill, first-in/last-out, worked hours,
 late/OT badges), a right-hand punch panel, filters (team/department/shift/status), CSV export
 (`hrms.attendance.view` + an `accessed('AttendanceDay', ..., 'export')` audit row).
 `pages/hrms/AttendanceApprovals.jsx` — the regularization queue.
 `components/hrms/ClockInWidget.jsx` — punch button, today's punches, out-of-range banner.
 `components/hrms/AttendanceCalendar.jsx` — reusable month grid, reused by employee self-service.
+
+> **P5.6a reads through one policy, not three.** `GET hrms/attendance/month`
+> (per-employee grid + summary), `GET hrms/attendance/today` (widget: merged
+> status, stored row, ordered punches) and `GET hrms/attendance/export`
+> (CSV, capped at 93 days, `accessed()` row) all ride
+> `ensure_module:hrms.attendance` with no route permission and authorize
+> `view` on `AttendanceDayPolicy` via the array form (the CommentController
+> precedent) — self-service included, strangers 403. `DayReading::month()`
+> preloads rows + rosters once so the per-date loop issues no queries, and
+> the week-off merge never materializes a row (a GET doing the rollup's job
+> would double its ledger). Shapes come from `DayPresenter` (`monthEntry`,
+> `month`, `today`), so P5.6b inherits the dialect. `tests/Feature/
+> HrmsAttendanceRecordsTest.php` (6 tests) is the guard.
 
 **Acceptance:** punch in/out produces a day record with correct late/OT math; a leave day shows `leave`
 not `absent`; a regularization changes the day and is audited; a tenant without

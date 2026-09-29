@@ -13,6 +13,7 @@ use App\Http\Controllers\FeatureManagementController;
 use App\Http\Controllers\ForgotPasswordController;
 use App\Http\Controllers\GlobalSearchController;
 use App\Http\Controllers\Hrms\Attendance\AttendanceController;
+use App\Http\Controllers\Hrms\Attendance\AttendanceRecordsController;
 use App\Http\Controllers\Hrms\Attendance\RegularizationController;
 use App\Http\Controllers\Hrms\DocumentController;
 use App\Http\Controllers\Hrms\DocumentDownloadController;
@@ -429,6 +430,15 @@ Route::prefix('api')->group(function () {
         Route::get('hrms/attendance/regularizations/{regularization}', [RegularizationController::class, 'show']);
         Route::post('hrms/attendance/regularizations/{regularization}/approve', [RegularizationController::class, 'approve']);
         Route::post('hrms/attendance/regularizations/{regularization}/reject', [RegularizationController::class, 'reject']);
+
+        // HRMS attendance reads (Phase 15 P5.6a). Same gate shape as the
+        // regularizations above: module-gated, policy-authorized per
+        // employee (self-service included via AttendanceDayPolicy::view).
+        // Declared before any `{record}` sibling so a literal segment can
+        // never bind as a model id (the P3.3 `reorder` lesson).
+        Route::get('hrms/attendance/month', [AttendanceRecordsController::class, 'month']);
+        Route::get('hrms/attendance/today', [AttendanceRecordsController::class, 'today']);
+        Route::get('hrms/attendance/export', [AttendanceRecordsController::class, 'export']);
     });
 
     // HRMS remote punch (Phase 15 P5.3). Deliberately NO route-level

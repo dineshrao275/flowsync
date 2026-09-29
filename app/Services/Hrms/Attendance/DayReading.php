@@ -4,9 +4,11 @@ namespace App\Services\Hrms\Attendance;
 
 use App\Enums\Hrms\AttendanceDayStatus;
 use App\Models\Hrms\Attendance\AttendanceDay;
+use App\Models\Hrms\Attendance\AttendancePunch;
 use App\Models\Hrms\Attendance\AttendanceRoster;
 use App\Models\Hrms\Employee\Employee;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Collection;
 
 /**
  * Attendance/HRMS — reading days back out.
@@ -106,5 +108,100 @@ class DayReading
 
         // Monday-first: Carbon’s dayOfWeekIso runs 1–7, the array runs 0–6.
         return (bool) ($offs[$day->copy()->tz($this->days->tenantTimezone())->dayOfWeekIso - 1] ?? false);
+    }
+
+    /**
+     * One employee's month for the grid: every lived date carries its merged
+     * status, future dates are omitted (the grid blanks them as upcoming).
+     *
+     * Pure like every other read here — missing past dates read `absent`
+     * (or `week_off`) without writing a row; the rollup owns materializing.
+     * Rosters and rows are preloaded once, so the per-date loop issues no
+     * queries no matter how far back the month is.
+     *
+     * @return array{year: int, month: int, days: list<array{date: string, status: AttendanceDayStatus, record: AttendanceDay|null}>, summary: array{days: int, present: int, absent: int, half_day: int, late: int, leave: int, holiday: int, week_off: int, worked_minutes: int, late_minutes: int, overtime_minutes: int}}
+     */
+    public function month(Employee $employee, int $year, int $month): array
+    {
+        $start = Carbon::create($year, $month, 1)->startOfDay();
+        $end = $start->copy()->endOfMonth()->startOfDay();
+        $today = today()->startOfDay();
+
+        if ($end->greaterThan($today)) {
+            $end = $today;
+        }
+
+        $rows = AttendanceDay::where('employee_id', $employee->id)
+            ->whereDate('work_date', '>=', $start->toDateString())
+            ->whereDate('work_date', '<=', $end->toDateString())
+            ->get()
+            ->keyBy(fn (AttendanceDay $row): string => $row->work_date->toDateString());
+
+        $rosters = AttendanceRoster::where('employee_id', $employee->id)
+            ->whereDate('effective_from', '<=', $end->toDateString())
+            ->where(fn ($query) => $query->whereNull('effective_to')->orWhereDate('effective_to', '>=', $start->toDateString()))
+            ->with('shift')
+            ->orderBy('effective_from')
+            ->get();
+
+        $days = [];
+
+        for ($date = $start->copy(); $date->lessThanOrEqualTo($end); $date->addDay()) {
+            $record = $rows->get($date->toDateString());
+            $hasPunches = $record !== null && ($record->first_in_at !== null || $record->last_out_at !== null);
+
+            $status = ! $hasPunches && $this->isWeeklyOff($this->rosterOn($rosters, $date), $date)
+                ? AttendanceDayStatus::WeekOff
+                : ($record?->status ?? AttendanceDayStatus::Absent);
+
+            $days[] = ['date' => $date->toDateString(), 'status' => $status, 'record' => $record];
+        }
+
+        return [
+            'year' => $year,
+            'month' => $month,
+            'days' => $days,
+            'summary' => $this->summary($employee, $start, $end),
+        ];
+    }
+
+    /**
+     * Today for the clock widget: the merged status, the stored row if the
+     * rollup or a punch already created it, and today's punches in order.
+     *
+     * @return array{date: string, status: AttendanceDayStatus, record: AttendanceDay|null, punches: Collection<int, AttendancePunch>}
+     */
+    public function today(Employee $employee): array
+    {
+        $date = today()->startOfDay();
+
+        return [
+            'date' => $date->toDateString(),
+            'status' => $this->dayStatus($employee, $date),
+            'record' => AttendanceDay::where('employee_id', $employee->id)
+                ->whereDate('work_date', $date->toDateString())
+                ->first(),
+            'punches' => AttendancePunch::forEmployee($employee->id)
+                ->whereDate('punch_at', $date->toDateString())
+                ->orderBy('punch_at')
+                ->get(),
+        ];
+    }
+
+    /**
+     * The roster covering a date out of a preloaded set: the latest to take
+     * effect on or before it that has not ended. Same answer `resolveShift`
+     * gives, without a query per date.
+     *
+     * @param  Collection<int, AttendanceRoster>  $rosters
+     */
+    private function rosterOn(Collection $rosters, Carbon $date): ?AttendanceRoster
+    {
+        $day = $date->toDateString();
+
+        return $rosters
+            ->filter(fn (AttendanceRoster $roster): bool => $roster->effective_from->toDateString() <= $day
+                && ($roster->effective_to === null || $roster->effective_to->toDateString() >= $day))
+            ->last();
     }
 }

@@ -14,6 +14,7 @@ use App\Services\Hrms\Attendance\DayReading;
 use App\Services\Hrms\Attendance\PunchClock;
 use App\Support\TenantContext;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Log;
 
 /**
@@ -117,6 +118,22 @@ class AttendanceService
     public function dayStatus(Employee $employee, Carbon|string $date): AttendanceDayStatus
     {
         return $this->reading->dayStatus($employee, $date);
+    }
+
+    /**
+     * @return array{year: int, month: int, days: list<array{date: string, status: AttendanceDayStatus, record: AttendanceDay|null}>, summary: array{days: int, present: int, absent: int, half_day: int, late: int, leave: int, holiday: int, week_off: int, worked_minutes: int, late_minutes: int, overtime_minutes: int}}
+     */
+    public function month(Employee $employee, int $year, int $month): array
+    {
+        return $this->reading->month($employee, $year, $month);
+    }
+
+    /**
+     * @return array{date: string, status: AttendanceDayStatus, record: AttendanceDay|null, punches: Collection<int, AttendancePunch>}
+     */
+    public function today(Employee $employee): array
+    {
+        return $this->reading->today($employee);
     }
 
     /**

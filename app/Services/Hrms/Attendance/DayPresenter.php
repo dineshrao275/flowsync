@@ -2,8 +2,10 @@
 
 namespace App\Services\Hrms\Attendance;
 
+use App\Enums\Hrms\AttendanceDayStatus;
 use App\Models\Hrms\Attendance\AttendanceDay;
 use App\Models\Hrms\Attendance\AttendancePunch;
+use Illuminate\Support\Collection;
 
 /**
  * Attendance/HRMS — what a punch and a day look like over HTTP.
@@ -50,6 +52,62 @@ class DayPresenter
             'early_by_minutes' => $day->early_by_minutes,
             'overtime_minutes' => $day->overtime_minutes,
             'is_regularized' => $day->is_regularized,
+        ];
+    }
+
+    /**
+     * One month-grid cell: the merged status always, the stored row's
+     * details only when the rollup or a punch created one. A dateless cell
+     * (absent without a row) is still a cell — the grid renders status, not
+     * row existence.
+     *
+     * @param  array{date: string, status: AttendanceDayStatus, record: AttendanceDay|null}  $entry
+     * @return array<string, mixed>
+     */
+    public function monthEntry(array $entry): array
+    {
+        $record = $entry['record'];
+
+        return [
+            'date' => $entry['date'],
+            'status' => $entry['status']->value,
+            'status_label' => $entry['status']->label(),
+            'has_record' => $record !== null,
+            'first_in_at' => $record?->first_in_at?->toISOString(),
+            'last_out_at' => $record?->last_out_at?->toISOString(),
+            'worked_minutes' => $record?->worked_minutes ?? 0,
+            'late_by_minutes' => $record?->late_by_minutes ?? 0,
+            'overtime_minutes' => $record?->overtime_minutes ?? 0,
+            'is_regularized' => $record?->is_regularized ?? false,
+        ];
+    }
+
+    /**
+     * @param  array{year: int, month: int, days: list<array{date: string, status: AttendanceDayStatus, record: AttendanceDay|null}>, summary: array<string, int>}  $month
+     * @return array<string, mixed>
+     */
+    public function month(array $month): array
+    {
+        return [
+            'year' => $month['year'],
+            'month' => $month['month'],
+            'days' => array_map(fn (array $entry): array => $this->monthEntry($entry), $month['days']),
+            'summary' => $month['summary'],
+        ];
+    }
+
+    /**
+     * @param  array{date: string, status: AttendanceDayStatus, record: AttendanceDay|null, punches: Collection<int, AttendancePunch>}  $today
+     * @return array<string, mixed>
+     */
+    public function today(array $today): array
+    {
+        return [
+            'date' => $today['date'],
+            'status' => $today['status']->value,
+            'status_label' => $today['status']->label(),
+            'day' => $today['record'] === null ? null : $this->day($today['record']),
+            'punches' => $today['punches']->map(fn (AttendancePunch $punch): array => $this->punch($punch))->all(),
         ];
     }
 }
