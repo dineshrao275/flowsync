@@ -20,7 +20,7 @@ Laravel 12 + React 19 SPA. Session-based auth **without** Breeze/Fortify/Sanctum
   `tenants:provision` + seeds demo data (superadmin + acme + globex). Reset from scratch:
   `docker-compose down -v` then `up -d` (app entrypoint re-initializes; `RUN_INIT=true` only for `app`).
   No PHP/composer needed on the host — envs in `.env.docker`.
-- `php artisan test` — run test suite (Phase 13: **isolated, per-tenant file DBs** via `Tests\IsolatesDatabase`; current gate: **910 tests / 4713 assertions passing** — P5.3; after the `routes/web.php` change the complete suite was verified in disjoint HRMS/unit/non-HRMS chunks with zero omitted files)
+- `php artisan test` — run test suite (Phase 13: **isolated, per-tenant file DBs** via `Tests\IsolatesDatabase`; current gate: **920 tests / 4768 assertions passing** — P5.4; after the `routes/web.php` change the complete suite was verified in disjoint HRMS/unit/non-HRMS chunks with zero omitted files)
 
 - `npm run build` / `npm run dev` — frontend build / Vite dev server
 - `./vendor/bin/pint` — PHP code style (run over whole repo; `--dirty` only works in git)
@@ -544,7 +544,10 @@ Hierarchy: **Tenant → Workspace → Project → Task** (subtask `tasks.parent_
   the models/enums, and the `attendancePunches()` relation — see the P5.2
   notes below); P5.3 (remote clock-in policy + punch endpoint: module-or-ownership
 gates, server-observed IP, per-section settings merge, `DayPresenter` — see
-the P5.3 notes below). Phase 13
+the P5.3 notes below); P5.4 (regularization via the shared approval engine:
+manager step from `ReportingLine::managerOf()`, supersede-don't-edit apply,
+policy-decides-from-the-step, `Regularization*` bounded context — see the
+P5.4 notes below). Phase 13
   was jumped to *before* Phase 4 because P4.1's `document_requests.document_type_id` is a real FK to
   `document_types`, and no migration created that table until P13.1 — the plan's "documents ship
   first" prerequisite is a hard schema dependency, not a preference.
@@ -804,6 +807,21 @@ the P5.3 notes below). Phase 13
   take `hrms.attendance.settings` and merge per section. The IP is
   server-observed (`$request->ip()`), never client-claimed — a `meta.ip`
   would let anyone assert they are at the office.
+- **P5.4 splits “may this caller open this row” from “which rows may the list contain”.**
+  `Policies/Hrms/Attendance/` holds the per-record policy (self-service
+  included) while `Services/Hrms/Attendance/RegularizationDirectory` owns the
+  set-level scope — the P4.3/P13.3 shape, one context over. Corrections
+  **supersede, never edit**: approval inserts `regularized`-source punches via
+  `AttendanceService::applyRegularization()` and recomputes the day, so the
+  row always equals its inputs. The manager step resolves through
+  `ReportingLine::managerOf()` (the Attendance context never reads the
+  employee graph directly); no resolvable manager → the engine auto-approves
+  and the correction applies in the same transaction, audited, never stuck.
+  The 300-line ceiling forced the split: `RegularizationService` (lifecycle) +
+  `RegularizationDirectory` (reads) + `RegularizationNotifier` (event names,
+  payloads, skip-self) + `RegularizationInput` (the boundary DTO) +
+  `RegularizationPresenter`. Notifications are backend-only — the JS
+  describe/link branches land with the P5.6 pages.
 - **P4.4 shares one checklist and gates detail pages by module, not permission.**
   `components/hrms/Checklist.jsx` serves both phases (separate `canAct`/
   `canWaive` — offboarding has no waive endpoint); the waive reason comes

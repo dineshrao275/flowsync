@@ -100,6 +100,23 @@ class ReportingLine
     }
 
     /**
+     * The person an employee reports to, if one is assigned.
+     *
+     * The read half of the reporting line: approval flows (regularization,
+     * leave) resolve their manager step through this rather than touching
+     * the `manager` relation from another context, so the Employee context
+     * stays the only place that reads the employee graph (D2.16.2).
+     */
+    public function managerOf(Employee $employee): ?Employee
+    {
+        if ($employee->manager_id === null) {
+            return null;
+        }
+
+        return $employee->manager;
+    }
+
+    /**
      * Whether `$manager` sits anywhere beneath `$employeeId` in the tree.
      */
     private function manages(Employee $manager, int $employeeId): bool

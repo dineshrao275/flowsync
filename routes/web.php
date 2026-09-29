@@ -13,6 +13,7 @@ use App\Http\Controllers\FeatureManagementController;
 use App\Http\Controllers\ForgotPasswordController;
 use App\Http\Controllers\GlobalSearchController;
 use App\Http\Controllers\Hrms\Attendance\AttendanceController;
+use App\Http\Controllers\Hrms\Attendance\RegularizationController;
 use App\Http\Controllers\Hrms\DocumentController;
 use App\Http\Controllers\Hrms\DocumentDownloadController;
 use App\Http\Controllers\Hrms\DocumentTypeController;
@@ -417,6 +418,17 @@ Route::prefix('api')->group(function () {
     Route::group(['middleware' => ['ensure_module:hrms.attendance']], function () {
         Route::put('hrms/attendance/settings', [AttendanceController::class, 'settings'])
             ->middleware('permission:hrms.attendance.settings');
+
+        // HRMS regularization (Phase 15 P5.4). Deliberately NO route-level
+        // permission, like the punch endpoint: requesting and reading one's
+        // own asks is self-service, and deciding belongs to the approval
+        // step's approver — a manager who may hold no attendance permission
+        // at all. The policy answers both from the record and the chain.
+        Route::get('hrms/attendance/regularizations', [RegularizationController::class, 'index']);
+        Route::post('hrms/attendance/regularizations', [RegularizationController::class, 'store']);
+        Route::get('hrms/attendance/regularizations/{regularization}', [RegularizationController::class, 'show']);
+        Route::post('hrms/attendance/regularizations/{regularization}/approve', [RegularizationController::class, 'approve']);
+        Route::post('hrms/attendance/regularizations/{regularization}/reject', [RegularizationController::class, 'reject']);
     });
 
     // HRMS remote punch (Phase 15 P5.3). Deliberately NO route-level

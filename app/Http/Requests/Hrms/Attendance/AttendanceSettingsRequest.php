@@ -28,6 +28,7 @@ class AttendanceSettingsRequest extends FormRequest
             'attendance.half_day_minutes' => ['sometimes', 'integer', 'min:0', 'max:1440'],
             'attendance.full_day_minutes' => ['sometimes', 'integer', 'min:0', 'max:1440'],
             'attendance.allow_negative_ot' => ['sometimes', 'boolean'],
+            'attendance.regularization_window_days' => ['sometimes', 'integer', 'min:1', 'max:90'],
             'remote_clock_in' => ['sometimes', 'array'],
             'remote_clock_in.enabled' => ['sometimes', 'boolean'],
             'remote_clock_in.require_ip' => ['sometimes', 'boolean'],

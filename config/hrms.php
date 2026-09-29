@@ -44,6 +44,7 @@ return [
             'full_day_minutes' => 480,
             'allow_negative_ot' => false,
             'auto_derive_from_work_logs' => false,  // opt-in (P20.4)
+            'regularization_window_days' => 7,      // corrections accepted this far back (P5.4)
         ],
         'remote_clock_in' => [
             'enabled' => true,

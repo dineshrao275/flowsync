@@ -75,6 +75,42 @@ class AttendanceService
         return $this->days->computeDay($employee, $date);
     }
 
+    /**
+     * Apply an approved regularization: superseding punches plus a recompute.
+     *
+     * The only writer of `regularized`-source punches besides a future
+     * import: corrections insert, never edit, so the day row always equals
+     * its inputs. Both timestamps are expected on the date being corrected —
+     * the regularization service validates that before calling.
+     */
+    public function applyRegularization(
+        Employee $employee,
+        Carbon|string $date,
+        Carbon|string|null $firstIn,
+        Carbon|string|null $lastOut,
+        ?User $decider = null,
+    ): AttendanceDay {
+        foreach ([[$firstIn, PunchDirection::In], [$lastOut, PunchDirection::Out]] as [$at, $direction]) {
+            if ($at === null) {
+                continue;
+            }
+
+            AttendancePunch::create([
+                'employee_id' => $employee->id,
+                'punch_at' => $at,
+                'direction' => $direction->value,
+                'source' => PunchSource::Regularized->value,
+                'is_out_of_range' => false,
+                'created_by' => $decider?->id,
+            ]);
+        }
+
+        $day = $this->regenerate($employee, $date);
+        $day->update(['is_regularized' => true, 'regularized_by_user_id' => $decider?->id]);
+
+        return $day->refresh();
+    }
+
     public function dayStatus(Employee $employee, Carbon|string $date): AttendanceDayStatus
     {
         return $this->reading->dayStatus($employee, $date);

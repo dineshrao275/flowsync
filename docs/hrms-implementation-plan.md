@@ -2081,11 +2081,37 @@ nullable, `created_by` nullable) with indexes `(employee_id, punch_at)` and `(pu
 > come from a `DayPresenter` now, so P5.6 inherits one dialect instead of
 > inventing a second.
 
-**P5.4 — Regularization (shared approval primitive)**
+**P5.4 — Regularization (shared approval primitive)** ✅
 - `POST api/hrms/attendance/regularizations` — an employee requests a correction for a past date (<= N
   days back, from `hrms_settings`); creates the row plus an `approvals` row whose subject is the request.
 - Manager approval patches the punch/day, sets `is_regularized`, records the approver, writes an
   `HrmsAuditLogger` row, and fires activity/notifications.
+
+> **P5.4 corrects by superseding, never by editing.** Approval inserts
+> `regularized`-source punches through `AttendanceService::applyRegularization()`
+> and recomputes the day — the punch table stays the negative the day is
+> developed from. `requested_first_in_at` is the corrected clock-in,
+> `requested_punch_at` the corrected clock-out; both must fall on `work_date`,
+> at least one is required, and a second pending ask for the same date 422s.
+> The window is `attendance.regularization_window_days` (new `config/hrms.php`
+> default 7, tunable via the P5.3 settings endpoint, `setting()` fallback for
+> old rows); the future always 422s.
+>
+> **Deciding belongs to the step's approver, not to a permission.** The five
+> routes ride `ensure_module:hrms.attendance` with no route permission —
+> requesting/reading one's own asks is self-service (D2.12), and the manager
+> step may belong to someone holding no attendance permission at all.
+> `AttendanceRegularizationRequestPolicy` (convention-discovered, engine
+> injected) answers decide from `ApprovalService::canAct()`; the set scope
+> lives in `RegularizationDirectory` (the `DocumentDirectoryQuery` split).
+> The manager step resolves through the new `ReportingLine::managerOf()` so
+> the Attendance context never reads the employee graph directly. No manager
+> → the engine auto-approves and the correction applies in the same
+> transaction (audited, never stuck). Rejection requires a reason.
+> Notifications (`…requested` to the manager, `…decided` to the requester,
+> skip-self) are backend-only — the JS describe/link branches land with the
+> P5.6 pages. `tests/Feature/HrmsRegularizationTest.php` (10 tests) is the
+> guard; no 3.5 mapping change (existing `hrms.attendance` gate).
 
 **P5.5 — Scheduled day roll-up**
 `php artisan hrms:attendance-rollup --date=YYYY-MM-DD [--tenant=ID] [--all]` — for each active employee
