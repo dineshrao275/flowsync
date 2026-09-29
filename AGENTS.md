@@ -20,7 +20,7 @@ Laravel 12 + React 19 SPA. Session-based auth **without** Breeze/Fortify/Sanctum
   `tenants:provision` + seeds demo data (superadmin + acme + globex). Reset from scratch:
   `docker-compose down -v` then `up -d` (app entrypoint re-initializes; `RUN_INIT=true` only for `app`).
   No PHP/composer needed on the host — envs in `.env.docker`.
-- `php artisan test` — run test suite (Phase 13: **isolated, per-tenant file DBs** via `Tests\IsolatesDatabase`; current gate: **1123 tests / 5664 assertions passing** — P9.4 (full suite re-verified in Hrms/non-Hrms chunks with zero omitted files in P8.3))
+- `php artisan test` — run test suite (Phase 13: **isolated, per-tenant file DBs** via `Tests\IsolatesDatabase`; current gate: **1133 tests / 5708 assertions passing** — P9.5a (full suite re-verified in Hrms/non-Hrms chunks with zero omitted files in P8.3))
 
 - `npm run build` / `npm run dev` — frontend build / Vite dev server
 - `./vendor/bin/pint` — PHP code style (run over whole repo; `--dirty` only works in git)
@@ -581,7 +581,9 @@ LOP math + `PayrollService` runs + `PayrollLifecycle` transitions +
 `payrollPublished` notifier + `HrmsPayrollEngineTest`); P9.4 (payslip reads:
 `PayslipPolicy` + `PayslipReading` with per-read access rows + `PayslipRenderer`
 via seeded `payslip_templates` + signed `hrms.payslips.download` +
-`HrmsPayslipAccessTest`).
+`HrmsPayslipAccessTest`); P9.5a (compensation writes: `CompensationCatalogService`
++ component/structure policies + `Salary{Component,Structure,Assignment}Request`
++ the three payroll controllers + `HrmsCompensationApiTest`).
 Phase 13
   was jumped to *before* Phase 4 because P4.1's `document_requests.document_type_id` is a real FK to
   `document_types`, and no migration created that table until P13.1 — the plan's "documents ship

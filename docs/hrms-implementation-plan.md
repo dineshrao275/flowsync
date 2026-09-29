@@ -2713,9 +2713,9 @@ P4.2 rule):
 > pins the 403s, the rows, and the session-free download. The write
 > half (remaining policies, requests, routes) stays in P9.5.
 
-**P9.5 — Policies, requests, routes**
+**P9.5 — Policies, requests, routes** (split: `P9.5a` compensation writes ✅, `P9.5b` run writes)
 `SalaryComponentPolicy`, `SalaryStructurePolicy`, `PayrollRunPolicy` (view/run/lock all
-`hrms.payroll.run`), `PayslipPolicy`.
+`hrms.payroll.run`), `PayslipPolicy` (shipped in P9.4 with the reads).
 `app/Http/Requests/Hrms/{SalaryComponentRequest, SalaryStructureRequest, SalaryAssignmentRequest,
 PayrollRunRequest, PayslipAdjustmentRequest}`.
 Routes under `/api/hrms/payroll`: `components`, `structures`, `structures/{id}/components`,
@@ -2723,6 +2723,14 @@ Routes under `/api/hrms/payroll`: `components`, `structures`, `structures/{id}/c
 `runs/{run}/calculate|approve|publish|mark-paid|lock`, `runs/{run}/payslips`, `payslips/{payslip}`,
 `payslips/{payslip}/adjustments`, `my-payslips`, and the signed `payslips/{payslip}/download` (outside
 the auth groups, `signed`).
+
+> **P9.5a ships the compensation writes.** `CompensationCatalogService`
+> (heads + templates + the wholesale link sync), the two master-data
+> policies, the three FormRequests, and the component/structure/salary
+> controllers with their routes. Money knobs are create-only, starters
+> refuse repurposing, in-use rows refuse deletion, salary reads are
+> view-or-self, and every mutation audits. `HrmsCompensationApiTest`
+> (10 tests). The run writes stay in P9.5b.
 
 **P9.6 — Frontend**
 `pages/hrms/Compensation.jsx` (components, structures, and a structure builder with a live monthly

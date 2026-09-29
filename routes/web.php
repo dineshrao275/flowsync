@@ -39,8 +39,11 @@ use App\Http\Controllers\Hrms\Org\DepartmentController;
 use App\Http\Controllers\Hrms\Org\DesignationController;
 use App\Http\Controllers\Hrms\Org\LocationController;
 use App\Http\Controllers\Hrms\Org\OrgController;
+use App\Http\Controllers\Hrms\Payroll\EmployeeSalaryController;
 use App\Http\Controllers\Hrms\Payroll\PayslipController;
 use App\Http\Controllers\Hrms\Payroll\PayslipDownloadController;
+use App\Http\Controllers\Hrms\Payroll\SalaryComponentController;
+use App\Http\Controllers\Hrms\Payroll\SalaryStructureController;
 use App\Http\Controllers\ImpersonationController;
 use App\Http\Controllers\LabelController;
 use App\Http\Controllers\MySubscriptionController;
@@ -570,6 +573,32 @@ Route::prefix('api')->group(function () {
     Route::group(['middleware' => ['ensure_module:hrms.core', 'permission:hrms.view']], function () {
         Route::get('hrms/payroll/runs/{run}/payslips', [PayslipController::class, 'index']);
         Route::get('hrms/payroll/payslips/{payslip}', [PayslipController::class, 'show']);
+    });
+
+    // HRMS compensation writes (Phase 15 P9.5a). Same two gates; the component
+    // and structure policies split reads (`hrms.compensation.view`) from
+    // writes (`hrms.compensation.manage`), and the salary controller answers
+    // self-service reads itself — pay is sensitive, and the person in the
+    // record may see their own basis.
+    Route::group(['middleware' => ['ensure_module:hrms.core', 'permission:hrms.view']], function () {
+        Route::get('hrms/payroll/components', [SalaryComponentController::class, 'index']);
+        Route::post('hrms/payroll/components', [SalaryComponentController::class, 'store']);
+        Route::get('hrms/payroll/components/{component}', [SalaryComponentController::class, 'show']);
+        Route::put('hrms/payroll/components/{component}', [SalaryComponentController::class, 'update']);
+        Route::delete('hrms/payroll/components/{component}', [SalaryComponentController::class, 'destroy']);
+
+        Route::get('hrms/payroll/structures', [SalaryStructureController::class, 'index']);
+        Route::post('hrms/payroll/structures', [SalaryStructureController::class, 'store']);
+        Route::get('hrms/payroll/structures/{structure}', [SalaryStructureController::class, 'show']);
+        Route::put('hrms/payroll/structures/{structure}', [SalaryStructureController::class, 'update']);
+        Route::delete('hrms/payroll/structures/{structure}', [SalaryStructureController::class, 'destroy']);
+        Route::put('hrms/payroll/structures/{structure}/components', [SalaryStructureController::class, 'setComponents']);
+
+        Route::get('hrms/payroll/employees/{employee}/salary', [EmployeeSalaryController::class, 'salary']);
+        Route::post('hrms/payroll/employees/{employee}/salary', [EmployeeSalaryController::class, 'assign']);
+        Route::get('hrms/payroll/employees/{employee}/revisions', [EmployeeSalaryController::class, 'revisions']);
+        Route::post('hrms/payroll/employees/{employee}/revisions', [EmployeeSalaryController::class, 'revise']);
+        Route::post('hrms/payroll/employees/{employee}/revisions/{revision}/apply', [EmployeeSalaryController::class, 'applyRevision']);
     });
 
     // HRMS remote punch (Phase 15 P5.3). Deliberately NO route-level
