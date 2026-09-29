@@ -36,7 +36,7 @@ use Tests\TestCase;
  *     fail at insert time inside provisioning.
  *
  * Only catalogues that are *seeded today* are checked. The rest
- * (`leave_types`, `salary_components`, `holidays`, `shift_patterns`,
+ * (`salary_components`, `holidays`, `shift_patterns`,
  * `expense_categories`, `statutory_configurations`) describe tables their phases
  * have not created yet; adding them to the list before the migration lands would
  * make this test fail for a table that is not supposed to exist, which trains
@@ -65,6 +65,7 @@ class HrmsCatalogTest extends TestCase
         'designations' => 'designations',
         'locations' => 'locations',
         'document_types' => 'document_types',
+        'leave_types' => 'leave_types',
     ];
 
     /**
@@ -85,6 +86,7 @@ class HrmsCatalogTest extends TestCase
         'employment_types' => ['slug' => 'Str::slug($type[\'name\'])'],
         'departments' => ['slug' => '$department[\'code\']'],
         'designations' => ['slug' => '$designation[\'code\']'],
+        'leave_types' => ['slug' => 'Str::slug($type[\'name\'])'],
     ];
 
     public static function seededProvider(): array
@@ -152,6 +154,7 @@ class HrmsCatalogTest extends TestCase
             'designations' => 'code',
             'locations' => 'slug',
             'document_types' => 'slug',
+            'leave_types' => 'code',
         ];
 
         foreach ($keys as $catalogue => $key) {

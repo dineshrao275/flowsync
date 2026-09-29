@@ -2223,8 +2223,20 @@ bool) **unique `(leave_request_id, date)`**, `leave_exemption_requests` (`employ
 > `HrmsLeaveTablesTest` (11 tests) pins uniques, cascades, the
 > type-refusal, enum CHECKs, rerun-safety and down().
 
-**P6.2 — Balance engine**
+**P6.2 — Balance engine** (split: `P6.2a` domain + starters ✅, `P6.2b` accrual/balances, `P6.2c` request lifecycle)
 `app/Services/Hrms/LeaveService.php`:
+
+> **P6.2a lays the domain and fixes the catalogue.** Five enums
+> (`LeaveAccrualMethod` with `isScheduled()`, `LeaveAccrualPeriod`,
+> `LeaveAdjustmentKind` with `balanceColumn()`, `LeaveRequestStatus` with
+> `reservesBalance()` + `expired`, `LeaveHalf` with `days()`) and seven thin
+> models under `Models/Hrms/Leave/`. The `leave_types` config carried the
+> P13.1 defect class (`accrual_period: yearly`, `max_balance_days` — no such
+> columns); the catalogue is rewritten onto real columns and `seedLeaveTypes()`
+> (+ a default Standard policy, links via `syncWithoutDetaching`) joins the
+> provisioner, with `leave_types` joining the catalog guard keyed on `code`.
+> `HrmsLeaveSeedTest` pins the five starters, the linkage, and the
+> insert-only repair.
 - `accrue(Employee, LeaveType, year, Carbon $asOf)` — writes ledger rows per the type's accrual method
   and policy period; idempotent per (employee, type, year, period) so reruns never double-credit.
 - `rebuildBalance(Employee, LeaveType, year)` — sums the ledger into `leave_balances`.

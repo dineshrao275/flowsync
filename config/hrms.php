@@ -88,35 +88,46 @@ return [
     |--------------------------------------------------------------------------
     |
     | Seeded for every tenant; each is `is_system` so an admin cannot delete a
-    | type that payroll or accruals already reference. `is_paid` and
-    | `accrual_period` are consumed by the leave engine (P6).
+    | type that payroll or accruals already reference. Keys map one-to-one
+    | onto `leave_types` columns (the HrmsCatalogTest gate enforces both
+    | directions), and `accrual_rate` means "days per period of
+    | `accrual_method`" — 1.5 monthly, 30 annual. `requires_document_after_days`
+    | of 1 means proof is required from the first day.
     |
     */
 
     'leave_types' => [
         [
             'name' => 'Annual Leave', 'code' => 'annual', 'is_system' => true, 'is_paid' => true,
-            'accrual_period' => 'yearly', 'max_balance_days' => 30, 'requires_document' => false,
+            'accrual_method' => 'annual', 'accrual_rate' => 30, 'max_balance' => 30,
+            'carry_forward' => true, 'carry_forward_cap' => 5, 'encashable' => false,
+            'requires_document_after_days' => null, 'allow_half_day' => true,
+            'color' => '#059669',
         ],
         [
             'name' => 'Sick Leave', 'code' => 'sick', 'is_system' => true, 'is_paid' => true,
-            'accrual_period' => 'none', 'max_balance_days' => 12, 'requires_document' => true,
+            'accrual_method' => 'monthly', 'accrual_rate' => 1, 'max_balance' => 12,
+            'carry_forward' => false, 'encashable' => false,
+            'requires_document_after_days' => 1, 'allow_half_day' => true,
+            'color' => '#d97706',
         ],
         [
             'name' => 'Unpaid Leave', 'code' => 'unpaid', 'is_system' => true, 'is_paid' => false,
-            'accrual_period' => 'none', 'max_balance_days' => null, 'requires_document' => false,
-        ],
-        [
-            'name' => 'Paid Leave', 'code' => 'paid', 'is_system' => true, 'is_paid' => true,
-            'accrual_period' => 'none', 'max_balance_days' => null, 'requires_document' => false,
+            'accrual_method' => 'none', 'allow_negative_balance' => true,
+            'requires_document_after_days' => null, 'allow_half_day' => true,
+            'color' => '#6b7280',
         ],
         [
             'name' => 'Maternity Leave', 'code' => 'maternity', 'is_system' => true, 'is_paid' => true,
-            'accrual_period' => 'none', 'max_balance_days' => 182, 'requires_document' => true,
+            'accrual_method' => 'none', 'max_balance' => 182,
+            'requires_document_after_days' => 1, 'allow_half_day' => false,
+            'color' => '#7c3aed',
         ],
         [
             'name' => 'Paternity Leave', 'code' => 'paternity', 'is_system' => true, 'is_paid' => true,
-            'accrual_period' => 'none', 'max_balance_days' => 14, 'requires_document' => false,
+            'accrual_method' => 'none', 'max_balance' => 14,
+            'requires_document_after_days' => 1, 'allow_half_day' => false,
+            'color' => '#0284cb',
         ],
     ],
 
