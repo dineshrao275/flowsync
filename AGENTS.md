@@ -20,7 +20,7 @@ Laravel 12 + React 19 SPA. Session-based auth **without** Breeze/Fortify/Sanctum
   `tenants:provision` + seeds demo data (superadmin + acme + globex). Reset from scratch:
   `docker-compose down -v` then `up -d` (app entrypoint re-initializes; `RUN_INIT=true` only for `app`).
   No PHP/composer needed on the host — envs in `.env.docker`.
-- `php artisan test` — run test suite (Phase 13: **isolated, per-tenant file DBs** via `Tests\IsolatesDatabase`; current gate: **920 tests / 4768 assertions passing** — P5.4; after the `routes/web.php` change the complete suite was verified in disjoint HRMS/unit/non-HRMS chunks with zero omitted files)
+- `php artisan test` — run test suite (Phase 13: **isolated, per-tenant file DBs** via `Tests\IsolatesDatabase`; current gate: **928 tests / 4791 assertions passing** — P5.5; after the `routes/web.php` change the complete suite was verified in disjoint HRMS/unit/non-HRMS chunks with zero omitted files)
 
 - `npm run build` / `npm run dev` — frontend build / Vite dev server
 - `./vendor/bin/pint` — PHP code style (run over whole repo; `--dirty` only works in git)
@@ -547,7 +547,9 @@ gates, server-observed IP, per-section settings merge, `DayPresenter` — see
 the P5.3 notes below); P5.4 (regularization via the shared approval engine:
 manager step from `ReportingLine::managerOf()`, supersede-don't-edit apply,
 policy-decides-from-the-step, `Regularization*` bounded context — see the
-P5.4 notes below). Phase 13
+P5.4 notes below); P5.5 (scheduled roll-up: `hrms:attendance-rollup` +
+`AttendanceRollupJob` over one `AttendanceService::rollup()` loop — see the
+P5.5 notes below). Phase 13
   was jumped to *before* Phase 4 because P4.1's `document_requests.document_type_id` is a real FK to
   `document_types`, and no migration created that table until P13.1 — the plan's "documents ship
   first" prerequisite is a hard schema dependency, not a preference.
@@ -822,6 +824,15 @@ P5.4 notes below). Phase 13
   payloads, skip-self) + `RegularizationInput` (the boundary DTO) +
   `RegularizationPresenter`. Notifications are backend-only — the JS
   describe/link branches land with the P5.6 pages.
+- **P5.5 rolls up through one loop, not two.** `AttendanceService::rollup()`
+  ensures a day row per `active` employee (exited records are history nobody
+  asked to revisit) with no audit rows — idempotent maintenance is not a
+  decision, and a per-employee-per-night ledger would bury the decisions.
+  The `HrmsAttendanceRollup` command adds the house `--tenant XOR --all`
+  scope, a strict date that refuses the future, and a `--dry-run`; the
+  `AttendanceRollupJob` carries the central tenant id and wraps its own
+  `using()` (proven from the `iso_system` connection), `tries = 1` because
+  re-running is the repair path.
 - **P4.4 shares one checklist and gates detail pages by module, not permission.**
   `components/hrms/Checklist.jsx` serves both phases (separate `canAct`/
   `canWaive` — offboarding has no waive endpoint); the waive reason comes

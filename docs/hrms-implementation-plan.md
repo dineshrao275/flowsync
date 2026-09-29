@@ -2113,13 +2113,29 @@ nullable, `created_by` nullable) with indexes `(employee_id, punch_at)` and `(pu
 > P5.6 pages. `tests/Feature/HrmsRegularizationTest.php` (10 tests) is the
 > guard; no 3.5 mapping change (existing `hrms.attendance` gate).
 
-**P5.5 — Scheduled day roll-up**
+**P5.5 — Scheduled day roll-up** ✅
 `php artisan hrms:attendance-rollup --date=YYYY-MM-DD [--tenant=ID] [--all]` — for each active employee
 ensure an `attendance_days` row exists for the date (`absent` if no punches and no leave/holiday).
 Idempotent and safe to re-run. The UI "backfill" button dispatches
 `app/Jobs/HrmsAttendanceRollupJob.php`. **Remember:** queued jobs only carry a tenant id when
 `TenantContext::currentId()` is set at dispatch time, so this job must either be dispatched from inside
 the tenant context or wrap its own `TenantDatabaseManager::using()`.
+
+> **The loop lives in `AttendanceService::rollup()`, once.** The command and
+> the job are both thin entry points over it — a second loop would drift the
+> moment one grew a special case. Rollup covers `active` employees only
+> (closing days for the exited rewrites history nobody asked to revisit) and
+> writes no audit rows: idempotent maintenance is not a decision anyone took,
+> and a ledger row per employee per night would bury the decisions. The
+> operational `attendance.rollup.completed` line (with `tenant_id`) is the
+> trail. The job carries the **central tenant id**, resolves `Tenant` (pinned
+> central by `CentralConnection`) and wraps its own `using()` — proven by a
+> test that dispatches from the `iso_system` connection — with `tries = 1`
+> because a re-run, not a blind retry, is the repair path. The command adds
+> the house `--tenant XOR --all` scope, a strict `Y-m-d` date that refuses
+> the future (a future close would stamp `absent` on unlived days), and a
+> `--dry-run` reporting headcounts. `tests/Feature/HrmsAttendanceRollupTest.php`
+> (8 tests) is the guard.
 
 **P5.6 — Frontend**
 `pages/hrms/Attendance.jsx` — month calendar grid (per day: status pill, first-in/last-out, worked hours,

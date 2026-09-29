@@ -12,7 +12,9 @@ use App\Models\User;
 use App\Services\Hrms\Attendance\DayComputation;
 use App\Services\Hrms\Attendance\DayReading;
 use App\Services\Hrms\Attendance\PunchClock;
+use App\Support\TenantContext;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Log;
 
 /**
  * Attendance/HRMS — clock events in, day photographs out.
@@ -29,6 +31,7 @@ class AttendanceService
         private readonly PunchClock $clock,
         private readonly DayComputation $days,
         private readonly DayReading $reading,
+        private readonly TenantContext $context,
     ) {}
 
     /**
@@ -122,5 +125,45 @@ class AttendanceService
     public function summary(Employee $employee, Carbon|string $from, Carbon|string $to): array
     {
         return $this->reading->summary($employee, $from, $to);
+    }
+
+    /**
+     * Ensure every active employee owns a day row for the date.
+     *
+     * The nightly close: `computeDay` is idempotent, so a re-run only
+     * re-photographs — punches that arrived after the first pass correct the
+     * row instead of duplicating it, and a person with no punches (and no
+     * leave/holiday merge yet — those arrive via P6/P7 regeneration) reads
+     * `absent`. No audit rows: this is idempotent maintenance, not a
+     * decision anyone took, and a ledger row per employee per night would
+     * bury the decisions. The operational line below is the trail.
+     *
+     * @return array{employees: int, ensured: int, duration_ms: int}
+     */
+    public function rollup(Carbon|string $date): array
+    {
+        $started = microtime(true);
+        $ensured = 0;
+
+        $employees = Employee::query()->active()->orderBy('id')->get();
+
+        foreach ($employees as $employee) {
+            $this->computeDay($employee, $date);
+            $ensured++;
+        }
+
+        $result = [
+            'employees' => $employees->count(),
+            'ensured' => $ensured,
+            'duration_ms' => (int) ((microtime(true) - $started) * 1000),
+        ];
+
+        Log::channel('hrms')->info('attendance.rollup.completed', [
+            'tenant_id' => $this->context->currentId(),
+            'work_date' => $date instanceof Carbon ? $date->toDateString() : (string) $date,
+            ...$result,
+        ]);
+
+        return $result;
     }
 }
