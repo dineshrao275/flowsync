@@ -2534,7 +2534,7 @@ This service is the **only** source of truth for non-working days.
 > (643 + 416, zero omitted) since seeded holidays touch shared reads.
 > `HrmsHolidayIntegrationTest` (4 tests) probes Gandhi Jayanti end to end.
 
-**P8.4 — Policies, requests, routes, frontend** (split: `P8.4a` calendars + seed-year ✅, `P8.4b` assignments + resolved view, `P8.4c` SPA)
+**P8.4 — Policies, requests, routes, frontend** (split: `P8.4a` calendars + seed-year ✅, `P8.4b` assignments + resolved view ✅, `P8.4c` SPA)
 `HolidayCalendarPolicy` (view `hrms.holidays.view`; manage `hrms.holidays.manage`).
 Routes: `GET|POST api/hrms/holidays/calendars`, `PUT|DELETE .../calendars/{calendar}`,
 `GET|POST .../calendars/{calendar}/holidays`, `PUT|DELETE .../holidays/{holiday}`,
@@ -2553,6 +2553,14 @@ common-holiday presets, optional-holiday declaration panel).
 > seeder so provisioning and on-demand years cannot disagree.
 > `HrmsHolidayApiTest` (5 tests) guards CRUD, promotion, refusals, and
 > seed-year idempotency; `ModuleGateTest` pins `hrms.holidays`.
+>
+> **P8.4b answers per employee.** Assignments stay manage-only end to
+> end; declaring is self-service (upsert by pair, so re-answering
+> replaces), with a manage-scoped queue beside the own-scoped one; the
+> resolved grid answers self-or-`view` because taken optionals ride with
+> public reference data. `HrmsHolidayAssignmentApiTest` (4 tests) guards
+> overlap refusal, scoping both directions, upsert replacement, and the
+> resolved view.
 
 **Acceptance:** a public holiday turns an attendance day into `holiday` and reduces a leave request's
 `total_days`; a restricted holiday is a working day; an optional holiday is honoured when taken;

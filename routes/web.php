@@ -22,8 +22,10 @@ use App\Http\Controllers\Hrms\DocumentController;
 use App\Http\Controllers\Hrms\DocumentDownloadController;
 use App\Http\Controllers\Hrms\DocumentTypeController;
 use App\Http\Controllers\Hrms\EmployeeController;
+use App\Http\Controllers\Hrms\Holiday\HolidayAssignmentController;
 use App\Http\Controllers\Hrms\Holiday\HolidayCalendarController;
 use App\Http\Controllers\Hrms\Holiday\HolidayController;
+use App\Http\Controllers\Hrms\Holiday\HolidayOptionalController;
 use App\Http\Controllers\Hrms\Leave\LeaveBalanceController;
 use App\Http\Controllers\Hrms\Leave\LeaveExemptionController;
 use App\Http\Controllers\Hrms\Leave\LeavePolicyController;
@@ -543,6 +545,18 @@ Route::prefix('api')->group(function () {
         Route::post('hrms/holidays/calendars/{calendar}/holidays', [HolidayCalendarController::class, 'storeHoliday']);
         Route::put('hrms/holidays/{holiday}', [HolidayController::class, 'update']);
         Route::delete('hrms/holidays/{holiday}', [HolidayController::class, 'destroy']);
+
+        // HRMS assignments, the resolved view, and optional answers (Phase
+        // 15 P8.4b). `calendar` is declared before any `{assignment}`
+        // sibling so the literal never binds as an id (the P3.3 lesson);
+        // the resolved view authorizes per employee, with self-service.
+        Route::get('hrms/holidays/assignments', [HolidayAssignmentController::class, 'index']);
+        Route::post('hrms/holidays/assignments', [HolidayAssignmentController::class, 'store']);
+        Route::get('hrms/holidays/calendar', [HolidayAssignmentController::class, 'resolved']);
+        Route::delete('hrms/holidays/assignments/{assignment}', [HolidayAssignmentController::class, 'destroy']);
+
+        Route::get('hrms/holidays/optional', [HolidayOptionalController::class, 'index']);
+        Route::post('hrms/holidays/optional', [HolidayOptionalController::class, 'store']);
     });
 
     // HRMS remote punch (Phase 15 P5.3). Deliberately NO route-level
