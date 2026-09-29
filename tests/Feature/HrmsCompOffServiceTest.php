@@ -15,6 +15,7 @@ use App\Models\Hrms\Leave\LeaveType;
 use App\Models\Hrms\Shared\HrmsAuditLog;
 use App\Models\Hrms\Shared\HrmsSetting;
 use App\Models\User;
+use App\Models\UserNotification;
 use App\Services\Hrms\CompOff\CompOffCredits;
 use App\Services\Hrms\CompOff\CompOffService;
 use Illuminate\Support\Carbon;
@@ -239,6 +240,57 @@ class HrmsCompOffServiceTest extends TestCase
             '--tenant' => $this->acme()->id,
             '--from' => $from,
         ])->assertFailed();
+    }
+
+    // ------------------------------------------------------------ notifications
+
+    public function test_filing_nudges_the_manager_and_decisions_nudge_back(): void
+    {
+        [$manager, $report] = $this->reportingLine();
+        $this->credits()->creditManual($report, today()->subDays(10)->toDateString(), 960);
+
+        $ask = $this->service()->request($report, [
+            'from_date' => $this->nextMonday()->toDateString(),
+            'to_date' => $this->nextMonday()->toDateString(),
+            'reason' => 'One day back.',
+        ], $report->user);
+
+        $nudged = UserNotification::query()
+            ->where('user_id', $manager->user->id)
+            ->where('type', 'hrms.comp_off.requested')
+            ->firstOrFail();
+
+        $this->assertSame($ask->id, $nudged->data['comp_off_request_id']);
+        $this->assertSame($report->name, $nudged->data['employee_name']);
+
+        $this->service()->approve($ask->refresh(), $manager->user);
+
+        $decided = UserNotification::query()
+            ->where('user_id', $report->user->id)
+            ->where('type', 'hrms.comp_off.approved')
+            ->firstOrFail();
+
+        $this->assertSame('submitted', $decided->data['from_status']);
+        $this->assertSame('approved', $decided->data['to_status']);
+    }
+
+    public function test_a_manager_filing_for_a_report_gets_no_nudge_about_it(): void
+    {
+        [$manager, $report] = $this->reportingLine();
+        $this->credits()->creditManual($report, today()->subDays(10)->toDateString(), 960);
+
+        // Actor and approver are the same login: skip-self, mirroring the
+        // leave nudge — nobody needs a toast about their own filing.
+        $this->service()->request($report, [
+            'from_date' => $this->nextMonday()->toDateString(),
+            'to_date' => $this->nextMonday()->toDateString(),
+            'reason' => 'Filed for my report.',
+        ], $manager->user);
+
+        $this->assertSame(0, UserNotification::query()
+            ->where('user_id', $manager->user->id)
+            ->where('type', 'hrms.comp_off.requested')
+            ->count());
     }
 
     // ------------------------------------------------------------ helpers

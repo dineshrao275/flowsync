@@ -25,6 +25,12 @@ export function describeNotification(type, data = {}, actorName = 'Someone') {
             return `Your leave for ${data.from_date ?? 'those dates'} was approved`;
         case 'hrms.leave.rejected':
             return `Your leave for ${data.from_date ?? 'those dates'} was rejected`;
+        case 'hrms.comp_off.requested':
+            return `${actorName} requested ${data.total_minutes ?? ''} minutes of comp-off (${data.from_date ?? ''} → ${data.to_date ?? ''})`;
+        case 'hrms.comp_off.approved':
+            return `Your comp-off for ${data.from_date ?? 'those dates'} was approved`;
+        case 'hrms.comp_off.rejected':
+            return `Your comp-off for ${data.from_date ?? 'those dates'} was rejected`;
         default:
             return 'You have a new notification';
     }
@@ -89,6 +95,16 @@ export function notificationHref(data = {}, type = '') {
 
     if (type === 'hrms.leave.approved' || type === 'hrms.leave.rejected') {
         return '/hrms/leave/mine';
+    }
+
+    // Comp-off mirrors leave: the ask lands where the queue lives for the
+    // approver and on the self-service bank for the requester.
+    if (type === 'hrms.comp_off.requested') {
+        return '/hrms/comp-off';
+    }
+
+    if (type === 'hrms.comp_off.approved' || type === 'hrms.comp_off.rejected') {
+        return '/hrms/comp-off/mine';
     }
 
     if (project_id && key) {

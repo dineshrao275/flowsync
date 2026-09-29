@@ -192,6 +192,20 @@ class HrmsShellTest extends TestCase
         $this->assertStringContainsString("return '/hrms/leave/mine';", $js);
     }
 
+    public function test_the_notification_helpers_cover_comp_off_nudges(): void
+    {
+        // Same rule as the leave pin: the ask lands on the page that shows
+        // it — the hub for the approver, the self-service bank for the
+        // requester.
+        $js = file_get_contents(resource_path('js/utils/notifications.js'));
+
+        $this->assertStringContainsString('hrms.comp_off.requested', $js);
+        $this->assertStringContainsString('hrms.comp_off.approved', $js);
+        $this->assertStringContainsString('hrms.comp_off.rejected', $js);
+        $this->assertStringContainsString("return '/hrms/comp-off';", $js);
+        $this->assertStringContainsString("return '/hrms/comp-off/mine';", $js);
+    }
+
     public function test_hrms_tiles_only_link_to_sections_the_router_owns(): void
     {
         // P2.5 populated HRMS_MODULE_ROUTES with the employee directory, so this

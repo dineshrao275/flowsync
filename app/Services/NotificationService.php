@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Events\NotificationSent;
 use App\Models\Comment;
+use App\Models\Hrms\CompOff\CompOffRequest;
 use App\Models\Hrms\Employee\Employee;
 use App\Models\Hrms\Leave\LeaveRequest;
 use App\Models\Hrms\Lifecycle\OnboardingCaseTask;
@@ -215,6 +216,67 @@ class NotificationService
     }
 
     /**
+     * Nudge whoever must act on a comp-off ask next: the current step's
+     * named approver, or every holder of its role step. Skips the actor,
+     * mirroring the leave nudge — a manager filing for a report does not
+     * need a toast about their own filing.
+     *
+     * @return list<UserNotification>
+     */
+    public function compOffRequested(CompOffRequest $request, ?User $actor = null): array
+    {
+        $step = $request->approval?->currentStepRecord();
+
+        if ($step === null) {
+            return [];
+        }
+
+        $recipientIds = $step->approver_user_id !== null
+            ? [(int) $step->approver_user_id]
+            : $this->usersWithRole((int) $step->approver_role_id);
+
+        $sent = [];
+
+        foreach ($recipientIds as $recipientId) {
+            $recipient = User::find($recipientId);
+
+            if ($recipient === null || ($actor !== null && (int) $recipient->id === (int) $actor->id)) {
+                continue;
+            }
+
+            $sent[] = $this->notify($recipient, 'hrms.comp_off.requested', $this->compOffPayload($request), $actor);
+        }
+
+        return $sent;
+    }
+
+    /**
+     * Tell the requester their comp-off ask was decided, with the
+     * transition named. Skips the actor like the leave twin.
+     */
+    public function compOffDecided(CompOffRequest $request, string $fromStatus, ?User $actor = null): ?UserNotification
+    {
+        $userId = $request->employee?->user_id;
+
+        if ($userId === null) {
+            return null;
+        }
+
+        $recipient = User::find((int) $userId);
+
+        if ($recipient === null || ($actor !== null && (int) $recipient->id === (int) $actor->id)) {
+            return null;
+        }
+
+        $type = $request->status->value === 'approved' ? 'hrms.comp_off.approved' : 'hrms.comp_off.rejected';
+
+        return $this->notify($recipient, $type, array_merge($this->compOffPayload($request), [
+            'from_status' => $fromStatus,
+            'to_status' => $request->status->value,
+        ]), $actor);
+    }
+
+    /**
      * Nudge whoever owns an onboarding checklist item that is coming due.
      *
      * Two legs, deliberately asymmetric: the owner always hears about their
@@ -330,6 +392,21 @@ class NotificationService
             'from_date' => $request->from_date->toDateString(),
             'to_date' => $request->to_date->toDateString(),
             'total_days' => (float) $request->total_days,
+        ];
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function compOffPayload(CompOffRequest $request): array
+    {
+        return [
+            'comp_off_request_id' => $request->id,
+            'employee_id' => $request->employee_id,
+            'employee_name' => $request->employee?->name,
+            'from_date' => $request->from_date->toDateString(),
+            'to_date' => $request->to_date->toDateString(),
+            'total_minutes' => $request->total_minutes,
         ];
     }
 

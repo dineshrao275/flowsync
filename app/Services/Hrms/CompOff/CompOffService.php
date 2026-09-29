@@ -11,6 +11,7 @@ use App\Services\Hrms\Employee\ReportingLine;
 use App\Services\Hrms\Shared\ApprovalService;
 use App\Services\Hrms\Shared\ValueObjects\ApproverSpec;
 use App\Services\HrmsAuditLogger;
+use App\Services\NotificationService;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
@@ -31,6 +32,7 @@ class CompOffService
         private readonly CompOffCredits $credits,
         private readonly ApprovalService $approvals,
         private readonly ReportingLine $reporting,
+        private readonly NotificationService $notifications,
         private readonly HrmsAuditLogger $audit,
     ) {}
 
@@ -93,6 +95,7 @@ class CompOffService
 
             $ask->update(['approval_id' => $approval->id]);
             $this->audit->log($ask, 'comp_off.requested', null, $this->snapshot($ask), $actor);
+            $this->notifications->compOffRequested($ask->refresh(), $actor);
 
             return $ask->refresh();
         });
@@ -109,12 +112,12 @@ class CompOffService
         // time: finalize without touching the engine, which would refuse an
         // already-resolved approval.
         if (! $request->approval->isOpen()) {
-            return $this->finalize($request, $actor);
+            return $this->finalize($request, $actor, $request->status->value);
         }
 
         $this->approvals->approve($request->approval, $actor, $note);
 
-        return $this->finalize($request, $actor);
+        return $this->finalize($request, $actor, $request->status->value);
     }
 
     /**
@@ -130,13 +133,16 @@ class CompOffService
 
         $this->approvals->reject($request->approval, $actor, $note);
 
+        $from = $request->status->value;
+
         $request->update([
             'status' => CompOffRequestStatus::Rejected->value,
             'decided_at' => now(),
             'decided_by_user_id' => $actor->id,
         ]);
 
-        $this->audit->log($request, 'comp_off.rejected', ['status' => 'pending'], $this->snapshot($request->refresh()), $actor);
+        $this->audit->log($request, 'comp_off.rejected', ['status' => $from], $this->snapshot($request->refresh()), $actor);
+        $this->notifications->compOffDecided($request->refresh(), $from, $actor);
 
         return $request->refresh();
     }
@@ -225,10 +231,8 @@ class CompOffService
         }
     }
 
-    private function finalize(CompOffRequest $request, ?User $actor): CompOffRequest
+    private function finalize(CompOffRequest $request, ?User $actor, string $from = 'submitted'): CompOffRequest
     {
-        $from = $request->status->value;
-
         $request->update([
             'status' => CompOffRequestStatus::Approved->value,
             'decided_at' => now(),
@@ -236,6 +240,7 @@ class CompOffService
         ]);
 
         $this->audit->log($request, 'comp_off.approved', ['status' => $from], $this->snapshot($request->refresh()), $actor);
+        $this->notifications->compOffDecided($request->refresh(), $from, $actor);
 
         return $request->refresh();
     }

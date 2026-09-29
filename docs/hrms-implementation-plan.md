@@ -2461,7 +2461,15 @@ expiring-soon panel), `pages/hrms/MyCompOff.jsx`.
 > routes (the shell tile↔router regex now spans hyphens so the entry is
 > verified, not merely present).
 
-**P7.5 — Notifications** — `hrms.comp_off.requested|approved|rejected`, deep-linked via `hrmsUrl`.
+**P7.5 — Notifications** ✅ — `hrms.comp_off.requested|approved|rejected`, deep-linked via `hrmsUrl`.
+
+> **P7.5 nudges the chain, not the crowd.** `compOffRequested` resolves the
+> current step (named approver or role holders) skipping the actor;
+> `compOffDecided` names the transition for the requester. Both fire from
+> the transition owners (finalize carries the real from-status, not a
+> hardcoded guess). Links land where the item lives — the hub for
+> approvers, the self-service bank for requesters — pinned by string in
+> `HrmsShellTest` like every notifier before it.
 
 **Acceptance:** a month of weekends credits correctly and re-running is a no-op; a request over balance
 422s; expiry removes credits from the available balance; approval notifies the requester.
