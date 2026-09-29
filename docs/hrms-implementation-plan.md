@@ -2849,7 +2849,7 @@ review checklist.
 > behind the statutory module gate. Configurations/declarations/TDS HTTP
 > stays in P10.6.
 
-**P10.6 — Policies, requests, routes, frontend**
+**P10.6 — Policies, requests, routes, frontend** (split: `P10.6a` rulebook + declaration HTTP ✅, `P10.6b` TDS HTTP + frontend)
 `StatutoryConfigurationPolicy` (manage `hrms.payroll.statutory.manage`), `StatutoryProfilePolicy` (view
 self OR manage; write manage). The whole group sits behind `ensure_module:hrms.payroll.statutory`:
 `/api/hrms/payroll/statutory/configurations`, `.../profiles`, `.../profiles/{employee}`,

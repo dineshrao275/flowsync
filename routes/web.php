@@ -46,6 +46,8 @@ use App\Http\Controllers\Hrms\Payroll\PayslipController;
 use App\Http\Controllers\Hrms\Payroll\PayslipDownloadController;
 use App\Http\Controllers\Hrms\Payroll\SalaryComponentController;
 use App\Http\Controllers\Hrms\Payroll\SalaryStructureController;
+use App\Http\Controllers\Hrms\Payroll\StatutoryConfigurationController;
+use App\Http\Controllers\Hrms\Payroll\StatutoryDeclarationController;
 use App\Http\Controllers\Hrms\Payroll\StatutoryProfileController;
 use App\Http\Controllers\ImpersonationController;
 use App\Http\Controllers\LabelController;
@@ -630,6 +632,23 @@ Route::prefix('api')->group(function () {
         Route::get('hrms/payroll/statutory/profiles/{employee}', [StatutoryProfileController::class, 'show']);
         Route::put('hrms/payroll/statutory/profiles/{employee}', [StatutoryProfileController::class, 'update']);
         Route::post('hrms/payroll/statutory/profiles/{employee}/reveal', [StatutoryProfileController::class, 'reveal']);
+
+        // HRMS statutory rulebooks and exemption claims (Phase 15 P10.6a).
+        // Same gates; the configuration policy answers everything with
+        // manage, the declaration policy splits filing (self-or-manage)
+        // from deciding (manage-alone).
+        Route::get('hrms/payroll/statutory/configurations', [StatutoryConfigurationController::class, 'index']);
+        Route::post('hrms/payroll/statutory/configurations', [StatutoryConfigurationController::class, 'store']);
+        Route::get('hrms/payroll/statutory/configurations/{configuration}', [StatutoryConfigurationController::class, 'show']);
+        Route::put('hrms/payroll/statutory/configurations/{configuration}', [StatutoryConfigurationController::class, 'update']);
+        Route::delete('hrms/payroll/statutory/configurations/{configuration}', [StatutoryConfigurationController::class, 'destroy']);
+
+        Route::get('hrms/payroll/statutory/declarations', [StatutoryDeclarationController::class, 'index']);
+        Route::post('hrms/payroll/statutory/declarations', [StatutoryDeclarationController::class, 'store']);
+        Route::get('hrms/payroll/statutory/declarations/{declaration}', [StatutoryDeclarationController::class, 'show']);
+        Route::post('hrms/payroll/statutory/declarations/{declaration}/submit', [StatutoryDeclarationController::class, 'submit']);
+        Route::post('hrms/payroll/statutory/declarations/{declaration}/verify', [StatutoryDeclarationController::class, 'verify']);
+        Route::post('hrms/payroll/statutory/declarations/{declaration}/reject', [StatutoryDeclarationController::class, 'reject']);
     });
 
     // HRMS remote punch (Phase 15 P5.3). Deliberately NO route-level
