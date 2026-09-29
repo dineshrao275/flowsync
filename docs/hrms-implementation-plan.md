@@ -2251,6 +2251,19 @@ bool) **unique `(leave_request_id, date)`**, `leave_exemption_requests` (`employ
 - `encash(Request)` — only for `encashable` types; writes an `encashed` ledger row and leaves a payable
   reference that P9's payroll picks up (store the reference, do not couple the services).
 
+> **P6.2b owns the money half.** `Services/Hrms/Leave/LeaveBalanceService`
+> (the request lifecycle lands in `LeaveRequestService` next — the P5 split
+> rule, one bounded context per file that would pass 300 lines):
+> `accrue()` credits one period per call (`rate` means days-per-method-period,
+> rounded at the decimal(6,2) boundary; `none`/`per_payroll` skip; zero rates
+> skip; the `(employee, type, kind=accrual, reference=accrual:periodKey)` row
+> makes reruns return the existing row) and 422s a date outside the leave
+> year; `rebuildBalance()` re-sums signed quantities into family columns with
+> the cap/floor applied to `balance` only; `availableDays()` reserves
+> `submitted|pending` overlaps but never double-charges posted approvals, and
+> materializes a missing projection instead of reporting a stale zero.
+> `HrmsLeaveBalanceTest` (9 tests) is the guard.
+
 **P6.3 — Approval routing**
 `ApprovalService::request(['steps' => [['approver_type' => 'manager'], ['approver_type' => 'role',
 'approver_role_id' => $hrRoleId]]], $leaveRequest, 'leave.request', 'Leave request')` — manager first,
