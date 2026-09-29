@@ -223,6 +223,46 @@ class PayrollService
     }
 
     /**
+     * Refresh a review run's statutory lines from the current rulebook
+     * without repricing anyone: base heads and adjustments stay, engine
+     * lines are stripped and re-priced. `--force` (full rebuild) is the
+     * heavier hammer for when the base itself is suspect. Anything past
+     * review refuses — a locked payslip is history, not a draft.
+     *
+     * @return array{payslips: int, full: bool}
+     *
+     * @throws ValidationException outside review
+     */
+    public function recomputeStatutory(PayrollRun $run, ?User $actor = null, bool $full = false): array
+    {
+        if ($run->status !== PayrollRunStatus::Review) {
+            throw ValidationException::withMessages(['run' => 'Only a run in review accepts a statutory recompute.']);
+        }
+
+        if ($full) {
+            $summary = $this->calculate($run, $actor);
+
+            return ['payslips' => $summary['calculated'], 'full' => true];
+        }
+
+        return DB::transaction(function () use ($run, $actor): array {
+            $count = 0;
+
+            foreach ($run->payslips()->with('employee')->orderBy('id')->get() as $payslip) {
+                $payslip->update($this->calculator->restatutory($payslip, $run));
+                $this->refreshTotals($payslip->refresh());
+                $count++;
+            }
+
+            $this->audit->log($run->refresh(), 'payroll.statutory_recomputed', null, [
+                'payslips' => $count,
+            ], $actor);
+
+            return ['payslips' => $count, 'full' => false];
+        });
+    }
+
+    /**
      * Hand-added lines keyed by employee, values as plain attributes the
      * calculator folds back into the rebuilt totals.
      *

@@ -2804,12 +2804,21 @@ array. Methods: `pf(Employee, Payslip)`, `esi(Employee, Payslip)`, `professional
 > lines; monthly TDS never goes negative. `StatutoryEngineTest` (15 tests,
 > no database) is the fixture corpus the risk gates demand.
 
-**P10.3 — Payroll integration**
+**P10.3 — Payroll integration** ✅
 `PayrollService::calculate()` calls the engine when the plan includes `hrms.payroll.statutory` **and** a
 configuration exists for the employee's `country`/`region`. Results are snapshotted into
 `payslips.statutory` JSON **and** added to the deductions/employer-contribution arrays. A later
 configuration change must not alter a locked payslip — the snapshot is the record.
 `php artisan hrms:statutory-recompute --run=ID [--force]` recomputes only `review`-state runs.
+
+> **P10.3 as shipped.** `StatutoryResolver` owns jurisdiction (module gate,
+> employee-country → settings fallback, region-specific beats
+> country-wide, verified-declarations-only fiscal position); the calculator
+> folds engine lines into the snapshots tagged `source: statutory`;
+> `recomputeStatutory()` strips and re-prices those lines (`--force`
+> rebuilds fully); the command takes the sibling `--tenant XOR --all`
+> scope plus `--run`. Region comes from settings — employment records
+> carry no region.
 
 **P10.4 — TDS projection**
 `StatutoryService::projectTds(Employee, fiscalYear)` — annualise the last 3 months of payslips, add

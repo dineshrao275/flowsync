@@ -5,11 +5,14 @@ namespace App\Services\Hrms\Payroll;
 use App\Models\Hrms\Employee\Employee;
 use App\Models\Hrms\Payroll\EmployeeSalaryStructure;
 use App\Models\Hrms\Payroll\PayrollRun;
+use App\Models\Hrms\Payroll\Payslip;
+use App\Models\Hrms\Payroll\SalaryComponent;
 use App\Models\Hrms\Shared\HrmsSetting;
 use App\Services\Hrms\AttendanceService;
 use App\Services\Hrms\Compensation\CompensationService;
 use App\Services\Hrms\Holiday\HolidayService;
 use App\Services\Hrms\Leave\LeaveCalendar;
+use App\Services\Hrms\Statutory\StatutoryResolver;
 use App\Support\Hrms\Money;
 
 /**
@@ -34,6 +37,7 @@ class PayslipCalculator
         private readonly HolidayService $holidays,
         private readonly LeaveCalendar $calendar,
         private readonly CompensationService $compensation,
+        private readonly StatutoryResolver $statutory,
     ) {}
 
     /**
@@ -140,14 +144,46 @@ class PayslipCalculator
 
         $net = $gross->sub($dedTotal)->add($adjustEarnings)->sub($adjustDeductions);
 
+        // Statutory lines price off the computed base (paid basic, monthly
+        // gross) and fold into the snapshots: deduction-side lines reduce
+        // take-home, employer-side lines inform it. A missing gate or
+        // rulebook resolves nothing, and the payload below is exactly the
+        // pre-statutory shape.
+        $statutory = $this->statutory->apply($employee, $run, [
+            'earnings' => $earnings,
+            'gross_pay' => $gross->toDecimal(),
+        ]);
+
+        $statutoryDeductions = Money::zero($currency);
+
+        foreach ($statutory as $line) {
+            $entry = [
+                'code' => $line['component'],
+                'name' => $this->componentName($line['component']),
+                'monthly' => $line['amount'],
+                'source' => 'statutory',
+            ];
+
+            if ($line['side'] === 'employer') {
+                $employer[] = $entry;
+
+                continue;
+            }
+
+            $deductions[] = $entry;
+            $statutoryDeductions = $statutoryDeductions->add(Money::fromDecimal($line['amount'], $currency));
+        }
+
+        $net = $net->sub($statutoryDeductions);
+
         return [
             'employee_salary_structure_id' => $assignment->id,
             'earnings' => $earnings,
             'deductions' => $deductions,
             'employer_contributions' => $employer,
-            'statutory' => [],
+            'statutory' => $statutory,
             'gross_pay' => $gross->toDecimal(),
-            'total_deductions' => $dedTotal->add($adjustDeductions)->toDecimal(),
+            'total_deductions' => $dedTotal->add($adjustDeductions)->add($statutoryDeductions)->toDecimal(),
             'net_pay' => $net->toDecimal(),
             'working_days' => number_format($working, 2, '.', ''),
             'paid_days' => $paidFactor,
@@ -161,6 +197,60 @@ class PayslipCalculator
             ],
             'adjustments' => $preservedAdjustments,
         ];
+    }
+
+    /**
+     * Refresh one stored payslip's statutory lines from the current
+     * rulebook, keeping the priced base and every adjustment: engine lines
+     * (tagged `source: statutory` at fold time) are stripped and re-priced,
+     * structure heads untouched. The recompute command's unit of work — a
+     * config change must move these lines without repricing anyone.
+     *
+     * @return array{deductions: list<array<string, mixed>>, employer_contributions: list<array<string, mixed>>, statutory: list<array<string, mixed>>}
+     */
+    public function restatutory(Payslip $payslip, PayrollRun $run): array
+    {
+        $strip = fn (?array $lines): array => array_values(array_filter(
+            $lines ?? [],
+            fn ($line): bool => ($line['source'] ?? null) !== 'statutory',
+        ));
+
+        $deductions = $strip($payslip->deductions);
+        $employer = $strip($payslip->employer_contributions);
+
+        $lines = $this->statutory->apply($payslip->employee, $run, [
+            'earnings' => $payslip->earnings ?? [],
+            'gross_pay' => (string) $payslip->gross_pay,
+        ]);
+
+        foreach ($lines as $line) {
+            $entry = [
+                'code' => $line['component'],
+                'name' => $this->componentName($line['component']),
+                'monthly' => $line['amount'],
+                'source' => 'statutory',
+            ];
+
+            if ($line['side'] === 'employer') {
+                $employer[] = $entry;
+            } else {
+                $deductions[] = $entry;
+            }
+        }
+
+        return ['deductions' => $deductions, 'employer_contributions' => $employer, 'statutory' => $lines];
+    }
+
+    /**
+     * A snapshot line's display name: the catalogue where a head exists,
+     * a headlined slug where it does not (engine codes like `tds` name no
+     * catalogue row, and the snapshot must still read).
+     */
+    private function componentName(string $code): string
+    {
+        $name = SalaryComponent::query()->where('code', $code)->value('name');
+
+        return $name !== null ? (string) $name : str($code)->headline()->toString();
     }
 
     /**
