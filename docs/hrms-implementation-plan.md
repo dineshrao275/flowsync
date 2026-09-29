@@ -2786,7 +2786,7 @@ nullable, `bank_ifsc` nullable, `tax_declaration` JSON nullable, `declarations` 
 `(employee_id, fiscal_year, quarter)`.
 - Avoid partial indexes on booleans here unless the predicate is `true` (0.6).
 
-**P10.2 — Jurisdiction engine (pure, table-driven)**
+**P10.2 — Jurisdiction engine (pure, table-driven)** ✅
 `app/Services/Hrms/Statutory/StatutoryEngine.php` — pure functions over a `StatutoryConfiguration`
 array. Methods: `pf(Employee, Payslip)`, `esi(Employee, Payslip)`, `professionalTax(Employee, Payslip)`,
 `lwf(Employee, Payslip)`, `tds(Employee, Payslip, Declarations)`. Each returns
@@ -2794,6 +2794,15 @@ array. Methods: `pf(Employee, Payslip)`, `esi(Employee, Payslip)`, `professional
 - Every amount is `decimal(14,2)`; every threshold comes from the config row, never a service constant.
 - Unit-test each function with a fixture table (below / equal-to / above every threshold, plus negative
   cases). This is the highest-risk code in the project and earns the densest tests in the repo.
+
+> **P10.2 as shipped.** The engine additionally returns `side`
+> (deduction|employer) per line — the plan's triple cannot place a line
+> without it — and `tds()` takes an optional fiscal position
+> (`projected_annual_income`, `months_remaining`, `tax_deducted_so_far`)
+> defaulting to the only stateless reading. ESI excludes over-ceiling
+> gross (not caps); PT with no covering slab stays silent; LWF skips zero
+> lines; monthly TDS never goes negative. `StatutoryEngineTest` (15 tests,
+> no database) is the fixture corpus the risk gates demand.
 
 **P10.3 — Payroll integration**
 `PayrollService::calculate()` calls the engine when the plan includes `hrms.payroll.statutory` **and** a
