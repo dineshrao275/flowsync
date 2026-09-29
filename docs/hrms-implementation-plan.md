@@ -2391,7 +2391,7 @@ leave but cannot manage types.
 
 **Objective:** credit comp-off from weekends/holidays/special days, and redeem it.
 
-**P7.1 — `000020` migration**
+**P7.1 — `000020` migration** ✅
 `comp_off_credits` (`employee_id`, `work_date`, `source_type` enum `weekend|holiday|special|manual`,
 `minutes` int, `expiry_date` nullable, `note`, `actor_user_id` nullable, `created_by`, `created_at`)
 **unique `(employee_id, work_date, source_type)`** so accrual reruns are idempotent,
@@ -2402,6 +2402,13 @@ leave but cannot manage types.
 Balance is **derived**: `SUM(credits) - SUM(approved request minutes)` where `expiry_date IS NULL OR
 expiry_date >= today`. No balance table — the volumes are small and a materialised column would be a
 staleness bug factory.
+
+> **P7.1 lands the tables with the idempotency unique doing real work.**
+> `unique(employee_id, work_date, source_type)` is what the P7.2 rerun
+> leans on (same source twice refuses; a second source on the same date is
+> a separate credit). Employee rows cascade; approval/user/document links
+> null; minutes are unsigned. `HrmsCompOffTablesTest` (10 tests) pins
+> uniques, cascades, enum CHECKs, rerun-safety and down().
 
 **P7.2 — Service**
 `app/Services/Hrms/CompOffService.php` — `creditFromCalendar(Employee, $from, $to)` (walks dates, skips
