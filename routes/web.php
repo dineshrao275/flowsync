@@ -39,6 +39,8 @@ use App\Http\Controllers\Hrms\Org\DepartmentController;
 use App\Http\Controllers\Hrms\Org\DesignationController;
 use App\Http\Controllers\Hrms\Org\LocationController;
 use App\Http\Controllers\Hrms\Org\OrgController;
+use App\Http\Controllers\Hrms\Payroll\PayslipController;
+use App\Http\Controllers\Hrms\Payroll\PayslipDownloadController;
 use App\Http\Controllers\ImpersonationController;
 use App\Http\Controllers\LabelController;
 use App\Http\Controllers\MySubscriptionController;
@@ -559,6 +561,17 @@ Route::prefix('api')->group(function () {
         Route::post('hrms/holidays/optional', [HolidayOptionalController::class, 'store']);
     });
 
+    // HRMS payroll reads (Phase 15 P9.4). Same two gates as the rest of the
+    // HRMS surface; PayslipPolicy decides per record — the run grid is a
+    // runner tool (`hrms.payroll.run`), one payslip is an all-viewer or
+    // self-with-view read. Every read writes its access rows inside the
+    // service, and the remaining payroll surface (policies, requests, write
+    // routes) lands in P9.5.
+    Route::group(['middleware' => ['ensure_module:hrms.core', 'permission:hrms.view']], function () {
+        Route::get('hrms/payroll/runs/{run}/payslips', [PayslipController::class, 'index']);
+        Route::get('hrms/payroll/payslips/{payslip}', [PayslipController::class, 'show']);
+    });
+
     // HRMS remote punch (Phase 15 P5.3). Deliberately NO route-level
     // permission: the endpoint resolves the employment record from the
     // authenticated user, so there is nothing to authorize against and no
@@ -597,6 +610,15 @@ Route::prefix('api')->group(function () {
     Route::get('hrms/documents/{document}/download', DocumentDownloadController::class)
         ->middleware('signed')
         ->name('hrms.documents.download');
+
+    // Same shape for a rendered payslip: outside switch_tenant, so the
+    // central tenant id travels inside the signature and the controller
+    // resolves the record inside TenantDatabaseManager::using(). `payslip`
+    // is intentionally an int, not a route-model-bound Payslip — binding
+    // would query the central connection, where payslips does not exist.
+    Route::get('hrms/payroll/payslips/{payslip}/download', PayslipDownloadController::class)
+        ->middleware('signed')
+        ->name('hrms.payslips.download');
 });
 
 // Public marketing site (server-rendered from the DB-backed CMS pages).

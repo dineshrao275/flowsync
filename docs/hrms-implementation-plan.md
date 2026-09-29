@@ -2694,7 +2694,7 @@ P4.2 rule):
 > > notifications. `HrmsPayrollEngineTest` (9 tests) pins the math, the
 > > preservation, the refusals, and the chain.
 
-**P9.4 — Sensitive access + payslip documents**
+**P9.4 — Sensitive access + payslip documents** ✅
 - `GET api/hrms/payroll/runs/{run}/payslips` requires `hrms.payroll.run`;
   `GET api/hrms/payroll/payslips/{payslip}` requires `hrms.payroll.view_all`, or self plus
   `hrms.payroll.view`. Both write an `hrms_data_access_logs` `view` row.
@@ -2702,6 +2702,16 @@ P4.2 rule):
   and writes an `accessed(..., 'download')` row.
 - `hrms.compensation.manage` and `hrms.payroll.manage` are the only permissions that may write
   compensation/payroll master data, and both are audited on every mutation.
+
+> **P9.4 ships the read half of the HTTP surface.** `PayslipPolicy`
+> (grid = runners, one = all-viewer or self-with-view), `PayslipReading`
+> (one access row per payslip returned, amounts never in the ledger),
+> `PayslipRenderer` (printable HTML off the seeded Standard template —
+> no PDF library vendored), and the signed `hrms.payslips.download`
+> route, which is stricter than documents: anonymous signatures 403
+> because every payslip is sensitive. `HrmsPayslipAccessTest` (9 tests)
+> pins the 403s, the rows, and the session-free download. The write
+> half (remaining policies, requests, routes) stays in P9.5.
 
 **P9.5 — Policies, requests, routes**
 `SalaryComponentPolicy`, `SalaryStructurePolicy`, `PayrollRunPolicy` (view/run/lock all

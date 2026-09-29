@@ -9,6 +9,7 @@ use App\Models\Hrms\Leave\LeaveType;
 use App\Models\Hrms\Org\Department;
 use App\Models\Hrms\Org\Designation;
 use App\Models\Hrms\Org\Location;
+use App\Models\Hrms\Payroll\PayslipTemplate;
 use App\Models\Hrms\Payroll\SalaryComponent;
 use App\Models\Hrms\Shared\HrmsSetting;
 use App\Services\Hrms\Holiday\HolidayYearSeeder;
@@ -79,6 +80,7 @@ class HrmsDefaultsProvisioner
         $this->seedLeaveTypes();
         $this->seedHolidayCalendars();
         $this->seedSalaryComponents();
+        $this->seedPayslipTemplates();
     }
 
     /**
@@ -351,5 +353,25 @@ class HrmsDefaultsProvisioner
                 ]
             );
         }
+    }
+
+    /**
+     * The tenant's starting payslip layout.
+     *
+     * One guarded row, keyed on the fixed name: a tenant provisioned before
+     * payslips existed gets it on repair, and a tenant that customised or
+     * replaced it keeps theirs. Null content renders the built-in layout —
+     * the row existing is what the renderer reads, not the content.
+     */
+    private function seedPayslipTemplates(): void
+    {
+        PayslipTemplate::query()->firstOrCreate(
+            ['name' => 'Standard'],
+            [
+                'is_default' => true,
+                'content' => ['show_employer_contributions' => true],
+                'is_active' => true,
+            ]
+        );
     }
 }
