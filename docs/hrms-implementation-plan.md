@@ -2481,15 +2481,22 @@ expiring-soon panel), `pages/hrms/MyCompOff.jsx`.
 **Objective:** holiday calendars (optionally per region), assignment to employees, optional/restricted
 holidays, and the single source of non-working days that attendance, leave, and comp-off all read.
 
-**P8.1 — `000021` migration**
+**P8.1 — `000021` migration** ✅
 `holiday_calendars` (`name`, `slug` unique, `country` char(2), `region` nullable, `description`,
 `is_default` bool, `is_active`, `position`), `holidays` (`calendar_id`, `name`, `date`, `type` enum
 `public|restricted|optional`, `is_recurring` bool, `description` nullable) indexed `(calendar_id, date)`
 (for `is_recurring` rows, `date` holds the current year's occurrence and the **month/day** is what
 recurs), `employee_holiday_calendars` (`employee_id`, `calendar_id`, `effective_from`, `effective_to`
 nullable) unique `(employee_id, calendar_id, effective_from)`, `holiday_optional_holidays` (`employee_id`,
-`holiday_id`, `status` enum `taken|skipped`, `taken_date` nullable, `note`) unique `(employee_id,
+`holiday_id`, `status` enum `taken|skipped`, `taken_date` nullable, `note`) unique `(employee_id`,
 holiday_id)`.
+
+> **P8.1 keeps history with the side that owns it.** Calendars own their
+> holidays and assignments cascade with both ends; the optional answers
+> cascade with theirs. `country` is nullable (seeded calendars name one, a
+> hand-made Office calendar need not); the link tables carry no timestamps
+> (their windows are the record). `HrmsHolidayTablesTest` (10 tests) pins
+> uniques, cascades, enum CHECKs, rerun-safety and down().
 
 **P8.2 — Service**
 `app/Services/Hrms/HolidayService.php` — `calendar(Employee, $year)` (assigned calendars plus the tenant
