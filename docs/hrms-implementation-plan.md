@@ -2768,7 +2768,8 @@ non-privileged user cannot read another's payslip; every payslip read is logged.
 > never hard-coded per country in the service layer. Phase 9's payslips must keep working with this
 > module disabled.
 
-**P10.1 — `000023` migration**
+**P10.1 — `000023` migration** ✅ (`2026_10_03_000023`, dated after the
+document tables because declarations reference `employee_documents`)
 `statutory_configurations` (`country` char(2), `region` nullable, `name`, `code` unique, `is_active`,
 `config` JSON — e.g. `{pf: {enabled, employee_wage_ceiling, employer_rate, employee_rate}, esi: {...},
 pt: {slabs: [{up_to, amount}]}, lwf: {enabled, months}}`), `statutory_profiles` (`employee_id` **unique**,
