@@ -9,6 +9,7 @@ use App\Models\Hrms\Leave\LeaveType;
 use App\Models\Hrms\Org\Department;
 use App\Models\Hrms\Org\Designation;
 use App\Models\Hrms\Org\Location;
+use App\Models\Hrms\Payroll\SalaryComponent;
 use App\Models\Hrms\Shared\HrmsSetting;
 use App\Services\Hrms\Holiday\HolidayYearSeeder;
 use Illuminate\Support\Str;
@@ -77,6 +78,7 @@ class HrmsDefaultsProvisioner
         $this->seedDocumentTypes();
         $this->seedLeaveTypes();
         $this->seedHolidayCalendars();
+        $this->seedSalaryComponents();
     }
 
     /**
@@ -319,5 +321,35 @@ class HrmsDefaultsProvisioner
     private function seedHolidayCalendars(): void
     {
         app(HolidayYearSeeder::class)->seedFromConfig(today()->year);
+    }
+
+    /**
+     * The starter pay heads.
+     *
+     * Keyed on `code`, insert-only like every other catalogue: a tenant
+     * that renames "Basic Salary" keeps its wording, rates and amounts
+     * live on the structure rows that use them (the catalogue carries no
+     * money, only the rules), and a catalogue that later gains a head
+     * repairs it onto old tenants without touching the rest.
+     */
+    private function seedSalaryComponents(): void
+    {
+        foreach ((array) config('hrms.salary_components', []) as $index => $component) {
+            SalaryComponent::query()->firstOrCreate(
+                ['code' => $component['code']],
+                [
+                    'name' => $component['name'],
+                    'slug' => Str::slug($component['name']),
+                    'type' => $component['type'],
+                    'calculation_type' => $component['calculation_type'] ?? 'fixed',
+                    'default_value' => $component['default_value'] ?? 0,
+                    'is_taxable' => (bool) ($component['is_taxable'] ?? true),
+                    'is_prorated' => (bool) ($component['is_prorated'] ?? true),
+                    'is_system' => (bool) ($component['is_system'] ?? false),
+                    'is_active' => true,
+                    'sequence' => ($index + 1) * 10,
+                ]
+            );
+        }
     }
 }

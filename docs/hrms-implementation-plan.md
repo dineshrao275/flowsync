@@ -2620,7 +2620,7 @@ enum `earning|deduction`, `label`, `amount` decimal(14,2), `source_type` nullabl
 > `HrmsPayrollTablesTest` (13 tests) pins uniques, cascades, the refusal,
 > enum CHECKs, rerun-safety and down().
 
-**P9.2 — Compensation service**
+**P9.2 — Compensation service** (split: `P9.2a` domain + starters ✅, `P9.2b` engine)
 `app/Services/Hrms/CompensationService.php` — `structures()`, `createStructure`,
 `assign(Employee, Structure, ctc, effectiveFrom, reason)` (materialises `employee_salary_structures`,
 flips `is_current` on the previous row, audits), `revise(Employee, toCtc, effectiveFrom, reason)`
@@ -2630,6 +2630,20 @@ letter as a document via P13).
 `ctcToComponents(Structure, ctc)` resolves `percentage_of_ctc` components; `gross_monthly =
 ctc_annual / 12` minus employer contributions. All arithmetic in `decimal(14,2)` with string/bcmath
 semantics — **never floats**.
+
+> **P9.2a lays the domain and fixes two catalogues.** `Support/Hrms/Money`
+> (the D2.16.6 value object, finally built: minor-unit ints, half-up
+> bcmath, `allocate` without losing a paisa, floats refused) with unit
+> tests; three enums and four thin models under `Models/Hrms/Payroll/`.
+> The `salary_components` config carried the document-types defect class
+> (`is_employer_contribution`, no `type`); rewritten onto real columns
+> with rates living on structure rows, seeded by `seedSalaryComponents()`,
+> and joining the catalog guard keyed on `code`. A `revision_letter`
+> document type joins the starters for P9.2b's letters. The revision
+> threshold needed a home: `compensation` settings section via the
+> `000024` follow-up (P10 reserves `000023`; NN shared with P11's file,
+> never the filename) plus a null-row-only backfill. `HrmsCompensationSeedTest`
+> pins starters, settings, and insert-only repair.
 
 **P9.3 — Payroll engine**
 `app/Services/Hrms/PayrollService.php`:

@@ -20,7 +20,7 @@ Laravel 12 + React 19 SPA. Session-based auth **without** Breeze/Fortify/Sanctum
   `tenants:provision` + seeds demo data (superadmin + acme + globex). Reset from scratch:
   `docker-compose down -v` then `up -d` (app entrypoint re-initializes; `RUN_INIT=true` only for `app`).
   No PHP/composer needed on the host — envs in `.env.docker`.
-- `php artisan test` — run test suite (Phase 13: **isolated, per-tenant file DBs** via `Tests\IsolatesDatabase`; current gate: **1082 tests / 5495 assertions passing** — P9.1 (full suite re-verified in Hrms/non-Hrms chunks with zero omitted files in P8.3))
+- `php artisan test` — run test suite (Phase 13: **isolated, per-tenant file DBs** via `Tests\IsolatesDatabase`; current gate: **1093 tests / 5570 assertions passing** — P9.2a (full suite re-verified in Hrms/non-Hrms chunks with zero omitted files in P8.3))
 
 - `npm run build` / `npm run dev` — frontend build / Vite dev server
 - `./vendor/bin/pint` — PHP code style (run over whole repo; `--dirty` only works in git)

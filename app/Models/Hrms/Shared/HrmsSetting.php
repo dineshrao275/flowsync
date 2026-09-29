@@ -23,6 +23,7 @@ use Illuminate\Database\Eloquent\Model;
  * @property array<string, mixed>|null $attendance
  * @property array<string, mixed>|null $remote_clock_in
  * @property array<string, mixed>|null $comp_off
+ * @property array<string, mixed>|null $compensation
  * @property array<string, mixed>|null $statutory
  * @property bool $mask_sensitive
  * @property int $data_retention_months
@@ -44,6 +45,7 @@ class HrmsSetting extends Model
         'attendance',
         'remote_clock_in',
         'comp_off',
+        'compensation',
         'statutory',
         'mask_sensitive',
         'data_retention_months',
@@ -58,6 +60,7 @@ class HrmsSetting extends Model
             'attendance' => 'array',
             'remote_clock_in' => 'array',
             'comp_off' => 'array',
+            'compensation' => 'array',
             'statutory' => 'array',
             'mask_sensitive' => 'boolean',
             'data_retention_months' => 'integer',

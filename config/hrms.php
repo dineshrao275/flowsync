@@ -63,6 +63,11 @@ return [
             'country' => null,
             'currency' => null,
         ],
+        'compensation' => [
+            // A raise at or above this percent needs approval; below it the
+            // revision approves itself (audited as auto, the engine's rule).
+            'revision_approval_threshold_percent' => 10,
+        ],
         'mask_sensitive' => true,
         'data_retention_months' => 24,
     ],
@@ -146,32 +151,37 @@ return [
     | `percentage_of_basic` against the basic component. Employer contributions
     | never reduce take-home pay; they only build gross-up/CTC totals.
     |
+    | Keys map one-to-one onto `salary_components` columns (the
+    | HrmsCatalogTest gate enforces both directions): `type` names the pay
+    | head family, and rates/amounts live on the structure rows that use
+    | them — the catalogue carries no money, only the rules.
+    |
     */
 
     'salary_components' => [
         [
-            'name' => 'Basic Salary', 'code' => 'basic', 'is_system' => true, 'calculation_type' => 'fixed',
-            'is_taxable' => true, 'is_employer_contribution' => false, 'sequence' => 10,
+            'name' => 'Basic Salary', 'code' => 'basic', 'is_system' => true, 'type' => 'earning',
+            'calculation_type' => 'fixed', 'is_taxable' => true, 'sequence' => 10,
         ],
         [
-            'name' => 'House Rent Allowance', 'code' => 'hra', 'is_system' => true, 'calculation_type' => 'percentage_of_basic',
-            'is_taxable' => true, 'is_employer_contribution' => false, 'sequence' => 20,
+            'name' => 'House Rent Allowance', 'code' => 'hra', 'is_system' => true, 'type' => 'earning',
+            'calculation_type' => 'percentage_of_basic', 'is_taxable' => true, 'sequence' => 20,
         ],
         [
-            'name' => 'Special Allowance', 'code' => 'special_allowance', 'is_system' => true, 'calculation_type' => 'percentage_of_basic',
-            'is_taxable' => true, 'is_employer_contribution' => false, 'sequence' => 30,
+            'name' => 'Special Allowance', 'code' => 'special_allowance', 'is_system' => true, 'type' => 'earning',
+            'calculation_type' => 'percentage_of_basic', 'is_taxable' => true, 'sequence' => 30,
         ],
         [
-            'name' => 'Provident Fund', 'code' => 'pf_employer', 'is_system' => true, 'calculation_type' => 'percentage_of_basic',
-            'is_taxable' => false, 'is_employer_contribution' => true, 'sequence' => 40,
+            'name' => 'Provident Fund', 'code' => 'pf_employer', 'is_system' => true, 'type' => 'employer_contribution',
+            'calculation_type' => 'percentage_of_basic', 'is_taxable' => false, 'sequence' => 40,
         ],
         [
-            'name' => 'Provident Fund (employee)', 'code' => 'pf_employee', 'is_system' => true, 'calculation_type' => 'percentage_of_basic',
-            'is_taxable' => false, 'is_employer_contribution' => false, 'sequence' => 50,
+            'name' => 'Provident Fund (employee)', 'code' => 'pf_employee', 'is_system' => true, 'type' => 'deduction',
+            'calculation_type' => 'percentage_of_basic', 'is_taxable' => false, 'sequence' => 50,
         ],
         [
-            'name' => 'Professional Tax', 'code' => 'professional_tax', 'is_system' => true, 'calculation_type' => 'fixed',
-            'is_taxable' => false, 'is_employer_contribution' => false, 'sequence' => 60,
+            'name' => 'Professional Tax', 'code' => 'professional_tax', 'is_system' => true, 'type' => 'deduction',
+            'calculation_type' => 'fixed', 'is_taxable' => false, 'sequence' => 60,
         ],
     ],
 
@@ -296,6 +306,7 @@ return [
         ['name' => 'Bank Proof', 'slug' => 'bank_proof', 'category' => 'bank', 'is_mandatory' => true, 'is_sensitive' => true, 'requires_expiry' => false, 'is_system' => true],
         ['name' => 'Medical Record', 'slug' => 'medical_record', 'category' => 'medical', 'is_mandatory' => false, 'is_sensitive' => true, 'requires_expiry' => false, 'is_system' => true],
         ['name' => 'Experience Letter', 'slug' => 'experience_letter', 'category' => 'letter', 'is_mandatory' => false, 'is_sensitive' => false, 'requires_expiry' => false, 'is_system' => true],
+        ['name' => 'Revision Letter', 'slug' => 'revision_letter', 'category' => 'letter', 'is_mandatory' => false, 'is_sensitive' => false, 'requires_expiry' => false, 'is_system' => true],
         ['name' => 'Provident Fund Details', 'slug' => 'pf_details', 'category' => 'tax', 'is_mandatory' => false, 'is_sensitive' => true, 'requires_expiry' => false, 'is_system' => true],
         ['name' => 'ESI Details', 'slug' => 'esi_details', 'category' => 'tax', 'is_mandatory' => false, 'is_sensitive' => true, 'requires_expiry' => false, 'is_system' => true],
     ],
