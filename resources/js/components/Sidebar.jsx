@@ -87,6 +87,12 @@ const sections = [
                 capabilities: ['module:hrms.core', 'module:hrms.comp_off'],
                 icon: 'M5 3h14v18H5V3zm3 5h8m-8 4h4m-4 4h5',
             },
+            {
+                to: '/hrms/holidays',
+                label: 'Holidays',
+                capabilities: ['module:hrms.core', 'module:hrms.holidays'],
+                icon: 'M8 3h8v4H8V3zM6 7h12v14H6V7zm3 4h2v2H9v-2zm4 0h2v2h-2v-2zm-4 4h2v2H9v-2zm4 0h2v2h-2v-2z',
+            },
             { to: '/hrms', label: 'HRMS', capabilities: ['module:hrms.core'], icon: 'M17 20h5v-2a4 4 0 00-3-3.87M9 20H4v-2a4 4 0 013-3.87m4-1.13a4 4 0 10-4-4 4 4 0 004 4zm6 2a3 3 0 10-3-3' },
         ],
     },

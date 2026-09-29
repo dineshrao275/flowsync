@@ -2534,7 +2534,7 @@ This service is the **only** source of truth for non-working days.
 > (643 + 416, zero omitted) since seeded holidays touch shared reads.
 > `HrmsHolidayIntegrationTest` (4 tests) probes Gandhi Jayanti end to end.
 
-**P8.4 — Policies, requests, routes, frontend** (split: `P8.4a` calendars + seed-year ✅, `P8.4b` assignments + resolved view ✅, `P8.4c` SPA)
+**P8.4 — Policies, requests, routes, frontend** (split: `P8.4a` calendars + seed-year ✅, `P8.4b` assignments + resolved view ✅, `P8.4c` SPA ✅)
 `HolidayCalendarPolicy` (view `hrms.holidays.view`; manage `hrms.holidays.manage`).
 Routes: `GET|POST api/hrms/holidays/calendars`, `PUT|DELETE .../calendars/{calendar}`,
 `GET|POST .../calendars/{calendar}/holidays`, `PUT|DELETE .../holidays/{holiday}`,
@@ -2543,6 +2543,14 @@ Routes: `GET|POST api/hrms/holidays/calendars`, `PUT|DELETE .../calendars/{calen
 `GET|POST api/hrms/holidays/optional`.
 Frontend: `pages/hrms/Holidays.jsx` (calendar list plus a year grid with month tabs, bulk add
 common-holiday presets, optional-holiday declaration panel).
+
+> **P8.4c keeps one page with internal gating.** `Holidays.jsx` (calendars,
+> year grid with month tabs, assignments, optional answers, seed-year) plus
+> a pure `HolidayGrid.jsx` (client-side recurring expansion); creates and
+> presets share one modal state each so "new" can never render a dead form.
+> The route needs the module, mutations hide without `manage`, and
+> `hrms.holidays` joins the module routes with the shell tile check
+> extended to hyphens.
 
 > **P8.4a ships the catalogue.** `HolidayCalendarService` (server-allocated
 > slugs, default promotion in-transaction, deletion refused while

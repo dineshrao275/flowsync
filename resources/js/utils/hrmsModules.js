@@ -68,6 +68,9 @@ export const HRMS_MODULE_ROUTES = {
     'hrms.leave': hrmsUrl('leave'),
     // P7.4 ships the comp-off hub on the same split.
     'hrms.comp_off': hrmsUrl('comp-off'),
+    // P8.4c ships the holiday calendars; the tile points at the page, and
+    // the page gates its own mutations.
+    'hrms.holidays': hrmsUrl('holidays'),
 };
 
 /**

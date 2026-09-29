@@ -39,6 +39,7 @@ import Leave from './pages/hrms/Leave';
 import MyLeave from './pages/hrms/MyLeave';
 import CompOff from './pages/hrms/CompOff';
 import MyCompOff from './pages/hrms/MyCompOff';
+import Holidays from './pages/hrms/Holidays';
 import Search from './pages/Search';
 import Notifications from './pages/Notifications';
 import Tenants from './pages/Tenants';
@@ -235,6 +236,17 @@ function AppRoutes() {
                                 }
                             />
                             <Route path="/hrms/comp-off/mine" element={<MyCompOff />} />
+                            {/* Holidays: shared reference data with internal
+                                gating — the route needs the module, reads
+                                ride it, mutations hide without manage. */}
+                            <Route
+                                path="/hrms/holidays"
+                                element={
+                                    <ProtectedRoute module="hrms.holidays">
+                                        <Holidays />
+                                    </ProtectedRoute>
+                                }
+                            />
                             <Route path="/hrms/:section" element={<HrmsOverview />} />
                         </Route>
                         <Route element={<ProtectedRoute permission="users.view" />}>
