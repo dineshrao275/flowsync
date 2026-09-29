@@ -2581,7 +2581,7 @@ common-holiday presets, optional-holiday declaration panel).
 > **Scope boundary:** salary structures, revision letters, payroll runs, payslip generation with
 > **manual** attendance/leave/LOP inputs. **No statutory computation here** — that is Phase 10.
 
-**P9.1 — `000022` migration**
+**P9.1 — `000022` migration** ✅
 `salary_components` (`name`, `slug` unique, `code`, `type` enum
 `earning|deduction|employer_contribution|reimbursement`, `calculation_type` enum
 `fixed|percentage_of_ctc|percentage_of_basic|formula`, `default_value` decimal(14,2), `is_taxable` bool,
@@ -2609,6 +2609,16 @@ enum `draft|published|disputed|paid`, `published_at` nullable, `locked_at` nulla
 `(payroll_run_id, employee_id)`, `payslip_adjustments` (`payslip_id`, `component_id` nullable, `kind`
 enum `earning|deduction`, `label`, `amount` decimal(14,2), `source_type` nullable, `source_id` nullable,
 `note`, `actor_user_id`).
+
+> **P9.1 snapshots everything the run touches.** Payslips carry their
+> inputs and outputs inline so a later rule change can never rewrite a
+> locked one; catalogue links are NO ACTION (the service refuses, the
+> database backstops), owned rows cascade, user/file/approval links null.
+> Money is decimal on both grammars (SQLite reports `numeric` — same
+> fixed-point, asserted as either). The filename shares its NN with P7's
+> follow-up by design (different date prefixes; documented in P7.2).
+> `HrmsPayrollTablesTest` (13 tests) pins uniques, cascades, the refusal,
+> enum CHECKs, rerun-safety and down().
 
 **P9.2 — Compensation service**
 `app/Services/Hrms/CompensationService.php` — `structures()`, `createStructure`,

@@ -20,7 +20,7 @@ Laravel 12 + React 19 SPA. Session-based auth **without** Breeze/Fortify/Sanctum
   `tenants:provision` + seeds demo data (superadmin + acme + globex). Reset from scratch:
   `docker-compose down -v` then `up -d` (app entrypoint re-initializes; `RUN_INIT=true` only for `app`).
   No PHP/composer needed on the host — envs in `.env.docker`.
-- `php artisan test` — run test suite (Phase 13: **isolated, per-tenant file DBs** via `Tests\IsolatesDatabase`; current gate: **1069 tests / 5423 assertions passing** — P8.4c (full suite re-verified in Hrms/non-Hrms chunks with zero omitted files in P8.3))
+- `php artisan test` — run test suite (Phase 13: **isolated, per-tenant file DBs** via `Tests\IsolatesDatabase`; current gate: **1082 tests / 5495 assertions passing** — P9.1 (full suite re-verified in Hrms/non-Hrms chunks with zero omitted files in P8.3))
 
 - `npm run build` / `npm run dev` — frontend build / Vite dev server
 - `./vendor/bin/pint` — PHP code style (run over whole repo; `--dirty` only works in git)
@@ -564,7 +564,16 @@ HR, no self-approval); P6.4a (catalog HTTP + `hrms.leave` gate, R18 route-group
 finding); P6.4b (balances read + managed accrue runs, `LeaveBalanceReading`
 split); P6.4c (asks/exemptions HTTP, per-record policies); P6.5 (availability
 + team-calendar reads, `Leave.jsx` admin hub, `MyLeave.jsx`, request modal);
-P6.6 (`leaveRequested`/`leaveDecided` notifications + deep links).
+P6.6 (`leaveRequested`/`leaveDecided` notifications + deep links); P7.1
+(`2026_09_29_000020` — comp-off tables + `HrmsCompOffTablesTest`); P7.2
+(`CompOffCredits` + `CompOffService`, `hrms:comp-off-accrue`, comp-off
+settings column follow-up); P7.3 (comp-off HTTP surface + `hrms.comp_off`
+gate); P7.4 (`CompOff.jsx` + `MyCompOff.jsx`); P7.5 (comp-off
+notifications); P8.1 (`2026_09_29_000021` — holiday tables +
+`HrmsHolidayTablesTest`); P8.2 (`HolidayService` + assignments + seeder);
+P8.3 (holiday merge into attendance/leave/comp-off, full-suite chunks);
+P8.4a/b/c (holiday HTTP + `Holidays.jsx`); P9.1 (`2026_09_30_000022` —
+payroll core tables + `HrmsPayrollTablesTest`).
 Phase 13
   was jumped to *before* Phase 4 because P4.1's `document_requests.document_type_id` is a real FK to
   `document_types`, and no migration created that table until P13.1 — the plan's "documents ship
