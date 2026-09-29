@@ -68,6 +68,11 @@ return [
             // revision approves itself (audited as auto, the engine's rule).
             'revision_approval_threshold_percent' => 10,
         ],
+        'payroll' => [
+            // Overtime multiplier on the derived hourly rate. Straight time
+            // by default — a tenant that pays premiums raises it.
+            'ot_rate' => 1.0,
+        ],
         'mask_sensitive' => true,
         'data_retention_months' => 24,
     ],

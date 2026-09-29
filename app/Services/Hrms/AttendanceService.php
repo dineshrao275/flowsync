@@ -7,6 +7,7 @@ use App\Enums\Hrms\PunchDirection;
 use App\Enums\Hrms\PunchSource;
 use App\Models\Hrms\Attendance\AttendanceDay;
 use App\Models\Hrms\Attendance\AttendancePunch;
+use App\Models\Hrms\Attendance\AttendanceRoster;
 use App\Models\Hrms\Employee\Employee;
 use App\Models\User;
 use App\Services\Hrms\Attendance\DayComputation;
@@ -141,6 +142,83 @@ class AttendanceService
     public function hasPunches(Employee $employee, Carbon|string $date): bool
     {
         return $this->reading->hasPunches($employee, $date);
+    }
+
+    /**
+     * Rostered week-offs across a window, computed from preloaded rosters
+     * in PHP — one query for the window, never per date. The payroll
+     * engine's working-day math reads through here instead of resolving
+     * a roster per date per employee.
+     *
+     * @return list<string> Y-m-d dates
+     */
+    public function weeklyOffDates(Employee $employee, Carbon|string $from, Carbon|string $to): array
+    {
+        $from = $from instanceof Carbon ? $from->copy()->startOfDay() : Carbon::parse((string) $from)->startOfDay();
+        $to = $to instanceof Carbon ? $to->copy()->startOfDay() : Carbon::parse((string) $to)->startOfDay();
+
+        $rosters = AttendanceRoster::where('employee_id', $employee->id)
+            ->whereDate('effective_from', '<=', $to->toDateString())
+            ->where(fn ($query) => $query->whereNull('effective_to')->orWhereDate('effective_to', '>=', $from->toDateString()))
+            ->orderBy('effective_from')
+            ->get();
+
+        $days = [];
+
+        for ($date = $from->copy(); $date->lessThanOrEqualTo($to); $date->addDay()) {
+            $day = $date->toDateString();
+
+            $roster = $rosters
+                ->filter(fn ($row): bool => $row->effective_from->toDateString() <= $day
+                    && ($row->effective_to === null || $row->effective_to->toDateString() >= $day))
+                ->last();
+
+            $offs = $roster?->weekly_offs;
+
+            if (is_array($offs) && ($offs[$date->copy()->tz($this->days->tenantTimezone())->dayOfWeekIso - 1] ?? false)) {
+                $days[] = $day;
+            }
+        }
+
+        return $days;
+    }
+
+    /**
+     * Unexplained presence gaps across a window: punch-less day rows by
+     * status, plus worked overtime minutes. The payroll engine subtracts
+     * approved leave itself — this reports the photograph, not the verdict.
+     *
+     * @return array{absent: list<string>, half: list<string>, overtime_minutes: int}
+     */
+    public function absenceDetail(Employee $employee, Carbon|string $from, Carbon|string $to): array
+    {
+        $from = $from instanceof Carbon ? $from->toDateString() : (string) $from;
+        $to = $to instanceof Carbon ? $to->toDateString() : (string) $to;
+
+        $rows = AttendanceDay::where('employee_id', $employee->id)
+            ->whereDate('work_date', '>=', $from)
+            ->whereDate('work_date', '<=', $to)
+            ->get();
+
+        $absent = [];
+        $half = [];
+        $overtime = 0;
+
+        foreach ($rows as $row) {
+            $punched = $row->first_in_at !== null || $row->last_out_at !== null;
+
+            if (! $punched && $row->status->value === 'absent') {
+                $absent[] = $row->work_date->toDateString();
+            }
+
+            if (! $punched && $row->status->value === 'half_day') {
+                $half[] = $row->work_date->toDateString();
+            }
+
+            $overtime += $row->overtime_minutes;
+        }
+
+        return ['absent' => $absent, 'half' => $half, 'overtime_minutes' => $overtime];
     }
 
     /**

@@ -45,6 +45,54 @@ class LeaveCalendar
     }
 
     /**
+     * Charged approved-leave days in a window, split by whether the type
+     * pays: paid days stay payable, unpaid days join loss-of-pay. Halves
+     * count half — the engine sums fractions, not rows. Only charged rows
+     * count (week-offs and holidays were never priced), and only approved
+     * asks post — pending ones merely reserve.
+     *
+     * @return array{dates: list<string>, paid_days: float, unpaid_days: float}
+     */
+    public function chargedLeaveDays(Employee $employee, Carbon|string $from, Carbon|string $to): array
+    {
+        $from = $from instanceof Carbon ? $from->toDateString() : (string) $from;
+        $to = $to instanceof Carbon ? $to->toDateString() : (string) $to;
+
+        $rows = LeaveRequestDay::query()
+            ->whereHas('request', fn (Builder $query) => $query
+                ->where('employee_id', $employee->id)
+                ->where('status', LeaveRequestStatus::Approved->value))
+            ->whereDate('date', '>=', $from)
+            ->whereDate('date', '<=', $to)
+            ->where('is_week_off', false)
+            ->where('is_holiday', false)
+            ->with('request.type:id,is_paid')
+            ->orderBy('date')
+            ->get();
+
+        $dates = [];
+        $paid = 0.0;
+        $unpaid = 0.0;
+
+        foreach ($rows as $row) {
+            // The model carries casts, but the SQLite time part rides the
+            // attribute either way — parse it off before comparing.
+            $date = Carbon::parse((string) $row->date)->toDateString();
+            $fraction = $row->is_half_day ? 0.5 : 1.0;
+
+            $dates[] = $date;
+
+            if ($row->request->type?->is_paid ?? true) {
+                $paid += $fraction;
+            } else {
+                $unpaid += $fraction;
+            }
+        }
+
+        return ['dates' => array_values(array_unique($dates)), 'paid_days' => round($paid, 2), 'unpaid_days' => round($unpaid, 2)];
+    }
+
+    /**
      * Dates in a window the employee holds under an approved ask: the
      * per-day split rows, excluding week-offs and holidays (those dates were
      * never charged, so they must never read as leave either).
