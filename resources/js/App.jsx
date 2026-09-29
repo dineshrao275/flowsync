@@ -40,6 +40,10 @@ import MyLeave from './pages/hrms/MyLeave';
 import CompOff from './pages/hrms/CompOff';
 import MyCompOff from './pages/hrms/MyCompOff';
 import Holidays from './pages/hrms/Holidays';
+import Compensation from './pages/hrms/Compensation';
+import Payroll from './pages/hrms/Payroll';
+import PayrollRunDetail from './pages/hrms/PayrollRunDetail';
+import MyPayslips from './pages/hrms/MyPayslips';
 import Search from './pages/Search';
 import Notifications from './pages/Notifications';
 import Tenants from './pages/Tenants';
@@ -247,6 +251,36 @@ function AppRoutes() {
                                     </ProtectedRoute>
                                 }
                             />
+                            {/* Compensation: heads and templates need the
+                                view permission, the salary picker degrades
+                                without the directory. Payroll: the hub and
+                                the run detail are runner tools; my-payslips
+                                rides the module alone like My files. */}
+                            <Route
+                                path="/hrms/compensation"
+                                element={
+                                    <ProtectedRoute permission="hrms.compensation.view">
+                                        <Compensation />
+                                    </ProtectedRoute>
+                                }
+                            />
+                            <Route
+                                path="/hrms/payroll"
+                                element={
+                                    <ProtectedRoute permission="hrms.payroll.run">
+                                        <Payroll />
+                                    </ProtectedRoute>
+                                }
+                            />
+                            <Route
+                                path="/hrms/payroll/runs/:runId"
+                                element={
+                                    <ProtectedRoute permission="hrms.payroll.run">
+                                        <PayrollRunDetail />
+                                    </ProtectedRoute>
+                                }
+                            />
+                            <Route path="/hrms/payroll/mine" element={<MyPayslips />} />
                             <Route path="/hrms/:section" element={<HrmsOverview />} />
                         </Route>
                         <Route element={<ProtectedRoute permission="users.view" />}>

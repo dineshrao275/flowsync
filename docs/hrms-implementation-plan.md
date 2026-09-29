@@ -2740,11 +2740,21 @@ the auth groups, `signed`).
 > > not a second one — and refuse past review. `HrmsPayrollRunApiTest`
 > > (5 tests, 54 assertions).
 
-**P9.6 — Frontend**
+**P9.6 — Frontend** ✅
 `pages/hrms/Compensation.jsx` (components, structures, and a structure builder with a live monthly
 preview), `pages/hrms/Payroll.jsx` (runs table plus a run wizard: period -> calculate -> review grid with
 per-employee drill-down -> approve -> publish), `pages/hrms/PayrollRunDetail.jsx` (grid with LOP/leave/OT
 columns, adjustment drawer, totals footer), `pages/hrms/MyPayslips.jsx` (list, payslip view, download).
+
+> **P9.6 as shipped.** Compensation (heads table + template list with the
+> wholesale head editor + per-person basis/assign/revise — no live monthly
+> preview: the preview is the assignment response's own heads, and a second
+> client-side pricer would drift from `ctcToComponents`); Payroll (runs
+> table + open-run wizard + state-mirrored transitions); PayrollRunDetail
+> (LOP/leave/OT grid + drill-down modal with signed download + review-only
+> adjustments); MyPayslips (self-scoped list + breakdown + download).
+> Sidebar + routes gated like the rest of the HRMS tree. `npm run build`
+> green, shell guard green.
 
 **Acceptance:** a run calculates correct LOP from attendance plus leave; re-calculating a `review` run
 is deterministic; a `locked` run rejects edits; an approver without `hrms.payroll.run` gets 403; a
