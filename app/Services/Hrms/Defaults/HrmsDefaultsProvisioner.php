@@ -10,6 +10,7 @@ use App\Models\Hrms\Org\Department;
 use App\Models\Hrms\Org\Designation;
 use App\Models\Hrms\Org\Location;
 use App\Models\Hrms\Shared\HrmsSetting;
+use App\Services\Hrms\Holiday\HolidayService;
 use Illuminate\Support\Str;
 
 /**
@@ -75,6 +76,7 @@ class HrmsDefaultsProvisioner
         $this->seedOrgCatalogs();
         $this->seedDocumentTypes();
         $this->seedLeaveTypes();
+        $this->seedHolidayCalendars();
     }
 
     /**
@@ -302,5 +304,20 @@ class HrmsDefaultsProvisioner
 
             $policy->types()->syncWithoutDetaching([$row->id]);
         }
+    }
+
+    /**
+     * The starter holiday calendars for the current year.
+     *
+     * Delegates to the holiday service (the context that owns the
+     * expansion), which is idempotent per (calendar, name, date) — a
+     * repair run adds a catalogue row an old tenant is missing without
+     * duplicating the rows it already has. No per-step early return: the
+     * idempotency lives in the service, so this stays a plain call like
+     * every other step.
+     */
+    private function seedHolidayCalendars(): void
+    {
+        app(HolidayService::class)->seedFromConfig(today()->year);
     }
 }

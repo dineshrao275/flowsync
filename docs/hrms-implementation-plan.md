@@ -2498,13 +2498,25 @@ holiday_id)`.
 > (their windows are the record). `HrmsHolidayTablesTest` (10 tests) pins
 > uniques, cascades, enum CHECKs, rerun-safety and down().
 
-**P8.2 — Service**
+**P8.2 — Service** ✅
 `app/Services/Hrms/HolidayService.php` — `calendar(Employee, $year)` (assigned calendars plus the tenant
 default, with recurring expansion for the year), `isHoliday(Employee, $date)`,
 `isWorkingDay(Employee, $date)` (a date is non-working if a holiday or a weekly off),
 `assign/unassign`, `declareOptional`, `seedFromConfig($year)` (expands `config('hrms.holidays')` per
 country/region into concrete rows; idempotent on `(calendar_id, name, date)`).
 `POST api/hrms/holidays/seed-year {year}` requires `hrms.holidays.manage`.
+
+> **P8.2 splits reads from assignments and moves seed-year to P8.4.**
+> `Services/Hrms/Holiday/` holds `HolidayService` (plan-literal reads:
+> merged calendars, recurring expansion, `isHoliday`/`isWorkingDay`) and
+> `HolidayAssignments` (follow/unfollow/declare); the `seed-year` endpoint
+> needs the P8.4 policy layer, so `seedFromConfig` ships now and its route
+> lands there. Seeding expands the `country → month/day` spec (a spec, not
+> row catalogue — outside the catalog guard's remit) with `checkdate`
+> guarding leap days and typos into warnings, idempotent on
+> (calendar, name, date) via explicit `whereDate` finds (the SQLite trap
+> again), defaulting to the tenant's country. `HrmsHolidayServiceTest`
+> (7 tests) is the guard.
 
 **P8.3 — Integration**
 `AttendanceService::dayStatus()` and `LeaveService::createRequest()` call
