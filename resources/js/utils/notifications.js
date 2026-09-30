@@ -39,6 +39,10 @@ export function describeNotification(type, data = {}, actorName = 'Someone') {
             return `Your claim ${data.claim_number ?? ''} was rejected`;
         case 'hrms.expense.paid':
             return `Your claim ${data.claim_number ?? ''} was reimbursed through payroll`;
+        case 'hrms.performance.cycle_completed':
+            return `The ${data.cycle_name ?? 'review'} cycle completed`;
+        case 'hrms.performance.review_acknowledged':
+            return 'Your review was acknowledged';
         default:
             return 'You have a new notification';
     }
@@ -123,6 +127,17 @@ export function notificationHref(data = {}, type = '') {
 
     if (type === 'hrms.expense.approved' || type === 'hrms.expense.rejected' || type === 'hrms.expense.paid') {
         return '/hrms/expenses/mine';
+    }
+
+    // Performance lands on the cycle for completions and on the
+    // self-service page for acknowledgements — each where the reader can
+    // see what changed, never a list-with-param the list ignores.
+    if (type === 'hrms.performance.cycle_completed' && data.performance_cycle_id) {
+        return `/hrms/performance/cycles/${data.performance_cycle_id}`;
+    }
+
+    if (type === 'hrms.performance.review_acknowledged') {
+        return '/hrms/performance/mine';
     }
 
     if (project_id && key) {

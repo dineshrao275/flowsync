@@ -223,6 +223,20 @@ class HrmsShellTest extends TestCase
         $this->assertStringContainsString("return '/hrms/expenses/mine';", $js);
     }
 
+    public function test_the_notification_helpers_cover_performance_nudges(): void
+    {
+        // Same rule as every pin before it: a completion lands on the cycle
+        // it sealed, an acknowledgement on the self-service page — each
+        // where the reader can see what changed.
+        $js = file_get_contents(resource_path('js/utils/notifications.js'));
+
+        $this->assertStringContainsString('hrms.performance.cycle_completed', $js);
+        $this->assertStringContainsString('hrms.performance.review_acknowledged', $js);
+        $this->assertStringContainsString('performance_cycle_id', $js);
+        $this->assertStringContainsString('/hrms/performance/cycles/${data.performance_cycle_id}', $js);
+        $this->assertStringContainsString("return '/hrms/performance/mine';", $js);
+    }
+
     public function test_hrms_tiles_only_link_to_sections_the_router_owns(): void
     {
         // P2.5 populated HRMS_MODULE_ROUTES with the employee directory, so this

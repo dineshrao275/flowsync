@@ -47,6 +47,9 @@ import MyPayslips from './pages/hrms/MyPayslips';
 import Statutory from './pages/hrms/Statutory';
 import Expenses from './pages/hrms/Expenses';
 import MyExpenses from './pages/hrms/MyExpenses';
+import Performance from './pages/hrms/Performance';
+import PerformanceCycleDetail from './pages/hrms/PerformanceCycleDetail';
+import MyPerformance from './pages/hrms/MyPerformance';
 import Search from './pages/Search';
 import Notifications from './pages/Notifications';
 import Tenants from './pages/Tenants';
@@ -303,6 +306,26 @@ function AppRoutes() {
                                 }
                             />
                             <Route path="/hrms/expenses/mine" element={<MyExpenses />} />
+                            {/* Performance: the hub and the cycle detail need
+                                the view permission, the self-service page
+                                rides the module alone like My files. */}
+                            <Route
+                                path="/hrms/performance"
+                                element={
+                                    <ProtectedRoute permission="hrms.performance.view">
+                                        <Performance />
+                                    </ProtectedRoute>
+                                }
+                            />
+                            <Route
+                                path="/hrms/performance/cycles/:cycleId"
+                                element={
+                                    <ProtectedRoute permission="hrms.performance.view">
+                                        <PerformanceCycleDetail />
+                                    </ProtectedRoute>
+                                }
+                            />
+                            <Route path="/hrms/performance/mine" element={<MyPerformance />} />
                             <Route path="/hrms/:section" element={<HrmsOverview />} />
                         </Route>
                         <Route element={<ProtectedRoute permission="users.view" />}>

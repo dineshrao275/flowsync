@@ -129,6 +129,18 @@ const sections = [
                 capabilities: ['module:hrms.core', 'module:hrms.expenses'],
                 icon: 'M5 3h14v18H5V3zm3 5h8m-8 4h5',
             },
+            {
+                to: '/hrms/performance',
+                label: 'Performance',
+                capabilities: ['module:hrms.core', 'module:hrms.performance', 'permission:hrms.performance.view'],
+                icon: 'M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z',
+            },
+            {
+                to: '/hrms/performance/mine',
+                label: 'My performance',
+                capabilities: ['module:hrms.core', 'module:hrms.performance'],
+                icon: 'M5 3h14v18H5V3zm3 5h8m-8 4h5',
+            },
             { to: '/hrms', label: 'HRMS', capabilities: ['module:hrms.core'], icon: 'M17 20h5v-2a4 4 0 00-3-3.87M9 20H4v-2a4 4 0 013-3.87m4-1.13a4 4 0 10-4-4 4 4 0 004 4zm6 2a3 3 0 10-3-3' },
         ],
     },

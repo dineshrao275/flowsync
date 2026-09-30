@@ -3004,13 +3004,21 @@ Routes: `/api/hrms/performance/cycles`, `.../cycles/{cycle}/open|complete`, `...
 `.../cycles/{cycle}/reviews`, `.../reviews/{review}` (+ `acknowledge`),
 `.../cycles/{cycle}/evidence`.
 
-**P12.5 — Frontend**
+**P12.5 — Frontend** ✅
 `pages/hrms/Performance.jsx` (cycle list + stage stepper),
 `pages/hrms/PerformanceCycleDetail.jsx` (tabs: goals | check-ins | one-on-ones | feedback | reviews),
 `components/hrms/GoalCard.jsx` (progress bar plus an **evidence disclosure** — "12 of 15 tasks completed
 · 34h logged · 2 overdue" in a tooltip/panel, never as a score), `components/hrms/CheckInComposer.jsx`,
 `pages/hrms/MyPerformance.jsx` (my goals, check-ins, 1:1s, feedback to/from). The UI must not compute or
 display any composite score — enforce by review and by a comment in the page file.
+
+> **P12.5 as shipped.** Cycle hub with display-only stepper and
+> forward-only moves; cycle detail with the five rooms (goals with
+> evidence refresh, check-ins with composer, 1:1s, feedback with
+> anonymity-aware answers, reviews with acknowledge); self-scoped
+> MyPerformance resolving its record by login. The no-score rule is a
+> comment on both GoalCard and the page. Notification branches + shell
+> pin like every prior phase.
 
 **P12.6 — Goal <-> task linking (co-designed with Phase 20)**
 `goal_task_links` is created by this phase's migration; **Phase 20 adds `hrms_task_links`** for the
