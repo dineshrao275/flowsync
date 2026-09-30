@@ -1,0 +1,136 @@
+<?php
+
+namespace App\Http\Controllers\Hrms\Performance;
+
+use App\Http\Controllers\Controller;
+use App\Http\Requests\Hrms\PerformanceGoalRequest;
+use App\Models\Hrms\Employee\Employee;
+use App\Models\Hrms\Performance\PerformanceCycle;
+use App\Models\Hrms\Performance\PerformanceGoal;
+use App\Services\Hrms\PerformanceService;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
+use Illuminate\Http\Response;
+use Symfony\Component\HttpKernel\Exception\HttpException;
+
+/**
+ * Performance/HRMS — goals over HTTP.
+ *
+ * Goals live under their cycle in the URL; the employee travels in the
+ * body on creation, and the policy answers self, manager, or view. Edits
+ * past draft need manage (the policy), balanced sheets are enforced at
+ * the check-in transition (the workflow), and a sealed cycle refuses new
+ * goals outright — history does not gain commitments after the fact.
+ */
+class PerformanceGoalController extends Controller
+{
+    public function __construct(private readonly PerformanceService $performance) {}
+
+    public function index(Request $request, PerformanceCycle $cycle): JsonResponse
+    {
+        $this->authorize('viewAny', PerformanceGoal::class);
+
+        $query = $cycle->goals()->with(['employee:id,employee_code,name'])->orderBy('id');
+
+        if ($request->has('employee_id')) {
+            $query->where('employee_id', (int) $request->query('employee_id'));
+        }
+
+        return response()->json([
+            'goals' => $query->get()->map(fn (PerformanceGoal $goal): array => $this->present($goal))->all(),
+        ]);
+    }
+
+    public function show(PerformanceGoal $goal): JsonResponse
+    {
+        $this->authorize('view', $goal);
+
+        return response()->json(['goal' => $this->present($goal)]);
+    }
+
+    public function store(PerformanceGoalRequest $request, PerformanceCycle $cycle): JsonResponse
+    {
+        $this->authorize('create', PerformanceGoal::class);
+        $this->requireOpen($cycle);
+
+        $data = $request->validated();
+        $employee = Employee::findOrFail((int) $data['employee_id']);
+
+        $this->authorize('file', [PerformanceGoal::class, $employee]);
+
+        unset($data['employee_id']);
+
+        $goal = $cycle->goals()->create([...$data, 'created_by' => $request->user()->id]);
+
+        return response()->json([
+            'message' => 'Goal created.',
+            'goal' => $this->present($goal->refresh()),
+        ], Response::HTTP_CREATED);
+    }
+
+    public function update(PerformanceGoalRequest $request, PerformanceGoal $goal): JsonResponse
+    {
+        $this->authorize('update', $goal);
+        $this->requireOpen($goal->cycle);
+
+        $goal->update($request->validated());
+
+        return response()->json([
+            'message' => 'Goal updated.',
+            'goal' => $this->present($goal->refresh()),
+        ]);
+    }
+
+    /**
+     * Re-photograph one goal's evidence on demand: self, the manager, or
+     * manage may ask — the refresh never writes a rating either way.
+     */
+    public function refresh(Request $request, PerformanceGoal $goal): JsonResponse
+    {
+        $this->authorize('refresh', $goal);
+
+        return response()->json([
+            'message' => 'Evidence refreshed.',
+            'goal' => $this->present($this->performance->refreshGoalEvidence($goal)),
+        ]);
+    }
+
+    /**
+     * @throws HttpException on a sealed cycle
+     */
+    private function requireOpen(PerformanceCycle $cycle): void
+    {
+        abort_if($cycle->stage->value === 'completed', 422, 'That cycle is sealed — history gains no new goals.');
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function present(PerformanceGoal $goal): array
+    {
+        $goal->loadMissing(['employee:id,employee_code,name', 'cycle:id,name,slug,period_start,period_end']);
+
+        return [
+            'id' => $goal->id,
+            'cycle_id' => $goal->cycle_id,
+            'employee_id' => $goal->employee_id,
+            'employee' => $goal->employee ? [
+                'id' => $goal->employee->id,
+                'employee_code' => $goal->employee->employee_code,
+                'name' => $goal->employee->displayName(),
+            ] : null,
+            'title' => $goal->title,
+            'description' => $goal->description,
+            'category' => $goal->category,
+            'metric_type' => $goal->metric_type->value,
+            'target_value' => $goal->target_value === null ? null : (string) $goal->target_value,
+            'weight' => (string) $goal->weight,
+            'due_date' => $goal->due_date?->toDateString(),
+            'status' => $goal->status->value,
+            'progress_percent' => (string) $goal->progress_percent,
+            'progress_source' => $goal->progress_source->value,
+            'progress_evidence' => $goal->progress_evidence,
+            'achieved_at' => $goal->achieved_at?->toIso8601String(),
+        ];
+    }
+}

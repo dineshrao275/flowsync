@@ -48,6 +48,24 @@ class PerformanceCycle extends Model
         return $this->hasMany(PerformanceGoal::class, 'cycle_id');
     }
 
+    /** @return HasMany<CheckIn, $this> */
+    public function checkIns(): HasMany
+    {
+        return $this->hasMany(CheckIn::class, 'cycle_id');
+    }
+
+    /** @return HasMany<FeedbackRequest, $this> */
+    public function feedbackRequests(): HasMany
+    {
+        return $this->hasMany(FeedbackRequest::class, 'cycle_id');
+    }
+
+    /** @return HasMany<ReviewSummary, $this> */
+    public function reviewSummaries(): HasMany
+    {
+        return $this->hasMany(ReviewSummary::class, 'cycle_id');
+    }
+
     public function creator(): BelongsTo
     {
         return $this->belongsTo(User::class, 'created_by');

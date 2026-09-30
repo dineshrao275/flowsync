@@ -52,6 +52,10 @@ use App\Http\Controllers\Hrms\Payroll\StatutoryConfigurationController;
 use App\Http\Controllers\Hrms\Payroll\StatutoryDeclarationController;
 use App\Http\Controllers\Hrms\Payroll\StatutoryProfileController;
 use App\Http\Controllers\Hrms\Payroll\TdsProjectController;
+use App\Http\Controllers\Hrms\Performance\CheckInController;
+use App\Http\Controllers\Hrms\Performance\OneOnOneController;
+use App\Http\Controllers\Hrms\Performance\PerformanceCycleController;
+use App\Http\Controllers\Hrms\Performance\PerformanceGoalController;
 use App\Http\Controllers\ImpersonationController;
 use App\Http\Controllers\LabelController;
 use App\Http\Controllers\MySubscriptionController;
@@ -681,6 +685,36 @@ Route::prefix('api')->group(function () {
         Route::put('hrms/expenses/claims/{claim}/items', [ExpenseClaimController::class, 'setItems']);
         Route::post('hrms/expenses/claims/{claim}/submit', [ExpenseClaimController::class, 'submit']);
         Route::post('hrms/expenses/claims/{claim}/decide', [ExpenseClaimController::class, 'decide']);
+    });
+
+    // HRMS performance, first half (Phase 15 P12.4a): cycles, goals,
+    // check-ins and 1:1s. Same two gates plus the performance module; the
+    // four policies split reads (self, manager, or view) from moves
+    // (manage, or self-while-draft for goals). Feedback, reviews and the
+    // evidence read land in P12.4b.
+    Route::group(['middleware' => ['ensure_module:hrms.core', 'ensure_module:hrms.performance', 'permission:hrms.view']], function () {
+        Route::get('hrms/performance/cycles', [PerformanceCycleController::class, 'index']);
+        Route::post('hrms/performance/cycles', [PerformanceCycleController::class, 'store']);
+        Route::get('hrms/performance/cycles/{cycle}', [PerformanceCycleController::class, 'show']);
+        Route::post('hrms/performance/cycles/{cycle}/open-check-in', [PerformanceCycleController::class, 'openCheckIn']);
+        Route::post('hrms/performance/cycles/{cycle}/open-self-review', [PerformanceCycleController::class, 'openSelfReview']);
+        Route::post('hrms/performance/cycles/{cycle}/open-manager-review', [PerformanceCycleController::class, 'openManagerReview']);
+        Route::post('hrms/performance/cycles/{cycle}/open-calibration', [PerformanceCycleController::class, 'openCalibration']);
+        Route::post('hrms/performance/cycles/{cycle}/complete', [PerformanceCycleController::class, 'complete']);
+
+        Route::get('hrms/performance/cycles/{cycle}/goals', [PerformanceGoalController::class, 'index']);
+        Route::post('hrms/performance/cycles/{cycle}/goals', [PerformanceGoalController::class, 'store']);
+        Route::get('hrms/performance/goals/{goal}', [PerformanceGoalController::class, 'show']);
+        Route::put('hrms/performance/goals/{goal}', [PerformanceGoalController::class, 'update']);
+        Route::post('hrms/performance/goals/{goal}/refresh', [PerformanceGoalController::class, 'refresh']);
+
+        Route::get('hrms/performance/cycles/{cycle}/check-ins', [CheckInController::class, 'index']);
+        Route::post('hrms/performance/cycles/{cycle}/check-ins', [CheckInController::class, 'store']);
+
+        Route::get('hrms/performance/one-on-ones', [OneOnOneController::class, 'index']);
+        Route::post('hrms/performance/one-on-ones', [OneOnOneController::class, 'store']);
+        Route::get('hrms/performance/one-on-ones/{oneOnOne}', [OneOnOneController::class, 'show']);
+        Route::put('hrms/performance/one-on-ones/{oneOnOne}', [OneOnOneController::class, 'update']);
     });
 
     // HRMS remote punch (Phase 15 P5.3). Deliberately NO route-level
