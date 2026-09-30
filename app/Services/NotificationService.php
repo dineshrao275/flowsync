@@ -6,6 +6,7 @@ use App\Events\NotificationSent;
 use App\Models\Comment;
 use App\Models\Hrms\CompOff\CompOffRequest;
 use App\Models\Hrms\Employee\Employee;
+use App\Models\Hrms\Expense\ExpenseClaim;
 use App\Models\Hrms\Leave\LeaveRequest;
 use App\Models\Hrms\Lifecycle\OnboardingCaseTask;
 use App\Models\Hrms\Payroll\PayrollRun;
@@ -359,6 +360,87 @@ class NotificationService
     }
 
     /**
+     * Nudge whoever must act on an expense claim next: the current step's
+     * named approver, or every holder of its role step. Skips the actor,
+     * mirroring the leave nudge — filing never toasts the filer.
+     *
+     * @return list<UserNotification>
+     */
+    public function expenseSubmitted(ExpenseClaim $claim, ?User $actor = null): array
+    {
+        $step = $claim->approval?->currentStepRecord();
+
+        if ($step === null) {
+            return [];
+        }
+
+        $recipientIds = $step->approver_user_id !== null
+            ? [(int) $step->approver_user_id]
+            : $this->usersWithRole((int) $step->approver_role_id);
+
+        $sent = [];
+
+        foreach ($recipientIds as $recipientId) {
+            $recipient = User::find($recipientId);
+
+            if ($recipient === null || ($actor !== null && (int) $recipient->id === (int) $actor->id)) {
+                continue;
+            }
+
+            $sent[] = $this->notify($recipient, 'hrms.expense.submitted', $this->expensePayload($claim), $actor);
+        }
+
+        return $sent;
+    }
+
+    /**
+     * Tell the claimant their money was decided, with the transition named.
+     * No figures travel — amounts never ride notifications, and the totals
+     * wait in the app behind its own access rules.
+     */
+    public function expenseDecided(ExpenseClaim $claim, string $fromStatus, ?User $actor = null): ?UserNotification
+    {
+        $userId = $claim->employee?->user_id;
+
+        if ($userId === null) {
+            return null;
+        }
+
+        $recipient = User::find((int) $userId);
+
+        if ($recipient === null || ($actor !== null && (int) $recipient->id === (int) $actor->id)) {
+            return null;
+        }
+
+        $type = $claim->status->value === 'approved' ? 'hrms.expense.approved' : 'hrms.expense.rejected';
+
+        return $this->notify($recipient, $type, array_merge($this->expensePayload($claim), [
+            'from_status' => $fromStatus,
+            'to_status' => $claim->status->value,
+        ]), $actor);
+    }
+
+    /**
+     * Tell the claimant their money is on its way through payroll.
+     */
+    public function expensePaid(ExpenseClaim $claim, ?User $actor = null): ?UserNotification
+    {
+        $userId = $claim->employee?->user_id;
+
+        if ($userId === null) {
+            return null;
+        }
+
+        $recipient = User::find((int) $userId);
+
+        if ($recipient === null || ($actor !== null && (int) $recipient->id === (int) $actor->id)) {
+            return null;
+        }
+
+        return $this->notify($recipient, 'hrms.expense.paid', $this->expensePayload($claim), $actor);
+    }
+
+    /**
      * Every login holding a permission, for pool-owned notifications (an hr
      * item belongs to whoever holds manage, not to a named person).
      *
@@ -443,6 +525,19 @@ class NotificationService
             'from_date' => $request->from_date->toDateString(),
             'to_date' => $request->to_date->toDateString(),
             'total_minutes' => $request->total_minutes,
+        ];
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function expensePayload(ExpenseClaim $claim): array
+    {
+        return [
+            'expense_claim_id' => $claim->id,
+            'claim_number' => $claim->claim_number,
+            'employee_id' => $claim->employee_id,
+            'employee_name' => $claim->employee?->name,
         ];
     }
 

@@ -2895,7 +2895,7 @@ decimal(14,2), `approved_amount` decimal(14,2) nullable, `reimbursed_amount` dec
 decimal(14,2), `spent_at` date nullable, `vendor` nullable, `receipt_document_id` nullable,
 `is_billable` bool, `notes`).
 
-**P11.2 — Service**
+**P11.2 — Service** ✅
 `app/Services/Hrms/ExpenseService.php` — `create(Employee, data)` (validates receipts against
 `requires_receipt_above`, and **recomputes `total_amount` from the items** — never trust the client
 total), `submit` (locks the claim and routes approval: manager then the `hrms.expenses.approve` role),
@@ -2904,6 +2904,14 @@ total), `submit` (locks the claim and routes approval: manager then the `hrms.ex
 `payslip_adjustments` row with `source_type = 'expense'` and marks the claim `paid`).
 - The claim -> payslip link is a **reference**, not a service dependency: payroll reads approved claims;
   expenses never call payroll.
+
+> **P11.2 as shipped.** `setItems()` replaces add/remove halves (wholesale
+> sync, draft-only); submission locks; decisions need a resolved chain and
+> never come from the owner; cuts and rejections name their reason; the
+> adjustment references `expense_claim` via the table's `reference_type`
+> columns (there is no `source_type` column — the plan's name mapped onto
+> the schema); `calculate()` reimburses period claims per payslip with
+> exactly-once guards. `HrmsExpenseServiceTest` (7 tests).
 
 **P11.3 — Policies, requests, routes, frontend, notifications**
 `ExpenseClaimPolicy` (view self or `hrms.expenses.view`; approve `hrms.expenses.approve`; manage

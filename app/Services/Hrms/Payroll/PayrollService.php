@@ -8,6 +8,7 @@ use App\Models\Hrms\Payroll\PayrollRun;
 use App\Models\Hrms\Payroll\Payslip;
 use App\Models\Hrms\Payroll\PayslipAdjustment;
 use App\Models\User;
+use App\Services\Hrms\Expense\ExpenseService;
 use App\Services\HrmsAuditLogger;
 use App\Support\Hrms\Money;
 use Illuminate\Support\Carbon;
@@ -28,6 +29,7 @@ class PayrollService
 {
     public function __construct(
         private readonly PayslipCalculator $calculator,
+        private readonly ExpenseService $expenses,
         private readonly HrmsAuditLogger $audit,
     ) {}
 
@@ -107,6 +109,7 @@ class PayrollService
                 }
 
                 $this->storePayslip($run, $employee, $payload);
+                $this->reimburseExpenses($run, $employee, $actor);
                 $calculated++;
             }
 
@@ -260,6 +263,35 @@ class PayrollService
 
             return ['payslips' => $count, 'full' => false];
         });
+    }
+
+    /**
+     * Pay approved claims naming this run's period: one earning line each,
+     * by reference to the claim. Skipped payslips (no pay basis) leave
+     * their claims approved-but-unpaid — money without a payslip is a
+     * second payroll, not a rounding error. Already-paid claims return
+     * nothing from `reimburse()`, so recalculation never double-pays and
+     * the totals refresh only when a line actually landed.
+     */
+    private function reimburseExpenses(PayrollRun $run, Employee $employee, ?User $actor): void
+    {
+        $payslip = $run->payslips()->where('employee_id', $employee->id)->first();
+
+        if ($payslip === null) {
+            return;
+        }
+
+        $paid = false;
+
+        foreach ($this->expenses->payableFor($employee, $run) as $claim) {
+            if ($this->expenses->reimburse($claim, $run, $actor) !== null) {
+                $paid = true;
+            }
+        }
+
+        if ($paid) {
+            $this->refreshTotals($payslip->refresh());
+        }
     }
 
     /**
