@@ -37,10 +37,10 @@ use Tests\TestCase;
  *
  * Only catalogues that are *seeded today* are checked. The rest
  * (`holidays`, `shift_patterns`,
- * `expense_categories`, `statutory_configurations`) describe tables their phases
- * have not created yet; adding them to the list before the migration lands would
- * make this test fail for a table that is not supposed to exist, which trains
- * the reader to ignore it.
+ * `statutory_configurations`) describe tables their phases have not created
+ * (or, for configurations, rows no seeder may invent) yet; adding them to
+ * the list before the migration lands would make this test fail for a table
+ * that is not supposed to exist, which trains the reader to ignore it.
  */
 class HrmsCatalogTest extends TestCase
 {
@@ -67,6 +67,7 @@ class HrmsCatalogTest extends TestCase
         'document_types' => 'document_types',
         'leave_types' => 'leave_types',
         'salary_components' => 'salary_components',
+        'expense_categories' => 'expense_categories',
     ];
 
     /**
@@ -158,6 +159,7 @@ class HrmsCatalogTest extends TestCase
             'document_types' => 'slug',
             'leave_types' => 'code',
             'salary_components' => 'code',
+            'expense_categories' => 'slug',
         ];
 
         foreach ($keys as $catalogue => $key) {

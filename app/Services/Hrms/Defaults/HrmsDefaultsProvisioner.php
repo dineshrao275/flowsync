@@ -4,6 +4,7 @@ namespace App\Services\Hrms\Defaults;
 
 use App\Models\Hrms\Document\DocumentType;
 use App\Models\Hrms\Employee\EmploymentType;
+use App\Models\Hrms\Expense\ExpenseCategory;
 use App\Models\Hrms\Leave\LeavePolicy;
 use App\Models\Hrms\Leave\LeaveType;
 use App\Models\Hrms\Org\Department;
@@ -81,6 +82,7 @@ class HrmsDefaultsProvisioner
         $this->seedHolidayCalendars();
         $this->seedSalaryComponents();
         $this->seedPayslipTemplates();
+        $this->seedExpenseCategories();
     }
 
     /**
@@ -373,5 +375,29 @@ class HrmsDefaultsProvisioner
                 'is_active' => true,
             ]
         );
+    }
+
+    /**
+     * The tenant's expense catalogue.
+     *
+     * Keyed on `slug` with `firstOrCreate`, insert-only like every other
+     * catalogue: a tenant that renamed "Per diem" keeps its wording, and a
+     * later catalogue addition still reaches old tenants on repair.
+     */
+    private function seedExpenseCategories(): void
+    {
+        foreach ((array) config('hrms.expense_categories', []) as $index => $category) {
+            ExpenseCategory::query()->firstOrCreate(
+                ['slug' => $category['slug']],
+                [
+                    'name' => $category['name'],
+                    'requires_receipt_above' => $category['requires_receipt_above'] ?? null,
+                    'is_reimbursable' => true,
+                    'is_system' => (bool) ($category['is_system'] ?? false),
+                    'is_active' => true,
+                    'position' => ($index + 1) * 10,
+                ]
+            );
+        }
     }
 }

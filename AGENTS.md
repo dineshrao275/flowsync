@@ -20,7 +20,7 @@ Laravel 12 + React 19 SPA. Session-based auth **without** Breeze/Fortify/Sanctum
   `tenants:provision` + seeds demo data (superadmin + acme + globex). Reset from scratch:
   `docker-compose down -v` then `up -d` (app entrypoint re-initializes; `RUN_INIT=true` only for `app`).
   No PHP/composer needed on the host — envs in `.env.docker`.
-- `php artisan test` — run test suite (Phase 13: **isolated, per-tenant file DBs** via `Tests\IsolatesDatabase`; current gate: **1188 tests / 5903 assertions passing** — Phase 10 end-gate (full suite re-verified in Hrms/non-Hrms chunks with zero omitted files))
+- `php artisan test` — run test suite (Phase 13: **isolated, per-tenant file DBs** via `Tests\IsolatesDatabase`; current gate: **1199 tests / 5932 assertions passing** — P11.1 (full suite re-verified in Hrms/non-Hrms chunks with zero omitted files at the Phase 10 end-gate))
 
 - `npm run build` / `npm run dev` — frontend build / Vite dev server
 - `./vendor/bin/pint` — PHP code style (run over whole repo; `--dirty` only works in git)
@@ -598,7 +598,8 @@ access rows + `HrmsStatutoryProfileTest`); P10.6a (rulebook + declaration HTTP:
 `StatutoryDeclarationService`, both policies, `Statutory{Configuration,Declaration}Request`,
 both controllers + `HrmsStatutoryConfigApiTest`); P10.6b (TDS + recompute HTTP:
 `TdsProjectPolicy`, `Tds{Projection,Surrender}Request`, `TdsProjectController` +
-`Statutory.jsx` + `HrmsStatutoryTdsApiTest`).
+`Statutory.jsx` + `HrmsStatutoryTdsApiTest`); P11.1 (`2026_10_04_000027` — expense tables +
+starter catalogue + `HrmsExpenseTablesTest`).
 Phase 13
   was jumped to *before* Phase 4 because P4.1's `document_requests.document_type_id` is a real FK to
   `document_types`, and no migration created that table until P13.1 — the plan's "documents ship

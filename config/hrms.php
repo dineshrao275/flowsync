@@ -250,15 +250,21 @@ return [
     |--------------------------------------------------------------------------
     | Expense categories
     |--------------------------------------------------------------------------
+    |
+    | Seeded for every tenant (P11.1); keys map one-to-one onto
+    | `expense_categories` columns (the HrmsCatalogTest gate enforces both
+    | directions). `requires_receipt_above` of 0 means "always" — a receipt
+    | starters that demand proof say 0 and the rest say null.
+    |
     */
 
     'expense_categories' => [
-        ['name' => 'Travel', 'code' => 'travel', 'is_system' => true, 'requires_receipt' => true],
-        ['name' => 'Meals', 'code' => 'meals', 'is_system' => true, 'requires_receipt' => false],
-        ['name' => 'Accommodation', 'code' => 'accommodation', 'is_system' => true, 'requires_receipt' => true],
-        ['name' => 'Office Supplies', 'code' => 'office_supplies', 'is_system' => true, 'requires_receipt' => false],
-        ['name' => 'Software & Subscriptions', 'code' => 'software', 'is_system' => true, 'requires_receipt' => true],
-        ['name' => 'Training & Certification', 'code' => 'training', 'is_system' => true, 'requires_receipt' => true],
+        ['name' => 'Travel', 'slug' => 'travel', 'is_system' => true, 'requires_receipt_above' => 0],
+        ['name' => 'Meals', 'slug' => 'meals', 'is_system' => true, 'requires_receipt_above' => null],
+        ['name' => 'Accommodation', 'slug' => 'accommodation', 'is_system' => true, 'requires_receipt_above' => 0],
+        ['name' => 'Office Supplies', 'slug' => 'office_supplies', 'is_system' => true, 'requires_receipt_above' => null],
+        ['name' => 'Software & Subscriptions', 'slug' => 'software', 'is_system' => true, 'requires_receipt_above' => 0],
+        ['name' => 'Training & Certification', 'slug' => 'training', 'is_system' => true, 'requires_receipt_above' => 0],
     ],
 
     /*

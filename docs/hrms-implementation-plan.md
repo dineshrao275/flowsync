@@ -2881,7 +2881,8 @@ including error payloads; every unmasked read is logged.
 
 **Objective:** claims with receipts, category policy, approval, and a clean hand-off to payroll.
 
-**P11.1 — `000024` migration**
+**P11.1 — `000024` migration** ✅ (landed as `2026_10_04_000027` — the
+planned number was spent by a settings follow-up)
 `expense_categories` (`name`, `slug` unique, `description`, `requires_receipt_above` decimal(14,2)
 nullable, `is_reimbursable` bool, `payroll_component_id` nullable, `is_active`, `position`, `is_system`),
 `expense_claims` (`employee_id`, `claim_number` unique, `claim_date` date, `period_year` smallint,
