@@ -5,6 +5,7 @@ namespace App\Models\Hrms\Expense;
 use App\Models\Hrms\Payroll\SalaryComponent;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 /**
  * Expense/HRMS — one claim category in the tenant's catalogue.
@@ -49,5 +50,11 @@ class ExpenseCategory extends Model
     public function payrollComponent(): BelongsTo
     {
         return $this->belongsTo(SalaryComponent::class, 'payroll_component_id');
+    }
+
+    /** @return HasMany<ExpenseClaimItem, $this> */
+    public function items(): HasMany
+    {
+        return $this->hasMany(ExpenseClaimItem::class, 'category_id');
     }
 }

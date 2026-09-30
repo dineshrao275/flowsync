@@ -22,6 +22,8 @@ use App\Http\Controllers\Hrms\DocumentController;
 use App\Http\Controllers\Hrms\DocumentDownloadController;
 use App\Http\Controllers\Hrms\DocumentTypeController;
 use App\Http\Controllers\Hrms\EmployeeController;
+use App\Http\Controllers\Hrms\Expense\ExpenseCategoryController;
+use App\Http\Controllers\Hrms\Expense\ExpenseClaimController;
 use App\Http\Controllers\Hrms\Holiday\HolidayAssignmentController;
 use App\Http\Controllers\Hrms\Holiday\HolidayCalendarController;
 use App\Http\Controllers\Hrms\Holiday\HolidayController;
@@ -660,6 +662,25 @@ Route::prefix('api')->group(function () {
         Route::get('hrms/payroll/statutory/tds-projects/{project}', [TdsProjectController::class, 'show']);
         Route::post('hrms/payroll/statutory/tds-projects/{project}/surrender', [TdsProjectController::class, 'surrender']);
         Route::post('hrms/payroll/statutory/recompute', [TdsProjectController::class, 'recompute']);
+    });
+
+    // HRMS expenses (Phase 15 P11.3a). Same two gates plus the expenses
+    // module; the claim policy splits listing/reading (self-or-view),
+    // filing (self-or-manage) and deciding (approve-alone), and the
+    // category policy is master-data shaped (view vs manage).
+    Route::group(['middleware' => ['ensure_module:hrms.core', 'ensure_module:hrms.expenses', 'permission:hrms.view']], function () {
+        Route::get('hrms/expenses/categories', [ExpenseCategoryController::class, 'index']);
+        Route::post('hrms/expenses/categories', [ExpenseCategoryController::class, 'store']);
+        Route::get('hrms/expenses/categories/{category}', [ExpenseCategoryController::class, 'show']);
+        Route::put('hrms/expenses/categories/{category}', [ExpenseCategoryController::class, 'update']);
+        Route::delete('hrms/expenses/categories/{category}', [ExpenseCategoryController::class, 'destroy']);
+
+        Route::get('hrms/expenses/claims', [ExpenseClaimController::class, 'index']);
+        Route::post('hrms/expenses/claims', [ExpenseClaimController::class, 'store']);
+        Route::get('hrms/expenses/claims/{claim}', [ExpenseClaimController::class, 'show']);
+        Route::put('hrms/expenses/claims/{claim}/items', [ExpenseClaimController::class, 'setItems']);
+        Route::post('hrms/expenses/claims/{claim}/submit', [ExpenseClaimController::class, 'submit']);
+        Route::post('hrms/expenses/claims/{claim}/decide', [ExpenseClaimController::class, 'decide']);
     });
 
     // HRMS remote punch (Phase 15 P5.3). Deliberately NO route-level
