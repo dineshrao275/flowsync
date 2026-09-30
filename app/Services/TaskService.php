@@ -8,6 +8,7 @@ use App\Models\Project;
 use App\Models\Task;
 use App\Models\TaskStatus;
 use App\Models\User;
+use App\Services\Hrms\PerformanceService;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Validation\ValidationException;
@@ -17,6 +18,7 @@ class TaskService
     public function __construct(
         private readonly KeyGenerator $keyGenerator,
         private readonly TenantLimits $limits,
+        private readonly PerformanceService $performance,
     ) {}
 
     public function create(Project $project, array $data, User $creator): Task
@@ -125,7 +127,17 @@ class TaskService
             }
         }
 
-        return $task->fresh();
+        $moved = $task->fresh();
+
+        // A completion re-photographs every goal evidencing the task, so
+        // linked goals update on the event rather than waiting for the
+        // nightly sweep. Evidence only — the refresh never writes a rating
+        // or a status, so it cannot move anything this method owns.
+        if ($status->is_done) {
+            $this->performance->refreshTaskGoals($moved);
+        }
+
+        return $moved;
     }
 
     public function board(Project $project, array $filters): array

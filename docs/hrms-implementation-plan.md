@@ -2958,7 +2958,7 @@ nullable, `strengths`, `improvements`, `manager_comments`, `evidence_snapshot` J
 `submitted_at`, `acknowledged_at`, `manager_employee_id` nullable) unique `(cycle_id, employee_id)`.
 - **There is no `overall_score` column.** Ratings are 1-5 per dimension, entered by humans.
 
-**P12.2 — Evidence engine (read-only over task data)**
+**P12.2 — Evidence engine (read-only over task data)** ✅
 `app/Services/Hrms/PerformanceService.php::refreshGoalEvidence(Goal)` by `metric_type`:
 - `task_completion`: count **completed** tasks assigned to the employee in the cycle window via
   `ScopesVisibleTasks::visibleTaskQuery($employeeUser)` so project-membership scoping is respected;
@@ -2968,6 +2968,13 @@ nullable, `strengths`, `improvements`, `manager_comments`, `evidence_snapshot` J
 - `manual`: nothing — HR sets the percentage.
 - It **never** writes a rating. `refreshCycleEvidence(Cycle)` sweeps all goals and is called from
   `php artisan hrms:performance-evidence --cycle=ID|--all` and after a task completion for a linked goal.
+
+> **P12.2 as shipped.** Manual/`none` goals and login-less records return
+> untouched; zero targets photograph counts with progress at zero (no
+> denominator, no percentage); the move hook lives in `TaskService::move`
+> (one-way dep, evidence-only); the command takes `--cycle` (omit for all)
+> plus the sibling `--tenant XOR --all` tenant scope.
+> `HrmsPerformanceEvidenceTest` (5 tests).
 
 **P12.3 — Cycle workflow**
 `createCycle` -> `openGoalSetting` (employees draft goals; the per-employee `weight` sum is validated to
