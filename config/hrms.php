@@ -73,6 +73,12 @@ return [
             // by default — a tenant that pays premiums raises it.
             'ot_rate' => 1.0,
         ],
+        'performance' => [
+            // Peer feedback requests generated per reviewee when a cycle
+            // opens manager review. Deterministic, not sampled: the first
+            // N eligible peers by id, so re-running names the same names.
+            'feedback_peer_count' => 2,
+        ],
         'mask_sensitive' => true,
         'data_retention_months' => 24,
     ],

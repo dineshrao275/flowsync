@@ -25,6 +25,7 @@ use Illuminate\Database\Eloquent\Model;
  * @property array<string, mixed>|null $comp_off
  * @property array<string, mixed>|null $compensation
  * @property array<string, mixed>|null $payroll
+ * @property array<string, mixed>|null $performance
  * @property array<string, mixed>|null $statutory
  * @property bool $mask_sensitive
  * @property int $data_retention_months
@@ -48,6 +49,7 @@ class HrmsSetting extends Model
         'comp_off',
         'compensation',
         'payroll',
+        'performance',
         'statutory',
         'mask_sensitive',
         'data_retention_months',
@@ -64,6 +66,7 @@ class HrmsSetting extends Model
             'comp_off' => 'array',
             'compensation' => 'array',
             'payroll' => 'array',
+            'performance' => 'array',
             'statutory' => 'array',
             'mask_sensitive' => 'boolean',
             'data_retention_months' => 'integer',

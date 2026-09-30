@@ -2976,13 +2976,21 @@ nullable, `strengths`, `improvements`, `manager_comments`, `evidence_snapshot` J
 > plus the sibling `--tenant XOR --all` tenant scope.
 > `HrmsPerformanceEvidenceTest` (5 tests).
 
-**P12.3 — Cycle workflow**
+**P12.3 — Cycle workflow** ✅
 `createCycle` -> `openGoalSetting` (employees draft goals; the per-employee `weight` sum is validated to
 be 100 +/- 0.01, else 422) -> `openCheckIn` -> `openSelfReview` -> `openManagerReview` (managers file
 `review_summaries`) -> `openCalibration` (HR sees all ratings, needs `hrms.talent.manage`) -> `complete`
 (notifies participants and locks the cycle). Feedback requests are generated at `openManagerReview`
 (manager plus N peers, from `hrms_settings`), honouring `anonymity` — peer responses are shown
 aggregated when `anonymity = peer`.
+
+> **P12.3 as shipped.** `PerformanceCycleService` (six moves, forward
+> only, each audited); weights validated over non-cancelled goals at the
+> goal-setting exit, goal-less employees skipped; feedback is manager +
+> N deterministic peers per reviewee (peer count from the new
+> `performance` settings section via a `000029` follow-up); completion
+> notifies participants minus the actor. `HrmsPerformanceCycleTest`
+> (4 tests). Filing reviews and anonymity reads stay in P12.4.
 
 **P12.4 — Policies, requests, routes**
 `PerformanceCyclePolicy` (view `hrms.performance.view`; manage `hrms.performance.manage`),

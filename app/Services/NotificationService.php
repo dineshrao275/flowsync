@@ -10,6 +10,7 @@ use App\Models\Hrms\Expense\ExpenseClaim;
 use App\Models\Hrms\Leave\LeaveRequest;
 use App\Models\Hrms\Lifecycle\OnboardingCaseTask;
 use App\Models\Hrms\Payroll\PayrollRun;
+use App\Models\Hrms\Performance\PerformanceCycle;
 use App\Models\Task;
 use App\Models\User;
 use App\Models\UserNotification;
@@ -438,6 +439,39 @@ class NotificationService
         }
 
         return $this->notify($recipient, 'hrms.expense.paid', $this->expensePayload($claim), $actor);
+    }
+
+    /**
+     * Tell every participant their cycle sealed: goal owners with a login,
+     * skipping the actor like every other nudge. The receipt, not the
+     * rating — completed locks the rooms, and this is how the people
+     * inside hear it.
+     *
+     * @return list<UserNotification>
+     */
+    public function performanceCycleCompleted(PerformanceCycle $cycle, ?User $actor = null): array
+    {
+        $userIds = Employee::query()->whereIn(
+            'id',
+            $cycle->goals()->distinct()->pluck('employee_id'),
+        )->whereNotNull('user_id')->pluck('user_id')->unique();
+
+        $sent = [];
+
+        foreach ($userIds as $userId) {
+            $recipient = User::find((int) $userId);
+
+            if ($recipient === null || ($actor !== null && (int) $recipient->id === (int) $actor->id)) {
+                continue;
+            }
+
+            $sent[] = $this->notify($recipient, 'hrms.performance.cycle_completed', [
+                'performance_cycle_id' => $cycle->id,
+                'cycle_name' => $cycle->name,
+            ], $actor);
+        }
+
+        return $sent;
     }
 
     /**
