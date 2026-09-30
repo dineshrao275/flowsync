@@ -206,6 +206,23 @@ class HrmsShellTest extends TestCase
         $this->assertStringContainsString("return '/hrms/comp-off/mine';", $js);
     }
 
+    public function test_the_notification_helpers_cover_expense_nudges(): void
+    {
+        // Same rule as the leave pin: the filing lands on the queue for the
+        // approver, every later step on the claimant's own history — a toast
+        // without a claim number or a link to `/` is a nudge nobody can act
+        // on.
+        $js = file_get_contents(resource_path('js/utils/notifications.js'));
+
+        $this->assertStringContainsString('hrms.expense.submitted', $js);
+        $this->assertStringContainsString('hrms.expense.approved', $js);
+        $this->assertStringContainsString('hrms.expense.rejected', $js);
+        $this->assertStringContainsString('hrms.expense.paid', $js);
+        $this->assertStringContainsString('claim_number', $js);
+        $this->assertStringContainsString("return '/hrms/expenses';", $js);
+        $this->assertStringContainsString("return '/hrms/expenses/mine';", $js);
+    }
+
     public function test_hrms_tiles_only_link_to_sections_the_router_owns(): void
     {
         // P2.5 populated HRMS_MODULE_ROUTES with the employee directory, so this

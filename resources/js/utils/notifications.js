@@ -31,6 +31,14 @@ export function describeNotification(type, data = {}, actorName = 'Someone') {
             return `Your comp-off for ${data.from_date ?? 'those dates'} was approved`;
         case 'hrms.comp_off.rejected':
             return `Your comp-off for ${data.from_date ?? 'those dates'} was rejected`;
+        case 'hrms.expense.submitted':
+            return `${actorName} filed claim ${data.claim_number ?? ''} for approval`;
+        case 'hrms.expense.approved':
+            return `Your claim ${data.claim_number ?? ''} was approved`;
+        case 'hrms.expense.rejected':
+            return `Your claim ${data.claim_number ?? ''} was rejected`;
+        case 'hrms.expense.paid':
+            return `Your claim ${data.claim_number ?? ''} was reimbursed through payroll`;
         default:
             return 'You have a new notification';
     }
@@ -105,6 +113,16 @@ export function notificationHref(data = {}, type = '') {
 
     if (type === 'hrms.comp_off.approved' || type === 'hrms.comp_off.rejected') {
         return '/hrms/comp-off/mine';
+    }
+
+    // Expenses mirror leave: the filing lands on the queue for the approver,
+    // every later step on the claimant's own history.
+    if (type === 'hrms.expense.submitted') {
+        return '/hrms/expenses';
+    }
+
+    if (type === 'hrms.expense.approved' || type === 'hrms.expense.rejected' || type === 'hrms.expense.paid') {
+        return '/hrms/expenses/mine';
     }
 
     if (project_id && key) {

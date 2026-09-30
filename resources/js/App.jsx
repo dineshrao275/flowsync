@@ -45,6 +45,8 @@ import Payroll from './pages/hrms/Payroll';
 import PayrollRunDetail from './pages/hrms/PayrollRunDetail';
 import MyPayslips from './pages/hrms/MyPayslips';
 import Statutory from './pages/hrms/Statutory';
+import Expenses from './pages/hrms/Expenses';
+import MyExpenses from './pages/hrms/MyExpenses';
 import Search from './pages/Search';
 import Notifications from './pages/Notifications';
 import Tenants from './pages/Tenants';
@@ -289,6 +291,18 @@ function AppRoutes() {
                             <Route element={<ProtectedRoute module="hrms.payroll.statutory" />}>
                                 <Route path="/hrms/statutory" element={<Statutory />} />
                             </Route>
+                            {/* Expenses: the queue needs the view permission,
+                                the self-service page rides the module alone
+                                like My files. */}
+                            <Route
+                                path="/hrms/expenses"
+                                element={
+                                    <ProtectedRoute permission="hrms.expenses.view">
+                                        <Expenses />
+                                    </ProtectedRoute>
+                                }
+                            />
+                            <Route path="/hrms/expenses/mine" element={<MyExpenses />} />
                             <Route path="/hrms/:section" element={<HrmsOverview />} />
                         </Route>
                         <Route element={<ProtectedRoute permission="users.view" />}>

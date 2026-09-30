@@ -117,6 +117,18 @@ const sections = [
                 capabilities: ['module:hrms.core', 'module:hrms.payroll.statutory'],
                 icon: 'M9 3h6l4 4v14H5V7l4-4zm-2 8h8m-4-4v8',
             },
+            {
+                to: '/hrms/expenses',
+                label: 'Expenses',
+                capabilities: ['module:hrms.core', 'module:hrms.expenses', 'permission:hrms.expenses.view'],
+                icon: 'M4 3h16v18H4V3zm3 4h10m-10 4h10m-10 4h5',
+            },
+            {
+                to: '/hrms/expenses/mine',
+                label: 'My expenses',
+                capabilities: ['module:hrms.core', 'module:hrms.expenses'],
+                icon: 'M5 3h14v18H5V3zm3 5h8m-8 4h5',
+            },
             { to: '/hrms', label: 'HRMS', capabilities: ['module:hrms.core'], icon: 'M17 20h5v-2a4 4 0 00-3-3.87M9 20H4v-2a4 4 0 013-3.87m4-1.13a4 4 0 10-4-4 4 4 0 004 4zm6 2a3 3 0 10-3-3' },
         ],
     },

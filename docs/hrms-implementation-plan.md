@@ -2913,7 +2913,7 @@ total), `submit` (locks the claim and routes approval: manager then the `hrms.ex
 > the schema); `calculate()` reimburses period claims per payslip with
 > exactly-once guards. `HrmsExpenseServiceTest` (7 tests).
 
-**P11.3 — Policies, requests, routes, frontend, notifications** (split: `P11.3a` HTTP ✅, `P11.3b` frontend + notification branches)
+**P11.3 — Policies, requests, routes, frontend, notifications** (split: `P11.3a` HTTP ✅, `P11.3b` frontend + notification branches ✅)
 `ExpenseClaimPolicy` (view self or `hrms.expenses.view`; approve `hrms.expenses.approve`; manage
 `hrms.expenses.manage`; categories manage `hrms.expenses.manage`).
 Routes: `/api/hrms/expenses/categories`, `.../claims`, `.../claims/{claim}`,
