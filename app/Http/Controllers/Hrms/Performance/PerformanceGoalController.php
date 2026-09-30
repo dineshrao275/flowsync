@@ -58,7 +58,7 @@ class PerformanceGoalController extends Controller
 
         $this->authorize('file', [PerformanceGoal::class, $employee]);
 
-        unset($data['employee_id']);
+        $data = $request->validated();
 
         $goal = $cycle->goals()->create([...$data, 'created_by' => $request->user()->id]);
 

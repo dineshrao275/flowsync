@@ -53,9 +53,11 @@ use App\Http\Controllers\Hrms\Payroll\StatutoryDeclarationController;
 use App\Http\Controllers\Hrms\Payroll\StatutoryProfileController;
 use App\Http\Controllers\Hrms\Payroll\TdsProjectController;
 use App\Http\Controllers\Hrms\Performance\CheckInController;
+use App\Http\Controllers\Hrms\Performance\FeedbackRequestController;
 use App\Http\Controllers\Hrms\Performance\OneOnOneController;
 use App\Http\Controllers\Hrms\Performance\PerformanceCycleController;
 use App\Http\Controllers\Hrms\Performance\PerformanceGoalController;
+use App\Http\Controllers\Hrms\Performance\ReviewSummaryController;
 use App\Http\Controllers\ImpersonationController;
 use App\Http\Controllers\LabelController;
 use App\Http\Controllers\MySubscriptionController;
@@ -710,6 +712,23 @@ Route::prefix('api')->group(function () {
 
         Route::get('hrms/performance/cycles/{cycle}/check-ins', [CheckInController::class, 'index']);
         Route::post('hrms/performance/cycles/{cycle}/check-ins', [CheckInController::class, 'store']);
+
+        // HRMS feedback, reviews and evidence (Phase 15 P12.4b). Same
+        // gates; the feedback policy names who may answer (the reviewer
+        // alone), the review policy splits readers by visibility, and the
+        // evidence read never recomputes — the refresh endpoint does.
+        Route::get('hrms/performance/cycles/{cycle}/feedback-requests', [FeedbackRequestController::class, 'index']);
+        Route::get('hrms/performance/feedback-requests/{feedbackRequest}', [FeedbackRequestController::class, 'show']);
+        Route::post('hrms/performance/feedback-requests/{feedbackRequest}/respond', [FeedbackRequestController::class, 'respond']);
+
+        Route::get('hrms/performance/cycles/{cycle}/reviews', [ReviewSummaryController::class, 'index']);
+        Route::post('hrms/performance/cycles/{cycle}/reviews', [ReviewSummaryController::class, 'store']);
+        Route::get('hrms/performance/reviews/{review}', [ReviewSummaryController::class, 'show']);
+        Route::put('hrms/performance/reviews/{review}', [ReviewSummaryController::class, 'update']);
+        Route::post('hrms/performance/reviews/{review}/acknowledge', [ReviewSummaryController::class, 'acknowledge']);
+
+        Route::get('hrms/performance/cycles/{cycle}/evidence', [PerformanceCycleController::class, 'evidence']);
+        Route::post('hrms/performance/cycles/{cycle}/evidence', [PerformanceCycleController::class, 'refreshEvidence']);
 
         Route::get('hrms/performance/one-on-ones', [OneOnOneController::class, 'index']);
         Route::post('hrms/performance/one-on-ones', [OneOnOneController::class, 'store']);

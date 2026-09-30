@@ -5,7 +5,9 @@ namespace App\Http\Controllers\Hrms\Performance;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Hrms\PerformanceCycleRequest;
 use App\Models\Hrms\Performance\PerformanceCycle;
+use App\Models\Hrms\Performance\PerformanceGoal;
 use App\Services\Hrms\Performance\PerformanceCycleService;
+use App\Services\Hrms\PerformanceService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
@@ -21,7 +23,10 @@ use Illuminate\Http\Response;
  */
 class PerformanceCycleController extends Controller
 {
-    public function __construct(private readonly PerformanceCycleService $cycles) {}
+    public function __construct(
+        private readonly PerformanceCycleService $cycles,
+        private readonly PerformanceService $performance,
+    ) {}
 
     public function index(): JsonResponse
     {
@@ -99,6 +104,50 @@ class PerformanceCycleController extends Controller
         return response()->json([
             'message' => 'Cycle completed.',
             'cycle' => $this->present($this->cycles->complete($cycle, $request->user())),
+        ]);
+    }
+
+    /**
+     * The cycle's goals with their current evidence: a read, never a
+     * recompute — the numbers on screen are what the last sweep (or task
+     * completion) photographed, and the refresh endpoint is the one that
+     * moves them.
+     */
+    public function evidence(Request $request, PerformanceCycle $cycle): JsonResponse
+    {
+        $this->authorize('view', $cycle);
+
+        return response()->json([
+            'goals' => $cycle->goals()->with(['employee:id,employee_code,name'])->orderBy('id')
+                ->get()->map(fn (PerformanceGoal $goal): array => [
+                    'id' => $goal->id,
+                    'employee_id' => $goal->employee_id,
+                    'employee' => $goal->employee ? [
+                        'id' => $goal->employee->id,
+                        'employee_code' => $goal->employee->employee_code,
+                        'name' => $goal->employee->displayName(),
+                    ] : null,
+                    'title' => $goal->title,
+                    'metric_type' => $goal->metric_type->value,
+                    'target_value' => $goal->target_value === null ? null : (string) $goal->target_value,
+                    'progress_percent' => (string) $goal->progress_percent,
+                    'progress_source' => $goal->progress_source->value,
+                    'progress_evidence' => $goal->progress_evidence,
+                ])->all(),
+        ]);
+    }
+
+    /**
+     * Re-photograph the cycle's evidence on demand: the command's twin for
+     * the detail screen, answering to the same manage ability.
+     */
+    public function refreshEvidence(Request $request, PerformanceCycle $cycle): JsonResponse
+    {
+        $this->authorize('transition', $cycle);
+
+        return response()->json([
+            'message' => 'Evidence refreshed.',
+            'summary' => $this->performance->refreshCycleEvidence($cycle),
         ]);
     }
 

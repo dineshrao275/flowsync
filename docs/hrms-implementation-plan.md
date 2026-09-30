@@ -2992,7 +2992,7 @@ aggregated when `anonymity = peer`.
 > notifies participants minus the actor. `HrmsPerformanceCycleTest`
 > (4 tests). Filing reviews and anonymity reads stay in P12.4.
 
-**P12.4 — Policies, requests, routes** (split: `P12.4a` cycles/goals/notes ✅, `P12.4b` feedback/reviews/evidence + ApiTest)
+**P12.4 — Policies, requests, routes** (split: `P12.4a` cycles/goals/notes ✅, `P12.4b` feedback/reviews/evidence + ApiTest ✅)
 `PerformanceCyclePolicy` (view `hrms.performance.view`; manage `hrms.performance.manage`),
 `PerformanceGoalPolicy` (view: self, the goal owner's manager, or `hrms.performance.view`; update: self
 while `draft`, or manage), `ReviewSummaryPolicy` (**the viewer depends on `visibility_to_employee` and

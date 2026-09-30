@@ -11,6 +11,7 @@ use App\Models\Hrms\Leave\LeaveRequest;
 use App\Models\Hrms\Lifecycle\OnboardingCaseTask;
 use App\Models\Hrms\Payroll\PayrollRun;
 use App\Models\Hrms\Performance\PerformanceCycle;
+use App\Models\Hrms\Performance\ReviewSummary;
 use App\Models\Task;
 use App\Models\User;
 use App\Models\UserNotification;
@@ -472,6 +473,31 @@ class NotificationService
         }
 
         return $sent;
+    }
+
+    /**
+     * Tell the reviewee their write-up was acknowledged: sealed and shared,
+     * with the receipt landing where the person it is about can see it.
+     */
+    public function performanceReviewAcknowledged(ReviewSummary $review, ?User $actor = null): ?UserNotification
+    {
+        $userId = $review->employee?->user_id;
+
+        if ($userId === null) {
+            return null;
+        }
+
+        $recipient = User::find((int) $userId);
+
+        if ($recipient === null || ($actor !== null && (int) $recipient->id === (int) $actor->id)) {
+            return null;
+        }
+
+        return $this->notify($recipient, 'hrms.performance.review_acknowledged', [
+            'review_summary_id' => $review->id,
+            'performance_cycle_id' => $review->cycle_id,
+            'cycle_name' => $review->cycle?->name,
+        ], $actor);
     }
 
     /**
