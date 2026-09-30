@@ -20,7 +20,7 @@ Laravel 12 + React 19 SPA. Session-based auth **without** Breeze/Fortify/Sanctum
   `tenants:provision` + seeds demo data (superadmin + acme + globex). Reset from scratch:
   `docker-compose down -v` then `up -d` (app entrypoint re-initializes; `RUN_INIT=true` only for `app`).
   No PHP/composer needed on the host — envs in `.env.docker`.
-- `php artisan test` — run test suite (Phase 13: **isolated, per-tenant file DBs** via `Tests\IsolatesDatabase`; current gate: **1212 tests / 5999 assertions passing** — Phase 11 end-gate (full suite re-verified in Hrms/non-Hrms chunks with zero omitted files))
+- `php artisan test` — run test suite (Phase 13: **isolated, per-tenant file DBs** via `Tests\IsolatesDatabase`; current gate: **1219 tests / 6060 assertions passing** — P12.1 (full suite re-verified in Hrms/non-Hrms chunks with zero omitted files at the Phase 11 end-gate))
 
 - `npm run build` / `npm run dev` — frontend build / Vite dev server
 - `./vendor/bin/pint` — PHP code style (run over whole repo; `--dirty` only works in git)
@@ -604,7 +604,8 @@ file/submit/decide/reimburse + payroll hook + expense notifications +
 `HrmsExpenseServiceTest`); P11.3a (expense HTTP: `ExpenseCategoryService`,
 claim + category policies, the four expense requests, both controllers +
 `HrmsExpenseApiTest`); P11.3b (`Expenses.jsx` + `MyExpenses.jsx` +
-`ExpenseClaimModal.jsx` + notification branches + shell pin).
+`ExpenseClaimModal.jsx` + notification branches + shell pin); P12.1
+(`2026_10_05_000028` — performance tables + `HrmsPerformanceTablesTest`).
 Phase 13
   was jumped to *before* Phase 4 because P4.1's `document_requests.document_type_id` is a real FK to
   `document_types`, and no migration created that table until P13.1 — the plan's "documents ship

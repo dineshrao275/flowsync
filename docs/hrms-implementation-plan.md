@@ -2933,7 +2933,8 @@ adjustment exactly once; a claim cannot be edited after submission.
 
 **Objective:** cycles, goals, check-ins, one-on-ones, and task-derived **evidence** — never scores.
 
-**P12.1 — `000025` migration**
+**P12.1 — `000025` migration** ✅ (landed as `2026_10_05_000028` — the
+planned number was spent by a settings follow-up, like `000024`)
 `performance_cycles` (`name`, `slug` unique, `description`, `period_start` date, `period_end` date,
 `stage` enum `goal_setting|check_in|self_review|manager_review|calibration|completed`, `anonymity` enum
 `none|reviewer|peer`, `is_active` bool, `created_by`, timestamps), `performance_goals` (`cycle_id`,
