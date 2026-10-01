@@ -3318,7 +3318,7 @@ Each item: `{key, type, title, subtitle, priority, due_at, meta, source_id}` —
 never a URL**; the client builds `href` with `utils/deepLinks.js`.
 `markRead(User, key[])`, `markAllRead`, `unreadCount(User)` (cached 30s, busted on any write).
 
-**P15.3 — Notification taxonomy**
+**P15.3 — Notification taxonomy** ✅
 Add small, testable methods to `NotificationService` (each following `taskAssigned`):
 ```
 hrms.leave.requested | hrms.leave.approved | hrms.leave.rejected
@@ -3337,6 +3337,16 @@ hrms.inbox.digest
 Every `data` payload carries the ids the deep link needs, plus the existing shape (`task_id`/`key`/
 `title`/`project_id`/`workspace_id`) so the current notification list keeps rendering without
 special-casing.
+
+> **P15.3 as shipped.** Implemented for real events only: document
+> verified/rejected (lifecycle → owner), offboarding clearance-pending
+> (blocked initiate → manage pool), performance cycle-opened
+> (check-ins open → participants) and review-shared (visibility flip →
+> owner). Deliberately not added: `attendance.regularized` (shipped as
+> `regularization.decided`), `survey.*` (Phase 16 owns surveys),
+> `inbox.digest` and `acknowledge_due` (no trigger exists without a
+> scheduler — not invented), `payroll.dispute_opened` (no dispute flow;
+> the inbox still reads disputed rows). `HrmsTaxonomyTest` (4 tests).
 
 **P15.4 — Frontend**
 `pages/hrms/Inbox.jsx` (`/hrms/inbox`) — grouped by type with priority ordering, per-item mark-read,

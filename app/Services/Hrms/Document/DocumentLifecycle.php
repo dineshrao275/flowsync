@@ -7,6 +7,7 @@ use App\Models\Hrms\Document\EmployeeDocument;
 use App\Models\Hrms\Employee\Employee;
 use App\Models\User;
 use App\Services\HrmsAuditLogger;
+use App\Services\NotificationService;
 use Carbon\Carbon;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
@@ -23,7 +24,10 @@ use Illuminate\Validation\ValidationException;
  */
 class DocumentLifecycle
 {
-    public function __construct(private readonly HrmsAuditLogger $audit) {}
+    public function __construct(
+        private readonly HrmsAuditLogger $audit,
+        private readonly NotificationService $notifications,
+    ) {}
 
     /**
      * Mark a reviewed document as evidence.
@@ -43,6 +47,7 @@ class DocumentLifecycle
                 'rejection_reason' => null,
             ]);
             $this->audit->log($document, 'document.verified', $before, ['status' => DocumentStatus::Verified->value], $actor);
+            $this->notifications->documentDecided($document->refresh(), $before['status'], $actor);
 
             return $document->refresh();
         });
@@ -72,6 +77,7 @@ class DocumentLifecycle
                 'rejection_reason' => $reason,
             ]);
             $this->audit->log($document, 'document.rejected', $before, ['status' => DocumentStatus::Rejected->value], $actor);
+            $this->notifications->documentDecided($document->refresh(), $before['status'], $actor);
 
             return $document->refresh();
         });

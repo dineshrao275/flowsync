@@ -14,6 +14,7 @@ use App\Models\User;
 use App\Services\Hrms\Lifecycle\DocumentRequestService;
 use App\Services\Hrms\Lifecycle\OffboardingChecklist;
 use App\Services\HrmsAuditLogger;
+use App\Services\NotificationService;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
@@ -35,6 +36,7 @@ class OffboardingService
         private readonly DocumentRequestService $requests,
         private readonly OffboardingChecklist $checklist,
         private readonly HrmsAuditLogger $audit,
+        private readonly NotificationService $notifications,
     ) {}
 
     /**
@@ -77,7 +79,14 @@ class OffboardingService
             ]);
 
             $this->checklist->build($case, $actor);
-            $this->summary($case);
+            $clearance = $this->summary($case);
+
+            // An exit that opens already blocked tells HR on day one: the
+            // clearance names the blockers, and waiting for the refused
+            // sign-off to say so wastes the whole notice period.
+            if ($clearance->isBlocked()) {
+                $this->notifications->offboardingClearancePending($case->refresh(), $actor);
+            }
 
             // The exit date is a fact about the exit, not about who clicked:
             // whoever opens the case, the employee’s record carries the last

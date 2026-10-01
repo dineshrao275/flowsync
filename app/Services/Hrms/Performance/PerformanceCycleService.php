@@ -66,7 +66,10 @@ class PerformanceCycleService
         $this->requireStage($cycle, PerformanceCycleStage::GoalSetting, 'check-ins');
         $this->validateWeights($cycle);
 
-        return $this->transition($cycle, PerformanceCycleStage::CheckIn, 'performance.cycle_check_in_opened', $actor);
+        $moved = $this->transition($cycle, PerformanceCycleStage::CheckIn, 'performance.cycle_check_in_opened', $actor);
+        $this->notifications->performanceCycleOpened($moved, $actor);
+
+        return $moved;
     }
 
     public function openSelfReview(PerformanceCycle $cycle, ?User $actor = null): PerformanceCycle

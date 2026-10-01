@@ -82,9 +82,18 @@ class ReviewSummaryController extends Controller
         $data = $request->validated();
         unset($data['employee_id']);
 
+        $wasHidden = $review->visibility_to_employee->value === 'hidden';
         $review->update($data);
+        $review->refresh();
 
-        $this->audit->log($review->refresh(), 'performance.review_updated', null, [
+        // Sharing is the event: the manager's half becomes readable, so the
+        // employee hears it now — not at filing (they could not see it) and
+        // not at every edit (only the release matters).
+        if ($wasHidden && $review->visibility_to_employee->value === 'shared') {
+            $this->notifications->performanceReviewShared($review, $request->user());
+        }
+
+        $this->audit->log($review, 'performance.review_updated', null, [
             'employee_id' => $review->employee_id,
             'status' => $review->status->value,
         ], $request->user());

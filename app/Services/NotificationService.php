@@ -6,9 +6,11 @@ use App\Events\NotificationSent;
 use App\Models\Comment;
 use App\Models\Hrms\Asset\AssetAssignment;
 use App\Models\Hrms\CompOff\CompOffRequest;
+use App\Models\Hrms\Document\EmployeeDocument;
 use App\Models\Hrms\Employee\Employee;
 use App\Models\Hrms\Expense\ExpenseClaim;
 use App\Models\Hrms\Leave\LeaveRequest;
+use App\Models\Hrms\Lifecycle\OffboardingCase;
 use App\Models\Hrms\Lifecycle\OnboardingCaseTask;
 use App\Models\Hrms\Payroll\PayrollRun;
 use App\Models\Hrms\Performance\PerformanceCycle;
@@ -611,6 +613,119 @@ class NotificationService
     }
 
     /**
+     * Tell the document's owner their file was accepted — or refused, with
+     * HR's reason attached so the rejection is actionable, not just bad
+     * news. The owner hears, never the filer: HR filing on someone's
+     * behalf must not toast HR about their own filing.
+     */
+    public function documentDecided(EmployeeDocument $document, string $fromStatus, ?User $actor = null): ?UserNotification
+    {
+        $userId = $document->employee?->user_id;
+
+        if ($userId === null) {
+            return null;
+        }
+
+        $recipient = User::find((int) $userId);
+
+        if ($recipient === null || ($actor !== null && (int) $recipient->id === (int) $actor->id)) {
+            return null;
+        }
+
+        $type = $document->status->value === 'verified' ? 'hrms.document.verified' : 'hrms.document.rejected';
+
+        return $this->notify($recipient, $type, array_merge($this->documentPayload($document), [
+            'from_status' => $fromStatus,
+            'to_status' => $document->status->value,
+        ]), $actor);
+    }
+
+    /**
+     * Tell HR managers an exit opened already blocked: hardware out, file
+     * asks pending — the clearance names them, and this is the nudge that
+     * says so on day one instead of at the refused sign-off.
+     *
+     * @return list<UserNotification>
+     */
+    public function offboardingClearancePending(OffboardingCase $case, ?User $actor = null): array
+    {
+        $sent = [];
+
+        foreach ($this->usersWith('hrms.offboarding.manage') as $recipientId) {
+            $recipient = User::find($recipientId);
+
+            if ($recipient === null || ($actor !== null && (int) $recipient->id === (int) $actor->id)) {
+                continue;
+            }
+
+            $sent[] = $this->notify($recipient, 'hrms.offboarding.clearance_pending', [
+                'offboarding_case_id' => $case->id,
+                'employee_id' => $case->employee_id,
+                'employee_name' => $case->employee?->name,
+            ], $actor);
+        }
+
+        return $sent;
+    }
+
+    /**
+     * Tell every participant their cycle is live: sheets validated, rooms
+     * opening. The creation told HR; this tells the people with goals.
+     *
+     * @return list<UserNotification>
+     */
+    public function performanceCycleOpened(PerformanceCycle $cycle, ?User $actor = null): array
+    {
+        $userIds = Employee::query()->whereIn(
+            'id',
+            $cycle->goals()->distinct()->pluck('employee_id'),
+        )->whereNotNull('user_id')->pluck('user_id')->unique();
+
+        $sent = [];
+
+        foreach ($userIds as $userId) {
+            $recipient = User::find((int) $userId);
+
+            if ($recipient === null || ($actor !== null && (int) $recipient->id === (int) $actor->id)) {
+                continue;
+            }
+
+            $sent[] = $this->notify($recipient, 'hrms.performance.cycle_opened', [
+                'performance_cycle_id' => $cycle->id,
+                'cycle_name' => $cycle->name,
+            ], $actor);
+        }
+
+        return $sent;
+    }
+
+    /**
+     * Tell the reviewee their write-up was shared: the manager's half is
+     * readable now, which is the event — not the filing, which they could
+     * not see.
+     */
+    public function performanceReviewShared(ReviewSummary $review, ?User $actor = null): ?UserNotification
+    {
+        $userId = $review->employee?->user_id;
+
+        if ($userId === null) {
+            return null;
+        }
+
+        $recipient = User::find((int) $userId);
+
+        if ($recipient === null || ($actor !== null && (int) $recipient->id === (int) $actor->id)) {
+            return null;
+        }
+
+        return $this->notify($recipient, 'hrms.performance.review_shared', [
+            'review_summary_id' => $review->id,
+            'performance_cycle_id' => $review->cycle_id,
+            'cycle_name' => $review->cycle?->name,
+        ], $actor);
+    }
+
+    /**
      * Every login holding a permission, for pool-owned notifications (an hr
      * item belongs to whoever holds manage, not to a named person).
      *
@@ -695,6 +810,19 @@ class NotificationService
             'from_date' => $request->from_date->toDateString(),
             'to_date' => $request->to_date->toDateString(),
             'total_minutes' => $request->total_minutes,
+        ];
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function documentPayload(EmployeeDocument $document): array
+    {
+        return [
+            'document_id' => $document->id,
+            'employee_id' => $document->employee_id,
+            'employee_name' => $document->employee?->displayName(),
+            'title' => $document->title,
         ];
     }
 
