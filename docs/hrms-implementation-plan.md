@@ -3297,7 +3297,8 @@ be cleared; `my/assets` shows only the caller's assets.
 **Objective:** one place to work ("My HR inbox") that aggregates every pending approval and assigned
 action item, plus a complete notification taxonomy with deep links.
 
-**P15.1 — `000028` migration**
+**P15.1 — `000028` migration** ✅ (landed as `2026_10_08_000031` — the
+planned number was spent by performance tables, like the rest)
 `inbox_reads` (`user_id`, `item_key` string(120), `read_at` datetime) unique `(user_id, item_key)`.
 `item_key` is a stable string: `approval:{id}`, `case_task:{id}`, `attendance_reg:{id}`,
 `document_request:{id}`, `asset_assignment:{id}`, `payslip:{id}`.
