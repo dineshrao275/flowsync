@@ -3374,7 +3374,8 @@ super admin's inbox is empty, matching the existing `DetectsPlatformUsers` short
 
 **Objective:** pulse/engagement surveys with anonymity thresholds and HR-safe results.
 
-**P16.1 — `000029` migration**
+**P16.1 — `000029` migration** ✅ (landed as `2026_10_09_000032` — the
+planned number was spent by performance settings, like the rest)
 `survey_templates` (`name`, `slug` unique, `description`, `type` enum
 `pulse|engagement|onboarding_exit|exit|custom`, `is_anonymous` bool, `is_active`, `frequency` enum
 `one_time|weekly|monthly|quarterly|annual`, `audience_scope` enum
