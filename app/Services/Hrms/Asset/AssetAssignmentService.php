@@ -98,10 +98,9 @@ class AssetAssignmentService
 
     /**
      * Take an asset back: the row closes with the condition it came back
-     * in, the register returns to available carrying that condition, and
-     * the assigner hears it closed. A damaged return flags the row —
-     * triage (repair or write-off) is the register's next move, not this
-     * method's.
+     * in, and the register follows it — available again, or parked in
+     * maintenance when it came back damaged (triage is the register's next
+     * move, not this method's). The assigner hears it closed.
      *
      * @throws ValidationException outside active
      */
@@ -110,15 +109,17 @@ class AssetAssignmentService
         $this->requireActive($assignment);
 
         return DB::transaction(function () use ($assignment, $conditionIn, $note, $actor): AssetAssignment {
+            $damaged = $conditionIn === 'damaged';
+
             $assignment->update([
-                'status' => $conditionIn === 'damaged' ? AssetAssignmentStatus::Damaged : AssetAssignmentStatus::Returned,
+                'status' => $damaged ? AssetAssignmentStatus::Damaged : AssetAssignmentStatus::Returned,
                 'returned_at' => now(),
                 'condition_in' => $conditionIn,
                 'return_note' => $note,
             ]);
 
             $assignment->asset->update([
-                'status' => AssetStatus::Available,
+                'status' => $damaged ? AssetStatus::Maintenance : AssetStatus::Available,
                 'assigned_to_employee_id' => null,
                 'returned_at' => now(),
                 'condition' => $conditionIn,

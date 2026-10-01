@@ -12,6 +12,8 @@ use App\Http\Controllers\DependencyController;
 use App\Http\Controllers\FeatureManagementController;
 use App\Http\Controllers\ForgotPasswordController;
 use App\Http\Controllers\GlobalSearchController;
+use App\Http\Controllers\Hrms\Asset\AssetCategoryController;
+use App\Http\Controllers\Hrms\Asset\AssetController;
 use App\Http\Controllers\Hrms\Attendance\AttendanceController;
 use App\Http\Controllers\Hrms\Attendance\AttendanceRecordsController;
 use App\Http\Controllers\Hrms\Attendance\RegularizationController;
@@ -688,6 +690,33 @@ Route::prefix('api')->group(function () {
         Route::post('hrms/expenses/claims/{claim}/submit', [ExpenseClaimController::class, 'submit']);
         Route::post('hrms/expenses/claims/{claim}/decide', [ExpenseClaimController::class, 'decide']);
     });
+
+    // HRMS assets (Phase 15 P14.3a). Same two gates plus the assets module;
+    // the asset policy splits reads (view), movements (manage) and receipts
+    // (the holder alone), and the category policy is master-data shaped.
+    // The invoice download sits outside like every signed file route: the
+    // signature is the credential, so `asset` is an int resolved inside the
+    // tenant connection.
+    Route::group(['middleware' => ['ensure_module:hrms.core', 'ensure_module:hrms.assets', 'permission:hrms.view']], function () {
+        Route::get('hrms/assets/categories', [AssetCategoryController::class, 'index']);
+        Route::post('hrms/assets/categories', [AssetCategoryController::class, 'store']);
+        Route::get('hrms/assets/categories/{category}', [AssetCategoryController::class, 'show']);
+        Route::put('hrms/assets/categories/{category}', [AssetCategoryController::class, 'update']);
+        Route::delete('hrms/assets/categories/{category}', [AssetCategoryController::class, 'destroy']);
+
+        Route::get('hrms/assets', [AssetController::class, 'index']);
+        Route::post('hrms/assets', [AssetController::class, 'store']);
+        Route::get('hrms/assets/{asset}', [AssetController::class, 'show']);
+        Route::post('hrms/assets/{asset}/assign', [AssetController::class, 'assign']);
+        Route::post('hrms/assets/{asset}/return', [AssetController::class, 'returnAsset']);
+        Route::post('hrms/assets/{asset}/maintenance', [AssetController::class, 'maintenance']);
+        Route::post('hrms/assets/assignments/{assignment}/acknowledge', [AssetController::class, 'acknowledge']);
+        Route::get('hrms/my/assets', [AssetController::class, 'mine']);
+    });
+
+    Route::get('hrms/assets/{asset}/document', [AssetController::class, 'document'])
+        ->middleware('signed')
+        ->name('hrms.assets.document');
 
     // HRMS performance, first half (Phase 15 P12.4a): cycles, goals,
     // check-ins and 1:1s. Same two gates plus the performance module; the
