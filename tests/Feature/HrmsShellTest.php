@@ -237,6 +237,22 @@ class HrmsShellTest extends TestCase
         $this->assertStringContainsString("return '/hrms/performance/mine';", $js);
     }
 
+    public function test_the_notification_helpers_cover_asset_nudges(): void
+    {
+        // Same rule as every pin before it: the holder's nudges land on
+        // their own shelf, the register's on the register — each carrying
+        // the asset code, because a toast without one is unactionable.
+        $js = file_get_contents(resource_path('js/utils/notifications.js'));
+
+        $this->assertStringContainsString('hrms.asset.assigned', $js);
+        $this->assertStringContainsString('hrms.asset.acknowledged', $js);
+        $this->assertStringContainsString('hrms.asset.returned', $js);
+        $this->assertStringContainsString('hrms.asset.return_overdue', $js);
+        $this->assertStringContainsString('asset_code', $js);
+        $this->assertStringContainsString("return '/hrms/assets/mine';", $js);
+        $this->assertStringContainsString("return '/hrms/assets';", $js);
+    }
+
     public function test_hrms_tiles_only_link_to_sections_the_router_owns(): void
     {
         // P2.5 populated HRMS_MODULE_ROUTES with the employee directory, so this

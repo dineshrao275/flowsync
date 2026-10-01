@@ -141,6 +141,18 @@ const sections = [
                 capabilities: ['module:hrms.core', 'module:hrms.performance'],
                 icon: 'M5 3h14v18H5V3zm3 5h8m-8 4h5',
             },
+            {
+                to: '/hrms/assets',
+                label: 'Assets',
+                capabilities: ['module:hrms.core', 'module:hrms.assets', 'permission:hrms.assets.view'],
+                icon: 'M20 7H4a2 2 0 00-2 2v10a2 2 0 002 2h16a2 2 0 002-2V9a2 2 0 00-2-2zm-9 9H7v-2h4v2zm6 0h-4v-2h4v2z',
+            },
+            {
+                to: '/hrms/assets/mine',
+                label: 'My assets',
+                capabilities: ['module:hrms.core', 'module:hrms.assets'],
+                icon: 'M5 3h14v18H5V3zm3 5h8m-8 4h5',
+            },
             { to: '/hrms', label: 'HRMS', capabilities: ['module:hrms.core'], icon: 'M17 20h5v-2a4 4 0 00-3-3.87M9 20H4v-2a4 4 0 013-3.87m4-1.13a4 4 0 10-4-4 4 4 0 004 4zm6 2a3 3 0 10-3-3' },
         ],
     },

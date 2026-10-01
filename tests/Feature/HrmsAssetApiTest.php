@@ -136,6 +136,35 @@ class HrmsAssetApiTest extends TestCase
         $this->assertCount(0, $theirs['assignments']);
     }
 
+    public function test_a_holder_returns_their_own_but_not_anothers(): void
+    {
+        $holder = $this->makeEmployee(withUser: true);
+        $other = $this->makeEmployee(withUser: true);
+        $this->actAs($this->userWith(['hrms.view', 'hrms.assets.view', 'hrms.assets.manage']));
+
+        $mine = $this->postJson('/api/hrms/assets', [
+            'name' => 'Mine.',
+            'category_id' => $this->category()->id,
+        ])->assertCreated()->json('asset');
+        $theirs = $this->postJson('/api/hrms/assets', [
+            'name' => 'Theirs.',
+            'category_id' => $this->category()->id,
+        ])->assertCreated()->json('asset');
+
+        $this->postJson("/api/hrms/assets/{$mine['id']}/assign", ['employee_id' => $holder->id])->assertOk();
+        $this->postJson("/api/hrms/assets/{$theirs['id']}/assign", ['employee_id' => $other->id])->assertOk();
+
+        // A stranger's handover is not theirs to close.
+        $this->actAs($this->userWith(['hrms.view'], $holder));
+        $this->postJson("/api/hrms/assets/{$theirs['id']}/return", ['condition_in' => 'good'])->assertForbidden();
+
+        // Their own closes — damaged parks in maintenance for triage.
+        $this->postJson("/api/hrms/assets/{$mine['id']}/return", [
+            'condition_in' => 'damaged',
+            'return_note' => 'Cracked shell.',
+        ])->assertOk()->assertJsonPath('asset.status', 'maintenance');
+    }
+
     public function test_a_used_category_is_not_deleted(): void
     {
         $this->actAs($this->userWith(['hrms.view', 'hrms.assets.view', 'hrms.assets.manage']));

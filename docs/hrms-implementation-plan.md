@@ -3277,7 +3277,7 @@ employee to acknowledge**), `acknowledge(Assignment)`, `returnAsset(Assignment, 
 > asymmetric notifications with a weekly-deduped `hrms:assets-overdue`
 > command. `HrmsAssetServiceTest` (8 tests).
 
-**P14.3 — Policies, requests, routes, frontend, notifications** (split: `P14.3a` HTTP ✅, `P14.3b` frontend + notification branches)
+**P14.3 — Policies, requests, routes, frontend, notifications** (split: `P14.3a` HTTP ✅, `P14.3b` frontend + notification branches ✅)
 `AssetPolicy` (view `hrms.assets.view`; manage `hrms.assets.manage`; acknowledge = the assignee only).
 Routes: `/api/hrms/assets/categories`, `.../assets`, `.../assets/{asset}`,
 `.../assets/{asset}/assign|return|maintenance|document` (signed download),

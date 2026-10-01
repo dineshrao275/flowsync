@@ -125,9 +125,10 @@ class AssetController extends Controller
 
     public function returnAsset(AssetReturnRequest $request, Asset $asset): JsonResponse
     {
-        $this->authorize('returnAsset', $asset);
-
         $assignment = $asset->assignments()->where('status', 'active')->orderByDesc('id')->firstOrFail();
+
+        $this->authorize('returnAsset', [Asset::class, $assignment]);
+
         $data = $request->validated();
 
         $returned = $this->handovers->returnAsset(

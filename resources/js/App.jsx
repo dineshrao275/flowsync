@@ -50,6 +50,8 @@ import MyExpenses from './pages/hrms/MyExpenses';
 import Performance from './pages/hrms/Performance';
 import PerformanceCycleDetail from './pages/hrms/PerformanceCycleDetail';
 import MyPerformance from './pages/hrms/MyPerformance';
+import Assets from './pages/hrms/Assets';
+import MyAssets from './pages/hrms/MyAssets';
 import Search from './pages/Search';
 import Notifications from './pages/Notifications';
 import Tenants from './pages/Tenants';
@@ -326,6 +328,18 @@ function AppRoutes() {
                                 }
                             />
                             <Route path="/hrms/performance/mine" element={<MyPerformance />} />
+                            {/* Assets: the register needs the view permission,
+                                the self-service page rides the module alone
+                                like My files. */}
+                            <Route
+                                path="/hrms/assets"
+                                element={
+                                    <ProtectedRoute permission="hrms.assets.view">
+                                        <Assets />
+                                    </ProtectedRoute>
+                                }
+                            />
+                            <Route path="/hrms/assets/mine" element={<MyAssets />} />
                             <Route path="/hrms/:section" element={<HrmsOverview />} />
                         </Route>
                         <Route element={<ProtectedRoute permission="users.view" />}>

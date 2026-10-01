@@ -43,6 +43,14 @@ export function describeNotification(type, data = {}, actorName = 'Someone') {
             return `The ${data.cycle_name ?? 'review'} cycle completed`;
         case 'hrms.performance.review_acknowledged':
             return 'Your review was acknowledged';
+        case 'hrms.asset.assigned':
+            return `${actorName} assigned ${data.asset_code ?? 'an asset'} to you — acknowledge the receipt`;
+        case 'hrms.asset.acknowledged':
+            return `${data.employee_name ?? 'Someone'} acknowledged ${data.asset_code ?? 'their asset'}`;
+        case 'hrms.asset.returned':
+            return `${data.asset_code ?? 'An asset'} came back`;
+        case 'hrms.asset.return_overdue':
+            return `${data.asset_code ?? 'An asset'} still needs your signature`;
         default:
             return 'You have a new notification';
     }
@@ -138,6 +146,16 @@ export function notificationHref(data = {}, type = '') {
 
     if (type === 'hrms.performance.review_acknowledged') {
         return '/hrms/performance/mine';
+    }
+
+    // Hardware lands on the holder's own shelf; everything else on the
+    // register — each where the reader can act, never a bare id.
+    if (type === 'hrms.asset.assigned' || type === 'hrms.asset.return_overdue') {
+        return '/hrms/assets/mine';
+    }
+
+    if (type === 'hrms.asset.acknowledged' || type === 'hrms.asset.returned') {
+        return '/hrms/assets';
     }
 
     if (project_id && key) {
