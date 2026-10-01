@@ -709,6 +709,8 @@ Route::prefix('api')->group(function () {
         Route::get('hrms/performance/goals/{goal}', [PerformanceGoalController::class, 'show']);
         Route::put('hrms/performance/goals/{goal}', [PerformanceGoalController::class, 'update']);
         Route::post('hrms/performance/goals/{goal}/refresh', [PerformanceGoalController::class, 'refresh']);
+        Route::post('hrms/performance/goals/{goal}/tasks', [PerformanceGoalController::class, 'linkTask']);
+        Route::delete('hrms/performance/goals/{goal}/tasks/{task}', [PerformanceGoalController::class, 'unlinkTask']);
 
         Route::get('hrms/performance/cycles/{cycle}/check-ins', [CheckInController::class, 'index']);
         Route::post('hrms/performance/cycles/{cycle}/check-ins', [CheckInController::class, 'store']);

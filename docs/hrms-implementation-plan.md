@@ -3020,10 +3020,15 @@ display any composite score — enforce by review and by a comment in the page f
 > comment on both GoalCard and the page. Notification branches + shell
 > pin like every prior phase.
 
-**P12.6 — Goal <-> task linking (co-designed with Phase 20)**
+**P12.6 — Goal <-> task linking (co-designed with Phase 20)** ✅
 `goal_task_links` is created by this phase's migration; **Phase 20 adds `hrms_task_links`** for the
 general employee<->task association. Add `POST .../goals/{goal}/tasks` (attach by task id or by `?task=KEY`
 deep link) and surface linked tasks on the goal card.
+
+> **P12.6 as shipped.** Attach by id or key plus detach (the repair path
+> for a wrong link, same belonging rule); links audit; sealed cycles
+> refuse; the goal card lists linked tasks with completed flags.
+> `HrmsGoalTaskLinkTest` (5 tests).
 
 **Acceptance:** a goal's evidence refreshes from real task data and shows counts, not a score; weights
 must total 100; a peer cannot see another person's rating; a manager sees only their reports; the cycle

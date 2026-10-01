@@ -133,6 +133,28 @@ export default function PerformanceCycleDetail() {
         }
     }
 
+    async function linkGoalTask(goal, taskKey) {
+        try {
+            await api.post(`/hrms/performance/goals/${goal.id}/tasks`, { task_key: taskKey });
+            toast.success('Task linked.');
+            load();
+        } catch {
+            setError('That task cannot be linked — check the key.');
+        }
+    }
+
+    async function unlinkGoalTask(goal, task) {
+        if (!window.confirm(`Unlink ${task.key}? The task itself is untouched.`)) return;
+
+        try {
+            await api.delete(`/hrms/performance/goals/${goal.id}/tasks/${task.id}`);
+            toast.success('Task unlinked.');
+            load();
+        } catch {
+            setError('That task cannot be unlinked.');
+        }
+    }
+
     async function saveOneOnOne(e) {
         e.preventDefault();
         setOneOnOneErrors({});
@@ -241,7 +263,14 @@ export default function PerformanceCycleDetail() {
                 <div className="space-y-3">
                     {canManage && <div><Button size="sm" onClick={() => setGoalModal(true)}>File a goal</Button></div>}
                     {!goals ? <div className="flex justify-center py-8"><Spinner /></div> : goals.map((goal) => (
-                        <GoalCard key={goal.id} goal={goal} refreshing={refreshing === goal.id} onRefresh={refreshGoal} />
+                        <GoalCard
+                            key={goal.id}
+                            goal={goal}
+                            refreshing={refreshing === goal.id}
+                            onRefresh={refreshGoal}
+                            onLink={canManage ? linkGoalTask : null}
+                            onUnlink={canManage ? unlinkGoalTask : null}
+                        />
                     ))}
                 </div>
             )}

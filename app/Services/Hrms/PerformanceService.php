@@ -10,8 +10,11 @@ use App\Models\Hrms\Performance\PerformanceGoal;
 use App\Models\Task;
 use App\Models\User;
 use App\Models\WorkLog;
+use App\Services\HrmsAuditLogger;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\ValidationException;
 
 /**
  * Performance/HRMS — task-derived evidence for goals, never scores.
@@ -26,6 +29,8 @@ use Illuminate\Support\Carbon;
  */
 class PerformanceService
 {
+    public function __construct(private readonly HrmsAuditLogger $audit) {}
+
     /**
      * Re-photograph one goal's evidence. `manual` (and `none`) goals are
      * returned untouched — HR sets those percentages by hand, and a refresh
@@ -77,6 +82,53 @@ class PerformanceService
         }
 
         return ['goals' => $goals->count(), 'refreshed' => $refreshed];
+    }
+
+    /**
+     * Link a task as evidence for a goal: the task stays the record, the
+     * goal reads it. Duplicates refuse (the unique pair backstops, the
+     * message explains), and sealed cycles refuse new links like every
+     * other history write.
+     *
+     * @throws ValidationException on a duplicate or a sealed cycle
+     */
+    public function linkTask(PerformanceGoal $goal, Task $task, ?User $actor = null): GoalTaskLink
+    {
+        if ($goal->cycle->stage->value === 'completed') {
+            throw ValidationException::withMessages(['form' => 'That cycle is sealed — history gains no new links.']);
+        }
+
+        if ($goal->taskLinks()->where('task_id', $task->id)->exists()) {
+            throw ValidationException::withMessages(['task' => 'That task already evidences this goal.']);
+        }
+
+        return DB::transaction(function () use ($goal, $task, $actor): GoalTaskLink {
+            $link = $goal->taskLinks()->create([
+                'task_id' => $task->id,
+                'created_by' => $actor?->id,
+            ]);
+
+            $this->audit->log($goal, 'performance.goal_task_linked', null, [
+                'task_id' => $task->id,
+            ], $actor);
+
+            return $link;
+        });
+    }
+
+    /**
+     * Unlink a task from a goal: the repair path for a wrong link. The
+     * task itself is untouched — only the evidence pointer goes.
+     */
+    public function unlinkTask(PerformanceGoal $goal, Task $task, ?User $actor = null): void
+    {
+        DB::transaction(function () use ($goal, $task, $actor): void {
+            $goal->taskLinks()->where('task_id', $task->id)->delete();
+
+            $this->audit->log($goal, 'performance.goal_task_unlinked', null, [
+                'task_id' => $task->id,
+            ], $actor);
+        });
     }
 
     /**

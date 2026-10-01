@@ -7,6 +7,7 @@ use App\Http\Requests\Hrms\PerformanceGoalRequest;
 use App\Models\Hrms\Employee\Employee;
 use App\Models\Hrms\Performance\PerformanceCycle;
 use App\Models\Hrms\Performance\PerformanceGoal;
+use App\Models\Task;
 use App\Services\Hrms\PerformanceService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -96,6 +97,50 @@ class PerformanceGoalController extends Controller
     }
 
     /**
+     * Attach a task as evidence, by id or by key (`PRJ-123` resolves like
+     * the command palette's deep links). Linking answers to the goal's own
+     * update ability — self while draft, or manage — because a link is an
+     * edit to what the goal claims.
+     */
+    public function linkTask(Request $request, PerformanceGoal $goal): JsonResponse
+    {
+        $this->authorize('update', $goal);
+
+        $validated = $request->validate([
+            'task_id' => ['sometimes', 'integer', 'exists:tasks,id'],
+            'task_key' => ['sometimes', 'string', 'max:32'],
+        ]);
+
+        $task = isset($validated['task_id'])
+            ? Task::findOrFail((int) $validated['task_id'])
+            : Task::where('key', $validated['task_key'] ?? '')->firstOrFail();
+
+        $this->performance->linkTask($goal, $task, $request->user());
+
+        return response()->json([
+            'message' => 'Task linked.',
+            'goal' => $this->present($goal->refresh()),
+        ], Response::HTTP_CREATED);
+    }
+
+    /**
+     * Detach a task: both models ride the URL and belonging is verified,
+     * so a task id from another goal 404s rather than unlinking wrong.
+     */
+    public function unlinkTask(Request $request, PerformanceGoal $goal, Task $task): JsonResponse
+    {
+        $this->authorize('update', $goal);
+        abort_if(! $goal->taskLinks()->where('task_id', $task->id)->exists(), 404);
+
+        $this->performance->unlinkTask($goal, $task, $request->user());
+
+        return response()->json([
+            'message' => 'Task unlinked.',
+            'goal' => $this->present($goal->refresh()),
+        ]);
+    }
+
+    /**
      * @throws HttpException on a sealed cycle
      */
     private function requireOpen(PerformanceCycle $cycle): void
@@ -108,7 +153,7 @@ class PerformanceGoalController extends Controller
      */
     private function present(PerformanceGoal $goal): array
     {
-        $goal->loadMissing(['employee:id,employee_code,name', 'cycle:id,name,slug,period_start,period_end']);
+        $goal->loadMissing(['employee:id,employee_code,name', 'cycle:id,name,slug,period_start,period_end', 'taskLinks.task:id,key,title,status_id']);
 
         return [
             'id' => $goal->id,
@@ -131,6 +176,12 @@ class PerformanceGoalController extends Controller
             'progress_source' => $goal->progress_source->value,
             'progress_evidence' => $goal->progress_evidence,
             'achieved_at' => $goal->achieved_at?->toIso8601String(),
+            'tasks' => $goal->taskLinks->map(fn ($link): ?array => $link->task === null ? null : [
+                'id' => $link->task->id,
+                'key' => $link->task->key,
+                'title' => $link->task->title,
+                'completed_at' => $link->task->completed_at?->toDateString(),
+            ])->filter()->values()->all(),
         ];
     }
 }
