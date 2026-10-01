@@ -3,6 +3,8 @@
 namespace Tests\Feature;
 
 use App\Enums\Hrms\EmployeeStatus;
+use App\Models\Hrms\Asset\Asset;
+use App\Models\Hrms\Asset\AssetCategory;
 use App\Models\Hrms\Document\DocumentType;
 use App\Models\Hrms\Document\EmployeeDocument;
 use App\Models\Hrms\Employee\Employee;
@@ -11,6 +13,8 @@ use App\Models\Hrms\Shared\HrmsAuditLog;
 use App\Models\Permission;
 use App\Models\Role;
 use App\Models\User;
+use App\Services\Hrms\Asset\AssetAssignmentService;
+use App\Services\Hrms\Asset\AssetService;
 use App\Services\Hrms\DocumentService;
 use App\Services\Hrms\Employee\EmployeeService;
 use App\Services\Hrms\Lifecycle\DocumentRequestService;
@@ -344,9 +348,12 @@ class HrmsLifecycleServiceTest extends TestCase
         $clearance = $case->clearance;
 
         $this->assertNotNull($clearance);
-        $this->assertSame(1, $clearance->pending_assets_count);
+        // Record-driven since P14: the checklist's asset task is workflow,
+        // and with no handover open the counter reads zero — a fresh exit
+        // with nothing out is clearable on the asset leg.
+        $this->assertSame(0, $clearance->pending_assets_count);
         $this->assertSame(0, $clearance->pending_documents_count);
-        $this->assertTrue($clearance->isBlocked(), 'One open asset item blocks the clearance.');
+        $this->assertFalse($clearance->isBlocked(), 'Nothing outstanding blocks a fresh clearance.');
     }
 
     public function test_a_second_open_exit_is_refused_but_a_second_exit_is_not(): void
@@ -374,6 +381,10 @@ class HrmsLifecycleServiceTest extends TestCase
         $employee = $this->makeEmployee();
         $case = $service->initiate($employee, '2026-12-31', 'resigned', actor: $this->admin());
 
+        // A real handover blocks: the counter reads open assignments, not
+        // the checklist task.
+        $assignment = app(AssetAssignmentService::class)->assign($this->asset(), $employee, 'good');
+
         try {
             $service->clear($case->fresh(), $this->admin());
             $this->fail('Clearing over open items must be refused.');
@@ -382,12 +393,11 @@ class HrmsLifecycleServiceTest extends TestCase
             $this->assertStringContainsString('asset', $message);
         }
 
-        // Returning the asset unblocks that counter; the documents counter is
+        // Returning the hardware unblocks that counter; the documents counter is
         // already zero with no open asks.
-        $assetTask = $case->tasks()->where('category', 'asset')->firstOrFail();
-        $service->completeTask($assetTask, $this->admin());
+        app(AssetAssignmentService::class)->returnAsset($assignment, 'good', null);
 
-        foreach ($case->tasks()->where('category', '!=', 'asset')->get() as $task) {
+        foreach ($case->tasks()->open()->get() as $task) {
             $service->completeTask($task, $this->admin());
         }
 
@@ -466,6 +476,24 @@ class HrmsLifecycleServiceTest extends TestCase
     private function admin(): User
     {
         return User::where('email', 'admin@flowsync.test')->firstOrFail();
+    }
+
+    private function asset(): Asset
+    {
+        static $sequence = 0;
+
+        $sequence++;
+
+        $category = AssetCategory::query()->firstOrCreate(
+            ['slug' => 'laptops'],
+            ['name' => 'Laptops'],
+        );
+
+        return app(AssetService::class)->create([
+            'name' => 'ThinkPad.',
+            'category_id' => $category->id,
+            'serial_number' => 'SN-LC-'.$sequence,
+        ]);
     }
 
     /**

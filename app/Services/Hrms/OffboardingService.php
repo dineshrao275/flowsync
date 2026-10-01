@@ -4,6 +4,7 @@ namespace App\Services\Hrms;
 
 use App\Enums\Hrms\OffboardingCaseStatus;
 use App\Enums\Hrms\OffboardingReason;
+use App\Models\Hrms\Asset\AssetAssignment;
 use App\Models\Hrms\Employee\Employee;
 use App\Models\Hrms\Lifecycle\DocumentRequest;
 use App\Models\Hrms\Lifecycle\ExitClearance;
@@ -21,11 +22,12 @@ use Illuminate\Validation\ValidationException;
 /**
  * Offboarding/HRMS — running an exit.
  *
- * Owns the checklist, the clearance counters, and the sign-off. The counters
- * are task-driven today and record-driven tomorrow: assets, leave and
- * expenses get their own phases (P14/P6/P8), and until then an open
- * asset-category task *is* a pending asset. The columns are already the right
- * shape, so those phases fill them in rather than redesigning them.
+ * Owns the checklist, the clearance counters, and the sign-off. Leave days
+ * and expense money still read 0 until P6/P8 wire real balances in — the
+ * columns are the right shape already, and a zero with a comment is honest
+ * where a guessed number would be a fabricated clearance. Assets went
+ * record-driven in P14: the counter below reads open handovers, not the
+ * checklist's asset task (which stays as the human workflow step).
  */
 class OffboardingService
 {
@@ -100,9 +102,10 @@ class OffboardingService
     /**
      * Recompute the clearance counters and persist the photograph.
      *
-     * Leave days and expense money read 0 until P6/P8 wire real balances in —
-     * the columns are the right shape already, and a zero with a comment is
-     * honest where a guessed number would be a fabricated clearance.
+     * Assets read open handovers (`active` assignments), not the
+     * checklist's asset task: a completed checkbox is a claim, an open
+     * handover is a fact, and the exit decides on facts. Leave days and
+     * expense money still read 0 until P6/P8 wire real balances in.
      *
      * Persisting on every call — including reads — is deliberate: the row is
      * derived state, recomputed idempotently, so the screen never shows a
@@ -110,7 +113,9 @@ class OffboardingService
      */
     public function summary(OffboardingCase $case): ExitClearance
     {
-        $openAssets = $case->tasks()->open()->where('category', 'asset')->count();
+        $openAssets = AssetAssignment::query()->where('employee_id', $case->employee_id)
+            ->where('status', 'active')
+            ->count();
         $openDocuments = DocumentRequest::query()
             ->where('employee_id', $case->employee_id)
             ->outstanding()

@@ -3261,7 +3261,7 @@ nullable, `notes` nullable, `created_by`, timestamps, `softDeletes`), `asset_ass
 `performed_by` nullable, `cost` decimal(14,2) nullable, `performed_at` date, `next_due_at` date nullable,
 `notes` nullable, `created_by`).
 
-**P14.2 — Service + the offboarding tie (the reason this phase matters)**
+**P14.2 — Service + the offboarding tie (the reason this phase matters)** ✅
 `app/Services/Hrms/AssetService.php` — `create`, `update`, `assign(Asset, Employee, conditionOut)` (422 if
 already assigned; sets `status = assigned` and opens an `asset_assignments` row, and **notifies the
 employee to acknowledge**), `acknowledge(Assignment)`, `returnAsset(Assignment, conditionIn, note)`,
@@ -3269,6 +3269,13 @@ employee to acknowledge**), `acknowledge(Assignment)`, `returnAsset(Assignment, 
 `byEmployee(Employee)`, `overdueReturns`.
 - `OffboardingService::summary()` counts assets whose `status = assigned`, and `clear()` refuses while that
   count is non-zero (P4.2). This is the cross-phase contract — test it in both directions.
+
+> **P14.2 as shipped.** Register lifecycle (`AssetService`) split from
+> handovers (`AssetAssignmentService`) for the method ceiling, plus a
+> `closeMaintenance` the plan omits but every open needs; clearance
+> reads open assignments (the P4 task-count tests rewired, plan-mandated);
+> asymmetric notifications with a weekly-deduped `hrms:assets-overdue`
+> command. `HrmsAssetServiceTest` (8 tests).
 
 **P14.3 — Policies, requests, routes, frontend, notifications**
 `AssetPolicy` (view `hrms.assets.view`; manage `hrms.assets.manage`; acknowledge = the assignee only).

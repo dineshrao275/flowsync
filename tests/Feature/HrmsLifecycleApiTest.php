@@ -3,12 +3,16 @@
 namespace Tests\Feature;
 
 use App\Enums\Hrms\EmployeeStatus;
+use App\Models\Hrms\Asset\Asset;
+use App\Models\Hrms\Asset\AssetCategory;
 use App\Models\Hrms\Document\DocumentType;
 use App\Models\Hrms\Employee\Employee;
 use App\Models\Permission;
 use App\Models\Role;
 use App\Models\SubscriptionPlan;
 use App\Models\User;
+use App\Services\Hrms\Asset\AssetAssignmentService;
+use App\Services\Hrms\Asset\AssetService;
 use App\Services\SubscriptionService;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
@@ -202,9 +206,15 @@ class HrmsLifecycleApiTest extends TestCase
             'reason' => 'resigned',
         ])->assertCreated()->json('case.id');
 
+        // Real hardware blocks: the clearance reads open handovers since
+        // P14, not the checklist task.
+        $assignment = app(AssetAssignmentService::class)->assign($this->asset(), $employee, 'good');
+
         $this->postJson("/api/hrms/offboarding/cases/{$caseId}/clear")
             ->assertUnprocessable()
             ->assertJsonValidationErrors('form');
+
+        app(AssetAssignmentService::class)->returnAsset($assignment, 'good', null);
 
         $tasks = $this->getJson("/api/hrms/offboarding/cases/{$caseId}")->json('case.tasks');
 
@@ -342,6 +352,24 @@ class HrmsLifecycleApiTest extends TestCase
             'name' => $name,
             'status' => EmployeeStatus::Active,
             ...$overrides,
+        ]);
+    }
+
+    private function asset(): Asset
+    {
+        static $sequence = 0;
+
+        $sequence++;
+
+        $category = AssetCategory::query()->firstOrCreate(
+            ['slug' => 'laptops'],
+            ['name' => 'Laptops'],
+        );
+
+        return app(AssetService::class)->create([
+            'name' => 'ThinkPad.',
+            'category_id' => $category->id,
+            'serial_number' => 'SN-LCA-'.$sequence,
         ]);
     }
 
