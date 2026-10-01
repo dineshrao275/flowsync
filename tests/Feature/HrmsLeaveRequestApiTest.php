@@ -225,6 +225,11 @@ class HrmsLeaveRequestApiTest extends TestCase
         $this->ledger($manager, $type, 12);
         $day = $this->daysAgo(6);
 
+        // The calendar defaults to the current month, and the leave may
+        // sit in the previous one (the 1st-of-the-month flip) — query the
+        // leave's own month, or the key is never there to find.
+        $query = 'year='.Carbon::parse($day)->year.'&month='.Carbon::parse($day)->month;
+
         $this->actAs($report->user);
         $this->postJson('/api/hrms/leave/requests', [
             'leave_type_id' => $type->id,
@@ -235,7 +240,7 @@ class HrmsLeaveRequestApiTest extends TestCase
 
         // A pending ask is not cover yet: the calendar shows approved only.
         $this->actAs($manager->user);
-        $empty = $this->getJson('/api/hrms/leave/requests/calendar')->assertOk()->json();
+        $empty = $this->getJson('/api/hrms/leave/requests/calendar?'.$query)->assertOk()->json();
         $this->assertSame([], $empty['days']);
 
         $id = LeaveRequest::query()
@@ -244,7 +249,7 @@ class HrmsLeaveRequestApiTest extends TestCase
 
         $this->approveFully($id, $manager->user);
 
-        $full = $this->getJson('/api/hrms/leave/requests/calendar')->assertOk()->json();
+        $full = $this->getJson('/api/hrms/leave/requests/calendar?'.$query)->assertOk()->json();
 
         $this->assertSame([$report->name], array_column($full['days'][$day], 'employee_name'));
     }
