@@ -20,7 +20,7 @@ Laravel 12 + React 19 SPA. Session-based auth **without** Breeze/Fortify/Sanctum
   `tenants:provision` + seeds demo data (superadmin + acme + globex). Reset from scratch:
   `docker-compose down -v` then `up -d` (app entrypoint re-initializes; `RUN_INIT=true` only for `app`).
   No PHP/composer needed on the host — envs in `.env.docker`.
-- `php artisan test` — run test suite (Phase 13: **isolated, per-tenant file DBs** via `Tests\IsolatesDatabase`; current gate: **1282 tests / 6346 assertions passing** — P16.1 (full suite re-verified in Hrms/non-Hrms chunks with zero omitted files at the Phase 15 end-gate))
+- `php artisan test` — run test suite (Phase 13: **isolated, per-tenant file DBs** via `Tests\IsolatesDatabase`; current gate: **1287 tests / 6357 assertions passing** — P16.2 (full suite re-verified in Hrms/non-Hrms chunks with zero omitted files at the Phase 15 end-gate))
 
 - `npm run build` / `npm run dev` — frontend build / Vite dev server
 - `./vendor/bin/pint` — PHP code style (run over whole repo; `--dirty` only works in git)
@@ -619,7 +619,10 @@ gate + `hrms:assets-overdue` + `HrmsAssetServiceTest`); P14.3a/b (asset
 HTTP + `Assets.jsx`/`MyAssets.jsx` + nudges + `HrmsAssetApiTest`);
 P15.1 (`000031` inbox reads + `InboxService` + `HrmsInboxTest`); P15.2
 (inbox HTTP + `HrmsInboxApiTest`); P15.3 (clearance/document/cycle/share
-notifiers + `HrmsTaxonomyTest`).
+notifiers + `HrmsTaxonomyTest`); P15.4 (`Inbox.jsx` + badge + copy/links +
+shell pin); P16.1 (`2026_10_09_000032` — survey tables +
+`HrmsSurveyTablesTest`); P16.2 (`EngagementService` + templates +
+anonymity + `HrmsEngagementTest`).
 Phase 13
   was jumped to *before* Phase 4 because P4.1's `document_requests.document_type_id` is a real FK to
   `document_types`, and no migration created that table until P13.1 — the plan's "documents ship

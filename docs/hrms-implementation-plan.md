@@ -3393,7 +3393,7 @@ double submission, `survey_answers` (`response_id`, `question_id`, `value_text` 
 decimal(12,2) nullable, `value_json` JSON nullable), `survey_results` (`campaign_id`, `question_id`,
 `aggregates` JSON, `response_count` int, `computed_at`) unique `(campaign_id, question_id)`.
 
-**P16.2 — Service + anonymity**
+**P16.2 — Service + anonymity** ✅
 `app/Services/Hrms/EngagementService.php` — `createTemplate`, `schedule`, `open`, `close`, `invite`
 (audience resolution + `hrms.survey.invited` notifications), `respond(Campaign, answers)` (**one
 submission per campaign**, enforced by the unique index), `results(Campaign)`.
@@ -3401,6 +3401,13 @@ submission per campaign**, enforced by the unique index), `results(Campaign)`.
   Free-text answers are never returned below the threshold and are redacted to counts only above it for
   `is_anonymous` campaigns.
 - Results are `Cache::remember(..., 300)` and invalidated on close.
+
+> **P16.2 as shipped.** Templates live in `SurveyTemplateService`
+> (catalog/lifecycle split); `invite()` resolves deterministic audiences
+> and notifies logins only; answers validate required + bounds with
+> exactly one value column per row; the threshold refuses with counts
+> beside the empty result; snapshots persist per question; `closing_soon`
+> waits for the P16.3 scheduled command. `HrmsEngagementTest` (5 tests).
 
 **P16.3 — Policies, requests, routes, frontend**
 `SurveyTemplatePolicy` (manage `hrms.engagement.manage`; view results `hrms.engagement.view`; respond =
