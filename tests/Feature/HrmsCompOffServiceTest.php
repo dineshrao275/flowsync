@@ -41,6 +41,11 @@ class HrmsCompOffServiceTest extends TestCase
         $this->rosterFor($employee, [5 => 1, 6 => 1]);
         [$from, $to] = $this->lastMonth();
 
+        // Weekends only: a holiday in the window (Labor Day in September)
+        // would credit through no fault of the weekend logic, and the
+        // calendar flips under this test every October.
+        $this->setCompOff(['from_holidays' => false]);
+
         $first = $this->credits()->creditFromCalendar($employee, $from, $to);
         $expected = $this->weekendCount($from, $to);
 
@@ -61,6 +66,11 @@ class HrmsCompOffServiceTest extends TestCase
         $this->rosterFor($worker, [5 => 1, 6 => 1]);
         $this->rosterFor($idler, [5 => 1, 6 => 1]);
         [$from, $to] = $this->lastMonth();
+
+        // The disqualification math below counts weekends; holidays bank
+        // through a different rule and would move every expected number
+        // in any month that holds one.
+        $this->setCompOff(['from_holidays' => false]);
 
         $saturday = $this->firstSaturday($from, $to);
 
@@ -112,7 +122,9 @@ class HrmsCompOffServiceTest extends TestCase
         $this->rosterFor($employee, [5 => 1, 6 => 1]);
         [$from, $to] = $this->lastMonth();
 
-        $this->setCompOff(['from_weekends' => false]);
+        // Nothing means nothing: weekends off is not enough in a month
+        // with a bankable holiday, so both legs go off.
+        $this->setCompOff(['from_weekends' => false, 'from_holidays' => false]);
 
         $result = $this->credits()->creditFromCalendar($employee, $from, $to);
 
@@ -217,6 +229,11 @@ class HrmsCompOffServiceTest extends TestCase
         $employee = $this->makeEmployee('Command Earner');
         $this->rosterFor($employee, [5 => 1, 6 => 1]);
         [$from, $to] = $this->lastMonth();
+
+        // The count below is weekends; a holiday in the window would bank
+        // an extra credit through the holiday leg (see the three tests
+        // above for why the month matters).
+        $this->setCompOff(['from_holidays' => false]);
 
         $this->artisan('hrms:comp-off-accrue', [
             '--tenant' => $this->acme()->id,
