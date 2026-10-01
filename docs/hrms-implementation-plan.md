@@ -3244,7 +3244,8 @@ logs an access row; an expired document flips to `expired` via the command; dele
 
 **Objective:** a register with assignment, acknowledgement, condition, and return.
 
-**P14.1 — `000027` migration**
+**P14.1 — `000027` migration** ✅ (landed as `2026_10_07_000030` — the
+planned number was spent by expenses, like `000024`/`000025`/`000028`)
 `asset_categories` (`name`, `slug` unique, `description`, `default_condition` enum
 `new|good|fair|poor` nullable, `is_active`, `position`, `is_system`), `assets` (`asset_code` unique,
 `name`, `category_id`, `brand` nullable, `model` nullable, `serial_number` unique nullable,
