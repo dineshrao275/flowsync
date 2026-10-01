@@ -166,7 +166,6 @@ class EngagementService
         }
 
         $rows = $this->validatedAnswers($campaign, $answers);
-
         try {
             return DB::transaction(function () use ($campaign, $anonymous, $employee, $fingerprint, $rows, $meta, $actor): SurveyResponse {
                 $response = SurveyResponse::create([
@@ -245,7 +244,7 @@ class EngagementService
      *
      * @return Collection<int, Employee>
      */
-    private function audience(SurveyCampaign $campaign): Collection
+    public function audience(SurveyCampaign $campaign): Collection
     {
         $meta = $campaign->template->audience_meta ?? [];
         $scope = $campaign->template->audience_scope->value;
@@ -263,6 +262,23 @@ class EngagementService
         };
 
         return $query->get();
+    }
+
+    /**
+     * Whether a login is invited: their employment record sits in the
+     * audience. The policy answers "may they respond" through here so the
+     * HTTP surface and the audience rule cannot disagree about who was
+     * asked.
+     */
+    public function isInvited(SurveyCampaign $campaign, User $user): bool
+    {
+        $employeeId = Employee::where('user_id', $user->id)->value('id');
+
+        if ($employeeId === null) {
+            return false;
+        }
+
+        return $this->audience($campaign)->contains(fn (Employee $employee): bool => (int) $employee->id === (int) $employeeId);
     }
 
     /**
@@ -324,6 +340,14 @@ class EngagementService
      */
     private function validatedAnswers(SurveyCampaign $campaign, array $answers): array
     {
+        $templateIds = $campaign->template->questions()->pluck('id')->map(fn ($id): int => (int) $id)->all();
+
+        foreach ($answers as $answer) {
+            if (! in_array((int) ($answer['question_id'] ?? 0), $templateIds, true)) {
+                throw ValidationException::withMessages(['answers' => 'An answer names a question outside this campaign.']);
+            }
+        }
+
         $byQuestion = [];
 
         foreach ($answers as $answer) {

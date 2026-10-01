@@ -61,6 +61,8 @@ use App\Http\Controllers\Hrms\Performance\OneOnOneController;
 use App\Http\Controllers\Hrms\Performance\PerformanceCycleController;
 use App\Http\Controllers\Hrms\Performance\PerformanceGoalController;
 use App\Http\Controllers\Hrms\Performance\ReviewSummaryController;
+use App\Http\Controllers\Hrms\Survey\SurveyCampaignController;
+use App\Http\Controllers\Hrms\Survey\SurveyTemplateController;
 use App\Http\Controllers\ImpersonationController;
 use App\Http\Controllers\LabelController;
 use App\Http\Controllers\MySubscriptionController;
@@ -696,6 +698,32 @@ Route::prefix('api')->group(function () {
         Route::put('hrms/expenses/claims/{claim}/items', [ExpenseClaimController::class, 'setItems']);
         Route::post('hrms/expenses/claims/{claim}/submit', [ExpenseClaimController::class, 'submit']);
         Route::post('hrms/expenses/claims/{claim}/decide', [ExpenseClaimController::class, 'decide']);
+    });
+
+    // HRMS engagement surveys (Phase 15 P16.3a). Same two gates plus the
+    // engagement module; templates answer to manage, campaigns to view or
+    // invitation, answers to invitation alone. The self-service pair
+    // (`my`) carries no answers and no aggregates — the blank form lives
+    // there, the scored results behind the view gate.
+    Route::group(['middleware' => ['ensure_module:hrms.core', 'ensure_module:hrms.engagement', 'permission:hrms.view']], function () {
+        Route::get('hrms/engagement/templates', [SurveyTemplateController::class, 'index']);
+        Route::post('hrms/engagement/templates', [SurveyTemplateController::class, 'store']);
+        Route::get('hrms/engagement/templates/{template}', [SurveyTemplateController::class, 'show']);
+        Route::put('hrms/engagement/templates/{template}', [SurveyTemplateController::class, 'update']);
+        Route::delete('hrms/engagement/templates/{template}', [SurveyTemplateController::class, 'destroy']);
+        Route::put('hrms/engagement/templates/{template}/questions', [SurveyTemplateController::class, 'setQuestions']);
+
+        Route::get('hrms/engagement/campaigns', [SurveyCampaignController::class, 'index']);
+        Route::post('hrms/engagement/campaigns', [SurveyCampaignController::class, 'store']);
+        Route::get('hrms/engagement/campaigns/{campaign}', [SurveyCampaignController::class, 'show']);
+        Route::post('hrms/engagement/campaigns/{campaign}/open', [SurveyCampaignController::class, 'open']);
+        Route::post('hrms/engagement/campaigns/{campaign}/close', [SurveyCampaignController::class, 'close']);
+        Route::post('hrms/engagement/campaigns/{campaign}/invite', [SurveyCampaignController::class, 'invite']);
+        Route::get('hrms/engagement/campaigns/{campaign}/results', [SurveyCampaignController::class, 'results']);
+        Route::post('hrms/engagement/campaigns/{campaign}/respond', [SurveyCampaignController::class, 'respond']);
+
+        Route::get('hrms/engagement/my', [SurveyCampaignController::class, 'mine']);
+        Route::get('hrms/engagement/my/{campaign}', [SurveyCampaignController::class, 'mySurvey']);
     });
 
     // HRMS assets (Phase 15 P14.3a). Same two gates plus the assets module;
