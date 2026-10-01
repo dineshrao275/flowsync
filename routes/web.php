@@ -30,6 +30,7 @@ use App\Http\Controllers\Hrms\Holiday\HolidayAssignmentController;
 use App\Http\Controllers\Hrms\Holiday\HolidayCalendarController;
 use App\Http\Controllers\Hrms\Holiday\HolidayController;
 use App\Http\Controllers\Hrms\Holiday\HolidayOptionalController;
+use App\Http\Controllers\Hrms\InboxController;
 use App\Http\Controllers\Hrms\Leave\LeaveBalanceController;
 use App\Http\Controllers\Hrms\Leave\LeaveExemptionController;
 use App\Http\Controllers\Hrms\Leave\LeavePolicyController;
@@ -115,6 +116,12 @@ Route::prefix('api')->group(function () {
         Route::get('notifications/unread', [NotificationController::class, 'unread']);
         Route::post('notifications/{notification}/read', [NotificationController::class, 'markRead']);
         Route::post('notifications/mark-all-read', [NotificationController::class, 'markAllRead']);
+
+        // HR inbox (self-scoped by login like notifications; the service
+        // short-circuits platform super admins to empty payloads).
+        Route::get('hrms/inbox', [InboxController::class, 'index']);
+        Route::post('hrms/inbox/read', [InboxController::class, 'markRead']);
+        Route::post('hrms/inbox/read-all', [InboxController::class, 'markAllRead']);
 
         // Tenant-facing profile (self-scoped via TenantContext; no tenant_context
         // needed because a tenant user resolves their own central tenant row).

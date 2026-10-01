@@ -83,9 +83,18 @@ class InboxService
      */
     public function markRead(User $user, array $keys): int
     {
+        // Only live keys persist: a junk row today could hide a real item
+        // reusing the string tomorrow, so unknown keys are declined rather
+        // than stored.
+        $live = $this->all($user)->pluck('key')->flip();
+
         $marked = 0;
 
         foreach (array_unique(array_filter(array_map('strval', $keys))) as $key) {
+            if (! isset($live[mb_substr($key, 0, 120)])) {
+                continue;
+            }
+
             InboxRead::query()->updateOrCreate(
                 ['user_id' => $user->id, 'item_key' => mb_substr($key, 0, 120)],
                 ['read_at' => now()],

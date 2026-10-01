@@ -3303,7 +3303,7 @@ planned number was spent by performance tables, like the rest)
 `item_key` is a stable string: `approval:{id}`, `case_task:{id}`, `attendance_reg:{id}`,
 `document_request:{id}`, `asset_assignment:{id}`, `payslip:{id}`.
 
-**P15.2 — Inbox service (aggregation, no queue table)**
+**P15.2 — Inbox service (aggregation, no queue table)** ✅
 `app/Services/Hrms/InboxService.php::items(User)` merges, prioritises and paginates the sources:
 - `ApprovalService::pendingFor(User)` -> `approval:{id}`
 - onboarding/offboarding case tasks whose `owner_scope` maps to the user (self, their managed reports, or
