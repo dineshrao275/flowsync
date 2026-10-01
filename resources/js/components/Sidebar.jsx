@@ -1,5 +1,6 @@
 import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { useNotifications } from '../context/NotificationContext';
 
 const sections = [
     {
@@ -20,6 +21,7 @@ const sections = [
     {
         label: 'People',
         items: [
+            { to: '/hrms/inbox', label: 'Inbox', capabilities: ['module:hrms.core'], icon: 'M3 8l9-5 9 5v8a2 2 0 01-2 2H5a2 2 0 01-2-2V8zm2 0v8h14V8l-7-4-7 4zm7 3v4m0-4l-2 2m2-2l2 2' },
             { to: '/hrms/employees', label: 'Employees', capabilities: ['module:hrms.core', 'permission:hrms.employees.view'], icon: 'M17 20h5v-2a4 4 0 00-3-3.87M9 20H4v-2a4 4 0 012-4h14a4 4 0 012 4v2a1 1 0 01-1 1H3a1 1 0 01-1-1v-2a1 1 0 011-1zm8-4a2 2 0 100-4 2 2 0 000 4zm-6-4a2 2 0 100-4 2 2 0 000 4zm12 0a2 2 0 100-4 2 2 0 000 4zm-6 8a2 2 0 100-4 2 2 0 000 4z' },
             {
                 to: '/hrms/org',
@@ -233,15 +235,20 @@ function SidebarLink({ item, collapsed, onClose }) {
     );
 }
 
-function SidebarSection({ section, collapsed, onClose }) {
+function SidebarSection({ section, collapsed, onClose, badge }) {
     return (
         <div className="space-y-0.5">
             {!collapsed && (
                 <p
-                    className="px-3 pb-1.5 pt-4 text-[10px] font-bold uppercase tracking-wider"
+                    className="flex items-center justify-between px-3 pb-1.5 pt-4 text-[10px] font-bold uppercase tracking-wider"
                     style={{ color: 'var(--sidebar-text)', opacity: 0.55 }}
                 >
-                    {section.label}
+                    <span>{section.label}</span>
+                    {badge > 0 && (
+                        <span className="flex h-4 min-w-4 items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-bold normal-case tracking-normal text-white">
+                            {badge > 99 ? '99+' : badge}
+                        </span>
+                    )}
                 </p>
             )}
             {section.items.map((item) => (
@@ -254,6 +261,7 @@ function SidebarSection({ section, collapsed, onClose }) {
 export default function Sidebar({ open, collapsed, onClose, onToggleCollapse }) {
     const { check, user } = useAuth();
     const isSuperAdmin = user?.is_super_admin && !user?.impersonating;
+    const { inboxUnread } = useNotifications();
 
     const items = (isSuperAdmin ? superAdminSections : sections)
         .map((section) => ({
@@ -303,7 +311,13 @@ export default function Sidebar({ open, collapsed, onClose, onToggleCollapse }) 
 
                 <nav className="flex-1 space-y-4 overflow-y-auto px-3 py-2">
                     {items.map((section) => (
-                        <SidebarSection key={section.label} section={section} collapsed={collapsed} onClose={onClose} />
+                        <SidebarSection
+                            key={section.label}
+                            section={section}
+                            collapsed={collapsed}
+                            onClose={onClose}
+                            badge={section.label === 'People' ? inboxUnread : 0}
+                        />
                     ))}
                 </nav>
 

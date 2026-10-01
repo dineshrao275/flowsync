@@ -79,7 +79,16 @@ export default function NotificationBell() {
                                             className="flex w-full items-start gap-3 px-4 py-3 text-left transition hover:bg-gray-50"
                                         >
                                             <span className="mt-1">
-                                                <Avatar name={notification.actor?.name} size="md" />
+                                                {notification.type?.startsWith('hrms.') ? (
+                                                    <span className="flex h-8 w-8 items-center justify-center rounded-full bg-indigo-100 text-indigo-700">
+                                                        <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                                                            <path d="M17 20h5v-2a4 4 0 00-3-3.87M9 20H4v-2a4 4 0 012-4h14a4 4 0 012 4v2" />
+                                                            <circle cx="12" cy="8" r="4" />
+                                                        </svg>
+                                                    </span>
+                                                ) : (
+                                                    <Avatar name={notification.actor?.name} size="md" />
+                                                )}
                                             </span>
                                             <span className="min-w-0 flex-1">
                                                 <span className="block text-sm text-gray-800">

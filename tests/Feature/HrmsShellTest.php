@@ -253,6 +253,34 @@ class HrmsShellTest extends TestCase
         $this->assertStringContainsString("return '/hrms/assets';", $js);
     }
 
+    public function test_the_notification_helpers_cover_clearance_document_cycle_and_share(): void
+    {
+        // The taxonomy top-ups name their ids and land where each reader
+        // acts: the exit run, self-service files, the cycle, and mine.
+        $js = file_get_contents(resource_path('js/utils/notifications.js'));
+
+        $this->assertStringContainsString('hrms.offboarding.clearance_pending', $js);
+        $this->assertStringContainsString('hrms.document.verified', $js);
+        $this->assertStringContainsString('hrms.document.rejected', $js);
+        $this->assertStringContainsString('hrms.performance.cycle_opened', $js);
+        $this->assertStringContainsString('hrms.performance.review_shared', $js);
+        $this->assertStringContainsString('offboarding_case_id', $js);
+        $this->assertStringContainsString("return '/hrms/documents/mine';", $js);
+        $this->assertStringContainsString("return '/hrms/performance/mine';", $js);
+    }
+
+    public function test_the_payroll_run_deep_link_exists_and_is_used(): void
+    {
+        // `payrollRunUrl` is the run review grid without a hardcoded path
+        // in the inbox page — a second spelling of the URL would drift.
+        $links = file_get_contents(resource_path('js/utils/deepLinks.js'));
+        $inbox = file_get_contents(resource_path('js/pages/hrms/Inbox.jsx'));
+
+        $this->assertStringContainsString('export function payrollRunUrl(', $links);
+        $this->assertStringContainsString('/hrms/payroll/runs/${runId}', $links);
+        $this->assertStringContainsString('payrollRunUrl(', $inbox);
+    }
+
     public function test_hrms_tiles_only_link_to_sections_the_router_owns(): void
     {
         // P2.5 populated HRMS_MODULE_ROUTES with the employee directory, so this

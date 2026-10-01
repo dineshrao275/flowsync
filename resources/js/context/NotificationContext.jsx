@@ -10,6 +10,7 @@ export function NotificationProvider({ children }) {
     const { user } = useAuth();
     const toast = useToast();
     const [unreadCount, setUnreadCount] = useState(0);
+    const [inboxUnread, setInboxUnread] = useState(0);
 
     // A non-impersonating super admin has no tenant database: personal
     // notifications live in the tenant DB only, so there is nothing to poll.
@@ -18,11 +19,20 @@ export function NotificationProvider({ children }) {
     const refresh = useCallback(async () => {
         if (!user || platformOnly) {
             setUnreadCount(0);
+            setInboxUnread(0);
             return;
         }
         try {
             const { data } = await api.get('/notifications/unread');
             setUnreadCount(data.count);
+        } catch {
+            // keep current count on transient failures
+        }
+        // The HR queue rides the same 30s cadence: one timer, two counts,
+        // so the sidebar badge never drifts a full cycle behind the bell.
+        try {
+            const { data } = await api.get('/hrms/inbox', { params: { per_page: 1 } });
+            setInboxUnread(data.unread_count ?? 0);
         } catch {
             // keep current count on transient failures
         }
@@ -57,8 +67,8 @@ export function NotificationProvider({ children }) {
     }, []);
 
     const value = useMemo(
-        () => ({ unreadCount, refresh, markAllRead, markRead }),
-        [unreadCount, refresh, markAllRead, markRead],
+        () => ({ unreadCount, inboxUnread, refresh, markAllRead, markRead }),
+        [unreadCount, inboxUnread, refresh, markAllRead, markRead],
     );
 
     return <NotificationContext.Provider value={value}>{children}</NotificationContext.Provider>;

@@ -187,7 +187,7 @@ class InboxService
             'subtitle' => $approval->action,
             'priority' => 'high',
             'due_at' => null,
-            'meta' => ['approval_id' => $approval->id],
+            'meta' => ['approval_id' => $approval->id, 'action' => $approval->action],
             'source_id' => $approval->id,
         ];
     }
@@ -222,7 +222,7 @@ class InboxService
             return 'hidden';
         };
 
-        $collect = function ($tasks, string $prefix) use ($visible, $cutoff): Collection {
+        $collect = function ($tasks, string $prefix, string $kind) use ($visible, $cutoff): Collection {
             return $tasks
                 ->filter(fn ($task) => $task->status->value === CaseTaskStatus::Pending->value
                     && ($task->due_date === null || $task->due_date->toDateString() <= $cutoff)
@@ -234,7 +234,7 @@ class InboxService
                     'subtitle' => $task->owner?->displayName(),
                     'priority' => $task->due_date !== null && $task->due_date->isPast() ? 'high' : 'normal',
                     'due_at' => $task->due_date?->toDateString(),
-                    'meta' => ['case_task_id' => $task->id, 'case_id' => $task->case_id],
+                    'meta' => ['case_task_id' => $task->id, 'case_id' => $task->case_id, 'kind' => $kind],
                     'source_id' => $task->id,
                 ]);
         };
@@ -259,7 +259,7 @@ class InboxService
             ->orderBy('id')
             ->get();
 
-        return $collect($onboarding, 'onboarding_task')->concat($collect($offboarding, 'offboarding_task'));
+        return $collect($onboarding, 'onboarding_task', 'onboarding')->concat($collect($offboarding, 'offboarding_task', 'offboarding'));
     }
 
     /**

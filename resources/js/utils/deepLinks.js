@@ -40,6 +40,15 @@ export function orgUrl(departmentId = null) {
 }
 
 /**
+ * One payroll run's review grid. The run id is tenant-local like everything
+ * else here, so callers resolve it from their own responses, never from a
+ * cross-tenant payload.
+ */
+export function payrollRunUrl(runId) {
+    return `/hrms/payroll/runs/${runId}`;
+}
+
+/**
  * Where a person belongs after signing in. A platform super admin has no tenant
  * context (the tenant dashboard endpoints 403 for them), so it lands on the
  * platform overview instead.

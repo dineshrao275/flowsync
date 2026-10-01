@@ -43,6 +43,16 @@ export function describeNotification(type, data = {}, actorName = 'Someone') {
             return `The ${data.cycle_name ?? 'review'} cycle completed`;
         case 'hrms.performance.review_acknowledged':
             return 'Your review was acknowledged';
+        case 'hrms.offboarding.clearance_pending':
+            return `Exit clearance pending for ${data.employee_name ?? 'someone'}`;
+        case 'hrms.document.verified':
+            return `Your file “${data.title ?? 'document'}” was verified`;
+        case 'hrms.document.rejected':
+            return `Your file “${data.title ?? 'document'}” was rejected`;
+        case 'hrms.performance.cycle_opened':
+            return `The ${data.cycle_name ?? 'review'} cycle opened`;
+        case 'hrms.performance.review_shared':
+            return 'Your review was shared';
         case 'hrms.asset.assigned':
             return `${actorName} assigned ${data.asset_code ?? 'an asset'} to you — acknowledge the receipt`;
         case 'hrms.asset.acknowledged':
@@ -145,6 +155,24 @@ export function notificationHref(data = {}, type = '') {
     }
 
     if (type === 'hrms.performance.review_acknowledged') {
+        return '/hrms/performance/mine';
+    }
+
+    // Clearance nudges land on the exit run; file decisions on the self-service
+    // files page; a cycle opening on its detail; a shared review on mine.
+    if (type === 'hrms.offboarding.clearance_pending' && data.offboarding_case_id) {
+        return `/hrms/offboarding/cases/${data.offboarding_case_id}`;
+    }
+
+    if (type === 'hrms.document.verified' || type === 'hrms.document.rejected') {
+        return '/hrms/documents/mine';
+    }
+
+    if (type === 'hrms.performance.cycle_opened' && data.performance_cycle_id) {
+        return `/hrms/performance/cycles/${data.performance_cycle_id}`;
+    }
+
+    if (type === 'hrms.performance.review_shared') {
         return '/hrms/performance/mine';
     }
 

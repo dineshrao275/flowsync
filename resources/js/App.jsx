@@ -29,6 +29,7 @@ import EmployeeDetail from './pages/hrms/EmployeeDetail';
 import Org from './pages/hrms/Org';
 import Documents from './pages/hrms/Documents';
 import MyDocuments from './pages/hrms/MyDocuments';
+import Inbox from './pages/hrms/Inbox';
 import OnboardingCases from './pages/hrms/OnboardingCases';
 import OnboardingCaseDetail from './pages/hrms/OnboardingCaseDetail';
 import OffboardingCases from './pages/hrms/OffboardingCases';
@@ -145,6 +146,9 @@ function AppRoutes() {
                         </Route>
                         <Route element={<ProtectedRoute module="hrms.core" />}>
                             <Route path="/hrms" element={<HrmsOverview />} />
+                            {/* The queue sits first: it is self-scoped, so it
+                                needs the module and nothing else. */}
+                            <Route path="/hrms/inbox" element={<Inbox />} />
                             {/* Before the `:section` catch-all: a static segment
                                 outranks a dynamic one, but relying on the router's
                                 ranking to keep the directory reachable is a trap for

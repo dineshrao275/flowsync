@@ -3348,7 +3348,7 @@ special-casing.
 > scheduler — not invented), `payroll.dispute_opened` (no dispute flow;
 > the inbox still reads disputed rows). `HrmsTaxonomyTest` (4 tests).
 
-**P15.4 — Frontend**
+**P15.4 — Frontend** ✅
 `pages/hrms/Inbox.jsx` (`/hrms/inbox`) — grouped by type with priority ordering, per-item mark-read,
 "mark all read", and inline actions for the two most common item kinds (approve/reject a leave
 regularization) so the inbox is useful without navigation. `Sidebar.jsx` shows a count badge on the
@@ -3356,6 +3356,13 @@ People section when `unreadCount > 0` (polled at the existing 30s `NotificationC
 `utils/notifications.js`: `describeNotification` copy for every type plus `notificationHref` branches.
 `utils/deepLinks.js`: `employeeUrl`, `hrmsUrl`, `payrollRunUrl`. `NotificationBell` renders HRMS items
 with an HR icon and routes correctly.
+
+> **P15.4 as shipped.** Grouped queue with priority order kept per
+> group, inline regularization approve/reject, dismiss-per-item,
+> People-section badge on the shared 30s cadence, HR glyph in the bell,
+> and copy + href for the four taxonomy top-ups. `payrollRunUrl` added
+> (disputed own-payslips link the run grid for runners, self-service
+> otherwise).
 
 **Acceptance:** an approval for the user appears in the inbox within one request; marking read persists
 per user (not globally); every taxonomy entry has copy and a working deep link; a non-impersonating
