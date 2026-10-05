@@ -96,6 +96,10 @@ class EmployeeController extends Controller
         return response()->json([
             'employee' => $this->present($employee, $sensitive, $request),
             'status_history' => $this->presenter->presentHistory($employee),
+            // The profile's Audit tab fetches the record's trail by its
+            // stored morph class — shipping it here beats hardcoding an
+            // FQCN in JS that rots the day a morph map lands.
+            'subject_type' => $employee->getMorphClass(),
             // The manager picker needs its options, and a second request for them
             // would leave the screen with an empty select for one round trip.
             'filters' => ['managers' => $this->directory->managerOptions()],

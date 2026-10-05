@@ -89,6 +89,11 @@ export const HRMS_PROFILE_TABS = {
     // P13.4 ships the profile’s documents tab: a filtered store for this
     // person, gated on the module like every other tab.
     documents: { label: 'Documents', module: 'hrms.documents' },
+    // P19.1 ships the profile's audit tab: this record's trail, gated on
+    // the module like every other tab — the component additionally requires
+    // the audit permission, because the tab slot is public to viewers while
+    // the ledger rows are not.
+    audit: { label: 'Audit', module: 'hrms.core' },
 };
 
 /**

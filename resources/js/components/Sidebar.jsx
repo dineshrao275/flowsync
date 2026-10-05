@@ -175,6 +175,12 @@ const sections = [
                 capabilities: ['module:hrms.core', 'module:hrms.analytics', 'permission:hrms.analytics.view'],
                 icon: 'M3 3v18h18M8 17V9m4 8V5m4 12v-6',
             },
+            {
+                to: '/hrms/audit',
+                label: 'Audit log',
+                capabilities: ['module:hrms.core', 'permission:hrms.audit.view'],
+                icon: 'M4 7V5a2 2 0 012-2h8l2 2h6v14a2 2 0 01-2 2H6a2 2 0 01-2-2v-2m0 0V7h18M8 12h8M8 16h8',
+            },
             { to: '/hrms', label: 'HRMS', capabilities: ['module:hrms.core'], icon: 'M17 20h5v-2a4 4 0 00-3-3.87M9 20H4v-2a4 4 0 013-3.87m4-1.13a4 4 0 10-4-4 4 4 0 004 4zm6 2a3 3 0 10-3-3' },
         ],
     },

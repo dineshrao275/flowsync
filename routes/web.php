@@ -17,6 +17,7 @@ use App\Http\Controllers\Hrms\Asset\AssetController;
 use App\Http\Controllers\Hrms\Attendance\AttendanceController;
 use App\Http\Controllers\Hrms\Attendance\AttendanceRecordsController;
 use App\Http\Controllers\Hrms\Attendance\RegularizationController;
+use App\Http\Controllers\Hrms\AuditController;
 use App\Http\Controllers\Hrms\CompOff\CompOffCreditController;
 use App\Http\Controllers\Hrms\CompOff\CompOffRequestController;
 use App\Http\Controllers\Hrms\CompOff\CompOffSettingsController;
@@ -758,6 +759,18 @@ Route::prefix('api')->group(function () {
         Route::get('hrms/analytics/payroll', [HrmsAnalyticsController::class, 'payroll'])->middleware('permission:hrms.payroll.run');
         Route::get('hrms/analytics/documents', [HrmsAnalyticsController::class, 'documents'])->middleware('permission:hrms.documents.view');
         Route::get('hrms/analytics/assets', [HrmsAnalyticsController::class, 'assets'])->middleware('permission:hrms.assets.view');
+    });
+
+    // HRMS audit trail (Phase 19 P19.1). The ledger is cross-cutting, so no
+    // per-record policy can answer for it — `hrms.audit.view` is the whole
+    // gate, on both the filtered index and the single-record trail. The
+    // `{subjectType}` is the stored morph class; `{subjectId}` is numeric
+    // so a mistyped type still 404s instead of querying garbage.
+    Route::group(['middleware' => ['ensure_module:hrms.core', 'permission:hrms.view']], function () {
+        Route::get('hrms/audit', [AuditController::class, 'index'])->middleware('permission:hrms.audit.view');
+        Route::get('hrms/audit/{subjectType}/{subjectId}', [AuditController::class, 'trail'])
+            ->middleware('permission:hrms.audit.view')
+            ->whereNumber('subjectId');
     });
 
     // HRMS assets (Phase 15 P14.3a). Same two gates plus the assets module;

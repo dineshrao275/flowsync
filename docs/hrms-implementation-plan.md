@@ -3571,12 +3571,23 @@ allowed; every chart is module-gated; a digest runs on schedule and does not re-
 **Objective:** cross-cutting hardening for the whole module, applied after each phase and consolidated
 here. Most work is verification rather than new features.
 
-**P19.1 — Audit-log viewer**
+**P19.1 — Audit-log viewer** ✅
 `GET api/hrms/audit` (filters: `actor_user_id`, `subject_type`, `subject_id`, `action`, `from`, `to`,
 `q`, `sort`, `dir`, `per_page`) and `GET api/hrms/audit/{subjectType}/{subjectId}` (one record's full
 before/after trail). Gated by `hrms.audit.view`. Read-only, paginated with the standard payload.
 Frontend: `pages/hrms/AuditLog.jsx` (filter bar, expandable JSON diff view) plus an **Audit tab on the
 employee profile** for `hrms.employees.view`.
+
+> **P19.1 as shipped.** `AuditController` + `AuditIndexRequest` +
+> `Services/Hrms/Audit/` (`AuditLogQuery`, `AuditPresenter` — presenters
+> live beside their services per the DayPresenter precedent); the permission
+> is the whole gate on both endpoints (no per-record policy can answer for
+> a cross-cutting ledger). `{subjectType}` is the stored morph class
+> (FQCN — no morph map exists), URL-encoded by the client. The profile tab
+> reads `subject_type` from the show payload (one additive key, never a
+> hardcoded FQCN in JS) and renders only with `hrms.audit.view`, while the
+> catalog entry stays module-gated like every other tab.
+> `HrmsAuditApiTest` (5 tests, incl. a masking pin).
 
 **P19.2 — Data-access log + PII audit review**
 `GET api/hrms/audit/data-access` (`hrms.audit.view`) for salary/bank/document read trails. Then do a

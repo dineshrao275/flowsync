@@ -58,6 +58,7 @@ import MyAssets from './pages/hrms/MyAssets';
 import Engagement from './pages/hrms/Engagement';
 import MySurvey from './pages/hrms/MySurvey';
 import Analytics from './pages/hrms/Analytics';
+import AuditLog from './pages/hrms/AuditLog';
 import Search from './pages/Search';
 import Notifications from './pages/Notifications';
 import Tenants from './pages/Tenants';
@@ -377,6 +378,16 @@ function AppRoutes() {
                                 element={
                                     <ProtectedRoute permission="hrms.analytics.view">
                                         <Analytics />
+                                    </ProtectedRoute>
+                                }
+                            />
+                            {/* Audit: the append-only trail needs the audit
+                                permission; the record view hangs off it. */}
+                            <Route
+                                path="/hrms/audit"
+                                element={
+                                    <ProtectedRoute permission="hrms.audit.view">
+                                        <AuditLog />
                                     </ProtectedRoute>
                                 }
                             />

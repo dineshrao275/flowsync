@@ -16,6 +16,7 @@ import { hrmsUrl } from '../../utils/deepLinks';
 import EmployeeEditModal from './EmployeeEditModal';
 import StatusHistory from './StatusHistory';
 import EmployeeDocuments from '../../components/hrms/EmployeeDocuments';
+import EmployeeAudit from '../../components/hrms/EmployeeAudit';
 
 /**
  * One employee's profile.
@@ -40,6 +41,9 @@ export default function EmployeeDetail() {
     // manager list is a query result, not a field anyone stores.
     const [history, setHistory] = useState([]);
     const [options, setOptions] = useState(null);
+    // The trail key arrives as a sibling for the same reason: it names the
+    // ledger row, not the person, and the Audit tab is the only reader.
+    const [subjectType, setSubjectType] = useState(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
     const [editing, setEditing] = useState(false);
@@ -47,7 +51,14 @@ export default function EmployeeDetail() {
     const [managerId, setManagerId] = useState('');
     const [savingManager, setSavingManager] = useState(false);
 
-    const tabs = useMemo(() => hrmsProfileTabs(user?.modules ?? []), [user?.modules]);
+    // The audit slot is module-gated like every profile tab, but the rows
+    // are permission-gated — the catalog cannot express that, so the tab is
+    // appended here only for callers holding the ledger permission.
+    const tabs = useMemo(() => {
+        const base = hrmsProfileTabs(user?.modules ?? []).filter((tab) => tab.key !== 'audit');
+        if (can('hrms.audit.view')) base.push({ key: 'audit', label: 'Audit' });
+        return base;
+    }, [user?.modules, can]);
     const requested = searchParams.get('tab');
     const activeTab = tabs.some((tab) => tab.key === requested) ? requested : (tabs[0]?.key ?? 'overview');
 
@@ -61,6 +72,7 @@ export default function EmployeeDetail() {
                 setEmployee(response.employee);
                 setHistory(response.status_history ?? []);
                 setOptions(response.filters ?? null);
+                setSubjectType(response.subject_type ?? null);
             })
             // A 403 is a permission answer and deserves the dedicated page; a
             // 404 is a record that is not in *this* tenant's database, and the
@@ -255,6 +267,8 @@ export default function EmployeeDetail() {
             )}
 
             {activeTab === 'documents' && <EmployeeDocuments employee={employee} />}
+
+            {activeTab === 'audit' && <EmployeeAudit employeeId={employeeId} subjectType={subjectType} />}
 
             <div className="pt-2 text-sm">
                 <Link to={hrmsUrl('employees')} className="text-indigo-600 hover:text-indigo-800">
