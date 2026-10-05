@@ -3839,13 +3839,20 @@ is visible. Keep the section collapsed/sectioned like the existing nav.
 > stay unlinked on purpose: the modules/permissions are reserved but no
 > pages were ever built, and a polish task does not invent two screens.
 
-**P21.2 — Onboarding wizard HRMS step**
+**P21.2 — Onboarding wizard HRMS step** ✅
 Add a `hrms` step to `config/onboarding.php` (after `configuration`) with `'required' => false` and
 `'module' => 'hrms.core'`, and add the key to `TenantOnboarding::COMPLETABLE_STEPS` — the const, not just
 the config, because `completableSteps()` intersects against it and `markStep` validates against the const.
 `TenantOnboarding::isComplete()` must **skip steps whose module the tenant does not have**, so a
 `starter` tenant never sees the step and never gets blocked by it. `Onboarding.jsx`'s `stepContent` map
 gains a `hrms` entry (company size, industry defaults, first-office location).
+
+> **P21.2 as shipped.** Config step + const key + a `visibleSteps(tenant)`
+> (completable ∩ module-held) driving `status()`, `isComplete()` and the
+> `updateStep` validation — a starter tenant neither sees nor marks nor
+> blocks on `hrms`. The wizard entry saves profile size/industry plus an
+> optional first office (real `hrms/locations` row) before marking.
+> Pinned in `OnboardingTest` (starter hides/unmarkable, pro sees/marks).
 
 **P21.3 — Command-palette entries**
 `components/search/CommandPalette.jsx` gains an `hrms` group (employees, then a shortcut row for each

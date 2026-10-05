@@ -21,6 +21,9 @@ export default function Onboarding() {
     const [business, setBusiness] = useState({ legal_name: '', industry: '', company_size: '', country: '', website: '' });
     const [businessErrors, setBusinessErrors] = useState({});
     const [businessOpen, setBusinessOpen] = useState(false);
+    const [hrms, setHrms] = useState({ company_size: '', industry: '', office_name: '', office_city: '', office_country: '' });
+    const [hrmsErrors, setHrmsErrors] = useState({});
+    const [hrmsOpen, setHrmsOpen] = useState(false);
 
     const load = useCallback(async () => {
         try {
@@ -83,6 +86,32 @@ export default function Onboarding() {
         }
     }
 
+    async function saveHrms() {
+        setWorking('hrms');
+        setHrmsErrors({});
+        try {
+            await api.put('/tenant/profile', {
+                ...(hrms.company_size ? { company_size: hrms.company_size } : {}),
+                ...(hrms.industry ? { industry: hrms.industry } : {}),
+            });
+
+            if (hrms.office_name.trim() !== '') {
+                await api.post('/hrms/locations', {
+                    name: hrms.office_name.trim(),
+                    ...(hrms.office_city.trim() !== '' ? { city: hrms.office_city.trim() } : {}),
+                    ...(hrms.office_country.trim() !== '' ? { country: hrms.office_country.trim() } : {}),
+                });
+            }
+
+            const { data } = await api.put('/onboarding/step', { step: 'hrms' });
+            setOnboarding(data.onboarding);
+        } catch (err) {
+            setHrmsErrors(fieldErrors(err));
+        } finally {
+            setWorking(null);
+        }
+    }
+
     async function finish() {
         setWorking('completion');
         try {
@@ -122,6 +151,20 @@ export default function Onboarding() {
             <Button size="sm" variant="secondary" onClick={() => markStep('configuration')} loading={working === 'configuration'}>
                 I'll set it up later
             </Button>
+        ),
+        hrms: (
+            <div className="flex gap-2">
+                <button
+                    type="button"
+                    onClick={() => setHrmsOpen((open) => !open)}
+                    className="rounded-lg border border-gray-300 px-3 py-1.5 text-sm font-medium text-gray-700 transition hover:bg-gray-50"
+                >
+                    {hrmsOpen ? 'Hide form' : 'Set up people'}
+                </button>
+                <Button size="sm" variant="secondary" onClick={() => markStep('hrms')} loading={working === 'hrms'}>
+                    Later
+                </Button>
+            </div>
         ),
         verification: (
             <Button size="sm" variant="secondary" onClick={() => markStep('verification')} loading={working === 'verification'}>
@@ -218,6 +261,55 @@ export default function Onboarding() {
                                                 </div>
                                             </div>
                                             <Button size="sm" onClick={saveBusiness} loading={working === 'business'}>
+                                                Save & continue
+                                            </Button>
+                                        </div>
+                                    )}
+                                    {step.key === 'hrms' && hrmsOpen && (
+                                        <div className="mt-3 rounded-lg border border-gray-100 bg-gray-50 p-4">
+                                            <div className="mb-3 space-y-3">
+                                                <div className="grid grid-cols-2 gap-3">
+                                                    <Input
+                                                        label="Company size"
+                                                        name="company_size"
+                                                        value={hrms.company_size}
+                                                        onChange={(e) => setHrms((h) => ({ ...h, company_size: e.target.value }))}
+                                                        error={hrmsErrors.company_size}
+                                                    />
+                                                    <Input
+                                                        label="Industry"
+                                                        name="industry"
+                                                        value={hrms.industry}
+                                                        onChange={(e) => setHrms((h) => ({ ...h, industry: e.target.value }))}
+                                                        error={hrmsErrors.industry}
+                                                    />
+                                                </div>
+                                                <Input
+                                                    label="First office name"
+                                                    name="office_name"
+                                                    value={hrms.office_name}
+                                                    onChange={(e) => setHrms((h) => ({ ...h, office_name: e.target.value }))}
+                                                    error={hrmsErrors.name}
+                                                    placeholder="Head office"
+                                                />
+                                                <div className="grid grid-cols-2 gap-3">
+                                                    <Input
+                                                        label="Office city"
+                                                        name="office_city"
+                                                        value={hrms.office_city}
+                                                        onChange={(e) => setHrms((h) => ({ ...h, office_city: e.target.value }))}
+                                                        error={hrmsErrors.city}
+                                                    />
+                                                    <Input
+                                                        label="Office country"
+                                                        name="office_country"
+                                                        value={hrms.office_country}
+                                                        onChange={(e) => setHrms((h) => ({ ...h, office_country: e.target.value }))}
+                                                        error={hrmsErrors.country}
+                                                    />
+                                                </div>
+                                            </div>
+                                            <Button size="sm" onClick={saveHrms} loading={working === 'hrms'}>
                                                 Save & continue
                                             </Button>
                                         </div>

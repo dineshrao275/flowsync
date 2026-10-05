@@ -26,14 +26,15 @@ class OnboardingController extends Controller
     }
 
     /**
-     * Tenant-facing: complete a wizard step.
+     * Tenant-facing: complete a wizard step. Only steps this tenant sees
+     * are markable — a plan without the module cannot drive its step.
      */
     public function updateStep(Request $request): JsonResponse
     {
         $tenant = $this->currentTenant();
 
         $data = $request->validate([
-            'step' => ['required', 'string', Rule::in($this->onboarding->completableSteps())],
+            'step' => ['required', 'string', Rule::in($this->onboarding->visibleSteps($tenant))],
             'data' => ['nullable', 'array'],
         ]);
 

@@ -40,6 +40,12 @@ return [
             'description' => 'Organize work into workspaces and projects.',
             'required' => false,
         ],
+        'hrms' => [
+            'title' => 'People setup',
+            'description' => 'Tell us about your team size and file your first office location.',
+            'required' => false,
+            'module' => 'hrms.core',
+        ],
         'verification' => [
             'title' => 'Verification',
             'description' => 'Confirm your details are correct.',
