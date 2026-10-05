@@ -82,9 +82,10 @@ export default function DocumentUploader({ employeeId, employees, types, onUploa
             </Select>
             {errors.document_type_id && <Alert>{errors.document_type_id}</Alert>}
             <div>
-                <label className="mb-1 block text-sm font-medium text-gray-700">File</label>
-                <input
-                    type="file"
+            <label htmlFor="document-file" className="mb-1 block text-sm font-medium text-gray-700">File</label>
+            <input
+                id="document-file"
+                type="file"
                     className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm shadow-sm file:mr-3 file:rounded-md file:border-0 file:bg-gray-100 file:px-3 file:py-1.5 file:text-sm file:font-medium file:text-gray-700 hover:file:bg-gray-200"
                     onChange={(e) => setFile(e.target.files?.[0] ?? null)}
                 />

@@ -238,7 +238,11 @@ export default function Employees() {
                 <thead>
                     <tr>
                         {COLUMNS.map((column) => (
-                            <Th key={column.key} align={column.key === 'joining_date' ? 'right' : undefined}>
+                            <Th
+                                key={column.key}
+                                align={column.key === 'joining_date' ? 'right' : undefined}
+                                aria-sort={column.sortable ? (filters.sort === column.key ? (filters.dir === 'asc' ? 'ascending' : 'descending') : 'none') : undefined}
+                            >
                                 {column.sortable ? (
                                     <button
                                         type="button"

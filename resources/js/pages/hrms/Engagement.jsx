@@ -298,8 +298,9 @@ export default function Engagement() {
                             </div>
                             {question.type === 'multiple_choice' && (
                                 <div className="mt-2">
-                                    <label className="mb-1.5 block text-sm font-medium text-gray-700">Options (one per line)</label>
+                                    <label htmlFor={`question-options-${index}`} className="mb-1.5 block text-sm font-medium text-gray-700">Options (one per line)</label>
                                     <textarea
+                                        id={`question-options-${index}`}
                                         className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm"
                                         rows={3}
                                         value={question.options}

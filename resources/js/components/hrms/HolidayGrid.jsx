@@ -61,9 +61,9 @@ export default function HolidayGrid({ holidays = [], year }) {
                 key={date}
                 title={entries.length === 0 ? date : entries.map((e) => `${e.name} (${e.type})`).join(', ')}
                 className={`flex min-h-10 flex-col items-center justify-center rounded-lg border text-xs ${
-                    entries.length === 0 ? 'border-gray-100 text-gray-500' : 'border-transparent font-semibold text-white'
+                    entries.length === 0 ? 'border-gray-100 text-gray-500' : 'border-transparent font-semibold text-gray-900'
                 }`}
-                style={entries.length === 0 ? {} : { backgroundColor: color }}
+                style={entries.length === 0 ? {} : { backgroundColor: `${color}33` }}
             >
                 {day}
             </span>,

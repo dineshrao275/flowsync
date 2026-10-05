@@ -541,8 +541,9 @@ export default function Statutory() {
                         Active
                     </label>
                     <div className="sm:col-span-2">
-                        <label className="mb-1.5 block text-sm font-medium text-gray-700">Rules JSON (rates, ceilings, slabs)</label>
+                        <label htmlFor="statutory-rules" className="mb-1.5 block text-sm font-medium text-gray-700">Rules JSON (rates, ceilings, slabs)</label>
                         <textarea
+                            id="statutory-rules"
                             className="w-full rounded-lg border border-gray-300 px-3 py-2 font-mono text-xs"
                             rows={10}
                             value={configForm.config_json}

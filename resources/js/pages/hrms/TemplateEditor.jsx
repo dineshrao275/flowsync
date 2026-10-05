@@ -206,9 +206,9 @@ export default function TemplateEditor({ templateId, onSaved }) {
                                     {item.is_mandatory ? ' · mandatory' : ''}
                                 </span>
                                 <span className="flex gap-1">
-                                    <button type="button" onClick={() => moveItem(i, -1)} className="rounded px-1.5 text-gray-400 hover:bg-gray-100">↑</button>
-                                    <button type="button" onClick={() => moveItem(i, 1)} className="rounded px-1.5 text-gray-400 hover:bg-gray-100">↓</button>
-                                    <button type="button" onClick={() => removeItem(i)} className="rounded px-1.5 text-red-400 hover:bg-red-50">✕</button>
+                                    <button type="button" onClick={() => moveItem(i, -1)} aria-label={`Move ${item.title} up`} title="Move up" className="rounded px-1.5 text-gray-400 hover:bg-gray-100">↑</button>
+                                    <button type="button" onClick={() => moveItem(i, 1)} aria-label={`Move ${item.title} down`} title="Move down" className="rounded px-1.5 text-gray-400 hover:bg-gray-100">↓</button>
+                                    <button type="button" onClick={() => removeItem(i)} aria-label={`Remove ${item.title}`} title="Remove" className="rounded px-1.5 text-red-400 hover:bg-red-50">✕</button>
                                 </span>
                             </div>
                             <Input label="Title" value={item.title} onChange={(e) => updateItem(i, { title: e.target.value })} />

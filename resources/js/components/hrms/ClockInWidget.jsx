@@ -20,8 +20,9 @@ function clockTime(iso) {
  * "access denied".
  *
  * The punch endpoint only ever clocks the caller, so when the parent is
- * showing another person's day (`allowPunch` false) the button hides and
- * the widget reads as a viewer.
+ * showing another person's day (`allowPunch` false) the button renders
+ * disabled rather than hiding: the widget reads the same on every day,
+ * and the disabled state says whose day this is.
  */
 export default function ClockInWidget({ today, punching, onPunch, allowPunch = true }) {
     if (!today) {

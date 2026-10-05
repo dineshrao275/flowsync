@@ -119,6 +119,7 @@ export default function MySurvey() {
                         className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm"
                         rows={4}
                         value={value}
+                        aria-label={question.text}
                         onChange={(e) => setAnswer(question.id, e.target.value)}
                     />
                 );

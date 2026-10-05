@@ -93,8 +93,9 @@ export default function DepartmentFormModal({ department, departments, heads, sa
                 />
 
                 <div>
-                    <label className="mb-1.5 block text-sm font-medium text-gray-700">Description</label>
+                    <label htmlFor="department-description" className="mb-1.5 block text-sm font-medium text-gray-700">Description</label>
                     <textarea
+                        id="department-description"
                         className={`${fieldClass} min-h-20`}
                         rows={3}
                         value={form.description}

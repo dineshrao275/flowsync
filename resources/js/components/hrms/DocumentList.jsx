@@ -1,5 +1,6 @@
 import Button from '../ui/Button';
 import EmptyState from '../ui/EmptyState';
+import StatusPill from '../ui/StatusPill';
 import { Table, Th, Td } from '../ui/Table';
 
 const STATUS_COLORS = {
@@ -8,20 +9,6 @@ const STATUS_COLORS = {
     rejected: '#ef4444',
     expired: '#6b7280',
 };
-
-function StatusPill({ status }) {
-    const color = STATUS_COLORS[status] ?? '#6b7280';
-
-    return (
-        <span
-            className="inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-xs font-medium capitalize"
-            style={{ backgroundColor: `${color}22`, color }}
-        >
-            <span className="h-1.5 w-1.5 rounded-full" style={{ backgroundColor: color }} />
-            {status}
-        </span>
-    );
-}
 
 function formatDate(value) {
     if (!value) return '—';
@@ -74,7 +61,7 @@ export default function DocumentList({ documents, canVerify, canDelete, onVerify
                         </Td>
                         {showEmployee && <Td>{document.employee?.name ?? '—'}</Td>}
                         <Td>{document.type?.name ?? '—'}</Td>
-                        <Td><StatusPill status={document.status} /></Td>
+                        <Td><StatusPill color={STATUS_COLORS[document.status]} label={document.status} className="capitalize" /></Td>
                         <Td>{formatDate(document.expires_at)}</Td>
                         <Td>
                             <a

@@ -69,7 +69,10 @@ export default function AttendanceCalendar({ year, month, days = [], selectedDat
                         >
                             <span className="block h-full rounded-full" style={{ backgroundColor: color, width: '100%' }} />
                         </span>
-                        <span className="block truncate text-[11px] font-medium" style={{ color }}>
+                        {/* The bar carries the status hue; the label stays
+                            dark — 11px colored text on white fails contrast
+                            for every hue, while the bar needs no text. */}
+                        <span className="block truncate text-[11px] font-medium text-gray-700">
                             {entry.status_label}
                             {entry.is_regularized ? ' ·R' : ''}
                         </span>

@@ -117,6 +117,7 @@ export default function GoalCard({ goal, onRefresh, refreshing = false, actions 
                                 value={key}
                                 onChange={(e) => setKey(e.target.value)}
                                 placeholder="Task key (PRJ-123)"
+                                aria-label="Task key to link"
                                 className="min-w-0 flex-1 rounded-lg border border-gray-300 px-2 py-1 text-xs"
                             />
                             <button

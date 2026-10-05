@@ -1,4 +1,5 @@
 import Button from '../ui/Button';
+import StatusPill from '../ui/StatusPill';
 import { Table, Th, Td, TableEmpty } from '../ui/Table';
 
 const STATUS_COLORS = {
@@ -15,20 +16,6 @@ const SCOPE_LABELS = {
     employee: 'Employee',
     it: 'IT',
 };
-
-function StatusPill({ status, label }) {
-    const color = STATUS_COLORS[status] ?? '#6b7280';
-
-    return (
-        <span
-            className="inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-xs font-medium"
-            style={{ backgroundColor: `${color}22`, color }}
-        >
-            <span className="h-1.5 w-1.5 rounded-full" style={{ backgroundColor: color }} />
-            {label ?? status}
-        </span>
-    );
-}
 
 function isOverdue(task) {
     if (!task.due_date || task.status === 'done' || task.status === 'waived' || task.status === 'skipped') return false;
@@ -110,7 +97,7 @@ export default function Checklist({ tasks, canAct, canWaive, onComplete, onWaive
                                             </span>
                                         </Td>
                                         <Td>
-                                            <StatusPill status={task.status} />
+                                            <StatusPill color={STATUS_COLORS[task.status]} label={task.status} />
                                         </Td>
                                         {canAct && (
                                             <Td>

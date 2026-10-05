@@ -3887,10 +3887,23 @@ existing pattern, and a permission-specific 403 message (not a generic one) for 
 > embedded 403 (navigating from a modal is wrong) and the documented
 > secondary-picker degradations.
 
-**P21.5 — Accessibility + consistency pass**
+**P21.5 — Accessibility + consistency pass** ✅
 Table headers, form labels, modal focus trapping, keyboard navigation for the org tree and the
 checklist, and colour contrast for status pills. Confirm every action button is hidden (not merely
 disabled) when the caller lacks the permission, matching the existing project/task UI convention.
+
+> **P21.5 as shipped.** Buttons: zero permission-`disabled` violations
+> (every hit is saving/form-state); one docblock corrected to the
+> render. Dialogs: shared `useDialogFocus` (trap + initial + return
+> focus + labelled-by) in Modal/Drawer. Pills: one shared `StatusPill`
+> (tint + dot + dark text — 12px hue-on-tint fails contrast everywhere)
+> migrated across Checklist/DocumentList/RequestPill; calendar labels
+> and holiday cells keep hue in bars/tints with dark text. Inputs:
+> named labels on the three bare controls and four unassociated ones;
+> `scope="col"` on all `Th`; `aria-sort` on the directory headers;
+> icon-only editor buttons named. Org tree and checklist were already
+> keyboard-operable (links/buttons throughout); arrow-key roving and
+> the touch-only reorder affordance stay documented follow-ups.
 
 **P21.6 — Documentation**
 Update `AGENTS.md`: a new **HRMS** section summarising the module keys, the shared primitives, the

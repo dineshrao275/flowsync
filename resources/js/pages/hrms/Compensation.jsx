@@ -474,6 +474,7 @@ export default function Compensation() {
                                 <input
                                     className="w-28 rounded-lg border border-gray-300 px-2 py-1 text-sm"
                                     placeholder="value"
+                                    aria-label={`Value for ${head.name}`}
                                     value={row?.value ?? ''}
                                     disabled={!row?.checked}
                                     onChange={(e) => setLinkForm((rows) => rows.map((r) => (r.component_id === head.id ? { ...r, value: e.target.value } : r)))}

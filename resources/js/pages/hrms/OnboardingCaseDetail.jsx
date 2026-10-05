@@ -5,6 +5,7 @@ import Alert from '../../components/ui/Alert';
 import Button from '../../components/ui/Button';
 import Card from '../../components/ui/Card';
 import Spinner from '../../components/ui/Spinner';
+import StatusPill from '../../components/ui/StatusPill';
 import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
 import { useSetCrumbs } from '../../context/BreadcrumbContext';
@@ -328,14 +329,5 @@ export default function OnboardingCaseDetail() {
 }
 
 function RequestPill({ status }) {
-    const color = REQUEST_COLORS[status] ?? '#6b7280';
-
-    return (
-        <span
-            className="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium capitalize"
-            style={{ backgroundColor: `${color}22`, color }}
-        >
-            {status}
-        </span>
-    );
+    return <StatusPill color={REQUEST_COLORS[status]} label={status} />;
 }
