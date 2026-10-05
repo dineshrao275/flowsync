@@ -7,7 +7,8 @@ import Input from '../../components/ui/Input';
 import Modal from '../../components/ui/Modal';
 import Select from '../../components/ui/Select';
 import Spinner from '../../components/ui/Spinner';
-import { Table, Th, Td, TableEmpty } from '../../components/ui/Table';
+import { Table, Th, Td } from '../../components/ui/Table';
+import EmptyState from '../../components/ui/EmptyState';
 import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
 import { useSetCrumbs } from '../../context/BreadcrumbContext';
@@ -207,7 +208,7 @@ export default function OnboardingCases() {
                     <Spinner />
                 </div>
             ) : cases.length === 0 ? (
-                <TableEmpty>No onboarding cases.</TableEmpty>
+                <EmptyState title="No onboarding cases" description="No runs in flight right now." />
             ) : (
                 <Table>
                     <thead>

@@ -1,4 +1,9 @@
-export default function EmptyState({ icon, title, description, action }) {
+export default function EmptyState({ icon, title, description, hint, message, action }) {
+    // `hint`/`message` are legacy aliases sixteen call sites pass instead
+    // of `description` — React would silently drop them, so they fold in
+    // here and every authored helper sentence renders again.
+    const body = description ?? hint ?? message;
+
     return (
         <div className="flex flex-col items-center justify-center px-6 py-10 text-center">
             {icon && (
@@ -9,7 +14,7 @@ export default function EmptyState({ icon, title, description, action }) {
                 </span>
             )}
             {title && <p className="text-sm font-semibold text-gray-800">{title}</p>}
-            {description && <p className="mt-1 max-w-xs text-sm text-gray-500">{description}</p>}
+            {body && <p className="mt-1 max-w-xs text-sm text-gray-500">{body}</p>}
             {action && <div className="mt-4">{action}</div>}
         </div>
     );

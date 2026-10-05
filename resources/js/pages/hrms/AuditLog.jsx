@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import api from '../../services/api';
 import { useSetCrumbs } from '../../context/BreadcrumbContext';
 import usePageTitle from '../../hooks/usePageTitle';
@@ -22,6 +22,7 @@ const emptyFilters = { q: '', subject_type: '', action: '', actor_user_id: '', f
 export default function AuditLog() {
     usePageTitle('Audit log');
     const setCrumbs = useSetCrumbs();
+    const navigate = useNavigate();
     const [searchParams, setSearchParams] = useSearchParams();
 
     const [draft, setDraft] = useState(emptyFilters);
@@ -50,10 +51,17 @@ export default function AuditLog() {
                     setRows(data.audit_logs ?? []);
                     setPagination(data.pagination ?? null);
                 })
-                .catch(() => setError('Unable to load the audit trail.'))
+                .catch((err) => {
+                    if (err.response?.status === 403) {
+                        navigate('/403', { replace: true });
+                        return;
+                    }
+
+                    setError('Unable to load the audit trail.');
+                })
                 .finally(() => setLoading(false));
         },
-        [],
+        [navigate],
     );
 
     useEffect(() => {

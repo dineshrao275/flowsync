@@ -1,5 +1,6 @@
 import Button from '../ui/Button';
-import { Table, Th, Td, TableEmpty } from '../ui/Table';
+import EmptyState from '../ui/EmptyState';
+import { Table, Th, Td } from '../ui/Table';
 
 const STATUS_COLORS = {
     pending: '#f59e0b',
@@ -38,7 +39,10 @@ function formatDate(value) {
  */
 export default function DocumentList({ documents, canVerify, canDelete, onVerify, onReject, onDelete, showEmployee }) {
     if (!documents || documents.length === 0) {
-        return <TableEmpty>No documents.</TableEmpty>;
+        // A real empty state, not a bare table row: this renders outside
+        // any <table>, where a <tr> would be dropped by the browser and
+        // read as a blank gap.
+        return <EmptyState title="No documents" description="Nothing filed here yet." />;
     }
 
     return (

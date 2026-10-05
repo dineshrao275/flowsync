@@ -262,7 +262,9 @@ export default function PerformanceCycleDetail() {
             {tab === 'goals' && (
                 <div className="space-y-3">
                     {canManage && <div><Button size="sm" onClick={() => setGoalModal(true)}>File a goal</Button></div>}
-                    {!goals ? <div className="flex justify-center py-8"><Spinner /></div> : goals.map((goal) => (
+                    {!goals ? <div className="flex justify-center py-8"><Spinner /></div> : goals.length === 0 ? (
+                        <p className="py-8 text-center text-sm text-gray-400">No goals filed on this cycle yet.</p>
+                    ) : goals.map((goal) => (
                         <GoalCard
                             key={goal.id}
                             goal={goal}

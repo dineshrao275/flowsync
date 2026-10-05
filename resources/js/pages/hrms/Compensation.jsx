@@ -68,6 +68,7 @@ export default function Compensation() {
 
     const [employeeId, setEmployeeId] = useState('');
     const [basis, setBasis] = useState(null);
+    const [basisLoaded, setBasisLoaded] = useState(false);
     const [revisions, setRevisions] = useState([]);
     const [assignForm, setAssignForm] = useState({ structure_id: '', ctc_annual: '', effective_from: '', reason: '' });
     const [assignErrors, setAssignErrors] = useState({});
@@ -121,15 +122,22 @@ export default function Compensation() {
             if (!id) {
                 setBasis(null);
                 setRevisions([]);
+                setBasisLoaded(true);
                 return Promise.resolve();
             }
 
             setError(null);
+            // Null first: without it the previous person's pay basis reads
+            // as current while the new one loads.
+            setBasis(null);
+            setRevisions([]);
+            setBasisLoaded(false);
 
             return Promise.all([
                 api.get(`/hrms/payroll/employees/${id}/salary`).then(({ data }) => setBasis(data.assignment)),
                 api.get(`/hrms/payroll/employees/${id}/revisions`).then(({ data }) => setRevisions(data.revisions ?? [])),
-            ]).catch(fail('Unable to load this person’s pay basis.'));
+            ]).catch(fail('Unable to load this person’s pay basis.'))
+                .finally(() => setBasisLoaded(true));
         },
         [fail],
     );
@@ -367,7 +375,9 @@ export default function Compensation() {
 
                 {employeeId && (
                     <>
-                        {basis ? (
+                        {!basisLoaded ? (
+                            <div className="mb-4 flex justify-center py-8"><Spinner /></div>
+                        ) : basis ? (
                             <div className="mb-4 rounded-lg border border-gray-200 p-4 text-sm">
                                 <p className="font-medium text-gray-900">{basis.structure?.name} · {basis.ctc_annual} annual</p>
                                 <p className="mt-1 text-gray-500">

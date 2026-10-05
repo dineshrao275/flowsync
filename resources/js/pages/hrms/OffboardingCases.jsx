@@ -6,7 +6,8 @@ import Button from '../../components/ui/Button';
 import Input from '../../components/ui/Input';
 import Select from '../../components/ui/Select';
 import Spinner from '../../components/ui/Spinner';
-import { Table, Th, Td, TableEmpty } from '../../components/ui/Table';
+import { Table, Th, Td } from '../../components/ui/Table';
+import EmptyState from '../../components/ui/EmptyState';
 import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
 import { useSetCrumbs } from '../../context/BreadcrumbContext';
@@ -169,7 +170,7 @@ export default function OffboardingCases() {
                     <Spinner />
                 </div>
             ) : cases.length === 0 ? (
-                <TableEmpty>No exit runs.</TableEmpty>
+                <EmptyState title="No exit runs" description="No departures in flight right now." />
             ) : (
                 <Table>
                     <thead>

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import api, { fieldErrors } from '../../services/api';
 import Alert from '../../components/ui/Alert';
 import Avatar from '../../components/ui/Avatar';
@@ -50,6 +50,7 @@ const COLUMNS = [
 export default function Employees() {
     usePageTitle('Employees');
     const setCrumbs = useSetCrumbs();
+    const navigate = useNavigate();
     const { can } = useAuth();
     const toast = useToast();
 
@@ -77,9 +78,16 @@ export default function Employees() {
             return api
                 .get('/hrms/employees', { params })
                 .then(({ data: response }) => setData(response))
-                .catch(() => setError('Unable to load the employee directory.'));
+                .catch((err) => {
+                    if (err.response?.status === 403) {
+                        navigate('/403', { replace: true });
+                        return;
+                    }
+
+                    setError('Unable to load the employee directory.');
+                });
         },
-        [],
+        [navigate],
     );
 
     // `page` is read for its side effect of re-running on change; the value it

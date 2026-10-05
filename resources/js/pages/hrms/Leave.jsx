@@ -9,7 +9,7 @@ import Input from '../../components/ui/Input';
 import Modal from '../../components/ui/Modal';
 import Select from '../../components/ui/Select';
 import Spinner from '../../components/ui/Spinner';
-import { Table, Th, Td } from '../../components/ui/Table';
+import { Table, Th, Td, TableEmpty } from '../../components/ui/Table';
 import { useToast } from '../../context/ToastContext';
 import { useSetCrumbs } from '../../context/BreadcrumbContext';
 import usePageTitle from '../../hooks/usePageTitle';
@@ -405,6 +405,7 @@ export default function Leave() {
                                         </Td>
                                     </tr>
                                 ))}
+                                {types.length === 0 && <TableEmpty colSpan={5}>No leave types yet.</TableEmpty>}
                             </tbody>
                         </Table>
                     )}
@@ -445,6 +446,7 @@ export default function Leave() {
                                         </Td>
                                     </tr>
                                 ))}
+                                {policies.length === 0 && <TableEmpty colSpan={5}>No leave policies yet.</TableEmpty>}
                             </tbody>
                         </Table>
                     )}

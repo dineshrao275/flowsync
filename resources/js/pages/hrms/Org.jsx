@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import api from '../../services/api';
 import Alert from '../../components/ui/Alert';
 import Button from '../../components/ui/Button';
@@ -35,6 +35,7 @@ import LocationFormModal from './LocationFormModal';
 export default function Org() {
     usePageTitle('Organisation');
     const setCrumbs = useSetCrumbs();
+    const navigate = useNavigate();
     const { can } = useAuth();
     const toast = useToast();
     // Read only: the tree's `Link`s drive the selection through the router,
@@ -67,8 +68,15 @@ export default function Org() {
         return api
             .get('/hrms/org')
             .then(({ data: response }) => setData(response))
-            .catch(() => setError('Unable to load the organisation.'));
-    }, []);
+            .catch((err) => {
+                if (err.response?.status === 403) {
+                    navigate('/403', { replace: true });
+                    return;
+                }
+
+                setError('Unable to load the organisation.');
+            });
+    }, [navigate]);
 
     useEffect(() => {
         load();

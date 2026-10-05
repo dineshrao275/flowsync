@@ -42,7 +42,16 @@ export default function DepartmentMembersPanel({ department, canManage, onChange
             return api
                 .get('/hrms/employees', { params: { department_id: departmentId, per_page: 50 } })
                 .then(({ data: response }) => setData(response))
-                .catch(() => setError('Unable to load the members of this department.'));
+                .catch((err) => {
+                    // Inline, not a /403: the org page itself is readable —
+                    // only the members strip needs the directory permission.
+                    if (err.response?.status === 403) {
+                        setError('Members need the employee directory permission.');
+                        return;
+                    }
+
+                    setError('Unable to load the members of this department.');
+                });
         },
         [],
     );

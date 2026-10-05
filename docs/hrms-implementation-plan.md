@@ -3870,9 +3870,22 @@ enabled module), reusing the existing grouped result + keyboard-navigation machi
 > Pinned in `GlobalSearchTest` (viewer hidden, admin found, module-less
 > plan hidden).
 
-**P21.4 — Empty states, loading, and error polish**
+**P21.4 — Empty states, loading, and error polish** ✅
 Every HRMS page gets: a module-specific `EmptyState`, `Spinner` while loading, a `403` redirect via the
 existing pattern, and a permission-specific 403 message (not a generic one) for management surfaces.
+
+> **P21.4 as shipped.** Audit-first, fixed by impact: `EmptyState`
+> recovers dropped `hint`/`message` props (16 silent call sites);
+> bare-`TableEmpty`-outside-`<table>` replaced on the document list and
+> both case lists; 403→`/403` on Employees/Org/AuditLog (+ a named
+> inline message on the embedded members strip, which must not leave
+> its readable page); Statutory's silent list catches now surface with
+> a 403 branch, and its Identifiers card (like Compensation's basis
+> card) distinguishes loading from genuinely-empty. Leave/Holidays
+> tables and the cycle goals row gain empty states; Compensation nulls
+> the basis before refetch. Deliberately untouched: TemplateEditor's
+> embedded 403 (navigating from a modal is wrong) and the documented
+> secondary-picker degradations.
 
 **P21.5 — Accessibility + consistency pass**
 Table headers, form labels, modal focus trapping, keyboard navigation for the org tree and the

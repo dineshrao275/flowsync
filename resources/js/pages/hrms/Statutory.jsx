@@ -50,6 +50,7 @@ export default function Statutory() {
 
     const [employeeId, setEmployeeId] = useState('');
     const [profile, setProfile] = useState(null);
+    const [profileLoaded, setProfileLoaded] = useState(false);
     const [profileForm, setProfileForm] = useState(emptyProfile);
     const [profileErrors, setProfileErrors] = useState({});
     const [revealed, setRevealed] = useState(null);
@@ -88,15 +89,33 @@ export default function Statutory() {
         return api
             .get('/hrms/payroll/statutory/configurations')
             .then(({ data }) => setConfigs(data.configurations ?? []))
-            .catch(() => setConfigs([]));
-    }, []);
+            .catch((err) => {
+                // A failure is not an empty rulebook: 403 leaves the page,
+                // anything else keeps the list empty but says so.
+                if (err.response?.status === 403) {
+                    navigate('/403', { replace: true });
+                    return;
+                }
+
+                setConfigs([]);
+                setError('Unable to load rulebooks.');
+            });
+    }, [navigate]);
 
     const loadDeclarations = useCallback(() => {
         return api
             .get('/hrms/payroll/statutory/declarations')
             .then(({ data }) => setDeclarations(data.declarations ?? []))
-            .catch(() => setDeclarations([]));
-    }, []);
+            .catch((err) => {
+                if (err.response?.status === 403) {
+                    navigate('/403', { replace: true });
+                    return;
+                }
+
+                setDeclarations([]);
+                setError('Unable to load declarations.');
+            });
+    }, [navigate]);
 
     useEffect(() => {
         if (canManage) {
@@ -118,16 +137,25 @@ export default function Statutory() {
             if (!id) {
                 setProfile(null);
                 setRevealed(null);
+                setProfileLoaded(true);
                 return Promise.resolve();
             }
+
+            // Null means loading until the flag says otherwise — without
+            // it the card briefly presents "nothing on record" as fact.
+            setProfileLoaded(false);
 
             return api
                 .get(`/hrms/payroll/statutory/profiles/${id}`)
                 .then(({ data }) => {
                     setProfile(data.profile);
                     setRevealed(null);
+                    setProfileLoaded(true);
                 })
-                .catch(fail('Unable to load this profile.'));
+                .catch((err) => {
+                    setProfileLoaded(true);
+                    fail('Unable to load this profile.')(err);
+                });
         },
         [fail],
     );
@@ -349,7 +377,9 @@ export default function Statutory() {
 
                 {employeeId && (
                     <>
-                        {!profile ? (
+                        {!profileLoaded ? (
+                            <div className="flex justify-center py-8"><Spinner /></div>
+                        ) : !profile ? (
                             <p className="text-sm text-gray-500">No identifiers filed — nothing on record, not a missing file.</p>
                         ) : (
                             <div className="mb-4 rounded-lg border border-gray-200 p-4 text-sm">
