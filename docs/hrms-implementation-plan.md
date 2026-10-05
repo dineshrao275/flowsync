@@ -3528,10 +3528,16 @@ tables (422 on an unknown id).
 > run); tiers inside shared endpoints read the caller; filters validate
 > against tenant tables. `HrmsAnalyticsApiTest` (5 tests, 18 assertions).
 
-**P18.4 — Scheduled digests**
+**P18.4 — Scheduled digests** ✅
 `php artisan hrms:report-digests` reads `hrms_report_schedules` whose `next_run_at` has passed, builds
 the report, and either posts a notification (`hrms.inbox.digest`) or emails, then advances `next_run_at`.
 Notification delivery is the existing `NotificationService` path (no new mail transport in this phase).
+
+> **P18.4 as shipped.** Audience resolves at send time (user ids plus
+> role slugs); digests carry counts, never names and never pay (payroll
+> sections refuse outright); unknown sections degrade, never break; the
+> cursor advances so re-sweeps find nothing due. No mail transport —
+> delivery is notifications only. `HrmsReportDigestTest` (3 tests).
 
 **P18.5 — Frontend**
 `pages/hrms/Analytics.jsx` — a stat-tile row (Reuse `Dashboard.jsx`'s widget pattern) plus tabs per
