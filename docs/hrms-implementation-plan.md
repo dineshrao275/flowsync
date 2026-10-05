@@ -3629,10 +3629,26 @@ existing throttle middleware. Payroll exports additionally require `hrms.payroll
 > unthrottled — only the heavy pulls ride it). `HrmsExportControlsTest`
 > (2 tests: gate + log + 30×200 then 429 per endpoint).
 
-**P19.4 — Retention + purge**
+**P19.4 — Retention + purge** ✅
 `php artisan hrms:retention --dry-run` reports rows past `hrms_settings.data_retention_months` per table
 (payslips, exits, attendance, documents, audit). `--apply` deletes in batches. **Never** touches
 `hrms_audit_logs` (append-only retention is a legal decision, out of scope).
+
+> **P19.4 as shipped.** `Services/Hrms/Retention/HrmsRetention.php`
+> (report + batched purge over five per-table clocks: payslips/documents
+> by creation, exits by last activity on *closed* runs, attendance by
+> work date, `hrms_data_access_logs` by creation) + `HrmsRetention`
+> command (`--tenant` XOR `--all`, bare run always reports, `--apply`
+> deletes, `--months` overrides the tenant setting). Id-cursor batches
+> (portable — Postgres has no `DELETE ... LIMIT`); document bytes leave
+> storage before their rows; exits and documents **force-delete** (a purge
+> that leaves PII behind a `deleted_at` flag is not a purge — caught by
+> the test asserting physical absence). "Audit" means the who-read-what
+> ledger; `hrms_audit_logs` is never a candidate. `HrmsRetentionTest`
+> (3 tests). Two P19.4 lessons: never import a same-basename class into
+> the file declaring it (the service/command alias collision fatals even
+> `php -l`), and absent `--months` must stay null (tenant default), never
+> zero — `subMonths(0)` purges everything older than today.
 
 **P19.5 — Security review checklist (execute, tick each in this document)**
 - [ ] Every HRMS route requires `tenant_context`; a non-impersonating super admin gets 404 everywhere
