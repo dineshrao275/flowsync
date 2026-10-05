@@ -40,6 +40,7 @@ use App\Http\Controllers\Hrms\Lifecycle\DocumentRequestController;
 use App\Http\Controllers\Hrms\Lifecycle\OffboardingCaseController;
 use App\Http\Controllers\Hrms\Lifecycle\OnboardingCaseController;
 use App\Http\Controllers\Hrms\Lifecycle\OnboardingTemplateController;
+use App\Http\Controllers\Hrms\MyHrController;
 use App\Http\Controllers\Hrms\Org\DepartmentController;
 use App\Http\Controllers\Hrms\Org\DesignationController;
 use App\Http\Controllers\Hrms\Org\LocationController;
@@ -124,6 +125,10 @@ Route::prefix('api')->group(function () {
         Route::get('hrms/inbox', [InboxController::class, 'index']);
         Route::post('hrms/inbox/read', [InboxController::class, 'markRead']);
         Route::post('hrms/inbox/read-all', [InboxController::class, 'markAllRead']);
+
+        // My HR home (Phase 15 P17.1: self-scoped via the login, gated by
+        // hrms.core like every HRMS surface, 404 for platform super admins).
+        Route::get('my/hr', [MyHrController::class, 'show'])->middleware('ensure_module:hrms.core');
 
         // Tenant-facing profile (self-scoped via TenantContext; no tenant_context
         // needed because a tenant user resolves their own central tenant row).

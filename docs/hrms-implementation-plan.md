@@ -3431,7 +3431,7 @@ non-recipient cannot see the campaign.
 **Objective:** the employee-facing surface — one page with everything an individual needs, plus a
 manager's read-only team view. **No new tables** (preferences live in `user_settings.settings['hrms']`).
 
-**P17.1 — `GET api/my/hr` — the self-service aggregate**
+**P17.1 — `GET api/my/hr` — the self-service aggregate** ✅
 One request returning the caller's profile summary, leave balances, upcoming approved leave, current
 attendance month summary, pending requests across leave/expense/comp-off, inbox count, assigned assets,
 document status (expiring soon), next pay date plus the latest payslip summary, active performance
