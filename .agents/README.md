@@ -34,6 +34,7 @@
 | `12-glossary-decisions.md` | ADRs, glossary, stale-doc warnings |
 | `skills/hrms-contributor/SKILL.md` | Claude-style skill: adding HRMS surfaces consistently |
 | `memory/state.md` | Living state — auto-updated on every feature task |
+| `roadmap/phase-plan.md` | The 8-phase implementation plan (sequential gates) |
 
 ## Update discipline (mandatory)
 
