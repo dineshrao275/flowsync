@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Hrms\Payroll;
 
+use App\Enums\Hrms\DataAccessAction;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Hrms\TdsProjectionRequest;
 use App\Http\Requests\Hrms\TdsSurrenderRequest;
@@ -10,6 +11,7 @@ use App\Models\Hrms\Payroll\PayrollRun;
 use App\Models\Hrms\Statutory\TdsProject;
 use App\Services\Hrms\Payroll\PayrollService;
 use App\Services\Hrms\Statutory\StatutoryService;
+use App\Services\HrmsAuditLogger;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -27,6 +29,7 @@ class TdsProjectController extends Controller
     public function __construct(
         private readonly StatutoryService $statutory,
         private readonly PayrollService $runs,
+        private readonly HrmsAuditLogger $audit,
     ) {}
 
     public function index(Request $request): JsonResponse
@@ -44,14 +47,35 @@ class TdsProjectController extends Controller
             $query->where($field, $value);
         }
 
-        return response()->json([
-            'projects' => $query->get()->map(fn (TdsProject $project): array => $this->present($project))->all(),
-        ]);
+        $rows = $query->get()->map(fn (TdsProject $project): array => $this->present($project))->all();
+
+        // Projections name income and liability per person: a statutory read
+        // like any other, so the ledger gets a row (record 0 — the list has
+        // no single subject).
+        $this->audit->accessed(
+            (new TdsProject)->getMorphClass(),
+            0,
+            DataAccessAction::View,
+            ['declared_income', 'exempt_income', 'projected_income', 'tax_liability', 'tds_deducted', 'tds_surrendered', 'shortfall'],
+            $request->user(),
+            $request->ip(),
+        );
+
+        return response()->json(['projects' => $rows]);
     }
 
-    public function show(TdsProject $project): JsonResponse
+    public function show(Request $request, TdsProject $project): JsonResponse
     {
         $this->authorize('view', $project);
+
+        $this->audit->accessed(
+            $project->getMorphClass(),
+            $project->id,
+            DataAccessAction::View,
+            ['declared_income', 'exempt_income', 'projected_income', 'tax_liability', 'tds_deducted', 'tds_surrendered', 'shortfall'],
+            $request->user(),
+            $request->ip(),
+        );
 
         return response()->json(['project' => $this->present($project)]);
     }
@@ -64,6 +88,18 @@ class TdsProjectController extends Controller
         $employee = Employee::findOrFail((int) $data['employee_id']);
 
         $result = $this->statutory->projectTds($employee, (int) $data['fiscal_year'], $request->user());
+
+        // A fresh computation still hands the caller the figures, so it
+        // reads the ledger like a plain show (the `statutory.tds_projected`
+        // audit row records the event; this records the disclosure).
+        $this->audit->accessed(
+            (new TdsProject)->getMorphClass(),
+            $employee->id,
+            DataAccessAction::View,
+            ['declared_income', 'exempt_income', 'projected_income', 'tax_liability', 'tds_deducted', 'tds_surrendered', 'shortfall'],
+            $request->user(),
+            $request->ip(),
+        );
 
         return response()->json([
             'message' => 'TDS projected.',

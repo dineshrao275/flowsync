@@ -92,9 +92,9 @@ class HrmsAnalyticsService
      * @param  array<string, mixed>  $filters
      * @return array<string, mixed>
      */
-    public function documents(array $filters = [], bool $detailed = true): array
+    public function documents(array $filters = [], bool $detailed = true, bool $includeConfidential = false): array
     {
-        return $this->documents->read($filters, $detailed);
+        return $this->documents->read($filters, $detailed, $includeConfidential);
     }
 
     /**

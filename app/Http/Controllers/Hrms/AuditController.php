@@ -3,9 +3,11 @@
 namespace App\Http\Controllers\Hrms;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Hrms\AuditDataAccessRequest;
 use App\Http\Requests\Hrms\AuditIndexRequest;
 use App\Services\Hrms\Audit\AuditLogQuery;
 use App\Services\Hrms\Audit\AuditPresenter;
+use App\Services\Hrms\Audit\DataAccessQuery;
 use Illuminate\Http\JsonResponse;
 
 /**
@@ -21,6 +23,7 @@ class AuditController extends Controller
 {
     public function __construct(
         private readonly AuditLogQuery $query,
+        private readonly DataAccessQuery $access,
         private readonly AuditPresenter $presenter,
     ) {}
 
@@ -54,6 +57,23 @@ class AuditController extends Controller
             'subject_id' => $subjectId,
             'audit_logs' => $rows->map(fn ($row) => $this->presenter->present($row))->all(),
             'total' => $rows->count(),
+        ]);
+    }
+
+    public function dataAccess(AuditDataAccessRequest $request): JsonResponse
+    {
+        $page = $this->access->paginate($request->filters());
+
+        return response()->json([
+            'data_access_logs' => $page->getCollection()
+                ->map(fn ($row) => $this->presenter->presentAccess($row))
+                ->all(),
+            'pagination' => [
+                'current_page' => $page->currentPage(),
+                'last_page' => $page->lastPage(),
+                'per_page' => $page->perPage(),
+                'total' => $page->total(),
+            ],
         ]);
     }
 }

@@ -83,7 +83,11 @@ class HrmsAnalyticsController extends Controller
     public function documents(Request $request): JsonResponse
     {
         return response()->json(
-            $this->analytics->documents($this->filters($request)),
+            $this->analytics->documents(
+                $this->filters($request),
+                true,
+                $request->user()->hasPermission('hrms.documents.view_sensitive'),
+            ),
         );
     }
 

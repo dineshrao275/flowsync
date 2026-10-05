@@ -768,6 +768,7 @@ Route::prefix('api')->group(function () {
     // so a mistyped type still 404s instead of querying garbage.
     Route::group(['middleware' => ['ensure_module:hrms.core', 'permission:hrms.view']], function () {
         Route::get('hrms/audit', [AuditController::class, 'index'])->middleware('permission:hrms.audit.view');
+        Route::get('hrms/audit/data-access', [AuditController::class, 'dataAccess'])->middleware('permission:hrms.audit.view');
         Route::get('hrms/audit/{subjectType}/{subjectId}', [AuditController::class, 'trail'])
             ->middleware('permission:hrms.audit.view')
             ->whereNumber('subjectId');

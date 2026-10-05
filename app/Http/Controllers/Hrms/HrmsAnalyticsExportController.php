@@ -121,7 +121,11 @@ class HrmsAnalyticsExportController extends Controller
             'lifecycle' => $this->analytics->lifecycle($filters),
             'performance' => $this->analytics->performance($filters, $user->hasPermission('hrms.talent.view')),
             'payroll' => $this->analytics->payroll($filters, $user),
-            'documents' => $this->analytics->documents($filters),
+            'documents' => $this->analytics->documents(
+                $filters,
+                true,
+                $user->hasPermission('hrms.documents.view_sensitive'),
+            ),
             'assets' => $this->analytics->assets($filters),
         };
     }

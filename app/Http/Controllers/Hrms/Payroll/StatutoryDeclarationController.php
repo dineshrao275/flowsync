@@ -2,11 +2,13 @@
 
 namespace App\Http\Controllers\Hrms\Payroll;
 
+use App\Enums\Hrms\DataAccessAction;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Hrms\StatutoryDeclarationRequest;
 use App\Models\Hrms\Employee\Employee;
 use App\Models\Hrms\Statutory\StatutoryDeclaration;
 use App\Services\Hrms\Statutory\StatutoryDeclarationService;
+use App\Services\HrmsAuditLogger;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
@@ -21,7 +23,10 @@ use Illuminate\Http\Response;
  */
 class StatutoryDeclarationController extends Controller
 {
-    public function __construct(private readonly StatutoryDeclarationService $declarations) {}
+    public function __construct(
+        private readonly StatutoryDeclarationService $declarations,
+        private readonly HrmsAuditLogger $audit,
+    ) {}
 
     public function index(Request $request): JsonResponse
     {
@@ -39,14 +44,35 @@ class StatutoryDeclarationController extends Controller
             $query->where($field, $value);
         }
 
-        return response()->json([
-            'declarations' => $query->get()->map(fn (StatutoryDeclaration $row): array => $this->present($row))->all(),
-        ]);
+        $rows = $query->get()->map(fn (StatutoryDeclaration $row): array => $this->present($row))->all();
+
+        // Declared amounts travel in the payload by design, so the read
+        // names its fields in the ledger (record 0 — the list has no
+        // single subject).
+        $this->audit->accessed(
+            (new StatutoryDeclaration)->getMorphClass(),
+            0,
+            DataAccessAction::View,
+            ['declared_amount', 'section', 'status'],
+            $request->user(),
+            $request->ip(),
+        );
+
+        return response()->json(['declarations' => $rows]);
     }
 
-    public function show(StatutoryDeclaration $declaration): JsonResponse
+    public function show(Request $request, StatutoryDeclaration $declaration): JsonResponse
     {
         $this->authorize('view', $declaration);
+
+        $this->audit->accessed(
+            $declaration->getMorphClass(),
+            $declaration->id,
+            DataAccessAction::View,
+            ['declared_amount', 'section', 'status'],
+            $request->user(),
+            $request->ip(),
+        );
 
         return response()->json(['declaration' => $this->present($declaration)]);
     }

@@ -3589,12 +3589,30 @@ employee profile** for `hrms.employees.view`.
 > catalog entry stays module-gated like every other tab.
 > `HrmsAuditApiTest` (5 tests, incl. a masking pin).
 
-**P19.2 — Data-access log + PII audit review**
+**P19.2 — Data-access log + PII audit review** ✅
 `GET api/hrms/audit/data-access` (`hrms.audit.view`) for salary/bank/document read trails. Then do a
 **manual review pass** over every HRMS controller for: (a) no `$model->toArray()` in a list/index
 response for a model carrying sensitive columns, (b) an `accessed()` row on every sensitive read, (c) no
 sensitive field inside a notification `data` payload or a log line, (d) no sensitive field in a
 `ValidationException` message.
+
+> **P19.2 as shipped.** `AuditController::dataAccess` + `AuditDataAccessRequest`
+> + `Services/Hrms/Audit/DataAccessQuery` (same filter vocabulary as the
+> trail, `action` validated against the enum). The review found no raw
+> leaks, no sensitive values in notifications/logs/validation messages —
+> and four gaps, all closed: salary + revision reads, TDS projection
+> reads (index/show/compute) and declaration reads (index/show) now write
+> `accessed(..., View)` rows with field names; the analytics document
+> reader takes an `$includeConfidential` tier (default false, cached per
+> tier) fed by `hrms.documents.view_sensitive` on the tab and export, so
+> confidential titles stop leaking to plain `documents.view` readers; and
+> the `statutory.tds_under_deducted` log line carries quarters, not
+> shortfall amounts. Deliberately unchanged, with reasons: leave reasons
+> stay on the set-scoped index (managers need them, no medical inference
+> stored); document-decided notifications name the owner's own title to
+> the owner only; payroll-run totals aggregate for holders who already see
+> every itemized (and logged) payslip. `HrmsSensitiveReadAuditTest`
+> (5 tests).
 
 **P19.3 — Export controls**
 Any HRMS export (attendance, leave, payroll, analytics CSV) requires the module + the specific `view`

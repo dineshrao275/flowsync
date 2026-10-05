@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Hrms\Payroll;
 
+use App\Enums\Hrms\DataAccessAction;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Hrms\SalaryAssignmentRequest;
 use App\Models\Hrms\Employee\Employee;
@@ -11,6 +12,7 @@ use App\Models\Hrms\Payroll\SalaryStructure;
 use App\Models\User;
 use App\Services\Hrms\Compensation\CompensationService;
 use App\Services\Hrms\Compensation\SalaryRevisionService;
+use App\Services\HrmsAuditLogger;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
@@ -30,6 +32,7 @@ class EmployeeSalaryController extends Controller
     public function __construct(
         private readonly CompensationService $compensation,
         private readonly SalaryRevisionService $revisions,
+        private readonly HrmsAuditLogger $audit,
     ) {}
 
     /**
@@ -42,10 +45,22 @@ class EmployeeSalaryController extends Controller
         $this->requireReader($request->user(), $employee);
 
         $assignment = $this->currentAssignment($employee);
+        $presented = $assignment === null ? null : $this->presentAssignment($assignment);
 
-        return response()->json([
-            'assignment' => $assignment === null ? null : $this->presentAssignment($assignment),
-        ]);
+        // The pay basis is salary data: every read names its fields in the
+        // ledger, including self-reads (the payslip precedent).
+        if ($assignment !== null) {
+            $this->audit->accessed(
+                (new EmployeeSalaryStructure)->getMorphClass(),
+                $assignment->id,
+                DataAccessAction::View,
+                array_keys($presented),
+                $request->user(),
+                $request->ip(),
+            );
+        }
+
+        return response()->json(['assignment' => $presented]);
     }
 
     public function assign(SalaryAssignmentRequest $request, Employee $employee): JsonResponse
@@ -74,11 +89,20 @@ class EmployeeSalaryController extends Controller
     {
         $this->requireReader($request->user(), $employee);
 
-        return response()->json([
-            'revisions' => SalaryRevision::query()->where('employee_id', $employee->id)
-                ->orderByDesc('id')->get()
-                ->map(fn (SalaryRevision $revision): array => $this->presentRevision($revision))->all(),
-        ]);
+        $rows = SalaryRevision::query()->where('employee_id', $employee->id)
+            ->orderByDesc('id')->get()
+            ->map(fn (SalaryRevision $revision): array => $this->presentRevision($revision))->all();
+
+        $this->audit->accessed(
+            (new SalaryRevision)->getMorphClass(),
+            $employee->id,
+            DataAccessAction::View,
+            ['from_ctc', 'to_ctc', 'change_percent', 'effective_from', 'reason', 'status'],
+            $request->user(),
+            $request->ip(),
+        );
+
+        return response()->json(['revisions' => $rows]);
     }
 
     public function revise(Request $request, Employee $employee): JsonResponse

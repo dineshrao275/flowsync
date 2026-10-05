@@ -19,9 +19,9 @@ class DocumentReading extends AnalyticsReading
      * @param  array<string, mixed>  $filters
      * @return array<string, mixed>
      */
-    public function read(array $filters = [], bool $detailed = true): array
+    public function read(array $filters = [], bool $detailed = true, bool $includeConfidential = false): array
     {
-        return $this->remember('documents', $filters + ['detailed' => $detailed], function () use ($detailed): array {
+        return $this->remember('documents', $filters + ['detailed' => $detailed, 'sensitive' => $includeConfidential], function () use ($detailed, $includeConfidential): array {
             $employees = Employee::query()->active()->count();
 
             $compliance = DocumentType::query()->where('is_mandatory', true)->orderBy('name')->get()
@@ -39,7 +39,11 @@ class DocumentReading extends AnalyticsReading
             $expiring = [];
 
             foreach ([30, 60, 90] as $days) {
+                // Confidential rows are invisible — not merely unreadable —
+                // to a reader without the sensitive permission: a list that
+                // names them leaks their existence (the directory rule).
                 $query = EmployeeDocument::query()->whereNotNull('expires_at')
+                    ->when(! $includeConfidential, fn ($scoped) => $scoped->where('confidential', false))
                     ->whereDate('expires_at', '<=', today()->addDays($days)->toDateString());
 
                 $expiring["{$days}d"] = [

@@ -127,7 +127,10 @@ class StatutoryService
                 'tenant_id' => $this->context->currentId(),
                 'employee_id' => $employee->id,
                 'fiscal_year' => $fiscalYear,
-                'warnings' => $warnings,
+                // Quarters only, never the shortfall figures: the amounts
+                // live in the projection screen (and its access rows), not
+                // in a log line that outlives the data it describes.
+                'quarters' => array_column($warnings, 'quarter'),
             ]);
 
             return ['projects' => $projects, 'warnings' => $warnings];
