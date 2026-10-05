@@ -68,6 +68,7 @@ use App\Http\Controllers\Hrms\Performance\PerformanceGoalController;
 use App\Http\Controllers\Hrms\Performance\ReviewSummaryController;
 use App\Http\Controllers\Hrms\Survey\SurveyCampaignController;
 use App\Http\Controllers\Hrms\Survey\SurveyTemplateController;
+use App\Http\Controllers\Hrms\TaskLinkController;
 use App\Http\Controllers\ImpersonationController;
 use App\Http\Controllers\LabelController;
 use App\Http\Controllers\MySubscriptionController;
@@ -785,6 +786,18 @@ Route::prefix('api')->group(function () {
             Route::get('hrms/audit/{subjectType}/{subjectId}', [AuditController::class, 'trail'])
                 ->middleware('permission:hrms.audit.view')
                 ->whereNumber('subjectId');
+        });
+
+        // HRMS task links (Phase 20 P20.2). The bridge rows answer to the
+        // project policy on the task side (view to read, edit to file or
+        // cut) and the employee policy on the person side; the employee's
+        // task list additionally intersects with the caller's visible
+        // tasks, so a link never widens what the login may see.
+        Route::group(['middleware' => ['ensure_module:hrms.core', 'permission:hrms.view']], function () {
+            Route::get('hrms/tasks/{task}/links', [TaskLinkController::class, 'index']);
+            Route::post('hrms/tasks/{task}/links', [TaskLinkController::class, 'store']);
+            Route::delete('hrms/tasks/{task}/links/{link}', [TaskLinkController::class, 'destroy']);
+            Route::get('hrms/employees/{employee}/tasks', [TaskLinkController::class, 'employeeTasks']);
         });
 
         // HRMS assets (Phase 15 P14.3a). Same two gates plus the assets module;

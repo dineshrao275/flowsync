@@ -3722,12 +3722,25 @@ can create a task — e.g. "submit your bank details" — and have it show up on
 > (6 tests: grain uniqueness, per-kind relink, enum enforcement,
 > nullable affordance, re-run no-op).
 
-**P20.2 — Link service + endpoints**
+**P20.2 — Link service + endpoints** ✅
 `app/Services/Hrms/TaskLinkService.php` — `link(Employee, Task, kind)`, `unlink`, `forTask(Task)`,
 `forEmployee(Employee)`.
 `GET api/hrms/tasks/{task}/links`, `POST api/hrms/tasks/{task}/links` (`{employee_id, kind}`),
 `DELETE .../links/{link}`, `GET api/hrms/employees/{employee}/tasks` (the employee's tasks via
 `visibleTaskQuery`, filterable by `kind` and `status`).
+
+> **P20.2 as shipped.** `TaskLinkService` (idempotent `firstOrCreate`
+> link, unlink, per-task list) + `TaskLinkPresenter` + `TaskLinkStoreRequest`
+> + `TaskLinkController` (index/store/destroy/employeeTasks). Task side
+> answers to the project policy (view to read, edit to file/cut), the
+> person side to the employee policy, and the employee's list intersects
+> the caller's `visibleTaskQuery` — passed in as the scoped builder, so
+> the visibility rule stays in one place. Every link/unlink photographs
+> the task's activity timeline. One deviation: `forEmployee` takes the
+> scoped builder rather than scoping itself, for exactly that reason.
+> `HrmsTaskLinkApiTest` (4 tests: both-sides round trip, idempotent
+> relink, edit/view/stranger/cross-tenant gates, visibility + kind +
+> status filters).
 
 **P20.3 — Onboarding/offboarding tasks become real tasks**
 A checklist item with `category = task` can be converted to a project task: pick a project, create the
