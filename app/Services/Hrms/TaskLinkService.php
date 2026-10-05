@@ -30,11 +30,11 @@ class TaskLinkService
 {
     public function __construct(private readonly ActivityLogger $activities) {}
 
-    public function link(Employee $employee, Task $task, TaskLinkKind $kind, ?string $note, ?User $actor, ?string $ipAddress = null): TaskLink
+    public function link(Employee $employee, Task $task, TaskLinkKind $kind, ?string $note, ?User $actor, ?string $ipAddress = null, ?string $sourceType = null, ?int $sourceId = null): TaskLink
     {
         $link = TaskLink::query()->firstOrCreate(
             ['employee_id' => $employee->id, 'task_id' => $task->id, 'kind' => $kind],
-            ['note' => $note, 'created_by' => $actor?->id],
+            ['note' => $note, 'created_by' => $actor?->id, 'source_type' => $sourceType, 'source_id' => $sourceId],
         );
 
         if ($link->wasRecentlyCreated) {

@@ -3742,11 +3742,23 @@ can create a task — e.g. "submit your bank details" — and have it show up on
 > relink, edit/view/stranger/cross-tenant gates, visibility + kind +
 > status filters).
 
-**P20.3 — Onboarding/offboarding tasks become real tasks**
+**P20.3 — Onboarding/offboarding tasks become real tasks** ✅
 A checklist item with `category = task` can be converted to a project task: pick a project, create the
 task assigned to the employee, and store the link. Status syncs one way (task completed -> checklist
 done) and is recomputed rather than pushed, so a manual task edit is never overwritten by a stale
 checklist state.
+
+> **P20.3 as shipped.** `Services/Hrms/Lifecycle/CaseTaskConversion.php`
+> (convert + pull-only `syncFromTask` + link lookup, both case types) with
+> `ConvertCaseTaskRequest` and convert/sync endpoints nested under each
+> case's tasks. Conversion assigns the owner's login when it sits on the
+> project, else files unassigned; sync closes through the owning
+> `completeTask` (rules + audit intact) and moves toward done only — a
+> reopened task never reopens the item, and nothing ever writes back.
+> Needed one additive migration (`000035`: nullable `source_type` /
+> `source_id` on the links — without it a sync cannot tell which of the
+> employee's links is *this* item's task) plus `source` on the link
+> presenter for P20.6's matching. `HrmsCaseTaskConversionTest` (4 tests).
 
 **P20.4 — Attendance derived from work logs (opt-in)**
 `hrms_settings.attendance.derive_from_work_logs` (default **false**) plus

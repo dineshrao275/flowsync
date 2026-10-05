@@ -29,12 +29,15 @@ class TaskLink extends Model
         'kind',
         'note',
         'created_by',
+        'source_type',
+        'source_id',
     ];
 
     protected function casts(): array
     {
         return [
             'kind' => TaskLinkKind::class,
+            'source_id' => 'integer',
         ];
     }
 

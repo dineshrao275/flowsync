@@ -458,6 +458,8 @@ Route::prefix('api')->group(function () {
             Route::get('hrms/onboarding/cases/{case}', [OnboardingCaseController::class, 'show']);
             Route::post('hrms/onboarding/cases/{case}/tasks/{task}/complete', [OnboardingCaseController::class, 'completeTask']);
             Route::post('hrms/onboarding/cases/{case}/tasks/{task}/waive', [OnboardingCaseController::class, 'waiveTask']);
+            Route::post('hrms/onboarding/cases/{case}/tasks/{task}/convert', [OnboardingCaseController::class, 'convertTask']);
+            Route::post('hrms/onboarding/cases/{case}/tasks/{task}/sync', [OnboardingCaseController::class, 'syncTask']);
             Route::post('hrms/onboarding/cases/{case}/complete', [OnboardingCaseController::class, 'complete']);
             Route::post('hrms/onboarding/cases/{case}/cancel', [OnboardingCaseController::class, 'cancel']);
 
@@ -465,6 +467,8 @@ Route::prefix('api')->group(function () {
             Route::post('hrms/offboarding/cases', [OffboardingCaseController::class, 'store']);
             Route::get('hrms/offboarding/cases/{case}', [OffboardingCaseController::class, 'show']);
             Route::post('hrms/offboarding/cases/{case}/tasks/{task}/complete', [OffboardingCaseController::class, 'completeTask']);
+            Route::post('hrms/offboarding/cases/{case}/tasks/{task}/convert', [OffboardingCaseController::class, 'convertTask']);
+            Route::post('hrms/offboarding/cases/{case}/tasks/{task}/sync', [OffboardingCaseController::class, 'syncTask']);
             Route::post('hrms/offboarding/cases/{case}/clear', [OffboardingCaseController::class, 'clear']);
             Route::post('hrms/offboarding/cases/{case}/complete', [OffboardingCaseController::class, 'complete']);
             Route::post('hrms/offboarding/cases/{case}/cancel', [OffboardingCaseController::class, 'cancel']);

@@ -28,6 +28,8 @@ class TaskLinkPresenter
             'kind' => $kind->value,
             'kind_label' => $kind->label(),
             'note' => $link->note,
+            'source_type' => $link->source_type,
+            'source_id' => $link->source_id,
             'created_at' => $link->created_at?->toISOString(),
             'employee' => $link->employee === null ? null : [
                 'id' => $link->employee->id,

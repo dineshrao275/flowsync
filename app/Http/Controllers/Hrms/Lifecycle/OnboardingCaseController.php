@@ -5,15 +5,19 @@ namespace App\Http\Controllers\Hrms\Lifecycle;
 use App\Enums\Hrms\OnboardingCaseStatus;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Hrms\Lifecycle\CompleteTaskRequest;
+use App\Http\Requests\Hrms\Lifecycle\ConvertCaseTaskRequest;
 use App\Http\Requests\Hrms\Lifecycle\OnboardingCaseRequest;
 use App\Http\Requests\Hrms\Lifecycle\WaiveTaskRequest;
 use App\Models\Hrms\Employee\Employee;
 use App\Models\Hrms\Lifecycle\OnboardingCase;
 use App\Models\Hrms\Lifecycle\OnboardingCaseTask;
 use App\Models\Hrms\Lifecycle\OnboardingTemplate;
+use App\Models\Project;
+use App\Services\Hrms\Lifecycle\CaseTaskConversion;
 use App\Services\Hrms\Lifecycle\DocumentRequestService;
 use App\Services\Hrms\Lifecycle\LifecyclePresenter;
 use App\Services\Hrms\OnboardingService;
+use App\Services\Hrms\TaskLinkPresenter;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
@@ -33,6 +37,8 @@ class OnboardingCaseController extends Controller
         private readonly OnboardingService $onboarding,
         private readonly DocumentRequestService $requests,
         private readonly LifecyclePresenter $presenter,
+        private readonly CaseTaskConversion $conversion,
+        private readonly TaskLinkPresenter $links,
     ) {}
 
     public function index(Request $request): JsonResponse
@@ -112,6 +118,49 @@ class OnboardingCaseController extends Controller
         return response()->json([
             'message' => 'Checklist item waived.',
             'task' => $this->presenter->caseTask($task),
+        ]);
+    }
+
+    /**
+     * File this item as a project task: the item's title, description and
+     * due date become the task (assigned to the owner's login when that
+     * login sits on the project), and a link records the conversion.
+     * Working the item plus filing into the project — both abilities, one
+     * endpoint, because a conversion is neither without the other.
+     */
+    public function convertTask(ConvertCaseTaskRequest $request, OnboardingCase $case, OnboardingCaseTask $task): JsonResponse
+    {
+        $this->authorize('completeTask', $task);
+        $this->belonging($case, $task);
+
+        $project = Project::findOrFail((int) $request->validated()['project_id']);
+        $this->authorize('createTask', $project);
+
+        ['task' => $projectTask, 'link' => $link] = $this->conversion->convert($task, $project, $request->user(), $request->ip());
+
+        return response()->json([
+            'message' => 'Checklist item converted to a project task.',
+            'task' => $this->presenter->caseTask($task->refresh()),
+            'project_task' => ['id' => $projectTask->id, 'key' => $projectTask->key, 'title' => $projectTask->title],
+            'task_link' => $this->links->present($link),
+        ], Response::HTTP_CREATED);
+    }
+
+    /**
+     * Pull the linked task's completion into the item: a done task closes
+     * it through the normal completion path, anything else is a no-op.
+     * Nothing here writes to the task — sync moves toward done only.
+     */
+    public function syncTask(Request $request, OnboardingCase $case, OnboardingCaseTask $task): JsonResponse
+    {
+        $this->authorize('completeTask', $task);
+        $this->belonging($case, $task);
+
+        $synced = $this->conversion->syncFromTask($task, $request->user());
+
+        return response()->json([
+            'message' => $synced ? 'Checklist item completed from the project task.' : 'Nothing to sync.',
+            'task' => $this->presenter->caseTask($task->refresh()),
         ]);
     }
 
