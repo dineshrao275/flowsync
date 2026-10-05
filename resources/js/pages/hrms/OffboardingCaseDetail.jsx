@@ -11,6 +11,7 @@ import { useSetCrumbs } from '../../context/BreadcrumbContext';
 import usePageTitle from '../../hooks/usePageTitle';
 import { hrmsUrl } from '../../utils/deepLinks';
 import Checklist from '../../components/hrms/Checklist';
+import ConvertTaskModal from '../../components/hrms/ConvertTaskModal';
 
 /**
  * One exit run: the clearance sign-off first, the checklist second.
@@ -30,6 +31,7 @@ export default function OffboardingCaseDetail() {
     const [detail, setDetail] = useState(null);
     const [error, setError] = useState(null);
     const [acting, setActing] = useState(false);
+    const [converting, setConverting] = useState(null);
 
     const canManage = can('permission:hrms.offboarding.manage');
 
@@ -73,6 +75,20 @@ export default function OffboardingCaseDetail() {
             await load();
         } catch {
             toast.error('Unable to complete this item.');
+        } finally {
+            setActing(false);
+        }
+    }
+
+    async function syncItem(task) {
+        setActing(true);
+
+        try {
+            const { data } = await api.post(`/hrms/offboarding/cases/${caseId}/tasks/${task.id}/sync`, {});
+            toast.success(data.message ?? 'Synced.');
+            await load();
+        } catch (err) {
+            toast.error(err.response?.data?.message ?? 'Unable to sync this item.');
         } finally {
             setActing(false);
         }
@@ -207,8 +223,30 @@ export default function OffboardingCaseDetail() {
             </Card>
 
             <Card title="Checklist" dense>
-                <Checklist tasks={detail.tasks ?? []} canAct={open && canWork} canWaive={false} onComplete={completeTask} onWaive={null} />
+                <Checklist
+                    tasks={detail.tasks ?? []}
+                    canAct={open && canWork}
+                    canWaive={false}
+                    onComplete={completeTask}
+                    onWaive={null}
+                    canConvert={open && canWork}
+                    onConvert={setConverting}
+                    onSync={syncItem}
+                />
             </Card>
+
+            {converting && (
+                <ConvertTaskModal
+                    caseKind="offboarding"
+                    caseId={caseId}
+                    item={converting}
+                    onClose={() => setConverting(null)}
+                    onDone={async () => {
+                        setConverting(null);
+                        await load();
+                    }}
+                />
+            )}
 
             {(detail.requests ?? []).length > 0 && (
                 <Card title="Document asks" dense>

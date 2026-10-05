@@ -17,6 +17,7 @@ import EmployeeEditModal from './EmployeeEditModal';
 import StatusHistory from './StatusHistory';
 import EmployeeDocuments from '../../components/hrms/EmployeeDocuments';
 import EmployeeAudit from '../../components/hrms/EmployeeAudit';
+import EmployeeTasks from '../../components/hrms/EmployeeTasks';
 
 /**
  * One employee's profile.
@@ -269,6 +270,8 @@ export default function EmployeeDetail() {
             {activeTab === 'documents' && <EmployeeDocuments employee={employee} />}
 
             {activeTab === 'audit' && <EmployeeAudit employeeId={employeeId} subjectType={subjectType} />}
+
+            {activeTab === 'tasks' && <EmployeeTasks employeeId={employeeId} />}
 
             <div className="pt-2 text-sm">
                 <Link to={hrmsUrl('employees')} className="text-indigo-600 hover:text-indigo-800">

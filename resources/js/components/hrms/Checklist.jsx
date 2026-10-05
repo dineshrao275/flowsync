@@ -50,7 +50,7 @@ function formatDate(value) {
  * waive without one is a 422 and a modal for a single text field would be
  * ceremony for ceremony’s sake.
  */
-export default function Checklist({ tasks, canAct, canWaive, onComplete, onWaive }) {
+export default function Checklist({ tasks, canAct, canWaive, onComplete, onWaive, canConvert, onConvert, onSync }) {
     if (!tasks || tasks.length === 0) {
         return <TableEmpty>No checklist items.</TableEmpty>;
     }
@@ -119,6 +119,16 @@ export default function Checklist({ tasks, canAct, canWaive, onComplete, onWaive
                                                         <Button size="sm" variant="secondary" onClick={() => onComplete?.(task)}>
                                                             Done
                                                         </Button>
+                                                        {canConvert && task.category === 'task' && (
+                                                            <>
+                                                                <Button size="sm" variant="secondary" onClick={() => onConvert?.(task)}>
+                                                                    Convert
+                                                                </Button>
+                                                                <Button size="sm" variant="ghost" onClick={() => onSync?.(task)}>
+                                                                    Sync
+                                                                </Button>
+                                                            </>
+                                                        )}
                                                         {canWaive && (
                                                             <Button
                                                                 size="sm"

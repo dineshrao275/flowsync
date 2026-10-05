@@ -94,6 +94,11 @@ export const HRMS_PROFILE_TABS = {
     // the audit permission, because the tab slot is public to viewers while
     // the ledger rows are not.
     audit: { label: 'Audit', module: 'hrms.core' },
+    // P20.6 ships the profile's tasks tab: this person's linked work with
+    // status pills and links back into the project. No extra gate beyond
+    // the profile itself — the endpoint answers to the employee policy and
+    // intersects with the caller's visible tasks.
+    tasks: { label: 'Tasks', module: 'hrms.core' },
 };
 
 /**

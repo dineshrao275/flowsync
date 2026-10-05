@@ -11,6 +11,7 @@ import { useSetCrumbs } from '../../context/BreadcrumbContext';
 import usePageTitle from '../../hooks/usePageTitle';
 import { hrmsUrl } from '../../utils/deepLinks';
 import Checklist from '../../components/hrms/Checklist';
+import ConvertTaskModal from '../../components/hrms/ConvertTaskModal';
 
 const REQUEST_COLORS = {
     pending: '#f59e0b',
@@ -40,6 +41,7 @@ export default function OnboardingCaseDetail() {
     const [detail, setDetail] = useState(null);
     const [error, setError] = useState(null);
     const [acting, setActing] = useState(false);
+    const [converting, setConverting] = useState(null);
 
     const canManage = can('permission:hrms.onboarding.manage');
 
@@ -96,7 +98,21 @@ export default function OnboardingCaseDetail() {
             toast.success('Item waived.');
             await load();
         } catch (err) {
-            toast.error(fieldErrors(err).reason ?? fieldErrors(err).form ?? 'Unable to waive this item.');
+            toast.error(err.response?.data?.message ?? 'Unable to waive this item.');
+        } finally {
+            setActing(false);
+        }
+    }
+
+    async function syncItem(task) {
+        setActing(true);
+
+        try {
+            const { data } = await api.post(`/hrms/onboarding/cases/${caseId}/tasks/${task.id}/sync`, {});
+            toast.success(data.message ?? 'Synced.');
+            await load();
+        } catch (err) {
+            toast.error(err.response?.data?.message ?? 'Unable to sync this item.');
         } finally {
             setActing(false);
         }
@@ -229,8 +245,24 @@ export default function OnboardingCaseDetail() {
                     canWaive={canManage || isSelf}
                     onComplete={completeTask}
                     onWaive={waiveTask}
+                    canConvert={open && canWork}
+                    onConvert={setConverting}
+                    onSync={syncItem}
                 />
             </Card>
+
+            {converting && (
+                <ConvertTaskModal
+                    caseKind="onboarding"
+                    caseId={caseId}
+                    item={converting}
+                    onClose={() => setConverting(null)}
+                    onDone={async () => {
+                        setConverting(null);
+                        await load();
+                    }}
+                />
+            )}
 
             {(detail.requests ?? []).length > 0 && (
                 <Card title="Document asks" dense>

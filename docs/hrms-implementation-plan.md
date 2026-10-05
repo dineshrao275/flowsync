@@ -3796,11 +3796,21 @@ number. **Still no scoring** (D2.10).
 > Pinned in `HrmsPerformanceEvidenceTest` (visible link counted with
 > ids, invisible link priced out).
 
-**P20.6 — Frontend**
+**P20.6 — Frontend** ✅
 `components/hrms/TaskLinkPanel.jsx` on the task drawer (HR-only): link/unlink an employee to a task with
 a `kind`, plus "create a task from this checklist item" on `Checklist.jsx`. On the employee profile add a
 **Tasks** tab rendering the linked task list with status pills and links back into the project.
 `utils/deepLinks.js` gains `taskUrl(projectId, key)` usage for these links (already exists — reuse it).
+
+> **P20.6 as shipped.** `TaskLinkPanel` (links list + link form with the
+> directory-gated employee picker) rides a new HR-only `links` drawer
+> tab (`hasModule('hrms.core')`, writes follow the drawer's edit
+> ability); shared `Checklist` gains Convert/Sync buttons on open
+> `task`-category items with a `ConvertTaskModal` (one project picker
+> for both case pages) and per-page sync handlers; the profile gains a
+> `Tasks` tab (`EmployeeTasks.jsx`: pills + `taskUrl` links, no extra
+> gate beyond the profile itself). No new backend — all endpoints rode
+> in on P20.2/P20.3. Build green, shell green.
 
 **Acceptance:** linking an employee to a task shows the link on both sides; unlinking removes it; a
 checklist item converted to a task reflects completion; work-log-derived attendance is off by default and
