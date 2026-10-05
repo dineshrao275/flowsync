@@ -7,6 +7,7 @@ const sections = [
         label: 'Main',
         items: [
             { to: '/dashboard', label: 'Dashboard', capabilities: ['dashboard.view'], icon: 'M3 12l9-9 9 9M5 10v10h14V10' },
+            { to: '/my', label: 'My HR', capabilities: ['module:hrms.core'], icon: 'M12 12a4 4 0 100-8 4 4 0 000 8zm-7 8a7 7 0 0114 0' },
             { to: '/workspaces', label: 'Workspaces', capabilities: ['workspaces.view'], icon: 'M3 7a2 2 0 012-2h4l2 2h8a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2V7z' },
             { to: '/projects', label: 'Projects', capabilities: ['workspaces.view'], icon: 'M2 4h20v16H2V4zm2 2v2h16V6H4zm0 6h16v-2H4v2zm0 4h16v-2H4v2z' },
             { to: '/search', label: 'Search', capabilities: ['workspaces.view', 'module:global_search'], icon: 'M21 21l-4.35-4.35M17 11a6 6 0 11-12 0 6 6 0 0112 0z' },
@@ -22,6 +23,7 @@ const sections = [
         label: 'People',
         items: [
             { to: '/hrms/inbox', label: 'Inbox', capabilities: ['module:hrms.core'], icon: 'M3 8l9-5 9 5v8a2 2 0 01-2 2H5a2 2 0 01-2-2V8zm2 0v8h14V8l-7-4-7 4zm7 3v4m0-4l-2 2m2-2l2 2' },
+            { to: '/hrms/team', label: 'My team', capabilities: ['module:hrms.core'], icon: 'M17 20h5v-2a4 4 0 00-3-3.87M9 20H4v-2a4 4 0 012-4h4a4 4 0 012 4v2m6-14a2 2 0 100-4 2 2 0 000 4z' },
             { to: '/hrms/employees', label: 'Employees', capabilities: ['module:hrms.core', 'permission:hrms.employees.view'], icon: 'M17 20h5v-2a4 4 0 00-3-3.87M9 20H4v-2a4 4 0 012-4h14a4 4 0 012 4v2a1 1 0 01-1 1H3a1 1 0 01-1-1v-2a1 1 0 011-1zm8-4a2 2 0 100-4 2 2 0 000 4zm-6-4a2 2 0 100-4 2 2 0 000 4zm12 0a2 2 0 100-4 2 2 0 000 4zm-6 8a2 2 0 100-4 2 2 0 000 4z' },
             {
                 to: '/hrms/org',

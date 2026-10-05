@@ -3463,10 +3463,16 @@ document_expiry_alerts, weekly_summary}`. These drive the notification digests.
 > (4 tests). Date bounds replace pagination (small lists); per-write
 > cache busting stays a 60s TTL.
 
-**P17.5 — Frontend**
+**P17.5 — Frontend** ✅
 `pages/MyHr.jsx` at `/my` (the "My HR" home: quick actions, balances, upcoming leave, clock-in, pending
 items, payslip link) and `pages/hrms/MyTeam.jsx` at `/hrms/team` (manager view drilling down to the
 employee profile). Both reuse the `components/hrms/*` widgets already built.
+
+> **P17.5 as shipped.** Single-request home with section-skipping empty
+> states, the clock card owning its own today-state (hiding where the
+> attendance module is off), and a read-only telescope linking out to
+> profiles. `My HR` rides Main, `My team` rides People. Build + shell
+> green, no PHP touched.
 
 **Acceptance:** `/my` renders in one request with no N+1 (assert the query count in a test); a manager
 sees only their reports; salary data is absent from `my/team` for a user without `hrms.compensation.view`;

@@ -48,6 +48,8 @@ import MyPayslips from './pages/hrms/MyPayslips';
 import Statutory from './pages/hrms/Statutory';
 import Expenses from './pages/hrms/Expenses';
 import MyExpenses from './pages/hrms/MyExpenses';
+import MyHr from './pages/MyHr';
+import MyTeam from './pages/hrms/MyTeam';
 import Performance from './pages/hrms/Performance';
 import PerformanceCycleDetail from './pages/hrms/PerformanceCycleDetail';
 import MyPerformance from './pages/hrms/MyPerformance';
@@ -134,6 +136,11 @@ function AppRoutes() {
                         </Route>
                         <Route path="/notifications" element={<Notifications />} />
                         <Route path="/subscription" element={<Subscription />} />
+                        {/* My HR home (P17.5): the employee surface, module-gated
+                            like every self-service page. */}
+                        <Route element={<ProtectedRoute module="hrms.core" />}>
+                            <Route path="/my" element={<MyHr />} />
+                        </Route>
                         <Route element={<ProtectedRoute permission="workspaces.view" />}>
                             <Route path="/workspaces" element={<Workspaces />} />
                             <Route path="/workspaces/:workspaceId" element={<WorkspaceDetail />} />
@@ -151,7 +158,10 @@ function AppRoutes() {
                             {/* The queue sits first: it is self-scoped, so it
                                 needs the module and nothing else. */}
                             <Route path="/hrms/inbox" element={<Inbox />} />
-                            {/* Before the `:section` catch-all: a static segment
+                            {/* The manager telescope (P17.5): read-only by
+                                construction, module-gated — managers may hold
+                                no other permission and still see reports. */}
+                            <Route path="/hrms/team" element={<MyTeam />} />                            {/* Before the `:section` catch-all: a static segment
                                 outranks a dynamic one, but relying on the router's
                                 ranking to keep the directory reachable is a trap for
                                 whoever adds the next HRMS page. */}
