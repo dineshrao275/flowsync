@@ -3760,12 +3760,24 @@ checklist state.
 > employee's links is *this* item's task) plus `source` on the link
 > presenter for P20.6's matching. `HrmsCaseTaskConversionTest` (4 tests).
 
-**P20.4 — Attendance derived from work logs (opt-in)**
+**P20.4 — Attendance derived from work logs (opt-in)** ✅
 `hrms_settings.attendance.derive_from_work_logs` (default **false**) plus
 `php artisan hrms:derive-attendance --date=... --tenant=ID` marks `attendance_days` from `work_logs` when
 enabled. Opt-in because `work_logs` are voluntary and a manager could otherwise manufacture attendance.
 Every derived day records `is_regularized = false` and an `attendance_days.note` of
 `derived:work_logs`.
+
+> **P20.4 as shipped.** `Services/Hrms/Attendance/WorkLogDerivation.php`
+> + `HrmsDeriveAttendance` (`--date` strict, future refused, `--tenant`
+> XOR `--all`, bare run reports, `--apply` writes). Closed logs only,
+> start-date attributed, summed per active employee (account-less logins
+> skipped); existing non-derived days are never overwritten, re-runs
+> refresh only stamped rows. Two naming notes: the setting key is the
+> config's `auto_derive_from_work_logs` (already seeded with the P20.4
+> comment), not the plan's shorter name; and the day lookup is
+> `whereDate`, never exact — the P5.2 sqlite-time-part trap bit once
+> (`UNIQUE employee_id+work_date` on re-derive) before the fix.
+> `HrmsDeriveAttendanceTest` (4 tests).
 
 **P20.5 — Performance evidence from tasks (hardened)**
 Extend P12.2 to also consult `hrms_task_links` so a goal can be measured against explicitly linked tasks
