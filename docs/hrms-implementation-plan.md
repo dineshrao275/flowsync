@@ -3705,12 +3705,22 @@ retention command is idempotent and defaults to `--dry-run`.
 **Objective:** make HRMS and task management one system — employees own tasks, tasks produce evidence,
 and HRMS can surface work without leaving HR.
 
-**P20.1 — `000031` migration**
+**P20.1 — `000031` migration** ✅ (landed as `2026_10_11_000034` — the
+planned number was spent by inbox reads, like the rest)
 `hrms_task_links` (`employee_id`, `task_id`, `kind` enum
 `goal|onboarding|attendance|expense|payroll|leave|review`, `note` nullable, `created_by`, timestamps)
 unique `(employee_id, task_id, kind)`, indexed `(task_id, kind)`.
 Plus, on `tasks`, a nullable `hrms_employee_id` FK for the "HR-owned task" affordance (so an HR admin
 can create a task — e.g. "submit your bank details" — and have it show up on the employee's HR home).
+
+> **P20.1 as shipped.** `TaskLinkKind` enum (label + hex color — the
+> pill rule), `Models/Hrms/TaskLink/TaskLink.php` (employee/task/creator
+> belongs-tos, kind cast), and `Task` gains `hrms_employee_id`
+> (fillable + int cast) with `hrmsEmployee()`/`taskLinks()`. The column
+> lands via raw `ADD COLUMN … REFERENCES` + separate index (the P5.1
+> rule — a builder ALTER rebuilds the table on sqlite). `HrmsTaskLinkTablesTest`
+> (6 tests: grain uniqueness, per-kind relink, enum enforcement,
+> nullable affordance, re-run no-op).
 
 **P20.2 — Link service + endpoints**
 `app/Services/Hrms/TaskLinkService.php` — `link(Employee, Task, kind)`, `unlink`, `forTask(Task)`,
