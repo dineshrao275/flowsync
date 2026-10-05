@@ -57,6 +57,7 @@ import Assets from './pages/hrms/Assets';
 import MyAssets from './pages/hrms/MyAssets';
 import Engagement from './pages/hrms/Engagement';
 import MySurvey from './pages/hrms/MySurvey';
+import Analytics from './pages/hrms/Analytics';
 import Search from './pages/Search';
 import Notifications from './pages/Notifications';
 import Tenants from './pages/Tenants';
@@ -368,6 +369,17 @@ function AppRoutes() {
                             />
                             <Route path="/hrms/engagement/mine" element={<MySurvey />} />
                             <Route path="/hrms/engagement/mine/:campaignId" element={<MySurvey />} />
+                            {/* Analytics: the workforce dashboards need the
+                                analytics view permission; each tab gates
+                                itself against its own domain permission. */}
+                            <Route
+                                path="/hrms/analytics"
+                                element={
+                                    <ProtectedRoute permission="hrms.analytics.view">
+                                        <Analytics />
+                                    </ProtectedRoute>
+                                }
+                            />
                             <Route path="/hrms/:section" element={<HrmsOverview />} />
                         </Route>
                         <Route element={<ProtectedRoute permission="users.view" />}>

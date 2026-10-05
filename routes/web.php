@@ -31,6 +31,7 @@ use App\Http\Controllers\Hrms\Holiday\HolidayCalendarController;
 use App\Http\Controllers\Hrms\Holiday\HolidayController;
 use App\Http\Controllers\Hrms\Holiday\HolidayOptionalController;
 use App\Http\Controllers\Hrms\HrmsAnalyticsController;
+use App\Http\Controllers\Hrms\HrmsAnalyticsExportController;
 use App\Http\Controllers\Hrms\InboxController;
 use App\Http\Controllers\Hrms\Leave\LeaveBalanceController;
 use App\Http\Controllers\Hrms\Leave\LeaveExemptionController;
@@ -745,6 +746,10 @@ Route::prefix('api')->group(function () {
     // tiers inside shared endpoints (ratings, liability) read the caller's
     // permissions in the controller.
     Route::group(['middleware' => ['ensure_module:hrms.core', 'ensure_module:hrms.analytics', 'permission:hrms.view']], function () {
+        // CSV takes the domain as a parameter, so no static route can carry
+        // its gate — the controller authorizes each domain against the same
+        // permission slug as the tab route below.
+        Route::get('hrms/analytics/export', [HrmsAnalyticsExportController::class, 'export']);
         Route::get('hrms/analytics/overview', [HrmsAnalyticsController::class, 'overview'])->middleware('permission:hrms.analytics.view');
         Route::get('hrms/analytics/attendance', [HrmsAnalyticsController::class, 'attendance'])->middleware('permission:hrms.attendance.view');
         Route::get('hrms/analytics/leave', [HrmsAnalyticsController::class, 'leave'])->middleware('permission:hrms.leave.manage');

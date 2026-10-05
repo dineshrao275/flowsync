@@ -3539,10 +3539,26 @@ Notification delivery is the existing `NotificationService` path (no new mail tr
 > cursor advances so re-sweeps find nothing due. No mail transport —
 > delivery is notifications only. `HrmsReportDigestTest` (3 tests).
 
-**P18.5 — Frontend**
+**P18.5 — Frontend** ✅
 `pages/hrms/Analytics.jsx` — a stat-tile row (Reuse `Dashboard.jsx`'s widget pattern) plus tabs per
 domain, each with Recharts charts and CSV export buttons that write `accessed(..., 'export')` rows.
 Reuse `components/time/TimeSummary.jsx` and `utils/time.js::formatMinutes()` for minutes-based panels.
+
+> **P18.5 as shipped.** One page, eight tabs (overview tiles plus seven
+> domain tabs), each tab rendering only with its endpoint's permission —
+> the route rides `hrms.analytics.view`, the sidebar adds the matching
+> entry, and `HRMS_MODULE_ROUTES` gains `hrms.analytics` (the shell test
+> fails a tile without a route). Charts compose two shared primitives
+> (`components/hrms/AnalyticsWidgets.jsx`: `Tiles`, `HBar`); minutes render
+> via `formatMinutes` (`TimeSummary.jsx` itself fetches work-log URLs, so
+> there is nothing to reuse beyond the formatter). CSV rides a new
+> `GET hrms/analytics/export?domain=` (`HrmsAnalyticsExportController` +
+> `AnalyticsExportRequest` + `AnalyticsCsvExport` flattening to
+> `section,item,value,detail`): the domain authorizes against the tab
+> route's own permission slug and every pull writes an `accessed(...,
+> Export)` row (P19.3 applied at birth). Digest notifications finally land
+> somewhere: `hrms.inbox.digest` describe + `→ /hrms/analytics` href.
+> `HrmsAnalyticsExportTest` (4 tests).
 
 **Acceptance:** a manager sees only their reports' aggregates; a user without `hrms.attendance.view` gets
 403 on the attendance tab; payroll analytics 403 without `hrms.payroll.run` and log an access row when

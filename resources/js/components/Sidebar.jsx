@@ -169,6 +169,12 @@ const sections = [
                 capabilities: ['module:hrms.core', 'module:hrms.engagement'],
                 icon: 'M5 3h14v18H5V3zm3 5h8m-8 4h5',
             },
+            {
+                to: '/hrms/analytics',
+                label: 'Analytics',
+                capabilities: ['module:hrms.core', 'module:hrms.analytics', 'permission:hrms.analytics.view'],
+                icon: 'M3 3v18h18M8 17V9m4 8V5m4 12v-6',
+            },
             { to: '/hrms', label: 'HRMS', capabilities: ['module:hrms.core'], icon: 'M17 20h5v-2a4 4 0 00-3-3.87M9 20H4v-2a4 4 0 013-3.87m4-1.13a4 4 0 10-4-4 4 4 0 004 4zm6 2a3 3 0 10-3-3' },
         ],
     },

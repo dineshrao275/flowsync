@@ -65,6 +65,8 @@ export function describeNotification(type, data = {}, actorName = 'Someone') {
             return `You are invited: ${data.campaign_name ?? 'a survey'}`;
         case 'hrms.survey.closing_soon':
             return `${data.campaign_name ?? 'A survey'} closes soon — answer if you have not`;
+        case 'hrms.inbox.digest':
+            return `Scheduled report ready: ${data.schedule_name ?? 'your digest'}`;
         default:
             return 'You have a new notification';
     }
@@ -194,6 +196,13 @@ export function notificationHref(data = {}, type = '') {
     // invitee can act, since results sit behind the view permission.
     if (type === 'hrms.survey.invited' || type === 'hrms.survey.closing_soon') {
         return '/hrms/engagement/mine';
+    }
+
+    // Scheduled digests land on the dashboards they summarize — the counts
+    // in the notification are the redacted tier, the charts behind the link
+    // answer to the reader's own permissions.
+    if (type === 'hrms.inbox.digest') {
+        return '/hrms/analytics';
     }
 
     if (project_id && key) {
