@@ -41,6 +41,7 @@ use App\Http\Controllers\Hrms\Lifecycle\OffboardingCaseController;
 use App\Http\Controllers\Hrms\Lifecycle\OnboardingCaseController;
 use App\Http\Controllers\Hrms\Lifecycle\OnboardingTemplateController;
 use App\Http\Controllers\Hrms\MyHrController;
+use App\Http\Controllers\Hrms\MyTeamController;
 use App\Http\Controllers\Hrms\Org\DepartmentController;
 use App\Http\Controllers\Hrms\Org\DesignationController;
 use App\Http\Controllers\Hrms\Org\LocationController;
@@ -129,6 +130,11 @@ Route::prefix('api')->group(function () {
         // My HR home (Phase 15 P17.1: self-scoped via the login, gated by
         // hrms.core like every HRMS surface, 404 for platform super admins).
         Route::get('my/hr', [MyHrController::class, 'show'])->middleware('ensure_module:hrms.core');
+
+        // My team and preferences (P17.2–P17.4, same gates and edges).
+        Route::get('my/team', [MyTeamController::class, 'team'])->middleware('ensure_module:hrms.core');
+        Route::get('my/hr/preferences', [MyTeamController::class, 'preferences'])->middleware('ensure_module:hrms.core');
+        Route::put('my/hr/preferences', [MyTeamController::class, 'updatePreferences'])->middleware('ensure_module:hrms.core');
 
         // Tenant-facing profile (self-scoped via TenantContext; no tenant_context
         // needed because a tenant user resolves their own central tenant row).
@@ -388,6 +394,7 @@ Route::prefix('api')->group(function () {
         Route::get('hrms/employees', [EmployeeController::class, 'index']);
         Route::post('hrms/employees', [EmployeeController::class, 'store']);
         Route::get('hrms/employees/{employee}', [EmployeeController::class, 'show']);
+        Route::get('hrms/employees/{employee}/summary', [MyTeamController::class, 'summary']);
         Route::put('hrms/employees/{employee}', [EmployeeController::class, 'update']);
         Route::delete('hrms/employees/{employee}', [EmployeeController::class, 'destroy']);
         Route::post('hrms/employees/{employee}/status', [EmployeeController::class, 'changeStatus']);

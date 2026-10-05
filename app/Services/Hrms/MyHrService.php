@@ -17,6 +17,7 @@ use App\Models\Hrms\Performance\CheckIn;
 use App\Models\Hrms\Performance\OneOnOne;
 use App\Models\Hrms\Performance\PerformanceGoal;
 use App\Models\User;
+use App\Models\UserSettings;
 use App\Services\Hrms\Asset\AssetAssignmentService;
 use App\Services\Hrms\Leave\LeaveCalendar;
 use Illuminate\Support\Carbon;
@@ -73,6 +74,54 @@ class MyHrService
                 'quick_actions' => $this->quickActions(),
             ];
         });
+    }
+
+    /**
+     * The notification preferences: stored under `user_settings.settings`
+     * `['hrms']`, read back merged over the defaults so a new key defaults
+     * on for existing rows without a backfill. Keys are the taxonomy the
+     * digests read — adding a digest means adding a key here first.
+     *
+     * @return array<string, bool>
+     */
+    public function preferences(User $user): array
+    {
+        $stored = UserSettings::query()->where('user_id', $user->id)->value('settings') ?? [];
+
+        return array_merge(self::preferenceDefaults(), (array) ($stored['hrms'] ?? []));
+    }
+
+    /**
+     * @param  array<string, bool>  $preferences
+     * @return array<string, bool>
+     */
+    public function savePreferences(User $user, array $preferences): array
+    {
+        $settings = UserSettings::query()->firstOrCreate(['user_id' => $user->id]);
+        $all = $settings->settings ?? [];
+
+        $all['hrms'] = array_merge(self::preferenceDefaults(), array_intersect_key($preferences, self::preferenceDefaults()));
+        $settings->update(['settings' => $all]);
+
+        Cache::forget("hrms.myhr.{$user->id}");
+
+        return $this->preferences($user);
+    }
+
+    /**
+     * @return array<string, bool>
+     */
+    private static function preferenceDefaults(): array
+    {
+        return [
+            'email_digest' => true,
+            'inbox_badge' => true,
+            'attendance_reminders' => true,
+            'leave_reminders' => true,
+            'payroll_published_alerts' => true,
+            'document_expiry_alerts' => true,
+            'weekly_summary' => true,
+        ];
     }
 
     /**

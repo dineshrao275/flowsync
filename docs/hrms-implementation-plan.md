@@ -3440,20 +3440,28 @@ renders as cards. Cached per user for 60s, busted on any HRMS write.
 - In the `auth -> tenant` group, gated by `ensure_module:hrms.core`; returns **404** for a
   non-impersonating super admin (D2.14).
 
-**P17.2 — `GET api/my/team` (manager)**
+**P17.2 — `GET api/my/team` (manager)** ✅
 For each direct report: today's attendance, this month's summary, on-leave-today, overdue tasks (via
 `visibleTaskQuery`), pending approvals from them, and a compact leave balance. Requires
-`hrms.attendance.view` **or** being their manager (policy). Paginated with `?from=&to=`.
+`hrms.attendance.view` **or** being their manager (policy). Paginated with `?from=&to`.
 **No salary data** — that stays behind `hrms.compensation.*`.
 
-**P17.3 — `GET api/hrms/employees/{employee}/summary` (HR)**
+**P17.3 — `GET api/hrms/employees/{employee}/summary` (HR)** ✅
 The HR-side counterpart: employment status, tenure, department/manager, and attendance + leave + asset +
 document + performance headline numbers for one employee in one request (the profile page needs it).
 
-**P17.4 — Preferences**
+**P17.4 — Preferences** ✅
 `GET|PUT api/my/hr/preferences` writing `user_settings.settings['hrms']`:
 `{email_digest, inbox_badge, attendance_reminders, leave_reminders, payroll_published_alerts,
 document_expiry_alerts, weekly_summary}`. These drive the notification digests.
+
+> **P17.2–P17.4 as shipped.** One `MyTeamService` (directs only, date-
+> bounded, salary-free by serialization-tested construction) plus one
+> `MyTeamController` (team, summary through the existing employee
+> policy, preferences with unknown keys dropped); preferences live on
+> `MyHrService` beside the home they configure. `HrmsMyTeamTest`
+> (4 tests). Date bounds replace pagination (small lists); per-write
+> cache busting stays a 60s TTL.
 
 **P17.5 — Frontend**
 `pages/MyHr.jsx` at `/my` (the "My HR" home: quick actions, balances, upcoming leave, clock-in, pending
