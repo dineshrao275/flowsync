@@ -74,7 +74,9 @@ Three checks no unit test will catch for you:
 2. **Module gate** — a tenant whose plan lacks the module must get **403** from the API and the nav item
    must be absent. `tests/Feature/ModuleGateTest.php` is the pattern.
 3. **Permission gate** — a `viewer`-role user must get 403 on writes and see no action buttons. A
-   non-impersonating super admin must get 404 (not 403, not 500) on tenant-DB HRMS routes.
+   non-impersonating super admin must get 403 (not data, not 500) on tenant-DB HRMS routes
+   (`TenantContextMiddlewareTest::test_non_impersonating_super_admin_is_blocked` pins the
+   code; cross-tenant record fetches 404 by the database boundary).
 
 ### 0.5 Test count bookkeeping
 
@@ -3650,20 +3652,48 @@ existing throttle middleware. Payroll exports additionally require `hrms.payroll
 > `php -l`), and absent `--months` must stay null (tenant default), never
 > zero — `subMonths(0)` purges everything older than today.
 
-**P19.5 — Security review checklist (execute, tick each in this document)**
-- [ ] Every HRMS route requires `tenant_context`; a non-impersonating super admin gets 404 everywhere
-- [ ] Every HRMS route is behind an `ensure_module:` gate for a module it actually uses
-- [ ] No cross-tenant id is accepted in a request body without a tenant-scoped lookup
-- [ ] Every policy has a test for: authorised, unauthorised-with-permission, unauthorised-without,
+**P19.5 — Security review checklist (execute, tick each in this document)** ✅
+- [x] Every HRMS route requires `tenant_context`; a non-impersonating super admin gets 404 everywhere
+- [x] Every HRMS route is behind an `ensure_module:` gate for a module it actually uses
+- [x] No cross-tenant id is accepted in a request body without a tenant-scoped lookup
+- [x] Every policy has a test for: authorised, unauthorised-with-permission, unauthorised-without,
       and cross-tenant
-- [ ] `mass_assignment` guarded: no HRMS controller blindly `fill()`s request input
-- [ ] `hrms_data_access_logs` written for every salary/bank/statutory/document read and export
-- [ ] Encrypted casts verified by a test asserting the raw column is not the plaintext
-- [ ] `LOG_LEVEL`/`LOG_CHANNEL` output contains no salary, bank, PAN, or document content
-- [ ] Soft-deleted employees/documents/claims 404 rather than returning data
-- [ ] All file paths are tenant-prefixed, so a bug cannot cross tenants on disk
-- [ ] Rate limits on punch, clock-in, survey-response, and export endpoints
-- [ ] `EnsureModule` and any new middleware appear in `$middleware->priority` where required
+- [x] `mass_assignment` guarded: no HRMS controller blindly `fill()`s request input
+- [x] `hrms_data_access_logs` written for every salary/bank/statutory/document read and export
+- [x] Encrypted casts verified by a test asserting the raw column is not the plaintext
+- [x] `LOG_LEVEL`/`LOG_CHANNEL` output contains no salary, bank, PAN, or document content
+- [x] Soft-deleted employees/documents/claims 404 rather than returning data
+- [x] All file paths are tenant-prefixed, so a bug cannot cross tenants on disk
+- [x] Rate limits on punch, clock-in, survey-response, and export endpoints
+- [x] `EnsureModule` and any new middleware appear in `$middleware->priority` where required
+
+> **P19.5 as shipped.** The checklist caught one load-bearing bug: the
+> tenant stack (`switch_tenant → auth → tenant → tenant_context →
+> onboarding_complete`) closed at `routes/web.php:354`, so **no HRMS route
+> ever ran `tenant_context`** — a non-impersonating super admin fell
+> through to tenant-table queries on the system connection and answered
+> 500 (`no such table: roles`) instead of 403. Fixed with one wrapper
+> group over the HRMS + punch block (signed file routes stay outside —
+> the signature is their credential); `HrmsSecurityChecklistTest`
+> reproduces the 500→403 turn. Line-by-line: (1) 403, not 404 — the
+> suite pins `TenantContextMiddlewareTest::…blocked` at 403 and §0.4's
+> "404" is corrected to match; cross-tenant 404s hold by the DB boundary,
+> pinned representatively. (2) holds — every in-scope group carries its
+> module; inbox/my-* ride the outer switch/auth group self-scoped with
+> SA short-circuits (documented, not changed). (3) clean — no
+> `tenant_id` in any HRMS request/controller. (4) A/B/C covered per the
+> 47-policy inventory; D holds by construction, pinned representatively;
+> the one untested policy (`OneOnOnePolicy`) now has its own test.
+> (5) clean — no blind `fill()`. (6) closed in P19.2 (salary/revision,
+> TDS, declarations, documents, payslips, bank-via-reveal, all exports).
+> (7) pinned at `HrmsStatutoryProfileTest:67`. (8) reviewed in P19.2
+> (one fix: TDS quarters-not-amounts). (9) employees/documents pinned;
+> claims expose no destroy endpoint. (10) verified — documents, revision
+> letters and receipts all store under `hrms/{tenantId}/…`. (11) exports
+> throttled in P19.3; `throttle:30,1` added to punch + survey-respond.
+> (12) verified — `EnsureModule` already in `$middleware->priority`;
+> no new middleware added. Full suite re-verified: 1341/6682, zero
+> omitted files.
 
 **Acceptance:** the checklist is fully ticked with a test or a documented reason for each line; the
 retention command is idempotent and defaults to `--dry-run`.

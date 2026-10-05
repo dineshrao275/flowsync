@@ -353,514 +353,529 @@ Route::prefix('api')->group(function () {
         Route::delete('project-roles/{role}', [ProjectRoleController::class, 'destroy'])->middleware('permission:roles.manage');
     });
 
-    // HRMS org structure (Phase 15 P3.3). The same two gates as the employee
-    // surface: `hrms.core` decides whether the module exists for this tenant
-    // and `hrms.view` whether it can be reached, and the org policies then
-    // split reads (`hrms.org.view`) from writes (`hrms.org.manage`) per record.
-    //
-    // Each `reorder` is declared before its own `{resource}` sibling, because
-    // otherwise "reorder" binds as a department/designation/location id and
-    // comes back as a 404 on a perfectly valid drag-and-drop.
-    Route::group(['middleware' => ['ensure_module:hrms.core', 'permission:hrms.view']], function () {
-        Route::get('hrms/org', [OrgController::class, 'index']);
+    // HRMS tenant scope (Phase 19 P19.5). Every HRMS surface below runs
+    // behind `tenant_context` (+ the onboarding gate) like the rest of the
+    // domain: without it a non-impersonating super admin falls through to
+    // tenant-table queries on the system connection and answers 500
+    // instead of 403. The signed file routes further below stay outside —
+    // the signature is their credential.
+    Route::middleware(['tenant_context', 'onboarding_complete'])->group(function () {
 
-        Route::get('hrms/departments', [DepartmentController::class, 'index']);
-        Route::post('hrms/departments', [DepartmentController::class, 'store']);
-        Route::post('hrms/departments/reorder', [DepartmentController::class, 'reorder']);
-        Route::get('hrms/departments/{department}', [DepartmentController::class, 'show']);
-        Route::put('hrms/departments/{department}', [DepartmentController::class, 'update']);
-        Route::delete('hrms/departments/{department}', [DepartmentController::class, 'destroy']);
-        Route::post('hrms/departments/{department}/deactivate', [DepartmentController::class, 'deactivate']);
+        // HRMS org structure (Phase 15 P3.3). The same two gates as the employee
+        // surface: `hrms.core` decides whether the module exists for this tenant
+        // and `hrms.view` whether it can be reached, and the org policies then
+        // split reads (`hrms.org.view`) from writes (`hrms.org.manage`) per record.
+        //
+        // Each `reorder` is declared before its own `{resource}` sibling, because
+        // otherwise "reorder" binds as a department/designation/location id and
+        // comes back as a 404 on a perfectly valid drag-and-drop.
+        Route::group(['middleware' => ['ensure_module:hrms.core', 'permission:hrms.view']], function () {
+            Route::get('hrms/org', [OrgController::class, 'index']);
 
-        Route::get('hrms/designations', [DesignationController::class, 'index']);
-        Route::post('hrms/designations', [DesignationController::class, 'store']);
-        Route::post('hrms/designations/reorder', [DesignationController::class, 'reorder']);
-        Route::get('hrms/designations/{designation}', [DesignationController::class, 'show']);
-        Route::put('hrms/designations/{designation}', [DesignationController::class, 'update']);
-        Route::delete('hrms/designations/{designation}', [DesignationController::class, 'destroy']);
-        Route::post('hrms/designations/{designation}/deactivate', [DesignationController::class, 'deactivate']);
+            Route::get('hrms/departments', [DepartmentController::class, 'index']);
+            Route::post('hrms/departments', [DepartmentController::class, 'store']);
+            Route::post('hrms/departments/reorder', [DepartmentController::class, 'reorder']);
+            Route::get('hrms/departments/{department}', [DepartmentController::class, 'show']);
+            Route::put('hrms/departments/{department}', [DepartmentController::class, 'update']);
+            Route::delete('hrms/departments/{department}', [DepartmentController::class, 'destroy']);
+            Route::post('hrms/departments/{department}/deactivate', [DepartmentController::class, 'deactivate']);
 
-        Route::get('hrms/locations', [LocationController::class, 'index']);
-        Route::post('hrms/locations', [LocationController::class, 'store']);
-        Route::post('hrms/locations/reorder', [LocationController::class, 'reorder']);
-        Route::get('hrms/locations/{location}', [LocationController::class, 'show']);
-        Route::put('hrms/locations/{location}', [LocationController::class, 'update']);
-        Route::delete('hrms/locations/{location}', [LocationController::class, 'destroy']);
-        Route::post('hrms/locations/{location}/deactivate', [LocationController::class, 'deactivate']);
-    });
+            Route::get('hrms/designations', [DesignationController::class, 'index']);
+            Route::post('hrms/designations', [DesignationController::class, 'store']);
+            Route::post('hrms/designations/reorder', [DesignationController::class, 'reorder']);
+            Route::get('hrms/designations/{designation}', [DesignationController::class, 'show']);
+            Route::put('hrms/designations/{designation}', [DesignationController::class, 'update']);
+            Route::delete('hrms/designations/{designation}', [DesignationController::class, 'destroy']);
+            Route::post('hrms/designations/{designation}/deactivate', [DesignationController::class, 'deactivate']);
 
-    // HRMS employee records (Phase 15 P2.3). The module gate and `hrms.view`
-    // decide whether the surface exists for this tenant at all;
-    // EmployeePolicy decides what the caller may do with each record inside it
-    // — including reading their own, which no tenant-level permission grants.
-    Route::group(['middleware' => ['ensure_module:hrms.core', 'permission:hrms.view']], function () {
-        Route::get('hrms/employees', [EmployeeController::class, 'index']);
-        Route::post('hrms/employees', [EmployeeController::class, 'store']);
-        Route::get('hrms/employees/{employee}', [EmployeeController::class, 'show']);
-        Route::get('hrms/employees/{employee}/summary', [MyTeamController::class, 'summary']);
-        Route::put('hrms/employees/{employee}', [EmployeeController::class, 'update']);
-        Route::delete('hrms/employees/{employee}', [EmployeeController::class, 'destroy']);
-        Route::post('hrms/employees/{employee}/status', [EmployeeController::class, 'changeStatus']);
-        Route::post('hrms/employees/{employee}/manager', [EmployeeController::class, 'assignManager']);
-        Route::post('hrms/employees/{employee}/terminate', [EmployeeController::class, 'terminate']);
-    });
+            Route::get('hrms/locations', [LocationController::class, 'index']);
+            Route::post('hrms/locations', [LocationController::class, 'store']);
+            Route::post('hrms/locations/reorder', [LocationController::class, 'reorder']);
+            Route::get('hrms/locations/{location}', [LocationController::class, 'show']);
+            Route::put('hrms/locations/{location}', [LocationController::class, 'update']);
+            Route::delete('hrms/locations/{location}', [LocationController::class, 'destroy']);
+            Route::post('hrms/locations/{location}/deactivate', [LocationController::class, 'deactivate']);
+        });
 
-    // HRMS employee documents (Phase 15 P13.3). Same two gates as the
-    // employee surface; EmployeeDocumentPolicy decides per record — including
-    // reading and filing one’s own, which no tenant permission grants.
-    //
-    // `expiring` is declared before `{document}`, because otherwise the word
-    // binds as a document id and a valid warning query 404s.
-    Route::group(['middleware' => ['ensure_module:hrms.core', 'permission:hrms.view']], function () {
-        Route::get('hrms/documents/types', [DocumentTypeController::class, 'index']);
-        Route::get('hrms/documents/types/{type}', [DocumentTypeController::class, 'show']);
+        // HRMS employee records (Phase 15 P2.3). The module gate and `hrms.view`
+        // decide whether the surface exists for this tenant at all;
+        // EmployeePolicy decides what the caller may do with each record inside it
+        // — including reading their own, which no tenant-level permission grants.
+        Route::group(['middleware' => ['ensure_module:hrms.core', 'permission:hrms.view']], function () {
+            Route::get('hrms/employees', [EmployeeController::class, 'index']);
+            Route::post('hrms/employees', [EmployeeController::class, 'store']);
+            Route::get('hrms/employees/{employee}', [EmployeeController::class, 'show']);
+            Route::get('hrms/employees/{employee}/summary', [MyTeamController::class, 'summary']);
+            Route::put('hrms/employees/{employee}', [EmployeeController::class, 'update']);
+            Route::delete('hrms/employees/{employee}', [EmployeeController::class, 'destroy']);
+            Route::post('hrms/employees/{employee}/status', [EmployeeController::class, 'changeStatus']);
+            Route::post('hrms/employees/{employee}/manager', [EmployeeController::class, 'assignManager']);
+            Route::post('hrms/employees/{employee}/terminate', [EmployeeController::class, 'terminate']);
+        });
 
-        Route::get('hrms/documents/expiring', [DocumentController::class, 'expiring']);
-        Route::get('hrms/documents', [DocumentController::class, 'index']);
-        Route::post('hrms/documents', [DocumentController::class, 'store']);
-        Route::get('hrms/documents/{document}', [DocumentController::class, 'show']);
-        Route::delete('hrms/documents/{document}', [DocumentController::class, 'destroy']);
-        Route::post('hrms/documents/{document}/verify', [DocumentController::class, 'verify']);
-        Route::post('hrms/documents/{document}/reject', [DocumentController::class, 'reject']);
-        Route::get('hrms/my/documents', [DocumentController::class, 'mine']);
-    });
+        // HRMS employee documents (Phase 15 P13.3). Same two gates as the
+        // employee surface; EmployeeDocumentPolicy decides per record — including
+        // reading and filing one’s own, which no tenant permission grants.
+        //
+        // `expiring` is declared before `{document}`, because otherwise the word
+        // binds as a document id and a valid warning query 404s.
+        Route::group(['middleware' => ['ensure_module:hrms.core', 'permission:hrms.view']], function () {
+            Route::get('hrms/documents/types', [DocumentTypeController::class, 'index']);
+            Route::get('hrms/documents/types/{type}', [DocumentTypeController::class, 'show']);
 
-    // HRMS onboarding & offboarding (Phase 15 P4.3). Same two gates as the
-    // rest of the HRMS surface; the lifecycle policies decide per record —
-    // including a hire reading their own checklist, which no tenant
-    // permission grants.
-    //
-    // Every nested route declares both models (`cases/{case}/tasks/{task}`),
-    // and the controller verifies the task belongs to the case: a task id
-    // from another run 404s here rather than completing the wrong checklist.
-    Route::group(['middleware' => ['ensure_module:hrms.core', 'permission:hrms.view']], function () {
-        Route::get('hrms/onboarding/templates', [OnboardingTemplateController::class, 'index']);
-        Route::post('hrms/onboarding/templates', [OnboardingTemplateController::class, 'store']);
-        Route::get('hrms/onboarding/templates/{template}', [OnboardingTemplateController::class, 'show']);
-        Route::put('hrms/onboarding/templates/{template}', [OnboardingTemplateController::class, 'update']);
-        Route::delete('hrms/onboarding/templates/{template}', [OnboardingTemplateController::class, 'destroy']);
-        Route::post('hrms/onboarding/templates/{template}/tasks', [OnboardingTemplateController::class, 'storeTask']);
-        Route::put('hrms/onboarding/templates/{template}/tasks/{task}', [OnboardingTemplateController::class, 'updateTask']);
-        Route::delete('hrms/onboarding/templates/{template}/tasks/{task}', [OnboardingTemplateController::class, 'destroyTask']);
-        Route::post('hrms/onboarding/templates/{template}/tasks/reorder', [OnboardingTemplateController::class, 'reorderTasks']);
+            Route::get('hrms/documents/expiring', [DocumentController::class, 'expiring']);
+            Route::get('hrms/documents', [DocumentController::class, 'index']);
+            Route::post('hrms/documents', [DocumentController::class, 'store']);
+            Route::get('hrms/documents/{document}', [DocumentController::class, 'show']);
+            Route::delete('hrms/documents/{document}', [DocumentController::class, 'destroy']);
+            Route::post('hrms/documents/{document}/verify', [DocumentController::class, 'verify']);
+            Route::post('hrms/documents/{document}/reject', [DocumentController::class, 'reject']);
+            Route::get('hrms/my/documents', [DocumentController::class, 'mine']);
+        });
 
-        Route::get('hrms/onboarding/cases', [OnboardingCaseController::class, 'index']);
-        Route::post('hrms/onboarding/cases', [OnboardingCaseController::class, 'store']);
-        Route::get('hrms/onboarding/cases/{case}', [OnboardingCaseController::class, 'show']);
-        Route::post('hrms/onboarding/cases/{case}/tasks/{task}/complete', [OnboardingCaseController::class, 'completeTask']);
-        Route::post('hrms/onboarding/cases/{case}/tasks/{task}/waive', [OnboardingCaseController::class, 'waiveTask']);
-        Route::post('hrms/onboarding/cases/{case}/complete', [OnboardingCaseController::class, 'complete']);
-        Route::post('hrms/onboarding/cases/{case}/cancel', [OnboardingCaseController::class, 'cancel']);
+        // HRMS onboarding & offboarding (Phase 15 P4.3). Same two gates as the
+        // rest of the HRMS surface; the lifecycle policies decide per record —
+        // including a hire reading their own checklist, which no tenant
+        // permission grants.
+        //
+        // Every nested route declares both models (`cases/{case}/tasks/{task}`),
+        // and the controller verifies the task belongs to the case: a task id
+        // from another run 404s here rather than completing the wrong checklist.
+        Route::group(['middleware' => ['ensure_module:hrms.core', 'permission:hrms.view']], function () {
+            Route::get('hrms/onboarding/templates', [OnboardingTemplateController::class, 'index']);
+            Route::post('hrms/onboarding/templates', [OnboardingTemplateController::class, 'store']);
+            Route::get('hrms/onboarding/templates/{template}', [OnboardingTemplateController::class, 'show']);
+            Route::put('hrms/onboarding/templates/{template}', [OnboardingTemplateController::class, 'update']);
+            Route::delete('hrms/onboarding/templates/{template}', [OnboardingTemplateController::class, 'destroy']);
+            Route::post('hrms/onboarding/templates/{template}/tasks', [OnboardingTemplateController::class, 'storeTask']);
+            Route::put('hrms/onboarding/templates/{template}/tasks/{task}', [OnboardingTemplateController::class, 'updateTask']);
+            Route::delete('hrms/onboarding/templates/{template}/tasks/{task}', [OnboardingTemplateController::class, 'destroyTask']);
+            Route::post('hrms/onboarding/templates/{template}/tasks/reorder', [OnboardingTemplateController::class, 'reorderTasks']);
 
-        Route::get('hrms/offboarding/cases', [OffboardingCaseController::class, 'index']);
-        Route::post('hrms/offboarding/cases', [OffboardingCaseController::class, 'store']);
-        Route::get('hrms/offboarding/cases/{case}', [OffboardingCaseController::class, 'show']);
-        Route::post('hrms/offboarding/cases/{case}/tasks/{task}/complete', [OffboardingCaseController::class, 'completeTask']);
-        Route::post('hrms/offboarding/cases/{case}/clear', [OffboardingCaseController::class, 'clear']);
-        Route::post('hrms/offboarding/cases/{case}/complete', [OffboardingCaseController::class, 'complete']);
-        Route::post('hrms/offboarding/cases/{case}/cancel', [OffboardingCaseController::class, 'cancel']);
+            Route::get('hrms/onboarding/cases', [OnboardingCaseController::class, 'index']);
+            Route::post('hrms/onboarding/cases', [OnboardingCaseController::class, 'store']);
+            Route::get('hrms/onboarding/cases/{case}', [OnboardingCaseController::class, 'show']);
+            Route::post('hrms/onboarding/cases/{case}/tasks/{task}/complete', [OnboardingCaseController::class, 'completeTask']);
+            Route::post('hrms/onboarding/cases/{case}/tasks/{task}/waive', [OnboardingCaseController::class, 'waiveTask']);
+            Route::post('hrms/onboarding/cases/{case}/complete', [OnboardingCaseController::class, 'complete']);
+            Route::post('hrms/onboarding/cases/{case}/cancel', [OnboardingCaseController::class, 'cancel']);
 
-        Route::get('hrms/document-requests', [DocumentRequestController::class, 'index']);
-        Route::post('hrms/document-requests', [DocumentRequestController::class, 'store']);
-        Route::get('hrms/document-requests/{documentRequest}', [DocumentRequestController::class, 'show']);
-        Route::post('hrms/document-requests/{documentRequest}/submit', [DocumentRequestController::class, 'submit']);
-        Route::post('hrms/document-requests/{documentRequest}/accept', [DocumentRequestController::class, 'accept']);
-        Route::post('hrms/document-requests/{documentRequest}/waive', [DocumentRequestController::class, 'waive']);
-        Route::post('hrms/document-requests/{documentRequest}/reject', [DocumentRequestController::class, 'reject']);
-    });
+            Route::get('hrms/offboarding/cases', [OffboardingCaseController::class, 'index']);
+            Route::post('hrms/offboarding/cases', [OffboardingCaseController::class, 'store']);
+            Route::get('hrms/offboarding/cases/{case}', [OffboardingCaseController::class, 'show']);
+            Route::post('hrms/offboarding/cases/{case}/tasks/{task}/complete', [OffboardingCaseController::class, 'completeTask']);
+            Route::post('hrms/offboarding/cases/{case}/clear', [OffboardingCaseController::class, 'clear']);
+            Route::post('hrms/offboarding/cases/{case}/complete', [OffboardingCaseController::class, 'complete']);
+            Route::post('hrms/offboarding/cases/{case}/cancel', [OffboardingCaseController::class, 'cancel']);
 
-    // HRMS attendance settings (Phase 15 P5.3). The module gate decides
-    // whether attendance exists for this tenant; `hrms.attendance.settings`
-    // decides who may rewrite its policy. Partial sections merge — a PUT
-    // that blanked unmentioned sections would be a reset disguised as edit.
-    Route::group(['middleware' => ['ensure_module:hrms.attendance']], function () {
-        Route::put('hrms/attendance/settings', [AttendanceController::class, 'settings'])
-            ->middleware('permission:hrms.attendance.settings');
+            Route::get('hrms/document-requests', [DocumentRequestController::class, 'index']);
+            Route::post('hrms/document-requests', [DocumentRequestController::class, 'store']);
+            Route::get('hrms/document-requests/{documentRequest}', [DocumentRequestController::class, 'show']);
+            Route::post('hrms/document-requests/{documentRequest}/submit', [DocumentRequestController::class, 'submit']);
+            Route::post('hrms/document-requests/{documentRequest}/accept', [DocumentRequestController::class, 'accept']);
+            Route::post('hrms/document-requests/{documentRequest}/waive', [DocumentRequestController::class, 'waive']);
+            Route::post('hrms/document-requests/{documentRequest}/reject', [DocumentRequestController::class, 'reject']);
+        });
 
-        // HRMS regularization (Phase 15 P5.4). Deliberately NO route-level
-        // permission, like the punch endpoint: requesting and reading one's
-        // own asks is self-service, and deciding belongs to the approval
-        // step's approver — a manager who may hold no attendance permission
-        // at all. The policy answers both from the record and the chain.
-        Route::get('hrms/attendance/regularizations', [RegularizationController::class, 'index']);
-        Route::post('hrms/attendance/regularizations', [RegularizationController::class, 'store']);
-        Route::get('hrms/attendance/regularizations/{regularization}', [RegularizationController::class, 'show']);
-        Route::post('hrms/attendance/regularizations/{regularization}/approve', [RegularizationController::class, 'approve']);
-        Route::post('hrms/attendance/regularizations/{regularization}/reject', [RegularizationController::class, 'reject']);
+        // HRMS attendance settings (Phase 15 P5.3). The module gate decides
+        // whether attendance exists for this tenant; `hrms.attendance.settings`
+        // decides who may rewrite its policy. Partial sections merge — a PUT
+        // that blanked unmentioned sections would be a reset disguised as edit.
+        Route::group(['middleware' => ['ensure_module:hrms.attendance']], function () {
+            Route::put('hrms/attendance/settings', [AttendanceController::class, 'settings'])
+                ->middleware('permission:hrms.attendance.settings');
 
-        // HRMS attendance reads (Phase 15 P5.6a). Same gate shape as the
-        // regularizations above: module-gated, policy-authorized per
-        // employee (self-service included via AttendanceDayPolicy::view).
-        // Declared before any `{record}` sibling so a literal segment can
-        // never bind as a model id (the P3.3 `reorder` lesson).
-        Route::get('hrms/attendance/month', [AttendanceRecordsController::class, 'month']);
-        Route::get('hrms/attendance/today', [AttendanceRecordsController::class, 'today']);
-        // Exports are the heaviest reads on this surface (up to 93 days of
-        // rows per pull), so the one bulk endpoint rides the throttle while
-        // the month grid and widget stay unthrottled.
-        Route::get('hrms/attendance/export', [AttendanceRecordsController::class, 'export'])->middleware('throttle:30,1');
-    });
+            // HRMS regularization (Phase 15 P5.4). Deliberately NO route-level
+            // permission, like the punch endpoint: requesting and reading one's
+            // own asks is self-service, and deciding belongs to the approval
+            // step's approver — a manager who may hold no attendance permission
+            // at all. The policy answers both from the record and the chain.
+            Route::get('hrms/attendance/regularizations', [RegularizationController::class, 'index']);
+            Route::post('hrms/attendance/regularizations', [RegularizationController::class, 'store']);
+            Route::get('hrms/attendance/regularizations/{regularization}', [RegularizationController::class, 'show']);
+            Route::post('hrms/attendance/regularizations/{regularization}/approve', [RegularizationController::class, 'approve']);
+            Route::post('hrms/attendance/regularizations/{regularization}/reject', [RegularizationController::class, 'reject']);
 
-    // HRMS leave catalogue (Phase 15 P6.4a). Module-gated on `hrms.leave`
-    // with no route-level permission: reads are employee-open (filing needs
-    // the catalogue) and writes take `hrms.leave.manage`, both answered by
-    // the policy — the same self-service shape as the attendance reads.
-    Route::group(['middleware' => ['ensure_module:hrms.leave']], function () {
-        Route::get('hrms/leave/types', [LeaveTypeController::class, 'index']);
-        Route::post('hrms/leave/types', [LeaveTypeController::class, 'store']);
-        Route::put('hrms/leave/types/{leaveType}', [LeaveTypeController::class, 'update']);
-        Route::delete('hrms/leave/types/{leaveType}', [LeaveTypeController::class, 'destroy']);
+            // HRMS attendance reads (Phase 15 P5.6a). Same gate shape as the
+            // regularizations above: module-gated, policy-authorized per
+            // employee (self-service included via AttendanceDayPolicy::view).
+            // Declared before any `{record}` sibling so a literal segment can
+            // never bind as a model id (the P3.3 `reorder` lesson).
+            Route::get('hrms/attendance/month', [AttendanceRecordsController::class, 'month']);
+            Route::get('hrms/attendance/today', [AttendanceRecordsController::class, 'today']);
+            // Exports are the heaviest reads on this surface (up to 93 days of
+            // rows per pull), so the one bulk endpoint rides the throttle while
+            // the month grid and widget stay unthrottled.
+            Route::get('hrms/attendance/export', [AttendanceRecordsController::class, 'export'])->middleware('throttle:30,1');
+        });
 
-        Route::get('hrms/leave/policies', [LeavePolicyController::class, 'index']);
-        Route::post('hrms/leave/policies', [LeavePolicyController::class, 'store']);
-        Route::put('hrms/leave/policies/{leavePolicy}', [LeavePolicyController::class, 'update']);
-        Route::delete('hrms/leave/policies/{leavePolicy}', [LeavePolicyController::class, 'destroy']);
+        // HRMS leave catalogue (Phase 15 P6.4a). Module-gated on `hrms.leave`
+        // with no route-level permission: reads are employee-open (filing needs
+        // the catalogue) and writes take `hrms.leave.manage`, both answered by
+        // the policy — the same self-service shape as the attendance reads.
+        Route::group(['middleware' => ['ensure_module:hrms.leave']], function () {
+            Route::get('hrms/leave/types', [LeaveTypeController::class, 'index']);
+            Route::post('hrms/leave/types', [LeaveTypeController::class, 'store']);
+            Route::put('hrms/leave/types/{leaveType}', [LeaveTypeController::class, 'update']);
+            Route::delete('hrms/leave/types/{leaveType}', [LeaveTypeController::class, 'destroy']);
 
-        // HRMS leave balances + accrual runs (Phase 15 P6.4b). Reads ride
-        // the same employee-open policy as the catalogue; the run itself
-        // takes `hrms.leave.manage` at the route and audits as a bulk.
-        Route::get('hrms/leave/balances', [LeaveBalanceController::class, 'index']);
-        Route::post('hrms/leave/accrue', [LeaveBalanceController::class, 'accrue'])
-            ->middleware('permission:hrms.leave.manage');
+            Route::get('hrms/leave/policies', [LeavePolicyController::class, 'index']);
+            Route::post('hrms/leave/policies', [LeavePolicyController::class, 'store']);
+            Route::put('hrms/leave/policies/{leavePolicy}', [LeavePolicyController::class, 'update']);
+            Route::delete('hrms/leave/policies/{leavePolicy}', [LeavePolicyController::class, 'destroy']);
 
-        // HRMS leave asks (Phase 15 P6.4c). Same gate shape: module-gated,
-        // policy-authorized per record (self-service included, deciding
-        // belongs to the step's approver). `cancel` carries an optional
-        // reason where DELETE stays reason-free, per the plan's routes.
-        Route::get('hrms/leave/requests', [LeaveRequestController::class, 'index']);
-        Route::post('hrms/leave/requests', [LeaveRequestController::class, 'store']);
-        Route::get('hrms/leave/requests/availability', [LeaveRequestController::class, 'availability']);
-        Route::get('hrms/leave/requests/calendar', [LeaveRequestController::class, 'calendar']);
-        Route::get('hrms/leave/requests/{leaveRequest}', [LeaveRequestController::class, 'show']);
-        Route::put('hrms/leave/requests/{leaveRequest}', [LeaveRequestController::class, 'update']);
-        Route::delete('hrms/leave/requests/{leaveRequest}', [LeaveRequestController::class, 'destroy']);
-        Route::post('hrms/leave/requests/{leaveRequest}/cancel', [LeaveRequestController::class, 'cancel']);
-        Route::post('hrms/leave/requests/{leaveRequest}/approve', [LeaveRequestController::class, 'approve']);
-        Route::post('hrms/leave/requests/{leaveRequest}/reject', [LeaveRequestController::class, 'reject']);
-    });
+            // HRMS leave balances + accrual runs (Phase 15 P6.4b). Reads ride
+            // the same employee-open policy as the catalogue; the run itself
+            // takes `hrms.leave.manage` at the route and audits as a bulk.
+            Route::get('hrms/leave/balances', [LeaveBalanceController::class, 'index']);
+            Route::post('hrms/leave/accrue', [LeaveBalanceController::class, 'accrue'])
+                ->middleware('permission:hrms.leave.manage');
 
-    // HRMS statutory exemptions (Phase 15 P6.4c). Its own module gate per
-    // the 3.5 mapping — an exemption is jurisdiction trail, not leave
-    // administration, and the two entitlements move separately.
-    Route::group(['middleware' => ['ensure_module:hrms.leave.exemption']], function () {
-        Route::get('hrms/leave/exemptions', [LeaveExemptionController::class, 'index']);
-        Route::post('hrms/leave/exemptions', [LeaveExemptionController::class, 'store']);
-        Route::get('hrms/leave/exemptions/{exemption}', [LeaveExemptionController::class, 'show']);
-        Route::post('hrms/leave/exemptions/{exemption}/decide', [LeaveExemptionController::class, 'decide']);
-    });
+            // HRMS leave asks (Phase 15 P6.4c). Same gate shape: module-gated,
+            // policy-authorized per record (self-service included, deciding
+            // belongs to the step's approver). `cancel` carries an optional
+            // reason where DELETE stays reason-free, per the plan's routes.
+            Route::get('hrms/leave/requests', [LeaveRequestController::class, 'index']);
+            Route::post('hrms/leave/requests', [LeaveRequestController::class, 'store']);
+            Route::get('hrms/leave/requests/availability', [LeaveRequestController::class, 'availability']);
+            Route::get('hrms/leave/requests/calendar', [LeaveRequestController::class, 'calendar']);
+            Route::get('hrms/leave/requests/{leaveRequest}', [LeaveRequestController::class, 'show']);
+            Route::put('hrms/leave/requests/{leaveRequest}', [LeaveRequestController::class, 'update']);
+            Route::delete('hrms/leave/requests/{leaveRequest}', [LeaveRequestController::class, 'destroy']);
+            Route::post('hrms/leave/requests/{leaveRequest}/cancel', [LeaveRequestController::class, 'cancel']);
+            Route::post('hrms/leave/requests/{leaveRequest}/approve', [LeaveRequestController::class, 'approve']);
+            Route::post('hrms/leave/requests/{leaveRequest}/reject', [LeaveRequestController::class, 'reject']);
+        });
 
-    // HRMS comp-off (Phase 15 P7.3). Module-gated on `hrms.comp_off` with
-    // no route-level permission except the manage-only writes: reads and
-    // asks are policy-gated per record (self-service included, deciding
-    // belongs to the step's approver), while manual grants, settings and
-    // runs take `hrms.comp_off.manage` at the route.
-    Route::group(['middleware' => ['ensure_module:hrms.comp_off']], function () {
-        Route::get('hrms/comp-off/credits', [CompOffCreditController::class, 'index']);
-        Route::post('hrms/comp-off/credits', [CompOffCreditController::class, 'store'])
-            ->middleware('permission:hrms.comp_off.manage');
+        // HRMS statutory exemptions (Phase 15 P6.4c). Its own module gate per
+        // the 3.5 mapping — an exemption is jurisdiction trail, not leave
+        // administration, and the two entitlements move separately.
+        Route::group(['middleware' => ['ensure_module:hrms.leave.exemption']], function () {
+            Route::get('hrms/leave/exemptions', [LeaveExemptionController::class, 'index']);
+            Route::post('hrms/leave/exemptions', [LeaveExemptionController::class, 'store']);
+            Route::get('hrms/leave/exemptions/{exemption}', [LeaveExemptionController::class, 'show']);
+            Route::post('hrms/leave/exemptions/{exemption}/decide', [LeaveExemptionController::class, 'decide']);
+        });
 
-        Route::get('hrms/comp-off/requests', [CompOffRequestController::class, 'index']);
-        Route::post('hrms/comp-off/requests', [CompOffRequestController::class, 'store']);
-        Route::get('hrms/comp-off/requests/{compOffRequest}', [CompOffRequestController::class, 'show']);
-        Route::delete('hrms/comp-off/requests/{compOffRequest}', [CompOffRequestController::class, 'destroy']);
-        Route::post('hrms/comp-off/requests/{compOffRequest}/cancel', [CompOffRequestController::class, 'cancel']);
-        Route::post('hrms/comp-off/requests/{compOffRequest}/approve', [CompOffRequestController::class, 'approve']);
-        Route::post('hrms/comp-off/requests/{compOffRequest}/reject', [CompOffRequestController::class, 'reject']);
+        // HRMS comp-off (Phase 15 P7.3). Module-gated on `hrms.comp_off` with
+        // no route-level permission except the manage-only writes: reads and
+        // asks are policy-gated per record (self-service included, deciding
+        // belongs to the step's approver), while manual grants, settings and
+        // runs take `hrms.comp_off.manage` at the route.
+        Route::group(['middleware' => ['ensure_module:hrms.comp_off']], function () {
+            Route::get('hrms/comp-off/credits', [CompOffCreditController::class, 'index']);
+            Route::post('hrms/comp-off/credits', [CompOffCreditController::class, 'store'])
+                ->middleware('permission:hrms.comp_off.manage');
 
-        Route::get('hrms/comp-off/settings', [CompOffSettingsController::class, 'show'])
-            ->middleware('permission:hrms.comp_off.manage');
-        Route::put('hrms/comp-off/settings', [CompOffSettingsController::class, 'update'])
-            ->middleware('permission:hrms.comp_off.manage');
-        Route::post('hrms/comp-off/accrue', [CompOffSettingsController::class, 'accrue'])
-            ->middleware('permission:hrms.comp_off.manage');
-    });
+            Route::get('hrms/comp-off/requests', [CompOffRequestController::class, 'index']);
+            Route::post('hrms/comp-off/requests', [CompOffRequestController::class, 'store']);
+            Route::get('hrms/comp-off/requests/{compOffRequest}', [CompOffRequestController::class, 'show']);
+            Route::delete('hrms/comp-off/requests/{compOffRequest}', [CompOffRequestController::class, 'destroy']);
+            Route::post('hrms/comp-off/requests/{compOffRequest}/cancel', [CompOffRequestController::class, 'cancel']);
+            Route::post('hrms/comp-off/requests/{compOffRequest}/approve', [CompOffRequestController::class, 'approve']);
+            Route::post('hrms/comp-off/requests/{compOffRequest}/reject', [CompOffRequestController::class, 'reject']);
 
-    // HRMS holidays (Phase 15 P8.4a). Module-gated on `hrms.holidays` with
-    // no route-level permission except the seed-year run: reads and writes
-    // answer per record through the policies. Nested holiday creation
-    // authorizes against the parent calendar, and `seed-year` is declared
-    // before any `{calendar}` sibling so a literal never binds as an id
-    // (the P3.3 `reorder` lesson).
-    Route::group(['middleware' => ['ensure_module:hrms.holidays']], function () {
-        Route::get('hrms/holidays/calendars', [HolidayCalendarController::class, 'index']);
-        Route::post('hrms/holidays/calendars', [HolidayCalendarController::class, 'store']);
-        Route::post('hrms/holidays/seed-year', [HolidayCalendarController::class, 'seedYear'])
-            ->middleware('permission:hrms.holidays.manage');
-        Route::put('hrms/holidays/calendars/{calendar}', [HolidayCalendarController::class, 'update']);
-        Route::delete('hrms/holidays/calendars/{calendar}', [HolidayCalendarController::class, 'destroy']);
+            Route::get('hrms/comp-off/settings', [CompOffSettingsController::class, 'show'])
+                ->middleware('permission:hrms.comp_off.manage');
+            Route::put('hrms/comp-off/settings', [CompOffSettingsController::class, 'update'])
+                ->middleware('permission:hrms.comp_off.manage');
+            Route::post('hrms/comp-off/accrue', [CompOffSettingsController::class, 'accrue'])
+                ->middleware('permission:hrms.comp_off.manage');
+        });
 
-        Route::get('hrms/holidays/calendars/{calendar}/holidays', [HolidayCalendarController::class, 'holidays']);
-        Route::post('hrms/holidays/calendars/{calendar}/holidays', [HolidayCalendarController::class, 'storeHoliday']);
-        Route::put('hrms/holidays/{holiday}', [HolidayController::class, 'update']);
-        Route::delete('hrms/holidays/{holiday}', [HolidayController::class, 'destroy']);
+        // HRMS holidays (Phase 15 P8.4a). Module-gated on `hrms.holidays` with
+        // no route-level permission except the seed-year run: reads and writes
+        // answer per record through the policies. Nested holiday creation
+        // authorizes against the parent calendar, and `seed-year` is declared
+        // before any `{calendar}` sibling so a literal never binds as an id
+        // (the P3.3 `reorder` lesson).
+        Route::group(['middleware' => ['ensure_module:hrms.holidays']], function () {
+            Route::get('hrms/holidays/calendars', [HolidayCalendarController::class, 'index']);
+            Route::post('hrms/holidays/calendars', [HolidayCalendarController::class, 'store']);
+            Route::post('hrms/holidays/seed-year', [HolidayCalendarController::class, 'seedYear'])
+                ->middleware('permission:hrms.holidays.manage');
+            Route::put('hrms/holidays/calendars/{calendar}', [HolidayCalendarController::class, 'update']);
+            Route::delete('hrms/holidays/calendars/{calendar}', [HolidayCalendarController::class, 'destroy']);
 
-        // HRMS assignments, the resolved view, and optional answers (Phase
-        // 15 P8.4b). `calendar` is declared before any `{assignment}`
-        // sibling so the literal never binds as an id (the P3.3 lesson);
-        // the resolved view authorizes per employee, with self-service.
-        Route::get('hrms/holidays/assignments', [HolidayAssignmentController::class, 'index']);
-        Route::post('hrms/holidays/assignments', [HolidayAssignmentController::class, 'store']);
-        Route::get('hrms/holidays/calendar', [HolidayAssignmentController::class, 'resolved']);
-        Route::delete('hrms/holidays/assignments/{assignment}', [HolidayAssignmentController::class, 'destroy']);
+            Route::get('hrms/holidays/calendars/{calendar}/holidays', [HolidayCalendarController::class, 'holidays']);
+            Route::post('hrms/holidays/calendars/{calendar}/holidays', [HolidayCalendarController::class, 'storeHoliday']);
+            Route::put('hrms/holidays/{holiday}', [HolidayController::class, 'update']);
+            Route::delete('hrms/holidays/{holiday}', [HolidayController::class, 'destroy']);
 
-        Route::get('hrms/holidays/optional', [HolidayOptionalController::class, 'index']);
-        Route::post('hrms/holidays/optional', [HolidayOptionalController::class, 'store']);
-    });
+            // HRMS assignments, the resolved view, and optional answers (Phase
+            // 15 P8.4b). `calendar` is declared before any `{assignment}`
+            // sibling so the literal never binds as an id (the P3.3 lesson);
+            // the resolved view authorizes per employee, with self-service.
+            Route::get('hrms/holidays/assignments', [HolidayAssignmentController::class, 'index']);
+            Route::post('hrms/holidays/assignments', [HolidayAssignmentController::class, 'store']);
+            Route::get('hrms/holidays/calendar', [HolidayAssignmentController::class, 'resolved']);
+            Route::delete('hrms/holidays/assignments/{assignment}', [HolidayAssignmentController::class, 'destroy']);
 
-    // HRMS payroll reads (Phase 15 P9.4). Same two gates as the rest of the
-    // HRMS surface; PayslipPolicy decides per record — the run grid is a
-    // runner tool (`hrms.payroll.run`), one payslip is an all-viewer or
-    // self-with-view read. Every read writes its access rows inside the
-    // service, and the remaining payroll surface (policies, requests, write
-    // routes) lands in P9.5.
-    Route::group(['middleware' => ['ensure_module:hrms.core', 'permission:hrms.view']], function () {
-        Route::get('hrms/payroll/runs/{run}/payslips', [PayslipController::class, 'index']);
-        Route::get('hrms/payroll/payslips/{payslip}', [PayslipController::class, 'show']);
-    });
+            Route::get('hrms/holidays/optional', [HolidayOptionalController::class, 'index']);
+            Route::post('hrms/holidays/optional', [HolidayOptionalController::class, 'store']);
+        });
 
-    // HRMS compensation writes (Phase 15 P9.5a). Same two gates; the component
-    // and structure policies split reads (`hrms.compensation.view`) from
-    // writes (`hrms.compensation.manage`), and the salary controller answers
-    // self-service reads itself — pay is sensitive, and the person in the
-    // record may see their own basis.
-    Route::group(['middleware' => ['ensure_module:hrms.core', 'permission:hrms.view']], function () {
-        Route::get('hrms/payroll/components', [SalaryComponentController::class, 'index']);
-        Route::post('hrms/payroll/components', [SalaryComponentController::class, 'store']);
-        Route::get('hrms/payroll/components/{component}', [SalaryComponentController::class, 'show']);
-        Route::put('hrms/payroll/components/{component}', [SalaryComponentController::class, 'update']);
-        Route::delete('hrms/payroll/components/{component}', [SalaryComponentController::class, 'destroy']);
+        // HRMS payroll reads (Phase 15 P9.4). Same two gates as the rest of the
+        // HRMS surface; PayslipPolicy decides per record — the run grid is a
+        // runner tool (`hrms.payroll.run`), one payslip is an all-viewer or
+        // self-with-view read. Every read writes its access rows inside the
+        // service, and the remaining payroll surface (policies, requests, write
+        // routes) lands in P9.5.
+        Route::group(['middleware' => ['ensure_module:hrms.core', 'permission:hrms.view']], function () {
+            Route::get('hrms/payroll/runs/{run}/payslips', [PayslipController::class, 'index']);
+            Route::get('hrms/payroll/payslips/{payslip}', [PayslipController::class, 'show']);
+        });
 
-        Route::get('hrms/payroll/structures', [SalaryStructureController::class, 'index']);
-        Route::post('hrms/payroll/structures', [SalaryStructureController::class, 'store']);
-        Route::get('hrms/payroll/structures/{structure}', [SalaryStructureController::class, 'show']);
-        Route::put('hrms/payroll/structures/{structure}', [SalaryStructureController::class, 'update']);
-        Route::delete('hrms/payroll/structures/{structure}', [SalaryStructureController::class, 'destroy']);
-        Route::put('hrms/payroll/structures/{structure}/components', [SalaryStructureController::class, 'setComponents']);
+        // HRMS compensation writes (Phase 15 P9.5a). Same two gates; the component
+        // and structure policies split reads (`hrms.compensation.view`) from
+        // writes (`hrms.compensation.manage`), and the salary controller answers
+        // self-service reads itself — pay is sensitive, and the person in the
+        // record may see their own basis.
+        Route::group(['middleware' => ['ensure_module:hrms.core', 'permission:hrms.view']], function () {
+            Route::get('hrms/payroll/components', [SalaryComponentController::class, 'index']);
+            Route::post('hrms/payroll/components', [SalaryComponentController::class, 'store']);
+            Route::get('hrms/payroll/components/{component}', [SalaryComponentController::class, 'show']);
+            Route::put('hrms/payroll/components/{component}', [SalaryComponentController::class, 'update']);
+            Route::delete('hrms/payroll/components/{component}', [SalaryComponentController::class, 'destroy']);
 
-        Route::get('hrms/payroll/employees/{employee}/salary', [EmployeeSalaryController::class, 'salary']);
-        Route::post('hrms/payroll/employees/{employee}/salary', [EmployeeSalaryController::class, 'assign']);
-        Route::get('hrms/payroll/employees/{employee}/revisions', [EmployeeSalaryController::class, 'revisions']);
-        Route::post('hrms/payroll/employees/{employee}/revisions', [EmployeeSalaryController::class, 'revise']);
-        Route::post('hrms/payroll/employees/{employee}/revisions/{revision}/apply', [EmployeeSalaryController::class, 'applyRevision']);
+            Route::get('hrms/payroll/structures', [SalaryStructureController::class, 'index']);
+            Route::post('hrms/payroll/structures', [SalaryStructureController::class, 'store']);
+            Route::get('hrms/payroll/structures/{structure}', [SalaryStructureController::class, 'show']);
+            Route::put('hrms/payroll/structures/{structure}', [SalaryStructureController::class, 'update']);
+            Route::delete('hrms/payroll/structures/{structure}', [SalaryStructureController::class, 'destroy']);
+            Route::put('hrms/payroll/structures/{structure}/components', [SalaryStructureController::class, 'setComponents']);
 
-        // HRMS payroll runs (Phase 15 P9.5b). Same two gates; the run policy
-        // answers every step with the one runner permission, and adjustments
-        // ride the payslip's `adjust` ability with both models bound.
-        Route::get('hrms/payroll/runs', [PayrollRunController::class, 'index']);
-        Route::post('hrms/payroll/runs', [PayrollRunController::class, 'store']);
-        Route::get('hrms/payroll/runs/{run}', [PayrollRunController::class, 'show']);
-        Route::post('hrms/payroll/runs/{run}/calculate', [PayrollRunController::class, 'calculate']);
-        Route::post('hrms/payroll/runs/{run}/approve', [PayrollRunController::class, 'approve']);
-        Route::post('hrms/payroll/runs/{run}/publish', [PayrollRunController::class, 'publish']);
-        Route::post('hrms/payroll/runs/{run}/mark-paid', [PayrollRunController::class, 'markPaid']);
-        Route::post('hrms/payroll/runs/{run}/lock', [PayrollRunController::class, 'lock']);
+            Route::get('hrms/payroll/employees/{employee}/salary', [EmployeeSalaryController::class, 'salary']);
+            Route::post('hrms/payroll/employees/{employee}/salary', [EmployeeSalaryController::class, 'assign']);
+            Route::get('hrms/payroll/employees/{employee}/revisions', [EmployeeSalaryController::class, 'revisions']);
+            Route::post('hrms/payroll/employees/{employee}/revisions', [EmployeeSalaryController::class, 'revise']);
+            Route::post('hrms/payroll/employees/{employee}/revisions/{revision}/apply', [EmployeeSalaryController::class, 'applyRevision']);
 
-        Route::post('hrms/payroll/payslips/{payslip}/adjustments', [PayslipAdjustmentController::class, 'store']);
-        Route::delete('hrms/payroll/payslips/{payslip}/adjustments/{adjustment}', [PayslipAdjustmentController::class, 'destroy']);
-        Route::get('hrms/payroll/my-payslips', [PayslipController::class, 'mine']);
-    });
+            // HRMS payroll runs (Phase 15 P9.5b). Same two gates; the run policy
+            // answers every step with the one runner permission, and adjustments
+            // ride the payslip's `adjust` ability with both models bound.
+            Route::get('hrms/payroll/runs', [PayrollRunController::class, 'index']);
+            Route::post('hrms/payroll/runs', [PayrollRunController::class, 'store']);
+            Route::get('hrms/payroll/runs/{run}', [PayrollRunController::class, 'show']);
+            Route::post('hrms/payroll/runs/{run}/calculate', [PayrollRunController::class, 'calculate']);
+            Route::post('hrms/payroll/runs/{run}/approve', [PayrollRunController::class, 'approve']);
+            Route::post('hrms/payroll/runs/{run}/publish', [PayrollRunController::class, 'publish']);
+            Route::post('hrms/payroll/runs/{run}/mark-paid', [PayrollRunController::class, 'markPaid']);
+            Route::post('hrms/payroll/runs/{run}/lock', [PayrollRunController::class, 'lock']);
 
-    // HRMS statutory identifiers (Phase 15 P10.5). The whole group sits
-    // behind the statutory module gate — jurisdictions a tenant never
-    // enabled have no profile surface at all — with the usual `hrms.view`
-    // surface gate inside it. Reads are self-or-manage, writes and the
-    // cleartext reveal are manage-alone (see the policy); configurations,
-    // declarations, projections and the surrender land in P10.6.
-    Route::group(['middleware' => ['ensure_module:hrms.core', 'ensure_module:hrms.payroll.statutory', 'permission:hrms.view']], function () {
-        Route::get('hrms/payroll/statutory/profiles/{employee}', [StatutoryProfileController::class, 'show']);
-        Route::put('hrms/payroll/statutory/profiles/{employee}', [StatutoryProfileController::class, 'update']);
-        Route::post('hrms/payroll/statutory/profiles/{employee}/reveal', [StatutoryProfileController::class, 'reveal']);
+            Route::post('hrms/payroll/payslips/{payslip}/adjustments', [PayslipAdjustmentController::class, 'store']);
+            Route::delete('hrms/payroll/payslips/{payslip}/adjustments/{adjustment}', [PayslipAdjustmentController::class, 'destroy']);
+            Route::get('hrms/payroll/my-payslips', [PayslipController::class, 'mine']);
+        });
 
-        // HRMS statutory rulebooks and exemption claims (Phase 15 P10.6a).
-        // Same gates; the configuration policy answers everything with
-        // manage, the declaration policy splits filing (self-or-manage)
-        // from deciding (manage-alone).
-        Route::get('hrms/payroll/statutory/configurations', [StatutoryConfigurationController::class, 'index']);
-        Route::post('hrms/payroll/statutory/configurations', [StatutoryConfigurationController::class, 'store']);
-        Route::get('hrms/payroll/statutory/configurations/{configuration}', [StatutoryConfigurationController::class, 'show']);
-        Route::put('hrms/payroll/statutory/configurations/{configuration}', [StatutoryConfigurationController::class, 'update']);
-        Route::delete('hrms/payroll/statutory/configurations/{configuration}', [StatutoryConfigurationController::class, 'destroy']);
+        // HRMS statutory identifiers (Phase 15 P10.5). The whole group sits
+        // behind the statutory module gate — jurisdictions a tenant never
+        // enabled have no profile surface at all — with the usual `hrms.view`
+        // surface gate inside it. Reads are self-or-manage, writes and the
+        // cleartext reveal are manage-alone (see the policy); configurations,
+        // declarations, projections and the surrender land in P10.6.
+        Route::group(['middleware' => ['ensure_module:hrms.core', 'ensure_module:hrms.payroll.statutory', 'permission:hrms.view']], function () {
+            Route::get('hrms/payroll/statutory/profiles/{employee}', [StatutoryProfileController::class, 'show']);
+            Route::put('hrms/payroll/statutory/profiles/{employee}', [StatutoryProfileController::class, 'update']);
+            Route::post('hrms/payroll/statutory/profiles/{employee}/reveal', [StatutoryProfileController::class, 'reveal']);
 
-        Route::get('hrms/payroll/statutory/declarations', [StatutoryDeclarationController::class, 'index']);
-        Route::post('hrms/payroll/statutory/declarations', [StatutoryDeclarationController::class, 'store']);
-        Route::get('hrms/payroll/statutory/declarations/{declaration}', [StatutoryDeclarationController::class, 'show']);
-        Route::post('hrms/payroll/statutory/declarations/{declaration}/submit', [StatutoryDeclarationController::class, 'submit']);
-        Route::post('hrms/payroll/statutory/declarations/{declaration}/verify', [StatutoryDeclarationController::class, 'verify']);
-        Route::post('hrms/payroll/statutory/declarations/{declaration}/reject', [StatutoryDeclarationController::class, 'reject']);
+            // HRMS statutory rulebooks and exemption claims (Phase 15 P10.6a).
+            // Same gates; the configuration policy answers everything with
+            // manage, the declaration policy splits filing (self-or-manage)
+            // from deciding (manage-alone).
+            Route::get('hrms/payroll/statutory/configurations', [StatutoryConfigurationController::class, 'index']);
+            Route::post('hrms/payroll/statutory/configurations', [StatutoryConfigurationController::class, 'store']);
+            Route::get('hrms/payroll/statutory/configurations/{configuration}', [StatutoryConfigurationController::class, 'show']);
+            Route::put('hrms/payroll/statutory/configurations/{configuration}', [StatutoryConfigurationController::class, 'update']);
+            Route::delete('hrms/payroll/statutory/configurations/{configuration}', [StatutoryConfigurationController::class, 'destroy']);
 
-        // HRMS TDS projections and the run recompute twin (Phase 15
-        // P10.6b). Same gates; the project policy splits reading (self or
-        // manage) from moving (manage alone), and the recompute answers to
-        // the run's own calculate ability.
-        Route::get('hrms/payroll/statutory/tds-projects', [TdsProjectController::class, 'index']);
-        Route::post('hrms/payroll/statutory/tds-projects', [TdsProjectController::class, 'project']);
-        Route::get('hrms/payroll/statutory/tds-projects/{project}', [TdsProjectController::class, 'show']);
-        Route::post('hrms/payroll/statutory/tds-projects/{project}/surrender', [TdsProjectController::class, 'surrender']);
-        Route::post('hrms/payroll/statutory/recompute', [TdsProjectController::class, 'recompute']);
-    });
+            Route::get('hrms/payroll/statutory/declarations', [StatutoryDeclarationController::class, 'index']);
+            Route::post('hrms/payroll/statutory/declarations', [StatutoryDeclarationController::class, 'store']);
+            Route::get('hrms/payroll/statutory/declarations/{declaration}', [StatutoryDeclarationController::class, 'show']);
+            Route::post('hrms/payroll/statutory/declarations/{declaration}/submit', [StatutoryDeclarationController::class, 'submit']);
+            Route::post('hrms/payroll/statutory/declarations/{declaration}/verify', [StatutoryDeclarationController::class, 'verify']);
+            Route::post('hrms/payroll/statutory/declarations/{declaration}/reject', [StatutoryDeclarationController::class, 'reject']);
 
-    // HRMS expenses (Phase 15 P11.3a). Same two gates plus the expenses
-    // module; the claim policy splits listing/reading (self-or-view),
-    // filing (self-or-manage) and deciding (approve-alone), and the
-    // category policy is master-data shaped (view vs manage).
-    Route::group(['middleware' => ['ensure_module:hrms.core', 'ensure_module:hrms.expenses', 'permission:hrms.view']], function () {
-        Route::get('hrms/expenses/categories', [ExpenseCategoryController::class, 'index']);
-        Route::post('hrms/expenses/categories', [ExpenseCategoryController::class, 'store']);
-        Route::get('hrms/expenses/categories/{category}', [ExpenseCategoryController::class, 'show']);
-        Route::put('hrms/expenses/categories/{category}', [ExpenseCategoryController::class, 'update']);
-        Route::delete('hrms/expenses/categories/{category}', [ExpenseCategoryController::class, 'destroy']);
+            // HRMS TDS projections and the run recompute twin (Phase 15
+            // P10.6b). Same gates; the project policy splits reading (self or
+            // manage) from moving (manage alone), and the recompute answers to
+            // the run's own calculate ability.
+            Route::get('hrms/payroll/statutory/tds-projects', [TdsProjectController::class, 'index']);
+            Route::post('hrms/payroll/statutory/tds-projects', [TdsProjectController::class, 'project']);
+            Route::get('hrms/payroll/statutory/tds-projects/{project}', [TdsProjectController::class, 'show']);
+            Route::post('hrms/payroll/statutory/tds-projects/{project}/surrender', [TdsProjectController::class, 'surrender']);
+            Route::post('hrms/payroll/statutory/recompute', [TdsProjectController::class, 'recompute']);
+        });
 
-        Route::get('hrms/expenses/claims', [ExpenseClaimController::class, 'index']);
-        Route::post('hrms/expenses/claims', [ExpenseClaimController::class, 'store']);
-        Route::get('hrms/expenses/claims/{claim}', [ExpenseClaimController::class, 'show']);
-        Route::put('hrms/expenses/claims/{claim}/items', [ExpenseClaimController::class, 'setItems']);
-        Route::post('hrms/expenses/claims/{claim}/submit', [ExpenseClaimController::class, 'submit']);
-        Route::post('hrms/expenses/claims/{claim}/decide', [ExpenseClaimController::class, 'decide']);
-    });
+        // HRMS expenses (Phase 15 P11.3a). Same two gates plus the expenses
+        // module; the claim policy splits listing/reading (self-or-view),
+        // filing (self-or-manage) and deciding (approve-alone), and the
+        // category policy is master-data shaped (view vs manage).
+        Route::group(['middleware' => ['ensure_module:hrms.core', 'ensure_module:hrms.expenses', 'permission:hrms.view']], function () {
+            Route::get('hrms/expenses/categories', [ExpenseCategoryController::class, 'index']);
+            Route::post('hrms/expenses/categories', [ExpenseCategoryController::class, 'store']);
+            Route::get('hrms/expenses/categories/{category}', [ExpenseCategoryController::class, 'show']);
+            Route::put('hrms/expenses/categories/{category}', [ExpenseCategoryController::class, 'update']);
+            Route::delete('hrms/expenses/categories/{category}', [ExpenseCategoryController::class, 'destroy']);
 
-    // HRMS engagement surveys (Phase 15 P16.3a). Same two gates plus the
-    // engagement module; templates answer to manage, campaigns to view or
-    // invitation, answers to invitation alone. The self-service pair
-    // (`my`) carries no answers and no aggregates — the blank form lives
-    // there, the scored results behind the view gate.
-    Route::group(['middleware' => ['ensure_module:hrms.core', 'ensure_module:hrms.engagement', 'permission:hrms.view']], function () {
-        Route::get('hrms/engagement/templates', [SurveyTemplateController::class, 'index']);
-        Route::post('hrms/engagement/templates', [SurveyTemplateController::class, 'store']);
-        Route::get('hrms/engagement/templates/{template}', [SurveyTemplateController::class, 'show']);
-        Route::put('hrms/engagement/templates/{template}', [SurveyTemplateController::class, 'update']);
-        Route::delete('hrms/engagement/templates/{template}', [SurveyTemplateController::class, 'destroy']);
-        Route::put('hrms/engagement/templates/{template}/questions', [SurveyTemplateController::class, 'setQuestions']);
+            Route::get('hrms/expenses/claims', [ExpenseClaimController::class, 'index']);
+            Route::post('hrms/expenses/claims', [ExpenseClaimController::class, 'store']);
+            Route::get('hrms/expenses/claims/{claim}', [ExpenseClaimController::class, 'show']);
+            Route::put('hrms/expenses/claims/{claim}/items', [ExpenseClaimController::class, 'setItems']);
+            Route::post('hrms/expenses/claims/{claim}/submit', [ExpenseClaimController::class, 'submit']);
+            Route::post('hrms/expenses/claims/{claim}/decide', [ExpenseClaimController::class, 'decide']);
+        });
 
-        Route::get('hrms/engagement/campaigns', [SurveyCampaignController::class, 'index']);
-        Route::post('hrms/engagement/campaigns', [SurveyCampaignController::class, 'store']);
-        Route::get('hrms/engagement/campaigns/{campaign}', [SurveyCampaignController::class, 'show']);
-        Route::post('hrms/engagement/campaigns/{campaign}/open', [SurveyCampaignController::class, 'open']);
-        Route::post('hrms/engagement/campaigns/{campaign}/close', [SurveyCampaignController::class, 'close']);
-        Route::post('hrms/engagement/campaigns/{campaign}/invite', [SurveyCampaignController::class, 'invite']);
-        Route::get('hrms/engagement/campaigns/{campaign}/results', [SurveyCampaignController::class, 'results']);
-        Route::post('hrms/engagement/campaigns/{campaign}/respond', [SurveyCampaignController::class, 'respond']);
+        // HRMS engagement surveys (Phase 15 P16.3a). Same two gates plus the
+        // engagement module; templates answer to manage, campaigns to view or
+        // invitation, answers to invitation alone. The self-service pair
+        // (`my`) carries no answers and no aggregates — the blank form lives
+        // there, the scored results behind the view gate.
+        Route::group(['middleware' => ['ensure_module:hrms.core', 'ensure_module:hrms.engagement', 'permission:hrms.view']], function () {
+            Route::get('hrms/engagement/templates', [SurveyTemplateController::class, 'index']);
+            Route::post('hrms/engagement/templates', [SurveyTemplateController::class, 'store']);
+            Route::get('hrms/engagement/templates/{template}', [SurveyTemplateController::class, 'show']);
+            Route::put('hrms/engagement/templates/{template}', [SurveyTemplateController::class, 'update']);
+            Route::delete('hrms/engagement/templates/{template}', [SurveyTemplateController::class, 'destroy']);
+            Route::put('hrms/engagement/templates/{template}/questions', [SurveyTemplateController::class, 'setQuestions']);
 
-        Route::get('hrms/engagement/my', [SurveyCampaignController::class, 'mine']);
-        Route::get('hrms/engagement/my/{campaign}', [SurveyCampaignController::class, 'mySurvey']);
-    });
+            Route::get('hrms/engagement/campaigns', [SurveyCampaignController::class, 'index']);
+            Route::post('hrms/engagement/campaigns', [SurveyCampaignController::class, 'store']);
+            Route::get('hrms/engagement/campaigns/{campaign}', [SurveyCampaignController::class, 'show']);
+            Route::post('hrms/engagement/campaigns/{campaign}/open', [SurveyCampaignController::class, 'open']);
+            Route::post('hrms/engagement/campaigns/{campaign}/close', [SurveyCampaignController::class, 'close']);
+            Route::post('hrms/engagement/campaigns/{campaign}/invite', [SurveyCampaignController::class, 'invite']);
+            Route::get('hrms/engagement/campaigns/{campaign}/results', [SurveyCampaignController::class, 'results']);
+            // One answer per invitee per campaign by design, but the endpoint
+            // still writes — same thirty-a-minute ceiling as the other writers.
+            Route::post('hrms/engagement/campaigns/{campaign}/respond', [SurveyCampaignController::class, 'respond'])->middleware('throttle:30,1');
 
-    // HRMS workforce analytics (Phase 18 P18.3). Same two gates plus the
-    // analytics module; every domain route carries its own permission —
-    // never a blanket `workspaces.view` (the Phase 7 precedent) — and the
-    // tiers inside shared endpoints (ratings, liability) read the caller's
-    // permissions in the controller.
-    Route::group(['middleware' => ['ensure_module:hrms.core', 'ensure_module:hrms.analytics', 'permission:hrms.view']], function () {
-        // CSV takes the domain as a parameter, so no static route can carry
-        // its gate — the controller authorizes each domain against the same
-        // permission slug as the tab route below.
-        Route::get('hrms/analytics/export', [HrmsAnalyticsExportController::class, 'export'])->middleware('throttle:30,1');
-        Route::get('hrms/analytics/overview', [HrmsAnalyticsController::class, 'overview'])->middleware('permission:hrms.analytics.view');
-        Route::get('hrms/analytics/attendance', [HrmsAnalyticsController::class, 'attendance'])->middleware('permission:hrms.attendance.view');
-        Route::get('hrms/analytics/leave', [HrmsAnalyticsController::class, 'leave'])->middleware('permission:hrms.leave.manage');
-        Route::get('hrms/analytics/lifecycle', [HrmsAnalyticsController::class, 'lifecycle'])->middleware('permission:hrms.analytics.view');
-        Route::get('hrms/analytics/performance', [HrmsAnalyticsController::class, 'performance'])->middleware('permission:hrms.analytics.view');
-        Route::get('hrms/analytics/payroll', [HrmsAnalyticsController::class, 'payroll'])->middleware('permission:hrms.payroll.run');
-        Route::get('hrms/analytics/documents', [HrmsAnalyticsController::class, 'documents'])->middleware('permission:hrms.documents.view');
-        Route::get('hrms/analytics/assets', [HrmsAnalyticsController::class, 'assets'])->middleware('permission:hrms.assets.view');
-    });
+            Route::get('hrms/engagement/my', [SurveyCampaignController::class, 'mine']);
+            Route::get('hrms/engagement/my/{campaign}', [SurveyCampaignController::class, 'mySurvey']);
+        });
 
-    // HRMS audit trail (Phase 19 P19.1). The ledger is cross-cutting, so no
-    // per-record policy can answer for it — `hrms.audit.view` is the whole
-    // gate, on both the filtered index and the single-record trail. The
-    // `{subjectType}` is the stored morph class; `{subjectId}` is numeric
-    // so a mistyped type still 404s instead of querying garbage.
-    Route::group(['middleware' => ['ensure_module:hrms.core', 'permission:hrms.view']], function () {
-        Route::get('hrms/audit', [AuditController::class, 'index'])->middleware('permission:hrms.audit.view');
-        Route::get('hrms/audit/data-access', [AuditController::class, 'dataAccess'])->middleware('permission:hrms.audit.view');
-        Route::get('hrms/audit/{subjectType}/{subjectId}', [AuditController::class, 'trail'])
-            ->middleware('permission:hrms.audit.view')
-            ->whereNumber('subjectId');
-    });
+        // HRMS workforce analytics (Phase 18 P18.3). Same two gates plus the
+        // analytics module; every domain route carries its own permission —
+        // never a blanket `workspaces.view` (the Phase 7 precedent) — and the
+        // tiers inside shared endpoints (ratings, liability) read the caller's
+        // permissions in the controller.
+        Route::group(['middleware' => ['ensure_module:hrms.core', 'ensure_module:hrms.analytics', 'permission:hrms.view']], function () {
+            // CSV takes the domain as a parameter, so no static route can carry
+            // its gate — the controller authorizes each domain against the same
+            // permission slug as the tab route below.
+            Route::get('hrms/analytics/export', [HrmsAnalyticsExportController::class, 'export'])->middleware('throttle:30,1');
+            Route::get('hrms/analytics/overview', [HrmsAnalyticsController::class, 'overview'])->middleware('permission:hrms.analytics.view');
+            Route::get('hrms/analytics/attendance', [HrmsAnalyticsController::class, 'attendance'])->middleware('permission:hrms.attendance.view');
+            Route::get('hrms/analytics/leave', [HrmsAnalyticsController::class, 'leave'])->middleware('permission:hrms.leave.manage');
+            Route::get('hrms/analytics/lifecycle', [HrmsAnalyticsController::class, 'lifecycle'])->middleware('permission:hrms.analytics.view');
+            Route::get('hrms/analytics/performance', [HrmsAnalyticsController::class, 'performance'])->middleware('permission:hrms.analytics.view');
+            Route::get('hrms/analytics/payroll', [HrmsAnalyticsController::class, 'payroll'])->middleware('permission:hrms.payroll.run');
+            Route::get('hrms/analytics/documents', [HrmsAnalyticsController::class, 'documents'])->middleware('permission:hrms.documents.view');
+            Route::get('hrms/analytics/assets', [HrmsAnalyticsController::class, 'assets'])->middleware('permission:hrms.assets.view');
+        });
 
-    // HRMS assets (Phase 15 P14.3a). Same two gates plus the assets module;
-    // the asset policy splits reads (view), movements (manage) and receipts
-    // (the holder alone), and the category policy is master-data shaped.
-    // The invoice download sits outside like every signed file route: the
-    // signature is the credential, so `asset` is an int resolved inside the
-    // tenant connection.
-    Route::group(['middleware' => ['ensure_module:hrms.core', 'ensure_module:hrms.assets', 'permission:hrms.view']], function () {
-        Route::get('hrms/assets/categories', [AssetCategoryController::class, 'index']);
-        Route::post('hrms/assets/categories', [AssetCategoryController::class, 'store']);
-        Route::get('hrms/assets/categories/{category}', [AssetCategoryController::class, 'show']);
-        Route::put('hrms/assets/categories/{category}', [AssetCategoryController::class, 'update']);
-        Route::delete('hrms/assets/categories/{category}', [AssetCategoryController::class, 'destroy']);
+        // HRMS audit trail (Phase 19 P19.1). The ledger is cross-cutting, so no
+        // per-record policy can answer for it — `hrms.audit.view` is the whole
+        // gate, on both the filtered index and the single-record trail. The
+        // `{subjectType}` is the stored morph class; `{subjectId}` is numeric
+        // so a mistyped type still 404s instead of querying garbage.
+        Route::group(['middleware' => ['ensure_module:hrms.core', 'permission:hrms.view']], function () {
+            Route::get('hrms/audit', [AuditController::class, 'index'])->middleware('permission:hrms.audit.view');
+            Route::get('hrms/audit/data-access', [AuditController::class, 'dataAccess'])->middleware('permission:hrms.audit.view');
+            Route::get('hrms/audit/{subjectType}/{subjectId}', [AuditController::class, 'trail'])
+                ->middleware('permission:hrms.audit.view')
+                ->whereNumber('subjectId');
+        });
 
-        Route::get('hrms/assets', [AssetController::class, 'index']);
-        Route::post('hrms/assets', [AssetController::class, 'store']);
-        Route::get('hrms/assets/{asset}', [AssetController::class, 'show']);
-        Route::post('hrms/assets/{asset}/assign', [AssetController::class, 'assign']);
-        Route::post('hrms/assets/{asset}/return', [AssetController::class, 'returnAsset']);
-        Route::post('hrms/assets/{asset}/maintenance', [AssetController::class, 'maintenance']);
-        Route::post('hrms/assets/assignments/{assignment}/acknowledge', [AssetController::class, 'acknowledge']);
-        Route::get('hrms/my/assets', [AssetController::class, 'mine']);
-    });
+        // HRMS assets (Phase 15 P14.3a). Same two gates plus the assets module;
+        // the asset policy splits reads (view), movements (manage) and receipts
+        // (the holder alone), and the category policy is master-data shaped.
+        // The invoice download sits outside like every signed file route: the
+        // signature is the credential, so `asset` is an int resolved inside the
+        // tenant connection.
+        Route::group(['middleware' => ['ensure_module:hrms.core', 'ensure_module:hrms.assets', 'permission:hrms.view']], function () {
+            Route::get('hrms/assets/categories', [AssetCategoryController::class, 'index']);
+            Route::post('hrms/assets/categories', [AssetCategoryController::class, 'store']);
+            Route::get('hrms/assets/categories/{category}', [AssetCategoryController::class, 'show']);
+            Route::put('hrms/assets/categories/{category}', [AssetCategoryController::class, 'update']);
+            Route::delete('hrms/assets/categories/{category}', [AssetCategoryController::class, 'destroy']);
 
-    Route::get('hrms/assets/{asset}/document', [AssetController::class, 'document'])
-        ->middleware('signed')
-        ->name('hrms.assets.document');
+            Route::get('hrms/assets', [AssetController::class, 'index']);
+            Route::post('hrms/assets', [AssetController::class, 'store']);
+            Route::get('hrms/assets/{asset}', [AssetController::class, 'show']);
+            Route::post('hrms/assets/{asset}/assign', [AssetController::class, 'assign']);
+            Route::post('hrms/assets/{asset}/return', [AssetController::class, 'returnAsset']);
+            Route::post('hrms/assets/{asset}/maintenance', [AssetController::class, 'maintenance']);
+            Route::post('hrms/assets/assignments/{assignment}/acknowledge', [AssetController::class, 'acknowledge']);
+            Route::get('hrms/my/assets', [AssetController::class, 'mine']);
+        });
 
-    // HRMS performance, first half (Phase 15 P12.4a): cycles, goals,
-    // check-ins and 1:1s. Same two gates plus the performance module; the
-    // four policies split reads (self, manager, or view) from moves
-    // (manage, or self-while-draft for goals). Feedback, reviews and the
-    // evidence read land in P12.4b.
-    Route::group(['middleware' => ['ensure_module:hrms.core', 'ensure_module:hrms.performance', 'permission:hrms.view']], function () {
-        Route::get('hrms/performance/cycles', [PerformanceCycleController::class, 'index']);
-        Route::post('hrms/performance/cycles', [PerformanceCycleController::class, 'store']);
-        Route::get('hrms/performance/cycles/{cycle}', [PerformanceCycleController::class, 'show']);
-        Route::post('hrms/performance/cycles/{cycle}/open-check-in', [PerformanceCycleController::class, 'openCheckIn']);
-        Route::post('hrms/performance/cycles/{cycle}/open-self-review', [PerformanceCycleController::class, 'openSelfReview']);
-        Route::post('hrms/performance/cycles/{cycle}/open-manager-review', [PerformanceCycleController::class, 'openManagerReview']);
-        Route::post('hrms/performance/cycles/{cycle}/open-calibration', [PerformanceCycleController::class, 'openCalibration']);
-        Route::post('hrms/performance/cycles/{cycle}/complete', [PerformanceCycleController::class, 'complete']);
+        Route::get('hrms/assets/{asset}/document', [AssetController::class, 'document'])
+            ->middleware('signed')
+            ->name('hrms.assets.document');
 
-        Route::get('hrms/performance/cycles/{cycle}/goals', [PerformanceGoalController::class, 'index']);
-        Route::post('hrms/performance/cycles/{cycle}/goals', [PerformanceGoalController::class, 'store']);
-        Route::get('hrms/performance/goals/{goal}', [PerformanceGoalController::class, 'show']);
-        Route::put('hrms/performance/goals/{goal}', [PerformanceGoalController::class, 'update']);
-        Route::post('hrms/performance/goals/{goal}/refresh', [PerformanceGoalController::class, 'refresh']);
-        Route::post('hrms/performance/goals/{goal}/tasks', [PerformanceGoalController::class, 'linkTask']);
-        Route::delete('hrms/performance/goals/{goal}/tasks/{task}', [PerformanceGoalController::class, 'unlinkTask']);
+        // HRMS performance, first half (Phase 15 P12.4a): cycles, goals,
+        // check-ins and 1:1s. Same two gates plus the performance module; the
+        // four policies split reads (self, manager, or view) from moves
+        // (manage, or self-while-draft for goals). Feedback, reviews and the
+        // evidence read land in P12.4b.
+        Route::group(['middleware' => ['ensure_module:hrms.core', 'ensure_module:hrms.performance', 'permission:hrms.view']], function () {
+            Route::get('hrms/performance/cycles', [PerformanceCycleController::class, 'index']);
+            Route::post('hrms/performance/cycles', [PerformanceCycleController::class, 'store']);
+            Route::get('hrms/performance/cycles/{cycle}', [PerformanceCycleController::class, 'show']);
+            Route::post('hrms/performance/cycles/{cycle}/open-check-in', [PerformanceCycleController::class, 'openCheckIn']);
+            Route::post('hrms/performance/cycles/{cycle}/open-self-review', [PerformanceCycleController::class, 'openSelfReview']);
+            Route::post('hrms/performance/cycles/{cycle}/open-manager-review', [PerformanceCycleController::class, 'openManagerReview']);
+            Route::post('hrms/performance/cycles/{cycle}/open-calibration', [PerformanceCycleController::class, 'openCalibration']);
+            Route::post('hrms/performance/cycles/{cycle}/complete', [PerformanceCycleController::class, 'complete']);
 
-        Route::get('hrms/performance/cycles/{cycle}/check-ins', [CheckInController::class, 'index']);
-        Route::post('hrms/performance/cycles/{cycle}/check-ins', [CheckInController::class, 'store']);
+            Route::get('hrms/performance/cycles/{cycle}/goals', [PerformanceGoalController::class, 'index']);
+            Route::post('hrms/performance/cycles/{cycle}/goals', [PerformanceGoalController::class, 'store']);
+            Route::get('hrms/performance/goals/{goal}', [PerformanceGoalController::class, 'show']);
+            Route::put('hrms/performance/goals/{goal}', [PerformanceGoalController::class, 'update']);
+            Route::post('hrms/performance/goals/{goal}/refresh', [PerformanceGoalController::class, 'refresh']);
+            Route::post('hrms/performance/goals/{goal}/tasks', [PerformanceGoalController::class, 'linkTask']);
+            Route::delete('hrms/performance/goals/{goal}/tasks/{task}', [PerformanceGoalController::class, 'unlinkTask']);
 
-        // HRMS feedback, reviews and evidence (Phase 15 P12.4b). Same
-        // gates; the feedback policy names who may answer (the reviewer
-        // alone), the review policy splits readers by visibility, and the
-        // evidence read never recomputes — the refresh endpoint does.
-        Route::get('hrms/performance/cycles/{cycle}/feedback-requests', [FeedbackRequestController::class, 'index']);
-        Route::get('hrms/performance/feedback-requests/{feedbackRequest}', [FeedbackRequestController::class, 'show']);
-        Route::post('hrms/performance/feedback-requests/{feedbackRequest}/respond', [FeedbackRequestController::class, 'respond']);
+            Route::get('hrms/performance/cycles/{cycle}/check-ins', [CheckInController::class, 'index']);
+            Route::post('hrms/performance/cycles/{cycle}/check-ins', [CheckInController::class, 'store']);
 
-        Route::get('hrms/performance/cycles/{cycle}/reviews', [ReviewSummaryController::class, 'index']);
-        Route::post('hrms/performance/cycles/{cycle}/reviews', [ReviewSummaryController::class, 'store']);
-        Route::get('hrms/performance/reviews/{review}', [ReviewSummaryController::class, 'show']);
-        Route::put('hrms/performance/reviews/{review}', [ReviewSummaryController::class, 'update']);
-        Route::post('hrms/performance/reviews/{review}/acknowledge', [ReviewSummaryController::class, 'acknowledge']);
+            // HRMS feedback, reviews and evidence (Phase 15 P12.4b). Same
+            // gates; the feedback policy names who may answer (the reviewer
+            // alone), the review policy splits readers by visibility, and the
+            // evidence read never recomputes — the refresh endpoint does.
+            Route::get('hrms/performance/cycles/{cycle}/feedback-requests', [FeedbackRequestController::class, 'index']);
+            Route::get('hrms/performance/feedback-requests/{feedbackRequest}', [FeedbackRequestController::class, 'show']);
+            Route::post('hrms/performance/feedback-requests/{feedbackRequest}/respond', [FeedbackRequestController::class, 'respond']);
 
-        Route::get('hrms/performance/cycles/{cycle}/evidence', [PerformanceCycleController::class, 'evidence']);
-        Route::post('hrms/performance/cycles/{cycle}/evidence', [PerformanceCycleController::class, 'refreshEvidence']);
+            Route::get('hrms/performance/cycles/{cycle}/reviews', [ReviewSummaryController::class, 'index']);
+            Route::post('hrms/performance/cycles/{cycle}/reviews', [ReviewSummaryController::class, 'store']);
+            Route::get('hrms/performance/reviews/{review}', [ReviewSummaryController::class, 'show']);
+            Route::put('hrms/performance/reviews/{review}', [ReviewSummaryController::class, 'update']);
+            Route::post('hrms/performance/reviews/{review}/acknowledge', [ReviewSummaryController::class, 'acknowledge']);
 
-        Route::get('hrms/performance/one-on-ones', [OneOnOneController::class, 'index']);
-        Route::post('hrms/performance/one-on-ones', [OneOnOneController::class, 'store']);
-        Route::get('hrms/performance/one-on-ones/{oneOnOne}', [OneOnOneController::class, 'show']);
-        Route::put('hrms/performance/one-on-ones/{oneOnOne}', [OneOnOneController::class, 'update']);
-    });
+            Route::get('hrms/performance/cycles/{cycle}/evidence', [PerformanceCycleController::class, 'evidence']);
+            Route::post('hrms/performance/cycles/{cycle}/evidence', [PerformanceCycleController::class, 'refreshEvidence']);
 
-    // HRMS remote punch (Phase 15 P5.3). Deliberately NO route-level
-    // permission: the endpoint resolves the employment record from the
-    // authenticated user, so there is nothing to authorize against and no
-    // login may punch for another. The module 403 is the upgrade path, not
-    // a permission 403 — the client shows `/403` for the former.
-    Route::group(['middleware' => ['ensure_module:hrms.attendance.remote']], function () {
-        Route::post('hrms/attendance/punch', [AttendanceController::class, 'punch']);
-    });
+            Route::get('hrms/performance/one-on-ones', [OneOnOneController::class, 'index']);
+            Route::post('hrms/performance/one-on-ones', [OneOnOneController::class, 'store']);
+            Route::get('hrms/performance/one-on-ones/{oneOnOne}', [OneOnOneController::class, 'show']);
+            Route::put('hrms/performance/one-on-ones/{oneOnOne}', [OneOnOneController::class, 'update']);
+        });
+
+        // HRMS remote punch (Phase 15 P5.3). Deliberately NO route-level
+        // permission: the endpoint resolves the employment record from the
+        // authenticated user, so there is nothing to authorize against and no
+        // login may punch for another. The module 403 is the upgrade path, not
+        // a permission 403 — the client shows `/403` for the former.
+        Route::group(['middleware' => ['ensure_module:hrms.attendance.remote']], function () {
+            // Punching is self-only and audited, but it still writes rows —
+            // thirty a minute is generous for a shift boundary and stops a
+            // stuck client from flooding the ledger.
+            Route::post('hrms/attendance/punch', [AttendanceController::class, 'punch'])->middleware('throttle:30,1');
+        });
+
+    }); // tenant_context + onboarding_complete over the HRMS block
 
     // Signed temporary download link for task attachments. Intentionally OUTSIDE
     // the auth/tenant groups so a fresh-browser-tab GET works; access is granted
