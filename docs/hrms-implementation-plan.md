@@ -3822,12 +3822,22 @@ only runs when explicitly enabled; a goal's evidence lists the exact task ids it
 
 **Objective:** make the whole module feel like part of the product, and finish the cross-cutting UX.
 
-**P21.1 — Sidebar "People" section**
+**P21.1 — Sidebar "People" section** ✅
 `components/layout/Sidebar.jsx` — a new section with items for Overview, My Team, Inbox (badge count),
 Employees, Org, Attendance, Leave, Shifts, Holidays, Comp-off, Expenses, Documents, Assets,
 Compensation, Payroll, Performance, Talent, Engagement, Analytics, Audit. Each item carries its `module`
 and `permission` so the existing filter hides it correctly; the section header renders when **any** item
 is visible. Keep the section collapsed/sectioned like the existing nav.
+
+> **P21.1 as shipped.** The section already existed complete (30 entries,
+> badge, collapse, header-only-when-visible) — the audit found the real
+> gap beside it: 15 routes never checked the domain module their sidebar
+> item filters on, so a module-less tenant lost the nav but kept the page
+> shell on a direct URL. All eight hubs now nest their module gate
+> (Holidays/Statutory precedent), pinned by
+> `test_sidebar_domain_modules_match_route_gates`. Shifts and Talent
+> stay unlinked on purpose: the modules/permissions are reserved but no
+> pages were ever built, and a polish task does not invent two screens.
 
 **P21.2 — Onboarding wizard HRMS step**
 Add a `hrms` step to `config/onboarding.php` (after `configuration`) with `'required' => false` and

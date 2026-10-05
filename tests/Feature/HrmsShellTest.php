@@ -113,6 +113,19 @@ class HrmsShellTest extends TestCase
         $this->assertStringContainsString('module="hrms.core"', $app);
     }
 
+    public function test_sidebar_domain_modules_match_route_gates(): void
+    {
+        // Every domain module the sidebar filters on must also gate its
+        // routes: otherwise a tenant without the module loses the nav item
+        // but keeps the page on a direct URL (an empty shell over 403ing
+        // APIs). Holidays/statutory set the precedent; this pins the rest.
+        $app = file_get_contents(resource_path('js/App.jsx'));
+
+        foreach (['hrms.attendance', 'hrms.leave', 'hrms.comp_off', 'hrms.holidays', 'hrms.expenses', 'hrms.performance', 'hrms.assets', 'hrms.engagement', 'hrms.analytics', 'hrms.payroll.statutory'] as $module) {
+            $this->assertStringContainsString("module=\"{$module}\"", $app, "No route gate for {$module}");
+        }
+    }
+
     public function test_the_spa_catalog_matches_the_php_module_catalog(): void
     {
         // HRMS_MODULE_META is generated from config/subscriptions.php; without
