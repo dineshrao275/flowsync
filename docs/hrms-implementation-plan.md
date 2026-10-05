@@ -3485,7 +3485,8 @@ preferences persist and drive the digests.
 **Objective:** workforce dashboards and scheduled digests, reusing the existing analytics/caching
 patterns.
 
-**P18.1 — `000030` migration**
+**P18.1 — `000030` migration** ✅ (landed as `2026_10_10_000033` — the
+planned number was spent by assets, like the rest)
 `hrms_report_schedules` (`name`, `slug` unique, `definition` JSON, `cadence` enum
 `daily|weekly|monthly|quarterly`, `recipients` JSON (user ids and/or role slugs), `last_run_at` nullable,
 `next_run_at` nullable, `is_active`, `created_by`).
