@@ -30,6 +30,7 @@ use App\Http\Controllers\Hrms\Holiday\HolidayAssignmentController;
 use App\Http\Controllers\Hrms\Holiday\HolidayCalendarController;
 use App\Http\Controllers\Hrms\Holiday\HolidayController;
 use App\Http\Controllers\Hrms\Holiday\HolidayOptionalController;
+use App\Http\Controllers\Hrms\HrmsAnalyticsController;
 use App\Http\Controllers\Hrms\InboxController;
 use App\Http\Controllers\Hrms\Leave\LeaveBalanceController;
 use App\Http\Controllers\Hrms\Leave\LeaveExemptionController;
@@ -736,6 +737,22 @@ Route::prefix('api')->group(function () {
 
         Route::get('hrms/engagement/my', [SurveyCampaignController::class, 'mine']);
         Route::get('hrms/engagement/my/{campaign}', [SurveyCampaignController::class, 'mySurvey']);
+    });
+
+    // HRMS workforce analytics (Phase 18 P18.3). Same two gates plus the
+    // analytics module; every domain route carries its own permission —
+    // never a blanket `workspaces.view` (the Phase 7 precedent) — and the
+    // tiers inside shared endpoints (ratings, liability) read the caller's
+    // permissions in the controller.
+    Route::group(['middleware' => ['ensure_module:hrms.core', 'ensure_module:hrms.analytics', 'permission:hrms.view']], function () {
+        Route::get('hrms/analytics/overview', [HrmsAnalyticsController::class, 'overview'])->middleware('permission:hrms.analytics.view');
+        Route::get('hrms/analytics/attendance', [HrmsAnalyticsController::class, 'attendance'])->middleware('permission:hrms.attendance.view');
+        Route::get('hrms/analytics/leave', [HrmsAnalyticsController::class, 'leave'])->middleware('permission:hrms.leave.manage');
+        Route::get('hrms/analytics/lifecycle', [HrmsAnalyticsController::class, 'lifecycle'])->middleware('permission:hrms.analytics.view');
+        Route::get('hrms/analytics/performance', [HrmsAnalyticsController::class, 'performance'])->middleware('permission:hrms.analytics.view');
+        Route::get('hrms/analytics/payroll', [HrmsAnalyticsController::class, 'payroll'])->middleware('permission:hrms.payroll.run');
+        Route::get('hrms/analytics/documents', [HrmsAnalyticsController::class, 'documents'])->middleware('permission:hrms.documents.view');
+        Route::get('hrms/analytics/assets', [HrmsAnalyticsController::class, 'assets'])->middleware('permission:hrms.assets.view');
     });
 
     // HRMS assets (Phase 15 P14.3a). Same two gates plus the assets module;

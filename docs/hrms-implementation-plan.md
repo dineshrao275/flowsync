@@ -3516,12 +3516,17 @@ planned number was spent by assets, like the rest)
 > PostgreSQL); liability is an estimate, labelled. `HrmsAnalyticsTest`
 > (6 tests).
 
-**P18.3 — Controller + routes**
+**P18.3 — Controller + routes** ✅
 `GET api/hrms/analytics/overview` (headcount + 6 tiles) plus `.../attendance`, `.../leave`,
 `.../lifecycle`, `.../performance`, `.../payroll`, `.../documents`, `.../assets` — each behind its **own**
 route-level `permission:` gate, never a blanket `workspaces.view` (the Phase 7 precedent). Optional
 `?from=&to=&department_id=&location_id=&employment_type_id=`, validated against the tenant's own org
 tables (422 on an unknown id).
+
+> **P18.3 as shipped.** One thin controller, eight routes each with its
+> own gate (attendance tab 403s without its perm, payroll without its
+> run); tiers inside shared endpoints read the caller; filters validate
+> against tenant tables. `HrmsAnalyticsApiTest` (5 tests, 18 assertions).
 
 **P18.4 — Scheduled digests**
 `php artisan hrms:report-digests` reads `hrms_report_schedules` whose `next_run_at` has passed, builds
