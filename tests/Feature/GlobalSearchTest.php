@@ -2,12 +2,17 @@
 
 namespace Tests\Feature;
 
+use App\Enums\Hrms\EmployeeStatus;
+use App\Models\Hrms\Employee\Employee;
 use App\Models\Project;
 use App\Models\ProjectRole;
+use App\Models\SubscriptionPlan;
 use App\Models\Task;
 use App\Models\TaskStatus;
+use App\Models\Tenant;
 use App\Models\User;
 use App\Models\Workspace;
+use App\Services\SubscriptionService;
 use App\Support\TenantProvisioner;
 use Illuminate\Support\Facades\Hash;
 use Tests\IsolatesDatabase;
@@ -235,5 +240,35 @@ class GlobalSearchTest extends TestCase
         $this->login('viewer@flowsync.test');
         $response = $this->search('flowsync')->assertOk();
         $this->assertSame([], $response->json('results.users'));
+    }
+
+    public function test_employees_search_needs_the_directory_permission_and_the_module(): void
+    {
+        $this->connectTenant('acme');
+        Employee::create([
+            'employee_code' => 'EMP-GLOB', 'name' => 'Global Searchable',
+            'status' => EmployeeStatus::Active,
+        ]);
+
+        // The viewer names no directory permission: no employees section.
+        $this->login('viewer@flowsync.test');
+        $this->assertSame([], $this->search('Searchable')->assertOk()->json('results.employees'));
+
+        // The admin names it and the tenant holds the module: one row,
+        // linking to the profile by id.
+        $this->login('admin@flowsync.test');
+        $employees = $this->search('Searchable')->assertOk()->json('results.employees');
+        $this->assertCount(1, $employees);
+        $this->assertSame('EMP-GLOB', $employees[0]['employee_code']);
+
+        // A plan with search but without hrms.core hides the section even
+        // from the admin (a plan without search 403s the whole route
+        // first, which proves nothing about this gate).
+        $tenant = Tenant::where('slug', 'acme')->firstOrFail();
+        $starter = SubscriptionPlan::where('slug', 'starter')->firstOrFail();
+        $starter->update(['limits' => [...$starter->limits, 'modules' => ['time_tracking', 'global_search']]]);
+        app(SubscriptionService::class)->assign($tenant, $starter);
+
+        $this->assertSame([], $this->search('Searchable')->assertOk()->json('results.employees'));
     }
 }

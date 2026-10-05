@@ -3854,11 +3854,21 @@ gains a `hrms` entry (company size, industry defaults, first-office location).
 > optional first office (real `hrms/locations` row) before marking.
 > Pinned in `OnboardingTest` (starter hides/unmarkable, pro sees/marks).
 
-**P21.3 — Command-palette entries**
+**P21.3 — Command-palette entries** ✅
 `components/search/CommandPalette.jsx` gains an `hrms` group (employees, then a shortcut row for each
 enabled module), reusing the existing grouped result + keyboard-navigation machinery. Add
 `GET api/search/global` results for employees only when the caller holds `hrms.employees.view` and the
 `hrms.core` module is on.
+
+> **P21.3 as shipped.** Global search gains an `employees` section
+> (name/code matches, profile-linking payload, capped at five) behind
+> the directory permission *and* the core module — the super-admin
+> bypass reads the module per tenant but never touches `hasPermission`
+> (which would query tenant `roles` on the system connection). The
+> palette renders employees plus query-matching jump rows for routed
+> modules the tenant holds (routed-only, like the overview tiles).
+> Pinned in `GlobalSearchTest` (viewer hidden, admin found, module-less
+> plan hidden).
 
 **P21.4 — Empty states, loading, and error polish**
 Every HRMS page gets: a module-specific `EmptyState`, `Spinner` while loading, a `403` redirect via the
