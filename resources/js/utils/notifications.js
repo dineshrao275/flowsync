@@ -61,6 +61,10 @@ export function describeNotification(type, data = {}, actorName = 'Someone') {
             return `${data.asset_code ?? 'An asset'} came back`;
         case 'hrms.asset.return_overdue':
             return `${data.asset_code ?? 'An asset'} still needs your signature`;
+        case 'hrms.survey.invited':
+            return `You are invited: ${data.campaign_name ?? 'a survey'}`;
+        case 'hrms.survey.closing_soon':
+            return `${data.campaign_name ?? 'A survey'} closes soon — answer if you have not`;
         default:
             return 'You have a new notification';
     }
@@ -184,6 +188,12 @@ export function notificationHref(data = {}, type = '') {
 
     if (type === 'hrms.asset.acknowledged' || type === 'hrms.asset.returned') {
         return '/hrms/assets';
+    }
+
+    // Surveys land on the self-service answer flow — the one place an
+    // invitee can act, since results sit behind the view permission.
+    if (type === 'hrms.survey.invited' || type === 'hrms.survey.closing_soon') {
+        return '/hrms/engagement/mine';
     }
 
     if (project_id && key) {

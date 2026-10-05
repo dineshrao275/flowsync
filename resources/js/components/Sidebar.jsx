@@ -155,6 +155,18 @@ const sections = [
                 capabilities: ['module:hrms.core', 'module:hrms.assets'],
                 icon: 'M5 3h14v18H5V3zm3 5h8m-8 4h5',
             },
+            {
+                to: '/hrms/engagement',
+                label: 'Engagement',
+                capabilities: ['module:hrms.core', 'module:hrms.engagement', 'permission:hrms.engagement.view'],
+                icon: 'M12 3v3m0 12v3M3 12h3m12 0h3M5.6 5.6l2.1 2.1m8.6 8.6l2.1 2.1m0-12.8l-2.1 2.1M7.7 16.3l-2.1 2.1M12 8a4 4 0 100 8 4 4 0 000-8z',
+            },
+            {
+                to: '/hrms/engagement/mine',
+                label: 'My surveys',
+                capabilities: ['module:hrms.core', 'module:hrms.engagement'],
+                icon: 'M5 3h14v18H5V3zm3 5h8m-8 4h5',
+            },
             { to: '/hrms', label: 'HRMS', capabilities: ['module:hrms.core'], icon: 'M17 20h5v-2a4 4 0 00-3-3.87M9 20H4v-2a4 4 0 013-3.87m4-1.13a4 4 0 10-4-4 4 4 0 004 4zm6 2a3 3 0 10-3-3' },
         ],
     },

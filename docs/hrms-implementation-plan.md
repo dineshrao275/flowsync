@@ -3409,7 +3409,7 @@ submission per campaign**, enforced by the unique index), `results(Campaign)`.
 > beside the empty result; snapshots persist per question; `closing_soon`
 > waits for the P16.3 scheduled command. `HrmsEngagementTest` (5 tests).
 
-**P16.3 — Policies, requests, routes, frontend** (split: `P16.3a` HTTP + schedule command ✅, `P16.3b` SPA)
+**P16.3 — Policies, requests, routes, frontend** (split: `P16.3a` HTTP + schedule command ✅, `P16.3b` SPA ✅)
 `SurveyTemplatePolicy` (manage `hrms.engagement.manage`; view results `hrms.engagement.view`; respond =
 anyone invited, authenticated only).
 Routes: `/api/hrms/engagement/templates`, `.../templates/{template}/questions`, `.../campaigns`,

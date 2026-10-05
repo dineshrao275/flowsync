@@ -53,6 +53,8 @@ import PerformanceCycleDetail from './pages/hrms/PerformanceCycleDetail';
 import MyPerformance from './pages/hrms/MyPerformance';
 import Assets from './pages/hrms/Assets';
 import MyAssets from './pages/hrms/MyAssets';
+import Engagement from './pages/hrms/Engagement';
+import MySurvey from './pages/hrms/MySurvey';
 import Search from './pages/Search';
 import Notifications from './pages/Notifications';
 import Tenants from './pages/Tenants';
@@ -344,6 +346,18 @@ function AppRoutes() {
                                 }
                             />
                             <Route path="/hrms/assets/mine" element={<MyAssets />} />
+                            {/* Engagement: the hub needs the view permission,
+                                answering rides the module alone like My files. */}
+                            <Route
+                                path="/hrms/engagement"
+                                element={
+                                    <ProtectedRoute permission="hrms.engagement.view">
+                                        <Engagement />
+                                    </ProtectedRoute>
+                                }
+                            />
+                            <Route path="/hrms/engagement/mine" element={<MySurvey />} />
+                            <Route path="/hrms/engagement/mine/:campaignId" element={<MySurvey />} />
                             <Route path="/hrms/:section" element={<HrmsOverview />} />
                         </Route>
                         <Route element={<ProtectedRoute permission="users.view" />}>

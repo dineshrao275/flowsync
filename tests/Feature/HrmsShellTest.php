@@ -253,6 +253,18 @@ class HrmsShellTest extends TestCase
         $this->assertStringContainsString("return '/hrms/assets';", $js);
     }
 
+    public function test_the_notification_helpers_cover_survey_nudges(): void
+    {
+        // Same rule as every pin before it: an invite names the campaign
+        // and lands on the answer flow — the one place an invitee can act.
+        $js = file_get_contents(resource_path('js/utils/notifications.js'));
+
+        $this->assertStringContainsString('hrms.survey.invited', $js);
+        $this->assertStringContainsString('hrms.survey.closing_soon', $js);
+        $this->assertStringContainsString('campaign_name', $js);
+        $this->assertStringContainsString("return '/hrms/engagement/mine';", $js);
+    }
+
     public function test_the_notification_helpers_cover_clearance_document_cycle_and_share(): void
     {
         // The taxonomy top-ups name their ids and land where each reader
