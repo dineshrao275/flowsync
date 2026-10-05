@@ -3491,7 +3491,7 @@ planned number was spent by assets, like the rest)
 `daily|weekly|monthly|quarterly`, `recipients` JSON (user ids and/or role slugs), `last_run_at` nullable,
 `next_run_at` nullable, `is_active`, `created_by`).
 
-**P18.2 — `HrmsAnalyticsService` (cached)**
+**P18.2 — `HrmsAnalyticsService` (cached)** ✅
 `app/Services/Hrms/HrmsAnalyticsService.php` — each method `Cache::remember($key, $ttl, fn () => ...)`:
 - `headcount(filters)` — total, by status, by department, by location, by employment type, new hires and
   exits this month, 3-month rolling attrition.
@@ -3506,6 +3506,15 @@ planned number was spent by assets, like the rest)
   writes an `hrms_data_access_logs` row.
 - `documents` — compliance (% of employees holding each mandatory type), expiring in 30/60/90 days.
 - `assets` — assigned/available/maintenance/lost counts, assets per department.
+
+> **P18.2 as shipped.** The plan's single file became a thin orchestrator
+> over `Services/Hrms/Analytics/` (the P3.2 split rule — 479 lines would
+> breach the ceiling): eight readers sharing one base for filters, cache
+> and completion math. Privacy tiers are parameters (`$detailed`,
+> `$includeLiability`, `$includeRatings`), never permission sniffs;
+> payroll logs every call; datediffs run in PHP (no `julianday` on
+> PostgreSQL); liability is an estimate, labelled. `HrmsAnalyticsTest`
+> (6 tests).
 
 **P18.3 — Controller + routes**
 `GET api/hrms/analytics/overview` (headcount + 6 tiles) plus `.../attendance`, `.../leave`,
