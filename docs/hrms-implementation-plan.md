@@ -3905,11 +3905,17 @@ disabled) when the caller lacks the permission, matching the existing project/ta
 > keyboard-operable (links/buttons throughout); arrow-key roving and
 > the touch-only reorder affordance stay documented follow-ups.
 
-**P21.6 — Documentation**
+**P21.6 — Documentation** ✅
 Update `AGENTS.md`: a new **HRMS** section summarising the module keys, the shared primitives, the
 `config/hrms.php` catalog, the signed-download rule, the test gate, and the provisioning seed step. Add
 `docs/hrms-architecture.md` if the module outgrows this plan (data model, service boundaries, payroll
 pipeline). Update the test count.
+
+> **P21.6 as shipped.** New `HRMS reference` section in `AGENTS.md`
+> (keys, primitives, catalog, HTTP shape, downloads, task integration,
+> test gate). No `docs/hrms-architecture.md`: the plan (Parts 1–3) plus
+> that section are the architecture record — a third copy would rot.
+> Counts unchanged (docs + JS only since P21.3).
 
 **Acceptance:** the Sidebar shows exactly the items the current user may reach; a `starter` tenant sees
 no People section; the wizard step appears only for HRMS tenants; the command palette finds employees;

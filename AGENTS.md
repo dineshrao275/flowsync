@@ -20,7 +20,7 @@ Laravel 12 + React 19 SPA. Session-based auth **without** Breeze/Fortify/Sanctum
   `tenants:provision` + seeds demo data (superadmin + acme + globex). Reset from scratch:
   `docker-compose down -v` then `up -d` (app entrypoint re-initializes; `RUN_INIT=true` only for `app`).
   No PHP/composer needed on the host — envs in `.env.docker`.
-- `php artisan test` — run test suite (Phase 13: **isolated, per-tenant file DBs** via `Tests\IsolatesDatabase`; current gate: **1363 tests / 6794 assertions passing** — P21.3 (full suite re-verified in Hrms/non-Hrms chunks with zero omitted files at the Phase 17 end-gate))
+- `php artisan test` — run test suite (Phase 13: **isolated, per-tenant file DBs** via `Tests\IsolatesDatabase`; current gate: **1363 tests / 6796 assertions passing** — P21.3 (full suite re-verified in Hrms/non-Hrms chunks with zero omitted files at the Phase 17 end-gate))
 
 - `npm run build` / `npm run dev` — frontend build / Vite dev server
 - `./vendor/bin/pint` — PHP code style (run over whole repo; `--dirty` only works in git)
@@ -1008,6 +1008,47 @@ Phase 13
   each payslip so a config change can never rewrite a locked one.
 - Performance integrates with tasks via `ScopesVisibleTasks::visibleTaskQuery()` as **evidence only** —
   automated signals are shown to the reviewer and never converted into a rating or score.
+
+## HRMS reference (Phase 15 → 21 shipped)
+- **Module keys** (`config/subscriptions.php` → `module_meta`, mirrored 1:1 in
+  `resources/js/utils/hrmsModules.js` — `HrmsShellTest` fails on drift): `hrms.core` (gate for the whole
+  surface) + `hrms.onboarding|offboarding|attendance|attendance.remote|shifts|leave|leave.exemption|
+  comp_off|holidays|expenses|compensation|payroll|payroll.statutory|exemptions|performance|talent|
+  engagement|documents|assets|analytics|inbox`. `hrms.shifts`/`hrms.talent` are reserved (permissions exist,
+  no pages); every other key has a sidebar entry, a route gate, and an overview tile wired through
+  `HRMS_MODULE_ROUTES` (tile without a route fails the shell test).
+- **Shared primitives** (built once in P1, reused by all 22 phases): generic `approvals`/`approval_steps`
+  engine (`ApprovalService`), append-only `hrms_audit_logs` + `hrms_data_access_logs` written only via
+  `HrmsAuditLogger` (field *names* travel, values are masked at the writer; reads via `accessed()` with
+  `DataAccessAction` view/download/export — salary/bank/statutory/document reads and every export write
+  one), and the single-row `hrms_settings` (`HrmsSetting::current()`, `setting('a.b.c')` dotted reader).
+- **`config/hrms.php`** is the per-tenant defaults catalog (employment types, week start, attendance
+  windows, leave/comp-off rules, statutory off-switch, `mask_sensitive`, `data_retention_months` 24).
+  Seeded by `HrmsDefaultsProvisioner::provision()` — one guarded step per catalog, never a single
+  early-return (a pre-catalog tenant must still receive later catalogs on `tenants:provision`).
+- **HTTP shape:** routes in `routes/web.php` inside the tenant stack
+  (`switch_tenant → auth → tenant → tenant_context → onboarding_complete`, P19.5 repair) +
+  `ensure_module:hrms.core` (+ domain module) + `permission:hrms.view`, with per-record policies deciding
+  rows (self-service included: view covers self; payslips/documents/1:1s read their own). Controllers do
+  validate → authorize → one service call → present; writes use `Http/Requests/Hrms/` FormRequests;
+  shapes come from `Services/Hrms/<Context>/` presenters (same folder as the service); state is always a
+  backed enum in `Enums/Hrms/` (hex `color()` when rendered). Set-scoping (`casesFor`/`indexFor`) lives in
+  services, per-record answers in policies — the two read the same permissions so they cannot disagree.
+- **Signed downloads** (photos, documents, payslips, asset files, receipts): never `Storage::url()` — the
+  central tenant id (and the reader id for confidential rows) rides inside a `signed` route OUTSIDE
+  `switch_tenant`, resolved inside `TenantDatabaseManager::using()`; confidential rows are invisible
+  (not unreadable) without `hrms.documents.view_sensitive`. Every one ships the `flushSession()` +
+  `iso_system` regression test. CSV exports (`hrms/attendance/export`, `hrms/analytics/export`) are the
+  opposite shape: session routes, per-domain permission, `throttle:30,1`, one `accessed(..., Export)` row.
+- **Task integration (P20):** `hrms_task_links` (employee/task/kind grain, unique; kind `goal` feeds
+  performance evidence with auditable `task_ids`) + `tasks.hrms_employee_id` (HR-owned asks surfacing on
+  HR home); checklist items convert to project tasks with pull-only sync (never writes back);
+  work-log-derived attendance is opt-in (`attendance.auto_derive_from_work_logs`, default false).
+- **Test gate:** `Tests\IsolatesDatabase` (per-tenant sqlite files; default connection left on acme) —
+  current count on the `## Commands` line, updated on every count-moving change. Focused feature tests
+  per task; the full suite (Hrms/non-Hrms chunks + `Isolated/`, zero omitted files) is the phase end-gate.
+  No `docs/hrms-architecture.md`: the plan (Parts 1–3) plus this section are the architecture record —
+  a third copy would rot.
 
 ## Pitfalls / gotchas
 - **A tenant `users` row without a central `tenant_users` row is an account nobody can log into.** In
