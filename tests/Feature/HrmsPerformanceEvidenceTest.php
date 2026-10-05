@@ -9,6 +9,7 @@ use App\Models\Hrms\Employee\Employee;
 use App\Models\Hrms\Performance\GoalTaskLink;
 use App\Models\Hrms\Performance\PerformanceCycle;
 use App\Models\Hrms\Performance\PerformanceGoal;
+use App\Models\Hrms\TaskLink\TaskLink;
 use App\Models\Project;
 use App\Models\ProjectRole;
 use App\Models\Task;
@@ -49,6 +50,46 @@ class HrmsPerformanceEvidenceTest extends TestCase
         $this->assertSame(3, $goal->progress_evidence['created']);
         $this->assertSame(1, $goal->progress_evidence['overdue']);
         $this->assertSame('active', $goal->status->value);
+    }
+
+    public function test_explicit_links_join_the_pool_with_auditable_ids(): void
+    {
+        [$user, $project] = $this->memberSetup();
+        $goal = $this->goal($user, GoalMetricType::TaskCompletion, '10');
+        $employee = Employee::where('user_id', $user->id)->firstOrFail();
+        $done = $project->statuses()->where('is_done', true)->firstOrFail();
+
+        // Someone else's completed task inside the member project: linked
+        // work counts once the owner names it as evidence.
+        $borrowed = Task::query()
+            ->where('project_id', $project->id)
+            ->where('assignee_id', '!=', $user->id)
+            ->whereNotNull('completed_at')
+            ->firstOrFail();
+
+        TaskLink::create(['employee_id' => $employee->id, 'task_id' => $borrowed->id, 'kind' => 'goal']);
+
+        // A completed task in a project the owner never joined: linked but
+        // invisible, so priced out of the pool and off the id lists.
+        $hidden = $this->hiddenTask();
+
+        TaskLink::create(['employee_id' => $employee->id, 'task_id' => $hidden->id, 'kind' => 'goal']);
+
+        app(PerformanceService::class)->refreshGoalEvidence($goal);
+
+        $evidence = $goal->refresh()->progress_evidence;
+
+        $this->assertSame(3, $evidence['completed']);
+        $this->assertSame('30.00', (string) $goal->progress_percent);
+
+        $assigned = Task::query()->where('assignee_id', $user->id)
+            ->whereNotNull('completed_at')
+            ->whereDate('completed_at', '>=', '2026-01-01')
+            ->whereDate('completed_at', '<=', '2026-12-31')
+            ->pluck('id')->all();
+
+        $this->assertEqualsCanonicalizing([...$assigned, $borrowed->id], $evidence['task_ids']);
+        $this->assertSame([$borrowed->id], $evidence['linked_task_ids']);
     }
 
     public function test_logged_minutes_photograph_with_days(): void
@@ -206,6 +247,43 @@ class HrmsPerformanceEvidenceTest extends TestCase
         $task($other->id, '2026-07-01', '2026-04-01');
 
         return [$user, $project->refresh()];
+    }
+
+    /**
+     * A completed in-window task in a project the member never joined:
+     * linkable, but invisible to them, so evidence must price it out.
+     */
+    private function hiddenTask(): Task
+    {
+        $this->connectTenant('acme');
+        $owner = User::where('email', 'admin@flowsync.test')->firstOrFail();
+
+        $workspace = Workspace::create(['created_by' => $owner->id, 'name' => 'Hidden', 'slug' => 'hidden-evidence']);
+        $project = Project::create([
+            'workspace_id' => $workspace->id, 'created_by' => $owner->id,
+            'lead_user_id' => $owner->id, 'name' => 'Hidden', 'key' => 'HID',
+        ]);
+
+        $todo = TaskStatus::create([
+            'project_id' => $project->id, 'name' => 'Todo', 'slug' => 'todo',
+            'category' => 'todo', 'position' => 10, 'is_default' => true, 'is_done' => false,
+        ]);
+        $done = TaskStatus::create([
+            'project_id' => $project->id, 'name' => 'Done', 'slug' => 'done',
+            'category' => 'done', 'position' => 20, 'is_default' => false, 'is_done' => true,
+        ]);
+
+        return Task::create([
+            'workspace_id' => $workspace->id,
+            'project_id' => $project->id,
+            'created_by' => $owner->id,
+            'key' => 'HID-1',
+            'sequence' => 1,
+            'title' => 'Hidden evidence task.',
+            'status_id' => $done->id,
+            'position' => 1,
+            'completed_at' => '2026-08-01',
+        ]);
     }
 
     private function goal(User $user, GoalMetricType $metric, ?string $target, string $progress = '0.00'): PerformanceGoal

@@ -3779,11 +3779,22 @@ Every derived day records `is_regularized = false` and an `attendance_days.note`
 > (`UNIQUE employee_id+work_date` on re-derive) before the fix.
 > `HrmsDeriveAttendanceTest` (4 tests).
 
-**P20.5 — Performance evidence from tasks (hardened)**
+**P20.5 — Performance evidence from tasks (hardened)** ✅
 Extend P12.2 to also consult `hrms_task_links` so a goal can be measured against explicitly linked tasks
 as well as everything assigned to the employee. Restrict the count to tasks the reviewer can already
 see (`visibleTaskQuery`), and store the exact task ids in `progress_evidence` so a reviewer can audit the
 number. **Still no scoring** (D2.10).
+
+> **P20.5 as shipped.** `refreshTaskCompletion` pools assigned work with
+> kind-`goal` links (deduplicated — assigned-and-linked counts once),
+> both under the owner's membership rule; evidence stores `task_ids`
+> (every completed task counted) and `linked_task_ids` (the explicit
+> set consulted). Reviewer-visibility, honestly scoped: refresh runs
+> reviewer-less (schedule + on demand), so the owner's visibility is the
+> enforceable stand-in and the stored ids let any reviewer audit what
+> counted. No rating, status or target touched — still no scoring.
+> Pinned in `HrmsPerformanceEvidenceTest` (visible link counted with
+> ids, invisible link priced out).
 
 **P20.6 — Frontend**
 `components/hrms/TaskLinkPanel.jsx` on the task drawer (HR-only): link/unlink an employee to a task with

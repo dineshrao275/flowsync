@@ -4,9 +4,11 @@ namespace App\Services\Hrms;
 
 use App\Enums\Hrms\GoalMetricType;
 use App\Enums\Hrms\GoalProgressSource;
+use App\Enums\Hrms\TaskLinkKind;
 use App\Models\Hrms\Performance\GoalTaskLink;
 use App\Models\Hrms\Performance\PerformanceCycle;
 use App\Models\Hrms\Performance\PerformanceGoal;
+use App\Models\Hrms\TaskLink\TaskLink;
 use App\Models\Task;
 use App\Models\User;
 use App\Models\WorkLog;
@@ -24,8 +26,10 @@ use Illuminate\Validation\ValidationException;
  * percentage; it never writes a rating, a status, or anything a reviewer
  * did not type. Counts respect project membership the way every other
  * global read does — an assignee sees their own tasks through the same
- * scoping the board uses — and a goal whose owner has no login is skipped
- * rather than priced from unscoped data.
+ * scoping the board uses — and explicitly linked tasks (`hrms_task_links`,
+ * kind `goal`) join the pool under the same rule, with the exact ids
+ * stored so a reviewer can audit the number. A goal whose owner has no
+ * login is skipped rather than priced from unscoped data.
  */
 class PerformanceService
 {
@@ -165,25 +169,38 @@ class PerformanceService
     {
         [$from, $to] = $this->window($goal);
 
-        $assigned = $this->assignedTasks($goal, $user);
+        // Assigned work plus explicitly linked work, deduplicated: a task
+        // both assigned and linked counts once, like any double claim.
+        // Links consult `hrms_task_links` (kind `goal`) — the P20.2 panel —
+        // scoped by the same membership rule as assigned work, so a link
+        // into a project the owner cannot open never prices their goal.
+        // (Refresh runs reviewer-less, on schedule and on demand, so the
+        // owner's visibility is the enforceable stand-in; the stored ids
+        // below let any reviewer audit exactly what counted.)
+        $ids = (clone $this->assignedTasks($goal, $user))->pluck('tasks.id')
+            ->merge((clone $this->linkedTasks($goal, $user))->pluck('tasks.id'))
+            ->unique()->values();
 
-        $completed = (clone $assigned)
+        $pool = Task::query()->whereIn('tasks.id', $ids);
+
+        $completedIds = (clone $pool)
             ->whereNotNull('tasks.completed_at')
             ->whereDate('tasks.completed_at', '>=', $from)
             ->whereDate('tasks.completed_at', '<=', $to)
-            ->count();
+            ->pluck('tasks.id')->all();
 
-        $created = (clone $assigned)
+        $created = (clone $pool)
             ->whereDate('tasks.created_at', '>=', $from)
             ->whereDate('tasks.created_at', '<=', $to)
             ->count();
 
-        $overdue = (clone $assigned)
+        $overdue = (clone $pool)
             ->whereNull('tasks.completed_at')
             ->whereDate('tasks.due_date', '<', today()->toDateString())
             ->count();
 
         $target = (float) ($goal->target_value ?? 0);
+        $completed = count($completedIds);
 
         $goal->update([
             'progress_percent' => $target > 0 ? number_format(min(100, $completed / $target * 100), 2, '.', '') : '0.00',
@@ -192,6 +209,8 @@ class PerformanceService
                 'completed' => $completed,
                 'created' => $created,
                 'overdue' => $overdue,
+                'task_ids' => array_values($completedIds),
+                'linked_task_ids' => $this->linkedTasks($goal, $user)->pluck('tasks.id')->all(),
                 'window' => [$from, $to],
             ],
         ]);
@@ -246,6 +265,30 @@ class PerformanceService
     private function assignedTasks(PerformanceGoal $goal, User $user): Builder
     {
         $query = Task::query()->where('tasks.assignee_id', $user->id);
+
+        if (! $user->hasPermission('workspaces.manage')) {
+            $query->whereHas('project', fn ($project) => $project
+                ->whereHas('members', fn ($members) => $members->where('user_id', $user->id)));
+        }
+
+        return $query;
+    }
+
+    /**
+     * Explicitly linked work: `hrms_task_links` rows naming this goal's
+     * owner with kind `goal`. Same membership rule as assigned work —
+     * linking never widens sight, it only names tasks inside it.
+     *
+     * @return Builder<Task>
+     */
+    private function linkedTasks(PerformanceGoal $goal, User $user): Builder
+    {
+        $ids = TaskLink::query()
+            ->where('employee_id', $goal->employee_id)
+            ->where('kind', TaskLinkKind::Goal->value)
+            ->pluck('task_id');
+
+        $query = Task::query()->whereIn('tasks.id', $ids);
 
         if (! $user->hasPermission('workspaces.manage')) {
             $query->whereHas('project', fn ($project) => $project
