@@ -3614,10 +3614,20 @@ sensitive field inside a notification `data` payload or a log line, (d) no sensi
 > every itemized (and logged) payslip. `HrmsSensitiveReadAuditTest`
 > (5 tests).
 
-**P19.3 — Export controls**
+**P19.3 — Export controls** ✅
 Any HRMS export (attendance, leave, payroll, analytics CSV) requires the module + the specific `view`
 permission, writes an `accessed(..., 'export')` row with the field list, and is rate-limited by the
 existing throttle middleware. Payroll exports additionally require `hrms.payroll.run`.
+
+> **P19.3 as shipped.** The module has exactly two bulk exports — no
+> leave or payroll CSV exists, and payslips/documents travel as signed
+> single-file downloads (per-record, owner-or-policy-gated, short-lived
+> signatures, `Download` rows), which the bulk-export rule was never
+> written for. Both CSVs already carried their module + read-permission
+> gates and their `Export` rows; the gap was the throttle, now
+> `throttle:30,1` on both routes (the month grid and widget stay
+> unthrottled — only the heavy pulls ride it). `HrmsExportControlsTest`
+> (2 tests: gate + log + 30×200 then 429 per endpoint).
 
 **P19.4 — Retention + purge**
 `php artisan hrms:retention --dry-run` reports rows past `hrms_settings.data_retention_months` per table

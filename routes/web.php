@@ -495,7 +495,10 @@ Route::prefix('api')->group(function () {
         // never bind as a model id (the P3.3 `reorder` lesson).
         Route::get('hrms/attendance/month', [AttendanceRecordsController::class, 'month']);
         Route::get('hrms/attendance/today', [AttendanceRecordsController::class, 'today']);
-        Route::get('hrms/attendance/export', [AttendanceRecordsController::class, 'export']);
+        // Exports are the heaviest reads on this surface (up to 93 days of
+        // rows per pull), so the one bulk endpoint rides the throttle while
+        // the month grid and widget stay unthrottled.
+        Route::get('hrms/attendance/export', [AttendanceRecordsController::class, 'export'])->middleware('throttle:30,1');
     });
 
     // HRMS leave catalogue (Phase 15 P6.4a). Module-gated on `hrms.leave`
@@ -750,7 +753,7 @@ Route::prefix('api')->group(function () {
         // CSV takes the domain as a parameter, so no static route can carry
         // its gate — the controller authorizes each domain against the same
         // permission slug as the tab route below.
-        Route::get('hrms/analytics/export', [HrmsAnalyticsExportController::class, 'export']);
+        Route::get('hrms/analytics/export', [HrmsAnalyticsExportController::class, 'export'])->middleware('throttle:30,1');
         Route::get('hrms/analytics/overview', [HrmsAnalyticsController::class, 'overview'])->middleware('permission:hrms.analytics.view');
         Route::get('hrms/analytics/attendance', [HrmsAnalyticsController::class, 'attendance'])->middleware('permission:hrms.attendance.view');
         Route::get('hrms/analytics/leave', [HrmsAnalyticsController::class, 'leave'])->middleware('permission:hrms.leave.manage');
