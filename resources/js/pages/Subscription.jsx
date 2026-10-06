@@ -87,6 +87,7 @@ export default function Subscription() {
     const [modules, setModules] = useState(null);
     const [modulesAvailable, setModulesAvailable] = useState([]);
     const [plans, setPlans] = useState([]);
+    const [payments, setPayments] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
     const [action, setAction] = useState(null);
@@ -97,10 +98,11 @@ export default function Subscription() {
         setLoading(true);
         setError(null);
         try {
-            const [subRes, usageRes, plansRes] = await Promise.all([
+            const [subRes, usageRes, plansRes, historyRes] = await Promise.all([
                 api.get('/my-subscription'),
                 api.get('/my-usage'),
                 api.get('/plans'),
+                api.get('/billing/history').catch(() => ({ data: { payments: [] } })),
             ]);
             setSubscription(subRes.data.subscription);
             setTenant(subRes.data.tenant);
@@ -110,6 +112,7 @@ export default function Subscription() {
             setModules(usageRes.data.modules ?? null);
             setModulesAvailable(usageRes.data.modules_available || []);
             setPlans(plansRes.data.plans || []);
+            setPayments(historyRes.data.payments || []);
         } catch (e) {
             setError(e.response?.status === 404 ? 'No tenant context for this page.' : 'Unable to load subscription details.');
         } finally {
@@ -135,6 +138,23 @@ export default function Subscription() {
     }
 
     async function switchPlan(plan) {
+        if (plan.price_cents > 0) {
+            setAction(true);
+            try {
+                const res = await api.post('/billing/checkout', { plan_id: plan.id });
+                if (res.data.session?.redirect_url) {
+                    window.location.href = res.data.session.redirect_url;
+                    return;
+                }
+                toast.success('Checkout session created.');
+                await load();
+            } catch (e) {
+                toast.error(fieldErrors(e).form || fieldErrors(e).message || 'Unable to initiate checkout.');
+            } finally {
+                setAction(false);
+            }
+            return;
+        }
         await run(() => api.post('/my-subscription/switch', { plan_id: plan.id }), `Switched to ${plan.name}.`);
     }
 
@@ -371,25 +391,46 @@ export default function Subscription() {
                 </section>
             )}
 
-            {/* Phase 5: Billing history placeholder — real invoice data arrives in Phase 6
-                once Stripe/Razorpay is integrated. This section sets expectations rather
-                than leaving a blank space. */}
-            <section className="rounded-lg border border-dashed border-gray-200 bg-gray-50/60 px-4 py-6 text-center">
-                <svg
-                    className="mx-auto mb-3 h-8 w-8 text-gray-300"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="1.5"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                >
-                    <path d="M9 14l6-6m-5.5.5h.01m4.99 5h.01M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16l3.5-2 2.5 2 2.5-2 3.5 2z" />
-                </svg>
-                <p className="text-sm font-medium text-gray-500">Billing history</p>
-                <p className="mt-1 text-xs text-gray-400">
-                    Invoice download and payment history will appear here once payment is set up.
-                </p>
+            {/* Phase 6: Real billing history table */}
+            <section>
+                <h3 className="mb-2 text-sm font-semibold text-gray-900">Billing history</h3>
+                <p className="mb-2 text-xs text-gray-500">Invoices and payment transactions</p>
+                {payments.length === 0 ? (
+                    <div className="rounded-lg border border-dashed border-gray-200 bg-gray-50/60 px-4 py-6 text-center text-xs text-gray-400">
+                        No billing transactions recorded yet.
+                    </div>
+                ) : (
+                    <Table>
+                        <thead>
+                            <tr>
+                                <Th>Transaction</Th>
+                                <Th>Plan</Th>
+                                <Th>Amount</Th>
+                                <Th>Provider</Th>
+                                <Th>Status</Th>
+                                <Th align="right">Date</Th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {payments.map((p) => (
+                                <tr key={p.id} className="transition-colors duration-150 hover:bg-gray-50/60">
+                                    <Td className="font-mono text-xs text-gray-600">#{p.id}</Td>
+                                    <Td className="font-medium text-gray-900">{p.plan_name || '—'}</Td>
+                                    <Td className="font-medium text-gray-900">{p.formatted_amount}</Td>
+                                    <Td>
+                                        <Badge>{p.provider}</Badge>
+                                    </Td>
+                                    <Td>
+                                        <Badge>{p.status}</Badge>
+                                    </Td>
+                                    <Td align="right" className="whitespace-nowrap text-xs text-gray-400">
+                                        {formatDate(p.created_at)}
+                                    </Td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </Table>
+                )}
             </section>
         </div>
     );

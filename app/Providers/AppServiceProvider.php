@@ -2,6 +2,8 @@
 
 namespace App\Providers;
 
+use App\Billing\PaymentResolver;
+use App\Billing\PaymentService;
 use App\Listeners\SwitchesTenantConnectionForQueuedJobs;
 use App\Models\User;
 use App\Services\TenantLimits;
@@ -27,6 +29,10 @@ class AppServiceProvider extends ServiceProvider
     {
         $this->app->singleton(TenantContext::class);
         $this->app->singleton(TenantDatabaseManager::class);
+        $this->app->singleton(PaymentResolver::class, function ($app) {
+            return new PaymentResolver(config('payments', []));
+        });
+        $this->app->singleton(PaymentService::class);
     }
 
     /**

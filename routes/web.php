@@ -5,6 +5,7 @@ use App\Http\Controllers\AnalyticsController;
 use App\Http\Controllers\AttachmentController;
 use App\Http\Controllers\AuditLogsController;
 use App\Http\Controllers\AuthController;
+use App\Http\Controllers\BillingController;
 use App\Http\Controllers\CmsController;
 use App\Http\Controllers\CommentController;
 use App\Http\Controllers\DashboardController;
@@ -97,6 +98,7 @@ use App\Http\Controllers\TenantHrmsController;
 use App\Http\Controllers\TenantSubscriptionController;
 use App\Http\Controllers\ThemeController;
 use App\Http\Controllers\UserController;
+use App\Http\Controllers\WebhookController;
 use App\Http\Controllers\WorkLogController;
 use App\Http\Controllers\WorkspaceController;
 use App\Http\Controllers\WorkspaceMemberController;
@@ -169,6 +171,12 @@ Route::prefix('api')->group(function () {
         Route::post('my-subscription/cancel', [MySubscriptionController::class, 'cancel'])->middleware('throttle:10,1');
         Route::post('my-subscription/renew', [MySubscriptionController::class, 'renew'])->middleware('throttle:10,1');
         Route::get('plans', [PlanController::class, 'index']);
+
+        // Phase 6: tenant payments & billing
+        Route::post('billing/checkout', [BillingController::class, 'checkout'])->middleware('throttle:10,1');
+        Route::post('billing/verify', [BillingController::class, 'verify'])->middleware('throttle:10,1');
+        Route::get('billing/history', [BillingController::class, 'history']);
+        Route::post('billing/payments/{payment}/refund', [BillingController::class, 'refund'])->middleware('throttle:5,1');
 
         // Phase 5: full tenant data export (gated by the export.full module).
         // throttle:5,1 — exports are heavy; 5 requests/minute is generous.
@@ -969,6 +977,10 @@ Route::prefix('api')->group(function () {
         ->middleware('signed')
         ->name('exports.download');
 });
+
+// Phase 6: Public payment webhook endpoints (outside auth/tenant groups).
+Route::post('api/webhooks/stripe', [WebhookController::class, 'handleStripe'])->middleware('throttle:60,1');
+Route::post('api/webhooks/razorpay', [WebhookController::class, 'handleRazorpay'])->middleware('throttle:60,1');
 
 // Public marketing site (server-rendered from the DB-backed CMS pages).
 Route::get('/', [PublicSiteController::class, 'home']);
