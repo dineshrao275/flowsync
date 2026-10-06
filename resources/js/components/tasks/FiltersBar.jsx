@@ -70,6 +70,7 @@ export default function FiltersBar({ filters, options, onChange }) {
                 label="Due from"
                 labelClassName="mb-1 block text-xs font-medium uppercase tracking-wide text-gray-500"
                 type="date"
+                compact
                 value={filters.due_from || ''}
                 onChange={(e) => set('due_from', e.target.value)}
             />
@@ -77,6 +78,7 @@ export default function FiltersBar({ filters, options, onChange }) {
                 label="Due to"
                 labelClassName="mb-1 block text-xs font-medium uppercase tracking-wide text-gray-500"
                 type="date"
+                compact
                 value={filters.due_to || ''}
                 onChange={(e) => set('due_to', e.target.value)}
             />
