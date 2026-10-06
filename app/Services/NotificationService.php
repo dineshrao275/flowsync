@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Events\NotificationSent;
+use App\Mail\TaskNotificationMail;
 use App\Models\Comment;
 use App\Models\Hrms\Asset\AssetAssignment;
 use App\Models\Hrms\CompOff\CompOffRequest;
@@ -15,15 +16,30 @@ use App\Models\Hrms\Lifecycle\OnboardingCaseTask;
 use App\Models\Hrms\Payroll\PayrollRun;
 use App\Models\Hrms\Performance\PerformanceCycle;
 use App\Models\Hrms\Performance\ReviewSummary;
+use App\Models\NotificationPreference;
 use App\Models\Task;
 use App\Models\User;
 use App\Models\UserNotification;
 use App\Models\WorkLog;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Mail;
 
 class NotificationService
 {
+    /**
+     * The TMS events that also trigger a queued email next to the in-app row.
+     * HRMS nudges never email; their receipts live in the app only.
+     *
+     * @var list<string>
+     */
+    private const EMAIL_EVENTS = [
+        'task.assigned',
+        'task.status_changed',
+        'task.commented',
+        'task.unblocked',
+    ];
+
     public function notify(
         User $recipient,
         string $type,
@@ -39,6 +55,8 @@ class NotificationService
         $notification->save();
 
         broadcast(new NotificationSent($notification));
+
+        $this->maybeQueueMail($recipient, $type, $data, $actor);
 
         return $notification;
     }
@@ -95,15 +113,20 @@ class NotificationService
 
     /**
      * Notifies the task assignee/reporter plus any @mentioned users
-     * (excluding the acting user). Returns the notifications created.
+     * (excluding the acting user). Mentions beyond the per-comment cap are
+     * dropped and `truncated` comes back true so the client can warn the
+     * author. Returns the notifications created alongside the flag.
      *
-     * @return list<UserNotification>
+     * @return array{notifications: list<UserNotification>, truncated: bool}
      */
     public function taskCommented(User $actor, Task $task, Comment $comment): array
     {
+        $mentioned = $this->mentionUsers($comment->comment)->pluck('id');
+        $truncated = $mentioned->count() > TaskNotificationMail::MAX_MENTIONS_PER_COMMENT;
+
         $recipientIds = collect([$task->assignee_id, $task->reporter_id])
             ->filter()
-            ->concat($this->mentionUsers($comment->comment)->pluck('id'))
+            ->concat($mentioned->take(TaskNotificationMail::MAX_MENTIONS_PER_COMMENT))
             ->unique()
             ->reject(fn ($id) => (int) $id === $actor->id)
             ->values();
@@ -122,7 +145,7 @@ class NotificationService
             ]), $actor);
         }
 
-        return $sent;
+        return ['notifications' => $sent, 'truncated' => $truncated];
     }
 
     public function taskUnblocked(User $actor, Task $task, ?Task $blocker = null): ?UserNotification
@@ -741,14 +764,17 @@ class NotificationService
 
     /**
      * Resolves @mention tokens in text to users in the current tenant database.
-     * Tokens match a user's full email, email local part (e.g. @viewer matches
-     * viewer@flowsync.test), or name, case-insensitively.
+     * A bare token (@viewer) matches email local part or name; a full mailbox
+     * token (@viewer@flowsync.test) matches the exact email only. Both are
+     * case-insensitive, and a full mailbox that belongs to a different tenant
+     * resolves to nobody rather than pinging a same-tenant user who happens to
+     * share its local part (owner@globex.test must never notify owner@acme.test).
      *
      * @return Collection<int, User>
      */
     public function mentionUsers(string $text): Collection
     {
-        preg_match_all('/@([A-Za-z0-9._-]+)/', $text, $matches);
+        preg_match_all('/@([A-Za-z0-9._-]+(?:@[A-Za-z0-9._-]+)?)/', $text, $matches);
 
         $users = collect();
         foreach ($matches[1] as $token) {
@@ -779,6 +805,43 @@ class NotificationService
             'project_name' => $task->project?->name,
             'workspace_id' => $task->workspace_id,
         ];
+    }
+
+    /**
+     * Queues the task email for an emailable event, honoring the recipient's
+     * per-event preference. The mailable snapshots scalars at construction so
+     * nothing is re-queried at delivery; the queue stamping listener still has
+     * the tenant id from this request if the worker ever needs it.
+     */
+    private function maybeQueueMail(User $recipient, string $type, array $data, ?User $actor): void
+    {
+        if (! in_array($type, self::EMAIL_EVENTS, true)) {
+            return;
+        }
+
+        if (! NotificationPreference::wants($recipient, $type)) {
+            return;
+        }
+
+        Mail::to($recipient->email, $recipient->name)->queue(
+            TaskNotificationMail::fromData($type, $actor?->name ?? 'Someone', $data, $this->taskDeepLink($type, $data)),
+        );
+    }
+
+    /**
+     * The SPA deep link for a task notification, mirroring the client-side
+     * taskUrl(): the Tasks tab with the drawer auto-opened on the relevant
+     * section (comments for task.commented).
+     */
+    private function taskDeepLink(string $type, array $data): string
+    {
+        $query = ['tab' => 'tasks', 'task' => $data['key'] ?? null];
+
+        if ($type === 'task.commented') {
+            $query['section'] = 'comments';
+        }
+
+        return url('/app/projects/'.($data['project_id'] ?? '0').'?'.http_build_query($query));
     }
 
     /**
