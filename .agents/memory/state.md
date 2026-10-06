@@ -187,3 +187,4 @@
 - 2026-10-06 — Calendar coverage sweep: the last raw date inputs (`Search.jsx` due from/to) moved onto shared `Input`; verified zero raw date/datetime/month inputs remain outside it (all ~50 flow through the picker), so the calendar applies project-wide.
 - 2026-10-06 — Calendar coverage completion: task filter bar, time-summary filters, and project settings dates (converted to controlled state) now use the shared picker; added `labelClassName` to `Input` for compact filter labels. Multiline-aware sweep confirms zero raw date/datetime/month inputs remain. Build + shell green.
 - 2026-10-06 — Calendar height parity: shared `Input` gains `compact` (compact padding/radius on both native and picker inputs); task filter dates use it to match `fieldClassCompact` siblings.
+- 2026-10-06 — Report range parity: custom from/to in `RangeFilter` use compact inputs to sit level with the small preset buttons (TimeSummary/Analytics rows already matched).

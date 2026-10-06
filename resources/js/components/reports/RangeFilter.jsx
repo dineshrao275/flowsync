@@ -37,6 +37,7 @@ export default function RangeFilter({ preset, onChange }) {
             <div className="flex items-center gap-2">
                 <Input
                     type="date"
+                    compact
                     aria-label="Custom range start"
                     value={custom.from}
                     max={custom.to || undefined}
@@ -45,6 +46,7 @@ export default function RangeFilter({ preset, onChange }) {
                 <span className="text-xs text-gray-400">→</span>
                 <Input
                     type="date"
+                    compact
                     aria-label="Custom range end"
                     value={custom.to}
                     min={custom.from || undefined}
