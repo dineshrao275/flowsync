@@ -4,6 +4,9 @@ Status legend: `[x]` done · `[ ]` pending · `[~]` in progress
 
 Demanded verdict gates at each phase: `php artisan test` · `./vendor/bin/pint` · `npm run build` · AGENTS.md updated. Phases are shippable independently.
 
+> [!NOTE]
+> **Historical Archive Notice**: Phases 0–13 below document the initial development log and row-level scoping phases (`TenantScoped`). As of Phase 13/14, FlowSync operates on **physical database-per-tenant isolation** (no `tenant_id` columns in tenant DBs). Refer to `AGENTS.md`, `.agents/roadmap/phase-plan.md`, and `docs/multi-tenancy-architecture.md` for current production architecture.
+
 ---
 
 ## Confirmed design decisions (scope lock)

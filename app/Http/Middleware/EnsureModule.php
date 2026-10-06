@@ -27,9 +27,13 @@ class EnsureModule
     {
         $tenantId = app(TenantContext::class)->currentId();
 
-        // No tenant context => non-impersonating super admin / provisioning.
+        // No tenant context => fail closed unless authenticated as platform super admin.
         if ($tenantId === null) {
-            return $next($request);
+            if ($request->user()?->is_super_admin) {
+                return $next($request);
+            }
+
+            abort(403, 'A valid tenant context is required.');
         }
 
         $tenant = Tenant::find($tenantId);
