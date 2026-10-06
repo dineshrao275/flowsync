@@ -84,6 +84,7 @@ export default function ProjectDetail() {
     const [formErrors, setFormErrors] = useState({});
     const [savingMember, setSavingMember] = useState(false);
     const [savingStatus, setSavingStatus] = useState(false);
+    const [settingsDates, setSettingsDates] = useState(null);
 
     const [view, setView] = useState('board');
     const [filters, setFilters] = useState({});
@@ -149,6 +150,10 @@ export default function ProjectDetail() {
             active = false;
         };
         // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [projectId]);
+
+    useEffect(() => {
+        setSettingsDates(null);
     }, [projectId]);
 
     useEffect(() => {
@@ -358,6 +363,7 @@ export default function ProjectDetail() {
         api.put(`/projects/${projectId}`, fields)
             .then(({ data }) => {
                 setProject(data.project);
+                setSettingsDates(null);
                 toast.success('Project updated.');
             })
             .catch((e) => setFormErrors(fieldErrors(e)))
@@ -880,57 +886,15 @@ export default function ProjectDetail() {
 
             {tab === 'settings' && isProjectManager && (
                 <Card title="Project settings" subtitle={`key: ${project.key}`}>
-                    <form
-                        className="space-y-4"
-                        onSubmit={(e) => {
-                            e.preventDefault();
-                            updateProject({
-                                name: e.currentTarget.name.value,
-                                description: e.currentTarget.description.value,
-                                start_date: e.currentTarget.start_date.value || null,
-                                due_date: e.currentTarget.due_date.value || null,
-                            });
-                        }}
-                    >
-                        {formErrors.form && <Alert>{formErrors.form}</Alert>}
-                        <Input label="Name" name="name" defaultValue={project.name} error={formErrors.name} required />
-                        <Input
-                            label="Description"
-                            name="description"
-                            defaultValue={project.description}
-                            error={formErrors.description}
-                        />
-                        <div className="grid gap-4 sm:grid-cols-2">
-                            <div>
-                                <label className="mb-1.5 block text-sm font-medium text-gray-700">Start date</label>
-                                <input
-                                    type="date"
-                                    name="start_date"
-                                    defaultValue={project.start_date}
-                                    className="block w-full rounded-lg border border-gray-300 bg-white px-3.5 py-2.5 text-sm shadow-sm focus:border-indigo-500 focus:outline-none"
-                                />
-                                {formErrors.start_date && <p className="mt-1.5 text-sm text-red-600">{formErrors.start_date}</p>}
-                            </div>
-                            <div>
-                                <label className="mb-1.5 block text-sm font-medium text-gray-700">Due date</label>
-                                <input
-                                    type="date"
-                                    name="due_date"
-                                    defaultValue={project.due_date}
-                                    className="block w-full rounded-lg border border-gray-300 bg-white px-3.5 py-2.5 text-sm shadow-sm focus:border-indigo-500 focus:outline-none"
-                                />
-                                {formErrors.due_date && <p className="mt-1.5 text-sm text-red-600">{formErrors.due_date}</p>}
-                            </div>
-                        </div>
-                        <div className="flex gap-2">
-                            <Button type="submit" loading={updating}>
-                                Save changes
-                            </Button>
-                            <Button type="button" variant="danger" onClick={deleteProject}>
-                                Delete project
-                            </Button>
-                        </div>
-                    </form>
+                    <SettingsForm
+                        project={project}
+                        settingsDates={settingsDates}
+                        onDatesChange={setSettingsDates}
+                        formErrors={formErrors}
+                        updating={updating}
+                        updateProject={updateProject}
+                        deleteProject={deleteProject}
+                    />
                 </Card>
             )}
 
@@ -970,5 +934,63 @@ export default function ProjectDetail() {
                 />
             )}
         </div>
+    );
+}
+/**
+ * Project settings form: name/description stay uncontrolled (read on
+ * submit, exactly as before) while the two dates are controlled through
+ * the shared calendar Input — which has no uncontrolled mode. Dates fall
+ * back to the loaded project until typed, and reset on project switch
+ * (settingsDates null) and after a successful save.
+ */
+function SettingsForm({ project, settingsDates, onDatesChange, formErrors, updating, updateProject, deleteProject }) {
+    const dates = settingsDates ?? { start_date: project.start_date ?? '', due_date: project.due_date ?? '' };
+
+    return (
+        <form
+            className="space-y-4"
+            onSubmit={(e) => {
+                e.preventDefault();
+                updateProject({
+                    name: e.currentTarget.name.value,
+                    description: e.currentTarget.description.value,
+                    start_date: dates.start_date || null,
+                    due_date: dates.due_date || null,
+                });
+            }}
+        >
+            {formErrors.form && <Alert>{formErrors.form}</Alert>}
+            <Input label="Name" name="name" defaultValue={project.name} error={formErrors.name} required />
+            <Input
+                label="Description"
+                name="description"
+                defaultValue={project.description}
+                error={formErrors.description}
+            />
+            <div className="grid gap-4 sm:grid-cols-2">
+                <Input
+                    label="Start date"
+                    type="date"
+                    value={dates.start_date}
+                    onChange={(e) => onDatesChange({ ...dates, start_date: e.target.value })}
+                    error={formErrors.start_date}
+                />
+                <Input
+                    label="Due date"
+                    type="date"
+                    value={dates.due_date}
+                    onChange={(e) => onDatesChange({ ...dates, due_date: e.target.value })}
+                    error={formErrors.due_date}
+                />
+            </div>
+            <div className="flex gap-2">
+                <Button type="submit" loading={updating}>
+                    Save changes
+                </Button>
+                <Button type="button" variant="danger" onClick={deleteProject}>
+                    Delete project
+                </Button>
+            </div>
+        </form>
     );
 }

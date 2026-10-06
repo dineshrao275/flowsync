@@ -1,4 +1,5 @@
 import { fieldClassCompact } from '../ui/fieldStyles';
+import Input from '../ui/Input';
 
 export default function FiltersBar({ filters, options, onChange }) {
     function set(key, value) {
@@ -65,24 +66,20 @@ export default function FiltersBar({ filters, options, onChange }) {
                     ))}
                 </select>
             </div>
-            <div>
-                <label className="mb-1 block text-xs font-medium uppercase tracking-wide text-gray-500">Due from</label>
-                <input
-                    type="date"
-                    value={filters.due_from || ''}
-                    onChange={(e) => set('due_from', e.target.value)}
-                    className={fieldClassCompact}
-                />
-            </div>
-            <div>
-                <label className="mb-1 block text-xs font-medium uppercase tracking-wide text-gray-500">Due to</label>
-                <input
-                    type="date"
-                    value={filters.due_to || ''}
-                    onChange={(e) => set('due_to', e.target.value)}
-                    className={fieldClassCompact}
-                />
-            </div>
+            <Input
+                label="Due from"
+                labelClassName="mb-1 block text-xs font-medium uppercase tracking-wide text-gray-500"
+                type="date"
+                value={filters.due_from || ''}
+                onChange={(e) => set('due_from', e.target.value)}
+            />
+            <Input
+                label="Due to"
+                labelClassName="mb-1 block text-xs font-medium uppercase tracking-wide text-gray-500"
+                type="date"
+                value={filters.due_to || ''}
+                onChange={(e) => set('due_to', e.target.value)}
+            />
             <button
                 type="button"
                 onClick={clear}

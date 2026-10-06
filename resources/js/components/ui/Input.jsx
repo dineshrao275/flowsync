@@ -27,7 +27,7 @@ function parseDateTime(value) {
  * `{ target: { value, name } }` shape, so all ~50 call sites work
  * unchanged. Native `time`/`month` inputs are left alone.
  */
-function DateField({ label, error, id, className = '', leadingIcon, ...props }) {
+function DateField({ label, labelClassName = '', error, id, className = '', leadingIcon, ...props }) {
     const inputId = id || props.name;
     const withTime = props.type === 'datetime-local';
     const selected = withTime ? parseDateTime(props.value) : parseDate(props.value);
@@ -44,7 +44,7 @@ function DateField({ label, error, id, className = '', leadingIcon, ...props }) 
     return (
         <div className={className}>
             {label && (
-                <label htmlFor={inputId} className="mb-1.5 block text-sm font-medium text-gray-700">
+                <label htmlFor={inputId} className={`mb-1.5 block text-sm font-medium text-gray-700 ${labelClassName}`}>
                     {label}
                 </label>
             )}
@@ -86,9 +86,9 @@ function DateField({ label, error, id, className = '', leadingIcon, ...props }) 
     );
 }
 
-export default function Input({ label, error, id, className = '', leadingIcon, ...props }) {
+export default function Input({ label, labelClassName = '', error, id, className = '', leadingIcon, ...props }) {
     if (props.type === 'date' || props.type === 'datetime-local') {
-        return <DateField label={label} error={error} id={id} className={className} leadingIcon={leadingIcon} {...props} />;
+        return <DateField label={label} labelClassName={labelClassName} error={error} id={id} className={className} leadingIcon={leadingIcon} {...props} />;
     }
 
     const inputId = id || props.name;
@@ -96,7 +96,7 @@ export default function Input({ label, error, id, className = '', leadingIcon, .
     return (
         <div className={className}>
             {label && (
-                <label htmlFor={inputId} className="mb-1.5 block text-sm font-medium text-gray-700">
+                <label htmlFor={inputId} className={`mb-1.5 block text-sm font-medium text-gray-700 ${labelClassName}`}>
                     {label}
                 </label>
             )}

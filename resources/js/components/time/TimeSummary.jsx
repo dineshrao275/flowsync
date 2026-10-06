@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import api from '../../services/api';
 import { formatMinutes } from '../../utils/time';
 import Spinner from '../ui/Spinner';
+import Input from '../ui/Input';
 import { fieldClass } from '../ui/fieldStyles';
 
 export default function TimeSummary({ url }) {
@@ -46,24 +47,18 @@ export default function TimeSummary({ url }) {
                         <option value="date">Day</option>
                     </select>
                 </div>
-                <div>
-                    <label className="mb-1.5 block text-sm font-medium text-gray-700">From</label>
-                    <input
-                        type="date"
-                        className={fieldClass}
-                        value={filters.from}
-                        onChange={(e) => setFilters((f) => ({ ...f, from: e.target.value }))}
-                    />
-                </div>
-                <div>
-                    <label className="mb-1.5 block text-sm font-medium text-gray-700">To</label>
-                    <input
-                        type="date"
-                        className={fieldClass}
-                        value={filters.to}
-                        onChange={(e) => setFilters((f) => ({ ...f, to: e.target.value }))}
-                    />
-                </div>
+                <Input
+                    label="From"
+                    type="date"
+                    value={filters.from}
+                    onChange={(e) => setFilters((f) => ({ ...f, from: e.target.value }))}
+                />
+                <Input
+                    label="To"
+                    type="date"
+                    value={filters.to}
+                    onChange={(e) => setFilters((f) => ({ ...f, to: e.target.value }))}
+                />
             </div>
 
             {loading ? (
