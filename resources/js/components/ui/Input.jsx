@@ -27,7 +27,7 @@ function parseDateTime(value) {
  * `{ target: { value, name } }` shape, so all ~50 call sites work
  * unchanged. Native `time`/`month` inputs are left alone.
  */
-function DateField({ label, labelClassName = '', error, id, className = '', leadingIcon, compact = false, ...props }) {
+function DateField({ label, labelClassName = '', error, id, className = '', leadingIcon, compact = false, placeholder, ...props }) {
     const inputId = id || props.name;
     const withTime = props.type === 'datetime-local';
     const selected = withTime ? parseDateTime(props.value) : parseDate(props.value);
@@ -64,7 +64,7 @@ function DateField({ label, labelClassName = '', error, id, className = '', lead
                     timeIntervals={15}
                     minDate={props.min ? parseDate(props.min) ?? undefined : undefined}
                     maxDate={props.max ? parseDate(props.max) ?? undefined : undefined}
-                    placeholderText={props.placeholder}
+                    placeholderText={placeholder ?? (withTime ? 'Select date & time…' : 'Select date…')}
                     disabled={props.disabled}
                     required={props.required}
                     autoComplete="off"
@@ -86,9 +86,12 @@ function DateField({ label, labelClassName = '', error, id, className = '', lead
     );
 }
 
-export default function Input({ label, labelClassName = '', error, id, className = '', leadingIcon, compact = false, ...props }) {
+export default function Input({ label, labelClassName = '', error, id, className = '', leadingIcon, compact = false, placeholder, ...props }) {
+    // Every input shows a hint: explicit prop first, then the label text.
+    // (Labels stay the accessible name; the placeholder is a visual echo.)
+    const hint = placeholder ?? label;
     if (props.type === 'date' || props.type === 'datetime-local') {
-        return <DateField label={label} labelClassName={labelClassName} error={error} id={id} className={className} leadingIcon={leadingIcon} compact={compact} {...props} />;
+        return <DateField label={label} labelClassName={labelClassName} error={error} id={id} className={className} leadingIcon={leadingIcon} compact={compact} placeholder={hint} {...props} />;
     }
 
     const inputId = id || props.name;
@@ -108,6 +111,7 @@ export default function Input({ label, labelClassName = '', error, id, className
                 )}
                 <input
                     id={inputId}
+                    placeholder={typeof hint === 'string' ? hint : undefined}
                     className={`block w-full border text-sm shadow-sm transition focus:outline-none focus:ring-2 ${
                         compact ? 'rounded-md px-2.5 py-1.5' : 'rounded-lg px-3.5 py-2.5'
                     } ${leadingIcon ? 'pl-9' : ''} ${
