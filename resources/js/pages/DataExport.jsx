@@ -49,7 +49,7 @@ export default function DataExport() {
     usePageTitle('Data Export');
 
     const { user } = useAuth();
-    const { addToast } = useToast();
+    const toast = useToast();
 
     const [runs, setRuns] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -71,15 +71,22 @@ export default function DataExport() {
         }
     }, []);
 
-    // Poll every 5 s while any run is in progress.
+    // Poll every 5 s while any run is in progress. The interval (re)arms
+    // only when the run list changes, and each tick refetches only while
+    // something is still pending — depending on `runs` with an eager
+    // load() inside (the previous shape) refetched on every identical
+    // payload and hammered the endpoint.
     useEffect(() => {
-        load();
-        pollRef.current = setInterval(() => {
-            const hasPending = runs.some((r) => r.status === 'pending' || r.status === 'processing');
-            if (hasPending) load();
-        }, 5000);
+        const hasPending = runs.some((r) => r.status === 'pending' || r.status === 'processing');
+        if (!hasPending) return undefined;
+        pollRef.current = setInterval(load, 5000);
         return () => clearInterval(pollRef.current);
     }, [load, runs]);
+
+    useEffect(() => {
+        load();
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
 
     const toggle = (key) => {
         setSelected((prev) =>
@@ -89,17 +96,17 @@ export default function DataExport() {
 
     const queueExport = async () => {
         if (selected.length === 0) {
-            addToast('Select at least one category.', 'warning');
+            toast.warning('Select at least one category.');
             return;
         }
         setSubmitting(true);
         try {
             await api.post('/my-export', { categories: selected });
-            addToast('Export queued. It will be ready shortly.', 'success');
+            toast.success('Export queued. It will be ready shortly.');
             await load();
         } catch (err) {
             const msg = err?.response?.data?.message ?? 'Failed to queue export.';
-            addToast(msg, 'error');
+            toast.error(msg);
         } finally {
             setSubmitting(false);
         }
