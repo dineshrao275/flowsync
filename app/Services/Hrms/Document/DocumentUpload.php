@@ -41,8 +41,10 @@ class DocumentUpload
      *
      * @var list<string>
      */
+    // SVG is deliberately absent: it is executable markup (stored XSS when
+    // served inline), and nothing in the product needs vector uploads.
     public const ALLOWED_MIMES = [
-        'jpeg', 'png', 'gif', 'webp', 'svg', 'pdf', 'doc', 'docx', 'xls', 'xlsx', 'ppt',
+        'jpeg', 'png', 'gif', 'webp', 'pdf', 'doc', 'docx', 'xls', 'xlsx', 'ppt',
         'pptx', 'txt', 'md', 'csv', 'zip', 'json',
     ];
 
@@ -86,6 +88,10 @@ class DocumentUpload
     }
 
     /**
+     * The effective allow-list: the tenant setting may only NARROW the server
+     * list, never widen it — a tenant admin must not be able to re-enable an
+     * executable type (svg) or introduce server-side ones (php/phar/phtml).
+     *
      * @return list<string>
      */
     private function allowedMimes(): array
@@ -93,7 +99,13 @@ class DocumentUpload
         $settings = HrmsSetting::query()->find(HrmsSetting::SINGLETON_ID);
         $configured = $settings?->setting('documents.allowed_mimes');
 
-        return is_array($configured) && $configured !== [] ? array_values($configured) : self::ALLOWED_MIMES;
+        if (! is_array($configured) || $configured === []) {
+            return self::ALLOWED_MIMES;
+        }
+
+        $narrowed = array_values(array_intersect($configured, self::ALLOWED_MIMES));
+
+        return $narrowed === [] ? self::ALLOWED_MIMES : $narrowed;
     }
 
     private function validateFile(UploadedFile $file): void

@@ -397,6 +397,11 @@ class CollaborationTest extends TestCase
 
         $this->assertStringContainsString('tenant='.$this->acme->id, $url);
 
+        // The admin id has to be captured before the connection switch below:
+        // after it, User queries run on the central DB where tenant users live
+        // nowhere.
+        $adminId = $this->admin()->id;
+
         // A brand-new browser tab carries no tenant state at all: no session and
         // the default connection still pointing at the central system DB. The
         // signature alone has to be enough to find the tenant and the file.
@@ -409,13 +414,26 @@ class CollaborationTest extends TestCase
         // test honest about the download path itself: task/attachment ids are
         // tenant-local, so without the signed tenant the binding query would run
         // against the central database and blow up on "relation tasks does not exist".
+        // A hand-signed link WITHOUT the reader is refused: the stream names no
+        // reader, and anonymous holders get nothing even with a valid signature.
         $handSigned = URL::temporarySignedRoute('attachments.download', now()->addHour(), [
             'task' => $task->id,
             'attachment' => $attachment->id,
             'tenant' => $this->acme->id,
         ]);
 
-        $this->get($handSigned)->assertOk()->assertHeader('content-disposition', 'attachment; filename=notes.txt');
+        $this->get($handSigned)->assertForbidden();
+
+        // With the reader inside the signature, the admin who may open the task
+        // downloads it — the same rule as the JSON show.
+        $asReader = URL::temporarySignedRoute('attachments.download', now()->addHour(), [
+            'task' => $task->id,
+            'attachment' => $attachment->id,
+            'tenant' => $this->acme->id,
+            'actor' => $adminId,
+        ]);
+
+        $this->get($asReader)->assertOk()->assertHeader('content-disposition', 'attachment; filename=notes.txt');
 
         // An attachment id from a different tenant must not resolve here.
         $wrongTenant = URL::temporarySignedRoute('attachments.download', now()->addHour(), [

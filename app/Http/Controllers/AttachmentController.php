@@ -7,11 +7,13 @@ use App\Models\Attachment;
 use App\Models\Project;
 use App\Models\Task;
 use App\Models\Tenant;
+use App\Models\User;
 use App\Services\ActivityLogger;
 use App\Support\TenantContext;
 use App\Support\TenantDatabaseManager;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Symfony\Component\HttpFoundation\StreamedResponse;
@@ -32,7 +34,7 @@ class AttachmentController extends Controller
                 ->with('user')
                 ->orderBy('created_at')
                 ->get()
-                ->map(fn (Attachment $attachment) => $this->present($attachment)),
+                ->map(fn (Attachment $attachment) => $this->present($attachment, $request->user())),
         ]);
     }
 
@@ -73,7 +75,7 @@ class AttachmentController extends Controller
 
         return response()->json([
             'message' => 'File uploaded.',
-            'attachment' => $this->present($attachment->load('user')),
+            'attachment' => $this->present($attachment->load('user'), $request->user()),
         ], 201);
     }
 
@@ -116,13 +118,24 @@ class AttachmentController extends Controller
 
         abort_if($tenant === null, 404);
 
-        return app(TenantDatabaseManager::class)->using($tenant, function () use ($task, $attachment) {
+        $actor = $request->query('actor');
+
+        return app(TenantDatabaseManager::class)->using($tenant, function () use ($task, $attachment, $actor) {
             $record = Attachment::query()
                 ->where('task_id', $task)
                 ->where('id', $attachment)
                 ->first();
 
             abort_if($record === null, 404);
+
+            // The file belongs to whoever may open the task (TaskPolicy::view —
+            // same rule as the JSON show). The reader rides inside the signature
+            // because the route has no session; nobody anonymous, even with a
+            // valid signature: a forwarded link is a bearer token.
+            $reader = $actor === null ? null : User::find((int) $actor);
+            abort_if($reader === null, 403, 'This download needs a signed reader.');
+            $reader->loadMissing('roles.permissions');
+            Gate::forUser($reader)->authorize('view', $record->task);
 
             if (! Storage::disk($record->disk)->exists($record->path)) {
                 abort(404, 'File no longer exists.');
@@ -132,7 +145,7 @@ class AttachmentController extends Controller
         });
     }
 
-    private function present(Attachment $attachment): array
+    private function present(Attachment $attachment, User $reader): array
     {
         return [
             'id' => $attachment->id,
@@ -151,6 +164,10 @@ class AttachmentController extends Controller
                     'task' => $attachment->task_id,
                     'attachment' => $attachment->id,
                     'tenant' => $this->tenantContext->currentId(),
+                    // The reader rides inside the signature: the download
+                    // route has no session, and the stream refuses anonymous
+                    // holders even with a valid signature.
+                    'actor' => $reader->id,
                 ],
             ),
         ];

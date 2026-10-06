@@ -294,8 +294,8 @@ class HrmsEmployeeApiTest extends TestCase
 
     public function test_a_photo_download_writes_a_data_access_row(): void
     {
-        Storage::fake('public');
-        Storage::disk('public')->put('employees/face.png', 'binary');
+        Storage::fake('local');
+        Storage::disk('local')->put('employees/face.png', 'binary');
 
         $employee = $this->makeEmployee('Has A Face', [
             'photo_path' => 'employees/face.png',
@@ -325,8 +325,8 @@ class HrmsEmployeeApiTest extends TestCase
 
     public function test_tampering_with_the_signed_actor_does_not_work(): void
     {
-        Storage::fake('public');
-        Storage::disk('public')->put('employees/face.png', 'binary');
+        Storage::fake('local');
+        Storage::disk('local')->put('employees/face.png', 'binary');
 
         $employee = $this->makeEmployee('Has A Face', ['photo_path' => 'employees/face.png']);
 
@@ -767,8 +767,8 @@ class HrmsEmployeeApiTest extends TestCase
 
     public function test_a_photo_is_served_through_a_signed_tenant_scoped_url(): void
     {
-        Storage::fake('public');
-        Storage::disk('public')->put('hrms/photos/1.png', 'binary');
+        Storage::fake('local');
+        Storage::disk('local')->put('hrms/photos/1.png', 'binary');
 
         $this->login('admin@flowsync.test');
         $employee = $this->makeEmployee('Has A Photo', ['photo_path' => 'hrms/photos/1.png']);
@@ -785,8 +785,8 @@ class HrmsEmployeeApiTest extends TestCase
 
     public function test_a_tampered_photo_url_is_refused(): void
     {
-        Storage::fake('public');
-        Storage::disk('public')->put('hrms/photos/2.png', 'binary');
+        Storage::fake('local');
+        Storage::disk('local')->put('hrms/photos/2.png', 'binary');
 
         $this->login('admin@flowsync.test');
         $employee = $this->makeEmployee('Tamper Target', ['photo_path' => 'hrms/photos/2.png']);
@@ -799,8 +799,8 @@ class HrmsEmployeeApiTest extends TestCase
 
     public function test_a_photo_url_works_from_a_fresh_session_on_the_central_connection(): void
     {
-        Storage::fake('public');
-        Storage::disk('public')->put('hrms/photos/3.png', 'binary');
+        Storage::fake('local');
+        Storage::disk('local')->put('hrms/photos/3.png', 'binary');
 
         $this->login('admin@flowsync.test');
         $employee = $this->makeEmployee('Fresh Tab', ['photo_path' => 'hrms/photos/3.png']);

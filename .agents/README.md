@@ -52,4 +52,4 @@
 - Laravel `^12.0` + React `^19.3.0`, Vite `^7.0.7`, Reverb `^1.12`, PHP `^8.2` (host PHP 8.3).
 - 12 system migrations, 35 tenant migrations; 137 Feature test files; 43 HRMS SPA pages.
 - `factories/` holds only stock `UserFactory.php`. Zero `Mail::` usage in `app/`.
-- Gate quoted in `AGENTS.md`: **1363 tests / 6794 assertions**.
+- Gate quoted in `AGENTS.md`: **1372 tests / 6829 assertions** (Phase 1 end-gate, 2026-10-06).

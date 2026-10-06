@@ -9,6 +9,7 @@ use App\Models\User;
 use App\Services\HrmsAuditLogger;
 use App\Support\TenantContext;
 use App\Support\TenantDatabaseManager;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\ValidationException;
 use Symfony\Component\HttpFoundation\StreamedResponse;
@@ -95,21 +96,21 @@ class DocumentDownload
     }
 
     /**
-     * The download permission for a confidential file, after the record is
-     * resolved. Anonymous holders of a valid signature may take a plain file;
-     * a confidential one additionally needs the reader named in the URL to
-     * hold `hrms.documents.view_sensitive` right now.
+     * The download permission, after the record is resolved: the reader named
+     * in the URL must satisfy the exact same rule as the JSON show
+     * (EmployeeDocumentPolicy::view — self or lifecycle-trusted, plus the
+     * sensitive permission when confidential). Nobody anonymous: a forwarded
+     * link is a bearer token, and the file it points at can name a condition,
+     * an account or a person.
      */
     private function requireDownloadReader(EmployeeDocument $document, ?User $reader): void
     {
-        if (! $document->confidential) {
-            return;
+        if ($reader === null) {
+            abort(403, 'This download needs a signed reader.');
         }
 
-        $reader?->loadMissing('roles.permissions');
+        $reader->loadMissing('roles.permissions');
 
-        if ($reader === null || ! $reader->hasPermission('hrms.documents.view_sensitive')) {
-            abort(403, 'This document needs the sensitive-documents permission.');
-        }
+        Gate::forUser($reader)->authorize('view', $document);
     }
 }

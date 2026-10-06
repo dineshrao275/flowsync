@@ -232,7 +232,8 @@ class HrmsDocumentServiceTest extends TestCase
     {
         $service = app(DocumentService::class);
         $document = $service->upload($this->makeEmployee(), $this->makeType(), $this->pdf(), ['title' => 'Passport']);
-        $url = $service->present($document)['download_url'];
+        $reader = User::where('email', 'admin@flowsync.test')->firstOrFail();
+        $url = $service->present($document, $reader)['download_url'];
 
         // A fresh browser tab carries no tenant state: no session, and the
         // default connection pointing at the central system DB. The signature
@@ -245,11 +246,20 @@ class HrmsDocumentServiceTest extends TestCase
         $response->assertOk()->assertHeader('content-disposition', 'attachment; filename=passport.pdf');
         $this->assertSame(Storage::disk('local')->get($document->file_path), $response->streamedContent());
 
+        // A reader-less link is refused even with a valid signature: the
+        // stream names no reader, and anonymous holders get nothing.
+        $anonymous = URL::temporarySignedRoute('hrms.documents.download', now()->addHour(), [
+            'document' => $document->id,
+            'tenant' => $this->acme()->id,
+        ]);
+        $this->get($anonymous)->assertForbidden();
+
         // A document id from another tenant must not resolve here: the ids are
         // tenant-local, so only the signed tenant selects the database.
         $foreign = URL::temporarySignedRoute('hrms.documents.download', now()->addHour(), [
             'document' => $document->id,
             'tenant' => $this->globex()->id,
+            'actor' => $reader->id,
         ]);
         $this->get($foreign)->assertNotFound();
 

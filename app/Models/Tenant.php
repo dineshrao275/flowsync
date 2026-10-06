@@ -90,6 +90,10 @@ class Tenant extends Model
     ];
 
     protected $hidden = [
+        'db_name',
+        'db_host',
+        'db_port',
+        'db_user',
         'db_password',
     ];
 
