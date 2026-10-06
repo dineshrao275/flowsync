@@ -5,11 +5,9 @@ namespace App\Http\Controllers;
 use App\Models\Subscription;
 use App\Models\SubscriptionPlan;
 use App\Models\Tenant;
-use App\Support\TenantDatabaseManager;
+use App\Services\PlatformResourceTotals;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Carbon;
-use Illuminate\Support\Collection;
-use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 
 /**
@@ -19,9 +17,7 @@ use Illuminate\Support\Facades\DB;
  */
 class SystemAnalyticsController extends Controller
 {
-    private const RESOURCE_SCAN_CAP = 100;
-
-    private const RESOURCE_CACHE_SECONDS = 300;
+    public function __construct(private readonly PlatformResourceTotals $resources) {}
 
     public function index(): JsonResponse
     {
@@ -39,7 +35,7 @@ class SystemAnalyticsController extends Controller
             ->map(fn ($row) => ['status' => (string) $row->status, 'count' => (int) $row->total])
             ->values();
 
-        $resources = $this->resourceTotals();
+        $resources = $this->resources->get();
 
         $topTenants = $resources->map(fn (array $r) => [
             'id' => $r['tenant']['id'],
@@ -131,43 +127,5 @@ class SystemAnalyticsController extends Controller
                 ->whereIn('status', [Subscription::STATUS_ACTIVE, Subscription::STATUS_TRIALING])
                 ->count(),
         ];
-    }
-
-    /**
-     * Per-tenant resource counts via TenantDatabaseManager (capped fan-out,
-     * cached). Each row: {tenant:{id,name,slug,status}, users, workspaces,
-     * projects, tasks}.
-     */
-    private function resourceTotals(): Collection
-    {
-        return Cache::remember('platform.analytics.resources', self::RESOURCE_CACHE_SECONDS, function (): Collection {
-            $dbm = app(TenantDatabaseManager::class);
-
-            $tenants = Tenant::query()
-                ->orderBy('id')
-                ->limit(self::RESOURCE_SCAN_CAP)
-                ->get();
-
-            $rows = $tenants->map(function (Tenant $tenant) use ($dbm): ?array {
-                if (! $tenant->isServiceable()) {
-                    return null;
-                }
-
-                return $dbm->using($tenant, fn (): array => [
-                    'tenant' => [
-                        'id' => $tenant->id,
-                        'name' => $tenant->name,
-                        'slug' => $tenant->slug,
-                        'status' => $tenant->status,
-                    ],
-                    'users' => DB::table('users')->count(),
-                    'workspaces' => DB::table('workspaces')->count(),
-                    'projects' => DB::table('projects')->count(),
-                    'tasks' => DB::table('tasks')->whereNull('deleted_at')->count(),
-                ]);
-            });
-
-            return collect($rows)->filter()->values();
-        });
     }
 }

@@ -11,6 +11,8 @@ use App\Models\User;
 use App\Services\Hrms\PerformanceService;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
 class TaskService
@@ -260,9 +262,36 @@ class TaskService
             ->concat($ids->slice($position))
             ->values();
 
-        $ids->each(function (int $id, int $position) {
-            Task::whereKey($id)->update(['position' => $position + 1]);
-        });
+        $this->writePositions($ids);
+    }
+
+    /**
+     * One UPDATE with CASE id WHEN … THEN … instead of N per-row writes.
+     *
+     * @param  Collection<int, int>  $ids
+     */
+    private function writePositions(Collection $ids): void
+    {
+        if ($ids->isEmpty()) {
+            return;
+        }
+
+        $cases = [];
+        $bindings = [];
+
+        foreach ($ids as $offset => $id) {
+            $cases[] = 'when ? then ?';
+            $bindings[] = $id;
+            $bindings[] = $offset + 1;
+        }
+
+        $placeholders = implode(',', array_fill(0, $ids->count(), '?'));
+        $bindings = array_merge($bindings, $ids->all());
+
+        DB::update(
+            'update tasks set position = case id '.implode(' ', $cases).' end where id in ('.$placeholders.')',
+            $bindings,
+        );
     }
 
     private function nextPosition(TaskStatus $status): int

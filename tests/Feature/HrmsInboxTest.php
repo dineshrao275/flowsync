@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Enums\Hrms\EmployeeStatus;
 use App\Models\Hrms\Asset\Asset;
 use App\Models\Hrms\Asset\AssetCategory;
+use App\Models\Hrms\Attendance\AttendanceDay;
 use App\Models\Hrms\Attendance\AttendanceRegularizationRequest;
 use App\Models\Hrms\Document\DocumentType;
 use App\Models\Hrms\Document\EmployeeDocument;
@@ -48,7 +49,7 @@ class HrmsInboxTest extends TestCase
 
         $task = $this->onboardingTask($report, 5);
 
-        $day = \App\Models\Hrms\Attendance\AttendanceDay::create([
+        $day = AttendanceDay::create([
             'employee_id' => $report->id,
             'work_date' => today()->subDays(2)->toDateString(),
             'status' => 'absent',

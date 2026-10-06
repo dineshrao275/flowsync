@@ -31,6 +31,7 @@ class PayrollService
         private readonly PayslipCalculator $calculator,
         private readonly ExpenseService $expenses,
         private readonly HrmsAuditLogger $audit,
+        private readonly PayrollAssignmentMap $assignments,
     ) {}
 
     /**
@@ -99,19 +100,28 @@ class PayrollService
             $calculated = 0;
             $skipped = [];
 
-            foreach (Employee::query()->active()->orderBy('id')->get() as $employee) {
-                $payload = $this->calculator->build($employee, $run, $preserved[$employee->id] ?? []);
+            Employee::query()->active()->orderBy('id')->chunkById(100, function ($chunk) use ($run, $actor, $preserved, &$calculated, &$skipped): void {
+                $map = $this->assignments->forEmployees($chunk, $run);
 
-                if ($payload === null) {
-                    $skipped[] = $employee->id;
+                foreach ($chunk as $employee) {
+                    $payload = $this->calculator->build(
+                        $employee,
+                        $run,
+                        $preserved[$employee->id] ?? [],
+                        $map->get($employee->id),
+                    );
 
-                    continue;
+                    if ($payload === null) {
+                        $skipped[] = $employee->id;
+
+                        continue;
+                    }
+
+                    $this->storePayslip($run, $employee, $payload);
+                    $this->reimburseExpenses($run, $employee, $actor);
+                    $calculated++;
                 }
-
-                $this->storePayslip($run, $employee, $payload);
-                $this->reimburseExpenses($run, $employee, $actor);
-                $calculated++;
-            }
+            });
 
             $run->update([
                 'employee_count' => $calculated,

@@ -4,8 +4,10 @@ namespace App\Providers;
 
 use App\Listeners\SwitchesTenantConnectionForQueuedJobs;
 use App\Models\User;
+use App\Services\TenantLimits;
 use App\Support\TenantContext;
 use App\Support\TenantDatabaseManager;
+use Illuminate\Foundation\Http\Events\RequestHandled;
 use Illuminate\Queue\Events\JobExceptionOccurred;
 use Illuminate\Queue\Events\JobFailed;
 use Illuminate\Queue\Events\JobProcessed;
@@ -14,6 +16,7 @@ use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Queue;
 use Illuminate\Support\ServiceProvider;
+use RuntimeException;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -40,6 +43,51 @@ class AppServiceProvider extends ServiceProvider
         });
 
         $this->registerQueuedJobTenantContext();
+        $this->registerTenantLimitsMemoBoundaries();
+        $this->assertInfrastructureConnectionsPinned();
+    }
+
+    /**
+     * `TenantLimits::effective()` memoizes per unit of work — one HTTP request,
+     * or one queued job. Without these flushes the static memo would outlive
+     * the request in a long-lived worker (Octane, queue daemons) and a plan or
+     * `limits_override` edit would stay invisible until the process recycled.
+     * A plan edit must take effect on the very next read; `ModuleGateTest`
+     * (grants a module, expects the next request to allow it) is the guard.
+     */
+    private function registerTenantLimitsMemoBoundaries(): void
+    {
+        Event::listen(RequestHandled::class, fn () => TenantLimits::resetMemo());
+        Event::listen(JobProcessing::class, fn () => TenantLimits::resetMemo());
+    }
+
+    /**
+     * Sessions, cache, and jobs live on the central DB. When those drivers
+     * are `database` and the connection is left null, Laravel falls through
+     * to the request's default connection — which SwitchTenant points at the
+     * tenant DB. Production must pin them (SESSION_CONNECTION=system, etc.).
+     */
+    private function assertInfrastructureConnectionsPinned(): void
+    {
+        if (! $this->app->environment('production')) {
+            return;
+        }
+
+        $pins = [
+            'session' => config('session.driver') === 'database' ? config('session.connection') : 'ok',
+            'cache' => config('cache.default') === 'database' ? config('cache.stores.database.connection') : 'ok',
+            'queue' => config('queue.default') === 'database' ? config('queue.connections.database.connection') : 'ok',
+        ];
+
+        $missing = array_keys(array_filter($pins, fn ($value) => $value === null || $value === ''));
+
+        if ($missing === []) {
+            return;
+        }
+
+        throw new RuntimeException(
+            'Production database session/cache/queue connections must be pinned to the central connection (system). Unset: '.implode(', ', $missing).'. See .env.example.',
+        );
     }
 
     /**

@@ -11,10 +11,10 @@
   ~14 min and bury regressions. Re-run `php artisan test` before a commit only when
   the task touched something cross-cutting (`routes/web.php`, `bootstrap/app.php`,
   `TenantLimits`, shared `config/*`, middleware) — and say so in the commit body.
-- Final gate per phase: full suite in Hrms/non-Hrms chunks + `Isolated/`, zero
-  omitted files. Gate quoted in `AGENTS.md` `## Commands` (currently **1363 tests /
-  6796 assertions** — update that line on every count-moving change; counts verified
-  by the final run).
+- Final gate per phase: full suite (chunks or one run) + `Isolated/`, zero omitted
+  files. Gate quoted in `AGENTS.md` `## Commands` (currently **1384 tests / 6862
+  assertions** — Phase 2 end-gate, verified by a single `php artisan test` run over
+  all 145 test files; update that line on every count-moving change).
 - Shell guards: `HrmsShellTest::test_every_commit_is_pushed` (commit left local-only
   fails the suite), `test_the_hrms_tree_is_free_of_debug_leftovers` (no
   `dd()/dump()/console.log/TODO` in HRMS tree). JS-string pins (notification
@@ -34,13 +34,24 @@
 ## Performance budgets
 
 Every request targets **<3 s**; async/background jobs for mail, exports, payroll
-runs, analytics rollups. Known hot paths: `SystemAnalyticsController` cold fan-out
-(100 tenants × 4 counts, 300s cache — first SA load after expiry is seconds);
-payroll generation loop (per-employee queries, needs chunking); uncached
-dashboard/reports/search/board + `TenantLimits::effective` per create + `me()`
-payload; DB-backed cache+queue+sessions on one PG (Redis is the cheapest win,
-env-driven with database fallback); board-move write amplification; 30s
-notification/inbox polls.
+runs, analytics rollups.
+
+- **Phase 2 shipped (2026-10-06, see `.agents/roadmap/phase-plan.md` §Phase 2 report):**
+  SA analytics fan-out is stale-while-revalidate (`PlatformResourceTotals` 60s fresh /
+  600s TTL + queued `RefreshPlatformAnalyticsJob`); payroll runs chunked 100-at-a-time
+  with a pre-loaded `PayrollAssignmentMap`; board moves are one bulk `CASE` statement;
+  `TenantLimits::effective()` memoized per unit of work (flushed on `RequestHandled` /
+  `JobProcessing` — never across a request); production boot refuses unpinned
+  `SESSION_CONNECTION`/`DB_CACHE_CONNECTION`/`DB_QUEUE_CONNECTION`; index set in
+  `04-database.md` (trigram behind `ENABLE_TRGM`). Gate: `DBPerformanceTest`.
+- **Still open:** uncached dashboard/reports/search payloads; `me()` payload
+  (deliberately uncached — invalidation surface ≫ query cost); 30s notification/inbox
+  polls; DB-backed cache+queue+sessions on one PG (Redis is the cheapest win, already
+  env-driven with a database fallback — no code change needed). Endpoint p95 is now
+  measured at fleet density (2 500 tasks / 25 projects, in-process): dashboard 11.8 ms,
+  board 22.7 ms, search 30.2 ms — all far inside <3 s; the one breach is a stress case
+  of 25 000 tasks in a single project (board p95 4.1 s → board pagination is the
+  follow-up). See `.agents/roadmap/phase-plan.md` §Phase 2 report.
 
 ## Deployment requirements
 

@@ -20,7 +20,7 @@ Laravel 12 + React 19 SPA. Session-based auth **without** Breeze/Fortify/Sanctum
   `tenants:provision` + seeds demo data (superadmin + acme + globex). Reset from scratch:
   `docker-compose down -v` then `up -d` (app entrypoint re-initializes; `RUN_INIT=true` only for `app`).
   No PHP/composer needed on the host — envs in `.env.docker`.
-- `php artisan test` — run test suite (Phase 13: **isolated, per-tenant file DBs** via `Tests\IsolatesDatabase`; current gate: **1372 tests / 6829 assertions passing** — Phase 1 security (full suite re-verified in Unit + non-Hrms/Hrms chunks with zero omitted files at the Phase 1 end-gate: Unit 66/107, non-Hrms 394/2900, Hrms 912/3822 with 1 pre-existing env skip))
+- `php artisan test` — run test suite (Phase 13: **isolated, per-tenant file DBs** via `Tests\IsolatesDatabase`; current gate: **1384 tests / 6862 assertions passing** — Phase 2 database & performance (verified by a single `php artisan test` run at the Phase 2 end-gate: all 145 test files, zero omitted; the Phase 1 security gate was 1372/6829))
 
 - `npm run build` / `npm run dev` — frontend build / Vite dev server
 - `./vendor/bin/pint` — PHP code style (run over whole repo; `--dirty` only works in git)
@@ -1104,6 +1104,20 @@ Phase 13
   automatically inside `Tests\IsolatesDatabase` and `TenantProvisioner::provisionIsolated`.
 - **Laravel's `boolean` validation rule rejects `"true"`/`"false"` strings**, which is what query strings and checkbox-style payloads actually deliver (axios serializes `trashed=false` into the URL). Controllers that accept such input use the `NormalizesBooleanInput` concern (`normalizeRequestBooleans()` before `validate()`) so real booleans reach the model — a raw `"false"` would be cast to **true** by Eloquent. Non-boolean values still 422.
 - **TDZ trap:** a component that references a `useState` binding in a hook call placed *above* its declaration throws `Cannot access 'X' before initialization` on every render (minified, so the identifier looks random) — map the frame with `vite build --sourcemap` + `@jridgewell/trace-mapping` instead of hunting for import cycles. Component-body statements must not read a binding declared below them.
+- **A repair-safe guard in a migration can silently skip the very work it was written to do.**
+  `2026_10_13_000036_add_phase2_performance_indexes` first named the payroll ledger
+  `payroll_adjustments` (real table: `payslip_adjustments`) and its own `Schema::hasTable()`
+  guard turned that typo into a green **and empty** migration — the same defect class as the
+  `document_types` catalogue finding. Keep the `hasTable`/`hasColumn` guards (repairs re-run
+  migrations), but assert the *outcome* in a test: `DBPerformanceTest` checks the index columns
+  exist, never a migration's exit status.
+- **`TenantLimits::effective()`'s static memo lives for exactly ONE unit of work** — a single
+  HTTP request, or one queued job in a worker. `AppServiceProvider` flushes it on
+  `RequestHandled` + `JobProcessing`, `IsolatesDatabase` flushes per test. Its key is
+  (tenant, plan_id, limits_override) and deliberately does **not** hash the plan's `limits`
+  column, so without those boundary flushes a `$plan->update(['limits' => …])` keeps serving the
+  old merge until the process recycles (`ModuleGateTest` is the guard: grant a module → the next
+  request must allow it). Never carry it across requests or jobs.
 - Broadcast events fire through the queue: `QUEUE_CONNECTION` must be `sync` in tests, and `Event::fake()` (NOT `Broadcast::fake()`) intercepts queued broadcasts. Channel auth should be tested by invoking `Broadcast::driver()->getChannels()` callbacks directly (NullBroadcaster returns 200/empty in tests).
 - Inline test routes that pass through `tenant`/`tenant_context` need the `web` middleware group (or you get "Session store not set on request").
 - Test isolation is handled by the **`Tests\IsolatesDatabase` trait** (hooks via `setUpTraits()`) — it
