@@ -1,6 +1,10 @@
 # FlowSync HRMS — Phase-Wise Implementation Plan
 
-**Status:** plan only — no HRMS code exists yet.
+**Status:** fully shipped — Phases 0-21 + the cross-cutting delivery gate are implemented, and the whole
+suite runs green through `Tests\IsolatesDatabase`. The current gate lives on the `## Commands` test-count
+line in `AGENTS.md` (updated at the end of every phase); per-phase statuses are below. The Phase 3
+roadmap pass (one-tab IA) restructured the sidebar and landed `HrmsNavTest`; see the HRMS reference
+section in `AGENTS.md` for the shipped surface.
 **Baseline at plan time:** `php artisan test` = **368 tests / 2629 assertions passing**.
 **Reference inspiration:** Keka's public marketing capability list was used only to enumerate functional
 breadth. No Keka code, assets, copy, or data was consulted or reproduced.
@@ -1777,6 +1781,10 @@ any company, so a tenant is deleting rows rather than inventing a structure.
 > relative order at the end — a two-row reorder payload omits nothing, so the
 > guarantee had no coverage at all. It does now.
 
+**Status: done.** `HrmsOrgTablesTest`, `HrmsOrgServiceTest`, `HrmsOrgApiTest` — the CHECK-preserving FK
+adds, subtree headcounts, the manage-does-not-imply-view split, the P3.5 starter guard, and the
+cross-catalogue `HrmsCatalogTest` are all pinned.
+
 **Acceptance:** the org page loads in one request; a cycle attempt returns 422; an employee with a
 department shows it in the directory filter; `hrms.org.manage` is required for every write.
 
@@ -1965,6 +1973,10 @@ daily `php artisan hrms:onboarding-reminders`. `utils/notifications.js` gains th
 > hire and urgency with no actor — the sender is a command, not a person.
 > The JS branches are pinned by string in the shell test: there is no JS
 > runner, so an untested toast copy rots silently.
+
+**Status: done.** `HrmsLifecycleTablesTest`, `HrmsLifecycleServiceTest`, `HrmsLifecycleApiTest`,
+`HrmsLifecycleNotificationsTest` — including the P4.1 `document_requests.document_id` hinge and the
+asymmetric owner/HR nudging.
 
 **Acceptance:** create a template, start a case for a new hire, the checklist materialises with correct
 due dates, completing all mandatory items closes the case, an offboarding case refuses to clear with
@@ -2175,6 +2187,10 @@ late/OT badges), a right-hand punch panel, filters (team/department/shift/status
 > (queue link for the ask, month link for the decision), pinned by string in
 > `HrmsShellTest` like the onboarding nudge.
 
+**Status: done.** `HrmsAttendanceTablesTest` (CHECKs survive on both grammars), `HrmsAttendanceServiceTest`,
+`HrmsRegularizationTest`, `HrmsAttendanceApiTest`, `HrmsAttendanceRecordsTest`, `HrmsAttendanceRollupTest`,
+`HrmsDeriveAttendanceTest`.
+
 **Acceptance:** punch in/out produces a day record with correct late/OT math; a leave day shows `leave`
 not `absent`; a regularization changes the day and is audited; a tenant without
 `hrms.attendance.remote` gets 403 and no clock widget; the rollup command is idempotent.
@@ -2382,6 +2398,10 @@ requester with the from/to status names. `utils/notifications.js` branches both 
 > requesters — pinned by string in `HrmsShellTest` like every notifier
 > before it.
 
+**Status: done.** `HrmsLeaveTablesTest`, `HrmsLeaveSeedTest`, `HrmsLeaveBalanceTest`, `HrmsLeaveRequestTest`,
+`HrmsLeaveApprovalRoutingTest`, `HrmsLeaveCatalogApiTest`, `HrmsLeaveBalanceApiTest`,
+`HrmsLeaveRequestApiTest`, `HrmsLeaveExemptionApiTest`.
+
 **Acceptance:** accrue -> the balance reflects it; a request exceeding balance 422s with the shortfall;
 approval writes the ledger and flips the attendance day to `leave`; rejection notifies the requester and
 rebuilds the balance; an accrual rerun does not double-credit; a `viewer` role can request their own
@@ -2472,6 +2492,8 @@ expiring-soon panel), `pages/hrms/MyCompOff.jsx`.
 > hardcoded guess). Links land where the item lives — the hub for
 > approvers, the self-service bank for requesters — pinned by string in
 > `HrmsShellTest` like every notifier before it.
+
+**Status: done.** `HrmsCompOffTablesTest`, `HrmsCompOffServiceTest`, `HrmsCompOffApiTest`.
 
 **Acceptance:** a month of weekends credits correctly and re-running is a no-op; a request over balance
 422s; expiry removes credits from the available balance; approval notifies the requester.
@@ -2571,6 +2593,9 @@ common-holiday presets, optional-holiday declaration panel).
 > public reference data. `HrmsHolidayAssignmentApiTest` (4 tests) guards
 > overlap refusal, scoping both directions, upsert replacement, and the
 > resolved view.
+
+**Status: done.** `HrmsHolidayTablesTest`, `HrmsHolidayServiceTest`, `HrmsHolidayApiTest`,
+`HrmsHolidayAssignmentApiTest`, `HrmsHolidayIntegrationTest`.
 
 **Acceptance:** a public holiday turns an attendance day into `holiday` and reduces a leave request's
 `total_days`; a restricted holiday is a working day; an optional holiday is honoured when taken;
@@ -2758,6 +2783,10 @@ columns, adjustment drawer, totals footer), `pages/hrms/MyPayslips.jsx` (list, p
 > Sidebar + routes gated like the rest of the HRMS tree. `npm run build`
 > green, shell guard green.
 
+**Status: done.** `HrmsPayrollTablesTest`, `HrmsPayrollReadsTest`, `HrmsPayrollEngineTest` (LOP math),
+`HrmsCompensationTest`/`HrmsCompensationSeedTest`, `HrmsCompensationApiTest`, `HrmsPayrollRunApiTest`,
+`HrmsPayslipAccessTest` (per-read rows + signed downloads).
+
 **Acceptance:** a run calculates correct LOP from attendance plus leave; re-calculating a `review` run
 is deterministic; a `locked` run rejects edits; an approver without `hrms.payroll.run` gets 403; a
 non-privileged user cannot read another's payslip; every payslip read is logged.
@@ -2872,6 +2901,10 @@ data with a read-receipt note in the UI copy.
 `config/hrms.php` fixture corpus with expected outputs, and an explicit "statutory figures are advisory"
 disclaimer in the UI.
 
+**Status: done.** `HrmsStatutoryTablesTest`, `HrmsTdsProjectionTest`, `HrmsStatutoryIntegrationTest`, the
+table-driven engine unit-tested against the fixture corpus, `HrmsStatutoryProfileTest` (manage-only
+reveal), `HrmsStatutoryConfigApiTest`, `HrmsStatutoryTdsApiTest`.
+
 **Acceptance:** a payslip with statutory enabled contains PF/ESI/PT lines matching the fixture corpus; a
 payslip calculated with the module disabled contains none and matches a pre-Phase-10 run; a locked
 payslip is unaffected by a configuration change; bank account/PAN never appear unmasked in any response
@@ -2924,6 +2957,8 @@ Frontend: `pages/hrms/Expenses.jsx` (claims queue filtered by period/status, app
 amount, receipts viewer), `components/hrms/ExpenseClaimModal.jsx` (line-item editor, receipt upload via
 `employee_documents`), `pages/hrms/MyExpenses.jsx`. Notifications
 `hrms.expense.submitted|approved|rejected|paid`.
+
+**Status: done.** `HrmsExpenseTablesTest`, `HrmsExpenseServiceTest`, `HrmsExpenseApiTest`.
 
 **Acceptance:** a claim total is server-computed; a missing receipt above the threshold 422s; a partial
 approval records the reduced amount and reason; an approved claim in a period's run becomes a payslip
@@ -3031,6 +3066,9 @@ deep link) and surface linked tasks on the goal card.
 > for a wrong link, same belonging rule); links audit; sealed cycles
 > refuse; the goal card lists linked tasks with completed flags.
 > `HrmsGoalTaskLinkTest` (5 tests).
+
+**Status: done.** `HrmsPerformanceTablesTest`, `HrmsPerformanceEvidenceTest`, `HrmsPerformanceCycleTest`,
+`HrmsPerformanceApiTest`, `HrmsGoalTaskLinkTest` (goal↔task attach/detach).
 
 **Acceptance:** a goal's evidence refreshes from real task data and shows counts, not a score; weights
 must total 100; a peer cannot see another person's rating; a manager sees only their reports; the cycle
@@ -3236,6 +3274,10 @@ employee profile's `documents` tab embeds a filtered store.
 > request per row. `hrms.documents` joined `HRMS_MODULE_ROUTES` (the shell test
 > pins every advertised section to a router-owned path) and the profile tabs.
 
+**Status: done.** `HrmsDocumentTablesTest`, `HrmsDocumentServiceTest`, `HrmsDocumentApiTest`, plus the
+`HrmsCatalogTest` cross-catalogue guard that caught `config/hrms.php` lying to the `document_types` columns
+(the P13.1 fix per the callout above).
+
 **Acceptance:** a document uploaded in a fresh tab downloads via its signed URL with no session; a
 tampered tenant param 403s; a confidential document is 403 without `hrms.documents.view_sensitive` and
 logs an access row; an expired document flips to `expired` via the command; delete removes the file.
@@ -3287,6 +3329,9 @@ Routes: `/api/hrms/assets/categories`, `.../assets`, `.../assets/{asset}`,
 Frontend: `pages/hrms/Assets.jsx` (register with filters, condition badges, assign/return modals,
 maintenance log), `pages/hrms/MyAssets.jsx` (assigned assets, acknowledge, report damage).
 Notifications `hrms.asset.assigned|acknowledged|returned|return_overdue`.
+
+**Status: done.** `HrmsAssetTablesTest`, `HrmsAssetServiceTest` (exit gate + overdue sweep),
+`HrmsAssetApiTest`.
 
 **Acceptance:** assigning a laptop notifies the employee and blocks a second assignment; acknowledgement
 is recorded; a return updates condition and status; an offboarding case with an outstanding asset cannot
@@ -3366,6 +3411,9 @@ with an HR icon and routes correctly.
 > (disputed own-payslips link the run grid for runners, self-service
 > otherwise).
 
+**Status: done.** `HrmsInboxTest`, `HrmsInboxApiTest`, `HrmsTaxonomyTest` (clearance/document/cycle/share
+notifiers).
+
 **Acceptance:** an approval for the user appears in the inbox within one request; marking read persists
 per user (not globally); every taxonomy entry has copy and a working deep link; a non-impersonating
 super admin's inbox is empty, matching the existing `DetectsPlatformUsers` short-circuit.
@@ -3422,6 +3470,9 @@ scale/NPS questions), `pages/hrms/MySurvey.jsx` (one question per page with prog
 `components/hrms/ResultsChart.jsx`.
 `php artisan hrms:surveys-open-close` opens and closes campaigns on schedule.
 
+**Status: done.** `HrmsSurveyTablesTest`, `HrmsEngagementTest` (templates + anonymity),
+`HrmsSurveyApiTest`.
+
 **Acceptance:** a campaign below its anonymity threshold returns no results and no free text; a double
 submission is rejected; scale/NPS aggregation is correct; a scheduled campaign opens on schedule; a
 non-recipient cannot see the campaign.
@@ -3475,6 +3526,8 @@ employee profile). Both reuse the `components/hrms/*` widgets already built.
 > attendance module is off), and a read-only telescope linking out to
 > profiles. `My HR` rides Main, `My team` rides People. Build + shell
 > green, no PHP touched.
+
+**Status: done.** `HrmsMyTeamTest`, `HrmsMyHrTest` — the `employees`-rooted reads with the N+1 guards.
 
 **Acceptance:** `/my` renders in one request with no N+1 (assert the query count in a test); a manager
 sees only their reports; salary data is absent from `my/team` for a user without `hrms.compensation.view`;
@@ -3561,6 +3614,9 @@ Reuse `components/time/TimeSummary.jsx` and `utils/time.js::formatMinutes()` for
 > Export)` row (P19.3 applied at birth). Digest notifications finally land
 > somewhere: `hrms.inbox.digest` describe + `→ /hrms/analytics` href.
 > `HrmsAnalyticsExportTest` (4 tests).
+
+**Status: done.** `HrmsAnalyticsTest`, `HrmsAnalyticsApiTest`, `HrmsAnalyticsExportTest`,
+`HrmsReportDigestTest`, `HrmsReportScheduleTablesTest`.
 
 **Acceptance:** a manager sees only their reports' aggregates; a user without `hrms.attendance.view` gets
 403 on the attendance tab; payroll analytics 403 without `hrms.payroll.run` and log an access row when
@@ -3695,6 +3751,9 @@ existing throttle middleware. Payroll exports additionally require `hrms.payroll
 > no new middleware added. Full suite re-verified: 1341/6682, zero
 > omitted files.
 
+**Status: done.** `HrmsAuditLoggerTest`, `HrmsAuditApiTest`, `HrmsSecurityChecklistTest`,
+`HrmsSensitiveReadAuditTest`, `HrmsRetentionTest`, `HrmsExportControlsTest`.
+
 **Acceptance:** the checklist is fully ticked with a test or a documented reason for each line; the
 retention command is idempotent and defaults to `--dry-run`.
 
@@ -3812,6 +3871,9 @@ a `kind`, plus "create a task from this checklist item" on `Checklist.jsx`. On t
 > gate beyond the profile itself). No new backend — all endpoints rode
 > in on P20.2/P20.3. Build green, shell green.
 
+**Status: done.** `HrmsTaskLinkTablesTest`, `HrmsTaskLinkApiTest`, `HrmsCaseTaskConversionTest`,
+`HrmsGoalTaskLinkTest`, `HrmsDeriveAttendanceTest` (opt-in work-log-derived attendance).
+
 **Acceptance:** linking an employee to a task shows the link on both sides; unlinking removes it; a
 checklist item converted to a task reflects completion; work-log-derived attendance is off by default and
 only runs when explicitly enabled; a goal's evidence lists the exact task ids it counted.
@@ -3916,6 +3978,10 @@ pipeline). Update the test count.
 > test gate). No `docs/hrms-architecture.md`: the plan (Parts 1–3) plus
 > that section are the architecture record — a third copy would rot.
 > Counts unchanged (docs + JS only since P21.3).
+
+**Status: done.** `HrmsShellTest` + `HrmsNavTest` — the sidebar exposes a single People>HR entry, every
+hub tab's capabilities equal its route gates, and all legacy `/hrms/{section}` paths stay reachable as
+sub-tabs (Phase 3 roadmap delivery; sub-tab scheme is path-based, see `.agents/roadmap/phase-plan.md`).
 
 **Acceptance:** the Sidebar shows exactly the items the current user may reach; a `starter` tenant sees
 no People section; the wizard step appears only for HRMS tenants; the command palette finds employees;

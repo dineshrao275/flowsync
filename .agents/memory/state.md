@@ -5,9 +5,9 @@
 
 ## Current
 
-- Date: 2026-10-06 · Branch: `refactor/work-hrms` · Gate: **1384 tests / 6862 assertions** (Phase 2 end-gate, single `php artisan test` run over all 145 test files; Phase 1 gate was 1372/6829).
+- Date: 2026-10-06 · Branch: `refactor/work-hrms` · Gate: **1389 tests / 6886 assertions** (Phase 3 end-gate, single `php artisan test` run over all test files, zero omitted; Phase 2 gate was 1384/6862, Phase 1 was 1372/6829).
 - `.agents/` pack created (16 files). No app code changed in that commit.
-- Security criticals C1–C3 **CLOSED** (Phase 1); Phase 2 (database & performance) shipped — see its report below.
+- Security criticals C1–C3 **CLOSED** (Phase 1); Phase 2 (database & performance) shipped; Phase 3 (HRMS one-tab IA + parity audit) shipped — see its report below.
 
 ## Shipped vs missing (against the 8-phase roadmap)
 
@@ -85,13 +85,43 @@
   (this host had no `node_modules`/`public/build`, which is why `ExampleTest` 500s on
   a missing Vite manifest until built).
 
+## Phase 3 report (2026-10-06) — COMPLETE, gate green
+
+- Implemented: ONE sidebar entry (People > HR, inbox badge on the item itself via
+  `useNotifications()`) replacing ~30 flat HRMS links; all 30 HRMS pages now sub-tabs of a
+  `/hrms` hub (`components/hrms/HrmsLayout.jsx` = grouped desktop rail + mobile strip,
+  capability-filtered from the `HRMS_NAV` catalog in `utils/hrmsNav.js`). Routes keep their
+  literal `/hrms/{section}` paths + module/permission gates — zero route/gate token drift
+  (verified by diff), no redirects. `tests/Feature/HrmsNavTest.php` (4 tests) pins: exactly
+  one sidebar entry, route↔tab parity (7 param routes excluded), per-tab gate equality
+  (stack model for inherited group gates), hub-layout + nav pins.
+- Found while fixing (parity audit): `Leave.jsx` fetched `/hrms/leave/exemptions`
+  unconditionally — a plan with `hrms.leave` but without `hrms.leave.exemption` 403'd the
+  WHOLE catalogue (`fail()` → /403). Now `showExemptions = hasModule('hrms.leave.exemption')`
+  gates the tab + fetch, and the admin Exemptions tab gained the filing form
+  (`POST /hrms/leave/exemptions`, per `LeaveExemptionRequest` rules) with post-save refetch.
+  Pinned by a new `HrmsShellTest` case. Audit outcomes: regularization ✓, TDS surrender ✓
+  (Statutory.jsx `canManage` block), 1:1s ✓ (participant-or-manage policy), survey anonymity ✓
+  (structural: employee_id null, fingerprint, threshold min 1). Approve buttons on shared
+  queues stay visible; a non-approver click 403s to a toast (app-wide convention), not /403.
+- Docs: `docs/hrms-implementation-plan.md` umbrella header corrected ("plan only" → fully
+  shipped) + `**Status: done.**` per build phase P3–P21 naming each phase's guard test files;
+  `.agents/roadmap/phase-plan.md` Phase 3 marked DONE with a report + C-section status line
+  (C6 decided keep-as-stubs; C7/C8 deferred with rationale — C8 has no attendance-settings
+  page to host the toggle).
+- Verification: focused batch `--filter='HrmsNavTest|HrmsShellTest|HrmsLeaveExemptionApiTest'`
+  31 passed / 261 assertions; full suite **single run 1389/6886 green** (`TMPDIR` on tmpfs,
+  544.54 s); `pint --test` clean repo-wide; `npm run build` clean.
+- DB migrations: none. Env vars: none.
+
 ## Pending owner decisions
 
 1. New application name (factories/rename phase) + infra-rename scope.
 2. Stripe-first? locale→provider rule, prices/currencies, test-vs-live staging.
 3. Export Data: 4th plan vs add-on module (recommended: add-on `export.full`).
 4. SMTP provider + from-address; immediate vs digest board mail.
-5. HRMS single-tab + sub-tabs IA approval.
+5. HRMS single-tab + sub-tabs IA approval — **DONE** (Phase 3-IA, 2026-10-06): one sidebar entry
+   + path-based sub-tabs (deviation from the `?tab=` idea recorded in the roadmap report).
 6. Redis optional (env-driven) vs DB cache/queue only.
 
 ## Log
@@ -100,3 +130,4 @@
 - 2026-10-05 — `.agents/roadmap/phase-plan.md` written (8 phases, sequential gates, per-phase affected files/DB/API-UI/risks/tests/exit gates). No app code changed.
 - 2026-10-06 — Phase 1 security shipped (C1–C3 + hardening); full suite 1372/6829 green.
 - 2026-10-06 — Phase 2 database & performance shipped (indexes, analytics SWR, payroll chunking, board-move batching, `TenantLimits` memo, prod connection-pin guard, `DBPerformanceTest` gate); full suite 1384/6862 green (single run), endpoint p95 at fleet density 11.8/22.7/30.2 ms (dashboard/board/search). B7 `me()` caching deliberately deferred.
+- 2026-10-06 — Phase 3 HRMS IA shipped (one-tab sidebar + `/hrms` hub sub-tabs, `HrmsNavTest` gate, Leave exemption module-gate + filing form, plan-doc statuses corrected through P21); full suite 1389/6886 green (single run). C7/C8 deferred by design.

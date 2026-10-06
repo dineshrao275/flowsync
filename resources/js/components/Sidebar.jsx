@@ -22,166 +22,11 @@ const sections = [
     {
         label: 'People',
         items: [
-            { to: '/hrms/inbox', label: 'Inbox', capabilities: ['module:hrms.core'], icon: 'M3 8l9-5 9 5v8a2 2 0 01-2 2H5a2 2 0 01-2-2V8zm2 0v8h14V8l-7-4-7 4zm7 3v4m0-4l-2 2m2-2l2 2' },
-            { to: '/hrms/team', label: 'My team', capabilities: ['module:hrms.core'], icon: 'M17 20h5v-2a4 4 0 00-3-3.87M9 20H4v-2a4 4 0 012-4h4a4 4 0 012 4v2m6-14a2 2 0 100-4 2 2 0 000 4z' },
-            { to: '/hrms/employees', label: 'Employees', capabilities: ['module:hrms.core', 'permission:hrms.employees.view'], icon: 'M17 20h5v-2a4 4 0 00-3-3.87M9 20H4v-2a4 4 0 012-4h14a4 4 0 012 4v2a1 1 0 01-1 1H3a1 1 0 01-1-1v-2a1 1 0 011-1zm8-4a2 2 0 100-4 2 2 0 000 4zm-6-4a2 2 0 100-4 2 2 0 000 4zm12 0a2 2 0 100-4 2 2 0 000 4zm-6 8a2 2 0 100-4 2 2 0 000 4z' },
-            {
-                to: '/hrms/org',
-                label: 'Organisation',
-                capabilities: ['module:hrms.core', 'permission:hrms.org.view'],
-                icon: 'M4 5h4v4H4V5zm6 0h6v4h-6V5zm6 0h4v4h-4V5zM4 11h4v4H4v-4zm6 0h6v4h-6v-4zm6 0h4v4h-4v-4zM4 17h4v2H4v-2zm6 0h10v2H10v-2z',
-            },
-            {
-                to: '/hrms/documents',
-                label: 'Documents',
-                capabilities: ['module:hrms.core', 'permission:hrms.documents.view'],
-                icon: 'M9 3h6l4 4v14H5V7l4-4zm0 5h6m-4 4h4m-4 4h4',
-            },
-            {
-                to: '/hrms/documents/mine',
-                label: 'My files',
-                capabilities: ['module:hrms.core'],
-                icon: 'M3 20h18M6 8V6a3 3 0 013-3h6a3 3 0 013 3v2m-12 0h12a3 3 0 013 3v5a3 3 0 01-3 3H9a3 3 0 01-3-3v-5a3 3 0 013-3z',
-            },
-            {
-                to: '/hrms/onboarding',
-                label: 'Onboarding',
-                capabilities: ['module:hrms.core', 'permission:hrms.onboarding.view'],
-                icon: 'M12 3l8 4v13H4V7l8-4zm-1 10l-2-2-1 1 3 3 5-5-1-1-4 4z',
-            },
-            {
-                to: '/hrms/offboarding',
-                label: 'Offboarding',
-                capabilities: ['module:hrms.core', 'permission:hrms.offboarding.view'],
-                icon: 'M9 3h6l4 4v14H5V7l4-4zm-2 8h8m-4-4v8',
-            },
-            {
-                to: '/hrms/attendance',
-                label: 'Attendance',
-                capabilities: ['module:hrms.core', 'module:hrms.attendance'],
-                icon: 'M12 3v3m0 12v3M3 12h3m12 0h3M5.6 5.6l2.1 2.1m8.6 8.6l2.1 2.1m0-12.8l-2.1 2.1M7.7 16.3l-2.1 2.1M12 8a4 4 0 100 8 4 4 0 000-8z',
-            },
-            {
-                to: '/hrms/attendance/approvals',
-                label: 'Approvals',
-                capabilities: ['module:hrms.core', 'module:hrms.attendance', 'permission:hrms.attendance.regularize'],
-                icon: 'M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z',
-            },
-            {
-                to: '/hrms/leave',
-                label: 'Leave',
-                capabilities: ['module:hrms.core', 'module:hrms.leave', 'permission:hrms.leave.manage'],
-                icon: 'M8 3h8v4H8V3zm-2 4h12v14H6V7zm3 4h6m-6 4h6',
-            },
-            {
-                to: '/hrms/leave/mine',
-                label: 'My leave',
-                capabilities: ['module:hrms.core', 'module:hrms.leave'],
-                icon: 'M5 3h14v18H5V3zm3 5h8m-8 4h8m-8 4h5',
-            },
-            {
-                to: '/hrms/comp-off',
-                label: 'Comp-off',
-                capabilities: ['module:hrms.core', 'module:hrms.comp_off', 'permission:hrms.comp_off.manage'],
-                icon: 'M12 3v3m0 12v3M3 12h3m12 0h3M7 7l3 3m6 6l3 3m0-12l-3 3M7 17l-3 3M12 8a4 4 0 100 8 4 4 0 000-8z',
-            },
-            {
-                to: '/hrms/comp-off/mine',
-                label: 'My comp-off',
-                capabilities: ['module:hrms.core', 'module:hrms.comp_off'],
-                icon: 'M5 3h14v18H5V3zm3 5h8m-8 4h4m-4 4h5',
-            },
-            {
-                to: '/hrms/holidays',
-                label: 'Holidays',
-                capabilities: ['module:hrms.core', 'module:hrms.holidays'],
-                icon: 'M8 3h8v4H8V3zM6 7h12v14H6V7zm3 4h2v2H9v-2zm4 0h2v2h-2v-2zm-4 4h2v2H9v-2zm4 0h2v2h-2v-2z',
-            },
-            {
-                to: '/hrms/compensation',
-                label: 'Compensation',
-                capabilities: ['module:hrms.core', 'permission:hrms.compensation.view'],
-                icon: 'M3 17l5-2 8 3 5-2v6H3v-5zm5-7l5-2 8 3 3-1V7l-3-1-8-3-5 2-5-2 3 2v3l2 1z',
-            },
-            {
-                to: '/hrms/payroll',
-                label: 'Payroll',
-                capabilities: ['module:hrms.core', 'permission:hrms.payroll.run'],
-                icon: 'M4 3h16v18H4V3zm3 4h10m-10 4h10m-10 4h7',
-            },
-            {
-                to: '/hrms/payroll/mine',
-                label: 'My payslips',
-                capabilities: ['module:hrms.core'],
-                icon: 'M5 3h14v18H5V3zm3 5h8m-8 4h8m-8 4h5',
-            },
-            {
-                to: '/hrms/statutory',
-                label: 'Statutory',
-                capabilities: ['module:hrms.core', 'module:hrms.payroll.statutory'],
-                icon: 'M9 3h6l4 4v14H5V7l4-4zm-2 8h8m-4-4v8',
-            },
-            {
-                to: '/hrms/expenses',
-                label: 'Expenses',
-                capabilities: ['module:hrms.core', 'module:hrms.expenses', 'permission:hrms.expenses.view'],
-                icon: 'M4 3h16v18H4V3zm3 4h10m-10 4h10m-10 4h5',
-            },
-            {
-                to: '/hrms/expenses/mine',
-                label: 'My expenses',
-                capabilities: ['module:hrms.core', 'module:hrms.expenses'],
-                icon: 'M5 3h14v18H5V3zm3 5h8m-8 4h5',
-            },
-            {
-                to: '/hrms/performance',
-                label: 'Performance',
-                capabilities: ['module:hrms.core', 'module:hrms.performance', 'permission:hrms.performance.view'],
-                icon: 'M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z',
-            },
-            {
-                to: '/hrms/performance/mine',
-                label: 'My performance',
-                capabilities: ['module:hrms.core', 'module:hrms.performance'],
-                icon: 'M5 3h14v18H5V3zm3 5h8m-8 4h5',
-            },
-            {
-                to: '/hrms/assets',
-                label: 'Assets',
-                capabilities: ['module:hrms.core', 'module:hrms.assets', 'permission:hrms.assets.view'],
-                icon: 'M20 7H4a2 2 0 00-2 2v10a2 2 0 002 2h16a2 2 0 002-2V9a2 2 0 00-2-2zm-9 9H7v-2h4v2zm6 0h-4v-2h4v2z',
-            },
-            {
-                to: '/hrms/assets/mine',
-                label: 'My assets',
-                capabilities: ['module:hrms.core', 'module:hrms.assets'],
-                icon: 'M5 3h14v18H5V3zm3 5h8m-8 4h5',
-            },
-            {
-                to: '/hrms/engagement',
-                label: 'Engagement',
-                capabilities: ['module:hrms.core', 'module:hrms.engagement', 'permission:hrms.engagement.view'],
-                icon: 'M12 3v3m0 12v3M3 12h3m12 0h3M5.6 5.6l2.1 2.1m8.6 8.6l2.1 2.1m0-12.8l-2.1 2.1M7.7 16.3l-2.1 2.1M12 8a4 4 0 100 8 4 4 0 000-8z',
-            },
-            {
-                to: '/hrms/engagement/mine',
-                label: 'My surveys',
-                capabilities: ['module:hrms.core', 'module:hrms.engagement'],
-                icon: 'M5 3h14v18H5V3zm3 5h8m-8 4h5',
-            },
-            {
-                to: '/hrms/analytics',
-                label: 'Analytics',
-                capabilities: ['module:hrms.core', 'module:hrms.analytics', 'permission:hrms.analytics.view'],
-                icon: 'M3 3v18h18M8 17V9m4 8V5m4 12v-6',
-            },
-            {
-                to: '/hrms/audit',
-                label: 'Audit log',
-                capabilities: ['module:hrms.core', 'permission:hrms.audit.view'],
-                icon: 'M4 7V5a2 2 0 012-2h8l2 2h6v14a2 2 0 01-2 2H6a2 2 0 01-2-2v-2m0 0V7h18M8 12h8M8 16h8',
-            },
-            { to: '/hrms', label: 'HRMS', capabilities: ['module:hrms.core'], icon: 'M17 20h5v-2a4 4 0 00-3-3.87M9 20H4v-2a4 4 0 013-3.87m4-1.13a4 4 0 10-4-4 4 4 0 004 4zm6 2a3 3 0 10-3-3' },
+            // The whole HRMS hangs off this one entry: every feature is a
+            // sub-tab inside the hub (`HrmsLayout` renders `hrmsNav.js`),
+            // filtered by the same capability that guards its route —
+            // `HrmsNavTest` fails when the two drift apart.
+            { to: '/hrms', label: 'HR', capabilities: ['module:hrms.core'], icon: 'M17 20h5v-2a4 4 0 00-3-3.87M9 20H4v-2a4 4 0 013-3.87m4-1.13a4 4 0 10-4-4 4 4 0 004 4zm6 2a3 3 0 10-3-3', badge: 'inbox' },
         ],
     },
     {
@@ -232,6 +77,7 @@ function Icon({ path, className = '' }) {
 
 function SidebarLink({ item, collapsed, onClose }) {
     const location = useLocation();
+    const { inboxUnread } = useNotifications();
     const isActive = location.pathname === item.to;
     const labelClass = collapsed ? 'hidden lg:hidden' : 'block';
 
@@ -256,12 +102,21 @@ function SidebarLink({ item, collapsed, onClose }) {
                 />
             )}
             <Icon path={item.icon} className="h-5 w-5 shrink-0" />
-            <span className={`min-w-0 ${labelClass}`}>{item.label}</span>
+            <span className={`min-w-0 ${labelClass}`}>
+                <span className="flex items-center justify-between gap-2">
+                    <span className="truncate">{item.label}</span>
+                    {item.badge === 'inbox' && inboxUnread > 0 && (
+                        <span className="flex h-4 min-w-4 shrink-0 items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-bold normal-case tracking-normal text-white">
+                            {inboxUnread > 99 ? '99+' : inboxUnread}
+                        </span>
+                    )}
+                </span>
+            </span>
         </Link>
     );
 }
 
-function SidebarSection({ section, collapsed, onClose, badge }) {
+function SidebarSection({ section, collapsed, onClose }) {
     return (
         <div className="space-y-0.5">
             {!collapsed && (
@@ -270,11 +125,6 @@ function SidebarSection({ section, collapsed, onClose, badge }) {
                     style={{ color: 'var(--sidebar-text)', opacity: 0.55 }}
                 >
                     <span>{section.label}</span>
-                    {badge > 0 && (
-                        <span className="flex h-4 min-w-4 items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-bold normal-case tracking-normal text-white">
-                            {badge > 99 ? '99+' : badge}
-                        </span>
-                    )}
                 </p>
             )}
             {section.items.map((item) => (
@@ -287,7 +137,6 @@ function SidebarSection({ section, collapsed, onClose, badge }) {
 export default function Sidebar({ open, collapsed, onClose, onToggleCollapse }) {
     const { check, user } = useAuth();
     const isSuperAdmin = user?.is_super_admin && !user?.impersonating;
-    const { inboxUnread } = useNotifications();
 
     const items = (isSuperAdmin ? superAdminSections : sections)
         .map((section) => ({
@@ -342,7 +191,6 @@ export default function Sidebar({ open, collapsed, onClose, onToggleCollapse }) 
                             section={section}
                             collapsed={collapsed}
                             onClose={onClose}
-                            badge={section.label === 'People' ? inboxUnread : 0}
                         />
                     ))}
                 </nav>

@@ -20,7 +20,7 @@ Laravel 12 + React 19 SPA. Session-based auth **without** Breeze/Fortify/Sanctum
   `tenants:provision` + seeds demo data (superadmin + acme + globex). Reset from scratch:
   `docker-compose down -v` then `up -d` (app entrypoint re-initializes; `RUN_INIT=true` only for `app`).
   No PHP/composer needed on the host — envs in `.env.docker`.
-- `php artisan test` — run test suite (Phase 13: **isolated, per-tenant file DBs** via `Tests\IsolatesDatabase`; current gate: **1384 tests / 6862 assertions passing** — Phase 2 database & performance (verified by a single `php artisan test` run at the Phase 2 end-gate: all 145 test files, zero omitted; the Phase 1 security gate was 1372/6829))
+- `php artisan test` — run test suite (Phase 13: **isolated, per-tenant file DBs** via `Tests\IsolatesDatabase`; current gate: **1389 tests / 6886 assertions passing** — Phase 3 HRMS IA (verified by a single `php artisan test` run at the Phase 3 end-gate: all 145+ test files, zero omitted; the Phase 2 database & performance gate was 1384/6862, the Phase 1 security gate 1372/6829))
 
 - `npm run build` / `npm run dev` — frontend build / Vite dev server
 - `./vendor/bin/pint` — PHP code style (run over whole repo; `--dirty` only works in git)
@@ -708,7 +708,13 @@ Phase 13
   can catch. The `department` filter is absent on purpose until P3.1 adds the column. P2.6 added
   `EmployeeDetail.jsx` (URL-driven tab via `HRMS_PROFILE_TABS`, module-filtered, **entries only for
   sections that have shipped**), `StatusHistory.jsx` and `EmployeeEditModal.jsx`; the directory's name
-  cell links via `employeeUrl(id, tab)`.
+  cell links via `employeeUrl(id, tab)`. **One-tab IA (roadmap Phase 3):** the Sidebar People section
+  holds exactly ONE `/hrms` entry — every HRMS page is a path-based sub-tab of the `/hrms` hub rendered
+  by `components/hrms/HrmsLayout.jsx` (desktop grouped rail + mobile strip) from the `HRMS_NAV` catalog
+  in `utils/hrmsNav.js` (`capabilities` filtered by `AuthContext.check()`, active tab via
+  `activeHrmsTab()`). Routes keep their literal `/hrms/{section}` paths and gates — preserve both when
+  adding a page and add it to `HRMS_NAV`; `tests/Feature/HrmsNavTest.php` asserts one sidebar entry,
+  route↔tab parity and per-tab gate equality.
 - **Never submit a masked value back, and never build a picker from a report list.**
   `EmployeeEditModal` omits the whole personal block when the record arrived `restricted`, because
   prefilling it from masked values and posting them would store `p***@***` as somebody's real address.

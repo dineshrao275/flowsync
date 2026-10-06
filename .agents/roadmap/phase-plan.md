@@ -83,18 +83,30 @@ with before/after numbers.
 the single-tab rule) + plan-doc statuses stale past P2 + per-feature
 validation/API/UI parity to verify (regularization, exemptions, TDS surrender,
 1:1s, survey anonymity).
-**Affected:** `resources/js/pages/hrms/*`, `Sidebar.jsx`, `App.jsx` (sub-tab URL
-scheme reusing `?tab=`), controllers/services only for found gaps,
-`docs/hrms-implementation-plan.md` status lines, `config/hrms.php` starters.
-**DB:** none planned (repairs only).
-**API/UI:** sidebar regroup with redirects (bookmarks keep working); sub-tab
-permission split mirroring backend policies; follow `skills/hrms-contributor/SKILL.md`.
-**Risks:** nav rework breaking deep links — legacy routes become redirects;
-sub-tab gates must match server policies row-for-row.
-**Tests:** `HrmsNavTest` (gates per hub), existing HRMS feature files for touched
-domains, shell JS-string pins updated.
+**Affected:** `resources/js/pages/hrms/*`, `Sidebar.jsx`, `App.jsx`,
+`docs/hrms-implementation-plan.md` status lines, `tests/Feature/HrmsNavTest.php`.
+**DB:** none.
+**API/UI:** every existing `/hrms/{section}` route keeps its literal path and its
+module/permission gates — legacy deep links are untouched, so **no redirects are
+needed**. The sidebar collapses the People section to ONE `/hrms` entry (inbox
+badge). A nested `<Route path="/hrms" ...>` hub renders `HrmsLayout`, a grouped,
+capability-gated secondary rail of all 30 tabs. Sub-tab scheme is **path-based** —
+a deviation from the `?tab=` idea in the original plan, recorded here because no
+redirect preserves a query design the routes never implemented.
+**Risks:** a hub that re-gates any tab differently from its route (stricter or
+looser) breaks the single-tab promise — `HrmsNavTest` parses both files and asserts
+exact per-tab equality.
+**Tests:** `HrmsNavTest` (4: one sidebar entry; route↔tab parity; per-tab gate
+equality; layout + nav pins), `HrmsShellTest` (+1 pinning the module-gated Leave
+exemption queue), all existing HRMS feature suites re-run green, one full-suite run
+at the close.
+**Found by the audit, then fixed:** Leave's exemption tab fetched unconditionally —
+a plan with leave but without `hrms.leave.exemption` 403'd the *whole* catalogue;
+it is now module-gated and the admin page gained its filing form. Approval decide
+buttons stay visible for queue-openers (non-approver 403 → toast, not /403, the
+app-wide convention).
 **Exit gate:** single-tab IA live with all features reachable + gated; stale plan-doc
-statuses corrected.
+statuses corrected. **Status: DONE (2026-10-06), gate green — report at the end.**
 
 ## Phase 4 — TMS
 
@@ -360,6 +372,17 @@ green, security checklist clean, report committed (`final-report.md` in
 ---
 
 ### C. HRMS (Phase 3 — Structural & UX gaps)
+
+> **Phase 3 status (2026-10-06): DONE, gate green.**
+> C1 ✅ one sidebar entry + path-based hubs, all legacy paths kept (no redirects) ·
+> C2 ✅ plan-doc statuses corrected through P21 + umbrella header ·
+> C3 ⏭ TMS scope, retargeted to Phase 4 · C4 ✅ anonymity verified (structural:
+> `employee_id` null, fingerprint only, `anonymity_threshold` min 1) ·
+> C5 ✅ surrender/projection flow walked with a real tenant; `Statutory.jsx`
+> gated by `hrms.payroll.statutory.manage` · C6 ✅ decided: keep reserved as
+> documented stubs · **C7 ⏭ deferred** by design (P20 pull-only conversion) ·
+> **C8 ⏭ deferred** (no attendance-settings page exists to host the toggle).
+> Evidence, counts, deviations: **report at the end of this file**.
 
 #### C1. [BUG / UX] Sidebar has ~25 HRMS items in a flat list — violates the one-tab rule
 - Verified in `Sidebar.jsx:5–185`: the "People" section contains 25+ HRMS
@@ -791,3 +814,58 @@ only with an invalidation-by-event design, not a TTL.
   stress case above is the only number that breaches <3 s).
 - Remaining known hot paths are tracked in `.agents/11-testing-ops.md`
   (uncached dashboard/reports/search, 30 s polls, DB-backed infra on one PG).
+
+## Phase 3 report (2026-10-06) — HRMS one-tab IA & parity audit
+
+**Status:** complete. `HrmsNavTest` (4 tests) + `HrmsShellTest` (22, +1) green
+alongside the full HRMS feature suites in one focused run (31 passed / 261
+assertions), `pint --test` clean repo-wide, `npm run build` clean. Full suite
+gate re-verified at the close (count on the `AGENTS.md` `## Commands` line).
+
+### Implemented
+
+| Item | Outcome |
+|---|---|
+| One-tab IA | `Sidebar.jsx` People section collapsed to ONE `/hrms` entry (inbox badge on the item itself via `useNotifications()`); all 30 HRMS pages now sub-tabs of the `/hrms` hub |
+| Hub rail | `resources/js/components/hrms/HrmsLayout.jsx`: sticky grouped desktop rail (w-52) + mobile horizontal strip, tabs filtered by `useAuth().check()` against `resources/js/utils/hrmsNav.js` `capabilities` (module/permission prefixes in the same grammar `hasAccess` reads) |
+| Routes unchanged | All 68 route/gate tokens verified identical before/after the `App.jsx` restructure (children keep absolute paths under the nested hub); no redirects, no deep-link breakage |
+| Gate parity pin | `HrmsNavTest` parses `App.jsx` + `hrmsNav.js` and asserts each tab's capabilities equal its route gates exactly (stack model for inherited group `<Route element>` gates + inline `permission=`/`module=`) |
+| Parity audit | Regularization ✓ · TDS surrender ✓ (Statutory.jsx `canManage` block) · 1:1s ✓ (policy = participant-or-manage) · survey anonymity ✓ (structural) |
+| Leave exemption gap | `Leave.jsx` fetched `/hrms/leave/exemptions` unconditionally → a plan without `hrms.leave.exemption` 403'd the **whole** catalogue; now `showExemptions`-gated (tab + fetch) and the admin Exemptions tab gained the filing form (`POST /hrms/leave/exemptions`) with a post-save refetch |
+| Plan-doc statuses | `docs/hrms-implementation-plan.md`: umbrella header corrected (was "plan only") + `**Status: done.**` per build phase P3–P21 naming each phase's guard test files |
+
+### Deviations & decisions
+
+- **Sub-tab scheme is path-based, not `?tab=`.** The routes were already
+  `/hrms/{section}`; the hub simply nests them. No redirect preserves a query
+  design nothing implemented, so none was built. `activeHrmsTab()` is longest-prefix,
+  so the hub's active pill is right for `/hrms/*` URLs and defaults to the overview.
+- **7 param routes are sub-pages, not tabs** (`/hrms/:section`,
+  `/hrms/employees/:employeeId`, `/hrms/engagement/mine/:campaignId`,
+  `/hrms/offboarding/cases/:caseId`, `/hrms/onboarding/cases/:caseId`,
+  `/hrms/payroll/runs/:runId`, `/hrms/performance/cycles/:cycleId`) — excluded from
+  the tab-parity assertions by name.
+- **Verdict buttons on shared queues stay visible; a wrong-approver click 403s to a
+  toast, not a /403 redirect** — the app-wide convention (only a *load* `fail()`
+  navigates to /403). Keeps the audit-trail invariant server-side while a manager
+  glancing at a queue isn't bounced off the page.
+- **C7 (task→case progress push-back) and C8 (auto-derive-from-work-logs toggle)
+  deferred.** C7 reverse of the shipped P20 pull-only sync is a behaviour change to
+  approved flows (own task). C8 has no `Attendance settings` page to host the
+  toggle; the derive-at-write path itself is already pinned by
+  `HrmsDeriveAttendanceTest` and the config flag, so the work is a settings surface,
+  not the feature.
+
+### Verification & how to re-run
+
+- `tests/Feature/HrmsNavTest.php` — 4 tests, the permanent IA gate: exactly one
+  People→`/hrms` sidebar entry (already pinned by `HrmsShellTest`'s route list);
+  route↔tab bidirectionally; per-tab gate equality after stripping the
+  `module:`/`permission:` prefixes on both sides; hub-layout regex + the rail
+  reading `hrmsNavGroups`/`activeHrmsTab` and forwarding `useNotifications()`.
+- `tests/Feature/HrmsShellTest.php` — count is 22: new
+  `test_the_leave_page_gates_its_exemption_queue_and_can_file_asks` pins the
+  `hasModule('hrms.leave.exemption')` guard, the filtered tab map, the conditional
+  fetch and the `POST /hrms/leave/exemptions` filing call in `Leave.jsx`.
+- Focused batch: `--filter='HrmsNavTest|HrmsShellTest|HrmsLeaveExemptionApiTest|HrmsLeaveRequestApiTest'`.
+- Full suite: `TMPDIR=/dev/shm/flowsync-tmp php artisan test` (see `## Commands` for the gate).

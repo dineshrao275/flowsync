@@ -205,6 +205,23 @@ class HrmsShellTest extends TestCase
         $this->assertStringContainsString("return '/hrms/leave/mine';", $js);
     }
 
+    public function test_the_leave_page_gates_its_exemption_queue_and_can_file_asks(): void
+    {
+        // Phase 3 parity: the exemption queue rides `hrms.leave.exemption`
+        // (which moves independently of `hrms.leave`), so the Leave page must
+        // hide the tab and skip the fetch on plans without it — an
+        // unconditional 403 would take the whole catalogue down. Raising was
+        // HR-entered by design (the exemption is jurisdiction trail), so the
+        // admin page owns the filing form.
+        $page = file_get_contents(resource_path('js/pages/hrms/Leave.jsx'));
+
+        $this->assertStringContainsString("hasModule('hrms.leave.exemption')", $page);
+        $this->assertStringContainsString("item.key !== 'exemptions' || showExemptions", $page);
+        $this->assertStringContainsString('if (showExemptions)', $page);
+        $this->assertStringContainsString("await api.post('/hrms/leave/exemptions'", $page);
+        $this->assertStringContainsString('File exemption', $page);
+    }
+
     public function test_the_notification_helpers_cover_comp_off_nudges(): void
     {
         // Same rule as the leave pin: the ask lands on the page that shows

@@ -23,6 +23,7 @@ import Users from './pages/Users';
 import Roles from './pages/Roles';
 import Settings from './pages/Settings';
 import Reports from './pages/Reports';
+import HrmsLayout from './components/hrms/HrmsLayout';
 import HrmsOverview from './pages/hrms/HrmsOverview';
 import Employees from './pages/hrms/Employees';
 import EmployeeDetail from './pages/hrms/EmployeeDetail';
@@ -156,258 +157,260 @@ function AppRoutes() {
                             <Route path="/reports" element={<Reports />} />
                         </Route>
                         <Route element={<ProtectedRoute module="hrms.core" />}>
-                            <Route path="/hrms" element={<HrmsOverview />} />
-                            {/* The queue sits first: it is self-scoped, so it
-                                needs the module and nothing else. */}
-                            <Route path="/hrms/inbox" element={<Inbox />} />
-                            {/* The manager telescope (P17.5): read-only by
-                                construction, module-gated — managers may hold
-                                no other permission and still see reports. */}
-                            <Route path="/hrms/team" element={<MyTeam />} />                            {/* Before the `:section` catch-all: a static segment
-                                outranks a dynamic one, but relying on the router's
-                                ranking to keep the directory reachable is a trap for
-                                whoever adds the next HRMS page. */}
-                            <Route
-                                path="/hrms/employees"
-                                element={
-                                    <ProtectedRoute permission="hrms.employees.view">
-                                        <Employees />
-                                    </ProtectedRoute>
-                                }
-                            />
-                            <Route
-                                path="/hrms/employees/:employeeId"
-                                element={
-                                    <ProtectedRoute permission="hrms.employees.view">
-                                        <EmployeeDetail />
-                                    </ProtectedRoute>
-                                }
-                            />
-                            {/* Before the `:section` catch-all for the same
-                                reason the directory is: a static segment has to
-                                be declared, not left to the router's ranking. */}
-                            <Route
-                                path="/hrms/org"
-                                element={
-                                    <ProtectedRoute permission="hrms.org.view">
-                                        <Org />
-                                    </ProtectedRoute>
-                                }
-                            />
-                            {/* The document store and the self-service files
-                                page, declared before `:section` like every
-                                other static HRMS segment. */}
-                            <Route
-                                path="/hrms/documents"
-                                element={
-                                    <ProtectedRoute permission="hrms.documents.view">
-                                        <Documents />
-                                    </ProtectedRoute>
-                                }
-                            />
-                            <Route path="/hrms/documents/mine" element={<MyDocuments />} />
-                            {/* Lifecycle runs: the lists are HR screens, the
-                                case pages are module-gated so a hire can open
-                                their own run — the backend policy, not the
-                                route, decides whose case it is. */}
-                            <Route
-                                path="/hrms/onboarding"
-                                element={
-                                    <ProtectedRoute permission="hrms.onboarding.view">
-                                        <OnboardingCases />
-                                    </ProtectedRoute>
-                                }
-                            />
-                            <Route path="/hrms/onboarding/cases/:caseId" element={<OnboardingCaseDetail />} />
-                            <Route
-                                path="/hrms/offboarding"
-                                element={
-                                    <ProtectedRoute permission="hrms.offboarding.view">
-                                        <OffboardingCases />
-                                    </ProtectedRoute>
-                                }
-                            />
-                            <Route path="/hrms/offboarding/cases/:caseId" element={<OffboardingCaseDetail />} />
-                            {/* Attendance: the month page is module-gated so
-                                every employee reaches their own curve, while
-                                the review queue needs the regularize
-                                permission — the backend policy, not the
-                                route, decides whose ask is whose. */}
-                            <Route element={<ProtectedRoute module="hrms.attendance" />}>
-                                <Route path="/hrms/attendance" element={<Attendance />} />
+                            <Route path="/hrms" element={<HrmsLayout />}>
+                                <Route index element={<HrmsOverview />} />
+                                {/* The queue sits first: it is self-scoped, so it
+                                    needs the module and nothing else. */}
+                                <Route path="/hrms/inbox" element={<Inbox />} />
+                                {/* The manager telescope (P17.5): read-only by
+                                    construction, module-gated — managers may hold
+                                    no other permission and still see reports. */}
+                                <Route path="/hrms/team" element={<MyTeam />} />                            {/* Before the `:section` catch-all: a static segment
+                                    outranks a dynamic one, but relying on the router's
+                                    ranking to keep the directory reachable is a trap for
+                                    whoever adds the next HRMS page. */}
                                 <Route
-                                    path="/hrms/attendance/approvals"
+                                    path="/hrms/employees"
                                     element={
-                                        <ProtectedRoute permission="hrms.attendance.regularize">
-                                            <AttendanceApprovals />
-                                        </ProtectedRoute>
-                                    }
-                                />
-                            </Route>
-                            {/* Leave: the admin hub needs the manage
-                                permission, the self-service page rides the
-                                module alone like My files. */}
-                            <Route element={<ProtectedRoute module="hrms.leave" />}>
-                                <Route
-                                    path="/hrms/leave"
-                                    element={
-                                        <ProtectedRoute permission="hrms.leave.manage">
-                                            <Leave />
-                                        </ProtectedRoute>
-                                    }
-                                />
-                                <Route path="/hrms/leave/mine" element={<MyLeave />} />
-                            </Route>
-                            {/* Comp-off: same split — the hub needs the manage
-                                permission, the self-service page rides the
-                                module alone. */}
-                            <Route element={<ProtectedRoute module="hrms.comp_off" />}>
-                                <Route
-                                    path="/hrms/comp-off"
-                                    element={
-                                        <ProtectedRoute permission="hrms.comp_off.manage">
-                                            <CompOff />
-                                        </ProtectedRoute>
-                                    }
-                                />
-                                <Route path="/hrms/comp-off/mine" element={<MyCompOff />} />
-                            </Route>
-                            {/* Holidays: shared reference data with internal
-                                gating — the route needs the module, reads
-                                ride it, mutations hide without manage. */}
-                            <Route
-                                path="/hrms/holidays"
-                                element={
-                                    <ProtectedRoute module="hrms.holidays">
-                                        <Holidays />
-                                    </ProtectedRoute>
-                                }
-                            />
-                            {/* Compensation: heads and templates need the
-                                view permission, the salary picker degrades
-                                without the directory. Payroll: the hub and
-                                the run detail are runner tools; my-payslips
-                                rides the module alone like My files. */}
-                            <Route
-                                path="/hrms/compensation"
-                                element={
-                                    <ProtectedRoute permission="hrms.compensation.view">
-                                        <Compensation />
-                                    </ProtectedRoute>
-                                }
-                            />
-                            <Route
-                                path="/hrms/payroll"
-                                element={
-                                    <ProtectedRoute permission="hrms.payroll.run">
-                                        <Payroll />
-                                    </ProtectedRoute>
-                                }
-                            />
-                            <Route
-                                path="/hrms/payroll/runs/:runId"
-                                element={
-                                    <ProtectedRoute permission="hrms.payroll.run">
-                                        <PayrollRunDetail />
-                                    </ProtectedRoute>
-                                }
-                            />
-                            <Route path="/hrms/payroll/mine" element={<MyPayslips />} />
-                            {/* Statutory: the whole page rides the statutory
-                                module; internal gating splits rulebooks and
-                                decisions (manage) from claims filing and
-                                masked reads. */}
-                            <Route element={<ProtectedRoute module="hrms.payroll.statutory" />}>
-                                <Route path="/hrms/statutory" element={<Statutory />} />
-                            </Route>
-                            {/* Expenses: the queue needs the view permission,
-                                the self-service page rides the module alone
-                                like My files. */}
-                            <Route element={<ProtectedRoute module="hrms.expenses" />}>
-                                <Route
-                                    path="/hrms/expenses"
-                                    element={
-                                        <ProtectedRoute permission="hrms.expenses.view">
-                                            <Expenses />
-                                        </ProtectedRoute>
-                                    }
-                                />
-                                <Route path="/hrms/expenses/mine" element={<MyExpenses />} />
-                            </Route>
-                            {/* Performance: the hub and the cycle detail need
-                                the view permission, the self-service page
-                                rides the module alone like My files. */}
-                            <Route element={<ProtectedRoute module="hrms.performance" />}>
-                                <Route
-                                    path="/hrms/performance"
-                                    element={
-                                        <ProtectedRoute permission="hrms.performance.view">
-                                            <Performance />
+                                        <ProtectedRoute permission="hrms.employees.view">
+                                            <Employees />
                                         </ProtectedRoute>
                                     }
                                 />
                                 <Route
-                                    path="/hrms/performance/cycles/:cycleId"
+                                    path="/hrms/employees/:employeeId"
                                     element={
-                                        <ProtectedRoute permission="hrms.performance.view">
-                                            <PerformanceCycleDetail />
+                                        <ProtectedRoute permission="hrms.employees.view">
+                                            <EmployeeDetail />
                                         </ProtectedRoute>
                                     }
                                 />
-                                <Route path="/hrms/performance/mine" element={<MyPerformance />} />
-                            </Route>
-                            {/* Assets: the register needs the view permission,
-                                the self-service page rides the module alone
-                                like My files. */}
-                            <Route element={<ProtectedRoute module="hrms.assets" />}>
+                                {/* Before the `:section` catch-all for the same
+                                    reason the directory is: a static segment has to
+                                    be declared, not left to the router's ranking. */}
                                 <Route
-                                    path="/hrms/assets"
+                                    path="/hrms/org"
                                     element={
-                                        <ProtectedRoute permission="hrms.assets.view">
-                                            <Assets />
+                                        <ProtectedRoute permission="hrms.org.view">
+                                            <Org />
                                         </ProtectedRoute>
                                     }
                                 />
-                                <Route path="/hrms/assets/mine" element={<MyAssets />} />
-                            </Route>
-                            {/* Engagement: the hub needs the view permission,
-                                answering rides the module alone like My files. */}
-                            <Route element={<ProtectedRoute module="hrms.engagement" />}>
+                                {/* The document store and the self-service files
+                                    page, declared before `:section` like every
+                                    other static HRMS segment. */}
                                 <Route
-                                    path="/hrms/engagement"
+                                    path="/hrms/documents"
                                     element={
-                                        <ProtectedRoute permission="hrms.engagement.view">
-                                            <Engagement />
+                                        <ProtectedRoute permission="hrms.documents.view">
+                                            <Documents />
                                         </ProtectedRoute>
                                     }
                                 />
-                                <Route path="/hrms/engagement/mine" element={<MySurvey />} />
-                                <Route path="/hrms/engagement/mine/:campaignId" element={<MySurvey />} />
-                            </Route>
-                            {/* Analytics: the workforce dashboards need the
-                                analytics view permission; each tab gates
-                                itself against its own domain permission. */}
-                            <Route element={<ProtectedRoute module="hrms.analytics" />}>
+                                <Route path="/hrms/documents/mine" element={<MyDocuments />} />
+                                {/* Lifecycle runs: the lists are HR screens, the
+                                    case pages are module-gated so a hire can open
+                                    their own run — the backend policy, not the
+                                    route, decides whose case it is. */}
                                 <Route
-                                    path="/hrms/analytics"
+                                    path="/hrms/onboarding"
                                     element={
-                                        <ProtectedRoute permission="hrms.analytics.view">
-                                            <Analytics />
+                                        <ProtectedRoute permission="hrms.onboarding.view">
+                                            <OnboardingCases />
                                         </ProtectedRoute>
                                     }
                                 />
+                                <Route path="/hrms/onboarding/cases/:caseId" element={<OnboardingCaseDetail />} />
+                                <Route
+                                    path="/hrms/offboarding"
+                                    element={
+                                        <ProtectedRoute permission="hrms.offboarding.view">
+                                            <OffboardingCases />
+                                        </ProtectedRoute>
+                                    }
+                                />
+                                <Route path="/hrms/offboarding/cases/:caseId" element={<OffboardingCaseDetail />} />
+                                {/* Attendance: the month page is module-gated so
+                                    every employee reaches their own curve, while
+                                    the review queue needs the regularize
+                                    permission — the backend policy, not the
+                                    route, decides whose ask is whose. */}
+                                <Route element={<ProtectedRoute module="hrms.attendance" />}>
+                                    <Route path="/hrms/attendance" element={<Attendance />} />
+                                    <Route
+                                        path="/hrms/attendance/approvals"
+                                        element={
+                                            <ProtectedRoute permission="hrms.attendance.regularize">
+                                                <AttendanceApprovals />
+                                            </ProtectedRoute>
+                                        }
+                                    />
+                                </Route>
+                                {/* Leave: the admin hub needs the manage
+                                    permission, the self-service page rides the
+                                    module alone like My files. */}
+                                <Route element={<ProtectedRoute module="hrms.leave" />}>
+                                    <Route
+                                        path="/hrms/leave"
+                                        element={
+                                            <ProtectedRoute permission="hrms.leave.manage">
+                                                <Leave />
+                                            </ProtectedRoute>
+                                        }
+                                    />
+                                    <Route path="/hrms/leave/mine" element={<MyLeave />} />
+                                </Route>
+                                {/* Comp-off: same split — the hub needs the manage
+                                    permission, the self-service page rides the
+                                    module alone. */}
+                                <Route element={<ProtectedRoute module="hrms.comp_off" />}>
+                                    <Route
+                                        path="/hrms/comp-off"
+                                        element={
+                                            <ProtectedRoute permission="hrms.comp_off.manage">
+                                                <CompOff />
+                                            </ProtectedRoute>
+                                        }
+                                    />
+                                    <Route path="/hrms/comp-off/mine" element={<MyCompOff />} />
+                                </Route>
+                                {/* Holidays: shared reference data with internal
+                                    gating — the route needs the module, reads
+                                    ride it, mutations hide without manage. */}
+                                <Route
+                                    path="/hrms/holidays"
+                                    element={
+                                        <ProtectedRoute module="hrms.holidays">
+                                            <Holidays />
+                                        </ProtectedRoute>
+                                    }
+                                />
+                                {/* Compensation: heads and templates need the
+                                    view permission, the salary picker degrades
+                                    without the directory. Payroll: the hub and
+                                    the run detail are runner tools; my-payslips
+                                    rides the module alone like My files. */}
+                                <Route
+                                    path="/hrms/compensation"
+                                    element={
+                                        <ProtectedRoute permission="hrms.compensation.view">
+                                            <Compensation />
+                                        </ProtectedRoute>
+                                    }
+                                />
+                                <Route
+                                    path="/hrms/payroll"
+                                    element={
+                                        <ProtectedRoute permission="hrms.payroll.run">
+                                            <Payroll />
+                                        </ProtectedRoute>
+                                    }
+                                />
+                                <Route
+                                    path="/hrms/payroll/runs/:runId"
+                                    element={
+                                        <ProtectedRoute permission="hrms.payroll.run">
+                                            <PayrollRunDetail />
+                                        </ProtectedRoute>
+                                    }
+                                />
+                                <Route path="/hrms/payroll/mine" element={<MyPayslips />} />
+                                {/* Statutory: the whole page rides the statutory
+                                    module; internal gating splits rulebooks and
+                                    decisions (manage) from claims filing and
+                                    masked reads. */}
+                                <Route element={<ProtectedRoute module="hrms.payroll.statutory" />}>
+                                    <Route path="/hrms/statutory" element={<Statutory />} />
+                                </Route>
+                                {/* Expenses: the queue needs the view permission,
+                                    the self-service page rides the module alone
+                                    like My files. */}
+                                <Route element={<ProtectedRoute module="hrms.expenses" />}>
+                                    <Route
+                                        path="/hrms/expenses"
+                                        element={
+                                            <ProtectedRoute permission="hrms.expenses.view">
+                                                <Expenses />
+                                            </ProtectedRoute>
+                                        }
+                                    />
+                                    <Route path="/hrms/expenses/mine" element={<MyExpenses />} />
+                                </Route>
+                                {/* Performance: the hub and the cycle detail need
+                                    the view permission, the self-service page
+                                    rides the module alone like My files. */}
+                                <Route element={<ProtectedRoute module="hrms.performance" />}>
+                                    <Route
+                                        path="/hrms/performance"
+                                        element={
+                                            <ProtectedRoute permission="hrms.performance.view">
+                                                <Performance />
+                                            </ProtectedRoute>
+                                        }
+                                    />
+                                    <Route
+                                        path="/hrms/performance/cycles/:cycleId"
+                                        element={
+                                            <ProtectedRoute permission="hrms.performance.view">
+                                                <PerformanceCycleDetail />
+                                            </ProtectedRoute>
+                                        }
+                                    />
+                                    <Route path="/hrms/performance/mine" element={<MyPerformance />} />
+                                </Route>
+                                {/* Assets: the register needs the view permission,
+                                    the self-service page rides the module alone
+                                    like My files. */}
+                                <Route element={<ProtectedRoute module="hrms.assets" />}>
+                                    <Route
+                                        path="/hrms/assets"
+                                        element={
+                                            <ProtectedRoute permission="hrms.assets.view">
+                                                <Assets />
+                                            </ProtectedRoute>
+                                        }
+                                    />
+                                    <Route path="/hrms/assets/mine" element={<MyAssets />} />
+                                </Route>
+                                {/* Engagement: the hub needs the view permission,
+                                    answering rides the module alone like My files. */}
+                                <Route element={<ProtectedRoute module="hrms.engagement" />}>
+                                    <Route
+                                        path="/hrms/engagement"
+                                        element={
+                                            <ProtectedRoute permission="hrms.engagement.view">
+                                                <Engagement />
+                                            </ProtectedRoute>
+                                        }
+                                    />
+                                    <Route path="/hrms/engagement/mine" element={<MySurvey />} />
+                                    <Route path="/hrms/engagement/mine/:campaignId" element={<MySurvey />} />
+                                </Route>
+                                {/* Analytics: the workforce dashboards need the
+                                    analytics view permission; each tab gates
+                                    itself against its own domain permission. */}
+                                <Route element={<ProtectedRoute module="hrms.analytics" />}>
+                                    <Route
+                                        path="/hrms/analytics"
+                                        element={
+                                            <ProtectedRoute permission="hrms.analytics.view">
+                                                <Analytics />
+                                            </ProtectedRoute>
+                                        }
+                                    />
+                                </Route>
+                                {/* Audit: the append-only trail needs the audit
+                                    permission; the record view hangs off it. */}
+                                <Route
+                                    path="/hrms/audit"
+                                    element={
+                                        <ProtectedRoute permission="hrms.audit.view">
+                                            <AuditLog />
+                                        </ProtectedRoute>
+                                    }
+                                />
+                                <Route path="/hrms/:section" element={<HrmsOverview />} />
                             </Route>
-                            {/* Audit: the append-only trail needs the audit
-                                permission; the record view hangs off it. */}
-                            <Route
-                                path="/hrms/audit"
-                                element={
-                                    <ProtectedRoute permission="hrms.audit.view">
-                                        <AuditLog />
-                                    </ProtectedRoute>
-                                }
-                            />
-                            <Route path="/hrms/:section" element={<HrmsOverview />} />
                         </Route>
                         <Route element={<ProtectedRoute permission="users.view" />}>
                             <Route path="/users" element={<Users />} />
