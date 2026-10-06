@@ -73,6 +73,7 @@ use App\Http\Controllers\ImpersonationController;
 use App\Http\Controllers\LabelController;
 use App\Http\Controllers\MySubscriptionController;
 use App\Http\Controllers\NotificationController;
+use App\Http\Controllers\NotificationPreferenceController;
 use App\Http\Controllers\OnboardingController;
 use App\Http\Controllers\PlanController;
 use App\Http\Controllers\ProjectController;
@@ -125,6 +126,11 @@ Route::prefix('api')->group(function () {
         Route::get('notifications/unread', [NotificationController::class, 'unread']);
         Route::post('notifications/{notification}/read', [NotificationController::class, 'markRead']);
         Route::post('notifications/mark-all-read', [NotificationController::class, 'markAllRead']);
+
+        // Per-event notification preferences (tenant tables, self-scoped like
+        // the notifications family; the SA short-circuit mirrors them).
+        Route::get('notification-preferences', [NotificationPreferenceController::class, 'show']);
+        Route::put('notification-preferences', [NotificationPreferenceController::class, 'update']);
 
         // HR inbox (self-scoped by login like notifications; the service
         // short-circuits platform super admins to empty payloads).
