@@ -55,6 +55,7 @@ export default function Attendance() {
 
     const canViewOthers = can('permission:hrms.attendance.view');
     const canRegularize = can('permission:hrms.attendance.regularize');
+    const canExport = can('permission:workspaces.manage');
 
     const now = new Date();
     const [employeeId, setEmployeeId] = useState('');
@@ -224,9 +225,11 @@ export default function Attendance() {
                             <Button variant="secondary">Review queue</Button>
                         </Link>
                     )}
-                    <Button variant="secondary" onClick={exportCsv} disabled={exporting || !monthData}>
-                        {exporting ? 'Exporting…' : 'Export CSV'}
-                    </Button>
+                    {canExport && (
+                        <Button variant="secondary" onClick={exportCsv} disabled={exporting || !monthData}>
+                            {exporting ? 'Exporting…' : 'Export CSV'}
+                        </Button>
+                    )}
                 </div>
             </div>
 

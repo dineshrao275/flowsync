@@ -537,8 +537,9 @@ Route::prefix('api')->group(function () {
             Route::get('hrms/attendance/today', [AttendanceRecordsController::class, 'today']);
             // Exports are the heaviest reads on this surface (up to 93 days of
             // rows per pull), so the one bulk endpoint rides the throttle while
-            // the month grid and widget stay unthrottled.
-            Route::get('hrms/attendance/export', [AttendanceRecordsController::class, 'export'])->middleware('throttle:30,1');
+            // the month grid and widget stay unthrottled — and unlike those
+            // self-service reads, exports answer to tenant admins only.
+            Route::get('hrms/attendance/export', [AttendanceRecordsController::class, 'export'])->middleware(['throttle:30,1', 'permission:workspaces.manage']);
         });
 
         // HRMS leave catalogue (Phase 15 P6.4a). Module-gated on `hrms.leave`
