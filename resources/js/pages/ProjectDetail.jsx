@@ -97,6 +97,7 @@ export default function ProjectDetail() {
     const [showCreate, setShowCreate] = useState(false);
     const [savingTask, setSavingTask] = useState(false);
     const [loadingTasks, setLoadingTasks] = useState(false);
+    const [tasksError, setTasksError] = useState(null);
 
     const isProjectManager = can('workspaces.manage') || project?.my_role === 'lead';
     const archived = Boolean(project?.archived_at);
@@ -188,6 +189,7 @@ export default function ProjectDetail() {
         });
 
         setLoadingTasks(true);
+        setTasksError(null);
         return api
             .get(`/projects/${projectId}/tasks`, { params })
             .then(({ data }) => {
@@ -199,7 +201,13 @@ export default function ProjectDetail() {
                 }
                 setTaskOptions(data.filters);
             })
-            .catch(() => { })
+            .catch((err) => {
+                if (err?.response?.status === 403) {
+                    navigate('/403', { replace: true });
+                    return;
+                }
+                setTasksError('Unable to load tasks.');
+            })
             .finally(() => setLoadingTasks(false));
     }
 
@@ -654,7 +662,9 @@ export default function ProjectDetail() {
                         <FiltersBar filters={filters} options={taskOptions} onChange={setFilters} />
                     </Card>
 
-                    {view === 'board' && board ? (
+                    {tasksError ? (
+                        <Alert>{tasksError}</Alert>
+                    ) : view === 'board' && board ? (
                         <KanbanBoard
                             board={board}
                             canMove={canMoveTask}

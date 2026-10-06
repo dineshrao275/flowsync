@@ -91,10 +91,10 @@ export default function MyPerformance() {
             }
 
             return Promise.all([
-                api.get(`/hrms/performance/cycles/${id}/goals`).then(({ data }) => setGoals(
+                api.get(`/hrms/performance/cycles/${id}/goals`, { params: { employee_id: employeeId } }).then(({ data }) => setGoals(
                     (data.goals ?? []).filter((g) => g.employee_id === employeeId),
                 )),
-                api.get(`/hrms/performance/cycles/${id}/check-ins`).then(({ data }) => setCheckIns(
+                api.get(`/hrms/performance/cycles/${id}/check-ins`, { params: { employee_id: employeeId } }).then(({ data }) => setCheckIns(
                     (data.check_ins ?? []).filter((c) => c.employee_id === employeeId),
                 )),
                 api.get(`/hrms/performance/cycles/${id}/feedback-requests`).then(({ data }) => setFeedback(data.feedback_requests ?? [])),
@@ -110,7 +110,7 @@ export default function MyPerformance() {
     useEffect(() => {
         loadCycles();
 
-        api.get('/hrms/performance/one-on-ones').then(({ data }) => setOneOnOnes(data.one_on_ones ?? [])).catch(() => setOneOnOnes([]));
+        api.get('/hrms/performance/one-on-ones', { params: employeeId ? { employee_id: employeeId } : {} }).then(({ data }) => setOneOnOnes(data.one_on_ones ?? [])).catch(() => setOneOnOnes([]));
 
         // The record this login drafts under: the directory row whose user
         // block names the login. Resolved once here and passed down, so no

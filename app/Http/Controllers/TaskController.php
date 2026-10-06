@@ -24,6 +24,16 @@ class TaskController extends Controller
     {
         $this->authorize('view', $project);
 
+        // Board/list rows carry the task-level read, not just project
+        // sight: a role that may see the project but not its tasks gets
+        // the same 403 here that show() answers per row.
+        $role = $project->memberRole($request->user());
+        abort_unless(
+            $request->user()->hasPermission('workspaces.manage') || ($role !== null && $role->hasPermission('tasks.view')),
+            403,
+            'This action is unauthorized.',
+        );
+
         $filters = $request->validate([
             'status_id' => ['nullable', 'integer'],
             'priority_id' => ['nullable', 'integer'],

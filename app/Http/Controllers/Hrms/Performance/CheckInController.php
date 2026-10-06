@@ -7,6 +7,7 @@ use App\Http\Requests\Hrms\CheckInRequest;
 use App\Models\Hrms\Employee\Employee;
 use App\Models\Hrms\Performance\CheckIn;
 use App\Models\Hrms\Performance\PerformanceCycle;
+use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
@@ -27,6 +28,11 @@ class CheckInController extends Controller
 
         $query = $cycle->checkIns()->with('employee:id,employee_code,name')->orderByDesc('id');
 
+        if (! $this->seesAll($request->user())) {
+            $mine = Employee::where('user_id', $request->user()->id)->value('id') ?? 0;
+            $query->where('employee_id', $mine);
+        }
+
         if ($request->has('employee_id')) {
             $query->where('employee_id', (int) $request->query('employee_id'));
         }
@@ -34,6 +40,13 @@ class CheckInController extends Controller
         return response()->json([
             'check_ins' => $query->get()->map(fn (CheckIn $checkIn): array => $this->present($checkIn))->all(),
         ]);
+    }
+
+    private function seesAll(User $user): bool
+    {
+        return $user->hasPermission('hrms.performance.view')
+            || $user->hasPermission('hrms.performance.manage')
+            || $user->hasPermission('hrms.talent.manage');
     }
 
     public function store(CheckInRequest $request, PerformanceCycle $cycle): JsonResponse

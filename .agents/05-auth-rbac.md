@@ -32,6 +32,36 @@ casing-locked. `UserController::store` normalizes before validation.
 - Enforcement: `permission:` middleware + `Gate::define('permission')` SA bypass
   (unless impersonating) + Policies. Tenant admin = `workspaces.manage` bypass.
 
+## Member-based access (non-admins see only what they belong to)
+
+- **Workspaces/projects/tasks:** `WorkspacePolicy::view` (member any role), `ProjectPolicy::view`
+  (project member — workspace membership alone is not enough), `TaskPolicy::*`
+  (project member **and** the role grants the `tasks.*` slug, resolved against
+  the task's own project). `TaskController@index` additionally requires the
+  caller's project-role grants `tasks.view` (403 like a per-row show), so the
+  board/list pools are not a back door around it.
+- **Lists return zero rows, not 403:** `WorkspaceService::listFor`,
+  `ProjectService::listFor|listAll`, `ScopesVisibleTasks::visibleTaskQuery()`
+  (search, dashboard, reports, analytics, work-log aggregates) all filter
+  `whereHas(members, user)` unless `workspaces.manage`. Task board/list 403
+  instead (project `view` first) — both shapes deny by default.
+- **Nested writes verify belonging:** status update/destroy, comment/work-log/
+  attachment/dependency child routes 404 on a foreign child id; the URL
+  `{project}` on single-task routes is decorative (the policy follows
+  `$task->project`), never a second gate.
+- **HRMS self-service:** `view` covers self everywhere; list endpoints that
+  non-viewers can reach self-scope server-side (goals, check-ins, 1:1s,
+  leave/comp-off requests, expenses — the feedback-request pattern), never
+  client-side filtering alone. Performance `view` on a single row additionally
+  allows the manager-of and the broad `performance.view|talent.manage` holders.
+- **Frontend mirrors, never enforces:** sidebar `capabilities`, `ProtectedRoute`
+  permission/module gates, and per-tab `can()` checks hide; every hidden
+  surface still 403/404s server-side on direct URL (project pages navigate to
+  `/403`, task loads surface an inline error). No `My/*` page trusts a query
+  param for identity — the caller resolves from the login.
+- Regression: `tests/Feature/MemberIsolationTest.php` (foreign status 404,
+  sight-only board/list/show 403, performance self-scope incl. spoofed filter).
+
 ## Protected default user
 
 One `users.is_default` per tenant DB (partial unique index). Oldest admin (else
