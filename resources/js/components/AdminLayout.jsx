@@ -10,7 +10,8 @@ import { BreadcrumbProvider } from '../context/BreadcrumbContext';
 import { PageTitleProvider } from '../context/PageTitleContext';
 import { useAuth } from '../context/AuthContext';
 
-const COLLAPSE_KEY = 'flowsync.sidebar.collapsed';
+const STORAGE_PREFIX = (typeof window !== 'undefined' && window.__FLOWSYNC_CONFIG__?.storagePrefix) || 'flowsync';
+const COLLAPSE_KEY = `${STORAGE_PREFIX}.sidebar.collapsed`;
 
 export default function AdminLayout() {
     const [sidebarOpen, setSidebarOpen] = useState(false);

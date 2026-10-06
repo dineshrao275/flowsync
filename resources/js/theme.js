@@ -1,4 +1,6 @@
-export const THEME_STORAGE_KEY = 'flowsync.theme';
+const STORAGE_PREFIX = (typeof window !== 'undefined' && window.__FLOWSYNC_CONFIG__?.storagePrefix) || 'flowsync';
+
+export const THEME_STORAGE_KEY = `${STORAGE_PREFIX}.theme`;
 
 export const THEME_MODES = ['light', 'dark', 'system'];
 
@@ -83,7 +85,7 @@ export const THEME_PRESETS = [
  * Structural surfaces used when the dark scheme is active. The admin's own
  * `accent` / `active_menu` colors are kept so branding survives the switch.
  */
-const THEME_VARS_KEY = 'flowsync.theme.vars';
+const THEME_VARS_KEY = `${STORAGE_PREFIX}.theme.vars`;
 
 function hexToRgb(hex) {
     const value = String(hex || '').replace('#', '').trim();

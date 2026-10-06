@@ -1,59 +1,147 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# FlowSync — Enterprise Multi-Tenant Administration & HRMS Platform
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+FlowSync is an enterprise-grade, multi-tenant SaaS application that unifies **Project & Task Management** with a comprehensive **Human Resource Management System (HRMS)**, **Time & Attendance**, **Payroll**, **Performance Reviews**, and **Subscription Billing**.
 
-## About Laravel
+Built on **Laravel 12** and **React 19**, FlowSync employs a **database-per-tenant physical isolation** architecture backed by PostgreSQL, ensuring uncompromising security, compliance, and multi-tenant performance.
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+---
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+## Key Features & Capabilities
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+### 1. Task & Project Management
+- **Workspaces & Projects**: Hierarchical project scoping with customizable keys, statuses, and role-based permissions.
+- **Kanban & List Views**: Real-time drag-and-drop task workflow boards powered by `@dnd-kit` and WebSocket events.
+- **Task Dependencies**: DAG cycle detection for blocking/dependent tasks with enforcement gates.
+- **Collaboration**: Nested comments, mentions, activity streams, and secure signed temporary attachment downloads.
 
-## Learning Laravel
+### 2. Complete HRMS Suite
+- **Employee Directory**: Profile lifecycle, document records, custom attributes, and interactive organization charts.
+- **Time & Attendance**: Shift scheduling, web clock-in/out, geofencing validation, and regularization request flows.
+- **Leave Management**: Leave policies, multi-tier accrual balances, and manager approval hierarchies.
+- **Payroll & Payslips**: Batch payroll processing, configurable earnings & deductions, and encrypted PDF generation.
+- **Performance Reviews**: 360-degree review cycles, goal setting, KPI metrics, and calibration stages.
+- **Expenses & Assets**: Employee reimbursement claims and company hardware/equipment lifecycle tracking.
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework. You can also check out [Laravel Learn](https://laravel.com/learn), where you will be guided through building a modern Laravel application.
+### 3. Multi-Tenancy & Platform Administration
+- **Database-Per-Tenant Isolation**: Each tenant has a dedicated PostgreSQL schema/database; central `system` database handles tenant routing, platform RBAC, and subscription billing.
+- **Super Admin & Impersonation**: Platform administrators can manage tenants and securely impersonate tenant sessions with full audit logging.
+- **Tiered Subscriptions & Limits**: Plan limits enforced across users, storage quotas, workspaces, and projects.
+- **Multi-Gateway Billing**: Provider-independent billing supporting **Stripe** and **Razorpay** with webhook verification, idempotency protection, and automated refunds.
+- **Full Data Export**: Queued, tenant-isolated JSON/CSV/ZIP data exports with signed time-limited download links.
+- **CMS & Website Engine**: Dynamic marketing landing pages and public CMS driven from the central platform.
 
-If you don't feel like reading, [Laracasts](https://laracasts.com) can help. Laracasts contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
+---
 
-## Laravel Sponsors
+## Technical Stack & Architecture
 
-We would like to extend our thanks to the following sponsors for funding Laravel development. If you are interested in becoming a sponsor, please visit the [Laravel Partners program](https://partners.laravel.com).
+- **Backend**: Laravel 12 (PHP 8.3+)
+- **Frontend**: React 19 SPA, Tailwind CSS v4, Lucide React, Axios
+- **Real-Time Communication**: Laravel Reverb + Laravel Echo
+- **Databases**:
+  - `system`: Central platform database (tenants, subscriptions, payments, audit logs, routing).
+  - `tenant_{id}`: Isolated per-tenant databases (workspaces, projects, tasks, HRMS domain records).
+- **Queue & Storage**: Redis / Database queue driver, signed temporary file streams on private storage.
 
-### Premium Partners
+---
 
-- **[Vehikl](https://vehikl.com)**
-- **[Tighten Co.](https://tighten.co)**
-- **[Kirschbaum Development Group](https://kirschbaumdevelopment.com)**
-- **[64 Robots](https://64robots.com)**
-- **[Curotec](https://www.curotec.com/services/technologies/laravel)**
-- **[DevSquad](https://devsquad.com/hire-laravel-developers)**
-- **[Redberry](https://redberry.international/laravel-development)**
-- **[Active Logic](https://activelogic.com)**
+## Getting Started
 
-## Contributing
+### Prerequisites
+- PHP 8.3+ with `pdo_pgsql`, `pdo_sqlite`, `zip`, `bcmath`, `gd`, `intl` extensions
+- Composer 2+
+- Node.js 20+ & npm
+- PostgreSQL 16+
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+### Local Native Installation
 
-## Code of Conduct
+1. **Clone the repository and install dependencies**:
+   ```bash
+   git clone <repository-url> flowsync
+   cd flowsync
+   composer install
+   npm install
+   ```
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+2. **Configure Environment**:
+   ```bash
+   cp .env.example .env
+   php artisan key:generate
+   ```
+   Set up your PostgreSQL database credentials in `.env` for the central system database:
+   ```env
+   DB_SYSTEM_CONNECTION=pgsql
+   DB_SYSTEM_HOST=127.0.0.1
+   DB_SYSTEM_PORT=5432
+   DB_SYSTEM_DATABASE=flowsync_system
+   DB_SYSTEM_USERNAME=flowsync
+   DB_SYSTEM_PASSWORD=secret
+   ```
 
-## Security Vulnerabilities
+3. **Bootstrap the Central System & Provision Tenants**:
+   ```bash
+   # Run system migrations
+   php artisan migrate --database=system --path=database/migrations/system
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+   # Seed default plans, superadmin, and initial tenants (Acme & Globex)
+   php artisan db:seed --database=system --class="Database\Seeders\DatabaseSeeder"
+
+   # Ensure tenant databases are provisioned
+   php artisan tenants:provision
+   ```
+
+4. **Build Frontend Assets**:
+   ```bash
+   npm run build
+   # Or for development with hot-reload:
+   npm run dev
+   ```
+
+5. **Run the Application**:
+   ```bash
+   # Start background queue worker and Reverb websocket server
+   php artisan queue:work
+   php artisan reverb:start
+
+   # Serve the application
+   php artisan serve
+   ```
+
+---
+
+## Demo Credentials
+
+All seeded demo accounts use the default password: `password`
+
+| Role | Email | Tenant | Scope |
+| :--- | :--- | :--- | :--- |
+| **Super Admin** | `superadmin@flowsync.test` | *None* | Central Platform & Tenants |
+| **Tenant Admin** | `admin@flowsync.test` | Acme Corp | Acme Tenant Administrator |
+| **Tenant Editor** | `editor@flowsync.test` | Acme Corp | Acme Project Member / HR |
+| **Tenant Viewer** | `viewer@flowsync.test` | Acme Corp | Acme Read-Only Viewer |
+| **Tenant Owner** | `owner@globex.test` | Globex Inc | Globex Tenant Administrator |
+
+---
+
+## Testing & Quality Assurance
+
+FlowSync maintains an extensive automated test suite with rigorous database isolation between tenant tests:
+
+```bash
+# Run the complete test suite
+php artisan test
+
+# Run focused feature tests
+php artisan test tests/Feature/BillingTest.php
+php artisan test tests/Feature/TenantExportTest.php
+php artisan test tests/Feature/FactoryParityTest.php
+php artisan test tests/Feature/BrandSweepTest.php
+
+# Code style linting
+./vendor/bin/pint
+```
+
+---
 
 ## License
 
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+FlowSync is proprietary software. All rights reserved.

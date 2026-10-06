@@ -4,6 +4,8 @@ namespace App\Models\Hrms\Payroll;
 
 use App\Enums\Hrms\PayrollRunStatus;
 use App\Models\User;
+use Database\Factories\Hrms\PayrollRunFactory;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -18,6 +20,13 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  */
 class PayrollRun extends Model
 {
+    use HasFactory;
+
+    protected static function newFactory(): PayrollRunFactory
+    {
+        return PayrollRunFactory::new();
+    }
+
     protected $table = 'payroll_runs';
 
     protected $fillable = [

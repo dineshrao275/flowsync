@@ -4,6 +4,8 @@ namespace App\Models\Hrms\Performance;
 
 use App\Enums\Hrms\PerformanceCycleStage;
 use App\Models\User;
+use Database\Factories\Hrms\PerformanceCycleFactory;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -17,6 +19,13 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  */
 class PerformanceCycle extends Model
 {
+    use HasFactory;
+
+    protected static function newFactory(): PerformanceCycleFactory
+    {
+        return PerformanceCycleFactory::new();
+    }
+
     protected $table = 'performance_cycles';
 
     protected $fillable = [

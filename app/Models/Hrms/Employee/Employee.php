@@ -10,8 +10,10 @@ use App\Models\Hrms\Org\Department;
 use App\Models\Hrms\Org\Designation;
 use App\Models\Hrms\Org\Location;
 use App\Models\User;
+use Database\Factories\Hrms\EmployeeFactory;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -72,7 +74,13 @@ use Illuminate\Support\Carbon;
  */
 class Employee extends Model
 {
+    use HasFactory;
     use SoftDeletes;
+
+    protected static function newFactory(): EmployeeFactory
+    {
+        return EmployeeFactory::new();
+    }
 
     protected $table = 'employees';
 

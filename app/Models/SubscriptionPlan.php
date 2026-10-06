@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Models\Concerns\CentralConnection;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Carbon;
@@ -10,6 +11,7 @@ use Illuminate\Support\Carbon;
 class SubscriptionPlan extends Model
 {
     use CentralConnection;
+    use HasFactory;
 
     protected $fillable = [
         'name',
