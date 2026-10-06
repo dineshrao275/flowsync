@@ -319,6 +319,7 @@ Route::prefix('api')->group(function () {
             // tasks.* permissions) + ProjectPolicy::createTask.
             Route::get('projects/{project}/tasks', [TaskController::class, 'index']);
             Route::post('projects/{project}/tasks', [TaskController::class, 'store']);
+            Route::get('projects/{project}/tasks/key/{key}', [TaskController::class, 'showByKey'])->where('key', '[A-Za-z0-9-]+');
             Route::get('projects/{project}/tasks/{task}', [TaskController::class, 'show']);
             Route::put('projects/{project}/tasks/{task}', [TaskController::class, 'update']);
             Route::delete('projects/{project}/tasks/{task}', [TaskController::class, 'destroy']);

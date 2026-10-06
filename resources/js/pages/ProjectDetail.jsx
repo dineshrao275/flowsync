@@ -227,6 +227,7 @@ export default function ProjectDetail() {
     const DEEP_SECTIONS = ['comments', 'attachments', 'dependencies', 'time', 'activity'];
 
     const openedDeepTaskRef = useRef(null);
+    const fetchedDeepTaskRef = useRef(null);
     useEffect(() => {
         const deepKey = searchParams.get('task');
         if (!project || tab !== 'tasks' || !deepKey || openedDeepTaskRef.current === deepKey) return;
@@ -238,7 +239,20 @@ export default function ProjectDetail() {
             openedDeepTaskRef.current = deepKey;
             const section = searchParams.get('section');
             openTask(found, DEEP_SECTIONS.includes(section) ? section : null);
+            return;
         }
+        // Not in this view's pool (subtasks never ride the board; filters
+        // can hide anything): resolve by key directly so the drawer opens
+        // in either view. One attempt per key — a 404 stays closed.
+        if (fetchedDeepTaskRef.current === deepKey) return;
+        fetchedDeepTaskRef.current = deepKey;
+        api.get(`/projects/${projectId}/tasks/key/${encodeURIComponent(deepKey)}`)
+            .then(({ data }) => {
+                openedDeepTaskRef.current = deepKey;
+                const section = searchParams.get('section');
+                openTask(data.task, DEEP_SECTIONS.includes(section) ? section : null);
+            })
+            .catch(() => {});
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [project, tab, view, board, listTasks, searchParams]);
 

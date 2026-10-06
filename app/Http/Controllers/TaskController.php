@@ -109,6 +109,24 @@ class TaskController extends Controller
         ]);
     }
 
+    /**
+     * Resolve one task by its project-scoped key (`PRJ-123`), for deep
+     * links that land outside the current view's pool: the board only
+     * carries top-level tasks, so a subtask link (or a filtered-out task)
+     * would otherwise open the board with no drawer. Same policy and same
+     * shape as show — the key is just another address for the row.
+     */
+    public function showByKey(Request $request, Project $project, string $key): JsonResponse
+    {
+        $task = $project->tasks()->where('key', $key)->firstOrFail();
+
+        $this->authorize('view', $task);
+
+        return response()->json([
+            'task' => $this->service->present($this->service->show($task)),
+        ]);
+    }
+
     public function update(Request $request, Project $project, Task $task): JsonResponse
     {
         $this->authorize('edit', $task);
