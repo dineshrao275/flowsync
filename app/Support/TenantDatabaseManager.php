@@ -150,6 +150,76 @@ class TenantDatabaseManager
     }
 
     /**
+     * Drop the tenant's database (idempotent). SQLite: delete the database
+     * file(s). PostgreSQL: terminate backends and DROP DATABASE; the login
+     * role is dropped only when it is clearly per-tenant (name matches the
+     * generated database name) — the shared `pg_role`, the system login and
+     * anything else are never touched. Returns whether anything was dropped.
+     */
+    public function dropDatabase(Tenant $tenant): bool
+    {
+        if ($this->tenantDriver() === 'sqlite') {
+            $dropped = false;
+
+            foreach ($this->tenantDatabaseFiles($tenant) as $path) {
+                if (is_file($path)) {
+                    unlink($path);
+                    $dropped = true;
+                }
+            }
+
+            DB::purge(self::TENANT_CONNECTION);
+
+            return $dropped;
+        }
+
+        return $this->dropPostgresDatabase($tenant);
+    }
+
+    /**
+     * @return list<string>
+     */
+    private function tenantDatabaseFiles(Tenant $tenant): array
+    {
+        $dir = (string) config('tenancy.tenant.db_path', database_path('tenants'));
+        $files = [$this->tenantDatabasePath($tenant)];
+
+        foreach ((array) glob(rtrim($dir, '/').'/'.$tenant->slug.'_*.sqlite') ?: [] as $match) {
+            if (! in_array($match, $files, true)) {
+                $files[] = $match;
+            }
+        }
+
+        return $files;
+    }
+
+    private function dropPostgresDatabase(Tenant $tenant): bool
+    {
+        $prefix = config('tenancy.tenant.db_prefix', 'flowsync_tenant_');
+        $dbName = $tenant->db_name ?: $prefix.$tenant->id;
+        $pdo = $this->postgresAdminConnection();
+
+        $pdo->exec('SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE datname = '.$pdo->quote($dbName).' AND pid <> pg_backend_pid()');
+
+        if (! $this->postgresDatabaseExists($dbName)) {
+            return false;
+        }
+
+        $pdo->exec(sprintf('DROP DATABASE "%s"', str_replace('"', '""', $dbName)));
+
+        $sharedRole = config('tenancy.tenant.pg_role') ?: null;
+        $role = $tenant->db_user;
+
+        if (is_string($role) && $role !== '' && $role !== $sharedRole && $role === $dbName && $this->postgresRoleExists($role)) {
+            $pdo->exec(sprintf('DROP ROLE "%s"', str_replace('"', '""', $role)));
+        }
+
+        DB::purge(self::TENANT_CONNECTION);
+
+        return true;
+    }
+
+    /**
      * Run the tenant migration set against the tenant's database.
      */
     public function migrateTenant(Tenant $tenant): void

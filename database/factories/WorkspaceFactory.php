@@ -28,4 +28,26 @@ class WorkspaceFactory extends Factory
             'archived_at' => null,
         ];
     }
+
+    /**
+     * Attach members cycling owner/admin/member, first user owns.
+     *
+     * @param  iterable<User>  $users
+     */
+    public function withMembers(iterable $users, int $addedBy): static
+    {
+        return $this->afterCreating(function (Workspace $workspace) use ($users, $addedBy): void {
+            foreach (array_values([...$users]) as $i => $user) {
+                $workspace->members()->attach($user->id, [
+                    'role' => $i === 0 ? 'owner' : ($i === 1 ? 'admin' : 'member'),
+                    'added_by' => $addedBy,
+                ]);
+            }
+        });
+    }
+
+    public function withSlug(string $slug): static
+    {
+        return $this->state(fn () => ['slug' => $slug]);
+    }
 }
