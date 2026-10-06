@@ -11,6 +11,7 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\DB;
 
 class AnalyticsController extends Controller
 {
@@ -20,6 +21,8 @@ class AnalyticsController extends Controller
     {
         $user = $request->user();
         $canManage = $user->hasPermission('workspaces.manage');
+
+        $range = $this->range($request);
 
         $workspaces = $this->scopeWorkspaces($user, $canManage);
         $projects = $this->scopeProjects($user, $canManage);
@@ -31,6 +34,7 @@ class AnalyticsController extends Controller
         $logs = WorkLog::query()->whereIn('task_id', $visibleTaskIds);
 
         return response()->json([
+            'range' => $range,
             'counts' => [
                 'workspaces' => (clone $workspaces)->count(),
                 'projects' => (clone $projects)->count(),
@@ -48,19 +52,55 @@ class AnalyticsController extends Controller
                     ->whereDate('tasks.due_date', '<=', now()->addDays(7)->toDateString())
                     ->count(),
                 'created_30d' => (clone $tasks)->where('tasks.created_at', '>=', now()->subDays(30))->count(),
+                'created_in_range' => (clone $tasks)
+                    ->whereDate('tasks.created_at', '>=', $range['from'])
+                    ->whereDate('tasks.created_at', '<=', $range['to'])
+                    ->count(),
             ],
             'projects_progress' => $this->projectsProgress($projects),
             'work_logs' => [
-                'total_minutes' => (int) (clone $logs)->sum('duration_minutes'),
+                'total_minutes' => (int) (clone $logs)
+                    ->whereDate('started_at', '>=', $range['from'])
+                    ->whereDate('started_at', '<=', $range['to'])
+                    ->sum('duration_minutes'),
                 'today_minutes' => (int) (clone $logs)->whereDate('started_at', Carbon::today())->sum('duration_minutes'),
                 'week_minutes' => (int) (clone $logs)->where('started_at', '>=', Carbon::now()->startOfWeek())->sum('duration_minutes'),
-                'daily' => $this->dailySeries($logs, 'started_at', 'minutes'),
+                'daily' => $this->dailySeries($logs, 'started_at', 'minutes', $range),
             ],
             'tasks_created' => [
-                'daily' => $this->dailySeries($tasks, 'tasks.created_at', 'count'),
+                'daily' => $this->dailySeries($tasks, 'tasks.created_at', 'count', $range),
             ],
-            'top_contributors' => $this->topContributors($visibleTaskIds),
+            'top_contributors' => $this->topContributors($visibleTaskIds, $range),
         ]);
+    }
+
+    /**
+     * Optional ?from=&to= (YYYY-MM-DD) window for the ranged series.
+     * Defaults to the last 14 days inclusive. Capped at 366 days so a
+     * year view stays a few indexed queries, never hundreds of day
+     * slices.
+     *
+     * @return array{from: string, to: string, days: int}
+     */
+    private function range(Request $request): array
+    {
+        $data = $request->validate([
+            'from' => ['sometimes', 'nullable', 'date_format:Y-m-d'],
+            'to' => ['sometimes', 'nullable', 'date_format:Y-m-d', 'after_or_equal:from'],
+        ]);
+
+        $to = isset($data['to']) ? Carbon::parse($data['to']) : Carbon::today();
+        $from = isset($data['from']) ? Carbon::parse($data['from']) : $to->copy()->subDays(13);
+
+        if ($from->diffInDays($to) > 365) {
+            abort(422, 'Range covers at most 366 days.');
+        }
+
+        return [
+            'from' => $from->toDateString(),
+            'to' => $to->toDateString(),
+            'days' => $from->diffInDays($to) + 1,
+        ];
     }
 
     private function scopeWorkspaces($user, bool $canManage): Builder
@@ -100,34 +140,39 @@ class AnalyticsController extends Controller
     }
 
     /**
-     * Per-day series for the last 14 days (inclusive of today, oldest first).
+     * Per-day series over the range, oldest first — one grouped query no
+     * matter how wide the window, with PHP filling the dateless gaps. The
+     * old per-day loop issued a query per day (14 by default, 366 for a
+     * year view); DATE() groups portably on both grammars.
      */
-    private function dailySeries(Builder $query, string $column, string $kind): array
+    private function dailySeries(Builder $query, string $column, string $kind, array $range): array
     {
-        $base = fn () => clone $query;
+        $dateSql = $column === 'started_at' ? 'DATE(started_at)' : 'DATE(tasks.created_at)';
 
-        return collect(range(13, 0))
-            ->map(fn (int $daysAgo) => $this->daySlice($base(), $column, $kind, $daysAgo))
+        $rows = (clone $query)
+            ->whereDate($column, '>=', $range['from'])
+            ->whereDate($column, '<=', $range['to'])
+            ->selectRaw("{$dateSql} as day, ".($kind === 'minutes' ? 'SUM(duration_minutes) as value' : 'COUNT(*) as value'))
+            ->groupBy(DB::raw($dateSql))
+            ->pluck('value', 'day');
+
+        $from = Carbon::parse($range['from']);
+
+        return collect(range(0, $range['days'] - 1))
+            ->map(fn (int $offset) => [
+                'date' => $from->copy()->addDays($offset)->toDateString(),
+                $kind => (int) ($rows->get($from->copy()->addDays($offset)->toDateString()) ?? 0),
+            ])
             ->values()
             ->all();
     }
 
-    private function daySlice(Builder $query, string $column, string $kind, int $daysAgo): array
-    {
-        $date = Carbon::now()->subDays($daysAgo)->toDateString();
-
-        $value = $kind === 'minutes'
-            ? (int) (clone $query)->whereDate($column, $date)->sum('duration_minutes')
-            : (clone $query)->whereDate($column, $date)->count();
-
-        return ['date' => $date, $kind => $value];
-    }
-
-    private function topContributors($visibleTaskIds): array
+    private function topContributors($visibleTaskIds, array $range): array
     {
         return WorkLog::query()
             ->whereIn('task_id', $visibleTaskIds)
-            ->where('started_at', '>=', Carbon::now()->subDays(30))
+            ->whereDate('started_at', '>=', $range['from'])
+            ->whereDate('started_at', '<=', $range['to'])
             ->with('user:id,name,email')
             ->selectRaw('user_id, SUM(duration_minutes) as minutes, COUNT(*) as logs_count')
             ->groupBy('user_id')
