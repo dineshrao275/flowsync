@@ -5,9 +5,9 @@
 
 ## Current
 
-- Date: 2026-10-06 · Branch: `refactor/work-hrms` · Gate: **1389 tests / 6886 assertions** (Phase 3 end-gate, single `php artisan test` run over all test files, zero omitted; Phase 2 gate was 1384/6862, Phase 1 was 1372/6829).
+- Date: 2026-10-06 · Branch: `refactor/work-hrms` · Gate: **1411 tests / 6991 assertions** (Phase 4 end-gate, single `php artisan test` run over all test files, zero omitted; Phase 3 gate was 1389/6886, Phase 2 was 1384/6862, Phase 1 was 1372/6829).
 - `.agents/` pack created (16 files). No app code changed in that commit.
-- Security criticals C1–C3 **CLOSED** (Phase 1); Phase 2 (database & performance) shipped; Phase 3 (HRMS one-tab IA + parity audit) shipped — see its report below.
+- Security criticals C1–C3 **CLOSED** (Phase 1); Phase 2 (database & performance) shipped; Phase 3 (HRMS one-tab IA + parity audit) shipped — see its report below; Phase 4 (TMS email + notification preferences + mention autocomplete) shipped — see its report below.
 
 ## Shipped vs missing (against the 8-phase roadmap)
 
@@ -16,12 +16,54 @@
 | TMS (workspaces/projects/tasks/collab/time/search) | Shipped, complete |
 | HRMS contexts (employee→surveys, inbox, analytics, task-links) | Shipped, complete |
 | Subscriptions (plans/limits/gates/onboarding/self-service) | Code-complete, no billing |
-| Notifications | In-app only; email NOT wired (`MAIL_MAILER=log`, zero `Mail::` in `app/`) |
+| Notifications | ✅ Phase 4: in-app + queued email (assigned/commented/status/unblock) with per-event prefs + 20-mention cap |
 | Exports | 2 HRMS CSVs only; no TMS/general export |
 | Payments | NONE (no Stripe/Razorpay code) |
 | Factories | Stock `UserFactory` only |
 | Security criticals (`10-security.md` C1–C3) | CLOSED (Phase 1, 2026-10-06) |
 | Database & performance backlog (`04-database.md`, plan B1–B11) | Shipped (Phase 2, 2026-10-06) — B7 `me()` caching deliberately deferred |
+
+## Phase 4 report (2026-10-06) — COMPLETE, gate green
+
+- Implemented (plan D1–D5): `app/Mail/TaskNotificationMail.php` (kind-driven
+  assigned/commented/status_changed/unblocked; **scalar snapshot at construction** —
+  no models inside the queued job, so no cross-tenant leak), text view
+  `resources/views/emails/task-notification.blade.php`, and wiring in
+  `NotificationService::notify()` (`EMAIL_EVENTS` const, `maybeQueueMail()` gated by
+  prefs, deep link `/app/projects/{id}?tab=tasks&task=KEY[&section=comments]`). Queued
+  mail rides the existing `Queue::createPayloadUsing` tenant stamping.
+- `notification_preferences` tenant-DB table (migration `2026_10_15_000037`) + `NotificationPreference`
+  model (`wants()` reads the dotted keys *literally* — never `data_get`/`assertJsonPath`),
+  event catalog `config/notifications.php`, `GET|PUT api/notification-preferences`
+  (partial merge, unknown event → 422, `DetectsPlatformUsers` short-circuit so an SA
+  PUT 404s). Preferences gate **email only** — in-app rows always deliver.
+- Mention fan-out capped at 20 unique users/comment
+  (`TaskNotificationMail::MAX_MENTIONS_PER_COMMENT`; assignee+reporter always kept,
+  actor excluded); `taskCommented()` returns `{notifications, truncated}` and the
+  comment response echoes `truncated_mentions` → warning toast in the UI.
+- Cross-tenant hardening in `mentionUsers()`: regex is now
+  `@([A-Za-z0-9._-]+(?:@[A-Za-z0-9._-]+)?)` — a full mailbox token (`@owner@globex.test`)
+  matches the exact email only, so a foreign tenant's mailbox never pings a same-tenant
+  user sharing its local part. Bare tokens still match email local part or name.
+- `GET api/projects/{project}/members/autocomplete` (`ProjectMemberController::autocomplete`:
+  authorize view, q prefix on name or email local part, cap 10, `{id,name,email}`),
+  declared before the `{user}` member routes. Consumed by the `CommentThread` `@`-typeahead
+  (debounced fetch, arrow/enter/esc, caret-accurate insert) + `Settings.jsx` Notifications
+  card (one switch per event, optimistic save with rollback).
+- Found while fixing: `??` inside a double-quoted string interpolation is a PARSE ERROR
+  (rewrote `composeLine`/`composeSubject` with locals); the parent Mailable already declares
+  `$subject` (child renamed to `$subjectText`); `{{ $url }}` HTML-escapes `&` (blade uses
+  `{!! $url !!}`); direct `notify()` calls with non-task data needed `??` fallbacks for
+  project_name/key/title.
+- Verification: full suite **single run 1411/6991 green** (615.74 s, `TMPDIR` on tmpfs);
+  focused batch (Notification + NotificationPreference + Collaboration + Task +
+  MentionEmail + MentionAutocomplete) 73 passed / 378 assertions; `pint --test` clean;
+  `npm run build` clean; `HrmsShellTest` 22 passed.
+- Commits (all pushed to `refactor/work-hrms`): 9e07458 (4-1 prefs API+tests), 3d498c0
+  (4-2 mailable+wiring+MentionEmailTest), 06b7541 (4-3 autocomplete endpoint+test+AGENTS
+  gate), fde8cb5 (4-4 typeahead+Settings toggles), +docs commit.
+- DB migrations: 1 tenant migration (see above). Env vars: `MAIL_MAILER` key works but
+  the provider keys stay unset — dev sends to the log driver; real SMTP is a live decision.
 
 ## Phase 1 report (2026-10-06) — COMPLETE, gate green
 
@@ -119,7 +161,9 @@
 1. New application name (factories/rename phase) + infra-rename scope.
 2. Stripe-first? locale→provider rule, prices/currencies, test-vs-live staging.
 3. Export Data: 4th plan vs add-on module (recommended: add-on `export.full`).
-4. SMTP provider + from-address; immediate vs digest board mail.
+4. SMTP provider + from-address; immediate vs digest board mail — Phase 4 delivered the
+   queue+prefs hook (log driver in dev, mail verified via `Mail::fake`); a real SMTP
+   provider/from-address and any digest mode are still open.
 5. HRMS single-tab + sub-tabs IA approval — **DONE** (Phase 3-IA, 2026-10-06): one sidebar entry
    + path-based sub-tabs (deviation from the `?tab=` idea recorded in the roadmap report).
 6. Redis optional (env-driven) vs DB cache/queue only.
@@ -131,3 +175,4 @@
 - 2026-10-06 — Phase 1 security shipped (C1–C3 + hardening); full suite 1372/6829 green.
 - 2026-10-06 — Phase 2 database & performance shipped (indexes, analytics SWR, payroll chunking, board-move batching, `TenantLimits` memo, prod connection-pin guard, `DBPerformanceTest` gate); full suite 1384/6862 green (single run), endpoint p95 at fleet density 11.8/22.7/30.2 ms (dashboard/board/search). B7 `me()` caching deliberately deferred.
 - 2026-10-06 — Phase 3 HRMS IA shipped (one-tab sidebar + `/hrms` hub sub-tabs, `HrmsNavTest` gate, Leave exemption module-gate + filing form, plan-doc statuses corrected through P21); full suite 1389/6886 green (single run). C7/C8 deferred by design.
+- 2026-10-06 — Phase 4 TMS shipped (queued email for assign/mention/comment/status/unblock via `TaskNotificationMail` + prefs gate; `notification_preferences` table + GET/PUT API + Settings toggles; `members/autocomplete` endpoint + comment `@`-typeahead; 20-mention cap with `truncated_mentions` echo; full-mailbox mention-regex hardening). Commits 9e07458/3d498c0/06b7541/fde8cb5. Full suite 1411/6991 green (single run). SMTP delivery remains pending (log driver).

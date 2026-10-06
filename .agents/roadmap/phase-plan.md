@@ -109,6 +109,17 @@ app-wide convention).
 statuses corrected. **Status: DONE (2026-10-06), gate green — report at the end.**
 
 ## Phase 4 — TMS
+> ✅ **COMPLETE** — all tasks shipped in individual commits on `refactor/work-hrms`:
+> D1 `TaskNotificationMail` (kind-driven, scalar-snapshot, queued, deep-linked) + email
+> wiring in `notify()` gated by prefs; D2 `notification_preferences` table + GET/PUT
+> `api/notification-preferences` + Settings toggles (`2026_10_15_000037`); D3
+> `GET api/projects/{project}/members/autocomplete` (project-member scope, cap-10,
+> name/email-local-part prefix) + CommentThread `@`-typeahead; D4 mention fan-out
+> capped at `MAX_MENTIONS_PER_COMMENT`=20 with `truncated_mentions` echo + warning
+> toast; D5 already satisfied by `snippet`. Cross-tenant hardening: mention regex
+> `@([A-Za-z0-9._-]+(?:@[A-Za-z0-9._-]+)?)` treats a full mailbox `@x@tenant.tld` as
+> an exact-email-only token so a foreign mailbox never pings a same-tenant local-part
+> collision. Full-suite gate: **1411 tests / 6991 assertions**.
 
 **Objective:** audit + improve TMS; @mentions with notifications; EMAIL to assignee
 + board members for relevant events.
@@ -400,12 +411,13 @@ green, security checklist clean, report committed (`final-report.md` in
   were superseded by repo conventions.
 - **Fix target:** Phase 3 — update status lines + correct paths.
 
-#### C3. [GAP] No `@mentions` autocomplete UI in TMS comment box
+#### C3. [GAP] No `@mentions` autocomplete UI in TMS comment box — ✅ DONE (Phase 4)
 - `mentionUsers()` backend exists and parses `@token` from saved text, but
   the `TaskDetail` comment input has no mention autocomplete dropdown UI.
   Users must know exact email/username to trigger a mention notification.
 - **Fix target:** Phase 4 (TMS phase) — add member autocomplete API endpoint
-  + typeahead UI in `CommentThread`.
+  + typeahead UI in `CommentThread`. Delivered: `members/autocomplete` endpoint
+  + `@`-typeahead in the comment + reply composers.
 
 #### C4. [RISK] Survey anonymity enforcement not independently verified
 - `07-hrms.md` notes survey anonymity as a gap to verify. The backend
@@ -444,37 +456,38 @@ green, security checklist clean, report committed (`final-report.md` in
 ---
 
 ### D. TMS — Email & Notifications (Phase 4 gaps)
+> ✅ All five shipped in Phase 4 (`refactor/work-hrms`, commits 4-1 → 4-4).
 
-#### D1. [GAP] Zero email delivery — complete absence of Mail classes
-- Confirmed: `app/Mail/` directory does not exist; `Mail::` has zero
-  occurrences in `app/`. `MAIL_MAILER=log` (log driver only).
-- Events that should email: `task.assigned`, `task.commented` (mentions),
-  `task.status_changed`, `task.unblocked`.
-- **Fix target:** Phase 4.
+#### D1. [GAP] Zero email delivery — complete absence of Mail classes — ✅ DONE
+- `app/Mail/TaskNotificationMail.php` (kind-driven assigned/commented/
+  status_changed/unblocked; scalar snapshot; queued via `Mail::queue`),
+  `resources/views/emails/task-notification.blade.php`, wiring in
+  `NotificationService::notify()` gated by `EMAIL_EVENTS` + prefs;
+  deep link `/app/projects/{id}?tab=tasks&task=KEY&section=comments`.
+  Verified by `MentionEmailTest`.
 
-#### D2. [GAP] No `notification_preferences` table or API
-- In-app notifications exist; per-user per-event opt-out does not.
-  A user cannot stop email notifications for noisy projects.
-- **Fix target:** Phase 4 — `notification_preferences` tenant-DB migration +
-  prefs API + UI in profile/settings.
+#### D2. [GAP] No `notification_preferences` table or API — ✅ DONE
+- Tenant-DB migration `2026_10_15_000037`; `NotificationPreference` model
+  (`wants()` literal-key read — the dot-key trap); config catalog
+  `config/notifications.php`; `GET|PUT api/notification-preferences`
+  (`DetectsPlatformUsers` short-circuit); Settings Notifications card
+  (per-event switches, optimistic save). Preferences gate **email only**.
 
-#### D3. [GAP] No mention autocomplete backend API endpoint
-- `mentionUsers()` parses saved text but there is no `GET api/projects/{project}/members/autocomplete`
-  endpoint that powers a live `@` typeahead.
-- **Fix target:** Phase 4 — add the autocomplete endpoint (same project-member
-  query as `ProjectMemberController::index` but lightweight: `id/name/email` only).
+#### D3. [GAP] No mention autocomplete backend API endpoint — ✅ DONE
+- `GET api/projects/{project}/members/autocomplete` (authorize view, q prefix on
+  name/email local part, cap 10, `{id,name,email}`), powering the
+  `CommentThread` `@`-typeahead (debounced fetch, keyboard nav, caret insert).
 
-#### D4. [RISK] Mention fan-out is unbounded — could spike on large teams
-- A comment `@mentioning` every member of a 50-person project creates 50
-  in-app rows + (eventually) 50 queued emails in one request cycle.
-- **Fix target:** Phase 4 — rate-cap fan-out (max 20 unique mentions per
-  comment; excess → ignored + toast warning in UI); queue all mail.
+#### D4. [RISK] Mention fan-out is unbounded — could spike on large teams — ✅ DONE
+- `taskCommented()` caps mentioned users at 20
+  (`TaskNotificationMail::MAX_MENTIONS_PER_COMMENT`; assignee/reporter always
+  kept, actor excluded) and returns `{notifications, truncated}`; the comment
+  response echoes `truncated_mentions` → warning toast in the UI; mail queued.
 
-#### D5. [GAP] `task.commented` notification does not include the comment preview
-- Current `NotificationService` sends `task_id/key/title/project_id` but no
-  comment excerpt. Email and in-app notifications are more useful with context.
-- **Fix target:** Phase 4 — add `comment_excerpt` (truncated ~120 chars) to
-  the notification data payload.
+#### D5. [GAP] `task.commented` notification does not include the comment preview — ✅ DONE
+- Already satisfied at audit time: `taskCommented` ships `snippet`
+  (`mb_strimwidth(..., 0, 120, '…')`) in the notification data, and the email
+  renders it as the `Comment:` line. No code change was needed; documented.
 
 ---
 
