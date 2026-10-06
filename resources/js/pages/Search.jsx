@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import api from '../services/api';
 import Button from '../components/ui/Button';
+import Input from '../components/ui/Input';
 import Pagination from '../components/ui/Pagination';
 import Spinner from '../components/ui/Spinner';
 import Alert from '../components/ui/Alert';
@@ -171,14 +172,8 @@ export default function Search() {
                         ))}
                     </select>
                 </div>
-                <div>
-                    <label className="mb-1.5 block text-sm font-medium text-gray-700">Due from</label>
-                    <input type="date" className={fieldClass} value={filters.due_from ?? ''} onChange={(e) => setFilters((f) => ({ ...f, due_from: e.target.value }))} />
-                </div>
-                <div>
-                    <label className="mb-1.5 block text-sm font-medium text-gray-700">Due to</label>
-                    <input type="date" className={fieldClass} value={filters.due_to ?? ''} onChange={(e) => setFilters((f) => ({ ...f, due_to: e.target.value }))} />
-                </div>
+                <Input label="Due from" type="date" value={filters.due_from ?? ''} onChange={(e) => setFilters((f) => ({ ...f, due_from: e.target.value }))} />
+                <Input label="Due to" type="date" value={filters.due_to ?? ''} onChange={(e) => setFilters((f) => ({ ...f, due_to: e.target.value }))} />
                 <Button type="submit">Search</Button>
                 <Button type="button" variant="secondary" onClick={reset}>
                     Reset
