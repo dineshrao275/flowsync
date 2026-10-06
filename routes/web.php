@@ -9,6 +9,7 @@ use App\Http\Controllers\CmsController;
 use App\Http\Controllers\CommentController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\DependencyController;
+use App\Http\Controllers\ExportController;
 use App\Http\Controllers\FeatureManagementController;
 use App\Http\Controllers\ForgotPasswordController;
 use App\Http\Controllers\GlobalSearchController;
@@ -168,6 +169,14 @@ Route::prefix('api')->group(function () {
         Route::post('my-subscription/cancel', [MySubscriptionController::class, 'cancel'])->middleware('throttle:10,1');
         Route::post('my-subscription/renew', [MySubscriptionController::class, 'renew'])->middleware('throttle:10,1');
         Route::get('plans', [PlanController::class, 'index']);
+
+        // Phase 5: full tenant data export (gated by the export.full module).
+        // throttle:5,1 — exports are heavy; 5 requests/minute is generous.
+        Route::middleware('ensure_module:export.full')->group(function () {
+            Route::get('my-export', [ExportController::class, 'index']);
+            Route::post('my-export', [ExportController::class, 'store'])->middleware('throttle:5,1');
+            Route::get('my-export/{run}', [ExportController::class, 'show']);
+        });
 
         // Phase 9: global multi-entity search. Lives OUTSIDE tenant_context so a
         // non-impersonating super admin can search across all tenants (the
@@ -951,6 +960,14 @@ Route::prefix('api')->group(function () {
     Route::get('hrms/assets/{asset}/document', [AssetController::class, 'document'])
         ->middleware('signed')
         ->name('hrms.assets.document');
+
+    // Phase 5: full-tenant export ZIP download. Same session-free pattern as
+    // every signed file route above. The central tenant id travels inside the
+    // signature; the ExportRun lookup happens inside TenantDatabaseManager::using().
+    // `run` is an int (not model-bound — the default connection is central here).
+    Route::get('api/exports/{run}/download', [ExportController::class, 'download'])
+        ->middleware('signed')
+        ->name('exports.download');
 });
 
 // Public marketing site (server-rendered from the DB-backed CMS pages).

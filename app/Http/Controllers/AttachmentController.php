@@ -9,6 +9,7 @@ use App\Models\Task;
 use App\Models\Tenant;
 use App\Models\User;
 use App\Services\ActivityLogger;
+use App\Services\TenantLimits;
 use App\Support\TenantContext;
 use App\Support\TenantDatabaseManager;
 use Illuminate\Http\JsonResponse;
@@ -16,6 +17,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
+use Illuminate\Validation\ValidationException;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class AttachmentController extends Controller
@@ -23,6 +25,7 @@ class AttachmentController extends Controller
     public function __construct(
         private readonly ActivityLogger $logger,
         private readonly TenantContext $tenantContext,
+        private readonly TenantLimits $limits,
     ) {}
 
     public function index(Request $request, Project $project, Task $task): JsonResponse
@@ -43,8 +46,12 @@ class AttachmentController extends Controller
         $this->authorize('create', [Attachment::class, $task]);
 
         $data = $request->validated();
-
         $file = $data['file'];
+
+        // Phase 5 E6: enforce the plan's storage_bytes quota before writing.
+        // TenantLimits::assertQuota() handles row counts; bytes need a SUM.
+        $this->assertStorageQuota($file->getSize());
+
         $extension = $file->getClientOriginalExtension() ?: pathinfo($file->getClientOriginalName(), PATHINFO_EXTENSION);
         $storedName = Str::uuid().'.'.$extension;
         $path = $file->storeAs(
@@ -171,5 +178,47 @@ class AttachmentController extends Controller
                 ],
             ),
         ];
+    }
+
+    /**
+     * Throw a 422 ValidationException when adding $newBytes to the current
+     * used storage would exceed the plan's storage_bytes limit.
+     *
+     * Called before writing the file to disk — quota enforcement must happen
+     * before the side-effect, not after.
+     */
+    private function assertStorageQuota(int $newBytes): void
+    {
+        $tenantId = $this->tenantContext->currentId();
+
+        if ($tenantId === null) {
+            // Provisioning / seeder / test context — skip.
+            return;
+        }
+
+        $tenant = Tenant::find($tenantId);
+
+        if (! $tenant) {
+            return;
+        }
+
+        $limitBytes = $this->limits->limit($tenant, 'storage_bytes');
+
+        if ($limitBytes === null) {
+            // No limit configured for this plan → unlimited.
+            return;
+        }
+
+        $usedBytes = Attachment::sum('size');
+
+        if (($usedBytes + $newBytes) > $limitBytes) {
+            $usedGb = round($usedBytes / (1024 ** 3), 2);
+            $limitGb = round($limitBytes / (1024 ** 3), 2);
+
+            throw ValidationException::withMessages([
+                'file' => "Storage quota exceeded. Your plan allows {$limitGb} GB; {$usedGb} GB is already in use. "
+                    .'Delete unused attachments or upgrade your plan.',
+            ]);
+        }
     }
 }

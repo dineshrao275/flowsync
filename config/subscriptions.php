@@ -18,6 +18,7 @@ return [
         'api',
         'branding',
         'audit_export',
+        'export.full',          // Phase 5: full tenant data export (ZIP) — add-on
 
         // HRMS. Dotted `hrms.*` keys are flat leaves: `TenantLimits::hasModule()`
         // is a string compare, so a sub-feature such as `hrms.attendance.remote`
@@ -62,6 +63,7 @@ return [
         'api' => ['label' => 'API Access', 'group' => 'Platform'],
         'branding' => ['label' => 'Branding', 'group' => 'Platform'],
         'audit_export' => ['label' => 'Audit Export', 'group' => 'Platform'],
+        'export.full' => ['label' => 'Data Export', 'group' => 'Platform'],
 
         'hrms.core' => ['label' => 'Employee Records', 'group' => 'HRMS · Core'],
         'hrms.onboarding' => ['label' => 'Onboarding', 'group' => 'HRMS · Core'],
@@ -211,9 +213,10 @@ return [
                 'assets' => 10000,
                 'hr_document_bytes' => 500 * 1024 * 1024 * 1024,  // 500 GB
                 // Everything: the Plan B set + Plan C + payroll + statutory +
-                // exemption + the platform's own modules.
+                // exemption + the platform's own modules + full data export.
                 'modules' => [
                     'time_tracking', 'reports', 'global_search', 'api', 'branding', 'audit_export',
+                    'export.full',
                     'hrms.core', 'hrms.documents', 'hrms.onboarding', 'hrms.offboarding',
                     'hrms.assets', 'hrms.attendance', 'hrms.attendance.remote', 'hrms.leave',
                     'hrms.comp_off', 'hrms.holidays', 'hrms.shifts', 'hrms.inbox',

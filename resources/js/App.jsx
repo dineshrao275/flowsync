@@ -66,6 +66,7 @@ import Tenants from './pages/Tenants';
 import TenantDetail from './pages/TenantDetail';
 import Plans from './pages/Plans';
 import Subscription from './pages/Subscription';
+import DataExport from './pages/DataExport';
 import SystemDashboard from './pages/SystemDashboard';
 import SystemAnalytics from './pages/SystemAnalytics';
 import SystemUsers from './pages/SystemUsers';
@@ -139,6 +140,10 @@ function AppRoutes() {
                         </Route>
                         <Route path="/notifications" element={<Notifications />} />
                         <Route path="/subscription" element={<Subscription />} />
+                        {/* Phase 5: full data export, gated by export.full add-on module. */}
+                        <Route element={<ProtectedRoute module="export.full" />}>
+                            <Route path="/export" element={<DataExport />} />
+                        </Route>
                         {/* My HR home (P17.5): the employee surface, module-gated
                             like every self-service page. */}
                         <Route element={<ProtectedRoute module="hrms.core" />}>

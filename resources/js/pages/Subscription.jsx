@@ -25,6 +25,7 @@ const MODULE_LABELS = {
     api: 'API access',
     branding: 'Custom branding',
     audit_export: 'Audit export',
+    'export.full': 'Data export (full)',
 };
 
 const STATUS_LABELS = {
@@ -369,6 +370,28 @@ export default function Subscription() {
                     </Table>
                 </section>
             )}
+
+            {/* Phase 5: Billing history placeholder — real invoice data arrives in Phase 6
+                once Stripe/Razorpay is integrated. This section sets expectations rather
+                than leaving a blank space. */}
+            <section className="rounded-lg border border-dashed border-gray-200 bg-gray-50/60 px-4 py-6 text-center">
+                <svg
+                    className="mx-auto mb-3 h-8 w-8 text-gray-300"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="1.5"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                >
+                    <path d="M9 14l6-6m-5.5.5h.01m4.99 5h.01M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16l3.5-2 2.5 2 2.5-2 3.5 2z" />
+                </svg>
+                <p className="text-sm font-medium text-gray-500">Billing history</p>
+                <p className="mt-1 text-xs text-gray-400">
+                    Invoice download and payment history will appear here once payment is set up.
+                </p>
+            </section>
         </div>
     );
 }
+
