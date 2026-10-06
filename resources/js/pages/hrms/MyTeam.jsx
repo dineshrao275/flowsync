@@ -42,7 +42,7 @@ export default function MyTeam() {
         const params = Object.fromEntries([['from', from], ['to', to]].filter(([, v]) => v !== ''));
 
         return api
-            .get('/api/my/team', { params })
+            .get('/my/team', { params })
             .then(({ data }) => setReports(data.reports ?? []))
             .catch((err) => {
                 if (err.response?.status === 403 || err.response?.status === 404) {

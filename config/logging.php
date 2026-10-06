@@ -98,6 +98,12 @@ return [
             'level' => env('HRMS_LOG_LEVEL', env('APP_ENV', 'production') === 'production' ? 'info' : 'debug'),
             'days' => (int) env('HRMS_LOG_DAYS', 30),
             'replace_placeholders' => true,
+            // 0666, not the usual 0644: this host runs the web server as
+            // www-data and the queue/CLI as drao with no shared group, so a
+            // creator-only file 500s the other user's audited reads on
+            // rotation day. Contents stay non-sensitive by the D2.17 rule,
+            // which is what makes world-appendable acceptable.
+            'permission' => 0666,
         ],
 
         'slack' => [
