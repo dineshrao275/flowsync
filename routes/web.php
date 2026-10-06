@@ -287,6 +287,7 @@ Route::prefix('api')->group(function () {
             Route::post('projects/{project}/restore', [ProjectController::class, 'restore']);
 
             Route::get('projects/{project}/members', [ProjectMemberController::class, 'index']);
+            Route::get('projects/{project}/members/autocomplete', [ProjectMemberController::class, 'autocomplete']);
             Route::post('projects/{project}/members', [ProjectMemberController::class, 'store']);
             Route::put('projects/{project}/members/{user}', [ProjectMemberController::class, 'update']);
             Route::delete('projects/{project}/members/{user}', [ProjectMemberController::class, 'destroy']);
