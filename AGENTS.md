@@ -286,6 +286,10 @@ Hierarchy: **Tenant → Workspace → Project → Task** (subtask `tasks.parent_
 - CSS custom props are **hyphenated** (`--sidebar-bg`); `resources/js/theme.js` `applyTheme()` maps underscores→hyphens. Keep that mapping in sync.
 
 ## Frontend conventions
+- The Roles page (`pages/Roles.jsx`) groups the permission checkboxes by domain via
+  `utils/permissions.js` (`domainOfPermission`/`prettyDomain`/`groupPermissionsByDomain` — the domain
+  is everything before the last slug segment, so scope variants keep grouping without a server change);
+  shared `PermissionGrid` renders create-modal + edit grids. Phase B3 of the member-access plan.
 - Routing in `resources/js/App.jsx`: `GuestRoute` (login/forgot/reset only — **no register**), `ProtectedRoute` (optional `permission` prop), super-admin-only `/tenants` route.
 - **Landing route = `homeRouteFor(user)`** (`utils/deepLinks.js`): `/admin` for a non-impersonating super admin, `/dashboard` otherwise. Used by `/`, `GuestRoute`, and `Login` (so an SA never lands on the tenant dashboard, whose endpoints 403 without a tenant context); `App.jsx` also renders `/dashboard` as a `<Navigate>` to `/admin` for SAs (old bookmarks/typed URLs).
 - `context/AuthContext.jsx`: `user`, `theme`, `loading`, `login`, `logout`, `stopImpersonation`, `can()`, `hasModule()`, `check()`, `refresh`. `can()` returns true for super admin unless `user.impersonating`; tenant users rely on `user.permissions`. `hasModule(module)` gates plan modules; `check(capability)` is the combined guard — `'permission:slug'` or `'module:name'` prefixes (backend `me()` fills `user.modules`).
