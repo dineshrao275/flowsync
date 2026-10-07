@@ -4,9 +4,9 @@ namespace App\Http\Controllers\Hrms\Performance;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Hrms\OneOnOneRequest;
-use App\Models\Hrms\Employee\Employee;
 use App\Models\Hrms\Performance\OneOnOne;
 use App\Models\User;
+use App\Services\Hrms\HrmsScope;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
@@ -30,10 +30,10 @@ class OneOnOneController extends Controller
             ->orderByDesc('scheduled_at');
 
         if (! $this->seesAll($request->user())) {
-            $mine = Employee::where('user_id', $request->user()->id)->value('id') ?? 0;
+            $ids = HrmsScope::employeeIdsFor($request->user(), 'hrms.performance');
             $query->where(fn ($nested) => $nested
-                ->where('employee_id', $mine)
-                ->orWhere('manager_employee_id', $mine));
+                ->whereIn('employee_id', $ids)
+                ->orWhereIn('manager_employee_id', $ids));
         }
 
         if ($request->has('employee_id')) {
@@ -50,8 +50,7 @@ class OneOnOneController extends Controller
 
     private function seesAll(User $user): bool
     {
-        return $user->hasPermission('hrms.performance.view')
-            || $user->hasPermission('hrms.performance.manage')
+        return HrmsScope::seesAll($user, 'hrms.performance')
             || $user->hasPermission('hrms.talent.manage');
     }
 

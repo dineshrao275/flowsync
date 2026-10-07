@@ -8,6 +8,7 @@ use App\Models\Hrms\Employee\Employee;
 use App\Models\Hrms\Performance\CheckIn;
 use App\Models\Hrms\Performance\PerformanceCycle;
 use App\Models\User;
+use App\Services\Hrms\HrmsScope;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
@@ -29,8 +30,7 @@ class CheckInController extends Controller
         $query = $cycle->checkIns()->with('employee:id,employee_code,name')->orderByDesc('id');
 
         if (! $this->seesAll($request->user())) {
-            $mine = Employee::where('user_id', $request->user()->id)->value('id') ?? 0;
-            $query->where('employee_id', $mine);
+            $query->whereIn('employee_id', HrmsScope::employeeIdsFor($request->user(), 'hrms.performance'));
         }
 
         if ($request->has('employee_id')) {
@@ -44,8 +44,7 @@ class CheckInController extends Controller
 
     private function seesAll(User $user): bool
     {
-        return $user->hasPermission('hrms.performance.view')
-            || $user->hasPermission('hrms.performance.manage')
+        return HrmsScope::seesAll($user, 'hrms.performance')
             || $user->hasPermission('hrms.talent.manage');
     }
 

@@ -5,27 +5,28 @@ namespace App\Policies\Hrms\Performance;
 use App\Models\Hrms\Employee\Employee;
 use App\Models\Hrms\Performance\CheckIn;
 use App\Models\User;
+use App\Services\Hrms\HrmsScope;
 
 /**
  * Performance/HRMS — who may read or file a check-in.
  *
- * Self, the owner's manager, or the view permission to read; self or
- * manage to file. A check-in is a dated note from the person (or about
- * them, from HR) — never from a peer, which is what the feedback system
- * is for.
+ * Self, the owner's manager, the view scope (`HrmsScope`), or a talent
+ * manager to read; self or manage to file. A check-in is a dated note from
+ * the person (or about them, from HR) — never from a peer, which is what
+ * the feedback system is for.
  */
 class CheckInPolicy
 {
     public function viewAny(User $user): bool
     {
-        return Employee::where('user_id', $user->id)->exists() || $this->canView($user);
+        return Employee::where('user_id', $user->id)->exists() || $this->canRead($user);
     }
 
     public function view(User $user, CheckIn $checkIn): bool
     {
         return $this->isSelf($user, $checkIn)
             || $this->isManagerOf($user, $checkIn)
-            || $this->canView($user);
+            || $this->canViewScoped($user, $checkIn);
     }
 
     public function create(User $user, Employee $employee): bool
@@ -34,10 +35,26 @@ class CheckInPolicy
             || $user->hasPermission('hrms.performance.manage');
     }
 
-    private function canView(User $user): bool
+    /**
+     * Scope-aware read for a specific check-in, mirroring the cycle list
+     * clamp so what the list offers and a show opens never disagree.
+     */
+    private function canViewScoped(User $user, CheckIn $checkIn): bool
     {
-        return $user->hasPermission('hrms.performance.view')
-            || $user->hasPermission('hrms.performance.manage');
+        if ($user->hasPermission('hrms.talent.manage')) {
+            return true;
+        }
+
+        $employee = $checkIn->employee ?? Employee::find($checkIn->employee_id);
+
+        return $employee !== null
+            && HrmsScope::coversEmployee($user, 'hrms.performance', $employee);
+    }
+
+    private function canRead(User $user): bool
+    {
+        return HrmsScope::canRead($user, 'hrms.performance')
+            || $user->hasPermission('hrms.talent.manage');
     }
 
     private function isSelf(User $user, CheckIn $checkIn): bool
