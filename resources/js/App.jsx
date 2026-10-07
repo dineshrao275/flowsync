@@ -139,7 +139,14 @@ function AppRoutes() {
                             />
                         </Route>
                         <Route path="/notifications" element={<Notifications />} />
-                        <Route path="/subscription" element={<Subscription />} />
+                        <Route
+                            path="/subscription"
+                            element={
+                                <ProtectedRoute permission="billing.view">
+                                    <Subscription />
+                                </ProtectedRoute>
+                            }
+                        />
                         {/* Phase 5: full data export, gated by export.full add-on module. */}
                         <Route element={<ProtectedRoute module="export.full" />}>
                             <Route path="/export" element={<DataExport />} />

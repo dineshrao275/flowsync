@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import api, { fieldErrors } from '../services/api';
 import Card from '../components/ui/Card';
 import Badge from '../components/ui/Badge';
@@ -13,6 +14,7 @@ import usePageTitle from '../hooks/usePageTitle';
 
 export default function Roles() {
     usePageTitle('Roles & Permissions');
+    const navigate = useNavigate();
     const { can } = useAuth();
     const toast = useToast();
     const [roles, setRoles] = useState([]);
@@ -30,7 +32,11 @@ export default function Roles() {
             const { data } = await api.get('/roles');
             setRoles(data.roles);
             setPermissions(data.permissions);
-        } catch {
+        } catch (err) {
+            if (err?.response?.status === 403) {
+                navigate('/403', { replace: true });
+                return;
+            }
             setError('Unable to load roles.');
         } finally {
             setLoading(false);

@@ -38,12 +38,21 @@ class ExportController extends Controller
     /**
      * Queue a new full-data export for this tenant.
      *
+     * Restricted to tenant admins — a full data export is a privileged
+     * operation that extracts all tenant data into a downloadable archive.
+     *
      * Accepts an optional `categories` array; defaults to all supported
      * categories when absent. Returns the queued run with a `poll_url` the
      * SPA can use to check status.
      */
     public function store(Request $request): JsonResponse
     {
+        abort_unless(
+            $request->user()?->hasRole('admin'),
+            403,
+            'Only tenant admins can initiate a data export.',
+        );
+
         $data = $request->validate([
             'categories' => ['sometimes', 'array'],
             'categories.*' => ['string', 'in:'.implode(',', ExportService::CATEGORIES)],
@@ -69,11 +78,15 @@ class ExportController extends Controller
     }
 
     /**
-     * List the most recent export runs for this tenant (latest 5).
+     * List the most recent export runs initiated by the authenticated user
+     * (latest 5). Each tenant user only sees their own export history.
      */
-    public function index(): JsonResponse
+    public function index(Request $request): JsonResponse
     {
-        $runs = ExportRun::orderByDesc('id')->limit(5)->get();
+        $runs = ExportRun::where('user_id', $request->user()?->id)
+            ->orderByDesc('id')
+            ->limit(5)
+            ->get();
 
         return response()->json([
             'runs' => $runs->map(fn ($r) => $this->presentRun($r)),
@@ -82,10 +95,13 @@ class ExportController extends Controller
 
     /**
      * Single run status + (if ready) a fresh signed download URL.
+     *
+     * Ownership is verified: a user can only poll runs they initiated.
      */
-    public function show(int $runId): JsonResponse
+    public function show(Request $request, int $runId): JsonResponse
     {
-        $run = ExportRun::findOrFail($runId);
+        $run = ExportRun::where('user_id', $request->user()?->id)
+            ->findOrFail($runId);
 
         return response()->json(['run' => $this->presentRun($run)]);
     }

@@ -89,6 +89,37 @@ class EmployeeBackfill
     }
 
     /**
+     * Link one login to an employment record, creating it when missing.
+     * Same mechanism as the batch run (deterministic code, collision
+     * retry, audit row) — user creation and registration call this so no
+     * login ever lands without a record to scope its self-service reads.
+     */
+    public function linkFor(User $user): Employee
+    {
+        if ($user->employee()->exists()) {
+            return $user->employee;
+        }
+
+        $preferred = $this->preferredCode($user);
+        $issued = null;
+
+        $employee = $this->codes->retrying(function (string $code) use ($user, &$issued) {
+            $issued = $code;
+
+            return $this->insert($user, $code);
+        }, $preferred);
+
+        $this->audit->log(
+            $employee,
+            'employee.backfilled',
+            null,
+            ['employee_code' => $employee->employee_code, 'user_id' => $user->id, 'status' => $employee->status->value],
+        );
+
+        return $employee;
+    }
+
+    /**
      * What a run would do, without writing anything.
      *
      * @return array{users: int, created: int, already_linked: int, reallocated: int}

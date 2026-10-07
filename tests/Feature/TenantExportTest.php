@@ -48,6 +48,41 @@ class TenantExportTest extends TestCase
         $this->postJson('/api/my-export', ['categories' => ['workspaces']])->assertForbidden();
     }
 
+    public function test_non_admin_cannot_queue_exports(): void
+    {
+        $acme = $this->acme();
+        $this->assign($acme, $this->plan('enterprise'));
+        $this->loginAs('editor@flowsync.test');
+
+        $this->postJson('/api/my-export', ['categories' => ['workspaces']])->assertForbidden();
+    }
+
+    public function test_export_history_is_scoped_to_the_initiating_user(): void
+    {
+        Queue::fake([BuildTenantExportJob::class]);
+
+        $acme = $this->acme();
+        $this->assign($acme, $this->plan('enterprise'));
+        $this->loginAs('admin@flowsync.test');
+
+        $runId = $this->postJson('/api/my-export', ['categories' => ['workspaces']])
+            ->assertStatus(202)
+            ->json('run.id');
+
+        $this->postJson('/api/users', [
+            'name' => 'Second Admin',
+            'email' => 'admin2@flowsync.test',
+            'password' => 'password',
+            'password_confirmation' => 'password',
+            'roles' => ['admin'],
+        ])->assertCreated();
+
+        $this->loginAs('admin2@flowsync.test');
+
+        $this->assertSame([], $this->getJson('/api/my-export')->assertOk()->json('runs'));
+        $this->getJson("/api/my-export/{$runId}")->assertNotFound();
+    }
+
     public function test_admin_can_queue_export_with_selected_categories(): void
     {
         Queue::fake([BuildTenantExportJob::class]);

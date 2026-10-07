@@ -40,8 +40,8 @@ const sections = [
     {
         label: 'Billing',
         items: [
-            { to: '/subscription', label: 'Subscription', icon: 'M3 17l5-2 8 3 5-2v6H3v-5zm5-4l5-2 8 3 3-1v-3l-3-1-8-3-5 2-5-2 3 2v3l2 1z' },
-            { to: '/export', label: 'Data Export', icon: 'M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4', capabilities: ['module:export.full'] },
+            { to: '/subscription', label: 'Subscription', icon: 'M3 17l5-2 8 3 5-2v6H3v-5zm5-4l5-2 8 3 3-1v-3l-3-1-8-3-5 2-5-2 3 2v3l2 1z', capabilities: ['billing.view'] },
+            { to: '/export', label: 'Data Export', icon: 'M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4', capabilities: ['module:export.full', 'billing.view'] },
         ],
     },
 ];
