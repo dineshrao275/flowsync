@@ -6,6 +6,7 @@ use App\Enums\Hrms\DocumentStatus;
 use App\Models\Hrms\Document\EmployeeDocument;
 use App\Models\Hrms\Employee\Employee;
 use App\Models\User;
+use App\Services\Hrms\HrmsScope;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Eloquent\Builder;
 
@@ -15,9 +16,11 @@ use Illuminate\Database\Eloquent\Builder;
  * Split out because set-level visibility is a different question from the
  * per-record policy: the policy answers “may this caller open this row”, and
  * this answers “which rows may the list contain at all”. The two must agree,
- * so both read the same three permissions — directory readers see everything
- * non-confidential, the sensitive permission adds the confidential rows, and
- * anyone else sees only the rows filed under their own employment record.
+ * so both read the same permissions — directory readers see every
+ * non-confidential row (the view scope decides whose: `_all`/legacy/manage
+ * the whole tenant, `_assigned` the caller plus their direct reports, `_own`
+ * and self-service the caller alone), the sensitive permission adds the
+ * confidential rows, and a caller with no employment record sees none.
  */
 class DocumentDirectoryQuery
 {
@@ -72,15 +75,9 @@ class DocumentDirectoryQuery
     {
         $query = EmployeeDocument::query()->with('type');
 
-        if ($this->canViewAll($viewer)) {
-            $base = $query;
-        } else {
-            $employeeId = Employee::where('user_id', $viewer->id)->value('id');
-
-            $base = $employeeId === null
-                ? $query->whereRaw('1 = 0')
-                : $query->where('employee_id', $employeeId);
-        }
+        $base = $this->canSeeAll($viewer)
+            ? $query
+            : $query->whereIn('employee_id', HrmsScope::employeeIdsFor($viewer, 'hrms.documents'));
 
         // Confidential rows are excluded from every list the caller may not
         // open: a list that names them leaks their existence to someone the
@@ -129,10 +126,9 @@ class DocumentDirectoryQuery
         return $query->paginate($perPage);
     }
 
-    private function canViewAll(User $user): bool
+    private function canSeeAll(User $user): bool
     {
-        return $user->hasPermission('hrms.documents.view')
-            || $user->hasPermission('hrms.documents.manage');
+        return HrmsScope::seesAll($user, 'hrms.documents');
     }
 
     private function canSeeSensitive(User $user): bool

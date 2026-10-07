@@ -5,6 +5,7 @@ namespace App\Policies\Hrms\CompOff;
 use App\Models\Hrms\CompOff\CompOffRequest;
 use App\Models\Hrms\Employee\Employee;
 use App\Models\User;
+use App\Services\Hrms\HrmsScope;
 use App\Services\Hrms\Shared\ApprovalService;
 
 /**
@@ -13,8 +14,9 @@ use App\Services\Hrms\Shared\ApprovalService;
  * Named for its model (convention discovery binds by name — the
  * LeaveExemptionPolicy silent-deny lesson): a single `CompOffPolicy`
  * would be discoverable by nothing. Filing and reading one's own asks is
- * self-service; deciding belongs to the step's approver; withdrawing is
- * the requester's hand or a manager's.
+ * self-service; reading another's follows the caller's `view` scope; deciding
+ * belongs to the step's approver; withdrawing is the requester's hand or a
+ * manager's.
  */
 class CompOffRequestPolicy
 {
@@ -22,12 +24,12 @@ class CompOffRequestPolicy
 
     public function viewAny(User $user): bool
     {
-        return $this->hasEmployee($user) || $this->canView($user);
+        return $this->hasEmployee($user) || $this->canRead($user);
     }
 
     public function view(User $user, CompOffRequest $request): bool
     {
-        return $this->isSelf($user, $request->employee) || $this->canView($user);
+        return HrmsScope::coversEmployee($user, 'hrms.comp_off', $request->employee);
     }
 
     public function create(User $user, Employee $employee): bool
@@ -59,10 +61,9 @@ class CompOffRequestPolicy
         return $this->approvals->canAct($request->approval, $user);
     }
 
-    private function canView(User $user): bool
+    private function canRead(User $user): bool
     {
-        return $user->hasPermission('hrms.comp_off.view')
-            || $user->hasPermission('hrms.comp_off.manage');
+        return HrmsScope::canRead($user, 'hrms.comp_off');
     }
 
     private function hasEmployee(User $user): bool

@@ -5,18 +5,20 @@ namespace App\Policies\Hrms\Leave;
 use App\Models\Hrms\Employee\Employee;
 use App\Models\Hrms\Leave\LeaveRequest;
 use App\Models\User;
+use App\Services\Hrms\HrmsScope;
 use App\Services\Hrms\Shared\ApprovalService;
 
 /**
  * Leave/HRMS — who may file, read, and decide leave asks.
  *
  * Filing and reading one's own asks is self-service (D2.12): any employee
- * may ask, and managers read their reports through `hrms.leave.view`, not
- * through a second permission. Deciding belongs to the approval step's
- * approver — a manager with no leave permission decides their reports'
- * asks, and a permission holder who is not on the chain cannot (the
- * regularization shape). Cancellation is the requester's own hand while
- * the ask is live; HR stops someone else's ask by rejecting it.
+ * may ask, and managers read their reports through their `hrms.leave.view`
+ * scope (own, assigned, or all) — the same scope the list directory reads,
+ * so a row the list offers is a row `view` opens. Deciding belongs to the
+ * approval step's approver — a manager with no leave permission decides
+ * their reports' asks, and a permission holder who is not on the chain
+ * cannot (the regularization shape). Cancellation is the requester's own
+ * hand while the ask is live; HR stops someone else's ask by rejecting it.
  */
 class LeaveRequestPolicy
 {
@@ -24,12 +26,12 @@ class LeaveRequestPolicy
 
     public function viewAny(User $user): bool
     {
-        return $this->hasEmployee($user) || $this->canView($user);
+        return $this->hasEmployee($user) || $this->canRead($user);
     }
 
     public function view(User $user, LeaveRequest $request): bool
     {
-        return $this->isSelf($user, $request->employee) || $this->canView($user);
+        return HrmsScope::coversEmployee($user, 'hrms.leave', $request->employee);
     }
 
     public function create(User $user, Employee $employee): bool
@@ -66,10 +68,9 @@ class LeaveRequestPolicy
         return $this->approvals->canAct($request->approval, $user);
     }
 
-    private function canView(User $user): bool
+    private function canRead(User $user): bool
     {
-        return $user->hasPermission('hrms.leave.view')
-            || $user->hasPermission('hrms.leave.manage');
+        return HrmsScope::canRead($user, 'hrms.leave');
     }
 
     private function hasEmployee(User $user): bool
