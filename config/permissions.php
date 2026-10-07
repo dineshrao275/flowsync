@@ -1,18 +1,136 @@
 <?php
 
-return [
-    /*
-    |--------------------------------------------------------------------------
-    | Permission Catalog
-    |--------------------------------------------------------------------------
-    |
-    | The canonical list of permissions available across the application.
-    | Every tenant gets its own isolated copy of this catalog, provisioned
-    | by the TenantProvisioner whenever a new tenant is created.
-    |
-    */
+/*
+|--------------------------------------------------------------------------
+| Permission Catalog
+|--------------------------------------------------------------------------
+|
+| The canonical list of permissions available across the application.
+| Every tenant gets its own isolated copy of this catalog, provisioned
+| by the TenantProvisioner whenever a new tenant is created.
+|
+| Scope variants
+| --------------
+| A permission whose rows belong to a person is granted at one of three
+| scopes, spelled as a `_own` / `_assigned` / `_all` suffix:
+|
+|   X.view_own      rows where you are the assignee, owner or subject
+|   X.view_assigned your own rows plus your direct reports' rows
+|   X.view_all      every row in the tenant
+|
+| `$scopeDomains` below declares which base permissions get the three
+| variants (and which verbs they gate); the entries are generated so a new
+| domain is one line. Base slugs declared by hand are never duplicated —
+| `hrms.payroll.view_all` is hand-written above the generator for exactly
+| that reason.
+|
+| The unsuffixed legacy slug keeps working and means `_all` (the alias
+| `App\Support\PermissionScope` resolves at check time), EXCEPT where
+| `$legacyScopeAliases` says otherwise. That is how existing grants stay
+| valid while policies migrate to the scoped checks: nothing narrows until
+| an admin grants a `_own` or `_assigned` variant without the legacy slug.
+|
+*/
 
-    'permissions' => [
+// Base permission => the verbs that gate its rows and therefore get
+// own/assigned/all variants. Configuration-shaped bases (`hrms.org`,
+// `hrms.holidays`, `*.manage`, `*.settings`, …) are deliberately absent:
+// they are all-or-nothing and have no "my rows" reading.
+$scopeDomains = [
+    'hrms.employees' => ['view'],
+    'hrms.onboarding' => ['view'],
+    'hrms.offboarding' => ['view'],
+    'hrms.attendance' => ['view'],
+    'hrms.leave' => ['view'],
+    'hrms.comp_off' => ['view'],
+    'hrms.expenses' => ['view'],
+    'hrms.performance' => ['view'],
+    'hrms.talent' => ['view'],
+    'hrms.engagement' => ['view'],
+    'hrms.documents' => ['view'],
+    'hrms.assets' => ['view'],
+    'hrms.payroll' => ['view'],
+];
+
+// Legacy slugs that do NOT mean `_all`. `hrms.payroll.view` has always been
+// "payroll runs + my own payslip" — somebody holding it must not start
+// reading everyone else's payslip the moment `_all` semantics land.
+$legacyScopeAliases = [
+    'hrms.payroll.view' => 'hrms.payroll.view_own',
+];
+
+// Domains a plain team Manager reads for their own rows ONLY. Payroll, the
+// talent ratings behind the anonymity policy, the confidential document store
+// and survey results stay with the HR/payroll roles even for somebody who
+// happens to be someone's manager.
+$managerOwnOnlyDomains = ['hrms.payroll', 'hrms.talent', 'hrms.documents', 'hrms.engagement'];
+
+$scopeLabels = ['own' => 'Own', 'assigned' => 'Own & Team', 'all' => 'All'];
+
+$scopeText = [
+    'own' => 'only rows you own — assigned to you, created by you, or about you',
+    'assigned' => 'your own rows plus the rows of your direct reports',
+    'all' => 'every row in the tenant, for every person',
+];
+
+/**
+ * Append the generated scope variants for every domain above, skipping any
+ * slug the hand-written catalog already declares.
+ *
+ * @param  array<int, array{name: string, slug: string, description?: string}>  $catalog
+ * @return array<int, array{name: string, slug: string, description?: string}>
+ */
+$withScopeVariants = static function (array $catalog) use ($scopeDomains, $scopeLabels, $scopeText): array {
+    $declared = array_column($catalog, 'slug');
+
+    foreach ($scopeDomains as $domain => $verbs) {
+        $domainLabel = str_replace(['_', '-'], ' ', basename(str_replace('.', '/', $domain)));
+        $domainLabel = ucwords($domainLabel);
+
+        foreach ($verbs as $verb) {
+            $verbLabel = ucfirst($verb);
+
+            foreach (array_keys($scopeLabels) as $scope) {
+                $slug = "{$domain}.{$verb}_{$scope}";
+
+                if (in_array($slug, $declared, true)) {
+                    continue;
+                }
+
+                $catalog[] = [
+                    'name' => "{$verbLabel} {$scopeLabels[$scope]} {$domainLabel}",
+                    'slug' => $slug,
+                    'description' => "{$verbLabel} {$domainLabel}: {$scopeText[$scope]}",
+                ];
+            }
+        }
+    }
+
+    return $catalog;
+};
+
+// Scope slugs for the default roles. The selector grammar is prefix-based
+// ("hrms.*"), so it cannot express "_own for every declared domain" — both
+// lists are derived from $scopeDomains above, which stays the one source of
+// truth for which domains carry a self concept.
+$scopeOwnSlugs = [];
+$managerAssignedSlugs = [];
+
+foreach ($scopeDomains as $domain => $verbs) {
+    foreach ($verbs as $verb) {
+        $scopeOwnSlugs[] = "{$domain}.{$verb}_own";
+
+        if (! in_array($domain, $managerOwnOnlyDomains, true)) {
+            $managerAssignedSlugs[] = "{$domain}.{$verb}_assigned";
+        }
+    }
+}
+
+return [
+    'scopes' => $scopeDomains,
+    'legacy_scope_aliases' => $legacyScopeAliases,
+
+    'permissions' => $withScopeVariants([
         ['name' => 'View Dashboard', 'slug' => 'dashboard.view', 'description' => 'Access the main dashboard'],
         ['name' => 'View Users', 'slug' => 'users.view', 'description' => 'View the user list'],
         ['name' => 'Manage Users', 'slug' => 'users.manage', 'description' => 'Create, edit and delete users'],
@@ -92,7 +210,7 @@ return [
 
         ['name' => 'View HR Analytics', 'slug' => 'hrms.analytics.view', 'description' => 'View HR analytics dashboards'],
         ['name' => 'View HRMS Audit Log', 'slug' => 'hrms.audit.view', 'description' => 'View the HRMS audit log'],
-    ],
+    ]),
 
     /*
     |--------------------------------------------------------------------------
@@ -115,6 +233,12 @@ return [
     | resolved slugs are snapshotted onto the role, so a tenant's permissions
     | never change because config changed — only a re-provision applies it.
     |
+    | Scope grants are the exception: `_own` / `_assigned` cannot be spelled as
+    | a prefix selector, so they are expanded from $scopeDomains above. A role
+    | holding ONLY a scope variant is deliberately narrow — the legacy
+    | unsuffixed slug is what reads as "every row", so a default role that does
+    | not list it cannot see the whole tenant.
+    |
     */
 
     'roles' => [
@@ -129,6 +253,9 @@ return [
                 'content.manage', 'settings.theme', 'settings.view',
                 'workspaces.view', 'workspaces.create',
                 'hrms.view',
+                // Self-service reads only: no legacy `hrms.*.view`, so no
+                // tenant-wide rows.
+                ...$scopeOwnSlugs,
             ],
         ],
         'viewer' => [
@@ -137,6 +264,20 @@ return [
                 'dashboard.view', 'reports.view', 'settings.theme', 'settings.view',
                 'workspaces.view',
                 'hrms.view',
+                ...$scopeOwnSlugs,
+            ],
+        ],
+        // A team lead who may read their own rows AND their direct reports'
+        // rows, for the domains in $scopeDomains minus $managerOwnOnlyDomains.
+        // No `_all` anywhere and no legacy `hrms.*.view`: the whole point of
+        // the role is that it stops at the reporting line.
+        'manager' => [
+            'name' => 'Manager',
+            'permissions' => [
+                'dashboard.view', 'users.view', 'reports.view', 'workspaces.view',
+                'hrms.view',
+                ...$scopeOwnSlugs,
+                ...$managerAssignedSlugs,
             ],
         ],
         // Every hrms.* permission except the payroll surface and the salary

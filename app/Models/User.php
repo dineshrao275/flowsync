@@ -4,6 +4,7 @@ namespace App\Models;
 
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
 use App\Models\Hrms\Employee\Employee;
+use App\Support\PermissionScope;
 use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -120,6 +121,29 @@ class User extends Authenticatable
     {
         foreach ($this->roles as $role) {
             if ($role->permissions->contains('slug', $slug)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * Scope-aware permission check.
+     *
+     * `hasPermission('hrms.leave.view_all')` only answers for a literal
+     * grant of that slug; this asks the wider question — does any grant the
+     * user holds SATISFY the check — via App\Support\PermissionScope (a wider
+     * scope, or the legacy unsuffixed slug that has always meant "all").
+     *
+     * Non-scoped slugs resolve to an exact match, so this is a drop-in
+     * replacement for hasPermission() everywhere and does not change any
+     * behaviour until a caller is handed a `_own`/`_assigned`/`_all` slug.
+     */
+    public function granted(string $slug): bool
+    {
+        foreach (PermissionScope::satisfying($slug) as $candidate) {
+            if ($this->hasPermission($candidate)) {
                 return true;
             }
         }

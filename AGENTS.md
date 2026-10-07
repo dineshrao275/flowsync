@@ -20,7 +20,7 @@ Laravel 12 + React 19 SPA. Session-based auth **without** Breeze/Fortify/Sanctum
   `tenants:provision` + seeds demo data (superadmin + acme + globex). Reset from scratch:
   `docker-compose down -v` then `up -d` (app entrypoint re-initializes; `RUN_INIT=true` only for `app`).
   No PHP/composer needed on the host — envs in `.env.docker`.
-- `php artisan test` — run test suite (Phase 13: **isolated, per-tenant file DBs** via `Tests\IsolatesDatabase`; current gate: **1439 tests / 7124 assertions passing** — Phase 7 adds `FactoryParityTest` (~12 central + tenant + HRMS factories maintaining relational consistency) and `BrandSweepTest` (branding verified as FlowSync, config-driven storage prefix, zero legacy boilerplate); Phase 6 adds `BillingTest` (checkout initiation, idempotency, verification, history, refunds, locale routing) and `PaymentWebhookTest` (Stripe & Razorpay signature verification, replay guard, payment failure); Phase 5 adds `SubscriptionStateTest` (explicit subscription states, export.full gate, attachment storage quota) and `TenantExportTest` (queued full export, ZIP generation, signed download, tenant isolation); Phase 4-1 adds `NotificationPreferenceTest` (api/notification-preferences), Phase 4-2 adds `MentionEmailTest` (task notification emails + mention cap), Phase 4-3 adds `MentionAutocompleteTest` (api/projects/{project}/members/autocomplete); the Phase 3 HRMS IA gate was 1389/6886 (verified by a single `php artisan test` run at the Phase 3 end-gate: all 145+ test files, zero omitted; the Phase 2 database & performance gate was 1384/6862, the Phase 1 security gate 1372/6829))
+- `php artisan test` — run test suite (Phase 13: **isolated, per-tenant file DBs** via `Tests\IsolatesDatabase`; current gate: **1465 tests / 7362 assertions passing** — Phase 7 adds `FactoryParityTest` (~12 central + tenant + HRMS factories maintaining relational consistency) and `BrandSweepTest` (branding verified as FlowSync, config-driven storage prefix, zero legacy boilerplate); Phase 6 adds `BillingTest` (checkout initiation, idempotency, verification, history, refunds, locale routing) and `PaymentWebhookTest` (Stripe & Razorpay signature verification, replay guard, payment failure); Phase 5 adds `SubscriptionStateTest` (explicit subscription states, export.full gate, attachment storage quota) and `TenantExportTest` (queued full export, ZIP generation, signed download, tenant isolation); Phase 4-1 adds `NotificationPreferenceTest` (api/notification-preferences), Phase 4-2 adds `MentionEmailTest` (task notification emails + mention cap), Phase 4-3 adds `MentionAutocompleteTest` (api/projects/{project}/members/autocomplete); the Phase 3 HRMS IA gate was 1389/6886 (verified by a single `php artisan test` run at the Phase 3 end-gate: all 145+ test files, zero omitted; the Phase 2 database & performance gate was 1384/6862, the Phase 1 security gate 1372/6829))
 
 - `npm run build` / `npm run dev` — frontend build / Vite dev server
 - `./vendor/bin/pint` — PHP code style (run over whole repo; `--dirty` only works in git)
@@ -212,9 +212,27 @@ Hierarchy: **Tenant → Workspace → Project → Task** (subtask `tasks.parent_
 - **Channel/event name rule:** events MUST broadcast on the channel clients subscribe to (`private-` prefix is applied by `PrivateChannel`/Echo automatically — never hardcode `private-` twice).
 
 ## RBAC & provisioning
-- `config/permissions.php` — canonical 12-permission catalog + role definitions (`admin` = `*`, editor/viewer get subsets incl. workspace perms).
+- `config/permissions.php` — the canonical permission catalog (base slugs plus the generated scope
+  variants below; ~99 entries today) + role definitions: `admin` = `*`, `editor`/`viewer` =
+  self-service reads (`*_own`) plus broad non-HRMS grants, **`manager`** = `*_own` + `*_assigned`
+  (team scope, stops at the reporting line), `hr_manager`/`payroll_manager` = prefix selectors.
+  A role's `permissions` is a list of *selectors* (`*`, `hrms.*`, `!hrms.payroll.*`, exact slug)
+  resolved against the catalog by `app/Support/PermissionSelector` at provision time and
+  snapshotted onto the role.
+- **Scope variants (member-access plan, Phase B — additive and inert until Phase C).** A base
+  permission with a "my rows" reading gets three suffixes, generated from `$scopeDomains` in the
+  same config so a new domain is one line: `X.view_own` (rows about you), `X.view_assigned` (you +
+  your direct reports' rows), `X.view_all` (every row). `app/Support/PermissionScope` answers
+  *which grants satisfy a scoped check* — a wider scope, or the legacy unsuffixed slug, which has
+  always meant `all`; `User::granted($slug)` is the scope-aware check while `hasPermission()`
+  stays exact-match, so nothing changes for callers outside the `scopes` map. The single legacy
+  exception is `hrms.payroll.view` (always "runs + own payslip" → answers `_own` only, declared in
+  `legacy_scope_aliases`). `.manage` is deliberately **not** in the lattice: folding it in would
+  widen e.g. `hrms.payroll.manage` into "read every payslip". **No policy or list query consults
+  `granted()` yet** — Phase C flips them; widening a route gate before that would hand `_own`
+  holders full reads.
 - `config/project_roles.php` — project-permission catalog (view/create/edit/delete/assign/move/comments/attachments/work_logs/members/settings) + system roles lead/developer/viewer.
-- `app/Support/TenantProvisioner.php` — clones catalog + roles + priorities + project roles + owner admin per tenant; **idempotent** (`firstOrCreate`, pins tenant context null internally), safe to call repeatedly.
+- `app/Support/TenantProvisioner.php` — clones catalog + roles + priorities + project roles + owner admin per tenant; **idempotent** (`firstOrCreate`, pins tenant context null internally), safe to call repeatedly. `seed()` `sync()`s only the config-listed roles — custom tenant roles are never touched — and `provisionProjectRoles()` is `firstOrCreate`-only, so **system project roles do not pick up config edits on re-provision** (repair path for B1c).
 - `app/Models/Tenant.php`, `Role`, `Permission`, `User`; pivots `role_user`, `permission_role`.
 - `TenantSeeder` = super admin + Acme (demo users) + Globex; called from `DatabaseSeeder`.
 
