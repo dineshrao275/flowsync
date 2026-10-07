@@ -241,8 +241,15 @@ export default function Dashboard() {
                 <h2 className="text-2xl font-bold text-gray-900">
                     {greeting}, {user?.name?.split(' ')[0]}
                 </h2>
-                <p className="mt-1 text-sm text-gray-500">
+                <p className="mt-1 flex flex-wrap items-center gap-2 text-sm text-gray-500">
                     Your tasks across {data.counts.open} open and {data.counts.done} completed.
+                    <span
+                        className="rounded-full px-2 py-0.5 text-[11px] font-medium text-gray-600"
+                        style={{ backgroundColor: '#6366f122' }}
+                        title="The aggregates below are scoped to what your role can see"
+                    >
+                        {data.scope === 'all' ? 'Showing: every task in the tenant' : 'Showing: tasks in your projects'}
+                    </span>
                 </p>
             </div>
 

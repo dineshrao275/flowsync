@@ -52,6 +52,7 @@ class ReportsController extends Controller
         $overdue = $tasks->filter(fn (Task $task) => $task->completed_at === null && $task->due_date !== null && $task->due_date->lt(now()->startOfDay()));
 
         return response()->json([
+            'scope' => $this->userManagesAllTasks($request->user()) ? 'all' : 'member',
             'range' => $range,
             'totals' => [
                 'total' => $tasks->count(),
