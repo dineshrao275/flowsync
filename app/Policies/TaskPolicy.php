@@ -4,6 +4,7 @@ namespace App\Policies;
 
 use App\Models\Task;
 use App\Models\User;
+use App\Support\TaskScope;
 
 class TaskPolicy
 {
@@ -32,7 +33,12 @@ class TaskPolicy
         return $this->can($user, $task, 'tasks.move');
     }
 
-    private function can(User $user, Task $task, string $permission): bool
+    /**
+     * Scope-aware task gate: hold a grant the check's row scope satisfies,
+     * AND have the row inside it (own = assignee/reporter is the caller;
+     * assigned = caller or a direct report).
+     */
+    private function can(User $user, Task $task, string $base): bool
     {
         if ($this->isTenantAdmin($user)) {
             return true;
@@ -40,7 +46,13 @@ class TaskPolicy
 
         $role = $task->project->memberRole($user);
 
-        return $role !== null && $role->hasPermission($permission);
+        if ($role === null) {
+            return false;
+        }
+
+        $scope = TaskScope::widestFor($role, $base);
+
+        return $scope !== null && TaskScope::rowMatches($task, $user, $scope);
     }
 
     private function isTenantAdmin(User $user): bool

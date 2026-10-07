@@ -26,10 +26,13 @@ class TaskController extends Controller
 
         // Board/list rows carry the task-level read, not just project
         // sight: a role that may see the project but not its tasks gets
-        // the same 403 here that show() answers per row.
-        $role = $project->memberRole($request->user());
+        // the same 403 here that show() answers per row. Scope-aware: a
+        // `tasks.view_own` grant passes the gate and the board/list then
+        // narrow to the caller's rows.
+        $user = $request->user();
+        $role = $project->memberRole($user);
         abort_unless(
-            $request->user()->hasPermission('workspaces.manage') || ($role !== null && $role->hasPermission('tasks.view')),
+            $user->hasPermission('workspaces.manage') || ($role !== null && $role->grants('tasks.view_own')),
             403,
             'This action is unauthorized.',
         );
@@ -51,18 +54,18 @@ class TaskController extends Controller
 
         if ($board) {
             return response()->json([
-                'board' => $this->service->board($project, $filters),
+                'board' => $this->service->board($project, $filters, $user),
                 'filters' => $this->filtersPayload($project),
-                'my_role' => $project->memberRole($request->user())?->slug,
+                'my_role' => $project->memberRole($user)?->slug,
             ]);
         }
 
-        $tasks = $this->service->list($project, $filters);
+        $tasks = $this->service->list($project, $filters, $user);
 
         return response()->json([
             'tasks' => collect($tasks->items())->map(fn (Task $task) => $this->service->present($task)),
             'filters' => $this->filtersPayload($project),
-            'my_role' => $project->memberRole($request->user())?->slug,
+            'my_role' => $project->memberRole($user)?->slug,
             'pagination' => [
                 'current_page' => $tasks->currentPage(),
                 'last_page' => $tasks->lastPage(),

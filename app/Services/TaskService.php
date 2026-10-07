@@ -9,6 +9,7 @@ use App\Models\Task;
 use App\Models\TaskStatus;
 use App\Models\User;
 use App\Services\Hrms\PerformanceService;
+use App\Support\TaskScope;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Collection;
@@ -142,9 +143,9 @@ class TaskService
         return $moved;
     }
 
-    public function board(Project $project, array $filters): array
+    public function board(Project $project, array $filters, User $user): array
     {
-        $topLevel = $this->filteredQuery($project, $filters)->whereNull('tasks.parent_id');
+        $topLevel = $this->filteredQuery($project, $filters, $user)->whereNull('tasks.parent_id');
         $taskQuery = (clone $topLevel)->get()->groupBy('status_id');
 
         $statuses = $project->statuses()
@@ -170,9 +171,9 @@ class TaskService
         ];
     }
 
-    public function list(Project $project, array $filters): LengthAwarePaginator
+    public function list(Project $project, array $filters, User $user): LengthAwarePaginator
     {
-        return $this->filteredQuery($project, $filters)
+        return $this->filteredQuery($project, $filters, $user)
             ->withCount(['subtasks', 'comments', 'attachments'])
             ->orderBy($filters['sort_by'] ?? 'position', $filters['sort_dir'] ?? 'asc')
             ->paginate(min($filters['per_page'] ?? 25, 100));
@@ -198,17 +199,21 @@ class TaskService
         ]);
     }
 
-    private function filteredQuery(Project $project, array $filters): Builder
+    private function filteredQuery(Project $project, array $filters, User $user): Builder
     {
-        $query = Task::query()
-            ->where('tasks.project_id', $project->id)
-            ->with(['status', 'priority', 'assignee', 'labels'])
-            ->withCount([
-                'subtasks',
-                'comments',
-                'attachments',
-                'openBlockers as open_blockers_count',
-            ]);
+        $query = TaskScope::constrainQuery(
+            Task::query()
+                ->where('tasks.project_id', $project->id)
+                ->with(['status', 'priority', 'assignee', 'labels'])
+                ->withCount([
+                    'subtasks',
+                    'comments',
+                    'attachments',
+                    'openBlockers as open_blockers_count',
+                ]),
+            $user,
+            TaskScope::resolveQueryScope($project, $user, 'tasks.view'),
+        );
 
         if (! empty($filters['status_id'])) {
             $query->where('tasks.status_id', $filters['status_id']);
