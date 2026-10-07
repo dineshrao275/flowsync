@@ -36,6 +36,7 @@ namespace Tests;
 use App\Models\SystemUser;
 use App\Models\Tenant;
 use App\Models\User;
+use App\Services\ReportsTo;
 use App\Services\TenantLimits;
 use App\Support\TenantDatabaseManager;
 use Database\Seeders\TenantSeeder;
@@ -63,6 +64,7 @@ trait IsolatesDatabase
     protected function isolateDatabase(): void
     {
         TenantLimits::resetMemo();
+        ReportsTo::resetMemo();
 
         $this->isoTenantDir = sys_get_temp_dir().'/flowsync-test-'.Str::random(8);
         $this->isoSystemDb = $this->isoTenantDir.'/system.sqlite';
@@ -89,6 +91,7 @@ trait IsolatesDatabase
     protected function tearDown(): void
     {
         TenantLimits::resetMemo();
+        ReportsTo::resetMemo();
 
         if (File::isDirectory($this->isoTenantDir ?? '')) {
             File::deleteDirectory($this->isoTenantDir);

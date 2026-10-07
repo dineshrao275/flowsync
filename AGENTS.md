@@ -229,12 +229,14 @@ Hierarchy: **Tenant → Workspace → Project → Task** (subtask `tasks.parent_
   stays exact-match, so nothing changes for callers outside the `scopes` map. The single legacy
   exception is `hrms.payroll.view` (always "runs + own payslip" → answers `_own` only, declared in
   `legacy_scope_aliases`). `.manage` is deliberately **not** in the lattice: folding it in would
-  widen e.g. `hrms.payroll.manage` into "read every payslip". **No policy or list query consults
-  `granted()` yet** — Phase C flips them; widening a route gate before that would hand `_own`
-  holders full reads. Before the alias is ever removed, `tenants:scope-grants --force` makes the
-  implicit explicit: every role holding a legacy scoped base gets the variant(s) it has always
-  meant (`X.view_all` + `X.view_own`; payroll `view_own` only), idempotently (`ScopeGrantBackfill`,
-  `syncWithoutDetaching`).
+  widen e.g. `hrms.payroll.manage` into "read every payslip". `App\Services\ReportsTo::idsFor(User)`
+  is the single definition of `_assigned` (one hop down `employees.manager_id`, direct reports' user
+  ids; memoized per unit of work like `TenantLimits`, flush wired into the same boundaries). **No
+  policy or list query consults `granted()` yet** — Phase C flips them; widening a route gate before
+  that would hand `_own` holders full reads. Before the alias is ever removed, `tenants:scope-grants
+  --force` makes the implicit explicit: every role holding a legacy scoped base gets the variant(s)
+  it has always meant (`X.view_all` + `X.view_own`; payroll `view_own` only), idempotently
+  (`ScopeGrantBackfill`, `syncWithoutDetaching`).
 - `config/project_roles.php` — project-permission catalog (view/create/edit/delete/assign/move/comments/attachments/work_logs/members/settings + `tasks` scope variants `view|edit|delete|move|assign × {own,assigned,all}`, exported as `scope_domains`/`scope_text`; 35 slugs) + system roles lead/developer/viewer.**Project-role resolution is scope-aware like the tenant catalog** — `ProjectRole::hasPermission()` stays literal (`['*']` → all) while `ProjectRole::grants()` answers `satisfying()` like `User::granted()`, so a `tasks.view_all` grant satisfies a `tasks.view_own` request and the legacy `tasks.view` means `_all`. The default roles deliberately keep the UNSCOPED slugs (`legacy = _all`); narrowing a team is what a custom role is for. `TenantProvisioner::provisionProjectRoles()` now UNION-adds configured slugs into system roles (additions only, never revoke; `['*']` on either side wins) so a pre-variant provisioned role picks up new slugs on repair.
 - `app/Support/TenantProvisioner.php` — clones catalog + roles + priorities + project roles + owner admin per tenant; **idempotent** (`firstOrCreate`, pins tenant context null internally), safe to call repeatedly. `seed()` `sync()`s only the config-listed roles — custom tenant roles are never touched — and `provisionProjectRoles()` **union-adds** config slugs into system project roles idempotently (additions only, `['*']` guard), so system roles pick up config additions on re-provision while a config edit can never revoke what a tenant already holds.
 - `app/Models/Tenant.php`, `Role`, `Permission`, `User`; pivots `role_user`, `permission_role`.

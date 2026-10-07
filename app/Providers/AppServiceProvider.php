@@ -6,6 +6,7 @@ use App\Billing\PaymentResolver;
 use App\Billing\PaymentService;
 use App\Listeners\SwitchesTenantConnectionForQueuedJobs;
 use App\Models\User;
+use App\Services\ReportsTo;
 use App\Services\TenantLimits;
 use App\Support\TenantContext;
 use App\Support\TenantDatabaseManager;
@@ -63,8 +64,14 @@ class AppServiceProvider extends ServiceProvider
      */
     private function registerTenantLimitsMemoBoundaries(): void
     {
-        Event::listen(RequestHandled::class, fn () => TenantLimits::resetMemo());
-        Event::listen(JobProcessing::class, fn () => TenantLimits::resetMemo());
+        Event::listen(RequestHandled::class, function (): void {
+            TenantLimits::resetMemo();
+            ReportsTo::resetMemo();
+        });
+        Event::listen(JobProcessing::class, function (): void {
+            TenantLimits::resetMemo();
+            ReportsTo::resetMemo();
+        });
     }
 
     /**
