@@ -117,7 +117,7 @@ function SidebarLink({ item, collapsed, onClose }) {
     );
 }
 
-function SidebarSection({ section, collapsed, onClose }) {
+function SidebarSection({ section, collapsed, onClose, canViewPlans }) {
     return (
         <div className="space-y-0.5">
             {!collapsed && (
@@ -127,6 +127,21 @@ function SidebarSection({ section, collapsed, onClose }) {
                 >
                     <span>{section.label}</span>
                 </p>
+            )}
+            {section.items.length === 0 && !collapsed && (
+                <div
+                    className="rounded-lg px-3 py-2 text-xs leading-relaxed"
+                    style={{ color: 'var(--sidebar-text)', opacity: 0.6 }}
+                >
+                    <span>Locked by your plan.</span>{' '}
+                    {canViewPlans ? (
+                        <Link to="/subscription" className="underline transition-colors hover:opacity-80">
+                            View plans
+                        </Link>
+                    ) : (
+                        'An admin can change it.'
+                    )}
+                </div>
             )}
             {section.items.map((item) => (
                 <SidebarLink key={item.to} item={item} collapsed={collapsed} onClose={onClose} />
@@ -139,12 +154,26 @@ export default function Sidebar({ open, collapsed, onClose, onToggleCollapse }) 
     const { check, user } = useAuth();
     const isSuperAdmin = user?.is_super_admin && !user?.impersonating;
 
+    // A section that filtered to zero because every item was module-gated
+    // (not permission-gated) survives with a "locked by your plan" note —
+    // otherwise it would just vanish and read as an admin artifact.
     const items = (isSuperAdmin ? superAdminSections : sections)
-        .map((section) => ({
-            ...section,
-            items: section.items.filter((item) => !item.capabilities?.length || item.capabilities.every((capability) => check(capability))),
-        }))
-        .filter((section) => section.items.length > 0);
+        .map((section) => {
+            const filtered = section.items.filter(
+                (item) => !item.capabilities?.length || item.capabilities.every((capability) => check(capability)),
+            );
+
+            return {
+                ...section,
+                items: filtered,
+                lockedByModule:
+                    filtered.length === 0 &&
+                    section.items.some((item) =>
+                        item.capabilities?.some((capability) => capability.startsWith('module:') && !check(capability)),
+                    ),
+            };
+        })
+        .filter((section) => section.items.length > 0 || section.lockedByModule);
 
     return (
         <>
@@ -192,6 +221,7 @@ export default function Sidebar({ open, collapsed, onClose, onToggleCollapse }) 
                             section={section}
                             collapsed={collapsed}
                             onClose={onClose}
+                            canViewPlans={check('billing.view')}
                         />
                     ))}
                 </nav>
