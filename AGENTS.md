@@ -521,8 +521,9 @@ Hierarchy: **Tenant → Workspace → Project → Task** (subtask `tasks.parent_
   P3.4 (the org SPA page: `pages/hrms/Org.jsx`, `components/hrms/DepartmentTreeColumn.jsx`, the three
   form modals and the members panel, plus the directory's department filter — see the P3.4 notes);
   P3.5 (the org starters: the HRMS defaults seeder gains `seedOrgCatalogs()` — see the P3.5 notes);
-  **P13.1** (`2026_10_02_000026` — `document_types` + `employee_documents`, plus
-  `tests/Feature/HrmsCatalogTest.php`, the cross-catalogue guard — see the P13.1 notes below); and
+  **P13.1** (`2026_09_27_000016_create_hrms_document_tables` — `document_types` +
+  `employee_documents`, plus `tests/Feature/HrmsCatalogTest.php`, the cross-catalogue guard — see
+  the P13.1 notes below); and
   **P13.2** (the document bounded context: `Services/Hrms/DocumentService.php` plus `Services/Hrms/Document/`,
   the `DocumentType`/`EmployeeDocument` models, `seedDocumentTypes()`, the signed `hrms.documents.download`
   route, and `hrms:documents-expiry` — see the P13.2 notes below); and **P13.3** (the document HTTP
@@ -633,9 +634,15 @@ Phase 13
   `document_types`, and no migration created that table until P13.1 — the plan's "documents ship
   first" prerequisite is a hard schema dependency, not a preference.
 - **Migration numbering is pre-assigned** in the plan's Part 3.3 (`2026_09_27_000014` for the shared
-  tables, through `2026_10_04_000031`), one monolithic tenant migration per phase. Landing `000026`
-  ahead of `000017`–`000025` is safe — `Migrator` runs pending files in filename order, so those
-  migrations still apply afterwards — and P13.1 creates no table they depend on.
+  tables, through `2026_10_04_000031`), one monolithic tenant migration per phase — except the
+  document tables, renamed from their assigned `000026` to `2026_09_27_000016`. Five later files
+  (lifecycle, leave, comp-off, payroll, statutory) hold FKs into `document_types`/`employee_documents`
+  and PostgreSQL validates the referenced table at `CREATE` time, so the later number breaks every
+  fresh provision with `relation "document_types" does not exist"` while SQLite tolerates the forward
+  reference — which is why only the PG path ever saw it. The file is `hasTable`-guarded, so an
+  already-migrated database re-runs it as a no-op and `tenants:provision` re-records it under the new
+  name. Table tests `require` migration files by their **literal filename**, so a rename must update
+  them in the same commit.
 - **`Schema::getColumns()` spells "no default" two different ways.** SQLite *omits* the `default` key
   for a column that has none; PostgreSQL returns the key with a `null` value. Written as
   `($c['default'] ?? 'sentinel') === null`, every column reads as optional and a "required columns"
