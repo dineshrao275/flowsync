@@ -23,7 +23,7 @@ export default function ProtectedRoute({ permission, module }) {
     }
 
     if (module && !hasModule(module)) {
-        return <Navigate to="/403" replace />;
+        return <Navigate to="/module-denied" replace />;
     }
 
     return <Outlet />;

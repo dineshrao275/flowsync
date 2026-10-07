@@ -75,6 +75,7 @@ import AuditLogs from './pages/AuditLogs';
 import FeatureManagement from './pages/FeatureManagement';
 import CmsPages from './pages/CmsPages';
 import Forbidden from './pages/Forbidden';
+import ModuleDenied from './pages/ModuleDenied';
 import NotFound from './pages/NotFound';
 import { homeRouteFor } from './utils/deepLinks';
 
@@ -437,6 +438,7 @@ function AppRoutes() {
                 </Route>
 
                 <Route path="/403" element={<Forbidden />} />
+                <Route path="/module-denied" element={<ModuleDenied />} />
                 <Route path="*" element={<NotFound />} />
             </Routes>
         </ThemeProvider>

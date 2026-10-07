@@ -42,6 +42,6 @@ class EnsureModule
             return $next($request);
         }
 
-        abort(403, 'This feature is not included in your current plan.');
+        abort(403, 'This feature is not included in your current plan.', ['X-Module-Denied' => $module]);
     }
 }
