@@ -4,10 +4,10 @@ namespace App\Http\Controllers\Hrms\Performance;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Hrms\FeedbackRespondRequest;
-use App\Models\Hrms\Employee\Employee;
 use App\Models\Hrms\Performance\FeedbackRequest;
 use App\Models\Hrms\Performance\PerformanceCycle;
 use App\Models\User;
+use App\Services\Hrms\HrmsScope;
 use App\Services\Hrms\Performance\FeedbackService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -33,10 +33,10 @@ class FeedbackRequestController extends Controller
             ->orderBy('id');
 
         if (! $this->seesAll($request->user())) {
-            $mine = Employee::where('user_id', $request->user()->id)->value('id') ?? 0;
+            $ids = HrmsScope::employeeIdsFor($request->user(), 'hrms.performance');
             $query->where(fn ($nested) => $nested
-                ->where('from_employee_id', $mine)
-                ->orWhere('to_employee_id', $mine));
+                ->whereIn('from_employee_id', $ids)
+                ->orWhereIn('to_employee_id', $ids));
         }
 
         if ($request->has('employee_id')) {
@@ -80,8 +80,7 @@ class FeedbackRequestController extends Controller
 
     private function seesAll(User $user): bool
     {
-        return $user->hasPermission('hrms.performance.view')
-            || $user->hasPermission('hrms.performance.manage')
+        return HrmsScope::seesAll($user, 'hrms.performance')
             || $user->hasPermission('hrms.talent.manage');
     }
 }

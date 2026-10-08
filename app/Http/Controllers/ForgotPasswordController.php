@@ -10,11 +10,15 @@ class ForgotPasswordController extends Controller
 {
     public function create(ForgotPasswordRequest $request): JsonResponse
     {
-        $status = Password::sendResetLink($request->only('email'));
+        Password::sendResetLink($request->only('email'));
 
+        // Uniform response either way: echoing RESET_LINK_SENT vs INVALID_USER
+        // (plus the status field) tells an attacker which store holds the
+        // account. Whether the mail actually sends is a delivery concern, not
+        // an API answer. (Tenant-aware routing of the broker itself is still
+        // open — the broker runs on the central connection, see 10-security.)
         return response()->json([
-            'message' => __($status),
-            'status' => $status,
-        ], $status === Password::RESET_LINK_SENT ? 200 : 422);
+            'message' => 'If that address belongs to an account, a reset link is on its way.',
+        ]);
     }
 }

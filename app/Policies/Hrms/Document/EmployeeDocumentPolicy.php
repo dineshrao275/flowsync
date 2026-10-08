@@ -5,13 +5,16 @@ namespace App\Policies\Hrms\Document;
 use App\Models\Hrms\Document\EmployeeDocument;
 use App\Models\Hrms\Employee\Employee;
 use App\Models\User;
+use App\Services\Hrms\HrmsScope;
 
 /**
  * Document/HRMS — who may do what to an employee document.
  *
  * Three different questions, not one role check: `view` answers whether the
- * caller may see this row (self-service included, because “my documents” is
- * the whole basis of the employee surface); `viewSensitive` answers whether a
+ * caller may see this row — self-service included (own is always inside a
+ * caller's scope), other people's rows when their `hrms.documents.view`
+ * scope reaches them (assigned or all) — because “my documents” is the whole
+ * basis of the employee surface; `viewSensitive` answers whether a
  * confidential row may be opened at all; and `verify`/`reject`/`delete` answer
  * whether the caller may change the lifecycle. A confidential row needs both
  * answers, not one — being the person in the file does not grant the extra
@@ -21,12 +24,12 @@ use App\Models\User;
 class EmployeeDocumentPolicy
 {
     /**
-     * Anyone who may reach the document surface at all: a directory reader,
-     * or a person with their own employment record to read.
+     * Anyone who may reach the document surface at all: a scope reader, or
+     * a person with their own employment record to read.
      */
     public function viewAny(User $user): bool
     {
-        return $this->canViewAll($user) || $this->hasEmployee($user);
+        return HrmsScope::canRead($user, 'hrms.documents') || $this->hasEmployee($user);
     }
 
     /**
@@ -40,7 +43,7 @@ class EmployeeDocumentPolicy
             return false;
         }
 
-        return $this->isSelf($user, $document) || $this->canViewAll($user);
+        return HrmsScope::coversEmployee($user, 'hrms.documents', $document->employee);
     }
 
     /**
@@ -80,20 +83,9 @@ class EmployeeDocumentPolicy
         return $user->hasPermission('hrms.documents.manage');
     }
 
-    private function canViewAll(User $user): bool
-    {
-        return $user->hasPermission('hrms.documents.view')
-            || $user->hasPermission('hrms.documents.manage');
-    }
-
     private function hasEmployee(User $user): bool
     {
         return Employee::where('user_id', $user->id)->exists();
-    }
-
-    private function isSelf(User $user, EmployeeDocument $document): bool
-    {
-        return $this->isSelfEmployee($user, $document->employee);
     }
 
     /**

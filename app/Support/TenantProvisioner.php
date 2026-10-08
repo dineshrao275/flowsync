@@ -113,16 +113,37 @@ class TenantProvisioner
     private function provisionProjectRoles(): void
     {
         foreach (config('project_roles.roles') as $slug => $role) {
-            ProjectRole::firstOrCreate(
+            $configured = $role['permissions'] === '*'
+                ? ['*']
+                : $role['permissions'];
+
+            $model = ProjectRole::firstOrCreate(
                 ['slug' => $slug],
                 [
                     'name' => $role['name'],
                     'is_system' => true,
-                    'permissions' => $role['permissions'] === '*'
-                        ? ['*']
-                        : $role['permissions'],
+                    'permissions' => $configured,
                 ]
             );
+
+            // Additions only: a system role provisioned before a slug existed
+            // must pick it up on repair, but a config edit must never revoke
+            // what the tenant already holds. Custom roles are not in config,
+            // so this loop cannot touch them.
+            $stored = $model->permissions ?? [];
+
+            if ($configured === ['*']) {
+                $merged = ['*'];
+            } elseif ($stored === ['*']) {
+                $merged = ['*'];
+            } else {
+                $merged = array_values(array_unique(array_merge($stored, $configured)));
+            }
+
+            if ($merged !== $stored) {
+                $model->permissions = $merged;
+                $model->save();
+            }
         }
     }
 

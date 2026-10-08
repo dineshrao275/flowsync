@@ -8,6 +8,8 @@ use App\Models\Hrms\Document\EmployeeDocument;
 use App\Models\Hrms\Employee\Employee;
 use App\Models\Hrms\Shared\Approval;
 use App\Models\User;
+use Database\Factories\Hrms\LeaveRequestFactory;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -25,7 +27,13 @@ use Illuminate\Database\Eloquent\SoftDeletes;
  */
 class LeaveRequest extends Model
 {
+    use HasFactory;
     use SoftDeletes;
+
+    protected static function newFactory(): LeaveRequestFactory
+    {
+        return LeaveRequestFactory::new();
+    }
 
     protected $table = 'leave_requests';
 

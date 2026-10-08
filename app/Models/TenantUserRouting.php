@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Models\Concerns\CentralConnection;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
@@ -14,6 +15,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 class TenantUserRouting extends Model
 {
     use CentralConnection;
+    use HasFactory;
 
     protected $table = 'tenant_users';
 

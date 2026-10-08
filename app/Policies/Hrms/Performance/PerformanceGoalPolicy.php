@@ -5,28 +5,30 @@ namespace App\Policies\Hrms\Performance;
 use App\Models\Hrms\Employee\Employee;
 use App\Models\Hrms\Performance\PerformanceGoal;
 use App\Models\User;
+use App\Services\Hrms\HrmsScope;
 
 /**
  * Performance/HRMS — who may read or change a goal.
  *
- * Reads take self, the owner's manager, or the view permission: a goal is
- * personal, and the two people in the reporting line around it may always
- * see it. Updates take self while the goal is still a draft, or manage —
- * a submitted goal is a commitment, and commitments change through HR,
- * not through the author quietly rewriting them.
+ * Reads take self, the owner's manager, the view scope (`HrmsScope`), or a
+ * talent manager: a goal is personal, and the two people in the reporting
+ * line around it may always see it. Updates take self while the goal is
+ * still a draft, or manage — a submitted goal is a commitment, and
+ * commitments change through HR, not through the author quietly rewriting
+ * them.
  */
 class PerformanceGoalPolicy
 {
     public function viewAny(User $user): bool
     {
-        return $this->hasEmployee($user) || $this->canView($user);
+        return $this->hasEmployee($user) || $this->canRead($user);
     }
 
     public function view(User $user, PerformanceGoal $goal): bool
     {
         return $this->isSelf($user, $goal)
             || $this->isManagerOf($user, $goal)
-            || $this->canView($user);
+            || $this->canViewScoped($user, $goal);
     }
 
     public function create(User $user): bool
@@ -62,10 +64,28 @@ class PerformanceGoalPolicy
             || $user->hasPermission('hrms.performance.manage');
     }
 
-    private function canView(User $user): bool
+    /**
+     * Scope-aware read for a specific goal: `_own`/`_assigned`/`_all`
+     * (and the legacy slug and `manage`) plus the talent-manager bypass.
+     * The per-record answer mirrors the list clamp so what a cycle list
+     * offers and a show opens never disagree.
+     */
+    private function canViewScoped(User $user, PerformanceGoal $goal): bool
     {
-        return $user->hasPermission('hrms.performance.view')
-            || $user->hasPermission('hrms.performance.manage');
+        if ($user->hasPermission('hrms.talent.manage')) {
+            return true;
+        }
+
+        $employee = $goal->employee ?? Employee::find($goal->employee_id);
+
+        return $employee !== null
+            && HrmsScope::coversEmployee($user, 'hrms.performance', $employee);
+    }
+
+    private function canRead(User $user): bool
+    {
+        return HrmsScope::canRead($user, 'hrms.performance')
+            || $user->hasPermission('hrms.talent.manage');
     }
 
     private function hasEmployee(User $user): bool

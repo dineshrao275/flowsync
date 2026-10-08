@@ -66,6 +66,23 @@ export default function PerformanceCycleDetail() {
     const [respondForm, setRespondForm] = useState({ action: 'submit', rating: '', body: '' });
     const [respondErrors, setRespondErrors] = useState({});
 
+    // The caller's OWN employee row, resolved from `/my/hr` — the one
+    // self-scoped HRMS endpoint, cached server side and readable without a
+    // directory grant. It backs two gates that mirror the policies exactly:
+    // CheckInPolicy::create files for self (or `hrms.performance.manage`) and
+    // OneOnOnePolicy::create needs any employee record (or manage). Deriving
+    // it from the `/hrms/employees` page instead would make the gates answer
+    // "which 100 people did this page happen to load" rather than "does the
+    // caller have a record" — the select is paged, and a reader the directory
+    // denies would be told they have no record at all.
+    const [selfEmployeeId, setSelfEmployeeId] = useState(null);
+
+    useEffect(() => {
+        api.get('/my/hr')
+            .then(({ data }) => setSelfEmployeeId(data.profile?.id ?? null))
+            .catch(() => setSelfEmployeeId(null));
+    }, []);
+
     useEffect(() => {
         setCrumbs([{ label: 'HRMS', to: '/hrms' }, { label: 'Performance', to: '/hrms/performance' }, { label: 'Cycle' }]);
     }, [setCrumbs]);
@@ -280,13 +297,26 @@ export default function PerformanceCycleDetail() {
             {tab === 'check-ins' && (
                 <div className="grid gap-4 lg:grid-cols-2">
                     <Card title="File a check-in" dense>
-                        <div className="mb-3 max-w-xs">
-                            <Select label="Person" value={checkInFor} onChange={(e) => setCheckInFor(e.target.value)}>
-                                <option value="">Select…</option>
-                                {employees.map((e) => <option key={e.id} value={e.id}>{e.name}</option>)}
-                            </Select>
-                        </div>
-                        <CheckInComposer cycleId={cycleId} employeeId={checkInFor} onFiled={load} />
+                        {canManage ? (
+                            <>
+                                <div className="mb-3 max-w-xs">
+                                    <Select label="Person" value={checkInFor} onChange={(e) => setCheckInFor(e.target.value)}>
+                                        <option value="">Select…</option>
+                                        {employees.map((e) => <option key={e.id} value={e.id}>{e.name}</option>)}
+                                    </Select>
+                                </div>
+                                <CheckInComposer cycleId={cycleId} employeeId={checkInFor} onFiled={load} />
+                            </>
+                        ) : selfEmployeeId !== null ? (
+                            <>
+                                <p className="mb-3 text-xs text-gray-400">You are filing this against your own record.</p>
+                                <CheckInComposer cycleId={cycleId} employeeId={selfEmployeeId} onFiled={load} />
+                            </>
+                        ) : (
+                            <p className="text-sm text-gray-500">
+                                Your account has no employee record yet, so there is nothing to file a check-in against.
+                            </p>
+                        )}
                     </Card>
                     <Card title="Notes" dense>
                         {!checkIns ? <div className="flex justify-center py-6"><Spinner /></div> : checkIns.length === 0 ? (
@@ -309,7 +339,9 @@ export default function PerformanceCycleDetail() {
 
             {tab === 'one-on-ones' && (
                 <div className="space-y-3">
-                    <div><Button size="sm" onClick={() => setOneOnOneModal(true)}>Schedule a 1:1</Button></div>
+                    {(canManage || selfEmployeeId !== null) && (
+                        <div><Button size="sm" onClick={() => setOneOnOneModal(true)}>Schedule a 1:1</Button></div>
+                    )}
                     {!oneOnOnes ? <div className="flex justify-center py-8"><Spinner /></div> : oneOnOnes.length === 0 ? (
                         <p className="text-sm text-gray-500">No conversations yet.</p>
                     ) : (

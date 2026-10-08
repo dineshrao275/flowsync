@@ -8,6 +8,8 @@ use App\Models\Hrms\Employee\Employee;
 use App\Models\Hrms\Performance\PerformanceCycle;
 use App\Models\Hrms\Performance\PerformanceGoal;
 use App\Models\Task;
+use App\Models\User;
+use App\Services\Hrms\HrmsScope;
 use App\Services\Hrms\PerformanceService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -33,6 +35,10 @@ class PerformanceGoalController extends Controller
 
         $query = $cycle->goals()->with(['employee:id,employee_code,name'])->orderBy('id');
 
+        if (! $this->seesAll($request->user())) {
+            $query->whereIn('employee_id', HrmsScope::employeeIdsFor($request->user(), 'hrms.performance'));
+        }
+
         if ($request->has('employee_id')) {
             $query->where('employee_id', (int) $request->query('employee_id'));
         }
@@ -40,6 +46,12 @@ class PerformanceGoalController extends Controller
         return response()->json([
             'goals' => $query->get()->map(fn (PerformanceGoal $goal): array => $this->present($goal))->all(),
         ]);
+    }
+
+    private function seesAll(User $user): bool
+    {
+        return HrmsScope::seesAll($user, 'hrms.performance')
+            || $user->hasPermission('hrms.talent.manage');
     }
 
     public function show(PerformanceGoal $goal): JsonResponse

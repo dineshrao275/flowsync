@@ -12,19 +12,20 @@ use Tests\IsolatesDatabase;
 use Tests\TestCase;
 
 /**
- * P19.3 — exports are gated, logged and throttled.
+ * P19.3 — exports are gated, logged and throttled (admin-only since the
+ * export-visibility change).
  *
  * The HRMS has exactly two bulk exports (no leave or payroll CSV exists —
  * payslips and documents travel as signed single-file downloads, which are
  * per-record, policy-gated and short-lived by design). Each CSV requires
- * its module plus its read permission, writes one `accessed(..., Export)`
- * row per pull, and answers 429 past thirty pulls a minute.
+ * the tenant admin permission, writes one `accessed(..., Export)` row per
+ * pull, and answers 429 past thirty pulls a minute.
  */
 class HrmsExportControlsTest extends TestCase
 {
     use IsolatesDatabase;
 
-    public function test_the_attendance_export_is_gated_logged_and_throttled(): void
+    public function test_the_attendance_export_is_admin_only_logged_and_throttled(): void
     {
         $user = $this->userWith(['hrms.view']);
         $employee = $this->employeeFor($user);
@@ -32,11 +33,14 @@ class HrmsExportControlsTest extends TestCase
 
         $query = "/api/hrms/attendance/export?from=2026-09-01&to=2026-09-07&employee_id={$employee->id}";
 
-        // Self-service by policy: the caller owns this record, so no
-        // attendance permission is needed — the pull succeeds and logs.
+        // Even the record owner cannot pull without the admin permission.
+        $this->get($query)->assertForbidden();
+        $this->assertFalse(HrmsDataAccessLog::query()->where('action', 'export')->exists());
+
+        $this->actAs($this->userWith(['hrms.view', 'workspaces.manage']));
+
         $this->get($query)->assertOk();
         $this->assertTrue(HrmsDataAccessLog::query()
-            ->where('actor_user_id', $user->id)
             ->where('action', 'export')
             ->exists());
 
@@ -48,15 +52,15 @@ class HrmsExportControlsTest extends TestCase
         $this->get($query)->assertStatus(429);
     }
 
-    public function test_the_analytics_export_is_gated_logged_and_throttled(): void
+    public function test_the_analytics_export_is_admin_only_logged_and_throttled(): void
     {
-        $this->actAs($this->userWith(['hrms.view', 'hrms.analytics.view']));
+        $this->actAs($this->userWith(['hrms.view', 'hrms.analytics.view', 'hrms.attendance.view']));
 
-        // The domain permission is the gate: analytics.view alone 403s the
-        // attendance domain, exactly like the tab route.
+        // Domain permissions no longer suffice: exports answer to tenant
+        // admins, exactly like the tab route's button visibility.
         $this->getJson('/api/hrms/analytics/export?domain=attendance')->assertForbidden();
 
-        $this->actAs($this->userWith(['hrms.view', 'hrms.analytics.view', 'hrms.attendance.view']));
+        $this->actAs($this->userWith(['hrms.view', 'hrms.analytics.view', 'workspaces.manage']));
 
         $query = '/api/hrms/analytics/export?domain=attendance';
 

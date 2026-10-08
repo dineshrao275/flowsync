@@ -28,7 +28,7 @@ services:
       POSTGRES_USER: flowsync
       POSTGRES_PASSWORD: secret
     ports:
-      - "5432:5432"
+      - "${FORWARD_DB_PORT:-5434}:5432"
     volumes:
       - flowsync_pgdata:/var/lib/postgresql/data
       # Init script: create tenant DB placeholder (used in isolated mode)

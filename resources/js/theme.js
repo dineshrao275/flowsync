@@ -1,4 +1,6 @@
-export const THEME_STORAGE_KEY = 'flowsync.theme';
+const STORAGE_PREFIX = (typeof window !== 'undefined' && window.__FLOWSYNC_CONFIG__?.storagePrefix) || 'flowsync';
+
+export const THEME_STORAGE_KEY = `${STORAGE_PREFIX}.theme`;
 
 export const THEME_MODES = ['light', 'dark', 'system'];
 
@@ -83,7 +85,7 @@ export const THEME_PRESETS = [
  * Structural surfaces used when the dark scheme is active. The admin's own
  * `accent` / `active_menu` colors are kept so branding survives the switch.
  */
-const THEME_VARS_KEY = 'flowsync.theme.vars';
+const THEME_VARS_KEY = `${STORAGE_PREFIX}.theme.vars`;
 
 function hexToRgb(hex) {
     const value = String(hex || '').replace('#', '').trim();
@@ -135,6 +137,32 @@ export const DARK_SURFACES = {
     header_text: '#e8eaf0',
     card_bg: '#171d2b',
 };
+
+/**
+ * Destructive controls follow the same token pattern as accents, but on a
+ * fixed red scale: in dark mode the base steps one shade brighter so the
+ * button stands out from dark surfaces (red-600 sinks into them). The
+ * white-text tradeoff on the brighter base (~3.5:1) is the standard
+ * dark-mode compromise — distinction from the page matters more than the
+ * AA body-text ratio for a semibold button label.
+ */
+export function dangerTokens(dark = false) {
+    return dark
+        ? {
+            '--danger': '#ef4444',
+            '--danger-hover': '#f87171',
+            '--danger-active': '#dc2626',
+            '--danger-contrast': '#ffffff',
+            '--danger-ring': '#fca5a5',
+        }
+        : {
+            '--danger': '#dc2626',
+            '--danger-hover': '#ef4444',
+            '--danger-active': '#b91c1c',
+            '--danger-contrast': '#ffffff',
+            '--danger-ring': '#fecaca',
+        };
+}
 
 /**
  * Every accent-driven control (buttons, active toggles, chips, links, focus
@@ -216,7 +244,7 @@ export function applyTheme(theme) {
         root.style.setProperty(cssVar(key), dark && key in DARK_SURFACES ? DARK_SURFACES[key] : merged[key]);
     });
 
-    const tokens = accentTokens(merged.accent, dark);
+    const tokens = { ...accentTokens(merged.accent, dark), ...dangerTokens(dark) };
     Object.entries(tokens).forEach(([name, value]) => root.style.setProperty(name, value));
 
     try {

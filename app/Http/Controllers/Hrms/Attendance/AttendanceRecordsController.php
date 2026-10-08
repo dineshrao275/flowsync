@@ -85,7 +85,7 @@ class AttendanceRecordsController extends Controller
             'to' => ['required', 'date', 'after_or_equal:from'],
         ]);
 
-        $employee = $this->employee($request, $filters['employee_id'] ?? null);
+        $employee = $this->employee($request, $filters['employee_id'] ?? null, authorize: false);
 
         $from = Carbon::parse($filters['from'])->startOfDay();
         $to = Carbon::parse($filters['to'])->startOfDay();
@@ -140,8 +140,11 @@ class AttendanceRecordsController extends Controller
      *
      * A login with no employment record gets a 404 naming the missing
      * record, not a 500 inside the readers (the P5.3 punch lesson).
+     * The export skips the policy check: it already answers to the tenant
+     * admin gate, and an admin pulling another employee's curve is the
+     * point of the endpoint.
      */
-    private function employee(Request $request, ?int $employeeId): Employee
+    private function employee(Request $request, ?int $employeeId, bool $authorize = true): Employee
     {
         $employee = $employeeId === null
             ? Employee::where('user_id', $request->user()->id)->first()
@@ -149,7 +152,9 @@ class AttendanceRecordsController extends Controller
 
         abort_if($employee === null, 404, 'There is no employment record to read attendance for.');
 
-        $this->authorize('view', [AttendanceDay::class, $employee]);
+        if ($authorize) {
+            $this->authorize('view', [AttendanceDay::class, $employee]);
+        }
 
         return $employee;
     }

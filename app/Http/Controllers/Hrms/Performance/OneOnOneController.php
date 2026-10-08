@@ -5,6 +5,8 @@ namespace App\Http\Controllers\Hrms\Performance;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Hrms\OneOnOneRequest;
 use App\Models\Hrms\Performance\OneOnOne;
+use App\Models\User;
+use App\Services\Hrms\HrmsScope;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
@@ -27,6 +29,13 @@ class OneOnOneController extends Controller
             ->with(['employee:id,employee_code,name', 'manager:id,employee_code,name'])
             ->orderByDesc('scheduled_at');
 
+        if (! $this->seesAll($request->user())) {
+            $ids = HrmsScope::employeeIdsFor($request->user(), 'hrms.performance');
+            $query->where(fn ($nested) => $nested
+                ->whereIn('employee_id', $ids)
+                ->orWhereIn('manager_employee_id', $ids));
+        }
+
         if ($request->has('employee_id')) {
             $id = (int) $request->query('employee_id');
             $query->where(fn ($nested) => $nested
@@ -37,6 +46,12 @@ class OneOnOneController extends Controller
         return response()->json([
             'one_on_ones' => $query->get()->map(fn (OneOnOne $row): array => $this->present($row))->all(),
         ]);
+    }
+
+    private function seesAll(User $user): bool
+    {
+        return HrmsScope::seesAll($user, 'hrms.performance')
+            || $user->hasPermission('hrms.talent.manage');
     }
 
     public function show(OneOnOne $oneOnOne): JsonResponse

@@ -41,6 +41,10 @@ export const HRMS_MODULE_META = {
 
     'hrms.analytics': { label: 'HR Analytics', group: 'HRMS · Insight' },
     'hrms.inbox': { label: 'HR Inbox', group: 'HRMS · Insight' },
+
+    // Phase 5: full tenant data export (add-on module, not HRMS-specific).
+    // Listed here so the PHP→JS parity test passes without a separate catalog file.
+    'export.full': { label: 'Data Export', group: 'Platform' },
 };
 
 /**

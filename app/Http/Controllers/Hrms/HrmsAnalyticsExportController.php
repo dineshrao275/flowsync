@@ -22,32 +22,16 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
 /**
  * Analytics/HRMS — downloading one dashboard domain as CSV.
  *
- * Thin: the request validates the domain and filters, the gate answers the
- * domain's own permission (the same slug as the tab route — a user who can
- * see the chart can take it home, and one who cannot gets the same 403),
- * and the readers return the same tiered arrays the tabs render, so the
- * file and the chart cannot disagree. Every export writes an
+ * Thin: the request validates the domain and filters, the gate answers to
+ * tenant admins only (bulk pulls are an admin affordance, not a reader
+ * one — viewing a chart never implied taking the dataset home), and the
+ * readers return the same tiered arrays the tabs render, so the file and
+ * the chart cannot disagree. Every export writes an
  * `accessed(..., Export)` row with the exported field names — a bulk pull
  * outward, never a silent one (the P19.3 rule, applied at birth).
  */
 class HrmsAnalyticsExportController extends Controller
 {
-    /**
-     * The tab route's permission per domain — deliberately the same slugs
-     * as `routes/web.php`, so the chart and its CSV share one gate.
-     *
-     * @var array<string, string>
-     */
-    private const PERMISSIONS = [
-        'attendance' => 'hrms.attendance.view',
-        'leave' => 'hrms.leave.manage',
-        'lifecycle' => 'hrms.analytics.view',
-        'performance' => 'hrms.analytics.view',
-        'payroll' => 'hrms.payroll.run',
-        'documents' => 'hrms.documents.view',
-        'assets' => 'hrms.assets.view',
-    ];
-
     /**
      * The aggregate subject per domain. Exports are tenant-wide slices, so
      * the record id is 0 (the payroll-reading precedent) and the fields
@@ -75,7 +59,7 @@ class HrmsAnalyticsExportController extends Controller
     {
         $domain = $request->validated()['domain'];
 
-        Gate::authorize('permission', self::PERMISSIONS[$domain]);
+        Gate::authorize('permission', 'workspaces.manage');
 
         $data = $this->read($domain, $request->filters(), $request->user());
 

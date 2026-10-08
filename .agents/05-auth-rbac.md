@@ -20,17 +20,45 @@ casing-locked. `UserController::store` normalizes before validation.
 
 ## Permission layers
 
-- Tenant level: `config/permissions.php` — 12-permission catalog; roles
-  `admin` (`*`), editor/viewer subsets (incl. `workspaces.view|create|manage`,
-  `dashboard.view`, `reports.view`).
-- Project level: `config/project_roles.php` — lead (`*`)/developer/viewer system
-  roles (immutable, undeletable) + custom roles; permissions
-  view/create/edit/delete/assign/move/comments/attachments/work_logs/members/settings.
-- Workspace membership: owner/admin/member pivots.
-- HRMS: 47 permissions, per-record policies (self-service included — `view` covers
-  self), set-scoping in services.
-- Enforcement: `permission:` middleware + `Gate::define('permission')` SA bypass
-  (unless impersonating) + Policies. Tenant admin = `workspaces.manage` bypass.
+- Tenant level: `config/permissions.php` — tenant permission catalog with own/assigned/all scope variants
+  for the 13 HRMS domains that have a self concept (e.g. `hrms.leave.view_own`, `view_assigned`, `view_all`).
+  System roles: `admin` (`*`), `manager` (`*_own` + `*_assigned`), `editor`/`viewer` (`*_own` subsets).
+- Project level: `config/project_roles.php` — project roles (lead `*`, developer, viewer, plus custom roles)
+  with `tasks` scope variants `view|edit|delete|move|assign × {own,assigned,all}` (35 slugs).
+- Scope lattice: `app/Support/PermissionScope` resolves scope satisfaction (`own ⊂ assigned ⊂ all`).
+  A grant of `_all` satisfies `_assigned` and `_own`. Legacy unsuffixed slugs default to `_all` (except
+  `hrms.payroll.view` which maps to `_own` only). `User::granted()` and `ProjectRole::grants()` perform
+  scope-aware checks while `hasPermission()` performs exact string matching.
+- Manager scope resolution: `App\Services\ReportsTo::idsFor(User)` resolves direct reports' user IDs via
+  `employees.manager_id` (one hop, memoized per request/job, flushed on lifecycle boundaries).
+- TMS row scoping: `App\Support\TaskScope` provides the single shared definition for `TaskPolicy` per-row
+  checks and `TaskService::board/list` query scoping (`own` = assignee or reporter, `assigned` = caller or
+  direct report, `all` = every project task).
+- HRMS row scoping: `App\Services\Hrms\HrmsScope` provides the single shared definition for HRMS directory
+  queries and per-record policies (`LeaveRequest`, `CompOffRequest`, `ExpenseClaim`, `EmployeeDocument`,
+  `PerformanceGoal`, `AttendanceDay`). Client-supplied `employee_id` params intersect the caller's real scope.
+- Enforcement: `EnsurePermission` route middleware + `Gate::define('permission')` (standardized refusal worded
+  by `EnsurePermission::denial`) + Policies. Tenant admin = `workspaces.manage` bypass.
+
+## Member-based access (non-admins see only what they belong to)
+
+- **Workspaces/projects/tasks:** `WorkspacePolicy::view` (workspace member), `ProjectPolicy::view`
+  (project member), `TaskPolicy::*` (project member **and** project role grants the required `tasks.*`
+  scope for the row). `TaskController@index` requires `tasks.view_own` or higher, and scopes the board/list
+  query via `TaskScope::constrainQuery`.
+- **Lists return zero rows, not 403:** `WorkspaceService::listFor`, `ProjectService::listFor|listAll`,
+  `ScopesVisibleTasks::visibleTaskQuery()` (search, dashboard, reports, analytics) filter
+  `whereHas(members, user)` unless `workspaces.manage`.
+- **Nested writes verify belonging:** status update/destroy, comment/work-log/attachment/dependency child
+  routes 404 on foreign IDs.
+- **HRMS self-service & manager visibility:** `view` covers self; callers with `_assigned` view own and direct
+  reports; `_all` or `manage` views tenant-wide. Performance goals and check-ins explicitly permit the direct
+  manager (`isManagerOf`).
+- **Frontend mirrors, never enforces:** `ProtectedRoute` passes missing permission state to `/403` to name the
+  exact missing slug; module-denied requests navigate to `/module-denied`; dashboard and reports show active
+  task scope pills ('every task in the tenant' vs 'tasks in your projects').
+- Regression: `tests/Feature/MemberAccessMatrixTest.php` (matrix of domains × {own, report, stranger} × scopes),
+  `tests/Feature/MemberIsolationTest.php` (strict cross-project, workflow, and reporting line isolation).
 
 ## Protected default user
 

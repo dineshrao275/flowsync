@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Models\Hrms\Employee\Employee;
 use App\Models\TenantUserRouting;
 use App\Models\User;
 use Illuminate\Testing\TestResponse;
@@ -146,5 +147,18 @@ class TenantUserCreationTest extends TestCase
         ])->assertForbidden();
 
         $this->assertDatabaseMissing('tenant_users', ['email' => 'sneaky@acme.test'], 'iso_system');
+    }
+
+    public function test_created_user_gets_a_linked_employee_record(): void
+    {
+        $response = $this->createUser()->assertCreated();
+
+        $userId = $response->json('user.id');
+
+        $this->connectTenant('acme');
+        $employee = Employee::where('user_id', $userId)->firstOrFail();
+
+        $this->assertSame('New Hire', $employee->name);
+        $this->assertSame('EMP-'.$userId, $employee->employee_code);
     }
 }

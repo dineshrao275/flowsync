@@ -8,8 +8,8 @@ use App\Http\Requests\Hrms\ExpenseClaimRequest;
 use App\Http\Requests\Hrms\ExpenseDecideRequest;
 use App\Models\Hrms\Employee\Employee;
 use App\Models\Hrms\Expense\ExpenseClaim;
-use App\Models\User;
 use App\Services\Hrms\Expense\ExpenseService;
+use App\Services\Hrms\HrmsScope;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
@@ -17,12 +17,12 @@ use Illuminate\Http\Response;
 /**
  * Expense/HRMS — claims from filing to decision over HTTP.
  *
- * Thin: it authorizes (listing and reading are self-or-view, filing and
- * submitting self-or-manage, deciding the approve permission), hands the
- * payload to the service, and shapes the envelope. The chain, the locks
- * and the money rules live in the service — including the verdict split,
- * which is one endpoint with a `verdict` rather than two verbs that would
- * drift apart.
+ * Thin: it authorizes (listing and reading follow the caller's view scope,
+ * filing and submitting self-or-manage, deciding the approve permission),
+ * hands the payload to the service, and shapes the envelope. The chain, the
+ * locks and the money rules live in the service — including the verdict
+ * split, which is one endpoint with a `verdict` rather than two verbs that
+ * would drift apart.
  */
 class ExpenseClaimController extends Controller
 {
@@ -43,9 +43,8 @@ class ExpenseClaimController extends Controller
             ->with(['employee:id,employee_code,name', 'items'])
             ->orderByDesc('id');
 
-        if (! $request->user()->hasPermission('hrms.expenses.view')
-            && ! $request->user()->hasPermission('hrms.expenses.manage')) {
-            $query->where('employee_id', $this->employeeId($request->user()));
+        if (! HrmsScope::seesAll($request->user(), 'hrms.expenses')) {
+            $query->whereIn('employee_id', HrmsScope::employeeIdsFor($request->user(), 'hrms.expenses'));
         }
 
         foreach (array_filter($filters, fn ($value) => $value !== null) as $field => $value) {
@@ -120,15 +119,6 @@ class ExpenseClaimController extends Controller
             'message' => $data['verdict'] === 'approve' ? 'Claim approved.' : 'Claim rejected.',
             'claim' => $this->present($decided),
         ]);
-    }
-
-    /**
-     * The caller's employment record id, or zero when there is none — a
-     * login without a record lists nothing, never everyone.
-     */
-    private function employeeId(User $user): int
-    {
-        return (int) (Employee::where('user_id', $user->id)->value('id') ?? 0);
     }
 
     /**

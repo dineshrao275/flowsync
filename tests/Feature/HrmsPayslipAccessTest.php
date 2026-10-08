@@ -253,9 +253,9 @@ class HrmsPayslipAccessTest extends TestCase
     }
 
     /**
-     * @return \Illuminate\Support\Collection<int, HrmsDataAccessLog>
+     * @return Collection<int, HrmsDataAccessLog>
      */
-    private function accessRows(?Payslip $payslip = null): \Illuminate\Support\Collection
+    private function accessRows(?Payslip $payslip = null): Collection
     {
         $this->connectTenant('acme');
 

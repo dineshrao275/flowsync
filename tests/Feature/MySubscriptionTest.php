@@ -2,10 +2,12 @@
 
 namespace Tests\Feature;
 
+use App\Models\Permission;
 use App\Models\SubscriptionPlan;
 use App\Models\Tenant;
 use App\Models\User;
 use App\Services\SubscriptionService;
+use Illuminate\Support\Facades\Artisan;
 use Tests\IsolatesDatabase;
 use Tests\TestCase;
 
@@ -21,6 +23,13 @@ class MySubscriptionTest extends TestCase
     private function plan(string $slug): SubscriptionPlan
     {
         return SubscriptionPlan::where('slug', $slug)->firstOrFail();
+    }
+
+    private function permissionId(string $slug): int
+    {
+        $this->connectTenant('acme');
+
+        return Permission::where('slug', $slug)->firstOrFail()->id;
     }
 
     private function assign(Tenant $tenant, SubscriptionPlan $plan): void
@@ -152,14 +161,67 @@ class MySubscriptionTest extends TestCase
 
         $this->loginAs('editor@flowsync.test');
 
-        // Read is open to every tenant user…
-        $this->getJson('/api/my-subscription')->assertOk();
-        $this->getJson('/api/my-usage')->assertOk();
+        // Reads need billing.view (or the admin role) — no longer open.
+        $this->getJson('/api/my-subscription')->assertForbidden();
+        $this->getJson('/api/my-usage')->assertForbidden();
 
-        // …but mutations are admin-only.
+        // …and mutations stay admin-only.
         $this->postJson('/api/my-subscription/switch', ['plan_id' => $this->plan('pro')->id])->assertForbidden();
         $this->postJson('/api/my-subscription/cancel')->assertForbidden();
         $this->postJson('/api/my-subscription/renew')->assertForbidden();
+    }
+
+    public function test_billing_view_grant_opens_reads_but_not_writes(): void
+    {
+        $this->loginAs('admin@flowsync.test');
+
+        $billingViewId = $this->permissionId('billing.view');
+        $roleId = $this->postJson('/api/roles', [
+            'name' => 'Billing Reader',
+            'slug' => 'billing-reader',
+            'permissions' => [$billingViewId],
+        ])->assertCreated()->json('role.id');
+
+        $editor = User::where('email', 'editor@flowsync.test')->firstOrFail();
+        $this->putJson("/api/users/{$editor->id}/roles", ['roles' => ['editor', 'billing-reader']])->assertOk();
+
+        $this->loginAs('editor@flowsync.test');
+
+        $this->getJson('/api/my-subscription')->assertOk();
+        $this->getJson('/api/my-usage')->assertOk();
+        $this->postJson('/api/my-subscription/switch', ['plan_id' => $this->plan('pro')->id])->assertForbidden();
+    }
+
+    public function test_billing_manage_grant_opens_writes_without_admin_role(): void
+    {
+        $this->loginAs('admin@flowsync.test');
+
+        $billingManageId = $this->permissionId('billing.manage');
+        $this->postJson('/api/roles', [
+            'name' => 'Billing Manager',
+            'slug' => 'billing-manager',
+            'permissions' => [$billingManageId],
+        ])->assertCreated();
+
+        $editor = User::where('email', 'editor@flowsync.test')->firstOrFail();
+        $this->putJson("/api/users/{$editor->id}/roles", ['roles' => ['editor', 'billing-manager']])->assertOk();
+
+        $this->loginAs('editor@flowsync.test');
+
+        $this->postJson('/api/my-subscription/switch', ['plan_id' => $this->plan('pro')->id])->assertOk();
+    }
+
+    public function test_repair_restores_missing_catalog_slugs_to_admin(): void
+    {
+        $this->connectTenant('acme');
+        Permission::where('slug', 'billing.view')->delete();
+        $this->assertFalse(User::where('email', 'admin@flowsync.test')->firstOrFail()->hasPermission('billing.view'));
+
+        Artisan::call('tenants:provision', ['--tenant' => $this->acme()->id]);
+
+        $this->connectTenant('acme');
+        $this->assertTrue(Permission::where('slug', 'billing.view')->exists());
+        $this->assertTrue(User::where('email', 'admin@flowsync.test')->firstOrFail()->hasPermission('billing.view'));
     }
 
     public function test_super_admin_has_no_tenant_context_for_self_service(): void

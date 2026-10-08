@@ -1,5 +1,34 @@
 # 10 — Security (mandatory before auth/upload/download/billing code)
 
+## Phase 1 resolutions (2026-10-06, commit pending full-suite gate)
+
+- **C1 FIXED:** HRMS group now runs the full domain stack (`routes/web.php:363`).
+  Probe: 500 → 200 on production-fresh connection; unauthenticated → 401;
+  platform SA → 403 preserved. Pinned in `SecurityRegressionTest`.
+- **C2 FIXED:** all four download paths require the named reader from the
+  signature + `Gate::forUser($reader)->authorize('view', $record)` (exact JSON-show
+  rule): `AttachmentController::download`, `DocumentDownload` (covers asset invoice
+  docs), `EmployeePhotoService::stream` (covers photo route). URLs minted with
+  `actor` at every call site. Anonymous hand-signed links → 403 (pinned).
+  Behavior note: pre-existing ≤1h links without `actor` stop working on deploy.
+- **C3 FIXED:** photo reads moved `public` → `local` disk (no files existed on
+  either disk; no upload endpoint writes photos today — `photo_path` is a seeded
+  string). Public-disk bypass closed; photo tests now fake `local`.
+- **SVG removed** from both allow-lists; tenant `allowed_mimes` setting clamped to
+  the server list (narrow-only). **Forgot-password uniform 200** (oracle closed);
+  **missing `password.reset` route defined** (was 500 for every real address —
+  redirect to SPA `/app/reset-password`). **Passwords `max:72`** (bcrypt CPU-DoS)
+  in register/reset/admin-create. **Throttles added:** impersonate start (10,1) /
+  stop (30,1), users store (30,1), my-subscription writes (10,1), tenants store
+  (10,1). **Tenant JSON hides all `db_*`**. **CORS:** restrictive `config/cors.php`
+  (same-origin + `FRONTEND_URL`, credentials on) over the already-global
+  `HandleCors`. **`.env.example`:** production session-cookie guidance.
+- **Deliberately deferred (documented residual):** tenant-aware reset broker
+  (needs mail infra — Phase 4); stronger password policy (would break the
+  `password` demo/test corpus — needs migration plan); login-enumeration keys
+  (`tenant` 422 is a feature); write-throttles on high-frequency domain endpoints;
+  shared-PG-role trade-off; `TenantLimits::hasModule` null-bypass review.
+
 Threat model: multi-tenant SaaS, one DB per tenant. Cross-tenant leakage is the
 top risk; the Wide-open HRMS group and under-authorized downloads below are the
 current criticals (verified 2026-10-05; fix in roadmap Phase 1, criticals first).

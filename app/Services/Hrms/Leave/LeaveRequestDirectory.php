@@ -7,6 +7,7 @@ use App\Models\Hrms\Leave\LeaveRequest;
 use App\Models\Hrms\Leave\LeaveRequestDay;
 use App\Models\User;
 use App\Services\Hrms\Employee\ReportingLine;
+use App\Services\Hrms\HrmsScope;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
@@ -17,8 +18,9 @@ use Illuminate\Support\Collection;
  * The set-level half of the policy question (the DocumentDirectoryQuery
  * precedent): per-record answers live in the policy, the list scope lives
  * here, and both read the same permissions so they cannot disagree. A
- * viewer with `hrms.leave.view` (or manage) sees every ask; anyone else
- * sees only their own employment record's.
+ * caller whose view reads the whole tenant (`_all`, the legacy slug, or
+ * manage) sees every ask; `_assigned` sees their own rows plus their
+ * direct reports'; `_own` and self-service see their own record's.
  */
 class LeaveRequestDirectory
 {
@@ -35,9 +37,7 @@ class LeaveRequestDirectory
             ->orderByDesc('id');
 
         if (! $this->mayReviewAll($viewer)) {
-            $employeeId = Employee::where('user_id', $viewer->id)->value('id');
-
-            $query->where('employee_id', $employeeId ?? -1);
+            $query->whereIn('employee_id', HrmsScope::employeeIdsFor($viewer, 'hrms.leave'));
         } elseif (isset($filters['employee_id'])) {
             $query->where('employee_id', (int) $filters['employee_id']);
         }
@@ -51,8 +51,7 @@ class LeaveRequestDirectory
 
     public function mayReviewAll(User $viewer): bool
     {
-        return $viewer->hasPermission('hrms.leave.view')
-            || $viewer->hasPermission('hrms.leave.manage');
+        return HrmsScope::seesAll($viewer, 'hrms.leave');
     }
 
     /**

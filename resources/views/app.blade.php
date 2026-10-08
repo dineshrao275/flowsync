@@ -7,9 +7,14 @@
     <title>FlowSync Admin</title>
     {{-- Paint the stored color scheme before React mounts (no light flash). Mirrors resources/js/theme.js. --}}
     <script>
+        window.__FLOWSYNC_CONFIG__ = {
+            appName: @json(config('app.name', 'FlowSync')),
+            storagePrefix: @json(config('app.storage_prefix', 'flowsync'))
+        };
         (function () {
             try {
-                var raw = window.localStorage.getItem('flowsync.theme');
+                var prefix = window.__FLOWSYNC_CONFIG__.storagePrefix || 'flowsync';
+                var raw = window.localStorage.getItem(prefix + '.theme');
                 if (!raw) return;
                 var mode = JSON.parse(raw).mode;
                 var dark = mode === 'dark' || (mode !== 'light' && window.matchMedia('(prefers-color-scheme: dark)').matches);

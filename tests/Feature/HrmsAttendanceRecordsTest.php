@@ -120,7 +120,7 @@ class HrmsAttendanceRecordsTest extends TestCase
 
     public function test_export_downloads_csv_and_writes_an_access_row(): void
     {
-        $user = $this->userWith(['hrms.view']);
+        $user = $this->userWith(['hrms.view', 'workspaces.manage']);
         $employee = $this->makeEmployee('Exporter', ['user_id' => $user->id]);
         $this->rosterFor($employee);
         $this->actAs($user);
@@ -151,7 +151,7 @@ class HrmsAttendanceRecordsTest extends TestCase
 
     public function test_export_refuses_more_than_a_quarter(): void
     {
-        $user = $this->userWith(['hrms.view']);
+        $user = $this->userWith(['hrms.view', 'workspaces.manage']);
         $employee = $this->makeEmployee('Bulk', ['user_id' => $user->id]);
         $this->actAs($user);
 

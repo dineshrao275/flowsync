@@ -5,10 +5,12 @@ use App\Http\Controllers\AnalyticsController;
 use App\Http\Controllers\AttachmentController;
 use App\Http\Controllers\AuditLogsController;
 use App\Http\Controllers\AuthController;
+use App\Http\Controllers\BillingController;
 use App\Http\Controllers\CmsController;
 use App\Http\Controllers\CommentController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\DependencyController;
+use App\Http\Controllers\ExportController;
 use App\Http\Controllers\FeatureManagementController;
 use App\Http\Controllers\ForgotPasswordController;
 use App\Http\Controllers\GlobalSearchController;
@@ -73,6 +75,7 @@ use App\Http\Controllers\ImpersonationController;
 use App\Http\Controllers\LabelController;
 use App\Http\Controllers\MySubscriptionController;
 use App\Http\Controllers\NotificationController;
+use App\Http\Controllers\NotificationPreferenceController;
 use App\Http\Controllers\OnboardingController;
 use App\Http\Controllers\PlanController;
 use App\Http\Controllers\ProjectController;
@@ -95,9 +98,11 @@ use App\Http\Controllers\TenantHrmsController;
 use App\Http\Controllers\TenantSubscriptionController;
 use App\Http\Controllers\ThemeController;
 use App\Http\Controllers\UserController;
+use App\Http\Controllers\WebhookController;
 use App\Http\Controllers\WorkLogController;
 use App\Http\Controllers\WorkspaceController;
 use App\Http\Controllers\WorkspaceMemberController;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Broadcast;
 use Illuminate\Support\Facades\Route;
 
@@ -124,6 +129,11 @@ Route::prefix('api')->group(function () {
         Route::get('notifications/unread', [NotificationController::class, 'unread']);
         Route::post('notifications/{notification}/read', [NotificationController::class, 'markRead']);
         Route::post('notifications/mark-all-read', [NotificationController::class, 'markAllRead']);
+
+        // Per-event notification preferences (tenant tables, self-scoped like
+        // the notifications family; the SA short-circuit mirrors them).
+        Route::get('notification-preferences', [NotificationPreferenceController::class, 'show']);
+        Route::put('notification-preferences', [NotificationPreferenceController::class, 'update']);
 
         // HR inbox (self-scoped by login like notifications; the service
         // short-circuits platform super admins to empty payloads).
@@ -157,10 +167,24 @@ Route::prefix('api')->group(function () {
         // onboarding gate so the wizard's subscription step can read plan data.
         Route::get('my-subscription', [MySubscriptionController::class, 'show']);
         Route::get('my-usage', [MySubscriptionController::class, 'usage']);
-        Route::post('my-subscription/switch', [MySubscriptionController::class, 'switch']);
-        Route::post('my-subscription/cancel', [MySubscriptionController::class, 'cancel']);
-        Route::post('my-subscription/renew', [MySubscriptionController::class, 'renew']);
+        Route::post('my-subscription/switch', [MySubscriptionController::class, 'switch'])->middleware('throttle:10,1');
+        Route::post('my-subscription/cancel', [MySubscriptionController::class, 'cancel'])->middleware('throttle:10,1');
+        Route::post('my-subscription/renew', [MySubscriptionController::class, 'renew'])->middleware('throttle:10,1');
         Route::get('plans', [PlanController::class, 'index']);
+
+        // Phase 6: tenant payments & billing
+        Route::post('billing/checkout', [BillingController::class, 'checkout'])->middleware('throttle:10,1');
+        Route::post('billing/verify', [BillingController::class, 'verify'])->middleware('throttle:10,1');
+        Route::get('billing/history', [BillingController::class, 'history']);
+        Route::post('billing/payments/{payment}/refund', [BillingController::class, 'refund'])->middleware('throttle:5,1');
+
+        // Phase 5: full tenant data export (gated by the export.full module).
+        // throttle:5,1 — exports are heavy; 5 requests/minute is generous.
+        Route::middleware('ensure_module:export.full')->group(function () {
+            Route::get('my-export', [ExportController::class, 'index']);
+            Route::post('my-export', [ExportController::class, 'store'])->middleware('throttle:5,1');
+            Route::get('my-export/{run}', [ExportController::class, 'show']);
+        });
 
         // Phase 9: global multi-entity search. Lives OUTSIDE tenant_context so a
         // non-impersonating super admin can search across all tenants (the
@@ -174,7 +198,7 @@ Route::prefix('api')->group(function () {
         Route::middleware('super_admin')->group(function () {
             // Phase 13: tenancy platform (central DB index across tenant DBs).
             Route::get('tenants', [TenantController::class, 'index']);
-            Route::post('tenants', [TenantController::class, 'store']);
+            Route::post('tenants', [TenantController::class, 'store'])->middleware('throttle:10,1');
             Route::get('tenants/{tenant}', [TenantController::class, 'show']);
             Route::put('tenants/{tenant}', [TenantController::class, 'update']);
             Route::get('tenants/{tenant}/profile', [TenantController::class, 'getProfile']);
@@ -224,10 +248,10 @@ Route::prefix('api')->group(function () {
             Route::post('system/pages/{websitePage}/publish', [CmsController::class, 'publish']);
             Route::post('system/pages/{websitePage}/unpublish', [CmsController::class, 'unpublish']);
 
-            Route::post('impersonate', [ImpersonationController::class, 'start']);
+            Route::post('impersonate', [ImpersonationController::class, 'start'])->middleware('throttle:10,1');
         });
 
-        Route::post('impersonate/stop', [ImpersonationController::class, 'stop']);
+        Route::post('impersonate/stop', [ImpersonationController::class, 'stop'])->middleware('throttle:30,1');
     });
 
     Route::middleware(['switch_tenant', 'auth', 'tenant', 'tenant_context', 'onboarding_complete'])->group(function () {
@@ -237,7 +261,7 @@ Route::prefix('api')->group(function () {
         // (an impersonating super admin is the impersonated tenant user, so the
         // tenant-context + `users.manage` checks both apply to them).
         Route::get('users', [UserController::class, 'index'])->middleware('permission:users.view');
-        Route::post('users', [UserController::class, 'store'])->middleware('permission:users.manage');
+        Route::post('users', [UserController::class, 'store'])->middleware(['permission:users.manage', 'throttle:30,1']);
         Route::put('users/{user}/roles', [UserController::class, 'updateRoles'])->middleware('permission:users.manage');
         // The tenant's protected default user: shiftable by a tenant admin or a
         // super admin (onto another admin), and never deletable.
@@ -280,6 +304,7 @@ Route::prefix('api')->group(function () {
             Route::post('projects/{project}/restore', [ProjectController::class, 'restore']);
 
             Route::get('projects/{project}/members', [ProjectMemberController::class, 'index']);
+            Route::get('projects/{project}/members/autocomplete', [ProjectMemberController::class, 'autocomplete']);
             Route::post('projects/{project}/members', [ProjectMemberController::class, 'store']);
             Route::put('projects/{project}/members/{user}', [ProjectMemberController::class, 'update']);
             Route::delete('projects/{project}/members/{user}', [ProjectMemberController::class, 'destroy']);
@@ -294,6 +319,7 @@ Route::prefix('api')->group(function () {
             // tasks.* permissions) + ProjectPolicy::createTask.
             Route::get('projects/{project}/tasks', [TaskController::class, 'index']);
             Route::post('projects/{project}/tasks', [TaskController::class, 'store']);
+            Route::get('projects/{project}/tasks/key/{key}', [TaskController::class, 'showByKey'])->where('key', '[A-Za-z0-9-]+');
             Route::get('projects/{project}/tasks/{task}', [TaskController::class, 'show']);
             Route::put('projects/{project}/tasks/{task}', [TaskController::class, 'update']);
             Route::delete('projects/{project}/tasks/{task}', [TaskController::class, 'destroy']);
@@ -354,13 +380,14 @@ Route::prefix('api')->group(function () {
         Route::delete('project-roles/{role}', [ProjectRoleController::class, 'destroy'])->middleware('permission:roles.manage');
     });
 
-    // HRMS tenant scope (Phase 19 P19.5). Every HRMS surface below runs
-    // behind `tenant_context` (+ the onboarding gate) like the rest of the
-    // domain: without it a non-impersonating super admin falls through to
-    // tenant-table queries on the system connection and answers 500
-    // instead of 403. The signed file routes further below stay outside —
+    // HRMS tenant scope. Every HRMS surface below runs the FULL domain stack
+    // (`switch_tenant` → `auth` → `tenant` → `tenant_context` + the onboarding
+    // gate) like the rest of the domain: without SwitchTenant, route-model
+    // binding runs on whatever connection the process started with (the
+    // central DB in production) and every bound HRMS route answers 500
+    // instead of data. The signed file routes further below stay outside —
     // the signature is their credential.
-    Route::middleware(['tenant_context', 'onboarding_complete'])->group(function () {
+    Route::middleware(['switch_tenant', 'auth', 'tenant', 'tenant_context', 'onboarding_complete'])->group(function () {
 
         // HRMS org structure (Phase 15 P3.3). The same two gates as the employee
         // surface: `hrms.core` decides whether the module exists for this tenant
@@ -510,8 +537,9 @@ Route::prefix('api')->group(function () {
             Route::get('hrms/attendance/today', [AttendanceRecordsController::class, 'today']);
             // Exports are the heaviest reads on this surface (up to 93 days of
             // rows per pull), so the one bulk endpoint rides the throttle while
-            // the month grid and widget stay unthrottled.
-            Route::get('hrms/attendance/export', [AttendanceRecordsController::class, 'export'])->middleware('throttle:30,1');
+            // the month grid and widget stay unthrottled — and unlike those
+            // self-service reads, exports answer to tenant admins only.
+            Route::get('hrms/attendance/export', [AttendanceRecordsController::class, 'export'])->middleware(['throttle:30,1', 'permission:workspaces.manage']);
         });
 
         // HRMS leave catalogue (Phase 15 P6.4a). Module-gated on `hrms.leave`
@@ -827,9 +855,12 @@ Route::prefix('api')->group(function () {
             Route::get('hrms/my/assets', [AssetController::class, 'mine']);
         });
 
-        Route::get('hrms/assets/{asset}/document', [AssetController::class, 'document'])
-            ->middleware('signed')
-            ->name('hrms.assets.document');
+        // NOTE: `hrms/assets/{asset}/document` is NOT declared here even though
+        // it reads like an asset route: it is a signed session-free download
+        // (the signature is the credential, like every signed file route), so
+        // it lives with the other signed downloads below, outside all
+        // auth/tenant groups. Declaring it here would stack the group's `auth`
+        // on top and 401 every fresh-tab download.
 
         // HRMS performance, first half (Phase 15 P12.4a): cycles, goals,
         // check-ins and 1:1s. Same two gates plus the performance module; the
@@ -932,11 +963,43 @@ Route::prefix('api')->group(function () {
     Route::get('hrms/payroll/payslips/{payslip}/download', PayslipDownloadController::class)
         ->middleware('signed')
         ->name('hrms.payslips.download');
+
+    // Same shape for an asset invoice file: outside switch_tenant and outside
+    // every auth/tenant group, so a fresh-tab GET works on the signature alone.
+    // `asset` is intentionally an int resolved inside the tenant connection.
+    Route::get('hrms/assets/{asset}/document', [AssetController::class, 'document'])
+        ->middleware('signed')
+        ->name('hrms.assets.document');
+
+    // Phase 5: full-tenant export ZIP download. Same session-free pattern as
+    // every signed file route above. The central tenant id travels inside the
+    // signature; the ExportRun lookup happens inside TenantDatabaseManager::using().
+    // `run` is an int (not model-bound — the default connection is central here).
+    Route::get('api/exports/{run}/download', [ExportController::class, 'download'])
+        ->middleware('signed')
+        ->name('exports.download');
 });
+
+// Phase 6: Public payment webhook endpoints (outside auth/tenant groups).
+Route::post('api/webhooks/stripe', [WebhookController::class, 'handleStripe'])->middleware('throttle:60,1');
+Route::post('api/webhooks/razorpay', [WebhookController::class, 'handleRazorpay'])->middleware('throttle:60,1');
 
 // Public marketing site (server-rendered from the DB-backed CMS pages).
 Route::get('/', [PublicSiteController::class, 'home']);
 Route::get('page/{slug}', [PublicSiteController::class, 'page']);
+
+// Named reset landing for the framework's ResetPassword mail: the notification
+// builds its URL via `route('password.reset', token + email)`, and without this
+// name every forgot-password request for a REAL address 500s with
+// "Route [password.reset] not defined" (unknown addresses never reach the
+// mail build, which is how the breakage hid from the uniform-response shape).
+// It redirects straight into the SPA reset page, which owns the form.
+Route::get('/reset-password/{token}', function (Request $request, string $token) {
+    return redirect()->to('/app/reset-password?'.http_build_query([
+        'token' => $token,
+        'email' => $request->query('email'),
+    ]));
+})->name('password.reset');
 Route::get('sitemap.xml', [PublicSiteController::class, 'sitemap'])->name('sitemap');
 Route::get('robots.txt', [PublicSiteController::class, 'robots'])->name('robots');
 

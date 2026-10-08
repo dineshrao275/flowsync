@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Controllers\Concerns\DetectsPlatformUsers;
 use App\Models\SubscriptionPlan;
 use App\Models\Tenant;
 use App\Services\SubscriptionService;
@@ -20,21 +21,27 @@ use Illuminate\Http\Request;
  */
 class MySubscriptionController extends Controller
 {
+    use DetectsPlatformUsers;
+
     public function __construct(
         private readonly SubscriptionService $subscriptions,
         private readonly TenantLimits $limits,
     ) {}
 
-    public function show(): JsonResponse
+    public function show(Request $request): JsonResponse
     {
+        $this->authorizeBillingView($request);
+
         return response()->json($this->payload($this->currentTenant()));
     }
 
     /**
      * Current usage against the effective plan limits (tenant DB counts).
      */
-    public function usage(): JsonResponse
+    public function usage(Request $request): JsonResponse
     {
+        $this->authorizeBillingView($request);
+
         $tenant = $this->currentTenant();
 
         $usage = [];
@@ -106,7 +113,40 @@ class MySubscriptionController extends Controller
 
     private function authorizeAdmin(Request $request): void
     {
-        abort_unless($request->user()?->hasRole('admin'), 403, 'Only tenant admins can manage the subscription.');
+        abort_unless(
+            $request->user()?->hasRole('admin') || $request->user()?->hasPermission('billing.manage'),
+            403,
+            'Only tenant admins can manage the subscription.',
+        );
+    }
+
+    /**
+     * Viewing subscription info is restricted to tenant admins (role: admin)
+     * or any user explicitly granted the `billing.view` permission by their
+     * tenant admin. The `billing.view` permission is included in the admin
+     * role via the `*` wildcard in `config/permissions.php`; other roles
+     * receive it only when a tenant admin explicitly grants it.
+     */
+    private function authorizeBillingView(Request $request): void
+    {
+        // Platform super admins live on the system DB, which holds no
+        // tenant roles table — skip the check; currentTenant() 404s
+        // downstream exactly as before.
+        if ($this->isPlatformSuperAdmin($request)) {
+            return;
+        }
+
+        $user = $request->user();
+
+        if ($user && ! $user->relationLoaded('roles')) {
+            $user->load(['roles', 'roles.permissions']);
+        }
+
+        abort_unless(
+            $user?->hasRole('admin') || $user?->hasPermission('billing.view'),
+            403,
+            'You do not have permission to view billing information.',
+        );
     }
 
     private function currentTenant(): Tenant

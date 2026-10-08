@@ -42,11 +42,11 @@ deletes: trashed rows 404, excluded everywhere (locked by `HardeningTest`).
   as `comment.synced`.
 - **Dependencies:** `{blocked_by, blocks}`; rejects self-dep, cross-project, dupes,
   BFS-detected cycles. `TaskDependency` has no `tenant_id`.
-- **Attachments:** `File::types([jpeg,png,gif,webp,svg,pdf,doc,docx,xls,xlsx,ppt,pptx,
+- **Attachments:** `File::types([jpeg,png,gif,webp,pdf,doc,docx,xls,xlsx,ppt,pptx,
   txt,md,csv,zip,json])->max(10MB)` on `local` disk
   (`storage/app/private/tasks/{project}/{task}/{uuid}.{ext}`). Signed download
   `attachments.download` outside auth (see `02-backend-conventions.md`). Delete
-  removes the file too. **SVG in allow-list = stored-XSS risk** (see `10-security.md`).
+  removes the file too. **SVG removed in Phase 1 hardening** (stored-XSS prevention; see `10-security.md`).
 - **Activity:** `ActivityLogger::log()` polymorphic rows; wired on task
   create/update/delete/move, comments, deps, attachments. Order by `id` desc.
 

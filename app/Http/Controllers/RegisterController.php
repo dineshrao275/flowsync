@@ -10,6 +10,7 @@ use App\Models\SystemUser;
 use App\Models\Tenant;
 use App\Models\TenantUserRouting;
 use App\Models\User;
+use App\Services\Hrms\Employee\EmployeeBackfill;
 use App\Services\TenantOnboarding;
 use App\Support\TenantDatabaseManager;
 use App\Support\TenantProvisioner;
@@ -30,6 +31,7 @@ class RegisterController extends Controller
         private readonly TenantOnboarding $onboarding,
         private readonly TenantDatabaseManager $dbm,
         private readonly TenantProvisioner $provisioner,
+        private readonly EmployeeBackfill $backfill,
     ) {}
 
     public function store(RegisterRequest $request, AuthController $auth): JsonResponse
@@ -108,6 +110,10 @@ class RegisterController extends Controller
             ->delete();
 
         $this->provisioner->syncRouting($this->dbm, $tenant);
+
+        // The registrant signs in immediately — link their employment record
+        // now, same as any created login, so self-service works on arrival.
+        $this->dbm->using($tenant, fn () => $this->backfill->linkFor($user));
 
         return $user;
     }

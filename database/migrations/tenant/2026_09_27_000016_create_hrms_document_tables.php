@@ -7,6 +7,14 @@ use Illuminate\Support\Facades\Schema;
 /**
  * Phase 15 — HRMS employee documents (tenant database).
  *
+ * Numbered 000016, out of chronological order, on purpose: five later
+ * files (lifecycle, leave, comp-off, payroll, statutory) hold foreign
+ * keys into these two tables, and PostgreSQL validates the referenced
+ * table at CREATE time — a later number breaks every fresh provision
+ * with `relation "document_types" does not exist`, while SQLite
+ * silently tolerates the forward reference (which is why the suite
+ * never caught it). Renaming is safe for migrated databases: every
+ * create here is hasTable-guarded, so the file re-runs as a no-op.
  *   document_types     — the tenant's document catalogue: a passport is
  *       mandatory everywhere, a work visa is mandatory for nobody. `is_system`
  *       is what stops a type payroll or a compliance report already relies on

@@ -33,5 +33,10 @@ return [
         // PostgreSQL, most local devboxes), in which case tenant databases are
         // created with this role as owner instead of a per-tenant one.
         'pg_role' => env('TENANT_DB_PG_ROLE'),
+        // Optional pg_trgm GIN indexes for LIKE '%q%' search (Phase 2). Off by
+        // default: CREATE EXTENSION needs a role that can install extensions,
+        // and sqlite tests have no trigram ops. Enable on PostgreSQL tenants
+        // with ENABLE_TRGM=true then `tenants:provision`.
+        'enable_trgm' => filter_var(env('ENABLE_TRGM', false), FILTER_VALIDATE_BOOLEAN),
     ],
 ];

@@ -9,6 +9,7 @@ use App\Models\User;
 use App\Services\HrmsAuditLogger;
 use App\Support\TenantContext;
 use App\Support\TenantDatabaseManager;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Storage;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
@@ -32,11 +33,12 @@ class EmployeePhotoService
      * Null rather than a URL that 404s: the avatar slot falls back to initials,
      * and a broken image is worse than a missing one.
      *
-     * The `$actorUserId` is the reader the URL is minted for. The download route
-     * has no session — that is the entire reason it is signed — so without this
-     * the download is an unattributable read of someone's face.
+     * The `$actorUserId` is the reader the URL is minted for and is REQUIRED:
+     * the download route has no session — that is the entire reason it is
+     * signed — so without a named reader the download would be an
+     * unattributable read of someone's face, and the stream refuses it.
      */
-    public function url(Employee $employee, ?int $actorUserId = null): ?string
+    public function url(Employee $employee, int $actorUserId): ?string
     {
         if ($employee->photo_path === null || $employee->photo_path === '') {
             return null;
@@ -77,7 +79,16 @@ class EmployeePhotoService
 
             abort_if($record === null || $record->photo_path === null, 404);
 
-            if (! Storage::disk('public')->exists($record->photo_path)) {
+            // A face is readable exactly by whoever may open the record
+            // (EmployeePolicy::view — self or the directory permission). The
+            // reader rides inside the signature because the route has no
+            // session; nobody anonymous, even with a valid signature.
+            $reader = $this->resolveActor($actorUserId);
+            abort_if($reader === null, 403, 'This download needs a signed reader.');
+            $reader->loadMissing('roles.permissions');
+            Gate::forUser($reader)->authorize('view', $record);
+
+            if (! Storage::disk('local')->exists($record->photo_path)) {
                 abort(404, 'File no longer exists.');
             }
 
@@ -86,11 +97,11 @@ class EmployeePhotoService
                 $record->id,
                 DataAccessAction::Download,
                 ['photo_path'],
-                $this->resolveActor($actorUserId),
+                $reader,
                 $ipAddress,
             );
 
-            return Storage::disk('public')->download($record->photo_path);
+            return Storage::disk('local')->download($record->photo_path);
         });
     }
 

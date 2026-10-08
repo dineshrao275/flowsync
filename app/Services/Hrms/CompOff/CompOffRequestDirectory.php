@@ -3,17 +3,18 @@
 namespace App\Services\Hrms\CompOff;
 
 use App\Models\Hrms\CompOff\CompOffRequest;
-use App\Models\Hrms\Employee\Employee;
 use App\Models\User;
+use App\Services\Hrms\HrmsScope;
 use Illuminate\Support\Collection;
 
 /**
  * CompOff/HRMS — which redemption asks a viewer may list.
  *
- * The set-level half of the ask policy: a viewer with `comp_off.view` (or
- * manage) sees every ask, anyone else sees only their own employment
- * record's — both reading the same permissions the policy answers per
- * row, so the two cannot disagree.
+ * The set-level half of the ask policy: a caller whose view reads the whole
+ * tenant (`_all`, the legacy slug, or manage) sees every ask, `_assigned`
+ * sees their rows plus their direct reports', `_own` and self-service see
+ * their own record's — both reading the same permissions the policy answers
+ * per row, so the two cannot disagree.
  */
 class CompOffRequestDirectory
 {
@@ -28,9 +29,7 @@ class CompOffRequestDirectory
             ->orderByDesc('id');
 
         if (! $this->mayReviewAll($viewer)) {
-            $employeeId = Employee::where('user_id', $viewer->id)->value('id');
-
-            $query->where('employee_id', $employeeId ?? -1);
+            $query->whereIn('employee_id', HrmsScope::employeeIdsFor($viewer, 'hrms.comp_off'));
         } elseif (isset($filters['employee_id'])) {
             $query->where('employee_id', (int) $filters['employee_id']);
         }
@@ -44,7 +43,6 @@ class CompOffRequestDirectory
 
     public function mayReviewAll(User $viewer): bool
     {
-        return $viewer->hasPermission('hrms.comp_off.view')
-            || $viewer->hasPermission('hrms.comp_off.manage');
+        return HrmsScope::seesAll($viewer, 'hrms.comp_off');
     }
 }

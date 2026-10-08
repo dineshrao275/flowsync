@@ -292,6 +292,25 @@ class TaskTest extends TestCase
         $this->assertDatabaseHas('tasks', ['id' => $task->id]);
     }
 
+    public function test_task_resolves_by_key_for_deep_links(): void
+    {
+        $ws = $this->makeWorkspace();
+        $project = $this->createProject($ws);
+        $parent = $this->makeTask($project, 'Parent');
+        // A subtask never rides the board pool, so the drawer deep link
+        // resolves it by key instead of by pool lookup.
+        $sub = $this->makeTask($project, 'Child', ['parent_id' => $parent->id]);
+
+        $this->login('admin@flowsync.test');
+
+        $this->getJson("/api/projects/{$project->id}/tasks/key/{$sub->key}")
+            ->assertOk()
+            ->assertJsonPath('task.id', $sub->id)
+            ->assertJsonPath('task.key', $sub->key);
+
+        $this->getJson("/api/projects/{$project->id}/tasks/key/NOPE-999")->assertNotFound();
+    }
+
     public function test_lead_can_update_assign_toggle_labels_and_split(): void
     {
         $ws = $this->makeWorkspace();

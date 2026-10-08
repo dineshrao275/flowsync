@@ -271,7 +271,7 @@ class EmployeeController extends Controller
         // A photo is a face, so it is gated exactly like the other personal
         // fields, and the initials fallback in the avatar slot takes the place.
         $record['photo_url'] = $sensitive
-            ? $this->photos->url($employee, $request->user()?->id)
+            ? $this->photos->url($employee, $request->user()->id)
             : null;
 
         return $record;

@@ -22,10 +22,43 @@ use Illuminate\Validation\ValidationException;
 class TenantLimits
 {
     /**
+     * Unit-of-work cache: fingerprint → merged limits array.
+     *
+     * The fingerprint includes tenant id, plan id, and the override payload so
+     * an in-request `limits_override` write (tests, SA entitlement screen) is
+     * not served a stale merge. The memo must never outlive its unit of work —
+     * a plan edit has to be visible on the very next read — so
+     * `AppServiceProvider` flushes it on `RequestHandled` and `JobProcessing`,
+     * and the test harness flushes it per test.
+     *
+     * @var array<string, array<string, mixed>>
+     */
+    private static array $memo = [];
+
+    /**
+     * Flush the unit-of-work memo: test setUp/tearDown, plus the request and
+     * queued-job boundaries registered in `AppServiceProvider`.
+     */
+    public static function resetMemo(): void
+    {
+        self::$memo = [];
+    }
+
+    /**
      * Merged limits for a tenant (plan first, tenant override wins).
+     *
+     * Memoized for one request/queued job: the same tenant is only queried
+     * once even when assertQuota() is called repeatedly (create task → user,
+     * workspace, project, task each call this in the same request cycle).
      */
     public function effective(Tenant $tenant): array
     {
+        $key = $this->memoKey($tenant);
+
+        if (array_key_exists($key, self::$memo)) {
+            return self::$memo[$key];
+        }
+
         $limits = [];
 
         if ($subscription = $tenant->subscription) {
@@ -36,7 +69,7 @@ class TenantLimits
             $limits = array_merge($limits, $tenant->limits_override);
         }
 
-        return $limits;
+        return self::$memo[$key] = $limits;
     }
 
     /**
@@ -223,5 +256,14 @@ class TenantLimits
             'employees' => Employee::count(),
             default => 0,
         };
+    }
+
+    private function memoKey(Tenant $tenant): string
+    {
+        return implode(':', [
+            (string) $tenant->id,
+            (string) ($tenant->subscription?->plan_id ?? 'none'),
+            md5((string) json_encode($tenant->limits_override ?? [])),
+        ]);
     }
 }

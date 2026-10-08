@@ -44,6 +44,7 @@ export default function Analytics() {
     const [searchParams, setSearchParams] = useSearchParams();
 
     const tabs = useMemo(() => TABS.filter((tab) => can(tab.permission)), [can]);
+    const canExport = can('permission:workspaces.manage');
     const requested = searchParams.get('tab');
     const activeTab = tabs.some((tab) => tab.key === requested) ? requested : (tabs[0]?.key ?? 'overview');
     const active = TABS.find((tab) => tab.key === activeTab) ?? TABS[0];
@@ -143,7 +144,7 @@ export default function Analytics() {
                     <h2 className="text-xl font-semibold text-gray-900">Analytics</h2>
                     <p className="mt-0.5 text-sm text-gray-500">Workforce dashboards across every HRMS domain.</p>
                 </div>
-                {active.exportDomain && (
+                {active.exportDomain && canExport && (
                     <Button variant="secondary" onClick={exportCsv} disabled={exporting || !data}>
                         {exporting ? 'Exporting…' : 'Export CSV'}
                     </Button>

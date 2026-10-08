@@ -7,6 +7,7 @@ use App\Models\Hrms\Payroll\EmployeeSalaryStructure;
 use App\Models\Hrms\Payroll\PayrollRun;
 use App\Models\Hrms\Payroll\Payslip;
 use App\Models\Hrms\Payroll\SalaryComponent;
+use App\Models\Hrms\Payroll\SalaryStructure;
 use App\Models\Hrms\Shared\HrmsSetting;
 use App\Services\Hrms\AttendanceService;
 use App\Services\Hrms\Compensation\CompensationService;
@@ -48,9 +49,9 @@ class PayslipCalculator
      * @param  list<array{kind: string, label: string, amount: string, component_id?: int|null, reference_type?: string|null, reference_id?: int|null, note?: string|null, actor_user_id?: int|null}>  $preservedAdjustments
      * @return array<string, mixed>|null
      */
-    public function build(Employee $employee, PayrollRun $run, array $preservedAdjustments = []): ?array
+    public function build(Employee $employee, PayrollRun $run, array $preservedAdjustments = [], ?EmployeeSalaryStructure $assignment = null): ?array
     {
-        $assignment = $this->assignmentFor($employee, $run);
+        $assignment ??= $this->assignmentFor($employee, $run);
 
         if ($assignment === null) {
             return null;
@@ -81,7 +82,7 @@ class PayslipCalculator
         $lop = round($full + $half * 0.5 + $leave['unpaid_days'], 2);
         $paid = max(0, round($working - $lop, 2));
 
-        $structure = $assignment->structure()->with('components')->firstOrFail();
+        $structure = $this->structureOf($assignment);
 
         $resolved = $this->compensation->ctcToComponents($structure, (string) $assignment->ctc_annual);
 
@@ -268,5 +269,18 @@ class PayslipCalculator
             ->whereDate('effective_from', '<=', $payDate)
             ->orderByDesc('effective_from')
             ->first();
+    }
+
+    private function structureOf(EmployeeSalaryStructure $assignment): SalaryStructure
+    {
+        if ($assignment->relationLoaded('structure') && $assignment->structure !== null) {
+            if (! $assignment->structure->relationLoaded('components')) {
+                $assignment->structure->load('components');
+            }
+
+            return $assignment->structure;
+        }
+
+        return $assignment->structure()->with('components')->firstOrFail();
     }
 }

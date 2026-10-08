@@ -11,6 +11,7 @@ import Select from '../../components/ui/Select';
 import Spinner from '../../components/ui/Spinner';
 import { Table, Th, Td, TableEmpty } from '../../components/ui/Table';
 import { useToast } from '../../context/ToastContext';
+import { useAuth } from '../../context/AuthContext';
 import { useSetCrumbs } from '../../context/BreadcrumbContext';
 import usePageTitle from '../../hooks/usePageTitle';
 import LeaveBalanceTable from '../../components/hrms/LeaveBalanceTable';
@@ -50,20 +51,33 @@ const ACCRUAL_PERIODS = [
 
 const emptyType = { name: '', code: '', is_paid: true, accrual_method: 'none', accrual_rate: 0, max_balance: '', allow_half_day: true, is_active: true };
 const emptyPolicy = { name: '', accrual_period: 'annual', start_month: 1, description: '', is_default: false, is_active: true };
+const emptyExemption = { employee_id: '', leave_type_id: '', from_date: '', to_date: '', days: '', reason: '', fiscal_year: '' };
 
 /**
  * Leave administration: the queues, the catalogue, and everyone's balances.
  *
  * Route-gated on `hrms.leave.manage`, so every picker and button here may
  * assume it: the request modal files for a chosen employee, the catalogue
- * edits land directly, and the exemption queue decides in place. The
- * self-service twin lives on `/hrms/leave/mine`.
+ * edits land directly, and the exemption queue decides in place — with the
+ * verdict itself still answered by the approval chain, so a manage holder
+ * who is not the current approver gets the backend's "only the assigned
+ * approver" toast rather than a silent pass. The exemption tab and its
+ * fetch additionally ride `hrms.leave.exemption` (the two entitlements
+ * move separately), so a plan with leave but without the exemption module
+ * still gets a working catalogue instead of a 403. The self-service twin
+ * lives on `/hrms/leave/mine`.
  */
 export default function Leave() {
     usePageTitle('Leave');
     const setCrumbs = useSetCrumbs();
     const navigate = useNavigate();
     const toast = useToast();
+    const { hasModule } = useAuth();
+
+    // The exemption queue rides its own module (`hrms.leave.exemption`),
+    // which moves independently of `hrms.leave` — fetch it only when the
+    // plan carries it, or the shared catalogue load 403s the whole page.
+    const showExemptions = hasModule('hrms.leave.exemption');
 
     const [tab, setTab] = useState('requests');
     const [error, setError] = useState(null);
@@ -91,6 +105,10 @@ export default function Leave() {
 
     const [exemptions, setExemptions] = useState(null);
     const [filing, setFiling] = useState(false);
+
+    const [filingExemption, setFilingExemption] = useState(false);
+    const [exemptionForm, setExemptionForm] = useState(emptyExemption);
+    const [exemptionErrors, setExemptionErrors] = useState({});
 
     useEffect(() => {
         setCrumbs([{ label: 'HRMS', to: '/hrms' }, { label: 'Leave' }]);
@@ -120,12 +138,17 @@ export default function Leave() {
     const loadCatalog = useCallback(() => {
         setError(null);
 
-        return Promise.all([
+        const loads = [
             api.get('/hrms/leave/types').then(({ data }) => setTypes(data.leave_types ?? [])),
             api.get('/hrms/leave/policies').then(({ data }) => setPolicies(data.leave_policies ?? [])),
-            api.get('/hrms/leave/exemptions').then(({ data }) => setExemptions(data.exemptions ?? [])),
-        ]).catch(fail('Unable to load the leave catalogue.'));
-    }, [fail]);
+        ];
+
+        if (showExemptions) {
+            loads.push(api.get('/hrms/leave/exemptions').then(({ data }) => setExemptions(data.exemptions ?? [])));
+        }
+
+        return Promise.all(loads).catch(fail('Unable to load the leave catalogue.'));
+    }, [fail, showExemptions]);
 
     const loadBalances = useCallback(() => {
         if (!balanceEmployee) {
@@ -268,6 +291,30 @@ export default function Leave() {
         }
     }
 
+    async function saveExemption(e) {
+        e.preventDefault();
+        setExemptionErrors({});
+
+        try {
+            await api.post('/hrms/leave/exemptions', {
+                employee_id: Number(exemptionForm.employee_id),
+                leave_type_id: Number(exemptionForm.leave_type_id),
+                from_date: exemptionForm.from_date,
+                to_date: exemptionForm.to_date,
+                days: Number(exemptionForm.days),
+                reason: exemptionForm.reason,
+                fiscal_year: exemptionForm.fiscal_year ? Number(exemptionForm.fiscal_year) : null,
+            });
+
+            toast.success('Exemption filed — it now sits with the approver chain.');
+            setFilingExemption(false);
+            setExemptionForm(emptyExemption);
+            loadCatalog();
+        } catch (err) {
+            setExemptionErrors(fieldErrors(err));
+        }
+    }
+
     function openTypeEditor(type) {
         setEditingType(type ?? null);
         setTypeForm(type ? { ...emptyType, ...type } : emptyType);
@@ -298,7 +345,7 @@ export default function Leave() {
             {error && <Alert>{error}</Alert>}
 
             <div className="flex gap-1 border-b border-gray-200">
-                {TABS.map((item) => (
+                {TABS.filter((item) => item.key !== 'exemptions' || showExemptions).map((item) => (
                     <button
                         key={item.key}
                         type="button"
@@ -478,7 +525,19 @@ export default function Leave() {
             )}
 
             {tab === 'exemptions' && (
-                <Card dense title="Exemptions">
+                <>
+                    <div className="flex justify-end">
+                        <Button
+                            onClick={() => {
+                                setExemptionForm(emptyExemption);
+                                setExemptionErrors({});
+                                setFilingExemption(true);
+                            }}
+                        >
+                            File exemption
+                        </Button>
+                    </div>
+                    <Card dense title="Exemptions">
                     {!exemptions ? (
                         <div className="flex justify-center py-10"><Spinner /></div>
                     ) : exemptions.length === 0 ? (
@@ -515,6 +574,7 @@ export default function Leave() {
                         </Table>
                     )}
                 </Card>
+                </>
             )}
 
             <Modal open={!!deciding} onClose={() => setDeciding(null)} title={deciding?.verdict === 'approve' ? 'Approve leave' : 'Reject leave'}>
@@ -592,6 +652,35 @@ export default function Leave() {
                     loadRequests();
                 }}
             />
+
+            <Modal open={filingExemption} onClose={() => setFilingExemption(false)} title="File a statutory exemption">
+                <form onSubmit={saveExemption} className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                    <Select label="Employee" value={exemptionForm.employee_id} onChange={(e) => setExemptionForm({ ...exemptionForm, employee_id: e.target.value })} error={exemptionErrors.employee_id}>
+                        <option value="">Select a person…</option>
+                        {employees.map((employee) => (
+                            <option key={employee.id} value={employee.id}>{employee.name}</option>
+                        ))}
+                    </Select>
+                    <Select label="Leave type" value={exemptionForm.leave_type_id} onChange={(e) => setExemptionForm({ ...exemptionForm, leave_type_id: e.target.value })} error={exemptionErrors.leave_type_id}>
+                        <option value="">Select a type…</option>
+                        {(types ?? []).map((type) => (
+                            <option key={type.id} value={type.id}>{type.name}</option>
+                        ))}
+                    </Select>
+                    <Input label="From" type="date" value={exemptionForm.from_date} onChange={(e) => setExemptionForm({ ...exemptionForm, from_date: e.target.value })} error={exemptionErrors.from_date} />
+                    <Input label="To" type="date" value={exemptionForm.to_date} onChange={(e) => setExemptionForm({ ...exemptionForm, to_date: e.target.value })} error={exemptionErrors.to_date} />
+                    <Input label="Days" type="number" step="0.5" min="0.5" value={exemptionForm.days} onChange={(e) => setExemptionForm({ ...exemptionForm, days: e.target.value })} error={exemptionErrors.days} />
+                    <Input label="Fiscal year" type="number" placeholder={String(new Date().getFullYear())} value={exemptionForm.fiscal_year} onChange={(e) => setExemptionForm({ ...exemptionForm, fiscal_year: e.target.value })} error={exemptionErrors.fiscal_year} />
+                    <div className="sm:col-span-2">
+                        <Input label="Reason" value={exemptionForm.reason} onChange={(e) => setExemptionForm({ ...exemptionForm, reason: e.target.value })} error={exemptionErrors.reason} />
+                    </div>
+                    <div className="sm:col-span-2 flex justify-end gap-2">
+                        <Button type="button" variant="secondary" onClick={() => setFilingExemption(false)}>Cancel</Button>
+                        <Button type="submit">File exemption</Button>
+                    </div>
+                    {exemptionErrors.form && <Alert>{exemptionErrors.form}</Alert>}
+                </form>
+            </Modal>
         </div>
     );
 }

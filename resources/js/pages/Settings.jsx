@@ -1,6 +1,93 @@
+import { useEffect, useState } from 'react';
+import api from '../services/api';
 import Card from '../components/ui/Card';
+import Spinner from '../components/ui/Spinner';
 import { useAuth } from '../context/AuthContext';
+import { useToast } from '../context/ToastContext';
 import usePageTitle from '../hooks/usePageTitle';
+
+const EVENT_LABELS = {
+    'task.assigned': 'Task assigned to you',
+    'task.status_changed': 'A task you work on changes status',
+    'task.commented': 'Someone comments on or mentions your task',
+    'task.unblocked': 'A blocker on your task is removed',
+    'task.work_logged': 'Time is logged against your task',
+};
+
+function NotificationPreferences() {
+    const toast = useToast();
+    const [prefs, setPrefs] = useState(undefined);
+    const [saving, setSaving] = useState(false);
+
+    useEffect(() => {
+        api.get('/notification-preferences')
+            .then(({ data }) => setPrefs(data.preferences))
+            .catch(() => setPrefs(null));
+    }, []);
+
+    function toggle(event) {
+        if (!prefs || saving) return;
+
+        const last = prefs[event];
+        setPrefs({ ...prefs, [event]: !last });
+        setSaving(true);
+        api.put('/notification-preferences', { preferences: { ...prefs, [event]: !last } })
+            .then(() => toast.success('Notification preferences saved.'))
+            .catch(() => {
+                setPrefs({ ...prefs, [event]: last });
+                toast.error('Could not save your preferences.');
+            })
+            .finally(() => setSaving(false));
+    }
+
+    if (prefs === undefined) {
+        return (
+            <div className="flex justify-center py-8">
+                <Spinner />
+            </div>
+        );
+    }
+
+    if (prefs === null) {
+        return (
+            <p className="py-8 text-sm text-gray-500">
+                Notification preferences are unavailable right now.
+            </p>
+        );
+    }
+
+    return (
+        <ul className="divide-y divide-gray-100">
+            {Object.keys(prefs).map((event) => (
+                <li key={event} className="flex items-center justify-between gap-4 py-3">
+                    <div>
+                        <p className="text-sm font-medium text-gray-800">
+                            {EVENT_LABELS[event] ?? event}
+                        </p>
+                        <p className="text-xs text-gray-400">Email me when this happens</p>
+                    </div>
+                    <button
+                        type="button"
+                        role="switch"
+                        aria-checked={prefs[event]}
+                        aria-label={EVENT_LABELS[event] ?? event}
+                        onClick={() => toggle(event)}
+                        disabled={saving}
+                        className={`relative h-6 w-11 shrink-0 rounded-full transition-colors ${
+                            prefs[event] ? 'bg-indigo-600' : 'bg-gray-300'
+                        } disabled:opacity-60`}
+                    >
+                        <span
+                            className={`absolute top-0.5 left-0.5 h-5 w-5 rounded-full bg-white shadow transition-transform ${
+                                prefs[event] ? 'translate-x-5' : ''
+                            }`}
+                        />
+                    </button>
+                </li>
+            ))}
+        </ul>
+    );
+}
 
 export default function Settings() {
     usePageTitle('Settings');
@@ -67,6 +154,12 @@ export default function Settings() {
                     </div>
                 </Card>
                 </div>
+            </div>
+
+            <div className="animate-fade-in-up" style={{ animationDelay: '200ms' }}>
+                <Card title="Notifications" subtitle="Choose which task emails are delivered to you. In-app notifications are always shown.">
+                    <NotificationPreferences />
+                </Card>
             </div>
         </div>
     );

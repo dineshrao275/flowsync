@@ -43,7 +43,7 @@ export default function MyHr() {
         setError(null);
 
         return api
-            .get('/api/my/hr')
+            .get('/my/hr')
             .then(({ data }) => setHome(data))
             .catch((err) => {
                 if (err.response?.status === 403 || err.response?.status === 404) {

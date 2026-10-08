@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Role;
 use App\Models\TenantUserRouting;
 use App\Models\User;
+use App\Services\Hrms\Employee\EmployeeBackfill;
 use App\Services\TenantLimits;
 use App\Support\TenantContext;
 use Illuminate\Http\JsonResponse;
@@ -24,6 +25,7 @@ class UserController extends Controller
     public function __construct(
         private readonly TenantLimits $limits,
         private readonly TenantContext $tenantContext,
+        private readonly EmployeeBackfill $backfill,
     ) {}
 
     public function index(Request $request): JsonResponse
@@ -50,7 +52,7 @@ class UserController extends Controller
         $data = $request->validate([
             'name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'string', 'email', 'max:255', Rule::unique('users', 'email')],
-            'password' => ['required', 'string', 'min:8', 'confirmed'],
+            'password' => ['required', 'string', 'min:8', 'max:72', 'confirmed'],
             'roles' => ['required', 'array'],
             'roles.*' => ['string', 'exists:roles,slug'],
         ]);
@@ -77,6 +79,10 @@ class UserController extends Controller
                 'name' => $user->name,
             ]
         );
+
+        // Every login owns an employment record: self-service reads scope
+        // through it, so an account without one renders as broken HRMS.
+        $this->backfill->linkFor($user);
 
         return response()->json([
             'message' => 'User created.',

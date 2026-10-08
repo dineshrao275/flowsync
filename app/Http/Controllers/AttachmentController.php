@@ -7,13 +7,17 @@ use App\Models\Attachment;
 use App\Models\Project;
 use App\Models\Task;
 use App\Models\Tenant;
+use App\Models\User;
 use App\Services\ActivityLogger;
+use App\Services\TenantLimits;
 use App\Support\TenantContext;
 use App\Support\TenantDatabaseManager;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
+use Illuminate\Validation\ValidationException;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class AttachmentController extends Controller
@@ -21,6 +25,7 @@ class AttachmentController extends Controller
     public function __construct(
         private readonly ActivityLogger $logger,
         private readonly TenantContext $tenantContext,
+        private readonly TenantLimits $limits,
     ) {}
 
     public function index(Request $request, Project $project, Task $task): JsonResponse
@@ -32,7 +37,7 @@ class AttachmentController extends Controller
                 ->with('user')
                 ->orderBy('created_at')
                 ->get()
-                ->map(fn (Attachment $attachment) => $this->present($attachment)),
+                ->map(fn (Attachment $attachment) => $this->present($attachment, $request->user())),
         ]);
     }
 
@@ -41,8 +46,12 @@ class AttachmentController extends Controller
         $this->authorize('create', [Attachment::class, $task]);
 
         $data = $request->validated();
-
         $file = $data['file'];
+
+        // Phase 5 E6: enforce the plan's storage_bytes quota before writing.
+        // TenantLimits::assertQuota() handles row counts; bytes need a SUM.
+        $this->assertStorageQuota($file->getSize());
+
         $extension = $file->getClientOriginalExtension() ?: pathinfo($file->getClientOriginalName(), PATHINFO_EXTENSION);
         $storedName = Str::uuid().'.'.$extension;
         $path = $file->storeAs(
@@ -73,7 +82,7 @@ class AttachmentController extends Controller
 
         return response()->json([
             'message' => 'File uploaded.',
-            'attachment' => $this->present($attachment->load('user')),
+            'attachment' => $this->present($attachment->load('user'), $request->user()),
         ], 201);
     }
 
@@ -116,13 +125,24 @@ class AttachmentController extends Controller
 
         abort_if($tenant === null, 404);
 
-        return app(TenantDatabaseManager::class)->using($tenant, function () use ($task, $attachment) {
+        $actor = $request->query('actor');
+
+        return app(TenantDatabaseManager::class)->using($tenant, function () use ($task, $attachment, $actor) {
             $record = Attachment::query()
                 ->where('task_id', $task)
                 ->where('id', $attachment)
                 ->first();
 
             abort_if($record === null, 404);
+
+            // The file belongs to whoever may open the task (TaskPolicy::view —
+            // same rule as the JSON show). The reader rides inside the signature
+            // because the route has no session; nobody anonymous, even with a
+            // valid signature: a forwarded link is a bearer token.
+            $reader = $actor === null ? null : User::find((int) $actor);
+            abort_if($reader === null, 403, 'This download needs a signed reader.');
+            $reader->loadMissing('roles.permissions');
+            Gate::forUser($reader)->authorize('view', $record->task);
 
             if (! Storage::disk($record->disk)->exists($record->path)) {
                 abort(404, 'File no longer exists.');
@@ -132,7 +152,7 @@ class AttachmentController extends Controller
         });
     }
 
-    private function present(Attachment $attachment): array
+    private function present(Attachment $attachment, User $reader): array
     {
         return [
             'id' => $attachment->id,
@@ -151,8 +171,54 @@ class AttachmentController extends Controller
                     'task' => $attachment->task_id,
                     'attachment' => $attachment->id,
                     'tenant' => $this->tenantContext->currentId(),
+                    // The reader rides inside the signature: the download
+                    // route has no session, and the stream refuses anonymous
+                    // holders even with a valid signature.
+                    'actor' => $reader->id,
                 ],
             ),
         ];
+    }
+
+    /**
+     * Throw a 422 ValidationException when adding $newBytes to the current
+     * used storage would exceed the plan's storage_bytes limit.
+     *
+     * Called before writing the file to disk — quota enforcement must happen
+     * before the side-effect, not after.
+     */
+    private function assertStorageQuota(int $newBytes): void
+    {
+        $tenantId = $this->tenantContext->currentId();
+
+        if ($tenantId === null) {
+            // Provisioning / seeder / test context — skip.
+            return;
+        }
+
+        $tenant = Tenant::find($tenantId);
+
+        if (! $tenant) {
+            return;
+        }
+
+        $limitBytes = $this->limits->limit($tenant, 'storage_bytes');
+
+        if ($limitBytes === null) {
+            // No limit configured for this plan → unlimited.
+            return;
+        }
+
+        $usedBytes = Attachment::sum('size');
+
+        if (($usedBytes + $newBytes) > $limitBytes) {
+            $usedGb = round($usedBytes / (1024 ** 3), 2);
+            $limitGb = round($limitBytes / (1024 ** 3), 2);
+
+            throw ValidationException::withMessages([
+                'file' => "Storage quota exceeded. Your plan allows {$limitGb} GB; {$usedGb} GB is already in use. "
+                    .'Delete unused attachments or upgrade your plan.',
+            ]);
+        }
     }
 }

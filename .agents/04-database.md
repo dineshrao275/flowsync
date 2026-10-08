@@ -55,13 +55,31 @@ task links. `employees.shift_id` added via raw SQL (see `02-backend-conventions.
   morphs, `document_requests.(case_type,case_id)`) are bare integers + composite
   index by design — no DB integrity; application enforces.
 
-## Index gaps to close (Phase 2 backlog)
+## Indexes (Phase 2 — `2026_10_13_000036_add_phase2_performance_indexes`)
 
-`offboarding_case_tasks.expense_claim_id` (no index), `payroll/leave_adjustments.reference_id`
-(no index), `approvals.approvable_*` composite (verify), `notifications(user_id,read_at)`
-composite (verify — 30s poll hot path), `attendance_days[employee,work_date]` uniqueness
-(rollup idempotency), `[status_id,position]` covering index (board ordering), `pg_trgm`
-for `tasks.title/description` + `users.email` LIKE searches.
+Shipped (repair-safe: `hasTable`/`hasColumn`/`indexExists` guards; `$withinTransaction
+= false` so PostgreSQL can `CREATE INDEX CONCURRENTLY`):
+
+- `tasks(status_id, position)` — board column ordering (one covering index instead
+  of sort-by-`position` inside a `status_id` filter).
+- `offboarding_case_tasks.expense_claim_id`, `payslip_adjustments.reference_id`,
+  `leave_adjustments.reference_id` — bare future-FK / polymorphic columns.
+- `pg_trgm` GIN on `tasks.title`, `tasks.description`, `users.email` **only** behind
+  `ENABLE_TRGM=true` (`tenancy.tenant.enable_trgm`): `CREATE EXTENSION` needs a role
+  allowed to install extensions, and sqlite has no trigram operators. With the index
+  present, the existing `LIKE '%q%'` plans switch to it — no query rewriter needed.
+
+Verified as already present, asserted by `tests/Feature/DBPerformanceTest.php`
+(**not** re-created): `notifications(user_id, read_at, created_at)` (30s-poll hot
+path), `attendance_days` unique `(employee_id, work_date)` (rollup idempotency),
+`approvals(approvable_type, approvable_id)`.
+
+Gotcha this phase hit: the migration first named the payroll ledger
+`payroll_adjustments` — no such table — and its own `Schema::hasTable()` guard
+silently skipped the index, so the file looked correct while doing nothing. Same
+defect class as the `document_types` catalogue: a name that maps to no real object,
+invisible until a test asserts the *outcome*. `DBPerformanceTest` now asserts the
+index set by columns, so a mistyped table fails the suite instead of passing review.
 
 ## Migration rules
 

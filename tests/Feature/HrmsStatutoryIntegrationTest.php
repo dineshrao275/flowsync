@@ -211,13 +211,13 @@ class HrmsStatutoryIntegrationTest extends TestCase
                 'name' => "Test {$country}".($region === null ? '' : " {$region}"),
                 'is_active' => true,
                 'config' => [
-                'pf' => ['enabled' => true, 'employee_rate' => '12', 'employer_rate' => '12', 'wage_ceiling' => '15000'],
-                'professional_tax' => ['enabled' => true, 'slabs' => [
-                    ['up_to' => '30000', 'amount' => '150'],
-                    ['up_to' => null, 'amount' => $ptAmount],
-                ]],
-            ],
-        ]);
+                    'pf' => ['enabled' => true, 'employee_rate' => '12', 'employer_rate' => '12', 'wage_ceiling' => '15000'],
+                    'professional_tax' => ['enabled' => true, 'slabs' => [
+                        ['up_to' => '30000', 'amount' => '150'],
+                        ['up_to' => null, 'amount' => $ptAmount],
+                    ]],
+                ],
+            ]);
     }
 
     private function settingsRegion(?string $region): void

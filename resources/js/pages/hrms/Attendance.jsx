@@ -50,11 +50,12 @@ export default function Attendance() {
     usePageTitle('Attendance');
     const setCrumbs = useSetCrumbs();
     const navigate = useNavigate();
-    const { can } = useAuth();
+    const { can, user } = useAuth();
     const toast = useToast();
 
     const canViewOthers = can('permission:hrms.attendance.view');
     const canRegularize = can('permission:hrms.attendance.regularize');
+    const canExport = can('permission:workspaces.manage');
 
     const now = new Date();
     const [employeeId, setEmployeeId] = useState('');
@@ -116,10 +117,21 @@ export default function Attendance() {
         if (!canViewOthers) return;
 
         api.get('/hrms/employees', { params: { per_page: 100 } })
-            .then(({ data }) => setEmployees((data.employees ?? []).map((e) => ({ id: e.id, name: e.display_name ?? e.name }))))
+            .then(({ data }) => setEmployees((data.employees ?? []).map((e) => ({ id: e.id, name: e.display_name ?? e.name, userId: e.user?.id ?? null }))))
             .catch(() => setEmployees([]));
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
+
+    // `RegularizationStoreRequest` → `RegularizationController::store`
+    // always files against the CALLER's own employee row and stamps the day
+    // from the payload, so a correction asked for while looking at somebody
+    // else's calendar would silently correct the caller's own record on a
+    // date that belongs to someone else. The button is therefore only an
+    // offer when the grid on show is the caller's own ("Myself" = empty
+    // `employeeId`, or the picked row resolving to the caller's user id).
+    const viewingSelf =
+        !employeeId ||
+        (employees ?? []).some((e) => String(e.id) === String(employeeId) && e.userId === user?.id);
 
     function moveMonth(delta) {
         const next = shiftMonth(year, month, delta);
@@ -224,9 +236,11 @@ export default function Attendance() {
                             <Button variant="secondary">Review queue</Button>
                         </Link>
                     )}
-                    <Button variant="secondary" onClick={exportCsv} disabled={exporting || !monthData}>
-                        {exporting ? 'Exporting…' : 'Export CSV'}
-                    </Button>
+                    {canExport && (
+                        <Button variant="secondary" onClick={exportCsv} disabled={exporting || !monthData}>
+                            {exporting ? 'Exporting…' : 'Export CSV'}
+                        </Button>
+                    )}
                 </div>
             </div>
 
@@ -332,7 +346,13 @@ export default function Attendance() {
                                 {selected.is_regularized && <p className="pt-1 text-xs text-gray-500">Corrected through regularization.</p>}
                             </dl>
                             <div className="mt-3">
-                                <Button variant="secondary" onClick={() => openCorrection(selected)}>Request correction</Button>
+                                {viewingSelf ? (
+                                    <Button variant="secondary" onClick={() => openCorrection(selected)}>Request correction</Button>
+                                ) : (
+                                    <p className="text-xs text-gray-400">
+                                        Corrections are filed against your own record; ask HR to amend this day.
+                                    </p>
+                                )}
                             </div>
                         </Card>
                     )}

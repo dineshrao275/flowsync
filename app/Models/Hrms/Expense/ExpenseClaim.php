@@ -7,6 +7,8 @@ use App\Models\Hrms\Employee\Employee;
 use App\Models\Hrms\Payroll\PayrollRun;
 use App\Models\Hrms\Shared\Approval;
 use App\Models\User;
+use Database\Factories\Hrms\ExpenseClaimFactory;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -23,7 +25,13 @@ use Illuminate\Database\Eloquent\SoftDeletes;
  */
 class ExpenseClaim extends Model
 {
+    use HasFactory;
     use SoftDeletes;
+
+    protected static function newFactory(): ExpenseClaimFactory
+    {
+        return ExpenseClaimFactory::new();
+    }
 
     protected $table = 'expense_claims';
 

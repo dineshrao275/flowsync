@@ -84,6 +84,7 @@ export default function ProjectDetail() {
     const [formErrors, setFormErrors] = useState({});
     const [savingMember, setSavingMember] = useState(false);
     const [savingStatus, setSavingStatus] = useState(false);
+    const [settingsDates, setSettingsDates] = useState(null);
 
     const [view, setView] = useState('board');
     const [filters, setFilters] = useState({});
@@ -96,6 +97,7 @@ export default function ProjectDetail() {
     const [showCreate, setShowCreate] = useState(false);
     const [savingTask, setSavingTask] = useState(false);
     const [loadingTasks, setLoadingTasks] = useState(false);
+    const [tasksError, setTasksError] = useState(null);
 
     const isProjectManager = can('workspaces.manage') || project?.my_role === 'lead';
     const archived = Boolean(project?.archived_at);
@@ -152,6 +154,10 @@ export default function ProjectDetail() {
     }, [projectId]);
 
     useEffect(() => {
+        setSettingsDates(null);
+    }, [projectId]);
+
+    useEffect(() => {
         setCrumbs(
             project
                 ? [
@@ -183,6 +189,7 @@ export default function ProjectDetail() {
         });
 
         setLoadingTasks(true);
+        setTasksError(null);
         return api
             .get(`/projects/${projectId}/tasks`, { params })
             .then(({ data }) => {
@@ -194,7 +201,13 @@ export default function ProjectDetail() {
                 }
                 setTaskOptions(data.filters);
             })
-            .catch(() => { })
+            .catch((err) => {
+                if (err?.response?.status === 403) {
+                    navigate('/403', { replace: true });
+                    return;
+                }
+                setTasksError('Unable to load tasks.');
+            })
             .finally(() => setLoadingTasks(false));
     }
 
@@ -227,6 +240,7 @@ export default function ProjectDetail() {
     const DEEP_SECTIONS = ['comments', 'attachments', 'dependencies', 'time', 'activity'];
 
     const openedDeepTaskRef = useRef(null);
+    const fetchedDeepTaskRef = useRef(null);
     useEffect(() => {
         const deepKey = searchParams.get('task');
         if (!project || tab !== 'tasks' || !deepKey || openedDeepTaskRef.current === deepKey) return;
@@ -238,7 +252,20 @@ export default function ProjectDetail() {
             openedDeepTaskRef.current = deepKey;
             const section = searchParams.get('section');
             openTask(found, DEEP_SECTIONS.includes(section) ? section : null);
+            return;
         }
+        // Not in this view's pool (subtasks never ride the board; filters
+        // can hide anything): resolve by key directly so the drawer opens
+        // in either view. One attempt per key — a 404 stays closed.
+        if (fetchedDeepTaskRef.current === deepKey) return;
+        fetchedDeepTaskRef.current = deepKey;
+        api.get(`/projects/${projectId}/tasks/key/${encodeURIComponent(deepKey)}`)
+            .then(({ data }) => {
+                openedDeepTaskRef.current = deepKey;
+                const section = searchParams.get('section');
+                openTask(data.task, DEEP_SECTIONS.includes(section) ? section : null);
+            })
+            .catch(() => {});
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [project, tab, view, board, listTasks, searchParams]);
 
@@ -344,6 +371,7 @@ export default function ProjectDetail() {
         api.put(`/projects/${projectId}`, fields)
             .then(({ data }) => {
                 setProject(data.project);
+                setSettingsDates(null);
                 toast.success('Project updated.');
             })
             .catch((e) => setFormErrors(fieldErrors(e)))
@@ -634,7 +662,9 @@ export default function ProjectDetail() {
                         <FiltersBar filters={filters} options={taskOptions} onChange={setFilters} />
                     </Card>
 
-                    {view === 'board' && board ? (
+                    {tasksError ? (
+                        <Alert>{tasksError}</Alert>
+                    ) : view === 'board' && board ? (
                         <KanbanBoard
                             board={board}
                             canMove={canMoveTask}
@@ -866,57 +896,15 @@ export default function ProjectDetail() {
 
             {tab === 'settings' && isProjectManager && (
                 <Card title="Project settings" subtitle={`key: ${project.key}`}>
-                    <form
-                        className="space-y-4"
-                        onSubmit={(e) => {
-                            e.preventDefault();
-                            updateProject({
-                                name: e.currentTarget.name.value,
-                                description: e.currentTarget.description.value,
-                                start_date: e.currentTarget.start_date.value || null,
-                                due_date: e.currentTarget.due_date.value || null,
-                            });
-                        }}
-                    >
-                        {formErrors.form && <Alert>{formErrors.form}</Alert>}
-                        <Input label="Name" name="name" defaultValue={project.name} error={formErrors.name} required />
-                        <Input
-                            label="Description"
-                            name="description"
-                            defaultValue={project.description}
-                            error={formErrors.description}
-                        />
-                        <div className="grid gap-4 sm:grid-cols-2">
-                            <div>
-                                <label className="mb-1.5 block text-sm font-medium text-gray-700">Start date</label>
-                                <input
-                                    type="date"
-                                    name="start_date"
-                                    defaultValue={project.start_date}
-                                    className="block w-full rounded-lg border border-gray-300 bg-white px-3.5 py-2.5 text-sm shadow-sm focus:border-indigo-500 focus:outline-none"
-                                />
-                                {formErrors.start_date && <p className="mt-1.5 text-sm text-red-600">{formErrors.start_date}</p>}
-                            </div>
-                            <div>
-                                <label className="mb-1.5 block text-sm font-medium text-gray-700">Due date</label>
-                                <input
-                                    type="date"
-                                    name="due_date"
-                                    defaultValue={project.due_date}
-                                    className="block w-full rounded-lg border border-gray-300 bg-white px-3.5 py-2.5 text-sm shadow-sm focus:border-indigo-500 focus:outline-none"
-                                />
-                                {formErrors.due_date && <p className="mt-1.5 text-sm text-red-600">{formErrors.due_date}</p>}
-                            </div>
-                        </div>
-                        <div className="flex gap-2">
-                            <Button type="submit" loading={updating}>
-                                Save changes
-                            </Button>
-                            <Button type="button" variant="danger" onClick={deleteProject}>
-                                Delete project
-                            </Button>
-                        </div>
-                    </form>
+                    <SettingsForm
+                        project={project}
+                        settingsDates={settingsDates}
+                        onDatesChange={setSettingsDates}
+                        formErrors={formErrors}
+                        updating={updating}
+                        updateProject={updateProject}
+                        deleteProject={deleteProject}
+                    />
                 </Card>
             )}
 
@@ -956,5 +944,63 @@ export default function ProjectDetail() {
                 />
             )}
         </div>
+    );
+}
+/**
+ * Project settings form: name/description stay uncontrolled (read on
+ * submit, exactly as before) while the two dates are controlled through
+ * the shared calendar Input — which has no uncontrolled mode. Dates fall
+ * back to the loaded project until typed, and reset on project switch
+ * (settingsDates null) and after a successful save.
+ */
+function SettingsForm({ project, settingsDates, onDatesChange, formErrors, updating, updateProject, deleteProject }) {
+    const dates = settingsDates ?? { start_date: project.start_date ?? '', due_date: project.due_date ?? '' };
+
+    return (
+        <form
+            className="space-y-4"
+            onSubmit={(e) => {
+                e.preventDefault();
+                updateProject({
+                    name: e.currentTarget.name.value,
+                    description: e.currentTarget.description.value,
+                    start_date: dates.start_date || null,
+                    due_date: dates.due_date || null,
+                });
+            }}
+        >
+            {formErrors.form && <Alert>{formErrors.form}</Alert>}
+            <Input label="Name" name="name" defaultValue={project.name} error={formErrors.name} required />
+            <Input
+                label="Description"
+                name="description"
+                defaultValue={project.description}
+                error={formErrors.description}
+            />
+            <div className="grid gap-4 sm:grid-cols-2">
+                <Input
+                    label="Start date"
+                    type="date"
+                    value={dates.start_date}
+                    onChange={(e) => onDatesChange({ ...dates, start_date: e.target.value })}
+                    error={formErrors.start_date}
+                />
+                <Input
+                    label="Due date"
+                    type="date"
+                    value={dates.due_date}
+                    onChange={(e) => onDatesChange({ ...dates, due_date: e.target.value })}
+                    error={formErrors.due_date}
+                />
+            </div>
+            <div className="flex gap-2">
+                <Button type="submit" loading={updating}>
+                    Save changes
+                </Button>
+                <Button type="button" variant="danger" onClick={deleteProject}>
+                    Delete project
+                </Button>
+            </div>
+        </form>
     );
 }

@@ -206,12 +206,24 @@ class HrmsAssetApiTest extends TestCase
         $url = URL::temporarySignedRoute('hrms.assets.document', now()->addHour(), [
             'asset' => $asset['id'],
             'tenant' => $this->acme()->id,
+            // The invoice streams through the document download, which names
+            // its reader: the document's owner satisfies the document view
+            // rule (self), and nobody anonymous downloads.
+            'actor' => $holder->user_id,
         ]);
 
+        // Capture nothing else after this point: the session is flushed and
+        // the default connection returns to the central DB below.
         $this->flushSession();
         \DB::setDefaultConnection(config('tenancy.system.connection'));
 
         $this->get($url)->assertOk();
+
+        $anonymous = URL::temporarySignedRoute('hrms.assets.document', now()->addHour(), [
+            'asset' => $asset['id'],
+            'tenant' => $this->acme()->id,
+        ]);
+        $this->get($anonymous)->assertForbidden();
     }
 
     // ------------------------------------------------------------ helpers

@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Models\Concerns\CentralConnection;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
@@ -11,6 +12,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 class Tenant extends Model
 {
     use CentralConnection;
+    use HasFactory;
     use SoftDeletes;
 
     public const STATUS_PENDING = 'pending';
@@ -90,6 +92,10 @@ class Tenant extends Model
     ];
 
     protected $hidden = [
+        'db_name',
+        'db_host',
+        'db_port',
+        'db_user',
         'db_password',
     ];
 

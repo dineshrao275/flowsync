@@ -1,7 +1,9 @@
 /**
  * Button variants read the theme's accent tokens (`--accent*`, derived in
  * resources/js/theme.js from the admin's `accent` color) instead of a fixed
- * indigo, so the whole control set follows the theme.
+ * indigo, so the whole control set follows the theme. Destructive actions
+ * read the parallel `--danger*` tokens, which step brighter in dark mode so
+ * red buttons stay distinct on dark surfaces.
  */
 export default function Button({
     variant = 'primary',
@@ -17,7 +19,7 @@ export default function Button({
         secondary:
             'bg-white text-gray-700 border border-gray-300 shadow-sm hover:bg-gray-50 hover:text-gray-900 focus:ring-gray-200',
         danger:
-            'bg-red-600 text-white shadow-sm hover:bg-red-500 active:bg-red-700 focus:ring-red-200',
+            'bg-[var(--danger)] text-[var(--danger-contrast)] shadow-sm hover:bg-[var(--danger-hover)] active:bg-[var(--danger-active)] focus:ring-[var(--danger-ring)]',
         warning:
             'bg-amber-500 text-white shadow-sm hover:bg-amber-400 active:bg-amber-600 focus:ring-amber-200',
         ghost:

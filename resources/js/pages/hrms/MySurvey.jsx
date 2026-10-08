@@ -120,6 +120,7 @@ export default function MySurvey() {
                         rows={4}
                         value={value}
                         aria-label={question.text}
+                        placeholder="Type your answer…"
                         onChange={(e) => setAnswer(question.id, e.target.value)}
                     />
                 );

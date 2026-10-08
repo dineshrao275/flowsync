@@ -48,6 +48,12 @@ class ModuleGateTest extends TestCase
         $this->getJson('/api/reports/overview')->assertForbidden();
         $this->getJson(sprintf('/api/workspaces/%s/time-summary', $this->workspace()->id))->assertForbidden();
 
+        // Module denials are distinguishable from permission 403s so the SPA
+        // can show the "not in your plan" surface instead of the generic one.
+        $this->getJson('/api/reports/overview')
+            ->assertForbidden()
+            ->assertHeader('X-Module-Denied', 'reports');
+
         $this->getJson('/api/search/global?q=acme')->assertOk();
         $this->getJson('/api/search/tasks')->assertOk();
     }

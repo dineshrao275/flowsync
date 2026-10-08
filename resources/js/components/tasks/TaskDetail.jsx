@@ -173,6 +173,7 @@ export default function TaskDetail({
                                         rows="5"
                                         className={`${fieldClass} min-h-32`}
                                         value={form.description}
+                                        placeholder="Context, acceptance criteria…"
                                         onChange={(e) => set('description', e.target.value)}
                                         disabled={!canEdit}
                                     />

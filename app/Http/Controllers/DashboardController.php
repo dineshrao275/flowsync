@@ -30,6 +30,7 @@ class DashboardController extends Controller
         $recent = (clone $visible)->whereNull('tasks.archived_at');
 
         return response()->json([
+            'scope' => $this->userManagesAllTasks($user) ? 'all' : 'member',
             'counts' => [
                 'my_open' => (clone $myOpen)->count(),
                 'my_overdue' => (clone $myOverdue)->count(),
