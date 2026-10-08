@@ -38,7 +38,11 @@ class EnsureModule
 
         $tenant = Tenant::find($tenantId);
 
-        if (! $tenant || app(TenantLimits::class)->hasModule($tenant, $module)) {
+        if (! $tenant) {
+            abort(403, 'A valid tenant context is required.');
+        }
+
+        if (app(TenantLimits::class)->hasModule($tenant, $module)) {
             return $next($request);
         }
 

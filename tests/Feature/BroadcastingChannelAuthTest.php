@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Models\Project;
 use App\Models\ProjectRole;
+use App\Models\Tenant;
 use App\Models\User;
 use App\Models\Workspace;
 use Illuminate\Support\Facades\Broadcast;
@@ -142,6 +143,19 @@ class BroadcastingChannelAuthTest extends TestCase
             'socket_id' => '1234.5678',
             'channel_name' => 'private-user.'.$this->member->id,
         ])->assertUnauthorized();
+    }
+
+    public function test_suspended_tenant_users_cannot_authorize_channels_over_http(): void
+    {
+        $this->usePusherBroadcaster();
+        $this->loginAs('admin@flowsync.test');
+
+        $this->acme()->update(['status' => Tenant::STATUS_SUSPENDED]);
+
+        $this->postJson('/broadcasting/auth', [
+            'socket_id' => '1234.5678',
+            'channel_name' => 'private-user.'.$this->member->id,
+        ])->assertForbidden();
     }
 
     /**

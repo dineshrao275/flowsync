@@ -1014,6 +1014,6 @@ Route::view('/app/{any}', 'app')->where('any', '.*');
 // resolves to null and the channel callbacks in routes/channels.php return
 // false (HTTP 403). `auth` keeps unauthenticated socket clients from hitting
 // the callbacks at all.
-Broadcast::routes(['middleware' => ['switch_tenant', 'auth']]);
+Broadcast::routes(['middleware' => ['switch_tenant', 'auth', 'tenant']]);
 
 require __DIR__.'/../routes/channels.php';

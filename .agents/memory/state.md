@@ -205,8 +205,13 @@
   - Step 14 (`5d0b415`): Button and denial audit across TMS, HRMS, and settings — `EnsurePermission::denial` standardizes missing permission wording across route middleware and `Gate::define('permission')`; `EnsureSuperAdmin` and `TaskController::index` answer with explicit denial reasons; `ProtectedRoute` passes missing permission state to `/403` which renders the required slug; `Subscription.jsx` canManage recognizes `billing.manage`; `AdminLayout` theme drawer gates on `settings.theme`; `Attendance` regularize button restricted to self-viewing; `PerformanceCycleDetail` check-ins and 1:1 scheduling gate on `canManage` or existing self-employee row; `PermissionTest` pins denial wording.
   - Step 15 (`32cc53f`): Dashboard and Reports API echo `scope` derived from `userManagesAllTasks()`, and UI renders a scope indicator pill ('every task in the tenant' vs 'tasks in your projects') next to headings.
   - Step 16 (`cadba3b`): `EnsureModule` emits `X-Module-Denied` header; `ProtectedRoute` and axios interceptor route module rejections to `/module-denied` explaining the plan limit with an upgrade link.
-- 2026-10-08 — Member-access Phase E steps 17 & 18 shipped (Verification matrix & Documentation):
-  - Step 17: Comprehensive cross-domain access matrix (`tests/Feature/MemberAccessMatrixTest.php`, 6 tests / 120 assertions) covering domains (TMS tasks, HRMS leave, expenses, documents, performance goals) × {own row, report row, stranger row} × scopes {none, own, assigned, all, manage} + sidebar & `/api/auth/me` effective capabilities; extended `MemberIsolationTest.php` with assigned reporting line strict isolation (+1 test / 20 assertions). Test gate now **1511 tests / 7677 assertions**.
-  - Step 18: Documentation updated — `AGENTS.md` test count gate updated and Own/Assigned/All Policy Matrix Table added; `.agents/05-auth-rbac.md` full update with permission lattice, `PermissionScope`, `TaskScope`, `HrmsScope`, and `ReportsTo`; created `docs/custom-roles-migration-guide.md` covering scope variants, legacy alias semantics, dry-run reports, and execution of `php artisan tenants:scope-grants`.
+- 2026-10-08 — Phase 1 security & isolation residuals shipped (A2–A7):
+  - A3: `EnsureModule` fail-closed when tenant context is missing/not found (403 'A valid tenant context is required.').
+  - A5: `ImpersonationStartRequest` validates `tenant_id` exists on system database via `Rule::exists(Tenant::class, 'id')`.
+  - A6: Super admin bypass guarded in `EnsurePermission`, `Gate::define('permission')`, and `SetTenantContext` so impersonating super admins cannot bypass tenant-level permission boundaries.
+  - A7: Realtime channel authorization in `routes/channels.php` and `Broadcast::routes` checks that tenant is active/serviceable; suspended tenant users are forbidden (403).
+  - A2: `ForgotPasswordController` and `ResetPasswordController` resolve tenant using `TenantUserRouting` and execute token generation and password reset on the tenant database via `TenantDatabaseManager::using()`.
+  - Verification: 5 new tests across `BroadcastingChannelAuthTest`, `ModuleGateTest`, `SecurityRegressionTest`, and `SystemAdminTest` (40 passed / 242 assertions on focused suites); Pint clean; test gate now **1516 tests / 7690 assertions**.
+
 
 

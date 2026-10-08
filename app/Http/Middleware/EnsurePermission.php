@@ -2,6 +2,7 @@
 
 namespace App\Http\Middleware;
 
+use App\Support\TenantContext;
 use Closure;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -28,7 +29,7 @@ class EnsurePermission
             abort(403, 'Authentication is required for this action.');
         }
 
-        if ($user->is_super_admin) {
+        if ($user->is_super_admin && ! app(TenantContext::class)->impersonating()) {
             return $next($request);
         }
 

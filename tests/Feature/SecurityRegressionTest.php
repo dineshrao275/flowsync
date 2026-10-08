@@ -185,6 +185,37 @@ class SecurityRegressionTest extends TestCase
         ])->assertUnprocessable()->assertJsonValidationErrors('password');
     }
 
+    public function test_tenant_password_reset_routes_to_tenant_database(): void
+    {
+        $this->postJson('/api/auth/forgot-password', ['email' => 'admin@flowsync.test'])->assertOk();
+
+        $this->assertDatabaseHas('password_reset_tokens', [
+            'email' => 'admin@flowsync.test',
+        ]);
+    }
+
+    public function test_impersonating_super_admin_does_not_bypass_permission_checks(): void
+    {
+        $this->postJson('/api/auth/login', [
+            'email' => 'superadmin@flowsync.test',
+            'password' => 'password',
+        ])->assertOk();
+
+        $viewer = $this->dbm->using($this->acme, fn () => User::where('email', 'viewer@flowsync.test')->firstOrFail());
+
+        $this->postJson('/api/impersonate', [
+            'user_id' => $viewer->id,
+            'tenant_id' => $this->acme->id,
+        ])->assertOk();
+
+        $this->postJson('/api/users', [
+            'name' => 'Forbidden User',
+            'email' => 'forbidden@flowsync.test',
+            'password' => 'password123',
+            'roles' => ['member'],
+        ])->assertForbidden();
+    }
+
     // ---------------------------------------------------------- fixtures
 
     private function login(string $email): void

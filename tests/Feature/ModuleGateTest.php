@@ -2,11 +2,15 @@
 
 namespace Tests\Feature;
 
+use App\Http\Middleware\EnsureModule;
 use App\Models\Hrms\Employee\Employee;
 use App\Models\SubscriptionPlan;
 use App\Models\User;
 use App\Models\Workspace;
 use App\Services\SubscriptionService;
+use App\Support\TenantContext;
+use Illuminate\Http\Request;
+use Symfony\Component\HttpKernel\Exception\HttpException;
 use Tests\IsolatesDatabase;
 use Tests\TestCase;
 
@@ -129,6 +133,19 @@ class ModuleGateTest extends TestCase
         $this->setAcmeModules(['hrms.core', 'hrms.holidays']);
 
         $this->getJson('/api/hrms/holidays/calendars')->assertOk();
+    }
+
+    public function test_ensure_module_fails_closed_when_tenant_not_found(): void
+    {
+        $middleware = new EnsureModule;
+        $request = Request::create('/api/reports/overview');
+
+        app(TenantContext::class)->setTenantId(999999);
+
+        $this->expectException(HttpException::class);
+        $this->expectExceptionMessage('A valid tenant context is required.');
+
+        $middleware->handle($request, fn () => response()->noContent(), 'reports');
     }
 
     private function login(string $email): void

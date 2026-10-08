@@ -254,43 +254,33 @@ green, security checklist clean, report committed (`final-report.md` in
   subscription/tenants.
 - `db_*` hidden from `Tenant` serializers; restrictive `config/cors.php` shipped.
 
-#### A2. [RISK] Tenant-aware password-reset broker not implemented
-- `Forgot/ResetPasswordController` still queries the central `users` table
-  (super admin DB). Tenant users' reset emails likely never arrive.
-- Deferred pending mail infra (Phase 4), but the symptom today is silent
-  failure — tenant users click "Forgot password" and never get an email (or
-  get one for the wrong account). A 422 with a clear message would be
-  preferable to silent failure.
-- **Fix target:** Phase 4 (mail infra), but add a 422 "Password reset is
-  not yet available for tenant accounts" guard in Phase 4 pre-implementation.
+#### A2. [SHIPPED] Tenant-aware password-reset broker ✅
+- `Forgot/ResetPasswordController` routes by tenant using `TenantUserRouting`
+  and executes `Password::sendResetLink` and `Password::reset` on the tenant's
+  database via `TenantDatabaseManager::using()`.
+- Verified by `SecurityRegressionTest::test_tenant_password_reset_routes_to_tenant_database`.
 
-#### A3. [RISK] `TenantLimits::hasModule` null-bypass in `EnsureModule`
-- When `TenantContext::currentId()` is null (SA non-impersonating), the
-  middleware short-circuits and grants access. This is intentional for the SA.
-- **Risk:** If middleware priority changes or a bug lets a request through
-  with null context, all module gates silently pass. Recommend adding an
-  explicit `fail-closed` guard: if context is null AND the route is in the
-  `tenant_context` group, 403.
+#### A3. [SHIPPED] Fail-closed `EnsureModule` guard ✅
+- When tenant is missing or not found in the DB, `EnsureModule` aborts 403
+  with 'A valid tenant context is required.' instead of failing open.
+- Verified by `ModuleGateTest::test_ensure_module_fails_closed_when_tenant_not_found`.
 
-#### A4. [RISK] SVG removed from TMS attachments but referenced in `06-tms.md`
-- `06-tms.md:46` still lists `svg` in the attachment types description.
-  Audit doc is stale — the security fix removed it. This could mislead future
-  developers adding it back.
-- **Fix target:** Update `06-tms.md` to remove SVG from the listed types.
+#### A4. [SHIPPED] SVG removed from TMS attachments doc in `06-tms.md` ✅
+- Confirmed updated.
 
-#### A5. [MEDIUM] `ImpersonationStartRequest` lacks `exists:tenants,id` rule
-- Documented in `10-security.md` Medium section. Still open per state.md.
-- **Fix target:** Phase 8 hardening or added to Phase 1 backlog.
+#### A5. [SHIPPED] `ImpersonationStartRequest` validates `Rule::exists(Tenant::class, 'id')` ✅
+- Validates that `tenant_id` exists against the system/central database.
+- Verified by `SystemAdminTest::test_impersonation_rejects_invalid_tenant_id`.
 
-#### A6. [MEDIUM] `EnsurePermission` SA bypass not guarded against impersonation edge
-- `AppServiceProvider` `Gate::before()` SA bypass relies on login-replaces-user;
-  no explicit `&& !TenantContext::impersonating()` check.
-- Documented open item in `10-security.md`. Needs explicit guard.
+#### A6. [SHIPPED] `EnsurePermission` and `Gate::define('permission')` SA bypass guarded ✅
+- Explicit `&& ! app(TenantContext::class)->impersonating()` guard added so
+  super admins impersonating tenant users cannot bypass permission policies.
+- Verified by `SecurityRegressionTest::test_impersonating_super_admin_does_not_bypass_permission_checks`.
 
-#### A7. [DEBT] Channel auth does not check suspended tenant state
-- `channels.php` membership checks do not verify the tenant is serviceable
-  (trial/active). A suspended tenant's users can still authenticate private
-  channels. Low real-world impact but inconsistent with domain route gating.
+#### A7. [SHIPPED] Channel auth verifies serviceable tenant state ✅
+- `routes/channels.php` verifies that the tenant is active/trial before
+  authorizing private user, workspace, and project channels; suspended tenants are 403 forbidden.
+- Verified by `BroadcastingChannelAuthTest::test_suspended_tenant_users_cannot_authorize_channels_over_http`.
 
 ---
 

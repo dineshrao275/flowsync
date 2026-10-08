@@ -130,6 +130,16 @@ class SystemAdminTest extends TestCase
             ->assertJsonPath('items.0.action', 'platform.settings_updated');
     }
 
+    public function test_impersonation_rejects_invalid_tenant_id(): void
+    {
+        $this->loginSuperAdmin();
+
+        $this->postJson('/api/impersonate', [
+            'user_id' => 1,
+            'tenant_id' => 999999,
+        ])->assertUnprocessable()->assertJsonValidationErrors('tenant_id');
+    }
+
     public function test_module_feature_grid_reads_and_toggles(): void
     {
         $this->loginSuperAdmin();

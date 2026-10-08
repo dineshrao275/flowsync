@@ -48,7 +48,7 @@ class AppServiceProvider extends ServiceProvider
         // route gate can never word a refusal differently. `Gate::inspect`
         // understands a `Response` result, so `check`/`allows` are unaffected.
         Gate::define('permission', function (User $user, string $permission) {
-            if ($user->is_super_admin) {
+            if ($user->is_super_admin && ! app(TenantContext::class)->impersonating()) {
                 return true;
             }
 
