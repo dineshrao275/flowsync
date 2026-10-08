@@ -101,6 +101,48 @@ class MemberIsolationTest extends TestCase
         $this->assertSame([], $rooms);
     }
 
+    public function test_assigned_scope_strictly_isolates_records_outside_reporting_line(): void
+    {
+        $manager = $this->employee('Manager User', true);
+        $report = Employee::create([
+            'employee_code' => 'EMP-REP-ISO',
+            'name' => 'Report ISO',
+            'status' => EmployeeStatus::Active,
+            'user_id' => $this->userWith(['hrms.view'])->id,
+            'manager_id' => $manager->id,
+        ]);
+        $stranger = $this->employee('Stranger ISO', true);
+
+        $cycle = $this->cycle();
+
+        PerformanceGoal::create([
+            'cycle_id' => $cycle->id,
+            'employee_id' => $stranger->id,
+            'title' => 'Stranger Goal.',
+            'metric_type' => 'manual',
+            'status' => 'draft',
+        ]);
+        $reportGoal = PerformanceGoal::create([
+            'cycle_id' => $cycle->id,
+            'employee_id' => $report->id,
+            'title' => 'Report Goal.',
+            'metric_type' => 'manual',
+            'status' => 'draft',
+        ]);
+
+        $managerUser = $this->userWith(['hrms.view', 'hrms.performance.view_assigned']);
+        $manager->update(['user_id' => $managerUser->id]);
+        $this->actAs($managerUser);
+
+        $goals = $this->getJson("/api/hrms/performance/cycles/{$cycle->id}/goals")->assertOk()->json('goals');
+        $this->assertContains('Report Goal.', array_column($goals, 'title'));
+        $this->assertNotContains('Stranger Goal.', array_column($goals, 'title'));
+
+        $filtered = $this->getJson("/api/hrms/performance/cycles/{$cycle->id}/goals?employee_id={$stranger->id}")
+            ->assertOk()->json('goals');
+        $this->assertSame([], $filtered);
+    }
+
     // ------------------------------------------------------------ helpers
 
     /**
