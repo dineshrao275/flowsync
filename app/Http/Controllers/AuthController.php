@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Http\Requests\LoginRequest;
+use App\Models\Hrms\Employee\Employee;
 use App\Models\ImpersonationLog;
 use App\Models\PlatformSetting;
 use App\Models\Tenant;
@@ -160,6 +161,25 @@ class AuthController extends Controller
                 ]);
 
                 throw ValidationException::withMessages(['email' => __('auth.failed')]);
+            }
+
+            // H-3: valid credentials are not enough — the employment record
+            // decides. A leaver keeps a working password; only the offboarding
+            // statuses revoke the session. Suspended/on-notice staff are still
+            // employed and keep access.
+            $employee = Employee::where('user_id', Auth::id())->first();
+
+            if ($employee?->status?->isOffboarding()) {
+                Auth::logout();
+
+                app(PlatformAudit::class)->auth($request, 'auth.login_failed', [
+                    'email' => $email,
+                    'tenant_id' => $tenant->id,
+                    'reason' => 'employee_exited',
+                    'via' => 'password',
+                ]);
+
+                throw ValidationException::withMessages(['email' => 'This account has been deactivated.']);
             }
 
             $request->session()->put('login.tenant_id', $tenant->id);
