@@ -32,6 +32,8 @@ function describe(action, data) {
             return 'Failed sign-in';
         case 'auth.logout':
             return 'Signed out';
+        case 'audit.exported':
+            return `Exported ${data?.rows ?? 0} audit rows`;
         default:
             return action;
     }
@@ -67,7 +69,7 @@ export default function AuditLogs() {
         <div className="space-y-6">
             <div>
                 <h1 className="text-2xl font-bold text-gray-800">Audit Logs</h1>
-                <p className="text-sm text-gray-500">Platform events + impersonations (latest 100 per source).</p>
+                <p className="text-sm text-gray-500">Platform events + impersonations across the full trail (paginated, exportable).</p>
             </div>
 
             <div className="flex flex-wrap items-center gap-2">
@@ -95,6 +97,15 @@ export default function AuditLogs() {
                     />
                     <Button type="submit">Filter</Button>
                 </form>
+                <a
+                    href={`/api/system/audit-logs/export?${new URLSearchParams({
+                        type,
+                        ...(q ? { q } : {}),
+                    }).toString()}`}
+                    className="ml-auto inline-flex items-center gap-1.5 rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm font-medium text-gray-600 hover:bg-gray-50"
+                >
+                    Export CSV
+                </a>
             </div>
 
             {loading ? (

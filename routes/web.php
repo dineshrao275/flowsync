@@ -243,6 +243,7 @@ Route::prefix('api')->group(function () {
             Route::put('system/settings', [SystemSettingsController::class, 'update']);
             Route::apiResource('system/users', SystemUsersController::class)->only(['index', 'store']);
             Route::get('system/audit-logs', [AuditLogsController::class, 'index']);
+            Route::get('system/audit-logs/export', [AuditLogsController::class, 'export'])->middleware('throttle:30,1');
             Route::get('system/analytics', [SystemAnalyticsController::class, 'index']);
             Route::get('platform/health', [PlatformHealthController::class, 'show']);
             Route::get('system/health', [PlatformHealthController::class, 'show']);
