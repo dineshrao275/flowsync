@@ -8,9 +8,13 @@ Laravel 12 + React 19 SPA. Session-based auth **without** Breeze/Fortify/Sanctum
 - **Native host (current dev setup, no Docker):** Apache `mod_php` vhost `flowsync.conf` serves
   `public/` on `http://localhost` (`http://localhost/app` = SPA, `/` = public marketing site); PHP 8.3 CLI
   + PostgreSQL 16 (`flowsync`/`secret` @ `flowsync_system`) on the host. Long-running services are
-  **systemd user units**: `systemctl --user status flowsync-reverb flowsync-queue`
-  (`~/.config/systemd/user/flowsync-{reverb,queue}.service`, logs in `storage/logs/{reverb,queue-worker}.log`;
-  `loginctl enable-linger drao` makes them survive logout/reboot). First-time bootstrap:
+  **systemd user units**: `systemctl --user status flowsync-reverb flowsync-queue` plus the
+  `flowsync-scheduler.timer` that runs `php artisan schedule:run` every minute
+  (`~/.config/systemd/user/flowsync-{reverb,queue}.service` + `flowsync-scheduler.{service,timer}`,
+  logs in `storage/logs/{reverb,queue-worker,scheduler}.log`; `loginctl enable-linger drao` makes
+  them survive logout/reboot). The timer is what fires everything in `routes/console.php` — usage
+  collection, backups, `tenants:expire-trials`, and the nightly `hrms:* --all` fleet sweeps
+  (`php artisan schedule:list` prints the cadence; runbook §2.5). First-time bootstrap:
   `php artisan migrate --database=system --path=database/migrations/system` then
   `php artisan db:seed --database=system --class='Database\Seeders\DatabaseSeeder'` (TenantSeeder provisions
   acme + globex tenant sqlite files under `database/tenants/`). `public/.htaccess` (front controller) must exist

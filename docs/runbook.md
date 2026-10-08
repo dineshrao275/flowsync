@@ -127,6 +127,73 @@ RestartSec=5
 WantedBy=multi-user.target
 ```
 
+### 2.5 Scheduler Timer (`schedule:run`)
+
+Nothing in Laravel fires by itself: every daily/weekly/monthly command listed in
+`routes/console.php` runs only when something executes `php artisan schedule:run` **every
+minute**. Without this timer the whole schedule — usage collection, backups, trial expiry and
+the `hrms:*` fleet sweeps — is registered but never runs.
+
+**`flowsync-scheduler.service`** (native host; production runs the same command from cron):
+```ini
+[Unit]
+Description=FlowSync — scheduler run (php artisan schedule:run)
+After=network.target
+
+[Service]
+Type=oneshot
+WorkingDirectory=/home/drao/Personal/flowsync
+ExecStart=/usr/bin/php artisan schedule:run
+StandardOutput=append:/home/drao/Personal/flowsync/storage/logs/scheduler.log
+StandardError=append:/home/drao/Personal/flowsync/storage/logs/scheduler.log
+```
+
+**`flowsync-scheduler.timer`**:
+```ini
+[Unit]
+Description=FlowSync — run schedule:run every minute
+
+[Timer]
+OnCalendar=*-*-* *:*:00
+AccuracySec=5s
+
+[Install]
+WantedBy=timers.target
+```
+
+```bash
+systemctl --user daemon-reload
+systemctl --user enable --now flowsync-scheduler.timer
+systemctl --user list-timers flowsync-scheduler.timer   # NEXT/LAST columns
+tail -f storage/logs/scheduler.log
+```
+
+On hosts without systemd, the crontab equivalent is
+`* * * * * cd /var/www/flowsync && php artisan schedule:run >> storage/logs/scheduler.log 2>&1`.
+
+**What runs when** (source of truth: `php artisan schedule:list`; times are the app timezone —
+UTC on this host):
+
+| Cadence | Command | What it does |
+|---|---|---|
+| daily 00:00 | `tenants:collect-usage` | roll up per-tenant usage metrics |
+| daily 00:05 | `tenants:expire-trials` | trials past `trial_ends_at` → tenant/subscription `expired` |
+| daily 00:15 | `hrms:surveys-open-close --all` | open started campaigns, close ended ones |
+| daily 02:00 | `tenants:backup --all --verify` | central + tenant DB snapshots (§5) |
+| daily 04:30 | `hrms:documents-expiry --all` | documents past `expires_at` → `expired` |
+| monthly, 1st 04:45 | `hrms:comp-off-accrue --all` | previous month's rest days → comp-off credits |
+| weekly, Sun 05:00 | `hrms:retention --all` | **report only** — rows past the keep window (`--apply` deletes, manual) |
+| daily 08:30 | `hrms:onboarding-reminders --all` | nudge due onboarding items (weekly dedupe) |
+| daily 10:30 | `hrms:assets-overdue --all` | nudge unacknowledged handovers (weekly dedupe) |
+| daily 18:00 | `hrms:report-digests --all` | send due HRMS report digests |
+| daily 21:30 | `hrms:performance-evidence --all` | re-photograph goal evidence from task data |
+| daily 23:45 | `hrms:attendance-rollup --all` | close today's attendance day |
+| daily 23:55 | `hrms:derive-attendance --all --apply` | work-log-derived days, **only** where the tenant opted in |
+
+Never scheduled (operator decisions): `hrms:backfill-employees` (data migration) and
+`hrms:statutory-recompute` (names its run with `--run`). Every fleet sweep also accepts
+`--tenant=ID` for a targeted repair run; all of them are idempotent, so re-running is safe.
+
 ---
 
 ## 3. Mail Transport Configuration (Free Tier ~5,000 Emails/Month)
@@ -220,10 +287,12 @@ Backups are saved to timestamped directories under `storage/app/backups/YYYY-MM-
 - `manifest.json` (SHA-256 checksums, byte sizes, and timestamps)
 
 ### 5.2 Automated Daily Backups
-The automated backup is scheduled in `routes/console.php` to run daily at 02:00 UTC:
+The automated backup is scheduled in `routes/console.php` to run daily at 02:00 UTC — but a
+schedule only *declares* intent; the systemd timer in §2.5 is what actually executes
+`php artisan schedule:run` every minute. Verify both halves with:
 ```bash
-# Handled automatically by Laravel Scheduler:
-php artisan schedule:run
+php artisan schedule:list          # the backup entry + its next due time
+systemctl --user status flowsync-scheduler.timer
 ```
 
 ### 5.3 Non-Destructive Restore Drill
@@ -266,6 +335,8 @@ php artisan tenants:collect-usage
 - Main Application: `storage/logs/laravel.log`
 - Queue Worker: `storage/logs/queue-worker.log`
 - Reverb WebSockets: `storage/logs/reverb.log`
+- Scheduler (`schedule:run` output): `storage/logs/scheduler.log`
+- HRMS command/operational channel: `storage/logs/hrms.log` (`Log::channel('hrms')`, 30-day rotation)
 
 ---
 
