@@ -5,7 +5,7 @@
 
 ## Current
 
-- Date: 2026-10-08 · Branch: `development` · Gate: **1546 tests / 7952 assertions** (single full-suite run 2026-10-08, commits `e60333b` + `0259604` — §F scheduler wiring + docs-truth pass; previous gate 1535/7882 = Phase 7 TMS expansion complete: workspace & project metadata expansion, project components CRUD with uniqueness, project versions/releases CRUD with uniqueness, issue types catalog & provisioning, task start dates, story points, issue type & version associations, component tagging, task watchers lifecycle, and filtering; Phase 6 HRMS residual behavior & UX complete; Phase 5 performance follow-ups complete; Phase 4 operations & readiness complete; Phase 3 subscription lifecycle complete; Phase 1 residuals complete).
+- Date: 2026-10-09 · Branch: `development` · Gate: **1570 tests / 8072 assertions** (single full-suite run 2026-10-09, commits `5bdfc4d` + `5cf686a` + `2c71776` — audit/leaver-auth Top-10 rows 3+4: login/logout audit + masked before/after diffs, block exited/terminated sign-in, SQL-paginated full audit trail + CSV export; previous gate 1546/7952 = §F scheduler wiring + docs-truth pass; before that 1535/7882 = Phase 7 TMS expansion complete: workspace & project metadata expansion, project components CRUD with uniqueness, project versions/releases CRUD with uniqueness, issue types catalog & provisioning, task start dates, story points, issue type & version associations, component tagging, task watchers lifecycle, and filtering; Phase 6 HRMS residual behavior & UX complete; Phase 5 performance follow-ups complete; Phase 4 operations & readiness complete; Phase 3 subscription lifecycle complete; Phase 1 residuals complete).
 
 ## Shipped vs missing (against the 8-phase roadmap)
 
@@ -249,3 +249,18 @@
 - 2026-10-08 — Full-suite gate re-run (H-18): **1546 tests / 7952 assertions green** (single
   `php artisan test`, 5862s) — supersedes 1535/7882; AGENTS + verification-report + state.md
   reconciled to the live number.
+- 2026-10-09 — Audit & leaver authentication (Top-10 rows 3 + 4) shipped in three commits:
+  `5bdfc4d` — `app/Support/AuditMask.php` (shared secret/HRMS mask, extracted from
+  `HrmsAuditLogger` which now delegates), `app/Services/PlatformAudit.php` (`record`/`diff`
+  before-after key reduction/`auth`), every platform audit call site (settings, system users,
+  feature toggles, CMS, tenant lifecycle, HRMS entitlement) routed through it, and `auth.login`/
+  `auth.login_failed`/`auth.logout` rows on the SA + tenant + registration paths (G-6/H-7);
+  `5cf686a` — `loginIsolated` revokes the session when the employee status is `exited`/`terminated`
+  (`reason=employee_exited`, 422; suspended/on-notice/rehired/no-record unaffected) (H-3/G-27);
+  `2c71776` — `AuditLogsController` paginates the SQL union of the **full** trail (old in-memory
+  latest-100-per-source cap removed), server-side `type`/`q`/`tenant_id` filters, `(created_at,id)`
+  index, and `GET system/audit-logs/export` CSV (cap 10000, writes `audit.exported`) (H-7). New
+  tests `AuthAuditTest` (6), `PlatformAuditTest` (4), `ExitedUserAuthTest` (7, verify-first),
+  `AuditFeedTest` (7). Full-suite gate: **1570 tests / 8072 assertions green** (single
+  `php artisan test`, 5663s); `npm run build` + pint clean. Tenant-configurable exit grace
+  deliberately deferred.

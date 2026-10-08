@@ -84,7 +84,7 @@ superseded by this phase's +11 tests.
 | Rate limiting | ✅ | throttle on auth/forgot/register/billing/webhooks/export | — |
 | 2FA / TOTP | 🔴 | no code | Gap G-20 (enterprise expectation) |
 | SSO / SAML / OAuth | 🔴 | no code | Gap G-21; plan module `api`/SSO packaging untied |
-| Login/logout audit | 🔴 | `AuthController` writes no audit row; no auth-event listeners | Gap G-6 — plan §17 requires it |
+| Login/logout audit | ✅ | `PlatformAudit::auth()` writes `auth.login`/`auth.login_failed`/`auth.logout` rows (sa/tenant/registration paths); `AuthAuditTest` | Resolved 2026-10-09 (G-6, commit `5bdfc4d`) |
 | Permission precedence / deny rules | ⏸️ | docs describe grant-only model | Deny rules deliberately absent; document decision |
 
 ## 3. Subscription, entitlement & billing
@@ -169,7 +169,7 @@ superseded by this phase's +11 tests.
 | Buddy assignment / orientation | 🔴 | none | Low priority |
 | Exit interview | 🔴 | none | Gap G-17 |
 | Full & final settlement | 🔴 | clearance counters only; no settlement computation | Gap G-17 — HR-critical |
-| Access revocation / account deactivation on exit | 🟡 | status → `exited` stops nothing at auth level | Exited user can still log in unless removed — verify intent (G-27) |
+| Access revocation / account deactivation on exit | ✅ | `loginIsolated` refuses an authenticated session when the employee's status is `exited`/`terminated` (logs `reason=employee_exited`, 422); suspended/on-notice still allowed | Resolved 2026-10-09 (G-27/H-3, commit `5cf686a`, `ExitedUserAuthTest`) |
 | Offer-to-joining / ATS | ⏸️ | not in HRMS plan | Deferred by design |
 
 ## 7. HRMS — attendance, shifts, leave, comp-off, holidays, expenses
@@ -256,7 +256,7 @@ superseded by this phase's +11 tests.
 |---|---|---|---|
 | Generic approvals engine (multi-step) | ✅ | `ApprovalService` + `approvals`/`approval_steps`, used by leave/expense/regularization/comp-off/salary revisions | Sequential manager routing; **no parallel/any-one/all/conditional/delegation/SLA/escalation** modes (G-10) |
 | HRMS audit (`hrms_audit_logs`, masked, diffs) | ✅ | `HrmsAuditLogger`, `AuditTrail.jsx` diff UI | — |
-| Platform audit feed | 🟠 | `AuditLogsController` merges central audit + impersonation (capped 100/source) | No before/after payloads, no export, no login/logout events (G-6, G-40) |
+| Platform audit feed | ✅ | `AuditLogsController` merges central audit + impersonation, paginating/filtering the SQL union of the **full** trail (H-7, commit `2c71776`) + CSV export | Masked before/after diffs via `PlatformAudit`/`AuditMask` (commit `5bdfc4d`); `(created_at,id)` index; `AuditFeedTest` |
 | Correlation/request IDs | 🔴 | none | Gap G-41 |
 | **TMS task workflow engine (transitions/validators/conditions/post-actions)** | 🔴 | only `task_statuses` CRUD (`StatusController`); any status change allowed; no transition table | Gap G-7 — plan §6 workflow-engine requirement entirely unmet |
 | **Automation engine (EVENT→CONDITION→ACTION)** | 🔴 | zero matches for "automation" in code; no rule tables | Gap G-42 — plan §15 requirement unmet |
