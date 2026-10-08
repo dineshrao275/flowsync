@@ -12,8 +12,10 @@ cross-referenced with the planning docs, plus focused test runs. **No code was c
 **Focused tests run for this audit (all passing):** `TmsExpansionTest` (6), `ModuleGateTest` (9),
 `SubscriptionStateTest` (3), `TenantUsageCollectionTest` (1) — 28 tests / 134 assertions.
 
-**Not run:** the full suite (~14 min). The documented gate *1535 tests / 7882 assertions* is marked
-❓ — static count of test methods finds **1469** across 173 files; the delta must come from a live run.
+**Full suite run 2026-10-08 (post-§F):** `php artisan test` — **1546 tests / 7952 assertions
+green** (single run). That is the authoritative gate; the static count of 1469 `test_*`
+methods undercounts (data-provider expansions), and the previous documented 1535/7882 was
+superseded by this phase's +11 tests.
 
 ---
 
@@ -324,7 +326,7 @@ cross-referenced with the planning docs, plus focused test runs. **No code was c
 | Backups UI / jobs UI / migrations UI | 🔴 | none | SA gap (G-54) |
 | Structured logs / correlation IDs / metrics / tracing | 🔴 | plain-text single/daily logs | G-41 |
 | Failed-jobs monitoring | 🔴 | `database-uuids` driver configured, nothing reads it | G-54 |
-| Test suite | ✅ | 173 files, per-tenant isolation harness, ~1469 static methods | Full-suite total ❓ (needs live run) |
+| Test suite | ✅ | 173 files, per-tenant isolation harness, ~1469 static methods | Full suite **1546 / 7952 green** (live run 2026-10-08) |
 | Performance tests | 🟡 | index/column assertions + query-count checks | No load benchmarks |
 
 ---
@@ -343,8 +345,8 @@ cross-referenced with the planning docs, plus focused test runs. **No code was c
 
 ## 17. Doc-vs-code contradictions found (stale documentation)
 
-**Status (2026-10-08, H-9 docs-truth pass): all 15 items below were corrected except #4**,
-whose count is reconciled by the phase's final full-suite run (H-18). Fixed alongside:
+**Status (2026-10-08, H-9 docs-truth pass): all 15 items below were corrected**, including
+#4 — the test count now reads the verified live gate **1546 / 7952**. Fixed alongside:
 the `task.watched` promise (#8) now records watchers as schema+CRUD shipped with only the
 notification fan-out missing, and the §10 markers were refreshed for platform/subscription,
 workspace/project metadata, components/versions, issue types and watchers.

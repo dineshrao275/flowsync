@@ -5,7 +5,7 @@
 
 ## Current
 
-- Date: 2026-10-08 · Branch: `development` · Gate: **1535 tests / 7882 assertions** (Phase 7 TMS expansion complete: workspace & project metadata expansion, project components CRUD with uniqueness, project versions/releases CRUD with uniqueness, issue types catalog & provisioning, task start dates, story points, issue type & version associations, component tagging, task watchers lifecycle, and filtering; Phase 6 HRMS residual behavior & UX complete; Phase 5 performance follow-ups complete; Phase 4 operations & readiness complete; Phase 3 subscription lifecycle complete; Phase 1 residuals complete).
+- Date: 2026-10-08 · Branch: `development` · Gate: **1546 tests / 7952 assertions** (single full-suite run 2026-10-08, commits `e60333b` + `0259604` — §F scheduler wiring + docs-truth pass; previous gate 1535/7882 = Phase 7 TMS expansion complete: workspace & project metadata expansion, project components CRUD with uniqueness, project versions/releases CRUD with uniqueness, issue types catalog & provisioning, task start dates, story points, issue type & version associations, component tagging, task watchers lifecycle, and filtering; Phase 6 HRMS residual behavior & UX complete; Phase 5 performance follow-ups complete; Phase 4 operations & readiness complete; Phase 3 subscription lifecycle complete; Phase 1 residuals complete).
 
 ## Shipped vs missing (against the 8-phase roadmap)
 
@@ -232,3 +232,20 @@
 
 
 
+- 2026-10-08 — §F #1 scheduler wiring (`e60333b`): 10 `hrms:*` commands + new `tenants:expire-trials`
+  (G-2 trial half) registered in `routes/console.php`; operator-only `hrms:backfill-employees` +
+  `hrms:statutory-recompute` excluded by design; systemd user timer `flowsync-scheduler.timer` runs
+  `schedule:run` every minute; runbook §2.5 (unit files + cadence table + cron equivalent), §5.2, §6.3.
+  Gates: `ScheduleRegistrationTest` + `TrialExpiryTest` (11 tests) green.
+- 2026-10-08 — §F #2 docs-truth pass (`0259604`): `SubscriptionService::assign()` now emits
+  `seats_changed` with `seats_from`/`seats_to` (G-12); `api`/`audit_export` modules delisted from
+  config + Feature UI + Plans/Subscription pages (G-9/H-2, seeder re-run on dev); all 15
+  verification-report §17 contradictions corrected (AGENTS register/GuestRoute/app.js/migration
+  numbering/global-search parity, `.agents/06-tms.md` mail/export/mention-regex, state.md
+  payments/factories/exports rows, multi-tenancy §10 markers, `config/issue_types` promise,
+  tracker Phase 16/17 + maturity #12, `routes/web.php` Phase-7 label, runbook §6.1 queue echo);
+  gap-register G-1/G-2/G-9/G-12/H-1/H-2/H-9/H-18 + Top-10 rows 1/2/5 marked resolved.
+  Focused gates: subscription/module suites 60/528; `npm run build` clean; pint clean.
+- 2026-10-08 — Full-suite gate re-run (H-18): **1546 tests / 7952 assertions green** (single
+  `php artisan test`, 5862s) — supersedes 1535/7882; AGENTS + verification-report + state.md
+  reconciled to the live number.

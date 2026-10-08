@@ -100,7 +100,7 @@ P3 = enhancement · P4 = future/optional.
 | H-15 | P3 | **`hrms.inbox` gate** | Routes sit in plain `auth` group while other HRMS sits behind `ensure_module` — either gate consistently or document the exception |
 | H-16 | P3 | **`hasModule` unused keys** (`hrms.onboarding`, `hrms.offboarding`, `hrms.inbox`) | Features ship but keys never gate — align module catalog with reality (mirror in `hrmsModules.js` + shell test) |
 | H-17 | P3 | **Over-limit behavior** | Quotas hard-block with 422 and no grace/overage — confirm commercial policy, then either document or add grace window (multi-tenancy §15 Q3) |
-| H-18 | P3 | **Full-suite gate re-verification** | Run `php artisan test` once; reconcile documented 1535/7882 with statically counted 1469 methods (❓) |
+| H-18 | P3 | **Full-suite gate re-verification** | Run `php artisan test` once; reconcile documented 1535/7882 with statically counted 1469 methods (❓) — **✅ RESOLVED 2026-10-08**: live run **1546 / 7952** green (the static `test_*` method count misses data-provider expansions; live number is authoritative) |
 | H-19 | P3 | **Platform RBAC** | `platform_roles`/`platform_permissions` tables are schema-only — either implement Billing Admin/Support Auditor personas or remove to avoid dead schema |
 | H-20 | P4 | **Two goal↔task link tables** (G-35) | Consolidate |
 | H-21 | P4 | **Localisation** | `locale=en` hardcoded; notification templates single-language (G-43) |
