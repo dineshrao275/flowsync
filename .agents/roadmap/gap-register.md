@@ -17,8 +17,8 @@ P3 = enhancement · P4 = future/optional.
 
 | ID | Pri | Domain | Gap | Why it matters | Depends on |
 |---|---|---|---|---|---|
-| G-1 | P1 | Platform ops | **No scheduler registration for the 12 `hrms:*` commands** (rollup, comp-off accrual, onboarding reminders, document expiry, report digests, survey open/close, performance evidence, statutory recompute, retention) — `routes/console.php` schedules only usage + backup | Entire classes of shipped HRMS features silently never run; tenants see stale balances/reminders | Fix: add `Schedule::` entries + document cron/systemd timer for `schedule:run` (operational doc exists: `docs/runbook.md`) |
-| G-2 | P1 | Billing | **No trial/period auto-expiry** — nothing ever transitions a subscription to `expired`/`ended`; no grace period, no dunning sequence | Revenue leak: trials run forever; failed payments only suspend via webhook | G-1 (same scheduling mechanism) |
+| G-1 | P1 | Platform ops | **No scheduler registration for the 12 `hrms:*` commands** (rollup, comp-off accrual, onboarding reminders, document expiry, report digests, survey open/close, performance evidence, statutory recompute, retention) — `routes/console.php` schedules only usage + backup — **✅ RESOLVED 2026-10-08** (commit `e60333b`: 10 `hrms:*` entries + `tenants:expire-trials` + `flowsync-scheduler.timer` + runbook §2.5; `hrms:backfill-employees`/`hrms:statutory-recompute` excluded by design as operator-only) | Entire classes of shipped HRMS features silently never run; tenants see stale balances/reminders | Fix: add `Schedule::` entries + document cron/systemd timer for `schedule:run` (operational doc exists: `docs/runbook.md`) |
+| G-2 | P1 | Billing | **No trial/period auto-expiry** — nothing ever transitions a subscription to `expired`/`ended`; no grace period, no dunning sequence — **PARTIALLY RESOLVED 2026-10-08** (trial half: `tenants:expire-trials` scheduled daily, commit `e60333b`; period-end auto-expiry + grace/dunning still open, see G-11) | Revenue leak: trials run forever; failed payments only suspend via webhook | G-1 (same scheduling mechanism) |
 | G-6 | P1 | Security/audit | **Login/logout not audited** — no `AuditLog` writes in `AuthController`, no auth-event listeners | Plan §17 requires login tracking; compliance question #1 auditors ask | — |
 | G-7 | P1 | TMS | **No task workflow transition engine** — only per-project status CRUD; any→any status allowed, no validators/conditions/post-actions/transition permissions/SLA | Plan §6 core requirement; JIRA-class differentiator; blocks agile reports that depend on transition history | Statuses exist; needs `status_transitions` model + enforcement in `TaskService::update/move` |
 | G-42 | P1 | Platform | **No automation engine** (EVENT→CONDITION→ACTION) shared by HRMS+TMS | Plan §15; recurring requirement (due-date nudges, auto-assign, on-join task creation) | Domain events exist (TaskSynced etc.) — needs a rule store + dispatcher |
@@ -56,8 +56,8 @@ P3 = enhancement · P4 = future/optional.
 | G-52 | P3 | Testing | **No browser/E2E tests** (Dusk/Playwright), no load tests | UI regressions invisible to CI | — |
 | G-19 | P3 | Tenancy | **No tenant cloning** (sandbox/demo provisioning) | Sales demos | `provisionIsolated` reusable |
 | G-55 | P3 | Data lifecycle | **No tenant hard-purge / GDPR erasure path** (soft-delete only) | Legal retention questions | Needs legal retention policy decision first |
-| G-12 | P3 | Billing | **`EVENT_SEATS_CHANGED` never emitted; seat limits not tracked as seat counts** | Dead API in model | Wire seat usage into `TenantLimits` + emit event |
-| G-9 | P3 | Billing | **Plan modules `api` + `audit_export` gate nothing** — sellable entitlements with zero routes | Entitlement integrity: plan §12 says every capability maps to a gate | Either gate routes or delist from `config/subscriptions.php` |
+| G-12 | P3 | Billing | **`EVENT_SEATS_CHANGED` never emitted; seat limits not tracked as seat counts** — **✅ RESOLVED 2026-10-08** (emitted from `SubscriptionService::assign()` with `data.seats_from`/`seats_to`; seats already counted by `TenantLimits`/`my-usage`) | Dead API in model | Wire seat usage into `TenantLimits` + emit event |
+| G-9 | P3 | Billing | **Plan modules `api` + `audit_export` gate nothing** — sellable entitlements with zero routes — **✅ RESOLVED 2026-10-08** (delisted from `config/subscriptions.php` + Feature UI + docs; H-2 option B) | Entitlement integrity: plan §12 says every capability maps to a gate | Either gate routes or delist from `config/subscriptions.php` |
 | G-7b | P4 | TMS | **No sprints/backlog/estimation views, epics/initiatives hierarchy, milestones, cross-project roadmaps, portfolio view** | Largest single TMS build; plan §6 | Issue types (✅) → hierarchy needs `parent_type` or epic link; sprints are a new aggregate |
 | G-50 | P4 | Integrations | **No Slack/Teams/GitHub/Google/payroll-vendor/biometric integrations** | Plan §20 phased (MVP→Enterprise) | G-45 webhooks + G-49 tokens |
 | G-43 | P4 | Notifications | **Single email template, no localization, no per-tenant templates, no push** | Polish | — |
@@ -83,15 +83,15 @@ P3 = enhancement · P4 = future/optional.
 
 | ID | Pri | Item | What must change |
 |---|---|---|---|
-| H-1 | P1 | **Scheduler wiring** (overlaps G-1) | Add all 12 `hrms:*` + trial-expiry job (G-2) to `routes/console.php`; document `schedule:run` cron in runbook + `docker`/systemd unit |
-| H-2 | P1 | **`api` / `audit_export` modules** (G-9) | Pick one: gate real routes on them (API work is G-49) **or** remove from `config/subscriptions.php` + Feature UI so plans don't sell dead entitlements |
+| H-1 | P1 | **Scheduler wiring** (overlaps G-1) | Add all 12 `hrms:*` + trial-expiry job (G-2) to `routes/console.php`; document `schedule:run` cron in runbook + `docker`/systemd unit — **✅ RESOLVED 2026-10-08** (10 `hrms:*` scheduled, operator-only pair excluded by design, systemd timer + runbook §2.5, commit `e60333b`) |
+| H-2 | P1 | **`api` / `audit_export` modules** (G-9) | Pick one: gate real routes on them (API work is G-49) **or** remove from `config/subscriptions.php` + Feature UI so plans don't sell dead entitlements — **✅ RESOLVED 2026-10-08** (option B: removed everywhere) |
 | H-3 | P1 | **Exited-user authentication** (G-27) | Verify with test; block login for `exited`/`terminated` (or tenant-configurable grace) in `loginIsolated` |
 | H-4 | P2 | **Watcher half-wiring** (G-2a) | 1) `NotificationService` adds watchers as recipients (dedup vs assignee/mentions); 2) `TaskService::present()` emits `watchers`; 3) TaskDetail shows watcher list + watch toggle |
 | H-5 | P2 | **Surface the TMS expansion in the SPA** (G-2b) | Add issue type / version / components / start date / story points to CreateTaskModal + TaskDetail; render issue-type chip on TaskCard/TaskTable; wire `issue_types`/`versions`/`components` option lists from `filtersPayload()` into FiltersBar; use story points for a future velocity view |
 | H-6 | P2 | **Route issue-type CRUD** (G-3a) | Expose create/update/delete (+ reorder/recolor) behind project workflow permission, matching `config/issue_types.php`'s promise; add tests |
 | H-7 | P2 | **Platform audit feed** (G-40) | Persist before/after diffs (follow `HrmsAuditLogger` masking rules), raise/remove the 100-row in-memory cap with real pagination, add export, add login/logout rows (G-6) |
 | H-8 | P2 | **Queue health probe** (G-53) | Actually ping the worker (e.g., push a no-op job with timeout) instead of echoing `config('queue.default')` |
-| H-9 | P2 | **Docs contradicting code** (verification-report §17) | Correct: AGENTS register/GuestRoute lines, `.agents/06-tms.md` mail/export claims, `.agents/memory/state.md` payments/factories rows, multi-tenancy `task.watched` claim, tracker self-contradiction, "Phase 7" route-label collision, runbook §6 |
+| H-9 | P2 | **Docs contradicting code** (verification-report §17) | Correct: AGENTS register/GuestRoute lines, `.agents/06-tms.md` mail/export claims, `.agents/memory/state.md` payments/factories rows, multi-tenancy `task.watched` claim, tracker self-contradiction, "Phase 7" route-label collision, runbook §6 — **✅ RESOLVED 2026-10-08** (all 15 §17 items corrected; the test-count claim reconciles with the phase's final full-suite run, H-18) |
 | H-10 | P2 | **Dependency types** (G-14) | Extend `TaskDependencyType` to `relates\|duplicates\|clones` (plan §multi-tenancy already documents intent) + UI labels |
 | H-11 | P2 | **Geofence punch path** (G-13) | `ClockInWidget` sends `lat/lng/device`; decide flag-vs-block policy in settings; test the range logic from the UI path |
 | H-12 | P2 | **Storage/attachment ZIP hygiene** | Delete generated export ZIPs after signed download or TTL; `hrms:retention` covers rows but not files |
@@ -150,11 +150,11 @@ Ordered by dependency + business value; each is independently actionable.
 
 | # | Work | Why now | Depends on | Pri | Complexity |
 |---|---|---|---|---|---|
-| 1 | **H-1 + G-1/G-2: schedule the `hrms:*` commands + trial expiry job** | Un-ships nothing but activates ~12 already-built features and stops revenue leak; one file + runbook | Nothing | P1 | S |
-| 2 | **H-9: docs-truth pass** (fix the 15 contradictions) | Prevents every future task from being mis-scoped; pure docs | Nothing | P1 | S |
+| 1 | **H-1 + G-1/G-2: schedule the `hrms:*` commands + trial expiry job** ✅ *done 2026-10-08* | Un-ships nothing but activates ~12 already-built features and stops revenue leak; one file + runbook | Nothing | P1 | S |
+| 2 | **H-9: docs-truth pass** (fix the 15 contradictions) ✅ *done 2026-10-08* | Prevents every future task from being mis-scoped; pure docs | Nothing | P1 | S |
 | 3 | **G-6 + H-7: login/logout audit + audit payload hardening** | Compliance baseline; cheaper before more features land | Nothing | P1 | M |
 | 4 | **H-3: block authentication for exited users** | Offboarding is not real until this holds | Verify-first test | P1 | S |
-| 5 | **H-2: resolve `api`/`audit_export` dead modules** | Entitlement integrity — plans currently sell nothing | Decision only (or G-49) | P1 | S |
+| 5 | **H-2: resolve `api`/`audit_export` dead modules** ✅ *done 2026-10-08 (delisted)* | Entitlement integrity — plans currently sell nothing | Decision only (or G-49) | P1 | S |
 | 6 | **H-4 + H-5 + H-6: finish the shipped TMS expansion** (watcher notify, SPA fields, issue-type CRUD) | Code exists, users can't see it; high perceived velocity, low risk | Nothing | P2 | M |
 | 7 | **G-49: API token layer (Sanctum)** | Unblocks `api` module, integrations, webhooks (G-45), SSO groundwork (G-21) | H-2 decision | P1 | L |
 | 8 | **G-7: task workflow transition engine** (per-project from→to rules, permissions, audit) | Biggest JIRA-class architectural hole; prerequisite for cycle-time reports | Statuses ✅ | P1 | L |

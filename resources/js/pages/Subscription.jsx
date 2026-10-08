@@ -22,9 +22,7 @@ const MODULE_LABELS = {
     time_tracking: 'Time tracking',
     reports: 'Reports & analytics',
     global_search: 'Global search',
-    api: 'API access',
     branding: 'Custom branding',
-    audit_export: 'Audit export',
     'export.full': 'Data export (full)',
 };
 

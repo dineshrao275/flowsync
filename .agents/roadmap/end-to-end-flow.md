@@ -318,12 +318,12 @@ monitoring, migrations UI (G-54).
 | Routing row always written with tenant users | ✅ (`TenantUserCreationTest`-documented path) |
 | New tenant receives all HRMS catalogs | ✅ (`HrmsDefaultsProvisioner`, per-step guards) |
 | Approvals flow manager→HR with audit | ✅ |
-| **Scheduled HRMS housekeeping actually runs** | ❌ **nothing registers the `hrms:*` commands (G-1)** |
-| **Trial ends → expiry** | ❌ never (G-2) |
+| **Scheduled HRMS housekeeping actually runs** | ✅ 10 `hrms:*` commands + trial expiry scheduled; systemd timer runs `schedule:run` (G-1) |
+| **Trial ends → expiry** | ✅ `tenants:expire-trials` scheduled daily (G-2 trial half; period-end auto-expiry still absent) |
 | **Offboarded user cannot log in** | ❌ not enforced (G-27) |
 | **Watcher gets notified** | ❌ table only (G-2a) |
 | **TMS expansion fields reachable in UI** | ❌ backend-only (G-2b) |
-| **`api`/`audit_export` plan modules entitle anything** | ❌ gate nothing (G-9) |
+| **Plan modules all entitle real routes** | ✅ `api`/`audit_export` delisted (G-9/H-2) |
 | **Invoice after payment** | ❌ none (G-11) |
 | **Login appears in audit** | ❌ none (G-6) |
 

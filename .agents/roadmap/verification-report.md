@@ -37,9 +37,9 @@ cross-referenced with the planning docs, plus focused test runs. **No code was c
 
 | Required area | Verdict | Headline |
 |---|---|---|
-| Tenant (multi-tenancy) | ✅ | DB-per-tenant, provisioning/backup/export/suspend — scheduler + restore automation thin (§1) |
+| Tenant (multi-tenancy) | ✅ | DB-per-tenant, provisioning/backup/export/suspend — scheduler now covers backups + trial expiry + the hrms fleet (§1); restore automation still thin |
 | Roles & permissions | ✅ | RBAC + `own/assigned/all` scoped lattice, project roles, custom roles, impersonation (§2) |
-| Subscriptions | 🟠 | Lifecycle + module gates + quotas + real gateways work; invoices/dunning/trial-expiry missing (§3) |
+| Subscriptions | 🟠 | Lifecycle + module gates + quotas + real gateways + scheduled trial expiry work; invoices/dunning/period-expiry missing (§3) |
 | Employees | ✅ | Directory, hire modes, redaction, status lifecycle, backfill (§5) |
 | HR processes | 🟠 | HRMS plan P1–P21 shipped; shifts/talent reserved; F&F, transfers/promotions, e-sign missing (§6–8) |
 | Tasks | 🟠 | Core task lifecycle solid; JIRA-class layer (sprints/epics/workflow/automation/views) missing (§4, §10) |
@@ -57,12 +57,12 @@ cross-referenced with the planning docs, plus focused test runs. **No code was c
 | One DB per tenant + central system DB | ✅ | `app/Support/TenantDatabaseManager.php`, `config/tenancy.php`, `SwitchTenant` middleware + priority list in `bootstrap/app.php` | None — architectural anchor; do not replace |
 | Tenant routing (`tenant_users`) | ✅ | migration `000015`, `AuthController::loginIsolated` | Lower-case normalization handled; keep |
 | Provisioning pipeline | ✅ | `TenantProvisioner::provisionIsolated`, `ProvisionTenantJob`, `tenants:provision` | — |
-| Lifecycle state machine | ✅ | `app/Services/TenantLifecycle.php` (pending→…→suspended/expired/…) + audit rows | `expired`/`ended` states have **no code path that sets them** (no scheduled trial/period expiry) |
+| Lifecycle state machine | ✅ | `app/Services/TenantLifecycle.php` (pending→…→suspended/expired/…) + audit rows | Trial expiry now has a code path (`tenants:expire-trials`, scheduled); period-end `ended` still has none |
 | Suspend / activate / soft-delete / restore | ✅ | `TenantController` + `TenantLifecycle`, route `->withTrashed()` | Hard purge/erasure path missing (§16) |
 | Backup + verify + restore drill | ✅ | `tenants:backup` (`--all --verify --restore-drill`), scheduled `dailyAt 02:00` in `routes/console.php` | Real restore is manual `psql` (runbook §7) — no `restore` command |
 | Tenant export (ZIP) | ✅ | `ExportService`, `BuildTenantExportJob`, `export_runs`, `ensure_module:export.full` | Generated ZIPs never cleaned up |
 | Tenant cloning | 🔴 | no command/route | Gap register G-19 |
-| Scheduler coverage | 🟠 | `routes/console.php` schedules **only** `tenants:collect-usage` + `tenants:backup` | **All 12 `hrms:*` commands are unscheduled** — reminders/rollups/accrual/digests never fire (G-1) |
+| Scheduler coverage | ✅ | `routes/console.php` schedules `tenants:collect-usage` + `tenants:backup` + 10 `hrms:*` commands + `tenants:expire-trials`; `flowsync-scheduler.timer` runs `schedule:run` every minute (runbook §2.5) | Operator-only commands (`hrms:backfill-employees`, `hrms:statutory-recompute`) deliberately unscheduled (runbook §2.5) — G-1 resolved |
 | Cross-tenant analytics (capped fan-out) | ✅ | `SystemAnalyticsController`, `PlatformResourceTotals` | OK for now; warehouse deferred |
 | Runbook | ✅ | `docs/runbook.md` (297 lines) | Must document manual cron for `hrms:*` |
 
@@ -90,7 +90,7 @@ cross-referenced with the planning docs, plus focused test runs. **No code was c
 | Feature | Status | Evidence | Problems / action |
 |---|---|---|---|
 | Plan catalog + CRUD | ✅ | `subscription_plans`, `PlanController`, `Plans.jsx`, `SubscriptionPlanSeeder` | — |
-| Subscription lifecycle states | ✅ | `SubscriptionService` assign/startTrial/cancel/renew/suspend; `SubscriptionStateTest` | `expired`/`ended` never transitioned (needs scheduled expiry) |
+| Subscription lifecycle states | ✅ | `SubscriptionService` assign/startTrial/cancel/renew/suspend; `SubscriptionStateTest` | `expired` now set by scheduled `tenants:expire-trials`; period-end `ended` still untransitioned |
 | Module gating (fail-closed) | ✅ | `EnsureModule` middleware + `X-Module-Reason`; `ModuleGateTest` (9 tests re-run for this audit) | — |
 | Feature/limit overrides | ✅ | `tenants.limits_override` + `tenants.features_override.modules` (additive) | — |
 | Quotas (hard-block) | ✅ | `TenantLimits::assertQuota` on users/workspaces/projects/tasks/employees/attachment storage | No grace period / overage — plan's stated default is hard-block; confirm commercial intent |
@@ -100,10 +100,10 @@ cross-referenced with the planning docs, plus focused test runs. **No code was c
 | Tenant self-service (view/switch/cancel/renew) | ✅ | `MySubscriptionController`, `Subscription.jsx` | — |
 | Invoices / invoice generation | 🔴 | no invoice entity anywhere | Gap G-11 — billing story incomplete without invoices |
 | Dunning / grace period | 🔴 | only webhook-driven past_due | Gap G-11 |
-| Trial & period auto-expiry | 🔴 | no scheduled job sets `expired` | Gap G-2 (combined with scheduler fix) |
-| Seat changes (`EVENT_SEATS_CHANGED`) | 🟠 | constant defined in `Subscription::EVENT_SEATS_CHANGED`, **never emitted** | Dead API — either wire seat count into plan or remove constant |
+| Trial auto-expiry | ✅ | `tenants:expire-trials` (new) scheduled `dailyAt 00:05` transitions trial tenants → `expired` (G-2) | Period-end auto-expiry still absent (G-2 remainder) |
+| Seat changes (`EVENT_SEATS_CHANGED`) | ✅ | emitted by `SubscriptionService::assign()` on a seat change; `data.seats_from`/`seats_to` (G-12) | — |
 | Proration | 🔴 | none | Future |
-| `api` / `audit_export` plan modules | 🟠 | listed in `config/subscriptions.php`, toggleable in Feature UI, **no route gated on them** | Selling "API access" entitles nothing today — gate or delist (G-9) |
+| `api` / `audit_export` plan modules | ✅ | **delisted** from `config/subscriptions.php` + Feature UI — plans no longer sell entitlements that gate nothing (G-9/H-2) | Re-add each only together with the route gate that enforces it |
 | Storage quota | ✅ | attachment upload enforces storage bytes (`SubscriptionStateTest` re-run) | — |
 
 ## 4. TMS core (project & task management)
@@ -161,7 +161,7 @@ cross-referenced with the planning docs, plus focused test runs. **No code was c
 | Document requests (both case types) | ✅ | `DocumentRequestService`, employee upload→HR verify | — |
 | Auto-initiate exit on terminate | ✅ | `EmployeeStatusTransition` → `offboarding->initiate` | — |
 | Checklist → TMS task conversion (pull-only) | ✅ | `CaseTaskConversion`, `hrms_task_links` | — |
-| Automated reminders | 🟠 | `hrms:onboarding-reminders` command implemented | **Unscheduled** — never fires (G-1) |
+| Automated reminders | ✅ | `hrms:onboarding-reminders` scheduled `dailyAt 08:30 --all` (G-1) | — |
 | E-signature | 🔴 | none | Gap G-17 |
 | IT provisioning automation | 🟡 | checklist item category `access` only | Manual to-do — by design until integrations |
 | Buddy assignment / orientation | 🔴 | none | Low priority |
@@ -180,13 +180,13 @@ cross-referenced with the planning docs, plus focused test runs. **No code was c
 | Overtime | ✅ | `ot_after_minutes`, `overtime_minutes`, payroll `ot_rate` | — |
 | Break tracking | 🟡 | shift-level `break_minutes` deduction | No punch-level break in/out |
 | Regularization (approval flow) | ✅ | shared approval engine, supersede-not-edit, auto-approve fallback | — |
-| Attendance roll-up | 🟠 | `hrms:attendance-rollup` + job | **Unscheduled** (G-1) |
+| Attendance roll-up | ✅ | `hrms:attendance-rollup` + job, scheduled `dailyAt 23:45 --all` (G-1) | — |
 | Attendance calendar / CSV export | ✅ | month grid, `hrms/attendance/export` (throttled + audited) | — |
 | Mobile attendance | 🟡 | punch accepts `source`/`device_id` | No mobile client / PWA (§14) |
 | Biometric devices | 🔴 | none | Enterprise integration (deferred) |
 | **Shifts (patterns/rosters/swap/approval)** | 🔵 | module key + permissions + tables (`attendance_shifts`, `attendance_rosters`, `employees.shift_id`) exist; consumed internally by `DayComputation` | **Zero routes/controllers/pages** — reserved stub (G-28) |
 | Leave types/policies/balances | ✅ | `LeaveCatalogService`, `LeaveBalanceService` | — |
-| Accrual (idempotent) | 🟠 | `POST hrms/leave/accrue` + ledger | `hrms:comp-off-accrue` etc. unscheduled |
+| Accrual (idempotent) | ✅ | `POST hrms/leave/accrue` + ledger; `hrms:comp-off-accrue` scheduled `monthlyOn(1)` (G-1) | — |
 | Carry-forward | 🟡 | columns + ledger kind exist | **No endpoint/command applies it** (G-29) |
 | Encashment | ✅ | `LeaveRequestDecisions::encash()` | — |
 | Half-day | ✅ | `LeaveHalf` enum | — |
@@ -230,21 +230,21 @@ cross-referenced with the planning docs, plus focused test runs. **No code was c
 | Feature | Status | Evidence | Problems / action |
 |---|---|---|---|
 | Performance cycles (stage machine) | ✅ | `PerformanceCycleService` (goal_setting→…→calibration→completed) | Calibration = stage only, no tooling |
-| Goals + evidence from tasks/work logs | ✅ | `PerformanceService`, `hrms:performance-evidence` (unscheduled) | — |
+| Goals + evidence from tasks/work logs | ✅ | `PerformanceService`, `hrms:performance-evidence` scheduled `dailyAt 21:30` | — |
 | Goal↔task linking | ✅ | `goal_task_links` (P12.6) + `hrms_task_links` (P20) — **two mechanisms** | Duplication to consolidate eventually (G-35) |
 | Check-ins / 1:1s / feedback (manager/peer/report) | ✅ | `CheckInController`, `OneOnOneController`, `FeedbackService` | — |
 | Reviews + ratings + self/manager review | ✅ | `review_summaries`, ack | — |
 | Competencies / KPI entities / PIP / formal 360 / calibration sessions | 🔴 | none | Talent-layer gaps (G-36) |
 | **Talent module (skills, succession, career paths, pools)** | 🔵 | module key + `hrms.talent.*` permissions only | Reserved — no tables/routes/pages (G-37) |
 | Engagement: surveys (templates, pulse, eNPS, anonymity, segmentation) | ✅ | `000032` (6 tables), `EngagementService`, `Engagement.jsx`/`MySurvey.jsx` | — |
-| Survey open/close scheduling | 🟠 | `hrms:surveys-open-close` | Unscheduled (G-1) |
+| Survey open/close scheduling | ✅ | `hrms:surveys-open-close` scheduled `dailyAt 00:15 --all` (G-1) | — |
 | eNPS / campaigns / results | ✅ | `aggregateNps`, campaigns open/close/invite/results | — |
 | Documents: types/expiry/verification/confidential/requests | ✅ | `DocumentService` + context, signed downloads, `hrms:documents-expiry` | — |
 | Document versioning | 🔴 | none | Gap G-38 |
 | Assets: categories/inventory/assign/return/maintenance/damage/retire | ✅ | `000030` tables + services, `Assets.jsx`/`MyAssets.jsx` | — |
 | Asset replacement flow | 🔴 | no `replaced` state | Minor gap |
-| HR analytics (8 readings + CSV + digests) | ✅ | `HrmsAnalyticsService` + `Analytics/*`, `Analytics.jsx` (8 tabs) | Digests unscheduled (G-1) |
-| Scheduled reports | 🟠 | `hrms_report_schedules` + `hrms:report-digests` | Unscheduled (G-1) |
+| HR analytics (8 readings + CSV + digests) | ✅ | `HrmsAnalyticsService` + `Analytics/*`, `Analytics.jsx` (8 tabs); digests via `hrms:report-digests` scheduled `dailyAt 18:00` | — |
+| Scheduled reports | ✅ | `hrms_report_schedules` + `hrms:report-digests` scheduled `dailyAt 18:00 --all` (G-1) | — |
 | Inbox (merged pending-work read model) | ✅ | `InboxService`, `000031`, `Inbox.jsx` | `hrms.inbox` module key unused as gate |
 | **`hrms.exemptions` module key** | 🔵 | in plan lists only | No route/page uses it — delist or build (G-39) |
 
@@ -258,7 +258,7 @@ cross-referenced with the planning docs, plus focused test runs. **No code was c
 | Correlation/request IDs | 🔴 | none | Gap G-41 |
 | **TMS task workflow engine (transitions/validators/conditions/post-actions)** | 🔴 | only `task_statuses` CRUD (`StatusController`); any status change allowed; no transition table | Gap G-7 — plan §6 workflow-engine requirement entirely unmet |
 | **Automation engine (EVENT→CONDITION→ACTION)** | 🔴 | zero matches for "automation" in code; no rule tables | Gap G-42 — plan §15 requirement unmet |
-| Overdue-task notifications / due-date nudges | 🔴 | no TMS scheduled work at all | Part of G-1/G-42 |
+| Overdue-task notifications / due-date nudges | 🔴 | no TMS scheduled work at all | Not G-1 (that was the HRMS fleet) — belongs to the G-42 automation engine |
 | Custom field engine | 🔴 | zero hits | Gap G-23; multi-tenancy doc §15 Q5 shows it was consciously deferred |
 
 ## 11. Notifications
@@ -270,7 +270,7 @@ cross-referenced with the planning docs, plus focused test runs. **No code was c
 | Per-event preferences | ✅ | `notification_preferences`, `GET/PUT api/notification-preferences` | Email-only gating (in-app always) — documented decision |
 | HRMS notifications (leave/expense/approvals/assets…) | ✅ | notifiers in each context + deep links | — |
 | Watcher/CC notifications | 🔴 | watchers not consulted by `NotificationService` | G-2a |
-| Digest / batching / throttling / dedup | 🔴 | one row + one email per event | G-44 (HRMS report digests exist but unscheduled) |
+| Digest / batching / throttling / dedup | 🔴 | one row + one email per event | G-44 (HRMS report digests exist and now run nightly; no cross-event batching/throttle/dedup) |
 | Push (web push/FCM) | 🔴 | none | "Push-ready" not even architected yet |
 | Outbound webhooks (event subscriptions) | 🔴 | `WebhookController` = **inbound payments only** | G-45 — plan §18 channel list unmet |
 | Localization | 🔴 | `locale=en`, no `lang/` | Future |
@@ -334,7 +334,7 @@ cross-referenced with the planning docs, plus focused test runs. **No code was c
 | Feature | Status | Evidence | Problems / action |
 |---|---|---|---|
 | Tenant export (ZIP, chunked, signed) | ✅ | `ExportService` + 8 categories | ZIP cleanup missing |
-| Retention/purge | 🟡 | `hrms:retention` (HRMS only; audit exempt) | Not scheduled; no platform-wide retention policy |
+| Retention/purge | 🟡 | `hrms:retention` (HRMS only; audit exempt) scheduled `weeklyOn(0)` | No platform-wide (TMS) retention policy |
 | Tenant soft delete + restore | ✅ | `TenantController` | — |
 | Tenant hard purge / GDPR erasure | 🔴 | no cascade-drop path | G-55 |
 | Employee soft delete + terminate | ✅ | `EmployeeService` | — |
@@ -342,6 +342,12 @@ cross-referenced with the planning docs, plus focused test runs. **No code was c
 ---
 
 ## 17. Doc-vs-code contradictions found (stale documentation)
+
+**Status (2026-10-08, H-9 docs-truth pass): all 15 items below were corrected except #4**,
+whose count is reconciled by the phase's final full-suite run (H-18). Fixed alongside:
+the `task.watched` promise (#8) now records watchers as schema+CRUD shipped with only the
+notification fan-out missing, and the §10 markers were refreshed for platform/subscription,
+workspace/project metadata, components/versions, issue types and watchers.
 
 These must not be trusted from the docs; the code is authoritative:
 
@@ -370,7 +376,7 @@ These must not be trusted from the docs; the code is authoritative:
 | Backend (Laravel) | **Excellent** | Consistent controllers → FormRequests → policies → services → bounded contexts; 300-line ceilings enforced; enums; presenters; shared engines (approvals, audit, HrmsScope/TaskScope) |
 | Frontend (React) | **Good** | Consolidated IA, deep links, module/permission mirrors, portalled overlays; needs the backend-only TMS fields surfaced + mobile story |
 | Database | **Excellent** | DB-per-tenant isolation is real and tested; hardening indexes; repair-safe migrations with documented pitfalls |
-| SaaS (billing/entitlement) | **Good → Needs Improvement** | Entitlement/quota excellent; billing lacks invoices/dunning/expiry automation |
+| SaaS (billing/entitlement) | **Good → Needs Improvement** | Entitlement/quota excellent; billing lacks invoices/dunning/period-expiry automation (trial expiry now scheduled) |
 | Security | **Good → Needs Improvement** | Isolation/RBAC/signed URLs strong; missing 2FA/SSO/login-audit/CSP |
 | TMS depth (vs JIRA-class) | **Needs Improvement** | Solid task core; the entire agile layer (sprints/workflow/automation/views/search syntax) is absent |
 | HRMS depth (vs KEKA-class) | **Good** | Plan phases all shipped; commercial HRMS staples (transfers, F&F, shifts, talent) are the gaps |

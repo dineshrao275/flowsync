@@ -3,13 +3,14 @@
 ## Plans (`config/subscriptions.php`, seeded by `SubscriptionPlanSeeder`)
 
 Four plans verified 2026-10-05: **starter / pro / business / enterprise**.
-Modules: `time_tracking, reports, global_search, api, branding, audit_export` +
-`hrms.*` keys (see `07-hrms.md`). Numeric limits: users/seats, workspaces,
+Modules: `time_tracking, reports, global_search, branding, export.full` +
+`hrms.*` keys (see `07-hrms.md`); `api`/`audit_export` delisted 2026-10-08
+(gated nothing — see roadmap gap G-9). Numeric limits: users/seats, workspaces,
 projects, tasks, `employees`, `assets`, `storage_bytes`, `attachments_per_task`,
 `hr_document_bytes`. Starter = no HRMS; higher tiers unlock progressively through
-Enterprise (+payroll/statutory/exemptions/platform modules). Roadmap Phase 5 adds
-an **Export Data** capability (open design decision: 4th plan vs add-on module —
-recommend add-on `export.full` so existing `ensure_module`/`hasModule` work unchanged).
+Enterprise (+payroll/statutory/exemptions/platform modules). **Export Data shipped**
+as the `export.full` add-on module (queued full-tenant ZIP export behind
+`ensure_module`, so existing `ensure_module`/`hasModule` work unchanged).
 
 ## Models (all central)
 

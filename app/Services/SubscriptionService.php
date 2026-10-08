@@ -59,16 +59,31 @@ class SubscriptionService
         ]);
         $this->lifecycle->transition($tenant, Tenant::STATUS_ACTIVE);
 
+        // Seats that end up different from the stored ones are a seats_changed
+        // transition (an omitted `seats` option re-derives the plan default, so
+        // the comparison is against the stored row, not the input); plan changes
+        // already carry the seat move in their plan_changed event. `$existing`
+        // still holds the pre-write value.
+        $seatsChanged = $existing !== null
+            && (int) $existing->seats !== (int) $subscription->seats;
+
         $this->record(
             $tenant,
             $subscription,
-            $existing && $existing->plan_id !== $plan->id
-                ? Subscription::EVENT_PLAN_CHANGED
-                : Subscription::EVENT_SUBSCRIBED,
+            match (true) {
+                $existing && $existing->plan_id !== $plan->id => Subscription::EVENT_PLAN_CHANGED,
+                $seatsChanged => Subscription::EVENT_SEATS_CHANGED,
+                default => Subscription::EVENT_SUBSCRIBED,
+            },
             fromPlanId: $existing ? $existing->plan_id : null,
             toPlanId: $plan->id,
             actorId: $options['actor_id'] ?? null,
-            data: $options['data'] ?? [],
+            data: $seatsChanged
+                ? array_merge($options['data'] ?? [], [
+                    'seats_from' => $existing->seats,
+                    'seats_to' => $subscription->seats,
+                ])
+                : ($options['data'] ?? []),
         );
 
         return $subscription;

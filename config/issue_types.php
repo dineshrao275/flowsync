@@ -6,8 +6,9 @@ return [
     | Issue Types Catalog
     |--------------------------------------------------------------------------
     |
-    | The default issue types provisioned for every tenant. Tenants may rename,
-    | recolor, reorder or add their own issue types at runtime.
+    | The default issue types provisioned for every tenant. Runtime customization
+    | (rename, recolor, reorder, add) is not yet exposed over HTTP — the only
+    | route today is the read-only `GET api/issue-types` index.
     |
     */
 

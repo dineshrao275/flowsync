@@ -11,13 +11,14 @@ return [
     */
 
     // Feature modules a tenant can toggle on/off.
+    // NOTE: `api` and `audit_export` were delisted (gap G-9/H-2) — they gated
+    // no route, so plans were selling dead entitlements. Re-add a module only
+    // together with the `ensure_module:` route gate that enforces it.
     'modules' => [
         'time_tracking',
         'reports',
         'global_search',
-        'api',
         'branding',
-        'audit_export',
         'export.full',          // Phase 5: full tenant data export (ZIP) — add-on
 
         // HRMS. Dotted `hrms.*` keys are flat leaves: `TenantLimits::hasModule()`
@@ -60,9 +61,7 @@ return [
         'time_tracking' => ['label' => 'Time Tracking', 'group' => 'Platform'],
         'reports' => ['label' => 'Reports', 'group' => 'Platform'],
         'global_search' => ['label' => 'Global Search', 'group' => 'Platform'],
-        'api' => ['label' => 'API Access', 'group' => 'Platform'],
         'branding' => ['label' => 'Branding', 'group' => 'Platform'],
-        'audit_export' => ['label' => 'Audit Export', 'group' => 'Platform'],
         'export.full' => ['label' => 'Data Export', 'group' => 'Platform'],
 
         'hrms.core' => ['label' => 'Employee Records', 'group' => 'HRMS · Core'],
@@ -215,7 +214,7 @@ return [
                 // Everything: the Plan B set + Plan C + payroll + statutory +
                 // exemption + the platform's own modules + full data export.
                 'modules' => [
-                    'time_tracking', 'reports', 'global_search', 'api', 'branding', 'audit_export',
+                    'time_tracking', 'reports', 'global_search', 'branding',
                     'export.full',
                     'hrms.core', 'hrms.documents', 'hrms.onboarding', 'hrms.offboarding',
                     'hrms.assets', 'hrms.attendance', 'hrms.attendance.remote', 'hrms.leave',

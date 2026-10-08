@@ -50,7 +50,7 @@ deletes: trashed rows 404, excluded everywhere (locked by `HardeningTest`).
 - **Activity:** `ActivityLogger::log()` polymorphic rows; wired on task
   create/update/delete/move, comments, deps, attachments. Order by `id` desc.
 
-## Notifications (in-app only — email NOT wired)
+## Notifications (in-app + queued email)
 
 `GET notifications` (paginated + `actor`), `GET notifications/unread`,
 `POST …/read`, `POST …/mark-all-read` — plain `auth → tenant` group (self-scoped,
@@ -58,11 +58,13 @@ no `tenant_context`); platform SA short-circuits (empty/`count: 0`/404).
 Types: `task.assigned` (skip self), `task.status_changed`, `task.commented`
 (assignee + reporter + **@mentioned**, minus author), `task.unblocked` (last blocker
 removed), `task.work_logged` (create only, to assignee, skip self).
-`mentionUsers()`: regex `@([A-Za-z0-9._-]+)`, case-insensitive vs full email /
-local part / name. Broadcasts `NotificationSent` on `private user.{id}` with
-`actor{id,name}`; SPA 30s poll + Echo toast via `describeNotification`.
-**Email gap:** zero `Mail::` in `app/`; `MAIL_MAILER=log`; roadmap Phase 4 adds
-Mailable + queue + prefs for assignee + board members.
+`mentionUsers()`: regex `@([A-Za-z0-9._-]+(?:@[A-Za-z0-9._-]+)?)`, case-insensitive
+vs full email / local part / name. Broadcasts `NotificationSent` on `private user.{id}`
+with `actor{id,name}`; SPA 30s poll + Echo toast via `describeNotification`.
+**Email (shipped):** `App\Mail\TaskNotificationMail` (kind-driven, scalar snapshot at
+construction) queued from `NotificationService::notify()` for the four emailable kinds
+(assigned/status_changed/commented/unblocked), gated by per-event
+`notification_preferences`; HRMS nudges never email.
 
 ## Time tracking (`WorkLogService`, `WorkLogPolicy`)
 
@@ -84,4 +86,6 @@ each with its OWN route permission (`workspaces.view` / `dashboard.view` /
 deliberately outside `tenant_context` (cross-tenant for SA, nulls `TenantContext`
 internally). Reports distributions `{key,label,count,open,done,color}`; analytics =
 counts + project progress + 14-day work-log/creation series + top-5 contributors
-(Recharts). Exports: NONE for TMS (roadmap Phase 5).
+(Recharts). Exports: full-tenant ZIP export behind the `export.full` module
+(queued `ExportService` + signed download, `export_runs` table); HRMS per-domain
+CSVs (attendance/analytics). No per-feature TMS CSV.

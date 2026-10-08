@@ -12,7 +12,7 @@ import { useToast } from '../context/ToastContext';
 import { formatPrice } from '../utils/format';
 import usePageTitle from '../hooks/usePageTitle';
 
-const MODULES = ['time_tracking', 'reports', 'global_search', 'api', 'branding', 'audit_export'];
+const MODULES = ['time_tracking', 'reports', 'global_search', 'branding'];
 
 const emptyForm = {
     name: '',

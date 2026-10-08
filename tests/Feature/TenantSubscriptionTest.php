@@ -56,6 +56,45 @@ class TenantSubscriptionTest extends TestCase
         $this->assertSame([Subscription::EVENT_SUBSCRIBED, Subscription::EVENT_PLAN_CHANGED], $types);
     }
 
+    public function test_seat_changes_emit_seats_changed_and_carry_from_to_counts(): void
+    {
+        $starter = SubscriptionPlan::where('slug', 'starter')->firstOrFail();
+
+        // First assign → subscribed with an explicit seat count.
+        $this->postJson("/api/tenants/{$this->acme()->id}/subscription", [
+            'plan_id' => $starter->id,
+            'seats' => 7,
+        ])->assertOk()->assertJsonPath('subscription.seats', 7);
+
+        // Same plan, new seat count → seats_changed (not a second subscribed).
+        $this->postJson("/api/tenants/{$this->acme()->id}/subscription", [
+            'plan_id' => $starter->id,
+            'seats' => 9,
+        ])->assertOk()->assertJsonPath('subscription.seats', 9);
+
+        // Re-assign without seats re-derives the plan default (5 for starter) —
+        // that is still a seat change and must be recorded as one.
+        $this->postJson("/api/tenants/{$this->acme()->id}/subscription", [
+            'plan_id' => $starter->id,
+        ])->assertOk()->assertJsonPath('subscription.seats', 5);
+
+        $types = SubscriptionEvent::where('tenant_id', $this->acme()->id)
+            ->orderBy('id')->pluck('type')->all();
+        $this->assertSame([
+            Subscription::EVENT_SUBSCRIBED,
+            Subscription::EVENT_SEATS_CHANGED,
+            Subscription::EVENT_SEATS_CHANGED,
+        ], $types);
+
+        $events = SubscriptionEvent::where('tenant_id', $this->acme()->id)
+            ->where('type', Subscription::EVENT_SEATS_CHANGED)
+            ->orderBy('id')->get();
+        $this->assertSame([['from' => 7, 'to' => 9], ['from' => 9, 'to' => 5]], [
+            ['from' => $events[0]->data['seats_from'], 'to' => $events[0]->data['seats_to']],
+            ['from' => $events[1]->data['seats_from'], 'to' => $events[1]->data['seats_to']],
+        ]);
+    }
+
     public function test_trial_marks_tenant_and_subscription_trialing(): void
     {
         $starter = SubscriptionPlan::where('slug', 'starter')->firstOrFail();

@@ -13,11 +13,11 @@
 |---|---|
 | TMS (workspaces/projects/tasks/collab/time/search) | Shipped, complete |
 | HRMS contexts (employee→surveys, inbox, analytics, task-links) | Shipped, complete |
-| Subscriptions (plans/limits/gates/onboarding/self-service) | Code-complete, no billing |
+| Subscriptions (plans/limits/gates/onboarding/self-service) | Code-complete; billing integration shipped (checkout/verify/refunds/webhooks — live gateway keys not configured) |
 | Notifications | ✅ Phase 4: in-app + queued email (assigned/commented/status/unblock) with per-event prefs + 20-mention cap |
-| Exports | 2 HRMS CSVs only; no TMS/general export |
-| Payments | NONE (no Stripe/Razorpay code) |
-| Factories | Stock `UserFactory` only |
+| Exports | Full-tenant ZIP (`export.full` module, queued `ExportService` + signed download) + 2 HRMS CSVs; no per-feature TMS CSV |
+| Payments | ✅ Stripe + Razorpay gateways, signed webhooks, payment events (`BillingTest`, `PaymentWebhookTest`) — fake/test credentials only, no live keys |
+| Factories | ✅ ~12 central + tenant + HRMS factories with relational consistency (`FactoryParityTest`) |
 | Security criticals (`10-security.md` C1–C3) | CLOSED (Phase 1, 2026-10-06) |
 | Database & performance backlog (`04-database.md`, plan B1–B11) | Shipped (Phase 2, 2026-10-06) — B7 `me()` caching deliberately deferred |
 

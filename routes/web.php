@@ -322,7 +322,7 @@ Route::prefix('api')->group(function () {
             Route::put('projects/{project}/statuses/{status}', [StatusController::class, 'update']);
             Route::delete('projects/{project}/statuses/{status}', [StatusController::class, 'destroy']);
 
-            // Phase 7: project components & releases/versions
+            // TMS expansion: project components & releases/versions
             Route::get('projects/{project}/components', [ProjectComponentController::class, 'index']);
             Route::post('projects/{project}/components', [ProjectComponentController::class, 'store']);
             Route::put('projects/{project}/components/{component}', [ProjectComponentController::class, 'update']);

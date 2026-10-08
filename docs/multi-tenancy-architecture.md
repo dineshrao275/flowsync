@@ -230,7 +230,8 @@ unique, `tasks(project_id,key|sequence)` unique, `labels(workspace_id,name)` uni
 ### 5.3 Feature & limit catalog (`config/subscriptions.php`)
 Machine-readable registry so plans/UI/limits share keys:
 ```
-modules:        time_tracking, reports, global_search, api, branding, audit_export
+modules:        time_tracking, reports, global_search, branding, export.full, hrms.*
+                (`api`/`audit_export` delisted — they gated no route; see gap G-9)
 numeric limits: users, seats, workspaces, projects, tasks, storage_bytes, attachments_per_task
 ```
 Tenant effective limits = `plan.limits` merged with `tenants.limits_override` (override reserved for
@@ -379,36 +380,41 @@ permissions.
 
 ## 10. Feature expansion map (Jira-like reference)
 
-Concepts mapped to current state + proposals. **= already shipped (P0–P10), ◆ = schema currently exists
-(with gaps), ○ = new schema needed, ≈ = adapted, deferred = future phase.**
+Concepts mapped to current state + proposals. **= already shipped, ◆ = schema exists (with gaps), ○ = new schema needed, ≈ = adapted, deferred = future phase.**
+The markers were baseline-at-P10 and are refreshed opportunistically (2026-10-08: platform/subscription items, workspace & project metadata, components/versions, issue types, watchers) — for current state also read `AGENTS.md` and `IMPLEMENTATION_TRACKER.md`.
 
 ### 10.1 Tenants
-**=** create, list, users, impersonate, global search · ◆ provisioning status (new) · ○ status/lifecycle
-(§7) · ○ subscription/plan/limits (§5/§8) · ○ platform dashboard (§9).
+**=** create, list, users, impersonate, global search, provisioning status, status/lifecycle
+(§7), subscription/plan/limits (§5/§8), platform dashboard (§9).
 
 ### 10.2 Workspaces
 **=** name/slug, members (owner/admin/member), labels, archive/restore, time summary, policy-scoped
-permissions · ◆ expand model: add `description`, `icon`, `color`, `timezone`, `working_hours`,
-`default_assignee_id`, `settings jsonb` (notifications, default priority/status, language) · ○
+permissions, metadata expansion (`description`, `icon`, `color`, `timezone`,
+`default_assignee_id`, `settings jsonb`) · ◆ `working_hours` (planned in the expansion, never
+shipped — no column) · ○
 workspace-level activity feed (`activities` subject=`workspace`) · ○ workspace notifications/config ·
 ≈ reports per workspace (P7 dashboard scopes to tenant) · respects **subscription limits** (workspace
 create) via `TenantLimits`.
 ### 10.3 Projects
 **=** detail/key/lead/members/roles/permissions/settings/workflow (per-project statuses, category →
-`backlog|todo|in_progress|in_review|done`)/priorities/labels/activity/reports/archive · ◆ add
-`description`, `icon/color`, `default_assignee`, `notification config jsonb` · ○ **components/modules**
-(`project_components`: name, lead, description; component match rule on tasks) · ○ **versions/releases**
-(`project_versions`: name, released, release_date, description; optional version target on tasks) · ○
-**issue types** (`issue_types` tenant or project catalog: story/task/bug/epic, `is_subtask`, icon, defaults
-for status/priority; `tasks.issue_type_id` FK), default-seeded from `config/issue_types.php` · ○ notify
+`backlog|todo|in_progress|in_review|done`)/priorities/labels/activity/reports/archive, plus
+`description`/`icon`/`color`/`default_assignee` (metadata expansion) · ◆ notification config jsonb
+(not yet a column) · =
+**components/modules** (`project_components`: name, lead, description; schema + CRUD routes) · =
+**versions/releases** (`project_versions`: name, released, release_date, description; schema + CRUD
+routes; optional version target on tasks) · ◆
+**issue types** (`issue_types` tenant catalog: story/task/bug/epic, `is_subtask`, icon, defaults
+for status/priority; `tasks.issue_type_id` FK — schema, default-seeding from `config/issue_types.php`
+and `GET issue-types` read shipped; create/update/delete CRUD not routed yet) · ○ notify
 on project-level events (test: default) · ≈ distinct workflows per project (already per-project statuses);
 future: shared workflow schemes.
 ### 10.4 Tasks / Issues
 **=** summary/description, assignee, reporter, priority, status (configurable workflow), labels, due
 date, estimates (estimate_minutes), time tracking (work logs), subtasks (`parent_id`), dependencies
 (blocks/related), comments + mentions, attachments (signed), activity, notifications, audit ·
-◆ add columns: `start_date`, `story_points decimal`, `issue_type_id`, `component_ids` (pivot) ·
-○ **watchers** (`task_watchers task_id,user_id`) + `task.watched` notifications on comments/status ·
+= columns `start_date`, `story_points decimal`, `issue_type_id`, `version_id`, `component_ids` (pivot) ·
+◆ **watchers** (`task_watchers` schema + CRUD shipped; the `task.watched` notification fan-out on
+comments/status is NOT wired) ·
 ○ **linked issues** (reuse `task_dependencies` types; extend enum with `relates|duplicates|blocks…
 clones`) · ○ **custom fields** (deferred to a dedicated phase): `custom_field_definitions` (tenant/project
 scope) + `custom_field_values` (polymorphic or jsonb); UI renders per issue-type layout · ≈ auditable

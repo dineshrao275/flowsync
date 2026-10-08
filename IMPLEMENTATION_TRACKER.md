@@ -273,8 +273,9 @@ Demanded verdict gates at each phase: `php artisan test` · `./vendor/bin/pint` 
       (sqlite fast-path gets an index only — ALTER ADD CONSTRAINT unsupported)
       (`2026_09_24_000016_create_subscription_tables.php`)
 - [x] `config/subscriptions.php` machine-readable catalog (modules: time_tracking/reports/global_search/
-      api/branding/audit_export; numeric limits: users/seats/workspaces/projects/tasks/storage_bytes/
-      attachments_per_task; starter/pro/enterprise defaults)
+      branding; numeric limits: users/seats/workspaces/projects/tasks/storage_bytes/
+      attachments_per_task; starter/pro/business/enterprise defaults) — `api` + `audit_export`
+      were delisted at docs-truth time (they gated no route, G-9/H-2)
 - [x] Models `SubscriptionPlan`/`Subscription`/`SubscriptionEvent` (`CentralConnection`/system);
       relationships + `Subscription::isActive()`, `SubscriptionPlan::limit()/hasModule()/periodEnd()`,
       `Tenant` hasOne `subscription()` + `subscriptionEvents()`
@@ -328,30 +329,51 @@ Demanded verdict gates at each phase: `php artisan test` · `./vendor/bin/pint` 
 - [ ] Gate: tests · pint · build
 
 ## Phase 16 — Super Admin platform (per §9)
-- [ ] `GET /api/tenants` expand: q/status/plan filters + counts + subscription + provisioning
-- [ ] `GET /api/tenants/{id}` details (counts, subscription, usage, provisioning)
-- [ ] Lifecycle endpoints `POST /api/tenants/{id}/suspend|reactivate|deactivate` (`TenantLifecycle`)
-- [ ] `GET /api/platform/usage` (users/workspaces/projects/tasks/storage by plan & tenant)
-- [ ] `GET /api/platform/health` (system DB + sampled per-tenant DB connectivity)
-- [ ] `GET /api/platform/audit-logs` (system audit + tenant_activity)
-- [ ] `GET/PUT /api/platform/features` (global default toggles)
-- [ ] Global search fan-out across tenant DBs concurrently (limit/merge top-N); super admin central pin kept
+- [x] `GET /api/tenants` expand: q/status/plan filters + counts + subscription + provisioning
+      (≡ Platform Maturity item #8; pagination, `users_count`, inlined
+      `plan_slug/plan_name/subscription_status`, `subscription.plan` eager-loaded)
+- [x] `GET /api/tenants/{id}` details (counts, subscription, usage, provisioning)
+      — `show` carries counts; stats are a separate `GET /tenants/{id}/stats` and the
+      subscription a separate `GET /tenants/{id}/subscription`
+- [x] Lifecycle endpoints `POST /api/tenants/{id}/suspend|activate` + soft-delete/restore
+      (`TenantLifecycle`; actual routes are `suspend|activate|delete|restore`, each writing
+      an `audit_logs` row — no `reactivate|deactivate` pair)
+- [x] `GET /api/platform/usage` — shipped as `GET /api/system/analytics`
+      (`SystemAnalyticsController`: tenant/subscription status counts + capped cross-tenant
+      resource totals, `Cache::remember 300s`)
+- [x] `GET /api/platform/health` (also aliased `GET /api/system/health`) — system DB + sampled
+      per-tenant DB latency, cache, disk, queue-driver echo (`PlatformHealthTest`)
+- [x] `GET /api/system/audit-logs` (merged paginated feed of central `audit_logs` +
+      `impersonation_logs`, type/q/tenant filters)
+- [x] `GET/PUT /api/system/features` (module catalog × plan toggle grid persisting
+      `plans.limits.modules`, `plan.module_toggled` audit)
+- [x] Global search fan-out across tenant DBs (limit/merge top-N); super admin central pin kept
+      (sequential loop over provisioned active/trial tenants, not parallel — `GlobalSearchTest`)
 - [ ] Tenant drill-down: read-only fan-out inspection of workspace/project/task/activity on the target DB
+      (not built — the closest surfaces are the per-tenant `/tenants/{id}/stats` card and global
+      search's per-tenant hits)
 - [ ] Frontend platform section: Tenants onboarding expansion (status polling, activity timeline), Plans,
       usage dashboard, health, audit, features, drill-down
+      (built: `/admin` overview, Tenants, Plans, Features, Analytics, Audit Logs, Settings, Users;
+      **not built:** health page, status polling, activity timeline, drill-down UI)
 - [ ] Tests: platform endpoints, fan-out search, drill-down; gate
+      (partially covered by `SystemAdminTest`, `PlatformHealthTest`, `BillingTest`,
+      `PaymentWebhookTest`, `TenantBackupTest` — fan-out search has `GlobalSearchTest`;
+      drill-down has nothing to test)
 
 ## Phase 17 — Feature expansion (per §10; custom fields deferred to their own phase)
-- [ ] Workspaces: add `description/icon/color/timezone/working_hours/default_assignee_id/settings jsonb`;
-      workspace-level activity feed (`activities` subject=`workspace`)
-- [ ] Projects: `description/icon/color/default_assignee/notification config jsonb`; `project_components`
-      (name/lead/description); `project_versions` (name/released/release_date/description); `issue_types`
-      (tenant or project catalog: story/task/bug/epic, `is_subtask`, icon, default status/priority;
-      `tasks.issue_type_id` FK) seeded from `config/issue_types.php`
-- [ ] Tasks: `start_date`, `story_points decimal`, `component_ids` pivot, watchers (`task_watchers`
-      + `task.watched` notifications on comments/status), extend `task_dependencies.type` enum
-      (`relates|duplicates|blocks→clones`)
-- [ ] Per-feature tests + gate
+- [ ] Workspaces: `description/icon/color/timezone/default_assignee_id/settings jsonb` shipped
+      (migrations `000005`/`000039`, wired through `WorkspaceService`); `working_hours` never
+      shipped (no column); workspace-level activity feed (`activities` subject=`workspace`) not built
+- [ ] Projects: `description/icon/color/default_assignee` shipped; `project_components` +
+      `project_versions` shipped (schema + CRUD routes + tests); `issue_types` tenant catalog
+      shipped (schema + seeding + read-only index — write CRUD still unrouted, H-6);
+      `notification config jsonb` never shipped (no column)
+- [ ] Tasks: `start_date`, `story_points decimal`, `issue_type_id`, `version_id`, `component_ids`
+      pivot shipped; `task_watchers` schema + CRUD shipped but the `task.watched` notification
+      fan-out on comments/status is NOT wired (H-4/G-2a); `task_dependencies.type` enum NOT
+      extended with `relates|duplicates|clones` (H-10)
+- [ ] Per-feature tests + gate (partially: `TmsExpansionTest` covers the shipped CRUD/uniqueness)
 
 ---
 
@@ -509,8 +531,9 @@ touched) · `npm run build` when frontend touched · AGENTS.md updated when arch
       (admin lifecycle + home protection + public rendering incl. draft 404 + sitemap/robots derived
       from CMS) · full suite **307/2264** green · `npm run build` clean · pint clean.
 - [x] **12. Subscription-based feature control** — `EnsureModule` middleware 403s
-      `reports`/`time_tracking`/`global_search`/`branding`/`api`/`audit_export` route groups when plan
-      lacks module (SA non-impersonating bypasses; impersonating follows target's plan); frontend gates
+      `reports`/`time_tracking`/`global_search`/`branding` route groups when plan
+      lacks module (SA non-impersonating bypasses; impersonating follows target's plan;
+      `api`/`audit_export` were delisted — they gated no route, G-9/H-2); frontend gates
       sidebar/pages on `user.modules` (via `hasModule()` + `ProtectedRoute module` prop); Feature
       Management (#10) drives `plans.limits.modules`; tests: module-off → menu hidden, direct-URL 403,
       API 403.

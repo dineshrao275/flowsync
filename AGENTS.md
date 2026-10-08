@@ -50,7 +50,7 @@ Laravel 12 + React 19 SPA. Session-based auth **without** Breeze/Fortify/Sanctum
   `HrmsShellTest::test_the_hrms_tree_is_free_of_debug_leftovers` fails it on leftover
   `dd()`/`dump()`/`console.log`/`TODO` in the HRMS tree. Never commit `.env*`, credentials, or
   `storage/`; never use `--force`.
-- Entry: `resources/js/main.jsx` (imports `./bootstrap`, React StrictMode). `resources/js/app.js` is unused stock; ignore it.
+- Entry: `resources/js/main.jsx` (imports `./bootstrap`, React StrictMode).
 
 ## Demo logins (password `password`)
 - `superadmin@flowsync.test` — Super Admin (no tenant)
@@ -169,11 +169,12 @@ Hierarchy: **Tenant → Workspace → Project → Task** (subtask `tasks.parent_
 - Frontend: `Dashboard.jsx` (6 stat widgets + task lists with `{key} · title`, priority dot, links to `/projects/{id}?tab=tasks`; analytics charts via **Recharts** — project-progress stacked bars, 14-day hours-logged bars, 14-day task-creation line + top-contributors list; analytics fetch is best-effort, hidden on failure), `Reports.jsx` (totals + four distribution bars + a Time-logged scope picker driving `TimeSummary` from `/workspaces/{id}/time-summary` or `/projects/{id}/time-summary`), and new `pages/Search.jsx` at `/search` (workspaces.view-grouped route; filter bar for q/workspace/project/status/priority/assignee/label/due-from/to; results table; pagination like Notifications). "Search" nav item added in `Sidebar.jsx`. `ProjectDetail` now initializes its tab from `?tab=…` for deep links.
 
 ## Global Search & UI/UX (Phase 9)
-- Endpoint: `GET api/search/global` (`GlobalSearchController`, `SearchController`-adjacent) lives in **`routes/web.php`** in the plain `auth → tenant` group with `permission:workspaces.view` — deliberately **outside** `tenant_context` so a non-impersonating super admin can cross tenants. The controller pins `TenantContext` to null internally when the caller is a super admin (like `TenantProvisioner`), so its queries temporarily ignore the tenant scope. `q` must be ≥2 chars (422). Returns `{query, results:{workspaces,projects,tasks,users}, total}`:
-  - `workspaces`: same-tenant (visible scope), carries `tenant` name, `projects_count`.
-  - `projects`: visible scope (tenant-manager → all; else project member), carries `workspace` name, `tasks_count`.
-  - `tasks`: via `visibleTaskQuery()` (see Phase 7) **plus** the new `ScopesVisibleTasks::userManagesAllTasks()` bypass that treats a **non-impersonating super admin** as a tenant-wide manager; capped to 8, `orderByDesc('tasks.updated_at')`.
-  - `users`: gated `users.view` (or super admin), scoped to the current tenant DB, matches name/email local part, sorted by name; **no navigation action** client-side.
+- Endpoint: `GET api/search/global` (`GlobalSearchController`, `SearchController`-adjacent) lives in **`routes/web.php`** in the plain `auth → tenant` group with `permission:workspaces.view` — deliberately **outside** `tenant_context` so a non-impersonating super admin can cross tenants. A non-impersonating super admin gets a **per-tenant fan-out**: the controller loops every provisioned `active`/`trial` tenant through `TenantDatabaseManager::using()`, merges the per-tenant hits, then slices each group to its limit (first tenants in the loop win — sequential, not parallel). Everyone else is scoped to the session's tenant DB. `q` must be ≥2 chars (422). Returns `{query, results:{workspaces,projects,tasks,users,employees}, total}`:
+  - `workspaces`: visible scope (tenant-manager → all; else member), carries `tenant` name, `projects_count`.
+  - `projects`: visible scope (tenant-manager → all; else project member), carries `workspace` name, `tasks_count`, `tenant`.
+  - `tasks`: via `visibleTaskQuery()` (see Phase 7) **plus** the `ScopesVisibleTasks::userManagesAllTasks()` bypass that treats a **non-impersonating super admin** as a tenant-wide manager of each visited tenant; per-tenant cap 8 (global slice), `orderByDesc('tasks.updated_at')`.
+  - `users`: gated `users.view` (or super admin), scoped to the visited tenant DB, matches name/email, sorted by name; **no navigation action** client-side.
+  - `employees`: HRMS directory rows (name + `employee_code` only), only when `maySeeEmployees()` (super admin, or `hrms.employees.view`) **and** the tenant's plan holds `hrms.core`.
 - Frontend: `resources/js/components/search/CommandPalette.jsx` — Jira-style quick search. Triggered via global `⌘K`/`Ctrl+K` (Topbar keydown effect) and a Topbar "Search… ⌘K" button/icon; state owned by `AdminLayout`, gated on `can('workspaces.view')`. Debounced 250ms `GET /search/global` (AbortController), grouped results (Tasks/Projects/Workspaces/People) with entity icons, ↑/↓/↵/esc keyboard nav + mouse, min 2 chars. Navigates: task → `/projects/{id}?tab=tasks&task=KEY`; project → `/projects/{id}`; workspace → `/workspaces/{id}`.
 - Task deep-link: `ProjectDetail` reads `?task=KEY` — forces the Tasks tab via tab-init (`?tab` wins) and an effect auto-opens the task drawer once the board/list pool contains it (ref-guarded so board refetches don't re-open). The query string is **kept in the URL** (no `replaceState` strip) so the link survives refresh/direct-tab — see Phase 10 for the section-aware form.
 - UI primitives now live in `resources/js/components/ui/` (`Select`, `Modal`, `Drawer`, `EmptyState`, `Avatar`, `Spinner`, `fieldStyles.js`, `Pagination`; enriched `Button`, `Input`, `Card`). **`Modal` + `Drawer` render through `createPortal(…, document.body)`** — the page-content wrapper in `AdminLayout` carries `animate-fade-in-up` (a transform animation with `fill-mode: both`), which makes it a containing block/stacking context, so a nested `fixed` overlay is trapped behind the sidebar/topbar instead of the viewport. Any new full-screen overlay must be portalled too (`CommandPalette` z-[80] and `ThemeSettingsDrawer` are safe only because `AdminLayout` renders them outside the animated wrapper). Sidebar is collapsible (`w-64 ↔ w-16`, persisted via localStorage key `flowsync.sidebar.collapsed`, sectioned nav + active pill + accent bar). Toasts were modernized — compact tinted card, no progress bar, `warning` type added. Kanban board scrolls horizontally in one row (`board-scroll`) instead of a wrapping grid (fixes Done column dropping below Backlog). `TaskDetail` uses the shared `Drawer` (footer actions, meta-rail layout). Remaining grid/flex selects use `fieldClass`/`fieldClassCompact` directly (`Select` is label-wrapping and unfit for inline cells).
@@ -318,7 +319,7 @@ Hierarchy: **Tenant → Workspace → Project → Task** (subtask `tasks.parent_
   `utils/permissions.js` (`domainOfPermission`/`prettyDomain`/`groupPermissionsByDomain` — the domain
   is everything before the last slug segment, so scope variants keep grouping without a server change);
   shared `PermissionGrid` renders create-modal + edit grids. Phase B3 of the member-access plan.
-- Routing in `resources/js/App.jsx`: `GuestRoute` (login/forgot/reset only — **no register**), `ProtectedRoute` (optional `permission` prop), super-admin-only `/tenants` route.
+- Routing in `resources/js/App.jsx`: `GuestRoute` (login/forgot/reset/register), `ProtectedRoute` (optional `permission` prop), super-admin-only `/tenants` route.
 - **Landing route = `homeRouteFor(user)`** (`utils/deepLinks.js`): `/admin` for a non-impersonating super admin, `/dashboard` otherwise. Used by `/`, `GuestRoute`, and `Login` (so an SA never lands on the tenant dashboard, whose endpoints 403 without a tenant context); `App.jsx` also renders `/dashboard` as a `<Navigate>` to `/admin` for SAs (old bookmarks/typed URLs).
 - `context/AuthContext.jsx`: `user`, `theme`, `loading`, `login`, `logout`, `stopImpersonation`, `can()`, `hasModule()`, `check()`, `refresh`. `can()` returns true for super admin unless `user.impersonating`; tenant users rely on `user.permissions`. `hasModule(module)` gates plan modules; `check(capability)` is the combined guard — `'permission:slug'` or `'module:name'` prefixes (backend `me()` fills `user.modules`).
 - `context/ThemeContext.jsx` (live draft + save/reset), `context/ToastContext.jsx` (success/info/error). `useToast()` returns the toast **object** (`toast.success/error/info`) — never `const { toast } = useToast()` (that yields `undefined` and crashes every call site).
@@ -431,8 +432,10 @@ Hierarchy: **Tenant → Workspace → Project → Task** (subtask `tasks.parent_
   FK lands **only on PostgreSQL** — the sqlite fast-path can't ALTER ADD CONSTRAINT, so it gets a plain
   index (app-level FK via the model).
 - `config/subscriptions.php` = machine-readable catalog (modules: time_tracking/reports/global_search/
-  api/branding/audit_export; numeric limits: users/seats/workspaces/projects/tasks/storage_bytes/
-  attachments_per_task; default plans starter/pro/enterprise). Seeded idempotently by
+  branding; numeric limits: users/seats/workspaces/projects/tasks/storage_bytes/
+  attachments_per_task; default plans starter/pro/business/enterprise). **`api` and `audit_export` were delisted**
+  (gap G-9/H-2): they gated no route, so plans stopped selling dead entitlements — re-add each module
+  only together with the route gate that enforces it. Seeded idempotently by
   `SubscriptionPlanSeeder` (`updateOrCreate` by slug, `is_default` guarded), which runs inside
   `TenantSeeder` and `TenantController::store`.
 - Models `SubscriptionPlan` (`limit($key)`/`hasModule($module)`/`periodEnd(?Carbon)`),
@@ -688,7 +691,8 @@ Phase 13
   `document_types`, and no migration created that table until P13.1 — the plan's "documents ship
   first" prerequisite is a hard schema dependency, not a preference.
 - **Migration numbering is pre-assigned** in the plan's Part 3.3 (`2026_09_27_000014` for the shared
-  tables, through `2026_10_04_000031`), one monolithic tenant migration per phase — except the
+  tables, through `2026_10_04_000031`; later phases extended the series beyond the pre-assignment —
+  the tenant set currently reaches `2026_10_17_000039`), one monolithic tenant migration per phase — except the
   document tables, renamed from their assigned `000026` to `2026_09_27_000016`. Five later files
   (lifecycle, leave, comp-off, payroll, statutory) hold FKs into `document_types`/`employee_documents`
   and PostgreSQL validates the referenced table at `CREATE` time, so the later number breaks every
@@ -1163,7 +1167,10 @@ Phase 13
   connection from the previously-active tenant — `using()` is therefore safe to nest across different
   tenants. Never add a purge-skip for the *tenant* name; the purge-protection lives in
   `switchDefault()` and only guards the central/system connection.
-- No `/register` route, page, or endpoint — tenant admins create users via `POST /api/users`; create roles via `POST /api/roles`.
+- Public registration exists: `POST api/register` (throttled) + the `/register` SPA page, gated by the
+  platform `public_registration` setting (**default off** → 403; `RegisterController` falls back to the
+  onboarding config at seed time). Tenant admins can still create users directly via `POST /api/users`
+  and roles via `POST /api/roles`.
 - React requires `@vitejs/plugin-react@5` (v6 needs Vite 8); `app.blade.php` needs `@viteReactRefresh` with `react()` plugin in `vite.config.js`.
 - CSS: global scrollbar hiding + `html/body overflow-x:hidden` in `resources/css/app.css` (keeps theme drawer off-screen).
 - DB is SQLite (tenant fast-path): schema changes requiring drops need explicit `dropUnique`/`addUnique` rebuilds.

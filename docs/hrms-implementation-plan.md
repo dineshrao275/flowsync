@@ -246,7 +246,8 @@ Callers of `provisionIsolated()` — a new seed step therefore covers all of the
 ### 1.4 Subscription + feature control (the gate HRMS plugs into)
 
 - `config/subscriptions.php` — `modules` list (currently `time_tracking`, `reports`, `global_search`,
-  `api`, `branding`, `audit_export`), `limits` list, and the `starter` / `pro` / `enterprise` plan
+  `branding`, `export.full` + the `hrms.*` keys; `api`/`audit_export` delisted as ungated — gap G-9),
+  `limits` list, and the `starter` / `pro` / `business` / `enterprise` plan
   definitions whose `limits.modules` arrays carry enabled modules.
 - `SubscriptionPlanSeeder` — `updateOrCreate` by slug. **Re-running the seeder overwrites `limits` on
   existing plans**, so changing a plan's module list is a deliberate data migration (see `P1.5`).

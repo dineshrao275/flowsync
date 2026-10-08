@@ -323,7 +323,9 @@ The drill performs:
   - Sampled tenant databases connectivity & latency (ms)
   - Cache store read/write status
   - Filesystem disk writability
-  - Queue connection status
+  - Queue connection status (config echo only — the configured `queue.default`
+    driver name; it does **not** probe a worker or broker, so it reads `ok`
+    even when no worker is consuming)
 
 ### 6.2 Tenant Usage Metrics Collection
 A daily job gathers cross-tenant statistics into the central `usage_metrics` table:
