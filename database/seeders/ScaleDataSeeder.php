@@ -507,6 +507,19 @@ class ScaleDataSeeder extends Seeder
                     'updated_at' => $created,
                 ];
             }
+
+            // H5: Seed activity logs so audit feeds and timelines have realistic scale data
+            if ($offset % 3 === 0) {
+                $activities[] = [
+                    'actor_user_id' => $worker->id,
+                    'subject_type' => 'App\\Models\\Task',
+                    'subject_id' => $taskId,
+                    'action' => 'created',
+                    'data' => json_encode(['title' => self::TASK_TITLES[$offset % count(self::TASK_TITLES)]]),
+                    'ip_address' => '127.0.0.1',
+                    'created_at' => $created,
+                ];
+            }
         }
 
         if ($comments) {
@@ -514,6 +527,9 @@ class ScaleDataSeeder extends Seeder
         }
         if ($logs) {
             DB::table('work_logs')->insert($logs);
+        }
+        if ($activities) {
+            DB::table('activities')->insert($activities);
         }
 
         foreach (array_values($workers) as $u => $worker) {

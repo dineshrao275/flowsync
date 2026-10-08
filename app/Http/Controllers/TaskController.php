@@ -46,6 +46,8 @@ class TaskController extends Controller
             'due_from' => ['nullable', 'date'],
             'due_to' => ['nullable', 'date'],
             'view' => ['nullable', 'in:board,list'],
+            'column_limit' => ['nullable', 'integer', 'min:1', 'max:500'],
+            'limit' => ['nullable', 'integer', 'min:1', 'max:500'],
             'sort_by' => ['nullable', 'in:position,created_at,due_date,title'],
             'sort_dir' => ['nullable', 'in:asc,desc'],
         ]);

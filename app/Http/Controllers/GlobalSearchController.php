@@ -34,41 +34,48 @@ class GlobalSearchController extends Controller
         $users = [];
         $employees = [];
 
+        $defaultLimit = (int) $request->input('limit', 0);
+        $wsLimit = (int) $request->input('workspace_limit', $defaultLimit ?: 5);
+        $projLimit = (int) $request->input('project_limit', $defaultLimit ?: 5);
+        $taskLimit = (int) $request->input('task_limit', $defaultLimit ?: 8);
+        $userLimit = (int) $request->input('user_limit', $defaultLimit ?: 5);
+        $empLimit = (int) $request->input('employee_limit', $defaultLimit ?: 5);
+
         if ($isSuperAdmin) {
             $tenants = Tenant::query()->where('status', 'active')->orWhere('status', 'trial')->get()
                 ->filter(fn (Tenant $tenant) => $tenant->isProvisioned());
 
             foreach ($tenants as $tenant) {
-                $dbm->using($tenant, function () use ($q, $user, $tenant, &$workspaces, &$projects, &$tasks, &$users, &$employees): void {
-                    $workspaces = array_merge($workspaces, $this->searchWorkspaces($q, $user, $tenant->name));
-                    $projects = array_merge($projects, $this->searchProjects($q, $user, $tenant->name));
-                    $tasks = array_merge($tasks, $this->searchTasks($q, $user));
-                    $users = array_merge($users, $this->searchUsers($q, $user, $tenant->name));
+                $dbm->using($tenant, function () use ($q, $user, $tenant, $wsLimit, $projLimit, $taskLimit, $userLimit, $empLimit, &$workspaces, &$projects, &$tasks, &$users, &$employees): void {
+                    $workspaces = array_merge($workspaces, $this->searchWorkspaces($q, $user, $tenant->name, $wsLimit));
+                    $projects = array_merge($projects, $this->searchProjects($q, $user, $tenant->name, $projLimit));
+                    $tasks = array_merge($tasks, $this->searchTasks($q, $user, $taskLimit));
+                    $users = array_merge($users, $this->searchUsers($q, $user, $tenant->name, $userLimit));
 
                     if ($this->maySeeEmployees($user, $tenant)) {
-                        $employees = array_merge($employees, $this->searchEmployees($q, $tenant->name));
+                        $employees = array_merge($employees, $this->searchEmployees($q, $tenant->name, $empLimit));
                     }
                 });
             }
         } else {
-            $workspaces = $this->searchWorkspaces($q, $user, $this->currentTenantName($request));
-            $projects = $this->searchProjects($q, $user, $this->currentTenantName($request));
-            $tasks = $this->searchTasks($q, $user);
-            $users = $this->searchUsers($q, $user, $this->currentTenantName($request));
+            $workspaces = $this->searchWorkspaces($q, $user, $this->currentTenantName($request), $wsLimit);
+            $projects = $this->searchProjects($q, $user, $this->currentTenantName($request), $projLimit);
+            $tasks = $this->searchTasks($q, $user, $taskLimit);
+            $users = $this->searchUsers($q, $user, $this->currentTenantName($request), $userLimit);
 
             $tenant = $this->currentTenant($request);
 
             if ($tenant !== null && $this->maySeeEmployees($user, $tenant)) {
-                $employees = $this->searchEmployees($q, $tenant->name);
+                $employees = $this->searchEmployees($q, $tenant->name, $empLimit);
             }
         }
 
         $results = [
-            'workspaces' => array_slice($workspaces, 0, 5),
-            'projects' => array_slice($projects, 0, 5),
-            'tasks' => array_slice($tasks, 0, 8),
-            'users' => array_slice($users, 0, 5),
-            'employees' => array_slice($employees, 0, 5),
+            'workspaces' => array_slice($workspaces, 0, $wsLimit),
+            'projects' => array_slice($projects, 0, $projLimit),
+            'tasks' => array_slice($tasks, 0, $taskLimit),
+            'users' => array_slice($users, 0, $userLimit),
+            'employees' => array_slice($employees, 0, $empLimit),
         ];
 
         return response()->json([
@@ -78,7 +85,7 @@ class GlobalSearchController extends Controller
         ]);
     }
 
-    private function searchWorkspaces(string $q, User $user, ?string $tenantName = null): array
+    private function searchWorkspaces(string $q, User $user, ?string $tenantName = null, int $limit = 5): array
     {
         $query = Workspace::query()
             ->where('name', 'like', "%{$q}%")
@@ -88,7 +95,7 @@ class GlobalSearchController extends Controller
             $query->whereHas('members', fn (Builder $members) => $members->where('user_id', $user->id));
         }
 
-        return $query->orderBy('name')->limit(5)->get()->map(fn (Workspace $workspace) => [
+        return $query->orderBy('name')->limit($limit)->get()->map(fn (Workspace $workspace) => [
             'id' => $workspace->id,
             'name' => $workspace->name,
             'tenant' => $tenantName,
@@ -96,7 +103,7 @@ class GlobalSearchController extends Controller
         ])->values()->all();
     }
 
-    private function searchProjects(string $q, User $user, ?string $tenantName = null): array
+    private function searchProjects(string $q, User $user, ?string $tenantName = null, int $limit = 5): array
     {
         $query = Project::query()
             ->with(['workspace'])
@@ -109,7 +116,7 @@ class GlobalSearchController extends Controller
             $query->whereHas('members', fn (Builder $members) => $members->where('user_id', $user->id));
         }
 
-        return $query->orderBy('name')->limit(5)->get()->map(fn (Project $project) => [
+        return $query->orderBy('name')->limit($limit)->get()->map(fn (Project $project) => [
             'id' => $project->id,
             'name' => $project->name,
             'key' => $project->key,
@@ -119,7 +126,7 @@ class GlobalSearchController extends Controller
         ])->values()->all();
     }
 
-    private function searchTasks(string $q, User $user): array
+    private function searchTasks(string $q, User $user, int $limit = 8): array
     {
         return $this->visibleTaskQuery($user)
             ->where(fn (Builder $builder) => $builder
@@ -127,14 +134,14 @@ class GlobalSearchController extends Controller
                 ->orWhere('tasks.key', 'like', "%{$q}%")
                 ->orWhere('tasks.description', 'like', "%{$q}%"))
             ->orderByDesc('tasks.updated_at')
-            ->limit(8)
+            ->limit($limit)
             ->get()
             ->map(fn ($task) => $this->presentTask($task))
             ->values()
             ->all();
     }
 
-    private function searchUsers(string $q, User $user, ?string $tenantName = null): array
+    private function searchUsers(string $q, User $user, ?string $tenantName = null, int $limit = 5): array
     {
         // People search is only enabled for super admins and users holding
         // `users.view`; everyone else simply gets no user results.
@@ -147,7 +154,7 @@ class GlobalSearchController extends Controller
                 ->where('name', 'like', "%{$q}%")
                 ->orWhere('email', 'like', "%{$q}%"))
             ->orderBy('name')
-            ->limit(5)
+            ->limit($limit)
             ->get()
             ->map(fn (User $user) => [
                 'id' => $user->id,
@@ -195,14 +202,14 @@ class GlobalSearchController extends Controller
         return app(TenantLimits::class)->hasModule($tenant, 'hrms.core');
     }
 
-    private function searchEmployees(string $q, ?string $tenantName = null): array
+    private function searchEmployees(string $q, ?string $tenantName = null, int $limit = 5): array
     {
         return Employee::query()
             ->where(fn (Builder $builder) => $builder
                 ->where('name', 'like', "%{$q}%")
                 ->orWhere('employee_code', 'like', "%{$q}%"))
             ->orderBy('name')
-            ->limit(5)
+            ->limit($limit)
             ->get()
             ->map(fn (Employee $employee) => [
                 'id' => $employee->id,

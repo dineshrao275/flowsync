@@ -222,7 +222,14 @@
   - Automated database backup & restore command: `App\Console\Commands\BackupTenants` (`php artisan tenants:backup {--tenant=} {--all} {--path=} {--verify} {--restore-drill=}`) with structured backup directory, `manifest.json` generation, SHA-256 verification, and non-destructive restore drill checking database and table queryability. Scheduled daily at 02:00 in `routes/console.php`.
   - Operations runbook: `docs/runbook.md` documenting server prerequisites, deployment pipeline, systemd units for queue and reverb, free-tier SMTP configuration (~5k emails/mo with Brevo/Resend/MailerSend), live Stripe & Razorpay key configuration, webhooks, automated backups, restore drills, and disaster recovery.
   - Environment variables: updated `.env.example` with documented free SMTP tier configuration and live Stripe/Razorpay keys.
-  - Verification: `PlatformHealthTest`, `TenantBackupTest`, and `BillingTest` green (16 passed / 99 assertions); Pint style clean; test gate now **1525 tests / 7765 assertions**.
+- 2026-10-08 — Phase 5 Performance & Scale Follow-ups shipped:
+  - Board column limits & query optimization: `TaskService::board()` supports `column_limit` and `limit` query parameters with `has_more` indicators, and unifies open/done totals into a single aggregated query scan, protecting large project boards against memory and latency bottlenecks.
+  - Notification incremental fetching (H3): `NotificationController::index` supports `?after=id` cursor parameter returning only notifications arriving after the specified cursor. `NotificationContext.jsx` uses push-first via Echo websockets with a relaxed 60s fallback polling cadence when connected.
+  - Search caps (H12): `GlobalSearchRequest` and `GlobalSearchController` support configurable overall `?limit=` and per-category limits (`workspace_limit`, `project_limit`, `task_limit`, `user_limit`, `employee_limit`) pushed directly into underlying SQL queries.
+  - Scale seeder activity backfill (H5): `ScaleDataSeeder` seeds activity log records in `activities` table for created tasks, ensuring scale test environments possess realistic activity streams and audit trails.
+  - Deferred items noted: `me()` caching remains deferred without TTL as planned; Redis configuration documented as env option.
+  - Verification: `PerformanceFollowupsTest`, `TaskTest`, `GlobalSearchTest`, and `NotificationTest` green (48 passed / 248 assertions); Vite build clean; Pint clean; test gate now **1529 tests / 7796 assertions**.
+
 
 
 

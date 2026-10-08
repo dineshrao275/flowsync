@@ -34,7 +34,27 @@ class NotificationController extends Controller
             ]);
         }
 
-        $notifications = $this->service->forUser($request->user());
+        if ($request->has('after')) {
+            $afterId = (int) $request->input('after');
+            $limit = min((int) $request->input('per_page', 20), 100);
+            $newNotifications = UserNotification::query()
+                ->with('actor:id,name')
+                ->where('user_id', $request->user()->id)
+                ->where('id', '>', $afterId)
+                ->orderBy('id', 'asc')
+                ->limit($limit)
+                ->get();
+
+            return response()->json([
+                'notifications' => $newNotifications->map(fn (UserNotification $n) => $this->present($n))->values(),
+                'unread_count' => $this->service->unreadCount($request->user()),
+                'latest_id' => $newNotifications->last()?->id ?? $afterId,
+                'count' => $newNotifications->count(),
+            ]);
+        }
+
+        $perPage = min((int) $request->input('per_page', 20), 100);
+        $notifications = $this->service->forUser($request->user(), $perPage);
 
         return response()->json([
             'notifications' => collect($notifications->items())

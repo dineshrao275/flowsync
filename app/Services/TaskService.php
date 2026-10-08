@@ -146,27 +146,55 @@ class TaskService
     public function board(Project $project, array $filters, User $user): array
     {
         $topLevel = $this->filteredQuery($project, $filters, $user)->whereNull('tasks.parent_id');
+
+        $columnLimit = isset($filters['column_limit'])
+            ? max(1, min((int) $filters['column_limit'], 500))
+            : (isset($filters['limit']) ? max(1, min((int) $filters['limit'], 500)) : null);
+
+        // Pre-count status totals for high-volume boards in a single query
+        $statusCounts = (clone $topLevel)
+            ->reorder()
+            ->select('tasks.status_id', DB::raw('count(*) as count'))
+            ->groupBy('tasks.status_id')
+            ->pluck('count', 'tasks.status_id');
+
         $taskQuery = (clone $topLevel)->get()->groupBy('status_id');
 
         $statuses = $project->statuses()
             ->orderBy('position')
             ->get()
-            ->map(function (TaskStatus $status) use ($taskQuery) {
-                $tasks = $taskQuery->get($status->id, collect())
+            ->map(function (TaskStatus $status) use ($taskQuery, $statusCounts, $columnLimit) {
+                $allTasks = $taskQuery->get($status->id, collect())
                     ->sortBy(fn (Task $task) => [$task->position, $task->id])
                     ->values();
 
-                return array_merge($this->presentStatus($status), [
-                    'tasks_count' => $tasks->count(),
+                $totalCount = (int) ($statusCounts->get($status->id) ?? $allTasks->count());
+                $tasks = $columnLimit !== null ? $allTasks->take($columnLimit) : $allTasks;
+
+                $data = array_merge($this->presentStatus($status), [
+                    'tasks_count' => $totalCount,
                     'tasks' => $tasks->map(fn (Task $task) => $this->present($task)),
                 ]);
+
+                if ($columnLimit !== null) {
+                    $data['has_more'] = $totalCount > $tasks->count();
+                    $data['column_limit'] = $columnLimit;
+                }
+
+                return $data;
             });
+
+        // Fast single-pass totals scan
+        $totalsRow = (clone $topLevel)
+            ->reorder()
+            ->selectRaw('count(case when completed_at is null then 1 end) as open_count, count(case when completed_at is not null then 1 end) as done_count')
+            ->first();
 
         return [
             'statuses' => $statuses,
             'totals' => [
-                'open' => (clone $topLevel)->whereNull('completed_at')->count(),
-                'done' => (clone $topLevel)->whereNotNull('completed_at')->count(),
+                'open' => (int) ($totalsRow?->open_count ?? 0),
+                'done' => (int) ($totalsRow?->done_count ?? 0),
             ],
         ];
     }

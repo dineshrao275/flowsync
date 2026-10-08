@@ -41,7 +41,10 @@ export function NotificationProvider({ children }) {
     useEffect(() => {
         refresh();
         if (platformOnly) return undefined;
-        const timer = window.setInterval(refresh, 30000);
+        // Push-first: When Reverb/Echo is active, fallback polling runs on a slower
+        // 60s cadence to minimize server load; without websockets, it falls back to 30s.
+        const intervalMs = window.Echo ? 60000 : 30000;
+        const timer = window.setInterval(refresh, intervalMs);
         return () => window.clearInterval(timer);
     }, [refresh, platformOnly]);
 
