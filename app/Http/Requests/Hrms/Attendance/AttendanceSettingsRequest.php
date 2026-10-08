@@ -28,6 +28,7 @@ class AttendanceSettingsRequest extends FormRequest
             'attendance.half_day_minutes' => ['sometimes', 'integer', 'min:0', 'max:1440'],
             'attendance.full_day_minutes' => ['sometimes', 'integer', 'min:0', 'max:1440'],
             'attendance.allow_negative_ot' => ['sometimes', 'boolean'],
+            'attendance.auto_derive_from_work_logs' => ['sometimes', 'boolean'],
             'attendance.regularization_window_days' => ['sometimes', 'integer', 'min:1', 'max:90'],
             'remote_clock_in' => ['sometimes', 'array'],
             'remote_clock_in.enabled' => ['sometimes', 'boolean'],
@@ -47,7 +48,7 @@ class AttendanceSettingsRequest extends FormRequest
         // original sitting underneath.
         $input = $this->all();
 
-        foreach (['attendance.allow_negative_ot', 'remote_clock_in.enabled', 'remote_clock_in.require_ip', 'remote_clock_in.require_geofence'] as $key) {
+        foreach (['attendance.allow_negative_ot', 'attendance.auto_derive_from_work_logs', 'remote_clock_in.enabled', 'remote_clock_in.require_ip', 'remote_clock_in.require_geofence'] as $key) {
             if (! $this->has($key)) {
                 continue;
             }

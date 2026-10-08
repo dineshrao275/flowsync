@@ -33,6 +33,15 @@ api.interceptors.response.use(
             window.location.href = '/app/module-denied';
         }
 
+        // When onboarding is incomplete, redirect the user back to the onboarding wizard
+        if (
+            error.response?.status === 403 &&
+            (error.response?.headers?.['x-onboarding-redirect'] || error.response?.data?.redirect === '/onboarding') &&
+            !window.location.pathname.startsWith('/app/onboarding')
+        ) {
+            window.location.href = '/app/onboarding';
+        }
+
         return Promise.reject(error);
     },
 );

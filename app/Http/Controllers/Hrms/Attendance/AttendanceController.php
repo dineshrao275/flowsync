@@ -29,6 +29,21 @@ class AttendanceController extends Controller
     ) {}
 
     /**
+     * Read the tenant's current attendance and remote clock-in policy.
+     */
+    public function getSettings(): JsonResponse
+    {
+        $settings = HrmsSetting::current();
+
+        return response()->json([
+            'settings' => [
+                'attendance' => $settings->attendance,
+                'remote_clock_in' => $settings->remote_clock_in,
+            ],
+        ]);
+    }
+
+    /**
      * Replace the provided policy sections, keeping the rest.
      *
      * Per-section merge, not whole-row replace: a client tuning the rounding

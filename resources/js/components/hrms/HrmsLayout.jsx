@@ -2,6 +2,7 @@ import { Link, Outlet, useLocation } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { useNotifications } from '../../context/NotificationContext';
 import { activeHrmsTab, hrmsNavGroups } from '../../utils/hrmsNav';
+import HrmsErrorBoundary from './HrmsErrorBoundary';
 
 /**
  * The HRMS hub shell: one sidebar entry (`/hrms`) with every feature as a
@@ -90,7 +91,9 @@ export default function HrmsLayout() {
             </nav>
 
             <div className="min-w-0 flex-1">
-                <Outlet />
+                <HrmsErrorBoundary resetKey={pathname}>
+                    <Outlet />
+                </HrmsErrorBoundary>
             </div>
         </div>
     );

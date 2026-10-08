@@ -56,6 +56,7 @@ export default function Attendance() {
     const canViewOthers = can('permission:hrms.attendance.view');
     const canRegularize = can('permission:hrms.attendance.regularize');
     const canExport = can('permission:workspaces.manage');
+    const canSettings = can('permission:hrms.attendance.settings');
 
     const now = new Date();
     const [employeeId, setEmployeeId] = useState('');
@@ -72,6 +73,65 @@ export default function Attendance() {
     const [correcting, setCorrecting] = useState(false);
     const [correction, setCorrection] = useState({ firstIn: '', lastOut: '', reason: '' });
     const [correctionErrors, setCorrectionErrors] = useState({});
+    const [settingsOpen, setSettingsOpen] = useState(false);
+    const [settingsLoading, setSettingsLoading] = useState(false);
+    const [savingSettings, setSavingSettings] = useState(false);
+    const [settingsForm, setSettingsForm] = useState({
+        auto_derive_from_work_logs: false,
+        rounding_minutes: 15,
+        ot_after_minutes: 480,
+        allow_negative_ot: false,
+        remote_clock_in_enabled: true,
+    });
+    const [settingsErrors, setSettingsErrors] = useState({});
+
+    async function openSettings() {
+        setSettingsErrors({});
+        setSettingsOpen(true);
+        setSettingsLoading(true);
+        try {
+            const { data } = await api.get('/hrms/attendance/settings');
+            const att = data.settings?.attendance ?? {};
+            const rci = data.settings?.remote_clock_in ?? {};
+            setSettingsForm({
+                auto_derive_from_work_logs: Boolean(att.auto_derive_from_work_logs),
+                rounding_minutes: att.rounding_minutes ?? 15,
+                ot_after_minutes: att.ot_after_minutes ?? 480,
+                allow_negative_ot: Boolean(att.allow_negative_ot),
+                remote_clock_in_enabled: rci.enabled ?? true,
+            });
+        } catch (err) {
+            toast.error('Unable to load attendance settings.');
+        } finally {
+            setSettingsLoading(false);
+        }
+    }
+
+    async function saveSettings(e) {
+        e.preventDefault();
+        setSavingSettings(true);
+        setSettingsErrors({});
+
+        try {
+            await api.put('/hrms/attendance/settings', {
+                attendance: {
+                    auto_derive_from_work_logs: settingsForm.auto_derive_from_work_logs,
+                    rounding_minutes: Number(settingsForm.rounding_minutes),
+                    ot_after_minutes: Number(settingsForm.ot_after_minutes),
+                    allow_negative_ot: Boolean(settingsForm.allow_negative_ot),
+                },
+                remote_clock_in: {
+                    enabled: Boolean(settingsForm.remote_clock_in_enabled),
+                },
+            });
+            toast.success('Attendance settings saved.');
+            setSettingsOpen(false);
+        } catch (err) {
+            setSettingsErrors(fieldErrors(err));
+        } finally {
+            setSavingSettings(false);
+        }
+    }
 
     useEffect(() => {
         setCrumbs([{ label: 'HRMS', to: '/hrms' }, { label: 'Attendance' }]);
@@ -241,6 +301,11 @@ export default function Attendance() {
                             {exporting ? 'Exporting…' : 'Export CSV'}
                         </Button>
                     )}
+                    {canSettings && (
+                        <Button variant="secondary" onClick={openSettings}>
+                            Settings
+                        </Button>
+                    )}
                 </div>
             </div>
 
@@ -393,6 +458,121 @@ export default function Attendance() {
                         <Button type="submit">Send request</Button>
                     </div>
                 </form>
+            </Modal>
+
+            <Modal
+                isOpen={settingsOpen}
+                onClose={() => setSettingsOpen(false)}
+                title="Attendance Settings"
+            >
+                {settingsLoading ? (
+                    <div className="flex justify-center py-8">
+                        <Spinner />
+                    </div>
+                ) : (
+                    <form onSubmit={saveSettings} className="space-y-4">
+                        <div className="rounded-lg border border-gray-200 bg-gray-50/50 p-4 dark:border-gray-800 dark:bg-gray-800/40">
+                            <label className="flex items-start gap-3 cursor-pointer">
+                                <input
+                                    type="checkbox"
+                                    checked={settingsForm.auto_derive_from_work_logs}
+                                    onChange={(e) =>
+                                        setSettingsForm((s) => ({
+                                            ...s,
+                                            auto_derive_from_work_logs: e.target.checked,
+                                        }))
+                                    }
+                                    className="mt-1 h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                                />
+                                <div>
+                                    <span className="text-sm font-semibold text-gray-900 dark:text-gray-100">
+                                        Auto-derive attendance from work logs
+                                    </span>
+                                    <p className="mt-0.5 text-xs text-gray-500 dark:text-gray-400">
+                                        Automatically compute and mark attendance days from work logged against TMS tasks.
+                                    </p>
+                                </div>
+                            </label>
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-4">
+                            <Input
+                                type="number"
+                                label="Rounding step (minutes)"
+                                min={1}
+                                max={60}
+                                value={settingsForm.rounding_minutes}
+                                onChange={(e) =>
+                                    setSettingsForm((s) => ({ ...s, rounding_minutes: e.target.value }))
+                                }
+                                error={settingsErrors['attendance.rounding_minutes']}
+                            />
+                            <Input
+                                type="number"
+                                label="Overtime threshold (minutes)"
+                                min={0}
+                                max={1440}
+                                value={settingsForm.ot_after_minutes}
+                                onChange={(e) =>
+                                    setSettingsForm((s) => ({ ...s, ot_after_minutes: e.target.value }))
+                                }
+                                error={settingsErrors['attendance.ot_after_minutes']}
+                            />
+                        </div>
+
+                        <div className="space-y-3 pt-2">
+                            <label className="flex items-center gap-3 cursor-pointer">
+                                <input
+                                    type="checkbox"
+                                    checked={settingsForm.allow_negative_ot}
+                                    onChange={(e) =>
+                                        setSettingsForm((s) => ({
+                                            ...s,
+                                            allow_negative_ot: e.target.checked,
+                                        }))
+                                    }
+                                    className="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                                />
+                                <span className="text-sm text-gray-700 dark:text-gray-300">
+                                    Allow negative overtime (undertime deficit)
+                                </span>
+                            </label>
+
+                            <label className="flex items-center gap-3 cursor-pointer">
+                                <input
+                                    type="checkbox"
+                                    checked={settingsForm.remote_clock_in_enabled}
+                                    onChange={(e) =>
+                                        setSettingsForm((s) => ({
+                                            ...s,
+                                            remote_clock_in_enabled: e.target.checked,
+                                        }))
+                                    }
+                                    className="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                                />
+                                <span className="text-sm text-gray-700 dark:text-gray-300">
+                                    Enable remote clock-in
+                                </span>
+                            </label>
+                        </div>
+
+                        {settingsErrors.form && <Alert>{settingsErrors.form}</Alert>}
+
+                        <div className="flex justify-end gap-2 pt-2">
+                            <Button
+                                type="button"
+                                variant="secondary"
+                                onClick={() => setSettingsOpen(false)}
+                                disabled={savingSettings}
+                            >
+                                Cancel
+                            </Button>
+                            <Button type="submit" disabled={savingSettings}>
+                                {savingSettings ? 'Saving…' : 'Save settings'}
+                            </Button>
+                        </div>
+                    </form>
+                )}
             </Modal>
         </div>
     );

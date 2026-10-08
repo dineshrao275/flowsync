@@ -38,7 +38,13 @@ class OnboardingTest extends TestCase
         $this->loginAs('admin@flowsync.test');
         $this->startWizard('acme');
 
-        $this->getJson('/api/dashboard')->assertForbidden();
+        $res = $this->getJson('/api/dashboard');
+        $res->assertForbidden()
+            ->assertHeader('X-Onboarding-Redirect', '/onboarding')
+            ->assertJsonPath('redirect', '/onboarding');
+
+        $this->get('/api/dashboard')->assertRedirect('/app/onboarding');
+
         $this->getJson('/api/auth/me')->assertJsonPath('user.onboarding_complete', false);
 
         // Mark a required step — still incomplete (terminal step remains).

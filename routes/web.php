@@ -518,6 +518,8 @@ Route::prefix('api')->group(function () {
         // decides who may rewrite its policy. Partial sections merge — a PUT
         // that blanked unmentioned sections would be a reset disguised as edit.
         Route::group(['middleware' => ['ensure_module:hrms.attendance']], function () {
+            Route::get('hrms/attendance/settings', [AttendanceController::class, 'getSettings'])
+                ->middleware('permission:hrms.attendance.settings');
             Route::put('hrms/attendance/settings', [AttendanceController::class, 'settings'])
                 ->middleware('permission:hrms.attendance.settings');
 

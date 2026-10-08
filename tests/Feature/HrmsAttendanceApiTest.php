@@ -11,6 +11,7 @@ use App\Models\Permission;
 use App\Models\Role;
 use App\Models\SubscriptionPlan;
 use App\Models\User;
+use App\Services\Hrms\Attendance\WorkLogDerivation;
 use App\Services\SubscriptionService;
 use Tests\IsolatesDatabase;
 use Tests\TestCase;
@@ -109,6 +110,20 @@ class HrmsAttendanceApiTest extends TestCase
 
         $this->putJson('/api/hrms/attendance/settings', ['attendance' => ['rounding_minutes' => 'soon']])
             ->assertUnprocessable()->assertJsonValidationErrors('attendance.rounding_minutes');
+
+        // GET endpoint returns settings
+        $getRes = $this->getJson('/api/hrms/attendance/settings')->assertOk();
+        $this->assertSame(5, $getRes->json('settings.attendance.rounding_minutes'));
+
+        // C8: auto_derive_from_work_logs opt-in toggle
+        $this->assertFalse((bool) $settings->setting('attendance.auto_derive_from_work_logs', false));
+        $this->putJson('/api/hrms/attendance/settings', [
+            'attendance' => ['auto_derive_from_work_logs' => true],
+        ])->assertOk();
+
+        $settings = HrmsSetting::current();
+        $this->assertTrue((bool) $settings->setting('attendance.auto_derive_from_work_logs'));
+        $this->assertTrue(app(WorkLogDerivation::class)->isEnabled());
     }
 
     // ------------------------------------------------------------ helpers

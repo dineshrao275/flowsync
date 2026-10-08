@@ -57,6 +57,11 @@ class WorkLogDerivation
         return (bool) ($settings?->setting('attendance.auto_derive_from_work_logs', false) ?? false);
     }
 
+    public function isEnabled(): bool
+    {
+        return $this->enabled();
+    }
+
     /**
      * One row per active employee with closed logs on the date.
      *

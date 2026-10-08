@@ -5,9 +5,7 @@
 
 ## Current
 
-- Date: 2026-10-06 · Branch: `refactor/work-hrms` · Gate: **1411 tests / 6991 assertions** (Phase 4 end-gate, single `php artisan test` run over all test files, zero omitted; Phase 3 gate was 1389/6886, Phase 2 was 1384/6862, Phase 1 was 1372/6829).
-- `.agents/` pack created (16 files). No app code changed in that commit.
-- Security criticals C1–C3 **CLOSED** (Phase 1); Phase 2 (database & performance) shipped; Phase 3 (HRMS one-tab IA + parity audit) shipped — see its report below; Phase 4 (TMS email + notification preferences + mention autocomplete) shipped — see its report below.
+- Date: 2026-10-08 · Branch: `development` · Gate: **1529 tests / 7803 assertions** (Phase 6 HRMS residual behavior & UX complete: React `HrmsErrorBoundary` wrapping HRMS hub tabs, onboarding redirection via `EnsureOnboardingComplete` + `api.js` interceptor, and `attendance.auto_derive_from_work_logs` settings API + UI modal; Phase 5 performance follow-ups complete; Phase 4 operations & readiness complete; Phase 3 subscription lifecycle complete; Phase 1 residuals complete).
 
 ## Shipped vs missing (against the 8-phase roadmap)
 
