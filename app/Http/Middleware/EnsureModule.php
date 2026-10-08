@@ -46,6 +46,11 @@ class EnsureModule
             return $next($request);
         }
 
-        abort(403, 'This feature is not included in your current plan.', ['X-Module-Denied' => $module]);
+        $reason = app(TenantLimits::class)->moduleDenialReason($tenant, $module);
+
+        abort(403, 'This feature is not included in your current plan.', [
+            'X-Module-Denied' => $module,
+            'X-Module-Reason' => $reason,
+        ]);
     }
 }

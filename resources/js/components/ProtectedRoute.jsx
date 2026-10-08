@@ -26,7 +26,7 @@ export default function ProtectedRoute({ permission, module }) {
     }
 
     if (module && !hasModule(module)) {
-        return <Navigate to="/module-denied" replace />;
+        return <Navigate to="/module-denied" state={{ module }} replace />;
     }
 
     return <Outlet />;

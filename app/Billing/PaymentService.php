@@ -229,6 +229,15 @@ class PaymentService
                     'status' => Payment::STATUS_FAILED,
                     'failure_reason' => $result->failureReason,
                 ]);
+
+                if ($tenant && $tenant->subscription) {
+                    $this->subscriptions->suspend($tenant, [
+                        'data' => [
+                            'failure_reason' => $result->failureReason,
+                            'payment_id' => $payment->id,
+                        ],
+                    ]);
+                }
             } elseif ($result->status === Payment::STATUS_REFUNDED) {
                 $payment->update([
                     'status' => Payment::STATUS_REFUNDED,

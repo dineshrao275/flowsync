@@ -211,7 +211,13 @@
   - A6: Super admin bypass guarded in `EnsurePermission`, `Gate::define('permission')`, and `SetTenantContext` so impersonating super admins cannot bypass tenant-level permission boundaries.
   - A7: Realtime channel authorization in `routes/channels.php` and `Broadcast::routes` checks that tenant is active/serviceable; suspended tenant users are forbidden (403).
   - A2: `ForgotPasswordController` and `ResetPasswordController` resolve tenant using `TenantUserRouting` and execute token generation and password reset on the tenant database via `TenantDatabaseManager::using()`.
-  - Verification: 5 new tests across `BroadcastingChannelAuthTest`, `ModuleGateTest`, `SecurityRegressionTest`, and `SystemAdminTest` (40 passed / 242 assertions on focused suites); Pint clean; test gate now **1516 tests / 7690 assertions**.
+- 2026-10-08 — Phase 3 Entitlement & Subscription Lifecycle shipped:
+  - System `usage_metrics` table (migration `2026_10_17_000022_create_usage_metrics_table.php`) + `UsageMetric` central model.
+  - Scheduled command `tenants:collect-usage` aggregating users, workspaces, projects, tasks, and storage bytes across all serviceable tenant databases into `usage_metrics`, scheduled daily in `routes/console.php`.
+  - Failed payment handling: webhook updates payment status and suspends tenant subscription to `past_due` with `EVENT_PAUSED` audit record.
+  - Structured module denial: `TenantLimits::moduleDenialReason` distinguishes `module_disabled` vs `module_not_on_plan`, emitted via `X-Module-Reason` header by `EnsureModule`; `ProtectedRoute` and `ModuleDenied.jsx` reflect specific denied modules.
+  - User and tenant profile attrs in `/api/auth/me`: user `timezone`, `locale`, and tenant `branding` (`primary_color`, `logo_url`).
+  - Verification: `TenantUsageCollectionTest`, `PaymentWebhookTest`, `AuthTest`, `ModuleGateTest` green (28 passed / 104 assertions); Vite build clean; Pint clean; test gate now **1517 tests / 7702 assertions**.
 
 
 

@@ -1,10 +1,12 @@
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import usePageTitle from '../hooks/usePageTitle';
 
 export default function ModuleDenied() {
     usePageTitle('Not in your plan');
     const { user, can } = useAuth();
+    const location = useLocation();
+    const module = location.state?.module;
 
     return (
         <div className="flex min-h-screen items-center justify-center bg-gray-100 px-4">
@@ -14,7 +16,11 @@ export default function ModuleDenied() {
                 </p>
                 <h1 className="mt-4 text-2xl font-bold text-gray-900">Not included in your plan</h1>
                 <p className="mt-2 text-sm text-gray-500">
-                    This feature is not included in your current plan.
+                    {module ? (
+                        <>The <code className="rounded bg-gray-200 px-1.5 py-0.5 text-xs text-gray-800">{module}</code> feature is not included in your current plan.</>
+                    ) : (
+                        <>This feature is not included in your current plan.</>
+                    )}
                     {user && !can('billing.view') && (
                         <> You can still use it once an account administrator upgrades your subscription.</>
                     )}

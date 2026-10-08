@@ -181,8 +181,20 @@ class AuthController extends Controller
                 'id' => $user->id,
                 'name' => $user->name,
                 'email' => $user->email,
+                'timezone' => (! $isSuperAdmin ? ($user->settings?->settings['timezone'] ?? null) : null) ?? $tenant?->timezone ?? config('app.timezone', 'UTC'),
+                'locale' => (! $isSuperAdmin ? ($user->settings?->settings['locale'] ?? null) : null) ?? $tenant?->locale ?? config('app.locale', 'en'),
                 'is_super_admin' => $isSuperAdmin,
-                'tenant' => $tenant?->only(['id', 'name', 'slug']),
+                'tenant' => $tenant ? [
+                    'id' => $tenant->id,
+                    'name' => $tenant->name,
+                    'slug' => $tenant->slug,
+                    'timezone' => $tenant->timezone,
+                    'locale' => $tenant->locale,
+                    'branding' => [
+                        'primary_color' => $tenant->brand_primary_color,
+                        'logo_url' => $tenant->brand_logo_url,
+                    ],
+                ] : null,
                 'roles' => $isSuperAdmin ? [] : $user->roleSlugs(),
                 'permissions' => $isSuperAdmin ? [] : $user->permissionSlugs(),
                 'modules' => $tenant

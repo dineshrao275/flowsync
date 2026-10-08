@@ -6,8 +6,10 @@ use App\Billing\Gateways\FakePaymentGateway;
 use App\Billing\PaymentResolver;
 use App\Models\Payment;
 use App\Models\PaymentEvent;
+use App\Models\Subscription;
 use App\Models\SubscriptionPlan;
 use App\Models\Tenant;
+use App\Services\SubscriptionService;
 use Tests\IsolatesDatabase;
 use Tests\TestCase;
 
@@ -129,6 +131,9 @@ class PaymentWebhookTest extends TestCase
         $fake->setValidSignature(true);
         app(PaymentResolver::class)->swapFake($fake);
 
+        $plan = $this->proPlan();
+        app(SubscriptionService::class)->assign($this->acme(), $plan);
+
         $payment = Payment::create([
             'tenant_id' => $this->acme()->id,
             'provider' => 'stripe',
@@ -152,5 +157,8 @@ class PaymentWebhookTest extends TestCase
         $payment = $payment->fresh();
         $this->assertSame(Payment::STATUS_FAILED, $payment->status);
         $this->assertSame('Insufficient funds in card', $payment->failure_reason);
+
+        $acme = $this->acme()->fresh();
+        $this->assertSame(Subscription::STATUS_PAST_DUE, $acme->subscription->status);
     }
 }

@@ -110,6 +110,20 @@ class TenantLimits
     }
 
     /**
+     * Why a module was denied: explicitly disabled by override vs absent from plan.
+     */
+    public function moduleDenialReason(Tenant $tenant, string $module): string
+    {
+        $override = $this->moduleOverride($tenant, $module);
+
+        if ($override === false) {
+            return 'module_disabled';
+        }
+
+        return 'module_not_on_plan';
+    }
+
+    /**
      * All modules currently enabled for a tenant, as flat dotted slugs.
      *
      * Used by `AuthController::payload` to populate `user.modules` and by the
