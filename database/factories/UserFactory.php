@@ -2,6 +2,7 @@
 
 namespace Database\Factories;
 
+use App\Models\Role;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Support\Facades\Hash;
@@ -41,5 +42,18 @@ class UserFactory extends Factory
         return $this->state(fn (array $attributes) => [
             'email_verified_at' => null,
         ]);
+    }
+
+    /**
+     * Attach a tenant role by slug (no-op when the catalog lacks it, e.g.
+     * a half-provisioned tenant mid-repair).
+     */
+    public function withRole(string $slug): static
+    {
+        return $this->afterCreating(function (User $user) use ($slug): void {
+            if ($roleId = Role::where('slug', $slug)->value('id')) {
+                $user->roles()->syncWithoutDetaching([$roleId]);
+            }
+        });
     }
 }

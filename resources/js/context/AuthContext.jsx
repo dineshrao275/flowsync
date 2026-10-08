@@ -2,11 +2,25 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useState } 
 import api from '../services/api';
 
 const MODULE_PREFIX = 'module:';
+const PERMISSION_PREFIX = 'permission:';
 
 // Extracts the module name from a `module:<name>` capability string, else null.
 const moduleName = (capability) =>
     typeof capability === 'string' && capability.startsWith(MODULE_PREFIX)
         ? capability.slice(MODULE_PREFIX.length)
+        : null;
+
+// Extracts the slug from a `permission:<slug>` capability string, else null.
+//
+// `user.permissions` from `/api/auth/me` carries bare slugs (`hrms.org.manage`),
+// but every HRMS call site writes the prefixed form (`can('permission:…')`) —
+// without this strip, all of them are false for every tenant user and the
+// manage buttons, directory pickers and nav items they gate never render.
+// Bare slugs still match, so the older `can('workspaces.manage')` calls keep
+// working untouched.
+const permissionName = (capability) =>
+    typeof capability === 'string' && capability.startsWith(PERMISSION_PREFIX)
+        ? capability.slice(PERMISSION_PREFIX.length)
         : null;
 
 const AuthContext = createContext(null);
@@ -68,10 +82,12 @@ export function AuthProvider({ children }) {
     const hasAccess = useCallback(
         (capability) => {
             if (!user) return false;
+            if (unrestricted()) return true;
             if (moduleName(capability)) {
-                return unrestricted() || Boolean(user.modules?.includes(moduleName(capability)));
+                return Boolean(user.modules?.includes(moduleName(capability)));
             }
-            return unrestricted() || Boolean(user.permissions?.includes(capability));
+            const permission = permissionName(capability) ?? capability;
+            return Boolean(user.permissions?.includes(permission));
         },
         [user, unrestricted],
     );

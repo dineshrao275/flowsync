@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import api, { fieldErrors } from '../services/api';
 import Card from '../components/ui/Card';
 import Badge from '../components/ui/Badge';
@@ -13,6 +14,7 @@ import usePageTitle from '../hooks/usePageTitle';
 
 export default function Users() {
     usePageTitle('Users');
+    const navigate = useNavigate();
     const { can, user: currentUser } = useAuth();
     const toast = useToast();
     const [users, setUsers] = useState([]);
@@ -34,7 +36,11 @@ export default function Users() {
             ]);
             setUsers(usersData.users);
             setRoles(rolesData.roles);
-        } catch {
+        } catch (err) {
+            if (err?.response?.status === 403) {
+                navigate('/403', { replace: true });
+                return;
+            }
             setError('Unable to load users.');
         } finally {
             setLoading(false);

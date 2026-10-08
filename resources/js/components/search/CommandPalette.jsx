@@ -2,7 +2,9 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../../services/api';
 import Spinner from '../ui/Spinner';
-import { projectUrl, taskUrl, workspaceUrl } from '../../utils/deepLinks';
+import { useAuth } from '../../context/AuthContext';
+import { HRMS_MODULE_META, HRMS_MODULE_ROUTES } from '../../utils/hrmsModules';
+import { employeeUrl, projectUrl, taskUrl, workspaceUrl } from '../../utils/deepLinks';
 
 const groupDefs = [
     {
@@ -25,6 +27,11 @@ const groupDefs = [
         label: 'People',
         icon: 'M17 20h5v-2a4 4 0 00-3-3.87M9 20H4v-2a4 4 0 013-3.87m4-1.13a4 4 0 10-4-4 4 4 0 004 4zm6 2a3 3 0 10-3-3',
     },
+    {
+        key: 'hrms',
+        label: 'HR',
+        icon: 'M17 20h5v-2a4 4 0 00-3-3.87M9 20H4v-2a4 4 0 013-3.87m4-1.13a4 4 0 10-4-4 4 4 0 004 4zm6 2a3 3 0 10-3-3',
+    },
 ];
 
 function subtitleFor(group, item) {
@@ -32,6 +39,7 @@ function subtitleFor(group, item) {
     if (group === 'projects') return `${item.key ?? ''} · ${item.workspace ?? ''}`;
     if (group === 'workspaces') return `${item.tenant ?? ''} · ${item.projects_count ?? 0} projects`;
     if (group === 'users') return `${item.email ?? ''} ${item.tenant ? `· ${item.tenant}` : ''}`;
+    if (group === 'hrms') return item.to ? 'Go to section' : `${item.employee_code ?? ''}`;
     return '';
 }
 
@@ -39,7 +47,25 @@ function hrefFor(group, item) {
     if (group === 'tasks') return taskUrl(item.project?.id, item.key);
     if (group === 'projects') return projectUrl(item.id);
     if (group === 'workspaces') return workspaceUrl(item.id);
+    if (group === 'hrms') return item.to ?? employeeUrl(item.id);
     return null;
+}
+
+/**
+ * Shortcut rows for the HR modules this tenant holds: employees come
+ * from the search API, then one jump row per routed module matching the
+ * query. Only routed modules qualify — a shortcut to a page the router
+ * does not own is the dead-tile failure the shell test guards.
+ */
+function shortcutRows(query, modules = []) {
+    const q = query.trim().toLowerCase();
+    const enabled = new Set(modules);
+
+    return Object.entries(HRMS_MODULE_ROUTES)
+        .filter(([key]) => enabled.has(key))
+        .filter(([key]) => (HRMS_MODULE_META[key]?.label ?? '').toLowerCase().includes(q))
+        .slice(0, 5)
+        .map(([key]) => ({ id: `shortcut-${key}`, name: `Go to ${HRMS_MODULE_META[key].label}`, to: HRMS_MODULE_ROUTES[key] }));
 }
 
 export default function CommandPalette({ open, onClose }) {
@@ -49,6 +75,7 @@ export default function CommandPalette({ open, onClose }) {
     const [active, setActive] = useState(0);
     const inputRef = useRef(null);
     const navigate = useNavigate();
+    const { user } = useAuth();
 
     useEffect(() => {
         if (!open) return;
@@ -77,7 +104,7 @@ export default function CommandPalette({ open, onClose }) {
                     setActive(0);
                 })
                 .catch(() => {
-                    setResults({ tasks: [], projects: [], workspaces: [], users: [] });
+                    setResults({ tasks: [], projects: [], workspaces: [], users: [], employees: [] });
                 })
                 .finally(() => setLoading(false));
         }, 250);
@@ -87,11 +114,18 @@ export default function CommandPalette({ open, onClose }) {
         };
     }, [open, query]);
 
-    const groups = useMemo(() =>
-        groupDefs
-            .map((def) => ({ ...def, items: results?.[def.key] ?? [] }))
-            .filter((group) => group.items.length > 0),
-    [results]);
+    const groups = useMemo(() => {
+        if (results === null) return [];
+
+        const combined = {
+            ...results,
+            hrms: [...(results.employees ?? []), ...shortcutRows(query, user?.modules ?? [])],
+        };
+
+        return groupDefs
+            .map((def) => ({ ...def, items: combined[def.key] ?? [] }))
+            .filter((group) => group.items.length > 0);
+    }, [results, query, user]);
 
     const flatLength = useMemo(
         () => groups.reduce((sum, group) => sum + group.items.length, 0),

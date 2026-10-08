@@ -11,6 +11,7 @@ import AttachmentList from './AttachmentList';
 import DependencyPanel from './DependencyPanel';
 import ActivityFeed from './ActivityFeed';
 import WorkLogPanel from './WorkLogPanel';
+import TaskLinkPanel from '../hrms/TaskLinkPanel';
 import { useAuth } from '../../context/AuthContext';
 import { fieldClass } from '../ui/fieldStyles';
 
@@ -95,6 +96,10 @@ export default function TaskDetail({
         { key: 'attachments', label: 'Attachments' },
         { key: 'dependencies', label: 'Dependencies' },
         ...(hasModule('time_tracking') ? [{ key: 'time', label: 'Time' }] : []),
+        // HR bridges ride the core module like every HRMS surface; the
+        // panel itself answers 403 through the project policy for logins
+        // that may work the task but not read its HR metadata.
+        ...(hasModule('hrms.core') ? [{ key: 'links', label: 'Links' }] : []),
         { key: 'activity', label: 'Activity' },
     ];
 
@@ -168,6 +173,7 @@ export default function TaskDetail({
                                         rows="5"
                                         className={`${fieldClass} min-h-32`}
                                         value={form.description}
+                                        placeholder="Context, acceptance criteria…"
                                         onChange={(e) => set('description', e.target.value)}
                                         disabled={!canEdit}
                                     />
@@ -313,6 +319,9 @@ export default function TaskDetail({
                                 />
                             )}
                             {tab === 'activity' && <ActivityFeed task={task} projectId={projectId} />}
+                            {tab === 'links' && hasModule('hrms.core') && (
+                                <TaskLinkPanel task={task} canManage={canEdit} />
+                            )}
                         </div>
                     )}
                 </>

@@ -17,6 +17,8 @@ import api from '../services/api';
 import Card from '../components/ui/Card';
 import Spinner from '../components/ui/Spinner';
 import Alert from '../components/ui/Alert';
+import RangeFilter from '../components/reports/RangeFilter';
+import { resolveRange, rangeLabel } from '../utils/dateRange';
 import { useAuth } from '../context/AuthContext';
 import { useSetCrumbs } from '../context/BreadcrumbContext';
 import usePageTitle from '../hooks/usePageTitle';
@@ -71,14 +73,14 @@ function HoursLoggedChart({ daily }) {
     const data = daily.map((d) => ({ date: chartDate(d.date), hours: Math.round((d.minutes / 60) * 10) / 10 }));
 
     if (data.every((d) => d.hours === 0)) {
-        return <p className="py-8 text-center text-sm text-gray-400">No work logged in the last 14 days.</p>;
+        return <p className="py-8 text-center text-sm text-gray-400">No work logged in this range.</p>;
     }
 
     return (
         <ResponsiveContainer width="100%" height={220}>
             <BarChart data={data} margin={{ top: 4, right: 8, left: -18, bottom: 0 }}>
                 <CartesianGrid strokeDasharray="3 3" vertical={false} />
-                <XAxis dataKey="date" interval={2} {...axisProps} />
+                <XAxis dataKey="date" interval={Math.max(0, Math.ceil(data.length / 8) - 1)} {...axisProps} />
                 <YAxis allowDecimals={false} {...axisProps} />
                 <Tooltip {...tooltipProps} formatter={(value) => [formatHours(value), 'Logged']} />
                 <BarShape dataKey="hours" fill="#6366f1" radius={[4, 4, 0, 0]} maxBarSize={28} />
@@ -91,14 +93,14 @@ function TasksCreatedChart({ daily }) {
     const data = daily.map((d) => ({ date: chartDate(d.date), created: d.count }));
 
     if (data.every((d) => d.created === 0)) {
-        return <p className="py-8 text-center text-sm text-gray-400">No tasks created in the last 14 days.</p>;
+        return <p className="py-8 text-center text-sm text-gray-400">No tasks created in this range.</p>;
     }
 
     return (
         <ResponsiveContainer width="100%" height={220}>
             <LineChart data={data} margin={{ top: 4, right: 8, left: -18, bottom: 0 }}>
                 <CartesianGrid strokeDasharray="3 3" vertical={false} />
-                <XAxis dataKey="date" interval={2} {...axisProps} />
+                <XAxis dataKey="date" interval={Math.max(0, Math.ceil(data.length / 8) - 1)} {...axisProps} />
                 <YAxis allowDecimals={false} {...axisProps} />
                 <Tooltip {...tooltipProps} />
                 <Line
@@ -106,7 +108,7 @@ function TasksCreatedChart({ daily }) {
                     dataKey="created"
                     stroke="#6366f1"
                     strokeWidth={2}
-                    dot={{ r: 2.5, fill: '#6366f1' }}
+                    dot={data.length > 60 ? false : { r: 2.5, fill: '#6366f1' }}
                     activeDot={{ r: 4 }}
                 />
             </LineChart>
@@ -161,6 +163,9 @@ export default function Dashboard() {
     const [data, setData] = useState(null);
     const [analytics, setAnalytics] = useState(null);
     const [error, setError] = useState(null);
+    const [preset, setPreset] = useState('month');
+    const [custom, setCustom] = useState(null);
+    const range = resolveRange(preset, custom ?? {});
     const { user } = useAuth();
     const setCrumbs = useSetCrumbs();
 
@@ -172,10 +177,14 @@ export default function Dashboard() {
         api.get('/dashboard')
             .then(({ data: response }) => setData(response))
             .catch(() => setError('Unable to load the dashboard.'));
-        api.get('/analytics/overview')
+    }, []);
+
+    useEffect(() => {
+        api.get('/analytics/overview', { params: { from: range.from, to: range.to } })
             .then(({ data: response }) => setAnalytics(response))
             .catch(() => setAnalytics(null));
-    }, []);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [range.from, range.to]);
 
     const hour = new Date().getHours();
     const greeting = hour < 12 ? 'Good morning' : hour < 18 ? 'Good afternoon' : 'Good evening';
@@ -232,8 +241,15 @@ export default function Dashboard() {
                 <h2 className="text-2xl font-bold text-gray-900">
                     {greeting}, {user?.name?.split(' ')[0]}
                 </h2>
-                <p className="mt-1 text-sm text-gray-500">
+                <p className="mt-1 flex flex-wrap items-center gap-2 text-sm text-gray-500">
                     Your tasks across {data.counts.open} open and {data.counts.done} completed.
+                    <span
+                        className="rounded-full px-2 py-0.5 text-[11px] font-medium text-gray-600"
+                        style={{ backgroundColor: '#6366f122' }}
+                        title="The aggregates below are scoped to what your role can see"
+                    >
+                        {data.scope === 'all' ? 'Showing: every task in the tenant' : 'Showing: tasks in your projects'}
+                    </span>
                 </p>
             </div>
 
@@ -252,6 +268,14 @@ export default function Dashboard() {
                 ))}
             </div>
 
+            <RangeFilter
+                preset={preset}
+                onChange={(key, customRange) => {
+                    setPreset(key);
+                    setCustom(customRange);
+                }}
+            />
+
             {analytics && (
                 <>
                     <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
@@ -260,13 +284,13 @@ export default function Dashboard() {
                         </Card>
                         <Card
                             title="Hours logged"
-                            subtitle={`Last 14 days · ${formatHours((analytics.work_logs?.total_minutes || 0) / 60)} total`}
+                            subtitle={`${rangeLabel(preset, range)} · ${formatHours((analytics.work_logs?.total_minutes || 0) / 60)} total`}
                         >
                             <HoursLoggedChart daily={analytics.work_logs?.daily || []} />
                         </Card>
                         <Card
                             title="Tasks created"
-                            subtitle={`14-day trend · ${analytics.counts?.created_30d || 0} created in 30d`}
+                            subtitle={`${rangeLabel(preset, range)} · ${analytics.counts?.created_in_range ?? 0} created`}
                         >
                             <TasksCreatedChart daily={analytics.tasks_created?.daily || []} />
                         </Card>

@@ -2,9 +2,11 @@
 
 namespace Tests\Feature;
 
+use App\Models\Hrms\Employee\Employee;
 use App\Models\PlatformSetting;
 use App\Models\Tenant;
 use App\Models\TenantUserRouting;
+use App\Models\User;
 use App\Support\TenantDatabaseManager;
 use Illuminate\Support\Facades\Config;
 use Tests\IsolatesDatabase;
@@ -67,6 +69,29 @@ class RegisterTest extends TestCase
         });
 
         $this->assertSame(1, TenantUserRouting::where('tenant_id', $tenant->id)->count());
+    }
+
+    public function test_claimed_owner_gets_a_linked_employee_record(): void
+    {
+        $this->enableRegistration();
+
+        $this->postJson('/api/register', [
+            'name' => 'Jane Doe',
+            'email' => 'jane@newco.test',
+            'password' => 'password123',
+            'password_confirmation' => 'password123',
+            'business_name' => 'Newco Inc',
+        ])->assertOk();
+
+        $tenant = Tenant::where('slug', 'newco-inc')->firstOrFail();
+        $dbm = app(TenantDatabaseManager::class);
+
+        $userId = $dbm->using($tenant, fn () => User::where('email', 'jane@newco.test')->value('id'));
+
+        $dbm->using($tenant, function () use ($userId): void {
+            $employee = Employee::where('user_id', $userId)->firstOrFail();
+            $this->assertSame('Jane Doe', $employee->name);
+        });
     }
 
     public function test_registered_tenant_domain_routes_gated_until_onboarding_complete(): void

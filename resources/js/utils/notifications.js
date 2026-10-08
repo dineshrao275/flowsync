@@ -13,9 +13,82 @@ export function describeNotification(type, data = {}, actorName = 'Someone') {
             return `${actorName} moved ${key} to ${data.to_status}`;
         case 'task.unblocked':
             return `${actorName} unblocked ${key}`;
+        case 'hrms.onboarding.task_due':
+            return describeTaskDue(data);
+        case 'hrms.attendance.regularization.requested':
+            return `${actorName} requested an attendance correction for ${data.work_date ?? 'a past date'}`;
+        case 'hrms.attendance.regularization.decided':
+            return `Your attendance correction for ${data.work_date ?? 'a past date'} was ${data.status ?? 'decided'}`;
+        case 'hrms.leave.requested':
+            return `${actorName} requested ${data.total_days ?? ''} day${data.total_days === 1 ? '' : 's'} of ${data.leave_type_name ?? 'leave'} (${data.from_date ?? ''} → ${data.to_date ?? ''})`;
+        case 'hrms.leave.approved':
+            return `Your leave for ${data.from_date ?? 'those dates'} was approved`;
+        case 'hrms.leave.rejected':
+            return `Your leave for ${data.from_date ?? 'those dates'} was rejected`;
+        case 'hrms.comp_off.requested':
+            return `${actorName} requested ${data.total_minutes ?? ''} minutes of comp-off (${data.from_date ?? ''} → ${data.to_date ?? ''})`;
+        case 'hrms.comp_off.approved':
+            return `Your comp-off for ${data.from_date ?? 'those dates'} was approved`;
+        case 'hrms.comp_off.rejected':
+            return `Your comp-off for ${data.from_date ?? 'those dates'} was rejected`;
+        case 'hrms.expense.submitted':
+            return `${actorName} filed claim ${data.claim_number ?? ''} for approval`;
+        case 'hrms.expense.approved':
+            return `Your claim ${data.claim_number ?? ''} was approved`;
+        case 'hrms.expense.rejected':
+            return `Your claim ${data.claim_number ?? ''} was rejected`;
+        case 'hrms.expense.paid':
+            return `Your claim ${data.claim_number ?? ''} was reimbursed through payroll`;
+        case 'hrms.performance.cycle_completed':
+            return `The ${data.cycle_name ?? 'review'} cycle completed`;
+        case 'hrms.performance.review_acknowledged':
+            return 'Your review was acknowledged';
+        case 'hrms.offboarding.clearance_pending':
+            return `Exit clearance pending for ${data.employee_name ?? 'someone'}`;
+        case 'hrms.document.verified':
+            return `Your file “${data.title ?? 'document'}” was verified`;
+        case 'hrms.document.rejected':
+            return `Your file “${data.title ?? 'document'}” was rejected`;
+        case 'hrms.performance.cycle_opened':
+            return `The ${data.cycle_name ?? 'review'} cycle opened`;
+        case 'hrms.performance.review_shared':
+            return 'Your review was shared';
+        case 'hrms.asset.assigned':
+            return `${actorName} assigned ${data.asset_code ?? 'an asset'} to you — acknowledge the receipt`;
+        case 'hrms.asset.acknowledged':
+            return `${data.employee_name ?? 'Someone'} acknowledged ${data.asset_code ?? 'their asset'}`;
+        case 'hrms.asset.returned':
+            return `${data.asset_code ?? 'An asset'} came back`;
+        case 'hrms.asset.return_overdue':
+            return `${data.asset_code ?? 'An asset'} still needs your signature`;
+        case 'hrms.survey.invited':
+            return `You are invited: ${data.campaign_name ?? 'a survey'}`;
+        case 'hrms.survey.closing_soon':
+            return `${data.campaign_name ?? 'A survey'} closes soon — answer if you have not`;
+        case 'hrms.inbox.digest':
+            return `Scheduled report ready: ${data.schedule_name ?? 'your digest'}`;
         default:
             return 'You have a new notification';
     }
+}
+
+/**
+ * An onboarding nudge names the item, the hire, and the urgency — not the
+ * actor, because the sender is a command, not a person, and “Someone wants
+ * you to …” would be a lie about who asked.
+ */
+function describeTaskDue(data = {}) {
+    const what = data.title ? `“${data.title}”` : 'An onboarding item';
+    const who = data.employee_name ? ` for ${data.employee_name}` : '';
+
+    if (!data.due_date) return `${what}${who} needs attention`;
+
+    const today = new Date().toISOString().slice(0, 10);
+
+    if (data.due_date < today) return `${what}${who} is overdue since ${data.due_date}`;
+    if (data.due_date === today) return `${what}${who} is due today`;
+
+    return `${what}${who} is due ${data.due_date}`;
 }
 
 const SECTION_BY_TYPE = {
@@ -27,9 +100,110 @@ const SECTION_BY_TYPE = {
  * Builds a deep link for a notification. Task notifications land on the
  * project's Tasks tab with the drawer auto-opened on the relevant section
  * (comments for task.commented, time for task.work_logged, details otherwise).
+ * Onboarding nudges land on the case detail itself — the list page takes no
+ * case parameter, so linking there would drop the reader one click away from
+ * the item they were nudged about.
  */
 export function notificationHref(data = {}, type = '') {
-    const { project_id, workspace_id, key } = data || {};
+    const { project_id, workspace_id, key, onboarding_case_id } = data || {};
+
+    if (type === 'hrms.onboarding.task_due' && onboarding_case_id) {
+        return `/hrms/onboarding/cases/${onboarding_case_id}`;
+    }
+
+    // A correction ask lands on the review queue; its decision lands on the
+    // month the decision changed (the queue takes no request parameter, so
+    // linking a decision there would drop the reader one click away).
+    if (type === 'hrms.attendance.regularization.requested') {
+        return '/hrms/attendance/approvals';
+    }
+
+    if (type === 'hrms.attendance.regularization.decided') {
+        return '/hrms/attendance';
+    }
+
+    // A leave ask lands on the admin queue for the approver and on the
+    // self-service history for the requester — each on the page that
+    // actually shows the item, never a list-with-param the list ignores.
+    if (type === 'hrms.leave.requested') {
+        return '/hrms/leave';
+    }
+
+    if (type === 'hrms.leave.approved' || type === 'hrms.leave.rejected') {
+        return '/hrms/leave/mine';
+    }
+
+    // Comp-off mirrors leave: the ask lands where the queue lives for the
+    // approver and on the self-service bank for the requester.
+    if (type === 'hrms.comp_off.requested') {
+        return '/hrms/comp-off';
+    }
+
+    if (type === 'hrms.comp_off.approved' || type === 'hrms.comp_off.rejected') {
+        return '/hrms/comp-off/mine';
+    }
+
+    // Expenses mirror leave: the filing lands on the queue for the approver,
+    // every later step on the claimant's own history.
+    if (type === 'hrms.expense.submitted') {
+        return '/hrms/expenses';
+    }
+
+    if (type === 'hrms.expense.approved' || type === 'hrms.expense.rejected' || type === 'hrms.expense.paid') {
+        return '/hrms/expenses/mine';
+    }
+
+    // Performance lands on the cycle for completions and on the
+    // self-service page for acknowledgements — each where the reader can
+    // see what changed, never a list-with-param the list ignores.
+    if (type === 'hrms.performance.cycle_completed' && data.performance_cycle_id) {
+        return `/hrms/performance/cycles/${data.performance_cycle_id}`;
+    }
+
+    if (type === 'hrms.performance.review_acknowledged') {
+        return '/hrms/performance/mine';
+    }
+
+    // Clearance nudges land on the exit run; file decisions on the self-service
+    // files page; a cycle opening on its detail; a shared review on mine.
+    if (type === 'hrms.offboarding.clearance_pending' && data.offboarding_case_id) {
+        return `/hrms/offboarding/cases/${data.offboarding_case_id}`;
+    }
+
+    if (type === 'hrms.document.verified' || type === 'hrms.document.rejected') {
+        return '/hrms/documents/mine';
+    }
+
+    if (type === 'hrms.performance.cycle_opened' && data.performance_cycle_id) {
+        return `/hrms/performance/cycles/${data.performance_cycle_id}`;
+    }
+
+    if (type === 'hrms.performance.review_shared') {
+        return '/hrms/performance/mine';
+    }
+
+    // Hardware lands on the holder's own shelf; everything else on the
+    // register — each where the reader can act, never a bare id.
+    if (type === 'hrms.asset.assigned' || type === 'hrms.asset.return_overdue') {
+        return '/hrms/assets/mine';
+    }
+
+    if (type === 'hrms.asset.acknowledged' || type === 'hrms.asset.returned') {
+        return '/hrms/assets';
+    }
+
+    // Surveys land on the self-service answer flow — the one place an
+    // invitee can act, since results sit behind the view permission.
+    if (type === 'hrms.survey.invited' || type === 'hrms.survey.closing_soon') {
+        return '/hrms/engagement/mine';
+    }
+
+    // Scheduled digests land on the dashboards they summarize — the counts
+    // in the notification are the redacted tier, the charts behind the link
+    // answer to the reader's own permissions.
+    if (type === 'hrms.inbox.digest') {
+        return '/hrms/analytics';
+    }
 
     if (project_id && key) {
         return taskUrl(project_id, key, SECTION_BY_TYPE[type] ?? null);

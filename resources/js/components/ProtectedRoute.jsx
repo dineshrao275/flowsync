@@ -19,11 +19,14 @@ export default function ProtectedRoute({ permission, module }) {
     }
 
     if (permission && !can(permission)) {
-        return <Navigate to="/403" replace />;
+        // The missing grant rides in location state so /403 can name it: a
+        // bare "Access denied" sends an admin hunting for a route-level rule
+        // that the sidebar already implied the user had.
+        return <Navigate to="/403" state={{ permission }} replace />;
     }
 
     if (module && !hasModule(module)) {
-        return <Navigate to="/403" replace />;
+        return <Navigate to="/module-denied" replace />;
     }
 
     return <Outlet />;

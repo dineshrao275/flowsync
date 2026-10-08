@@ -3,12 +3,15 @@
 namespace App\Models;
 
 use App\Enums\TaskStatusCategory;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class TaskStatus extends Model
 {
+    use HasFactory;
+
     protected $fillable = [
         'project_id',
         'name',

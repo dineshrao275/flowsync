@@ -18,6 +18,21 @@ api.interceptors.response.use(
                 window.location.href = '/app/login';
             }
         }
+
+        // A page-load GET that the server denies because the plan lacks the
+        // module surfaces the dedicated "not included in your plan" page — the
+        // generic 403 page would mislabel a plan limitation as a permission.
+        // Mutations keep their inline fieldErrors (the server message travels
+        // in the body, the theme flow already renders it).
+        if (
+            error.response?.status === 403 &&
+            error.response?.headers?.['x-module-denied'] &&
+            error.config?.method === 'get' &&
+            !window.location.pathname.startsWith('/app/module-denied')
+        ) {
+            window.location.href = '/app/module-denied';
+        }
+
         return Promise.reject(error);
     },
 );

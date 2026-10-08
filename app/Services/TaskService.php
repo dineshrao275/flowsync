@@ -8,8 +8,12 @@ use App\Models\Project;
 use App\Models\Task;
 use App\Models\TaskStatus;
 use App\Models\User;
+use App\Services\Hrms\PerformanceService;
+use App\Support\TaskScope;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
 class TaskService
@@ -17,6 +21,7 @@ class TaskService
     public function __construct(
         private readonly KeyGenerator $keyGenerator,
         private readonly TenantLimits $limits,
+        private readonly PerformanceService $performance,
     ) {}
 
     public function create(Project $project, array $data, User $creator): Task
@@ -125,12 +130,22 @@ class TaskService
             }
         }
 
-        return $task->fresh();
+        $moved = $task->fresh();
+
+        // A completion re-photographs every goal evidencing the task, so
+        // linked goals update on the event rather than waiting for the
+        // nightly sweep. Evidence only — the refresh never writes a rating
+        // or a status, so it cannot move anything this method owns.
+        if ($status->is_done) {
+            $this->performance->refreshTaskGoals($moved);
+        }
+
+        return $moved;
     }
 
-    public function board(Project $project, array $filters): array
+    public function board(Project $project, array $filters, User $user): array
     {
-        $topLevel = $this->filteredQuery($project, $filters)->whereNull('tasks.parent_id');
+        $topLevel = $this->filteredQuery($project, $filters, $user)->whereNull('tasks.parent_id');
         $taskQuery = (clone $topLevel)->get()->groupBy('status_id');
 
         $statuses = $project->statuses()
@@ -156,9 +171,9 @@ class TaskService
         ];
     }
 
-    public function list(Project $project, array $filters): LengthAwarePaginator
+    public function list(Project $project, array $filters, User $user): LengthAwarePaginator
     {
-        return $this->filteredQuery($project, $filters)
+        return $this->filteredQuery($project, $filters, $user)
             ->withCount(['subtasks', 'comments', 'attachments'])
             ->orderBy($filters['sort_by'] ?? 'position', $filters['sort_dir'] ?? 'asc')
             ->paginate(min($filters['per_page'] ?? 25, 100));
@@ -184,17 +199,21 @@ class TaskService
         ]);
     }
 
-    private function filteredQuery(Project $project, array $filters): Builder
+    private function filteredQuery(Project $project, array $filters, User $user): Builder
     {
-        $query = Task::query()
-            ->where('tasks.project_id', $project->id)
-            ->with(['status', 'priority', 'assignee', 'labels'])
-            ->withCount([
-                'subtasks',
-                'comments',
-                'attachments',
-                'openBlockers as open_blockers_count',
-            ]);
+        $query = TaskScope::constrainQuery(
+            Task::query()
+                ->where('tasks.project_id', $project->id)
+                ->with(['status', 'priority', 'assignee', 'labels'])
+                ->withCount([
+                    'subtasks',
+                    'comments',
+                    'attachments',
+                    'openBlockers as open_blockers_count',
+                ]),
+            $user,
+            TaskScope::resolveQueryScope($project, $user, 'tasks.view'),
+        );
 
         if (! empty($filters['status_id'])) {
             $query->where('tasks.status_id', $filters['status_id']);
@@ -248,9 +267,36 @@ class TaskService
             ->concat($ids->slice($position))
             ->values();
 
-        $ids->each(function (int $id, int $position) {
-            Task::whereKey($id)->update(['position' => $position + 1]);
-        });
+        $this->writePositions($ids);
+    }
+
+    /**
+     * One UPDATE with CASE id WHEN … THEN … instead of N per-row writes.
+     *
+     * @param  Collection<int, int>  $ids
+     */
+    private function writePositions(Collection $ids): void
+    {
+        if ($ids->isEmpty()) {
+            return;
+        }
+
+        $cases = [];
+        $bindings = [];
+
+        foreach ($ids as $offset => $id) {
+            $cases[] = 'when ? then ?';
+            $bindings[] = $id;
+            $bindings[] = $offset + 1;
+        }
+
+        $placeholders = implode(',', array_fill(0, $ids->count(), '?'));
+        $bindings = array_merge($bindings, $ids->all());
+
+        DB::update(
+            'update tasks set position = case id '.implode(' ', $cases).' end where id in ('.$placeholders.')',
+            $bindings,
+        );
     }
 
     private function nextPosition(TaskStatus $status): int

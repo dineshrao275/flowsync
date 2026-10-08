@@ -24,6 +24,19 @@ class TaskController extends Controller
     {
         $this->authorize('view', $project);
 
+        // Board/list rows carry the task-level read, not just project
+        // sight: a role that may see the project but not its tasks gets
+        // the same 403 here that show() answers per row. Scope-aware: a
+        // `tasks.view_own` grant passes the gate and the board/list then
+        // narrow to the caller's rows.
+        $user = $request->user();
+        $role = $project->memberRole($user);
+        abort_unless(
+            $user->hasPermission('workspaces.manage') || ($role !== null && $role->grants('tasks.view_own')),
+            403,
+            'Reading this project\'s tasks needs a "tasks.view*" grant on your project role (or "workspaces.manage").',
+        );
+
         $filters = $request->validate([
             'status_id' => ['nullable', 'integer'],
             'priority_id' => ['nullable', 'integer'],
@@ -41,18 +54,18 @@ class TaskController extends Controller
 
         if ($board) {
             return response()->json([
-                'board' => $this->service->board($project, $filters),
+                'board' => $this->service->board($project, $filters, $user),
                 'filters' => $this->filtersPayload($project),
-                'my_role' => $project->memberRole($request->user())?->slug,
+                'my_role' => $project->memberRole($user)?->slug,
             ]);
         }
 
-        $tasks = $this->service->list($project, $filters);
+        $tasks = $this->service->list($project, $filters, $user);
 
         return response()->json([
             'tasks' => collect($tasks->items())->map(fn (Task $task) => $this->service->present($task)),
             'filters' => $this->filtersPayload($project),
-            'my_role' => $project->memberRole($request->user())?->slug,
+            'my_role' => $project->memberRole($user)?->slug,
             'pagination' => [
                 'current_page' => $tasks->currentPage(),
                 'last_page' => $tasks->lastPage(),
@@ -102,6 +115,24 @@ class TaskController extends Controller
 
     public function show(Request $request, Project $project, Task $task): JsonResponse
     {
+        $this->authorize('view', $task);
+
+        return response()->json([
+            'task' => $this->service->present($this->service->show($task)),
+        ]);
+    }
+
+    /**
+     * Resolve one task by its project-scoped key (`PRJ-123`), for deep
+     * links that land outside the current view's pool: the board only
+     * carries top-level tasks, so a subtask link (or a filtered-out task)
+     * would otherwise open the board with no drawer. Same policy and same
+     * shape as show — the key is just another address for the row.
+     */
+    public function showByKey(Request $request, Project $project, string $key): JsonResponse
+    {
+        $task = $project->tasks()->where('key', $key)->firstOrFail();
+
         $this->authorize('view', $task);
 
         return response()->json([

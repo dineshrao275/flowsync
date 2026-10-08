@@ -2,7 +2,9 @@
 
 namespace App\Http\Requests;
 
+use App\Models\Tenant;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 
 class ImpersonationStartRequest extends FormRequest
 {
@@ -10,7 +12,7 @@ class ImpersonationStartRequest extends FormRequest
     {
         return [
             'user_id' => ['required', 'integer'],
-            'tenant_id' => ['nullable', 'integer'],
+            'tenant_id' => ['nullable', 'integer', Rule::exists(Tenant::class, 'id')],
         ];
     }
 }

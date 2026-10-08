@@ -2,7 +2,9 @@
 
 namespace Tests\Feature;
 
+use App\Models\SubscriptionPlan;
 use App\Models\Tenant;
+use App\Services\SubscriptionService;
 use Tests\IsolatesDatabase;
 use Tests\TestCase;
 
@@ -122,5 +124,38 @@ class OnboardingTest extends TestCase
         $this->putJson('/api/onboarding/step', ['step' => 'nonexistent'])->assertUnprocessable();
         // The terminal step is not user-completable via markStep.
         $this->putJson('/api/onboarding/step', ['step' => 'completion'])->assertUnprocessable();
+    }
+
+    public function test_hrms_step_appears_only_for_hrms_tenants(): void
+    {
+        $tenant = Tenant::where('slug', 'acme')->firstOrFail();
+        $starter = SubscriptionPlan::where('slug', 'starter')->firstOrFail();
+        $pro = SubscriptionPlan::where('slug', 'pro')->firstOrFail();
+
+        app(SubscriptionService::class)->assign($tenant, $starter);
+        $this->startWizard('acme');
+        $this->loginAs('admin@flowsync.test');
+
+        // Starter carries no hrms.* module: the step is hidden, unmarkable,
+        // and never blocks the gate.
+        $steps = $this->getJson('/api/onboarding')->assertOk()->json('onboarding.steps');
+        $this->assertSame(
+            ['business', 'admin', 'subscription', 'configuration', 'verification', 'completion'],
+            collect($steps)->pluck('key')->all(),
+        );
+        $this->putJson('/api/onboarding/step', ['step' => 'hrms'])->assertUnprocessable();
+
+        // Pro carries hrms.core: the step appears after configuration and marks.
+        app(SubscriptionService::class)->assign($tenant, $pro);
+
+        $steps = $this->getJson('/api/onboarding')->assertOk()->json('onboarding.steps');
+        $this->assertSame(
+            ['business', 'admin', 'subscription', 'configuration', 'hrms', 'verification', 'completion'],
+            collect($steps)->pluck('key')->all(),
+        );
+
+        $this->putJson('/api/onboarding/step', ['step' => 'hrms'])
+            ->assertOk()
+            ->assertJsonPath('onboarding.steps.4.complete', true);
     }
 }

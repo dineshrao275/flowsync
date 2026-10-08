@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Models\Hrms\Employee\Employee;
 use App\Models\SubscriptionPlan;
 use App\Models\User;
 use App\Models\Workspace;
@@ -47,6 +48,12 @@ class ModuleGateTest extends TestCase
         $this->getJson('/api/reports/overview')->assertForbidden();
         $this->getJson(sprintf('/api/workspaces/%s/time-summary', $this->workspace()->id))->assertForbidden();
 
+        // Module denials are distinguishable from permission 403s so the SPA
+        // can show the "not in your plan" surface instead of the generic one.
+        $this->getJson('/api/reports/overview')
+            ->assertForbidden()
+            ->assertHeader('X-Module-Denied', 'reports');
+
         $this->getJson('/api/search/global?q=acme')->assertOk();
         $this->getJson('/api/search/tasks')->assertOk();
     }
@@ -67,6 +74,61 @@ class ModuleGateTest extends TestCase
         $this->login('superadmin@flowsync.test');
 
         $this->getJson('/api/search/global?q=acme')->assertOk();
+    }
+
+    public function test_leave_routes_gate_on_the_hrms_leave_module(): void
+    {
+        $this->assignProToAcme();
+        $this->setAcmeModules(['hrms.core']);
+        $this->login('admin@flowsync.test');
+
+        // HRMS routes resolve their tenant the same way every HRMS test
+        // does: the operator connects the tenant explicitly, because these
+        // routes sit outside the per-request switching group by design.
+        $this->connectTenant('acme');
+
+        $this->getJson('/api/hrms/leave/types')->assertForbidden();
+
+        $this->setAcmeModules(['hrms.core', 'hrms.leave']);
+
+        $this->getJson('/api/hrms/leave/types')->assertOk();
+    }
+
+    public function test_comp_off_routes_gate_on_the_hrms_comp_off_module(): void
+    {
+        $this->assignProToAcme();
+        $this->setAcmeModules(['hrms.core']);
+        $this->login('admin@flowsync.test');
+        $this->connectTenant('acme');
+
+        $this->getJson('/api/hrms/comp-off/credits')->assertForbidden();
+
+        $this->setAcmeModules(['hrms.core', 'hrms.comp_off']);
+
+        // The tenant admin is a service account with no employment record;
+        // give it one so the second leg proves the gate, not the 404.
+        Employee::create([
+            'employee_code' => 'EMP-GATE-1',
+            'name' => 'Gatekeeper',
+            'status' => 'active',
+            'user_id' => User::where('email', 'admin@flowsync.test')->firstOrFail()->id,
+        ]);
+
+        $this->getJson('/api/hrms/comp-off/credits')->assertOk();
+    }
+
+    public function test_holiday_routes_gate_on_the_hrms_holidays_module(): void
+    {
+        $this->assignProToAcme();
+        $this->setAcmeModules(['hrms.core']);
+        $this->login('admin@flowsync.test');
+        $this->connectTenant('acme');
+
+        $this->getJson('/api/hrms/holidays/calendars')->assertForbidden();
+
+        $this->setAcmeModules(['hrms.core', 'hrms.holidays']);
+
+        $this->getJson('/api/hrms/holidays/calendars')->assertOk();
     }
 
     private function login(string $email): void

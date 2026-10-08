@@ -21,6 +21,7 @@ export function Th({ children, className = '', align = 'left', ...rest }) {
 
     return (
         <th
+            scope="col"
             {...rest}
             className={`whitespace-nowrap border-b border-gray-200 bg-gray-50/60 px-4 py-2.5 text-xs font-semibold uppercase tracking-wide text-gray-500 ${alignment} ${className}`}
         >

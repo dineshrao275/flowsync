@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import api, { fieldErrors } from '../services/api';
 import Card from '../components/ui/Card';
 import Badge from '../components/ui/Badge';
@@ -10,9 +11,49 @@ import { Table, Th, Td, TableEmpty } from '../components/ui/Table';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
 import usePageTitle from '../hooks/usePageTitle';
+import { groupPermissionsByDomain, prettyDomain } from '../utils/permissions';
+
+function PermissionGrid({ permissions, isChecked, onToggle, disabled = false, dense = false }) {
+    const groups = groupPermissionsByDomain(permissions);
+
+    return (
+        <div className="space-y-4">
+            {groups.map(({ domain, items }) => (
+                <div key={domain}>
+                    <p className="mb-1.5 text-xs font-semibold uppercase tracking-wide text-gray-400">
+                        {prettyDomain(domain)}
+                    </p>
+                    <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3">
+                        {items.map((permission) => (
+                            <label
+                                key={permission.id}
+                                className={`flex cursor-pointer rounded-lg text-sm transition hover:bg-gray-50 ${
+                                    dense ? 'items-start gap-2 px-2 py-1.5' : 'items-center gap-2 border border-gray-200 px-3 py-2'
+                                } ${disabled ? 'cursor-default hover:bg-transparent' : ''}`}
+                            >
+                                <input
+                                    type="checkbox"
+                                    checked={isChecked(permission)}
+                                    disabled={disabled}
+                                    onChange={() => onToggle(permission)}
+                                    className="mt-0.5 h-4 w-4 shrink-0 rounded border-gray-300 text-[var(--accent)] accent-[var(--accent)] transition-all duration-150 focus:ring-[var(--accent-ring)] disabled:cursor-not-allowed disabled:opacity-50"
+                                />
+                                <span className="text-gray-700">
+                                    {permission.name}
+                                    <span className="block text-xs text-gray-400">{permission.slug}</span>
+                                </span>
+                            </label>
+                        ))}
+                    </div>
+                </div>
+            ))}
+        </div>
+    );
+}
 
 export default function Roles() {
     usePageTitle('Roles & Permissions');
+    const navigate = useNavigate();
     const { can } = useAuth();
     const toast = useToast();
     const [roles, setRoles] = useState([]);
@@ -30,7 +71,11 @@ export default function Roles() {
             const { data } = await api.get('/roles');
             setRoles(data.roles);
             setPermissions(data.permissions);
-        } catch {
+        } catch (err) {
+            if (err?.response?.status === 403) {
+                navigate('/403', { replace: true });
+                return;
+            }
             setError('Unable to load roles.');
         } finally {
             setLoading(false);
@@ -152,29 +197,18 @@ export default function Roles() {
                         </div>
                         <div>
                             <label className="mb-1.5 block text-sm font-medium text-gray-700">Permissions</label>
-                            <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3">
-                                {permissions.map((permission) => (
-                                    <label
-                                        key={permission.id}
-                                        className="flex cursor-pointer items-center gap-2 rounded-lg border border-gray-200 px-3 py-2 text-sm transition hover:bg-gray-50"
-                                    >
-                                        <input
-                                            type="checkbox"
-                                            checked={createForm.permissions.includes(permission.id)}
-                                            onChange={() =>
-                                                setCreateForm((f) => ({
-                                                    ...f,
-                                                    permissions: f.permissions.includes(permission.id)
-                                                        ? f.permissions.filter((id) => id !== permission.id)
-                                                        : [...f.permissions, permission.id],
-                                                }))
-                                            }
-                                            className="h-4 w-4 rounded border-gray-300 text-[var(--accent)] accent-[var(--accent)] focus:ring-[var(--accent-ring)]"
-                                        />
-                                        <span>{permission.name}</span>
-                                    </label>
-                                ))}
-                            </div>
+                            <PermissionGrid
+                                permissions={permissions}
+                                isChecked={(permission) => createForm.permissions.includes(permission.id)}
+                                onToggle={(permission) =>
+                                    setCreateForm((f) => ({
+                                        ...f,
+                                        permissions: f.permissions.includes(permission.id)
+                                            ? f.permissions.filter((id) => id !== permission.id)
+                                            : [...f.permissions, permission.id],
+                                    }))
+                                }
+                            />
                             {createErrors.permissions && (
                                 <p className="mt-1.5 text-sm text-red-600">{createErrors.permissions}</p>
                             )}
@@ -242,34 +276,13 @@ export default function Roles() {
                                     </Td>
                                     <Td>
                                         {editing ? (
-                                            <ul className="grid grid-cols-1 gap-1 sm:grid-cols-2 xl:grid-cols-3">
-                                                {permissions.map((permission) => {
-                                                    const checked = selectedIds.includes(permission.id);
-                                                    return (
-                                                        <li key={permission.id}>
-                                                            <label
-                                                                className={`flex cursor-pointer items-start gap-2 rounded-lg px-2 py-1.5 text-sm transition ${
-                                                                    manageable ? 'hover:bg-gray-50' : 'cursor-default'
-                                                                }`}
-                                                            >
-                                                                <input
-                                                                    type="checkbox"
-                                                                    checked={checked}
-                                                                    disabled={!manageable}
-                                                                    onChange={() => togglePermission(role.id, permission.id)}
-                                                                    className="mt-0.5 h-4 w-4 rounded border-gray-300 text-[var(--accent)] accent-[var(--accent)] transition-all duration-150 focus:ring-[var(--accent-ring)] disabled:cursor-not-allowed disabled:opacity-50"
-                                                                />
-                                                                <span className="text-gray-700">
-                                                                    {permission.name}
-                                                                    <span className="block text-xs text-gray-400">
-                                                                        {permission.slug}
-                                                                    </span>
-                                                                </span>
-                                                            </label>
-                                                        </li>
-                                                    );
-                                                })}
-                                            </ul>
+                                            <PermissionGrid
+                                                permissions={permissions}
+                                                disabled={!manageable}
+                                                dense
+                                                isChecked={(permission) => selectedIds.includes(permission.id)}
+                                                onToggle={(permission) => togglePermission(role.id, permission.id)}
+                                            />
                                         ) : (
                                             <span className="text-sm text-gray-500">
                                                 {granted.length ? granted.join(', ') : 'No permissions'}

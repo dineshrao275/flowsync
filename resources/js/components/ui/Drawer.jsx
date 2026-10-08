@@ -1,22 +1,10 @@
-import { useEffect } from 'react';
+import { useId } from 'react';
 import { createPortal } from 'react-dom';
+import useDialogFocus from '../../hooks/useDialogFocus';
 
 export default function Drawer({ open, onClose, title, subtitle, children, headerExtras, footer, className = '' }) {
-    useEffect(() => {
-        if (!open) return;
-
-        function onKey(e) {
-            if (e.key === 'Escape') onClose();
-        }
-
-        document.addEventListener('keydown', onKey);
-        document.body.style.overflow = 'hidden';
-
-        return () => {
-            document.removeEventListener('keydown', onKey);
-            document.body.style.overflow = '';
-        };
-    }, [open, onClose]);
+    const panelRef = useDialogFocus(open, onClose);
+    const titleId = useId();
 
     if (!open) return null;
 
@@ -35,11 +23,14 @@ export default function Drawer({ open, onClose, title, subtitle, children, heade
                 onClick={(e) => e.stopPropagation()}
                 role="dialog"
                 aria-modal="true"
+                aria-labelledby={title ? titleId : undefined}
+                ref={panelRef}
+                tabIndex={-1}
             >
                 {(title || onClose) && (
                     <div className="flex shrink-0 items-start justify-between gap-4 border-b border-gray-100 px-6 py-4">
                         <div className="min-w-0 flex-1">
-                            {title && <h3 className="truncate text-lg font-semibold text-gray-900">{title}</h3>}
+                            {title && <h3 id={titleId} className="truncate text-lg font-semibold text-gray-900">{title}</h3>}
                             {subtitle && <p className="mt-0.5 truncate text-xs font-semibold uppercase tracking-wide text-gray-400">{subtitle}</p>}
                             {headerExtras}
                         </div>

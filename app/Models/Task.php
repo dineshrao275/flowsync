@@ -2,6 +2,9 @@
 
 namespace App\Models;
 
+use App\Models\Hrms\Employee\Employee;
+use App\Models\Hrms\TaskLink\TaskLink;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
@@ -10,6 +13,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Task extends Model
 {
+    use HasFactory;
     use SoftDeletes;
 
     protected $fillable = [
@@ -30,6 +34,7 @@ class Task extends Model
         'position',
         'completed_at',
         'archived_at',
+        'hrms_employee_id',
     ];
 
     protected function casts(): array
@@ -41,6 +46,7 @@ class Task extends Model
             'sequence' => 'integer',
             'completed_at' => 'datetime',
             'archived_at' => 'datetime',
+            'hrms_employee_id' => 'integer',
         ];
     }
 
@@ -67,6 +73,25 @@ class Task extends Model
     public function assignee(): BelongsTo
     {
         return $this->belongsTo(User::class, 'assignee_id');
+    }
+
+    /**
+     * The HR-owned person this task was filed against (P20.1): an HR
+     * admin's ask living on the employee's HR home — not the assignee,
+     * which is the project member doing the work.
+     */
+    public function hrmsEmployee(): BelongsTo
+    {
+        return $this->belongsTo(Employee::class, 'hrms_employee_id');
+    }
+
+    /**
+     * The evidence bridges naming this task (P20.1): which employee
+     * records count it, and for what kind of claim.
+     */
+    public function taskLinks(): HasMany
+    {
+        return $this->hasMany(TaskLink::class, 'task_id');
     }
 
     public function parent(): BelongsTo

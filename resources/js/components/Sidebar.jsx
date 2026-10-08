@@ -1,11 +1,13 @@
 import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { useNotifications } from '../context/NotificationContext';
 
 const sections = [
     {
         label: 'Main',
         items: [
             { to: '/dashboard', label: 'Dashboard', capabilities: ['dashboard.view'], icon: 'M3 12l9-9 9 9M5 10v10h14V10' },
+            { to: '/my', label: 'My HR', capabilities: ['module:hrms.core'], icon: 'M12 12a4 4 0 100-8 4 4 0 000 8zm-7 8a7 7 0 0114 0' },
             { to: '/workspaces', label: 'Workspaces', capabilities: ['workspaces.view'], icon: 'M3 7a2 2 0 012-2h4l2 2h8a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2V7z' },
             { to: '/projects', label: 'Projects', capabilities: ['workspaces.view'], icon: 'M2 4h20v16H2V4zm2 2v2h16V6H4zm0 6h16v-2H4v2zm0 4h16v-2H4v2z' },
             { to: '/search', label: 'Search', capabilities: ['workspaces.view', 'module:global_search'], icon: 'M21 21l-4.35-4.35M17 11a6 6 0 11-12 0 6 6 0 0112 0z' },
@@ -18,6 +20,16 @@ const sections = [
         ],
     },
     {
+        label: 'People',
+        items: [
+            // The whole HRMS hangs off this one entry: every feature is a
+            // sub-tab inside the hub (`HrmsLayout` renders `hrmsNav.js`),
+            // filtered by the same capability that guards its route —
+            // `HrmsNavTest` fails when the two drift apart.
+            { to: '/hrms', label: 'HR', capabilities: ['module:hrms.core'], icon: 'M17 20h5v-2a4 4 0 00-3-3.87M9 20H4v-2a4 4 0 013-3.87m4-1.13a4 4 0 10-4-4 4 4 0 004 4zm6 2a3 3 0 10-3-3', badge: 'inbox' },
+        ],
+    },
+    {
         label: 'Administration',
         items: [
             { to: '/users', label: 'Users', capabilities: ['users.view'], icon: 'M17 20h5v-2a4 4 0 00-3-3.87M9 20H4v-2a4 4 0 013-3.87m4-1.13a4 4 0 10-4-4 4 4 0 004 4zm6 2a3 3 0 10-3-3' },
@@ -25,10 +37,11 @@ const sections = [
             { to: '/settings', label: 'Settings', capabilities: ['settings.view'], icon: 'M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 001.065-2.572c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z M15 12a3 3 0 11-6 0 3 3 0 016 0z' },
         ],
     },
-{
+    {
         label: 'Billing',
         items: [
-            { to: '/subscription', label: 'Subscription', icon: 'M3 17l5-2 8 3 5-2v6H3v-5zm5-4l5-2 8 3 3-1v-3l-3-1-8-3-5 2-5-2 3 2v3l2 1z' },
+            { to: '/subscription', label: 'Subscription', icon: 'M3 17l5-2 8 3 5-2v6H3v-5zm5-4l5-2 8 3 3-1v-3l-3-1-8-3-5 2-5-2 3 2v3l2 1z', capabilities: ['billing.view'] },
+            { to: '/export', label: 'Data Export', icon: 'M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4', capabilities: ['module:export.full', 'billing.view'] },
         ],
     },
 ];
@@ -65,6 +78,7 @@ function Icon({ path, className = '' }) {
 
 function SidebarLink({ item, collapsed, onClose }) {
     const location = useLocation();
+    const { inboxUnread } = useNotifications();
     const isActive = location.pathname === item.to;
     const labelClass = collapsed ? 'hidden lg:hidden' : 'block';
 
@@ -89,21 +103,45 @@ function SidebarLink({ item, collapsed, onClose }) {
                 />
             )}
             <Icon path={item.icon} className="h-5 w-5 shrink-0" />
-            <span className={`min-w-0 ${labelClass}`}>{item.label}</span>
+            <span className={`min-w-0 ${labelClass}`}>
+                <span className="flex items-center justify-between gap-2">
+                    <span className="truncate">{item.label}</span>
+                    {item.badge === 'inbox' && inboxUnread > 0 && (
+                        <span className="flex h-4 min-w-4 shrink-0 items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-bold normal-case tracking-normal text-white">
+                            {inboxUnread > 99 ? '99+' : inboxUnread}
+                        </span>
+                    )}
+                </span>
+            </span>
         </Link>
     );
 }
 
-function SidebarSection({ section, collapsed, onClose }) {
+function SidebarSection({ section, collapsed, onClose, canViewPlans }) {
     return (
         <div className="space-y-0.5">
             {!collapsed && (
                 <p
-                    className="px-3 pb-1.5 pt-4 text-[10px] font-bold uppercase tracking-wider"
+                    className="flex items-center justify-between px-3 pb-1.5 pt-4 text-[10px] font-bold uppercase tracking-wider"
                     style={{ color: 'var(--sidebar-text)', opacity: 0.55 }}
                 >
-                    {section.label}
+                    <span>{section.label}</span>
                 </p>
+            )}
+            {section.items.length === 0 && !collapsed && (
+                <div
+                    className="rounded-lg px-3 py-2 text-xs leading-relaxed"
+                    style={{ color: 'var(--sidebar-text)', opacity: 0.6 }}
+                >
+                    <span>Locked by your plan.</span>{' '}
+                    {canViewPlans ? (
+                        <Link to="/subscription" className="underline transition-colors hover:opacity-80">
+                            View plans
+                        </Link>
+                    ) : (
+                        'An admin can change it.'
+                    )}
+                </div>
             )}
             {section.items.map((item) => (
                 <SidebarLink key={item.to} item={item} collapsed={collapsed} onClose={onClose} />
@@ -116,12 +154,26 @@ export default function Sidebar({ open, collapsed, onClose, onToggleCollapse }) 
     const { check, user } = useAuth();
     const isSuperAdmin = user?.is_super_admin && !user?.impersonating;
 
+    // A section that filtered to zero because every item was module-gated
+    // (not permission-gated) survives with a "locked by your plan" note —
+    // otherwise it would just vanish and read as an admin artifact.
     const items = (isSuperAdmin ? superAdminSections : sections)
-        .map((section) => ({
-            ...section,
-            items: section.items.filter((item) => !item.capabilities?.length || item.capabilities.every((capability) => check(capability))),
-        }))
-        .filter((section) => section.items.length > 0);
+        .map((section) => {
+            const filtered = section.items.filter(
+                (item) => !item.capabilities?.length || item.capabilities.every((capability) => check(capability)),
+            );
+
+            return {
+                ...section,
+                items: filtered,
+                lockedByModule:
+                    filtered.length === 0 &&
+                    section.items.some((item) =>
+                        item.capabilities?.some((capability) => capability.startsWith('module:') && !check(capability)),
+                    ),
+            };
+        })
+        .filter((section) => section.items.length > 0 || section.lockedByModule);
 
     return (
         <>
@@ -164,7 +216,13 @@ export default function Sidebar({ open, collapsed, onClose, onToggleCollapse }) 
 
                 <nav className="flex-1 space-y-4 overflow-y-auto px-3 py-2">
                     {items.map((section) => (
-                        <SidebarSection key={section.label} section={section} collapsed={collapsed} onClose={onClose} />
+                        <SidebarSection
+                            key={section.label}
+                            section={section}
+                            collapsed={collapsed}
+                            onClose={onClose}
+                            canViewPlans={check('billing.view')}
+                        />
                     ))}
                 </nav>
 

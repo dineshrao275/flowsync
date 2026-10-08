@@ -29,8 +29,11 @@ class SubscriptionPlanTest extends TestCase
     {
         $plans = SubscriptionPlan::orderBy('sort_order')->get();
 
-        $this->assertCount(3, $plans);
-        $this->assertSame(['starter', 'pro', 'enterprise'], $plans->pluck('slug')->all());
+        $this->assertCount(count(config('subscriptions.plans')), $plans);
+        $this->assertSame(
+            ['starter', 'pro', 'business', 'enterprise'],
+            $plans->pluck('slug')->all(),
+        );
 
         $starter = $plans->first();
         $this->assertTrue($starter->is_default);
@@ -41,7 +44,8 @@ class SubscriptionPlanTest extends TestCase
 
     public function test_super_admin_can_crud_plans(): void
     {
-        $this->getJson('/api/plans')->assertOk()->assertJsonCount(3, 'plans');
+        $this->getJson('/api/plans')->assertOk()
+            ->assertJsonCount(count(config('subscriptions.plans')), 'plans');
 
         $create = $this->postJson('/api/plans', [
             'name' => 'Teams',
@@ -67,7 +71,7 @@ class SubscriptionPlanTest extends TestCase
 
         // Seeder is idempotent (catalog updates refresh existing rows, not dupes).
         (new SubscriptionPlanSeeder)->run();
-        $this->assertCount(3, SubscriptionPlan::all());
+        $this->assertCount(count(config('subscriptions.plans')), SubscriptionPlan::all());
     }
 
     public function test_super_admin_cannot_delete_the_default_plan(): void
@@ -131,7 +135,7 @@ class SubscriptionPlanTest extends TestCase
         // Tenant-facing read (subscription self-service): the active catalog.
         $this->getJson('/api/plans')
             ->assertOk()
-            ->assertJsonCount(3, 'plans');
+            ->assertJsonCount(count(config('subscriptions.plans')), 'plans');
 
         // Mutations remain super-admin-only.
         $this->postJson('/api/plans', [

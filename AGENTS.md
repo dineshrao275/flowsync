@@ -20,14 +20,32 @@ Laravel 12 + React 19 SPA. Session-based auth **without** Breeze/Fortify/Sanctum
   `tenants:provision` + seeds demo data (superadmin + acme + globex). Reset from scratch:
   `docker-compose down -v` then `up -d` (app entrypoint re-initializes; `RUN_INIT=true` only for `app`).
   No PHP/composer needed on the host — envs in `.env.docker`.
-- `php artisan test` — run test suite (Phase 13: **isolated, per-tenant file DBs** via `Tests\IsolatesDatabase`; current gate: **354 tests / 2577 assertions passing**)
+- `php artisan test` — run test suite (Phase 13: **isolated, per-tenant file DBs** via `Tests\IsolatesDatabase`; current gate: **1511 tests / 7677 assertions passing** — Phase E step 17 adds `MemberAccessMatrixTest` (cross-domain matrix over TMS tasks and HRMS leave/expense/document/performance with {own, report, stranger} x {none, own, assigned, all, manage} + sidebar/capabilities) and extends `MemberIsolationTest` with assigned reporting line strict isolation; Phase D step 14 adds button/denial audits with `test_a_permission_denial_names_the_missing_grant`; Phase C step 9 adds `TaskScopeAccessTest` (project-role `tasks.*_own/_assigned/_all` row enforcement on TaskPolicy + board/list), step 12's `ReportsToTest`, step 10's `HrmsScopeAccessTest` (`App\Services\Hrms\HrmsScope` — own/assigned/all row scoping for the leave/expense/document/comp-off lists and policies, `_assigned` via `ReportsTo`), and step 11's `HrmsScopeEmployeeIdTest` (attendance/leave-balance/comp-off-credit per-record policies and the performance goal/check-in/1:1/feedback lists+show flip to `HrmsScope`, so a client-supplied `employee_id` on the My-page reads intersects the caller's real scope instead of widening it — `_assigned` reads reports, `_all`/legacy/manage read everyone); Phase 7 adds `FactoryParityTest` (~12 central + tenant + HRMS factories maintaining relational consistency) and `BrandSweepTest` (branding verified as FlowSync, config-driven storage prefix, zero legacy boilerplate); Phase 6 adds `BillingTest` (checkout initiation, idempotency, verification, history, refunds, locale routing) and `PaymentWebhookTest` (Stripe & Razorpay signature verification, replay guard, payment failure); Phase 5 adds `SubscriptionStateTest` (explicit subscription states, export.full gate, attachment storage quota) and `TenantExportTest` (queued full export, ZIP generation, signed download, tenant isolation); Phase 4-1 adds `NotificationPreferenceTest` (api/notification-preferences), Phase 4-2 adds `MentionEmailTest` (task notification emails + mention cap), Phase 4-3 adds `MentionAutocompleteTest` (api/projects/{project}/members/autocomplete); the Phase 3 HRMS IA gate was 1389/6886 (verified by a single `php artisan test` run at the Phase 3 end-gate: all 145+ test files, zero omitted; the Phase 2 database & performance gate was 1384/6862, the Phase 1 security gate 1372/6829))
 
 - `npm run build` / `npm run dev` — frontend build / Vite dev server
 - `./vendor/bin/pint` — PHP code style (run over whole repo; `--dirty` only works in git)
 - `php artisan migrate:fresh --seed` — reset the **system** DB (migrations now live under `database/migrations/system`; run it as `migrate:fresh --database=system --path=database/migrations/system --seed` — plain `migrate` runs nothing, see Pitfalls) + seed via `Database\Seeders\TenantSeeder` (provisions acme + globex tenant DBs)
 - `php artisan tenants:provision` — idempotently provision/repair tenant DBs (`provisionIsolated` pipeline) + backfill permissions/roles/priorities/project-roles (`--tenant=ID` for one)
 - `php artisan tenants:seed-scale` — large realistic scale seed (defaults 100 tenants / 10 users each / **5-10** workspaces / **5-10** projects / 100 tasks per project; `--tenants --users --workspaces --projects --tasks --no-related --seed --dry-run`); `--workspaces`/`--projects` accept a count **or a min-max range drawn per tenant**; provisions real tenants through the onboarding pipeline and prints a totals table + elapsed time (see P10)
+- `php artisan tenants:scope-grants [--tenant=ID] [--force]` — Phase B2 migration: for every tenant role holding a legacy unscoped slug (`hrms.leave.view`), grant the scope variant(s) that slug has always meant — `X.view_all` + `X.view_own`, payroll maps to `view_own` only (never widened, 1:1). Idempotent (`syncWithoutDetaching`); report-only without `--force` (prints every grant it would add + warns). The `ScopeGrantBackfill` service maps from `config('permissions.scopes')` + `PermissionScope::legacyScope()`.
 - `composer run dev` — concurrently runs serve + queue + pail(logs) + Vite **+ Reverb websockets**
+- **Delivery: commit and push every task yourself — do not wait to be asked.** The HRMS plan
+  (Phase 15) is executed as one reviewed, verified commit per task on `new/hrms-development`. Before
+  committing: read the full `git diff` (new files included), run the **focused feature tests** and
+  `./vendor/bin/pint --test` (plus `npm run build` when JS changed), then `git add` the intended paths
+  only and `git commit`, then `git push` immediately.
+  - **Test policy: feature-level per task, full suite at the end.** While building features, test only
+    the feature under construction plus the existing functionality it directly affects — the focused
+    test file for the phase, run in full. The application-wide suite is a *final* gate at the end of
+    development, not a per-commit one; running it on every task costs ~14 minutes and buries a real
+    regression in noise. Re-run `php artisan test` before a commit only when the task touched something
+    genuinely cross-cutting (`routes/web.php`, `bootstrap/app.php`, `TenantLimits`, a shared `config/*`,
+    a middleware) — and say so in the commit body. The `## Commands` test-count line still has to be
+    updated on every change that moves it, and the counts it quotes are then verified by the final run. `HrmsShellTest::test_every_commit_is_pushed`
+  fails the suite if a commit is ever left local-only, and
+  `HrmsShellTest::test_the_hrms_tree_is_free_of_debug_leftovers` fails it on leftover
+  `dd()`/`dump()`/`console.log`/`TODO` in the HRMS tree. Never commit `.env*`, credentials, or
+  `storage/`; never use `--force`.
 - Entry: `resources/js/main.jsx` (imports `./bootstrap`, React StrictMode). `resources/js/app.js` is unused stock; ignore it.
 
 ## Demo logins (password `password`)
@@ -98,7 +116,8 @@ Hierarchy: **Tenant → Workspace → Project → Task** (subtask `tasks.parent_
 - Frontend: `pages/ProjectDetail.jsx` hub at `/projects/:projectId` (tabs: overview/tasks/members/workflow/settings — settings only for managers); WorkspaceDetail's Projects tab lists + creates projects. UI decides manageability via `can('workspaces.manage') || my_role === 'lead'`; workflow/member controls are hidden for non-managers (backend `403`s regardless).
 
 ## Tasks (Phase 3)
-- Access: routes in `routes/web.php` sit in the domain group `auth → tenant → tenant_context → permission:workspaces.view`. Endpoints (all project-scoped): `GET|POST projects/{project}/tasks` (board/list index), `GET|PUT|DELETE projects/{project}/tasks/{task}`, `POST projects/{project}/tasks/{task}/move`. **Create** gated by `ProjectPolicy::createTask` (`tasks.create`); **view/edit/delete/assign/move** gated by `TaskPolicy` (project-role `tasks.*` perms, tenant admin via `workspaces.manage` bypass). `update` requires `assign` too when `assignee_id` is present.
+- Access: routes in `routes/web.php` sit in the domain group `auth → tenant → tenant_context → permission:workspaces.view`. Endpoints (all project-scoped): `GET|POST projects/{project}/tasks` (board/list index), `GET|PUT|DELETE projects/{project}/tasks/{task}`, `POST projects/{project}/tasks/{task}/move`. **Create** gated by `ProjectPolicy::createTask` (`tasks.create`); **view/edit/delete/assign/move** gated by `TaskPolicy` (project-role `tasks.*` perms, tenant admin via `workspaces.manage` bypass). `update` requires `assign` too when `assignee_id` is present. **Board/list index** additionally requires the caller's project-role grants `tasks.view` (or tenant admin) — the same 403 a per-row show answers, so a project-sight role without the task read gets no rows either way.
+- **Row scoping (member-access Phase C).** `TaskPolicy` per-row checks and the board/list query resolve the caller's project-role `tasks.*` grant through `app/Support/TaskScope.php`: `_all` (or the legacy unsuffixed `tasks.view`, which means all) reads every project task; `_assigned` reads tasks whose assignee/reporter is the caller or one of their direct reports (`ReportsTo::idsFor()`); `_own` reads only the caller's rows. The board/index gate asks `grants('tasks.view_own')` and `TaskService::board/list` then constrain the query by the same rule (tenant admins bypass). A project role with no `tasks.view*` grant still 403s the board. `TaskScope` is the single definition shared by the policy (rows) and the service (query). **Global task reads (`search/tasks`, `dashboard`, `reports`, `analytics` via `ScopesVisibleTasks::visibleTaskQuery`) still scope by project membership only** — folding row scope into those multi-project reads is tracked in the member-access plan (Phase C/Phase E matrix).
 - `app/Services/TaskService.php`: `create` (atomic key via `KeyGenerator::nextTaskKey()` tuple → `key`/`sequence`; default status/priority; position at end of column; `completed_at` when status `is_done`; labels attached), `update` (labels `sync()` when `labels` present), `delete` (soft), `move` (hard-blocks `is_done` when `hasOpenBlockers()` → 422 `form`; renumbers **both** destination and source columns 1..N), `board` (top-level tasks `whereNull(parent_id)` grouped by status; `totals.open/done` respect active filters), `list` (paginated + `sort_by`/`sort_dir`/`per_page`), `show` (loads subtasks/labels/counts), `filteredQuery` (status_id/priority_id/assignee_id/label_id/q/due_from/due_to).
 - Resolvers throw 422: `status_id` must belong to the project; `priority_id` must belong to the tenant; `assignee_id` must be a same-tenant **project member**; `parent_id` must belong to the project; `labels` must belong to the workspace.
 - Response shapes: board → `{board: {statuses: [...presentStatus + tasks_count/tasks], totals}, filters: {statuses, priorities, assignees, labels}, my_role}`; list → `{tasks, filters, my_role, pagination}`; write → `{message, task}`.
@@ -118,8 +137,11 @@ Hierarchy: **Tenant → Workspace → Project → Task** (subtask `tasks.parent_
 - Access: `GET|POST api/notifications`-family routes live in the plain `auth → tenant` group in `routes/web.php` (not `tenant_context`) — personal notifications are self-scoped by `user_id`, so no tenant-only gate is needed. Routes: `GET notifications` (paginated, with `actor`), `GET notifications/unread`, `POST notifications/{notification}/read`, `POST notifications/mark-all-read`.
 - `NotificationController` verifies `$notification->user_id === auth()->id()` in `markRead` (else 404), so users can't mark others' notifications read. `index` returns `{notifications, unread_count, pagination}`; each item = `{id, type, data, read_at, created_at, actor:{id,name}}`. `markRead` takes `int $notification` (NOT a route-model-bound `UserNotification`) so the platform guard can run **before** any query.
 - **Platform super admin:** the `notifications` table is tenant-only, so the whole family short-circuits via the `DetectsPlatformUsers` concern (`isPlatformSuperAdmin()` = `user.is_super_admin && !TenantContext::hasTenant()`): empty list / `count: 0` / 404 on mark-read. Impersonating super admins are the impersonated tenant user (`is_super_admin` false) and read their tenant DB as usual. `ThemeController` uses the same concern — a platform SA gets `config('theme.defaults')` and its `PUT` is not persisted (`user_settings` is a tenant table), matching `AuthController::payload`.
+- **Email delivery (Phase 4):** `NotificationService::notify()` also `Mail::queue()`s a kind-driven `App\Mail\TaskNotificationMail` for the four emailable TMS events (`EMAIL_EVENTS`: task.assigned/status_changed/commented/unblocked — HRMS nudges never email), gated by `NotificationPreference::wants($recipient, $type)`. The mailable **snapshots scalars at construction** (no models inside the queued job ⇒ no cross-tenant leak), renders the text view `emails/task-notification.blade.php`, and ships a `/app` deep link. Queued mail rides the same `Queue::createPayloadUsing` tenant stamping as every job.
+- **Per-event preferences (Phase 4):** `notification_preferences` = one row per user, `preferences` JSON (event→bool, keys are the dotted event names — read via literal `$preferences[$type] ?? true`, never `data_get`/`assertJsonPath`, which treat the dot as a path). `GET|PUT api/notification-preferences` self-scoped in the plain `auth → tenant` group (`DetectsPlatformUsers` short-circuit, SA PUT 404s, PUT is a partial merge + 422 on unknown events). Preferences gate **email only** — in-app rows are always delivered. `config/notifications.php` is the event catalog for the Settings toggles.
+- **Mention cap + autocomplete (Phase 4):** `taskCommented()` caps mentioned users at `TaskNotificationMail::MAX_MENTIONS_PER_COMMENT` (20; assignee/reporter always included, actor excluded) and returns `{notifications, truncated}` — excess mentions are dropped, and `CommentController@store` echoes `truncated_mentions` for a UI warning. `mentionUsers()` regex is `@([A-Za-z0-9._-]+(?:@[A-Za-z0-9._-]+)?)` — a full-mailbox token (`@viewer@flowsync.test`) matches the exact email only, so a foreign tenant's mailbox never resolves to a same-tenant user sharing its local part (owner@globex.test must not ping owner@acme.test). `GET api/projects/{project}/members/autocomplete?q=` (domain group, `authorize('view', $project)`) returns ≤10 member `{id,name,email}` rows matching a name prefix or email local part — the `CommentThread` mention typeahead's data source.
 - Types + payloads (data always includes `task_id/key/title/project_id/project_name/workspace_id`): `task.assigned` (assignee only, skips self-assign), `task.status_changed` (+`from_status`/`to_status` names), `task.commented` (+`comment_id`/`snippet`; recipients = assignee + reporter + `@`-mentioned users, excluding the author), `task.unblocked` (+`blocked_by {id,key,title}`, only when the last open blocker is removed), `task.work_logged` (+`work_log_id`/`duration_minutes`, fires on work-log **create** only — assignee, skips the logger).
-- Mention resolution (`NotificationService::mentionUsers`): regex `@([A-Za-z0-9._-]+)` matched **case-insensitively** against a same-tenant user's full email (`LOWER(email) = ?`), email local part (`LOWER(email) LIKE 'token@%'`), or name (`LOWER(name) = ?`). Dedupes users matched more than once.
+- Mention resolution (`NotificationService::mentionUsers`): tokens matched **case-insensitively** against a same-tenant user's full email (`LOWER(email) = ?`), email local part (`LOWER(email) LIKE 'token@%'`), or name (`LOWER(name) = ?`). Dedupes users matched more than once.
 - Wiring: notifications are a controller-side effect (like ActivityLogger) — `TaskController@store`/`@update` (assignee change → assigned; status change → status_changed), `TaskMoveController@move` (status change), `CommentController@store` (comment/mentions), `DependencyController@destroy` (was blocked → now unblocked), `WorkLogController@store` (work logged → `task.work_logged` to assignee).
 - `NotificationSent::broadcastWith` includes `actor {id,name}` so clients render toast/messages without another fetch.
 - Frontend: `NotificationContext` provider (nested in `ToastProvider`) — 30s poll of `/notifications/unread` + Echo `user.{id}` `.notification.sent` listener (increments badge count + shows a toast via `describeNotification`); `NotificationBell` dropdown in the Topbar (fetches latest 8, mark-read on click → navigates via `notificationHref`, mark-all-read); `/notifications` page (paginated, mark-read/mark-all-read, breadcrumb). Helpers in `resources/js/utils/notifications.js`.
@@ -192,9 +214,53 @@ Hierarchy: **Tenant → Workspace → Project → Task** (subtask `tasks.parent_
 - **Channel/event name rule:** events MUST broadcast on the channel clients subscribe to (`private-` prefix is applied by `PrivateChannel`/Echo automatically — never hardcode `private-` twice).
 
 ## RBAC & provisioning
-- `config/permissions.php` — canonical 12-permission catalog + role definitions (`admin` = `*`, editor/viewer get subsets incl. workspace perms).
-- `config/project_roles.php` — project-permission catalog (view/create/edit/delete/assign/move/comments/attachments/work_logs/members/settings) + system roles lead/developer/viewer.
-- `app/Support/TenantProvisioner.php` — clones catalog + roles + priorities + project roles + owner admin per tenant; **idempotent** (`firstOrCreate`, pins tenant context null internally), safe to call repeatedly.
+- `config/permissions.php` — the canonical permission catalog (base slugs plus the generated scope
+  variants below; ~99 entries today) + role definitions: `admin` = `*`, `editor`/`viewer` =
+  self-service reads (`*_own`) plus broad non-HRMS grants, **`manager`** = `*_own` + `*_assigned`
+  (team scope, stops at the reporting line), `hr_manager`/`payroll_manager` = prefix selectors.
+  A role's `permissions` is a list of *selectors* (`*`, `hrms.*`, `!hrms.payroll.*`, exact slug)
+  resolved against the catalog by `app/Support/PermissionSelector` at provision time and
+  snapshotted onto the role.
+- **Scope variants (member-access plan, Phase B — additive and inert until Phase C).** A base
+  permission with a "my rows" reading gets three suffixes, generated from `$scopeDomains` in the
+  same config so a new domain is one line: `X.view_own` (rows about you), `X.view_assigned` (you +
+  your direct reports' rows), `X.view_all` (every row). `app/Support/PermissionScope` answers
+  *which grants satisfy a scoped check* — a wider scope, or the legacy unsuffixed slug, which has
+  always meant `all`; `User::granted($slug)` is the scope-aware check while `hasPermission()`
+  stays exact-match, so nothing changes for callers outside the `scopes` map. The single legacy
+  exception is `hrms.payroll.view` (always "runs + own payslip" → answers `_own` only, declared in
+  `legacy_scope_aliases`). `.manage` is deliberately **not** in the lattice: folding it in would
+  widen e.g. `hrms.payroll.manage` into "read every payslip". `App\Services\ReportsTo::idsFor(User)`
+  is the single definition of `_assigned` (one hop down `employees.manager_id`, direct reports' user
+  ids; memoized per unit of work like `TenantLimits`, flush wired into the same boundaries). **The
+  Phase C enforcement cutover (steps 9–11) is shipped**: `TaskScope` (Row scoping section) and HRMS's
+  `App\Services\Hrms\HrmsScope` deploy the lattice — `widestView()`/`seesAll()`/`canRead()`/
+  `employeeIdsFor()`/`coversEmployee()` are the one shared answer for every HRMS list and per-record
+  policy (leave/expense/document/comp-off flipped; the attendance-month/leave-balance/comp-off-credit
+  employee-keyed reads and the performance goal/check-in/1:1/feedback lists+show all intersect a
+  client-supplied `employee_id` with the caller's real scope — spoofed params resolve to `[]`/403,
+  never wider; leave exemptions + the leave team calendar stay
+  manage-only / subtree-team by design). Before the alias is ever removed, `tenants:scope-grants
+  --force` makes the implicit explicit: every role holding a legacy scoped base gets the variant(s)
+  it has always meant (`X.view_all` + `X.view_own`; payroll `view_own` only), idempotently
+  (`ScopeGrantBackfill`, `syncWithoutDetaching`).
+
+### Own/Assigned/All Policy & Scope Matrix
+
+| Domain | Grant Base | `_own` Scope | `_assigned` Scope | `_all` Scope | Policy / Service Enforcement |
+|---|---|---|---|---|---|
+| Tasks (TMS) | `tasks.view\|edit\|delete\|move\|assign` | Assignee or reporter = caller | Caller + direct reports (`ReportsTo::idsFor()`) | All project tasks | `TaskScope::rowMatches()`, `TaskScope::constrainQuery()`, `TaskPolicy` |
+| Leave Requests | `hrms.leave.view` | Caller's own requests | Caller + direct reports' requests | All tenant requests | `HrmsScope`, `LeaveRequestDirectory::listFor`, `LeaveRequestPolicy` |
+| Expense Claims | `hrms.expenses.view` | Caller's own claims | Caller + direct reports' claims | All tenant claims | `HrmsScope`, `ExpenseClaimController::index`, `ExpenseClaimPolicy` |
+| Documents | `hrms.documents.view` | Caller's own files | Caller + direct reports' files | All non-confidential tenant files | `HrmsScope`, `DocumentService::listFor`, `EmployeeDocumentPolicy` |
+| Performance Goals | `hrms.performance.view` | Caller's own goals | Caller + direct reports' goals | All cycle goals | `HrmsScope`, `PerformanceGoalController::index`, `PerformanceGoalPolicy` |
+| Check-Ins & 1:1s | `hrms.performance.view` | Caller's own sessions | Caller + direct reports' sessions | All cycle sessions | `HrmsScope`, `CheckInController`, `OneOnOneController` |
+| Attendance & Records | `hrms.attendance.view` | Caller's own month grid | Caller + direct reports' grids | All tenant employee grids | `HrmsScope`, `AttendanceRecordsController`, `AttendanceDayPolicy` |
+| Comp-Off Requests | `hrms.comp_off.view` | Caller's own credits/asks | Caller + direct reports' credits/asks | All tenant comp-off asks | `HrmsScope`, `CompOffRequestDirectory`, `CompOffRequestPolicy` |
+| Payroll & Payslips | `hrms.payroll.view` | Caller's own payslips | Caller's own payslips (1:1, never widened) | All tenant payslips (`view_all` explicit) | `PayslipPolicy`, `PayrollRunController`, `PermissionScope::legacyScope()` |
+
+- `config/project_roles.php` — project-permission catalog (view/create/edit/delete/assign/move/comments/attachments/work_logs/members/settings + `tasks` scope variants `view|edit|delete|move|assign × {own,assigned,all}`, exported as `scope_domains`/`scope_text`; 35 slugs) + system roles lead/developer/viewer.**Project-role resolution is scope-aware like the tenant catalog** — `ProjectRole::hasPermission()` stays literal (`['*']` → all) while `ProjectRole::grants()` answers `satisfying()` like `User::granted()`, so a `tasks.view_all` grant satisfies a `tasks.view_own` request and the legacy `tasks.view` means `_all`. The default roles deliberately keep the UNSCOPED slugs (`legacy = _all`); narrowing a team is what a custom role is for. `TenantProvisioner::provisionProjectRoles()` now UNION-adds configured slugs into system roles (additions only, never revoke; `['*']` on either side wins) so a pre-variant provisioned role picks up new slugs on repair.
+- `app/Support/TenantProvisioner.php` — clones catalog + roles + priorities + project roles + owner admin per tenant; **idempotent** (`firstOrCreate`, pins tenant context null internally), safe to call repeatedly. `seed()` `sync()`s only the config-listed roles — custom tenant roles are never touched — and `provisionProjectRoles()` **union-adds** config slugs into system project roles idempotently (additions only, `['*']` guard), so system roles pick up config additions on re-provision while a config edit can never revoke what a tenant already holds.
 - `app/Models/Tenant.php`, `Role`, `Permission`, `User`; pivots `role_user`, `permission_role`.
 - `TenantSeeder` = super admin + Acme (demo users) + Globex; called from `DatabaseSeeder`.
 
@@ -244,6 +310,10 @@ Hierarchy: **Tenant → Workspace → Project → Task** (subtask `tasks.parent_
 - CSS custom props are **hyphenated** (`--sidebar-bg`); `resources/js/theme.js` `applyTheme()` maps underscores→hyphens. Keep that mapping in sync.
 
 ## Frontend conventions
+- The Roles page (`pages/Roles.jsx`) groups the permission checkboxes by domain via
+  `utils/permissions.js` (`domainOfPermission`/`prettyDomain`/`groupPermissionsByDomain` — the domain
+  is everything before the last slug segment, so scope variants keep grouping without a server change);
+  shared `PermissionGrid` renders create-modal + edit grids. Phase B3 of the member-access plan.
 - Routing in `resources/js/App.jsx`: `GuestRoute` (login/forgot/reset only — **no register**), `ProtectedRoute` (optional `permission` prop), super-admin-only `/tenants` route.
 - **Landing route = `homeRouteFor(user)`** (`utils/deepLinks.js`): `/admin` for a non-impersonating super admin, `/dashboard` otherwise. Used by `/`, `GuestRoute`, and `Login` (so an SA never lands on the tenant dashboard, whose endpoints 403 without a tenant context); `App.jsx` also renders `/dashboard` as a `<Navigate>` to `/admin` for SAs (old bookmarks/typed URLs).
 - `context/AuthContext.jsx`: `user`, `theme`, `loading`, `login`, `logout`, `stopImpersonation`, `can()`, `hasModule()`, `check()`, `refresh`. `can()` returns true for super admin unless `user.impersonating`; tenant users rely on `user.permissions`. `hasModule(module)` gates plan modules; `check(capability)` is the combined guard — `'permission:slug'` or `'module:name'` prefixes (backend `me()` fills `user.modules`).
@@ -471,7 +541,607 @@ Hierarchy: **Tenant → Workspace → Project → Task** (subtask `tasks.parent_
   `refresh()` + `/dashboard`). `AdminLayout` redirects any tenant user with `onboarding_complete === false`
   (except on `/onboarding` itself) to the wizard. `AuthContext.register()` mirrors `login()`.
 
+## HRMS module (Phase 15, in progress — branch `new/hrms-development`)
+- **Read `docs/hrms-implementation-plan.md` before any HRMS work.** It is a 22-phase, task-level plan
+  (Parts 0-9) written to be executed one small task per commit, and it is the authoritative spec.
+- The plan's binding design decisions (all in its Part 2): `hrms.*` **dotted module keys** stored in
+  `plans.limits.modules` (so `TenantLimits::hasModule()` + the existing `ensure_module` middleware work
+  unchanged); a new `business` plan inserted between `pro` and `enterprise`; per-tenant SA switching via
+  `tenants.features_override.modules` (**additive** — it can grant, never revoke); `employees.user_id`
+  as a **unique nullable** FK to `users` (a user with no employee row is a service account);
+  `config/hrms.php` as the per-tenant defaults catalog seeded by a new
+  `HrmsDefaultsProvisioner::provision()` step; and three shared primitives built once in the
+  plan's Phase 1 — a generic `approvals`/`approval_steps` engine, an append-only `hrms_audit_logs`
+  (separate from `activities`), and a single-row `hrms_settings`.
+- **Shipped so far.** P1.1–P1.7 (entitlement foundation: `hrms.*` module keys, 47 permissions, plan
+  module lists, per-tenant SA switching, `GET|PUT api/tenants/{tenant}/hrms`); P1.8–P1.10 (the three
+  shared primitives: `2026_09_27_000014` migration, `HrmsAuditLogger`, the generic `ApprovalService`,
+  and the HRMS defaults seeding hook); P1.11 (the module-gated `/hrms` SPA shell); P2.1
+  (`2026_09_27_000015` — `employment_types`, `employees`, `employee_status_history`); P2.2 (the
+  employee domain: enums, models, and the service — see the P2.2 notes below); P2.3
+  (`EmployeePolicy` + `EmployeePresenter` + the `Requests/Hrms` family + `Hrms/EmployeeController` +
+  routes, with signed photo download); P2.4 (`SensitiveFieldRedactor` masking + `EmployeeAccessLogger`
+  + `EmployeePhotoService`, with the payload keys identical across both privilege levels); P2.5–P2.6
+  (the SPA directory + `EmployeeDetail`/`StatusHistory`/`EmployeeEditModal`); P2.7
+  (`EmployeeBackfill` + `hrms:backfill-employees`); P3.1 (`2026_09_27_000016` — `departments`,
+  `designations`, `locations` + the three nullable `employees` FKs); P3.2 (the org models and the
+  `app/Services/Hrms/Org/` bounded context — see the P3.2 notes below); P3.3 (the org HTTP surface —
+  `app/Policies/Hrms/Org/`, `app/Http/Requests/Hrms/Org/`, `app/Http/Controllers/Hrms/Org/`, the
+  routes, and the three org FKs finally made writable on the employee — see the P3.3 notes below);
+  P3.4 (the org SPA page: `pages/hrms/Org.jsx`, `components/hrms/DepartmentTreeColumn.jsx`, the three
+  form modals and the members panel, plus the directory's department filter — see the P3.4 notes);
+  P3.5 (the org starters: the HRMS defaults seeder gains `seedOrgCatalogs()` — see the P3.5 notes);
+  **P13.1** (`2026_09_27_000016_create_hrms_document_tables` — `document_types` +
+  `employee_documents`, plus `tests/Feature/HrmsCatalogTest.php`, the cross-catalogue guard — see
+  the P13.1 notes below); and
+  **P13.2** (the document bounded context: `Services/Hrms/DocumentService.php` plus `Services/Hrms/Document/`,
+  the `DocumentType`/`EmployeeDocument` models, `seedDocumentTypes()`, the signed `hrms.documents.download`
+  route, and `hrms:documents-expiry` — see the P13.2 notes below); and **P13.3** (the document HTTP
+  surface — `Policies/Hrms/Document/`, `Requests/Hrms/` document pair, `Controllers/Hrms/`
+  document pair, and the routes — see the P13.3 notes below); and **P13.4** (the document SPA:
+  `pages/hrms/Documents.jsx`, `pages/hrms/MyDocuments.jsx`, `components/hrms/DocumentUploader.jsx`,
+  plus the profile `documents` tab — see the P13.4 notes below); P4.1
+  (`2026_09_27_000017` — the onboarding/offboarding lifecycle tables, plus
+  `tests/Feature/HrmsLifecycleTablesTest.php` — see the P4.1 notes below); P4.2
+  (the onboarding/offboarding services: `OnboardingService` + `OffboardingService`
+  orchestrating `Services/Hrms/Lifecycle/`, the shared `DocumentRequestService`,
+  and the terminate → auto-initiate wiring — see the P4.2 notes below); P4.3
+  (the lifecycle HTTP surface: `Policies/Hrms/Lifecycle/` bases + markers,
+  ten FormRequests, four controllers, `LifecyclePresenter`, routes — see the
+  P4.3 notes below); P4.4 (the lifecycle SPA: shared `Checklist.jsx`, case pages,
+  `TemplateEditor.jsx` — see the P4.4 notes below); P4.5 (lifecycle notifications:
+  `onboardingTaskDue`, `hrms:onboarding-reminders`, deep links — see the P4.5
+  notes below); P5.1 (`2026_09_28_000018` — the attendance tables plus raw-SQL
+  `employees.shift_id`, with the CHECK-preservation test — see the P5.1 notes
+  below); P5.2 (the punch service: `AttendanceService` orchestrating
+  `Services/Hrms/Attendance/` (`PunchClock`, `DayComputation`, `DayReading`),
+  the models/enums, and the `attendancePunches()` relation — see the P5.2
+  notes below); P5.3 (remote clock-in policy + punch endpoint: module-or-ownership
+gates, server-observed IP, per-section settings merge, `DayPresenter` — see
+the P5.3 notes below); P5.4 (regularization via the shared approval engine:
+manager step from `ReportingLine::managerOf()`, supersede-don't-edit apply,
+policy-decides-from-the-step, `Regularization*` bounded context — see the
+P5.4 notes below); P5.5 (scheduled roll-up: `hrms:attendance-rollup` +
+`AttendanceRollupJob` over one `AttendanceService::rollup()` loop — see the
+P5.5 notes below); P5.6a (attendance reads: month grid, today widget payload,
+and audited CSV export behind one `AttendanceDayPolicy`); P5.6b (the
+attendance SPA: `Attendance.jsx`, `AttendanceApprovals.jsx`, `ClockInWidget`,
+`AttendanceCalendar`, regularization notification branches); P6.1
+(`2026_09_28_000019` — the leave tables: types/policies/balances/ledger/
+requests/days/exemptions, plus `HrmsLeaveTablesTest`); P6.2a (leave enums,
+models, conformant catalog, starter seeding + `HrmsCatalogTest` guard);
+P6.2b (`LeaveBalanceService`: idempotent accruals, signed rebuild with
+cap/floor, availability reserving pending only); P6.2c (`LeaveRequestService`
++ `Decisions` + `Validation` + `LeaveCalendar`: ask/decide/cancel/encash,
+attendance `leave` merge); P6.3 (`LeaveApprovalRouting`: manager → head →
+HR, no self-approval); P6.4a (catalog HTTP + `hrms.leave` gate, R18 route-group
+finding); P6.4b (balances read + managed accrue runs, `LeaveBalanceReading`
+split); P6.4c (asks/exemptions HTTP, per-record policies); P6.5 (availability
++ team-calendar reads, `Leave.jsx` admin hub, `MyLeave.jsx`, request modal);
+P6.6 (`leaveRequested`/`leaveDecided` notifications + deep links); P7.1
+(`2026_09_29_000020` — comp-off tables + `HrmsCompOffTablesTest`); P7.2
+(`CompOffCredits` + `CompOffService`, `hrms:comp-off-accrue`, comp-off
+settings column follow-up); P7.3 (comp-off HTTP surface + `hrms.comp_off`
+gate); P7.4 (`CompOff.jsx` + `MyCompOff.jsx`); P7.5 (comp-off
+notifications); P8.1 (`2026_09_29_000021` — holiday tables +
+`HrmsHolidayTablesTest`); P8.2 (`HolidayService` + assignments + seeder);
+P8.3 (holiday merge into attendance/leave/comp-off, full-suite chunks);
+P8.4a/b/c (holiday HTTP + `Holidays.jsx`); P9.1 (`2026_09_30_000022` —
+payroll core tables + `HrmsPayrollTablesTest`); P9.2a/b (`Money` + payroll
+enums/models/catalogs + `CompensationService`/`SalaryRevisionService`);
+P9.3a (run/payslip/adjustment models + attendance/leave read edges +
+`HrmsPayrollReadsTest`); P9.3b (`Payroll/` bounded context: `PayslipCalculator`
+LOP math + `PayrollService` runs + `PayrollLifecycle` transitions +
+`payrollPublished` notifier + `HrmsPayrollEngineTest`); P9.4 (payslip reads:
+`PayslipPolicy` + `PayslipReading` with per-read access rows + `PayslipRenderer`
+via seeded `payslip_templates` + signed `hrms.payslips.download` +
+`HrmsPayslipAccessTest`); P9.5a (compensation writes: `CompensationCatalogService`
++ component/structure policies + `Salary{Component,Structure,Assignment}Request`
++ the three payroll controllers + `HrmsCompensationApiTest`); P9.5b (run writes:
+`PayrollRunPolicy` + `Payroll{Run,Adjustment}Request` + run/adjustment controllers
++ self-scoped `my-payslips` + `HrmsPayrollRunApiTest`); P9.6 (`Compensation.jsx`
++ `Payroll.jsx` + `PayrollRunDetail.jsx` + `MyPayslips.jsx` + sidebar/routes); P10.1
+(`2026_10_03_000023` — statutory tables + `HrmsStatutoryTablesTest`); P10.2
+(`StatutoryEngine` pure table-driven PF/ESI/PT/LWF/TDS + `StatutoryEngineTest`
+fixture corpus); P10.3 (`StatutoryResolver` jurisdiction gates + calculator
+fold + `recomputeStatutory` + `hrms:statutory-recompute` +
+`HrmsStatutoryIntegrationTest`); P10.4 (`StatutoryService` TDS projection +
+surrender + `HrmsTdsProjectionTest`); P10.5 (`StatutoryProfile` masking +
+`StatutoryProfileService`, array-form policy binding, manage-only reveal with
+access rows + `HrmsStatutoryProfileTest`); P10.6a (rulebook + declaration HTTP:
+`StatutoryDeclarationService`, both policies, `Statutory{Configuration,Declaration}Request`,
+both controllers + `HrmsStatutoryConfigApiTest`); P10.6b (TDS + recompute HTTP:
+`TdsProjectPolicy`, `Tds{Projection,Surrender}Request`, `TdsProjectController` +
+`Statutory.jsx` + `HrmsStatutoryTdsApiTest`); P11.1 (`2026_10_04_000027` — expense tables +
+starter catalogue + `HrmsExpenseTablesTest`); P11.2 (`ExpenseService`
+file/submit/decide/reimburse + payroll hook + expense notifications +
+`HrmsExpenseServiceTest`); P11.3a (expense HTTP: `ExpenseCategoryService`,
+claim + category policies, the four expense requests, both controllers +
+`HrmsExpenseApiTest`); P11.3b (`Expenses.jsx` + `MyExpenses.jsx` +
+`ExpenseClaimModal.jsx` + notification branches + shell pin); P12.1
+(`2026_10_05_000028` — performance tables + `HrmsPerformanceTablesTest`); P12.2
+(`PerformanceService` evidence engine + `hrms:performance-evidence` +
+`HrmsPerformanceEvidenceTest`); P12.3 (`PerformanceCycleService` stage
+machine + feedback generation + completion notifications +
+`HrmsPerformanceCycleTest`); P12.4a/b (performance HTTP: cycle/goal/note/
+1:1 + feedback/review/evidence surfaces + `HrmsPerformanceApiTest`); P12.5
+(`Performance.jsx` + `PerformanceCycleDetail.jsx` + `MyPerformance.jsx` +
+`GoalCard`/`CheckInComposer` + nudges); P12.6 (goal↔task attach/detach +
+`HrmsGoalTaskLinkTest`); P14.1 (`2026_10_07_000030` — asset tables +
+`HrmsAssetTablesTest`); P14.2 (`AssetService` + handover service + exit
+gate + `hrms:assets-overdue` + `HrmsAssetServiceTest`); P14.3a/b (asset
+HTTP + `Assets.jsx`/`MyAssets.jsx` + nudges + `HrmsAssetApiTest`);
+P15.1 (`000031` inbox reads + `InboxService` + `HrmsInboxTest`); P15.2
+(inbox HTTP + `HrmsInboxApiTest`); P15.3 (clearance/document/cycle/share
+notifiers + `HrmsTaxonomyTest`); P15.4 (`Inbox.jsx` + badge + copy/links +
+shell pin); P16.1 (`2026_10_09_000032` — survey tables +
+`HrmsSurveyTablesTest`); P16.2 (`EngagementService` + templates +
+anonymity + `HrmsEngagementTest`); P16.3a (survey HTTP: both policies,
+four requests, both controllers, `hrms:surveys-open-close` +
+`HrmsSurveyApiTest`).
+Phase 13
+  was jumped to *before* Phase 4 because P4.1's `document_requests.document_type_id` is a real FK to
+  `document_types`, and no migration created that table until P13.1 — the plan's "documents ship
+  first" prerequisite is a hard schema dependency, not a preference.
+- **Migration numbering is pre-assigned** in the plan's Part 3.3 (`2026_09_27_000014` for the shared
+  tables, through `2026_10_04_000031`), one monolithic tenant migration per phase — except the
+  document tables, renamed from their assigned `000026` to `2026_09_27_000016`. Five later files
+  (lifecycle, leave, comp-off, payroll, statutory) hold FKs into `document_types`/`employee_documents`
+  and PostgreSQL validates the referenced table at `CREATE` time, so the later number breaks every
+  fresh provision with `relation "document_types" does not exist"` while SQLite tolerates the forward
+  reference — which is why only the PG path ever saw it. The file is `hasTable`-guarded, so an
+  already-migrated database re-runs it as a no-op and `tenants:provision` re-records it under the new
+  name. Table tests `require` migration files by their **literal filename**, so a rename must update
+  them in the same commit.
+- **`Schema::getColumns()` spells "no default" two different ways.** SQLite *omits* the `default` key
+  for a column that has none; PostgreSQL returns the key with a `null` value. Written as
+  `($c['default'] ?? 'sentinel') === null`, every column reads as optional and a "required columns"
+  assertion passes while checking nothing. Use
+  `! array_key_exists('default', $c) || $c['default'] === null`, and verify on **both** grammars. This
+  is the dual of the existing "PostgreSQL-only SQL slips past the sqlite fast-path" note, and it bites
+  the tenant test suite specifically because `IsolatesDatabase` is sqlite-only — nothing in
+  `php artisan test` ever exercises the PG shape.
+- **Chain `unique()` BEFORE `constrained()` on a `foreignId`.** `constrained()` returns through
+  `references()->on()->foreign()`, so any modifier chained after it is **silently dropped** — the FK is
+  emitted with no unique index and no error. `employees.user_id` shipped with this bug and enforced
+  nothing until `HrmsEmployeeTablesTest::test_a_user_can_back_at_most_one_employee_record` caught it.
+- **P2.2 (employee domain) — bounded contexts, not top-level files.** The plan's literal
+  `app/Models/Hrms/Employee.php` / `app/Services/Hrms/EmployeeService.php` paths are superseded by
+  D2.16.2 folder-per-context, matching P1.9: `app/Models/Hrms/Employee/{Employee,EmploymentType,EmployeeStatusHistory}.php`,
+  `app/Services/Hrms/Employee/{EmployeeService,EmployeeDirectoryQuery,EmployeeUserProvisioner,ReportingLine,EmployeeStatusTransition}.php`
+  + `ValueObjects/EmployeeProfile.php`, `app/Support/Hrms/EmployeeCodeGenerator.php`, and the
+  `EmployeeStatus`/`WorkMode` enums. `EmployeeService` stays a thin orchestrator; the rules live in
+  `ReportingLine` (self/cycle rejection) and `EmployeeStatusTransition` (record + history row + exit
+  date in one transaction).
+- **Read `QueryException::errorInfo[2]`, never `getMessage()`, to identify a unique violation.**
+  Laravel appends the failing statement to the message, and every insert into `employees` *names*
+  `employee_code` — so matching the full text reports a violation on `user_id`/`email` as a code
+  collision, retries it five times, and finally blames a code failure that never happened.
+  `EmployeeCodeGenerator::isCodeCollision()` reads the driver message only.
+- **The inline-hire path is deliberately ordered, not atomic.** `users` is in the tenant DB and
+  `tenant_users` routing is central, so no transaction covers both; the login is written *before* the
+  employee row because a missing routing row makes a hire un-signable-in and unrepairable from the UI,
+  where a spare account is a visible, deletable record. `TenantProvisioner::syncRouting()` is the
+  repair path. `EmployeeUserProvisioner` resolves roles *before* inserting the user — validating after
+  leaves a real account with no roles and no employee to explain it.
+- **Carbon 2 `diffInYears` is signed and returns a float.** `Employee::tenureOn()` wraps it in `abs()`
+  *and* casts to `int`; without either, a past joining date returns a negative span and the `?int`
+  return type deprecates on PHP 8.3.
+- **`exited_reason` is stamped by the offboarding transition, and re-stamped on a
+  re-departure.** A rehired-then-dismissed person did not leave on the first
+  episode's date; the first departure keeps its own date and reason in
+  `employee_status_history`. Reactivation touches neither field — erasing the
+  record of the exit is not what "reactivated" means.
+- **HRMS HTTP surface lives in `app/Http/Controllers/Hrms/`** (not the plan's `Api/Hrms/`) matching
+  this repo's flat controller root, behind `ensure_module:hrms.core` + `permission:hrms.view` with
+  `EmployeePolicy` deciding per record. `view` includes **self** — no tenant permission grants
+  reading your own record, and every later "my payslip" surface depends on it. `EmployeePresenter`
+  **omits** the personal fields for a reader without `hrms.documents.view_sensitive` and sets
+  `restricted: true` rather than blanking them. `EmployeeUpdateRequest` **rejects** `status`,
+  `manager_id`, `employee_code`, `user_id` and the login fields by name — dropping them silently
+  would answer 200 to a client that thinks it changed a status.
+- **Never put `sometimes` before a conditional `required`.** `sometimes` means "skip the remaining
+  rules for this field when the key is absent", so `['sometimes', Rule::requiredIf(...)]` skips the
+  very rule meant to fire — the inline-hire `password` rule was dead and every hire got no password.
+- **Every HRMS photo/file link is signed and tenant-scoped**, never `Storage::url()`: unsigned, a
+  person's photo is readable by anyone holding the URL and revoking it means unpublishing a file.
+  The central `tenant` id rides inside the signature and the lookup happens inside
+  `TenantDatabaseManager::using()`; `HrmsEmployeeApiTest` covers the flushSession + `iso_system` case.
+- **HRMS PII masking lives in `SensitiveFieldRedactor`** (P2.4) and the *response keys are the same*
+  for both payloads — a non-privileged reader gets masked values plus `restricted: true`, never absent
+  keys. Its `email()` masks the **domain** too (for a personal address the domain is the provider);
+  `dateOfBirth()` takes no argument and returns null (a year alone identifies someone in a small
+  company); `phone()` cuts any `ext`/`x`/`#` **before** extracting digits, or the extension shifts the
+  mask. `SENSITIVE_COLUMNS` is the single source for both what gets masked and what
+  `hrms_data_access_logs.fields` records.
+- **The employee directory masks personal fields even for a privileged reader**, and so is
+  `photo_url` — a list of 50 rows with home addresses is a bulk-harvest surface no single-record
+  screen is. `EmployeeAccessLogger::recordView()` writes the access row only when the personal fields
+  were actually visible *and* were populated; a false row in a sensitive-access ledger is worse than
+  none. `EmployeePhotoService` holds the photo's three rules (signed, tenant-scoped, download-logged)
+  and its URL carries the reader's id **inside the signature** so the download is attributable.
+- **HRMS SPA pages live in `resources/js/pages/hrms/`** (`HrmsOverview.jsx` moved there in P2.5) behind
+  the `module="hrms.core"` route gate; the directory is `Employees.jsx` on `permission:hrms.employees.view`,
+  with the create modal's three login modes (none / new / link) — "no account" is first-class so the
+  inline-login fields are never the default state of a new-person form. `work_modes` is **served by
+  `filterOptions()`** from the PHP enum, never hardcoded in JS: a JS copy of a PHP enum is drift no test
+  can catch. The `department` filter is absent on purpose until P3.1 adds the column. P2.6 added
+  `EmployeeDetail.jsx` (URL-driven tab via `HRMS_PROFILE_TABS`, module-filtered, **entries only for
+  sections that have shipped**), `StatusHistory.jsx` and `EmployeeEditModal.jsx`; the directory's name
+  cell links via `employeeUrl(id, tab)`. **One-tab IA (roadmap Phase 3):** the Sidebar People section
+  holds exactly ONE `/hrms` entry — every HRMS page is a path-based sub-tab of the `/hrms` hub rendered
+  by `components/hrms/HrmsLayout.jsx` (desktop grouped rail + mobile strip) from the `HRMS_NAV` catalog
+  in `utils/hrmsNav.js` (`capabilities` filtered by `AuthContext.check()`, active tab via
+  `activeHrmsTab()`). Routes keep their literal `/hrms/{section}` paths and gates — preserve both when
+  adding a page and add it to `HRMS_NAV`; `tests/Feature/HrmsNavTest.php` asserts one sidebar entry,
+  route↔tab parity and per-tab gate equality.
+- **Never submit a masked value back, and never build a picker from a report list.**
+  `EmployeeEditModal` omits the whole personal block when the record arrived `restricted`, because
+  prefilling it from masked values and posting them would store `p***@***` as somebody's real address.
+  The `managers` option list is **everyone**, not only people who already have a report: a reports-only
+  list cannot seed a reporting line at all, since a new hire reporting to a first-time manager is an
+  ordinary assignment and the select comes back empty for exactly that case.
+- **A `color()` in this app is a hex, never a Tailwind palette name.** The status pills render
+  `backgroundColor: \`${color}22\``, so a palette name silently yields an invalid colour and every
+  status looks identical. `EmployeeStatus::color()` returned `emerald`/`sky`/… and was fixed in
+  P2.6; `config/task_statuses.php` and `config/priorities.php` already store hex. Wire-tested.
+  `WorkMode`, `ApprovalStatus` and `ApprovalStepStatus` carried the same palette names with **no
+  consumer yet** — which is the only reason nobody had hit it, and the reason the next person to
+  render a work-mode or approval pill would have. All three now return hex, and
+  `tests/Unit/Hrms/HrmsEnumColorTest.php` reflects over `app/Enums/Hrms/` to pin the convention for
+  every current and future enum. It needs no application boot, so it locates the directory relative
+  to the test file rather than calling `app_path()`, and it guards `method_exists` before building a
+  `ReflectionMethod` (a missing method throws, and `DataAccessAction` has no `color()`).
+- **P3.2 splits the plan's single `OrgService.php` into `app/Services/Hrms/Org/`.** The literal path
+  is superseded by D2.16.2 (P1.9 precedent): `DepartmentTree` (cycle check, descendants, path),
+  `DepartmentChart` (the nested read model with headcounts), `DepartmentService`, `DesignationService`,
+  `LocationService`, `OrgNaming`. Three features follow `parent_id` in both directions, so the walk is
+  stated once. `Department::descendants()` became `DepartmentTree::descendantsOf()`; the plan's
+  `buildTree()` is `DepartmentChart::build()` — split out separately because guards + nesting in one
+  file breached the plan's own 300-line ceiling. `tests/Feature/HrmsOrgServiceTest.php` is the guard
+  (37 tests).
+- **A subtree headcount starts at `direct_count`, never at 0.** `nest()` accumulates upward, so a
+  zero seed reports every parent-only department as 0 staff. `headcount` (subtree) and `direct_count`
+  (this node) are separate keys because they are routinely confused.
+- **A cycle reader must prune, not re-emit.** `assertCanReparent()` stops new cycles, but imported org
+  data can arrive tangled, so `nest()` returns null for a node already on the branch and `build()`
+  surfaces unreachable rows (dangling parent, cycle) at the top level instead of dropping them.
+  A department that renders nowhere is silent data loss.
+- **`is_geo_fenced` is derived from the geometry, never stored as sent** — `applyGeofence()` writes
+  `$wantsFence && $location->hasFenceGeometry()`. Setting the flag by asking `isGeoFenced()` is
+  **circular** (it reads that very column) and silently stored `false`; the split into
+  `hasFenceGeometry()` (stored lat/lng/radius) vs `isGeoFenced()` (flag *and* geometry) is what makes
+  the write checkable.
+- **A reorder is intersected with the real siblings first** (`OrgNaming::order()`): a reorder names the
+  members of one list, and honouring a foreign id lets a payload drag a row out of a *different*
+  parent. Omitted siblings keep their relative order at the end.
+- **`hrms.org.manage` does NOT imply `hrms.org.view`.** `OrgRecordPolicy` checks the two independently
+  and the three subclasses (`DepartmentPolicy`/`DesignationPolicy`/`LocationPolicy`) exist purely so
+  Laravel's convention-based discovery binds a *named* policy to each model. A manager-only role gets a
+  403 on every show, which is deliberate: `manage` is granted to somebody asked to fix a tenant's org
+  chart, and letting it imply reads would hand that person every employee's team. `HrmsOrgApiTest` pins
+  both directions.
+- **Declare each `reorder` route before its own `{resource}` sibling.** `hrms/departments/reorder`
+  declared after `hrms/departments/{department}` binds the literal string "reorder" as a department id
+  and 404s a perfectly valid drag-and-drop.
+- **A field-shaped rule is keyed to its field, not to `form`.** `head_employee_id` → the head picker
+  shows the error; a structural rule (a cycle, a record in use) has no one field to blame and uses
+  `form`. Getting this backwards makes a client attach a banner instead of the field's own message.
+- **P3.1's org FKs were unreachable until P3.3** — the columns existed and P3.2 read them, but no
+  employee *write* path accepted them, so only a seeder or raw SQL could fill them. They now live in
+  `EmployeeProfile::WRITABLE`, `Employee::$fillable` + casts, `EmployeeRequestBase::orgRules()` (split
+  out of `profileRules()` to stay under the 40-line method ceiling) and the audit snapshot, with
+  `department()`/`designation()`/`location()` as the inverse of the Org models' `employees()`.
+  `EmployeePresenter` emits the three as **scalars, not nested objects** — the org page already has
+  every department from the single `GET api/hrms/org` response, so a per-row join buys nothing.
+- **A directory filter on a department is an EXACT match, never a subtree** (`EmployeeDirectoryQuery::
+  applyOrgFilters()`): "everyone in Engineering" and "everyone under Engineering" are different
+  questions, and answering the second when asked the first understates the headcount badge the org
+  page prints. The subtree walk belongs to the org context, the only place holding the tree.
+- **`EmployeeDirectorySort` was extracted, not merged, when the class hit 303 lines.** The three org
+  filters pushed `EmployeeDirectoryQuery` past the 300-line ceiling; trimming comments treats the
+  symptom. The sort whitelist is a self-contained decision (the column list *and* the `ORDER BY` that
+  consumes it), so it became its own class. `EmployeeFilterOptions` was then extracted for the same
+  reason (the option *catalogues* are data, not a query) — that class is where `departments` /
+  `designations` / `locations` live now, and `EmployeeDirectoryQuery` delegates. **The ceiling has been
+  reached twice: do not add a fourth concern to either class.**
+- **A filter needs its option lists from the same endpoint that offers the filter.** P3.3 taught the
+  directory to *filter* by department and returned no departments to filter *by*; a select with no
+  options silently sends no filter and the unfiltered list reads as a broken search — exactly the
+  failure `Employees.jsx`'s docblock had documented when it omitted the filter. The org catalogues
+  deliberately do **not** come from `GET api/hrms/org`: a reader with `hrms.employees.view` but no
+  `hrms.org.view` may filter the directory and may not read the chart. Retired rows are included —
+  a closed department is the one a reader filters by to see who is still in it.
+- **The org page's "members" are employee records, not login accounts.** The plan's `users.view`
+  picker is superseded: the panel is gated on `hrms.employees.view` and assigns on
+  `hrms.employees.manage` **alone** (the write lands on the employee's record, which is what the API
+  checks). Adding `hrms.org.manage` on top would give the UI a rule the server does not have.
+- **The org starters are in `config/hrms.php`, and a config key that maps to no column sits
+  unreported until the first thing that reads it.** P3.5's first run failed *every tenant's*
+  provisioning with "table locations has no column named code": the catalogue had carried
+  `'code' => 'head_office'` since P1.10, unconsumed, and `locations` is the one org table P3.1
+  gave no `code` to. The starters are keyed on `slug`. The org tables have **no `is_system`
+  column** either — what stops a referenced row being deleted is P3.2's service rule, and adding
+  the flag would be a second, weaker answer to the same question.
+- **The `document_types` catalogue had the same defect, and
+  `tests/Feature/HrmsCatalogTest.php` is the gate that now catches it.** It named `code`,
+  `is_confidential` and `validity_months` — no such columns — while omitting `category`, the one
+  column the compliance story is built on. The blast radius is identical, because the first
+  consumer is a `seed*()` step inside `HrmsDefaultsProvisioner::provision()`: the error surfaces as **every
+  tenant in the fleet fails to provision**, not as "the document catalogue is wrong". The guard
+  asserts both directions (catalogue key → real column, required column → catalogue key) across the
+  catalogues that are seeded today. Two details it depends on, each silent when wrong: the
+  `default`-key dual above, and the fact that **three seeders derive `slug` themselves**
+  (`employment_types` from `Str::slug($name)`, `departments`/`designations` from `code`), so those
+  are exempted *by name with the derivation recorded* rather than exempting the `slug` column
+  wholesale — which would let a future `slug` with no derivation behind it pass. `document_types`
+  joined the seeded list with the P13.2 service, when `seedDocumentTypes()` first existed. `validity_months` was **dropped, not mapped** to `retention_months` — how long a
+  passport stays valid is a fact about one row (`employee_documents.expires_at`), retention is how
+  long the tenant keeps the bytes;   mapping one onto the other writes a fabricated policy into every
+  tenant.
+- **P4.1’s sketch omits `document_requests.document_id`, and the column ships
+  anyway.** The phase’s own prerequisite note references “a null
+  `document_id`”, and without it there is no link between a request and its
+  fulfillment — the hinge story collapses to “HR asked, something happened
+  somewhere”. Nullable FK to `employee_documents`, nullOnDelete: a deleted
+  file orphans the request (“asked, file gone”) instead of un-asking it.
+  Likewise case-level `category`/`owner_scope` are plain-string snapshots of
+  the template enums (an enum on the snapshot holds new catalogue values
+  hostage to a migration on old rows), and `asset_id`/`expense_claim_id` are
+  bare nullable integers until P14/P8 exist to constrain them.
+- **P4.2 splits the plan’s two services into a `Lifecycle/` bounded context.**
+  `OnboardingService` orchestrates `OnboardingTemplates`, `OnboardingCases`
+  and `CaseProgress`; `OffboardingService` orchestrates `OffboardingChecklist`;
+  both share `DocumentRequestService` (the request state machine both case
+  types raise from). `CaseProgress` owns the mandatory definition *and* the
+  photograph, so waiving and closing cannot disagree. Mandatory is derived
+  from the template link, never stored: ad-hoc items are never mandatory,
+  and `removeTemplateTask` refuses while an open case references the item so
+  a deleted row cannot quietly unblock a case. Clearance counters are
+  task-driven until P14/P6/P8 wire real records (leave/expense read an honest
+  0); `clear()` 422s naming the blockers, `complete()` requires the signed
+  clearance. `terminate()` auto-initiates an exit run when none is open
+  (last working day = stamped exit date); initiating stamps `exit_date` but
+  never touches status, so the two cannot loop.
+- **P4.3 splits “may this caller open this row” from “which rows may the list contain”.**
+  `Policies/Hrms/Lifecycle/` holds the per-record bases (`OnboardingPolicy`,
+  `OffboardingPolicy`, `DocumentRequestPolicy`) plus empty marker subclasses
+  for convention discovery — one shared class would be discoverable by none
+  of its models (the Org precedent). Set-level scoping lives in the services’
+  `casesFor`/`indexFor`, reading the same permissions. Nested task routes
+  declare both models and verify belonging (a foreign task id 404s). Free
+  document asks attach to onboarding cases only; an offboarding ask is raised
+  by the exit run itself. The nested `tasks` rules live on the template
+  request — without them `validated()` silently drops the checklist and the
+  form lies about succeeding.
+- **P4.5 notifies asymmetrically by design.** The owner always hears about
+  their own item; manage-holders additionally hear about hr-scoped items (a
+  pool nobody nudges is a pile nobody works). Creation nudges only items due
+  within 7 days; the daily `hrms:onboarding-reminders` covers the rest, at
+  most one nudge per item per week. Dedup uses the portable
+  `where('data->case_task_id', …)` selector — pluck with a JSON path is not
+  portable, so the test maps rows in PHP. The deep link lands on the case
+  detail, not the plan’s list-with-param (the list takes no case parameter);
+  the JS branches are pinned by string in the shell test since there is no
+  JS runner.
+- **P5.1 adds `employees.shift_id` with raw SQL, not `constrained()`.** P3.1 proved
+  why: `Schema::table()` + `constrained()` rebuilds the table through a `__temp__`
+  copy on SQLite, and doctrine introspection drops the column-level CHECKs — the
+  test fast-path ended with a weaker schema than production. The raw
+  `ADD COLUMN … REFERENCES`, grammar-quoted (never backticks: PostgreSQL 42601s
+  those), touches nothing else; the index is separate, and `down()` drops the
+  index before the column. `HrmsAttendanceTablesTest` asserts the CHECKs survive
+  on both grammars, and the PG path confirms both `employees_*_check` constraints
+  intact. Small sketch gaps closed the same way: `lng` mirrors `lat`,
+  timestamps everywhere, `approval_id` a real FK to the P1 engine.
+- **P5.2 splits the plan’s `AttendanceService` three ways** (`PunchClock`,
+  `DayComputation`, `DayReading` under `Services/Hrms/Attendance/`) — the
+  punch window is asymmetric (in bounded both sides, out from below only, so
+  overtime never 422s), night punches attribute by owning date with a fixed
+  noon cutoff, and out-of-range is a flag for IPs and geofences alike, never
+  a refusal. Two Carbon-3 facts re-learned: diffs are signed floats (every
+  pairing/lateness diff is `abs()`-bounded and int-cast), and the `date`
+  cast serializes with a time part on SQLite — so every date lookup is
+  `whereDate`, never exact-string `where` or a `Y-m-d` `whereBetween` (which
+  misses rows on the fast path while PostgreSQL coerces fine).
+- **P5.3 gates by module *or* ownership, never both at once.** The punch
+  endpoint takes no permission: it resolves the employment record from the
+  login, so there is nothing to authorize against and no login may punch for
+  another. The 403 is a *module* 403 from `hrms.attendance.remote`. Settings
+  take `hrms.attendance.settings` and merge per section. The IP is
+  server-observed (`$request->ip()`), never client-claimed — a `meta.ip`
+  would let anyone assert they are at the office.
+- **P5.4 splits “may this caller open this row” from “which rows may the list contain”.**
+  `Policies/Hrms/Attendance/` holds the per-record policy (self-service
+  included) while `Services/Hrms/Attendance/RegularizationDirectory` owns the
+  set-level scope — the P4.3/P13.3 shape, one context over. Corrections
+  **supersede, never edit**: approval inserts `regularized`-source punches via
+  `AttendanceService::applyRegularization()` and recomputes the day, so the
+  row always equals its inputs. The manager step resolves through
+  `ReportingLine::managerOf()` (the Attendance context never reads the
+  employee graph directly); no resolvable manager → the engine auto-approves
+  and the correction applies in the same transaction, audited, never stuck.
+  The 300-line ceiling forced the split: `RegularizationService` (lifecycle) +
+  `RegularizationDirectory` (reads) + `RegularizationNotifier` (event names,
+  payloads, skip-self) + `RegularizationInput` (the boundary DTO) +
+  `RegularizationPresenter`. Notifications are backend-only — the JS
+  describe/link branches land with the P5.6 pages.
+- **P5.5 rolls up through one loop, not two.** `AttendanceService::rollup()`
+  ensures a day row per `active` employee (exited records are history nobody
+  asked to revisit) with no audit rows — idempotent maintenance is not a
+  decision, and a per-employee-per-night ledger would bury the decisions.
+  The `HrmsAttendanceRollup` command adds the house `--tenant XOR --all`
+  scope, a strict date that refuses the future, and a `--dry-run`; the
+  `AttendanceRollupJob` carries the central tenant id and wraps its own
+  `using()` (proven from the `iso_system` connection), `tries = 1` because
+  re-running is the repair path.
+- **P4.4 shares one checklist and gates detail pages by module, not permission.**
+  `components/hrms/Checklist.jsx` serves both phases (separate `canAct`/
+  `canWaive` — offboarding has no waive endpoint); the waive reason comes
+  from `window.prompt`, and the backend 422s an empty one either way. Case
+  detail routes carry no permission gate so a hire can open their own run —
+  the backend policy decides whose case it is; list pages stay view-gated.
+  `LifecyclePresenter::person()` carries `user_id` so the client can answer
+  “is this me”. Pending asks carry an inline upload-then-submit flow, and the
+  exit detail leads with the clearance panel because a blocked exit must read
+  as blocked at a glance.
+- **P13.2 keeps the plan's `Services/Hrms/DocumentService.php` path, but not as a monolith.** Upload
+  rules, lifecycle, download serving and presentation together exceeded the 300-line class ceiling, so
+  the service orchestrates `app/Services/Hrms/Document/` (`DocumentUpload`, `DocumentLifecycle`,
+  `DocumentDownload`, `DocumentPresenter`) — the P3.2 `OrgService` split, applied to documents. The
+  signed URL carries `actor` as well as `tenant`: a session-free request has no other identity source
+  for the confidential `hrms.documents.view_sensitive` check and access row. Audit snapshots identify
+  the row by employee/type/status and omit the title, which can itself be sensitive.
+- **P13.3 splits “may this caller open this row” from “which rows may the list contain”.**
+  `Policies/Hrms/Document/EmployeeDocumentPolicy` owns the per-record answers (self-service included);
+  the new `Services/Hrms/Document/DocumentDirectoryQuery` owns the set-level one, and both read the
+  same three permissions so they cannot disagree. A confidential row is invisible — not merely
+  unreadable — to a reader without the sensitive permission, because a list that names it leaks its
+  existence. `expiring` is declared before `{document}` (the P3.3 `reorder` lesson), and list filters
+  are validated inline so P13.3 ships exactly the two request classes the plan names. A confidential
+  *show* writes an access row like the download does: the title and original name can name the
+  condition or the account.
+- **The document SPA shares one row component, and P13.4 fixed the dead
+  `permission:` gates.** `can('permission:…')` never matched anything because
+  `hasAccess` compared it verbatim against bare slugs — every HRMS manage
+  button, picker and nav item gated that way never rendered for tenant users.
+  One strip in `hasAccess` fixed all call sites (bare slugs still match).
+  `Documents.jsx` (store + expiring panel + bulk verify), `MyDocuments.jsx`
+  (self-scoped, no directory permission), and the profile `documents` tab all
+  render `components/hrms/DocumentList.jsx`; `DocumentUploader.jsx` takes the
+  employee id as a prop and only renders a picker when given a list. `mine`
+  returns `employee_id` (no “my employee” endpoint exists) and `present()`
+  names the owner, so neither page needs a second lookup.
+- **The starters invent no facts, and a tenant's starter name is not up for grabs.** No
+  `parent_id`/`head_employee_id`/`country`/`timezone`; the numeric `designations.level` **is** set.
+  `HrmsOrgApiTest::test_a_seeded_department_name_is_not_up_for_grabs` pins that creating a second
+  "Engineering" cannot re-point the starter's slug.
+- **Seeding org data changes the fixture every org test runs against (20 broke).** Raw-insert
+  fixtures in `HrmsOrgTablesTest` must not reuse a seeded natural key — a second `'manager'`
+  designation makes the free-text backfill link to the *seeded* row, so the assertion passes for
+  the wrong reason. `$tree[0]` is "whichever row sorts first", not "the one I just made" (some
+  tests passed only because their fixtures defaulted to `position => 0`); locate by id. And a
+  whole-tenant exact-list assertion is only true while the tenant starts empty.
+- **`EmployeeDirectoryQuery::orgOptions()` was renamed** — it now lives in `EmployeeFilterOptions` as
+  `orgCatalogues()` (private); `filterOptions()` and `managerOptions()` stay public on the query so
+  `EmployeeService` and `EmployeeController` are unchanged.
+- **`DepartmentService::update()` is a transaction** because the re-parent is validated *after* the
+  scalars are applied — otherwise a rename + cyclic parent commits the rename and then 422s.
+- **`hrms:backfill-employees` is a data migration, and it infers no facts.** P2.7: `EmployeeBackfill`
+  creates an `active` employee for every login that lacks one (code `EMP-{user_id}`, default user
+  first, one transaction per user). It deliberately does **not** go through `EmployeeService::create()`,
+  which applies the `employees` plan quota — a tenant on a 25-employee plan could not backfill its own
+  30 logins — and does not set `joining_date` (from `users.created_at` it is a guess that moves payslip
+  proration), `employment_type_id` ("full-time is common" is a guess payroll reads) or `personal_email`
+  (deliberately a different address from the login). Plan limits are **reported** in the summary table,
+  never enforced. `EmployeeCodeGenerator::retrying()` takes an optional preferred code for callers whose
+  code is derived rather than allocated: `EMP-{user_id}` cannot be re-derived, so a collision with a
+  service-created employee degrades to an allocated code instead of aborting the run.
+- **`HrmsDefaultsProvisioner::provision()` guards each step individually.** A single "the `hrms_settings` row exists,
+  nothing to do" early return meant a tenant provisioned before a catalog was added to that list could
+  never receive it, since it short-circuited the whole method — and `tenants:provision` is the repair
+  path. Adding a catalog to the config means adding its own guarded step, never wrapping the others in
+  one.
+- **The HRMS starter-data seeding lives in `app/Services/Hrms/Defaults/HrmsDefaultsProvisioner.php`,
+  not in `TenantProvisioner`.** It was moved there after P13.1: `TenantProvisioner` had reached 368
+  physical lines against the plan's 300-line class ceiling, and `document_types` (the next catalogue)
+  would have pushed it further over. The concern is cohesive — insert-only starter rows a tenant may
+  then rename — and the move is folder-per-context (D2.16.2) like `Employee/` and `Org/`. The seam is
+  one line in `TenantProvisioner::seed()`: `app(HrmsDefaultsProvisioner::class)->provision()`. That is
+  the place the next catalogue goes.
+- **A refactor commit that also edits behaviour is a refactor nobody can review.** The extraction moved
+  the seven methods byte-for-byte; the only deltas were `provisionHrmsDefaults()` becoming the public
+  `provision()` entry point and the new class closing brace. Verified by diffing the moved block against
+  the pre-commit file, not by reading it.
+- **`TenantLimits::currentCount()` counts `employees` via `Employee::count()`** — omitting the mapping
+  made `assertQuota('employees')` a silent no-op, since an unknown resource counts 0.
+- **`employees.manager_id` is `nullOnDelete`, deliberately not `cascadeOnDelete()`.** Unlike
+  `tasks.parent_id` (which cascades), cascade here would delete an entire department when one manager
+  is removed. `employee_status_history` is the opposite case: it cascades with its employee, because a
+  history row has no meaning without the record, and it `nullOnDelete`s `actor_user_id` so the trail
+  outlives a deleted account.
+- `TenantDatabaseManager::migrateTenant()` runs **pending-only**, so a new tenant migration reaches all
+  102 live dev tenants on the next `php artisan tenants:provision` — and a migration that must backfill
+  existing tenants does the backfill inline, repair-safe (`Schema::hasColumn`, `DROP INDEX IF EXISTS`,
+  `whereNull` guards).
+- Every HRMS file download (documents, payslips, letters, receipts) uses the **signed tenant-scoped**
+  pattern documented in the Collaboration section: the central tenant id rides inside the signature, the
+  route sits outside `switch_tenant`, and the controller resolves `Tenant::find($request->query('tenant'))`
+  + streams inside `TenantDatabaseManager::using()`. Write the `flushSession()` +
+  `DB::setDefaultConnection('iso_system')` regression test with it.
+- Payroll statutory (PF/ESI/PT/TDS/LWF) is a **separate high-risk phase**, jurisdiction-configured per
+  tenant region with no hard-coded thresholds, unit-tested against a fixture corpus, and snapped onto
+  each payslip so a config change can never rewrite a locked one.
+- Performance integrates with tasks via `ScopesVisibleTasks::visibleTaskQuery()` as **evidence only** —
+  automated signals are shown to the reviewer and never converted into a rating or score.
+
+## HRMS reference (Phase 15 → 21 shipped)
+- **Module keys** (`config/subscriptions.php` → `module_meta`, mirrored 1:1 in
+  `resources/js/utils/hrmsModules.js` — `HrmsShellTest` fails on drift): `hrms.core` (gate for the whole
+  surface) + `hrms.onboarding|offboarding|attendance|attendance.remote|shifts|leave|leave.exemption|
+  comp_off|holidays|expenses|compensation|payroll|payroll.statutory|exemptions|performance|talent|
+  engagement|documents|assets|analytics|inbox`. `hrms.shifts`/`hrms.talent` are reserved (permissions exist,
+  no pages); every other key has a sidebar entry, a route gate, and an overview tile wired through
+  `HRMS_MODULE_ROUTES` (tile without a route fails the shell test).
+- **Shared primitives** (built once in P1, reused by all 22 phases): generic `approvals`/`approval_steps`
+  engine (`ApprovalService`), append-only `hrms_audit_logs` + `hrms_data_access_logs` written only via
+  `HrmsAuditLogger` (field *names* travel, values are masked at the writer; reads via `accessed()` with
+  `DataAccessAction` view/download/export — salary/bank/statutory/document reads and every export write
+  one), and the single-row `hrms_settings` (`HrmsSetting::current()`, `setting('a.b.c')` dotted reader).
+- **`config/hrms.php`** is the per-tenant defaults catalog (employment types, week start, attendance
+  windows, leave/comp-off rules, statutory off-switch, `mask_sensitive`, `data_retention_months` 24).
+  Seeded by `HrmsDefaultsProvisioner::provision()` — one guarded step per catalog, never a single
+  early-return (a pre-catalog tenant must still receive later catalogs on `tenants:provision`).
+- **HTTP shape:** routes in `routes/web.php` inside the tenant stack
+  (`switch_tenant → auth → tenant → tenant_context → onboarding_complete`, P19.5 repair) +
+  `ensure_module:hrms.core` (+ domain module) + `permission:hrms.view`, with per-record policies deciding
+  rows (self-service included: view covers self; payslips/documents/1:1s read their own). Controllers do
+  validate → authorize → one service call → present; writes use `Http/Requests/Hrms/` FormRequests;
+  shapes come from `Services/Hrms/<Context>/` presenters (same folder as the service); state is always a
+  backed enum in `Enums/Hrms/` (hex `color()` when rendered). Set-scoping (`casesFor`/`indexFor`) lives in
+  services, per-record answers in policies — the two read the same permissions so they cannot disagree.
+- **Signed downloads** (photos, documents, payslips, asset files, receipts): never `Storage::url()` — the
+  central tenant id (and the reader id for confidential rows) rides inside a `signed` route OUTSIDE
+  `switch_tenant`, resolved inside `TenantDatabaseManager::using()`; confidential rows are invisible
+  (not unreadable) without `hrms.documents.view_sensitive`. Every one ships the `flushSession()` +
+  `iso_system` regression test. CSV exports (`hrms/attendance/export`, `hrms/analytics/export`) are the
+  opposite shape: session routes, per-domain permission, `throttle:30,1`, one `accessed(..., Export)` row.
+- **Task integration (P20):** `hrms_task_links` (employee/task/kind grain, unique; kind `goal` feeds
+  performance evidence with auditable `task_ids`) + `tasks.hrms_employee_id` (HR-owned asks surfacing on
+  HR home); checklist items convert to project tasks with pull-only sync (never writes back);
+  work-log-derived attendance is opt-in (`attendance.auto_derive_from_work_logs`, default false).
+- **Test gate:** `Tests\IsolatesDatabase` (per-tenant sqlite files; default connection left on acme) —
+  current count on the `## Commands` line, updated on every count-moving change. Focused feature tests
+  per task; the full suite (Hrms/non-Hrms chunks + `Isolated/`, zero omitted files) is the phase end-gate.
+  No `docs/hrms-architecture.md`: the plan (Parts 1–3) plus this section are the architecture record —
+  a third copy would rot.
+
 ## Pitfalls / gotchas
+- **A tenant `users` row without a central `tenant_users` row is an account nobody can log into.** In
+  isolated mode `AuthController::loginIsolated` resolves the tenant from the routing index first, so
+  *every* code path that creates a tenant user must write the routing row too: `UserController::store`
+  (Phase 0 fix), `RegisterController` (claims the owner row), `TenantProvisioner::syncRouting` (seeds).
+  `UserController::destroy` removes it. Regression test: `tests/Feature/TenantUserCreationTest.php`.
+- **Lower-case tenant user emails at creation.** Login does `Str::lower(trim($email))` for the routing
+  lookup and then `Auth::attempt`, which matches `users.email` case-sensitively — so a mixed-case stored
+  email is only reachable by typing that exact casing. `UserController::store` normalizes before
+  validation (so `unique:users,email` also checks the normalized form).
+- **`constrained()` inside `Schema::table()` silently DESTROYS other columns' CHECK constraints on
+  sqlite.** A `foreign` command is in `SQLiteGrammar::getAlterCommands()`, so Laravel rebuilds the
+  table through a `__temp__` copy; the rebuild regenerates every column from doctrine introspection,
+  and **doctrine does not report column-level CHECK constraints**. P3.1 hit this adding
+  `employees.department_id`: `employees.status` and `employees.work_mode` came out of the ALTER as
+  bare `varchar` and lost `check ("status" in (...))`. PostgreSQL takes a native
+  `ALTER TABLE ... ADD COLUMN` and never rebuilds, so the loss was invisible there — the test
+  fast-path and any local sqlite file ended up with a **weaker schema than production**, with the
+  enum guards still passing against PG. Fix: add such a column with raw
+  `alter table <t> add column <c> integer null references <ref> (id) on delete set null` (valid on
+  both grammars) and create the index separately — index creation is not a rebuild. `down()` must
+  drop the index **before** the column: sqlite refuses `DROP COLUMN` on an indexed column. P5's
+  `employees.shift_id` has the same trap. When hand-writing the raw statement, take the quoting
+  from the connection's grammar (`Schema::getConnection()->getQueryGrammar()->wrap()`), **not**
+  backticks: SQLite and MySQL accept `` `col` `` but PostgreSQL rejects it with `42601`, so the
+  failure lands on the PG path only — the one path the raw statement exists to protect.
 - **PostgreSQL-only SQL slips past the sqlite test fast-path.** The tenant suite runs on sqlite files, so a
   sqlite-tolerated statement (`WHERE is_default = 1` on a boolean column) only fails once a tenant DB is
   actually Postgres. When touching a tenant migration, either stay on the schema builder or exercise the PG
@@ -500,6 +1170,20 @@ Hierarchy: **Tenant → Workspace → Project → Task** (subtask `tasks.parent_
   automatically inside `Tests\IsolatesDatabase` and `TenantProvisioner::provisionIsolated`.
 - **Laravel's `boolean` validation rule rejects `"true"`/`"false"` strings**, which is what query strings and checkbox-style payloads actually deliver (axios serializes `trashed=false` into the URL). Controllers that accept such input use the `NormalizesBooleanInput` concern (`normalizeRequestBooleans()` before `validate()`) so real booleans reach the model — a raw `"false"` would be cast to **true** by Eloquent. Non-boolean values still 422.
 - **TDZ trap:** a component that references a `useState` binding in a hook call placed *above* its declaration throws `Cannot access 'X' before initialization` on every render (minified, so the identifier looks random) — map the frame with `vite build --sourcemap` + `@jridgewell/trace-mapping` instead of hunting for import cycles. Component-body statements must not read a binding declared below them.
+- **A repair-safe guard in a migration can silently skip the very work it was written to do.**
+  `2026_10_13_000036_add_phase2_performance_indexes` first named the payroll ledger
+  `payroll_adjustments` (real table: `payslip_adjustments`) and its own `Schema::hasTable()`
+  guard turned that typo into a green **and empty** migration — the same defect class as the
+  `document_types` catalogue finding. Keep the `hasTable`/`hasColumn` guards (repairs re-run
+  migrations), but assert the *outcome* in a test: `DBPerformanceTest` checks the index columns
+  exist, never a migration's exit status.
+- **`TenantLimits::effective()`'s static memo lives for exactly ONE unit of work** — a single
+  HTTP request, or one queued job in a worker. `AppServiceProvider` flushes it on
+  `RequestHandled` + `JobProcessing`, `IsolatesDatabase` flushes per test. Its key is
+  (tenant, plan_id, limits_override) and deliberately does **not** hash the plan's `limits`
+  column, so without those boundary flushes a `$plan->update(['limits' => …])` keeps serving the
+  old merge until the process recycles (`ModuleGateTest` is the guard: grant a module → the next
+  request must allow it). Never carry it across requests or jobs.
 - Broadcast events fire through the queue: `QUEUE_CONNECTION` must be `sync` in tests, and `Event::fake()` (NOT `Broadcast::fake()`) intercepts queued broadcasts. Channel auth should be tested by invoking `Broadcast::driver()->getChannels()` callbacks directly (NullBroadcaster returns 200/empty in tests).
 - Inline test routes that pass through `tenant`/`tenant_context` need the `web` middleware group (or you get "Session store not set on request").
 - Test isolation is handled by the **`Tests\IsolatesDatabase` trait** (hooks via `setUpTraits()`) — it

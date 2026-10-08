@@ -25,6 +25,7 @@ const MODULE_LABELS = {
     api: 'API access',
     branding: 'Custom branding',
     audit_export: 'Audit export',
+    'export.full': 'Data export (full)',
 };
 
 const STATUS_LABELS = {
@@ -77,7 +78,7 @@ function ModuleList({ title, modules, tone }) {
 export default function Subscription() {
     usePageTitle('Subscription');
     const toast = useToast();
-    const { user } = useAuth();
+    const { user, can } = useAuth();
     const [subscription, setSubscription] = useState(null);
     const [tenant, setTenant] = useState(null);
     const [events, setEvents] = useState([]);
@@ -86,20 +87,26 @@ export default function Subscription() {
     const [modules, setModules] = useState(null);
     const [modulesAvailable, setModulesAvailable] = useState([]);
     const [plans, setPlans] = useState([]);
+    const [payments, setPayments] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
     const [action, setAction] = useState(null);
 
-    const canManage = user?.roles?.includes('admin');
+    // Mirrors MySubscriptionController::authorizeAdmin exactly: the admin ROLE
+    // OR the `billing.manage` grant. Keying off the role alone hid every
+    // cancel/renew/switch control from a user an admin granted `billing.manage`
+    // — the server would have taken the write, the page said "ask an admin".
+    const canManage = user?.roles?.includes('admin') || can('billing.manage');
 
     const load = useCallback(async () => {
         setLoading(true);
         setError(null);
         try {
-            const [subRes, usageRes, plansRes] = await Promise.all([
+            const [subRes, usageRes, plansRes, historyRes] = await Promise.all([
                 api.get('/my-subscription'),
                 api.get('/my-usage'),
                 api.get('/plans'),
+                api.get('/billing/history').catch(() => ({ data: { payments: [] } })),
             ]);
             setSubscription(subRes.data.subscription);
             setTenant(subRes.data.tenant);
@@ -109,6 +116,7 @@ export default function Subscription() {
             setModules(usageRes.data.modules ?? null);
             setModulesAvailable(usageRes.data.modules_available || []);
             setPlans(plansRes.data.plans || []);
+            setPayments(historyRes.data.payments || []);
         } catch (e) {
             setError(e.response?.status === 404 ? 'No tenant context for this page.' : 'Unable to load subscription details.');
         } finally {
@@ -134,6 +142,23 @@ export default function Subscription() {
     }
 
     async function switchPlan(plan) {
+        if (plan.price_cents > 0) {
+            setAction(true);
+            try {
+                const res = await api.post('/billing/checkout', { plan_id: plan.id });
+                if (res.data.session?.redirect_url) {
+                    window.location.href = res.data.session.redirect_url;
+                    return;
+                }
+                toast.success('Checkout session created.');
+                await load();
+            } catch (e) {
+                toast.error(fieldErrors(e).form || fieldErrors(e).message || 'Unable to initiate checkout.');
+            } finally {
+                setAction(false);
+            }
+            return;
+        }
         await run(() => api.post('/my-subscription/switch', { plan_id: plan.id }), `Switched to ${plan.name}.`);
     }
 
@@ -369,6 +394,49 @@ export default function Subscription() {
                     </Table>
                 </section>
             )}
+
+            {/* Phase 6: Real billing history table */}
+            <section>
+                <h3 className="mb-2 text-sm font-semibold text-gray-900">Billing history</h3>
+                <p className="mb-2 text-xs text-gray-500">Invoices and payment transactions</p>
+                {payments.length === 0 ? (
+                    <div className="rounded-lg border border-dashed border-gray-200 bg-gray-50/60 px-4 py-6 text-center text-xs text-gray-400">
+                        No billing transactions recorded yet.
+                    </div>
+                ) : (
+                    <Table>
+                        <thead>
+                            <tr>
+                                <Th>Transaction</Th>
+                                <Th>Plan</Th>
+                                <Th>Amount</Th>
+                                <Th>Provider</Th>
+                                <Th>Status</Th>
+                                <Th align="right">Date</Th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {payments.map((p) => (
+                                <tr key={p.id} className="transition-colors duration-150 hover:bg-gray-50/60">
+                                    <Td className="font-mono text-xs text-gray-600">#{p.id}</Td>
+                                    <Td className="font-medium text-gray-900">{p.plan_name || '—'}</Td>
+                                    <Td className="font-medium text-gray-900">{p.formatted_amount}</Td>
+                                    <Td>
+                                        <Badge>{p.provider}</Badge>
+                                    </Td>
+                                    <Td>
+                                        <Badge>{p.status}</Badge>
+                                    </Td>
+                                    <Td align="right" className="whitespace-nowrap text-xs text-gray-400">
+                                        {formatDate(p.created_at)}
+                                    </Td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </Table>
+                )}
+            </section>
         </div>
     );
 }
+
