@@ -3,6 +3,8 @@
 namespace Tests\Feature;
 
 use App\Billing\Gateways\FakePaymentGateway;
+use App\Billing\Gateways\RazorpayGateway;
+use App\Billing\Gateways\StripeGateway;
 use App\Billing\PaymentResolver;
 use App\Models\Payment;
 use App\Models\PaymentEvent;
@@ -212,5 +214,40 @@ class BillingTest extends TestCase
 
         // INR currency resolves to razorpay
         $this->assertSame('razorpay', $resolver->resolveForTenant($acme, 'inr')->name());
+    }
+
+    public function test_live_credentials_switch_configures_real_gateways_for_stripe_and_razorpay(): void
+    {
+        $liveConfig = [
+            'default_currency' => 'usd',
+            'driver' => 'auto',
+            'gateways' => [
+                'stripe' => [
+                    'name' => 'Stripe',
+                    'key' => 'pk_live_sample123',
+                    'secret' => 'sk_live_sample123',
+                    'webhook_secret' => 'whsec_sample123',
+                    'currencies' => ['usd', 'eur', 'gbp'],
+                ],
+                'razorpay' => [
+                    'name' => 'Razorpay',
+                    'key' => 'rzp_live_sample123',
+                    'secret' => 'rzp_sec_sample123',
+                    'webhook_secret' => 'rzp_wh_sample123',
+                    'currencies' => ['inr'],
+                ],
+            ],
+            'routing' => config('payments.routing'),
+        ];
+
+        $resolver = new PaymentResolver($liveConfig);
+
+        $stripeGateway = $resolver->resolve('stripe');
+        $this->assertInstanceOf(StripeGateway::class, $stripeGateway);
+        $this->assertSame('stripe', $stripeGateway->name());
+
+        $razorpayGateway = $resolver->resolve('razorpay');
+        $this->assertInstanceOf(RazorpayGateway::class, $razorpayGateway);
+        $this->assertSame('razorpay', $razorpayGateway->name());
     }
 }

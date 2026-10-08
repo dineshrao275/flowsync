@@ -78,6 +78,7 @@ use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\NotificationPreferenceController;
 use App\Http\Controllers\OnboardingController;
 use App\Http\Controllers\PlanController;
+use App\Http\Controllers\PlatformHealthController;
 use App\Http\Controllers\ProjectController;
 use App\Http\Controllers\ProjectMemberController;
 use App\Http\Controllers\ProjectRoleController;
@@ -107,6 +108,7 @@ use Illuminate\Support\Facades\Broadcast;
 use Illuminate\Support\Facades\Route;
 
 Route::prefix('api')->group(function () {
+    Route::get('health', [PlatformHealthController::class, 'ping']);
     Route::post('auth/login', [AuthController::class, 'login'])->middleware('throttle:10,1');
     Route::post('auth/forgot-password', [ForgotPasswordController::class, 'create'])->middleware('throttle:6,1');
     Route::post('auth/reset-password', [ResetPasswordController::class, 'update'])->middleware('throttle:6,1');
@@ -238,6 +240,8 @@ Route::prefix('api')->group(function () {
             Route::apiResource('system/users', SystemUsersController::class)->only(['index', 'store']);
             Route::get('system/audit-logs', [AuditLogsController::class, 'index']);
             Route::get('system/analytics', [SystemAnalyticsController::class, 'index']);
+            Route::get('platform/health', [PlatformHealthController::class, 'show']);
+            Route::get('system/health', [PlatformHealthController::class, 'show']);
             Route::get('system/features', [FeatureManagementController::class, 'index']);
             Route::put('system/features/{subscriptionPlan}', [FeatureManagementController::class, 'update']);
             Route::get('system/pages', [CmsController::class, 'index']);

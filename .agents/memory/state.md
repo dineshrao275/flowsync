@@ -217,7 +217,13 @@
   - Failed payment handling: webhook updates payment status and suspends tenant subscription to `past_due` with `EVENT_PAUSED` audit record.
   - Structured module denial: `TenantLimits::moduleDenialReason` distinguishes `module_disabled` vs `module_not_on_plan`, emitted via `X-Module-Reason` header by `EnsureModule`; `ProtectedRoute` and `ModuleDenied.jsx` reflect specific denied modules.
   - User and tenant profile attrs in `/api/auth/me`: user `timezone`, `locale`, and tenant `branding` (`primary_color`, `logo_url`).
-  - Verification: `TenantUsageCollectionTest`, `PaymentWebhookTest`, `AuthTest`, `ModuleGateTest` green (28 passed / 104 assertions); Vite build clean; Pint clean; test gate now **1517 tests / 7702 assertions**.
+- 2026-10-08 — Phase 4 Production Readiness & Operations shipped:
+  - Platform health monitoring: `App\Http\Controllers\PlatformHealthController` providing public liveness probe at `GET /api/health` and detailed super admin inspection at `GET /api/platform/health` and `GET /api/system/health` (inspects central system DB latency, sampled active tenant DB connectivity and latency, cache read/write, storage disk writability, and queue connection).
+  - Automated database backup & restore command: `App\Console\Commands\BackupTenants` (`php artisan tenants:backup {--tenant=} {--all} {--path=} {--verify} {--restore-drill=}`) with structured backup directory, `manifest.json` generation, SHA-256 verification, and non-destructive restore drill checking database and table queryability. Scheduled daily at 02:00 in `routes/console.php`.
+  - Operations runbook: `docs/runbook.md` documenting server prerequisites, deployment pipeline, systemd units for queue and reverb, free-tier SMTP configuration (~5k emails/mo with Brevo/Resend/MailerSend), live Stripe & Razorpay key configuration, webhooks, automated backups, restore drills, and disaster recovery.
+  - Environment variables: updated `.env.example` with documented free SMTP tier configuration and live Stripe/Razorpay keys.
+  - Verification: `PlatformHealthTest`, `TenantBackupTest`, and `BillingTest` green (16 passed / 99 assertions); Pint style clean; test gate now **1525 tests / 7765 assertions**.
+
 
 
 
