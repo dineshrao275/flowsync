@@ -80,7 +80,7 @@ class RegisterController extends Controller
 
         $user = $this->claimOwnerAccount($tenant, $data);
 
-        return $auth->establishTenantSession($request, $user, $tenant);
+        return $auth->establishTenantSession($request, $user, $tenant, 'registration');
     }
 
     /**

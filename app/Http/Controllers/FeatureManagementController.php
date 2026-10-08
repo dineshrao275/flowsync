@@ -3,9 +3,9 @@
 namespace App\Http\Controllers;
 
 use App\Http\Requests\FeatureModuleToggleRequest;
-use App\Models\AuditLog;
 use App\Models\SubscriptionPlan;
 use App\Services\ModuleTree;
+use App\Services\PlatformAudit;
 use Illuminate\Http\JsonResponse;
 
 /**
@@ -41,6 +41,8 @@ class FeatureManagementController extends Controller
     {
         $data = $request->validated();
 
+        $wasEnabled = in_array($data['module'], $subscriptionPlan->limit('modules') ?? [], true);
+
         $modules = collect($subscriptionPlan->limit('modules') ?? [])
             ->reject(fn (string $m) => $m === $data['module'])
             ->when($data['enabled'], fn ($c) => $c->push($data['module']))
@@ -52,14 +54,15 @@ class FeatureManagementController extends Controller
 
         $subscriptionPlan->update(['limits' => $limits]);
 
-        AuditLog::create([
-            'subject_type' => 'subscription_plans',
-            'subject_id' => $subscriptionPlan->id,
-            'action' => 'plan.module_toggled',
-            'data' => ['module' => $data['module'], 'enabled' => $data['enabled']],
-            'actor_id' => $request->user()?->id,
-            'ip_address' => $request->ip(),
-        ]);
+        app(PlatformAudit::class)->diff(
+            $request,
+            'plan.module_toggled',
+            'subscription_plans',
+            $subscriptionPlan->id,
+            ['enabled' => $wasEnabled],
+            ['enabled' => $data['enabled']],
+            ['module' => $data['module'], 'enabled' => $data['enabled']],
+        );
 
         return response()->json([
             'plan' => ['id' => $subscriptionPlan->id, 'slug' => $subscriptionPlan->slug, 'modules' => $limits['modules']],

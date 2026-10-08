@@ -113,10 +113,11 @@ class SystemAdminTest extends TestCase
 
         $this->putJson('/api/system/settings', ['app_name' => 'FlowSync Pro'])->assertOk();
 
-        // The ride round-trip leaves ONE impersonation_logs row (ended_at set).
+        // The ride round-trip leaves ONE impersonation_logs row (ended_at set);
+        // the feed also carries this test's own `auth.login` row (G-6).
         $this->getJson('/api/system/audit-logs')
             ->assertOk()
-            ->assertJsonPath('pagination.total', 2) // completed impersonation + settings_updated
+            ->assertJsonPath('pagination.total', 3) // auth.login + impersonation.ended + settings_updated
             ->assertJsonStructure(['items' => [['id', 'type', 'action', 'created_at']]]);
 
         $this->getJson('/api/system/audit-logs?type=impersonation')
@@ -126,8 +127,9 @@ class SystemAdminTest extends TestCase
 
         $this->getJson('/api/system/audit-logs?type=audit')
             ->assertOk()
-            ->assertJsonPath('pagination.total', 1)
-            ->assertJsonPath('items.0.action', 'platform.settings_updated');
+            ->assertJsonPath('pagination.total', 2)
+            ->assertJsonPath('items.0.action', 'platform.settings_updated')
+            ->assertJsonPath('items.1.action', 'auth.login');
     }
 
     public function test_impersonation_rejects_invalid_tenant_id(): void

@@ -2,8 +2,8 @@
 
 namespace App\Services\Hrms\Shared;
 
-use App\Models\AuditLog;
 use App\Models\Tenant;
+use App\Services\PlatformAudit;
 use App\Services\TenantLimits;
 use Illuminate\Support\Facades\Log;
 
@@ -21,7 +21,10 @@ use Illuminate\Support\Facades\Log;
  */
 class TenantHrmsService
 {
-    public function __construct(private readonly TenantLimits $limits) {}
+    public function __construct(
+        private readonly TenantLimits $limits,
+        private readonly PlatformAudit $audit,
+    ) {}
 
     /**
      * Current entitlement for a tenant, including where the answer came from.
@@ -103,14 +106,13 @@ class TenantHrmsService
 
         $after = $this->overrideMap($tenant->refresh());
 
-        AuditLog::create([
-            'subject_type' => 'tenants',
-            'subject_id' => $tenant->id,
-            'action' => 'tenant.hrms_updated',
-            'data' => ['via' => $via, 'before' => $before, 'after' => $after],
-            'actor_id' => auth()->id(),
-            'ip_address' => request()->ip(),
-        ]);
+        $this->audit->record(
+            request(),
+            'tenant.hrms_updated',
+            'tenants',
+            $tenant->id,
+            ['via' => $via, 'before' => $before, 'after' => $after],
+        );
 
         // Module names are catalog slugs, never sensitive — safe to log.
         Log::channel('hrms')->info('tenant.hrms.updated', [

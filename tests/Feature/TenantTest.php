@@ -224,7 +224,13 @@ class TenantTest extends TestCase
         $tenant->refresh();
         $this->assertSame('active', $tenant->status);
 
-        $this->assertDatabaseCount('audit_logs', 2);
+        // Scoped to the transition action: the row count is about the two
+        // status changes, and a `auth.login` row from this test's own sign-in
+        // is an unrelated ledger entry (G-6).
+        $this->assertSame(
+            2,
+            AuditLog::where('action', 'tenant.status_changed')->count(),
+        );
 
         $transitions = AuditLog::where('action', 'tenant.status_changed')
             ->get()

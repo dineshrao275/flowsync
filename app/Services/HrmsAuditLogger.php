@@ -6,6 +6,7 @@ use App\Enums\Hrms\DataAccessAction;
 use App\Models\Hrms\Shared\HrmsAuditLog;
 use App\Models\Hrms\Shared\HrmsDataAccessLog;
 use App\Models\User;
+use App\Support\AuditMask;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Log;
@@ -18,47 +19,14 @@ use Illuminate\Support\Facades\Log;
  * and additionally emits a `hrms` channel line so a change is visible both in
  * the durable trail and in the operational stream (D2.9).
  *
- * Masking is not optional. Payroll and people data is sensitive, so values
- * whose *name* matches a sensitive pattern are replaced with a mask before
- * they ever reach the database. Names are matched rather than allow-listed
- * because a new salary column must not silently start logging its value.
+ * Masking is not optional and lives in {@see AuditMask} (shared with the
+ * platform audit feed): values whose *name* matches a sensitive pattern are
+ * replaced with a mask before they ever reach the database. Names are matched
+ * rather than allow-listed because a new salary column must not silently start
+ * logging its value.
  */
 class HrmsAuditLogger
 {
-    /**
-     * Attribute/field name tokens that must never be logged verbatim.
-     *
-     * Matched token-by-token, never as raw substrings: `'esi'` is a substring
-     * of `designation`, `'pan'` of `company` and `'pay'` of `repayment`, and
-     * masking those would silently blank half the audit trail. A short token
-     * like `pan` has to be a whole word or it is useless.
-     */
-    private const SENSITIVE_TOKENS = [
-        'password', 'passwd', 'secret', 'token',
-        'salary', 'salaries', 'wage', 'wages', 'pay', 'pays', 'payslip',
-        'ctc', 'compensation', 'bonus', 'remuneration', 'emoluments',
-        'bank', 'banking', 'iban', 'swift', 'account', 'acct',
-        'pan', 'uan', 'esi', 'pf', 'ifsc', 'aadhaar', 'passport',
-        'national', 'nid',
-        'dob', 'birth', 'birthday',
-        'address', 'phone', 'mobile', 'email',
-        'medical', 'diagnosis', 'health',
-        'ssn', 'sin', 'nino', 'cpf',
-    ];
-
-    /**
-     * Multi-word field names that are sensitive as a phrase, matched against
-     * the whole normalised name.
-     */
-    private const SENSITIVE_PHRASES = [
-        'date_of_birth',
-        'bank_account',
-        'account_number',
-        'national_id',
-    ];
-
-    private const MASK = '***';
-
     /**
      * Record a change to a business record.
      *
@@ -85,7 +53,7 @@ class HrmsAuditLogger
             'subject_type' => $subject->getMorphClass(),
             'subject_id' => $subject->getKey(),
             'action' => $action,
-            'data' => $this->mask([
+            'data' => AuditMask::mask([
                 'before' => $before,
                 'after' => $after,
             ]),
@@ -194,80 +162,5 @@ class HrmsAuditLogger
             $keys,
             fn (string $key) => ($before[$key] ?? null) !== ($after[$key] ?? null),
         ));
-    }
-
-    /**
-     * Replace sensitive values with a mask, recursively.
-     *
-     * Keyed on the field *name* (D2.9). Matching is token-based so a new salary
-     * column cannot slip through, while a harmless name that merely contains a
-     * sensitive fragment (`designation`, `company`) is not needlessly blanked.
-     *
-     * @param  array<array-key, mixed>|null  $data
-     * @return array<array-key, mixed>|null
-     */
-    private function mask(?array $data, ?string $key = null): ?array
-    {
-        if ($data === null) {
-            return null;
-        }
-
-        $masked = [];
-
-        foreach ($data as $name => $value) {
-            $field = is_string($name) ? $name : $key;
-
-            $masked[$name] = $this->isSensitive($field)
-                ? self::MASK
-                : (is_array($value) ? $this->mask($value, $field) : $value);
-        }
-
-        return $masked;
-    }
-
-    private function isSensitive(?string $field): bool
-    {
-        if ($field === null) {
-            return false;
-        }
-
-        $name = $this->normalise($field);
-
-        if (in_array($name, self::SENSITIVE_PHRASES, true)) {
-            return true;
-        }
-
-        foreach ($this->tokenize($name) as $token) {
-            if (in_array($token, self::SENSITIVE_TOKENS, true)) {
-                return true;
-            }
-        }
-
-        return false;
-    }
-
-    /**
-     * Lower-case a field name and collapse separators into `_` tokens, so
-     * `basic_salary`, `basicSalary` and `Basic Salary` all normalise the same.
-     *
-     * The two insertion rules are both needed: the first splits a camelCase
-     * hump, the second splits an acronym run from a following word. Without
-     * the second, `ESI Number` becomes `E_SI_Number` and the `esi` token is
-     * lost — which would silently start logging ESI numbers verbatim.
-     */
-    private function normalise(string $field): string
-    {
-        $spaced = preg_replace('/(?<=[a-z0-9])(?=[A-Z])/', '_', $field) ?? $field;
-        $spaced = preg_replace('/(?<=[A-Z])(?=[A-Z][a-z])/', '_', $spaced) ?? $spaced;
-
-        return strtolower(trim((string) preg_replace('/[^A-Za-z0-9]+/', '_', $spaced), '_'));
-    }
-
-    /**
-     * @return array<int, string>
-     */
-    private function tokenize(string $name): array
-    {
-        return array_values(array_filter(explode('_', $name), fn (string $part) => $part !== ''));
     }
 }

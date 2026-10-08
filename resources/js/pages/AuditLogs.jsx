@@ -18,7 +18,7 @@ function describe(action, data) {
         case 'platform.settings_updated':
             return `Updated platform settings (${(data?.keys || []).join(', ')})`;
         case 'system.user_created':
-            return `Created platform admin ${data?.email}`;
+            return `Created platform admin ${data?.after?.name}`;
         case 'plan.module_toggled':
             return `${data?.enabled ? 'Enabled' : 'Disabled'} module ${data?.module}`;
         case 'tenant.status_changed':
@@ -26,6 +26,12 @@ function describe(action, data) {
         case 'tenant.deleted':
         case 'tenant.restored':
             return action.split('.').map((w) => w[0].toUpperCase() + w.slice(1)).join(' ');
+        case 'auth.login':
+            return data?.via === 'registration' ? 'Signed in (registration)' : 'Signed in';
+        case 'auth.login_failed':
+            return 'Failed sign-in';
+        case 'auth.logout':
+            return 'Signed out';
         default:
             return action;
     }

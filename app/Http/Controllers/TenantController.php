@@ -5,9 +5,9 @@ namespace App\Http\Controllers;
 use App\Http\Controllers\Concerns\NormalizesBooleanInput;
 use App\Http\Controllers\Concerns\ValidatesResourceLimits;
 use App\Jobs\ProvisionTenantJob;
-use App\Models\AuditLog;
 use App\Models\Tenant;
 use App\Models\TenantUserRouting;
+use App\Services\PlatformAudit;
 use App\Services\TenantLifecycle;
 use App\Support\TenantContext;
 use App\Support\TenantDatabaseManager;
@@ -270,34 +270,32 @@ class TenantController extends Controller
         ]);
     }
 
-    public function destroy(Tenant $tenant): JsonResponse
+    public function destroy(Request $request, Tenant $tenant): JsonResponse
     {
         $tenant->delete();
 
-        AuditLog::create([
-            'subject_type' => Tenant::class,
-            'subject_id' => $tenant->id,
-            'action' => 'tenant.deleted',
-            'data' => ['name' => $tenant->name, 'slug' => $tenant->slug],
-            'actor_id' => auth()->id(),
-            'ip_address' => request()->ip(),
-        ]);
+        app(PlatformAudit::class)->record(
+            $request,
+            'tenant.deleted',
+            Tenant::class,
+            $tenant->id,
+            ['name' => $tenant->name, 'slug' => $tenant->slug],
+        );
 
         return response()->json(['message' => 'Tenant deleted.']);
     }
 
-    public function restore(Tenant $tenant): JsonResponse
+    public function restore(Request $request, Tenant $tenant): JsonResponse
     {
         $tenant->restore();
 
-        AuditLog::create([
-            'subject_type' => Tenant::class,
-            'subject_id' => $tenant->id,
-            'action' => 'tenant.restored',
-            'data' => ['name' => $tenant->name, 'slug' => $tenant->slug],
-            'actor_id' => auth()->id(),
-            'ip_address' => request()->ip(),
-        ]);
+        app(PlatformAudit::class)->record(
+            $request,
+            'tenant.restored',
+            Tenant::class,
+            $tenant->id,
+            ['name' => $tenant->name, 'slug' => $tenant->slug],
+        );
 
         return response()->json(['message' => 'Tenant restored.', 'tenant' => $this->counts($tenant)]);
     }

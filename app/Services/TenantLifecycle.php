@@ -2,7 +2,6 @@
 
 namespace App\Services;
 
-use App\Models\AuditLog;
 use App\Models\Tenant;
 use App\Models\User;
 use Illuminate\Validation\ValidationException;
@@ -82,14 +81,14 @@ class TenantLifecycle
 
         $tenant->save();
 
-        AuditLog::create([
-            'subject_type' => Tenant::class,
-            'subject_id' => $tenant->id,
-            'action' => 'tenant.status_changed',
-            'data' => $data ? array_merge($audit, $data) : $audit,
-            'actor_id' => $actor?->id,
-            'ip_address' => request()->ip(),
-        ]);
+        app(PlatformAudit::class)->record(
+            null,
+            'tenant.status_changed',
+            Tenant::class,
+            $tenant->id,
+            $data ? array_merge($audit, $data) : $audit,
+            $actor?->id,
+        );
 
         return $tenant;
     }

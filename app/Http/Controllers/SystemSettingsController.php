@@ -3,10 +3,11 @@
 namespace App\Http\Controllers;
 
 use App\Http\Requests\SystemSettingsUpdateRequest;
-use App\Models\AuditLog;
 use App\Models\PlatformSetting;
 use App\Models\SubscriptionPlan;
+use App\Services\PlatformAudit;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Support\Arr;
 
 class SystemSettingsController extends Controller
 {
@@ -50,14 +51,15 @@ class SystemSettingsController extends Controller
         $changed = collect(self::KEYS)->filter(fn ($k) => ($before[$k] ?? null) !== ($after[$k] ?? null))->values()->all();
 
         if ($changed) {
-            AuditLog::create([
-                'subject_type' => 'platform_settings',
-                'subject_id' => null,
-                'action' => 'platform.settings_updated',
-                'data' => ['keys' => $changed],
-                'actor_id' => $request->user()?->id,
-                'ip_address' => $request->ip(),
-            ]);
+            app(PlatformAudit::class)->diff(
+                $request,
+                'platform.settings_updated',
+                'platform_settings',
+                null,
+                Arr::only($before, $changed),
+                Arr::only($after, $changed),
+                ['keys' => $changed],
+            );
         }
 
         return response()->json(['settings' => $after, 'message' => 'Settings saved.']);

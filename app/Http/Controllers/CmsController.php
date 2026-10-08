@@ -3,8 +3,8 @@
 namespace App\Http\Controllers;
 
 use App\Http\Requests\CmsPageRequest;
-use App\Models\AuditLog;
 use App\Models\WebsitePage;
+use App\Services\PlatformAudit;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -15,6 +15,15 @@ use Illuminate\Http\Request;
  */
 class CmsController extends Controller
 {
+    /**
+     * The fields the audit trail records — snapshots are reduced to these, so
+     * a page edit logs the before/after of what changed, never a row dump.
+     */
+    private const AUDIT_FIELDS = [
+        'slug', 'title', 'content', 'status', 'seo_title', 'meta_description',
+        'og_image', 'sitemap_include', 'sort_order', 'published_at',
+    ];
+
     public function index(): JsonResponse
     {
         $pages = WebsitePage::orderBy('sort_order')->orderBy('id')->get()
@@ -36,7 +45,7 @@ class CmsController extends Controller
 
         $page = WebsitePage::create($data + ['published_at' => $data['status'] === WebsitePage::STATUS_PUBLISHED ? now() : null]);
 
-        $this->audit($request, 'cms.page_created', $page);
+        $this->audit($request, 'cms.page_created', $page, null, $this->snapshot($page));
 
         return response()->json(['page' => $page], 201);
     }
@@ -45,13 +54,15 @@ class CmsController extends Controller
     {
         $data = $request->validated();
 
+        $before = $this->snapshot($websitePage);
+
         if ($data['status'] === WebsitePage::STATUS_PUBLISHED && ! $websitePage->isPublished()) {
             $data['published_at'] = now();
         }
 
         $websitePage->update($data);
 
-        $this->audit($request, 'cms.page_updated', $websitePage);
+        $this->audit($request, 'cms.page_updated', $websitePage, $before, $this->snapshot($websitePage));
 
         return response()->json(['page' => $websitePage->fresh()]);
     }
@@ -62,7 +73,7 @@ class CmsController extends Controller
             abort(422, 'Cannot delete the home page.');
         }
 
-        $this->audit($request, 'cms.page_deleted', $websitePage);
+        $this->audit($request, 'cms.page_deleted', $websitePage, $this->snapshot($websitePage), null);
 
         $websitePage->delete();
 
@@ -71,31 +82,51 @@ class CmsController extends Controller
 
     public function publish(Request $request, WebsitePage $websitePage): JsonResponse
     {
+        $before = $this->snapshot($websitePage);
+
         $websitePage->publish();
 
-        $this->audit($request, 'cms.page_published', $websitePage);
+        $this->audit($request, 'cms.page_published', $websitePage, $before, $this->snapshot($websitePage));
 
         return response()->json(['page' => $websitePage->fresh(), 'message' => 'Page published.']);
     }
 
     public function unpublish(Request $request, WebsitePage $websitePage): JsonResponse
     {
+        $before = $this->snapshot($websitePage);
+
         $websitePage->unpublish();
 
-        $this->audit($request, 'cms.page_unpublished', $websitePage);
+        $this->audit($request, 'cms.page_unpublished', $websitePage, $before, $this->snapshot($websitePage));
 
         return response()->json(['page' => $websitePage->fresh(), 'message' => 'Page taken down.']);
     }
 
-    private function audit(Request $request, string $action, WebsitePage $page): void
+    private function audit(Request $request, string $action, WebsitePage $page, ?array $before, ?array $after): void
     {
-        AuditLog::create([
-            'subject_type' => 'website_pages',
-            'subject_id' => $page->id,
-            'action' => $action,
-            'data' => ['slug' => $page->slug, 'title' => $page->title, 'status' => $page->status],
-            'actor_id' => $request->user()?->id,
-            'ip_address' => $request->ip(),
-        ]);
+        app(PlatformAudit::class)->diff(
+            $request,
+            $action,
+            'website_pages',
+            $page->id,
+            $before,
+            $after,
+            ['slug' => $page->slug],
+        );
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function snapshot(WebsitePage $page): array
+    {
+        $row = $page->only(self::AUDIT_FIELDS);
+
+        // Normalise the timestamp so an unchanged `published_at` compares by
+        // value — two Carbon instances are never identity-equal, and the diff
+        // would otherwise flag every publish no-op as a change.
+        $row['published_at'] = $page->published_at !== null ? (string) $page->published_at : null;
+
+        return $row;
     }
 }

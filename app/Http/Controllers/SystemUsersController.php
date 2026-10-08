@@ -4,8 +4,8 @@ namespace App\Http\Controllers;
 
 use App\Http\Requests\SystemUserIndexRequest;
 use App\Http\Requests\SystemUserStoreRequest;
-use App\Models\AuditLog;
 use App\Models\SystemUser;
+use App\Services\PlatformAudit;
 use Illuminate\Http\JsonResponse;
 
 /**
@@ -53,14 +53,14 @@ class SystemUsersController extends Controller
             'is_super_admin' => true,
         ]);
 
-        AuditLog::create([
-            'subject_type' => 'users',
-            'subject_id' => $user->id,
-            'action' => 'system.user_created',
-            'data' => ['name' => $user->name, 'email' => $user->email],
-            'actor_id' => $request->user()?->id,
-            'ip_address' => $request->ip(),
-        ]);
+        app(PlatformAudit::class)->diff(
+            $request,
+            'system.user_created',
+            'users',
+            $user->id,
+            null,
+            ['name' => $user->name, 'email' => $user->email],
+        );
 
         return response()->json(['user' => $user->only(['id', 'name', 'email', 'is_super_admin', 'created_at'])], 201);
     }

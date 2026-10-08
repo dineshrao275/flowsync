@@ -8,6 +8,7 @@ use App\Models\PlatformSetting;
 use App\Models\Tenant;
 use App\Models\TenantUserRouting;
 use App\Models\User;
+use App\Services\PlatformAudit;
 use App\Services\TenantLimits;
 use App\Services\TenantOnboarding;
 use App\Support\TenantContext;
@@ -31,9 +32,19 @@ class AuthController extends Controller
 
     public function logout(Request $request): JsonResponse
     {
+        $user = $request->user();
+        $tenantId = $request->session()->get('impersonate.tenant_id')
+            ?? $request->session()->get('login.tenant_id');
+
         $this->closeOpenImpersonation($request);
 
         app(TenantDatabaseManager::class)->connectSystem();
+
+        app(PlatformAudit::class)->auth($request, 'auth.logout', [
+            'email' => $user?->email,
+            'user_id' => $user?->id,
+            'tenant_id' => $tenantId,
+        ], $user !== null && $user->is_super_admin ? (int) $user->id : null);
 
         Auth::logout();
 
@@ -54,11 +65,12 @@ class AuthController extends Controller
      * Authenticate a tenant user against their tenant DB and build the session
      * (used by self-registration auto-login). The whole payload build runs inside
      * `using($tenant)` so `$user->load('roles')` resolves against THAT tenant's
-     * database — after the block the default connection is restored.
+     * database — after the block the default connection is restored. `$via`
+     * labels the session's `auth.login` row (password vs registration).
      */
-    public function establishTenantSession(Request $request, User $user, Tenant $tenant): JsonResponse
+    public function establishTenantSession(Request $request, User $user, Tenant $tenant, string $via = 'password'): JsonResponse
     {
-        return app(TenantDatabaseManager::class)->using($tenant, function () use ($request, $user, $tenant): JsonResponse {
+        return app(TenantDatabaseManager::class)->using($tenant, function () use ($request, $user, $tenant, $via): JsonResponse {
             Auth::login($user);
 
             $request->session()->put('login.tenant_id', $tenant->id);
@@ -67,6 +79,13 @@ class AuthController extends Controller
             $this->applyTenantContext($request->user());
 
             $request->session()->regenerate();
+
+            app(PlatformAudit::class)->auth($request, 'auth.login', [
+                'email' => $user->email,
+                'user_id' => $user->id,
+                'tenant_id' => $tenant->id,
+                'via' => $via,
+            ]);
 
             return response()->json($this->payload($request));
         });
@@ -96,8 +115,19 @@ class AuthController extends Controller
                 $request->session()->forget('impersonate');
                 $request->session()->regenerate();
 
+                app(PlatformAudit::class)->auth($request, 'auth.login', [
+                    'email' => $email,
+                    'user_id' => Auth::id(),
+                    'via' => 'password',
+                ]);
+
                 return response()->json($this->payload($request));
             }
+
+            app(PlatformAudit::class)->auth($request, 'auth.login_failed', [
+                'email' => $email,
+                'via' => 'password',
+            ]);
 
             throw ValidationException::withMessages(['email' => __('auth.failed')]);
         }
@@ -111,11 +141,24 @@ class AuthController extends Controller
         $tenant = $routes->first()->tenant;
 
         if (! $tenant || ! $tenant->isServiceable()) {
+            app(PlatformAudit::class)->auth($request, 'auth.login_failed', [
+                'email' => $email,
+                'tenant_id' => $tenant?->id,
+                'reason' => 'tenant_unavailable',
+                'via' => 'password',
+            ]);
+
             throw ValidationException::withMessages(['email' => __('auth.failed')]);
         }
 
-        return $dbm->using($tenant, function () use ($request, $credentials, $tenant) {
+        return $dbm->using($tenant, function () use ($request, $credentials, $tenant, $email) {
             if (! Auth::attempt(Arr::except($credentials, ['tenant']), $request->boolean('remember'))) {
+                app(PlatformAudit::class)->auth($request, 'auth.login_failed', [
+                    'email' => $email,
+                    'tenant_id' => $tenant->id,
+                    'via' => 'password',
+                ]);
+
                 throw ValidationException::withMessages(['email' => __('auth.failed')]);
             }
 
@@ -125,6 +168,13 @@ class AuthController extends Controller
             $this->applyTenantContext($request->user());
 
             $request->session()->regenerate();
+
+            app(PlatformAudit::class)->auth($request, 'auth.login', [
+                'email' => $email,
+                'user_id' => Auth::id(),
+                'tenant_id' => $tenant->id,
+                'via' => 'password',
+            ]);
 
             return response()->json($this->payload($request));
         });
