@@ -34,7 +34,7 @@ class TaskController extends Controller
         abort_unless(
             $user->hasPermission('workspaces.manage') || ($role !== null && $role->grants('tasks.view_own')),
             403,
-            'This action is unauthorized.',
+            'Reading this project\'s tasks needs a "tasks.view*" grant on your project role (or "workspaces.manage").',
         );
 
         $filters = $request->validate([

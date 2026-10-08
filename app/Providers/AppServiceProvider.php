@@ -4,12 +4,14 @@ namespace App\Providers;
 
 use App\Billing\PaymentResolver;
 use App\Billing\PaymentService;
+use App\Http\Middleware\EnsurePermission;
 use App\Listeners\SwitchesTenantConnectionForQueuedJobs;
 use App\Models\User;
 use App\Services\ReportsTo;
 use App\Services\TenantLimits;
 use App\Support\TenantContext;
 use App\Support\TenantDatabaseManager;
+use Illuminate\Auth\Access\Response;
 use Illuminate\Foundation\Http\Events\RequestHandled;
 use Illuminate\Queue\Events\JobExceptionOccurred;
 use Illuminate\Queue\Events\JobFailed;
@@ -41,12 +43,18 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        // A denied gate answers with the SAME sentence the route middleware
+        // uses, so `Gate::authorize('permission', …)` and a `permission:…`
+        // route gate can never word a refusal differently. `Gate::inspect`
+        // understands a `Response` result, so `check`/`allows` are unaffected.
         Gate::define('permission', function (User $user, string $permission) {
             if ($user->is_super_admin) {
                 return true;
             }
 
-            return $user->hasPermission($permission);
+            return $user->hasPermission($permission)
+                ? true
+                : Response::deny(EnsurePermission::denial($permission));
         });
 
         $this->registerQueuedJobTenantContext();

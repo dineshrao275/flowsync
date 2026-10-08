@@ -13,7 +13,7 @@ class EnsureSuperAdmin
         $user = $request->user();
 
         if (! $user || ! $user->is_super_admin) {
-            abort(403, 'This action is unauthorized.');
+            abort(403, 'Super administrator access is required for this action.');
         }
 
         return $next($request);

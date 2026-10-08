@@ -78,7 +78,7 @@ function ModuleList({ title, modules, tone }) {
 export default function Subscription() {
     usePageTitle('Subscription');
     const toast = useToast();
-    const { user } = useAuth();
+    const { user, can } = useAuth();
     const [subscription, setSubscription] = useState(null);
     const [tenant, setTenant] = useState(null);
     const [events, setEvents] = useState([]);
@@ -92,7 +92,11 @@ export default function Subscription() {
     const [error, setError] = useState(null);
     const [action, setAction] = useState(null);
 
-    const canManage = user?.roles?.includes('admin');
+    // Mirrors MySubscriptionController::authorizeAdmin exactly: the admin ROLE
+    // OR the `billing.manage` grant. Keying off the role alone hid every
+    // cancel/renew/switch control from a user an admin granted `billing.manage`
+    // — the server would have taken the write, the page said "ask an admin".
+    const canManage = user?.roles?.includes('admin') || can('billing.manage');
 
     const load = useCallback(async () => {
         setLoading(true);
