@@ -5,7 +5,7 @@
 
 ## Current
 
-- Date: 2026-10-08 · Branch: `development` · Gate: **1529 tests / 7803 assertions** (Phase 6 HRMS residual behavior & UX complete: React `HrmsErrorBoundary` wrapping HRMS hub tabs, onboarding redirection via `EnsureOnboardingComplete` + `api.js` interceptor, and `attendance.auto_derive_from_work_logs` settings API + UI modal; Phase 5 performance follow-ups complete; Phase 4 operations & readiness complete; Phase 3 subscription lifecycle complete; Phase 1 residuals complete).
+- Date: 2026-10-08 · Branch: `development` · Gate: **1535 tests / 7882 assertions** (Phase 7 TMS expansion complete: workspace & project metadata expansion, project components CRUD with uniqueness, project versions/releases CRUD with uniqueness, issue types catalog & provisioning, task start dates, story points, issue type & version associations, component tagging, task watchers lifecycle, and filtering; Phase 6 HRMS residual behavior & UX complete; Phase 5 performance follow-ups complete; Phase 4 operations & readiness complete; Phase 3 subscription lifecycle complete; Phase 1 residuals complete).
 
 ## Shipped vs missing (against the 8-phase roadmap)
 

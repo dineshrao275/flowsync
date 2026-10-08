@@ -30,6 +30,10 @@ class Task extends Model
         'title',
         'description',
         'due_date',
+        'start_date',
+        'story_points',
+        'issue_type_id',
+        'version_id',
         'estimate_minutes',
         'position',
         'completed_at',
@@ -41,6 +45,10 @@ class Task extends Model
     {
         return [
             'due_date' => 'date',
+            'start_date' => 'date',
+            'story_points' => 'float',
+            'issue_type_id' => 'integer',
+            'version_id' => 'integer',
             'estimate_minutes' => 'integer',
             'position' => 'float',
             'sequence' => 'integer',
@@ -48,6 +56,31 @@ class Task extends Model
             'archived_at' => 'datetime',
             'hrms_employee_id' => 'integer',
         ];
+    }
+
+    public function issueType(): BelongsTo
+    {
+        return $this->belongsTo(IssueType::class, 'issue_type_id');
+    }
+
+    public function version(): BelongsTo
+    {
+        return $this->belongsTo(ProjectVersion::class, 'version_id');
+    }
+
+    public function components(): BelongsToMany
+    {
+        return $this->belongsToMany(ProjectComponent::class, 'task_component', 'task_id', 'component_id');
+    }
+
+    public function watchers(): BelongsToMany
+    {
+        return $this->belongsToMany(User::class, 'task_watchers', 'task_id', 'user_id');
+    }
+
+    public function isWatchedBy(User $user): bool
+    {
+        return $this->watchers()->where('users.id', $user->id)->exists();
     }
 
     public function workspace(): BelongsTo

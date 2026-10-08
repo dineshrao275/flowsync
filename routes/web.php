@@ -72,6 +72,7 @@ use App\Http\Controllers\Hrms\Survey\SurveyCampaignController;
 use App\Http\Controllers\Hrms\Survey\SurveyTemplateController;
 use App\Http\Controllers\Hrms\TaskLinkController;
 use App\Http\Controllers\ImpersonationController;
+use App\Http\Controllers\IssueTypeController;
 use App\Http\Controllers\LabelController;
 use App\Http\Controllers\MySubscriptionController;
 use App\Http\Controllers\NotificationController;
@@ -79,9 +80,11 @@ use App\Http\Controllers\NotificationPreferenceController;
 use App\Http\Controllers\OnboardingController;
 use App\Http\Controllers\PlanController;
 use App\Http\Controllers\PlatformHealthController;
+use App\Http\Controllers\ProjectComponentController;
 use App\Http\Controllers\ProjectController;
 use App\Http\Controllers\ProjectMemberController;
 use App\Http\Controllers\ProjectRoleController;
+use App\Http\Controllers\ProjectVersionController;
 use App\Http\Controllers\PublicSiteController;
 use App\Http\Controllers\RegisterController;
 use App\Http\Controllers\ReportsController;
@@ -94,6 +97,7 @@ use App\Http\Controllers\SystemSettingsController;
 use App\Http\Controllers\SystemUsersController;
 use App\Http\Controllers\TaskController;
 use App\Http\Controllers\TaskMoveController;
+use App\Http\Controllers\TaskWatcherController;
 use App\Http\Controllers\TenantController;
 use App\Http\Controllers\TenantHrmsController;
 use App\Http\Controllers\TenantSubscriptionController;
@@ -318,6 +322,17 @@ Route::prefix('api')->group(function () {
             Route::put('projects/{project}/statuses/{status}', [StatusController::class, 'update']);
             Route::delete('projects/{project}/statuses/{status}', [StatusController::class, 'destroy']);
 
+            // Phase 7: project components & releases/versions
+            Route::get('projects/{project}/components', [ProjectComponentController::class, 'index']);
+            Route::post('projects/{project}/components', [ProjectComponentController::class, 'store']);
+            Route::put('projects/{project}/components/{component}', [ProjectComponentController::class, 'update']);
+            Route::delete('projects/{project}/components/{component}', [ProjectComponentController::class, 'destroy']);
+
+            Route::get('projects/{project}/versions', [ProjectVersionController::class, 'index']);
+            Route::post('projects/{project}/versions', [ProjectVersionController::class, 'store']);
+            Route::put('projects/{project}/versions/{version}', [ProjectVersionController::class, 'update']);
+            Route::delete('projects/{project}/versions/{version}', [ProjectVersionController::class, 'destroy']);
+
             // Phase 3: tasks. Board/list at the project index (view=board|list,
             // filters as query params); mutations gated by TaskPolicy (project-role
             // tasks.* permissions) + ProjectPolicy::createTask.
@@ -345,6 +360,11 @@ Route::prefix('api')->group(function () {
             Route::post('projects/{project}/tasks/{task}/attachments', [AttachmentController::class, 'store']);
             Route::delete('projects/{project}/tasks/{task}/attachments/{attachment}', [AttachmentController::class, 'destroy']);
 
+            // Task watchers
+            Route::get('projects/{project}/tasks/{task}/watchers', [TaskWatcherController::class, 'index']);
+            Route::post('projects/{project}/tasks/{task}/watchers', [TaskWatcherController::class, 'store']);
+            Route::delete('projects/{project}/tasks/{task}/watchers/{user?}', [TaskWatcherController::class, 'destroy']);
+
             // Activity timeline (task + project feeds).
             Route::get('projects/{project}/tasks/{task}/activities', [ActivityController::class, 'task']);
             Route::get('projects/{project}/activities', [ActivityController::class, 'project']);
@@ -365,6 +385,9 @@ Route::prefix('api')->group(function () {
             // Project-role catalog (tenant-level). Reading is open within the
             // domain so project member managers can populate a role picker.
             Route::get('project-roles', [ProjectRoleController::class, 'index']);
+
+            // Issue types catalog (tenant-level).
+            Route::get('issue-types', [IssueTypeController::class, 'index']);
         });
 
         // Phase 7: discovery + reporting on the same tenant_context scope.

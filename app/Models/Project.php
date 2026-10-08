@@ -20,6 +20,8 @@ class Project extends Model
         'key',
         'description',
         'icon',
+        'color',
+        'default_assignee_id',
         'start_date',
         'due_date',
         'last_task_sequence',
@@ -34,6 +36,21 @@ class Project extends Model
             'archived_at' => 'datetime',
             'last_task_sequence' => 'integer',
         ];
+    }
+
+    public function defaultAssignee(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'default_assignee_id');
+    }
+
+    public function components(): HasMany
+    {
+        return $this->hasMany(ProjectComponent::class);
+    }
+
+    public function versions(): HasMany
+    {
+        return $this->hasMany(ProjectVersion::class);
     }
 
     public function workspace(): BelongsTo

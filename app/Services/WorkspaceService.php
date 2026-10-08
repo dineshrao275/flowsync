@@ -41,7 +41,10 @@ class WorkspaceService
             'slug' => $slug,
             'description' => $data['description'] ?? null,
             'icon' => $data['icon'] ?? null,
+            'color' => $data['color'] ?? null,
             'timezone' => $data['timezone'] ?? null,
+            'default_assignee_id' => $data['default_assignee_id'] ?? null,
+            'settings' => $data['settings'] ?? null,
         ]);
 
         $workspace->members()->attach($creator->id, [
@@ -56,9 +59,12 @@ class WorkspaceService
     {
         $workspace->update([
             'name' => $data['name'],
-            'description' => $data['description'] ?? $workspace->description,
-            'icon' => $data['icon'] ?? $workspace->icon,
-            'timezone' => $data['timezone'] ?? $workspace->timezone,
+            'description' => array_key_exists('description', $data) ? $data['description'] : $workspace->description,
+            'icon' => array_key_exists('icon', $data) ? $data['icon'] : $workspace->icon,
+            'color' => array_key_exists('color', $data) ? $data['color'] : $workspace->color,
+            'timezone' => array_key_exists('timezone', $data) ? $data['timezone'] : $workspace->timezone,
+            'default_assignee_id' => array_key_exists('default_assignee_id', $data) ? $data['default_assignee_id'] : $workspace->default_assignee_id,
+            'settings' => array_key_exists('settings', $data) ? $data['settings'] : $workspace->settings,
         ]);
 
         return $workspace;

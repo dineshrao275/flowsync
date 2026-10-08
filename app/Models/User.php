@@ -107,6 +107,11 @@ class User extends Authenticatable
             ->withTimestamps();
     }
 
+    public function watchedTasks(): BelongsToMany
+    {
+        return $this->belongsToMany(Task::class, 'task_watchers', 'user_id', 'task_id');
+    }
+
     public function settings(): HasOne
     {
         return $this->hasOne(UserSettings::class);

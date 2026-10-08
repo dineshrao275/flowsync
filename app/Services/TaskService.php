@@ -2,9 +2,12 @@
 
 namespace App\Services;
 
+use App\Models\IssueType;
 use App\Models\Label;
 use App\Models\Priority;
 use App\Models\Project;
+use App\Models\ProjectComponent;
+use App\Models\ProjectVersion;
 use App\Models\Task;
 use App\Models\TaskStatus;
 use App\Models\User;
@@ -40,6 +43,8 @@ class TaskService
         }
 
         $key = $this->keyGenerator->nextTaskKey($project);
+        $issueType = $this->resolveIssueType($data['issue_type_id'] ?? null);
+        $version = $this->resolveVersion($project, $data['version_id'] ?? null);
 
         $task = Task::create([
             'workspace_id' => $project->workspace_id,
@@ -50,17 +55,25 @@ class TaskService
             'parent_id' => $parent?->id,
             'status_id' => $status->id,
             'priority_id' => $priority?->id,
+            'issue_type_id' => $issueType?->id,
+            'version_id' => $version?->id,
             'key' => $key[0],
             'sequence' => $key[1],
             'title' => $data['title'],
             'description' => $data['description'] ?? null,
+            'start_date' => $data['start_date'] ?? null,
             'due_date' => $data['due_date'] ?? null,
+            'story_points' => $data['story_points'] ?? null,
             'estimate_minutes' => $data['estimate_minutes'] ?? null,
             'position' => $this->nextPosition($status),
             'completed_at' => $status->is_done ? now() : null,
         ]);
 
         $task->labels()->attach($this->resolveLabels($project, $data['labels'] ?? []));
+
+        if (! empty($data['components'])) {
+            $task->components()->attach($this->resolveComponents($project, $data['components']));
+        }
 
         return $task;
     }
@@ -80,7 +93,7 @@ class TaskService
             ]);
         }
 
-        $task->update([
+        $updateData = [
             'title' => $data['title'] ?? $task->title,
             'description' => array_key_exists('description', $data) ? $data['description'] : $task->description,
             'status_id' => $status->id,
@@ -90,10 +103,29 @@ class TaskService
             'due_date' => array_key_exists('due_date', $data) ? $data['due_date'] : $task->due_date,
             'estimate_minutes' => array_key_exists('estimate_minutes', $data) ? $data['estimate_minutes'] : $task->estimate_minutes,
             'completed_at' => $status->is_done ? ($task->completed_at ?? now()) : null,
-        ]);
+        ];
 
-        if (isset($data['labels'])) {
-            $task->labels()->sync($this->resolveLabels($task->project, $data['labels']));
+        if (array_key_exists('start_date', $data)) {
+            $updateData['start_date'] = $data['start_date'];
+        }
+        if (array_key_exists('story_points', $data)) {
+            $updateData['story_points'] = $data['story_points'];
+        }
+        if (array_key_exists('issue_type_id', $data)) {
+            $updateData['issue_type_id'] = $this->resolveIssueType($data['issue_type_id'])?->id;
+        }
+        if (array_key_exists('version_id', $data)) {
+            $updateData['version_id'] = $this->resolveVersion($task->project, $data['version_id'])?->id;
+        }
+
+        $task->update($updateData);
+
+        if (array_key_exists('labels', $data)) {
+            $task->labels()->sync($this->resolveLabels($task->project, $data['labels'] ?? []));
+        }
+
+        if (array_key_exists('components', $data)) {
+            $task->components()->sync($this->resolveComponents($task->project, $data['components'] ?? []));
         }
 
         return $task->fresh();
@@ -212,6 +244,10 @@ class TaskService
         return $task->loadMissing([
             'status',
             'priority',
+            'issueType',
+            'version',
+            'components',
+            'watchers:users.id,name,email',
             'assignee',
             'reporter',
             'creator',
@@ -232,7 +268,7 @@ class TaskService
         $query = TaskScope::constrainQuery(
             Task::query()
                 ->where('tasks.project_id', $project->id)
-                ->with(['status', 'priority', 'assignee', 'labels'])
+                ->with(['status', 'priority', 'assignee', 'labels', 'issueType', 'version', 'components'])
                 ->withCount([
                     'subtasks',
                     'comments',
@@ -273,6 +309,18 @@ class TaskService
 
         if (! empty($filters['due_to'])) {
             $query->whereDate('tasks.due_date', '<=', $filters['due_to']);
+        }
+
+        if (! empty($filters['issue_type_id'])) {
+            $query->where('tasks.issue_type_id', $filters['issue_type_id']);
+        }
+
+        if (! empty($filters['version_id'])) {
+            $query->where('tasks.version_id', $filters['version_id']);
+        }
+
+        if (! empty($filters['component_id'])) {
+            $query->whereHas('components', fn (Builder $q) => $q->where('project_components.id', $filters['component_id']));
         }
 
         return $query;
@@ -478,7 +526,29 @@ class TaskService
                 'name' => $label->name,
                 'color' => $label->color,
             ])->values(),
+            'start_date' => $task->start_date?->toDateString(),
             'due_date' => $task->due_date?->toDateString(),
+            'story_points' => $task->story_points !== null ? (float) $task->story_points : null,
+            'issue_type_id' => $task->issue_type_id,
+            'issue_type' => $task->issueType ? [
+                'id' => $task->issueType->id,
+                'name' => $task->issueType->name,
+                'slug' => $task->issueType->slug,
+                'icon' => $task->issueType->icon,
+                'color' => $task->issueType->color,
+                'is_subtask' => $task->issueType->is_subtask,
+            ] : null,
+            'version_id' => $task->version_id,
+            'version' => $task->version ? [
+                'id' => $task->version->id,
+                'name' => $task->version->name,
+                'released' => $task->version->released,
+                'release_date' => $task->version->release_date?->toDateString(),
+            ] : null,
+            'components' => $task->components->map(fn (ProjectComponent $comp) => [
+                'id' => $comp->id,
+                'name' => $comp->name,
+            ])->values(),
             'estimate_minutes' => $task->estimate_minutes,
             'position' => $task->position,
             'completed_at' => $task->completed_at?->toISOString(),
@@ -489,5 +559,76 @@ class TaskService
             'attachments_count' => $task->attachments_count ?? 0,
             'open_blockers_count' => $task->open_blockers_count ?? 0,
         ];
+    }
+
+    public function addWatcher(Task $task, User $user): void
+    {
+        $task->watchers()->syncWithoutDetaching([$user->id => ['created_at' => now()]]);
+    }
+
+    public function removeWatcher(Task $task, User $user): void
+    {
+        $task->watchers()->detach($user->id);
+    }
+
+    /**
+     * @return Collection<int, User>
+     */
+    public function watchers(Task $task): Collection
+    {
+        return $task->watchers()->select(['users.id', 'users.name', 'users.email'])->get();
+    }
+
+    /**
+     * @param  array<int, mixed>  $componentIds
+     * @return list<int>
+     */
+    private function resolveComponents(Project $project, array $componentIds): array
+    {
+        $ids = collect($componentIds)->filter()->map(fn ($id) => (int) $id)->values();
+
+        $valid = $project->components()->whereIn('id', $ids)->pluck('id');
+
+        if ($valid->count() !== $ids->count()) {
+            throw ValidationException::withMessages([
+                'components' => 'One or more selected components do not belong to this project.',
+            ]);
+        }
+
+        return $valid->all();
+    }
+
+    private function resolveVersion(Project $project, $versionId): ?ProjectVersion
+    {
+        if ($versionId === null || $versionId === '') {
+            return null;
+        }
+
+        $version = $project->versions()->find($versionId);
+
+        if ($version === null) {
+            throw ValidationException::withMessages([
+                'version_id' => 'The selected version does not belong to this project.',
+            ]);
+        }
+
+        return $version;
+    }
+
+    private function resolveIssueType($issueTypeId): ?IssueType
+    {
+        if ($issueTypeId === null || $issueTypeId === '') {
+            return IssueType::where('slug', config('issue_types.default_slug', 'task'))->first();
+        }
+
+        $type = IssueType::find($issueTypeId);
+
+        if ($type === null) {
+            throw ValidationException::withMessages([
+                'issue_type_id' => 'The selected issue type does not exist.',
+            ]);
+        }
+
+        return $type;
     }
 }

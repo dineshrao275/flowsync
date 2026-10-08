@@ -31,7 +31,10 @@ class WorkspaceController extends Controller
             'slug' => ['nullable', 'string', 'max:255', 'alpha_dash'],
             'description' => ['nullable', 'string', 'max:2000'],
             'icon' => ['nullable', 'string', 'max:64'],
+            'color' => ['nullable', 'string', 'max:16'],
             'timezone' => ['nullable', 'string', 'max:64'],
+            'default_assignee_id' => ['nullable', 'integer'],
+            'settings' => ['nullable', 'array'],
         ]);
 
         $workspace = $this->service->create($data, $request->user());
@@ -59,7 +62,10 @@ class WorkspaceController extends Controller
             'name' => ['required', 'string', 'max:255'],
             'description' => ['nullable', 'string', 'max:2000'],
             'icon' => ['nullable', 'string', 'max:64'],
+            'color' => ['nullable', 'string', 'max:16'],
             'timezone' => ['nullable', 'string', 'max:64'],
+            'default_assignee_id' => ['nullable', 'integer'],
+            'settings' => ['nullable', 'array'],
         ]);
 
         $workspace = $this->service->update($workspace, $data);
@@ -107,7 +113,10 @@ class WorkspaceController extends Controller
             'slug' => $workspace->slug,
             'description' => $workspace->description,
             'icon' => $workspace->icon,
+            'color' => $workspace->color,
             'timezone' => $workspace->timezone,
+            'default_assignee_id' => $workspace->default_assignee_id,
+            'settings' => $workspace->settings,
             'archived_at' => $workspace->archived_at?->toISOString(),
             'members_count' => $workspace->members_count ?? $workspace->members()->count(),
             'projects_count' => $workspace->projects_count ?? $workspace->projects()->count(),

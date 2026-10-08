@@ -2,6 +2,7 @@
 
 namespace App\Support;
 
+use App\Models\IssueType;
 use App\Models\Permission;
 use App\Models\Priority;
 use App\Models\ProjectRole;
@@ -86,6 +87,7 @@ class TenantProvisioner
         }
 
         $this->provisionPriorities();
+        $this->provisionIssueTypes();
         $this->provisionProjectRoles();
         app(HrmsDefaultsProvisioner::class)->provision();
         $this->createAdmin($tenant, $adminRole);
@@ -105,6 +107,25 @@ class TenantProvisioner
                     'color' => $item['color'],
                     'position' => $item['position'],
                     'is_default' => $item['slug'] === $defaultSlug,
+                ]
+            );
+        }
+    }
+
+    private function provisionIssueTypes(): void
+    {
+        $types = config('issue_types.types', []);
+
+        foreach ($types as $item) {
+            IssueType::firstOrCreate(
+                ['slug' => $item['slug']],
+                [
+                    'name' => $item['name'],
+                    'description' => $item['description'] ?? null,
+                    'icon' => $item['icon'] ?? null,
+                    'color' => $item['color'] ?? null,
+                    'is_subtask' => $item['is_subtask'] ?? false,
+                    'position' => $item['position'] ?? 0,
                 ]
             );
         }

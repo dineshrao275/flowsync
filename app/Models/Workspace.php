@@ -19,15 +19,24 @@ class Workspace extends Model
         'slug',
         'description',
         'icon',
+        'color',
         'timezone',
+        'default_assignee_id',
+        'settings',
         'archived_at',
     ];
 
     protected function casts(): array
     {
         return [
+            'settings' => 'array',
             'archived_at' => 'datetime',
         ];
+    }
+
+    public function defaultAssignee(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'default_assignee_id');
     }
 
     public function creator(): BelongsTo

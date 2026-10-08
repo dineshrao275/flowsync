@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Events\TaskSynced;
+use App\Models\IssueType;
 use App\Models\Priority;
 use App\Models\Project;
 use App\Models\Task;
@@ -42,6 +43,9 @@ class TaskController extends Controller
             'priority_id' => ['nullable', 'integer'],
             'assignee_id' => ['nullable', 'integer'],
             'label_id' => ['nullable', 'integer'],
+            'issue_type_id' => ['nullable', 'integer'],
+            'version_id' => ['nullable', 'integer'],
+            'component_id' => ['nullable', 'integer'],
             'q' => ['nullable', 'string', 'max:255'],
             'due_from' => ['nullable', 'date'],
             'due_to' => ['nullable', 'date'],
@@ -90,7 +94,13 @@ class TaskController extends Controller
             'parent_id' => ['nullable', 'integer'],
             'labels' => ['nullable', 'array'],
             'labels.*' => ['integer'],
+            'start_date' => ['nullable', 'date'],
             'due_date' => ['nullable', 'date'],
+            'story_points' => ['nullable', 'numeric', 'min:0', 'max:999.99'],
+            'issue_type_id' => ['nullable', 'integer'],
+            'version_id' => ['nullable', 'integer'],
+            'components' => ['nullable', 'array'],
+            'components.*' => ['integer'],
             'estimate_minutes' => ['nullable', 'integer', 'min:0'],
         ]);
 
@@ -155,7 +165,13 @@ class TaskController extends Controller
             'parent_id' => ['nullable', 'integer'],
             'labels' => ['nullable', 'array'],
             'labels.*' => ['integer'],
+            'start_date' => ['nullable', 'date'],
             'due_date' => ['nullable', 'date'],
+            'story_points' => ['nullable', 'numeric', 'min:0', 'max:999.99'],
+            'issue_type_id' => ['nullable', 'integer'],
+            'version_id' => ['nullable', 'integer'],
+            'components' => ['nullable', 'array'],
+            'components.*' => ['integer'],
             'estimate_minutes' => ['nullable', 'integer', 'min:0'],
         ]);
 
@@ -183,7 +199,7 @@ class TaskController extends Controller
 
         $changed = array_intersect(
             array_keys($data),
-            ['title', 'description', 'status_id', 'priority_id', 'assignee_id', 'parent_id', 'due_date', 'estimate_minutes', 'labels'],
+            ['title', 'description', 'status_id', 'priority_id', 'assignee_id', 'parent_id', 'due_date', 'estimate_minutes', 'labels', 'start_date', 'story_points', 'issue_type_id', 'version_id', 'components'],
         );
 
         $this->logger->log(
@@ -225,8 +241,6 @@ class TaskController extends Controller
 
     private function filtersPayload(Project $project): array
     {
-        $priorityIds = $project->tasks()->whereNotNull('priority_id')->distinct()->pluck('priority_id');
-
         return [
             'statuses' => $project->statuses()->orderBy('position')->get()
                 ->map(fn ($s) => $this->service->presentStatus($s)),
@@ -242,6 +256,27 @@ class TaskController extends Controller
                 ->map(fn ($u) => ['id' => $u->id, 'name' => $u->name, 'email' => $u->email]),
             'labels' => $project->workspace?->labels()->orderBy('name')->get()
                 ->map(fn ($l) => ['id' => $l->id, 'name' => $l->name, 'color' => $l->color]),
+            'issue_types' => IssueType::orderBy('position')->get()
+                ->map(fn ($t) => [
+                    'id' => $t->id,
+                    'name' => $t->name,
+                    'slug' => $t->slug,
+                    'icon' => $t->icon,
+                    'color' => $t->color,
+                    'is_subtask' => $t->is_subtask,
+                ]),
+            'versions' => $project->versions()->orderBy('name')->get()
+                ->map(fn ($v) => [
+                    'id' => $v->id,
+                    'name' => $v->name,
+                    'released' => $v->released,
+                    'release_date' => $v->release_date?->toDateString(),
+                ]),
+            'components' => $project->components()->orderBy('name')->get()
+                ->map(fn ($c) => [
+                    'id' => $c->id,
+                    'name' => $c->name,
+                ]),
         ];
     }
 }
