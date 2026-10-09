@@ -2,7 +2,6 @@
 
 namespace App\Http\Requests\Hrms\Org;
 
-use App\Models\Hrms\Employee\Employee;
 use App\Services\Hrms\Org\DepartmentService;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;

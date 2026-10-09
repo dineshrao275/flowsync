@@ -4,7 +4,6 @@ namespace App\Http\Controllers;
 
 use App\Http\Controllers\Concerns\ScopesVisibleTasks;
 use App\Models\Project;
-use App\Models\Task;
 use App\Models\WorkLog;
 use App\Models\Workspace;
 use Illuminate\Database\Eloquent\Builder;

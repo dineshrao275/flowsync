@@ -2,7 +2,6 @@
 
 namespace Tests\Feature;
 
-use App\Models\Tenant;
 use App\Services\TenantLimits;
 use Tests\IsolatesDatabase;
 use Tests\TestCase;

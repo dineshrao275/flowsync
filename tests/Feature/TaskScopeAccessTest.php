@@ -2,7 +2,6 @@
 
 namespace Tests\Feature;
 
-use App\Models\Hrms\Employee\Employee;
 use App\Models\Project;
 use App\Models\ProjectRole;
 use App\Models\Role;

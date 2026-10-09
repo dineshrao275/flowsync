@@ -3,7 +3,6 @@
 namespace Tests\Feature;
 
 use App\Enums\Hrms\EmployeeStatus;
-use App\Models\Attachment;
 use App\Models\Hrms\Employee\Employee;
 use App\Models\Permission;
 use App\Models\Project;

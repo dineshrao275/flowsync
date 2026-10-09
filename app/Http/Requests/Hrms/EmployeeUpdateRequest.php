@@ -2,7 +2,6 @@
 
 namespace App\Http\Requests\Hrms;
 
-use Illuminate\Validation\Rule;
 use Illuminate\Validation\Validator;
 
 /**

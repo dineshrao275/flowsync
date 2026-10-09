@@ -2,7 +2,6 @@
 
 namespace Tests\Feature;
 
-use App\Models\Hrms\Employee\Employee;
 use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;

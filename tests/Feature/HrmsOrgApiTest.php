@@ -3,8 +3,6 @@
 namespace Tests\Feature;
 
 use App\Models\Hrms\Org\Department;
-use App\Models\Hrms\Org\Designation;
-use App\Models\Hrms\Org\Location;
 use App\Models\Permission;
 use App\Models\Role;
 use App\Models\SubscriptionPlan;
