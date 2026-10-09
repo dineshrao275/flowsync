@@ -74,12 +74,25 @@ class TenantProvisioner
         foreach (config('permissions.roles') as $slug => $role) {
             $model = Role::firstOrCreate(
                 ['slug' => $slug],
-                ['name' => $role['name']]
+                ['name' => $role['name'], 'is_system' => true]
             );
 
             $allowed = $slugsBySelector->resolve($role['permissions'], $slugsBySelector->catalog());
+            $ids = $permissions->whereIn('slug', $allowed)->pluck('id');
 
-            $model->permissions()->sync($permissions->whereIn('slug', $allowed)->pluck('id'));
+            // A role that predates the flag is a system role by slug.
+            if (! $model->is_system) {
+                $model->forceFill(['is_system' => true])->save();
+            }
+
+            // A fresh role takes the config set outright. An existing one only
+            // ever GAINS permissions here: a repair must pick up what the
+            // product adds to a default role without ever revoking what the
+            // tenant already holds (the project-role rule, applied to tenant
+            // roles — a plain sync() reverted tenant edits on every repair).
+            $model->wasRecentlyCreated
+                ? $model->permissions()->sync($ids)
+                : $model->permissions()->syncWithoutDetaching($ids);
 
             if ($slug === 'admin') {
                 $adminRole = $model;

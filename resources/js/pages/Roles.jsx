@@ -144,6 +144,32 @@ export default function Roles() {
         }
     }
 
+    function duplicate(role) {
+        setCreating(true);
+        setCreateErrors({});
+        setCreateForm({
+            name: `${role.name} (copy)`,
+            slug: `${role.slug}-copy`,
+            permissions: (role.permissions || []).map((p) => p.id),
+        });
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    async function remove(role) {
+        if (!window.confirm(`Delete the role "${role.name}"? This cannot be undone.`)) return;
+        setSavingId(role.id);
+        setError(null);
+        try {
+            await api.delete(`/roles/${role.id}`);
+            setRoles((current) => current.filter((r) => r.id !== role.id));
+            toast.success(`Role "${role.name}" deleted.`);
+        } catch (e) {
+            setError(fieldErrors(e).form || 'Failed to delete role.');
+        } finally {
+            setSavingId(null);
+        }
+    }
+
     if (loading) {
         return (
             <div className="flex justify-center py-20">
@@ -273,6 +299,9 @@ export default function Roles() {
                                     </Td>
                                     <Td>
                                         <Badge>{role.slug}</Badge>
+                                        {role.is_system && (
+                                            <span className="ml-2 text-xs text-gray-400">Built-in</span>
+                                        )}
                                     </Td>
                                     <Td>
                                         {editing ? (
@@ -312,13 +341,32 @@ export default function Roles() {
                                                     </Button>
                                                 </div>
                                             ) : (
-                                                <Button
-                                                    variant="secondary"
-                                                    size="sm"
-                                                    onClick={() => setEditingId(role.id)}
-                                                >
-                                                    Edit permissions
-                                                </Button>
+                                                <div className="flex justify-end gap-2">
+                                                    {!role.is_system && (
+                                                        <Button
+                                                            variant="secondary"
+                                                            size="sm"
+                                                            onClick={() => setEditingId(role.id)}
+                                                        >
+                                                            Edit permissions
+                                                        </Button>
+                                                    )}
+                                                    <Button variant="secondary" size="sm" onClick={() => duplicate(role)}>
+                                                        Duplicate
+                                                    </Button>
+                                                    {!role.is_system && (
+                                                        <Button
+                                                            variant="secondary"
+                                                            size="sm"
+                                                            loading={savingId === role.id}
+                                                            disabled={role.users_count > 0}
+                                                            title={role.users_count > 0 ? 'Move its members to another role first' : undefined}
+                                                            onClick={() => remove(role)}
+                                                        >
+                                                            Delete
+                                                        </Button>
+                                                    )}
+                                                </div>
                                             ))}
                                     </Td>
                                 </tr>

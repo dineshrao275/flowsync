@@ -200,6 +200,8 @@ Route::prefix('api')->group(function () {
         Route::get('roles', [RoleController::class, 'index'])->middleware('permission:roles.view');
         Route::post('roles', [RoleController::class, 'store'])->middleware('permission:roles.manage');
         Route::put('roles/{role}', [RoleController::class, 'update'])->middleware('permission:roles.manage');
+        Route::post('roles/{role}/clone', [RoleController::class, 'clone'])->middleware('permission:roles.manage');
+        Route::delete('roles/{role}', [RoleController::class, 'destroy'])->middleware('permission:roles.manage');
 
         Route::middleware('super_admin')->group(function () {
             // Phase 13: tenancy platform (central DB index across tenant DBs).

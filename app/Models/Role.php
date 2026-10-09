@@ -10,7 +10,13 @@ class Role extends Model
     protected $fillable = [
         'name',
         'slug',
+        'is_system',
     ];
+
+    protected function casts(): array
+    {
+        return ['is_system' => 'boolean'];
+    }
 
     public function permissions(): BelongsToMany
     {
