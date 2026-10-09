@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Controllers\Concerns\AuditsTenantAdminActions;
 use App\Models\Role;
 use App\Models\TenantUserRouting;
 use App\Models\User;
@@ -18,6 +19,8 @@ use Illuminate\Validation\ValidationException;
 
 class UserController extends Controller
 {
+    use AuditsTenantAdminActions;
+
     /**
      * The role a user must hold to be eligible as the tenant's default user.
      */
@@ -70,6 +73,10 @@ class UserController extends Controller
 
         $user->roles()->sync($roles);
 
+        $this->auditTenantAdmin($request, 'user.created', 'users', $user->id, null, [
+            'roles' => $user->roles()->pluck('slug')->sort()->values()->all(),
+        ]);
+
         // The central login-routing index is what resolves this email to a
         // tenant database at login time; without this row the account exists
         // but can never authenticate (see `AuthController::loginIsolated`).
@@ -113,7 +120,14 @@ class UserController extends Controller
             ]);
         }
 
+        $before = ['roles' => $user->roles()->pluck('slug')->sort()->values()->all()];
+
         $user->roles()->sync($roles);
+
+        $after = ['roles' => $user->roles()->pluck('slug')->sort()->values()->all()];
+        if ($before !== $after) {
+            $this->auditTenantAdmin($request, 'user.roles_changed', 'users', $user->id, $before, $after);
+        }
 
         return response()->json([
             'message' => 'Roles updated.',

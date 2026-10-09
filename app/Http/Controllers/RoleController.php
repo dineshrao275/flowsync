@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Controllers\Concerns\AuditsTenantAdminActions;
 use App\Models\Permission;
 use App\Models\Role;
 use App\Support\GrantCeiling;
@@ -11,6 +12,8 @@ use Illuminate\Validation\Rule;
 
 class RoleController extends Controller
 {
+    use AuditsTenantAdminActions;
+
     public function index(Request $request): JsonResponse
     {
         return response()->json([
@@ -40,6 +43,8 @@ class RoleController extends Controller
         ]);
         $role->permissions()->sync($permissionIds);
 
+        $this->auditTenantAdmin($request, 'role.created', 'roles', $role->id, null, $this->snapshot($role), ['role' => $role->slug]);
+
         return response()->json([
             'message' => 'Role created.',
             'role' => $role->load('permissions:id,slug,name'),
@@ -63,13 +68,29 @@ class RoleController extends Controller
             $role->permissions()->pluck('permissions.id'),
         );
 
+        $before = $this->snapshot($role);
+
         $role->update(['name' => $data['name']]);
         $role->permissions()->sync($permissionIds);
+
+        $after = $this->snapshot($role);
+        if ($before !== $after) {
+            $this->auditTenantAdmin($request, 'role.updated', 'roles', $role->id, $before, $after, ['role' => $role->slug]);
+        }
 
         return response()->json([
             'message' => 'Role updated.',
             'role' => $role->load('permissions:id,slug,name'),
         ]);
+    }
+
+    /** @return array{name: string, permissions: list<string>} */
+    private function snapshot(Role $role): array
+    {
+        return [
+            'name' => $role->name,
+            'permissions' => $role->permissions()->pluck('slug')->sort()->values()->all(),
+        ];
     }
 
     private function resolvePermissionIds(array $ids): array
