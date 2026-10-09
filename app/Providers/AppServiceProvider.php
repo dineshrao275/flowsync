@@ -4,9 +4,11 @@ namespace App\Providers;
 
 use App\Billing\PaymentResolver;
 use App\Billing\PaymentService;
+use App\Contracts\Notifications\NotificationSender;
 use App\Http\Middleware\EnsurePermission;
 use App\Listeners\SwitchesTenantConnectionForQueuedJobs;
 use App\Models\User;
+use App\Services\Notifications\NotificationDispatcher;
 use App\Services\ReportsTo;
 use App\Services\TenantLimits;
 use App\Support\TenantContext;
@@ -36,6 +38,7 @@ class AppServiceProvider extends ServiceProvider
             return new PaymentResolver(config('payments', []));
         });
         $this->app->singleton(PaymentService::class);
+        $this->app->bind(NotificationSender::class, NotificationDispatcher::class);
     }
 
     /**
