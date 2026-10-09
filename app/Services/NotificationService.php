@@ -111,8 +111,9 @@ class NotificationService
             ->values();
 
         $primaryNotification = null;
+        $recipients = $this->usersById($recipientIds);
         foreach ($recipientIds as $recipientId) {
-            $recipient = User::find((int) $recipientId);
+            $recipient = $recipients->get((int) $recipientId);
 
             if ($recipient === null) {
                 continue;
@@ -157,8 +158,9 @@ class NotificationService
             ->values();
 
         $sent = [];
+        $recipients = $this->usersById($recipientIds);
         foreach ($recipientIds as $recipientId) {
-            $recipient = User::find((int) $recipientId);
+            $recipient = $recipients->get((int) $recipientId);
 
             if ($recipient === null) {
                 continue;
@@ -197,8 +199,9 @@ class NotificationService
         }
 
         $primaryNotification = null;
+        $recipients = $this->usersById($recipientIds);
         foreach ($recipientIds as $recipientId) {
-            $recipient = User::find((int) $recipientId);
+            $recipient = $recipients->get((int) $recipientId);
 
             if ($recipient === null) {
                 continue;
@@ -250,8 +253,9 @@ class NotificationService
 
         $sent = [];
 
+        $recipients = $this->usersById($recipientIds);
         foreach ($recipientIds as $recipientId) {
-            $recipient = User::find($recipientId);
+            $recipient = $recipients->get((int) $recipientId);
 
             if ($recipient === null || ($actor !== null && (int) $recipient->id === (int) $actor->id)) {
                 continue;
@@ -312,8 +316,9 @@ class NotificationService
 
         $sent = [];
 
+        $recipients = $this->usersById($recipientIds);
         foreach ($recipientIds as $recipientId) {
-            $recipient = User::find($recipientId);
+            $recipient = $recipients->get((int) $recipientId);
 
             if ($recipient === null || ($actor !== null && (int) $recipient->id === (int) $actor->id)) {
                 continue;
@@ -378,8 +383,10 @@ class NotificationService
         }
 
         $sent = [];
-        foreach ($recipientIds->unique()->reject(fn ($id) => $actor !== null && (int) $id === $actor->id)->values() as $recipientId) {
-            $recipient = User::find((int) $recipientId);
+        $loopIds = $recipientIds->unique()->reject(fn ($id) => $actor !== null && (int) $id === $actor->id)->values();
+        $recipients = $this->usersById($loopIds);
+        foreach ($loopIds as $recipientId) {
+            $recipient = $recipients->get((int) $recipientId);
 
             if ($recipient === null) {
                 continue;
@@ -453,8 +460,9 @@ class NotificationService
 
         $sent = [];
 
+        $recipients = $this->usersById($recipientIds);
         foreach ($recipientIds as $recipientId) {
-            $recipient = User::find($recipientId);
+            $recipient = $recipients->get((int) $recipientId);
 
             if ($recipient === null || ($actor !== null && (int) $recipient->id === (int) $actor->id)) {
                 continue;
@@ -530,8 +538,9 @@ class NotificationService
 
         $sent = [];
 
+        $recipients = $this->usersById($userIds);
         foreach ($userIds as $userId) {
-            $recipient = User::find((int) $userId);
+            $recipient = $recipients->get((int) $userId);
 
             if ($recipient === null || ($actor !== null && (int) $recipient->id === (int) $actor->id)) {
                 continue;
@@ -629,8 +638,10 @@ class NotificationService
 
         $recipientIds = $recipientIds->concat($this->usersWith('hrms.assets.manage'));
 
-        foreach ($recipientIds->unique()->reject(fn ($id) => $actor !== null && (int) $id === $actor->id)->values() as $recipientId) {
-            $recipient = User::find((int) $recipientId);
+        $loopIds = $recipientIds->unique()->reject(fn ($id) => $actor !== null && (int) $id === $actor->id)->values();
+        $recipients = $this->usersById($loopIds);
+        foreach ($loopIds as $recipientId) {
+            $recipient = $recipients->get((int) $recipientId);
 
             if ($recipient === null) {
                 continue;
@@ -653,8 +664,9 @@ class NotificationService
             ? [(int) $assignment->assigned_by_user_id]
             : $this->usersWith('hrms.assets.manage');
 
+        $recipients = $this->usersById($recipientIds);
         foreach ($recipientIds as $recipientId) {
-            $recipient = User::find($recipientId);
+            $recipient = $recipients->get((int) $recipientId);
 
             if ($recipient === null || ($actor !== null && (int) $recipient->id === (int) $actor->id)) {
                 continue;
@@ -719,8 +731,10 @@ class NotificationService
     {
         $sent = [];
 
-        foreach ($this->usersWith('hrms.offboarding.manage') as $recipientId) {
-            $recipient = User::find($recipientId);
+        $loopIds = $this->usersWith('hrms.offboarding.manage');
+        $recipients = $this->usersById($loopIds);
+        foreach ($loopIds as $recipientId) {
+            $recipient = $recipients->get((int) $recipientId);
 
             if ($recipient === null || ($actor !== null && (int) $recipient->id === (int) $actor->id)) {
                 continue;
@@ -751,8 +765,9 @@ class NotificationService
 
         $sent = [];
 
+        $recipients = $this->usersById($userIds);
         foreach ($userIds as $userId) {
-            $recipient = User::find((int) $userId);
+            $recipient = $recipients->get((int) $userId);
 
             if ($recipient === null || ($actor !== null && (int) $recipient->id === (int) $actor->id)) {
                 continue;
@@ -791,6 +806,19 @@ class NotificationService
             'performance_cycle_id' => $review->cycle_id,
             'cycle_name' => $review->cycle?->name,
         ], $actor);
+    }
+
+    /**
+     * One query for a whole recipient set instead of a find() per recipient.
+     *
+     * @param  iterable<int|string>  $ids
+     * @return Collection<int, User>
+     */
+    private function usersById(iterable $ids): Collection
+    {
+        $ids = collect($ids)->map(fn ($id) => (int) $id)->filter()->unique()->values();
+
+        return $ids->isEmpty() ? collect() : User::whereIn('id', $ids)->get()->keyBy('id');
     }
 
     /**
