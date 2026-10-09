@@ -42,6 +42,13 @@ class TmsExpansionTest extends TestCase
         return User::where('email', 'editor@flowsync.test')->first();
     }
 
+    private function viewer(): User
+    {
+        $this->connectTenant('acme');
+
+        return User::where('email', 'viewer@flowsync.test')->first();
+    }
+
     private function makeWorkspace(string $name = 'TMS WS'): Workspace
     {
         $ws = Workspace::create([
@@ -339,5 +346,129 @@ class TmsExpansionTest extends TestCase
             'task_id' => $task->id,
             'user_id' => $this->admin()->id,
         ]);
+    }
+
+    public function test_issue_types_crud_and_permissions(): void
+    {
+        // 1. Editor without workspaces.manage is forbidden from creating/updating/deleting issue types
+        $this->login('editor@flowsync.test');
+        $this->postJson('/api/issue-types', [
+            'name' => 'Security Finding',
+        ])->assertForbidden();
+
+        // 2. Admin can create an issue type
+        $this->login('admin@flowsync.test');
+        $createRes = $this->postJson('/api/issue-types', [
+            'name' => 'Security Finding',
+            'description' => 'Vulnerability or security issue',
+            'color' => '#dc2626',
+            'icon' => 'shield-exclamation',
+            'is_subtask' => false,
+        ])->assertCreated();
+
+        $typeId = $createRes->json('issue_type.id');
+        $this->assertEquals('Security Finding', $createRes->json('issue_type.name'));
+        $this->assertEquals('security-finding', $createRes->json('issue_type.slug'));
+
+        // 3. Duplicate name fails with 422
+        $this->postJson('/api/issue-types', [
+            'name' => 'Security Finding',
+        ])->assertStatus(422)->assertJsonValidationErrors('name');
+
+        // 4. Update issue type
+        $this->putJson("/api/issue-types/{$typeId}", [
+            'name' => 'Vulnerability',
+            'color' => '#b91c1c',
+        ])->assertOk();
+
+        $this->assertDatabaseHas('issue_types', [
+            'id' => $typeId,
+            'name' => 'Vulnerability',
+            'slug' => 'vulnerability',
+            'color' => '#b91c1c',
+        ]);
+
+        // 5. Delete issue type assigned to a task fails with 422
+        $ws = $this->makeWorkspace();
+        $project = $this->makeProject($ws, 'Sec Prj', 'SEC');
+        $task = Task::create([
+            'workspace_id' => $ws->id,
+            'project_id' => $project->id,
+            'created_by' => $this->admin()->id,
+            'reporter_id' => $this->admin()->id,
+            'status_id' => $project->statuses()->first()->id,
+            'issue_type_id' => $typeId,
+            'key' => 'SEC-1',
+            'sequence' => 1,
+            'title' => 'SQL injection risk',
+            'position' => 1,
+        ]);
+
+        $this->deleteJson("/api/issue-types/{$typeId}")
+            ->assertStatus(422)
+            ->assertJsonValidationErrors('form');
+
+        // 6. Delete after unassigning succeeds
+        $task->update(['issue_type_id' => null]);
+        $this->deleteJson("/api/issue-types/{$typeId}")->assertOk();
+        $this->assertDatabaseMissing('issue_types', ['id' => $typeId]);
+    }
+
+    public function test_watchers_present_and_notifications_fanout(): void
+    {
+        $this->login('admin@flowsync.test');
+        $ws = $this->makeWorkspace();
+        $project = $this->makeProject($ws, 'Notify Prj', 'NOT');
+
+        $viewerRole = ProjectRole::where('slug', 'viewer')->first();
+        $project->members()->attach($this->viewer()->id, ['project_role_id' => $viewerRole->id]);
+
+        $todoStatus = $project->statuses()->first();
+        $doneStatus = $project->statuses()->where('is_done', true)->first();
+
+        // Create task assigned to editor, reporter is admin
+        $task = Task::create([
+            'workspace_id' => $ws->id,
+            'project_id' => $project->id,
+            'created_by' => $this->admin()->id,
+            'reporter_id' => $this->admin()->id,
+            'assignee_id' => $this->editor()->id,
+            'status_id' => $todoStatus->id,
+            'key' => 'NOT-1',
+            'sequence' => 1,
+            'title' => 'Notification test task',
+            'position' => 1,
+        ]);
+
+        // Viewer watches the task
+        $task->watchers()->attach($this->viewer()->id, ['created_at' => now()]);
+
+        // 1. Show task emits watchers array
+        $showRes = $this->getJson("/api/projects/{$project->id}/tasks/{$task->id}")->assertOk();
+        $this->assertArrayHasKey('watchers', $showRes->json('task'));
+        $this->assertCount(1, $showRes->json('task.watchers'));
+        $this->assertEquals($this->viewer()->id, $showRes->json('task.watchers.0.id'));
+
+        // 2. Status change notifies both assignee AND watcher (excluding admin who moved it)
+        $this->putJson("/api/projects/{$project->id}/tasks/{$task->id}", [
+            'status_id' => $doneStatus->id,
+        ])->assertOk();
+
+        $this->login('viewer@flowsync.test');
+        $notifs = $this->getJson('/api/notifications')->assertOk();
+        $types = collect($notifs->json('notifications'))->pluck('type')->all();
+        $this->assertContains('task.status_changed', $types);
+
+        // 3. Comment notifies assignee, reporter, and watcher (deduped)
+        $this->login('admin@flowsync.test');
+        $this->postJson("/api/projects/{$project->id}/tasks/{$task->id}/comments", [
+            'comment' => 'Check the release status please.',
+        ])->assertCreated();
+
+        $this->login('viewer@flowsync.test');
+        $notifsAfterComment = $this->getJson('/api/notifications')->assertOk();
+        $commentNotifs = collect($notifsAfterComment->json('notifications'))
+            ->where('type', 'task.commented');
+        $this->assertCount(1, $commentNotifs);
     }
 }

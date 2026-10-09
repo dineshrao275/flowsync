@@ -268,7 +268,7 @@ class TaskService
         $query = TaskScope::constrainQuery(
             Task::query()
                 ->where('tasks.project_id', $project->id)
-                ->with(['status', 'priority', 'assignee', 'labels', 'issueType', 'version', 'components'])
+                ->with(['status', 'priority', 'assignee', 'labels', 'issueType', 'version', 'components', 'watchers:users.id,name,email'])
                 ->withCount([
                     'subtasks',
                     'comments',
@@ -548,6 +548,11 @@ class TaskService
             'components' => $task->components->map(fn (ProjectComponent $comp) => [
                 'id' => $comp->id,
                 'name' => $comp->name,
+            ])->values(),
+            'watchers' => ($task->relationLoaded('watchers') ? $task->watchers : $task->watchers()->select(['users.id', 'users.name', 'users.email'])->get())->map(fn (User $user) => [
+                'id' => $user->id,
+                'name' => $user->name,
+                'email' => $user->email,
             ])->values(),
             'estimate_minutes' => $task->estimate_minutes,
             'position' => $task->position,

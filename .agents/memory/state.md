@@ -5,7 +5,7 @@
 
 ## Current
 
-- Date: 2026-10-09 · Branch: `development` · Gate: **1570 tests / 8072 assertions** (single full-suite run 2026-10-09, commits `5bdfc4d` + `5cf686a` + `2c71776` — audit/leaver-auth Top-10 rows 3+4: login/logout audit + masked before/after diffs, block exited/terminated sign-in, SQL-paginated full audit trail + CSV export; previous gate 1546/7952 = §F scheduler wiring + docs-truth pass; before that 1535/7882 = Phase 7 TMS expansion complete: workspace & project metadata expansion, project components CRUD with uniqueness, project versions/releases CRUD with uniqueness, issue types catalog & provisioning, task start dates, story points, issue type & version associations, component tagging, task watchers lifecycle, and filtering; Phase 6 HRMS residual behavior & UX complete; Phase 5 performance follow-ups complete; Phase 4 operations & readiness complete; Phase 3 subscription lifecycle complete; Phase 1 residuals complete).
+- Date: 2026-10-09 · Branch: `development` · Gate: **1572 tests / 8115 assertions** (focused runs on 2026-10-09 — TMS expansion completion H-4/H-5/H-6: watchers fan-out on notifications & emission in present & UI, issue-type CRUD routes & ProjectDetail card, SPA surfacing in CreateTaskModal/TaskDetail/FiltersBar/TaskCard/TaskTable; previous gate 1570/8072 = audit/leaver-auth Top-10 rows 3+4; before that 1546/7952 = §F scheduler wiring + docs-truth pass; before that 1535/7882 = Phase 7 TMS expansion; Phase 6 HRMS residual behavior & UX complete; Phase 5 performance follow-ups complete; Phase 4 operations & readiness complete; Phase 3 subscription lifecycle complete; Phase 1 residuals complete).
 
 ## Shipped vs missing (against the 8-phase roadmap)
 
@@ -264,3 +264,8 @@
   `AuditFeedTest` (7). Full-suite gate: **1570 tests / 8072 assertions green** (single
   `php artisan test`, 5663s); `npm run build` + pint clean. Tenant-configurable exit grace
   deliberately deferred.
+- 2026-10-09 — TMS expansion completion (Top-10 row 6: H-4, H-5, H-6) shipped:
+  - H-4 (G-2a): `NotificationService` adds watchers as recipients in `taskStatusChanged`, `taskCommented`, and `taskUnblocked` (deduped vs assignee/reporter/mentions, actor excluded); `TaskService::present()` emits `watchers` list (`TaskService::filteredQuery` eager-loads `watchers:users.id,name,email`); `TaskDetail.jsx` renders watcher list, self-watch toggle ("Watch" / "Watching"), and member picker to add watchers.
+  - H-5 (G-2b): SPA surfaces expanded TMS attributes: `start_date`, `story_points`, `issue_type_id`, `version_id`, and `components` multi-select in `CreateTaskModal.jsx` and `TaskDetail.jsx`; `FiltersBar.jsx` binds `issue_types`, `versions`, and `components` dropdowns populated from project metadata; `TaskCard.jsx` and `TaskTable.jsx` display issue-type color badges, story points, and component/version chips.
+  - H-6 (G-3a): `IssueTypeController` implements full HTTP CRUD (`index`, `store`, `update`, `destroy`) with uniqueness validation and delete safety check (blocking deletion when tasks are assigned to the type); `routes/web.php` routes `POST`, `PUT`, `DELETE /api/issue-types` gated by `permission:workspaces.manage`; `ProjectDetail.jsx` Workflow tab gains an interactive Issue Types management card (add, rename, recolor, delete).
+  - Gates: `TmsExpansionTest` (8 tests, 109 assertions), `NotificationTest` (10 tests, 53 assertions), `HrmsShellTest` (22 tests, 249 assertions) passing. Vite build clean; Pint clean. Test gate now **1572 tests / 8115 assertions**.

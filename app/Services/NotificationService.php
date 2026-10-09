@@ -99,22 +99,42 @@ class NotificationService
 
     public function taskStatusChanged(User $actor, Task $task, string $fromStatus, string $toStatus): ?UserNotification
     {
-        $assignee = $task->assignee;
+        $watcherIds = $task->relationLoaded('watchers')
+            ? $task->watchers->pluck('id')
+            : $task->watchers()->pluck('users.id');
 
-        if ($assignee === null || $assignee->id === $actor->id) {
-            return null;
+        $recipientIds = collect([$task->assignee_id])
+            ->filter()
+            ->concat($watcherIds)
+            ->unique()
+            ->reject(fn ($id) => (int) $id === $actor->id)
+            ->values();
+
+        $primaryNotification = null;
+        foreach ($recipientIds as $recipientId) {
+            $recipient = User::find((int) $recipientId);
+
+            if ($recipient === null) {
+                continue;
+            }
+
+            $notification = $this->notify($recipient, 'task.status_changed', array_merge($this->taskPayload($task), [
+                'from_status' => $fromStatus,
+                'to_status' => $toStatus,
+            ]), $actor);
+
+            if ($primaryNotification === null || (int) $recipientId === (int) $task->assignee_id) {
+                $primaryNotification = $notification;
+            }
         }
 
-        return $this->notify($assignee, 'task.status_changed', array_merge($this->taskPayload($task), [
-            'from_status' => $fromStatus,
-            'to_status' => $toStatus,
-        ]), $actor);
+        return $primaryNotification;
     }
 
     /**
-     * Notifies the task assignee/reporter plus any @mentioned users
-     * (excluding the acting user). Mentions beyond the per-comment cap are
-     * dropped and `truncated` comes back true so the client can warn the
+     * Notifies the task assignee/reporter, task watchers, plus any @mentioned
+     * users (excluding the acting user). Mentions beyond the per-comment cap
+     * are dropped and `truncated` comes back true so the client can warn the
      * author. Returns the notifications created alongside the flag.
      *
      * @return array{notifications: list<UserNotification>, truncated: bool}
@@ -124,8 +144,13 @@ class NotificationService
         $mentioned = $this->mentionUsers($comment->comment)->pluck('id');
         $truncated = $mentioned->count() > TaskNotificationMail::MAX_MENTIONS_PER_COMMENT;
 
+        $watcherIds = $task->relationLoaded('watchers')
+            ? $task->watchers->pluck('id')
+            : $task->watchers()->pluck('users.id');
+
         $recipientIds = collect([$task->assignee_id, $task->reporter_id])
             ->filter()
+            ->concat($watcherIds)
             ->concat($mentioned->take(TaskNotificationMail::MAX_MENTIONS_PER_COMMENT))
             ->unique()
             ->reject(fn ($id) => (int) $id === $actor->id)
@@ -150,11 +175,16 @@ class NotificationService
 
     public function taskUnblocked(User $actor, Task $task, ?Task $blocker = null): ?UserNotification
     {
-        $assignee = $task->assignee;
+        $watcherIds = $task->relationLoaded('watchers')
+            ? $task->watchers->pluck('id')
+            : $task->watchers()->pluck('users.id');
 
-        if ($assignee === null || $assignee->id === $actor->id) {
-            return null;
-        }
+        $recipientIds = collect([$task->assignee_id])
+            ->filter()
+            ->concat($watcherIds)
+            ->unique()
+            ->reject(fn ($id) => (int) $id === $actor->id)
+            ->values();
 
         $data = $this->taskPayload($task);
 
@@ -166,7 +196,22 @@ class NotificationService
             ];
         }
 
-        return $this->notify($assignee, 'task.unblocked', $data, $actor);
+        $primaryNotification = null;
+        foreach ($recipientIds as $recipientId) {
+            $recipient = User::find((int) $recipientId);
+
+            if ($recipient === null) {
+                continue;
+            }
+
+            $notification = $this->notify($recipient, 'task.unblocked', $data, $actor);
+
+            if ($primaryNotification === null || (int) $recipientId === (int) $task->assignee_id) {
+                $primaryNotification = $notification;
+            }
+        }
+
+        return $primaryNotification;
     }
 
     public function workLogAdded(User $actor, Task $task, WorkLog $log): ?UserNotification

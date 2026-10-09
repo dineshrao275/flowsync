@@ -11,12 +11,17 @@ export default function CreateTaskModal({ options, topLevelTasks, projectKey, sa
     const [form, setForm] = useState({
         title: '',
         description: '',
+        issue_type_id: options.issue_types?.find((t) => !t.is_subtask)?.id ?? options.issue_types?.[0]?.id ?? '',
+        version_id: '',
+        components: [],
         status_id: options.statuses.find((s) => s.is_default)?.id ?? options.statuses[0]?.id ?? '',
         priority_id: options.priorities.find((p) => p.is_default)?.id ?? '',
         assignee_id: '',
         parent_id: '',
         labels: [],
+        start_date: '',
         due_date: '',
+        story_points: '',
         estimate_minutes: '',
     });
     const [errors, setErrors] = useState({});
@@ -32,14 +37,26 @@ export default function CreateTaskModal({ options, topLevelTasks, projectKey, sa
         }));
     }
 
+    function toggleComponent(id) {
+        setForm((f) => ({
+            ...f,
+            components: f.components.includes(id) ? f.components.filter((c) => c !== id) : [...f.components, id],
+        }));
+    }
+
     function submit(e) {
         e.preventDefault();
         setErrors({});
         onCreate({
             ...form,
+            issue_type_id: form.issue_type_id || null,
+            version_id: form.version_id || null,
+            components: form.components,
             assignee_id: form.assignee_id || null,
             parent_id: form.parent_id || null,
+            start_date: form.start_date || null,
             due_date: form.due_date || null,
+            story_points: form.story_points === '' ? null : Number(form.story_points),
             estimate_minutes: form.estimate_minutes === '' ? null : Number(form.estimate_minutes),
             labels: form.labels,
         }).catch((err) => setErrors(fieldErrors(err)));
@@ -59,6 +76,39 @@ export default function CreateTaskModal({ options, topLevelTasks, projectKey, sa
                     required
                     autoFocus
                 />
+                <div className="grid gap-4 sm:grid-cols-2">
+                    {options.issue_types?.length > 0 && (
+                        <Select
+                            label="Issue Type"
+                            value={form.issue_type_id}
+                            onChange={(e) => set('issue_type_id', e.target.value)}
+                            error={errors.issue_type_id}
+                        >
+                            {options.issue_types.map((t) => (
+                                <option key={t.id} value={t.id}>
+                                    {t.name}
+                                </option>
+                            ))}
+                        </Select>
+                    )}
+                    {options.versions?.length > 0 ? (
+                        <Select
+                            label="Version"
+                            value={form.version_id}
+                            onChange={(e) => set('version_id', e.target.value)}
+                            error={errors.version_id}
+                        >
+                            <option value="">No version</option>
+                            {options.versions.map((v) => (
+                                <option key={v.id} value={v.id}>
+                                    {v.name}
+                                </option>
+                            ))}
+                        </Select>
+                    ) : (
+                        <div />
+                    )}
+                </div>
                 <div className="grid gap-4 sm:grid-cols-2">
                     <Select
                         label="Status"
@@ -124,6 +174,28 @@ export default function CreateTaskModal({ options, topLevelTasks, projectKey, sa
                         placeholder="Context, acceptance criteria…"
                     />
                 </div>
+                {options.components?.length > 0 && (
+                    <div>
+                        <label className="mb-1.5 block text-sm font-medium text-gray-700">Components</label>
+                        <div className="flex flex-wrap gap-2">
+                            {options.components.map((comp) => (
+                                <button
+                                    key={comp.id}
+                                    type="button"
+                                    onClick={() => toggleComponent(comp.id)}
+                                    className={`rounded-md px-2.5 py-1 text-xs font-medium transition ${
+                                        form.components.includes(comp.id)
+                                            ? 'bg-indigo-600 text-white'
+                                            : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                                    }`}
+                                >
+                                    {comp.name}
+                                </button>
+                            ))}
+                        </div>
+                        {errors.components && <p className="mt-1.5 text-sm text-red-600">{errors.components}</p>}
+                    </div>
+                )}
                 {options.labels?.length > 0 && (
                     <div>
                         <label className="mb-1.5 block text-sm font-medium text-gray-700">Labels</label>
@@ -148,10 +220,30 @@ export default function CreateTaskModal({ options, topLevelTasks, projectKey, sa
                 )}
                 <div className="grid gap-4 sm:grid-cols-2">
                     <Input
+                        label="Start date"
+                        type="date"
+                        value={form.start_date}
+                        onChange={(e) => set('start_date', e.target.value)}
+                        error={errors.start_date}
+                    />
+                    <Input
                         label="Due date"
                         type="date"
                         value={form.due_date}
                         onChange={(e) => set('due_date', e.target.value)}
+                        error={errors.due_date}
+                    />
+                </div>
+                <div className="grid gap-4 sm:grid-cols-2">
+                    <Input
+                        label="Story points"
+                        type="number"
+                        step="any"
+                        min="0"
+                        placeholder="e.g. 3 or 5.5"
+                        value={form.story_points}
+                        onChange={(e) => set('story_points', e.target.value)}
+                        error={errors.story_points}
                     />
                     <Input
                         label="Estimate (minutes)"
@@ -159,6 +251,7 @@ export default function CreateTaskModal({ options, topLevelTasks, projectKey, sa
                         min="0"
                         value={form.estimate_minutes}
                         onChange={(e) => set('estimate_minutes', e.target.value)}
+                        error={errors.estimate_minutes}
                     />
                 </div>
                 <div className="flex justify-end gap-2 pt-2">

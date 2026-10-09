@@ -406,6 +406,10 @@ Route::prefix('api')->group(function () {
         Route::post('project-roles', [ProjectRoleController::class, 'store'])->middleware('permission:roles.manage');
         Route::put('project-roles/{role}', [ProjectRoleController::class, 'update'])->middleware('permission:roles.manage');
         Route::delete('project-roles/{role}', [ProjectRoleController::class, 'destroy'])->middleware('permission:roles.manage');
+
+        Route::post('issue-types', [IssueTypeController::class, 'store'])->middleware('permission:workspaces.manage');
+        Route::put('issue-types/{issueType}', [IssueTypeController::class, 'update'])->middleware('permission:workspaces.manage');
+        Route::delete('issue-types/{issueType}', [IssueTypeController::class, 'destroy'])->middleware('permission:workspaces.manage');
     });
 
     // HRMS tenant scope. Every HRMS surface below runs the FULL domain stack

@@ -81,6 +81,10 @@ export default function ProjectDetail() {
 
     const [memberForm, setMemberForm] = useState({ user_id: '', role_id: '' });
     const [statusForm, setStatusForm] = useState({ name: '', category: 'todo', color: DEFAULT_COLORS[0] });
+    const [issueTypes, setIssueTypes] = useState([]);
+    const [issueTypeForm, setIssueTypeForm] = useState({ name: '', description: '', color: '#3b82f6', is_subtask: false });
+    const [savingIssueType, setSavingIssueType] = useState(false);
+    const [issueTypeErrors, setIssueTypeErrors] = useState({});
     const [formErrors, setFormErrors] = useState({});
     const [savingMember, setSavingMember] = useState(false);
     const [savingStatus, setSavingStatus] = useState(false);
@@ -121,14 +125,16 @@ export default function ProjectDetail() {
             api.get(`/projects/${projectId}/members`),
             api.get(`/projects/${projectId}/statuses`),
             api.get('/project-roles'),
+            api.get('/issue-types'),
             can('users.view') ? api.get('/users') : Promise.resolve({ data: { users: [] } }),
         ])
-            .then(([proj, mem, st, ro, users]) => {
+            .then(([proj, mem, st, ro, it, users]) => {
                 if (!active) return;
                 setProject(proj.data.project);
                 setMembers(mem.data.members);
                 setStatuses(st.data.statuses);
                 setRoles(ro.data.roles);
+                setIssueTypes(it.data.issue_types);
                 setCandidateUsers(
                     users.data.users.filter((u) => !mem.data.members.some((m) => m.id === u.id)),
                 );
@@ -499,6 +505,53 @@ export default function ProjectDetail() {
             toast.success('Status deleted.');
         } catch (e) {
             toast.error(fieldErrors(e).form || 'Could not delete status.');
+        }
+    }
+
+    async function loadIssueTypes() {
+        try {
+            const { data } = await api.get('/issue-types');
+            setIssueTypes(data.issue_types);
+            setTaskOptions((opts) => ({ ...opts, issue_types: data.issue_types }));
+        } catch {
+            // ignore
+        }
+    }
+
+    async function addIssueType(e) {
+        e.preventDefault();
+        setSavingIssueType(true);
+        setIssueTypeErrors({});
+        try {
+            await api.post('/issue-types', issueTypeForm);
+            await loadIssueTypes();
+            setIssueTypeForm({ name: '', description: '', color: '#3b82f6', is_subtask: false });
+            toast.success('Issue type created.');
+        } catch (e) {
+            setIssueTypeErrors(fieldErrors(e));
+        } finally {
+            setSavingIssueType(false);
+        }
+    }
+
+    async function updateIssueType(type, fields) {
+        try {
+            await api.put(`/issue-types/${type.id}`, fields);
+            await loadIssueTypes();
+            toast.success('Issue type updated.');
+        } catch (e) {
+            toast.error(fieldErrors(e).name || fieldErrors(e).form || 'Could not update issue type.');
+        }
+    }
+
+    async function deleteIssueType(type) {
+        if (!window.confirm(`Delete issue type "${type.name}"?`)) return;
+        try {
+            await api.delete(`/issue-types/${type.id}`);
+            await loadIssueTypes();
+            toast.success('Issue type deleted.');
+        } catch (e) {
+            toast.error(fieldErrors(e).form || 'Could not delete issue type.');
         }
     }
 
@@ -884,6 +937,106 @@ export default function ProjectDetail() {
                                 </li>
                             ))}
                         </ol>
+                    </Card>
+
+                    <Card title="Issue types" subtitle="Tenant-level issue types available across projects.">
+                        {can('workspaces.manage') && (
+                            <form onSubmit={addIssueType} className="mb-6 flex flex-col gap-3 rounded-lg border border-gray-100 bg-gray-50/50 p-4 sm:flex-row sm:items-end">
+                                <div className="flex-1">
+                                    <Input
+                                        label="Name"
+                                        placeholder="e.g. Incident, Improvement"
+                                        value={issueTypeForm.name}
+                                        onChange={(e) => setIssueTypeForm((f) => ({ ...f, name: e.target.value }))}
+                                        error={issueTypeErrors.name}
+                                        required
+                                    />
+                                </div>
+                                <div className="flex-1">
+                                    <Input
+                                        label="Description"
+                                        placeholder="Optional description"
+                                        value={issueTypeForm.description}
+                                        onChange={(e) => setIssueTypeForm((f) => ({ ...f, description: e.target.value }))}
+                                    />
+                                </div>
+                                <div>
+                                    <label className="mb-1.5 block text-sm font-medium text-gray-700">Color</label>
+                                    <input
+                                        type="color"
+                                        className="h-[42px] w-16 rounded-lg border border-gray-300 bg-white p-1 shadow-sm focus:outline-none"
+                                        value={issueTypeForm.color}
+                                        onChange={(e) => setIssueTypeForm((f) => ({ ...f, color: e.target.value }))}
+                                    />
+                                </div>
+                                <div className="flex items-center gap-2 pb-2">
+                                    <label className="flex items-center gap-1.5 text-xs text-gray-600 cursor-pointer">
+                                        <input
+                                            type="checkbox"
+                                            className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                                            checked={issueTypeForm.is_subtask}
+                                            onChange={(e) => setIssueTypeForm((f) => ({ ...f, is_subtask: e.target.checked }))}
+                                        />
+                                        Subtask
+                                    </label>
+                                </div>
+                                <Button type="submit" loading={savingIssueType}>
+                                    Add type
+                                </Button>
+                            </form>
+                        )}
+                        {issueTypeErrors.form && <Alert>{issueTypeErrors.form}</Alert>}
+                        <ul className="divide-y divide-gray-100">
+                            {issueTypes.map((type) => (
+                                <li key={type.id} className="flex items-center justify-between py-3">
+                                    <div className="flex items-center gap-3">
+                                        <span
+                                            className="h-3.5 w-3.5 rounded-full"
+                                            style={{ backgroundColor: type.color || '#6366f1' }}
+                                        />
+                                        <div>
+                                            <div className="flex items-center gap-2">
+                                                <span className="font-medium text-gray-900">{type.name}</span>
+                                                <span className="text-xs text-gray-400">({type.slug})</span>
+                                                {type.is_subtask && (
+                                                    <Badge color="purple">subtask</Badge>
+                                                )}
+                                                {type.tasks_count != null && (
+                                                    <span className="text-xs text-gray-400">· {type.tasks_count} tasks</span>
+                                                )}
+                                            </div>
+                                            {type.description && (
+                                                <p className="text-xs text-gray-500">{type.description}</p>
+                                            )}
+                                        </div>
+                                    </div>
+                                    {can('workspaces.manage') && (
+                                        <div className="flex items-center gap-2">
+                                            <input
+                                                type="color"
+                                                className="h-7 w-8 rounded border border-gray-200 bg-white p-0.5"
+                                                defaultValue={type.color || '#6366f1'}
+                                                onBlur={(e) => {
+                                                    if (e.target.value !== type.color) {
+                                                        updateIssueType(type, { color: e.target.value });
+                                                    }
+                                                }}
+                                                title="Change color"
+                                            />
+                                            <Button
+                                                size="sm"
+                                                variant="ghost"
+                                                onClick={() => deleteIssueType(type)}
+                                                disabled={type.tasks_count > 0}
+                                                title={type.tasks_count > 0 ? 'Cannot delete type in use' : 'Delete'}
+                                            >
+                                                Delete
+                                            </Button>
+                                        </div>
+                                    )}
+                                </li>
+                            ))}
+                        </ul>
                     </Card>
                 </div>
             )}

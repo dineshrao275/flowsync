@@ -122,13 +122,13 @@ superseded by this phase's +11 tests.
 | Comments + mentions + @autocomplete | ✅ | `CommentController`, `CommentThread`, mention cap | — |
 | Attachments + signed download + quota | ✅ | `AttachmentController`, signed tenant-scoped route | — |
 | Activity timeline | ✅ | `ActivityLogger`, `ActivityFeed` | — |
-| Watchers (table + CRUD) | 🟡 | migration `000039`, `TaskWatcherController` | **No notification fan-out** to watchers; `present()` omits `watchers`; no UI (G-2a) |
-| Issue types (catalog) | 🟡 | `issue_types` table, `config/issue_types.php`, `GET api/issue-types` | **Read-only**: `IssueTypeService::create/update/delete` exist but no routes; config comment promises runtime CRUD (G-3a) |
-| Components | 🟡 | `project_components` + `task_component` pivot, CRUD routes, task filters | **No frontend** — invisible to users (G-2b) |
-| Versions / releases | 🟡 | `project_versions`, `tasks.version_id`, CRUD routes | **No frontend** (G-2b) |
-| Start dates, story points | 🟡 | columns in `000039`, validated + filtered in backend | **No frontend** (G-2b) |
+| Watchers (table + CRUD) | ✅ | migration `000039`, `TaskWatcherController`, `NotificationService` | Fan-out to watchers on status/comment/unblock, `present()` emits `watchers`, `TaskDetail` UI with watch toggle & picker (H-4) |
+| Issue types (catalog) | ✅ | `issue_types` table, `config/issue_types.php`, `IssueTypeController` | Full CRUD routes (`api/issue-types`) behind `workspaces.manage` + `ProjectDetail` management card (H-6) |
+| Components | ✅ | `project_components` + `task_component` pivot, CRUD routes, task filters | Surfaced in CreateTaskModal, TaskDetail, FiltersBar, TaskCard, TaskTable (H-5) |
+| Versions / releases | ✅ | `project_versions`, `tasks.version_id`, CRUD routes | Surfaced in CreateTaskModal, TaskDetail, FiltersBar, TaskCard (H-5) |
+| Start dates, story points | ✅ | columns in `000039`, validated + filtered in backend | Surfaced in CreateTaskModal, TaskDetail, TaskCard, TaskTable (H-5) |
 | Work logs + time summaries | ✅ | `WorkLogService`, `WorkLogPanel`, `TimeSummary`, module gate `time_tracking` | No timer start/stop UI; no billable flag; no approval flow (G-15) |
-| Task notifications (in-app/email) + prefs | ✅ | `NotificationService`, `TaskNotificationMail`, `notification_preferences` | Watchers excluded (G-2a) |
+| Task notifications (in-app/email) + prefs | ✅ | `NotificationService`, `TaskNotificationMail`, `notification_preferences` | Watchers fan-out included (H-4) |
 | Realtime (Reverb/Echo) | ✅ | `TaskSynced`/`CommentSynced`/`NotificationSent`, channel auth | — |
 | Global search + command palette | ✅ | `GlobalSearchController` (workspaces/projects/tasks/users/employees), `CommandPalette.jsx` | LIKE-based; optional `pg_trgm`; no saved searches (G-5) |
 | Task search (filter-based) | ✅ | `SearchController::tasks`, `Search.jsx` | No JQL parser, no saved/sharable filters (G-4) |
@@ -271,7 +271,7 @@ superseded by this phase's +11 tests.
 | Email (4 TMS events, queued, tenant-stamped) | ✅ | `TaskNotificationMail`, `emails/task-notification.blade.php` | Single template, no localization, no per-tenant templates (G-43) |
 | Per-event preferences | ✅ | `notification_preferences`, `GET/PUT api/notification-preferences` | Email-only gating (in-app always) — documented decision |
 | HRMS notifications (leave/expense/approvals/assets…) | ✅ | notifiers in each context + deep links | — |
-| Watcher/CC notifications | 🔴 | watchers not consulted by `NotificationService` | G-2a |
+| Watcher/CC notifications | ✅ | `NotificationService` fans out to watchers on status/comment/unblock | (H-4 / G-2a resolved) |
 | Digest / batching / throttling / dedup | 🔴 | one row + one email per event | G-44 (HRMS report digests exist and now run nightly; no cross-event batching/throttle/dedup) |
 | Push (web push/FCM) | 🔴 | none | "Push-ready" not even architected yet |
 | Outbound webhooks (event subscriptions) | 🔴 | `WebhookController` = **inbound payments only** | G-45 — plan §18 channel list unmet |

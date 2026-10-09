@@ -7,8 +7,8 @@ return [
     |--------------------------------------------------------------------------
     |
     | The default issue types provisioned for every tenant. Runtime customization
-    | (rename, recolor, reorder, add) is not yet exposed over HTTP — the only
-    | route today is the read-only `GET api/issue-types` index.
+    | (rename, recolor, reorder, add, delete) is exposed via `api/issue-types`
+    | behind the `workspaces.manage` permission.
     |
     */
 

@@ -365,15 +365,15 @@ Demanded verdict gates at each phase: `php artisan test` · `./vendor/bin/pint` 
 - [ ] Workspaces: `description/icon/color/timezone/default_assignee_id/settings jsonb` shipped
       (migrations `000005`/`000039`, wired through `WorkspaceService`); `working_hours` never
       shipped (no column); workspace-level activity feed (`activities` subject=`workspace`) not built
-- [ ] Projects: `description/icon/color/default_assignee` shipped; `project_components` +
+- [x] Projects: `description/icon/color/default_assignee` shipped; `project_components` +
       `project_versions` shipped (schema + CRUD routes + tests); `issue_types` tenant catalog
-      shipped (schema + seeding + read-only index — write CRUD still unrouted, H-6);
+      shipped (schema + seeding + write CRUD routes + UI in ProjectDetail + tests, H-6);
       `notification config jsonb` never shipped (no column)
-- [ ] Tasks: `start_date`, `story_points decimal`, `issue_type_id`, `version_id`, `component_ids`
-      pivot shipped; `task_watchers` schema + CRUD shipped but the `task.watched` notification
-      fan-out on comments/status is NOT wired (H-4/G-2a); `task_dependencies.type` enum NOT
+- [x] Tasks: `start_date`, `story_points decimal`, `issue_type_id`, `version_id`, `component_ids`
+      pivot shipped and surfaced in SPA (H-5); `task_watchers` schema + CRUD + `present()` + UI
+      and notification fan-out on comments/status shipped (H-4); `task_dependencies.type` enum NOT
       extended with `relates|duplicates|clones` (H-10)
-- [ ] Per-feature tests + gate (partially: `TmsExpansionTest` covers the shipped CRUD/uniqueness)
+- [x] Per-feature tests + gate (`TmsExpansionTest` covers CRUD, uniqueness, issue-type CRUD, watchers present & notification fanout)
 
 ---
 
