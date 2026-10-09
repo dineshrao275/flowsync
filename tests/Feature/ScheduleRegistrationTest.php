@@ -47,6 +47,7 @@ class ScheduleRegistrationTest extends TestCase
             'automation:time-triggers --all',
             'tenants:close-impersonations',
             'tenants:expire-trials',
+            'billing:period-ends',
             'billing:dunning',
             'hrms:surveys-open-close --all',
             'hrms:documents-expiry --all',

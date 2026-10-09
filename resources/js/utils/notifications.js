@@ -81,8 +81,6 @@ export function describeNotification(type, data = {}, actorName = 'Someone') {
             return 'Final notice: your account will be suspended soon unless payment is received';
         case 'billing.suspended':
             return 'Your account was suspended because the subscription payment is overdue';
-        case 'billing.expired':
-            return 'Your subscription has ended';
         default:
             return 'You have a new notification';
     }
