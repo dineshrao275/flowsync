@@ -48,6 +48,7 @@ class TenantController extends Controller
                 Tenant::STATUS_PROVISIONING_FAILED,
             ])],
             'plan_id' => ['nullable', 'integer', 'exists:subscription_plans,id'],
+            'subscription_status' => ['nullable', 'string', Rule::in(['trialing', 'active', 'past_due', 'canceled', 'expired', 'ended', 'none'])],
             'trashed' => ['nullable', 'boolean'],
             'sort' => ['nullable', 'string', Rule::in(self::SORTABLE)],
             'dir' => ['nullable', 'string', Rule::in(['asc', 'desc'])],
@@ -71,6 +72,12 @@ class TenantController extends Controller
 
         if (! empty($data['plan_id'])) {
             $query->whereHas('subscription', fn ($sub) => $sub->where('plan_id', $data['plan_id']));
+        }
+
+        if (! empty($data['subscription_status'])) {
+            $data['subscription_status'] === 'none'
+                ? $query->whereDoesntHave('subscription')
+                : $query->whereHas('subscription', fn ($sub) => $sub->where('status', $data['subscription_status']));
         }
 
         if (filter_var($data['trashed'] ?? false, FILTER_VALIDATE_BOOL)) {
@@ -102,7 +109,10 @@ class TenantController extends Controller
             $tenant->setAttribute('plan_slug', $subscription?->plan?->slug);
             $tenant->setAttribute('plan_name', $subscription?->plan?->name);
             $tenant->setAttribute('subscription_status', $subscription?->status);
-            $tenant->setAttribute('subscription_ends_at', $subscription?->ends_at);
+            $tenant->setAttribute('trial_ends_at', $subscription?->trial_ends_at ?? $tenant->trial_ends_at);
+            $tenant->setAttribute('period_end', $subscription?->current_period_end);
+            $tenant->setAttribute('billing_provider', $subscription?->billing_provider);
+            $tenant->setAttribute('auto_renew', $subscription?->auto_renew);
 
             return $tenant;
         });

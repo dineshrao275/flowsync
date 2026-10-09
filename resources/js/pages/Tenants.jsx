@@ -51,6 +51,28 @@ function parseSort(value) {
     return { sort: value.replace(/^-/, ''), dir };
 }
 
+/** "Trial ends in 4d", "Renews 12 Nov", "Ends 3 Nov" — whichever date matters for this tenant. */
+function renewalLabel(tenant) {
+    const fmt = (v) => new Date(v).toLocaleDateString(undefined, { day: 'numeric', month: 'short' });
+    if (tenant.subscription_status === 'trialing' && tenant.trial_ends_at) {
+        const days = Math.ceil((new Date(tenant.trial_ends_at) - Date.now()) / 86400000);
+        return `Trial ends ${days <= 0 ? 'today' : `in ${days}d`}`;
+    }
+    if (!tenant.period_end) return '—';
+    if (tenant.auto_renew === false || tenant.subscription_status === 'canceled') return `Ends ${fmt(tenant.period_end)}`;
+    return `Renews ${fmt(tenant.period_end)}`;
+}
+
+function SummaryCard({ label, value, hint }) {
+    return (
+        <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
+            <p className="text-xs font-medium uppercase tracking-wide text-gray-400">{label}</p>
+            <p className="mt-1 text-2xl font-bold text-gray-900">{value}</p>
+            <p className="mt-0.5 text-xs text-gray-500">{hint}</p>
+        </div>
+    );
+}
+
 function StatusBadge({ status }) {
     return (
         <span
@@ -265,9 +287,10 @@ export default function Tenants() {
     const [impersonateTarget, setImpersonateTarget] = useState(null);
     const [tenants, setTenants] = useState([]);
     const [plans, setPlans] = useState([]);
+    const [summary, setSummary] = useState(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
-    const [filters, setFilters] = useState({ q: '', status: '', plan_id: '', sort: 'name', trashed: false });
+    const [filters, setFilters] = useState({ q: '', status: '', plan_id: '', subscription_status: '', sort: 'name', trashed: false });
     const [page, setPage] = useState(1);
     const [pagination, setPagination] = useState({ current_page: 1, last_page: 1, total: 0 });
 
@@ -286,6 +309,7 @@ export default function Tenants() {
                 }),
                 api.get('/plans').catch(() => ({ data: { plans: [] } })),
             ]);
+            api.get('/tenants/summary').then(({ data }) => setSummary(data.summary)).catch(() => {});
             setTenants(tenantData.tenants);
             setPlans(planData.plans);
             setPagination(tenantData.pagination || { current_page: 1, last_page: 1, total: tenantData.tenants.length });
@@ -343,6 +367,31 @@ export default function Tenants() {
 
             {error && <Alert>{error}</Alert>}
 
+            {summary && (
+                <div className="space-y-3">
+                    <div className="grid grid-cols-2 gap-3 lg:grid-cols-5">
+                        <SummaryCard label="Tenants" value={summary.tenants.total} hint={`${summary.tenants.enabled} enabled · ${summary.tenants.disabled} disabled`} />
+                        <SummaryCard label="On trial" value={summary.tenants.by_status.trial || 0} hint={`${summary.subscriptions.trials_ending_7d} ending within 7 days`} />
+                        <SummaryCard label="Paying" value={summary.subscriptions.by_status.active || 0} hint={`${summary.subscriptions.by_status.past_due || 0} past due`} />
+                        <SummaryCard label="Est. MRR" value={new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(summary.mrr_cents / 100)} hint="active, auto-renewing" />
+                        <SummaryCard label="Drafts" value={summary.tenants.by_status.draft || 0} hint="setup incomplete" />
+                    </div>
+                    {summary.attention.length > 0 && (
+                        <div className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm">
+                            <p className="mb-1 font-semibold text-amber-900">Needs attention</p>
+                            <ul className="grid gap-x-6 gap-y-1 sm:grid-cols-2">
+                                {summary.attention.map((a, i) => (
+                                    <li key={`${a.tenant_id}-${i}`} className="flex justify-between gap-3">
+                                        <Link className="font-medium text-amber-900 hover:underline" to={`/tenants/${a.tenant_id}`}>{a.name}</Link>
+                                        <span className="text-amber-800">{a.reason}</span>
+                                    </li>
+                                ))}
+                            </ul>
+                        </div>
+                    )}
+                </div>
+            )}
+
             <Card className="p-0">
                 <div className="flex flex-wrap items-center gap-3 border-b border-gray-100 px-4 py-3">
                     <input
@@ -377,6 +426,19 @@ export default function Tenants() {
                         ))}
                     </select>
                     <select
+                        value={filters.subscription_status}
+                        onChange={(e) => applyFilter({ subscription_status: e.target.value })}
+                        className="rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200"
+                    >
+                        <option value="">Any subscription</option>
+                        <option value="trialing">Trialing</option>
+                        <option value="active">Active</option>
+                        <option value="past_due">Past due</option>
+                        <option value="canceled">Canceled</option>
+                        <option value="expired">Expired</option>
+                        <option value="none">No subscription</option>
+                    </select>
+                    <select
                         value={sort}
                         onChange={(e) => applyFilter({ sort: e.target.value })}
                         className="rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200"
@@ -405,6 +467,7 @@ export default function Tenants() {
                                 <th className="px-4 py-2.5">Tenant</th>
                                 <th className="px-4 py-2.5">Status</th>
                                 <th className="px-4 py-2.5">Plan</th>
+                                <th className="px-4 py-2.5">Renews / trial ends</th>
                                 <th className="px-4 py-2.5">Users</th>
                                 <th className="px-4 py-2.5">Created</th>
                                 <th className="px-4 py-2.5 text-right">Actions</th>
@@ -413,7 +476,7 @@ export default function Tenants() {
                         <tbody className="divide-y divide-gray-50">
                             {loading ? (
                                 <tr>
-                                    <td colSpan={6} className="px-4 py-14 text-center">
+                                    <td colSpan={7} className="px-4 py-14 text-center">
                                         <div className="flex justify-center">
                                             <Spinner />
                                         </div>
@@ -421,7 +484,7 @@ export default function Tenants() {
                                 </tr>
                             ) : tenants.length === 0 ? (
                                 <tr>
-                                    <td colSpan={6} className="px-4 py-14 text-center text-sm text-gray-400">
+                                    <td colSpan={7} className="px-4 py-14 text-center text-sm text-gray-400">
                                         No tenants match these filters.
                                     </td>
                                 </tr>
@@ -454,6 +517,9 @@ export default function Tenants() {
                                             ) : (
                                                 <span className="text-sm text-gray-400">—</span>
                                             )}
+                                        </td>
+                                        <td className="px-4 py-3 text-sm text-gray-600">
+                                            {renewalLabel(tenant)}
                                         </td>
                                         <td className="px-4 py-3 text-sm text-gray-600">{tenant.users_count}</td>
                                         <td className="px-4 py-3 text-sm text-gray-500">

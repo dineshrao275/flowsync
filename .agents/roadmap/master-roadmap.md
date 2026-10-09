@@ -759,6 +759,8 @@ Source: owner testing feedback. Items are ordered by what unblocks the others. S
 ### FB-5 Super Admin improvements
 - Extend the existing tenants table (do not add a duplicate tab): enabled/disabled counts by product and plan, trial/past-due/expiring columns, MRR-style totals, filters, per-tenant usage. A **Subscriptions** sidebar entry is a filtered view of the same data, not a second source of truth. More SA options follow the Phase 8/9 platform pages (health, queues, backups).
 
+**Progress (2026-10-09, FB-5):** shipped on the existing Tenants page (no duplicate tab): `GET api/tenants/summary` (`TenantSummaryController` — enabled/disabled/draft counts, trials, paying, past due, est. MRR, "needs attention" list), new `subscription_status` filter, a renews/trial-ends column, and fixed the always-null `subscription_ends_at`. Per-product (HRMS vs TMS) counts wait on FB-4. More SA options remain tied to Phase 8/9 pages.
+
 ### FB-6 Stripe subscriptions
 - Keys are in the backend `.env` (not to be committed or logged). Scope: Checkout/SetupIntent for card capture, subscription create/switch/cancel/renew, webhook handling (`invoice.paid`, `invoice.payment_failed`, `customer.subscription.updated/deleted`, `setup_intent.succeeded`) with the existing signature + replay guard, proration, invoice list, billing portal link, trial-requires-card (FB-3). Tests use Stripe test mode via fakes for CI and one documented manual run with test cards. Depends on Phase 6 tasks; pull the Stripe-specific ones forward.
 

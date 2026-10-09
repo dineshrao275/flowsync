@@ -102,6 +102,7 @@ use App\Http\Controllers\TenantController;
 use App\Http\Controllers\TenantHrmsController;
 use App\Http\Controllers\TenantIntakeController;
 use App\Http\Controllers\TenantSubscriptionController;
+use App\Http\Controllers\TenantSummaryController;
 use App\Http\Controllers\ThemeController;
 use App\Http\Controllers\UserAccessController;
 use App\Http\Controllers\UserController;
@@ -214,6 +215,7 @@ Route::prefix('api')->group(function () {
             Route::get('tenants/{tenant}/intake', [TenantIntakeController::class, 'show']);
             Route::put('tenants/{tenant}/intake', [TenantIntakeController::class, 'update']);
             Route::post('tenants/{tenant}/intake/submit', [TenantIntakeController::class, 'submit'])->middleware('throttle:10,1');
+            Route::get('tenants/summary', TenantSummaryController::class);
             Route::get('tenants/{tenant}', [TenantController::class, 'show']);
             Route::put('tenants/{tenant}', [TenantController::class, 'update']);
             Route::get('tenants/{tenant}/profile', [TenantController::class, 'getProfile']);
