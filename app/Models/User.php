@@ -4,6 +4,7 @@ namespace App\Models;
 
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
 use App\Models\Hrms\Employee\Employee;
+use App\Support\PermissionCatalog;
 use App\Support\PermissionScope;
 use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Builder;
@@ -124,6 +125,14 @@ class User extends Authenticatable
 
     public function hasPermission(string $slug): bool
     {
+        // The admin role is `*` by definition. Its stored snapshot lags every
+        // permission added after the tenant was provisioned, and a lagging
+        // snapshot must never hide a feature the tenant's plan includes — what
+        // the plan does not include is switched off by the module gates instead.
+        if (PermissionCatalog::has($slug) && $this->hasRole('admin')) {
+            return true;
+        }
+
         foreach ($this->roles as $role) {
             if ($role->permissions->contains('slug', $slug)) {
                 return true;
@@ -161,6 +170,10 @@ class User extends Authenticatable
      */
     public function permissionSlugs(): array
     {
+        if ($this->hasRole('admin')) {
+            return PermissionCatalog::slugs(); // see hasPermission()
+        }
+
         $slugs = [];
 
         foreach ($this->roles as $role) {
