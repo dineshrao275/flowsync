@@ -6,6 +6,7 @@ use App\Models\AuditLog;
 use App\Models\ImpersonationLog;
 use App\Models\Tenant;
 use App\Services\PlatformAudit;
+use App\Services\Security\AuditChain;
 use Illuminate\Database\Query\Builder as QueryBuilder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -95,6 +96,7 @@ class AuditLogsController extends Controller
         $rows = $this->orderedEvents($data)->limit(self::EXPORT_LIMIT)->get();
 
         $items = $this->hydrate($rows);
+        $head = app(AuditChain::class)->head();
 
         app(PlatformAudit::class)->record(
             $request,
@@ -106,6 +108,8 @@ class AuditLogsController extends Controller
                 'q' => $data['q'] ?? null,
                 'tenant_id' => $data['tenant_id'] ?? null,
                 'rows' => $items->count(),
+                // Pinning this lets a later reader prove nothing before it was altered (P8.6).
+                'chain_head' => $head,
             ],
         );
 
@@ -114,7 +118,7 @@ class AuditLogsController extends Controller
 
             fputcsv($out, [
                 'created_at', 'type', 'action', 'actor', 'actor_email',
-                'subject_type', 'subject_id', 'ip_address', 'tenant', 'data',
+                'subject_type', 'subject_id', 'ip_address', 'tenant', 'data', 'hash', 'prev_hash',
             ]);
 
             foreach ($items as $row) {
@@ -129,13 +133,22 @@ class AuditLogsController extends Controller
                     $row['ip_address'] ?? '',
                     $row['tenant']['name'] ?? '',
                     json_encode($row['data']),
+                    $row['hash'] ?? '',
+                    $row['prev_hash'] ?? '',
                 ]);
             }
 
             fclose($out);
         }, 'audit-logs-'.now()->format('Y-m-d-Hi').'.csv', [
             'Content-Type' => 'text/csv',
+            'X-Audit-Chain-Head' => $head ?? '',
         ]);
+    }
+
+    /** Walk the hash chain; the same answer `php artisan audit:verify` gives. */
+    public function verifyChain(): JsonResponse
+    {
+        return response()->json(app(AuditChain::class)->verify());
     }
 
     /**
@@ -266,6 +279,8 @@ class AuditLogsController extends Controller
             'subject_type' => $log->subject_type,
             'subject_id' => $log->subject_id,
             'data' => $log->data,
+            'hash' => $log->hash,
+            'prev_hash' => $log->prev_hash,
             'ip_address' => $log->ip_address,
             'actor' => $log->actor?->only(['id', 'name', 'email']),
             'tenant' => null,

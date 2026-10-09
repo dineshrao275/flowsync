@@ -25,6 +25,8 @@ Schedule::command('tenants:close-impersonations')->everyTenMinutes()->withoutOve
 
 // Platform: trials end at `trial_ends_at` exactly — no grace period (yet).
 Schedule::command('tenants:expire-trials')->dailyAt('00:05')->withoutOverlapping();
+// Platform audit rows older than the tenant's plan retention are removed (hash-chain tombstones keep it verifiable).
+Schedule::command('audit:prune')->dailyAt('03:50')->withoutOverlapping();
 
 // HRMS fleet sweeps. Every command here takes exactly one of --tenant=ID or
 // --all and is idempotent, so the worst a re-run does is nothing. Cadences

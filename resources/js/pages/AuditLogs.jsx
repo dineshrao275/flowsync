@@ -7,6 +7,7 @@ import Pagination from '../components/ui/Pagination';
 import { Table, Th, Td, TableEmpty } from '../components/ui/Table';
 import usePageTitle from '../hooks/usePageTitle';
 import { useSetCrumbs } from '../context/BreadcrumbContext';
+import { useToast } from '../context/ToastContext';
 
 const TYPE_LABEL = { all: 'All activity', audit: 'System events', impersonation: 'Impersonations' };
 
@@ -47,6 +48,17 @@ export default function AuditLogs() {
     const [type, setType] = useState('all');
     const [q, setQ] = useState('');
     const [loading, setLoading] = useState(true);
+    const toast = useToast();
+
+    async function verifyChain() {
+        try {
+            const { data } = await api.get('/system/audit-logs/verify');
+            if (data.ok) toast.success(`Audit chain intact: ${data.checked} sealed rows, ${data.tombstones} retention tombstones.`);
+            else toast.error(`Audit chain broken at row ${data.break.id}: ${data.break.reason}`);
+        } catch (e) {
+            toast.error('Could not verify the audit chain.');
+        }
+    }
 
     const fetchLogs = useCallback((page = 1) => {
         setLoading(true);
@@ -97,12 +109,13 @@ export default function AuditLogs() {
                     />
                     <Button type="submit">Filter</Button>
                 </form>
+                <Button type="button" variant="secondary" className="ml-auto" onClick={verifyChain}>Verify chain</Button>
                 <a
                     href={`/api/system/audit-logs/export?${new URLSearchParams({
                         type,
                         ...(q ? { q } : {}),
                     }).toString()}`}
-                    className="ml-auto inline-flex items-center gap-1.5 rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm font-medium text-gray-600 hover:bg-gray-50"
+                    className="inline-flex items-center gap-1.5 rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm font-medium text-gray-600 hover:bg-gray-50"
                 >
                     Export CSV
                 </a>

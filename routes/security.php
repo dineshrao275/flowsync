@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\AuditLogsController;
 use App\Http\Controllers\FeatureFlagController;
 use App\Http\Controllers\PlatformRoleController;
 use App\Http\Controllers\SupportAccessController;
@@ -40,6 +41,9 @@ Route::prefix('api')->middleware(['switch_tenant', 'auth', 'tenant'])->group(fun
     Route::middleware('super_admin')->group(function () {
         Route::get('system/two-factor-policy', [TwoFactorController::class, 'showPlatformPolicy']);
         Route::put('system/two-factor-policy', [TwoFactorController::class, 'updatePlatformPolicy']);
+
+        // P8.6 audit hash-chain verification (route map: audit.view).
+        Route::get('system/audit-logs/verify', [AuditLogsController::class, 'verifyChain']);
 
         // P8.4 platform side: grants it may use + the "consent is mandatory" switch.
         Route::get('system/support-access', [SupportAccessController::class, 'platformIndex']);
