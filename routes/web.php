@@ -92,8 +92,10 @@ use App\Http\Controllers\ResetPasswordController;
 use App\Http\Controllers\RoleController;
 use App\Http\Controllers\SearchController;
 use App\Http\Controllers\StatusController;
+use App\Http\Controllers\SupportTicketController;
 use App\Http\Controllers\SystemAnalyticsController;
 use App\Http\Controllers\SystemSettingsController;
+use App\Http\Controllers\SystemSupportController;
 use App\Http\Controllers\SystemUsersController;
 use App\Http\Controllers\TaskController;
 use App\Http\Controllers\TaskMoveController;
@@ -183,6 +185,13 @@ Route::prefix('api')->group(function () {
         Route::post('my-subscription/renew', [MySubscriptionController::class, 'renew'])->middleware('throttle:10,1');
         Route::get('plans', [PlanController::class, 'index']);
 
+        // Support desk (FB-7): tenant admins raise tickets with the platform team.
+        Route::get('support/tickets', [SupportTicketController::class, 'index'])->middleware('permission:support.manage');
+        Route::post('support/tickets', [SupportTicketController::class, 'store'])->middleware(['permission:support.manage', 'throttle:10,1']);
+        Route::get('support/tickets/{ticket}', [SupportTicketController::class, 'show'])->middleware('permission:support.manage');
+        Route::post('support/tickets/{ticket}/messages', [SupportTicketController::class, 'reply'])->middleware(['permission:support.manage', 'throttle:30,1']);
+        Route::post('support/tickets/{ticket}/close', [SupportTicketController::class, 'close'])->middleware('permission:support.manage');
+
         // Phase 6: tenant payments & billing
         Route::post('billing/checkout', [BillingController::class, 'checkout'])->middleware('throttle:10,1');
         Route::post('billing/portal', [BillingController::class, 'portal'])->middleware('throttle:10,1');
@@ -217,6 +226,10 @@ Route::prefix('api')->group(function () {
             Route::put('tenants/{tenant}/intake', [TenantIntakeController::class, 'update']);
             Route::post('tenants/{tenant}/intake/submit', [TenantIntakeController::class, 'submit'])->middleware('throttle:10,1');
             Route::get('tenants/summary', TenantSummaryController::class);
+            Route::get('system/support/tickets', [SystemSupportController::class, 'index']);
+            Route::get('system/support/tickets/{ticket}', [SystemSupportController::class, 'show']);
+            Route::post('system/support/tickets/{ticket}/messages', [SystemSupportController::class, 'reply'])->middleware('throttle:60,1');
+            Route::put('system/support/tickets/{ticket}', [SystemSupportController::class, 'update']);
             Route::get('tenants/{tenant}', [TenantController::class, 'show']);
             Route::put('tenants/{tenant}', [TenantController::class, 'update']);
             Route::get('tenants/{tenant}/profile', [TenantController::class, 'getProfile']);

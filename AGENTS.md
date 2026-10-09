@@ -221,6 +221,9 @@ Hierarchy: **Tenant → Workspace → Project → Task** (subtask `tasks.parent_
 
 - SA overview: `GET api/tenants/summary` (declared before `tenants/{tenant}`), `tenants?subscription_status=`; the Tenants page shows summary cards, a needs-attention list and a renews/trial-ends column.
 
+## Support desk (FB-7)
+- Tickets live in the **system** DB (`SupportTicket`, `SupportTicketMessage`; `tenant_id` + a snapshot of the requester) so staff never open a tenant DB. `SupportDesk` owns the rules: customer reply reopens a resolved ticket, a closed one refuses replies, a public staff reply moves open → `waiting_on_customer` and notifies the requester in their tenant DB (`support.reply|resolved|closed`), **internal notes** (`is_internal`) never leave the staff API. Tenant routes `support/tickets…` need `support.manage` (new catalog permission; run `tenants:provision` so existing admin roles get it) and treat another tenant's ticket as 404; staff routes `system/support/tickets…` are `super_admin`. SPA: `/support`, `/admin/support`.
+
 ## User management & CSV import (FB-8)
 - `GET|PUT users/{user}` (name + email; email change also updates the central `tenant_users` routing row), roles via `PUT users/{user}/roles`. The SPA edits a user on `/users/:userId` (`UserEdit.jsx`), never inline in the list.
 - `UserImporter` (`app/Services/Users/`): CSV columns `name,email,roles[,password]`, roles by slug or name separated by `|`/`;`, ≤500 rows, 1 MB. Routes (`users.manage`): `GET users/import/sample`, `POST users/import/preview` (dry run, per-line errors + the roles this admin may assign), `POST users/import` (`skip_invalid` to import only valid rows; otherwise any error → 422 with the report). Each row is checked with `GrantCeiling::assertCanAssignRoles`, the plan `users` limit and email uniqueness (tenant users, routing index, super admins); blank passwords are generated and returned once. One `users.imported` audit row.

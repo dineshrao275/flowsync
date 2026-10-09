@@ -19,6 +19,8 @@ import Workspaces from './pages/Workspaces';
 import WorkspaceDetail from './pages/WorkspaceDetail';
 import ProjectDetail from './pages/ProjectDetail';
 import Projects from './pages/Projects';
+import Support from './pages/Support';
+import AdminSupport from './pages/AdminSupport';
 import Users from './pages/Users';
 import UserEdit from './pages/UserEdit';
 import UserImport from './pages/UserImport';
@@ -127,6 +129,8 @@ function AppRoutes() {
                                 <Route path="/admin/users" element={<SystemUsers />} />
                                 <Route path="/admin/settings" element={<SystemSettings />} />
                                 <Route path="/admin/audit-logs" element={<AuditLogs />} />
+                                <Route path="/admin/support" element={<AdminSupport />} />
+                                <Route path="/admin/support/:ticketId" element={<AdminSupport />} />
                                 <Route path="/admin/features" element={<FeatureManagement />} />
                                 <Route path="/admin/pages" element={<CmsPages />} />
                                 <Route path="/tenants" element={<Tenants />} />
@@ -436,6 +440,10 @@ function AppRoutes() {
                         </Route>
                         <Route element={<ProtectedRoute permission="users.manage" />}>
                             <Route path="/users/import" element={<UserImport />} />
+                        </Route>
+                        <Route element={<ProtectedRoute permission="support.manage" />}>
+                            <Route path="/support" element={<Support />} />
+                            <Route path="/support/:ticketId" element={<Support />} />
                         </Route>
                         <Route element={<ProtectedRoute permission="roles.view" />}>
                             <Route path="/roles" element={<Roles />} />

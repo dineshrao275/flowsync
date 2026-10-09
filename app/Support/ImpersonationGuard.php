@@ -35,6 +35,7 @@ final class ImpersonationGuard
         'api/users', 'api/users/*',
         'api/my-subscription/*',
         'api/billing/*',
+        'api/support/*',
         'api/my-export', 'api/my-export/*',
         'api/tenant/profile',
         'api/onboarding/*',

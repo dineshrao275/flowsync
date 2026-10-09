@@ -41,6 +41,7 @@ const sections = [
         label: 'Billing',
         items: [
             { to: '/subscription', label: 'Subscription', icon: 'M3 17l5-2 8 3 5-2v6H3v-5zm5-4l5-2 8 3 3-1v-3l-3-1-8-3-5 2-5-2 3 2v3l2 1z', capabilities: ['billing.view'] },
+            { to: '/support', label: 'Support', icon: 'M8 10h8M8 14h5m-9 7l3-3h11a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v15z', capabilities: ['support.manage'] },
             { to: '/export', label: 'Data Export', icon: 'M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4', capabilities: ['module:export.full', 'billing.view'] },
         ],
     },
@@ -61,6 +62,7 @@ const superAdminSections = [
         label: 'Platform',
         items: [
             { to: '/admin/users', label: 'Users', capabilities: ['dashboard.view'], icon: 'M17 20h5v-2a4 4 0 00-3-3.87M9 20H4v-2a4 4 0 013-3.87m4-1.13a4 4 0 10-4-4 4 4 0 004 4zm6 2a3 3 0 10-3-3' },
+            { to: '/admin/support', label: 'Support', capabilities: ['dashboard.view'], icon: 'M8 10h8M8 14h5m-9 7l3-3h11a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v15z' },
             { to: '/admin/analytics', label: 'Analytics', capabilities: ['dashboard.view'], icon: 'M3 3v18h18M8 17V9m4 8V5m4 12v-6' },
             { to: '/admin/audit-logs', label: 'Audit Logs', capabilities: ['dashboard.view'], icon: 'M4 7V5a2 2 0 012-2h8l2 2h6v14a2 2 0 01-2 2H6a2 2 0 01-2-2v-2m0 0V7h18M8 12h8M8 16h8' },
             { to: '/admin/settings', label: 'Settings', capabilities: ['dashboard.view'], icon: 'M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 001.065-2.572c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z M15 12a3 3 0 11-6 0 3 3 0 016 0z' },

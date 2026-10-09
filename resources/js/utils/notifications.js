@@ -67,6 +67,12 @@ export function describeNotification(type, data = {}, actorName = 'Someone') {
             return `${data.campaign_name ?? 'A survey'} closes soon — answer if you have not`;
         case 'hrms.inbox.digest':
             return `Scheduled report ready: ${data.schedule_name ?? 'your digest'}`;
+        case 'support.reply':
+            return `Support replied on ${data.reference ?? 'your ticket'}${data.subject ? `: ${data.subject}` : ''}`;
+        case 'support.resolved':
+            return `Support marked ${data.reference ?? 'your ticket'} resolved`;
+        case 'support.closed':
+            return `Support closed ${data.reference ?? 'your ticket'}`;
         default:
             return 'You have a new notification';
     }
@@ -106,6 +112,10 @@ const SECTION_BY_TYPE = {
  */
 export function notificationHref(data = {}, type = '') {
     const { project_id, workspace_id, key, onboarding_case_id } = data || {};
+
+    if (type.startsWith('support.') && data?.ticket_id) {
+        return `/support/${data.ticket_id}`;
+    }
 
     if (type === 'hrms.onboarding.task_due' && onboarding_case_id) {
         return `/hrms/onboarding/cases/${onboarding_case_id}`;
