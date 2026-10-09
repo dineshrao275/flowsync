@@ -347,6 +347,10 @@ class TenantDatabaseManager
         if ($connection === config('tenancy.tenant.connection', self::TENANT_CONNECTION) && $tenantId) {
             $tenant = Tenant::find($tenantId);
             if ($tenant) {
+                // The block just ran against ANOTHER tenant on this same connection name, and
+                // the context was reset above — so connect() would see "same tenant, nothing
+                // to purge" and keep serving the other tenant's PDO. Drop it explicitly.
+                DB::purge($connection);
                 $this->connect($tenant);
 
                 return;

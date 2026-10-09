@@ -21,6 +21,7 @@ import WorkspaceDetail from './pages/WorkspaceDetail';
 import ProjectDetail from './pages/ProjectDetail';
 import Projects from './pages/Projects';
 import Support from './pages/Support';
+import Webhooks from './pages/Webhooks';
 import AdminSupport from './pages/AdminSupport';
 import Users from './pages/Users';
 import UserEdit from './pages/UserEdit';
@@ -442,6 +443,9 @@ function AppRoutes() {
                         </Route>
                         <Route element={<ProtectedRoute permission="users.manage" />}>
                             <Route path="/users/import" element={<UserImport />} />
+                        </Route>
+                        <Route element={<ProtectedRoute permission="webhooks.manage" module="webhooks" />}>
+                            <Route path="/webhooks" element={<Webhooks />} />
                         </Route>
                         <Route element={<ProtectedRoute permission="support.manage" />}>
                             <Route path="/support" element={<Support />} />

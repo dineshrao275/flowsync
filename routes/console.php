@@ -14,6 +14,8 @@ Schedule::command('tenants:collect-usage')->daily()->withoutOverlapping();
 Schedule::command('tenants:backup --all --verify')->dailyAt('02:00')->withoutOverlapping();
 // Expired full-tenant export ZIPs (signed link lives 1h) are deleted, rows kept as history.
 Schedule::command('tenants:prune-exports')->dailyAt('03:00')->withoutOverlapping();
+// Processed domain events and settled webhook deliveries are kept 30 days.
+Schedule::command('events:prune --all')->dailyAt('03:45')->withoutOverlapping();
 // Sign-up drafts that never finished (no database exists for them) are removed after a week.
 Schedule::command('tenants:prune-drafts')->dailyAt('03:30')->withoutOverlapping();
 // Impersonation is time-boxed; close the logs of sessions nobody touched again.

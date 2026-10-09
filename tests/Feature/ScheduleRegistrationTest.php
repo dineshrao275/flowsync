@@ -43,6 +43,7 @@ class ScheduleRegistrationTest extends TestCase
             'tenants:backup --all --verify',
             'tenants:prune-exports',
             'tenants:prune-drafts',
+            'events:prune --all',
             'tenants:close-impersonations',
             'tenants:expire-trials',
             'hrms:surveys-open-close --all',

@@ -111,6 +111,7 @@ use App\Http\Controllers\UserAccessController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\UserImportController;
 use App\Http\Controllers\WebhookController;
+use App\Http\Controllers\WebhookEndpointController;
 use App\Http\Controllers\WorkLogController;
 use App\Http\Controllers\WorkspaceController;
 use App\Http\Controllers\WorkspaceMemberController;
@@ -194,6 +195,18 @@ Route::prefix('api')->group(function () {
         Route::get('support/tickets/{ticket}', [SupportTicketController::class, 'show'])->middleware('permission:support.manage');
         Route::post('support/tickets/{ticket}/messages', [SupportTicketController::class, 'reply'])->middleware(['permission:support.manage', 'throttle:30,1']);
         Route::post('support/tickets/{ticket}/close', [SupportTicketController::class, 'close'])->middleware('permission:support.manage');
+
+        // Outbound webhooks: tenant admins point signed event delivery at their own systems.
+        Route::middleware(['ensure_module:webhooks', 'tenant_context'])->group(function () {
+            Route::get('webhooks', [WebhookEndpointController::class, 'index'])->middleware('permission:webhooks.manage');
+            Route::post('webhooks', [WebhookEndpointController::class, 'store'])->middleware(['permission:webhooks.manage', 'throttle:20,1']);
+            Route::put('webhooks/{webhook}', [WebhookEndpointController::class, 'update'])->middleware('permission:webhooks.manage');
+            Route::delete('webhooks/{webhook}', [WebhookEndpointController::class, 'destroy'])->middleware('permission:webhooks.manage');
+            Route::post('webhooks/{webhook}/rotate-secret', [WebhookEndpointController::class, 'rotateSecret'])->middleware(['permission:webhooks.manage', 'throttle:10,1']);
+            Route::post('webhooks/{webhook}/test', [WebhookEndpointController::class, 'test'])->middleware(['permission:webhooks.manage', 'throttle:20,1']);
+            Route::get('webhooks/{webhook}/deliveries', [WebhookEndpointController::class, 'deliveries'])->middleware('permission:webhooks.manage');
+            Route::post('webhook-deliveries/{delivery}/redeliver', [WebhookEndpointController::class, 'redeliver'])->middleware(['permission:webhooks.manage', 'throttle:20,1']);
+        });
 
         // Phase 6: tenant payments & billing
         Route::post('billing/checkout', [BillingController::class, 'checkout'])->middleware('throttle:10,1');

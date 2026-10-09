@@ -142,6 +142,7 @@ return [
         ['name' => 'View Settings', 'slug' => 'settings.view', 'description' => 'Access account settings'],
         ['name' => 'View Billing', 'slug' => 'billing.view', 'description' => 'View subscription plan and billing information'],
         ['name' => 'Manage Billing', 'slug' => 'billing.manage', 'description' => 'Change plans and manage the subscription'],
+        ['name' => 'Manage Webhooks', 'slug' => 'webhooks.manage', 'description' => 'Create and manage outbound webhook endpoints'],
         ['name' => 'Support Tickets', 'slug' => 'support.manage', 'description' => 'Raise and follow support tickets with the platform team'],
         ['name' => 'Manage Organization', 'slug' => 'tenant.manage', 'description' => 'Edit the company profile and complete onboarding'],
         ['name' => 'View Workspaces', 'slug' => 'workspaces.view', 'description' => 'View workspaces and projects'],
