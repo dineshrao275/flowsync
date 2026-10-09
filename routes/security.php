@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\FeatureFlagController;
 use App\Http\Controllers\PlatformRoleController;
+use App\Http\Controllers\SupportAccessController;
 use App\Http\Controllers\TwoFactorController;
 use Illuminate\Support\Facades\Route;
 
@@ -23,6 +24,13 @@ Route::prefix('api')->middleware(['switch_tenant', 'auth', 'tenant'])->group(fun
     Route::post('auth/2fa/disable', [TwoFactorController::class, 'disable'])->middleware('throttle:6,1');
     Route::post('auth/2fa/recovery-codes', [TwoFactorController::class, 'recoveryCodes'])->middleware('throttle:6,1');
 
+    // P8.4 consent-based support access: the tenant admin grants, lists and revokes windows.
+    Route::middleware(['tenant_context', 'permission:support.manage'])->group(function () {
+        Route::get('support-access', [SupportAccessController::class, 'index']);
+        Route::post('support-access', [SupportAccessController::class, 'store'])->middleware('throttle:20,1');
+        Route::delete('support-access/{grant}', [SupportAccessController::class, 'destroy'])->whereNumber('grant');
+    });
+
     // P8.1 enforce-per-role: a tenant admin picks the roles that must use 2FA.
     Route::middleware(['tenant_context', 'permission:roles.manage'])->group(function () {
         Route::get('security/two-factor-policy', [TwoFactorController::class, 'showTenantPolicy']);
@@ -32,6 +40,10 @@ Route::prefix('api')->middleware(['switch_tenant', 'auth', 'tenant'])->group(fun
     Route::middleware('super_admin')->group(function () {
         Route::get('system/two-factor-policy', [TwoFactorController::class, 'showPlatformPolicy']);
         Route::put('system/two-factor-policy', [TwoFactorController::class, 'updatePlatformPolicy']);
+
+        // P8.4 platform side: grants it may use + the "consent is mandatory" switch.
+        Route::get('system/support-access', [SupportAccessController::class, 'platformIndex']);
+        Route::put('system/support-access/policy', [SupportAccessController::class, 'updatePolicy']);
 
         // P8.3 platform personas: catalog + assignment (route map: platform_users.*).
         Route::get('system/platform-roles', [PlatformRoleController::class, 'index']);

@@ -3,6 +3,7 @@
 namespace App\Support;
 
 use App\Models\ImpersonationLog;
+use App\Models\SupportAccessGrant;
 use Illuminate\Http\Exceptions\HttpResponseException;
 use Illuminate\Http\Request;
 
@@ -44,6 +45,7 @@ final class ImpersonationGuard
         'api/impersonate',
         'api/auth/2fa', 'api/auth/2fa/*',
         'api/security/*',
+        'api/support-access', 'api/support-access/*',
     ];
 
     /**
@@ -61,6 +63,16 @@ final class ImpersonationGuard
             throw new HttpResponseException(response()->json([
                 'message' => 'Your impersonation session has expired. Sign in again to continue.',
                 'code' => 'impersonation_expired',
+            ], 401));
+        }
+
+        // P8.4: a session bound to a tenant's consent ends the moment that consent is revoked.
+        if (! empty($impersonation['grant_id']) && ! SupportAccessGrant::active()->whereKey($impersonation['grant_id'])->exists()) {
+            $this->end($request, $impersonation);
+
+            throw new HttpResponseException(response()->json([
+                'message' => 'The tenant withdrew support access. Your session has ended.',
+                'code' => 'support_access_revoked',
             ], 401));
         }
 

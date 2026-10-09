@@ -104,6 +104,76 @@ function TwoFactorCard({ onChanged }) {
     );
 }
 
+function SupportAccessCard() {
+    const toast = useToast();
+    const [data, setData] = useState(null);
+    const [form, setForm] = useState({ note: '', hours: 24, mode: 'read_only' });
+    const [errors, setErrors] = useState({});
+
+    const load = useCallback(() => api.get('/support-access').then(({ data: d }) => setData(d)).catch(() => setData(false)), []);
+    useEffect(() => { load(); }, [load]);
+
+    if (data === null) return <Spinner />;
+    if (data === false) return null;
+
+    async function grant(e) {
+        e.preventDefault();
+        setErrors({});
+        try {
+            const { data: res } = await api.post('/support-access', { ...form, hours: Number(form.hours) });
+            toast.success(res.message);
+            setForm({ ...form, note: '' });
+            load();
+        } catch (err) {
+            setErrors(fieldErrors(err));
+        }
+    }
+
+    async function revoke(id) {
+        const { data: res } = await api.delete(`/support-access/${id}`);
+        toast.success(res.message);
+        load();
+    }
+
+    return (
+        <Card>
+            <h2 className="text-lg font-semibold text-gray-800">Support access</h2>
+            <p className="mb-3 text-sm text-gray-500">
+                Let the FlowSync support team sign in to your account for a limited time.
+                {data.consent_required && ' Support cannot enter your account without an active grant.'}
+            </p>
+            <form onSubmit={grant} className="space-y-3">
+                <Alert>{errors.form}</Alert>
+                <Input label="Why (what should support look at?)" value={form.note} error={errors.note}
+                    onChange={(e) => setForm({ ...form, note: e.target.value })} />
+                <div className="grid gap-3 sm:grid-cols-2">
+                    <Input label={`Hours (max ${data.limits.max_hours})`} type="number" min="1" max={data.limits.max_hours}
+                        value={form.hours} error={errors.hours} onChange={(e) => setForm({ ...form, hours: e.target.value })} />
+                    <label className="flex items-end gap-2 pb-2 text-sm text-gray-700">
+                        <input type="checkbox" checked={form.mode === 'write'}
+                            onChange={(e) => setForm({ ...form, mode: e.target.checked ? 'write' : 'read_only' })} />
+                        Allow support to make changes
+                    </label>
+                </div>
+                <Button type="submit">Grant access</Button>
+            </form>
+            <ul className="mt-4 divide-y divide-gray-100 text-sm">
+                {data.grants.map((g) => (
+                    <li key={g.id} className="flex items-center justify-between py-2">
+                        <span>
+                            <span className="font-medium">{g.mode === 'write' ? 'Changes allowed' : 'Read-only'}</span>
+                            {' · '}{g.active ? `until ${new Date(g.expires_at).toLocaleString()}` : (g.revoked_at ? 'revoked' : 'expired')}
+                            {' · '}{g.uses} session{g.uses === 1 ? '' : 's'}
+                            <span className="block text-xs text-gray-500">{g.note} (by {g.granted_by.name})</span>
+                        </span>
+                        {g.active && <Button variant="danger" size="sm" onClick={() => revoke(g.id)}>Revoke</Button>}
+                    </li>
+                ))}
+            </ul>
+        </Card>
+    );
+}
+
 function TenantPolicyCard() {
     const toast = useToast();
     const [policy, setPolicy] = useState(null);
@@ -146,6 +216,15 @@ function PlatformPolicyCard() {
 
     useEffect(() => { api.get('/system/two-factor-policy').then(({ data }) => setOn(data.require_super_admins)); }, []);
 
+    const [consent, setConsent] = useState(null);
+    useEffect(() => { api.get('/system/support-access').then(({ data }) => setConsent(data.consent_required)).catch(() => {}); }, []);
+
+    async function changeConsent(value) {
+        const { data } = await api.put('/system/support-access/policy', { consent_required: value });
+        setConsent(data.consent_required);
+        toast.success(data.message);
+    }
+
     if (on === null) return <Spinner />;
 
     async function change(value) {
@@ -160,6 +239,10 @@ function PlatformPolicyCard() {
             <label className="mt-2 flex items-center gap-2 text-sm text-gray-700">
                 <input type="checkbox" checked={on} onChange={(e) => change(e.target.checked)} />
                 Require two-factor for every platform admin
+            </label>
+            <label className="mt-2 flex items-center gap-2 text-sm text-gray-700">
+                <input type="checkbox" checked={Boolean(consent)} onChange={(e) => changeConsent(e.target.checked)} />
+                Require tenant consent (a support access grant) before impersonating
             </label>
         </Card>
     );
@@ -180,6 +263,7 @@ export default function Security() {
                 )}
             </div>
             <TwoFactorCard onChanged={refresh} />
+            {!platform && can('support.manage') && <SupportAccessCard />}
             {platform ? <PlatformPolicyCard /> : can('roles.manage') && <TenantPolicyCard />}
         </div>
     );

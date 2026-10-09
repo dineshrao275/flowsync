@@ -63,6 +63,8 @@ return [
      */
     'routes' => [
         ['api/impersonate', 'impersonate.start', 'impersonate.start'],
+        ['api/system/support-access/policy', 'settings.view', 'settings.manage'],
+        ['api/system/support-access*', 'support.view', 'support.manage'],
         ['api/system/support/*', 'support.view', 'support.manage'],
         ['api/system/audit-logs/export', 'audit.export', 'audit.export'],
         ['api/system/audit-logs*', 'audit.view', 'audit.view'],
