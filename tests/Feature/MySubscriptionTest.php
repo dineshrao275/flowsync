@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Models\Permission;
+use App\Models\Role;
 use App\Models\SubscriptionPlan;
 use App\Models\Tenant;
 use App\Models\User;
@@ -215,12 +216,16 @@ class MySubscriptionTest extends TestCase
     {
         $this->connectTenant('acme');
         Permission::where('slug', 'billing.view')->delete();
-        $this->assertFalse(User::where('email', 'admin@flowsync.test')->firstOrFail()->hasPermission('billing.view'));
+        // The admin role is `*`, so the user check no longer depends on the snapshot;
+        // the repair is about the stored snapshot (what the Roles page shows).
+        $snapshot = fn () => Role::where('slug', 'admin')->firstOrFail()->permissions()->where('slug', 'billing.view')->exists();
+        $this->assertFalse($snapshot());
 
         Artisan::call('tenants:provision', ['--tenant' => $this->acme()->id]);
 
         $this->connectTenant('acme');
         $this->assertTrue(Permission::where('slug', 'billing.view')->exists());
+        $this->assertTrue($snapshot());
         $this->assertTrue(User::where('email', 'admin@flowsync.test')->firstOrFail()->hasPermission('billing.view'));
     }
 
