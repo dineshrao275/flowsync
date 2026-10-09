@@ -1,6 +1,8 @@
 <?php
 
 use App\Http\Controllers\Hrms\Employee\EmployeeBulkController;
+use App\Http\Controllers\Hrms\Leave\LeaveAdjustmentController;
+use App\Http\Controllers\Hrms\Leave\LeaveBlackoutController;
 use App\Http\Controllers\Hrms\Shift\RosterController;
 use App\Http\Controllers\Hrms\Shift\RotationController;
 use App\Http\Controllers\Hrms\Shift\ShiftController;
@@ -47,4 +49,18 @@ Route::group(['middleware' => ['ensure_module:hrms.core', 'permission:hrms.view'
     Route::post('hrms/employees/import/preview', [EmployeeBulkController::class, 'preview'])->middleware('throttle:20,1');
     Route::post('hrms/employees/import', [EmployeeBulkController::class, 'import'])->middleware('throttle:10,1');
     Route::post('hrms/employees/bulk-status', [EmployeeBulkController::class, 'status'])->middleware('throttle:20,1');
+});
+
+// Leave completion (P5.9): manual balance adjustment + ledger, year-end
+// carry-forward/lapse run, and blackout windows. Module-gated on hrms.leave;
+// the writes take hrms.leave.manage, blackout reads are open to the module.
+Route::group(['middleware' => ['ensure_module:hrms.core', 'ensure_module:hrms.leave', 'permission:hrms.view']], function () {
+    Route::get('hrms/leave/ledger', [LeaveAdjustmentController::class, 'ledger'])->middleware('permission:hrms.leave.manage');
+    Route::post('hrms/leave/adjustments', [LeaveAdjustmentController::class, 'adjust'])->middleware('permission:hrms.leave.manage');
+    Route::post('hrms/leave/rollover', [LeaveAdjustmentController::class, 'rollover'])->middleware('permission:hrms.leave.manage');
+
+    Route::get('hrms/leave/blackouts', [LeaveBlackoutController::class, 'index']);
+    Route::post('hrms/leave/blackouts', [LeaveBlackoutController::class, 'store'])->middleware('permission:hrms.leave.manage');
+    Route::put('hrms/leave/blackouts/{blackout}', [LeaveBlackoutController::class, 'update'])->middleware('permission:hrms.leave.manage');
+    Route::delete('hrms/leave/blackouts/{blackout}', [LeaveBlackoutController::class, 'destroy'])->middleware('permission:hrms.leave.manage');
 });

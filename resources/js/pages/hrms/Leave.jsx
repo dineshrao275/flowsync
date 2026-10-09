@@ -15,6 +15,8 @@ import { useAuth } from '../../context/AuthContext';
 import { useSetCrumbs } from '../../context/BreadcrumbContext';
 import usePageTitle from '../../hooks/usePageTitle';
 import LeaveBalanceTable from '../../components/hrms/LeaveBalanceTable';
+import LeaveAdjustPanel from '../../components/hrms/LeaveAdjustPanel';
+import LeaveBlackoutPanel from '../../components/hrms/LeaveBlackoutPanel';
 import LeaveRequestModal from '../../components/hrms/LeaveRequestModal';
 
 const TABS = [
@@ -22,6 +24,8 @@ const TABS = [
     { key: 'types', label: 'Types' },
     { key: 'policies', label: 'Policies' },
     { key: 'balances', label: 'Balances' },
+    { key: 'adjustments', label: 'Adjustments' },
+    { key: 'blackouts', label: 'Blackouts' },
     { key: 'exemptions', label: 'Exemptions' },
 ];
 
@@ -523,6 +527,9 @@ export default function Leave() {
                     )}
                 </Card>
             )}
+
+            {tab === 'adjustments' && <LeaveAdjustPanel employees={employees} types={types ?? []} />}
+            {tab === 'blackouts' && <LeaveBlackoutPanel types={types ?? []} />}
 
             {tab === 'exemptions' && (
                 <>
