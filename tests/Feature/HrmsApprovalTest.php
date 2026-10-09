@@ -10,6 +10,7 @@ use App\Models\Hrms\Shared\ApprovalStep;
 use App\Models\Hrms\Shared\HrmsAuditLog;
 use App\Models\Hrms\Shared\HrmsDataAccessLog;
 use App\Models\Hrms\Shared\HrmsSetting;
+use App\Models\Permission;
 use App\Models\Role;
 use App\Models\User;
 use App\Models\Workspace;
@@ -433,5 +434,102 @@ class HrmsApprovalTest extends TestCase
         Approval::whereKey($approval->id)->forceDelete();
 
         $this->assertSame(0, ApprovalStep::where('approval_id', $approval->id)->count());
+    }
+
+    // ------------------------------------------------------------- override (R11)
+
+    private function overrider(string $email = 'overrider@flowsync.test'): User
+    {
+        $role = Role::create(['name' => 'Override '.$email, 'slug' => 'override-'.md5($email)]);
+        $role->permissions()->sync(Permission::where('slug', ApprovalService::OVERRIDE_PERMISSION)->pluck('id'));
+        $user = User::create(['name' => 'Overrider', 'email' => $email, 'password' => 'password']);
+        $user->roles()->sync([$role->id]);
+
+        return $user;
+    }
+
+    public function test_the_override_permission_lets_someone_act_on_a_step_they_were_not_assigned(): void
+    {
+        $approval = $this->service()->request(
+            ApproverSpec::user($this->user('editor@flowsync.test')->id),
+            $this->subject(),
+            requester: $this->user('admin@flowsync.test'),
+        );
+        $overrider = $this->overrider();
+
+        $this->assertTrue($this->service()->canAct($approval, $overrider));
+
+        $resolved = $this->service()->approve($approval, $overrider, 'Approver is on leave; HR confirmed by phone.');
+
+        $this->assertSame(ApprovalStatus::Approved, $resolved->status);
+        $this->assertTrue(HrmsAuditLog::where('action', 'approval.override_approved')->exists());
+        $this->assertFalse(HrmsAuditLog::where('action', 'approval.approved')->exists());
+    }
+
+    public function test_an_override_needs_a_reason(): void
+    {
+        $approval = $this->service()->request(
+            ApproverSpec::user($this->user('editor@flowsync.test')->id),
+            $this->subject(),
+            requester: $this->user('admin@flowsync.test'),
+        );
+
+        try {
+            $this->service()->approve($approval, $this->overrider());
+            $this->fail('An override without a reason should be refused.');
+        } catch (ValidationException $e) {
+            $this->assertArrayHasKey('note', $e->errors());
+        }
+
+        $this->assertTrue($approval->fresh()->isOpen());
+    }
+
+    public function test_an_override_can_reject_and_is_audited_as_one(): void
+    {
+        $approval = $this->service()->request(
+            ApproverSpec::user($this->user('editor@flowsync.test')->id),
+            $this->subject(),
+            requester: $this->user('admin@flowsync.test'),
+        );
+
+        $this->service()->reject($approval, $this->overrider(), 'Duplicate of an earlier request.');
+
+        $this->assertTrue(HrmsAuditLog::where('action', 'approval.override_rejected')->exists());
+    }
+
+    public function test_the_assigned_approver_is_not_audited_as_an_override(): void
+    {
+        $editor = $this->user('editor@flowsync.test');
+        $approval = $this->service()->request(
+            ApproverSpec::user($editor->id),
+            $this->subject(),
+            requester: $this->user('admin@flowsync.test'),
+        );
+
+        $this->service()->approve($approval, $editor);
+
+        $this->assertTrue(HrmsAuditLog::where('action', 'approval.approved')->exists());
+        $this->assertFalse(HrmsAuditLog::where('action', 'approval.override_approved')->exists());
+    }
+
+    public function test_nobody_can_override_their_own_request(): void
+    {
+        $overrider = $this->overrider();
+        $approval = $this->service()->request(
+            ApproverSpec::user($this->user('editor@flowsync.test')->id),
+            $this->subject(),
+            requester: $overrider,
+        );
+
+        $this->assertFalse($this->service()->canAct($approval, $overrider));
+    }
+
+    public function test_hr_manager_does_not_inherit_the_override_from_its_hrms_prefix(): void
+    {
+        $slugs = fn (string $role) => Role::where('slug', $role)->firstOrFail()
+            ->permissions()->pluck('slug')->all();
+
+        $this->assertNotContains(ApprovalService::OVERRIDE_PERMISSION, $slugs('hr_manager'));
+        $this->assertContains(ApprovalService::OVERRIDE_PERMISSION, $slugs('admin'));
     }
 }

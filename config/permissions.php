@@ -211,6 +211,7 @@ return [
 
         ['name' => 'View HR Analytics', 'slug' => 'hrms.analytics.view', 'description' => 'View HR analytics dashboards'],
         ['name' => 'View HRMS Audit Log', 'slug' => 'hrms.audit.view', 'description' => 'View the HRMS audit log'],
+        ['name' => 'Override Approvals', 'slug' => 'hrms.approvals.override', 'description' => 'Approve or reject a step on behalf of its assigned approver (reason required, audited)'],
     ]),
 
     /*
@@ -292,6 +293,9 @@ return [
                 'hrms.*',
                 '!hrms.payroll.*',
                 '!hrms.compensation.manage',
+                // Acting on someone else's approval is an explicit grant, never
+                // something the hrms.* prefix hands out.
+                '!hrms.approvals.override',
             ],
         ],
         // The payroll surface plus everything payroll needs to read to compute

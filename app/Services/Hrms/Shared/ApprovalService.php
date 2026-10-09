@@ -33,6 +33,9 @@ use Illuminate\Validation\ValidationException;
  */
 class ApprovalService
 {
+    /** Permission that lets someone act on a step they were not assigned (audited). */
+    public const OVERRIDE_PERMISSION = 'hrms.approvals.override';
+
     public function __construct(private readonly HrmsAuditLogger $audit) {}
 
     /**
@@ -136,10 +139,11 @@ class ApprovalService
     public function approve(Approval $approval, User $actor, ?string $note = null): Approval
     {
         $step = $this->assertCanAct($approval, $actor);
+        $override = $this->requireOverrideNote($step, $actor, $note);
 
         $this->audit->log(
             subject: $approval,
-            action: 'approval.approved',
+            action: $override ? 'approval.override_approved' : 'approval.approved',
             before: ['step' => $step->step_order, 'status' => $step->status->value],
             after: ['step' => $step->step_order, 'status' => ApprovalStepStatus::Approved->value],
             actor: $actor,
@@ -163,10 +167,11 @@ class ApprovalService
     public function reject(Approval $approval, User $actor, ?string $note = null): Approval
     {
         $step = $this->assertCanAct($approval, $actor);
+        $override = $this->requireOverrideNote($step, $actor, $note);
 
         $this->audit->log(
             subject: $approval,
-            action: 'approval.rejected',
+            action: $override ? 'approval.override_rejected' : 'approval.rejected',
             before: ['status' => $step->status->value],
             after: ['status' => ApprovalStepStatus::Rejected->value, 'step' => $step->step_order],
             actor: $actor,
@@ -255,11 +260,12 @@ class ApprovalService
     /**
      * Whether the user may act on the approval's current step.
      *
-     * Only the step's own approver — a resolved user, or any holder of the
-     * step's role. There is deliberately **no** administrator bypass: a tenant
-     * admin approving their own payroll revision is exactly the case a review
-     * trail must make visible, so an override, if it is ever wanted, needs its
-     * own permission and its own audit action rather than a silent `|| true`.
+     * The step's own approver — a resolved user, or any holder of the step's
+     * role — or a holder of the explicit override permission (see mayOverride()).
+     * There is deliberately **no** administrator bypass: a tenant admin approving
+     * their own payroll revision is exactly the case a review trail must make
+     * visible, so the override has its own permission and its own audit action
+     * rather than a silent `|| true`.
      */
     public function canAct(Approval $approval, User $user): bool
     {
@@ -269,7 +275,43 @@ class ApprovalService
             return false;
         }
 
-        return $step->canBeActedBy($user);
+        return $step->canBeActedBy($user) || $this->mayOverride($approval, $user);
+    }
+
+    /**
+     * Whether the user may act on a pending step they were NOT assigned (R11).
+     *
+     * Needs its own permission, is never available on a request the user made
+     * themselves (an override must not become a self-approval path), and is
+     * recorded as a distinct audit action with a mandatory reason — so it shows
+     * up in the trail as an override, not as an ordinary approval.
+     */
+    public function mayOverride(Approval $approval, User $user): bool
+    {
+        return $approval->isOpen()
+            && ! $this->isRequester($approval, $user)
+            && $user->hasPermission(self::OVERRIDE_PERMISSION);
+    }
+
+    /**
+     * True when the actor is acting through the override rather than as the
+     * step's own approver; an override without a reason is refused.
+     *
+     * @throws ValidationException
+     */
+    private function requireOverrideNote(ApprovalStep $step, User $actor, ?string $note): bool
+    {
+        if ($step->canBeActedBy($actor)) {
+            return false;
+        }
+
+        if (mb_strlen(trim((string) $note)) < 5) {
+            throw ValidationException::withMessages([
+                'note' => 'Acting on behalf of the assigned approver needs a reason (at least 5 characters).',
+            ]);
+        }
+
+        return true;
     }
 
     /**

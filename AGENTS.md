@@ -1116,6 +1116,7 @@ Phase 13
   engagement|documents|assets|analytics|inbox`. `hrms.shifts`/`hrms.talent` are reserved (permissions exist,
   no pages); every other key has a sidebar entry, a route gate, and an overview tile wired through
   `HRMS_MODULE_ROUTES` (tile without a route fails the shell test).
+- **Approval override (R11):** `ApprovalService::canAct` (the one check every approval policy and the engine use) also admits a holder of `hrms.approvals.override` (`ApprovalService::OVERRIDE_PERMISSION`) on a pending step they were not assigned — never on a request they made themselves, and only with a reason of ≥5 chars (`note`, else 422). It is audited as `approval.override_approved` / `approval.override_rejected`, not `approval.approved`. `admin` (`*`) holds it; `hr_manager` explicitly subtracts it (`!hrms.approvals.override`) so its `hrms.*` prefix does not hand it out. There is still no *silent* admin bypass.
 - **Shared primitives** (built once in P1, reused by all 22 phases): generic `approvals`/`approval_steps`
   engine (`ApprovalService`), append-only `hrms_audit_logs` + `hrms_data_access_logs` written only via
   `HrmsAuditLogger` (field *names* travel, values are masked at the writer; reads via `accessed()` with
