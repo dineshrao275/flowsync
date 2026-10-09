@@ -23,3 +23,5 @@
 Homestead.json
 Homestead.yaml
 Thumbs.db
+.agents/orchestrator/mcp-server/node_modules/
+.agents/workflow/

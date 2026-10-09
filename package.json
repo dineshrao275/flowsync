@@ -6,7 +6,9 @@
         "build": "vite build",
         "dev": "vite",
         "test": "vitest run",
-        "lint": "eslint resources/js"
+        "lint": "eslint resources/js",
+        "agent:workflow": "node .agents/orchestrator/orchestrator.mjs",
+        "agent:status": "node .agents/orchestrator/orchestrator.mjs --status"
     },
     "devDependencies": {
         "@eslint/js": "^9.39.5",

@@ -1,0 +1,12 @@
+{
+  "mcpServers": {
+    "flowsync-dev": {
+      "type": "stdio",
+      "command": "node",
+      "args": [
+        "/home/dineshrao/Public/flowsync/.agents/orchestrator/mcp-server/index.js"
+      ],
+      "env": {}
+    }
+  }
+}
