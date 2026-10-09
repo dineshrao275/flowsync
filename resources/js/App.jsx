@@ -20,6 +20,8 @@ import WorkspaceDetail from './pages/WorkspaceDetail';
 import ProjectDetail from './pages/ProjectDetail';
 import Projects from './pages/Projects';
 import Users from './pages/Users';
+import UserEdit from './pages/UserEdit';
+import UserImport from './pages/UserImport';
 import Roles from './pages/Roles';
 import Settings from './pages/Settings';
 import Reports from './pages/Reports';
@@ -430,6 +432,10 @@ function AppRoutes() {
                         </Route>
                         <Route element={<ProtectedRoute permission="users.view" />}>
                             <Route path="/users" element={<Users />} />
+                            <Route path="/users/:userId" element={<UserEdit />} />
+                        </Route>
+                        <Route element={<ProtectedRoute permission="users.manage" />}>
+                            <Route path="/users/import" element={<UserImport />} />
                         </Route>
                         <Route element={<ProtectedRoute permission="roles.view" />}>
                             <Route path="/roles" element={<Roles />} />

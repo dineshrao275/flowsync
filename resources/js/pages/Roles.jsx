@@ -14,39 +14,89 @@ import usePageTitle from '../hooks/usePageTitle';
 import { groupPermissionsByDomain, prettyDomain } from '../utils/permissions';
 
 function PermissionGrid({ permissions, isChecked, onToggle, disabled = false, dense = false }) {
-    const groups = groupPermissionsByDomain(permissions);
+    const [query, setQuery] = useState('');
+    const [collapsed, setCollapsed] = useState({});
+    const needle = query.trim().toLowerCase();
+    const groups = groupPermissionsByDomain(permissions)
+        .map(({ domain, items }) => ({
+            domain,
+            all: items,
+            items: needle
+                ? items.filter((p) => `${p.name} ${p.slug} ${prettyDomain(domain)}`.toLowerCase().includes(needle))
+                : items,
+        }))
+        .filter((g) => g.items.length > 0);
+    const total = permissions.length;
+    const selected = permissions.filter(isChecked).length;
+
+    // Bulk change = one toggle per differing item; each toggle is a functional state update.
+    const setMany = (items, checked) => items.forEach((p) => isChecked(p) !== checked && onToggle(p));
 
     return (
         <div className="space-y-4">
-            {groups.map(({ domain, items }) => (
-                <div key={domain}>
-                    <p className="mb-1.5 text-xs font-semibold uppercase tracking-wide text-gray-400">
-                        {prettyDomain(domain)}
-                    </p>
-                    <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3">
-                        {items.map((permission) => (
-                            <label
-                                key={permission.id}
-                                className={`flex cursor-pointer rounded-lg text-sm transition hover:bg-gray-50 ${
-                                    dense ? 'items-start gap-2 px-2 py-1.5' : 'items-center gap-2 border border-gray-200 px-3 py-2'
-                                } ${disabled ? 'cursor-default hover:bg-transparent' : ''}`}
+            <div className="flex flex-wrap items-center gap-3">
+                <input
+                    type="search"
+                    value={query}
+                    onChange={(e) => setQuery(e.target.value)}
+                    placeholder="Search permissions…"
+                    className="min-w-48 flex-1 rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200"
+                />
+                <span className="text-xs text-gray-500">{selected} of {total} selected</span>
+            </div>
+            {groups.length === 0 && <p className="text-sm text-gray-400">No permission matches “{query}”.</p>}
+            {groups.map(({ domain, items, all }) => {
+                const on = all.filter(isChecked).length;
+                const open = needle ? true : !collapsed[domain];
+
+                return (
+                    <div key={domain} className="rounded-lg border border-gray-100">
+                        <div className="flex items-center justify-between gap-2 bg-gray-50 px-3 py-1.5">
+                            <button
+                                type="button"
+                                onClick={() => setCollapsed((c) => ({ ...c, [domain]: !c[domain] }))}
+                                className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-gray-500"
                             >
-                                <input
-                                    type="checkbox"
-                                    checked={isChecked(permission)}
-                                    disabled={disabled}
-                                    onChange={() => onToggle(permission)}
-                                    className="mt-0.5 h-4 w-4 shrink-0 rounded border-gray-300 text-[var(--accent)] accent-[var(--accent)] transition-all duration-150 focus:ring-[var(--accent-ring)] disabled:cursor-not-allowed disabled:opacity-50"
-                                />
-                                <span className="text-gray-700">
-                                    {permission.name}
-                                    <span className="block text-xs text-gray-400">{permission.slug}</span>
+                                <span>{open ? '▾' : '▸'}</span>
+                                {prettyDomain(domain)}
+                                <span className="rounded-full bg-white px-1.5 py-0.5 text-[10px] font-medium normal-case text-gray-500">
+                                    {on}/{all.length}
                                 </span>
-                            </label>
-                        ))}
+                            </button>
+                            {!disabled && (
+                                <span className="flex gap-3 text-xs">
+                                    <button type="button" className="text-[var(--accent)] hover:underline" onClick={() => setMany(items, true)}>All</button>
+                                    <button type="button" className="text-gray-500 hover:underline" onClick={() => setMany(items, false)}>None</button>
+                                </span>
+                            )}
+                        </div>
+                        {open && (
+                            <div className="grid grid-cols-1 gap-2 p-2 sm:grid-cols-2 lg:grid-cols-3">
+                                {items.map((permission) => (
+                                    <label
+                                        key={permission.id}
+                                        className={`flex cursor-pointer rounded-lg text-sm transition hover:bg-gray-50 ${
+                                            dense ? 'items-start gap-2 px-2 py-1.5' : 'items-center gap-2 border border-gray-200 px-3 py-2'
+                                        } ${disabled ? 'cursor-default hover:bg-transparent' : ''}`}
+                                    >
+                                        <input
+                                            type="checkbox"
+                                            checked={isChecked(permission)}
+                                            disabled={disabled}
+                                            onChange={() => onToggle(permission)}
+                                            className="mt-0.5 h-4 w-4 shrink-0 rounded border-gray-300 text-[var(--accent)] accent-[var(--accent)] transition-all duration-150 focus:ring-[var(--accent-ring)] disabled:cursor-not-allowed disabled:opacity-50"
+                                        />
+                                        <span className="text-gray-700">
+                                            {permission.name}
+                                            <span className="block text-xs text-gray-400">{permission.slug}</span>
+                                        </span>
+                                    </label>
+                                ))}
+                            </div>
+                        )}
                     </div>
-                </div>
-            ))}
+                );
+            })}
         </div>
     );
 }

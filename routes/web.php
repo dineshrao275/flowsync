@@ -106,6 +106,7 @@ use App\Http\Controllers\TenantSummaryController;
 use App\Http\Controllers\ThemeController;
 use App\Http\Controllers\UserAccessController;
 use App\Http\Controllers\UserController;
+use App\Http\Controllers\UserImportController;
 use App\Http\Controllers\WebhookController;
 use App\Http\Controllers\WorkLogController;
 use App\Http\Controllers\WorkspaceController;
@@ -281,7 +282,12 @@ Route::prefix('api')->group(function () {
         // (an impersonating super admin is the impersonated tenant user, so the
         // tenant-context + `users.manage` checks both apply to them).
         Route::get('users', [UserController::class, 'index'])->middleware('permission:users.view');
+        Route::get('users/import/sample', [UserImportController::class, 'sample'])->middleware('permission:users.manage');
+        Route::post('users/import/preview', [UserImportController::class, 'preview'])->middleware(['permission:users.manage', 'throttle:20,1']);
+        Route::post('users/import', [UserImportController::class, 'store'])->middleware(['permission:users.manage', 'throttle:10,1']);
         Route::post('users', [UserController::class, 'store'])->middleware(['permission:users.manage', 'throttle:30,1']);
+        Route::get('users/{user}', [UserController::class, 'show'])->middleware('permission:users.view');
+        Route::put('users/{user}', [UserController::class, 'update'])->middleware('permission:users.manage');
         Route::put('users/{user}/roles', [UserController::class, 'updateRoles'])->middleware('permission:users.manage');
         // "Why can't they?": which role/scope/plan-module link grants or blocks one permission.
         Route::get('users/{user}/access', [UserAccessController::class, 'show'])->middleware('permission:roles.view');

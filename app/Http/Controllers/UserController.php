@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Http\Controllers\Concerns\AuditsTenantAdminActions;
 use App\Models\Role;
+use App\Models\SystemUser;
 use App\Models\TenantUserRouting;
 use App\Models\User;
 use App\Services\Hrms\Employee\EmployeeBackfill;
@@ -99,6 +100,46 @@ class UserController extends Controller
             'message' => 'User created.',
             'user' => $this->present($user->load('roles')),
         ], 201);
+    }
+
+    public function show(User $user): JsonResponse
+    {
+        return response()->json(['user' => $this->present($user->load('roles'))]);
+    }
+
+    /** Edit name and login email (the roles have their own endpoint and ceiling check). */
+    public function update(Request $request, User $user): JsonResponse
+    {
+        $request->merge(['email' => Str::lower(trim((string) $request->input('email')))]);
+
+        $data = $request->validate([
+            'name' => ['required', 'string', 'max:255'],
+            'email' => ['required', 'string', 'email', 'max:255', Rule::unique('users', 'email')->ignore($user->id)],
+        ]);
+
+        $oldEmail = $user->email;
+        if ($data['email'] !== $oldEmail) {
+            // Login resolves the tenant through the central routing index, so an
+            // email that exists only in the tenant DB — or only in the index — breaks sign-in.
+            $taken = TenantUserRouting::where('email', $data['email'])->exists()
+                || SystemUser::where('email', $data['email'])->exists();
+            if ($taken) {
+                throw ValidationException::withMessages(['email' => 'An account with this email already exists.']);
+            }
+        }
+
+        $before = ['name' => $user->name, 'email' => $oldEmail];
+        $user->update($data);
+
+        TenantUserRouting::where('tenant_id', $this->tenantContext->currentId())
+            ->where('email', $oldEmail)
+            ->update(['email' => $data['email'], 'name' => $data['name']]);
+
+        if ($before !== ['name' => $user->name, 'email' => $user->email]) {
+            $this->auditTenantAdmin($request, 'user.updated', 'users', $user->id, $before, ['name' => $user->name, 'email' => $user->email]);
+        }
+
+        return response()->json(['message' => 'User updated.', 'user' => $this->present($user->load('roles'))]);
     }
 
     public function updateRoles(Request $request, User $user): JsonResponse

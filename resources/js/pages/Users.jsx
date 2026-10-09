@@ -21,7 +21,6 @@ export default function Users() {
     const [roles, setRoles] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
-    const [editing, setEditing] = useState(null);
     const [saving, setSaving] = useState(false);
     const [creating, setCreating] = useState(false);
     const [form, setForm] = useState({ name: '', email: '', password: '', password_confirmation: '', roles: [] });
@@ -51,24 +50,6 @@ export default function Users() {
         load();
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
-
-    async function saveRoles(user) {
-        setSaving(true);
-        try {
-            const { data } = await api.put(`/users/${user.id}/roles`, {
-                roles: user.roles,
-            });
-            setUsers((current) =>
-                current.map((u) => (u.id === user.id ? { ...u, ...data.user } : u)),
-            );
-            toast.success(`Roles updated for ${user.name}.`);
-            setEditing(null);
-        } catch (e) {
-            setError(fieldErrors(e).form || 'Failed to update roles.');
-        } finally {
-            setSaving(false);
-        }
-    }
 
     async function makeDefault(user) {
         setSaving(true);
@@ -137,7 +118,10 @@ export default function Users() {
                     </p>
                 </div>
                 {manageable && (
-                    <Button onClick={() => setCreating((open) => !open)}>Add user</Button>
+                    <div className="flex gap-2">
+                        <Button variant="secondary" onClick={() => navigate('/users/import')}>Import CSV</Button>
+                        <Button onClick={() => setCreating((open) => !open)}>Add user</Button>
+                    </div>
                 )}
             </div>
 
@@ -261,97 +245,50 @@ export default function Users() {
                                 </Td>
                                 <Td>
                                     <div className="flex flex-wrap gap-1">
-                                        {editing === user.id ? (
-                                            <select
-                                                multiple
-                                                value={user.roles}
-                                                onChange={(e) => {
-                                                    const selected = Array.from(
-                                                        e.target.selectedOptions,
-                                                        (o) => o.value,
-                                                    );
-                                                    setUsers((current) =>
-                                                        current.map((u) =>
-                                                            u.id === user.id ? { ...u, roles: selected } : u,
-                                                        ),
-                                                    );
-                                                }}
-                                                className="rounded border border-gray-300 text-xs"
-                                            >
-                                                {roleOptions.map((r) => (
-                                                    <option key={r.value} value={r.value}>
-                                                        {r.label}
-                                                    </option>
-                                                ))}
-                                            </select>
-                                        ) : (
-                                            user.roles.map((role) => <Badge key={role}>{role}</Badge>)
-                                        )}
+                                        {user.roles.map((role) => <Badge key={role}>{role}</Badge>)}
                                     </div>
                                 </Td>
                                 <Td align="right">
-                                    {manageable &&
-                                        (editing === user.id ? (
-                                            <div className="flex justify-end gap-2">
-                                                <Button
-                                                    variant="secondary"
-                                                    size="sm"
-                                                    onClick={() => setEditing(null)}
-                                                >
-                                                    Cancel
-                                                </Button>
+                                    {manageable && (
+                                        <div className="flex items-center justify-end gap-2">
+                                            <Button size="sm" variant="secondary" onClick={() => navigate(`/users/${user.id}`)}>
+                                                Edit
+                                            </Button>
+                                            {!user.is_default && (
                                                 <Button
                                                     size="sm"
+                                                    variant="subtle"
                                                     loading={saving}
-                                                    onClick={() => saveRoles(user)}
+                                                    // The default must be an admin; the server
+                                                    // rejects anyone else with 422.
+                                                    disabled={!user.roles?.includes('admin')}
+                                                    title={
+                                                        user.roles?.includes('admin')
+                                                            ? 'Make this user the tenant default'
+                                                            : 'Only an admin can be the default user'
+                                                    }
+                                                    onClick={() => makeDefault(user)}
                                                 >
-                                                    Save
+                                                    Make default
                                                 </Button>
-                                            </div>
-                                        ) : (
-                                            <div className="flex items-center justify-end gap-2">
+                                            )}
+                                            {user.id !== currentUser?.id && (
                                                 <Button
                                                     size="sm"
-                                                    variant="secondary"
-                                                    onClick={() => setEditing(user.id)}
+                                                    variant="danger"
+                                                    disabled={user.is_default}
+                                                    title={
+                                                        user.is_default
+                                                            ? 'The default user cannot be deleted. Shift the default to another admin first.'
+                                                            : 'Delete user'
+                                                    }
+                                                    onClick={() => deleteUser(user)}
                                                 >
-                                                    Edit roles
+                                                    Delete
                                                 </Button>
-                                                {!user.is_default && (
-                                                    <Button
-                                                        size="sm"
-                                                        variant="subtle"
-                                                        loading={saving}
-                                                        // The default must be an admin; the server
-                                                        // rejects anyone else with 422.
-                                                        disabled={!user.roles?.includes('admin')}
-                                                        title={
-                                                            user.roles?.includes('admin')
-                                                                ? 'Make this user the tenant default'
-                                                                : 'Only an admin can be the default user'
-                                                        }
-                                                        onClick={() => makeDefault(user)}
-                                                    >
-                                                        Make default
-                                                    </Button>
-                                                )}
-                                                {user.id !== currentUser?.id && (
-                                                    <Button
-                                                        size="sm"
-                                                        variant="danger"
-                                                        disabled={user.is_default}
-                                                        title={
-                                                            user.is_default
-                                                                ? 'The default user cannot be deleted. Shift the default to another admin first.'
-                                                                : 'Delete user'
-                                                        }
-                                                        onClick={() => deleteUser(user)}
-                                                    >
-                                                        Delete
-                                                    </Button>
-                                                )}
-                                            </div>
-                                        ))}
+                                            )}
+                                        </div>
+                                    )}
                                 </Td>
                             </tr>
                         ))
