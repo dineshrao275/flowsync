@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Models\Activity;
 use App\Models\User;
+use App\Services\Events\DomainEvents;
 use Illuminate\Database\Eloquent\Builder;
 
 class ActivityLogger
@@ -16,7 +17,7 @@ class ActivityLogger
         ?User $actor = null,
         ?string $ipAddress = null,
     ): Activity {
-        return Activity::create([
+        $activity = Activity::create([
             'actor_user_id' => $actor?->id,
             'subject_type' => $subjectType,
             'subject_id' => $subjectId,
@@ -24,6 +25,16 @@ class ActivityLogger
             'data' => $data,
             'ip_address' => $ipAddress,
         ]);
+
+        // Every activity is also a domain event: one funnel feeds the timeline and
+        // the integrations. (A task moved into a done status is additionally `task.completed`.)
+        $events = app(DomainEvents::class);
+        $events->record($action, $subjectType, $subjectId, $data ?? [], $actor?->id);
+        if (in_array($action, ['task.moved', 'task.updated'], true) && ! empty($data['to_is_done'])) {
+            $events->record('task.completed', $subjectType, $subjectId, $data, $actor?->id);
+        }
+
+        return $activity;
     }
 
     public function forSubject(string $subjectType, int $subjectId): Builder

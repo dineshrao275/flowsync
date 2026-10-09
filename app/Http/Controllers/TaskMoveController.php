@@ -50,6 +50,8 @@ class TaskMoveController extends Controller
                 'from_status' => $oldStatus?->name,
                 'to_status_id' => $moved->status_id,
                 'to_status' => $moved->status?->name,
+                'key' => $moved->key,
+                'to_is_done' => $moved->status_id !== $oldStatusId && (bool) $moved->status?->is_done,
             ],
             actor: $request->user(),
             ipAddress: $request->ip(),

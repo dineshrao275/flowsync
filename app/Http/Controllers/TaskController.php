@@ -206,7 +206,11 @@ class TaskController extends Controller
             subjectType: Task::class,
             subjectId: $task->id,
             action: 'task.updated',
-            data: ['fields' => array_values($changed)],
+            data: [
+                'fields' => array_values($changed),
+                'key' => $updated->key,
+                'to_is_done' => $updated->status_id !== $oldStatusId && (bool) $updated->status?->is_done,
+            ],
             actor: $request->user(),
             ipAddress: $request->ip(),
         );
