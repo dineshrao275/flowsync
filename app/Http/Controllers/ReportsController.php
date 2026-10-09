@@ -3,7 +3,12 @@
 namespace App\Http\Controllers;
 
 use App\Http\Controllers\Concerns\ScopesVisibleTasks;
-use App\Models\Task;
+use App\Models\Priority;
+use App\Models\Project;
+use App\Models\TaskStatus;
+use App\Models\User;
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
@@ -30,57 +35,70 @@ class ReportsController extends Controller
                     ->whereDate('tasks.completed_at', '<=', $range['to'])));
         }
 
-        $tasks = $query->get();
+        // Aggregate in SQL: the pool can be every visible task in the tenant,
+        // so nothing here may hydrate Task models (no eager loads, no get()).
+        $query->setEagerLoads([]);
 
-        $groupBy = fn ($key, $labelFor) => $tasks
-            ->groupBy($key)
-            ->map(function ($group) use ($labelFor) {
-                $first = $group->first();
+        $today = now()->toDateString();
+        $totals = (clone $query)->reorder()->selectRaw(
+            'count(*) as total,'
+            .' sum(case when tasks.completed_at is null then 1 else 0 end) as open_count,'
+            .' sum(case when tasks.completed_at is null and tasks.due_date is not null and date(tasks.due_date) < ? then 1 else 0 end) as overdue_count',
+            [$today],
+        )->first();
 
-                return [
-                    'key' => (string) $labelFor['value']($first),
-                    'label' => $labelFor['label']($first),
-                    'count' => $group->count(),
-                    'open' => $group->whereNull('completed_at')->count(),
-                    'done' => $group->whereNotNull('completed_at')->count(),
-                    'color' => $labelFor['color']($first),
-                ];
-            })
-            ->sortByDesc('count')
-            ->values();
-
-        $overdue = $tasks->filter(fn (Task $task) => $task->completed_at === null && $task->due_date !== null && $task->due_date->lt(now()->startOfDay()));
+        $total = (int) $totals->total;
+        $open = (int) $totals->open_count;
 
         return response()->json([
             'scope' => $this->userManagesAllTasks($request->user()) ? 'all' : 'member',
             'range' => $range,
             'totals' => [
-                'total' => $tasks->count(),
-                'open' => $tasks->whereNull('completed_at')->count(),
-                'done' => $tasks->whereNotNull('completed_at')->count(),
-                'overdue' => $overdue->count(),
+                'total' => $total,
+                'open' => $open,
+                'done' => $total - $open,
+                'overdue' => (int) $totals->overdue_count,
             ],
-            'by_status' => $groupBy('status_id', [
-                'value' => fn (Task $task) => $task->status_id ?? 'none',
-                'label' => fn (Task $task) => $task->status?->name ?? 'No status',
-                'color' => fn (Task $task) => $task->status?->color ?? '#94a3b8',
-            ]),
-            'by_priority' => $groupBy('priority_id', [
-                'value' => fn (Task $task) => $task->priority_id ?? 'none',
-                'label' => fn (Task $task) => $task->priority?->name ?? 'No priority',
-                'color' => fn (Task $task) => $task->priority?->color ?? '#94a3b8',
-            ]),
-            'by_assignee' => $groupBy('assignee_id', [
-                'value' => fn (Task $task) => $task->assignee_id ?? 'none',
-                'label' => fn (Task $task) => $task->assignee?->name ?? 'Unassigned',
-                'color' => fn (Task $task) => $task->assignee?->name ? '#6366f1' : '#94a3b8',
-            ]),
-            'by_project' => $groupBy('project_id', [
-                'value' => fn (Task $task) => $task->project_id ?? 'none',
-                'label' => fn (Task $task) => $task->project?->name ?? 'Unknown project',
-                'color' => fn (Task $task) => '#0ea5e9',
-            ]),
+            'by_status' => $this->distribution($query, 'status_id', 'No status', TaskStatus::class, fn ($m) => [$m->name, $m->color ?? '#94a3b8']),
+            'by_priority' => $this->distribution($query, 'priority_id', 'No priority', Priority::class, fn ($m) => [$m->name, $m->color ?? '#94a3b8']),
+            'by_assignee' => $this->distribution($query, 'assignee_id', 'Unassigned', User::class, fn ($m) => [$m->name, $m->name ? '#6366f1' : '#94a3b8']),
+            'by_project' => $this->distribution($query, 'project_id', 'Unknown project', Project::class, fn ($m) => [$m->name, '#0ea5e9']),
         ]);
+    }
+
+    /**
+     * One GROUP BY per dimension. A null foreign key is the `none` bucket; a key
+     * whose row no longer exists keeps the dimension's fallback label.
+     *
+     * @param  class-string<Model>  $related
+     * @param  callable(Model): array{0: ?string, 1: string}  $describe  [label, color]
+     * @return list<array{key: string, label: string, count: int, open: int, done: int, color: string}>
+     */
+    private function distribution(Builder $query, string $column, string $fallbackLabel, string $related, callable $describe): array
+    {
+        $rows = (clone $query)->reorder()
+            ->selectRaw("tasks.{$column} as group_id, count(*) as total, sum(case when tasks.completed_at is null then 1 else 0 end) as open_count")
+            ->groupBy("tasks.{$column}")
+            ->get();
+
+        $models = $related::whereIn('id', $rows->pluck('group_id')->filter()->all())->get()->keyBy('id');
+        $fallbackColor = $column === 'project_id' ? '#0ea5e9' : '#94a3b8';
+
+        return $rows->map(function ($row) use ($models, $describe, $fallbackLabel, $fallbackColor) {
+            $model = $row->group_id === null ? null : $models->get($row->group_id);
+            [$label, $color] = $model ? $describe($model) : [null, $fallbackColor];
+            $count = (int) $row->total;
+            $open = (int) $row->open_count;
+
+            return [
+                'key' => (string) ($row->group_id ?? 'none'),
+                'label' => $label ?? $fallbackLabel,
+                'color' => $color,
+                'count' => $count,
+                'open' => $open,
+                'done' => $count - $open,
+            ];
+        })->sortBy([['count', 'desc'], ['label', 'asc']])->values()->all();
     }
 
     /**
