@@ -88,6 +88,7 @@ export default function Subscription() {
     const [plans, setPlans] = useState([]);
     const [subscriptions, setSubscriptions] = useState([]);
     const [payments, setPayments] = useState([]);
+    const [invoices, setInvoices] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
     const [action, setAction] = useState(null);
@@ -102,11 +103,12 @@ export default function Subscription() {
         setLoading(true);
         setError(null);
         try {
-            const [subRes, usageRes, plansRes, historyRes] = await Promise.all([
+            const [subRes, usageRes, plansRes, historyRes, invoiceRes] = await Promise.all([
                 api.get('/my-subscription'),
                 api.get('/my-usage'),
                 api.get('/plans'),
                 api.get('/billing/history').catch(() => ({ data: { payments: [] } })),
+                api.get('/billing/invoices').catch(() => ({ data: { invoices: [] } })),
             ]);
             setSubscription(subRes.data.subscription);
             setSubscriptions(subRes.data.subscriptions || []);
@@ -118,6 +120,7 @@ export default function Subscription() {
             setModulesAvailable(usageRes.data.modules_available || []);
             setPlans(plansRes.data.plans || []);
             setPayments(historyRes.data.payments || []);
+            setInvoices(invoiceRes.data.invoices || []);
         } catch (e) {
             setError(e.response?.status === 404 ? 'No tenant context for this page.' : 'Unable to load subscription details.');
         } finally {
@@ -491,6 +494,48 @@ export default function Subscription() {
                     </Table>
                 </section>
             )}
+
+            {/* P6.1: invoices, each downloadable as a PDF */}
+            <section>
+                <h3 className="mb-2 text-sm font-semibold text-gray-900">Invoices</h3>
+                {invoices.length === 0 ? (
+                    <div className="rounded-lg border border-dashed border-gray-200 bg-gray-50/60 px-4 py-6 text-center text-xs text-gray-400">
+                        No invoices yet. One is issued for every payment.
+                    </div>
+                ) : (
+                    <Table>
+                        <thead>
+                            <tr>
+                                <Th>Invoice</Th>
+                                <Th>Amount</Th>
+                                <Th>Status</Th>
+                                <Th>Issued</Th>
+                                <Th align="right">PDF</Th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {invoices.map((inv) => (
+                                <tr key={inv.id} className="transition-colors duration-150 hover:bg-gray-50/60">
+                                    <Td className="font-mono text-xs text-gray-600">{inv.number}</Td>
+                                    <Td className="font-medium text-gray-900">{inv.formatted_total}</Td>
+                                    <Td>
+                                        <Badge>{inv.status}</Badge>
+                                    </Td>
+                                    <Td className="whitespace-nowrap text-xs text-gray-500">{formatDate(inv.issued_at)}</Td>
+                                    <Td align="right">
+                                        <a
+                                            href={`/api/billing/invoices/${inv.id}/pdf`}
+                                            className="text-xs font-medium text-indigo-600 hover:underline"
+                                        >
+                                            Download
+                                        </a>
+                                    </Td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </Table>
+                )}
+            </section>
 
             {/* Phase 6: Real billing history table */}
             <section>

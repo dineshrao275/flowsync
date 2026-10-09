@@ -3,6 +3,7 @@
 namespace App\Billing;
 
 use App\Billing\DTOs\WebhookResult;
+use App\Billing\Invoices\InvoiceService;
 use App\Models\Payment;
 use App\Models\PaymentEvent;
 use App\Models\Subscription;
@@ -17,7 +18,10 @@ use Carbon\Carbon;
  */
 class SubscriptionBillingSync
 {
-    public function __construct(private readonly SubscriptionService $subscriptions) {}
+    public function __construct(
+        private readonly SubscriptionService $subscriptions,
+        private readonly InvoiceService $invoices,
+    ) {}
 
     /** @return array<string, mixed> */
     public function handle(WebhookResult $event, string $provider): array
@@ -80,8 +84,32 @@ class SubscriptionBillingSync
 
         $renewed = $this->subscriptions->renew($tenant, null, $subscription->product);
         $this->applyPeriodEnd($renewed, $event->periodEnd);
+        $this->invoice($payment, $renewed, $event);
 
         return $payment->id;
+    }
+
+    /** The renewal's invoice, itemised the way the provider itemised it (proration lines included). */
+    private function invoice(Payment $payment, Subscription $subscription, WebhookResult $event): void
+    {
+        $object = $event->payload['data']['object'] ?? [];
+        $lines = collect($object['lines']['data'] ?? [])->map(fn (array $line): array => [
+            'description' => $line['description'] ?? ($subscription->plan?->name ?? 'Subscription'),
+            'amount_cents' => (int) ($line['amount'] ?? 0),
+            'quantity' => (int) ($line['quantity'] ?? 1),
+            'kind' => ($line['proration'] ?? false) ? 'proration' : 'subscription',
+        ])->values()->all();
+
+        $period = $object['lines']['data'][0]['period'] ?? [];
+
+        $this->invoices->issueForPayment(
+            $payment,
+            $lines ?: null,
+            $event->providerOrderId,
+            isset($period['start']) ? Carbon::createFromTimestamp($period['start']) : null,
+            isset($period['end']) ? Carbon::createFromTimestamp($period['end']) : null,
+            (int) ($object['tax'] ?? 0),
+        );
     }
 
     private function failed(Tenant $tenant, Subscription $subscription, WebhookResult $event): void

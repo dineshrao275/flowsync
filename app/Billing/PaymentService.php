@@ -2,6 +2,7 @@
 
 namespace App\Billing;
 
+use App\Billing\Invoices\InvoiceService;
 use App\Models\Payment;
 use App\Models\PaymentEvent;
 use App\Models\Subscription;
@@ -365,6 +366,9 @@ class PaymentService
                 'billing_provider' => $payment->provider,
             ]);
         }
+
+        // The paid charge gets its invoice (idempotent per payment).
+        app(InvoiceService::class)->issueForPayment($payment->refresh());
     }
 
     /** Whether the gateway that would bill this tenant can save a card for a trial. */

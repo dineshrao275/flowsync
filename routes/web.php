@@ -73,6 +73,7 @@ use App\Http\Controllers\Hrms\Survey\SurveyCampaignController;
 use App\Http\Controllers\Hrms\Survey\SurveyTemplateController;
 use App\Http\Controllers\Hrms\TaskLinkController;
 use App\Http\Controllers\ImpersonationController;
+use App\Http\Controllers\InvoiceController;
 use App\Http\Controllers\IssueTypeController;
 use App\Http\Controllers\LabelController;
 use App\Http\Controllers\MySubscriptionController;
@@ -97,6 +98,7 @@ use App\Http\Controllers\SprintController;
 use App\Http\Controllers\StatusController;
 use App\Http\Controllers\SupportTicketController;
 use App\Http\Controllers\SystemAnalyticsController;
+use App\Http\Controllers\SystemInvoiceController;
 use App\Http\Controllers\SystemSettingsController;
 use App\Http\Controllers\SystemSupportController;
 use App\Http\Controllers\SystemUsersController;
@@ -217,6 +219,8 @@ Route::prefix('api')->group(function () {
         Route::post('billing/portal', [BillingController::class, 'portal'])->middleware('throttle:10,1');
         Route::post('billing/verify', [BillingController::class, 'verify'])->middleware('throttle:10,1');
         Route::get('billing/history', [BillingController::class, 'history']);
+        Route::get('billing/invoices', [InvoiceController::class, 'index']);
+        Route::get('billing/invoices/{invoice}/pdf', [InvoiceController::class, 'pdf'])->whereNumber('invoice');
         Route::post('billing/payments/{payment}/refund', [BillingController::class, 'refund'])->middleware('throttle:5,1');
 
         // Phase 5: full tenant data export (gated by the export.full module).
@@ -283,6 +287,8 @@ Route::prefix('api')->group(function () {
             Route::post('tenants/{tenant}/subscription/renew', [TenantSubscriptionController::class, 'renew']);
             Route::post('tenants/{tenant}/subscription/suspend', [TenantSubscriptionController::class, 'suspend']);
             Route::get('tenants/{tenant}/subscription/events', [TenantSubscriptionController::class, 'events']);
+            Route::get('system/invoices', [SystemInvoiceController::class, 'index']);
+            Route::get('system/invoices/{invoice}/pdf', [SystemInvoiceController::class, 'pdf'])->whereNumber('invoice');
 
             // Platform management (item 10): settings, accounts, audit feed,
             // cross-tenant analytics, and the module × plan feature grid.
