@@ -4,6 +4,8 @@ Laravel 12 + React 19 SPA. Session-based auth **without** Breeze/Fortify/Sanctum
 
 **Keep this file current** — update the relevant section whenever changes touch architecture, migrations, middleware, routes, key components, npm/Composer deps, or test counts.
 
+**Next-work roadmap:** `.agents/roadmap/master-roadmap.md` (audit at HEAD, gap register G-58+, tech-debt register, Phase 0-9 task plan). Start at Phase 0.
+
 ## Commands
 - **Native host (current dev setup, no Docker):** Apache `mod_php` vhost `flowsync.conf` serves
   `public/` on `http://localhost` (`http://localhost/app` = SPA, `/` = public marketing site); PHP 8.3 CLI

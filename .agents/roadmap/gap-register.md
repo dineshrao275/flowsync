@@ -166,3 +166,12 @@ pass)** — two small, fully-verifiable tasks (focused tests for expiry, runbook
 that activate shipped functionality and de-risk every subsequent task. Then #3–#5 as a
 "billing & compliance hardening" phase, then #6 as a UI-completion slice before starting the
 larger engines (#7–#10).
+
+---
+
+## G. Additions at HEAD `9bd01ec` (2026-10-09)
+
+New gaps G-58 → G-73 (three P0s: `ProtectedRoute` blank-page bug, four unauthorised tenant routes,
+tracked `.env.docker`) and the first cleanup/tech-debt register live in
+[`master-roadmap.md`](master-roadmap.md) §21 and §23, with the dependency-ordered phase plan in §29-§31.
+All 23 "missing" items above were re-verified as still missing at HEAD.

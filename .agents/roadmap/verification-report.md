@@ -389,3 +389,8 @@ These must not be trusted from the docs; the code is authoritative:
 
 *Companion documents: `gap-register.md` (prioritized missing/improvement register),
 `end-to-end-flow.md` (verified organization journey through the product).*
+
+---
+
+*HEAD delta (2026-10-09, `9bd01ec`): no claim in this report was invalidated by the 8 commits since
+`d5bc70c`. New findings and the phased roadmap: [`master-roadmap.md`](master-roadmap.md).*
