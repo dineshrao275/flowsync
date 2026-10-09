@@ -30,6 +30,8 @@ class RouteAuthorizationAuditTest extends TestCase
         'ForgotPasswordController@create' => 'public, throttled, constant-time',
         'ResetPasswordController@update' => 'public: the reset token is the check',
         'RegisterController@store' => 'public: gated by the public_registration setting',
+        'RegisterCardController@card' => 'public: gated by the public_registration setting, validates the full sign-up',
+        'RegisterCardController@complete' => 'public: the one-time card token + provider-verified session are the check',
         'RegisterController@options' => 'public: plan list for the registration wizard, same gate',
         'PlatformHealthController@ping' => 'public liveness ping, no data',
         'WebhookController@handleStripe' => 'signature verified in PaymentService',

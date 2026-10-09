@@ -29,6 +29,7 @@ export default function Register() {
     const [errors, setErrors] = useState({});
     const [submitting, setSubmitting] = useState(false);
     const [closed, setClosed] = useState(false);
+    const canceledCard = new URLSearchParams(window.location.search).get('card') === 'canceled';
 
     useEffect(() => {
         api.get('/register/options')
@@ -44,6 +45,16 @@ export default function Register() {
         setSubmitting(true);
         setErrors({});
         try {
+            // A trial that needs a card goes through Stripe first; nothing is created until the card is saved.
+            if (options.require_card_for_trial && values.start_trial) {
+                const { data } = await api.post('/register/card', {
+                    name: values.admin_name, email: values.admin_email, password, password_confirmation: confirmation,
+                    business_name: values.name, slug: values.slug || undefined, industry: values.industry,
+                    company_size: values.company_size, country: values.country, plan_id: values.plan_id || undefined,
+                });
+                window.location.href = data.url;
+                return;
+            }
             await register({
                 name: values.admin_name,
                 email: values.admin_email,
@@ -86,18 +97,21 @@ export default function Register() {
             ) : !options ? (
                 <div className="flex justify-center py-10"><Spinner /></div>
             ) : (
+                <>
+                {canceledCard && <p className="mb-3 text-sm text-amber-700">Card setup was canceled — nothing was created. You can try again.</p>}
                 <IntakeWizard
                     mode="register"
                     values={values}
                     onChange={setValues}
                     plans={options.plans}
                     trialDays={options.trial_days}
-                    requireCard={options.require_card_for_trial}
+                    requireCard={false /* the card is collected on Stripe's page, not typed here */}
                     errors={errors}
                     saving={submitting}
                     onSubmit={handleSubmit}
-                    submitLabel="Create workspace"
+                    submitLabel={options.require_card_for_trial && values.start_trial ? 'Continue to add a card' : 'Create workspace'}
                 />
+                </>
             )}
         </AuthShell>
     );

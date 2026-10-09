@@ -86,6 +86,7 @@ use App\Http\Controllers\ProjectMemberController;
 use App\Http\Controllers\ProjectRoleController;
 use App\Http\Controllers\ProjectVersionController;
 use App\Http\Controllers\PublicSiteController;
+use App\Http\Controllers\RegisterCardController;
 use App\Http\Controllers\RegisterController;
 use App\Http\Controllers\ReportsController;
 use App\Http\Controllers\ResetPasswordController;
@@ -126,6 +127,8 @@ Route::prefix('api')->group(function () {
     // Phase 4 (onboarding): public self-registration — 403 unless
     // onboarding.enabled (config ONBOARDING_ENABLED, default off).
     Route::post('register', [RegisterController::class, 'store'])->middleware('throttle:10,1');
+    Route::post('register/card', [RegisterCardController::class, 'card'])->middleware('throttle:10,1');
+    Route::post('register/complete', [RegisterCardController::class, 'complete'])->middleware('throttle:10,1');
     Route::get('register/options', [RegisterController::class, 'options'])->middleware('throttle:30,1');
 
     Route::middleware(['switch_tenant', 'auth', 'tenant'])->group(function () {

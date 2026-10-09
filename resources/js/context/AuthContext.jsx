@@ -61,6 +61,14 @@ export function AuthProvider({ children }) {
         return data;
     }, []);
 
+    // Second half of a card-backed sign-up: the server verified the saved card and provisioned the tenant.
+    const completeRegistration = useCallback(async (params) => {
+        const { data } = await api.post('/register/complete', params);
+        setUser(data.user);
+        setTheme(data.theme);
+        return data;
+    }, []);
+
     const logout = useCallback(async () => {
         try {
             await api.post('/auth/logout');
@@ -107,6 +115,7 @@ export function AuthProvider({ children }) {
             loading,
             login,
             register,
+            completeRegistration,
             logout,
             stopImpersonation,
             can,
@@ -114,7 +123,7 @@ export function AuthProvider({ children }) {
             check,
             refresh: loadSession,
         }),
-        [user, theme, loading, login, register, logout, stopImpersonation, can, hasModule, check, loadSession],
+        [user, theme, loading, login, register, completeRegistration, logout, stopImpersonation, can, hasModule, check, loadSession],
     );
 
     return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

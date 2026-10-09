@@ -116,17 +116,14 @@ class TenantIntakeTest extends TestCase
         $this->assertNull($tenant->trial_ends_at);
     }
 
-    public function test_a_trial_needs_a_card_when_the_platform_requires_one(): void
+    public function test_a_hand_made_tenant_is_exempt_from_the_card_rule_that_binds_self_service(): void
     {
         config(['onboarding.require_card_for_trial' => true]);
         $this->sa();
         $tenant = $this->draft();
 
+        // A Super Admin cannot enter somebody else's card; the tenant adds one from billing.
         $this->putJson("/api/tenants/{$tenant->id}/intake", $this->complete())->assertOk()
-            ->assertJsonPath('intake.complete', false);
-        $this->assertContains('payment_method', $this->getJson("/api/tenants/{$tenant->id}/intake")->json('intake.missing'));
-
-        $this->putJson("/api/tenants/{$tenant->id}/intake", ['payment_method' => 'pm_test_123'])->assertOk()
             ->assertJsonPath('intake.complete', true);
     }
 

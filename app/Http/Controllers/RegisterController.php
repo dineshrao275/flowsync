@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Billing\PaymentService;
 use App\Http\Requests\RegisterRequest;
 use App\Models\PlatformSetting;
 use App\Models\SubscriptionPlan;
@@ -30,6 +31,7 @@ class RegisterController extends Controller
         private readonly TenantDatabaseManager $dbm,
         private readonly TenantIntake $intake,
         private readonly TenantActivation $activation,
+        private readonly PaymentService $payments,
     ) {}
 
     /** Public: what the registration wizard needs to render its plan step. */
@@ -41,7 +43,7 @@ class RegisterController extends Controller
             'plans' => SubscriptionPlan::where('is_active', true)->orderBy('sort_order')->orderBy('id')
                 ->get(['id', 'name', 'slug', 'description', 'price_cents', 'currency', 'billing_cycle', 'trial_duration_days', 'is_default']),
             'trial_days' => (int) config('onboarding.trial_days', 14),
-            'require_card_for_trial' => (bool) config('onboarding.require_card_for_trial'),
+            'require_card_for_trial' => (bool) config('onboarding.require_card_for_trial') && $this->payments->canCaptureCard(new Tenant),
         ]);
     }
 
@@ -52,6 +54,11 @@ class RegisterController extends Controller
         }
 
         $data = $request->validated();
+
+        // A trial that needs a card cannot skip the hosted card step.
+        if (($data['start_trial'] ?? true) && config('onboarding.require_card_for_trial')) {
+            throw ValidationException::withMessages(['form' => 'A card is required to start a trial. Please use the card step.']);
+        }
 
         $email = Str::lower($data['email']);
 

@@ -67,10 +67,8 @@ class TenantIntake
             'plan' => [
                 'plan_id' => ['required', 'integer', Rule::exists('subscription_plans', 'id')->where('is_active', true)],
                 'start_trial' => ['nullable', 'boolean'],
-                'payment_method' => [
-                    Rule::requiredIf(fn () => $this->cardRequired()),
-                    'nullable', 'string', 'max:255',
-                ],
+                // Set by the card-capture flow, never trusted from a client.
+                'payment_method' => ['nullable', 'string', 'max:255'],
             ],
         };
     }
@@ -135,7 +133,7 @@ class TenantIntake
         }
 
         $values = [];
-        foreach ([...self::BUSINESS_FIELDS, ...self::BUSINESS_OPTIONAL, ...self::ADMIN_FIELDS, 'plan_id', 'start_trial'] as $key) {
+        foreach ([...self::BUSINESS_FIELDS, ...self::BUSINESS_OPTIONAL, ...self::ADMIN_FIELDS, 'plan_id', 'start_trial', 'payment_method'] as $key) {
             $values[$key] = $get($key);
         }
 
@@ -149,13 +147,18 @@ class TenantIntake
         return ! empty($intake['start_trial']) ? max(1, (int) config('onboarding.trial_days', 14)) : null;
     }
 
-    public function cardRequired(?array $intake = null): bool
+    /**
+     * A trial needs a card on file — for self-service sign-ups, where the customer can
+     * add one. A Super Admin creating a tenant by hand cannot enter someone else's card,
+     * so that path is exempt and the tenant adds one from its billing page.
+     *
+     * @param  array<string, mixed>  $intake
+     */
+    public function cardRequired(array $intake): bool
     {
-        $wantsTrial = $intake !== null
-            ? ! empty($intake['start_trial'])
-            : filter_var(request()->input('start_trial'), FILTER_VALIDATE_BOOLEAN);
-
-        return $wantsTrial && (bool) config('onboarding.require_card_for_trial');
+        return ! empty($intake['start_trial'])
+            && ($intake['source'] ?? null) === 'register'
+            && (bool) config('onboarding.require_card_for_trial');
     }
 
     public function planIsActive(?int $planId): bool

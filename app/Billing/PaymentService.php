@@ -366,6 +366,50 @@ class PaymentService
         }
     }
 
+    /** Whether the gateway that would bill this tenant can save a card for a trial. */
+    public function canCaptureCard(Tenant $tenant): bool
+    {
+        return $this->resolver->resolveForTenant($tenant) instanceof CardCaptureGateway;
+    }
+
+    /** @return array{id: string, url: string} */
+    public function createCardSession(Tenant $tenant, string $successUrl, string $cancelUrl): array
+    {
+        $gateway = $this->resolver->resolveForTenant($tenant);
+        if (! $gateway instanceof CardCaptureGateway) {
+            throw new RuntimeException('Card capture is not available for this payment provider.');
+        }
+
+        return $gateway->createCardSession($tenant, $successUrl, $cancelUrl);
+    }
+
+    /** @return array{complete: bool, reference: string|null, payment_method: string|null} */
+    public function retrieveCardSession(Tenant $tenant, string $sessionId): array
+    {
+        $gateway = $this->resolver->resolveForTenant($tenant);
+
+        return $gateway instanceof CardCaptureGateway
+            ? $gateway->retrieveCardSession($sessionId)
+            : ['complete' => false, 'reference' => null, 'payment_method' => null];
+    }
+
+    /** After a card-backed sign-up: have the provider bill the plan when the trial ends. */
+    public function startProviderTrial(Tenant $tenant, string $paymentMethod, int $trialDays): void
+    {
+        $subscription = $tenant->subscription;
+        $gateway = $this->resolver->resolveForTenant($tenant);
+        if (! $subscription?->plan || $subscription->plan->price_cents <= 0 || ! $gateway instanceof CardCaptureGateway) {
+            return;
+        }
+
+        $result = $gateway->startTrialSubscription($tenant, $subscription->plan, $subscription->plan->currency ?? 'usd', $paymentMethod, $trialDays);
+
+        $subscription->update([
+            'billing_provider' => $gateway->name(),
+            'provider_subscription_id' => $result['subscription_id'],
+        ]);
+    }
+
     /** Stop (or resume) renewal at the provider; a no-op for subscriptions it does not bill. */
     public function setProviderCancelAtPeriodEnd(Tenant $tenant, bool $cancel): void
     {

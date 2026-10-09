@@ -24,6 +24,11 @@ class TenantActivation
 
     public function activate(Tenant $tenant, string $password, bool $synchronous = false): void
     {
+        $this->activateWithHash($tenant, Hash::make($password), $synchronous);
+    }
+
+    public function activateWithHash(Tenant $tenant, string $passwordHash, bool $synchronous = false): void
+    {
         $state = $this->intake->state($tenant);
 
         if (! $state['complete']) {
@@ -50,8 +55,9 @@ class TenantActivation
             [
                 'name' => $values['admin_name'],
                 'email' => $values['admin_email'],
-                'password_hash' => Hash::make($password),
+                'password_hash' => $passwordHash,
             ],
+            ($values['payment_method'] ?? null) ?: null,
         );
 
         $synchronous ? Bus::dispatchSync($job) : Bus::dispatch($job);

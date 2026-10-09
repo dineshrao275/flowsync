@@ -2,6 +2,7 @@
 
 namespace App\Jobs;
 
+use App\Billing\PaymentService;
 use App\Models\ProvisioningRun;
 use App\Models\Subscription;
 use App\Models\SubscriptionPlan;
@@ -45,6 +46,8 @@ class ProvisionTenantJob implements ShouldQueue
         public ?int $trialDays = null,
         /** @var array{name: string, email: string, password_hash: string}|null */
         public ?array $defaultUser = null,
+        /** Card saved during sign-up; the trial then converts to a paid subscription at the provider. */
+        public ?string $paymentMethod = null,
     ) {}
 
     public function handle(
@@ -79,6 +82,7 @@ class ProvisionTenantJob implements ShouldQueue
             // is provisioned. No-ops when no plan was requested at onboarding.
             if ($this->planId) {
                 $this->provisionSubscription();
+                $this->startProviderTrial();
             }
 
             $run->update([
@@ -108,6 +112,20 @@ class ProvisionTenantJob implements ShouldQueue
                 'tenant_id' => $this->tenant->id,
                 'error' => $e->getMessage(),
             ]);
+        }
+    }
+
+    /** Best effort: a provider hiccup must not undo a provisioned tenant — the tenant can add a card later. */
+    private function startProviderTrial(): void
+    {
+        if (! $this->paymentMethod || ! $this->trialDays) {
+            return;
+        }
+
+        try {
+            app(PaymentService::class)->startProviderTrial($this->tenant->refresh(), $this->paymentMethod, $this->trialDays);
+        } catch (Throwable $e) {
+            Log::warning('Could not start the provider trial subscription.', ['tenant_id' => $this->tenant->id, 'error' => $e->getMessage()]);
         }
     }
 

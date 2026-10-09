@@ -11,6 +11,7 @@ import Spinner from './components/ui/Spinner';
 
 import Login from './pages/auth/Login';
 import Register from './pages/auth/Register';
+import RegisterComplete from './pages/auth/RegisterComplete';
 import ForgotPassword from './pages/auth/ForgotPassword';
 import ResetPassword from './pages/auth/ResetPassword';
 import Onboarding from './pages/Onboarding';
@@ -114,6 +115,7 @@ function AppRoutes() {
                 <Route element={<GuestRoute />}>
                     <Route path="/login" element={<Login />} />
                     <Route path="/register" element={<Register />} />
+                    <Route path="/register/complete" element={<RegisterComplete />} />
                     <Route path="/forgot-password" element={<ForgotPassword />} />
                     <Route path="/reset-password" element={<ResetPassword />} />
                 </Route>

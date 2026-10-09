@@ -2,6 +2,7 @@
 
 namespace App\Billing\Gateways;
 
+use App\Billing\CardCaptureGateway;
 use App\Billing\DTOs\CheckoutSession;
 use App\Billing\DTOs\PaymentResult;
 use App\Billing\DTOs\RefundResult;
@@ -12,7 +13,7 @@ use App\Models\SubscriptionPlan;
 use App\Models\Tenant;
 use Illuminate\Http\Request;
 
-class FakePaymentGateway implements PaymentGateway
+class FakePaymentGateway implements CardCaptureGateway, PaymentGateway
 {
     private bool $shouldFail = false;
 
@@ -157,5 +158,45 @@ class FakePaymentGateway implements PaymentGateway
             payload: $payload,
             failureReason: $payload['failure_reason'] ?? null,
         );
+    }
+
+    /** @var array<string, array{tenant_id: int, complete: bool}> */
+    private array $cardSessions = [];
+
+    public array $trialSubscriptions = [];
+
+    public function createCardSession(Tenant $tenant, string $successUrl, string $cancelUrl): array
+    {
+        if ($this->shouldFail) {
+            throw new \RuntimeException($this->failureReason ?? 'Card session failed');
+        }
+        $id = 'fake_setup_'.bin2hex(random_bytes(6));
+        $this->cardSessions[$id] = ['tenant_id' => $tenant->id, 'complete' => true];
+
+        return ['id' => $id, 'url' => str_replace('{CHECKOUT_SESSION_ID}', $id, $successUrl)];
+    }
+
+    /** Test hook: make a card session look unfinished. */
+    public function abandonCardSession(string $id): void
+    {
+        $this->cardSessions[$id]['complete'] = false;
+    }
+
+    public function retrieveCardSession(string $sessionId): array
+    {
+        $s = $this->cardSessions[$sessionId] ?? null;
+
+        return [
+            'complete' => (bool) ($s['complete'] ?? false),
+            'reference' => isset($s['tenant_id']) ? (string) $s['tenant_id'] : null,
+            'payment_method' => $s ? 'pm_fake_'.$sessionId : null,
+        ];
+    }
+
+    public function startTrialSubscription(Tenant $tenant, SubscriptionPlan $plan, string $currency, string $paymentMethod, int $trialDays): array
+    {
+        $this->trialSubscriptions[] = compact('paymentMethod', 'trialDays') + ['tenant_id' => $tenant->id, 'plan_id' => $plan->id];
+
+        return ['subscription_id' => 'sub_fake_'.count($this->trialSubscriptions), 'period_end' => now()->addDays($trialDays)->timestamp];
     }
 }

@@ -29,7 +29,6 @@ class RegisterRequest extends FormRequest
             'country' => $business['country'],
             'plan_id' => ['nullable', 'integer', 'exists:subscription_plans,id'],
             'start_trial' => $plan['start_trial'],
-            'payment_method' => $plan['payment_method'],
         ];
     }
 }

@@ -2,6 +2,7 @@
 
 namespace App\Billing\Gateways;
 
+use App\Billing\CardCaptureGateway;
 use App\Billing\DTOs\CheckoutSession;
 use App\Billing\DTOs\PaymentResult;
 use App\Billing\DTOs\RefundResult;
@@ -15,7 +16,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Http;
 use RuntimeException;
 
-class StripeGateway implements PaymentGateway, RecurringGateway
+class StripeGateway implements CardCaptureGateway, PaymentGateway, RecurringGateway
 {
     private const API_URL = 'https://api.stripe.com/v1';
 
@@ -391,6 +392,52 @@ class StripeGateway implements PaymentGateway, RecurringGateway
         ]);
 
         return $session['url'];
+    }
+
+    // ---------------------------------------------------------- card on file
+
+    public function createCardSession(Tenant $tenant, string $successUrl, string $cancelUrl): array
+    {
+        $session = $this->call('post', '/checkout/sessions', [
+            'mode' => 'setup',
+            'customer' => $this->customerFor($tenant),
+            'currency' => strtolower((string) config('payments.default_currency', 'usd')),
+            'success_url' => $successUrl,
+            'cancel_url' => $cancelUrl,
+            'client_reference_id' => (string) $tenant->id,
+            'metadata[tenant_id]' => (string) $tenant->id,
+        ]);
+
+        return ['id' => $session['id'], 'url' => $session['url']];
+    }
+
+    public function retrieveCardSession(string $sessionId): array
+    {
+        $session = $this->call('get', "/checkout/sessions/{$sessionId}", ['expand[0]' => 'setup_intent']);
+        $intent = is_array($session['setup_intent'] ?? null) ? $session['setup_intent'] : [];
+
+        return [
+            'complete' => ($session['status'] ?? '') === 'complete' && ($intent['status'] ?? '') === 'succeeded',
+            'reference' => $session['client_reference_id'] ?? null,
+            'payment_method' => is_string($intent['payment_method'] ?? null) ? $intent['payment_method'] : null,
+        ];
+    }
+
+    public function startTrialSubscription(Tenant $tenant, SubscriptionPlan $plan, string $currency, string $paymentMethod, int $trialDays): array
+    {
+        $customer = $this->customerFor($tenant);
+        $this->call('post', "/customers/{$customer}", ['invoice_settings[default_payment_method]' => $paymentMethod]);
+
+        $sub = $this->call('post', '/subscriptions', [
+            'customer' => $customer,
+            'items[0][price]' => $this->priceFor($plan, $currency),
+            'trial_period_days' => $trialDays,
+            'default_payment_method' => $paymentMethod,
+            'metadata[tenant_id]' => (string) $tenant->id,
+            'metadata[plan_id]' => (string) $plan->id,
+        ]);
+
+        return ['subscription_id' => $sub['id'], 'period_end' => $this->periodEndOf($sub)];
     }
 
     // -------------------------------------------------------------- helpers
