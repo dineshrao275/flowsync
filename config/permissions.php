@@ -311,5 +311,70 @@ return [
                 'hrms.expenses.*',
             ],
         ],
+        // The named default for a regular member (R4). Self-service only: the
+        // `*_own` reads and nothing broader, so a new hire sees their own
+        // attendance, leave, payslips and tasks and no one else's. `editor` /
+        // `viewer` stay as the legacy names that tenants already assign.
+        'employee' => [
+            'name' => 'Employee',
+            'permissions' => [
+                'dashboard.view', 'workspaces.view', 'settings.theme', 'settings.view',
+                'hrms.view',
+                ...$scopeOwnSlugs,
+            ],
+        ],
+        // Day-to-day HR operations without the sharp edges: no payroll, no
+        // compensation, no sensitive documents, no org/settings administration.
+        'hr_executive' => [
+            'name' => 'HR Executive',
+            'permissions' => [
+                'dashboard.view', 'users.view', 'workspaces.view',
+                'hrms.view',
+                'hrms.employees.view', 'hrms.employees.manage',
+                'hrms.org.view',
+                'hrms.onboarding.view', 'hrms.onboarding.manage',
+                'hrms.offboarding.view',
+                'hrms.attendance.view', 'hrms.attendance.regularize',
+                'hrms.leave.view', 'hrms.leave.approve',
+                'hrms.comp_off.view',
+                'hrms.holidays.view',
+                'hrms.documents.view',
+                'hrms.assets.view',
+                'hrms.performance.view',
+                'hrms.engagement.view',
+                ...$scopeOwnSlugs,
+            ],
+        ],
+        // Expenses end to end, plus read access to what finance needs to
+        // reconcile: payslips tenant-wide, compensation, and the plan/billing view.
+        'finance_admin' => [
+            'name' => 'Finance Admin',
+            'permissions' => [
+                'dashboard.view', 'users.view', 'reports.view', 'workspaces.view', 'billing.view',
+                'hrms.view',
+                'hrms.employees.view',
+                'hrms.expenses.*',
+                'hrms.payroll.view_all', 'hrms.payroll.view_own',
+                'hrms.compensation.view',
+                ...$scopeOwnSlugs,
+            ],
+        ],
+        // Read-only across the tenant for audit and compliance: every module's
+        // view, the audit trail and analytics — and none of `.manage`, none of
+        // the sensitive-document reveal, none of the statutory identifiers.
+        'auditor' => [
+            'name' => 'Auditor',
+            'permissions' => [
+                'dashboard.view', 'users.view', 'roles.view', 'reports.view', 'workspaces.view', 'billing.view',
+                'hrms.view',
+                'hrms.employees.view', 'hrms.org.view',
+                'hrms.onboarding.view', 'hrms.offboarding.view',
+                'hrms.attendance.view', 'hrms.leave.view', 'hrms.comp_off.view',
+                'hrms.holidays.view', 'hrms.expenses.view',
+                'hrms.performance.view', 'hrms.engagement.view',
+                'hrms.documents.view', 'hrms.assets.view',
+                'hrms.analytics.view', 'hrms.audit.view',
+            ],
+        ],
     ],
 ];

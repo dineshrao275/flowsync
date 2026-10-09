@@ -224,7 +224,7 @@ Hierarchy: **Tenant → Workspace → Project → Task** (subtask `tasks.parent_
 - `config/permissions.php` — the canonical permission catalog (base slugs plus the generated scope
   variants below; ~99 entries today) + role definitions: `admin` = `*`, `editor`/`viewer` =
   self-service reads (`*_own`) plus broad non-HRMS grants, **`manager`** = `*_own` + `*_assigned`
-  (team scope, stops at the reporting line), `hr_manager`/`payroll_manager` = prefix selectors.
+  (team scope, stops at the reporting line), `hr_manager`/`payroll_manager` = prefix selectors. **R4 adds the named defaults the product brief uses:** `employee` (self-service `*_own` only), `hr_executive` (day-to-day HR, no payroll/compensation/sensitive documents), `finance_admin` (expenses + tenant-wide payslip/compensation reads + billing view), `auditor` (read-only views + audit trail + analytics, no `.manage`, no sensitive reveal). `editor`/`viewer` remain the legacy names existing tenants assign; `tenants:provision` creates the new roles in existing tenants and reassigns **no** user.
   A role's `permissions` is a list of *selectors* (`*`, `hrms.*`, `!hrms.payroll.*`, exact slug)
   resolved against the catalog by `app/Support/PermissionSelector` at provision time and
   snapshotted onto the role.
