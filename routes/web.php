@@ -100,6 +100,7 @@ use App\Http\Controllers\SystemAnalyticsController;
 use App\Http\Controllers\SystemSettingsController;
 use App\Http\Controllers\SystemSupportController;
 use App\Http\Controllers\SystemUsersController;
+use App\Http\Controllers\TaskChecklistController;
 use App\Http\Controllers\TaskController;
 use App\Http\Controllers\TaskMoveController;
 use App\Http\Controllers\TaskWatcherController;
@@ -434,6 +435,11 @@ Route::prefix('api')->group(function () {
             Route::get('projects/{project}/tasks/{task}/dependencies', [DependencyController::class, 'index']);
             Route::post('projects/{project}/tasks/{task}/dependencies', [DependencyController::class, 'store']);
             Route::delete('projects/{project}/tasks/{task}/dependencies/{dependency}', [DependencyController::class, 'destroy']);
+
+            Route::get('projects/{project}/tasks/{task}/checklist', [TaskChecklistController::class, 'index']);
+            Route::post('projects/{project}/tasks/{task}/checklist', [TaskChecklistController::class, 'store']);
+            Route::put('projects/{project}/tasks/{task}/checklist/{item}', [TaskChecklistController::class, 'update']);
+            Route::delete('projects/{project}/tasks/{task}/checklist/{item}', [TaskChecklistController::class, 'destroy']);
 
             Route::get('projects/{project}/tasks/{task}/attachments', [AttachmentController::class, 'index']);
             Route::post('projects/{project}/tasks/{task}/attachments', [AttachmentController::class, 'store']);

@@ -308,6 +308,8 @@ class TaskService
             'comments',
             'attachments',
             'openBlockers as open_blockers_count',
+            'checklistItems as checklist_total',
+            'checklistItems as checklist_done_count' => fn ($q) => $q->where('is_done', true),
         ]);
     }
 
@@ -618,6 +620,8 @@ class TaskService
             'comments_count' => $task->comments_count ?? 0,
             'attachments_count' => $task->attachments_count ?? 0,
             'open_blockers_count' => $task->open_blockers_count ?? 0,
+            'checklist_done_count' => (int) ($task->checklist_done_count ?? 0),
+            'checklist_total' => (int) ($task->checklist_total ?? 0),
         ];
     }
 

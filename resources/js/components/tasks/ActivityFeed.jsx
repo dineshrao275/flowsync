@@ -13,6 +13,10 @@ const ACTION_LABELS = {
     'task.attachment_deleted': 'deleted an attachment',
     'task.dependency_created': 'added a dependency',
     'task.dependency_deleted': 'removed a dependency',
+    'task.checklist_item_added': 'added a checklist item',
+    'task.checklist_item_checked': 'checked a checklist item',
+    'task.checklist_item_unchecked': 'unchecked a checklist item',
+    'task.checklist_item_removed': 'removed a checklist item',
 };
 
 function describe(action, data) {
@@ -24,6 +28,18 @@ function describe(action, data) {
     }
     if (action === 'task.dependency_created' || action === 'task.dependency_deleted') {
         return `a dependency on task #${data?.depends_on_task_id}`;
+    }
+    if (action === 'task.checklist_item_added') {
+        return `added checklist item "${data?.title ?? ''}"`;
+    }
+    if (action === 'task.checklist_item_checked') {
+        return `checked checklist item "${data?.title ?? ''}"`;
+    }
+    if (action === 'task.checklist_item_unchecked') {
+        return `unchecked checklist item "${data?.title ?? ''}"`;
+    }
+    if (action === 'task.checklist_item_removed') {
+        return `removed checklist item "${data?.title ?? ''}"`;
     }
     return ACTION_LABELS[action] ?? action;
 }

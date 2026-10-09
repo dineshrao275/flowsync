@@ -179,6 +179,11 @@ class Task extends Model
         return $this->hasMany(TaskDependency::class, 'task_id');
     }
 
+    public function checklistItems(): HasMany
+    {
+        return $this->hasMany(TaskChecklistItem::class, 'task_id')->ordered();
+    }
+
     public function blocks(): HasMany
     {
         return $this->hasMany(TaskDependency::class, 'depends_on_task_id');
