@@ -314,10 +314,10 @@ console.log('\n▶ 13. the MCP server enforces the same rules');
 console.log('\n▶ 14. unit checks: redaction and the state machine');
 {
   const { redact } = await import('../lib/redact.mjs');
-  const samples = ['sk-ant-api03-abcdefghijklmnopqrstuvwxyz', 'sk_live_abcdefghij1234567890', 'whsec_abcdefghijklmnop1234', 'AIzaSyA1234567890abcdefghijklmnopqrstuv', 'ghp_abcdefghijklmnopqrstuvwxyz0123456789', 'base64:' + 'A'.repeat(43) + '=', 'Bearer abcdefghijklmnopqrstuvwxyz012345', 'DB_PASSWORD=hunter2hunter2', 'postgres://user:topsecret@db:5432/x'];
+  const samples = ['sk-ant-api03-' + 'a'.repeat(24), 'sk_live_' + 'b'.repeat(16), 'whsec_' + 'c'.repeat(16), 'AIza' + 'd'.repeat(35), 'ghp_' + 'e'.repeat(36), 'base64:' + 'A'.repeat(43) + '=', 'Bearer ' + 'f'.repeat(24), 'DB_PASSWORD=' + 'g'.repeat(12), 'postgres://user:' + 'h'.repeat(10) + '@db:5432/x'];
   for (const s of samples) ok(!redact(`x ${s} y`).includes(s.split(/[=:]/).pop().trim()) || redact(`x ${s} y`) !== `x ${s} y`, `redacts: ${s.slice(0, 22)}…`);
   eq(redact('APP_NAME=FlowSync'), 'APP_NAME=FlowSync', 'leaves ordinary config alone');
-  eq(redact('DB_PASSWORD=hunter2hunter2'), 'DB_PASSWORD=[REDACTED]', 'keeps the variable name, drops the value');
+  eq(redact('DB_PASSWORD=' + 'g'.repeat(12)), 'DB_PASSWORD=[REDACTED]', 'keeps the variable name, drops the value');
   const { canTransition } = await import('../lib/state.mjs');
   ok(!canTransition('pending', 'passed') && !canTransition('planned', 'implementing') && !canTransition('passed', 'implementing'), 'illegal transitions are refused');
   ok(canTransition('reviewing', 'passed') && canTransition('awaiting_approval', 'passed'), 'legal transitions are allowed');
