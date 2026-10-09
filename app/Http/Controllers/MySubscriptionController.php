@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Billing\PaymentService;
 use App\Http\Controllers\Concerns\DetectsPlatformUsers;
+use App\Http\Controllers\Concerns\ResolvesCurrentTenant;
 use App\Models\SubscriptionPlan;
 use App\Models\Tenant;
 use App\Services\SubscriptionService;
@@ -23,6 +24,7 @@ use Illuminate\Http\Request;
 class MySubscriptionController extends Controller
 {
     use DetectsPlatformUsers;
+    use ResolvesCurrentTenant;
 
     public function __construct(
         private readonly SubscriptionService $subscriptions,
@@ -160,14 +162,6 @@ class MySubscriptionController extends Controller
             403,
             'You do not have permission to view billing information.',
         );
-    }
-
-    private function currentTenant(): Tenant
-    {
-        $tenantId = app(TenantContext::class)->currentId();
-        abort_unless($tenantId, 404);
-
-        return Tenant::findOrFail($tenantId);
     }
 
     private function payload(Tenant $tenant): array

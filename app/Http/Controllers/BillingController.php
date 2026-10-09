@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Billing\PaymentService;
+use App\Http\Controllers\Concerns\ResolvesCurrentTenant;
 use App\Models\Payment;
 use App\Models\SubscriptionPlan;
 use App\Models\Tenant;
@@ -12,6 +13,8 @@ use Illuminate\Http\Request;
 
 class BillingController extends Controller
 {
+    use ResolvesCurrentTenant;
+
     public function __construct(
         private readonly PaymentService $paymentService,
         private readonly TenantContext $tenantContext,
@@ -161,14 +164,6 @@ class BillingController extends Controller
         );
     }
 
-    private function currentTenant(): Tenant
-    {
-        $tenantId = $this->tenantContext->currentId();
-        abort_unless($tenantId, 404, 'No active tenant context.');
-
-        return Tenant::findOrFail($tenantId);
-    }
-
     private function presentPayment(Payment $payment): array
     {
         return [
@@ -185,5 +180,10 @@ class BillingController extends Controller
             'plan_name' => $payment->metadata['plan_name'] ?? null,
             'created_at' => $payment->created_at?->toIso8601String(),
         ];
+    }
+
+    protected function missingTenantMessage(): string
+    {
+        return 'No active tenant context.';
     }
 }

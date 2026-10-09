@@ -17,6 +17,7 @@ use App\Services\Hrms\Shared\ApprovalService;
 use App\Services\Hrms\Shared\ValueObjects\ApproverSpec;
 use App\Services\HrmsAuditLogger;
 use App\Services\NotificationService;
+use App\Support\Hrms\Auditable;
 use App\Support\Hrms\Money;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
@@ -413,10 +414,6 @@ class ExpenseService
      */
     private function snapshot(ExpenseClaim $claim): array
     {
-        return [
-            'employee_id' => $claim->employee_id,
-            'claim_number' => $claim->claim_number,
-            'status' => $claim->status->value,
-        ];
+        return Auditable::snapshot($claim, ['employee_id', 'claim_number', 'status']);
     }
 }

@@ -8,7 +8,6 @@ use App\Models\Priority;
 use App\Models\Project;
 use App\Models\Task;
 use App\Services\ActivityLogger;
-use App\Services\NotificationService;
 use App\Services\TaskService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -18,7 +17,6 @@ class TaskController extends Controller
     public function __construct(
         private readonly TaskService $service,
         private readonly ActivityLogger $logger,
-        private readonly NotificationService $notifications,
     ) {}
 
     public function index(Request $request, Project $project): JsonResponse
@@ -107,13 +105,11 @@ class TaskController extends Controller
 
         $task = $this->service->create($project, $data, $request->user());
 
-        $this->notifications->taskAssigned($request->user(), $task);
-
         $this->logger->log(
             subjectType: Task::class,
             subjectId: $task->id,
             action: 'task.created',
-            data: ['key' => $task->key, 'title' => $task->title],
+            data: ['key' => $task->key, 'title' => $task->title, 'assignee_id' => $task->assignee_id],
             actor: $request->user(),
             ipAddress: $request->ip(),
         );
@@ -185,18 +181,8 @@ class TaskController extends Controller
         $oldStatus = $task->status;
         $updated = $this->service->update($task, $data);
 
-        if (array_key_exists('assignee_id', $data) && $updated->assignee_id !== $oldAssigneeId) {
-            $this->notifications->taskAssigned($request->user(), $updated);
-        }
-
-        if (array_key_exists('status_id', $data) && $updated->status_id !== $oldStatusId) {
-            $this->notifications->taskStatusChanged(
-                $request->user(),
-                $updated,
-                $oldStatus?->name ?? 'Unknown',
-                $updated->status?->name ?? 'Unknown',
-            );
-        }
+        $assigneeChanged = array_key_exists('assignee_id', $data) && $updated->assignee_id !== $oldAssigneeId;
+        $statusChanged = array_key_exists('status_id', $data) && $updated->status_id !== $oldStatusId;
 
         $changed = array_intersect(
             array_keys($data),
@@ -211,6 +197,10 @@ class TaskController extends Controller
                 'fields' => array_values($changed),
                 'key' => $updated->key,
                 'to_is_done' => $updated->status_id !== $oldStatusId && (bool) $updated->status?->is_done,
+                'assignee_changed' => $assigneeChanged,
+                'status_changed' => $statusChanged,
+                'from_status' => $oldStatus?->name ?? 'Unknown',
+                'to_status' => $updated->status?->name ?? 'Unknown',
             ],
             actor: $request->user(),
             ipAddress: $request->ip(),

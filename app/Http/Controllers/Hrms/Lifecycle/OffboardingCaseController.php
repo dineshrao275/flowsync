@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Hrms\Lifecycle;
 
 use App\Enums\Hrms\OffboardingCaseStatus;
+use App\Http\Controllers\Concerns\NormalizesFilters;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Hrms\Lifecycle\CompleteTaskRequest;
 use App\Http\Requests\Hrms\Lifecycle\ConvertCaseTaskRequest;
@@ -32,6 +33,8 @@ use Illuminate\Validation\Rule;
  */
 class OffboardingCaseController extends Controller
 {
+    use NormalizesFilters;
+
     public function __construct(
         private readonly OffboardingService $offboarding,
         private readonly DocumentRequestService $requests,
@@ -49,7 +52,7 @@ class OffboardingCaseController extends Controller
             'employee_id' => ['sometimes', 'nullable', 'integer', 'exists:employees,id'],
         ]);
 
-        $cases = $this->offboarding->casesFor($request->user(), $this->clean($filters));
+        $cases = $this->offboarding->casesFor($request->user(), $this->cleanBlank($filters));
 
         return response()->json([
             'cases' => $cases->map(fn (OffboardingCase $case): array => $this->present($case))->all(),
@@ -188,14 +191,5 @@ class OffboardingCaseController extends Controller
     private function belonging(OffboardingCase $case, OffboardingCaseTask $task): void
     {
         abort_if((int) $task->case_id !== (int) $case->id, 404);
-    }
-
-    /**
-     * @param  array<string, mixed>  $filters
-     * @return array<string, mixed>
-     */
-    private function clean(array $filters): array
-    {
-        return array_filter($filters, fn (mixed $value) => $value !== null && $value !== '');
     }
 }

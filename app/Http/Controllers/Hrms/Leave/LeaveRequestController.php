@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Hrms\Leave;
 
 use App\Enums\Hrms\LeaveHalf;
 use App\Enums\Hrms\LeaveRequestStatus;
+use App\Http\Controllers\Concerns\NormalizesFilters;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Hrms\Leave\LeaveDecisionRequest;
 use App\Http\Requests\Hrms\Leave\LeaveRequestRequest;
@@ -31,6 +32,8 @@ use Illuminate\Validation\Rule;
  */
 class LeaveRequestController extends Controller
 {
+    use NormalizesFilters;
+
     public function __construct(
         private readonly LeaveRequestService $requests,
         private readonly LeaveRequestDecisions $decisions,
@@ -228,14 +231,5 @@ class LeaveRequestController extends Controller
         abort_if($employee === null, 404, 'There is no employment record to file leave for.');
 
         return $employee;
-    }
-
-    /**
-     * @param  array<string, mixed>  $filters
-     * @return array<string, mixed>
-     */
-    private function clean(array $filters): array
-    {
-        return array_filter($filters, fn (mixed $value): bool => $value !== null);
     }
 }
