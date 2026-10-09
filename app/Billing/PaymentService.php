@@ -3,6 +3,7 @@
 namespace App\Billing;
 
 use App\Billing\Invoices\InvoiceService;
+use App\Billing\Proration\ProrationCalculator;
 use App\Models\Payment;
 use App\Models\PaymentEvent;
 use App\Models\Subscription;
@@ -66,7 +67,10 @@ class PaymentService
             $options['trial_days'] = max(1, (int) ceil(now()->diffInHours($tenant->trial_ends_at) / 24));
         }
 
-        return $this->centralDb()->transaction(function () use ($tenant, $plan, $user, $gateway, $currency, $idempotencyKey, $options) {
+        // A paying tenant moving plans mid-period gets the unused time credited (one-off providers only).
+        $proration = app(ProrationCalculator::class)->forCheckout($tenant, $plan, $gateway);
+
+        return $this->centralDb()->transaction(function () use ($tenant, $plan, $user, $gateway, $currency, $idempotencyKey, $options, $proration) {
             // Check for existing payment with this idempotency key
             $existing = Payment::where('idempotency_key', $idempotencyKey)->first();
 
@@ -89,15 +93,16 @@ class PaymentService
                 'subscription_id' => $tenant->subscription_id,
                 'user_id' => $user?->id,
                 'provider' => $gateway->name(),
-                'amount_cents' => $plan->price_cents,
+                'amount_cents' => $proration['amount_cents'] ?? $plan->price_cents,
                 'currency' => $currency,
                 'status' => Payment::STATUS_PENDING,
                 'idempotency_key' => $idempotencyKey,
-                'metadata' => [
+                'metadata' => array_filter([
                     'plan_id' => $plan->id,
                     'plan_slug' => $plan->slug,
                     'plan_name' => $plan->name,
-                ],
+                    'invoice_lines' => $proration['lines'] ?? null,
+                ]),
             ]);
 
             $session = $gateway->createCheckoutSession($tenant, $plan, $payment, $options);

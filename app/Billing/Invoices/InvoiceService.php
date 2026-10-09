@@ -38,7 +38,8 @@ class InvoiceService
 
         $tenant = Tenant::findOrFail($payment->tenant_id);
         $subscription = $payment->subscription_id ? Subscription::find($payment->subscription_id) : null;
-        $lines ??= [[
+        // A prorated checkout stored its itemised lines on the payment; otherwise one subscription line.
+        $lines ??= $payment->metadata['invoice_lines'] ?? [[
             'description' => $this->describe($payment, $subscription),
             'amount_cents' => $payment->amount_cents,
         ]];
