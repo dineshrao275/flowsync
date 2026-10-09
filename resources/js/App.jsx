@@ -149,7 +149,7 @@ function AppRoutes() {
                             }
                         />
                         {/* Phase 5: full data export, gated by export.full add-on module. */}
-                        <Route element={<ProtectedRoute module="export.full" />}>
+                        <Route element={<ProtectedRoute permission="billing.view" module="export.full" />}>
                             <Route path="/export" element={<DataExport />} />
                         </Route>
                         {/* My HR home (P17.5): the employee surface, module-gated

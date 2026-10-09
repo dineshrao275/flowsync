@@ -148,6 +148,27 @@ class ModuleGateTest extends TestCase
         $middleware->handle($request, fn () => response()->noContent(), 'reports');
     }
 
+    /**
+     * Route groups stack two gates (`hrms.core` + a domain module). The two
+     * middleware strings differ only by parameter, so a framework that
+     * de-duplicated by class would silently keep just one of them.
+     */
+    public function test_stacked_module_gates_each_apply(): void
+    {
+        $this->assignProToAcme();
+        $this->login('admin@flowsync.test');
+        $url = '/api/hrms/expenses/categories';
+
+        $this->setAcmeModules(['hrms.core']);
+        $this->getJson($url)->assertForbidden()->assertHeader('X-Module-Denied', 'hrms.expenses');
+
+        $this->setAcmeModules(['hrms.expenses']);
+        $this->getJson($url)->assertForbidden()->assertHeader('X-Module-Denied', 'hrms.core');
+
+        $this->setAcmeModules(['hrms.core', 'hrms.expenses']);
+        $this->getJson($url)->assertOk();
+    }
+
     private function login(string $email): void
     {
         $this->postJson('/api/auth/login', ['email' => $email, 'password' => 'password'])->assertOk();
