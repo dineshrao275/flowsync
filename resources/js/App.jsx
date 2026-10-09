@@ -80,6 +80,7 @@ import SystemUsers from './pages/SystemUsers';
 import SystemSettings from './pages/SystemSettings';
 import AuditLogs from './pages/AuditLogs';
 import FeatureManagement from './pages/FeatureManagement';
+import FeatureFlags from './pages/FeatureFlags';
 import CmsPages from './pages/CmsPages';
 import Forbidden from './pages/Forbidden';
 import ModuleDenied from './pages/ModuleDenied';
@@ -135,6 +136,7 @@ function AppRoutes() {
                                 <Route path="/admin/support" element={<AdminSupport />} />
                                 <Route path="/admin/support/:ticketId" element={<AdminSupport />} />
                                 <Route path="/admin/features" element={<FeatureManagement />} />
+                                <Route path="/admin/feature-flags" element={<FeatureFlags />} />
                                 <Route path="/admin/pages" element={<CmsPages />} />
                                 <Route path="/tenants" element={<Tenants />} />
                                 <Route path="/tenants/new" element={<TenantIntake />} />

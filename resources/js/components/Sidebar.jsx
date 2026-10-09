@@ -56,6 +56,7 @@ const superAdminSections = [
             { to: '/tenants', label: 'Tenants', capabilities: ['dashboard.view'], icon: 'M3 20h18M6 8V6a3 3 0 013-3h6a3 3 0 013 3v2m-12 0h12a3 3 0 013 3v5a3 3 0 01-3 3H9a3 3 0 01-3-3v-5a3 3 0 013-3z' },
             { to: '/plans', label: 'Plans', capabilities: ['dashboard.view'], icon: 'M9 3h6l4 4v14H5V7l4-4zm0 5h6m-4 4h4m-4 4h4' },
             { to: '/admin/features', label: 'Features', capabilities: ['dashboard.view'], icon: 'M12 3l8 4v13H4V7l8-4zm0 5a2.5 2.5 0 00-2.5 2.5c0 1.5 2.5 3 2.5 3s2.5-1.5 2.5-3A2.5 2.5 0 0012 8zm0 10a2 2 0 100-4 2 2 0 000 4z' },
+            { to: '/admin/feature-flags', label: 'Feature flags', capabilities: ['dashboard.view'], icon: 'M5 3v18M5 4h12l-2 4 2 4H5' },
             { to: '/admin/pages', label: 'Website', capabilities: ['dashboard.view'], icon: 'M12 3l8 4v13H4V7l8-4zm2 6v6m-4-6v2' },
         ],
     },

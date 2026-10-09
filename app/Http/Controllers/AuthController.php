@@ -9,6 +9,7 @@ use App\Models\PlatformSetting;
 use App\Models\Tenant;
 use App\Models\TenantUserRouting;
 use App\Models\User;
+use App\Services\FeatureFlags;
 use App\Services\PlatformAudit;
 use App\Services\TenantLimits;
 use App\Services\TenantOnboarding;
@@ -282,6 +283,8 @@ class AuthController extends Controller
                 'impersonation_mode' => $impersonation['mode'] ?? null,
                 'impersonation_expires_at' => isset($impersonation['expires_at']) ? Carbon::createFromTimestamp($impersonation['expires_at'])->toIso8601String() : null,
                 'onboarding_complete' => ! $tenant || app(TenantOnboarding::class)->isComplete($tenant),
+                // Runtime feature flags resolved for this tenant (P8.7); the SPA only mirrors them.
+                'flags' => $tenant ? app(FeatureFlags::class)->allFor($tenant->id) : (object) [],
             ],
             // `mode` (light/dark/system) sits next to the colors but is not part
             // of theme.defaults, so it is merged in explicitly. A platform super
