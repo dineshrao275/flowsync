@@ -93,6 +93,7 @@ use App\Http\Controllers\ReportsController;
 use App\Http\Controllers\ResetPasswordController;
 use App\Http\Controllers\RoleController;
 use App\Http\Controllers\SearchController;
+use App\Http\Controllers\SprintController;
 use App\Http\Controllers\StatusController;
 use App\Http\Controllers\SupportTicketController;
 use App\Http\Controllers\SystemAnalyticsController;
@@ -339,6 +340,19 @@ Route::prefix('api')->group(function () {
             Route::put('projects/{project}/automations/{rule}', [AutomationRuleController::class, 'update']);
             Route::delete('projects/{project}/automations/{rule}', [AutomationRuleController::class, 'destroy']);
             Route::get('projects/{project}/automations/{rule}/runs', [AutomationRuleController::class, 'runs']);
+        });
+
+        Route::middleware(['permission:workspaces.view', 'ensure_product:tms', 'ensure_module:sprints'])->group(function () {
+            Route::get('projects/{project}/sprints', [SprintController::class, 'index']);
+            Route::post('projects/{project}/sprints', [SprintController::class, 'store']);
+            Route::get('projects/{project}/sprints/{sprint}', [SprintController::class, 'show']);
+            Route::put('projects/{project}/sprints/{sprint}', [SprintController::class, 'update']);
+            Route::delete('projects/{project}/sprints/{sprint}', [SprintController::class, 'destroy']);
+            Route::post('projects/{project}/sprints/{sprint}/start', [SprintController::class, 'start']);
+            Route::post('projects/{project}/sprints/{sprint}/complete', [SprintController::class, 'complete']);
+            Route::post('projects/{project}/sprints/{sprint}/tasks', [SprintController::class, 'addTasks']);
+            Route::delete('projects/{project}/sprints/{sprint}/tasks/{task}', [SprintController::class, 'removeTask']);
+            Route::get('projects/{project}/agile-reports', [SprintController::class, 'reports']);
         });
 
         Route::middleware(['permission:workspaces.view', 'ensure_product:tms'])->group(function () {

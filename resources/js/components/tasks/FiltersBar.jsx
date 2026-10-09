@@ -55,6 +55,16 @@ export default function FiltersBar({ filters, options, onChange }) {
                     ))}
                 </select>
             </div>
+            {options.sprints && (
+                <div>
+                    <label className="mb-1 block text-xs font-medium uppercase tracking-wide text-gray-500">Sprint</label>
+                    <select className={fieldClassCompact} value={filters.sprint || ''} onChange={(e) => set('sprint', e.target.value)}>
+                        <option value="">All work</option>
+                        <option value="active">Active sprint</option>
+                        <option value="none">Backlog</option>
+                    </select>
+                </div>
+            )}
             {options.labels?.length > 0 && (
                 <div>
                     <label className="mb-1 block text-xs font-medium uppercase tracking-wide text-gray-500">Label</label>

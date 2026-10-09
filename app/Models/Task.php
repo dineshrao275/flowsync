@@ -32,6 +32,7 @@ class Task extends Model
         'due_date',
         'start_date',
         'story_points',
+        'sprint_id',
         'issue_type_id',
         'version_id',
         'estimate_minutes',
@@ -47,6 +48,7 @@ class Task extends Model
             'due_date' => 'date',
             'start_date' => 'date',
             'story_points' => 'float',
+            'sprint_id' => 'integer',
             'issue_type_id' => 'integer',
             'version_id' => 'integer',
             'estimate_minutes' => 'integer',
@@ -130,6 +132,11 @@ class Task extends Model
     public function parent(): BelongsTo
     {
         return $this->belongsTo(Task::class, 'parent_id');
+    }
+
+    public function sprint(): BelongsTo
+    {
+        return $this->belongsTo(Sprint::class);
     }
 
     public function subtasks(): HasMany

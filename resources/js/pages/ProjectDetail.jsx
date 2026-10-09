@@ -9,6 +9,7 @@ import Button from '../components/ui/Button';
 import Input from '../components/ui/Input';
 import { useAuth } from '../context/AuthContext';
 import AutomationPanel from '../components/automation/AutomationPanel';
+import SprintsPanel from '../components/sprints/SprintsPanel';
 import WorkflowRules from '../components/tasks/WorkflowRules';
 import { useToast } from '../context/ToastContext';
 import { useSetCrumbs } from '../context/BreadcrumbContext';
@@ -588,6 +589,7 @@ export default function ProjectDetail() {
         { key: 'members', label: `Members (${members.length})` },
         { key: 'workflow', label: 'Workflow' },
         ...(hasModule('time_tracking') ? [{ key: 'time', label: 'Time' }] : []),
+        ...(hasModule('sprints') ? [{ key: 'sprints', label: 'Sprints' }] : []),
         ...(isProjectManager && hasModule('automation') ? [{ key: 'automation', label: 'Automation' }] : []),
         ...(isProjectManager ? [{ key: 'settings', label: 'Settings' }] : []),
     ];
@@ -724,7 +726,7 @@ export default function ProjectDetail() {
                     </div>
 
                     <Card>
-                        <FiltersBar filters={filters} options={taskOptions} onChange={setFilters} />
+                        <FiltersBar filters={filters} options={{ ...taskOptions, sprints: hasModule('sprints') }} onChange={setFilters} />
                     </Card>
 
                     {tasksError ? (
@@ -847,6 +849,8 @@ export default function ProjectDetail() {
                     </Card>
                 </div>
             )}
+
+            {tab === 'sprints' && hasModule('sprints') && <SprintsPanel projectId={projectId} canPlan={isProjectManager} />}
 
             {tab === 'automation' && isProjectManager && hasModule('automation') && (
                 <AutomationPanel

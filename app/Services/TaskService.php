@@ -327,6 +327,16 @@ class TaskService
             TaskScope::resolveQueryScope($project, $user, 'tasks.view'),
         );
 
+        if (! empty($filters['sprint'])) {
+            $sprint = $filters['sprint'];
+            if ($sprint === 'none') {
+                $query->whereNull('tasks.sprint_id');
+            } else {
+                $id = $sprint === 'active' ? $project->sprints()->where('status', 'active')->value('id') : (int) $sprint;
+                $query->where('tasks.sprint_id', $id ?: 0);
+            }
+        }
+
         if (! empty($filters['status_id'])) {
             $query->where('tasks.status_id', $filters['status_id']);
         }
@@ -573,6 +583,7 @@ class TaskService
             'start_date' => $task->start_date?->toDateString(),
             'due_date' => $task->due_date?->toDateString(),
             'story_points' => $task->story_points !== null ? (float) $task->story_points : null,
+            'sprint_id' => $task->sprint_id,
             'issue_type_id' => $task->issue_type_id,
             'issue_type' => $task->issueType ? [
                 'id' => $task->issueType->id,

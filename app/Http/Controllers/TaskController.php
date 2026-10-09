@@ -46,6 +46,7 @@ class TaskController extends Controller
             'issue_type_id' => ['nullable', 'integer'],
             'version_id' => ['nullable', 'integer'],
             'component_id' => ['nullable', 'integer'],
+            'sprint' => ['nullable', 'regex:/^(active|none|\d+)$/'],
             'q' => ['nullable', 'string', 'max:255'],
             'due_from' => ['nullable', 'date'],
             'due_to' => ['nullable', 'date'],
