@@ -303,4 +303,19 @@ class GlobalSearchTest extends TestCase
 
         $this->assertFalse(AuditLog::where('action', 'search.cross_tenant')->exists());
     }
+
+    /** P1.9 — a typed `%` or `_` is text, not a wildcard that matches every row. */
+    public function test_search_wildcards_are_literal(): void
+    {
+        $workspace = Workspace::create(['created_by' => $this->admin()->id, 'name' => 'Plain Workspace', 'slug' => 'plain-ws']);
+        $workspace->members()->attach($this->admin()->id, ['role' => 'owner', 'added_by' => $this->admin()->id]);
+        Workspace::create(['created_by' => $this->admin()->id, 'name' => '50% Sale', 'slug' => 'fifty-sale']);
+
+        $this->login('admin@flowsync.test');
+
+        $names = array_column($this->search('%25%25')->assertOk()->json('results.workspaces'), 'name');
+        $this->assertSame([], $names);                 // "%%" is not "everything"
+        $this->assertSame(['50% Sale'], array_column($this->search('50%25')->json('results.workspaces'), 'name'));
+        $this->assertSame([], $this->search('P_ain')->json('results.workspaces')); // "_" is not "any one character"
+    }
 }

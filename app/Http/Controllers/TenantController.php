@@ -10,6 +10,7 @@ use App\Models\TenantUserRouting;
 use App\Models\User;
 use App\Services\PlatformAudit;
 use App\Services\TenantLifecycle;
+use App\Support\Like;
 use App\Support\TenantContext;
 use App\Support\TenantDatabaseManager;
 use Illuminate\Http\JsonResponse;
@@ -58,12 +59,7 @@ class TenantController extends Controller
         $query = Tenant::query();
 
         if (! empty($data['q'])) {
-            $q = $data['q'];
-            $query->where(function ($sub) use ($q): void {
-                $sub->where('name', 'like', "%{$q}%")
-                    ->orWhere('slug', 'like', "%{$q}%")
-                    ->orWhere('description', 'like', "%{$q}%");
-            });
+            Like::any($query, ['name', 'slug', 'description'], $data['q']);
         }
 
         if (! empty($data['status'])) {

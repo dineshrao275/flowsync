@@ -12,6 +12,8 @@ use App\Models\Task;
 use App\Models\TaskStatus;
 use App\Models\User;
 use App\Services\Hrms\PerformanceService;
+use App\Support\Hrms\HrmsSchema;
+use App\Support\Like;
 use App\Support\TaskScope;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Eloquent\Builder;
@@ -118,6 +120,14 @@ class TaskService
             $updateData['version_id'] = $this->resolveVersion($task->project, $data['version_id'])?->id;
         }
 
+        // Completing through the edit form must obey the same rule as dragging to Done.
+        $completing = $status->is_done && (int) $task->status_id !== (int) $status->id;
+        if ($completing && $this->hasOpenBlockers($task)) {
+            throw ValidationException::withMessages([
+                'form' => 'Cannot move to Done while this task has open blockers.',
+            ]);
+        }
+
         $task->update($updateData);
 
         if (array_key_exists('labels', $data)) {
@@ -128,7 +138,25 @@ class TaskService
             $task->components()->sync($this->resolveComponents($task->project, $data['components'] ?? []));
         }
 
-        return $task->fresh();
+        $updated = $task->fresh();
+
+        if ($completing) {
+            $this->refreshGoalsOnCompletion($updated);
+        }
+
+        return $updated;
+    }
+
+    /**
+     * A completion re-photographs every goal evidencing the task, so linked goals update on
+     * the event rather than waiting for the nightly sweep. Evidence only — it never writes a
+     * rating or a status. A tenant without the HRMS product has no goals to refresh.
+     */
+    private function refreshGoalsOnCompletion(Task $task): void
+    {
+        if (HrmsSchema::present()) {
+            $this->performance->refreshTaskGoals($task);
+        }
     }
 
     public function delete(Task $task): void
@@ -164,12 +192,8 @@ class TaskService
 
         $moved = $task->fresh();
 
-        // A completion re-photographs every goal evidencing the task, so
-        // linked goals update on the event rather than waiting for the
-        // nightly sweep. Evidence only — the refresh never writes a rating
-        // or a status, so it cannot move anything this method owns.
         if ($status->is_done) {
-            $this->performance->refreshTaskGoals($moved);
+            $this->refreshGoalsOnCompletion($moved);
         }
 
         return $moved;
@@ -296,11 +320,7 @@ class TaskService
         }
 
         if (! empty($filters['q'])) {
-            $query->where(function (Builder $q) use ($filters) {
-                $q->where('tasks.title', 'like', '%'.$filters['q'].'%')
-                    ->orWhere('tasks.key', 'like', '%'.$filters['q'].'%')
-                    ->orWhere('tasks.description', 'like', '%'.$filters['q'].'%');
-            });
+            Like::any($query, ['tasks.title', 'tasks.key', 'tasks.description'], $filters['q']);
         }
 
         if (! empty($filters['due_from'])) {

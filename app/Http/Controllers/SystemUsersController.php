@@ -6,6 +6,7 @@ use App\Http\Requests\SystemUserIndexRequest;
 use App\Http\Requests\SystemUserStoreRequest;
 use App\Models\SystemUser;
 use App\Services\PlatformAudit;
+use App\Support\Like;
 use Illuminate\Http\JsonResponse;
 
 /**
@@ -21,10 +22,7 @@ class SystemUsersController extends Controller
         $query = SystemUser::query();
 
         if (! empty($data['q'])) {
-            $q = '%'.$data['q'].'%';
-            $query->where(fn ($w) => $w
-                ->where('name', 'like', $q)
-                ->orWhere('email', 'like', $q));
+            Like::any($query, ['name', 'email'], $data['q']);
         }
 
         $users = $query->latest()->paginate($data['per_page'] ?? 15)

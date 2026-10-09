@@ -11,6 +11,7 @@ use App\Models\User;
 use App\Models\Workspace;
 use App\Services\PlatformAudit;
 use App\Services\TenantLimits;
+use App\Support\Like;
 use App\Support\TenantDatabaseManager;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
@@ -122,7 +123,7 @@ class GlobalSearchController extends Controller
     private function searchWorkspaces(string $q, User $user, ?string $tenantName = null, int $limit = 5): array
     {
         $query = Workspace::query()
-            ->where('name', 'like', "%{$q}%")
+            ->tap(fn ($b) => Like::any($b, ['name'], $q))
             ->withCount('projects');
 
         if (! $this->managesAllResources($user)) {
@@ -142,9 +143,7 @@ class GlobalSearchController extends Controller
         $query = Project::query()
             ->with(['workspace'])
             ->withCount('tasks')
-            ->where(fn (Builder $builder) => $builder
-                ->where('name', 'like', "%{$q}%")
-                ->orWhere('key', 'like', "%{$q}%"));
+            ->tap(fn ($b) => Like::any($b, ['name', 'key'], $q));
 
         if (! $this->managesAllResources($user)) {
             $query->whereHas('members', fn (Builder $members) => $members->where('user_id', $user->id));
@@ -163,10 +162,7 @@ class GlobalSearchController extends Controller
     private function searchTasks(string $q, User $user, int $limit = 8): array
     {
         return $this->visibleTaskQuery($user)
-            ->where(fn (Builder $builder) => $builder
-                ->where('tasks.title', 'like', "%{$q}%")
-                ->orWhere('tasks.key', 'like', "%{$q}%")
-                ->orWhere('tasks.description', 'like', "%{$q}%"))
+            ->tap(fn ($b) => Like::any($b, ['tasks.title', 'tasks.key', 'tasks.description'], $q))
             ->orderByDesc('tasks.updated_at')
             ->limit($limit)
             ->get()
@@ -184,9 +180,7 @@ class GlobalSearchController extends Controller
         }
 
         return User::query()
-            ->where(fn (Builder $builder) => $builder
-                ->where('name', 'like', "%{$q}%")
-                ->orWhere('email', 'like', "%{$q}%"))
+            ->tap(fn ($b) => Like::any($b, ['name', 'email'], $q))
             ->orderBy('name')
             ->limit($limit)
             ->get()
@@ -239,9 +233,7 @@ class GlobalSearchController extends Controller
     private function searchEmployees(string $q, ?string $tenantName = null, int $limit = 5): array
     {
         return Employee::query()
-            ->where(fn (Builder $builder) => $builder
-                ->where('name', 'like', "%{$q}%")
-                ->orWhere('employee_code', 'like', "%{$q}%"))
+            ->tap(fn ($b) => Like::any($b, ['name', 'employee_code'], $q))
             ->orderBy('name')
             ->limit($limit)
             ->get()

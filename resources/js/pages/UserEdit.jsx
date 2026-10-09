@@ -7,6 +7,7 @@ import Spinner from '../components/ui/Spinner';
 import Alert from '../components/ui/Alert';
 import Button from '../components/ui/Button';
 import Input from '../components/ui/Input';
+import AccessExplainer from '../components/AccessExplainer';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
 import { useSetCrumbs } from '../context/BreadcrumbContext';
@@ -23,6 +24,7 @@ export default function UserEdit() {
 
     const [user, setUser] = useState(null);
     const [roles, setRoles] = useState([]);
+    const [permissions, setPermissions] = useState([]);
     const [form, setForm] = useState({ name: '', email: '', roles: [] });
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
@@ -42,6 +44,7 @@ export default function UserEdit() {
                 if (!active) return;
                 setUser(u.data.user);
                 setRoles(r.data.roles);
+                setPermissions(r.data.permissions || []);
                 setForm({ name: u.data.user.name, email: u.data.user.email, roles: u.data.user.roles });
             })
             .catch((e) => {
@@ -145,6 +148,8 @@ export default function UserEdit() {
                     </div>
                 )}
             </form>
+
+            {can('roles.view') && <AccessExplainer userId={userId} permissions={permissions} />}
 
             {manageable && (
                 <Card title="Danger zone">

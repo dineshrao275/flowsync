@@ -11,6 +11,7 @@ use App\Models\Task;
 use App\Models\TaskStatus;
 use App\Models\User;
 use App\Models\Workspace;
+use App\Support\Like;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\DB;
@@ -37,11 +38,7 @@ class SearchController extends Controller
         }
 
         if (! empty($filters['q'])) {
-            $query->where(function (Builder $builder) use ($filters) {
-                $builder->where('tasks.title', 'like', '%'.$filters['q'].'%')
-                    ->orWhere('tasks.key', 'like', '%'.$filters['q'].'%')
-                    ->orWhere('tasks.description', 'like', '%'.$filters['q'].'%');
-            });
+            Like::any($query, ['tasks.title', 'tasks.key', 'tasks.description'], $filters['q']);
         }
 
         foreach (['status_id', 'priority_id', 'assignee_id', 'project_id', 'workspace_id'] as $column) {
