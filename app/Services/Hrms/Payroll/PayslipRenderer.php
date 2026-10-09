@@ -5,18 +5,21 @@ namespace App\Services\Hrms\Payroll;
 use App\Models\Hrms\Payroll\Payslip;
 use App\Models\Hrms\Payroll\PayslipTemplate;
 use App\Models\Tenant;
+use App\Support\Pdf\SimplePdf;
 use App\Support\TenantContext;
 use Illuminate\Support\Carbon;
 
 /**
  * Payroll/HRMS — one payslip, rendered to printable HTML.
  *
- * No PDF library is vendored, so the download is a self-contained HTML file
- * the browser prints to PDF. The tenant's default template customises it
- * (`header_html`, `footer_html`, `show_employer_contributions`); absent keys
- * fall back to the built-in layout, so a null content still renders. Every
- * dynamic value is escaped — the template's own HTML is admin-authored and
- * the only raw output.
+ * The download is a real PDF (`renderPdf`, built with the dependency-free
+ * SimplePdf writer); `render` keeps the printable HTML form for anything that
+ * wants markup. The tenant's default template customises the HTML
+ * (`header_html`, `footer_html`) and both forms honour
+ * `show_employer_contributions`; absent keys fall back to the built-in
+ * layout, so a null content still renders. Every dynamic value is escaped —
+ * the template's own HTML is admin-authored and the only raw output. The PDF
+ * is text-only, so the template's HTML header/footer are not carried over.
  */
 class PayslipRenderer
 {
@@ -26,10 +29,7 @@ class PayslipRenderer
     {
         $payslip->loadMissing(['employee:id,employee_code,name', 'adjustments', 'run']);
 
-        $template = PayslipTemplate::query()->active()->default()->first()
-            ?? PayslipTemplate::query()->active()->orderBy('id')->first();
-
-        $content = $template?->content ?? [];
+        $content = $this->templateContent();
         $showEmployer = (bool) ($content['show_employer_contributions'] ?? true);
 
         $rows = fn (?array $lines): string => collect($lines ?? [])
@@ -60,13 +60,63 @@ class PayslipRenderer
             .'</body></html>';
     }
 
+    /** The payslip as PDF bytes: same figures as `render`, laid out as text and right-aligned amounts. */
+    public function renderPdf(Payslip $payslip): string
+    {
+        $payslip->loadMissing(['employee:id,employee_code,name', 'adjustments', 'run']);
+
+        $right = SimplePdf::WIDTH - SimplePdf::MARGIN;
+        $period = Carbon::create((int) $payslip->run->period_year, (int) $payslip->run->period_month, 1)->format('F Y');
+        $leave = $payslip->leave_days ?? [];
+        $amount = fn (mixed $value): string => (string) ($value ?? '0.00');
+        $section = function (SimplePdf $pdf, string $title, iterable $rows) use ($right, $amount): void {
+            $pdf->gap(8)->line($title, 11, true)->rule();
+            foreach ($rows as [$label, $value]) {
+                $pdf->row([[(string) $label, SimplePdf::MARGIN], [$amount($value), $right, true]]);
+            }
+        };
+        $lines = fn (?array $items): array => collect($items ?? [])->map(fn ($line): array => [$line['name'] ?? $line['code'] ?? '', $line['monthly'] ?? '0.00'])->all();
+
+        $pdf = (new SimplePdf)
+            ->line('Payslip - '.$period, 16, true)
+            ->line($this->companyName(), 9)
+            ->gap(6)
+            ->line(($payslip->employee?->displayName() ?? '-').'  '.(string) ($payslip->employee?->employee_code ?? ''), 11, true)
+            ->line('Pay date '.$payslip->run->pay_date->toDateString().'   Working '.$payslip->working_days.'   Paid '.$payslip->paid_days.'   LOP '.$payslip->lop_days, 9);
+
+        $earnings = array_merge($lines($payslip->earnings), $payslip->adjustments->map(fn ($row): array => [(string) $row->label, ($row->kind === 'deduction' ? '-' : '').(string) $row->amount])->all());
+        $section($pdf, 'Earnings', $earnings);
+        $section($pdf, 'Deductions', $lines($payslip->deductions));
+
+        if ((bool) ($this->templateContent()['show_employer_contributions'] ?? true)) {
+            $section($pdf, 'Employer contributions', $lines($payslip->employer_contributions));
+        }
+
+        $section($pdf, 'Totals', [['Gross pay', $payslip->gross_pay], ['Total deductions', $payslip->total_deductions]]);
+        $pdf->row([['Net pay', SimplePdf::MARGIN], [$amount($payslip->net_pay), $right, true]], 12, true)
+            ->gap(8)
+            ->line('Unpaid leave '.($leave['unpaid_days'] ?? 0).' day(s)   Overtime '.$payslip->ot_minutes.' min   Status '.$payslip->status->value, 9)
+            ->line('System-generated payslip.', 9);
+
+        return $pdf->output();
+    }
+
+    /** The default (else first active) template's content, `[]` when the tenant has none. */
+    private function templateContent(): array
+    {
+        $template = PayslipTemplate::query()->active()->default()->first()
+            ?? PayslipTemplate::query()->active()->orderBy('id')->first();
+
+        return $template?->content ?? [];
+    }
+
     public function filename(Payslip $payslip): string
     {
         $payslip->loadMissing('run');
 
         $code = preg_replace('/[^A-Za-z0-9_-]/', '', (string) ($payslip->employee?->employee_code ?? $payslip->employee_id)) ?: 'payslip';
 
-        return "payslip-{$payslip->run->period_year}-".str_pad((string) $payslip->run->period_month, 2, '0', STR_PAD_LEFT)."-{$code}.html";
+        return "payslip-{$payslip->run->period_year}-".str_pad((string) $payslip->run->period_month, 2, '0', STR_PAD_LEFT)."-{$code}.pdf";
     }
 
     private function companyName(): string
