@@ -9,11 +9,14 @@ use App\Models\Project;
 use App\Models\Tenant;
 use App\Models\User;
 use App\Models\Workspace;
+use App\Services\PlatformAudit;
 use App\Services\TenantLimits;
 use App\Support\TenantDatabaseManager;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Str;
 
 class GlobalSearchController extends Controller
 {
@@ -33,6 +36,7 @@ class GlobalSearchController extends Controller
         $tasks = [];
         $users = [];
         $employees = [];
+        $tenantsSearched = 0;
 
         $defaultLimit = (int) $request->input('limit', 0);
         $wsLimit = (int) $request->input('workspace_limit', $defaultLimit ?: 5);
@@ -44,6 +48,7 @@ class GlobalSearchController extends Controller
         if ($isSuperAdmin) {
             $tenants = Tenant::query()->where('status', 'active')->orWhere('status', 'trial')->get()
                 ->filter(fn (Tenant $tenant) => $tenant->isProvisioned());
+            $tenantsSearched = $tenants->count();
 
             foreach ($tenants as $tenant) {
                 $dbm->using($tenant, function () use ($q, $user, $tenant, $wsLimit, $projLimit, $taskLimit, $userLimit, $empLimit, &$workspaces, &$projects, &$tasks, &$users, &$employees): void {
@@ -78,10 +83,39 @@ class GlobalSearchController extends Controller
             'employees' => array_slice($employees, 0, $empLimit),
         ];
 
+        $total = array_sum(array_map('count', $results));
+
+        if ($isSuperAdmin && $total > 0) {
+            $this->auditCrossTenantSearch($request, $q, $tenantsSearched, $results);
+        }
+
         return response()->json([
             'query' => $q,
             'results' => $results,
-            'total' => array_sum(array_map('count', $results)),
+            'total' => $total,
+        ]);
+    }
+
+    /**
+     * R13: a non-impersonating super admin reading tenant data through search has
+     * no impersonation log, so the search itself is the record. The palette fires
+     * on every pause in typing, hence one row per (admin, query) per five minutes
+     * and only when tenant data actually came back.
+     *
+     * @param  array<string, array<int, mixed>>  $results
+     */
+    private function auditCrossTenantSearch(Request $request, string $q, int $tenantsSearched, array $results): void
+    {
+        $key = 'sa-search-audit:'.$request->user()->id.':'.sha1(Str::lower($q));
+
+        if (! Cache::add($key, 1, now()->addMinutes(5))) {
+            return;
+        }
+
+        app(PlatformAudit::class)->record($request, 'search.cross_tenant', null, null, [
+            'q' => Str::limit($q, 100, ''),
+            'tenants_searched' => $tenantsSearched,
+            'results' => array_map('count', $results),
         ]);
     }
 

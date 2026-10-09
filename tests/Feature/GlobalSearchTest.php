@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Enums\Hrms\EmployeeStatus;
+use App\Models\AuditLog;
 use App\Models\Hrms\Employee\Employee;
 use App\Models\Project;
 use App\Models\ProjectRole;
@@ -270,5 +271,36 @@ class GlobalSearchTest extends TestCase
         app(SubscriptionService::class)->assign($tenant, $starter);
 
         $this->assertSame([], $this->search('Searchable')->assertOk()->json('results.employees'));
+    }
+
+    /** R13 — a super admin reading tenant data through search leaves a record. */
+    public function test_a_cross_tenant_super_admin_search_is_audited_once_per_query(): void
+    {
+        $workspace = Workspace::create([
+            'created_by' => $this->admin()->id,
+            'name' => 'Acme Cloud',
+            'slug' => 'acme-cloud',
+        ]);
+        $this->makeTask($workspace, 'Fix the login page', '100');
+
+        $this->login('superadmin@flowsync.test');
+
+        $this->search('login')->assertOk();
+        $this->search('login')->assertOk();   // the palette repeats itself; one row is enough
+        $this->search('LOGIN')->assertOk();   // same query, different case
+
+        $rows = AuditLog::where('action', 'search.cross_tenant')->get();
+        $this->assertCount(1, $rows);
+        $this->assertSame('login', $rows->first()->data['q']);
+        $this->assertGreaterThanOrEqual(1, $rows->first()->data['tenants_searched']);
+        $this->assertSame(1, $rows->first()->data['results']['tasks']);
+    }
+
+    public function test_a_tenant_users_search_writes_no_platform_audit_row(): void
+    {
+        $this->login('admin@flowsync.test');
+        $this->search('acme')->assertOk();
+
+        $this->assertFalse(AuditLog::where('action', 'search.cross_tenant')->exists());
     }
 }
