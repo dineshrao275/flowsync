@@ -1,5 +1,7 @@
 <?php
 
+use App\Http\Controllers\Hrms\Shift\RosterController;
+use App\Http\Controllers\Hrms\Shift\RotationController;
 use App\Http\Controllers\Hrms\Shift\ShiftController;
 use Illuminate\Support\Facades\Route;
 
@@ -23,4 +25,16 @@ Route::group(['middleware' => ['ensure_module:hrms.core', 'ensure_module:hrms.sh
     Route::put('hrms/shifts/{shift}', [ShiftController::class, 'update']);
     Route::delete('hrms/shifts/{shift}', [ShiftController::class, 'destroy']);
     Route::post('hrms/shifts/{shift}/assign', [ShiftController::class, 'assign']);
+
+    // Rosters and rotations (P5.2). `mine` is declared before `{roster}`.
+    Route::get('hrms/shifts/rosters', [RosterController::class, 'index']);
+    Route::get('hrms/shifts/rosters/mine', [RosterController::class, 'mine']);
+    Route::post('hrms/shifts/rosters', [RosterController::class, 'store']);
+    Route::delete('hrms/shifts/rosters/{roster}', [RosterController::class, 'destroy']);
+
+    Route::get('hrms/shifts/rotations', [RotationController::class, 'index']);
+    Route::post('hrms/shifts/rotations', [RotationController::class, 'store']);
+    Route::put('hrms/shifts/rotations/{rotation}', [RotationController::class, 'update']);
+    Route::delete('hrms/shifts/rotations/{rotation}', [RotationController::class, 'destroy']);
+    Route::post('hrms/shifts/rotations/{rotation}/apply', [RotationController::class, 'apply']);
 });
