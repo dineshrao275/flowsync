@@ -1009,7 +1009,7 @@ Route::prefix('api')->group(function () {
     // every signed file route above. The central tenant id travels inside the
     // signature; the ExportRun lookup happens inside TenantDatabaseManager::using().
     // `run` is an int (not model-bound — the default connection is central here).
-    Route::get('api/exports/{run}/download', [ExportController::class, 'download'])
+    Route::get('exports/{run}/download', [ExportController::class, 'download'])
         ->middleware('signed')
         ->name('exports.download');
 });

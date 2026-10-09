@@ -190,6 +190,10 @@ class TenantExportTest extends TestCase
         $downloadUrl = $showResponse->json('run.download_url');
         $this->assertNotNull($downloadUrl);
 
+        // The route sits inside the `api` prefix group: its path must not double it.
+        $path = parse_url($downloadUrl, PHP_URL_PATH);
+        $this->assertSame("/api/exports/{$run->id}/download", $path);
+
         // Valid signed download works without session
         $this->flushSession();
         $response = $this->get($downloadUrl);
