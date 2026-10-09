@@ -26,6 +26,7 @@ class Project extends Model
         'due_date',
         'last_task_sequence',
         'archived_at',
+        'enforce_workflow',
     ];
 
     protected function casts(): array
@@ -34,6 +35,7 @@ class Project extends Model
             'start_date' => 'date',
             'due_date' => 'date',
             'archived_at' => 'datetime',
+            'enforce_workflow' => 'boolean',
             'last_task_sequence' => 'integer',
         ];
     }

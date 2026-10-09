@@ -9,6 +9,7 @@ import Button from '../components/ui/Button';
 import Input from '../components/ui/Input';
 import { useAuth } from '../context/AuthContext';
 import AutomationPanel from '../components/automation/AutomationPanel';
+import WorkflowRules from '../components/tasks/WorkflowRules';
 import { useToast } from '../context/ToastContext';
 import { useSetCrumbs } from '../context/BreadcrumbContext';
 import KanbanBoard from '../components/tasks/KanbanBoard';
@@ -859,6 +860,7 @@ export default function ProjectDetail() {
 
             {tab === 'workflow' && isProjectManager && (
                 <div className="space-y-5">
+                    <WorkflowRules projectId={projectId} />
                     <Card title="New status" subtitle="Ordered by position. 'Done' category finishes the flow.">
                         <form onSubmit={addStatus} className="flex flex-col gap-3 sm:flex-row sm:items-end">
                             <div className="flex-1">

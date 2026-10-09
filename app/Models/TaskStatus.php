@@ -21,6 +21,7 @@ class TaskStatus extends Model
         'color',
         'is_default',
         'is_done',
+        'entry_rules',
     ];
 
     protected function casts(): array
@@ -30,6 +31,7 @@ class TaskStatus extends Model
             'position' => 'integer',
             'is_default' => 'boolean',
             'is_done' => 'boolean',
+            'entry_rules' => 'array',
         ];
     }
 

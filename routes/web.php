@@ -113,6 +113,7 @@ use App\Http\Controllers\UserController;
 use App\Http\Controllers\UserImportController;
 use App\Http\Controllers\WebhookController;
 use App\Http\Controllers\WebhookEndpointController;
+use App\Http\Controllers\WorkflowController;
 use App\Http\Controllers\WorkLogController;
 use App\Http\Controllers\WorkspaceController;
 use App\Http\Controllers\WorkspaceMemberController;
@@ -341,6 +342,9 @@ Route::prefix('api')->group(function () {
         });
 
         Route::middleware(['permission:workspaces.view', 'ensure_product:tms'])->group(function () {
+            Route::get('projects/{project}/workflow', [WorkflowController::class, 'show']);
+            Route::put('projects/{project}/workflow', [WorkflowController::class, 'update']);
+            Route::get('projects/{project}/tasks/{task}/transitions', [WorkflowController::class, 'transitions']);
             Route::get('workspaces', [WorkspaceController::class, 'index']);
             Route::get('workspaces/{workspace}', [WorkspaceController::class, 'show']);
             Route::put('workspaces/{workspace}', [WorkspaceController::class, 'update']);

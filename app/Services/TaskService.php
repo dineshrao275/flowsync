@@ -10,14 +10,17 @@ use App\Models\ProjectComponent;
 use App\Models\ProjectVersion;
 use App\Models\Task;
 use App\Models\TaskStatus;
+use App\Models\TaskStatusHistory;
 use App\Models\User;
 use App\Services\Hrms\PerformanceService;
+use App\Services\Workflow\WorkflowGuard;
 use App\Support\Hrms\HrmsSchema;
 use App\Support\Like;
 use App\Support\TaskScope;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
@@ -27,6 +30,7 @@ class TaskService
         private readonly KeyGenerator $keyGenerator,
         private readonly TenantLimits $limits,
         private readonly PerformanceService $performance,
+        private readonly WorkflowGuard $workflow,
     ) {}
 
     public function create(Project $project, array $data, User $creator): Task
@@ -72,6 +76,7 @@ class TaskService
         ]);
 
         $task->labels()->attach($this->resolveLabels($project, $data['labels'] ?? []));
+        $this->recordStatusChange($task, null, $status->id);
 
         if (! empty($data['components'])) {
             $task->components()->attach($this->resolveComponents($project, $data['components']));
@@ -121,6 +126,12 @@ class TaskService
         }
 
         $completing = $status->is_done && (int) $task->status_id !== (int) $status->id;
+        $fromStatusId = (int) $task->status_id;
+        $statusMoves = $fromStatusId !== (int) $status->id;
+        if ($statusMoves) {
+            // Judge the task as it is about to be saved, so one edit can satisfy the entry rule it triggers.
+            $this->workflow->assertCanMove($task, $status, array_intersect_key($updateData, array_flip(['assignee_id', 'due_date', 'estimate_minutes', 'story_points'])));
+        }
 
         $task->update($updateData);
 
@@ -134,11 +145,24 @@ class TaskService
 
         $updated = $task->fresh();
 
+        if ($statusMoves) {
+            $this->recordStatusChange($updated, $fromStatusId, (int) $status->id);
+        }
+
         if ($completing) {
             $this->refreshGoalsOnCompletion($updated);
         }
 
         return $updated;
+    }
+
+    /** One history row per status change — the basis for cycle and lead time. */
+    private function recordStatusChange(Task $task, ?int $from, int $to): void
+    {
+        TaskStatusHistory::create([
+            'task_id' => $task->id, 'from_status_id' => $from, 'to_status_id' => $to,
+            'user_id' => Auth::id(), 'changed_at' => now(),
+        ]);
     }
 
     /**
@@ -169,6 +193,8 @@ class TaskService
             ]);
         }
 
+        $this->workflow->assertCanMove($task, $status);
+
         $task->update([
             'status_id' => $status->id,
             'completed_at' => $status->is_done ? ($task->completed_at ?? now()) : null,
@@ -185,6 +211,10 @@ class TaskService
         }
 
         $moved = $task->fresh();
+
+        if ($oldStatusId !== $status->id) {
+            $this->recordStatusChange($moved, $oldStatusId, $status->id);
+        }
 
         if ($status->is_done) {
             $this->refreshGoalsOnCompletion($moved);
