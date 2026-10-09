@@ -322,3 +322,6 @@ Route::view('/app/{any}', 'app')->where('any', '.*');
 Broadcast::routes(['middleware' => ['switch_tenant', 'auth', 'tenant']]);
 
 require __DIR__.'/../routes/channels.php';
+
+// Security track (P8.x) routes live in their own file.
+require __DIR__.'/security.php';

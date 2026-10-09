@@ -111,6 +111,7 @@ return [
         'employees',             // HRMS headcount
         'assets',                // HRMS asset register
         'hr_document_bytes',     // HRMS document storage
+        'audit_retention_days',  // platform audit rows about the tenant are pruned after this (absent = kept forever)
     ],
 
     'currency' => env('SUBSCRIPTIONS_CURRENCY', 'USD'),
@@ -141,6 +142,7 @@ return [
                 'tasks' => 500,
                 'storage_bytes' => 5 * 1024 * 1024 * 1024,      // 5 GB
                 'attachments_per_task' => 5,
+                'audit_retention_days' => 90,
                 // No `hrms.*` module: HRMS is entirely absent from Starter.
                 'modules' => ['time_tracking'],
             ],
@@ -163,6 +165,7 @@ return [
                 'tasks' => 10000,
                 'storage_bytes' => 50 * 1024 * 1024 * 1024,     // 50 GB
                 'attachments_per_task' => 25,
+                'audit_retention_days' => 365,
                 // Plan B HRMS set — see docs/hrms-implementation-plan.md §3.1.
                 'modules' => [
                     'time_tracking', 'webhooks', 'automation', 'sprints', 'reports', 'global_search',
@@ -193,6 +196,7 @@ return [
                 'hr_document_bytes' => 100 * 1024 * 1024 * 1024, // 100 GB
                 'assets' => 1000,
                 'attachments_per_task' => 50,
+                'audit_retention_days' => 730,
                 // Plan B HRMS set + Plan C (compensation, expenses, performance,
                 // talent, engagement, analytics). No payroll: that is Enterprise.
                 'modules' => [

@@ -25,6 +25,8 @@ Schedule::command('tenants:close-impersonations')->everyTenMinutes()->withoutOve
 
 // Platform: trials end at `trial_ends_at` exactly — no grace period (yet).
 Schedule::command('tenants:expire-trials')->dailyAt('00:05')->withoutOverlapping();
+// Platform audit rows older than the tenant's plan retention are removed (hash-chain tombstones keep it verifiable).
+Schedule::command('audit:prune')->dailyAt('03:50')->withoutOverlapping();
 
 // Billing: failed-payment dunning (reminders, final notice, suspension after the grace period).
 // Billing: lapsed paid periods are expired / renewed / sent to dunning first (08:00), then dunning runs.

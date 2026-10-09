@@ -337,17 +337,17 @@ export default function Tenants() {
         setPage(1);
     }
 
-    async function impersonate({ reason, mode }) {
+    async function impersonate({ reason, mode, grant_id }) {
         const { tenant, user } = impersonateTarget;
         try {
-            await api.post('/impersonate', { user_id: user.id, tenant_id: tenant.id, reason, mode });
+            await api.post('/impersonate', { user_id: user.id, tenant_id: tenant.id, reason, mode, grant_id });
             await refresh();
             setImpersonateTarget(null);
             toast.success(`Viewing panel as ${user.name}${mode === 'write' ? ' (changes enabled)' : ' (read-only)'}.`);
             navigate('/dashboard', { replace: true });
         } catch (e) {
             const errors = fieldErrors(e);
-            toast.error(errors.reason || errors.form || errors.user_id || 'Failed to impersonate.');
+            toast.error(errors.reason || errors.form || errors.user_id || errors.grant_id || errors.mode || 'Failed to impersonate.');
         }
     }
 

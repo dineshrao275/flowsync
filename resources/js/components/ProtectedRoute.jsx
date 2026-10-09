@@ -22,6 +22,11 @@ export default function ProtectedRoute({ permission, module, product, children }
         return <Navigate to="/login" state={{ from: location.pathname + location.search }} replace />;
     }
 
+    // Role requires 2FA and this session has not enrolled: only the security page is reachable (P8.1).
+    if (user.two_factor?.enrollment_required && location.pathname !== '/security') {
+        return <Navigate to="/security" replace />;
+    }
+
     if (permission && !can(permission)) {
         // The missing grant rides in location state so /403 can name it: a
         // bare "Access denied" sends an admin hunting for a route-level rule

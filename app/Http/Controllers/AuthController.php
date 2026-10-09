@@ -9,7 +9,11 @@ use App\Models\PlatformSetting;
 use App\Models\Tenant;
 use App\Models\TenantUserRouting;
 use App\Models\User;
+use App\Services\FeatureFlags;
 use App\Services\PlatformAudit;
+use App\Services\Security\PlatformAccess;
+use App\Services\Security\TwoFactorLogin;
+use App\Services\Security\TwoFactorService;
 use App\Services\TenantLimits;
 use App\Services\TenantOnboarding;
 use App\Support\Hrms\HrmsSchema;
@@ -114,6 +118,10 @@ class AuthController extends Controller
         if ($routes->isEmpty()) {
             // Super admin (system users) or unknown email.
             if (Auth::attempt(Arr::except($credentials, ['tenant']), $request->boolean('remember'))) {
+                if ($challenge = app(TwoFactorLogin::class)->challengeIfNeeded($request, Auth::user(), null)) {
+                    return $challenge;
+                }
+
                 $request->session()->forget('login.tenant_id');
                 $request->session()->forget('impersonate');
                 $request->session()->regenerate();
@@ -182,6 +190,10 @@ class AuthController extends Controller
                 ]);
 
                 throw ValidationException::withMessages(['email' => 'This account has been deactivated.']);
+            }
+
+            if ($challenge = app(TwoFactorLogin::class)->challengeIfNeeded($request, Auth::user(), $tenant)) {
+                return $challenge;
             }
 
             $request->session()->put('login.tenant_id', $tenant->id);
@@ -282,6 +294,17 @@ class AuthController extends Controller
                 'impersonation_mode' => $impersonation['mode'] ?? null,
                 'impersonation_expires_at' => isset($impersonation['expires_at']) ? Carbon::createFromTimestamp($impersonation['expires_at'])->toIso8601String() : null,
                 'onboarding_complete' => ! $tenant || app(TenantOnboarding::class)->isComplete($tenant),
+                // Runtime feature flags resolved for this tenant (P8.7); the SPA only mirrors them.
+                // Platform personas (P8.3): null = unrestricted break-glass admin; otherwise the held slugs.
+                'platform' => $isSuperAdmin ? [
+                    'roles' => app(PlatformAccess::class)->roleSlugsOf($user),
+                    'permissions' => app(PlatformAccess::class)->permissionsOf($user),
+                ] : null,
+                'two_factor' => [
+                    'enabled' => app(TwoFactorService::class)->isEnabled($user),
+                    'enrollment_required' => (bool) $request->session()->get(TwoFactorLogin::ENROLL_KEY, false),
+                ],
+                'flags' => $tenant ? app(FeatureFlags::class)->allFor($tenant->id) : (object) [],
             ],
             // `mode` (light/dark/system) sits next to the colors but is not part
             // of theme.defaults, so it is merged in explicitly. A platform super
