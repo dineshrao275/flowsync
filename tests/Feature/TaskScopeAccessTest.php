@@ -245,4 +245,43 @@ class TaskScopeAccessTest extends TestCase
         $this->getJson("/api/projects/{$project->id}/tasks/{$b->id}")->assertOk();
         $this->assertSame([$b->key], $this->boardKeys($project->id, 'admin@flowsync.test'));
     }
+
+    /**
+     * R10 — the multi-project reads (search, reports, dashboard) used to scope by
+     * membership alone, so a `tasks.view_own` member saw every project task there
+     * while their board showed only theirs.
+     */
+    public function test_global_task_reads_follow_the_same_row_scope_as_the_board(): void
+    {
+        $alice = $this->tenantMember('alice@flowsync.test');
+        $bob = $this->tenantMember('bob@flowsync.test');
+
+        $project = $this->makeProject($this->makeWorkspace());
+        $this->addMember($project, $alice, $this->makeProjectRole('own-reader', ['tasks.view_own']));
+        $this->addMember($project, $bob, $this->makeProjectRole('all-reader', ['tasks.view_all']));
+
+        $mine = $this->makeTask($project, $alice, $alice, 'Mine');
+        $this->makeTask($project, $bob, $bob, 'Theirs');
+
+        $this->loginAs('alice@flowsync.test');
+
+        $keys = collect($this->getJson('/api/search/tasks')->assertOk()->json('tasks'))->pluck('key')->all();
+        $this->assertSame([$mine->key], $keys);
+        $this->getJson('/api/reports/overview')->assertOk()->assertJsonPath('totals.total', 1);
+
+        $this->loginAs('bob@flowsync.test');
+        $this->getJson('/api/reports/overview')->assertOk()->assertJsonPath('totals.total', 2);
+    }
+
+    public function test_a_project_role_with_no_task_read_grant_contributes_nothing_to_global_reads(): void
+    {
+        $alice = $this->tenantMember('alice@flowsync.test');
+        $project = $this->makeProject($this->makeWorkspace());
+        $this->addMember($project, $alice, $this->makeProjectRole('sight-only', ['projects.view']));
+        $this->makeTask($project, $alice, $alice, 'Hers but hidden');
+
+        $this->loginAs('alice@flowsync.test');
+
+        $this->assertSame([], $this->getJson('/api/search/tasks')->assertOk()->json('tasks'));
+    }
 }
