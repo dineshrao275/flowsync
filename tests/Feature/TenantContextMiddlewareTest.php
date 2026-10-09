@@ -50,7 +50,7 @@ class TenantContextMiddlewareTest extends TestCase
         $this->connectTenant('acme');
 
         $target = User::where('email', 'admin@flowsync.test')->first();
-        $this->postJson('/api/impersonate', ['user_id' => $target->id])->assertOk();
+        $this->postJson('/api/impersonate', ['user_id' => $target->id, 'reason' => 'Automated impersonation test.'])->assertOk();
 
         $this->getJson('/api/_probe')->assertOk()->assertJson(['ok' => true]);
     }

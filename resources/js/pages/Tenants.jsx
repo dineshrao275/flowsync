@@ -10,6 +10,7 @@ import Pagination from '../components/ui/Pagination';
 import Input from '../components/ui/Input';
 import { useAuth } from '../context/AuthContext';
 import LimitsEditor from '../components/billing/LimitsEditor';
+import ImpersonateModal from '../components/ImpersonateModal';
 import { useToast } from '../context/ToastContext';
 import { useClickOutside } from '../hooks/useClickOutside';
 import usePageTitle from '../hooks/usePageTitle';
@@ -258,6 +259,7 @@ export default function Tenants() {
     const { refresh } = useAuth();
     const toast = useToast();
     const navigate = useNavigate();
+    const [impersonateTarget, setImpersonateTarget] = useState(null);
     const [tenants, setTenants] = useState([]);
     const [plans, setPlans] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -360,14 +362,17 @@ export default function Tenants() {
         setPage(1);
     }
 
-    async function impersonate(tenant, user) {
+    async function impersonate({ reason, mode }) {
+        const { tenant, user } = impersonateTarget;
         try {
-            await api.post('/impersonate', { user_id: user.id, tenant_id: tenant.id });
+            await api.post('/impersonate', { user_id: user.id, tenant_id: tenant.id, reason, mode });
             await refresh();
-            toast.success(`Viewing panel as ${user.name}.`);
+            setImpersonateTarget(null);
+            toast.success(`Viewing panel as ${user.name}${mode === 'write' ? ' (changes enabled)' : ' (read-only)'}.`);
             navigate('/dashboard', { replace: true });
         } catch (e) {
-            toast.error(fieldErrors(e).form || 'Failed to impersonate.');
+            const errors = fieldErrors(e);
+            toast.error(errors.reason || errors.form || errors.user_id || 'Failed to impersonate.');
         }
     }
 
@@ -623,7 +628,7 @@ export default function Tenants() {
                                                 tenant={tenant}
                                                 onEdited={startEdit}
                                                 onChanged={notify}
-                                                onImpersonate={(user) => impersonate(tenant, user)}
+                                                onImpersonate={(user) => setImpersonateTarget({ tenant, user })}
                                             />
                                         </td>
                                     </tr>
@@ -647,6 +652,11 @@ export default function Tenants() {
                     />
                 )}
             </Card>
+            <ImpersonateModal
+                target={impersonateTarget}
+                onCancel={() => setImpersonateTarget(null)}
+                onConfirm={impersonate}
+            />
         </div>
     );
 }

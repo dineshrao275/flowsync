@@ -203,6 +203,7 @@ class SecurityRegressionTest extends TestCase
         $viewer = $this->dbm->using($this->acme, fn () => User::where('email', 'viewer@flowsync.test')->firstOrFail());
 
         $this->postJson('/api/impersonate', [
+            'reason' => 'Automated impersonation test.',
             'user_id' => $viewer->id,
             'tenant_id' => $this->acme->id,
         ])->assertOk();

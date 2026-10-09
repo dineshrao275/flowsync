@@ -37,6 +37,8 @@ trait AuditsTenantAdminActions
             'actor_user_id' => $actor?->id,
             'actor_name' => $actor?->name,
             'impersonating' => $tenant->impersonating(),
+            // The super admin behind an impersonated session (central user id).
+            'impersonator_id' => $request->session()->get('impersonate.original_user_id'),
         ]);
     }
 }

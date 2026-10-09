@@ -71,7 +71,7 @@ class TenantTest extends TestCase
 
         $target = User::where('email', 'admin@flowsync.test')->first();
 
-        $this->postJson('/api/impersonate', ['user_id' => $target->id])
+        $this->postJson('/api/impersonate', ['user_id' => $target->id, 'reason' => 'Automated impersonation test.'])
             ->assertOk()
             ->assertJsonPath('user.email', 'admin@flowsync.test')
             ->assertJsonPath('user.impersonating', true);
@@ -104,7 +104,7 @@ class TenantTest extends TestCase
 
         $target = User::where('email', 'viewer@flowsync.test')->first();
 
-        $this->postJson('/api/impersonate', ['user_id' => $target->id])
+        $this->postJson('/api/impersonate', ['user_id' => $target->id, 'reason' => 'Automated impersonation test.'])
             ->assertForbidden();
     }
 
@@ -117,7 +117,7 @@ class TenantTest extends TestCase
 
         // Platform/system users are never routable tenants, so any non-routed
         // id (e.g. a system account) is rejected.
-        $this->postJson('/api/impersonate', ['user_id' => 999999])
+        $this->postJson('/api/impersonate', ['user_id' => 999999, 'reason' => 'Automated impersonation test.'])
             ->assertUnprocessable()
             ->assertJsonValidationErrors('user_id');
     }
@@ -333,7 +333,7 @@ class TenantTest extends TestCase
         $clonedId = $acmeRoute->user_id;
 
         // Without tenant_id the lookup is ambiguous; the UI always sends it, so scope it.
-        $this->postJson('/api/impersonate', ['user_id' => $clonedId, 'tenant_id' => $globex->id])
+        $this->postJson('/api/impersonate', ['user_id' => $clonedId, 'tenant_id' => $globex->id, 'reason' => 'Automated impersonation test.'])
             ->assertOk()
             ->assertJsonPath('user.email', 'owner@globex.test')
             ->assertJsonPath('user.impersonating', true);
@@ -347,7 +347,7 @@ class TenantTest extends TestCase
             ->assertJsonPath('user.email', 'superadmin@flowsync.test');
 
         // The same id against the other tenant resolves to acme's clone.
-        $this->postJson('/api/impersonate', ['user_id' => $clonedId, 'tenant_id' => $acme->id])
+        $this->postJson('/api/impersonate', ['user_id' => $clonedId, 'tenant_id' => $acme->id, 'reason' => 'Automated impersonation test.'])
             ->assertOk()
             ->assertJsonPath('user.email', 'owner@acme.test');
 

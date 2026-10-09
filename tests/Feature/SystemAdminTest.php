@@ -108,7 +108,7 @@ class SystemAdminTest extends TestCase
 
         // Force an impersonation round-trip so impersonation_logs has a row.
         $globex = $this->globex();
-        $this->postJson('/api/impersonate', ['user_id' => 1, 'tenant_id' => $globex->id])->assertOk();
+        $this->postJson('/api/impersonate', ['user_id' => 1, 'tenant_id' => $globex->id, 'reason' => 'Automated impersonation test.'])->assertOk();
         $this->postJson('/api/impersonate/stop')->assertOk();
 
         $this->putJson('/api/system/settings', ['app_name' => 'FlowSync Pro'])->assertOk();
@@ -137,6 +137,7 @@ class SystemAdminTest extends TestCase
         $this->loginSuperAdmin();
 
         $this->postJson('/api/impersonate', [
+            'reason' => 'Automated impersonation test.',
             'user_id' => 1,
             'tenant_id' => 999999,
         ])->assertUnprocessable()->assertJsonValidationErrors('tenant_id');
@@ -212,7 +213,7 @@ class SystemAdminTest extends TestCase
         $this->loginSuperAdmin();
 
         $acme = $this->acme();
-        $this->postJson('/api/impersonate', ['user_id' => 1, 'tenant_id' => $acme->id])->assertOk();
+        $this->postJson('/api/impersonate', ['user_id' => 1, 'tenant_id' => $acme->id, 'reason' => 'Automated impersonation test.'])->assertOk();
 
         $this->getJson('/api/notifications')
             ->assertOk()

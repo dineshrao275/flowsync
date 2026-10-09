@@ -17,6 +17,11 @@ class ImpersonationStartRequest extends FormRequest
                 'integer',
                 Rule::exists(Tenant::class, 'id'),
             ],
+            // Why a super admin is entering a tenant: stored on the log and
+            // shown in the audit feed. Required, so "just looking" is a decision.
+            'reason' => ['required', 'string', 'min:8', 'max:500'],
+            // Read-only unless the operator explicitly asks to make changes.
+            'mode' => ['sometimes', 'string', Rule::in(['read_only', 'write'])],
         ];
     }
 }

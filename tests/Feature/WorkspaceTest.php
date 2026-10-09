@@ -243,7 +243,7 @@ class WorkspaceTest extends TestCase
         $this->login('superadmin@flowsync.test');
         $this->connectTenant('acme');
 
-        $this->postJson('/api/impersonate', ['user_id' => $this->admin()->id])->assertOk();
+        $this->postJson('/api/impersonate', ['user_id' => $this->admin()->id, 'reason' => 'Automated impersonation test.'])->assertOk();
 
         $this->getJson('/api/workspaces')
             ->assertOk()

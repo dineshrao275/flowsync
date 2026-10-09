@@ -40,6 +40,7 @@ class DefaultUserTest extends TestCase
         $targetId = User::where('email', 'admin@flowsync.test')->value('id');
 
         $this->postJson('/api/impersonate', [
+            'reason' => 'Automated impersonation test.',
             'tenant_id' => $this->acme()->id,
             'user_id' => $targetId,
         ])->assertOk();

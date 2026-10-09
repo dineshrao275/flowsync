@@ -18,6 +18,7 @@ use App\Support\ThemeMode;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Arr;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
@@ -272,6 +273,8 @@ class AuthController extends Controller
                     : config('subscriptions.modules'),
                 'impersonating' => $impersonation !== null,
                 'impersonated_by' => $impersonation['original_user_id'] ?? null,
+                'impersonation_mode' => $impersonation['mode'] ?? null,
+                'impersonation_expires_at' => isset($impersonation['expires_at']) ? Carbon::createFromTimestamp($impersonation['expires_at'])->toIso8601String() : null,
                 'onboarding_complete' => ! $tenant || app(TenantOnboarding::class)->isComplete($tenant),
             ],
             // `mode` (light/dark/system) sits next to the colors but is not part

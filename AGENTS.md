@@ -289,6 +289,18 @@ Hierarchy: **Tenant → Workspace → Project → Task** (subtask `tasks.parent_
 - Audit rows in `impersonation_logs` (`super_admin_id`, `tenant_id`, `impersonated_user_id`, `ip_address`, `started_at`, `ended_at`).
 - Stop must resolve the original super admin from the system DB (`connectSystem()` before the lookup).
 - Cannot impersonate super admins; `AuthController::me`/`logout` include impersonation state.
+- **Controls (R7/R8):** `POST api/impersonate` requires a `reason` (8–500 chars) and takes `mode`
+  (`read_only` default | `write`); both land on `impersonation_logs` with `expires_at`
+  (`tenancy.impersonation.ttl_minutes`, default 30). `App\Support\ImpersonationGuard`, called from
+  `SwitchTenant`, ends a lapsed session on its next request (401 `impersonation_expired`, log closed at
+  `expires_at`), refuses every non-safe verb in `read_only` (403 `impersonation_read_only`), and even in
+  `write` refuses roles/project-roles/users/my-subscription/billing/my-export/tenant-profile/onboarding/
+  re-impersonation (403 `impersonation_blocked`); `impersonate/stop`, `auth/logout`, `broadcasting/auth` are
+  always allowed. `tenants:close-impersonations` (every 10 min) closes sessions nobody touched again.
+  `me()` carries `impersonation_mode` / `impersonation_expires_at`; the banner shows both; the SA UI collects
+  the reason through `ImpersonateModal`. Tenant-admin audit rows (`AuditsTenantAdminActions`) carry
+  `impersonator_id`. **Not yet attributed:** `ActivityLogger` and `HrmsAuditLogger` rows written while
+  impersonating still show only the impersonated user (follow-up under R7).
 
 ## Protected default tenant user
 - Migration `database/migrations/tenant/2026_09_26_000013_add_default_user_to_users_table.php` adds

@@ -228,7 +228,7 @@ class GlobalSearchTest extends TestCase
         // target on Acme's tenant DB before impersonating.
         $this->connectTenant('acme');
 
-        $this->postJson('/api/impersonate', ['user_id' => $this->viewer()->id])->assertOk();
+        $this->postJson('/api/impersonate', ['user_id' => $this->viewer()->id, 'reason' => 'Automated impersonation test.'])->assertOk();
 
         $response = $this->search('login')->assertOk();
         $this->assertSame(1, count($response->json('results.tasks')));

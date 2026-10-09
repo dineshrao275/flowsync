@@ -83,7 +83,10 @@ class ImpersonationController extends Controller
 
         $tenant = $route->tenant;
 
-        return app(TenantDatabaseManager::class)->using($tenant, function () use ($request, $data, $superAdmin, $tenant) {
+        $mode = $data['mode'] ?? 'read_only';
+        $expiresAt = now()->addMinutes((int) config('tenancy.impersonation.ttl_minutes', 30));
+
+        return app(TenantDatabaseManager::class)->using($tenant, function () use ($request, $data, $superAdmin, $tenant, $mode, $expiresAt) {
             $target = User::find($data['user_id']);
 
             if (! $target) {
@@ -98,6 +101,9 @@ class ImpersonationController extends Controller
                 'impersonated_user_id' => $target->id,
                 'ip_address' => $request->ip(),
                 'started_at' => now(),
+                'reason' => $data['reason'],
+                'mode' => $mode,
+                'expires_at' => $expiresAt,
             ]);
 
             $request->session()->put('impersonate', [
@@ -105,6 +111,8 @@ class ImpersonationController extends Controller
                 'tenant_id' => $tenant->id,
                 'original_user_id' => $superAdmin->id,
                 'original_user_name' => $superAdmin->name,
+                'mode' => $mode,
+                'expires_at' => $expiresAt->timestamp,
             ]);
 
             Auth::login($target);

@@ -18,6 +18,21 @@ return [
         'connection' => 'system',
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | Super admin impersonation
+    |--------------------------------------------------------------------------
+    |
+    | Hard server-side time box for "view as user". The session is ended on the
+    | first request after expiry (and by `tenants:close-impersonations` for
+    | sessions nobody touches again), so an abandoned tab cannot keep a super
+    | admin inside a tenant.
+    |
+    */
+    'impersonation' => [
+        'ttl_minutes' => (int) env('IMPERSONATION_TTL_MINUTES', 30),
+    ],
+
     'tenant' => [
         'connection' => 'tenant',
         'db_prefix' => env('TENANT_DB_PREFIX', 'flowsync_tenant_'),

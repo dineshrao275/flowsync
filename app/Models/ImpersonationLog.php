@@ -17,6 +17,9 @@ class ImpersonationLog extends Model
         'ip_address',
         'started_at',
         'ended_at',
+        'reason',
+        'mode',
+        'expires_at',
     ];
 
     protected function casts(): array
@@ -24,6 +27,7 @@ class ImpersonationLog extends Model
         return [
             'started_at' => 'datetime',
             'ended_at' => 'datetime',
+            'expires_at' => 'datetime',
         ];
     }
 

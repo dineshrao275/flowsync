@@ -472,6 +472,7 @@ Shipped: P0.1 `e77cbee`, P0.2 `c6b4035`, P0.7 `89adede`, P0.3 `f56aec5`, P0.4 `c
 | P0.7 | **Escalation guard (R1 hotfix):** reject granting permissions the actor does not hold; only holders of `admin` may assign/modify the `admin` role; default user keeps `admin` | `RoleController`, `UserController::updateRoles`, new `GrantCeiling` support class | — | escalation suite: editor with `roles.manage` cannot create a `*`-equivalent role; `users.manage` non-admin cannot grant `admin` or self-promote; admin unaffected. Existing roles untouched (no data migration) | — | S | Med (custom roles that relied on the loophole will 422; report, don't auto-fix) |
 
 ### Phase 1 — Cleanup & foundations
+Progress 2026-10-09: **P1.1 ✅** `77e3ffa`, **P1.2 ✅** `5cf1984`, **P1.3 ✅** `6964dae`, **P1.4 ✅ (reports overview only)** `f5f2c88`, **P1.5 ✅** `ab595f5`. Open: P1.6–P1.15.
 | ID | Task | Notes | Size |
 |---|---|---|---|
 | P1.1 | Pint unused imports (11) | code + tests | S |
@@ -491,6 +492,7 @@ Shipped: P0.1 `e77cbee`, P0.2 `c6b4035`, P0.7 `89adede`, P0.3 `f56aec5`, P0.4 `c
 | P1.15 | Docs truth pass: AGENTS.md counts, pointer to this file, runbook | | S |
 
 ### Phase 1A — RBAC & authorization hardening (runs alongside Phase 1; must finish before Phase 2 builds new engines on top)
+Progress 2026-10-09: **R1 ✅** (`89adede`), **R3 ✅** (`7f909ad`), **R5 ✅ for billing/profile/onboarding** (`19ca3f8`; export stays role-bound), **R7 ✅ core + R8 ✅ core** (reason, time box, read-only, blocklist, sweeper, banner; `ActivityLogger`/`HrmsAuditLogger` attribution still open), **R9 ✅** (`54aedb2`). Open: R2, R4, R6, R10–R15. Tests for these are written and first run at the final gate (defer-tests instruction).
 | ID | Task | Files / DB | Tests / acceptance | Deps | Size |
 |---|---|---|---|---|---|
 | R1 | Grant-ceiling rule as a reusable policy (actor ⊇ granted set), applied to role create/update and user-role assignment; `admin` assignment restricted to admins | `app/Support/GrantCeiling.php`, `RoleController`, `UserController` | escalation suite green | P0.7 | S |
