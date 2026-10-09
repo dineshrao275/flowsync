@@ -81,6 +81,7 @@ import SystemSettings from './pages/SystemSettings';
 import AuditLogs from './pages/AuditLogs';
 import FeatureManagement from './pages/FeatureManagement';
 import FeatureFlags from './pages/FeatureFlags';
+import Security from './pages/Security';
 import CmsPages from './pages/CmsPages';
 import Forbidden from './pages/Forbidden';
 import ModuleDenied from './pages/ModuleDenied';
@@ -154,6 +155,7 @@ function AppRoutes() {
                             />
                         </Route>
                         <Route path="/notifications" element={<Notifications />} />
+                        <Route path="/security" element={<Security />} />
                         <Route
                             path="/subscription"
                             element={

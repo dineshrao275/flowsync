@@ -42,6 +42,8 @@ final class ImpersonationGuard
         'api/tenant/profile',
         'api/onboarding/*',
         'api/impersonate',
+        'api/auth/2fa', 'api/auth/2fa/*',
+        'api/security/*',
     ];
 
     /**

@@ -8,6 +8,7 @@ use App\Http\Middleware\EnsurePermission;
 use App\Http\Middleware\EnsureProduct;
 use App\Http\Middleware\EnsureSuperAdmin;
 use App\Http\Middleware\EnsureTenantContext;
+use App\Http\Middleware\EnsureTwoFactorEnrolled;
 use App\Http\Middleware\SecurityHeaders;
 use App\Http\Middleware\SetTenantContext;
 use App\Http\Middleware\SwitchTenant;
@@ -46,6 +47,7 @@ return Application::configure(basePath: dirname(__DIR__))
         // middleware (CSRF, session, throttle) carries an id in its logs.
         $middleware->prepend(AssignRequestId::class);
         $middleware->append(SecurityHeaders::class);
+        $middleware->appendToGroup('web', EnsureTwoFactorEnrolled::class);
 
         $middleware->alias([
             'permission' => EnsurePermission::class,

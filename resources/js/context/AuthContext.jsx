@@ -49,6 +49,15 @@ export function AuthProvider({ children }) {
 
     const login = useCallback(async (credentials) => {
         const { data } = await api.post('/auth/login', credentials);
+        // Password accepted but a second factor is pending: no session user yet (P8.1).
+        if (data.two_factor_required) return data;
+        setUser(data.user);
+        setTheme(data.theme);
+        return data;
+    }, []);
+
+    const verifyTwoFactor = useCallback(async (code) => {
+        const { data } = await api.post('/auth/2fa/challenge', { code });
         setUser(data.user);
         setTheme(data.theme);
         return data;
@@ -118,6 +127,7 @@ export function AuthProvider({ children }) {
             setTheme,
             loading,
             login,
+            verifyTwoFactor,
             register,
             completeRegistration,
             logout,
@@ -128,7 +138,7 @@ export function AuthProvider({ children }) {
             check,
             refresh: loadSession,
         }),
-        [user, theme, loading, login, register, completeRegistration, logout, stopImpersonation, can, hasModule, hasProduct, check, loadSession],
+        [user, theme, loading, login, verifyTwoFactor, register, completeRegistration, logout, stopImpersonation, can, hasModule, hasProduct, check, loadSession],
     );
 
     return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

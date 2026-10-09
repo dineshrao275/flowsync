@@ -41,6 +41,12 @@ class RouteAuthorizationAuditTest extends TestCase
         'ExportController@show' => 'self-scoped: user_id = caller',
         'OnboardingController@show' => 'read of the caller\'s own tenant wizard state',
         'ThemeController@show' => 'the caller\'s own theme',
+        'TwoFactorController@challenge' => 'public: the pending password-verified session + the code are the check',
+        'TwoFactorController@status' => 'the caller\'s own 2FA state',
+        'TwoFactorController@setup' => 'self-scoped enrolment of the caller',
+        'TwoFactorController@confirm' => 'self-scoped: confirms the caller\'s own pending secret',
+        'TwoFactorController@disable' => 'self-scoped: password + current code re-check',
+        'TwoFactorController@recoveryCodes' => 'self-scoped: password + current code re-check',
     ];
 
     /** Calls that count as an explicit authorization decision. */
