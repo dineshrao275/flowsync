@@ -73,7 +73,7 @@ class DocumentDirectoryQuery
      */
     private function baseFor(User $viewer): Builder
     {
-        $query = EmployeeDocument::query()->with('type');
+        $query = EmployeeDocument::query()->current()->with('type');
 
         $base = $this->canSeeAll($viewer)
             ? $query

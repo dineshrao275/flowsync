@@ -253,6 +253,8 @@ export default function Documents() {
                         showEmployee
                         canVerify={canManage}
                         canDelete={canManage}
+                        canReplace={canManage}
+                        onChanged={() => load(page, filters)}
                         onVerify={verify}
                         onReject={reject}
                         onDelete={remove}

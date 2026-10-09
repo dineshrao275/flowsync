@@ -95,11 +95,11 @@ class HrmsAttendanceTablesTest extends TestCase
 
     public function test_a_shift_code_is_unique(): void
     {
-        $this->insertShift(['code' => 'general']);
+        $this->insertShift(['code' => 'dup-code']);
 
         $this->expectException(QueryException::class);
 
-        $this->insertShift(['code' => 'general']);
+        $this->insertShift(['code' => 'dup-code']);
     }
 
     public function test_a_roster_is_unique_per_employee_per_start_date(): void

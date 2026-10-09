@@ -47,6 +47,9 @@ class Asset extends Model
         'location_id',
         'notes',
         'created_by',
+        'replaced_by_asset_id',
+        'replacement_reason',
+        'replaced_at',
     ];
 
     protected function casts(): array
@@ -64,6 +67,8 @@ class Asset extends Model
             'returned_at' => 'datetime',
             'location_id' => 'integer',
             'created_by' => 'integer',
+            'replaced_by_asset_id' => 'integer',
+            'replaced_at' => 'datetime',
         ];
     }
 

@@ -9,6 +9,7 @@ import Input from '../../components/ui/Input';
 import Modal from '../../components/ui/Modal';
 import Select from '../../components/ui/Select';
 import Spinner from '../../components/ui/Spinner';
+import AssetReplaceModal from '../../components/hrms/AssetReplaceModal';
 import { Table, Th, Td } from '../../components/ui/Table';
 import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
@@ -60,6 +61,7 @@ export default function Assets() {
     const [repairErrors, setRepairErrors] = useState({});
 
     const [detail, setDetail] = useState(null);
+    const [replacing, setReplacing] = useState(null);
 
     useEffect(() => {
         setCrumbs([{ label: 'HRMS', to: '/hrms' }, { label: 'Assets' }]);
@@ -239,6 +241,7 @@ export default function Assets() {
                                                 {asset.status === 'available' && <Button size="sm" variant="secondary" onClick={() => openAssign(asset)}>Assign</Button>}
                                                 {asset.status === 'assigned' && <Button size="sm" variant="secondary" onClick={() => openReturn(asset)}>Return</Button>}
                                                 {['available', 'assigned'].includes(asset.status) && <Button size="sm" variant="secondary" onClick={() => { setRepairing(asset); setRepairErrors({}); }}>Repair</Button>}
+                                                {!asset.replaced_by_asset_id && ['assigned', 'maintenance', 'lost'].includes(asset.status) && <Button size="sm" variant="secondary" onClick={() => setReplacing(asset)}>Replace</Button>}
                                             </div>
                                         </Td>
                                     )}
@@ -344,6 +347,17 @@ export default function Assets() {
                     </div>
                 )}
             </Modal>
+            {replacing && (
+                <AssetReplaceModal
+                    asset={replacing}
+                    candidates={(assets ?? []).filter((a) => a.status === 'available' && a.id !== replacing.id)}
+                    onClose={() => setReplacing(null)}
+                    onDone={() => {
+                        setReplacing(null);
+                        load();
+                    }}
+                />
+            )}
         </div>
     );
 }

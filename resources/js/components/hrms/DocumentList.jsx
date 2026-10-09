@@ -1,4 +1,6 @@
+import { useState } from 'react';
 import Button from '../ui/Button';
+import DocumentVersionsModal from './DocumentVersionsModal';
 import EmptyState from '../ui/EmptyState';
 import StatusPill from '../ui/StatusPill';
 import { Table, Th, Td } from '../ui/Table';
@@ -24,7 +26,9 @@ function formatDate(value) {
  * what its reader may do — the backend 403s regardless, these flags only
  * decide what gets drawn.
  */
-export default function DocumentList({ documents, canVerify, canDelete, onVerify, onReject, onDelete, showEmployee }) {
+export default function DocumentList({ documents, canVerify, canDelete, canReplace = false, onChanged, onVerify, onReject, onDelete, showEmployee }) {
+    const [versionsOf, setVersionsOf] = useState(null);
+
     if (!documents || documents.length === 0) {
         // A real empty state, not a bare table row: this renders outside
         // any <table>, where a <tr> would be dropped by the browser and
@@ -33,6 +37,7 @@ export default function DocumentList({ documents, canVerify, canDelete, onVerify
     }
 
     return (
+        <>
         <Table>
             <thead>
                 <tr>
@@ -72,6 +77,11 @@ export default function DocumentList({ documents, canVerify, canDelete, onVerify
                             >
                                 Download
                             </a>
+                            {(document.version > 1 || canReplace) && (
+                                <button type="button" onClick={() => setVersionsOf(document)} className="ml-3 text-sm text-gray-500 hover:underline">
+                                    v{document.version ?? 1}
+                                </button>
+                            )}
                         </Td>
                         {(canVerify || canDelete) && (
                             <Td>
@@ -98,5 +108,9 @@ export default function DocumentList({ documents, canVerify, canDelete, onVerify
                 ))}
             </tbody>
         </Table>
+            {versionsOf && (
+                <DocumentVersionsModal document={versionsOf} canReplace={canReplace} onClose={() => setVersionsOf(null)} onChanged={onChanged} />
+            )}
+        </>
     );
 }

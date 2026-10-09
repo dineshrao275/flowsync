@@ -75,6 +75,8 @@ export const HRMS_MODULE_ROUTES = {
     // P8.4c ships the holiday calendars; the tile points at the page, and
     // the page gates its own mutations.
     'hrms.holidays': hrmsUrl('holidays'),
+    // P5.1 ships the shift catalogue and rosters; the page gates its own mutations.
+    'hrms.shifts': hrmsUrl('shifts'),
     // P18.5 ships the workforce dashboards; the tile points at the page,
     // and the tabs gate themselves per domain.
     'hrms.analytics': hrmsUrl('analytics'),

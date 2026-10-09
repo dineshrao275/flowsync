@@ -82,6 +82,7 @@ export default function Attendance() {
         ot_after_minutes: 480,
         allow_negative_ot: false,
         remote_clock_in_enabled: true,
+        out_of_range_action: 'flag',
     });
     const [settingsErrors, setSettingsErrors] = useState({});
 
@@ -99,6 +100,7 @@ export default function Attendance() {
                 ot_after_minutes: att.ot_after_minutes ?? 480,
                 allow_negative_ot: Boolean(att.allow_negative_ot),
                 remote_clock_in_enabled: rci.enabled ?? true,
+                out_of_range_action: rci.out_of_range_action ?? 'flag',
             });
         } catch (err) {
             toast.error('Unable to load attendance settings.');
@@ -122,6 +124,7 @@ export default function Attendance() {
                 },
                 remote_clock_in: {
                     enabled: Boolean(settingsForm.remote_clock_in_enabled),
+                    out_of_range_action: settingsForm.out_of_range_action,
                 },
             });
             toast.success('Attendance settings saved.');
@@ -201,16 +204,32 @@ export default function Attendance() {
         setSelected(null);
     }
 
-    async function punch(direction) {
+    // Best-effort position for the geofence leg: a denied or slow lookup just
+    // sends the punch without coordinates (the server decides what that means).
+    function currentPosition() {
+        if (!navigator.geolocation) return Promise.resolve(null);
+
+        return new Promise((resolve) => {
+            navigator.geolocation.getCurrentPosition(
+                (pos) => resolve({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
+                () => resolve(null),
+                { timeout: 5000, maximumAge: 60000 },
+            );
+        });
+    }
+
+    async function punch(direction, kind = 'work') {
         setPunching(true);
 
         try {
-            await api.post('/hrms/attendance/punch', { direction });
+            const position = await currentPosition();
+            const { data } = await api.post('/hrms/attendance/punch', { direction, kind, ...(position ?? {}) });
 
-            toast.success(direction === 'in' ? 'Clocked in.' : 'Clocked out.');
+            toast.success(data.message);
             load();
         } catch (err) {
-            toast.error(err.response?.data?.message ?? 'Unable to record the punch.');
+            const errors = err.response?.data?.errors;
+            toast.error(errors?.location?.[0] ?? err.response?.data?.message ?? 'Unable to record the punch.');
         } finally {
             setPunching(false);
         }
@@ -554,6 +573,16 @@ export default function Attendance() {
                                     Enable remote clock-in
                                 </span>
                             </label>
+
+                            <Select
+                                label="Punch outside the allowed network or area"
+                                value={settingsForm.out_of_range_action}
+                                onChange={(e) => setSettingsForm((current) => ({ ...current, out_of_range_action: e.target.value }))}
+                                error={settingsErrors['remote_clock_in.out_of_range_action']}
+                            >
+                                <option value="flag">Record it and flag it for review</option>
+                                <option value="block">Refuse it</option>
+                            </Select>
                         </div>
 
                         {settingsErrors.form && <Alert>{settingsErrors.form}</Alert>}

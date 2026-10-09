@@ -14,6 +14,7 @@ use App\Models\Hrms\Payroll\PayslipTemplate;
 use App\Models\Hrms\Payroll\SalaryComponent;
 use App\Models\Hrms\Shared\HrmsSetting;
 use App\Services\Hrms\Holiday\HolidayYearSeeder;
+use App\Services\Hrms\Shift\ShiftPatternSeeder;
 use Illuminate\Support\Str;
 
 /**
@@ -83,6 +84,7 @@ class HrmsDefaultsProvisioner
         $this->seedSalaryComponents();
         $this->seedPayslipTemplates();
         $this->seedExpenseCategories();
+        app(ShiftPatternSeeder::class)->seed();
     }
 
     /**

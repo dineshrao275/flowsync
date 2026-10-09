@@ -28,6 +28,7 @@ class LeaveRequestValidation
         private readonly AttendanceService $attendance,
         private readonly LeaveCalendar $calendar,
         private readonly HolidayService $holidays,
+        private readonly LeaveBlackoutService $blackouts,
     ) {}
 
     /**
@@ -54,6 +55,7 @@ class LeaveRequestValidation
 
         $this->checkQuota($type, $total, $from, $employee);
         $this->checkOverlap($employee, $from, $to);
+        $this->blackouts->assertAllowed($employee, $type, $from, $to);
         $this->checkBalance($employee, $type, $total, $from, $to);
 
         return new LeaveRequestInput(

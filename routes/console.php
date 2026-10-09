@@ -45,6 +45,7 @@ Schedule::command('billing:dunning')->dailyAt('09:00')->withoutOverlapping();
 Schedule::command('hrms:surveys-open-close --all')->dailyAt('00:15')->withoutOverlapping();
 Schedule::command('hrms:documents-expiry --all')->dailyAt('04:30')->withoutOverlapping();
 Schedule::command('hrms:comp-off-accrue --all')->monthlyOn(1, '04:45')->withoutOverlapping();
+Schedule::command('hrms:leave-rollover --all')->dailyAt('04:50')->withoutOverlapping();
 // Retention's bare run reports only; `--apply` (the deleting run) stays manual.
 Schedule::command('hrms:retention --all')->weeklyOn(0, '05:00')->withoutOverlapping();
 Schedule::command('hrms:onboarding-reminders --all')->dailyAt('08:30')->withoutOverlapping();
