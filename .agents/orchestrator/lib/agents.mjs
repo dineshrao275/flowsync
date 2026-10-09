@@ -163,7 +163,7 @@ export async function runGemini({ role = 'validate', prompt, schema, cwd, timeou
   if (process.env.FLOWSYNC_FAKE_AGENTS_DIR) return { data: extractJson(await fakeAgent(role, prompt, cwd)), raw: '' };
 
   const attempt = async (p) => {
-    const args = ['-p', p, '--mode', 'plan', '--effort', 'low', '--output-format', 'json', '--json-schema', JSON.stringify(schema)];
+    const args = ['--mode', 'plan', '--effort', 'low', '--output-format', 'json', '--dangerously-skip-permissions', '-p', p];
     const r = await runProcess('gemini', args, { cwd, env: safeEnv('gemini'), timeoutMs });
     const start = r.stdout.indexOf('{"conversation');
     const envelope = extractJson(start >= 0 ? r.stdout.slice(start) : r.stdout);
