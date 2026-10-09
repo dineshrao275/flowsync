@@ -237,7 +237,8 @@ class DefaultUserTest extends TestCase
         $this->assertDatabaseHas('users', ['id' => $other->id]);
     }
 
-    public function test_a_super_admin_can_shift_the_default_while_impersonating(): void
+    /** R8 — user and role administration is off-limits to an impersonating super admin. */
+    public function test_a_super_admin_cannot_shift_the_default_while_impersonating(): void
     {
         $this->postJson('/api/auth/login', [
             'email' => 'superadmin@flowsync.test',
@@ -247,16 +248,12 @@ class DefaultUserTest extends TestCase
         $this->impersonateAcmeAdmin();
 
         $editor = User::where('email', 'editor@flowsync.test')->firstOrFail();
-        $this->putJson("/api/users/{$editor->id}/roles", ['roles' => ['admin']])->assertOk();
-
         $previous = User::defaultUser();
-        $this->putJson("/api/users/{$editor->id}/default")->assertOk();
 
-        $this->assertTrue($editor->fresh()->is_default);
-        $this->assertFalse($previous->fresh()->is_default);
+        $this->putJson("/api/users/{$editor->id}/default")->assertForbidden();
 
-        // And the previously default user is deletable again.
-        $this->deleteJson("/api/users/{$previous->id}")->assertOk();
+        $this->assertFalse($editor->fresh()->is_default);
+        $this->assertTrue($previous->fresh()->is_default);
     }
 
     public function test_a_non_impersonating_super_admin_cannot_touch_tenant_users(): void

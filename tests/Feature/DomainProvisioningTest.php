@@ -95,7 +95,8 @@ class DomainProvisioningTest extends TestCase
             ->pluck('slug')
             ->filter(fn (string $slug) => str_starts_with($slug, 'hrms.'))
             ->reject(fn (string $slug) => str_starts_with($slug, 'hrms.payroll.')
-                || $slug === 'hrms.compensation.manage')
+                || $slug === 'hrms.compensation.manage'
+                || $slug === 'hrms.approvals.override')
             ->values()
             ->all();
 

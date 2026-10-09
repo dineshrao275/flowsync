@@ -192,6 +192,7 @@ class TenantHrmsEntitlementTest extends TestCase
             ->andReturnSelf();
         Log::shouldReceive('info')->andReturnNull();
         Log::shouldReceive('warning')->andReturnNull();
+        Log::shouldReceive('shareContext')->andReturnNull(); // AssignRequestId (P2.2)
 
         $this->loginSuperAdmin();
         $acme = $this->acme();

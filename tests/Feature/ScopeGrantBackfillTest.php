@@ -140,7 +140,11 @@ class ScopeGrantBackfillTest extends TestCase
         $plan = $dbm->using($tenant, fn (): array => app(ScopeGrantBackfill::class)->plan());
 
         $roles = collect($plan)->unique('role_id')->pluck('role')->all();
-        $this->assertSame(['Payroll Manager'], $roles);
+        // The R4 named roles (hr_executive, finance_admin, auditor) are written
+        // with the legacy unsuffixed slugs, which the alias reads as `all`; the
+        // report names them so `tenants:scope-grants --force` can make that explicit.
+        sort($roles);
+        $this->assertSame(['Auditor', 'Finance Admin', 'HR Executive', 'Payroll Manager'], $roles);
 
         $payroll = collect($plan)->where('role', 'Payroll Manager')->pluck('slug')->sort()->values()->all();
         $this->assertSame(

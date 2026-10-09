@@ -146,7 +146,7 @@ class HrmsScopeAccessTest extends TestCase
 
     public function test_document_rows_follow_the_scope_and_keep_confidential_invisible(): void
     {
-        $this->setAcmeModules(['hrms.core']);
+        $this->setAcmeModules(['hrms.core', 'hrms.documents']);
 
         $manager = $this->managerUser();
         $report = $this->reportFor($manager->employee);

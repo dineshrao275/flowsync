@@ -103,12 +103,26 @@ class ExportService
         fputcsv($buffer, $headers);
 
         foreach ($rows as $row) {
-            fputcsv($buffer, $row);
+            fputcsv($buffer, array_map($this->csvCell(...), $row));
         }
 
         rewind($buffer);
         $zip->addFromString($filename, stream_get_contents($buffer));
         fclose($buffer);
+    }
+
+    /** Backed enums and dates arrive as objects; fputcsv only stringifies scalars. */
+    private function csvCell(mixed $value): mixed
+    {
+        return match (true) {
+            $value instanceof \BackedEnum => $value->value,
+            $value instanceof \UnitEnum => $value->name,
+            $value instanceof \DateTimeInterface => $value->format('c'),
+            is_array($value) => json_encode($value),
+            is_object($value) && method_exists($value, '__toString') => (string) $value,
+            is_object($value) => null,
+            default => $value,
+        };
     }
 
     // ---------------------------------------------------------------- categories

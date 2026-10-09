@@ -327,6 +327,15 @@ Today: PHP feature tests only (isolated per-tenant sqlite), PG path exercised ma
 | G-80 | P2 | Marketing | Public site is a 4-page CMS with project-management-only copy, no screenshots, pricing block, or lead capture | Cannot market HRMS+TMS | Phase 11 |
 | G-81 | P2 | QA | No documented end-to-end validation with dedicated accounts across SA/tenant/plan/role | Release confidence | Phase 10 |
 | G-82 | P3 | RBAC | No effective-permission explainer, global reads ignore row scope, no generated permission constants (RB-11/13/16) | Support burden, scoped-role leakage | R10, R12, R14 |
+| G-83 | P0 | Export | Full data export crashed: `EmployeeStatus` enum written to CSV (FB-10) | Export unusable for HRMS tenants | **Fixed** (`ExportService::csvCell`) |
+| G-84 | P0 | TMS | Kanban **Move** returns 403 for some users; board sometimes renders empty until Board→List→Board (FB-2) | Core TMS flow broken | FB-2a, FB-2b |
+| G-85 | P1 | Access | Losing workspace membership does not cut every workspace-scoped action or hide its projects (FB-2) | Access leak after removal | FB-2c |
+| G-86 | P1 | Tenancy | Tenant created from the SA panel is not gated on required fields; DB provisioned before the profile is complete; no multi-step form; not in sync with self-registration; no default user step (FB-3) | Half-configured tenants go live | FB-3 |
+| G-87 | P1 | Billing | Trial without a card; no Stripe wiring beyond checkout skeleton (FB-3, FB-6) | Revenue leakage, untested payments | FB-3, FB-6 |
+| G-88 | P1 | Entitlement | HRMS and TMS share one plan ladder and one tenant DB; no per-product plan, toggle or table set (FB-4) | Cannot sell products separately | FB-4 (owner decision) |
+| G-89 | P2 | Platform | No customer-support ticketing (FB-7); SA panel lacks a subscriptions overview (FB-5) | Support runs off-platform | FB-7, FB-5 |
+| G-90 | P2 | Users | Inline user edit, no CSV import, no ceiling-checked import, weak Roles UI (FB-8) | Onboarding large teams is manual | FB-8 |
+| G-91 | P1 | Frontend | Tenant admin sees a blank `/subscription`; HRMS pages hard to find (FB-1, FB-9) | Likely the P0.1 `ProtectedRoute` bug; needs browser confirmation | FB-1, FB-9 |
 
 ## 22. Deferred Features
 
@@ -708,3 +717,59 @@ HR, manager and custom-role behaviour is validated by users the Tenant Admin cre
 **Page plan:** Home (value prop, HRMS+TMS together, proof screenshots, plans teaser, CTA) · Features (module overview linked to claims) · HRMS (people, attendance/leave, payroll & statutory, performance, engagement, documents/assets — only released parts) · Task Management (boards, workflows, sprints/backlog only if shipped, time, automation only if shipped) · Pricing (live plans, comparison, FAQ) · About · Contact/Demo · Security (isolation, RBAC, audit — claims limited to what Phase 8/10 verified) · Privacy · Terms.
 
 **Done when:** `site:check` green, accessibility and performance budgets met, every page reviewed against `validation-report.md`, and the final full regression gate (rule 10) passes.
+
+---
+
+## 39. Field Feedback Backlog (added 2026-10-09)
+
+Source: owner testing feedback. Items are ordered by what unblocks the others. Same rules as §36 apply (audit first, authorize both sides, tests, tracking docs). IDs `FB-n`; each maps to gap rows G-83..G-91 in §21.
+
+**Phase placement:** FB-10 done; FB-2, FB-9, FB-1 verification join **Phase 1A/1** now (they are defects); FB-3, FB-5, FB-6, FB-8 form a new **Phase 1B — Tenant lifecycle & billing completeness** run before Phase 2; FB-4 is an architecture decision that gates Phase 6 (§27 packaging) and is not started until the owner decides; FB-7 sits in Phase 9 unless the owner wants it sooner.
+
+### FB-1 HRMS pages and per-service visibility
+- **Finding:** the HRMS surface exists as one sidebar entry `/hrms` (hub with tabs from `utils/hrmsNav.js`). Wrapper-form routes were blank before P0.1 (`ProtectedRoute` returned only an `Outlet`), which matches "could not find the pages". Several modules are still pending (shifts, talent, exemptions) and have no page.
+- **Rule to enforce everywhere:** tenant admin sees and can use **every module the tenant's effective plan (plan modules + SA `features_override`) includes — and nothing else**. Missing module ⇒ hidden in the SPA (`hasModule`) **and** 403 from `ensure_module` (fail-closed). SA enabling a module for a tenant must make it appear for that tenant's admin with no further step.
+- **Tasks:** FB-1a browser-verify all `/hrms/*` routes as admin after P0.1 (record in §37 run log); FB-1b audit every route group and sidebar/overview tile for a missing module gate (P1.14 already did onboarding/offboarding/documents; compensation, payroll, inbox, shifts, talent, exemptions remain — needs the owner's decision in §35); FB-1c test: for each module key, tenant admin with and without it (SPA nav payload `modules`, API 403); FB-1d build the pending HRMS pages per Phase 5.
+
+### FB-2 Workspace/project access and Kanban
+- **FB-2a (Move 403):** reproduce first. Suspects: `TaskMoveController` + `TaskPolicy::move` (project-role `tasks.move_*` scope grants, row scope via `TaskScope`), or the `workspaces.view` route group. Write a failing test for each role (lead/developer/viewer, tenant admin, scoped custom role), then fix at the cause; the UI must hide drag for roles that cannot move.
+- **FB-2b (empty board until List→Board):** investigate `ProjectDetail` Tasks-tab load order (`tab === 'tasks'` lazy fetch, `view`/`filters` effect, Echo refetch, `openedDeepTaskRef`). Likely a stale/aborted first fetch or state reset on remount; add a Vitest regression around the loader.
+- **FB-2c (revoked access):** membership is the root. Removing a user from a workspace must (1) remove their workspace-derived access to projects (hidden from `/projects`, search, dashboard, reports, notifications deep links), and (2) 403 every task action (move, comment, attach, work-log, watch). Decide and document whether removal also removes `project_members` rows (recommended: yes, transactionally, audited) or only gates by workspace membership; enforce in `ProjectPolicy`/`TaskPolicy`/`ScopesVisibleTasks` so no endpoint relies on the UI. Tenant admins keep tenant-wide access by design.
+- **Tests:** a membership-revocation matrix across every task/collab endpoint.
+
+### FB-3 Tenant onboarding and activation (Super Admin + registration)
+- **Required-before-active rule:** a tenant stays `pending`/draft — **no tenant database is created** — until all required steps are complete: business profile, default user (see below), plan/subscription, payment method when a trial is chosen. Only then does provisioning run and the lifecycle move to `trial`/`active`.
+- **One definition of the steps** (shared config + one `TenantOnboarding` implementation + one set of FormRequests) used by both the SA create/edit flow and `POST /register`, so they can never drift. Required fields are validated server-side identically; the SPA renders one multi-step component for both.
+- **SA UI:** replace the modal with a full multi-step page (Business → Default user → Plan & trial → Review). The existing "View details" becomes **Edit tenant** and shows the default user and current subscription; editing the default user is allowed to the tenant admin afterwards (existing `makeDefault` rules).
+- **Trial:** 14 days, only after a card is attached (Stripe SetupIntent, see FB-6); no card ⇒ no trial.
+- **Needs from the owner:** is a draft tenant row persisted (resume later) or held client-side until submit? Recommended: persisted `draft` status with `onboarding_meta`, no DB.
+- **Tests:** cannot activate with missing fields; DB not created while draft; SA path and register path reject identical payloads; default user is created and routed.
+
+### FB-4 Separate HRMS and TMS products (architecture — owner decision required)
+- **Request:** independent plans (Starter/Professional/Enterprise) per product, independent SA toggles, a database per product per tenant, and table sets that depend on the plan.
+- **Assessment:** independent **plans and toggles** are cheap and consistent with the current design (the `hrms.*` module keys and `ensure_module` already work this way) — do that first. A **physical DB split** conflicts with deliberate cross-links: `users` shared by both, `hrms_task_links`, `tasks.hrms_employee_id`, goal↔task evidence, approvals, notifications, `activities`, and the §7 integration matrix all rely on one tenant DB; cross-DB foreign keys do not exist, so each becomes application-level with weaker guarantees, and every existing tenant needs a data migration. **Plan-dependent table subsets** add migration-state complexity (a plan upgrade then has to create tables, a downgrade must never drop data).
+- **Options:** (A) per-product plans and toggles, one tenant DB, tables always present (recommended first step, low risk); (B) A + per-product migration sets created on first enable (still one DB, lazy tables, no drops on downgrade); (C) separate `tenant_hrms` / `tenant_tms` DBs with a shared identity DB (the Atlassian-style model — largest effort, breaks FKs, needs a cross-product link service).
+- **Recommendation:** A now (Phase 6 packaging), B when a customer needs it, C only if the owner accepts losing DB-level integrity and a multi-month migration. **Blocked on owner decision**; record the choice in §27 before any code.
+- **Whatever is chosen:** one tenant has one user directory visible in both products; SA can enable/disable each independently; end-to-end test: tenant with TMS only, HRMS only, both.
+
+### FB-5 Super Admin improvements
+- Extend the existing tenants table (do not add a duplicate tab): enabled/disabled counts by product and plan, trial/past-due/expiring columns, MRR-style totals, filters, per-tenant usage. A **Subscriptions** sidebar entry is a filtered view of the same data, not a second source of truth. More SA options follow the Phase 8/9 platform pages (health, queues, backups).
+
+### FB-6 Stripe subscriptions
+- Keys are in the backend `.env` (not to be committed or logged). Scope: Checkout/SetupIntent for card capture, subscription create/switch/cancel/renew, webhook handling (`invoice.paid`, `invoice.payment_failed`, `customer.subscription.updated/deleted`, `setup_intent.succeeded`) with the existing signature + replay guard, proration, invoice list, billing portal link, trial-requires-card (FB-3). Tests use Stripe test mode via fakes for CI and one documented manual run with test cards. Depends on Phase 6 tasks; pull the Stripe-specific ones forward.
+
+### FB-7 Support ticketing
+- New central + tenant surface: tenant admin creates tickets (subject, category, priority, attachments); SA inbox with status workflow (open → in progress → waiting → resolved → closed), assignment, internal notes vs public replies, email + in-app notifications, audit trail, SLA fields. Tickets live in the **system** DB keyed by central tenant id (support staff must not need tenant DB access); consent-based support access is the Phase 8 link. Permissions: `support.create` (tenant admin by default), platform support role for SA.
+
+### FB-8 Roles, users and CSV import
+- Roles page UI rework (grouped, searchable, diff on save, effective-access preview using the R14 explainer endpoint). User edit moves to a dedicated page (`/users/:id`), not inline.
+- **CSV import:** download-a-sample button; template columns name, email, roles, optional fields; dry-run validate → preview → confirm; every row passes `GrantCeiling::assertCanAssignRoles` (cannot assign a role that exceeds the importer), role/permission names validated, per-row error report downloadable; plan seat limits enforced (`TenantLimits`); routing rows written for every user (`TenantUserRouting`); audit one import event with counts; chunked and queued for large files; never emails passwords in plaintext (invite/reset flow).
+
+### FB-9 Blank Subscription page
+- Probable cause is the P0.1 bug (`/subscription` is a wrapper-form route). Confirm in a browser; if it still blanks, capture the console error (error boundary now shows it) and fix the cause; add a route smoke test for it.
+
+### FB-10 Export crash — done
+- `ExportService::writeCsv` now normalizes cells (`csvCell`: backed enums, dates, arrays) so no object reaches `fputcsv`. Regression test to add with the next export test pass.
+
+### Suggested order
+FB-10 (done) → FB-9/FB-1a verification → FB-2a/2b/2c → FB-3 → FB-6 → FB-5 → FB-8 → FB-7 → FB-4 (after the owner's decision).
