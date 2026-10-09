@@ -2,12 +2,12 @@
 
 namespace Tests\Unit;
 
-use App\Services\TaskService;
 use App\Services\Tasks\TaskColumnOrder;
 use App\Services\Tasks\TaskInputResolver;
 use App\Services\Tasks\TaskPresenter;
 use App\Services\Tasks\TaskReader;
 use App\Services\Tasks\TaskWatchers;
+use App\Services\TaskService;
 use Tests\TestCase;
 
 /**
