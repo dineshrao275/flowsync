@@ -6,6 +6,7 @@ use App\Enums\WorkspaceMemberRole;
 use App\Models\User;
 use App\Models\Workspace;
 use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 
@@ -147,7 +148,18 @@ class WorkspaceService
 
         $this->ensureNotOnlyOwner($workspace, $member);
 
-        $workspace->members()->detach($member->id);
+        // Project membership is only valid inside workspace membership (adding a
+        // project member requires it), so losing the workspace must also lose every
+        // project of that workspace — otherwise the user keeps moving tasks,
+        // commenting and uploading there, and the projects stay visible to them.
+        DB::transaction(function () use ($workspace, $member): void {
+            DB::table('project_members')
+                ->where('user_id', $member->id)
+                ->whereIn('project_id', $workspace->projects()->select('projects.id'))
+                ->delete();
+
+            $workspace->members()->detach($member->id);
+        });
     }
 
     private function uniqueSlug(string $slug): string

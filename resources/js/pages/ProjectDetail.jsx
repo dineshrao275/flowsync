@@ -109,7 +109,10 @@ export default function ProjectDetail() {
     const isTaskAdmin = can('workspaces.manage');
     const isLead = project?.my_role === 'lead';
     const isDev = project?.my_role === 'developer';
-    const canCreateTask = isTaskAdmin || isLead || isDev;
+    // A read-only impersonation session is refused by the server on every write;
+    // hide the controls instead of letting each one fail with a 403.
+    const readOnlySession = Boolean(user?.impersonating) && user?.impersonation_mode === 'read_only';
+    const canCreateTask = !readOnlySession && (isTaskAdmin || isLead || isDev);
     const canEditTask = canCreateTask;
     const canAssignTask = canCreateTask;
     const canMoveTask = canCreateTask;
@@ -175,7 +178,13 @@ export default function ProjectDetail() {
         );
     }, [project, setCrumbs]);
 
+    // Latest request wins: a slow earlier fetch (view toggle, filter change, a
+    // realtime refetch) must never overwrite a newer board with stale data.
+    const loadSeqRef = useRef(0);
+
     function loadTasks() {
+        const seq = ++loadSeqRef.current;
+        const requestedView = view;
         const params = {};
         if (view === 'list') params.view = 'list';
         Object.entries(filters).forEach(([key, value]) => {
@@ -187,7 +196,8 @@ export default function ProjectDetail() {
         return api
             .get(`/projects/${projectId}/tasks`, { params })
             .then(({ data }) => {
-                if (view === 'board') {
+                if (seq !== loadSeqRef.current) return;
+                if (requestedView === 'board') {
                     setBoard(data.board);
                 } else {
                     setListTasks(data.tasks);
@@ -196,13 +206,16 @@ export default function ProjectDetail() {
                 setTaskOptions(data.filters);
             })
             .catch((err) => {
+                if (seq !== loadSeqRef.current) return;
                 if (err?.response?.status === 403) {
                     navigate('/403', { replace: true });
                     return;
                 }
                 setTasksError('Unable to load tasks.');
             })
-            .finally(() => setLoadingTasks(false));
+            .finally(() => {
+                if (seq === loadSeqRef.current) setLoadingTasks(false);
+            });
     }
 
     useEffect(() => {
@@ -308,7 +321,14 @@ export default function ProjectDetail() {
                 toast.success(`${task.key} moved.`);
                 loadTasks();
             })
-            .catch((e) => toast.error(fieldErrors(e).form || 'Could not move task.'));
+            .catch((e) => {
+                const status = e?.response?.status;
+                const message = status === 403
+                    ? (e.response.data?.message || 'You do not have permission to move this task.')
+                    : (fieldErrors(e).form || 'Could not move task.');
+                toast.error(message);
+                loadTasks(); // snap the card back to where the server says it is
+            });
     }
 
     function createTask(data) {
