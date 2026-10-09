@@ -48,6 +48,7 @@ import MyLeave from './pages/hrms/MyLeave';
 import CompOff from './pages/hrms/CompOff';
 import MyCompOff from './pages/hrms/MyCompOff';
 import Holidays from './pages/hrms/Holidays';
+import Shifts from './pages/hrms/Shifts';
 import Compensation from './pages/hrms/Compensation';
 import Payroll from './pages/hrms/Payroll';
 import PayrollRunDetail from './pages/hrms/PayrollRunDetail';
@@ -307,6 +308,16 @@ function AppRoutes() {
                                     element={
                                         <ProtectedRoute module="hrms.holidays">
                                             <Holidays />
+                                        </ProtectedRoute>
+                                    }
+                                />
+                                {/* Shifts & rosters: module-gated; reads ride the
+                                    module, mutations hide without manage. */}
+                                <Route
+                                    path="/hrms/shifts"
+                                    element={
+                                        <ProtectedRoute module="hrms.shifts">
+                                            <Shifts />
                                         </ProtectedRoute>
                                     }
                                 />

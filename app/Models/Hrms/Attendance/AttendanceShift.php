@@ -27,6 +27,10 @@ use Illuminate\Support\Carbon;
  * @property bool $is_night
  * @property bool $is_active
  * @property int $position
+ * @property bool $is_system
+ * @property array<int, string>|null $working_days
+ * @property string|null $description
+ * @property array<int, array{start: string, end: string}>|null $segments
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
  * @property-read Collection<int, AttendanceRoster> $rosters
@@ -46,6 +50,10 @@ class AttendanceShift extends Model
         'is_night',
         'is_active',
         'position',
+        'is_system',
+        'working_days',
+        'description',
+        'segments',
     ];
 
     protected function casts(): array
@@ -57,6 +65,9 @@ class AttendanceShift extends Model
             'is_night' => 'boolean',
             'is_active' => 'boolean',
             'position' => 'integer',
+            'is_system' => 'boolean',
+            'working_days' => 'array',
+            'segments' => 'array',
         ];
     }
 

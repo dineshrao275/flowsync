@@ -1049,6 +1049,9 @@ Route::prefix('api')->group(function () {
             Route::post('hrms/attendance/punch', [AttendanceController::class, 'punch'])->middleware('throttle:30,1');
         });
 
+        // HRMS Phase 5 completion slices (shifts, rosters, bulk ops, …) — isolated file.
+        require base_path('routes/hrms_p5.php');
+
     }); // tenant_context + onboarding_complete over the HRMS block
 
     // Signed temporary download link for task attachments. Intentionally OUTSIDE

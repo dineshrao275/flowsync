@@ -121,7 +121,7 @@ class HrmsShellTest extends TestCase
         // APIs). Holidays/statutory set the precedent; this pins the rest.
         $app = file_get_contents(resource_path('js/App.jsx'));
 
-        foreach (['hrms.attendance', 'hrms.leave', 'hrms.comp_off', 'hrms.holidays', 'hrms.expenses', 'hrms.performance', 'hrms.assets', 'hrms.engagement', 'hrms.analytics', 'hrms.payroll.statutory'] as $module) {
+        foreach (['hrms.attendance', 'hrms.leave', 'hrms.comp_off', 'hrms.holidays', 'hrms.shifts', 'hrms.expenses', 'hrms.performance', 'hrms.assets', 'hrms.engagement', 'hrms.analytics', 'hrms.payroll.statutory'] as $module) {
             $this->assertStringContainsString("module=\"{$module}\"", $app, "No route gate for {$module}");
         }
     }
