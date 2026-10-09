@@ -60,6 +60,9 @@ class SystemAdminTest extends TestCase
             'password' => 'password',
             'password_confirmation' => 'password',
             'business_name' => 'New Co',
+            'industry' => 'Software',
+            'company_size' => '11-50',
+            'country' => 'US',
         ])->assertStatus(403);
 
         $this->putJson('/api/system/settings', ['public_registration' => true])->assertOk();
@@ -70,6 +73,9 @@ class SystemAdminTest extends TestCase
             'password' => 'password',
             'password_confirmation' => 'password',
             'business_name' => 'New Co',
+            'industry' => 'Software',
+            'company_size' => '11-50',
+            'country' => 'US',
         ])->assertOk()->assertJsonPath('user.email', 'new@owner.test');
     }
 

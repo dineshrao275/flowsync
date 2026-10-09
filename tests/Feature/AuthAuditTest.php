@@ -120,6 +120,9 @@ class AuthAuditTest extends TestCase
             'password' => 'password123',
             'password_confirmation' => 'password123',
             'business_name' => 'Newco Inc',
+            'industry' => 'Software',
+            'company_size' => '11-50',
+            'country' => 'US',
         ])->assertOk();
 
         $log = AuditLog::where('action', 'auth.login')->firstOrFail();

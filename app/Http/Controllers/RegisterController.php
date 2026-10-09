@@ -3,19 +3,17 @@
 namespace App\Http\Controllers;
 
 use App\Http\Requests\RegisterRequest;
-use App\Jobs\ProvisionTenantJob;
 use App\Models\PlatformSetting;
 use App\Models\SubscriptionPlan;
 use App\Models\SystemUser;
 use App\Models\Tenant;
 use App\Models\TenantUserRouting;
 use App\Models\User;
-use App\Services\Hrms\Employee\EmployeeBackfill;
+use App\Services\Tenancy\TenantActivation;
+use App\Services\Tenancy\TenantIntake;
 use App\Services\TenantOnboarding;
 use App\Support\TenantDatabaseManager;
-use App\Support\TenantProvisioner;
 use Illuminate\Http\JsonResponse;
-use Illuminate\Support\Facades\Bus;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 
@@ -30,9 +28,22 @@ class RegisterController extends Controller
     public function __construct(
         private readonly TenantOnboarding $onboarding,
         private readonly TenantDatabaseManager $dbm,
-        private readonly TenantProvisioner $provisioner,
-        private readonly EmployeeBackfill $backfill,
+        private readonly TenantIntake $intake,
+        private readonly TenantActivation $activation,
     ) {}
+
+    /** Public: what the registration wizard needs to render its plan step. */
+    public function options(): JsonResponse
+    {
+        abort_unless(PlatformSetting::bool('public_registration', config('onboarding.enabled') ? '1' : '0'), 403, 'Self-registration is currently disabled.');
+
+        return response()->json([
+            'plans' => SubscriptionPlan::where('is_active', true)->orderBy('sort_order')->orderBy('id')
+                ->get(['id', 'name', 'slug', 'description', 'price_cents', 'currency', 'billing_cycle', 'trial_duration_days', 'is_default']),
+            'trial_days' => (int) config('onboarding.trial_days', 14),
+            'require_card_for_trial' => (bool) config('onboarding.require_card_for_trial'),
+        ]);
+    }
 
     public function store(RegisterRequest $request, AuthController $auth): JsonResponse
     {
@@ -51,26 +62,37 @@ class RegisterController extends Controller
         $planId = $data['plan_id']
             ?? SubscriptionPlan::query()->where('is_default', true)->where('is_active', true)->value('id');
 
-        $plan = $planId ? SubscriptionPlan::find($planId) : null;
-        $trialDays = $plan?->trial_duration_days ?: config('onboarding.trial_days');
-        $trialDays = $trialDays ? max(1, (int) $trialDays) : null;
-
+        // Same intake as the Super Admin wizard: the registrant is the contact,
+        // the billing contact and the default user, and the database is only
+        // created once every required field is in.
         $tenant = Tenant::create([
             'name' => $data['business_name'],
             'slug' => $slug,
-            'status' => Tenant::STATUS_PENDING,
+            'status' => Tenant::STATUS_DRAFT,
             'provisioning_status' => Tenant::PROVISIONING_PENDING,
+        ]);
+        $this->intake->save($tenant, [
+            'industry' => $data['industry'],
+            'company_size' => $data['company_size'],
+            'country' => $data['country'],
             'billing_email' => $email,
             'contact_name' => $data['name'],
             'contact_email' => $email,
-            'trial_ends_at' => $trialDays ? now()->addDays($trialDays) : null,
+            'admin_name' => $data['name'],
+            'admin_email' => $email,
+            'plan_id' => $planId,
+            'start_trial' => $data['start_trial'] ?? true,
+            'payment_method' => $data['payment_method'] ?? null,
         ]);
 
+        // The wizard's first three steps are what intake just collected.
         $this->onboarding->start($tenant);
+        foreach (['business', 'admin', 'subscription'] as $step) {
+            $this->onboarding->markStep($tenant, $step);
+        }
 
-        // Sync provision so the registrant can log in immediately (idempotent;
-        // the queued path is equivalent when the queue runs synchronously).
-        Bus::dispatchSync(new ProvisionTenantJob($tenant, $planId, $trialDays));
+        // Sync so the registrant can log in immediately.
+        $this->activation->activate($tenant, $data['password'], synchronous: true);
 
         $tenant->refresh();
 
@@ -78,44 +100,9 @@ class RegisterController extends Controller
             abort(422, 'We could not provision your workspace: '.($tenant->provisioning_error ?? 'unknown error'));
         }
 
-        $user = $this->claimOwnerAccount($tenant, $data);
+        $user = $this->dbm->using($tenant, fn () => User::where('email', $email)->firstOrFail());
 
         return $auth->establishTenantSession($request, $user, $tenant, 'registration');
-    }
-
-    /**
-     * Swap the provisioned `owner@{slug}.test` account for the registrant's
-     * credentials, then re-mirror the tenant_users routing index.
-     */
-    private function claimOwnerAccount(Tenant $tenant, array $data): User
-    {
-        $email = Str::lower($data['email']);
-
-        $user = $this->dbm->using($tenant, function () use ($tenant, $data, $email): User {
-            $user = User::where('email', "owner@{$tenant->slug}.test")->first()
-                ?? (new User)->forceFill(['email' => "owner@{$tenant->slug}.test"]);
-
-            $user->name = $data['name'];
-            $user->email = $email;
-            $user->password = $data['password']; // 'hashed' cast mutator
-            $user->save();
-
-            return $user;
-        });
-
-        // Drop the provisioned owner routing row (email swapped to the
-        // registrant's) so the routing index never points at a ghost login.
-        TenantUserRouting::where('tenant_id', $tenant->id)
-            ->where('email', "owner@{$tenant->slug}.test")
-            ->delete();
-
-        $this->provisioner->syncRouting($this->dbm, $tenant);
-
-        // The registrant signs in immediately — link their employment record
-        // now, same as any created login, so self-service works on arrival.
-        $this->dbm->using($tenant, fn () => $this->backfill->linkFor($user));
-
-        return $user;
     }
 
     private function assertEmailAvailable(string $email): void

@@ -15,6 +15,9 @@ class Tenant extends Model
     use HasFactory;
     use SoftDeletes;
 
+    /** Intake in progress: no database exists until every required field is in. */
+    public const STATUS_DRAFT = 'draft';
+
     public const STATUS_PENDING = 'pending';
 
     public const STATUS_PROVISIONING = 'provisioning';

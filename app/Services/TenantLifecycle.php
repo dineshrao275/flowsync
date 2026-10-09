@@ -9,7 +9,7 @@ use Illuminate\Validation\ValidationException;
 /**
  * Tenant status/lifecycle state machine (Phase 11 foundation).
  *
- * Statuses: pending → provisioning → trial/active → suspended/expired/deactivated
+ * Statuses: draft → pending → provisioning → trial/active → suspended/expired/deactivated
  *           provisioning_failed (retryable back to provisioning)
  * Allowed transitions live in $transitions; every transition is recorded in
  * audit_logs. Subscription-aware transitions (expired, plan changes) arrive in
@@ -21,6 +21,7 @@ class TenantLifecycle
      * @var array<string, array<int, string>>
      */
     public const TRANSITIONS = [
+        'draft' => ['pending'],
         'pending' => ['provisioning'],
         'provisioning' => [Tenant::STATUS_TRIAL, Tenant::STATUS_ACTIVE, 'provisioning_failed'],
         'provisioning_failed' => ['provisioning', 'pending', 'deactivated'],

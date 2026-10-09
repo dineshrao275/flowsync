@@ -6,6 +6,7 @@ use App\Models\ProvisioningRun;
 use App\Models\Subscription;
 use App\Models\SubscriptionPlan;
 use App\Models\Tenant;
+use App\Services\Tenancy\DefaultUserClaim;
 use App\Services\TenantLifecycle;
 use App\Support\TenantDatabaseManager;
 use App\Support\TenantProvisioner;
@@ -42,6 +43,8 @@ class ProvisionTenantJob implements ShouldQueue
         public Tenant $tenant,
         public ?int $planId = null,
         public ?int $trialDays = null,
+        /** @var array{name: string, email: string, password_hash: string}|null */
+        public ?array $defaultUser = null,
     ) {}
 
     public function handle(
@@ -61,6 +64,16 @@ class ProvisionTenantJob implements ShouldQueue
         try {
             $dbm->connectSystem();
             $provisioner->provisionIsolated($this->tenant, $dbm, $lifecycle);
+
+            // Intake collected a real default user: it replaces the seeded owner.
+            if ($this->defaultUser) {
+                app(DefaultUserClaim::class)->claim(
+                    $this->tenant,
+                    $this->defaultUser['name'],
+                    $this->defaultUser['email'],
+                    $this->defaultUser['password_hash'],
+                );
+            }
 
             // Phase 14 step 6: create the initial subscription once the tenant DB
             // is provisioned. No-ops when no plan was requested at onboarding.

@@ -100,6 +100,7 @@ use App\Http\Controllers\TaskMoveController;
 use App\Http\Controllers\TaskWatcherController;
 use App\Http\Controllers\TenantController;
 use App\Http\Controllers\TenantHrmsController;
+use App\Http\Controllers\TenantIntakeController;
 use App\Http\Controllers\TenantSubscriptionController;
 use App\Http\Controllers\ThemeController;
 use App\Http\Controllers\UserAccessController;
@@ -121,6 +122,7 @@ Route::prefix('api')->group(function () {
     // Phase 4 (onboarding): public self-registration — 403 unless
     // onboarding.enabled (config ONBOARDING_ENABLED, default off).
     Route::post('register', [RegisterController::class, 'store'])->middleware('throttle:10,1');
+    Route::get('register/options', [RegisterController::class, 'options'])->middleware('throttle:30,1');
 
     Route::middleware(['switch_tenant', 'auth', 'tenant'])->group(function () {
         Route::post('auth/logout', [AuthController::class, 'logout']);
@@ -207,7 +209,10 @@ Route::prefix('api')->group(function () {
         Route::middleware('super_admin')->group(function () {
             // Phase 13: tenancy platform (central DB index across tenant DBs).
             Route::get('tenants', [TenantController::class, 'index']);
-            Route::post('tenants', [TenantController::class, 'store'])->middleware('throttle:10,1');
+            Route::post('tenants', [TenantIntakeController::class, 'store'])->middleware('throttle:10,1');
+            Route::get('tenants/{tenant}/intake', [TenantIntakeController::class, 'show']);
+            Route::put('tenants/{tenant}/intake', [TenantIntakeController::class, 'update']);
+            Route::post('tenants/{tenant}/intake/submit', [TenantIntakeController::class, 'submit'])->middleware('throttle:10,1');
             Route::get('tenants/{tenant}', [TenantController::class, 'show']);
             Route::put('tenants/{tenant}', [TenantController::class, 'update']);
             Route::get('tenants/{tenant}/profile', [TenantController::class, 'getProfile']);

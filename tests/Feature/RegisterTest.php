@@ -32,6 +32,9 @@ class RegisterTest extends TestCase
             'password' => 'password123',
             'password_confirmation' => 'password123',
             'business_name' => 'Newco',
+            'industry' => 'Software',
+            'company_size' => '11-50',
+            'country' => 'US',
         ])->assertForbidden();
 
         $this->assertDatabaseMissing('tenants', ['slug' => 'newco'], 'iso_system');
@@ -47,6 +50,9 @@ class RegisterTest extends TestCase
             'password' => 'password123',
             'password_confirmation' => 'password123',
             'business_name' => 'Newco Inc',
+            'industry' => 'Software',
+            'company_size' => '11-50',
+            'country' => 'US',
         ])->assertOk();
 
         $response->assertJsonPath('user.name', 'Jane Doe');
@@ -81,6 +87,9 @@ class RegisterTest extends TestCase
             'password' => 'password123',
             'password_confirmation' => 'password123',
             'business_name' => 'Newco Inc',
+            'industry' => 'Software',
+            'company_size' => '11-50',
+            'country' => 'US',
         ])->assertOk();
 
         $tenant = Tenant::where('slug', 'newco-inc')->firstOrFail();
@@ -104,6 +113,9 @@ class RegisterTest extends TestCase
             'password' => 'password123',
             'password_confirmation' => 'password123',
             'business_name' => 'Newco Inc',
+            'industry' => 'Software',
+            'company_size' => '11-50',
+            'country' => 'US',
         ])->assertOk();
 
         // Auto-logged in, but the domain is gated while onboarding is open.
@@ -137,6 +149,9 @@ class RegisterTest extends TestCase
             'password' => 'password123',
             'password_confirmation' => 'password123',
             'business_name' => 'Clone Co',
+            'industry' => 'Software',
+            'company_size' => '11-50',
+            'country' => 'US',
         ];
 
         // Super admin email (central system users).
@@ -162,6 +177,9 @@ class RegisterTest extends TestCase
             'password' => 'short',
             'password_confirmation' => 'short',
             'business_name' => 'Newco',
+            'industry' => 'Software',
+            'company_size' => '11-50',
+            'country' => 'US',
             'slug' => 'has spaces',
         ])->assertUnprocessable()
             ->assertJsonValidationErrors(['password', 'slug']);
@@ -177,6 +195,9 @@ class RegisterTest extends TestCase
             'password' => 'password123',
             'password_confirmation' => 'password123',
             'business_name' => 'Acme',
+            'industry' => 'Software',
+            'company_size' => '11-50',
+            'country' => 'US',
         ])->assertOk();
 
         $slug = Tenant::orderByDesc('id')->first()->slug;

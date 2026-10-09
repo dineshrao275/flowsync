@@ -214,6 +214,11 @@ Hierarchy: **Tenant → Workspace → Project → Task** (subtask `tasks.parent_
   (block switch: hero/features/cta/text; text paragraphs split on double newlines). Content editing
   publishes live without code changes.
 
+## Tenant intake (FB-3)
+- A tenant is a **`draft`** row (no database, `provisioning_status=pending`) until every required field is in. `App\Services\Tenancy\TenantIntake` is the one definition (rules per step `business|admin|plan`, `state()` lists what is missing); both the Super Admin wizard and `POST /api/register` use it, so required data is identical. `TenantActivation::activate()` is the only draft → `pending` → provisioning door: it 422s listing missing fields, then queues `ProvisionTenantJob` with plan, trial (14 days = `onboarding.trial_days`; `0` = no trial) and the **default user** (`DefaultUserClaim` swaps the seeded `owner@{slug}.test` for the real account; the password travels only as a hash and is never stored in the draft).
+- SA routes: `POST tenants` (creates the draft from name+slug), `GET|PUT tenants/{t}/intake` (draft only), `POST tenants/{t}/intake/submit` (needs `admin_password` + confirmation). `GET tenants/{t}` also returns `default_user` and `subscription`. SPA: `/tenants/new`, `/tenants/:id/setup` (`TenantIntake.jsx`) and public `/register` share `components/tenant/IntakeWizard.jsx`; `TenantDetail` is the edit page (profile, limits override, default user, subscription).
+- `onboarding.require_card_for_trial` (env `ONBOARDING_REQUIRE_CARD`, default off) makes a trial need a `payment_method`; switch it on with the Stripe SetupIntent work (roadmap FB-6). `GET api/register/options` (public, gated like register) feeds the plan step.
+
 ## Request correlation (P2.2)
 - `App\Http\Middleware\AssignRequestId` is prepended to the global stack (`bootstrap/app.php`): it reuses an inbound `X-Request-Id` only if it matches `^[A-Za-z0-9._-]{8,64}$`, otherwise mints a UUID, binds it as shared log context (`Log::shareContext(['request_id' => …])`, so every log line of the request carries it) and echoes it on the response. Quote it when reporting a failure. Not yet in audit rows or queued-job payloads (follow-up).
 

@@ -5,17 +5,15 @@ namespace App\Http\Controllers;
 use App\Http\Controllers\Concerns\NormalizesBooleanInput;
 use App\Http\Controllers\Concerns\RequiresTenantAdmin;
 use App\Http\Controllers\Concerns\ValidatesResourceLimits;
-use App\Jobs\ProvisionTenantJob;
 use App\Models\Tenant;
 use App\Models\TenantUserRouting;
+use App\Models\User;
 use App\Services\PlatformAudit;
 use App\Services\TenantLifecycle;
 use App\Support\TenantContext;
 use App\Support\TenantDatabaseManager;
-use Database\Seeders\SubscriptionPlanSeeder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -39,6 +37,7 @@ class TenantController extends Controller
         $data = $request->validate([
             'q' => ['nullable', 'string', 'max:255'],
             'status' => ['nullable', 'string', Rule::in([
+                Tenant::STATUS_DRAFT,
                 Tenant::STATUS_PENDING,
                 Tenant::STATUS_PROVISIONING,
                 Tenant::STATUS_TRIAL,
@@ -119,47 +118,34 @@ class TenantController extends Controller
         ]);
     }
 
-    public function store(Request $request): JsonResponse
-    {
-        $data = $request->validate([
-            'name' => ['required', 'string', 'max:255'],
-            'slug' => ['required', 'string', 'max:255', 'alpha_dash', 'unique:tenants,slug'],
-            'description' => ['nullable', 'string', 'max:255'],
-            // Phase 14: onboarding plan + trial (provisioned after the DB exists).
-            'plan_id' => ['nullable', 'integer', 'exists:subscription_plans,id'],
-            'trial_days' => ['nullable', 'integer', 'min:0', 'max:3650'],
-            'billing_email' => ['nullable', 'email', 'max:255'],
-            'contact_name' => ['nullable', 'string', 'max:255'],
-            'contact_email' => ['nullable', 'email', 'max:255'],
-        ]);
-
-        // The plan catalog must exist before the provisioning job plans anything.
-        (new SubscriptionPlanSeeder)->run();
-
-        $trialDays = $data['trial_days'] ?? null;
-
-        $tenant = Tenant::create([
-            ...Arr::except($data, ['plan_id', 'trial_days']),
-            'slug' => Str::slug($data['slug']),
-            'status' => Tenant::STATUS_PENDING,
-            'provisioning_status' => Tenant::PROVISIONING_PENDING,
-            'trial_ends_at' => $trialDays ? now()->addDays((int) $trialDays) : null,
-        ]);
-
-        // Async provisioning (QUEUE sync in tests runs it inline).
-        ProvisionTenantJob::dispatch($tenant, $data['plan_id'] ?? null, $trialDays);
-
-        return response()->json([
-            'message' => 'Tenant creation queued for provisioning.',
-            'tenant' => $this->counts($tenant),
-        ], 202);
-    }
-
     public function show(Tenant $tenant): JsonResponse
     {
         return response()->json([
             'tenant' => $this->counts($tenant),
+            'default_user' => $this->defaultUser($tenant),
+            'subscription' => $tenant->subscription?->load('plan'),
         ]);
+    }
+
+    /**
+     * The tenant's default user, read from its own database. Null while the
+     * tenant is a draft or not provisioned (there is no database to read).
+     *
+     * @return array{id: int, name: string, email: string}|null
+     */
+    private function defaultUser(Tenant $tenant): ?array
+    {
+        if (! $tenant->isProvisioned()) {
+            return null;
+        }
+
+        try {
+            $user = app(TenantDatabaseManager::class)->using($tenant, fn () => User::defaultUser());
+        } catch (\Throwable) {
+            return null;
+        }
+
+        return $user ? ['id' => $user->id, 'name' => $user->name, 'email' => $user->email] : null;
     }
 
     public function update(Request $request, Tenant $tenant): JsonResponse

@@ -7,9 +7,7 @@ import Spinner from '../components/ui/Spinner';
 import Alert from '../components/ui/Alert';
 import Button from '../components/ui/Button';
 import Pagination from '../components/ui/Pagination';
-import Input from '../components/ui/Input';
 import { useAuth } from '../context/AuthContext';
-import LimitsEditor from '../components/billing/LimitsEditor';
 import ImpersonateModal from '../components/ImpersonateModal';
 import { useToast } from '../context/ToastContext';
 import { useClickOutside } from '../hooks/useClickOutside';
@@ -18,6 +16,7 @@ import usePageTitle from '../hooks/usePageTitle';
 const STATUS_OPTIONS = [
     { value: 'pending', label: 'Pending' },
     { value: 'provisioning', label: 'Provisioning' },
+    { value: 'draft', label: 'Draft (incomplete)' },
     { value: 'trial', label: 'Trial' },
     { value: 'active', label: 'Active' },
     { value: 'suspended', label: 'Suspended' },
@@ -33,6 +32,7 @@ const STATUS_STYLES = {
     expired: 'bg-rose-100 text-rose-700',
     deactivated: 'bg-gray-200 text-gray-600',
     pending: 'bg-gray-100 text-gray-600',
+    draft: 'bg-yellow-100 text-yellow-800',
     provisioning: 'bg-indigo-100 text-[var(--accent)]',
     provisioning_failed: 'bg-rose-100 text-rose-700',
 };
@@ -63,7 +63,7 @@ function StatusBadge({ status }) {
     );
 }
 
-function TenantActions({ tenant, onEdited, onChanged, onImpersonate }) {
+function TenantActions({ tenant, onChanged, onImpersonate }) {
     const ref = useRef(null);
     const [open, setOpen] = useState(false);
     const [mode, setMode] = useState('menu');
@@ -191,12 +191,15 @@ function TenantActions({ tenant, onEdited, onChanged, onImpersonate }) {
                         <>
                             {!trashed && (
                                 <>
-                                    <ActionLink to={`/tenants/${tenant.id}`} onClick={() => setOpen(false)}>
-                                        View details
-                                    </ActionLink>
-                                    <ActionButton onClick={() => { setOpen(false); onEdited(tenant); }}>
-                                        Edit
-                                    </ActionButton>
+                                    {tenant.status === 'draft' ? (
+                                        <ActionLink to={`/tenants/${tenant.id}/setup`} onClick={() => setOpen(false)}>
+                                            Continue setup
+                                        </ActionLink>
+                                    ) : (
+                                        <ActionLink to={`/tenants/${tenant.id}`} onClick={() => setOpen(false)}>
+                                            View / edit
+                                        </ActionLink>
+                                    )}
                                     <ActionButton onClick={loadUsers}>
                                         View as user…
                                     </ActionButton>
@@ -267,14 +270,6 @@ export default function Tenants() {
     const [filters, setFilters] = useState({ q: '', status: '', plan_id: '', sort: 'name', trashed: false });
     const [page, setPage] = useState(1);
     const [pagination, setPagination] = useState({ current_page: 1, last_page: 1, total: 0 });
-    const [creating, setCreating] = useState(false);
-    const [form, setForm] = useState({ name: '', slug: '', description: '', plan_id: '', trial_days: '' });
-    const [errors, setErrors] = useState({});
-    const [saving, setSaving] = useState(false);
-    const [editing, setEditing] = useState(null);
-    const [editForm, setEditForm] = useState({ name: '', slug: '', description: '', limits_override: null });
-    const [editErrors, setEditErrors] = useState({});
-    const [editSaving, setEditSaving] = useState(false);
 
     const load = useCallback(async () => {
         setLoading(true);
@@ -311,50 +306,6 @@ export default function Tenants() {
         load();
     }
 
-    async function createTenant(e) {
-        e.preventDefault();
-        setSaving(true);
-        setErrors({});
-        try {
-            await api.post('/tenants', form);
-            setCreating(false);
-            setForm({ name: '', slug: '', description: '', plan_id: '', trial_days: '' });
-            toast.success(`Tenant "${form.name}" created and provisioned.`);
-            await load();
-        } catch (e) {
-            setErrors(fieldErrors(e));
-        } finally {
-            setSaving(false);
-        }
-    }
-
-    function startEdit(tenant) {
-        setEditing(tenant);
-        setEditForm({
-            name: tenant.name,
-            slug: tenant.slug,
-            description: tenant.description || '',
-            limits_override: tenant.limits_override || null,
-        });
-        setEditErrors({});
-    }
-
-    async function saveEdit(e) {
-        e.preventDefault();
-        setEditSaving(true);
-        setEditErrors({});
-        try {
-            await api.put(`/tenants/${editing.id}`, editForm);
-            setEditing(null);
-            toast.success('Tenant updated.');
-            await load();
-        } catch (e) {
-            setEditErrors(fieldErrors(e));
-        } finally {
-            setEditSaving(false);
-        }
-    }
-
     const { q, status, plan_id, sort, trashed } = filters;
 
     function applyFilter(patch) {
@@ -385,127 +336,12 @@ export default function Tenants() {
                         Every tenant is fully isolated with its own users, roles and permissions.
                     </p>
                 </div>
-                <Button size="md" onClick={() => setCreating((open) => !open)}>
+                <Button size="md" onClick={() => navigate('/tenants/new')}>
                     New tenant
                 </Button>
             </div>
 
             {error && <Alert>{error}</Alert>}
-
-            {creating && (
-                <Card title="Create tenant" subtitle="Users, roles and permissions are provisioned automatically.">
-                    <form onSubmit={createTenant} className="space-y-4">
-                        <Input
-                            label="Tenant name"
-                            name="name"
-                            placeholder="Acme Corp"
-                            value={form.name}
-                            onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
-                            error={errors.name}
-                            required
-                        />
-                        <Input
-                            label="Slug"
-                            name="slug"
-                            placeholder="acme"
-                            value={form.slug}
-                            onChange={(e) => setForm((f) => ({ ...f, slug: e.target.value }))}
-                            error={errors.slug}
-                            required
-                        />
-                        <Input
-                            label="Description (optional)"
-                            name="description"
-                            placeholder="What this tenant does"
-                            value={form.description}
-                            onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))}
-                            error={errors.description}
-                        />
-                        <div className="grid grid-cols-2 gap-4">
-                            <label className="block text-sm font-medium text-gray-700">
-                                Plan
-                                <select
-                                    name="plan_id"
-                                    value={form.plan_id}
-                                    onChange={(e) => setForm((f) => ({ ...f, plan_id: e.target.value }))}
-                                    className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200"
-                                >
-                                    <option value="">No subscription</option>
-                                    {plans.map((plan) => (
-                                        <option key={plan.id} value={plan.id}>
-                                            {plan.name}
-                                        </option>
-                                    ))}
-                                </select>
-                                {errors.plan_id && <span className="mt-1 block text-xs text-red-500">{errors.plan_id}</span>}
-                            </label>
-                            <Input
-                                label="Trial days (optional)"
-                                type="number"
-                                name="trial_days"
-                                placeholder="e.g. 14"
-                                value={form.trial_days}
-                                onChange={(e) => setForm((f) => ({ ...f, trial_days: e.target.value }))}
-                                error={errors.trial_days}
-                            />
-                        </div>
-                        <div className="flex gap-2 pt-1">
-                            <Button type="button" variant="secondary" onClick={() => setCreating(false)}>
-                                Cancel
-                            </Button>
-                            <Button type="submit" loading={saving}>
-                                Create tenant
-                            </Button>
-                        </div>
-                    </form>
-                </Card>
-            )}
-
-            {editing && (
-                <Card title={`Edit ${editing.name}`} subtitle="Rename the tenant, adjust its slug, or cap its resources.">
-                    <form onSubmit={saveEdit} className="space-y-4">
-                        <Input
-                            label="Tenant name"
-                            name="name"
-                            value={editForm.name}
-                            onChange={(e) => setEditForm((f) => ({ ...f, name: e.target.value }))}
-                            error={editErrors.name}
-                            required
-                        />
-                        <Input
-                            label="Slug"
-                            name="slug"
-                            value={editForm.slug}
-                            onChange={(e) => setEditForm((f) => ({ ...f, slug: e.target.value }))}
-                            error={editErrors.slug}
-                            required
-                        />
-                        <Input
-                            label="Description (optional)"
-                            name="description"
-                            value={editForm.description}
-                            onChange={(e) => setEditForm((f) => ({ ...f, description: e.target.value }))}
-                            error={editErrors.description}
-                        />
-                        <LimitsEditor
-                            key={editing.id}
-                            limits={editForm.limits_override}
-                            errors={editErrors}
-                            legend="Resource limits override"
-                            hint="Blank = inherit the plan limit. Anything set here wins over the tenant's plan."
-                            onChange={(next) => setEditForm((f) => ({ ...f, limits_override: next }))}
-                        />
-                        <div className="flex gap-2 pt-1">
-                            <Button type="button" variant="secondary" onClick={() => setEditing(null)}>
-                                Cancel
-                            </Button>
-                            <Button type="submit" loading={editSaving}>
-                                Save
-                            </Button>
-                        </div>
-                    </form>
-                </Card>
-            )}
 
             <Card className="p-0">
                 <div className="flex flex-wrap items-center gap-3 border-b border-gray-100 px-4 py-3">
@@ -626,7 +462,6 @@ export default function Tenants() {
                                         <td className="px-4 py-3 text-right">
                                             <TenantActions
                                                 tenant={tenant}
-                                                onEdited={startEdit}
                                                 onChanged={notify}
                                                 onImpersonate={(user) => setImpersonateTarget({ tenant, user })}
                                             />

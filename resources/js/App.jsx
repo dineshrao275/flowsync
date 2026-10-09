@@ -64,6 +64,7 @@ import Search from './pages/Search';
 import Notifications from './pages/Notifications';
 import Tenants from './pages/Tenants';
 import TenantDetail from './pages/TenantDetail';
+import TenantIntake from './pages/TenantIntake';
 import Plans from './pages/Plans';
 import Subscription from './pages/Subscription';
 import DataExport from './pages/DataExport';
@@ -127,6 +128,8 @@ function AppRoutes() {
                                 <Route path="/admin/features" element={<FeatureManagement />} />
                                 <Route path="/admin/pages" element={<CmsPages />} />
                                 <Route path="/tenants" element={<Tenants />} />
+                                <Route path="/tenants/new" element={<TenantIntake />} />
+                                <Route path="/tenants/:tenantId/setup" element={<TenantIntake />} />
                                 <Route path="/tenants/:tenantId" element={<TenantDetail />} />
                                 <Route path="/plans" element={<Plans />} />
                             </Route>

@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
-import { useParams } from 'react-router-dom';
+import { Link, useParams } from 'react-router-dom';
+import LimitsEditor from '../components/billing/LimitsEditor';
 import api, { fieldErrors } from '../services/api';
 import Card from '../components/ui/Card';
 import Badge from '../components/ui/Badge';
@@ -108,7 +109,9 @@ export default function TenantDetail() {
     const [savingBasic, setSavingBasic] = useState(false);
     const [errors, setErrors] = useState({});
     const [basicErrors, setBasicErrors] = useState({});
-    const [basicForm, setBasicForm] = useState({ name: '', slug: '', description: '' });
+    const [basicForm, setBasicForm] = useState({ name: '', slug: '', description: '', limits_override: null });
+    const [defaultUser, setDefaultUser] = useState(null);
+    const [subscription, setSubscription] = useState(null);
 
     useEffect(() => {
         setCrumbs([{ label: 'Tenants', to: '/tenants' }, { label: tenant?.name || 'Tenant' }]);
@@ -122,7 +125,7 @@ export default function TenantDetail() {
                 const t = data.tenant;
                 setTenant(t);
                 setProfile(Object.fromEntries(allProfileFields.map((key) => [key, t[key] ?? ''])));
-                setBasicForm({ name: t.name, slug: t.slug, description: t.description || '' });
+                setBasicForm({ name: t.name, slug: t.slug, description: t.description || '', limits_override: t.limits_override || null });
             })
             .catch(() => active && setError('Unable to load tenant profile.'))
             .finally(() => active && setLoading(false));
@@ -132,6 +135,15 @@ export default function TenantDetail() {
     }, [tenantId]);
 
     usePageTitle(tenant?.name ? `${tenant.name} · Tenant` : 'Tenant');
+
+    useEffect(() => {
+        api.get(`/tenants/${tenantId}`)
+            .then(({ data }) => {
+                setDefaultUser(data.default_user);
+                setSubscription(data.subscription);
+            })
+            .catch(() => {});
+    }, [tenantId]);
 
     useEffect(() => {
         api.get(`/tenants/${tenantId}/stats`)
@@ -162,7 +174,7 @@ export default function TenantDetail() {
         try {
             const { data } = await api.put(`/tenants/${tenantId}`, basicForm);
             setTenant((t) => ({ ...t, ...data.tenant }));
-            setBasicForm({ name: data.tenant.name, slug: data.tenant.slug, description: data.tenant.description || '' });
+            setBasicForm({ name: data.tenant.name, slug: data.tenant.slug, description: data.tenant.description || '', limits_override: data.tenant.limits_override || null });
             toast.success('Tenant updated.');
         } catch (err) {
             setBasicErrors(fieldErrors(err));
@@ -235,12 +247,54 @@ export default function TenantDetail() {
                                 onChange={(e) => setBasicForm((f) => ({ ...f, description: e.target.value }))}
                                 error={basicErrors.description}
                             />
+                            <LimitsEditor
+                                limits={basicForm.limits_override}
+                                errors={basicErrors}
+                                legend="Resource limits override"
+                                hint="Blank = inherit the plan limit. Anything set here wins over the tenant's plan."
+                                onChange={(next) => setBasicForm((f) => ({ ...f, limits_override: next }))}
+                            />
                             {basicErrors.form && <Alert>{basicErrors.form}</Alert>}
                             <Button type="submit" loading={savingBasic}>
                                 Save tenant
                             </Button>
                         </form>
                     </Card>
+
+                    <div className="mt-6 space-y-6">
+                        {tenant?.status === 'draft' && (
+                            <Alert>
+                                This tenant is an incomplete draft with no database yet.{' '}
+                                <Link className="font-semibold underline" to={`/tenants/${tenant.id}/setup`}>Continue setup</Link>
+                            </Alert>
+                        )}
+                        <Card title="Default user" subtitle="The tenant admin can change this from their Users page.">
+                            {defaultUser ? (
+                                <div className="text-sm">
+                                    <p className="font-medium text-gray-800">{defaultUser.name}</p>
+                                    <p className="text-gray-500">{defaultUser.email}</p>
+                                </div>
+                            ) : (
+                                <p className="text-sm text-gray-400">No default user yet.</p>
+                            )}
+                        </Card>
+                        <Card title="Subscription" subtitle="Plan this tenant is on.">
+                            {subscription ? (
+                                <div className="space-y-1 text-sm">
+                                    <p className="font-medium text-gray-800">{subscription.plan?.name}</p>
+                                    <p className="text-gray-500 capitalize">{subscription.status}</p>
+                                    {subscription.trial_ends_at && (
+                                        <p className="text-gray-500">Trial ends {new Date(subscription.trial_ends_at).toLocaleDateString()}</p>
+                                    )}
+                                    {subscription.current_period_end && (
+                                        <p className="text-gray-500">Renews {new Date(subscription.current_period_end).toLocaleDateString()}</p>
+                                    )}
+                                </div>
+                            ) : (
+                                <p className="text-sm text-gray-400">No subscription.</p>
+                            )}
+                        </Card>
+                    </div>
 
                     <div className="mt-6 space-y-3 rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm">
                         <div>
