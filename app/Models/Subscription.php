@@ -66,6 +66,7 @@ class Subscription extends Model
         'billing_provider',
         'billing_reference',
         'provider_subscription_id',
+        'past_due_at',
     ];
 
     protected function casts(): array
@@ -75,6 +76,7 @@ class Subscription extends Model
             'current_period_end' => 'datetime',
             'trial_ends_at' => 'datetime',
             'canceled_at' => 'datetime',
+            'past_due_at' => 'datetime',
             'auto_renew' => 'boolean',
             'seats' => 'integer',
         ];

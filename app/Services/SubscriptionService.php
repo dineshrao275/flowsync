@@ -51,6 +51,7 @@ class SubscriptionService
                 'current_period_end' => $plan->periodEnd(),
                 'trial_ends_at' => null,
                 'canceled_at' => null,
+                'past_due_at' => null,
                 'auto_renew' => $options['auto_renew'] ?? true,
                 'seats' => $options['seats'] ?? $plan->limit('users') ?: $plan->limit('seats') ?: 0,
                 'billing_provider' => $options['billing_provider'] ?? null,
@@ -121,6 +122,7 @@ class SubscriptionService
                 'current_period_end' => $trialEndsAt,
                 'trial_ends_at' => $trialEndsAt,
                 'canceled_at' => null,
+                'past_due_at' => null,
                 'seats' => $plan->limit('users') ?: $plan->limit('seats') ?: 0,
             ]
         );
@@ -211,6 +213,7 @@ class SubscriptionService
             'status' => Subscription::STATUS_ACTIVE,
             'auto_renew' => true,
             'canceled_at' => null,
+            'past_due_at' => null,
             'current_period_start' => now(),
             'current_period_end' => $plan->periodEnd($subscription->current_period_end),
             'trial_ends_at' => null,
@@ -246,6 +249,8 @@ class SubscriptionService
         $subscription->update([
             'status' => Subscription::STATUS_PAST_DUE,
             'auto_renew' => true,
+            // The day-count of the dunning cycle starts at the FIRST failure; repeats keep it.
+            'past_due_at' => $subscription->past_due_at ?? now(),
         ]);
 
         $this->record(
