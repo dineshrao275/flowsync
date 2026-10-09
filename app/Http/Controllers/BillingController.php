@@ -80,6 +80,13 @@ class BillingController extends Controller
     {
         $tenant = $this->currentTenant();
 
+        $user = $request->user();
+        abort_unless(
+            $user?->hasRole('admin') || $user?->hasPermission('billing.view') || $user?->hasPermission('billing.manage'),
+            403,
+            'You do not have permission to view billing information.'
+        );
+
         $payments = Payment::where('tenant_id', $tenant->id)
             ->orderByDesc('id')
             ->limit(20)

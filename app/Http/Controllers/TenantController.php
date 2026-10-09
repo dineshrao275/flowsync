@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Http\Controllers\Concerns\NormalizesBooleanInput;
+use App\Http\Controllers\Concerns\RequiresTenantAdmin;
 use App\Http\Controllers\Concerns\ValidatesResourceLimits;
 use App\Jobs\ProvisionTenantJob;
 use App\Models\Tenant;
@@ -23,6 +24,7 @@ use Illuminate\Validation\Rule;
 class TenantController extends Controller
 {
     use NormalizesBooleanInput;
+    use RequiresTenantAdmin;
     use ValidatesResourceLimits;
 
     protected const SORTABLE = ['name', 'slug', 'status', 'created_at', 'updated_at', 'users_count'];
@@ -249,6 +251,7 @@ class TenantController extends Controller
     public function updateSelfProfile(Request $request): JsonResponse
     {
         abort_unless(app(TenantContext::class)->currentId(), 404);
+        $this->requireTenantAdmin($request, 'Only tenant admins can edit the company profile.');
 
         $data = $request->validate([
             'legal_name' => ['nullable', 'string', 'max:255'],

@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Controllers\Concerns\RequiresTenantAdmin;
 use App\Models\Tenant;
 use App\Services\TenantOnboarding;
 use App\Support\TenantContext;
@@ -11,6 +12,8 @@ use Illuminate\Validation\Rule;
 
 class OnboardingController extends Controller
 {
+    use RequiresTenantAdmin;
+
     public function __construct(
         private readonly TenantOnboarding $onboarding,
     ) {}
@@ -32,6 +35,7 @@ class OnboardingController extends Controller
     public function updateStep(Request $request): JsonResponse
     {
         $tenant = $this->currentTenant();
+        $this->requireTenantAdmin($request, 'Only tenant admins can complete onboarding steps.');
 
         $data = $request->validate([
             'step' => ['required', 'string', Rule::in($this->onboarding->visibleSteps($tenant))],
@@ -49,6 +53,7 @@ class OnboardingController extends Controller
     public function complete(Request $request): JsonResponse
     {
         $tenant = $this->currentTenant();
+        $this->requireTenantAdmin($request, 'Only tenant admins can finish onboarding.');
 
         $this->onboarding->complete($tenant);
 
