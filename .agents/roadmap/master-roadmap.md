@@ -472,7 +472,7 @@ Shipped: P0.1 `e77cbee`, P0.2 `c6b4035`, P0.7 `89adede`, P0.3 `f56aec5`, P0.4 `c
 | P0.7 | **Escalation guard (R1 hotfix):** reject granting permissions the actor does not hold; only holders of `admin` may assign/modify the `admin` role; default user keeps `admin` | `RoleController`, `UserController::updateRoles`, new `GrantCeiling` support class | — | escalation suite: editor with `roles.manage` cannot create a `*`-equivalent role; `users.manage` non-admin cannot grant `admin` or self-promote; admin unaffected. Existing roles untouched (no data migration) | — | S | Med (custom roles that relied on the loophole will 422; report, don't auto-fix) |
 
 ### Phase 1 — Cleanup & foundations
-Progress 2026-10-09: **P1.1 ✅** `77e3ffa`, **P1.2 ✅** `5cf1984`, **P1.3 ✅** `6964dae`, **P1.4 ✅ (reports overview only)** `f5f2c88`, **P1.5 ✅** `ab595f5`. Open: P1.6–P1.15.
+Progress 2026-10-09: **P1.1 ✅** `77e3ffa`, **P1.2 ✅** `5cf1984`, **P1.3 ✅** `6964dae`, **P1.4 ✅ (reports overview only)** `f5f2c88`, **P1.5 ✅** `ab595f5`. **P1.12 partial ✅** (Vitest + RTL + ESLint installed, `ProtectedRoute` spec, 16 lint errors fixed; shared `ConfirmDialog`/`Tabs`/`useResource`, enum constants, lazy routes and the oversize-page splits remain). P1.10 needs a design correction (see its row). Open: P1.6–P1.9, P1.11, P1.13–P1.15.
 | ID | Task | Notes | Size |
 |---|---|---|---|
 | P1.1 | Pint unused imports (11) | code + tests | S |

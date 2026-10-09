@@ -5,8 +5,6 @@ import Alert from '../../components/ui/Alert';
 import Button from '../../components/ui/Button';
 import Card from '../../components/ui/Card';
 import EmptyState from '../../components/ui/EmptyState';
-import Input from '../../components/ui/Input';
-import Select from '../../components/ui/Select';
 import Spinner from '../../components/ui/Spinner';
 import { useToast } from '../../context/ToastContext';
 import { useSetCrumbs } from '../../context/BreadcrumbContext';

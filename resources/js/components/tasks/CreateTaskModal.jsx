@@ -7,7 +7,7 @@ import Modal from '../ui/Modal';
 import Alert from '../ui/Alert';
 import { fieldClass } from '../ui/fieldStyles';
 
-export default function CreateTaskModal({ options, topLevelTasks, projectKey, saving, error, onClose, onCreate }) {
+export default function CreateTaskModal({ options, topLevelTasks, projectKey, saving, onClose, onCreate }) {
     const [form, setForm] = useState({
         title: '',
         description: '',

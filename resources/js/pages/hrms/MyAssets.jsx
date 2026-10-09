@@ -13,8 +13,6 @@ import { useToast } from '../../context/ToastContext';
 import { useSetCrumbs } from '../../context/BreadcrumbContext';
 import usePageTitle from '../../hooks/usePageTitle';
 
-const CONDITIONS = ['new', 'good', 'fair', 'poor', 'damaged'];
-
 /**
  * The caller's open handovers: acknowledge the receipt, and report damage
  * when hardware comes back hurt.

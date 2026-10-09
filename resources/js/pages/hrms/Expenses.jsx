@@ -14,7 +14,6 @@ import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
 import { useSetCrumbs } from '../../context/BreadcrumbContext';
 import usePageTitle from '../../hooks/usePageTitle';
-import ExpenseClaimModal from '../../components/hrms/ExpenseClaimModal';
 
 const STATUSES = ['', 'draft', 'submitted', 'pending', 'approved', 'rejected', 'paid', 'cancelled'];
 

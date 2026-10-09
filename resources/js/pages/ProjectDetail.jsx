@@ -175,18 +175,6 @@ export default function ProjectDetail() {
         );
     }, [project, setCrumbs]);
 
-    function refresh() {
-        return Promise.all([
-            api.get(`/projects/${projectId}`),
-            api.get(`/projects/${projectId}/members`),
-            api.get(`/projects/${projectId}/statuses`),
-        ]).then(([proj, mem, st]) => {
-            setProject(proj.data.project);
-            setMembers(mem.data.members);
-            setStatuses(st.data.statuses);
-        });
-    }
-
     function loadTasks() {
         const params = {};
         if (view === 'list') params.view = 'list';

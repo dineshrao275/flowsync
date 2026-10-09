@@ -19,7 +19,7 @@ export default class HrmsErrorBoundary extends React.Component {
         return { hasError: true, error };
     }
 
-    componentDidCatch(error, errorInfo) {
+    componentDidCatch(error) {
         // Log locally for debugging without crashing React tree
         if (typeof window !== 'undefined' && window.reportError) {
             window.reportError(error);

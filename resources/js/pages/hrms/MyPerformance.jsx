@@ -13,7 +13,6 @@ import { useAuth } from '../../context/AuthContext';
 import { useSetCrumbs } from '../../context/BreadcrumbContext';
 import usePageTitle from '../../hooks/usePageTitle';
 import GoalCard from '../../components/hrms/GoalCard';
-import CheckInComposer from '../../components/hrms/CheckInComposer';
 
 // This page renders per-goal percentages and counts. It must never combine
 // goals into a person-score — no sums, no averages across goals, no "overall"

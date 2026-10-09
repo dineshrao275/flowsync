@@ -23,7 +23,6 @@ const emptyForm = {
 };
 
 function BlockEditor({ blocks, onChange }) {
-    const emptyBlock = { type: 'text', heading: '', body: '' };
 
     function update(i, patch) {
         const next = blocks.map((b, idx) => (idx === i ? { ...b, ...patch } : b));
@@ -225,7 +224,7 @@ export default function CmsPages() {
     async function save(form) {
         const payload = { ...form };
         if (form.id) {
-            const { data } = await api.put(`/system/pages/${form.id}`, payload);
+            await api.put(`/system/pages/${form.id}`, payload);
             toast.success('Page updated.');
             setEditor(null);
         } else {

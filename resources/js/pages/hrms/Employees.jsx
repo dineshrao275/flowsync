@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import api, { fieldErrors } from '../../services/api';
+import api from '../../services/api';
 import Alert from '../../components/ui/Alert';
 import Avatar from '../../components/ui/Avatar';
 import Button from '../../components/ui/Button';
