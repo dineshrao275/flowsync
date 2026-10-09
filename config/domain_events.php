@@ -1,5 +1,6 @@
 <?php
 
+use App\Services\Events\Consumers\AutomationConsumer;
 use App\Services\Events\Consumers\WebhookConsumer;
 
 /*
@@ -22,6 +23,10 @@ return [
             'class' => WebhookConsumer::class,
             'patterns' => ['*'],
         ],
+        'automation' => [
+            'class' => AutomationConsumer::class,
+            'patterns' => ['task.*'],
+        ],
     ],
 
     // Event types integrations can subscribe to (shown in the webhook UI). Anything the
@@ -29,7 +34,7 @@ return [
     'catalog' => [
         'task.created', 'task.updated', 'task.deleted', 'task.moved', 'task.completed',
         'task.assigned', 'task.commented', 'task.dependency_created', 'task.dependency_deleted',
-        'task.attachment_created', 'task.attachment_deleted', 'task.work_logged',
+        'task.attachment_created', 'task.attachment_deleted', 'task.work_logged', 'task.overdue', 'task.due_soon',
     ],
 
     // Delivered rows older than this many days are removed by `events:prune`.

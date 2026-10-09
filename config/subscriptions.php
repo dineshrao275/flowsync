@@ -20,6 +20,7 @@ return [
         'global_search',
         'branding',
         'export.full',          // Phase 5: full tenant data export (ZIP) — add-on
+        'automation',           // project automation rules (when X and Y, do Z)
         'webhooks',             // outbound webhooks (signed event delivery to the tenant's own systems)
 
         // HRMS. Dotted `hrms.*` keys are flat leaves: `TenantLimits::hasModule()`
@@ -65,6 +66,7 @@ return [
         'branding' => ['label' => 'Branding', 'group' => 'Platform'],
         'export.full' => ['label' => 'Data Export', 'group' => 'Platform'],
         'webhooks' => ['label' => 'Webhooks', 'group' => 'Platform'],
+        'automation' => ['label' => 'Automation', 'group' => 'Platform'],
 
         'hrms.core' => ['label' => 'Employee Records', 'group' => 'HRMS · Core'],
         'hrms.onboarding' => ['label' => 'Onboarding', 'group' => 'HRMS · Core'],
@@ -161,7 +163,7 @@ return [
                 'attachments_per_task' => 25,
                 // Plan B HRMS set — see docs/hrms-implementation-plan.md §3.1.
                 'modules' => [
-                    'time_tracking', 'webhooks', 'reports', 'global_search',
+                    'time_tracking', 'webhooks', 'automation', 'reports', 'global_search',
                     'hrms.core', 'hrms.documents', 'hrms.onboarding', 'hrms.offboarding',
                     'hrms.assets', 'hrms.attendance', 'hrms.attendance.remote', 'hrms.leave',
                     'hrms.comp_off', 'hrms.holidays', 'hrms.shifts', 'hrms.inbox',
@@ -192,7 +194,7 @@ return [
                 // Plan B HRMS set + Plan C (compensation, expenses, performance,
                 // talent, engagement, analytics). No payroll: that is Enterprise.
                 'modules' => [
-                    'time_tracking', 'webhooks', 'reports', 'global_search',
+                    'time_tracking', 'webhooks', 'automation', 'reports', 'global_search',
                     'hrms.core', 'hrms.documents', 'hrms.onboarding', 'hrms.offboarding',
                     'hrms.assets', 'hrms.attendance', 'hrms.attendance.remote', 'hrms.leave',
                     'hrms.comp_off', 'hrms.holidays', 'hrms.shifts', 'hrms.inbox',
@@ -225,7 +227,7 @@ return [
                 // Everything: the Plan B set + Plan C + payroll + statutory +
                 // exemption + the platform's own modules + full data export.
                 'modules' => [
-                    'time_tracking', 'webhooks', 'reports', 'global_search', 'branding',
+                    'time_tracking', 'webhooks', 'automation', 'reports', 'global_search', 'branding',
                     'export.full',
                     'hrms.core', 'hrms.documents', 'hrms.onboarding', 'hrms.offboarding',
                     'hrms.assets', 'hrms.attendance', 'hrms.attendance.remote', 'hrms.leave',
@@ -256,7 +258,7 @@ return [
             'limits' => [
                 'users' => 50, 'workspaces' => 20, 'projects' => 200, 'tasks' => 10000,
                 'storage_bytes' => 50 * 1024 * 1024 * 1024, 'attachments_per_task' => 25,
-                'modules' => ['time_tracking', 'webhooks', 'reports', 'global_search'],
+                'modules' => ['time_tracking', 'webhooks', 'automation', 'reports', 'global_search'],
             ],
         ],
         'tms-enterprise' => [
@@ -266,7 +268,7 @@ return [
             'limits' => [
                 'users' => 1000, 'workspaces' => 500, 'projects' => 5000, 'tasks' => 1000000,
                 'storage_bytes' => 500 * 1024 * 1024 * 1024, 'attachments_per_task' => 100,
-                'modules' => ['time_tracking', 'webhooks', 'reports', 'global_search', 'branding', 'export.full'],
+                'modules' => ['time_tracking', 'webhooks', 'automation', 'reports', 'global_search', 'branding', 'export.full'],
             ],
         ],
         'hrms-starter' => [

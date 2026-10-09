@@ -5,6 +5,7 @@ use App\Http\Controllers\AnalyticsController;
 use App\Http\Controllers\AttachmentController;
 use App\Http\Controllers\AuditLogsController;
 use App\Http\Controllers\AuthController;
+use App\Http\Controllers\AutomationRuleController;
 use App\Http\Controllers\BillingController;
 use App\Http\Controllers\CmsController;
 use App\Http\Controllers\CommentController;
@@ -330,6 +331,15 @@ Route::prefix('api')->group(function () {
         // Phase 1+: workspace management. Object-level authorization is
         // enforced by WorkspacePolicy (membership roles owner/admin/member);
         // 'tenant_context' rejects non-impersonating super admins.
+        Route::middleware(['permission:workspaces.view', 'ensure_product:tms', 'ensure_module:automation'])->group(function () {
+            Route::get('automation/catalog', [AutomationRuleController::class, 'catalog']);
+            Route::get('projects/{project}/automations', [AutomationRuleController::class, 'index']);
+            Route::post('projects/{project}/automations', [AutomationRuleController::class, 'store'])->middleware('throttle:30,1');
+            Route::put('projects/{project}/automations/{rule}', [AutomationRuleController::class, 'update']);
+            Route::delete('projects/{project}/automations/{rule}', [AutomationRuleController::class, 'destroy']);
+            Route::get('projects/{project}/automations/{rule}/runs', [AutomationRuleController::class, 'runs']);
+        });
+
         Route::middleware(['permission:workspaces.view', 'ensure_product:tms'])->group(function () {
             Route::get('workspaces', [WorkspaceController::class, 'index']);
             Route::get('workspaces/{workspace}', [WorkspaceController::class, 'show']);

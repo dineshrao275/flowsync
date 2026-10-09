@@ -8,6 +8,7 @@ import Alert from '../components/ui/Alert';
 import Button from '../components/ui/Button';
 import Input from '../components/ui/Input';
 import { useAuth } from '../context/AuthContext';
+import AutomationPanel from '../components/automation/AutomationPanel';
 import { useToast } from '../context/ToastContext';
 import { useSetCrumbs } from '../context/BreadcrumbContext';
 import KanbanBoard from '../components/tasks/KanbanBoard';
@@ -219,7 +220,8 @@ export default function ProjectDetail() {
     }
 
     useEffect(() => {
-        if (!project || tab !== 'tasks') return;
+        // The automation builder borrows the task filter options (labels, priorities) from the same payload.
+        if (!project || (tab !== 'tasks' && tab !== 'automation')) return;
         loadTasks();
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [projectId, tab, view, filters]);
@@ -585,6 +587,7 @@ export default function ProjectDetail() {
         { key: 'members', label: `Members (${members.length})` },
         { key: 'workflow', label: 'Workflow' },
         ...(hasModule('time_tracking') ? [{ key: 'time', label: 'Time' }] : []),
+        ...(isProjectManager && hasModule('automation') ? [{ key: 'automation', label: 'Automation' }] : []),
         ...(isProjectManager ? [{ key: 'settings', label: 'Settings' }] : []),
     ];
 
@@ -842,6 +845,16 @@ export default function ProjectDetail() {
                         </ul>
                     </Card>
                 </div>
+            )}
+
+            {tab === 'automation' && isProjectManager && hasModule('automation') && (
+                <AutomationPanel
+                    projectId={projectId}
+                    members={members}
+                    statuses={statuses}
+                    labels={taskOptions.labels || []}
+                    priorities={taskOptions.priorities || []}
+                />
             )}
 
             {tab === 'workflow' && isProjectManager && (

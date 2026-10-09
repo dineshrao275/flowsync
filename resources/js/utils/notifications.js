@@ -67,6 +67,8 @@ export function describeNotification(type, data = {}, actorName = 'Someone') {
             return `${data.campaign_name ?? 'A survey'} closes soon — answer if you have not`;
         case 'hrms.inbox.digest':
             return `Scheduled report ready: ${data.schedule_name ?? 'your digest'}`;
+        case 'automation.notice':
+            return data.message || `Automation update on ${key}`;
         case 'support.reply':
             return `Support replied on ${data.reference ?? 'your ticket'}${data.subject ? `: ${data.subject}` : ''}`;
         case 'support.resolved':

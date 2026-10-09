@@ -85,6 +85,11 @@ class Project extends Model
         return $this->hasMany(Task::class);
     }
 
+    public function automationRules(): HasMany
+    {
+        return $this->hasMany(AutomationRule::class);
+    }
+
     public function memberRole(User $user): ?ProjectRole
     {
         $roleId = null;

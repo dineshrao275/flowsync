@@ -120,13 +120,7 @@ class TaskService
             $updateData['version_id'] = $this->resolveVersion($task->project, $data['version_id'])?->id;
         }
 
-        // Completing through the edit form must obey the same rule as dragging to Done.
         $completing = $status->is_done && (int) $task->status_id !== (int) $status->id;
-        if ($completing && $this->hasOpenBlockers($task)) {
-            throw ValidationException::withMessages([
-                'form' => 'Cannot move to Done while this task has open blockers.',
-            ]);
-        }
 
         $task->update($updateData);
 
