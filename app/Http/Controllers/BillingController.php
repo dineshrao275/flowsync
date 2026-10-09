@@ -42,6 +42,13 @@ class BillingController extends Controller
             ]
         );
 
+        if (! empty($result['changed'])) {
+            return response()->json([
+                'message' => 'Plan changed. The difference is prorated on your next invoice.',
+                'changed' => true,
+            ]);
+        }
+
         return response()->json([
             'message' => 'Checkout session created.',
             'payment' => $this->presentPayment($result['payment']),
@@ -63,17 +70,36 @@ class BillingController extends Controller
 
         $payment = Payment::where('tenant_id', $tenant->id)->findOrFail($data['payment_id']);
 
-        $updated = $this->paymentService->verifyPayment(
-            tenant: $tenant,
-            payment: $payment,
-            providerPaymentId: $data['provider_payment_id'],
-            payload: $data,
-        );
+        try {
+            $updated = $this->paymentService->verifyPayment(
+                tenant: $tenant,
+                payment: $payment,
+                providerPaymentId: $data['provider_payment_id'],
+                payload: $data,
+            );
+        } catch (\RuntimeException $e) {
+            // A refused or unfinished payment is the caller's answer, not a server fault.
+            abort(422, $e->getMessage());
+        }
 
         return response()->json([
             'message' => 'Payment verified and plan activated.',
             'payment' => $this->presentPayment($updated),
         ]);
+    }
+
+    /** Hosted billing portal: update the card, see invoices (recurring gateways only). */
+    public function portal(Request $request): JsonResponse
+    {
+        $this->authorizeAdmin($request);
+
+        try {
+            $url = $this->paymentService->portalUrl($this->currentTenant(), url('/app/subscription'));
+        } catch (\RuntimeException $e) {
+            abort(422, $e->getMessage());
+        }
+
+        return response()->json(['url' => $url]);
     }
 
     public function history(Request $request): JsonResponse

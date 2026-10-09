@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Billing\PaymentService;
 use App\Http\Controllers\Concerns\DetectsPlatformUsers;
 use App\Models\SubscriptionPlan;
 use App\Models\Tenant;
@@ -26,6 +27,7 @@ class MySubscriptionController extends Controller
     public function __construct(
         private readonly SubscriptionService $subscriptions,
         private readonly TenantLimits $limits,
+        private readonly PaymentService $payments,
     ) {}
 
     public function show(Request $request): JsonResponse
@@ -96,6 +98,8 @@ class MySubscriptionController extends Controller
         // The tenant admin is not a central `users` row, so we cannot use their
         // id as subscription_events.actor_id (FK → system users). Omitting the
         // actor keeps the audit event write safe; the tenant is implicit.
+        // Stop the provider from billing the next period before we say so locally.
+        $this->payments->setProviderCancelAtPeriodEnd($tenant, true);
         $this->subscriptions->cancel($tenant);
 
         return response()->json(['message' => 'Subscription canceled.', ...$this->payload($tenant)]);
@@ -106,6 +110,7 @@ class MySubscriptionController extends Controller
         $tenant = $this->currentTenant();
         $this->authorizeAdmin($request);
 
+        $this->payments->setProviderCancelAtPeriodEnd($tenant, false);
         $this->subscriptions->renew($tenant);
 
         return response()->json(['message' => 'Subscription renewed.', ...$this->payload($tenant)]);

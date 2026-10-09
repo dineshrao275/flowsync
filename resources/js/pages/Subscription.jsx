@@ -1,4 +1,5 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import api, { fieldErrors } from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
@@ -126,6 +127,49 @@ export default function Subscription() {
         load();
     }, [load]);
 
+    // Stripe sends the customer back here with ?session_id=…&payment_id=…&status=…
+    // Nothing is paid until the server has checked that session with Stripe.
+    const [searchParams, setSearchParams] = useSearchParams();
+    const handledReturn = useRef(false);
+    useEffect(() => {
+        const status = searchParams.get('status');
+        if (!status || handledReturn.current) return;
+        handledReturn.current = true;
+
+        const sessionId = searchParams.get('session_id');
+        const paymentId = searchParams.get('payment_id');
+        const clean = () => setSearchParams({}, { replace: true });
+
+        if (status === 'canceled') {
+            toast.info('Checkout was canceled — your plan has not changed.');
+            clean();
+            return;
+        }
+        if (status === 'success' && sessionId && paymentId) {
+            api.post('/billing/verify', { payment_id: Number(paymentId), provider_payment_id: sessionId })
+                .then(() => {
+                    toast.success('Payment confirmed — your plan is active.');
+                    return load();
+                })
+                .catch((e) => toast.error(fieldErrors(e).form || e.response?.data?.message || 'We could not confirm the payment yet. It will update shortly.'))
+                .finally(clean);
+        } else {
+            clean();
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [searchParams]);
+
+    async function openPortal() {
+        setAction(true);
+        try {
+            const { data } = await api.post('/billing/portal');
+            window.location.href = data.url;
+        } catch (e) {
+            toast.error(fieldErrors(e).form || e.response?.data?.message || 'Billing portal is unavailable.');
+            setAction(false);
+        }
+    }
+
     async function run(fn, successMessage) {
         setAction(true);
         try {
@@ -144,6 +188,11 @@ export default function Subscription() {
             setAction(true);
             try {
                 const res = await api.post('/billing/checkout', { plan_id: plan.id });
+                if (res.data.changed) {
+                    toast.success(res.data.message);
+                    await load();
+                    return;
+                }
                 if (res.data.session?.redirect_url) {
                     window.location.href = res.data.session.redirect_url;
                     return;
@@ -234,6 +283,11 @@ export default function Subscription() {
                 )}
                 {canManage && subscription && (
                     <div className="mt-4 flex items-center gap-2">
+                        {subscription.billing_provider === 'stripe' && (
+                            <Button size="md" variant="secondary" onClick={openPortal} loading={action}>
+                                Manage billing
+                            </Button>
+                        )}
                         {subscription.status === 'canceled' || subscription.status === 'expired' ? (
                             <Button size="md" onClick={renew} loading={action}>
                                 Renew

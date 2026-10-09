@@ -66,6 +66,7 @@ class Tenant extends Model
         'db_password',
         'subscription_id',
         'billing_email',
+        'billing_customer_id',
         'contact_name',
         'contact_email',
         'trial_ends_at',
@@ -95,6 +96,7 @@ class Tenant extends Model
     ];
 
     protected $hidden = [
+        'billing_customer_id',
         'db_name',
         'db_host',
         'db_port',

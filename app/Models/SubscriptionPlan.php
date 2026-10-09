@@ -25,6 +25,8 @@ class SubscriptionPlan extends Model
         'trial_duration_days',
         'limits',
         'sort_order',
+        'stripe_price_id',
+        'stripe_price_key',
     ];
 
     protected function casts(): array

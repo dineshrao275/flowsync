@@ -64,6 +64,7 @@ class Subscription extends Model
         'seats',
         'billing_provider',
         'billing_reference',
+        'provider_subscription_id',
     ];
 
     protected function casts(): array

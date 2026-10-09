@@ -7,6 +7,7 @@ use App\Billing\DTOs\PaymentResult;
 use App\Billing\DTOs\RefundResult;
 use App\Billing\DTOs\WebhookResult;
 use App\Billing\PaymentGateway;
+use App\Billing\RecurringGateway;
 use App\Models\Payment;
 use App\Models\SubscriptionPlan;
 use App\Models\Tenant;
@@ -14,7 +15,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Http;
 use RuntimeException;
 
-class StripeGateway implements PaymentGateway
+class StripeGateway implements PaymentGateway, RecurringGateway
 {
     private const API_URL = 'https://api.stripe.com/v1';
 
@@ -41,7 +42,7 @@ class StripeGateway implements PaymentGateway
             return new CheckoutSession(
                 provider: $this->name(),
                 sessionId: 'cs_test_'.bin2hex(random_bytes(12)),
-                redirectUrl: url("/app/subscription?session_id=cs_test_{$payment->id}&status=success"),
+                redirectUrl: url("/app/subscription?session_id=cs_test_{$payment->id}&payment_id={$payment->id}&status=success"),
                 clientSecret: null,
                 publishableKey: $key ?: 'pk_test_mock',
                 currency: $payment->currency,
@@ -49,31 +50,37 @@ class StripeGateway implements PaymentGateway
             );
         }
 
-        $successUrl = $options['success_url'] ?? url('/app/subscription?session_id={CHECKOUT_SESSION_ID}&status=success');
+        $successUrl = $options['success_url']
+            ?? url("/app/subscription?session_id={CHECKOUT_SESSION_ID}&payment_id={$payment->id}&status=success");
         $cancelUrl = $options['cancel_url'] ?? url('/app/subscription?status=canceled');
 
-        $response = Http::withToken($secret)
-            ->asForm()
-            ->post(self::API_URL.'/checkout/sessions', [
-                'mode' => 'payment',
-                'success_url' => $successUrl,
-                'cancel_url' => $cancelUrl,
-                'client_reference_id' => (string) $payment->id,
-                'customer_email' => $options['customer_email'] ?? null,
-                'line_items[0][price_data][currency]' => strtolower($payment->currency),
-                'line_items[0][price_data][unit_amount]' => $payment->amount_cents,
-                'line_items[0][price_data][product_data][name]' => "FlowSync {$plan->name} Plan",
-                'line_items[0][quantity]' => 1,
-                'metadata[tenant_id]' => (string) $tenant->id,
-                'metadata[payment_id]' => (string) $payment->id,
-                'metadata[idempotency_key]' => $payment->idempotency_key,
-            ]);
+        $metadata = [
+            'tenant_id' => (string) $tenant->id,
+            'payment_id' => (string) $payment->id,
+            'plan_id' => (string) $plan->id,
+            'idempotency_key' => $payment->idempotency_key,
+        ];
 
-        if (! $response->successful()) {
-            throw new RuntimeException('Stripe checkout error: '.$response->body());
+        $params = [
+            'mode' => 'subscription',
+            'success_url' => $successUrl,
+            'cancel_url' => $cancelUrl,
+            'client_reference_id' => (string) $payment->id,
+            'customer' => $this->customerFor($tenant, $options['customer_email'] ?? null),
+            'line_items[0][price]' => $this->priceFor($plan, $payment->currency),
+            'line_items[0][quantity]' => 1,
+        ];
+        foreach ($metadata as $k => $v) {
+            $params["metadata[{$k}]"] = $v;
+            // Subscription events (invoice.*, customer.subscription.*) carry the
+            // subscription's metadata, not the session's — copy it across.
+            $params["subscription_data[metadata][{$k}]"] = $v;
+        }
+        if (! empty($options['trial_days'])) {
+            $params['subscription_data[trial_period_days]'] = (int) $options['trial_days'];
         }
 
-        $data = $response->json();
+        $data = $this->call('post', '/checkout/sessions', $params);
 
         return new CheckoutSession(
             provider: $this->name(),
@@ -102,6 +109,10 @@ class StripeGateway implements PaymentGateway
             );
         }
 
+        if (str_starts_with($providerPaymentId, 'cs_')) {
+            return $this->verifyCheckoutSession($providerPaymentId, $payload);
+        }
+
         $response = Http::withToken($secret)->get(self::API_URL."/payment_intents/{$providerPaymentId}");
 
         if (! $response->successful()) {
@@ -127,6 +138,52 @@ class StripeGateway implements PaymentGateway
             currency: strtolower($data['currency'] ?? 'usd'),
             status: $isSuccess ? Payment::STATUS_COMPLETED : Payment::STATUS_FAILED,
             metadata: $data['metadata'] ?? [],
+        );
+    }
+
+    /**
+     * Stripe redirects back with a Checkout Session id. It is only trusted when
+     * the session is complete AND was created for this very payment — otherwise a
+     * tenant could replay somebody else's paid session against its own payment.
+     */
+    private function verifyCheckoutSession(string $sessionId, array $payload): PaymentResult
+    {
+        $fail = fn (string $why) => new PaymentResult(
+            success: false, providerPaymentId: $sessionId, providerOrderId: $sessionId,
+            amountCents: 0, currency: 'usd', status: Payment::STATUS_FAILED, errorMessage: $why,
+        );
+
+        try {
+            $session = $this->call('get', "/checkout/sessions/{$sessionId}", ['expand[0]' => 'subscription']);
+        } catch (RuntimeException $e) {
+            return $fail($e->getMessage());
+        }
+
+        $expected = isset($payload['payment_id']) ? (string) $payload['payment_id'] : null;
+        if ($expected !== null && ($session['client_reference_id'] ?? null) !== $expected) {
+            return $fail('This checkout session does not belong to the payment being verified.');
+        }
+
+        $paid = ($session['status'] ?? '') === 'complete'
+            && in_array($session['payment_status'] ?? '', ['paid', 'no_payment_required'], true);
+        if (! $paid) {
+            return $fail('Checkout is not complete yet.');
+        }
+
+        $subscription = is_array($session['subscription'] ?? null) ? $session['subscription'] : [];
+
+        return new PaymentResult(
+            success: true,
+            providerPaymentId: $session['payment_intent'] ?? ($subscription['id'] ?? $sessionId),
+            providerOrderId: $sessionId,
+            amountCents: (int) ($session['amount_total'] ?? 0),
+            currency: strtolower($session['currency'] ?? 'usd'),
+            status: Payment::STATUS_COMPLETED,
+            metadata: [
+                'subscription_id' => $subscription['id'] ?? (is_string($session['subscription'] ?? null) ? $session['subscription'] : null),
+                'period_end' => $this->periodEndOf($subscription),
+                'customer' => is_string($session['customer'] ?? null) ? $session['customer'] : null,
+            ],
         );
     }
 
@@ -228,11 +285,54 @@ class StripeGateway implements PaymentGateway
         $payload = $request->json()->all();
         $eventType = $payload['type'] ?? 'unknown';
         $eventId = $payload['id'] ?? null;
-        $dataObject = $payload['data']['object'] ?? [];
+        $object = $payload['data']['object'] ?? [];
 
-        $paymentId = $dataObject['metadata']['payment_id'] ?? $dataObject['client_reference_id'] ?? null;
-        $idempotencyKey = $dataObject['metadata']['idempotency_key'] ?? null;
-        $providerPaymentId = $dataObject['payment_intent'] ?? $dataObject['id'] ?? null;
+        // Recurring lifecycle events are about a subscription, not one payment.
+        $kind = match ($eventType) {
+            'invoice.paid', 'invoice.payment_succeeded' => 'invoice_paid',
+            'invoice.payment_failed' => 'invoice_failed',
+            'customer.subscription.updated' => 'subscription_updated',
+            'customer.subscription.deleted' => 'subscription_deleted',
+            default => null,
+        };
+
+        if ($kind !== null) {
+            $isInvoice = str_starts_with($eventType, 'invoice.');
+            $subscriptionId = $isInvoice
+                ? ($object['subscription'] ?? $object['parent']['subscription_details']['subscription'] ?? null)
+                : ($object['id'] ?? null);
+            $metadata = $isInvoice
+                ? ($object['subscription_details']['metadata'] ?? $object['parent']['subscription_details']['metadata'] ?? [])
+                : ($object['metadata'] ?? []);
+
+            // The creation invoice is settled by checkout completion itself.
+            $skip = $isInvoice && ($object['billing_reason'] ?? '') === 'subscription_create';
+
+            return new WebhookResult(
+                handled: ! $skip,
+                eventType: $eventType,
+                providerEventId: $eventId,
+                providerPaymentId: $object['payment_intent'] ?? null,
+                providerOrderId: $isInvoice ? ($object['id'] ?? null) : null,
+                idempotencyKey: null,
+                status: $kind === 'invoice_failed' ? Payment::STATUS_FAILED : Payment::STATUS_COMPLETED,
+                amountCents: (int) ($object['amount_paid'] ?? $object['amount_due'] ?? 0),
+                currency: strtolower($object['currency'] ?? 'usd'),
+                payload: $payload,
+                failureReason: $object['last_finalization_error']['message'] ?? null,
+                kind: $kind,
+                providerSubscriptionId: is_string($subscriptionId) ? $subscriptionId : null,
+                tenantId: isset($metadata['tenant_id']) ? (int) $metadata['tenant_id'] : null,
+                periodEnd: $isInvoice
+                    ? ($object['lines']['data'][0]['period']['end'] ?? null)
+                    : $this->periodEndOf($object),
+                cancelAtPeriodEnd: $isInvoice ? null : (bool) ($object['cancel_at_period_end'] ?? false),
+            );
+        }
+
+        $paymentId = $object['metadata']['payment_id'] ?? $object['client_reference_id'] ?? null;
+        $idempotencyKey = $object['metadata']['idempotency_key'] ?? null;
+        $providerPaymentId = $object['payment_intent'] ?? $object['id'] ?? null;
 
         $status = match ($eventType) {
             'checkout.session.completed', 'payment_intent.succeeded' => Payment::STATUS_COMPLETED,
@@ -246,13 +346,121 @@ class StripeGateway implements PaymentGateway
             eventType: $eventType,
             providerEventId: $eventId,
             providerPaymentId: $providerPaymentId,
-            providerOrderId: $dataObject['id'] ?? null,
+            providerOrderId: $object['id'] ?? null,
             idempotencyKey: $idempotencyKey,
             status: $status,
-            amountCents: (int) ($dataObject['amount_total'] ?? $dataObject['amount'] ?? 0),
-            currency: strtolower($dataObject['currency'] ?? 'usd'),
+            amountCents: (int) ($object['amount_total'] ?? $object['amount'] ?? 0),
+            currency: strtolower($object['currency'] ?? 'usd'),
             payload: $payload,
-            failureReason: $dataObject['last_payment_error']['message'] ?? null,
+            failureReason: $object['last_payment_error']['message'] ?? null,
+            providerSubscriptionId: is_string($object['subscription'] ?? null) ? $object['subscription'] : null,
         );
+    }
+
+    // ------------------------------------------------------------ recurring
+
+    public function changePlan(string $providerSubscriptionId, SubscriptionPlan $plan, string $currency): void
+    {
+        $sub = $this->call('get', "/subscriptions/{$providerSubscriptionId}");
+        $itemId = $sub['items']['data'][0]['id'] ?? null;
+        if (! $itemId) {
+            throw new RuntimeException('Stripe subscription has no item to change.');
+        }
+
+        $this->call('post', "/subscriptions/{$providerSubscriptionId}", [
+            'items[0][id]' => $itemId,
+            'items[0][price]' => $this->priceFor($plan, $currency),
+            'proration_behavior' => 'create_prorations',
+            'cancel_at_period_end' => 'false',
+            'metadata[plan_id]' => (string) $plan->id,
+        ]);
+    }
+
+    public function setCancelAtPeriodEnd(string $providerSubscriptionId, bool $cancel): void
+    {
+        $this->call('post', "/subscriptions/{$providerSubscriptionId}", [
+            'cancel_at_period_end' => $cancel ? 'true' : 'false',
+        ]);
+    }
+
+    public function portalUrl(Tenant $tenant, string $returnUrl): string
+    {
+        $session = $this->call('post', '/billing_portal/sessions', [
+            'customer' => $this->customerFor($tenant),
+            'return_url' => $returnUrl,
+        ]);
+
+        return $session['url'];
+    }
+
+    // -------------------------------------------------------------- helpers
+
+    /** One Stripe Customer per tenant, created lazily and remembered. */
+    private function customerFor(Tenant $tenant, ?string $email = null): string
+    {
+        if ($tenant->billing_customer_id) {
+            return $tenant->billing_customer_id;
+        }
+
+        $customer = $this->call('post', '/customers', array_filter([
+            'name' => $tenant->name,
+            'email' => $tenant->billing_email ?: $email,
+            'metadata[tenant_id]' => (string) $tenant->id,
+            'metadata[slug]' => $tenant->slug,
+        ]));
+
+        $tenant->forceFill(['billing_customer_id' => $customer['id']])->save();
+
+        return $customer['id'];
+    }
+
+    /** The Stripe Price for this plan; re-created whenever amount, currency or cycle change. */
+    private function priceFor(SubscriptionPlan $plan, string $currency): string
+    {
+        $currency = strtolower($currency);
+        $interval = $plan->billing_cycle === 'annual' ? 'year' : 'month';
+        $key = implode(':', [$plan->price_cents, $currency, $interval]);
+
+        if ($plan->stripe_price_id && $plan->stripe_price_key === $key) {
+            return $plan->stripe_price_id;
+        }
+
+        $price = $this->call('post', '/prices', [
+            'currency' => $currency,
+            'unit_amount' => $plan->price_cents,
+            'recurring[interval]' => $interval,
+            'product_data[name]' => "FlowSync {$plan->name} Plan",
+            'metadata[plan_id]' => (string) $plan->id,
+        ]);
+
+        $plan->forceFill(['stripe_price_id' => $price['id'], 'stripe_price_key' => $key])->save();
+
+        return $price['id'];
+    }
+
+    /** Current-period end as a unix timestamp; Stripe moved it between API versions. */
+    private function periodEndOf(array $subscription): ?int
+    {
+        return $subscription['current_period_end']
+            ?? $subscription['items']['data'][0]['current_period_end']
+            ?? null;
+    }
+
+    /**
+     * @param  array<string, mixed>  $params
+     * @return array<string, mixed>
+     */
+    private function call(string $method, string $path, array $params = []): array
+    {
+        $request = Http::withToken($this->config['secret'])->asForm()->timeout(20);
+        $response = $method === 'get'
+            ? $request->get(self::API_URL.$path, $params)
+            : $request->post(self::API_URL.$path, $params);
+
+        if (! $response->successful()) {
+            throw new RuntimeException('Stripe error: '.($response->json('error.message') ?? $response->body()));
+        }
+
+        return $response->json();
     }
 }

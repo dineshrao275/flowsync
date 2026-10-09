@@ -183,6 +183,7 @@ Route::prefix('api')->group(function () {
 
         // Phase 6: tenant payments & billing
         Route::post('billing/checkout', [BillingController::class, 'checkout'])->middleware('throttle:10,1');
+        Route::post('billing/portal', [BillingController::class, 'portal'])->middleware('throttle:10,1');
         Route::post('billing/verify', [BillingController::class, 'verify'])->middleware('throttle:10,1');
         Route::get('billing/history', [BillingController::class, 'history']);
         Route::post('billing/payments/{payment}/refund', [BillingController::class, 'refund'])->middleware('throttle:5,1');

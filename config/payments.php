@@ -20,7 +20,8 @@ return [
     'gateways' => [
         'stripe' => [
             'name' => 'Stripe',
-            'key' => env('STRIPE_KEY', ''),
+            // STRIPE_PUBLIC is the name this project's .env has always used.
+            'key' => env('STRIPE_KEY', env('STRIPE_PUBLIC', '')),
             'secret' => env('STRIPE_SECRET', ''),
             'webhook_secret' => env('STRIPE_WEBHOOK_SECRET', ''),
             'currencies' => ['usd', 'eur', 'gbp', 'cad', 'aud'],

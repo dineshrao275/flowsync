@@ -4,6 +4,7 @@ namespace App\Billing;
 
 use App\Models\Payment;
 use App\Models\PaymentEvent;
+use App\Models\Subscription;
 use App\Models\SubscriptionPlan;
 use App\Models\Tenant;
 use App\Models\User;
@@ -21,6 +22,7 @@ class PaymentService
         private readonly PaymentResolver $resolver,
         private readonly SubscriptionService $subscriptions,
         private readonly TenantDatabaseManager $dbManager,
+        private readonly SubscriptionBillingSync $sync,
     ) {}
 
     private function centralDb(): ConnectionInterface
@@ -43,6 +45,25 @@ class PaymentService
         $idempotencyKey = $options['idempotency_key'] ?? ('fs_idem_'.Str::uuid());
 
         $gateway = $this->resolver->resolveForTenant($tenant, $currency);
+
+        // Already paying through a recurring gateway: swap the price on the
+        // existing subscription (prorated) — a second checkout would bill twice.
+        $providerSubscriptionId = $tenant->subscription?->provider_subscription_id;
+        if ($providerSubscriptionId && $gateway instanceof RecurringGateway && $plan->price_cents > 0) {
+            $gateway->changePlan($providerSubscriptionId, $plan, $currency);
+            $this->subscriptions->switch($tenant, $plan, [
+                'billing_provider' => $gateway->name(),
+                'billing_reference' => $providerSubscriptionId,
+            ]);
+
+            return ['payment' => null, 'session' => null, 'changed' => true];
+        }
+
+        // A tenant still in its trial keeps the days it has left: Stripe starts
+        // charging when the trial ends, not at checkout.
+        if ($tenant->trial_ends_at?->isFuture() && ! isset($options['trial_days'])) {
+            $options['trial_days'] = max(1, (int) ceil(now()->diffInHours($tenant->trial_ends_at) / 24));
+        }
 
         return $this->centralDb()->transaction(function () use ($tenant, $plan, $user, $gateway, $currency, $idempotencyKey, $options) {
             // Check for existing payment with this idempotency key
@@ -146,6 +167,10 @@ class PaymentService
                 'status' => Payment::STATUS_COMPLETED,
                 'provider_payment_id' => $result->providerPaymentId,
                 'fee_cents' => $result->feeCents,
+                'metadata' => array_merge($payment->metadata ?? [], array_filter([
+                    'provider_subscription_id' => $result->metadata['subscription_id'] ?? null,
+                    'period_end' => $result->metadata['period_end'] ?? null,
+                ])),
             ]);
 
             // Sync subscription
@@ -190,6 +215,10 @@ class PaymentService
             if ($alreadyProcessed) {
                 return ['status' => 'already_processed', 'event_id' => $result->providerEventId];
             }
+        }
+
+        if ($result->kind !== null) {
+            return $this->centralDb()->transaction(fn () => $this->sync->handle($result, $providerName));
         }
 
         return $this->centralDb()->transaction(function () use ($result, $providerName) {
@@ -312,6 +341,8 @@ class PaymentService
         $planId = $payment->metadata['plan_id'] ?? null;
         $plan = $planId ? SubscriptionPlan::find($planId) : null;
 
+        $providerSubscriptionId = $payment->metadata['provider_subscription_id'] ?? null;
+
         if ($plan) {
             $this->subscriptions->switch($tenant, $plan, [
                 'billing_provider' => $payment->provider,
@@ -324,5 +355,36 @@ class PaymentService
                 'billing_reference' => $payment->provider_payment_id ?? $payment->provider_order_id,
             ]);
         }
+
+        // Re-read: switch()/renew() may have just created or re-stamped the row.
+        $current = Subscription::where('tenant_id', $tenant->id)->first();
+        if ($providerSubscriptionId && $current) {
+            $current->update([
+                'provider_subscription_id' => $providerSubscriptionId,
+                'billing_provider' => $payment->provider,
+            ]);
+        }
+    }
+
+    /** Stop (or resume) renewal at the provider; a no-op for subscriptions it does not bill. */
+    public function setProviderCancelAtPeriodEnd(Tenant $tenant, bool $cancel): void
+    {
+        $subscription = $tenant->subscription;
+        $gateway = $subscription?->billing_provider ? $this->resolver->resolve($subscription->billing_provider) : null;
+
+        if ($gateway instanceof RecurringGateway && $subscription->provider_subscription_id) {
+            $gateway->setCancelAtPeriodEnd($subscription->provider_subscription_id, $cancel);
+        }
+    }
+
+    /** Hosted billing portal (update card, see invoices) for a tenant billed through a recurring gateway. */
+    public function portalUrl(Tenant $tenant, string $returnUrl): string
+    {
+        $gateway = $this->resolver->resolveForTenant($tenant);
+        if (! $gateway instanceof RecurringGateway) {
+            throw new RuntimeException('The billing portal is not available for this payment provider.');
+        }
+
+        return $gateway->portalUrl($tenant, $returnUrl);
     }
 }

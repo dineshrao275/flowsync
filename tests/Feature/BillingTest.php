@@ -194,7 +194,7 @@ class BillingTest extends TestCase
         $this->postJson('/api/billing/verify', [
             'payment_id' => $paymentId,
             'provider_payment_id' => 'pi_failed_1',
-        ])->assertStatus(500);
+        ])->assertStatus(422);
 
         $payment = Payment::find($paymentId);
         $this->assertSame(Payment::STATUS_FAILED, $payment->status);
