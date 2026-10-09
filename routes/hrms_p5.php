@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Hrms\Employee\EmployeeBulkController;
 use App\Http\Controllers\Hrms\Shift\RosterController;
 use App\Http\Controllers\Hrms\Shift\RotationController;
 use App\Http\Controllers\Hrms\Shift\ShiftController;
@@ -37,4 +38,13 @@ Route::group(['middleware' => ['ensure_module:hrms.core', 'ensure_module:hrms.sh
     Route::put('hrms/shifts/rotations/{rotation}', [RotationController::class, 'update']);
     Route::delete('hrms/shifts/rotations/{rotation}', [RotationController::class, 'destroy']);
     Route::post('hrms/shifts/rotations/{rotation}/apply', [RotationController::class, 'apply']);
+});
+
+// Employee bulk operations (P5.5): CSV hire (sample/preview/commit) and bulk
+// status change. Gated on the core module; policies decide (employees.manage).
+Route::group(['middleware' => ['ensure_module:hrms.core', 'permission:hrms.view']], function () {
+    Route::get('hrms/employees/import/sample', [EmployeeBulkController::class, 'sample']);
+    Route::post('hrms/employees/import/preview', [EmployeeBulkController::class, 'preview'])->middleware('throttle:20,1');
+    Route::post('hrms/employees/import', [EmployeeBulkController::class, 'import'])->middleware('throttle:10,1');
+    Route::post('hrms/employees/bulk-status', [EmployeeBulkController::class, 'status'])->middleware('throttle:20,1');
 });
