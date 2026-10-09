@@ -9,6 +9,7 @@ use App\Http\Controllers\IssueTypeController;
 use App\Http\Controllers\LabelController;
 use App\Http\Controllers\ProjectComponentController;
 use App\Http\Controllers\ProjectController;
+use App\Http\Controllers\ProjectHierarchyController;
 use App\Http\Controllers\ProjectMemberController;
 use App\Http\Controllers\ProjectRoleController;
 use App\Http\Controllers\ProjectVersionController;
@@ -114,6 +115,7 @@ Route::middleware(['permission:workspaces.view', 'ensure_product:tms'])->group(f
     // Phase 3: tasks. Board/list at the project index (view=board|list,
     // filters as query params); mutations gated by TaskPolicy (project-role
     // tasks.* permissions) + ProjectPolicy::createTask.
+    Route::get('projects/{project}/hierarchy', [ProjectHierarchyController::class, 'show']);
     Route::get('projects/{project}/tasks', [TaskController::class, 'index']);
     Route::post('projects/{project}/tasks', [TaskController::class, 'store']);
     Route::get('projects/{project}/tasks/key/{key}', [TaskController::class, 'showByKey'])->where('key', '[A-Za-z0-9-]+');

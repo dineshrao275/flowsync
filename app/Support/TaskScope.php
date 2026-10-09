@@ -61,6 +61,22 @@ final class TaskScope
     }
 
     /**
+     * The board/list-level read gate shared by every project-wide task read
+     * (board, hierarchy, calendar, timeline, bulk, saved filters): 403 unless the
+     * caller is a tenant admin or holds some `tasks.view*` grant. Rows are then
+     * narrowed by constrainQuery().
+     */
+    public static function assertCanRead(Project $project, User $user): void
+    {
+        $role = $project->memberRole($user);
+        abort_unless(
+            $user->hasPermission('workspaces.manage') || ($role !== null && $role->grants('tasks.view_own')),
+            403,
+            'Reading this project\'s tasks needs a "tasks.view*" grant on your project role (or "workspaces.manage").',
+        );
+    }
+
+    /**
      * Whether the row falls inside a scope for the caller.
      */
     public static function rowMatches(Task $task, User $user, string $scope): bool

@@ -97,6 +97,7 @@ class TaskReader
             'reporter',
             'creator',
             'parent:id,key,title',
+            'epic:id,key,title',
             'labels',
             'subtasks:id,key,title,status_id,completed_at,parent_id,position',
             'subtasks.status',
@@ -170,6 +171,10 @@ class TaskReader
 
         if (! empty($filters['version_id'])) {
             $query->where('tasks.version_id', $filters['version_id']);
+        }
+
+        if (! empty($filters['epic_id'])) {
+            $query->where('tasks.epic_id', $filters['epic_id']);
         }
 
         if (! empty($filters['component_id'])) {

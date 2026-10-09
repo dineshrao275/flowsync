@@ -29,6 +29,7 @@ class IssueTypeController extends Controller
             'icon' => ['nullable', 'string', 'max:50'],
             'color' => ['nullable', 'string', 'max:50'],
             'is_subtask' => ['nullable', 'boolean'],
+            'hierarchy_level' => ['nullable', 'integer', 'between:0,2'],
             'position' => ['nullable', 'integer', 'min:0'],
         ]);
 
@@ -49,6 +50,7 @@ class IssueTypeController extends Controller
             'icon' => ['nullable', 'string', 'max:50'],
             'color' => ['nullable', 'string', 'max:50'],
             'is_subtask' => ['nullable', 'boolean'],
+            'hierarchy_level' => ['nullable', 'integer', 'between:0,2'],
             'position' => ['nullable', 'integer', 'min:0'],
         ]);
 

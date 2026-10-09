@@ -9,6 +9,7 @@ use App\Models\TaskStatusHistory;
 use App\Models\User;
 use App\Services\Hrms\PerformanceService;
 use App\Services\Tasks\TaskColumnOrder;
+use App\Services\Tasks\TaskHierarchy;
 use App\Services\Tasks\TaskInputResolver;
 use App\Services\Tasks\TaskPresenter;
 use App\Services\Tasks\TaskReader;
@@ -32,6 +33,7 @@ class TaskService
         private readonly TaskWatchers $taskWatchers,
         private readonly TaskColumnOrder $columns,
         private readonly TaskReader $reader,
+        private readonly TaskHierarchy $hierarchy,
     ) {}
 
     public function create(Project $project, array $data, User $creator): Task
@@ -51,6 +53,8 @@ class TaskService
 
         $key = $this->keyGenerator->nextTaskKey($project);
         $issueType = $this->inputs->issueType($data['issue_type_id'] ?? null);
+        $epic = $this->hierarchy->epic($project, $data['epic_id'] ?? null);
+        $this->hierarchy->assert(null, $issueType, $parent, $epic);
         $version = $this->inputs->version($project, $data['version_id'] ?? null);
 
         $task = Task::create([
@@ -60,6 +64,7 @@ class TaskService
             'reporter_id' => $creator->id,
             'assignee_id' => $assignee?->id,
             'parent_id' => $parent?->id,
+            'epic_id' => $epic?->id,
             'status_id' => $status->id,
             'priority_id' => $priority?->id,
             'issue_type_id' => $issueType?->id,
@@ -119,9 +124,7 @@ class TaskService
         if (array_key_exists('story_points', $data)) {
             $updateData['story_points'] = $data['story_points'];
         }
-        if (array_key_exists('issue_type_id', $data)) {
-            $updateData['issue_type_id'] = $this->inputs->issueType($data['issue_type_id'])?->id;
-        }
+        $this->applyHierarchy($task, $data, $parent, $updateData);
         if (array_key_exists('version_id', $data)) {
             $updateData['version_id'] = $this->inputs->version($task->project, $data['version_id'])?->id;
         }
@@ -155,6 +158,28 @@ class TaskService
         }
 
         return $updated;
+    }
+
+    /** Validates the type/parent/epic a write ends with and adds the type and epic columns to the update. */
+    private function applyHierarchy(Task $task, array $data, ?Task $parent, array &$updateData): void
+    {
+        $type = array_key_exists('issue_type_id', $data) ? $this->inputs->issueType($data['issue_type_id']) : $task->issueType;
+        $epic = array_key_exists('epic_id', $data) ? $this->hierarchy->epic($task->project, $data['epic_id']) : $task->epic;
+
+        $touched = array_key_exists('issue_type_id', $data) || array_key_exists('epic_id', $data) || array_key_exists('parent_id', $data);
+        if ($touched) {
+            if (array_key_exists('issue_type_id', $data) && $type !== null) {
+                $this->hierarchy->assertRetypable($task, $type);
+            }
+            $this->hierarchy->assert($task, $type, $parent, $epic);
+        }
+
+        if (array_key_exists('issue_type_id', $data)) {
+            $updateData['issue_type_id'] = $type?->id;
+        }
+        if (array_key_exists('epic_id', $data)) {
+            $updateData['epic_id'] = $epic?->id;
+        }
     }
 
     /** One history row per status change — the basis for cycle and lead time. */

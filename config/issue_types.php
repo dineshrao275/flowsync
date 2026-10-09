@@ -14,7 +14,18 @@ return [
 
     'default_slug' => 'task',
 
+    // hierarchy_level: 0 initiative, 1 epic, 2 standard (task/story/bug), 3 sub-task (P4.1).
     'types' => [
+        [
+            'name' => 'Initiative',
+            'slug' => 'initiative',
+            'description' => 'A strategic goal above epics.',
+            'icon' => 'flag',
+            'color' => '#f59e0b',
+            'is_subtask' => false,
+            'hierarchy_level' => 0,
+            'position' => 0,
+        ],
         [
             'name' => 'Task',
             'slug' => 'task',
@@ -49,6 +60,7 @@ return [
             'icon' => 'lightning-bolt',
             'color' => '#8b5cf6',
             'is_subtask' => false,
+            'hierarchy_level' => 1,
             'position' => 4,
         ],
         [
@@ -58,6 +70,7 @@ return [
             'icon' => 'subtask',
             'color' => '#6b7280',
             'is_subtask' => true,
+            'hierarchy_level' => 3,
             'position' => 5,
         ],
     ],
