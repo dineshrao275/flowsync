@@ -7,6 +7,7 @@ use App\Http\Middleware\EnsurePermission;
 use App\Http\Middleware\EnsureProduct;
 use App\Http\Middleware\EnsureSuperAdmin;
 use App\Http\Middleware\EnsureTenantContext;
+use App\Http\Middleware\SecurityHeaders;
 use App\Http\Middleware\SetTenantContext;
 use App\Http\Middleware\SwitchTenant;
 use Illuminate\Auth\AuthenticationException;
@@ -43,6 +44,7 @@ return Application::configure(basePath: dirname(__DIR__))
         // First in the global stack so even a request rejected by a later
         // middleware (CSRF, session, throttle) carries an id in its logs.
         $middleware->prepend(AssignRequestId::class);
+        $middleware->append(SecurityHeaders::class);
 
         $middleware->alias([
             'permission' => EnsurePermission::class,
