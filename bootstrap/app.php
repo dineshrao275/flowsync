@@ -1,6 +1,8 @@
 <?php
 
 use App\Http\Middleware\AssignRequestId;
+use App\Http\Middleware\AuthenticateApiToken;
+use App\Http\Middleware\EnforceIdempotency;
 use App\Http\Middleware\EnsureFeatureFlag;
 use App\Http\Middleware\EnsureModule;
 use App\Http\Middleware\EnsureOnboardingComplete;
@@ -13,6 +15,7 @@ use App\Http\Middleware\EnsureTwoFactorEnrolled;
 use App\Http\Middleware\SecurityHeaders;
 use App\Http\Middleware\SetTenantContext;
 use App\Http\Middleware\SwitchTenant;
+use App\Http\Middleware\TokenCan;
 use Illuminate\Auth\AuthenticationException;
 use Illuminate\Auth\Middleware\Authenticate;
 use Illuminate\Auth\Middleware\Authorize;
@@ -62,6 +65,9 @@ return Application::configure(basePath: dirname(__DIR__))
             'ensure_product' => EnsureProduct::class,
             'ensure_flag' => EnsureFeatureFlag::class,
             'platform' => EnsurePlatformPermission::class,
+            'api_token' => AuthenticateApiToken::class,
+            'token_can' => TokenCan::class,
+            'idempotent' => EnforceIdempotency::class,
         ]);
 
         // Middleware priority (Laravel SortedMiddleware) — the framework sorts the
@@ -78,22 +84,28 @@ return Application::configure(basePath: dirname(__DIR__))
             ShareErrorsFromSession::class,
             ValidateCsrfToken::class,
             SwitchTenant::class,
+            AuthenticateApiToken::class,
             Authenticate::class,
             SetTenantContext::class,
             EnsureTenantContext::class,
             EnsureSuperAdmin::class,
             EnsurePlatformPermission::class,
             EnsurePermission::class,
+            TokenCan::class,
             EnsureOnboardingComplete::class,
             EnsureModule::class,
             EnsureProduct::class,
             EnsureFeatureFlag::class,
             ThrottleRequests::class,
             ThrottleRequestsWithRedis::class,
+            EnforceIdempotency::class,
             AuthenticatesSessions::class,
             SubstituteBindings::class,
             Authorize::class,
         ]);
+
+        // Token routes authenticate with a bearer token (never a cookie), so there is nothing for CSRF to protect.
+        $middleware->validateCsrfTokens(except: ['api/v1/*']);
 
         $middleware->redirectGuestsTo('/login');
     })

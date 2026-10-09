@@ -37,6 +37,8 @@ final class ImpersonationGuard
         'api/my-subscription/*',
         'api/billing/*',
         'api/support/*',
+        'api/api-tokens',
+        'api/api-tokens/*',
         'api/webhooks',
         'api/webhooks/*',
         'api/my-export', 'api/my-export/*',

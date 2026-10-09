@@ -7,6 +7,7 @@ use App\Models\Role;
 use App\Models\SystemUser;
 use App\Models\TenantUserRouting;
 use App\Models\User;
+use App\Services\Api\ApiTokenService;
 use App\Services\Hrms\Employee\EmployeeBackfill;
 use App\Services\TenantLimits;
 use App\Support\GrantCeiling;
@@ -14,6 +15,7 @@ use App\Support\TenantContext;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
@@ -190,6 +192,11 @@ class UserController extends Controller
         // The model refuses to delete the default user (defence in depth for
         // any code path, not just this endpoint).
         $user->delete();
+
+        // Their API tokens die with them (the token door also refuses an owner that no longer exists).
+        if (Schema::hasTable('api_tokens')) {
+            app(ApiTokenService::class)->revokeAllFor($id);
+        }
 
         // Drop the central login-routing row, otherwise the deleted email keeps
         // routing to this tenant on the next login attempt.

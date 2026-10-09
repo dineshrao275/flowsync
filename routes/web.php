@@ -190,6 +190,9 @@ Route::prefix('api')->group(function () {
 
         require __DIR__.'/web/tms.php';
 
+        // Platform engines (P2.7+): API tokens, custom fields, ... — session side.
+        require __DIR__.'/web/platform_engines.php';
+
         // Phase 7: discovery + reporting on the same tenant_context scope.
         // Global task search rides the domain `workspaces.view` permission;
         // dashboard and reports are gated by their own tenant permissions.
@@ -284,6 +287,9 @@ Route::prefix('api')->group(function () {
         ->middleware('signed')
         ->name('exports.download');
 });
+
+// Bearer-token API (/api/v1, P2.7): its own middleware stack, no session group.
+require __DIR__.'/web/platform_engines_v1.php';
 
 // Phase 6: Public payment webhook endpoints (outside auth/tenant groups).
 Route::post('api/webhooks/stripe', [WebhookController::class, 'handleStripe'])->middleware('throttle:60,1');

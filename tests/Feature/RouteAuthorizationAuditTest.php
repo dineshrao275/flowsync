@@ -11,7 +11,7 @@ use Tests\TestCase;
  * R9 — no `api/*` route may be reachable without an authorization decision.
  *
  * A route passes when ANY of these holds:
- *  - its middleware carries `permission:*`, `super_admin` or `signed`;
+ *  - its middleware carries `permission:*`, `token_can:*`, `super_admin` or `signed`;
  *  - its action (or a same-class helper it calls) authorizes explicitly —
  *    `authorize()`, a Gate/Policy call, an `abort_*` on a role/permission, or
  *    one of the named require helpers;
@@ -47,6 +47,7 @@ class RouteAuthorizationAuditTest extends TestCase
         'TwoFactorController@confirm' => 'self-scoped: confirms the caller\'s own pending secret',
         'TwoFactorController@disable' => 'self-scoped: password + current code re-check',
         'TwoFactorController@recoveryCodes' => 'self-scoped: password + current code re-check',
+        'ApiV1Controller@me' => 'bearer-token identity: returns the token owner\'s own record and the token\'s abilities',
     ];
 
     /** Calls that count as an explicit authorization decision. */
@@ -98,7 +99,8 @@ class RouteAuthorizationAuditTest extends TestCase
                 continue;
             }
 
-            if (str_starts_with($middleware, 'permission:') || $middleware === 'super_admin' || str_starts_with($middleware, 'signed')) {
+            // `token_can:` is the bearer-token twin of `permission:` for the /api/v1 routes.
+            if (str_starts_with($middleware, 'permission:') || str_starts_with($middleware, 'token_can:') || $middleware === 'super_admin' || str_starts_with($middleware, 'signed')) {
                 return true;
             }
         }

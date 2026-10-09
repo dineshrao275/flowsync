@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import api from '../services/api';
 import Card from '../components/ui/Card';
 import Spinner from '../components/ui/Spinner';
+import ApiTokens from '../components/settings/ApiTokens';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
 import usePageTitle from '../hooks/usePageTitle';
@@ -91,7 +92,7 @@ function NotificationPreferences() {
 
 export default function Settings() {
     usePageTitle('Settings');
-    const { user } = useAuth();
+    const { user, can, hasModule } = useAuth();
 
     return (
         <div className="space-y-6">
@@ -161,6 +162,14 @@ export default function Settings() {
                     <NotificationPreferences />
                 </Card>
             </div>
+
+            {can('api.manage') && hasModule('api') && (
+                <div className="animate-fade-in-up" style={{ animationDelay: '300ms' }}>
+                    <Card title="API tokens" subtitle="Personal access tokens for scripts and integrations.">
+                        <ApiTokens />
+                    </Card>
+                </div>
+            )}
         </div>
     );
 }
