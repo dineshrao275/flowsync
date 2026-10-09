@@ -453,7 +453,8 @@ Applies to **every** phase unless stated: *Backward compatibility* — defaults 
 
 Columns: ID · task · key files · DB · tests · deps · size · risk. API/UI/permission are stated when non-obvious. Acceptance criteria are the test named plus the behaviour stated.
 
-### Phase 0 — Stop-the-bleed
+### Phase 0 — Stop-the-bleed ✅ DONE 2026-10-09
+Shipped: P0.1 `e77cbee`, P0.2 `c6b4035`, P0.7 `89adede`, P0.3 `f56aec5`, P0.4 `c7c2d71`, P0.5 `ae73795`, P0.6 `36fb89f`. New tests: `OpenRouteAuthorizationTest` (7), `RoleEscalationTest` (10), `ModuleGateTest` +1, `TenantExportTest` URL-shape assertion. P0.3 caveat: the old `.env.docker` values remain in git history — rotate `APP_KEY`/`REVERB_*` if that stack was ever deployed.
 | ID | Task | Files | DB | Tests / acceptance | Deps | Size | Risk |
 |---|---|---|---|---|---|---|---|
 | P0.1 | Confirm in browser, then make `ProtectedRoute` render `children ?? <Outlet/>` (or convert wrapper routes to layout form) | `components/ProtectedRoute.jsx`, `App.jsx` | — | manual check of `/app/subscription`, `/app/hrms/employees`; later covered by P1.12 smoke test. Acceptance: all 21 wrapper routes render and still redirect without the permission | — | S | Low |

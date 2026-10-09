@@ -4,7 +4,7 @@ Laravel 12 + React 19 SPA. Session-based auth **without** Breeze/Fortify/Sanctum
 
 **Keep this file current** — update the relevant section whenever changes touch architecture, migrations, middleware, routes, key components, npm/Composer deps, or test counts.
 
-**Next-work roadmap:** `.agents/roadmap/master-roadmap.md` (audit at HEAD, gap register G-58+, tech-debt register, Phase 0-9 task plan). Start at Phase 0.
+**Next-work roadmap:** `.agents/roadmap/master-roadmap.md` (audit at HEAD, gap register G-58+, tech-debt register, Phase 0-11 task plan). **Phase 0 is done** (route-wrapper fix, open-route authz, role-escalation `GrantCeiling`, env untracked, export route path, app error boundary, stacked-gate test; +18 tests, totals re-verified at the next full run). Continue at Phase 1 / 1A.
 
 ## Commands
 - **Native host (current dev setup, no Docker):** Apache `mod_php` vhost `flowsync.conf` serves
