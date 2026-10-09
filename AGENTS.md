@@ -213,6 +213,9 @@ Hierarchy: **Tenant → Workspace → Project → Task** (subtask `tasks.parent_
   (block switch: hero/features/cta/text; text paragraphs split on double newlines). Content editing
   publishes live without code changes.
 
+## Request correlation (P2.2)
+- `App\Http\Middleware\AssignRequestId` is prepended to the global stack (`bootstrap/app.php`): it reuses an inbound `X-Request-Id` only if it matches `^[A-Za-z0-9._-]{8,64}$`, otherwise mints a UUID, binds it as shared log context (`Log::shareContext(['request_id' => …])`, so every log line of the request carries it) and echoes it on the response. Quote it when reporting a failure. Not yet in audit rows or queued-job payloads (follow-up).
+
 ## Realtime (Reverb + Echo, Phase 0 base)
 - Composer `laravel/reverb`; npm `laravel-echo` + `pusher-js` (+ `@dnd-kit/*` for the board, `recharts` for analytics). `BROADCAST_CONNECTION=reverb`.
 - `app/Events/NotificationSent` broadcasts on `PrivateChannel('user.{id}')` (queued, `broadcastWith` includes `actor {id,name}` for client rendering). `app/Events/TaskSynced` broadcasts on `PrivateChannel('project.{id}')` (`broadcastAs('task.synced')`, queued). `app/Events/CommentSynced` broadcasts on `PrivateChannel('project.{id}')` (`broadcastAs('comment.synced')`, queued). Broadcast channel auth in `routes/channels.php`: `user.{id}` (self only), `workspace.{id}` + `project.{id}` (membership). Same checks used for realtime sync events.

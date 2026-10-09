@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Middleware\AssignRequestId;
 use App\Http\Middleware\EnsureModule;
 use App\Http\Middleware\EnsureOnboardingComplete;
 use App\Http\Middleware\EnsurePermission;
@@ -38,6 +39,10 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
+        // First in the global stack so even a request rejected by a later
+        // middleware (CSRF, session, throttle) carries an id in its logs.
+        $middleware->prepend(AssignRequestId::class);
+
         $middleware->alias([
             'permission' => EnsurePermission::class,
             'signed' => ValidateSignature::class,
