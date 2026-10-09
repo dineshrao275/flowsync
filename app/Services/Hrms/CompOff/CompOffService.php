@@ -12,6 +12,7 @@ use App\Services\Hrms\Shared\ApprovalService;
 use App\Services\Hrms\Shared\ValueObjects\ApproverSpec;
 use App\Services\HrmsAuditLogger;
 use App\Services\NotificationService;
+use App\Support\Hrms\Auditable;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
@@ -248,11 +249,6 @@ class CompOffService
     /** @return array<string, mixed> */
     private function snapshot(CompOffRequest $request): array
     {
-        return [
-            'employee_id' => $request->employee_id,
-            'total_minutes' => $request->total_minutes,
-            'status' => $request->status->value,
-            'approval_id' => $request->approval_id,
-        ];
+        return Auditable::snapshot($request, ['employee_id', 'total_minutes', 'status', 'approval_id']);
     }
 }

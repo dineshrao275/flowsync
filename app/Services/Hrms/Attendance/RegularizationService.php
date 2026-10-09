@@ -13,6 +13,7 @@ use App\Services\Hrms\Employee\ReportingLine;
 use App\Services\Hrms\Shared\ApprovalService;
 use App\Services\Hrms\Shared\ValueObjects\ApproverSpec;
 use App\Services\HrmsAuditLogger;
+use App\Support\Hrms\Auditable;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
@@ -276,11 +277,6 @@ class RegularizationService
     /** @return array<string, mixed> */
     private function snapshot(AttendanceRegularizationRequest $request): array
     {
-        return [
-            'employee_id' => $request->employee_id,
-            'work_date' => $request->work_date->toDateString(),
-            'status' => $request->status->value,
-            'approval_id' => $request->approval_id,
-        ];
+        return Auditable::snapshot($request, ['employee_id', 'work_date', 'status', 'approval_id'], ['work_date' => 'date']);
     }
 }

@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Hrms\Leave;
 
 use App\Enums\Hrms\LeaveRequestStatus;
+use App\Http\Controllers\Concerns\NormalizesFilters;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Hrms\Leave\LeaveDecisionRequest;
 use App\Http\Requests\Hrms\Leave\LeaveExemptionRequest as LeaveExemptionStoreRequest;
@@ -27,6 +28,8 @@ use Illuminate\Validation\ValidationException;
  */
 class LeaveExemptionController extends Controller
 {
+    use NormalizesFilters;
+
     public function __construct(
         private readonly LeaveExemptionService $exemptions,
         private readonly LeaveExemptionDirectory $directory,
@@ -124,14 +127,5 @@ class LeaveExemptionController extends Controller
         abort_if($employee === null, 404, 'There is no employment record to file an exemption for.');
 
         return $employee;
-    }
-
-    /**
-     * @param  array<string, mixed>  $filters
-     * @return array<string, mixed>
-     */
-    private function clean(array $filters): array
-    {
-        return array_filter($filters, fn (mixed $value): bool => $value !== null);
     }
 }

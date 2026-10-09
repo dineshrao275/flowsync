@@ -8,6 +8,7 @@ use App\Models\Hrms\Asset\AssetMaintenance;
 use App\Models\User;
 use App\Services\Hrms\Org\OrgNaming;
 use App\Services\HrmsAuditLogger;
+use App\Support\Hrms\Auditable;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
@@ -156,10 +157,6 @@ class AssetService
      */
     private function snapshot(Asset $asset): array
     {
-        return [
-            'asset_code' => $asset->asset_code,
-            'status' => $asset->status->value,
-            'condition' => $asset->condition->value,
-        ];
+        return Auditable::snapshot($asset, ['asset_code', 'status', 'condition']);
     }
 }

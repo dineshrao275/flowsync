@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Hrms\Attendance;
 
 use App\Enums\Hrms\RegularizationStatus;
+use App\Http\Controllers\Concerns\NormalizesFilters;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Hrms\Attendance\RegularizationDecideRequest;
 use App\Http\Requests\Hrms\Attendance\RegularizationStoreRequest;
@@ -27,6 +28,8 @@ use Illuminate\Validation\Rule;
  */
 class RegularizationController extends Controller
 {
+    use NormalizesFilters;
+
     public function __construct(
         private readonly RegularizationService $regularizations,
         private readonly RegularizationDirectory $directory,
@@ -94,14 +97,5 @@ class RegularizationController extends Controller
             'message' => 'Correction rejected.',
             'request' => $this->presenter->present($row),
         ]);
-    }
-
-    /**
-     * @param  array<string, mixed>  $filters
-     * @return array<string, mixed>
-     */
-    private function clean(array $filters): array
-    {
-        return array_filter($filters, fn (mixed $value): bool => $value !== null);
     }
 }

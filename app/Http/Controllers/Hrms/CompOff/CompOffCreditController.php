@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Hrms\CompOff;
 
 use App\Enums\Hrms\CompOffSource;
+use App\Http\Controllers\Concerns\NormalizesFilters;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Hrms\CompOff\CompOffCreditRequest;
 use App\Models\Hrms\CompOff\CompOffCredit;
@@ -24,6 +25,8 @@ use Illuminate\Http\Response;
  */
 class CompOffCreditController extends Controller
 {
+    use NormalizesFilters;
+
     public function __construct(
         private readonly CompOffCredits $credits,
         private readonly CompOffCreditDirectory $directory,
@@ -89,14 +92,5 @@ class CompOffCreditController extends Controller
         abort_if($employee === null, 404, 'There is no employment record to read comp-off for.');
 
         return $employee;
-    }
-
-    /**
-     * @param  array<string, mixed>  $filters
-     * @return array<string, mixed>
-     */
-    private function clean(array $filters): array
-    {
-        return array_filter($filters, fn (mixed $value): bool => $value !== null);
     }
 }

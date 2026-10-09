@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Hrms\Holiday;
 
 use App\Enums\Hrms\OptionalHolidayStatus;
+use App\Http\Controllers\Concerns\NormalizesFilters;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Hrms\Holiday\HolidayOptionalRequest;
 use App\Models\Hrms\Employee\Employee;
@@ -25,6 +26,8 @@ use Illuminate\Validation\Rule;
  */
 class HolidayOptionalController extends Controller
 {
+    use NormalizesFilters;
+
     public function __construct(
         private readonly HolidayAssignments $assignments,
         private readonly HolidayOptionalDirectory $directory,
@@ -72,14 +75,5 @@ class HolidayOptionalController extends Controller
             'message' => 'Optional holiday declared.',
             'optional' => $this->presenter->optional($answer),
         ], Response::HTTP_CREATED);
-    }
-
-    /**
-     * @param  array<string, mixed>  $filters
-     * @return array<string, mixed>
-     */
-    private function clean(array $filters): array
-    {
-        return array_filter($filters, fn (mixed $value): bool => $value !== null);
     }
 }

@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Hrms;
 
 use App\Enums\Hrms\DocumentStatus;
+use App\Http\Controllers\Concerns\NormalizesFilters;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Hrms\DocumentUploadRequest;
 use App\Models\Hrms\Document\DocumentType;
@@ -30,6 +31,8 @@ use Illuminate\Validation\Rule;
  */
 class DocumentController extends Controller
 {
+    use NormalizesFilters;
+
     public function __construct(private readonly DocumentService $documents) {}
 
     /**
@@ -198,15 +201,6 @@ class DocumentController extends Controller
             'q' => ['sometimes', 'nullable', 'string', 'max:120'],
             'per_page' => ['sometimes', 'nullable', 'integer', 'min:1', 'max:100'],
         ];
-    }
-
-    /**
-     * @param  array<string, mixed>  $filters
-     * @return array<string, mixed>
-     */
-    private function clean(array $filters): array
-    {
-        return array_filter($filters, fn (mixed $value) => $value !== null);
     }
 
     /**

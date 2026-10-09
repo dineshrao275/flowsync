@@ -10,6 +10,7 @@ use App\Models\Hrms\Leave\LeaveBalance;
 use App\Models\Hrms\Leave\LeaveType;
 use App\Models\User;
 use App\Services\HrmsAuditLogger;
+use App\Support\Hrms\Auditable;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -248,11 +249,6 @@ class LeaveBalanceService
     /** @return array<string, mixed> */
     private function snapshot(LeaveAdjustment $row): array
     {
-        return [
-            'employee_id' => $row->employee_id,
-            'leave_type_id' => $row->leave_type_id,
-            'year' => $row->year,
-            'quantity' => (float) $row->quantity,
-        ];
+        return Auditable::snapshot($row, ['employee_id', 'leave_type_id', 'year', 'quantity'], ['quantity' => 'float']);
     }
 }

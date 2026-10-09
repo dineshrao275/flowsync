@@ -9,6 +9,7 @@ use App\Models\User;
 use App\Services\Hrms\Shared\ApprovalService;
 use App\Services\HrmsAuditLogger;
 use App\Services\NotificationService;
+use App\Support\Hrms\Auditable;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
@@ -160,12 +161,6 @@ class LeaveRequestService
     /** @return array<string, mixed> */
     private function snapshot(LeaveRequest $request): array
     {
-        return [
-            'employee_id' => $request->employee_id,
-            'leave_type_id' => $request->leave_type_id,
-            'total_days' => (float) $request->total_days,
-            'status' => $request->status->value,
-            'approval_id' => $request->approval_id,
-        ];
+        return Auditable::snapshot($request, ['employee_id', 'leave_type_id', 'total_days', 'status', 'approval_id'], ['total_days' => 'float']);
     }
 }

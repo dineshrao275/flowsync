@@ -14,6 +14,7 @@ use App\Services\Tenancy\TenantActivation;
 use App\Services\Tenancy\TenantIntake;
 use App\Services\TenantOnboarding;
 use App\Support\TenantDatabaseManager;
+use App\Support\UniqueSlug;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
@@ -128,14 +129,9 @@ class RegisterController extends Controller
 
     private function uniqueSlug(string $slug): string
     {
-        $base = Str::slug($slug ?: Str::random(6));
-        $candidate = $base;
-        $i = 2;
-
-        while (Tenant::withTrashed()->where('slug', $candidate)->exists()) {
-            $candidate = $base.'-'.$i++;
-        }
-
-        return $candidate;
+        return UniqueSlug::make(
+            Str::slug($slug ?: Str::random(6)),
+            fn (string $candidate): bool => Tenant::withTrashed()->where('slug', $candidate)->exists(),
+        );
     }
 }
