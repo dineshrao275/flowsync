@@ -25,6 +25,24 @@ export default function SystemUsers() {
     const [form, setForm] = useState(emptyForm);
     const [errors, setErrors] = useState({});
     const [saving, setSaving] = useState(false);
+    const [personaRoles, setPersonaRoles] = useState([]);
+    const [editing, setEditing] = useState(null);
+    const [picked, setPicked] = useState([]);
+
+    useEffect(() => {
+        api.get('/system/platform-roles').then(({ data }) => setPersonaRoles(data.roles)).catch(() => {});
+    }, []);
+
+    async function savePersonas() {
+        try {
+            const { data } = await api.put(`/system/users/${editing.id}/platform-roles`, { roles: picked });
+            toast.success(data.message);
+            setEditing(null);
+            fetchUsers(pagination?.current_page || 1);
+        } catch (e) {
+            toast.error(fieldErrors(e).form || fieldErrors(e).roles || 'Could not save platform roles.');
+        }
+    }
 
     const fetchUsers = useCallback((page = 1, query = q) => {
         setLoading(true);
@@ -91,7 +109,7 @@ export default function SystemUsers() {
                             <tr>
                                 <th className="pb-2 font-semibold">Name</th>
                                 <th className="pb-2 font-semibold">Email</th>
-                                <th className="pb-2 font-semibold">Role</th>
+                                <th className="pb-2 font-semibold">Access</th>
                                 <th className="pb-2 text-right font-semibold">Created</th>
                             </tr>
                         </thead>
@@ -100,7 +118,13 @@ export default function SystemUsers() {
                                 <tr key={u.id} className="border-t border-gray-100">
                                     <td className="py-2.5 font-medium text-gray-800">{u.name}</td>
                                     <td className="py-2.5 text-gray-600">{u.email}</td>
-                                    <td className="py-2.5"><Badge>admin</Badge></td>
+                                    <td className="py-2.5">
+                                        {(u.platform_roles || []).length === 0
+                                            ? <Badge>Full access</Badge>
+                                            : u.platform_roles.map((r) => <Badge key={r}>{r}</Badge>)}
+                                        <button type="button" className="ml-2 text-xs text-[var(--accent)]"
+                                            onClick={() => { setEditing(u); setPicked(u.platform_roles || []); }}>Edit</button>
+                                    </td>
                                     <td className="py-2.5 text-right text-gray-400">
                                         {u.created_at ? new Date(u.created_at).toLocaleDateString() : '—'}
                                     </td>
@@ -121,6 +145,25 @@ export default function SystemUsers() {
                     pages={pagination.last_page}
                     onChange={fetchUsers}
                 />
+            )}
+
+            {editing && (
+                <Modal title={`Platform access: ${editing.name}`} onClose={() => setEditing(null)}>
+                    <div className="space-y-3 px-6 pb-6 pt-4">
+                        <p className="text-sm text-gray-500">No persona selected means full break-glass access. Selecting personas limits this account to their permissions.</p>
+                        {personaRoles.map((r) => (
+                            <label key={r.slug} className="flex items-start gap-2 text-sm text-gray-700">
+                                <input type="checkbox" className="mt-1" checked={picked.includes(r.slug)}
+                                    onChange={(e) => setPicked(e.target.checked ? [...picked, r.slug] : picked.filter((x) => x !== r.slug))} />
+                                <span><span className="font-medium">{r.name}</span><br /><span className="text-xs text-gray-500">{r.description}</span></span>
+                            </label>
+                        ))}
+                        <div className="flex justify-end gap-2 pt-2">
+                            <Button type="button" variant="ghost" onClick={() => setEditing(null)}>Cancel</Button>
+                            <Button type="button" onClick={savePersonas}>Save</Button>
+                        </div>
+                    </div>
+                </Modal>
             )}
 
             {showCreate && (

@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\FeatureFlagController;
+use App\Http\Controllers\PlatformRoleController;
 use App\Http\Controllers\TwoFactorController;
 use Illuminate\Support\Facades\Route;
 
@@ -31,6 +32,10 @@ Route::prefix('api')->middleware(['switch_tenant', 'auth', 'tenant'])->group(fun
     Route::middleware('super_admin')->group(function () {
         Route::get('system/two-factor-policy', [TwoFactorController::class, 'showPlatformPolicy']);
         Route::put('system/two-factor-policy', [TwoFactorController::class, 'updatePlatformPolicy']);
+
+        // P8.3 platform personas: catalog + assignment (route map: platform_users.*).
+        Route::get('system/platform-roles', [PlatformRoleController::class, 'index']);
+        Route::put('system/users/{user}/platform-roles', [PlatformRoleController::class, 'assign']);
 
         // P8.7 runtime feature flags + tenant overrides.
         Route::get('system/feature-flags', [FeatureFlagController::class, 'index']);

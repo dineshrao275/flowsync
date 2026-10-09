@@ -5,6 +5,7 @@ use App\Http\Middleware\EnsureFeatureFlag;
 use App\Http\Middleware\EnsureModule;
 use App\Http\Middleware\EnsureOnboardingComplete;
 use App\Http\Middleware\EnsurePermission;
+use App\Http\Middleware\EnsurePlatformPermission;
 use App\Http\Middleware\EnsureProduct;
 use App\Http\Middleware\EnsureSuperAdmin;
 use App\Http\Middleware\EnsureTenantContext;
@@ -60,6 +61,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'ensure_module' => EnsureModule::class,
             'ensure_product' => EnsureProduct::class,
             'ensure_flag' => EnsureFeatureFlag::class,
+            'platform' => EnsurePlatformPermission::class,
         ]);
 
         // Middleware priority (Laravel SortedMiddleware) — the framework sorts the
@@ -80,6 +82,7 @@ return Application::configure(basePath: dirname(__DIR__))
             SetTenantContext::class,
             EnsureTenantContext::class,
             EnsureSuperAdmin::class,
+            EnsurePlatformPermission::class,
             EnsurePermission::class,
             EnsureOnboardingComplete::class,
             EnsureModule::class,

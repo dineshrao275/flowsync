@@ -11,6 +11,7 @@ use App\Models\TenantUserRouting;
 use App\Models\User;
 use App\Services\FeatureFlags;
 use App\Services\PlatformAudit;
+use App\Services\Security\PlatformAccess;
 use App\Services\Security\TwoFactorLogin;
 use App\Services\Security\TwoFactorService;
 use App\Services\TenantLimits;
@@ -294,6 +295,11 @@ class AuthController extends Controller
                 'impersonation_expires_at' => isset($impersonation['expires_at']) ? Carbon::createFromTimestamp($impersonation['expires_at'])->toIso8601String() : null,
                 'onboarding_complete' => ! $tenant || app(TenantOnboarding::class)->isComplete($tenant),
                 // Runtime feature flags resolved for this tenant (P8.7); the SPA only mirrors them.
+                // Platform personas (P8.3): null = unrestricted break-glass admin; otherwise the held slugs.
+                'platform' => $isSuperAdmin ? [
+                    'roles' => app(PlatformAccess::class)->roleSlugsOf($user),
+                    'permissions' => app(PlatformAccess::class)->permissionsOf($user),
+                ] : null,
                 'two_factor' => [
                     'enabled' => app(TwoFactorService::class)->isEnabled($user),
                     'enrollment_required' => (bool) $request->session()->get(TwoFactorLogin::ENROLL_KEY, false),

@@ -9,6 +9,7 @@ use App\Listeners\SwitchesTenantConnectionForQueuedJobs;
 use App\Models\User;
 use App\Services\FeatureFlags;
 use App\Services\ReportsTo;
+use App\Services\Security\PlatformAccess;
 use App\Services\TenantLimits;
 use App\Support\TenantContext;
 use App\Support\TenantDatabaseManager;
@@ -39,6 +40,7 @@ class AppServiceProvider extends ServiceProvider
         $this->app->singleton(PaymentService::class);
         // Per request / queued job: flag state must not outlive an admin edit (P8.7).
         $this->app->scoped(FeatureFlags::class);
+        $this->app->scoped(PlatformAccess::class);
     }
 
     /**

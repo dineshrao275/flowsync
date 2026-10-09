@@ -94,12 +94,23 @@ export function AuthProvider({ children }) {
         return data;
     }, []);
 
-    const unrestricted = useCallback(() => Boolean(user?.is_super_admin && !user.impersonating), [user]);
+    // A platform admin with no persona role is the unrestricted break-glass account; persona roles
+    // (P8.3) narrow it to `user.platform.permissions` (the server enforces; this only mirrors).
+    const unrestricted = useCallback(
+        () => Boolean(user?.is_super_admin && !user.impersonating && !user.platform?.permissions),
+        [user],
+    );
 
     const hasAccess = useCallback(
         (capability) => {
             if (!user) return false;
             if (unrestricted()) return true;
+            if (user.is_super_admin && !user.impersonating) {
+                // Persona-narrowed platform admin: platform slugs only; product/module gates are tenant concepts.
+                if (typeof capability === 'string' && capability.startsWith('product:')) return true;
+                if (moduleName(capability)) return true;
+                return Boolean(user.platform?.permissions?.includes(permissionName(capability) ?? capability));
+            }
             if (typeof capability === 'string' && capability.startsWith('product:')) {
                 return user.products?.[capability.slice(8)] !== false;
             }
