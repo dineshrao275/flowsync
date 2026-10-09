@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Permission;
 use App\Models\Role;
+use App\Support\GrantCeiling;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
@@ -31,6 +32,7 @@ class RoleController extends Controller
         ]);
 
         $permissionIds = $this->resolvePermissionIds($data['permissions']);
+        GrantCeiling::assertCanGrantPermissions($request->user(), $permissionIds);
 
         $role = Role::create([
             'name' => $data['name'],
@@ -52,8 +54,17 @@ class RoleController extends Controller
             'permissions.*' => ['integer'],
         ]);
 
+        GrantCeiling::assertCanEditRole($request->user(), $role);
+
+        $permissionIds = $this->resolvePermissionIds($data['permissions']);
+        GrantCeiling::assertCanGrantPermissions(
+            $request->user(),
+            $permissionIds,
+            $role->permissions()->pluck('permissions.id'),
+        );
+
         $role->update(['name' => $data['name']]);
-        $role->permissions()->sync($this->resolvePermissionIds($data['permissions']));
+        $role->permissions()->sync($permissionIds);
 
         return response()->json([
             'message' => 'Role updated.',

@@ -7,6 +7,7 @@ use App\Models\TenantUserRouting;
 use App\Models\User;
 use App\Services\Hrms\Employee\EmployeeBackfill;
 use App\Services\TenantLimits;
+use App\Support\GrantCeiling;
 use App\Support\TenantContext;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -57,13 +58,16 @@ class UserController extends Controller
             'roles.*' => ['string', 'exists:roles,slug'],
         ]);
 
+        // Before the row exists: a refused grant must not leave a half-made login.
+        $roles = Role::whereIn('slug', $data['roles'])->pluck('id');
+        GrantCeiling::assertCanAssignRoles($request->user(), $roles, collect());
+
         $user = User::create([
             'name' => $data['name'],
             'email' => $data['email'],
             'password' => $data['password'],
         ]);
 
-        $roles = Role::whereIn('slug', $data['roles'])->pluck('id');
         $user->roles()->sync($roles);
 
         // The central login-routing index is what resolves this email to a
@@ -98,6 +102,8 @@ class UserController extends Controller
         ]);
 
         $roles = Role::whereIn('slug', $data['roles'])->pluck('id');
+
+        GrantCeiling::assertCanAssignRoles($request->user(), $roles, $user->roles()->pluck('roles.id'));
 
         // The default user must stay an admin, otherwise the tenant loses the
         // protected break-glass account this tenant guarantees.
