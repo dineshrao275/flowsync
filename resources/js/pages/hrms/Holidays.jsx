@@ -15,6 +15,7 @@ import { useToast } from '../../context/ToastContext';
 import { useSetCrumbs } from '../../context/BreadcrumbContext';
 import usePageTitle from '../../hooks/usePageTitle';
 import HolidayGrid from '../../components/hrms/HolidayGrid';
+import HolidayImportModal from '../../components/hrms/HolidayImportModal';
 
 const HOLIDAY_TYPES = [
     { value: 'public', label: 'Public' },
@@ -75,6 +76,7 @@ export default function Holidays() {
     const [declareForm, setDeclareForm] = useState({ holiday_id: '', status: 'taken', taken_date: '', note: '' });
     const [declareErrors, setDeclareErrors] = useState({});
     const [seeding, setSeeding] = useState(false);
+    const [importing, setImporting] = useState(false);
 
     useEffect(() => {
         setCrumbs([{ label: 'HRMS', to: '/hrms' }, { label: 'Holidays' }]);
@@ -403,7 +405,12 @@ export default function Holidays() {
                             <div className="mt-4">
                                 <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
                                     <h4 className="text-sm font-semibold text-gray-900">Holidays ({holidays.length})</h4>
-                                    {canManage && <Button onClick={() => openHolidayEditor(null)}>Add holiday</Button>}
+                                    {canManage && (
+                                        <div className="flex gap-2">
+                                            <Button variant="secondary" onClick={() => setImporting(true)}>Import</Button>
+                                            <Button onClick={() => openHolidayEditor(null)}>Add holiday</Button>
+                                        </div>
+                                    )}
                                 </div>
 
                                 {canManage && (
@@ -544,6 +551,18 @@ export default function Holidays() {
                     )}
                 </Card>
             </div>
+
+            {importing && selectedCalendar && (
+                <HolidayImportModal
+                    calendar={selectedCalendar}
+                    onClose={() => setImporting(false)}
+                    onDone={() => {
+                        setImporting(false);
+                        loadCalendars();
+                        loadHolidays();
+                    }}
+                />
+            )}
 
             <Modal open={calendarModal} onClose={closeCalendarModal} title={editingCalendar ? 'Edit calendar' : 'New calendar'}>
                 <form onSubmit={saveCalendar} className="grid grid-cols-1 gap-3 sm:grid-cols-2">

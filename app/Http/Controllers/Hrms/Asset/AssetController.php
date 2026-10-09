@@ -240,6 +240,9 @@ class AssetController extends Controller
             'assigned_at' => $asset->assigned_at?->toIso8601String(),
             'location_id' => $asset->location_id,
             'notes' => $asset->notes,
+            'replaced_by_asset_id' => $asset->replaced_by_asset_id,
+            'replacement_reason' => $asset->replacement_reason,
+            'replaced_at' => $asset->replaced_at?->toIso8601String(),
             'assignments' => $asset->relationLoaded('assignments')
                 ? $asset->assignments->map(fn (AssetAssignment $row): array => $this->presentAssignment($row))->all()
                 : null,

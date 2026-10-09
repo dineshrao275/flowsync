@@ -1,7 +1,9 @@
 <?php
 
+use App\Http\Controllers\Hrms\Asset\AssetReplacementController;
 use App\Http\Controllers\Hrms\DocumentVersionController;
 use App\Http\Controllers\Hrms\Employee\EmployeeBulkController;
+use App\Http\Controllers\Hrms\Holiday\HolidayImportController;
 use App\Http\Controllers\Hrms\Leave\LeaveAdjustmentController;
 use App\Http\Controllers\Hrms\Leave\LeaveBlackoutController;
 use App\Http\Controllers\Hrms\Shift\RosterController;
@@ -70,4 +72,16 @@ Route::group(['middleware' => ['ensure_module:hrms.core', 'ensure_module:hrms.le
 Route::group(['middleware' => ['ensure_module:hrms.core', 'ensure_module:hrms.documents', 'permission:hrms.view']], function () {
     Route::get('hrms/documents/{document}/versions', [DocumentVersionController::class, 'index']);
     Route::post('hrms/documents/{document}/versions', [DocumentVersionController::class, 'store'])->middleware('throttle:30,1');
+});
+
+// Asset replacement state (P5.16): rides the assets module; manage-only by policy.
+Route::group(['middleware' => ['ensure_module:hrms.core', 'ensure_module:hrms.assets', 'permission:hrms.view']], function () {
+    Route::post('hrms/assets/{asset}/replace', [AssetReplacementController::class, 'store']);
+});
+
+// Holiday import (P5.16): CSV / ICS into one calendar, preview then commit.
+Route::group(['middleware' => ['ensure_module:hrms.holidays']], function () {
+    Route::get('hrms/holidays/import/sample', [HolidayImportController::class, 'sample']);
+    Route::post('hrms/holidays/calendars/{calendar}/import/preview', [HolidayImportController::class, 'preview'])->middleware('throttle:20,1');
+    Route::post('hrms/holidays/calendars/{calendar}/import', [HolidayImportController::class, 'import'])->middleware('throttle:10,1');
 });

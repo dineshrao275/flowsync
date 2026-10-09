@@ -44,6 +44,11 @@ class AssetPolicy
             || $this->holds($user, $assignment);
     }
 
+    public function replace(User $user, Asset $asset): bool
+    {
+        return $user->hasPermission('hrms.assets.manage');
+    }
+
     public function maintain(User $user, Asset $asset): bool
     {
         return $user->hasPermission('hrms.assets.manage');
