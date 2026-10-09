@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Hrms\DocumentVersionController;
 use App\Http\Controllers\Hrms\Employee\EmployeeBulkController;
 use App\Http\Controllers\Hrms\Leave\LeaveAdjustmentController;
 use App\Http\Controllers\Hrms\Leave\LeaveBlackoutController;
@@ -63,4 +64,10 @@ Route::group(['middleware' => ['ensure_module:hrms.core', 'ensure_module:hrms.le
     Route::post('hrms/leave/blackouts', [LeaveBlackoutController::class, 'store'])->middleware('permission:hrms.leave.manage');
     Route::put('hrms/leave/blackouts/{blackout}', [LeaveBlackoutController::class, 'update'])->middleware('permission:hrms.leave.manage');
     Route::delete('hrms/leave/blackouts/{blackout}', [LeaveBlackoutController::class, 'destroy'])->middleware('permission:hrms.leave.manage');
+});
+
+// Document versioning (P5.12): history and replacement ride the documents module.
+Route::group(['middleware' => ['ensure_module:hrms.core', 'ensure_module:hrms.documents', 'permission:hrms.view']], function () {
+    Route::get('hrms/documents/{document}/versions', [DocumentVersionController::class, 'index']);
+    Route::post('hrms/documents/{document}/versions', [DocumentVersionController::class, 'store'])->middleware('throttle:30,1');
 });

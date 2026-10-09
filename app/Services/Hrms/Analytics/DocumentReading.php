@@ -26,7 +26,7 @@ class DocumentReading extends AnalyticsReading
 
             $compliance = DocumentType::query()->where('is_mandatory', true)->orderBy('name')->get()
                 ->map(function (DocumentType $type) use ($employees): array {
-                    $holders = EmployeeDocument::query()->where('document_type_id', $type->id)
+                    $holders = EmployeeDocument::query()->current()->where('document_type_id', $type->id)
                         ->distinct()->count('employee_id');
 
                     return [
@@ -42,7 +42,7 @@ class DocumentReading extends AnalyticsReading
                 // Confidential rows are invisible — not merely unreadable —
                 // to a reader without the sensitive permission: a list that
                 // names them leaks their existence (the directory rule).
-                $query = EmployeeDocument::query()->whereNotNull('expires_at')
+                $query = EmployeeDocument::query()->current()->whereNotNull('expires_at')
                     ->when(! $includeConfidential, fn ($scoped) => $scoped->where('confidential', false))
                     ->whereDate('expires_at', '<=', today()->addDays($days)->toDateString());
 
