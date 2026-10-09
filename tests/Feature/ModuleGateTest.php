@@ -169,6 +169,36 @@ class ModuleGateTest extends TestCase
         $this->getJson($url)->assertOk();
     }
 
+    /**
+     * `hrms.onboarding`, `hrms.offboarding` and `hrms.documents` were sold in
+     * plans but gated nothing (G-62): removing one from a plan changed no route.
+     */
+    public function test_onboarding_offboarding_and_documents_each_gate_their_own_routes(): void
+    {
+        $this->assignProToAcme();
+        $this->login('admin@flowsync.test');
+
+        $onboarding = '/api/hrms/onboarding/cases';
+        $offboarding = '/api/hrms/offboarding/cases';
+        $documents = '/api/hrms/documents';
+        $requests = '/api/hrms/document-requests';
+
+        $this->setAcmeModules(['hrms.core', 'hrms.offboarding', 'hrms.documents']);
+        $this->getJson($onboarding)->assertForbidden()->assertHeader('X-Module-Denied', 'hrms.onboarding');
+        $this->getJson($offboarding)->assertOk();
+        $this->getJson($documents)->assertOk();
+        $this->getJson($requests)->assertOk();
+
+        $this->setAcmeModules(['hrms.core', 'hrms.onboarding', 'hrms.documents']);
+        $this->getJson($onboarding)->assertOk();
+        $this->getJson($offboarding)->assertForbidden()->assertHeader('X-Module-Denied', 'hrms.offboarding');
+
+        $this->setAcmeModules(['hrms.core', 'hrms.onboarding', 'hrms.offboarding']);
+        $this->getJson($documents)->assertForbidden()->assertHeader('X-Module-Denied', 'hrms.documents');
+        $this->getJson($requests)->assertForbidden()->assertHeader('X-Module-Denied', 'hrms.documents');
+        $this->getJson($onboarding)->assertOk();
+    }
+
     private function login(string $email): void
     {
         $this->postJson('/api/auth/login', ['email' => $email, 'password' => 'password'])->assertOk();

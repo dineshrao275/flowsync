@@ -481,7 +481,7 @@ Route::prefix('api')->group(function () {
         //
         // `expiring` is declared before `{document}`, because otherwise the word
         // binds as a document id and a valid warning query 404s.
-        Route::group(['middleware' => ['ensure_module:hrms.core', 'permission:hrms.view']], function () {
+        Route::group(['middleware' => ['ensure_module:hrms.core', 'ensure_module:hrms.documents', 'permission:hrms.view']], function () {
             Route::get('hrms/documents/types', [DocumentTypeController::class, 'index']);
             Route::get('hrms/documents/types/{type}', [DocumentTypeController::class, 'show']);
 
@@ -503,7 +503,7 @@ Route::prefix('api')->group(function () {
         // Every nested route declares both models (`cases/{case}/tasks/{task}`),
         // and the controller verifies the task belongs to the case: a task id
         // from another run 404s here rather than completing the wrong checklist.
-        Route::group(['middleware' => ['ensure_module:hrms.core', 'permission:hrms.view']], function () {
+        Route::group(['middleware' => ['ensure_module:hrms.core', 'ensure_module:hrms.onboarding', 'permission:hrms.view']], function () {
             Route::get('hrms/onboarding/templates', [OnboardingTemplateController::class, 'index']);
             Route::post('hrms/onboarding/templates', [OnboardingTemplateController::class, 'store']);
             Route::get('hrms/onboarding/templates/{template}', [OnboardingTemplateController::class, 'show']);
@@ -524,6 +524,9 @@ Route::prefix('api')->group(function () {
             Route::post('hrms/onboarding/cases/{case}/complete', [OnboardingCaseController::class, 'complete']);
             Route::post('hrms/onboarding/cases/{case}/cancel', [OnboardingCaseController::class, 'cancel']);
 
+        });
+
+        Route::group(['middleware' => ['ensure_module:hrms.core', 'ensure_module:hrms.offboarding', 'permission:hrms.view']], function () {
             Route::get('hrms/offboarding/cases', [OffboardingCaseController::class, 'index']);
             Route::post('hrms/offboarding/cases', [OffboardingCaseController::class, 'store']);
             Route::get('hrms/offboarding/cases/{case}', [OffboardingCaseController::class, 'show']);
@@ -534,6 +537,11 @@ Route::prefix('api')->group(function () {
             Route::post('hrms/offboarding/cases/{case}/complete', [OffboardingCaseController::class, 'complete']);
             Route::post('hrms/offboarding/cases/{case}/cancel', [OffboardingCaseController::class, 'cancel']);
 
+        });
+
+        // Document asks are raised by both lifecycle flows and fulfilled through the
+        // document store, so they ride the documents module.
+        Route::group(['middleware' => ['ensure_module:hrms.core', 'ensure_module:hrms.documents', 'permission:hrms.view']], function () {
             Route::get('hrms/document-requests', [DocumentRequestController::class, 'index']);
             Route::post('hrms/document-requests', [DocumentRequestController::class, 'store']);
             Route::get('hrms/document-requests/{documentRequest}', [DocumentRequestController::class, 'show']);

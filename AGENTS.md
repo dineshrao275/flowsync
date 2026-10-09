@@ -527,6 +527,7 @@ Hierarchy: **Tenant → Workspace → Project → Task** (subtask `tasks.parent_
   per-plan lists in `config/subscriptions.php`; Feature Management (item 10) persists
   `plans.limits.modules` (audit `plan.module_toggled`). A tenant with **no subscription is unlimited**
   (`TenantLimits::hasModule` true) — keeps seeded/demo tenants working.
+- **HRMS sub-module gates (P1.14):** `hrms.onboarding`, `hrms.offboarding` and `hrms.documents` now each gate their own route groups on top of `hrms.core` (document requests ride `hrms.documents`), so removing one from a plan really switches the feature off; every default HRMS plan already includes all three, so no existing plan-based tenant changed. **Modules that still gate nothing** (each needs a product/commercial decision, not a code fix): `hrms.compensation` and `hrms.payroll` (Pro lacks compensation and Business lacks payroll yet both can use them today — gating would cut them off), `hrms.inbox` (self-scoped, lives in the plain auth group by design), `hrms.shifts`/`hrms.talent` (no surface yet), `hrms.exemptions` (duplicate of `hrms.leave.exemption`).
 - `AuthController::payload` (`me()`) carries `user.modules` = effective plan modules, falling back to
   the full catalog for no-subscription tenants (SA non-tenant = full catalog).
 - Frontend: `AuthContext.hasModule()` (SA non-impersonating → true; tenant users vs `user.modules`)
