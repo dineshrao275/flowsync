@@ -2,7 +2,11 @@ import { Navigate, Outlet, useLocation } from 'react-router-dom';
 import Spinner from './ui/Spinner';
 import { useAuth } from '../context/AuthContext';
 
-export default function ProtectedRoute({ permission, module }) {
+// Two usages share this guard: as a layout route (`<Route element={<ProtectedRoute/>}>`
+// with nested children → `<Outlet/>`) and as a wrapper around a leaf page
+// (`element={<ProtectedRoute permission=…><Page/></ProtectedRoute>}`). A leaf has
+// no child route, so an unconditional `<Outlet/>` rendered a blank page.
+export default function ProtectedRoute({ permission, module, children }) {
     const { user, loading, can, hasModule } = useAuth();
     const location = useLocation();
 
@@ -29,5 +33,5 @@ export default function ProtectedRoute({ permission, module }) {
         return <Navigate to="/module-denied" state={{ module }} replace />;
     }
 
-    return <Outlet />;
+    return children ?? <Outlet />;
 }
