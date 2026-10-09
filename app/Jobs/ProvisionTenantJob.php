@@ -68,7 +68,7 @@ class ProvisionTenantJob implements ShouldQueue
 
         try {
             $dbm->connectSystem();
-            $provisioner->provisionIsolated($this->tenant, $dbm, $lifecycle);
+            $provisioner->provisionIsolated($this->tenant, $dbm, $lifecycle, $this->productsToBuild());
 
             // Intake collected a real default user: it replaces the seeded owner.
             if ($this->defaultUser) {
@@ -120,6 +120,23 @@ class ProvisionTenantJob implements ShouldQueue
                 'error' => $e->getMessage(),
             ]);
         }
+    }
+
+    /**
+     * The products to build the schema for, from the plans being subscribed — the
+     * subscription rows do not exist yet when the database is created. Null when no
+     * plan was given (the tenant's current entitlement decides).
+     *
+     * @return list<string>|null
+     */
+    private function productsToBuild(): ?array
+    {
+        if (! $this->planId) {
+            return null;
+        }
+
+        return SubscriptionPlan::whereIn('id', [$this->planId, ...$this->additionalPlanIds])->get()
+            ->flatMap(fn (SubscriptionPlan $p) => $p->covers())->unique()->values()->all() ?: null;
     }
 
     /** Best effort: a provider hiccup must not undo a provisioned tenant — the tenant can add a card later. */

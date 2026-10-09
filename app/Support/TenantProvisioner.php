@@ -12,6 +12,7 @@ use App\Models\TenantUserRouting;
 use App\Models\User;
 use App\Services\Hrms\Defaults\HrmsDefaultsProvisioner;
 use App\Services\TenantLifecycle;
+use App\Support\Hrms\HrmsSchema;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 
@@ -23,7 +24,8 @@ class TenantProvisioner
      * central tenant_users routing index → activate. Idempotent + resumable, so
      * `tenants:provision` can repair a partially-provisioned tenant.
      */
-    public function provisionIsolated(Tenant $tenant, TenantDatabaseManager $dbm, TenantLifecycle $lifecycle): void
+    /** @param list<string>|null $products products to build the schema for; null = whatever the tenant's plans cover */
+    public function provisionIsolated(Tenant $tenant, TenantDatabaseManager $dbm, TenantLifecycle $lifecycle, ?array $products = null): void
     {
         $dbm->connectSystem();
 
@@ -40,8 +42,9 @@ class TenantProvisioner
         $dbm->createDatabase($tenant);
         $tenant->refresh();
 
-        $dbm->using($tenant, function () use ($dbm, $tenant): void {
-            $dbm->migrateTenant($tenant);
+        $dbm->using($tenant, function () use ($dbm, $tenant, $products): void {
+            $dbm->migrateTenant($tenant, $products);
+            HrmsSchema::flush();
             $this->seed($tenant);
             $tenant->update(['provisioning_status' => Tenant::PROVISIONING_SEEDED]);
         });
@@ -102,7 +105,9 @@ class TenantProvisioner
         $this->provisionPriorities();
         $this->provisionIssueTypes();
         $this->provisionProjectRoles();
-        app(HrmsDefaultsProvisioner::class)->provision();
+        if (HrmsSchema::present()) {
+            app(HrmsDefaultsProvisioner::class)->provision();
+        }
         $this->createAdmin($tenant, $adminRole);
         $this->ensureDefaultUser($adminRole);
     }

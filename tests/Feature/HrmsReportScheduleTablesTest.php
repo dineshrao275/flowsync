@@ -22,7 +22,7 @@ class HrmsReportScheduleTablesTest extends TestCase
 
     private function migration(): object
     {
-        return require database_path('migrations/tenant/2026_10_10_000033_create_hrms_report_schedules_table.php');
+        return require database_path('migrations/tenant_hrms/2026_10_10_000033_create_hrms_report_schedules_table.php');
     }
 
     public function test_the_table_exists_on_a_fresh_tenant(): void

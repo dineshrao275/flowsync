@@ -6,18 +6,11 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 
 /**
- * Phase 2 — Performance indexes (additive only, repair-safe).
+ * Phase 2 — HRMS reference indexes (additive only, repair-safe). Split out of the core
+ * performance-index migration so a tenant that enables HRMS later still gets them.
  *
- * Adds (the HRMS reference indexes live with the HRMS migrations, tenant_hrms/):
- *   1. tasks(status_id, position) covering index for board column sort.
- *   2. Optional pg_trgm GIN indexes (ENABLE_TRGM / tenancy.tenant.enable_trgm).
- *
- * Notifications already carry (user_id, read_at, created_at); attendance_days
- * already unique(employee_id, work_date); approvals already index
- * (approvable_type, approvable_id). Those are asserted in DBPerformanceTest,
- * not re-created here.
- *
- * PostgreSQL CREATE INDEX CONCURRENTLY cannot run inside a transaction.
+ * Adds: offboarding_case_tasks.expense_claim_id, payslip_adjustments.reference_id,
+ * leave_adjustments.reference_id.
  */
 return new class extends Migration
 {
@@ -25,17 +18,30 @@ return new class extends Migration
 
     public function up(): void
     {
-        $this->addIndex('tasks', 'tasks_status_id_position_index', ['status_id', 'position'], concurrently: true);
+        $this->addIndex(
+            'offboarding_case_tasks',
+            'offboarding_case_tasks_expense_claim_id_index',
+            ['expense_claim_id'],
+        );
 
-        $this->addTrigramIndexes();
+        $this->addIndex(
+            'payslip_adjustments',
+            'payslip_adjustments_reference_id_index',
+            ['reference_id'],
+        );
+
+        $this->addIndex(
+            'leave_adjustments',
+            'leave_adjustments_reference_id_index',
+            ['reference_id'],
+        );
     }
 
     public function down(): void
     {
-        $this->dropNamedIndex('tasks', 'tasks_title_trgm');
-        $this->dropNamedIndex('tasks', 'tasks_description_trgm');
-        $this->dropNamedIndex('users', 'users_email_trgm');
-        $this->dropNamedIndex('tasks', 'tasks_status_id_position_index');
+        $this->dropNamedIndex('leave_adjustments', 'leave_adjustments_reference_id_index');
+        $this->dropNamedIndex('payslip_adjustments', 'payslip_adjustments_reference_id_index');
+        $this->dropNamedIndex('offboarding_case_tasks', 'offboarding_case_tasks_expense_claim_id_index');
     }
 
     /**
@@ -68,33 +74,6 @@ return new class extends Migration
         Schema::table($table, function (Blueprint $table) use ($name, $columns) {
             $table->index($columns, $name);
         });
-    }
-
-    private function addTrigramIndexes(): void
-    {
-        if (! $this->isPostgres() || ! config('tenancy.tenant.enable_trgm')) {
-            return;
-        }
-
-        DB::statement('CREATE EXTENSION IF NOT EXISTS pg_trgm');
-
-        $this->addGinTrigram('tasks', 'tasks_title_trgm', 'title');
-        $this->addGinTrigram('tasks', 'tasks_description_trgm', 'description');
-        $this->addGinTrigram('users', 'users_email_trgm', 'email');
-    }
-
-    private function addGinTrigram(string $table, string $name, string $column): void
-    {
-        if (! Schema::hasTable($table) || ! Schema::hasColumn($table, $column) || $this->indexExists($table, $name)) {
-            return;
-        }
-
-        DB::statement(sprintf(
-            'CREATE INDEX CONCURRENTLY IF NOT EXISTS %s ON %s USING gin (%s gin_trgm_ops)',
-            $this->wrap($name),
-            $this->wrap($table),
-            $this->wrap($column),
-        ));
     }
 
     private function dropNamedIndex(string $table, string $name): void

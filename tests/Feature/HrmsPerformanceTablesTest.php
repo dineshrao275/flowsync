@@ -25,7 +25,7 @@ class HrmsPerformanceTablesTest extends TestCase
 
     private function migration(): object
     {
-        return require database_path('migrations/tenant/2026_10_05_000028_create_hrms_performance_tables.php');
+        return require database_path('migrations/tenant_hrms/2026_10_05_000028_create_hrms_performance_tables.php');
     }
 
     /**

@@ -6,6 +6,7 @@ use App\Models\Subscription;
 use App\Models\SubscriptionEvent;
 use App\Models\SubscriptionPlan;
 use App\Models\Tenant;
+use App\Services\Tenancy\TenantProductSync;
 use Illuminate\Support\Carbon;
 use Illuminate\Validation\ValidationException;
 
@@ -90,6 +91,8 @@ class SubscriptionService
                 : ($options['data'] ?? []),
         );
 
+        app(TenantProductSync::class)->ensure($tenant);
+
         return $subscription;
     }
 
@@ -136,6 +139,8 @@ class SubscriptionService
             actorId: $actorId,
             data: ['days' => $days],
         );
+
+        app(TenantProductSync::class)->ensure($tenant);
 
         return $subscription;
     }

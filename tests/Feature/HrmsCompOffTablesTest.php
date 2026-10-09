@@ -22,7 +22,7 @@ class HrmsCompOffTablesTest extends TestCase
 
     private function migration(): object
     {
-        return require database_path('migrations/tenant/2026_09_29_000020_create_hrms_comp_off_tables.php');
+        return require database_path('migrations/tenant_hrms/2026_09_29_000020_create_hrms_comp_off_tables.php');
     }
 
     public function test_the_comp_off_tables_exist_on_a_fresh_tenant(): void

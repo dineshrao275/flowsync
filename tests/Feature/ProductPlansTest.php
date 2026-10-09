@@ -7,6 +7,9 @@ use App\Models\SubscriptionPlan;
 use App\Models\Tenant;
 use App\Services\SubscriptionService;
 use App\Services\TenantLimits;
+use App\Support\TenantDatabaseManager;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Validation\ValidationException;
 use Tests\IsolatesDatabase;
 use Tests\TestCase;
@@ -190,5 +193,57 @@ class ProductPlansTest extends TestCase
         $this->assertSame(['tms' => false, 'hrms' => true], $user['products']);
         $this->assertContains('hrms.leave', $user['modules']);
         $this->assertNotContains('reports', $user['modules']);
+    }
+
+    /** FB-4 option B: the HRMS tables exist only for tenants that have the HRMS product. */
+    public function test_a_tms_only_tenant_gets_no_hrms_tables_but_everything_core_works(): void
+    {
+        $this->login('superadmin@flowsync.test');
+        $id = $this->postJson('/api/tenants', ['name' => 'Tasks Only', 'slug' => 'tasks-only'])->assertCreated()->json('tenant.id');
+        $this->putJson("/api/tenants/{$id}/intake", [
+            'industry' => 'Software', 'company_size' => '11-50', 'country' => 'IN', 'billing_email' => 'b@to.test',
+            'contact_name' => 'C', 'contact_email' => 'c@to.test', 'admin_name' => 'Tess', 'admin_email' => 'tess@tasks-only.test',
+            'tms_plan_id' => $this->plan('tms-starter')->id, 'start_trial' => false,
+        ])->assertOk();
+        $this->postJson("/api/tenants/{$id}/intake/submit", ['admin_password' => 'password123', 'admin_password_confirmation' => 'password123'])->assertStatus(202);
+        $tenant = Tenant::findOrFail($id);
+
+        $dbm = app(TenantDatabaseManager::class);
+        $has = fn (string $table) => $dbm->using($tenant, fn () => Schema::hasTable($table));
+        $this->assertTrue($has('tasks'));
+        $this->assertTrue($has('users'));
+        $this->assertFalse($has('employees'));
+        $this->assertFalse($has('hrms_settings'));
+
+        // Sign in and create a user: both used to touch `employees`.
+        $this->postJson('/api/auth/logout');
+        $this->postJson('/api/auth/login', ['email' => 'tess@tasks-only.test', 'password' => 'password123'])->assertOk();
+        $this->postJson('/api/users', ['name' => 'New Hire', 'email' => 'hire@tasks-only.test', 'password' => 'password123', 'password_confirmation' => 'password123', 'roles' => ['viewer']])->assertCreated();
+        $this->getJson('/api/workspaces')->assertOk();
+        $this->getJson('/api/hrms/employees')->assertForbidden();
+    }
+
+    public function test_enabling_hrms_later_builds_the_tables_and_gives_existing_logins_an_employee_record(): void
+    {
+        $this->login('superadmin@flowsync.test');
+        $id = $this->postJson('/api/tenants', ['name' => 'Grows Later', 'slug' => 'grows-later'])->assertCreated()->json('tenant.id');
+        $this->putJson("/api/tenants/{$id}/intake", [
+            'industry' => 'Software', 'company_size' => '11-50', 'country' => 'IN', 'billing_email' => 'b@gl.test',
+            'contact_name' => 'C', 'contact_email' => 'c@gl.test', 'admin_name' => 'Gus', 'admin_email' => 'gus@grows-later.test',
+            'tms_plan_id' => $this->plan('tms-starter')->id, 'start_trial' => false,
+        ])->assertOk();
+        $this->postJson("/api/tenants/{$id}/intake/submit", ['admin_password' => 'password123', 'admin_password_confirmation' => 'password123'])->assertStatus(202);
+        $tenant = Tenant::findOrFail($id);
+        $dbm = app(TenantDatabaseManager::class);
+        $count = fn () => $dbm->using($tenant, fn () => Schema::hasTable('employees')
+            ? DB::table('employees')->count() : null);
+        $this->assertNull($count());
+
+        // The Super Admin adds an HRMS plan.
+        $this->postJson("/api/tenants/{$id}/subscription", ['plan_id' => $this->plan('hrms-starter')->id])->assertOk();
+
+        $this->assertSame(1, $count());   // the existing login now has an employment record
+        $this->assertTrue($dbm->using($tenant, fn () => Schema::hasTable('hrms_settings')));
+        $this->assertTrue(app(TenantLimits::class)->productEnabled($tenant->fresh(), 'hrms'));
     }
 }

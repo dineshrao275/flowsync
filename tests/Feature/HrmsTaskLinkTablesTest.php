@@ -87,7 +87,7 @@ class HrmsTaskLinkTablesTest extends TestCase
 
     public function test_a_second_migration_run_is_a_no_op(): void
     {
-        $migration = require database_path('migrations/tenant/2026_10_11_000034_create_hrms_task_links_table.php');
+        $migration = require database_path('migrations/tenant_hrms/2026_10_11_000034_create_hrms_task_links_table.php');
         $migration->up();
 
         $this->assertTrue(Schema::hasTable('hrms_task_links'));

@@ -7,6 +7,7 @@ use App\Models\Hrms\Employee\Employee;
 use App\Models\User;
 use App\Services\HrmsAuditLogger;
 use App\Support\Hrms\EmployeeCodeGenerator;
+use App\Support\Hrms\HrmsSchema;
 use Illuminate\Support\Collection;
 
 /**
@@ -94,8 +95,13 @@ class EmployeeBackfill
      * retry, audit row) — user creation and registration call this so no
      * login ever lands without a record to scope its self-service reads.
      */
-    public function linkFor(User $user): Employee
+    public function linkFor(User $user): ?Employee
     {
+        // A tenant without the HRMS product has no employment records to link.
+        if (! HrmsSchema::present()) {
+            return null;
+        }
+
         if ($user->employee()->exists()) {
             return $user->employee;
         }

@@ -3,6 +3,7 @@
 namespace App\Support;
 
 use App\Models\Tenant;
+use App\Services\TenantLimits;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\DB;
@@ -220,18 +221,25 @@ class TenantDatabaseManager
     }
 
     /**
-     * Run the tenant migration set against the tenant's database.
+     * Run the tenant migration set against the tenant's database: always the core schema,
+     * plus the HRMS tables when the tenant has (or is getting) the HRMS product.
      */
-    public function migrateTenant(Tenant $tenant): void
+    public function migrateTenant(Tenant $tenant, ?array $products = null): void
     {
         $connection = config('tenancy.tenant.connection', self::TENANT_CONNECTION);
+        // Identity + task management are the core schema every tenant gets; the HRMS
+        // tables (database/migrations/tenant_hrms) only exist for tenants with that product.
+        $withHrms = in_array('hrms', $products ?? [], true)
+            || ($products === null && app(TenantLimits::class)->productEnabled($tenant, 'hrms'));
 
-        $this->using($tenant, function () use ($connection, $tenant): void {
-            Artisan::call('migrate', [
-                '--database' => $connection,
-                '--path' => 'database/migrations/tenant',
-                '--force' => true,
-            ]);
+        $this->using($tenant, function () use ($connection, $tenant, $withHrms): void {
+            foreach (array_filter(['database/migrations/tenant', $withHrms ? 'database/migrations/tenant_hrms' : null]) as $path) {
+                Artisan::call('migrate', [
+                    '--database' => $connection,
+                    '--path' => $path,
+                    '--force' => true,
+                ]);
+            }
             $tenant->update(['provisioning_status' => Tenant::PROVISIONING_MIGRATED]);
         });
     }

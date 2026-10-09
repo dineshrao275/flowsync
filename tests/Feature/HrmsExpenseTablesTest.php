@@ -27,7 +27,7 @@ class HrmsExpenseTablesTest extends TestCase
 
     private function migration(): object
     {
-        return require database_path('migrations/tenant/2026_10_04_000027_create_hrms_expense_tables.php');
+        return require database_path('migrations/tenant_hrms/2026_10_04_000027_create_hrms_expense_tables.php');
     }
 
     /**

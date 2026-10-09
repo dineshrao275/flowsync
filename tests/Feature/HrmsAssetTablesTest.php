@@ -26,7 +26,7 @@ class HrmsAssetTablesTest extends TestCase
 
     private function migration(): object
     {
-        return require database_path('migrations/tenant/2026_10_07_000030_create_hrms_asset_tables.php');
+        return require database_path('migrations/tenant_hrms/2026_10_07_000030_create_hrms_asset_tables.php');
     }
 
     /**

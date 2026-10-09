@@ -8,6 +8,7 @@ use App\Models\Task;
 use App\Models\User;
 use App\Models\WorkLog;
 use App\Models\Workspace;
+use App\Support\Hrms\HrmsSchema;
 use ZipArchive;
 
 /**
@@ -236,7 +237,7 @@ class ExportService
         $rows = [];
 
         $modelClass = 'App\\Models\\Hrms\\Employee\\Employee';
-        if (class_exists($modelClass)) {
+        if (class_exists($modelClass) && HrmsSchema::present()) {
             $modelClass::chunk(self::CHUNK, function ($batch) use (&$rows) {
                 foreach ($batch as $e) {
                     $rows[] = [

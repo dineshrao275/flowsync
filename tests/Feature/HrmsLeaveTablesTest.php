@@ -22,7 +22,7 @@ class HrmsLeaveTablesTest extends TestCase
 
     private function migration(): object
     {
-        return require database_path('migrations/tenant/2026_09_28_000019_create_hrms_leave_tables.php');
+        return require database_path('migrations/tenant_hrms/2026_09_28_000019_create_hrms_leave_tables.php');
     }
 
     public function test_the_leave_tables_exist_on_a_fresh_tenant(): void

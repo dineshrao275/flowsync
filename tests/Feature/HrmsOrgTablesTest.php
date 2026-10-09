@@ -30,7 +30,7 @@ class HrmsOrgTablesTest extends TestCase
 
     private function migration(): object
     {
-        return require database_path('migrations/tenant/2026_09_27_000016_create_hrms_org_tables.php');
+        return require database_path('migrations/tenant_hrms/2026_09_27_000016_create_hrms_org_tables.php');
     }
 
     public function test_the_org_tables_exist_on_a_fresh_tenant(): void

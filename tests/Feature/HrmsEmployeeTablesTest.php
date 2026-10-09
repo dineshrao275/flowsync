@@ -23,7 +23,7 @@ class HrmsEmployeeTablesTest extends TestCase
 
     private function migration(): object
     {
-        return require database_path('migrations/tenant/2026_09_27_000015_create_hrms_employee_tables.php');
+        return require database_path('migrations/tenant_hrms/2026_09_27_000015_create_hrms_employee_tables.php');
     }
 
     public function test_the_employee_tables_exist_on_a_fresh_tenant(): void

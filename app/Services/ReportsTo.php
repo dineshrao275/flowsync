@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Models\Hrms\Employee\Employee;
 use App\Models\User;
+use App\Support\Hrms\HrmsSchema;
 
 /**
  * The single definition of "assigned to you" for Phase C's `_assigned` scope.
@@ -37,6 +38,11 @@ final class ReportsTo
 
         if (array_key_exists($id, self::$memo)) {
             return self::$memo[$id];
+        }
+
+        // No HRMS tables (a TMS-only tenant) means no reporting lines.
+        if (! HrmsSchema::present()) {
+            return self::$memo[$id] = [];
         }
 
         $employee = Employee::query()->where('user_id', $id)->first();

@@ -12,6 +12,7 @@ use App\Models\User;
 use App\Services\PlatformAudit;
 use App\Services\TenantLimits;
 use App\Services\TenantOnboarding;
+use App\Support\Hrms\HrmsSchema;
 use App\Support\TenantContext;
 use App\Support\TenantDatabaseManager;
 use App\Support\ThemeMode;
@@ -168,7 +169,7 @@ class AuthController extends Controller
             // decides. A leaver keeps a working password; only the offboarding
             // statuses revoke the session. Suspended/on-notice staff are still
             // employed and keep access.
-            $employee = Employee::where('user_id', Auth::id())->first();
+            $employee = HrmsSchema::present() ? Employee::where('user_id', Auth::id())->first() : null;
 
             if ($employee?->status?->isOffboarding()) {
                 Auth::logout();

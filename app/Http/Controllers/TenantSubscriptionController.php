@@ -6,6 +6,7 @@ use App\Models\SubscriptionPlan;
 use App\Models\Tenant;
 use App\Services\PlatformAudit;
 use App\Services\SubscriptionService;
+use App\Services\Tenancy\TenantProductSync;
 use App\Services\TenantLimits;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -142,6 +143,7 @@ class TenantSubscriptionController extends Controller
         }
         $tenant->update(['features_override' => $override ?: null]);
 
+        app(TenantProductSync::class)->ensure($tenant);
         app(PlatformAudit::class)->record($request, 'tenant.products_changed', Tenant::class, $tenant->id, ['products' => $override['products'] ?? null]);
 
         return response()->json(['message' => 'Products updated.', ...$this->payload($tenant->refresh())]);

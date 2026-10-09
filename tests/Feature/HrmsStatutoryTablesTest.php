@@ -25,7 +25,7 @@ class HrmsStatutoryTablesTest extends TestCase
 
     private function migration(): object
     {
-        return require database_path('migrations/tenant/2026_10_03_000023_create_hrms_statutory_tables.php');
+        return require database_path('migrations/tenant_hrms/2026_10_03_000023_create_hrms_statutory_tables.php');
     }
 
     /**

@@ -27,7 +27,7 @@ class HrmsSurveyTablesTest extends TestCase
 
     private function migration(): object
     {
-        return require database_path('migrations/tenant/2026_10_09_000032_create_hrms_survey_tables.php');
+        return require database_path('migrations/tenant_hrms/2026_10_09_000032_create_hrms_survey_tables.php');
     }
 
     /**

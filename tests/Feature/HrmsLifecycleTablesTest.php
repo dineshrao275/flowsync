@@ -27,7 +27,7 @@ class HrmsLifecycleTablesTest extends TestCase
 
     private function migration(): object
     {
-        return require database_path('migrations/tenant/2026_09_27_000017_create_hrms_lifecycle_tables.php');
+        return require database_path('migrations/tenant_hrms/2026_09_27_000017_create_hrms_lifecycle_tables.php');
     }
 
     public function test_the_lifecycle_tables_exist_on_a_fresh_tenant(): void
