@@ -18,6 +18,7 @@ class AuditLog extends Model
         'data',
         'actor_id',
         'ip_address',
+        'request_id',
     ];
 
     protected function casts(): array
