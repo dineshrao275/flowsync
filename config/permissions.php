@@ -142,6 +142,7 @@ return [
         ['name' => 'View Settings', 'slug' => 'settings.view', 'description' => 'Access account settings'],
         ['name' => 'View Billing', 'slug' => 'billing.view', 'description' => 'View subscription plan and billing information'],
         ['name' => 'Manage Billing', 'slug' => 'billing.manage', 'description' => 'Change plans and manage the subscription'],
+        ['name' => 'Manage Organization', 'slug' => 'tenant.manage', 'description' => 'Edit the company profile and complete onboarding'],
         ['name' => 'View Workspaces', 'slug' => 'workspaces.view', 'description' => 'View workspaces and projects'],
         ['name' => 'Create Workspaces', 'slug' => 'workspaces.create', 'description' => 'Create new workspaces'],
         ['name' => 'Manage Workspaces', 'slug' => 'workspaces.manage', 'description' => 'Edit, archive and manage workspace membership'],

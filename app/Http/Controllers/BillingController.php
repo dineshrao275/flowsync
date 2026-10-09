@@ -101,7 +101,7 @@ class BillingController extends Controller
     {
         // Only super admin or tenant admin can trigger a refund
         abort_unless(
-            $request->user()?->is_super_admin || $request->user()?->hasRole('admin'),
+            $request->user()?->is_super_admin || $request->user()?->hasRole('admin') || $request->user()?->hasPermission('billing.manage'),
             403,
             'Unauthorized to issue refund.'
         );
@@ -129,7 +129,7 @@ class BillingController extends Controller
     private function authorizeAdmin(Request $request): void
     {
         abort_unless(
-            $request->user()?->is_super_admin || $request->user()?->hasRole('admin'),
+            $request->user()?->is_super_admin || $request->user()?->hasRole('admin') || $request->user()?->hasPermission('billing.manage'),
             403,
             'Only tenant admins can manage billing.'
         );

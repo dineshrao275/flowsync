@@ -2,7 +2,10 @@
 
 namespace Tests\Feature;
 
+use App\Models\Permission;
+use App\Models\Role;
 use App\Models\Tenant;
+use App\Models\User;
 use Tests\IsolatesDatabase;
 use Tests\TestCase;
 
@@ -75,5 +78,17 @@ class OpenRouteAuthorizationTest extends TestCase
 
         $this->putJson('/api/tenant/profile', ['industry' => 'x'])->assertNotFound();
         $this->getJson('/api/billing/history')->assertNotFound();
+    }
+
+    public function test_a_custom_role_with_tenant_manage_can_edit_the_profile_without_being_admin(): void
+    {
+        $this->connectTenant('acme');
+        $role = Role::create(['name' => 'Org', 'slug' => 'org']);
+        $role->permissions()->sync(Permission::where('slug', 'tenant.manage')->pluck('id'));
+        $user = User::create(['name' => 'Org', 'email' => 'org@acme.test', 'password' => 'password']);
+        $user->roles()->sync([$role->id]);
+        $this->actingAs($user)->withSession(['login.tenant_id' => $this->acme()->id]);
+
+        $this->putJson('/api/tenant/profile', ['industry' => 'Software'])->assertOk();
     }
 }
