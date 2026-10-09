@@ -57,11 +57,6 @@ class SubscriptionPlan extends Model
         return data_get($this->limits, $key);
     }
 
-    public function limitsFor(string $key): mixed
-    {
-        return $this->limit($key);
-    }
-
     public function hasModule(string $module): bool
     {
         return in_array($module, $this->limit('modules') ?? [], true);

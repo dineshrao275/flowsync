@@ -100,15 +100,6 @@ class OffboardingService
     }
 
     /**
-     * The five items every exit needs — delegated, because the checklist and
-     * the sign-off are different concerns (see OffboardingChecklist).
-     */
-    public function buildChecklist(OffboardingCase $case, ?User $actor = null): OffboardingCase
-    {
-        return $this->checklist->build($case, $actor);
-    }
-
-    /**
      * Recompute the clearance counters and persist the photograph.
      *
      * Assets read open handovers (`active` assignments), not the

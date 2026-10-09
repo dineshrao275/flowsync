@@ -239,12 +239,6 @@ class Employee extends Model
         )));
     }
 
-    /** @param  Builder<Employee>  $query */
-    public function scopeManagedBy(Builder $query, Employee $manager): void
-    {
-        $query->where('manager_id', $manager->id);
-    }
-
     /**
      * The name to show in a roster or a payslip: the preferred name if the
      * employee set one, otherwise their legal name.

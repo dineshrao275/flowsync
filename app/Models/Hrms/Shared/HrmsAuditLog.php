@@ -71,10 +71,4 @@ class HrmsAuditLog extends Model
         $query->where('subject_type', $subject->getMorphClass())
             ->where('subject_id', $subject->getKey());
     }
-
-    /** @param Builder<HrmsAuditLog> $query */
-    public function scopeForAction(Builder $query, string $action): void
-    {
-        $query->where('action', $action);
-    }
 }
