@@ -27,6 +27,7 @@ class DayPresenter
             'employee_id' => $punch->employee_id,
             'punch_at' => $punch->punch_at->toISOString(),
             'direction' => $punch->direction->value,
+            'kind' => $punch->kind?->value ?? 'work',
             'source' => $punch->source->value,
             'is_out_of_range' => $punch->is_out_of_range,
             'out_of_range_reason' => $punch->out_of_range_reason,

@@ -3,6 +3,7 @@
 namespace App\Models\Hrms\Attendance;
 
 use App\Enums\Hrms\PunchDirection;
+use App\Enums\Hrms\PunchKind;
 use App\Enums\Hrms\PunchSource;
 use App\Models\Hrms\Employee\Employee;
 use App\Models\Hrms\Org\Location;
@@ -50,6 +51,7 @@ class AttendancePunch extends Model
         'employee_id',
         'punch_at',
         'direction',
+        'kind',
         'source',
         'lat',
         'lng',
@@ -69,6 +71,7 @@ class AttendancePunch extends Model
             'employee_id' => 'integer',
             'punch_at' => 'datetime',
             'direction' => PunchDirection::class,
+            'kind' => PunchKind::class,
             'source' => PunchSource::class,
             'lat' => 'decimal:7',
             'lng' => 'decimal:7',

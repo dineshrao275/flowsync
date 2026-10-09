@@ -3,19 +3,17 @@
 namespace App\Services\Hrms\Attendance;
 
 use App\Enums\Hrms\PunchDirection;
+use App\Enums\Hrms\PunchKind;
 use App\Enums\Hrms\PunchSource;
-use App\Models\Hrms\Attendance\AttendanceIpRule;
 use App\Models\Hrms\Attendance\AttendancePunch;
 use App\Models\Hrms\Attendance\AttendanceShift;
 use App\Models\Hrms\Employee\Employee;
-use App\Models\Hrms\Org\Location;
 use App\Models\User;
 use App\Services\Hrms\AttendanceService;
 use App\Services\HrmsAuditLogger;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
-use Symfony\Component\HttpFoundation\IpUtils;
 
 /**
  * Attendance/HRMS — recording one clock event.
@@ -27,9 +25,10 @@ use Symfony\Component\HttpFoundation\IpUtils;
  * this calls after every accepted punch so the photograph never lags the
  * events behind it.
  *
- * Out-of-range is a flag on the row, never a refusal. A mispinned geofence
- * or a stale IP allow-list must not lock a person out of recording that
- * they worked — the reviewer reads the flag and the reason instead.
+ * Out-of-range is a flag on the row by default. A mispinned geofence or a
+ * stale IP allow-list must not lock a person out of recording that they
+ * worked — the reviewer reads the flag and the reason instead. A tenant may
+ * choose to block instead; that decision lives in {@see PunchRangeCheck}.
  */
 class PunchClock
 {
@@ -42,13 +41,14 @@ class PunchClock
 
     public function __construct(
         private readonly DayComputation $days,
+        private readonly PunchRangeCheck $range,
         private readonly HrmsAuditLogger $audit,
     ) {}
 
     /**
      * Record a punch and recompute its day.
      *
-     * @param  array{punch_at?: Carbon|string|null, lat?: float|null, lng?: float|null, ip?: string|null, user_agent?: string|null, device_id?: string|null, location_id?: int|null, note?: string|null}  $meta
+     * @param  array{punch_at?: Carbon|string|null, kind?: string|null, lat?: float|null, lng?: float|null, ip?: string|null, user_agent?: string|null, device_id?: string|null, location_id?: int|null, note?: string|null}  $meta
      *
      * @throws ValidationException outside the shift window or on a duplicate
      */
@@ -74,17 +74,28 @@ class PunchClock
             ? Carbon::parse((string) $meta['punch_at'])
             : now();
 
-        [$shift] = $this->days->resolveShift($employee, $at->copy()->startOfDay());
-        $this->requireInWindow($employee, $shift, $at, $direction);
-        $this->requireNotDuplicate($employee, $direction, $at);
+        $kind = PunchKind::tryFrom((string) ($meta['kind'] ?? 'work'));
 
-        return DB::transaction(function () use ($employee, $direction, $source, $meta, $actor, $at, $shift): AttendancePunch {
-            [$flagged, $reason] = $this->rangeCheck($employee, $meta);
+        if ($kind === null) {
+            throw ValidationException::withMessages(['kind' => 'A punch is work or a break.']);
+        }
+
+        [$shift] = $this->days->resolveShift($employee, $at->copy()->startOfDay());
+        // A break sits inside the working day by definition, so only work
+        // punches are held to the shift window.
+        if ($kind === PunchKind::Work) {
+            $this->requireInWindow($employee, $shift, $at, $direction);
+        }
+        $this->requireNotDuplicate($employee, $direction, $kind, $at);
+
+        return DB::transaction(function () use ($employee, $direction, $kind, $source, $meta, $actor, $at, $shift): AttendancePunch {
+            [$flagged, $reason] = $this->range->check($employee, $meta);
 
             $punch = AttendancePunch::create([
                 'employee_id' => $employee->id,
                 'punch_at' => $at,
                 'direction' => $direction->value,
+                'kind' => $kind->value,
                 'source' => $source->value,
                 'lat' => $meta['lat'] ?? null,
                 'lng' => $meta['lng'] ?? null,
@@ -101,6 +112,7 @@ class PunchClock
             $this->audit->log($punch, 'attendance.punched', null, [
                 'employee_id' => $employee->id,
                 'direction' => $direction->value,
+                'kind' => $kind->value,
                 'source' => $source->value,
             ], $actor);
 
@@ -171,10 +183,11 @@ class PunchClock
         return $hour * 60 + $minute;
     }
 
-    private function requireNotDuplicate(Employee $employee, PunchDirection $direction, Carbon $at): void
+    private function requireNotDuplicate(Employee $employee, PunchDirection $direction, PunchKind $kind, Carbon $at): void
     {
         $tooClose = AttendancePunch::where('employee_id', $employee->id)
             ->where('direction', $direction->value)
+            ->where('kind', $kind->value)
             ->whereBetween('punch_at', [
                 $at->copy()->subMinutes(self::DUPLICATE_WINDOW_MINUTES),
                 $at->copy()->addMinutes(self::DUPLICATE_WINDOW_MINUTES),
@@ -184,83 +197,5 @@ class PunchClock
         if ($tooClose) {
             throw ValidationException::withMessages(['punch_at' => 'This looks like the same press recorded twice.']);
         }
-    }
-
-    /**
-     * IP rules, then the geofence. Either may flag; neither may refuse.
-     *
-     * @param  array<string, mixed>  $meta
-     * @return array{bool, string|null}
-     */
-    private function rangeCheck(Employee $employee, array $meta): array
-    {
-        if (! empty($meta['ip']) && ($reason = $this->networkReason((string) $meta['ip'])) !== null) {
-            return [true, $reason];
-        }
-
-        if (isset($meta['lat'], $meta['lng']) && ($reason = $this->fenceReason($employee, (float) $meta['lat'], (float) $meta['lng'])) !== null) {
-            return [true, $reason];
-        }
-
-        return [false, null];
-    }
-
-    /**
-     * An empty active set means “no network policy”, not “deny everything”:
-     * a tenant that never configured IP rules must not find clock-in broken
-     * on Monday because of a feature they never switched on.
-     */
-    private function networkReason(string $ip): ?string
-    {
-        $rules = AttendanceIpRule::active()->pluck('cidr')->all();
-
-        if ($rules === []) {
-            return null;
-        }
-
-        foreach ($rules as $cidr) {
-            if (IpUtils::checkIp($ip, $cidr)) {
-                return null;
-            }
-        }
-
-        return "IP {$ip} is outside the allowed networks.";
-    }
-
-    /**
-     * Haversine metres against the employee’s fenced location, when there is
-     * one and the punch carries coordinates. A punch with no coordinates
-     * cannot be placed, so it is not flagged — absence of evidence, switched
-     * off by the same logic that refuses to block on a maybe.
-     */
-    private function fenceReason(Employee $employee, float $lat, float $lng): ?string
-    {
-        $location = $employee->location_id !== null
-            ? Location::find($employee->location_id)
-            : null;
-
-        if ($location === null || ! $location->isGeoFenced()) {
-            return null;
-        }
-
-        $distance = $this->haversineMetres($lat, $lng, (float) $location->geo_lat, (float) $location->geo_lng);
-
-        if ($distance <= (int) $location->geo_radius_m) {
-            return null;
-        }
-
-        return sprintf('%.0f m outside %s’s %d m fence.', $distance, $location->name, $location->geo_radius_m);
-    }
-
-    private function haversineMetres(float $latA, float $lngA, float $latB, float $lngB): float
-    {
-        $earth = 6371000;
-        $dLat = deg2rad($latB - $latA);
-        $dLng = deg2rad($lngB - $lngA);
-
-        $arc = sin($dLat / 2) ** 2
-            + cos(deg2rad($latA)) * cos(deg2rad($latB)) * sin($dLng / 2) ** 2;
-
-        return 2 * $earth * asin(sqrt($arc));
     }
 }
