@@ -75,12 +75,12 @@ class PayslipDownload
                 $ipAddress,
             );
 
-            $html = $this->renderer->render($payslip);
+            $pdf = $this->renderer->renderPdf($payslip);
             $filename = $this->renderer->filename($payslip);
 
-            return response()->streamDownload(function () use ($html): void {
-                echo $html;
-            }, $filename, ['Content-Type' => 'text/html; charset=utf-8']);
+            return response()->streamDownload(function () use ($pdf): void {
+                echo $pdf;
+            }, $filename, ['Content-Type' => 'application/pdf']);
         });
     }
 

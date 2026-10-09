@@ -8,6 +8,7 @@ use App\Http\Controllers\OnboardingController;
 use App\Http\Controllers\PlanController;
 use App\Http\Controllers\PlatformHealthController;
 use App\Http\Controllers\SystemAnalyticsController;
+use App\Http\Controllers\SystemInvoiceController;
 use App\Http\Controllers\SystemSettingsController;
 use App\Http\Controllers\SystemSupportController;
 use App\Http\Controllers\SystemUsersController;
@@ -67,6 +68,8 @@ Route::middleware('super_admin')->group(function () {
     Route::post('tenants/{tenant}/subscription/renew', [TenantSubscriptionController::class, 'renew']);
     Route::post('tenants/{tenant}/subscription/suspend', [TenantSubscriptionController::class, 'suspend']);
     Route::get('tenants/{tenant}/subscription/events', [TenantSubscriptionController::class, 'events']);
+    Route::get('system/invoices', [SystemInvoiceController::class, 'index']);
+    Route::get('system/invoices/{invoice}/pdf', [SystemInvoiceController::class, 'pdf'])->whereNumber('invoice');
 
     // Platform management (item 10): settings, accounts, audit feed,
     // cross-tenant analytics, and the module × plan feature grid.

@@ -16,6 +16,7 @@ use App\Http\Controllers\Hrms\MyHrController;
 use App\Http\Controllers\Hrms\MyTeamController;
 use App\Http\Controllers\Hrms\Payroll\PayslipDownloadController;
 use App\Http\Controllers\ImpersonationController;
+use App\Http\Controllers\InvoiceController;
 use App\Http\Controllers\IssueTypeController;
 use App\Http\Controllers\MySubscriptionController;
 use App\Http\Controllers\NotificationController;
@@ -138,6 +139,8 @@ Route::prefix('api')->group(function () {
         Route::post('billing/portal', [BillingController::class, 'portal'])->middleware('throttle:10,1');
         Route::post('billing/verify', [BillingController::class, 'verify'])->middleware('throttle:10,1');
         Route::get('billing/history', [BillingController::class, 'history']);
+        Route::get('billing/invoices', [InvoiceController::class, 'index']);
+        Route::get('billing/invoices/{invoice}/pdf', [InvoiceController::class, 'pdf'])->whereNumber('invoice');
         Route::post('billing/payments/{payment}/refund', [BillingController::class, 'refund'])->middleware('throttle:5,1');
 
         // Phase 5: full tenant data export (gated by the export.full module).

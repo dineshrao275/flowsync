@@ -75,6 +75,12 @@ export function describeNotification(type, data = {}, actorName = 'Someone') {
             return `Support marked ${data.reference ?? 'your ticket'} resolved`;
         case 'support.closed':
             return `Support closed ${data.reference ?? 'your ticket'}`;
+        case 'billing.payment_failed':
+            return 'Your last subscription payment failed — update your payment method';
+        case 'billing.final_notice':
+            return 'Final notice: your account will be suspended soon unless payment is received';
+        case 'billing.suspended':
+            return 'Your account was suspended because the subscription payment is overdue';
         default:
             return 'You have a new notification';
     }
@@ -114,6 +120,10 @@ const SECTION_BY_TYPE = {
  */
 export function notificationHref(data = {}, type = '') {
     const { project_id, workspace_id, key, onboarding_case_id } = data || {};
+
+    if (type.startsWith('billing.')) {
+        return '/subscription';
+    }
 
     if (type.startsWith('support.') && data?.ticket_id) {
         return `/support/${data.ticket_id}`;

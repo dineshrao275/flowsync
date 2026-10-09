@@ -26,6 +26,11 @@ Schedule::command('tenants:close-impersonations')->everyTenMinutes()->withoutOve
 // Platform: trials end at `trial_ends_at` exactly — no grace period (yet).
 Schedule::command('tenants:expire-trials')->dailyAt('00:05')->withoutOverlapping();
 
+// Billing: failed-payment dunning (reminders, final notice, suspension after the grace period).
+// Billing: lapsed paid periods are expired / renewed / sent to dunning first (08:00), then dunning runs.
+Schedule::command('billing:period-ends')->dailyAt('08:00')->withoutOverlapping();
+Schedule::command('billing:dunning')->dailyAt('09:00')->withoutOverlapping();
+
 // HRMS fleet sweeps. Every command here takes exactly one of --tenant=ID or
 // --all and is idempotent, so the worst a re-run does is nothing. Cadences
 // follow each command's own docblock ("nightly", "daily", "monthly over the
