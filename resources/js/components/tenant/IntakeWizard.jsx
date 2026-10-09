@@ -16,7 +16,7 @@ import { formatPrice } from '../../utils/format';
 export const REQUIRED = {
     business: ['name', 'slug', 'industry', 'company_size', 'country'],
     admin: ['admin_name', 'admin_email'],
-    plan: ['plan_id'],
+    plan: [],
 };
 
 const ADMIN_BUSINESS_REQUIRED = ['billing_email', 'contact_name', 'contact_email'];
@@ -65,6 +65,9 @@ export default function IntakeWizard({
                 missing[key] = 'This field is required.';
             }
         });
+        if (stepKey === 'plan' && !values.plan_id && !values.tms_plan_id && !values.hrms_plan_id) {
+            missing.plan_id = 'Choose at least one plan.';
+        }
         if (stepKey === 'plan' && values.start_trial && requireCard && !values.payment_method) {
             missing.payment_method = 'A payment method is required to start a trial.';
         }
@@ -88,7 +91,7 @@ export default function IntakeWizard({
         await onSubmit(password, confirmation);
     }
 
-    const plan = plans.find((p) => String(p.id) === String(values.plan_id));
+    const chosen = [values.plan_id, values.tms_plan_id, values.hrms_plan_id].filter(Boolean).map((id) => plans.find((p) => String(p.id) === String(id))?.name).filter(Boolean);
     const titles = {
         business: 'Business',
         admin: isRegister ? 'You' : 'Default user',
@@ -169,23 +172,44 @@ export default function IntakeWizard({
             )}
 
             {step === 'plan' && (
-                <Card title="Plan & trial" subtitle="Choose the subscription this tenant starts on.">
-                    <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
-                        {plans.map((p) => (
-                            <button
-                                key={p.id} type="button" onClick={() => set('plan_id', p.id)}
-                                className={`rounded-xl border p-4 text-left transition ${
-                                    String(values.plan_id) === String(p.id) ? 'border-indigo-500 ring-2 ring-indigo-200' : 'border-gray-200 hover:border-gray-300'
-                                }`}
-                            >
-                                <p className="font-semibold text-gray-900">{p.name}</p>
-                                <p className="text-sm text-gray-500">{p.description}</p>
-                                <p className="mt-2 text-sm font-medium text-gray-800">
-                                    {formatPrice(p)}
-                                </p>
-                            </button>
-                        ))}
-                    </div>
+                <Card title="Plan & trial" subtitle="Pick a plan for each product you want. You can add the other later.">
+                    {[['tms', 'Task Management (TMS)', 'tms_plan_id'], ['hrms', 'HR Management (HRMS)', 'hrms_plan_id']].map(([product, title, field]) => {
+                        const choices = plans.filter((p) => p.product === product);
+                        if (choices.length === 0) return null;
+                        return (
+                            <div key={product} className="mb-4">
+                                <p className="mb-2 text-sm font-semibold text-gray-800">{title}</p>
+                                <div className="grid grid-cols-1 gap-3 md:grid-cols-4">
+                                    <PlanChoice selected={!values[field]} onClick={() => onChange({ ...values, [field]: '' })} title="None" body="Not needed yet" />
+                                    {choices.map((p) => (
+                                        <PlanChoice
+                                            key={p.id}
+                                            selected={String(values[field]) === String(p.id)}
+                                            onClick={() => onChange({ ...values, [field]: p.id, plan_id: '' })}
+                                            title={p.name}
+                                            body={formatPrice(p)}
+                                        />
+                                    ))}
+                                </div>
+                            </div>
+                        );
+                    })}
+                    {plans.some((p) => !p.product || p.product === 'suite') && (
+                        <details className="mb-2 text-sm text-gray-600" open={Boolean(values.plan_id)}>
+                            <summary className="cursor-pointer">Legacy bundle plans (both products in one)</summary>
+                            <div className="mt-2 grid grid-cols-1 gap-3 md:grid-cols-3">
+                                {plans.filter((p) => !p.product || p.product === 'suite').map((p) => (
+                                    <PlanChoice
+                                        key={p.id}
+                                        selected={String(values.plan_id) === String(p.id)}
+                                        onClick={() => onChange({ ...values, plan_id: p.id, tms_plan_id: '', hrms_plan_id: '' })}
+                                        title={p.name}
+                                        body={formatPrice(p)}
+                                    />
+                                ))}
+                            </div>
+                        </details>
+                    )}
                     {err('plan_id') && <p className="mt-2 text-sm text-red-600">{err('plan_id')}</p>}
                     <label className="mt-4 flex items-start gap-2 text-sm text-gray-700">
                         <input type="checkbox" className="mt-1" checked={Boolean(values.start_trial)} onChange={(e) => set('start_trial', e.target.checked)} />
@@ -213,7 +237,7 @@ export default function IntakeWizard({
                             <Row k="Industry" v={values.industry} />
                             <Row k="Size / country" v={`${values.company_size || '—'} · ${values.country || '—'}`} />
                             <Row k={isRegister ? 'You' : 'Default user'} v={`${values.admin_name} <${values.admin_email}>`} />
-                            <Row k="Plan" v={plan?.name || '—'} />
+                            <Row k="Plans" v={chosen.join(' + ') || '—'} />
                             <Row k="Trial" v={values.start_trial ? `${trialDays} days` : 'No trial'} />
                         </dl>
                         <div className="mt-5 grid grid-cols-1 gap-4 sm:grid-cols-2">
@@ -244,5 +268,18 @@ function Row({ k, v }) {
             <dt className="text-gray-500">{k}</dt>
             <dd className="font-medium text-gray-800">{v || '—'}</dd>
         </div>
+    );
+}
+
+function PlanChoice({ selected, onClick, title, body }) {
+    return (
+        <button
+            type="button"
+            onClick={onClick}
+            className={`rounded-xl border p-3 text-left transition ${selected ? 'border-indigo-500 ring-2 ring-indigo-200' : 'border-gray-200 hover:border-gray-300'}`}
+        >
+            <p className="font-semibold text-gray-900">{title}</p>
+            <p className="text-sm text-gray-500">{body}</p>
+        </button>
     );
 }

@@ -217,6 +217,19 @@ class TenantLimits
      *
      * @return list<string>
      */
+    /** Modules the tenant can actually use: plan + overrides, minus those of a switched-off product. @return list<string> */
+    public function visibleModules(Tenant $tenant): array
+    {
+        return array_values(array_filter(
+            $this->enabledModules($tenant),
+            function (string $module) use ($tenant): bool {
+                $product = self::productOfModule($module);
+
+                return $product === null || $this->productEnabled($tenant, $product);
+            },
+        ));
+    }
+
     public function enabledModules(Tenant $tenant): array
     {
         $modules = $this->limit($tenant, 'modules');

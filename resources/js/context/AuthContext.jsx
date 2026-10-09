@@ -91,6 +91,9 @@ export function AuthProvider({ children }) {
         (capability) => {
             if (!user) return false;
             if (unrestricted()) return true;
+            if (typeof capability === 'string' && capability.startsWith('product:')) {
+                return user.products?.[capability.slice(8)] !== false;
+            }
             if (moduleName(capability)) {
                 return Boolean(user.modules?.includes(moduleName(capability)));
             }
@@ -103,6 +106,7 @@ export function AuthProvider({ children }) {
     const can = useCallback((permission) => hasAccess(permission), [hasAccess]);
 
     const hasModule = useCallback((module) => hasAccess(`module:${module}`), [hasAccess]);
+    const hasProduct = useCallback((product) => hasAccess(`product:${product}`), [hasAccess]);
 
     // Single entry that understands "permission" and "module:<name>" scopes.
     const check = useCallback((capability) => hasAccess(capability), [hasAccess]);
@@ -120,10 +124,11 @@ export function AuthProvider({ children }) {
             stopImpersonation,
             can,
             hasModule,
+            hasProduct,
             check,
             refresh: loadSession,
         }),
-        [user, theme, loading, login, register, completeRegistration, logout, stopImpersonation, can, hasModule, check, loadSession],
+        [user, theme, loading, login, register, completeRegistration, logout, stopImpersonation, can, hasModule, hasProduct, check, loadSession],
     );
 
     return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

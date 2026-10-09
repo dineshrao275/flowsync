@@ -269,8 +269,13 @@ class AuthController extends Controller
                 'roles' => $isSuperAdmin ? [] : $user->roleSlugs(),
                 'permissions' => $isSuperAdmin ? [] : $user->permissionSlugs(),
                 'modules' => $tenant
-                    ? (app(TenantLimits::class)->limit($tenant, 'modules') ?? config('subscriptions.modules'))
+                    ? app(TenantLimits::class)->visibleModules($tenant)
                     : config('subscriptions.modules'),
+                // Whole products the tenant has (a Super Admin sees both): drives the sidebar and the landing page.
+                'products' => [
+                    'tms' => ! $tenant || app(TenantLimits::class)->productEnabled($tenant, 'tms'),
+                    'hrms' => ! $tenant || app(TenantLimits::class)->productEnabled($tenant, 'hrms'),
+                ],
                 'impersonating' => $impersonation !== null,
                 'impersonated_by' => $impersonation['original_user_id'] ?? null,
                 'impersonation_mode' => $impersonation['mode'] ?? null,

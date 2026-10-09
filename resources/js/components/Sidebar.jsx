@@ -6,17 +6,17 @@ const sections = [
     {
         label: 'Main',
         items: [
-            { to: '/dashboard', label: 'Dashboard', capabilities: ['dashboard.view'], icon: 'M3 12l9-9 9 9M5 10v10h14V10' },
+            { to: '/dashboard', label: 'Dashboard', capabilities: ['dashboard.view', 'product:tms'], icon: 'M3 12l9-9 9 9M5 10v10h14V10' },
             { to: '/my', label: 'My HR', capabilities: ['module:hrms.core'], icon: 'M12 12a4 4 0 100-8 4 4 0 000 8zm-7 8a7 7 0 0114 0' },
-            { to: '/workspaces', label: 'Workspaces', capabilities: ['workspaces.view'], icon: 'M3 7a2 2 0 012-2h4l2 2h8a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2V7z' },
-            { to: '/projects', label: 'Projects', capabilities: ['workspaces.view'], icon: 'M2 4h20v16H2V4zm2 2v2h16V6H4zm0 6h16v-2H4v2zm0 4h16v-2H4v2z' },
-            { to: '/search', label: 'Search', capabilities: ['workspaces.view', 'module:global_search'], icon: 'M21 21l-4.35-4.35M17 11a6 6 0 11-12 0 6 6 0 0112 0z' },
+            { to: '/workspaces', label: 'Workspaces', capabilities: ['workspaces.view', 'product:tms'], icon: 'M3 7a2 2 0 012-2h4l2 2h8a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2V7z' },
+            { to: '/projects', label: 'Projects', capabilities: ['workspaces.view', 'product:tms'], icon: 'M2 4h20v16H2V4zm2 2v2h16V6H4zm0 6h16v-2H4v2zm0 4h16v-2H4v2z' },
+            { to: '/search', label: 'Search', capabilities: ['workspaces.view', 'product:tms', 'module:global_search'], icon: 'M21 21l-4.35-4.35M17 11a6 6 0 11-12 0 6 6 0 0112 0z' },
         ],
     },
     {
         label: 'Insights',
         items: [
-            { to: '/reports', label: 'Reports', capabilities: ['reports.view', 'module:reports'], icon: 'M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z' },
+            { to: '/reports', label: 'Reports', capabilities: ['reports.view', 'product:tms', 'module:reports'], icon: 'M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z' },
         ],
     },
     {

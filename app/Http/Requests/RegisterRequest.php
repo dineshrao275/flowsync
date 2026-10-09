@@ -27,7 +27,9 @@ class RegisterRequest extends FormRequest
             'industry' => $business['industry'],
             'company_size' => $business['company_size'],
             'country' => $business['country'],
-            'plan_id' => ['nullable', 'integer', 'exists:subscription_plans,id'],
+            'plan_id' => $plan['plan_id'],
+            'tms_plan_id' => $plan['tms_plan_id'],
+            'hrms_plan_id' => $plan['hrms_plan_id'],
             'start_trial' => $plan['start_trial'],
         ];
     }

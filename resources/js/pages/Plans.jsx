@@ -15,6 +15,7 @@ import usePageTitle from '../hooks/usePageTitle';
 const MODULES = ['time_tracking', 'reports', 'global_search', 'branding'];
 
 const emptyForm = {
+    product: 'suite',
     name: '',
     slug: '',
     description: '',
@@ -104,6 +105,20 @@ function PlanForm({ initial, onSave, onCancel }) {
                 hint="Caps applied to every tenant on this plan. Blank = unlimited. Enforced on create; a tenant's own override wins over these."
                 onChange={(next) => set('limits', next ? { ...(form.limits || {}), ...next } : { modules: [] })}
             />
+            <label className="block text-sm font-medium text-gray-700">
+                Product
+                <select
+                    value={form.product || 'suite'}
+                    disabled={Boolean(initial.id)}
+                    onChange={(e) => set('product', e.target.value)}
+                    className="mt-1.5 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm disabled:bg-gray-50"
+                >
+                    <option value="suite">Bundle (TMS + HRMS)</option>
+                    <option value="tms">Task Management (TMS)</option>
+                    <option value="hrms">HR Management (HRMS)</option>
+                </select>
+                {initial.id && <span className="mt-1 block text-xs text-gray-400">Fixed once the plan exists.</span>}
+            </label>
             <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
                 <Input label="Price (cents)" type="number" name="price_cents" value={form.price_cents} onChange={(e) => set('price_cents', Number(e.target.value))} error={errors.price_cents} />
                 <Input label="Currency" name="currency" value={form.currency} onChange={(e) => set('currency', e.target.value.toUpperCase())} maxLength={3} />
@@ -270,6 +285,7 @@ export default function Plans() {
                             <Td>
                                 <span className="font-medium text-gray-900">{plan.name}</span>
                                 {plan.is_default && <span className="ml-2"><Badge>default</Badge></span>}
+                                {plan.product && plan.product !== 'suite' && <span className="ml-2"><Badge>{plan.product.toUpperCase()}</Badge></span>}
                                 <span className="mt-0.5 block text-xs text-gray-500">
                                     {plan.slug}
                                     {plan.description ? ` · ${plan.description}` : ''}

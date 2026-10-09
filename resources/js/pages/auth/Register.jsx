@@ -24,7 +24,7 @@ export default function Register() {
     const [options, setOptions] = useState(null);
     const [values, setValues] = useState({
         name: '', slug: '', industry: '', company_size: '', country: '',
-        admin_name: '', admin_email: '', plan_id: '', start_trial: true, payment_method: '',
+        admin_name: '', admin_email: '', plan_id: '', tms_plan_id: '', hrms_plan_id: '', start_trial: true, payment_method: '',
     });
     const [errors, setErrors] = useState({});
     const [submitting, setSubmitting] = useState(false);
@@ -35,8 +35,15 @@ export default function Register() {
         api.get('/register/options')
             .then(({ data }) => {
                 setOptions(data);
-                const preferred = data.plans.find((p) => p.is_default) || data.plans[0];
-                if (preferred) setValues((v) => ({ ...v, plan_id: preferred.id }));
+                // Start the person on the free ladder rung of each product; they can change it.
+                const starter = (product) => data.plans.find((p) => p.product === product && p.price_cents === 0);
+                const tms = starter('tms');
+                const hrms = starter('hrms');
+                if (tms || hrms) setValues((v) => ({ ...v, tms_plan_id: tms?.id ?? '', hrms_plan_id: hrms?.id ?? '' }));
+                else {
+                    const preferred = data.plans.find((p) => p.is_default) || data.plans[0];
+                    if (preferred) setValues((v) => ({ ...v, plan_id: preferred.id }));
+                }
             })
             .catch(() => setClosed(true));
     }, []);
@@ -51,6 +58,7 @@ export default function Register() {
                     name: values.admin_name, email: values.admin_email, password, password_confirmation: confirmation,
                     business_name: values.name, slug: values.slug || undefined, industry: values.industry,
                     company_size: values.company_size, country: values.country, plan_id: values.plan_id || undefined,
+                    tms_plan_id: values.tms_plan_id || undefined, hrms_plan_id: values.hrms_plan_id || undefined,
                 });
                 window.location.href = data.url;
                 return;
@@ -66,6 +74,8 @@ export default function Register() {
                 company_size: values.company_size,
                 country: values.country,
                 plan_id: values.plan_id || undefined,
+                tms_plan_id: values.tms_plan_id || undefined,
+                hrms_plan_id: values.hrms_plan_id || undefined,
                 start_trial: Boolean(values.start_trial),
                 payment_method: values.payment_method || undefined,
             });

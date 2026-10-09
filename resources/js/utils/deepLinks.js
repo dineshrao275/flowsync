@@ -54,7 +54,10 @@ export function payrollRunUrl(runId) {
  * platform overview instead.
  */
 export function homeRouteFor(user) {
-    return user?.is_super_admin && !user?.impersonating ? '/admin' : '/dashboard';
+    if (user?.is_super_admin && !user?.impersonating) return '/admin';
+    // An HR-only tenant has no task dashboard: land on the HR hub instead.
+    if (user?.products && user.products.tms === false && user.products.hrms !== false) return '/hrms';
+    return '/dashboard';
 }
 
 /**

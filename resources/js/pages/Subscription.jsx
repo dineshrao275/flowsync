@@ -86,6 +86,7 @@ export default function Subscription() {
     const [modules, setModules] = useState(null);
     const [modulesAvailable, setModulesAvailable] = useState([]);
     const [plans, setPlans] = useState([]);
+    const [subscriptions, setSubscriptions] = useState([]);
     const [payments, setPayments] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
@@ -108,6 +109,7 @@ export default function Subscription() {
                 api.get('/billing/history').catch(() => ({ data: { payments: [] } })),
             ]);
             setSubscription(subRes.data.subscription);
+            setSubscriptions(subRes.data.subscriptions || []);
             setTenant(subRes.data.tenant);
             setEvents(subRes.data.events || []);
             setUsage(usageRes.data.usage || {});
@@ -209,13 +211,13 @@ export default function Subscription() {
         await run(() => api.post('/my-subscription/switch', { plan_id: plan.id }), `Switched to ${plan.name}.`);
     }
 
-    async function cancel() {
+    async function cancel(product) {
         if (!window.confirm('Cancel the subscription at the end of the current period?')) return;
-        await run(() => api.post('/my-subscription/cancel'), 'Subscription canceled.');
+        await run(() => api.post('/my-subscription/cancel', product ? { product } : {}), 'Subscription canceled.');
     }
 
-    async function renew() {
-        await run(() => api.post('/my-subscription/renew'), 'Subscription renewed.');
+    async function renew(product) {
+        await run(() => api.post('/my-subscription/renew', product ? { product } : {}), 'Subscription renewed.');
     }
 
     if (loading) {
@@ -235,6 +237,12 @@ export default function Subscription() {
     }
 
     const plan = subscription?.plan;
+    const onBundle = subscriptions.some((x) => x.product === 'suite' && x.status !== 'ended');
+    const perProduct = subscriptions.filter((x) => x.product !== 'suite' && x.status !== 'ended');
+    const currentPlanIds = subscriptions.map((x) => x.plan?.id);
+    // A bundle tenant compares bundles; everyone else compares the per-product ladders.
+    const visiblePlans = plans.filter((p) => (onBundle ? (p.product ?? 'suite') === 'suite' : (p.product ?? 'suite') !== 'suite' || subscriptions.length === 0));
+    const PRODUCT_NAMES = { tms: 'Task Management', hrms: 'HR Management', suite: 'Bundle' };
     const endDate = subscription?.trial_ends_at || subscription?.current_period_end;
     const includedModules = modules || plan?.limits?.modules || [];
     const excludedModules = modulesAvailable.filter((m) => !includedModules.includes(m));
@@ -301,6 +309,42 @@ export default function Subscription() {
                 )}
             </section>
 
+            {!onBundle && (
+                <section>
+                    <h3 className="mb-2 text-sm font-semibold text-gray-900">Your products</h3>
+                    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                        {['tms', 'hrms'].map((prod) => {
+                            const sub = perProduct.find((x) => x.product === prod);
+                            return (
+                                <div key={prod} className="rounded-xl border border-gray-200 bg-white p-4">
+                                    <div className="flex items-center justify-between">
+                                        <p className="font-semibold text-gray-900">{PRODUCT_NAMES[prod]}</p>
+                                        {sub ? <Badge>{sub.status.replace('_', ' ')}</Badge> : <Badge>not subscribed</Badge>}
+                                    </div>
+                                    {sub ? (
+                                        <>
+                                            <p className="mt-1 text-sm text-gray-700">{sub.plan?.name}</p>
+                                            <p className="text-xs text-gray-500">
+                                                {sub.trial_ends_at ? `Trial ends ${formatDate(sub.trial_ends_at)}` : sub.current_period_end ? `${sub.auto_renew ? 'Renews' : 'Ends'} ${formatDate(sub.current_period_end)}` : ''}
+                                            </p>
+                                            {canManage && (
+                                                <div className="mt-3 flex gap-2">
+                                                    {sub.status === 'canceled' || sub.status === 'expired'
+                                                        ? <Button size="sm" onClick={() => renew(prod)} loading={action}>Renew</Button>
+                                                        : sub.status !== 'past_due' && <Button size="sm" variant="danger" onClick={() => cancel(prod)} loading={action}>Cancel</Button>}
+                                                </div>
+                                            )}
+                                        </>
+                                    ) : (
+                                        <p className="mt-1 text-sm text-gray-500">Not part of your subscription — pick a plan below to add it.</p>
+                                    )}
+                                </div>
+                            );
+                        })}
+                    </div>
+                </section>
+            )}
+
             {subscription && (
                 <section>
                     <h3 className="mb-2 text-sm font-semibold text-gray-900">Usage</h3>
@@ -362,8 +406,8 @@ export default function Subscription() {
 
             <section>
                 <h3 className="mb-3 text-lg font-bold text-gray-900">Compare plans</h3>
-                {plans.length === 0 && <Alert>No plans are currently available.</Alert>}
-                {plans.length > 0 && (
+                {visiblePlans.length === 0 && <Alert>No plans are currently available.</Alert>}
+                {visiblePlans.length > 0 && (
                     <Table>
                         <thead>
                             <tr>
@@ -376,13 +420,14 @@ export default function Subscription() {
                             </tr>
                         </thead>
                         <tbody>
-                            {plans.map((p) => {
-                                const isCurrent = plan?.id === p.id;
+                            {visiblePlans.map((p) => {
+                                const isCurrent = currentPlanIds.includes(p.id);
 
                                 return (
                                     <tr key={p.id} className="transition-colors duration-150 hover:bg-gray-50/60">
                                         <Td>
                                             <span className="font-medium text-gray-900">{p.name}</span>
+                                            {p.product && p.product !== 'suite' && <span className="ml-2"><Badge>{PRODUCT_NAMES[p.product]}</Badge></span>}
                                             {p.is_default && <span className="ml-2"><Badge>default</Badge></span>}
                                             <span className="mt-0.5 block text-xs text-gray-500">
                                                 {p.description || 'No description'}

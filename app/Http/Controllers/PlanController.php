@@ -55,6 +55,11 @@ class PlanController extends Controller
     {
         $data = $this->validateData($request, $plan);
 
+        // The product is what subscriptions are keyed on; it cannot change under them.
+        if (isset($data['product']) && $data['product'] !== ($plan->product ?? 'suite') && $plan->subscriptions()->exists()) {
+            abort(422, 'A plan that tenants are subscribed to cannot change product.');
+        }
+
         $plan->update([
             ...$data,
             'limits' => $this->cleanResourceLimits($data['limits'] ?? null),
@@ -92,6 +97,7 @@ class PlanController extends Controller
                 'required', 'string', 'max:255', 'alpha_dash',
                 Rule::unique('subscription_plans', 'slug')->ignore($plan),
             ],
+            'product' => ['nullable', Rule::in(['suite', 'tms', 'hrms'])],
             'description' => ['nullable', 'string', 'max:1000'],
             'is_active' => ['nullable', 'boolean'],
             'is_default' => ['nullable', 'boolean'],

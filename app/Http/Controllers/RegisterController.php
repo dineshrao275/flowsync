@@ -41,7 +41,7 @@ class RegisterController extends Controller
 
         return response()->json([
             'plans' => SubscriptionPlan::where('is_active', true)->orderBy('sort_order')->orderBy('id')
-                ->get(['id', 'name', 'slug', 'description', 'price_cents', 'currency', 'billing_cycle', 'trial_duration_days', 'is_default']),
+                ->get(['id', 'name', 'slug', 'description', 'price_cents', 'currency', 'billing_cycle', 'trial_duration_days', 'is_default', 'product']),
             'trial_days' => (int) config('onboarding.trial_days', 14),
             'require_card_for_trial' => (bool) config('onboarding.require_card_for_trial') && $this->payments->canCaptureCard(new Tenant),
         ]);
@@ -66,8 +66,11 @@ class RegisterController extends Controller
 
         $slug = $this->uniqueSlug(Str::slug($data['slug'] ?? Str::limit($data['business_name'], 40, '')));
 
-        $planId = $data['plan_id']
-            ?? SubscriptionPlan::query()->where('is_default', true)->where('is_active', true)->value('id');
+        $productPlans = array_filter(['tms_plan_id' => $data['tms_plan_id'] ?? null, 'hrms_plan_id' => $data['hrms_plan_id'] ?? null]);
+        $planId = $data['plan_id'] ?? null;
+        if (! $planId && ! $productPlans) {
+            $planId = SubscriptionPlan::query()->where('is_default', true)->where('is_active', true)->value('id');
+        }
 
         // Same intake as the Super Admin wizard: the registrant is the contact,
         // the billing contact and the default user, and the database is only
@@ -88,6 +91,7 @@ class RegisterController extends Controller
             'admin_name' => $data['name'],
             'admin_email' => $email,
             'plan_id' => $planId,
+            ...$productPlans,
             'start_trial' => $data['start_trial'] ?? true,
             'payment_method' => $data['payment_method'] ?? null,
         ]);

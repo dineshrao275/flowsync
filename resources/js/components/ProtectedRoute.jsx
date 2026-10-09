@@ -6,8 +6,8 @@ import { useAuth } from '../context/AuthContext';
 // with nested children → `<Outlet/>`) and as a wrapper around a leaf page
 // (`element={<ProtectedRoute permission=…><Page/></ProtectedRoute>}`). A leaf has
 // no child route, so an unconditional `<Outlet/>` rendered a blank page.
-export default function ProtectedRoute({ permission, module, children }) {
-    const { user, loading, can, hasModule } = useAuth();
+export default function ProtectedRoute({ permission, module, product, children }) {
+    const { user, loading, can, hasModule, hasProduct } = useAuth();
     const location = useLocation();
 
     if (loading) {
@@ -27,6 +27,10 @@ export default function ProtectedRoute({ permission, module, children }) {
         // bare "Access denied" sends an admin hunting for a route-level rule
         // that the sidebar already implied the user had.
         return <Navigate to="/403" state={{ permission }} replace />;
+    }
+
+    if (product && !hasProduct(product)) {
+        return <Navigate to="/module-denied" state={{ module: product }} replace />;
     }
 
     if (module && !hasModule(module)) {

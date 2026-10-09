@@ -54,7 +54,7 @@ class MySubscriptionController extends Controller
         return response()->json([
             'usage' => $usage,
             'limits' => $this->limits->effective($tenant),
-            'modules' => $this->limits->limit($tenant, 'modules'),
+            'modules' => $this->limits->visibleModules($tenant),
             'modules_available' => config('subscriptions.modules', []),
         ]);
     }
@@ -71,7 +71,7 @@ class MySubscriptionController extends Controller
         $plan = SubscriptionPlan::find($data['plan_id']);
         abort_unless($plan, 422, 'Unknown plan.');
 
-        if ($tenant->subscription?->plan_id === $plan->id) {
+        if ($tenant->subscriptionFor($plan->product ?? 'suite')?->plan_id === $plan->id) {
             return response()->json([
                 'message' => 'Already subscribed to this plan.',
                 ...$this->payload($tenant),
@@ -99,8 +99,9 @@ class MySubscriptionController extends Controller
         // id as subscription_events.actor_id (FK → system users). Omitting the
         // actor keeps the audit event write safe; the tenant is implicit.
         // Stop the provider from billing the next period before we say so locally.
-        $this->payments->setProviderCancelAtPeriodEnd($tenant, true);
-        $this->subscriptions->cancel($tenant);
+        $product = $this->product($request);
+        $this->payments->setProviderCancelAtPeriodEnd($tenant, true, $product);
+        $this->subscriptions->cancel($tenant, null, $product);
 
         return response()->json(['message' => 'Subscription canceled.', ...$this->payload($tenant)]);
     }
@@ -110,10 +111,17 @@ class MySubscriptionController extends Controller
         $tenant = $this->currentTenant();
         $this->authorizeAdmin($request);
 
-        $this->payments->setProviderCancelAtPeriodEnd($tenant, false);
-        $this->subscriptions->renew($tenant);
+        $product = $this->product($request);
+        $this->payments->setProviderCancelAtPeriodEnd($tenant, false, $product);
+        $this->subscriptions->renew($tenant, null, $product);
 
         return response()->json(['message' => 'Subscription renewed.', ...$this->payload($tenant)]);
+    }
+
+    /** Which product's subscription an action is about; none = the primary one (older clients). */
+    private function product(Request $request): ?string
+    {
+        return $request->validate(['product' => ['nullable', 'in:suite,tms,hrms']])['product'] ?? null;
     }
 
     private function authorizeAdmin(Request $request): void
@@ -164,7 +172,7 @@ class MySubscriptionController extends Controller
 
     private function payload(Tenant $tenant): array
     {
-        $tenant->load('subscription.plan');
+        $tenant->load('subscription.plan', 'subscriptions.plan');
         $subscription = $tenant->subscription;
 
         $events = $tenant->subscriptionEvents()
@@ -182,6 +190,22 @@ class MySubscriptionController extends Controller
             ]);
 
         return [
+            // One entry per product the tenant pays for (a legacy bundle shows as `suite`).
+            'subscriptions' => $tenant->subscriptions->map(fn ($s) => [
+                'id' => $s->id,
+                'product' => $s->product,
+                'status' => $s->status,
+                'plan' => $s->plan?->only(['id', 'name', 'slug', 'description', 'billing_cycle', 'price_cents', 'currency', 'trial_duration_days', 'limits', 'product']),
+                'current_period_end' => $s->current_period_end?->toIso8601String(),
+                'trial_ends_at' => $s->trial_ends_at?->toIso8601String(),
+                'canceled_at' => $s->canceled_at?->toIso8601String(),
+                'auto_renew' => $s->auto_renew,
+                'billing_provider' => $s->billing_provider,
+            ])->values(),
+            'products' => [
+                'tms' => $this->limits->productEnabled($tenant, 'tms'),
+                'hrms' => $this->limits->productEnabled($tenant, 'hrms'),
+            ],
             'subscription' => $subscription ? [
                 'id' => $subscription->id,
                 'status' => $subscription->status,

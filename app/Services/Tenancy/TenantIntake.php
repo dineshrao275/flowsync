@@ -38,6 +38,8 @@ class TenantIntake
 
     public const ADMIN_FIELDS = ['admin_name', 'admin_email'];
 
+    public const PLAN_FIELDS = ['plan_id', 'tms_plan_id', 'hrms_plan_id'];
+
     /**
      * @return array<string, array<int, mixed>>
      */
@@ -65,7 +67,10 @@ class TenantIntake
                 'admin_email' => ['required', 'string', 'email', 'max:255', $this->emailIsFree()],
             ],
             'plan' => [
-                'plan_id' => ['required', 'integer', Rule::exists('subscription_plans', 'id')->where('is_active', true)],
+                // A legacy bundle, or one plan per product — at least one is required (checked in state()).
+                'plan_id' => ['nullable', 'integer', Rule::exists('subscription_plans', 'id')->where('is_active', true)->where('product', 'suite')],
+                'tms_plan_id' => ['nullable', 'integer', Rule::exists('subscription_plans', 'id')->where('is_active', true)->where('product', 'tms')],
+                'hrms_plan_id' => ['nullable', 'integer', Rule::exists('subscription_plans', 'id')->where('is_active', true)->where('product', 'hrms')],
                 'start_trial' => ['nullable', 'boolean'],
                 // Set by the card-capture flow, never trusted from a client.
                 'payment_method' => ['nullable', 'string', 'max:255'],
@@ -91,7 +96,7 @@ class TenantIntake
 
         $meta = $tenant->onboarding_meta ?? [];
         $intake = $meta['intake'] ?? [];
-        foreach ([...self::ADMIN_FIELDS, 'plan_id', 'start_trial', 'payment_method'] as $key) {
+        foreach ([...self::ADMIN_FIELDS, ...self::PLAN_FIELDS, 'start_trial', 'payment_method'] as $key) {
             if (array_key_exists($key, $data)) {
                 $intake[$key] = $key === 'admin_email' ? Str::lower((string) $data[$key]) : $data[$key];
             }
@@ -118,7 +123,7 @@ class TenantIntake
         $required = [
             'business' => self::BUSINESS_FIELDS,
             'admin' => self::ADMIN_FIELDS,
-            'plan' => ['plan_id'],
+            'plan' => [],
         ];
         if ($this->cardRequired($intake)) {
             $required['plan'][] = 'payment_method';
@@ -128,12 +133,16 @@ class TenantIntake
         $missing = [];
         foreach ($required as $step => $fields) {
             $gaps = array_values(array_filter($fields, fn (string $f): bool => blank($get($f))));
+            // The plan step needs a bundle plan OR at least one per-product plan.
+            if ($step === 'plan' && collect(self::PLAN_FIELDS)->every(fn (string $f): bool => blank($get($f)))) {
+                $gaps[] = 'plan_id';
+            }
             $steps[$step] = ['complete' => $gaps === [], 'missing' => $gaps];
             $missing = [...$missing, ...$gaps];
         }
 
         $values = [];
-        foreach ([...self::BUSINESS_FIELDS, ...self::BUSINESS_OPTIONAL, ...self::ADMIN_FIELDS, 'plan_id', 'start_trial', 'payment_method'] as $key) {
+        foreach ([...self::BUSINESS_FIELDS, ...self::BUSINESS_OPTIONAL, ...self::ADMIN_FIELDS, ...self::PLAN_FIELDS, 'start_trial', 'payment_method'] as $key) {
             $values[$key] = $get($key);
         }
 

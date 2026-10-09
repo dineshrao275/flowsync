@@ -48,9 +48,15 @@ class TenantActivation
         $tenant->update(['trial_ends_at' => $trialDays ? now()->addDays($trialDays) : null]);
         $this->lifecycle->transition($tenant, Tenant::STATUS_PENDING);
 
+        if (! empty($values['plan_id']) && (! empty($values['tms_plan_id']) || ! empty($values['hrms_plan_id']))) {
+            throw ValidationException::withMessages(['plan_id' => 'Choose a bundle plan or per-product plans, not both.']);
+        }
+
+        $planIds = collect(TenantIntake::PLAN_FIELDS)->map(fn (string $f) => $values[$f] ?? null)->filter()->map(fn ($id) => (int) $id)->values();
+
         $job = new ProvisionTenantJob(
             $tenant,
-            (int) $values['plan_id'],
+            $planIds->first(),
             $trialDays ?? 0, // 0 = no trial, even when the plan has a default one
             [
                 'name' => $values['admin_name'],
@@ -58,6 +64,7 @@ class TenantActivation
                 'password_hash' => $passwordHash,
             ],
             ($values['payment_method'] ?? null) ?: null,
+            $planIds->slice(1)->values()->all(),
         );
 
         $synchronous ? Bus::dispatchSync($job) : Bus::dispatch($job);

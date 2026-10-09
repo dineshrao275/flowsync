@@ -147,7 +147,7 @@ function AppRoutes() {
                                 dashboard endpoints 403 — send them to the platform overview. */}
                             <Route
                                 path="/dashboard"
-                                element={userIsSuperAdmin ? <Navigate to={homeRouteFor(user)} replace /> : <Dashboard />}
+                                element={homeRouteFor(user) !== '/dashboard' ? <Navigate to={homeRouteFor(user)} replace /> : <Dashboard />}
                             />
                         </Route>
                         <Route path="/notifications" element={<Notifications />} />
@@ -168,16 +168,16 @@ function AppRoutes() {
                         <Route element={<ProtectedRoute module="hrms.core" />}>
                             <Route path="/my" element={<MyHr />} />
                         </Route>
-                        <Route element={<ProtectedRoute permission="workspaces.view" />}>
+                        <Route element={<ProtectedRoute permission="workspaces.view" product="tms" />}>
                             <Route path="/workspaces" element={<Workspaces />} />
                             <Route path="/workspaces/:workspaceId" element={<WorkspaceDetail />} />
                             <Route path="/projects" element={<Projects />} />
                             <Route path="/projects/:projectId" element={<ProjectDetail />} />
                         </Route>
-                        <Route element={<ProtectedRoute permission="workspaces.view" module="global_search" />}>
+                        <Route element={<ProtectedRoute permission="workspaces.view" product="tms" module="global_search" />}>
                             <Route path="/search" element={<Search />} />
                         </Route>
-                        <Route element={<ProtectedRoute permission="reports.view" module="reports" />}>
+                        <Route element={<ProtectedRoute permission="reports.view" product="tms" module="reports" />}>
                             <Route path="/reports" element={<Reports />} />
                         </Route>
                         <Route element={<ProtectedRoute module="hrms.core" />}>

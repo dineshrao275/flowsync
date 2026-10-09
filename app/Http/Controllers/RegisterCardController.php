@@ -50,7 +50,11 @@ class RegisterCardController extends Controller
             throw ValidationException::withMessages(['email' => 'An account with this email already exists.']);
         }
 
-        $planId = $data['plan_id'] ?? SubscriptionPlan::where('is_default', true)->where('is_active', true)->value('id');
+        $productPlans = array_filter(['tms_plan_id' => $data['tms_plan_id'] ?? null, 'hrms_plan_id' => $data['hrms_plan_id'] ?? null]);
+        $planId = $data['plan_id'] ?? null;
+        if (! $planId && ! $productPlans) {
+            $planId = SubscriptionPlan::where('is_default', true)->where('is_active', true)->value('id');
+        }
         $token = Str::random(48);
 
         $tenant = Tenant::create([
@@ -63,7 +67,7 @@ class RegisterCardController extends Controller
             'industry' => $data['industry'], 'company_size' => $data['company_size'], 'country' => $data['country'],
             'billing_email' => $email, 'contact_name' => $data['name'], 'contact_email' => $email,
             'admin_name' => $data['name'], 'admin_email' => $email, 'plan_id' => $planId, 'start_trial' => true,
-        ]);
+        ] + $productPlans);
         $meta = $tenant->onboarding_meta;
         $meta['intake'] += ['source' => 'register', 'card_token' => $token, 'password_hash' => Hash::make($data['password'])];
         $tenant->update(['onboarding_meta' => $meta]);

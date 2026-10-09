@@ -139,4 +139,56 @@ class ProductPlansTest extends TestCase
         // A TMS plan id in the HRMS slot is refused.
         $this->postJson("/api/tenants/{$acme->id}/subscription/split", ['hrms_plan_id' => $this->plan('tms-starter')->id])->assertUnprocessable();
     }
+
+    public function test_a_hand_made_tenant_can_start_on_one_plan_per_product(): void
+    {
+        $this->login('superadmin@flowsync.test');
+        $id = $this->postJson('/api/tenants', ['name' => 'Split Co', 'slug' => 'split-co'])->assertCreated()->json('tenant.id');
+        $this->putJson("/api/tenants/{$id}/intake", [
+            'industry' => 'Software', 'company_size' => '11-50', 'country' => 'IN', 'billing_email' => 'b@split.test',
+            'contact_name' => 'C', 'contact_email' => 'c@split.test', 'admin_name' => 'Ada', 'admin_email' => 'ada@split.test',
+            'tms_plan_id' => $this->plan('tms-professional')->id, 'hrms_plan_id' => $this->plan('hrms-starter')->id, 'start_trial' => false,
+        ])->assertOk()->assertJsonPath('intake.complete', true);
+
+        $this->postJson("/api/tenants/{$id}/intake/submit", ['admin_password' => 'password123', 'admin_password_confirmation' => 'password123'])->assertStatus(202);
+
+        $tenant = Tenant::findOrFail($id);
+        $this->assertSame(['hrms', 'tms'], $tenant->subscriptions()->orderBy('product')->pluck('product')->all());
+        $this->assertSame('tms', $tenant->subscription()->first()->product); // primary: TMS before HRMS
+        $this->assertSame($tenant->subscription()->first()->id, $tenant->subscription_id);
+    }
+
+    public function test_a_bundle_and_a_product_plan_together_are_refused(): void
+    {
+        $this->login('superadmin@flowsync.test');
+        $id = $this->postJson('/api/tenants', ['name' => 'Mixed Co', 'slug' => 'mixed-co'])->assertCreated()->json('tenant.id');
+        $this->putJson("/api/tenants/{$id}/intake", [
+            'industry' => 'Software', 'company_size' => '11-50', 'country' => 'IN', 'billing_email' => 'b@mixed.test',
+            'contact_name' => 'C', 'contact_email' => 'c@mixed.test', 'admin_name' => 'Max', 'admin_email' => 'max@mixed.test',
+            'plan_id' => $this->plan('pro')->id, 'hrms_plan_id' => $this->plan('hrms-starter')->id,
+        ])->assertOk();
+
+        $this->postJson("/api/tenants/{$id}/intake/submit", ['admin_password' => 'password123', 'admin_password_confirmation' => 'password123'])
+            ->assertUnprocessable()->assertJsonValidationErrors('plan_id');
+        $this->assertFalse(Tenant::findOrFail($id)->isProvisioned());
+    }
+
+    public function test_an_intake_needs_at_least_one_plan(): void
+    {
+        $this->login('superadmin@flowsync.test');
+        $id = $this->postJson('/api/tenants', ['name' => 'Planless', 'slug' => 'planless'])->assertCreated()->json('tenant.id');
+
+        $this->assertContains('plan_id', $this->getJson("/api/tenants/{$id}/intake")->json('intake.missing'));
+    }
+
+    public function test_the_session_payload_reports_which_products_the_tenant_has(): void
+    {
+        app(SubscriptionService::class)->assign($this->acme(), $this->plan('hrms-professional'));
+        $this->login('admin@flowsync.test');
+
+        $user = $this->getJson('/api/auth/me')->assertOk()->json('user');
+        $this->assertSame(['tms' => false, 'hrms' => true], $user['products']);
+        $this->assertContains('hrms.leave', $user['modules']);
+        $this->assertNotContains('reports', $user['modules']);
+    }
 }

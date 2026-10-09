@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import LimitsEditor from '../components/billing/LimitsEditor';
+import ProductsPanel from '../components/tenant/ProductsPanel';
 import api, { fieldErrors } from '../services/api';
 import Card from '../components/ui/Card';
 import Badge from '../components/ui/Badge';
@@ -111,7 +112,6 @@ export default function TenantDetail() {
     const [basicErrors, setBasicErrors] = useState({});
     const [basicForm, setBasicForm] = useState({ name: '', slug: '', description: '', limits_override: null });
     const [defaultUser, setDefaultUser] = useState(null);
-    const [subscription, setSubscription] = useState(null);
 
     useEffect(() => {
         setCrumbs([{ label: 'Tenants', to: '/tenants' }, { label: tenant?.name || 'Tenant' }]);
@@ -140,7 +140,6 @@ export default function TenantDetail() {
         api.get(`/tenants/${tenantId}`)
             .then(({ data }) => {
                 setDefaultUser(data.default_user);
-                setSubscription(data.subscription);
             })
             .catch(() => {});
     }, [tenantId]);
@@ -278,22 +277,7 @@ export default function TenantDetail() {
                                 <p className="text-sm text-gray-400">No default user yet.</p>
                             )}
                         </Card>
-                        <Card title="Subscription" subtitle="Plan this tenant is on.">
-                            {subscription ? (
-                                <div className="space-y-1 text-sm">
-                                    <p className="font-medium text-gray-800">{subscription.plan?.name}</p>
-                                    <p className="text-gray-500 capitalize">{subscription.status}</p>
-                                    {subscription.trial_ends_at && (
-                                        <p className="text-gray-500">Trial ends {new Date(subscription.trial_ends_at).toLocaleDateString()}</p>
-                                    )}
-                                    {subscription.current_period_end && (
-                                        <p className="text-gray-500">Renews {new Date(subscription.current_period_end).toLocaleDateString()}</p>
-                                    )}
-                                </div>
-                            ) : (
-                                <p className="text-sm text-gray-400">No subscription.</p>
-                            )}
-                        </Card>
+                        <ProductsPanel tenantId={tenantId} onChanged={() => api.get(`/tenants/${tenantId}`).then(({ data }) => setDefaultUser(data.default_user)).catch(() => {})} />
                     </div>
 
                     <div className="mt-6 space-y-3 rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm">

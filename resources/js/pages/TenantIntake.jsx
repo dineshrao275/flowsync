@@ -10,7 +10,7 @@ import usePageTitle from '../hooks/usePageTitle';
 const EMPTY = {
     name: '', slug: '', industry: '', company_size: '', country: '',
     billing_email: '', contact_name: '', contact_email: '',
-    admin_name: '', admin_email: '', plan_id: '', start_trial: true, payment_method: '',
+    admin_name: '', admin_email: '', plan_id: '', tms_plan_id: '', hrms_plan_id: '', start_trial: true, payment_method: '',
 };
 
 /**
