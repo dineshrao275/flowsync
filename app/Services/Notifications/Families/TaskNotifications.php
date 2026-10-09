@@ -109,6 +109,15 @@ class TaskNotifications extends BaseNotificationFamily
         return ['notifications' => $sent, 'truncated' => $truncated];
     }
 
+    /**
+     * Whether a comment names more people than one comment may notify, so the
+     * author can be warned that the overflow is dropped.
+     */
+    public function mentionsTruncated(string $text): bool
+    {
+        return $this->mentionUsers($text)->count() > TaskNotificationMail::MAX_MENTIONS_PER_COMMENT;
+    }
+
     public function taskUnblocked(User $actor, Task $task, ?Task $blocker = null): ?UserNotification
     {
         $watcherIds = $task->relationLoaded('watchers')

@@ -1,6 +1,7 @@
 <?php
 
 use App\Services\Events\Consumers\AutomationConsumer;
+use App\Services\Events\Consumers\NotificationConsumer;
 use App\Services\Events\Consumers\WebhookConsumer;
 
 /*
@@ -26,6 +27,10 @@ return [
         'automation' => [
             'class' => AutomationConsumer::class,
             'patterns' => ['task.*'],
+        ],
+        'notifications' => [
+            'class' => NotificationConsumer::class,
+            'patterns' => ['task.created', 'task.updated', 'task.moved', 'task.commented', 'task.work_logged', 'task.dependency_deleted'],
         ],
     ],
 

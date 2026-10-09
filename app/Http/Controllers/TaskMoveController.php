@@ -6,7 +6,6 @@ use App\Events\TaskSynced;
 use App\Models\Project;
 use App\Models\Task;
 use App\Services\ActivityLogger;
-use App\Services\NotificationService;
 use App\Services\TaskService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -16,7 +15,6 @@ class TaskMoveController extends Controller
     public function __construct(
         private readonly TaskService $service,
         private readonly ActivityLogger $logger,
-        private readonly NotificationService $notifications,
     ) {}
 
     public function move(Request $request, Project $project, Task $task): JsonResponse
@@ -31,15 +29,6 @@ class TaskMoveController extends Controller
         $oldStatusId = $task->status_id;
         $oldStatus = $task->status;
         $moved = $this->service->move($task, $data['status_id'], $data['index'] ?? null);
-
-        if ($moved->status_id !== $oldStatusId) {
-            $this->notifications->taskStatusChanged(
-                $request->user(),
-                $moved,
-                $oldStatus?->name ?? 'Unknown',
-                $moved->status?->name ?? 'Unknown',
-            );
-        }
 
         $this->logger->log(
             subjectType: Task::class,

@@ -94,6 +94,11 @@ class NotificationService
         return $this->task->taskCommented($actor, $task, $comment);
     }
 
+    public function mentionsTruncated(string $text): bool
+    {
+        return $this->task->mentionsTruncated($text);
+    }
+
     public function taskUnblocked(User $actor, Task $task, ?Task $blocker = null): ?UserNotification
     {
         return $this->task->taskUnblocked($actor, $task, $blocker);
