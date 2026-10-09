@@ -7,6 +7,7 @@ use App\Billing\PaymentService;
 use App\Contracts\Notifications\NotificationSender;
 use App\Http\Middleware\EnsurePermission;
 use App\Listeners\SwitchesTenantConnectionForQueuedJobs;
+use App\Models\ApiToken;
 use App\Models\User;
 use App\Services\Notifications\NotificationDispatcher;
 use App\Services\ReportsTo;
@@ -14,7 +15,9 @@ use App\Services\TenantLimits;
 use App\Support\TenantContext;
 use App\Support\TenantDatabaseManager;
 use Illuminate\Auth\Access\Response;
+use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Foundation\Http\Events\RequestHandled;
+use Illuminate\Http\Request;
 use Illuminate\Queue\Events\JobExceptionOccurred;
 use Illuminate\Queue\Events\JobFailed;
 use Illuminate\Queue\Events\JobProcessed;
@@ -22,6 +25,7 @@ use Illuminate\Queue\Events\JobProcessing;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Queue;
+use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\ServiceProvider;
 use RuntimeException;
 
@@ -58,6 +62,16 @@ class AppServiceProvider extends ServiceProvider
             return $user->hasPermission($permission)
                 ? true
                 : Response::deny(EnsurePermission::denial($permission));
+        });
+
+        // Per-token throttle for /api/v1: the token's own limit, else the configured default.
+        RateLimiter::for('api-token', function (Request $request) {
+            $token = $request->attributes->get('api_token');
+            $limit = $token instanceof ApiToken
+                ? min((int) ($token->rate_limit ?: config('api.default_rate_limit')), (int) config('api.max_rate_limit'))
+                : (int) config('api.default_rate_limit');
+
+            return Limit::perMinute($limit)->by('api-token:'.($token?->id ?? $request->ip()));
         });
 
         $this->registerQueuedJobTenantContext();

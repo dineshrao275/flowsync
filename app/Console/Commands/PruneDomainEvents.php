@@ -2,14 +2,16 @@
 
 namespace App\Console\Commands;
 
+use App\Models\ApiIdempotencyKey;
 use App\Models\DomainEvent;
+use App\Models\IntegrationLog;
 use App\Models\Tenant;
 use App\Models\WebhookDelivery;
 use App\Support\TenantDatabaseManager;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Schema;
 
-/** Removes processed domain events and settled webhook deliveries past their retention. */
+/** Removes processed domain events, settled webhook deliveries, API integration logs and expired idempotency keys. */
 class PruneDomainEvents extends Command
 {
     protected $signature = 'events:prune {--all : every serviceable tenant}';
@@ -26,6 +28,10 @@ class PruneDomainEvents extends Command
             $dbm->using($tenant, function () use (&$events, &$deliveries): void {
                 if (Schema::hasTable('domain_events')) {
                     $events += DomainEvent::whereNotNull('processed_at')->where('processed_at', '<', now()->subDays((int) config('domain_events.retention_days', 30)))->delete();
+                }
+                if (Schema::hasTable('integration_logs')) {
+                    IntegrationLog::where('created_at', '<', now()->subDays((int) config('api.log_retention_days', 30)))->delete();
+                    ApiIdempotencyKey::where('created_at', '<', now()->subHours((int) config('api.idempotency_ttl_hours', 24)))->delete();
                 }
                 if (Schema::hasTable('webhook_deliveries')) {
                     $deliveries += WebhookDelivery::whereIn('status', ['delivered', 'failed'])->where('created_at', '<', now()->subDays((int) config('webhooks.retention_days', 30)))->delete();
