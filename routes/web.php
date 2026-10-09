@@ -102,6 +102,7 @@ use App\Http\Controllers\TenantController;
 use App\Http\Controllers\TenantHrmsController;
 use App\Http\Controllers\TenantSubscriptionController;
 use App\Http\Controllers\ThemeController;
+use App\Http\Controllers\UserAccessController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\WebhookController;
 use App\Http\Controllers\WorkLogController;
@@ -274,6 +275,8 @@ Route::prefix('api')->group(function () {
         Route::get('users', [UserController::class, 'index'])->middleware('permission:users.view');
         Route::post('users', [UserController::class, 'store'])->middleware(['permission:users.manage', 'throttle:30,1']);
         Route::put('users/{user}/roles', [UserController::class, 'updateRoles'])->middleware('permission:users.manage');
+        // "Why can't they?": which role/scope/plan-module link grants or blocks one permission.
+        Route::get('users/{user}/access', [UserAccessController::class, 'show'])->middleware('permission:roles.view');
         // The tenant's protected default user: shiftable by a tenant admin or a
         // super admin (onto another admin), and never deletable.
         Route::put('users/{user}/default', [UserController::class, 'makeDefault'])->middleware('permission:users.manage');
