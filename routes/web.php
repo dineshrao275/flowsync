@@ -435,6 +435,11 @@ Route::prefix('api')->group(function () {
             Route::post('projects/{project}/tasks/{task}/dependencies', [DependencyController::class, 'store']);
             Route::delete('projects/{project}/tasks/{task}/dependencies/{dependency}', [DependencyController::class, 'destroy']);
 
+            Route::get('projects/{project}/tasks/{task}/checklist', [TaskChecklistController::class, 'index']);
+            Route::post('projects/{project}/tasks/{task}/checklist', [TaskChecklistController::class, 'store']);
+            Route::put('projects/{project}/tasks/{task}/checklist/{item}', [TaskChecklistController::class, 'update']);
+            Route::delete('projects/{project}/tasks/{task}/checklist/{item}', [TaskChecklistController::class, 'destroy']);
+
             Route::get('projects/{project}/tasks/{task}/attachments', [AttachmentController::class, 'index']);
             Route::post('projects/{project}/tasks/{task}/attachments', [AttachmentController::class, 'store']);
             Route::delete('projects/{project}/tasks/{task}/attachments/{attachment}', [AttachmentController::class, 'destroy']);

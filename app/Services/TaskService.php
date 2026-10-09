@@ -618,6 +618,8 @@ class TaskService
             'comments_count' => $task->comments_count ?? 0,
             'attachments_count' => $task->attachments_count ?? 0,
             'open_blockers_count' => $task->open_blockers_count ?? 0,
+            'checklist_done_count' => $task->checklistItems()->where('is_done', true)->count(),
+            'checklist_total' => $task->checklistItems()->count(),
         ];
     }
 
