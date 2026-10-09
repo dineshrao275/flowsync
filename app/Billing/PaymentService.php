@@ -48,7 +48,7 @@ class PaymentService
 
         // Already paying through a recurring gateway: swap the price on the
         // existing subscription (prorated) — a second checkout would bill twice.
-        $providerSubscriptionId = $tenant->subscription?->provider_subscription_id;
+        $providerSubscriptionId = $tenant->subscriptionFor($plan->product ?? 'suite')?->provider_subscription_id;
         if ($providerSubscriptionId && $gateway instanceof RecurringGateway && $plan->price_cents > 0) {
             $gateway->changePlan($providerSubscriptionId, $plan, $currency);
             $this->subscriptions->switch($tenant, $plan, [
@@ -265,7 +265,7 @@ class PaymentService
                             'failure_reason' => $result->failureReason,
                             'payment_id' => $payment->id,
                         ],
-                    ]);
+                    ], null, SubscriptionPlan::find($payment->metadata['plan_id'] ?? 0)?->product);
                 }
             } elseif ($result->status === Payment::STATUS_REFUNDED) {
                 $payment->update([
@@ -357,7 +357,8 @@ class PaymentService
         }
 
         // Re-read: switch()/renew() may have just created or re-stamped the row.
-        $current = Subscription::where('tenant_id', $tenant->id)->first();
+        $current = Subscription::where('tenant_id', $tenant->id)
+            ->when($plan, fn ($q) => $q->where('product', $plan->product ?? 'suite'))->orderBy('id')->first();
         if ($providerSubscriptionId && $current) {
             $current->update([
                 'provider_subscription_id' => $providerSubscriptionId,
@@ -394,9 +395,9 @@ class PaymentService
     }
 
     /** After a card-backed sign-up: have the provider bill the plan when the trial ends. */
-    public function startProviderTrial(Tenant $tenant, string $paymentMethod, int $trialDays): void
+    public function startProviderTrial(Tenant $tenant, string $paymentMethod, int $trialDays, ?string $product = null): void
     {
-        $subscription = $tenant->subscription;
+        $subscription = $product ? $tenant->subscriptionFor($product) : $tenant->subscription;
         $gateway = $this->resolver->resolveForTenant($tenant);
         if (! $subscription?->plan || $subscription->plan->price_cents <= 0 || ! $gateway instanceof CardCaptureGateway) {
             return;
@@ -411,9 +412,9 @@ class PaymentService
     }
 
     /** Stop (or resume) renewal at the provider; a no-op for subscriptions it does not bill. */
-    public function setProviderCancelAtPeriodEnd(Tenant $tenant, bool $cancel): void
+    public function setProviderCancelAtPeriodEnd(Tenant $tenant, bool $cancel, ?string $product = null): void
     {
-        $subscription = $tenant->subscription;
+        $subscription = $product ? $tenant->subscriptionFor($product) : $tenant->subscription;
         $gateway = $subscription?->billing_provider ? $this->resolver->resolve($subscription->billing_provider) : null;
 
         if ($gateway instanceof RecurringGateway && $subscription->provider_subscription_id) {

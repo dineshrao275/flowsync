@@ -53,6 +53,7 @@ class Subscription extends Model
     public const EVENT_SEATS_CHANGED = 'seats_changed';
 
     protected $fillable = [
+        'product',
         'tenant_id',
         'plan_id',
         'status',

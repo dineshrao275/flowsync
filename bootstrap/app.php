@@ -4,6 +4,7 @@ use App\Http\Middleware\AssignRequestId;
 use App\Http\Middleware\EnsureModule;
 use App\Http\Middleware\EnsureOnboardingComplete;
 use App\Http\Middleware\EnsurePermission;
+use App\Http\Middleware\EnsureProduct;
 use App\Http\Middleware\EnsureSuperAdmin;
 use App\Http\Middleware\EnsureTenantContext;
 use App\Http\Middleware\SetTenantContext;
@@ -52,6 +53,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'super_admin' => EnsureSuperAdmin::class,
             'onboarding_complete' => EnsureOnboardingComplete::class,
             'ensure_module' => EnsureModule::class,
+            'ensure_product' => EnsureProduct::class,
         ]);
 
         // Middleware priority (Laravel SortedMiddleware) — the framework sorts the
@@ -75,6 +77,7 @@ return Application::configure(basePath: dirname(__DIR__))
             EnsurePermission::class,
             EnsureOnboardingComplete::class,
             EnsureModule::class,
+            EnsureProduct::class,
             ThrottleRequests::class,
             ThrottleRequestsWithRedis::class,
             AuthenticatesSessions::class,

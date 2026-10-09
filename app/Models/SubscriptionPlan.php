@@ -13,7 +13,24 @@ class SubscriptionPlan extends Model
     use CentralConnection;
     use HasFactory;
 
+    public const PRODUCT_SUITE = 'suite';
+
+    public const PRODUCT_TMS = 'tms';
+
+    public const PRODUCT_HRMS = 'hrms';
+
+    /** The products a plan of this kind makes available. @return list<string> */
+    public function covers(): array
+    {
+        return match ($this->product ?? self::PRODUCT_SUITE) {
+            self::PRODUCT_TMS => [self::PRODUCT_TMS],
+            self::PRODUCT_HRMS => [self::PRODUCT_HRMS],
+            default => [self::PRODUCT_TMS, self::PRODUCT_HRMS],
+        };
+    }
+
     protected $fillable = [
+        'product',
         'name',
         'slug',
         'description',

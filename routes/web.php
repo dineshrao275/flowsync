@@ -259,6 +259,8 @@ Route::prefix('api')->group(function () {
 
             Route::get('tenants/{tenant}/subscription', [TenantSubscriptionController::class, 'show']);
             Route::post('tenants/{tenant}/subscription', [TenantSubscriptionController::class, 'assign']);
+            Route::post('tenants/{tenant}/subscription/split', [TenantSubscriptionController::class, 'split']);
+            Route::put('tenants/{tenant}/products', [TenantSubscriptionController::class, 'products']);
             Route::post('tenants/{tenant}/subscription/trial', [TenantSubscriptionController::class, 'startTrial']);
             Route::post('tenants/{tenant}/subscription/cancel', [TenantSubscriptionController::class, 'cancel']);
             Route::post('tenants/{tenant}/subscription/renew', [TenantSubscriptionController::class, 'renew']);
@@ -315,7 +317,7 @@ Route::prefix('api')->group(function () {
         // Phase 1+: workspace management. Object-level authorization is
         // enforced by WorkspacePolicy (membership roles owner/admin/member);
         // 'tenant_context' rejects non-impersonating super admins.
-        Route::middleware('permission:workspaces.view')->group(function () {
+        Route::middleware(['permission:workspaces.view', 'ensure_product:tms'])->group(function () {
             Route::get('workspaces', [WorkspaceController::class, 'index']);
             Route::get('workspaces/{workspace}', [WorkspaceController::class, 'show']);
             Route::put('workspaces/{workspace}', [WorkspaceController::class, 'update']);
@@ -431,9 +433,9 @@ Route::prefix('api')->group(function () {
         // dashboard and reports are gated by their own tenant permissions.
         Route::get('search/tasks', [SearchController::class, 'tasks'])->middleware(['permission:workspaces.view', 'ensure_module:global_search']);
 
-        Route::get('dashboard', [DashboardController::class, '__invoke'])->middleware('permission:dashboard.view');
+        Route::get('dashboard', [DashboardController::class, '__invoke'])->middleware(['permission:dashboard.view', 'ensure_product:tms']);
 
-        Route::get('analytics/overview', [AnalyticsController::class, '__invoke'])->middleware('permission:dashboard.view');
+        Route::get('analytics/overview', [AnalyticsController::class, '__invoke'])->middleware(['permission:dashboard.view', 'ensure_product:tms']);
 
         Route::get('reports/overview', [ReportsController::class, 'overview'])->middleware(['permission:reports.view', 'ensure_module:reports']);
 

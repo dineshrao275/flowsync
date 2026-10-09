@@ -4,11 +4,14 @@ namespace App\Services;
 
 use App\Models\Hrms\Employee\Employee;
 use App\Models\Project;
+use App\Models\Subscription;
+use App\Models\SubscriptionPlan;
 use App\Models\Task;
 use App\Models\Tenant;
 use App\Models\User;
 use App\Models\Workspace;
 use App\Support\TenantContext;
+use Illuminate\Support\Collection;
 use Illuminate\Validation\ValidationException;
 
 /**
@@ -59,17 +62,93 @@ class TenantLimits
             return self::$memo[$key];
         }
 
-        $limits = [];
-
-        if ($subscription = $tenant->subscription) {
-            $limits = $subscription->plan?->limits ?? [];
-        }
+        $limits = $this->planLimits($tenant);
 
         if (! empty($tenant->limits_override)) {
             $limits = array_merge($limits, $tenant->limits_override);
         }
 
         return self::$memo[$key] = $limits;
+    }
+
+    /**
+     * Limits contributed by the tenant's subscriptions. One bundle (or one plan) is
+     * used as-is; per-product plans are merged: modules are the union, and a numeric
+     * key defined by several plans takes the most generous value (an explicit null =
+     * unlimited wins) — a key a plan simply does not mention says nothing.
+     *
+     * @return array<string, mixed>
+     */
+    private function planLimits(Tenant $tenant): array
+    {
+        $plans = $this->liveSubscriptions($tenant)->map(fn (Subscription $s) => $s->plan)->filter()->values();
+
+        if ($plans->count() <= 1) {
+            return $plans->first()?->limits ?? [];
+        }
+
+        $merged = [];
+        foreach ($plans as $plan) {
+            foreach ($plan->limits ?? [] as $key => $value) {
+                if ($key === 'modules') {
+                    $merged['modules'] = array_values(array_unique([...($merged['modules'] ?? []), ...(array) $value]));
+                } elseif (! array_key_exists($key, $merged)) {
+                    $merged[$key] = $value;
+                } elseif ($merged[$key] !== null) {
+                    $merged[$key] = $value === null ? null : max($merged[$key], $value);
+                }
+            }
+        }
+
+        return $merged;
+    }
+
+    /** The tenant's not-ended subscriptions with their plans — loaded once per Tenant instance, like the relation used to be. */
+    private function liveSubscriptions(Tenant $tenant): Collection
+    {
+        return $tenant->loadMissing('subscriptions.plan')->subscriptions
+            ->filter(fn (Subscription $s) => $s->status !== Subscription::STATUS_ENDED)->values();
+    }
+
+    /** Products the tenant's subscriptions cover; a tenant with none is unlimited (both). @return list<string> */
+    public function coveredProducts(Tenant $tenant): array
+    {
+        $subs = $this->liveSubscriptions($tenant);
+
+        if ($subs->isEmpty()) {
+            return [SubscriptionPlan::PRODUCT_TMS, SubscriptionPlan::PRODUCT_HRMS];
+        }
+
+        return $subs->flatMap(fn (Subscription $s) => $s->plan?->covers() ?? [])->unique()->values()->all();
+    }
+
+    /**
+     * Whether a whole product (`tms` or `hrms`) is on for this tenant. A super admin's
+     * `features_override.products.{product}` wins either way (off = hard stop, on = granted
+     * without a plan); otherwise the tenant's subscriptions decide.
+     */
+    public function productEnabled(Tenant $tenant, string $product): bool
+    {
+        $override = data_get($tenant->features_override, "products.{$product}");
+
+        if (is_bool($override)) {
+            return $override;
+        }
+
+        return in_array($product, $this->coveredProducts($tenant), true);
+    }
+
+    /**
+     * Which product a module key belongs to: `hrms.*` is HRMS; the task-side modules are
+     * TMS; `branding` and `export.full` are platform-wide (null — the plan list decides).
+     */
+    public static function productOfModule(string $module): ?string
+    {
+        return match (true) {
+            str_starts_with($module, 'hrms.') => SubscriptionPlan::PRODUCT_HRMS,
+            in_array($module, ['branding', 'export.full'], true) => null,
+            default => SubscriptionPlan::PRODUCT_TMS,
+        };
     }
 
     /**
@@ -94,6 +173,12 @@ class TenantLimits
      */
     public function hasModule(Tenant $tenant, string $module): bool
     {
+        // A switched-off product takes all of its modules with it, whatever else says.
+        $product = self::productOfModule($module);
+        if ($product !== null && ! $this->productEnabled($tenant, $product)) {
+            return false;
+        }
+
         $override = $this->moduleOverride($tenant, $module);
 
         if ($override !== null) {
@@ -276,7 +361,7 @@ class TenantLimits
     {
         return implode(':', [
             (string) $tenant->id,
-            (string) ($tenant->subscription?->plan_id ?? 'none'),
+            $this->liveSubscriptions($tenant)->map(fn (Subscription $s) => $s->product.':'.$s->plan_id)->implode(',').json_encode(data_get($tenant->features_override, 'products')),
             md5((string) json_encode($tenant->limits_override ?? [])),
         ]);
     }

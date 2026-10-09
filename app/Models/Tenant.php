@@ -128,9 +128,20 @@ class Tenant extends Model
         return $this->hasMany(TenantUserRouting::class);
     }
 
+    /**
+     * The primary subscription: the legacy bundle if there is one, else TMS, else
+     * HRMS. Code that predates per-product plans keeps reading this.
+     */
     public function subscription(): HasOne
     {
-        return $this->hasOne(Subscription::class);
+        return $this->hasOne(Subscription::class)
+            ->orderByRaw("case product when 'suite' then 0 when 'tms' then 1 else 2 end");
+    }
+
+    /** This tenant's subscription for one product ('suite', 'tms' or 'hrms'). */
+    public function subscriptionFor(string $product): ?Subscription
+    {
+        return $this->subscriptions()->where('product', $product)->first();
     }
 
     public function subscriptions(): HasMany

@@ -4,9 +4,12 @@ namespace App\Http\Controllers;
 
 use App\Models\SubscriptionPlan;
 use App\Models\Tenant;
+use App\Services\PlatformAudit;
 use App\Services\SubscriptionService;
+use App\Services\TenantLimits;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
 
 /**
  * Phase 14 — per-tenant subscription management (system DB, super admin only).
@@ -73,9 +76,9 @@ class TenantSubscriptionController extends Controller
         ]);
     }
 
-    public function cancel(Tenant $tenant): JsonResponse
+    public function cancel(Request $request, Tenant $tenant): JsonResponse
     {
-        $this->subscriptions->cancel($tenant, auth()->id());
+        $this->subscriptions->cancel($tenant, auth()->id(), $this->product($request));
 
         return response()->json([
             'message' => 'Subscription canceled.',
@@ -83,9 +86,9 @@ class TenantSubscriptionController extends Controller
         ]);
     }
 
-    public function renew(Tenant $tenant): JsonResponse
+    public function renew(Request $request, Tenant $tenant): JsonResponse
     {
-        $this->subscriptions->renew($tenant, auth()->id());
+        $this->subscriptions->renew($tenant, auth()->id(), $this->product($request));
 
         return response()->json([
             'message' => 'Subscription renewed.',
@@ -99,12 +102,54 @@ class TenantSubscriptionController extends Controller
             'reason' => ['nullable', 'string', 'max:1000'],
         ]);
 
-        $this->subscriptions->suspend($tenant, ['data' => ['reason' => $data['reason'] ?? null]], auth()->id());
+        $this->subscriptions->suspend($tenant, ['data' => ['reason' => $data['reason'] ?? null]], auth()->id(), $this->product($request));
 
         return response()->json([
             'message' => 'Subscription suspended.',
             ...$this->payload($tenant),
         ]);
+    }
+
+    /** Move a bundle tenant onto per-product plans in one step (one TMS and/or one HRMS plan). */
+    public function split(Request $request, Tenant $tenant): JsonResponse
+    {
+        $data = $request->validate([
+            'tms_plan_id' => ['nullable', 'integer', Rule::exists('subscription_plans', 'id')->where('product', 'tms')],
+            'hrms_plan_id' => ['nullable', 'integer', Rule::exists('subscription_plans', 'id')->where('product', 'hrms')],
+        ]);
+
+        $plans = SubscriptionPlan::whereIn('id', array_filter([$data['tms_plan_id'] ?? null, $data['hrms_plan_id'] ?? null]))->get()->all();
+        $this->subscriptions->splitBundle($tenant, $plans, auth()->id());
+
+        return response()->json(['message' => 'Tenant moved to per-product plans.', ...$this->payload($tenant)]);
+    }
+
+    /** Super Admin switch per product: true = on regardless of plan, false = off regardless of plan, null = follow the plan. */
+    public function products(Request $request, Tenant $tenant): JsonResponse
+    {
+        $data = $request->validate(['tms' => ['present', 'nullable', 'boolean'], 'hrms' => ['present', 'nullable', 'boolean']]);
+
+        $override = $tenant->features_override ?? [];
+        foreach (['tms', 'hrms'] as $product) {
+            if ($data[$product] === null) {
+                unset($override['products'][$product]);
+            } else {
+                $override['products'][$product] = (bool) $data[$product];
+            }
+        }
+        if (empty($override['products'])) {
+            unset($override['products']);
+        }
+        $tenant->update(['features_override' => $override ?: null]);
+
+        app(PlatformAudit::class)->record($request, 'tenant.products_changed', Tenant::class, $tenant->id, ['products' => $override['products'] ?? null]);
+
+        return response()->json(['message' => 'Products updated.', ...$this->payload($tenant->refresh())]);
+    }
+
+    private function product(Request $request): ?string
+    {
+        return $request->validate(['product' => ['nullable', Rule::in(['suite', 'tms', 'hrms'])]])['product'] ?? null;
     }
 
     public function events(Tenant $tenant): JsonResponse
@@ -119,10 +164,23 @@ class TenantSubscriptionController extends Controller
 
     private function payload(Tenant $tenant): array
     {
-        $tenant->load('subscription.plan');
+        $tenant->load('subscription.plan', 'subscriptions.plan');
         $subscription = $tenant->subscription;
+        $limits = app(TenantLimits::class);
 
         return [
+            'subscriptions' => $tenant->subscriptions->map(fn ($s) => [
+                'id' => $s->id, 'product' => $s->product, 'status' => $s->status,
+                'plan' => $s->plan ? ['id' => $s->plan->id, 'name' => $s->plan->name, 'slug' => $s->plan->slug, 'product' => $s->plan->product] : null,
+                'current_period_end' => $s->current_period_end?->toIso8601String(),
+                'trial_ends_at' => $s->trial_ends_at?->toIso8601String(),
+                'auto_renew' => $s->auto_renew,
+            ])->values(),
+            'products' => [
+                'tms' => $limits->productEnabled($tenant, 'tms'),
+                'hrms' => $limits->productEnabled($tenant, 'hrms'),
+                'override' => data_get($tenant->features_override, 'products'),
+            ],
             'subscription' => $subscription ? [
                 'id' => $subscription->id,
                 'status' => $subscription->status,
@@ -143,7 +201,7 @@ class TenantSubscriptionController extends Controller
             ] : null,
             'plans' => SubscriptionPlan::orderBy('sort_order')->orderBy('id')->get([
                 'id', 'name', 'slug', 'description', 'is_active', 'is_default', 'billing_cycle',
-                'price_cents', 'currency', 'trial_duration_days', 'sort_order',
+                'price_cents', 'currency', 'trial_duration_days', 'sort_order', 'product',
             ]),
         ];
     }

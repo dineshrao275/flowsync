@@ -27,10 +27,10 @@ class SubscriptionBillingSync
             : null;
         $tenant = $subscription?->tenant ?? ($event->tenantId ? Tenant::find($event->tenantId) : null);
 
-        if (! $tenant || ! $tenant->subscription) {
+        $subscription ??= $tenant?->subscription;
+        if (! $tenant || ! $subscription) {
             return ['status' => 'subscription_not_found', 'event_type' => $event->eventType];
         }
-        $subscription = $tenant->subscription;
 
         // The metadata fallback only finds the tenant; remember the provider id.
         if ($event->providerSubscriptionId && ! $subscription->provider_subscription_id) {
@@ -39,10 +39,10 @@ class SubscriptionBillingSync
 
         $paymentId = null;
         match ($event->kind) {
-            'invoice_paid' => $paymentId = $this->renewed($tenant, $event, $provider),
-            'invoice_failed' => $this->failed($tenant, $event),
+            'invoice_paid' => $paymentId = $this->renewed($tenant, $subscription, $event, $provider),
+            'invoice_failed' => $this->failed($tenant, $subscription, $event),
             'subscription_updated' => $this->updated($subscription, $event),
-            'subscription_deleted' => $this->deleted($tenant),
+            'subscription_deleted' => $this->deleted($tenant, $subscription),
         };
 
         PaymentEvent::create([
@@ -57,39 +57,39 @@ class SubscriptionBillingSync
         return ['status' => 'processed', 'event_type' => $event->eventType, 'kind' => $event->kind];
     }
 
-    private function renewed(Tenant $tenant, WebhookResult $event, string $provider): ?int
+    private function renewed(Tenant $tenant, Subscription $subscription, WebhookResult $event, string $provider): ?int
     {
         // One history row per invoice; a replayed invoice must not double up.
         $payment = Payment::firstOrCreate(
             ['provider' => $provider, 'provider_order_id' => $event->providerOrderId],
             [
                 'tenant_id' => $tenant->id,
-                'subscription_id' => $tenant->subscription_id,
+                'subscription_id' => $subscription->id,
                 'provider_payment_id' => $event->providerPaymentId,
                 'amount_cents' => $event->amountCents,
                 'currency' => $event->currency,
                 'status' => Payment::STATUS_COMPLETED,
                 'idempotency_key' => 'inv_'.$event->providerOrderId,
                 'metadata' => [
-                    'plan_id' => $tenant->subscription->plan_id,
-                    'plan_name' => $tenant->subscription->plan?->name,
+                    'plan_id' => $subscription->plan_id,
+                    'plan_name' => $subscription->plan?->name,
                     'renewal' => true,
                 ],
             ],
         );
 
-        $this->subscriptions->renew($tenant);
-        $this->applyPeriodEnd($tenant->subscription, $event->periodEnd);
+        $renewed = $this->subscriptions->renew($tenant, null, $subscription->product);
+        $this->applyPeriodEnd($renewed, $event->periodEnd);
 
         return $payment->id;
     }
 
-    private function failed(Tenant $tenant, WebhookResult $event): void
+    private function failed(Tenant $tenant, Subscription $subscription, WebhookResult $event): void
     {
         $this->subscriptions->suspend($tenant, ['data' => [
             'failure_reason' => $event->failureReason,
             'invoice' => $event->providerOrderId,
-        ]]);
+        ]], null, $subscription->product);
     }
 
     private function updated(Subscription $subscription, WebhookResult $event): void
@@ -101,9 +101,9 @@ class SubscriptionBillingSync
         }
     }
 
-    private function deleted(Tenant $tenant): void
+    private function deleted(Tenant $tenant, Subscription $subscription): void
     {
-        $this->subscriptions->cancel($tenant);
+        $this->subscriptions->cancel($tenant, null, $subscription->product);
     }
 
     private function applyPeriodEnd(Subscription $subscription, ?int $timestamp): void

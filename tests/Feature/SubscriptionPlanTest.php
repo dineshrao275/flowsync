@@ -30,10 +30,12 @@ class SubscriptionPlanTest extends TestCase
         $plans = SubscriptionPlan::orderBy('sort_order')->get();
 
         $this->assertCount(count(config('subscriptions.plans')), $plans);
+        // The bundle plans first, then the per-product ladders (TMS, then HRMS).
         $this->assertSame(
-            ['starter', 'pro', 'business', 'enterprise'],
+            ['starter', 'pro', 'business', 'enterprise', 'tms-starter', 'tms-professional', 'tms-enterprise', 'hrms-starter', 'hrms-professional', 'hrms-enterprise'],
             $plans->pluck('slug')->all(),
         );
+        $this->assertSame(['suite'], $plans->take(4)->pluck('product')->unique()->values()->all());
 
         $starter = $plans->first();
         $this->assertTrue($starter->is_default);

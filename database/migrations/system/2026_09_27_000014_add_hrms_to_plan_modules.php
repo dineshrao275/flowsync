@@ -3,6 +3,7 @@
 use App\Models\SubscriptionPlan;
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Schema;
 
 /**
  * Phase 15 — HRMS module entitlement (system database).
@@ -38,9 +39,14 @@ return new class extends Migration
         }
 
         $touched = [];
+        // The product column arrives in a later migration; this one runs first on older databases.
+        $hasProduct = Schema::hasColumn('subscription_plans', 'product');
 
         foreach ($catalog as $slug => $attributes) {
             $limits = (array) ($attributes['limits'] ?? []);
+            if (! $hasProduct) {
+                unset($attributes['product']);
+            }
 
             $plan = SubscriptionPlan::firstOrNew(['slug' => $slug]);
 

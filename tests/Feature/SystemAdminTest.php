@@ -269,7 +269,7 @@ class SystemAdminTest extends TestCase
         // Plan mix covers the whole catalog, zero counts before anyone subscribes.
         $rows = collect($response->json('plans.rows'));
         $this->assertSame(
-            ['starter', 'pro', 'business', 'enterprise'],
+            ['starter', 'pro', 'business', 'enterprise', 'tms-starter', 'tms-professional', 'tms-enterprise', 'hrms-starter', 'hrms-professional', 'hrms-enterprise'],
             $rows->pluck('slug')->all(),
         );
         $this->assertSame(0, $rows->sum('subscriptions'));

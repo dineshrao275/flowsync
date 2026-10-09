@@ -157,7 +157,7 @@ class ProvisionTenantJob implements ShouldQueue
         $trialEndsAt = $trialDays ? now()->addDays($trialDays) : null;
 
         $subscription = Subscription::updateOrCreate(
-            ['tenant_id' => $this->tenant->id],
+            ['tenant_id' => $this->tenant->id, 'product' => $plan->product ?? 'suite'],
             [
                 'plan_id' => $plan->id,
                 'status' => $trialEndsAt ? Subscription::STATUS_TRIALING : Subscription::STATUS_ACTIVE,
