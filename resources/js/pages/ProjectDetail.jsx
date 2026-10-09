@@ -10,6 +10,7 @@ import Input from '../components/ui/Input';
 import { useAuth } from '../context/AuthContext';
 import AutomationPanel from '../components/automation/AutomationPanel';
 import SprintsPanel from '../components/sprints/SprintsPanel';
+import HierarchyPanel from '../components/hierarchy/HierarchyPanel';
 import WorkflowRules from '../components/tasks/WorkflowRules';
 import { useToast } from '../context/ToastContext';
 import { useSetCrumbs } from '../context/BreadcrumbContext';
@@ -586,6 +587,7 @@ export default function ProjectDetail() {
     const tabs = [
         { key: 'overview', label: 'Overview' },
         { key: 'tasks', label: 'Tasks' },
+        { key: 'hierarchy', label: 'Hierarchy' },
         { key: 'members', label: `Members (${members.length})` },
         { key: 'workflow', label: 'Workflow' },
         ...(hasModule('time_tracking') ? [{ key: 'time', label: 'Time' }] : []),
@@ -849,6 +851,8 @@ export default function ProjectDetail() {
                     </Card>
                 </div>
             )}
+
+            {tab === 'hierarchy' && <HierarchyPanel projectId={projectId} />}
 
             {tab === 'sprints' && hasModule('sprints') && <SprintsPanel projectId={projectId} canPlan={isProjectManager} />}
 

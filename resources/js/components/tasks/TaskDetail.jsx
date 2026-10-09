@@ -51,6 +51,7 @@ export default function TaskDetail({
                       description: task.description || '',
                       issue_type_id: task.issue_type_id ?? task.issue_type?.id ?? '',
                       version_id: task.version_id ?? task.version?.id ?? '',
+                      epic_id: task.epic_id ?? '',
                       components: task.components?.map((c) => c.id) || [],
                       status_id: task.status_id,
                       priority_id: task.priority_id ?? '',
@@ -146,6 +147,7 @@ export default function TaskDetail({
             ...form,
             issue_type_id: form.issue_type_id || null,
             version_id: form.version_id || null,
+            epic_id: form.epic_id || null,
             components: form.components,
             assignee_id: form.assignee_id || null,
             parent_id: form.parent_id || null,
@@ -348,6 +350,21 @@ export default function TaskDetail({
                                                 <option key={v.id} value={v.id}>
                                                     {v.name}
                                                 </option>
+                                            ))}
+                                        </Select>
+                                    )}
+
+                                    {options.epics?.length > 0 && (
+                                        <Select
+                                            label="Epic"
+                                            value={form.epic_id}
+                                            onChange={(e) => set('epic_id', e.target.value)}
+                                            disabled={!canEdit}
+                                            error={errors.epic_id}
+                                        >
+                                            <option value="">No epic</option>
+                                            {options.epics.filter((e) => e.id !== task.id).map((e) => (
+                                                <option key={e.id} value={e.id}>{e.key} · {e.title}</option>
                                             ))}
                                         </Select>
                                     )}

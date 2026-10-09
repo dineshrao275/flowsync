@@ -9,6 +9,7 @@ use App\Models\Project;
 use App\Models\Task;
 use App\Services\ActivityLogger;
 use App\Services\TaskService;
+use App\Support\TaskScope;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -29,12 +30,7 @@ class TaskController extends Controller
         // `tasks.view_own` grant passes the gate and the board/list then
         // narrow to the caller's rows.
         $user = $request->user();
-        $role = $project->memberRole($user);
-        abort_unless(
-            $user->hasPermission('workspaces.manage') || ($role !== null && $role->grants('tasks.view_own')),
-            403,
-            'Reading this project\'s tasks needs a "tasks.view*" grant on your project role (or "workspaces.manage").',
-        );
+        TaskScope::assertCanRead($project, $user);
 
         $filters = $request->validate([
             'status_id' => ['nullable', 'integer'],
@@ -43,6 +39,7 @@ class TaskController extends Controller
             'label_id' => ['nullable', 'integer'],
             'issue_type_id' => ['nullable', 'integer'],
             'version_id' => ['nullable', 'integer'],
+            'epic_id' => ['nullable', 'integer'],
             'component_id' => ['nullable', 'integer'],
             'sprint' => ['nullable', 'regex:/^(active|none|\d+)$/'],
             'q' => ['nullable', 'string', 'max:255'],
@@ -91,6 +88,7 @@ class TaskController extends Controller
             'priority_id' => ['nullable', 'integer'],
             'assignee_id' => ['nullable', 'integer'],
             'parent_id' => ['nullable', 'integer'],
+            'epic_id' => ['nullable', 'integer'],
             'labels' => ['nullable', 'array'],
             'labels.*' => ['integer'],
             'start_date' => ['nullable', 'date'],
@@ -160,6 +158,7 @@ class TaskController extends Controller
             'priority_id' => ['nullable', 'integer'],
             'assignee_id' => ['nullable', 'integer'],
             'parent_id' => ['nullable', 'integer'],
+            'epic_id' => ['nullable', 'integer'],
             'labels' => ['nullable', 'array'],
             'labels.*' => ['integer'],
             'start_date' => ['nullable', 'date'],
@@ -186,7 +185,7 @@ class TaskController extends Controller
 
         $changed = array_intersect(
             array_keys($data),
-            ['title', 'description', 'status_id', 'priority_id', 'assignee_id', 'parent_id', 'due_date', 'estimate_minutes', 'labels', 'start_date', 'story_points', 'issue_type_id', 'version_id', 'components'],
+            ['title', 'description', 'status_id', 'priority_id', 'assignee_id', 'parent_id', 'epic_id', 'due_date', 'estimate_minutes', 'labels', 'start_date', 'story_points', 'issue_type_id', 'version_id', 'components'],
         );
 
         $this->logger->log(
@@ -259,7 +258,11 @@ class TaskController extends Controller
                     'icon' => $t->icon,
                     'color' => $t->color,
                     'is_subtask' => $t->is_subtask,
+                    'hierarchy_level' => $t->level(),
                 ]),
+            'epics' => $project->tasks()->whereHas('issueType', fn ($q) => $q->where('hierarchy_level', 1))
+                ->orderByDesc('id')->limit(200)->get(['id', 'key', 'title'])
+                ->map(fn ($e) => ['id' => $e->id, 'key' => $e->key, 'title' => $e->title]),
             'versions' => $project->versions()->orderBy('name')->get()
                 ->map(fn ($v) => [
                     'id' => $v->id,

@@ -143,6 +143,7 @@ class TenantProvisioner
                     'icon' => $item['icon'] ?? null,
                     'color' => $item['color'] ?? null,
                     'is_subtask' => $item['is_subtask'] ?? false,
+                    'hierarchy_level' => $item['hierarchy_level'] ?? 2,
                     'position' => $item['position'] ?? 0,
                 ]
             );

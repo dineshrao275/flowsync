@@ -36,6 +36,8 @@ class TaskPresenter
             'title' => $task->title,
             'description' => $task->description,
             'parent_id' => $task->parent_id,
+            'epic_id' => $task->epic_id,
+            'epic' => $task->relationLoaded('epic') && $task->epic ? ['id' => $task->epic->id, 'key' => $task->epic->key, 'title' => $task->epic->title] : null,
             'status_id' => $task->status_id,
             'status' => $task->status ? $this->presentStatus($task->status) : null,
             'priority_id' => $task->priority_id,
@@ -65,6 +67,7 @@ class TaskPresenter
                 'icon' => $task->issueType->icon,
                 'color' => $task->issueType->color,
                 'is_subtask' => $task->issueType->is_subtask,
+                'hierarchy_level' => $task->issueType->level(),
             ] : null,
             'version_id' => $task->version_id,
             'version' => $task->version ? [

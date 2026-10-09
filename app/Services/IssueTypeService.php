@@ -40,6 +40,7 @@ class IssueTypeService
             'icon' => $data['icon'] ?? 'check-square',
             'color' => $data['color'] ?? '#3b82f6',
             'is_subtask' => $data['is_subtask'] ?? false,
+            'hierarchy_level' => $data['hierarchy_level'] ?? 2,
             'position' => $data['position'] ?? ($maxPosition + 1),
         ]);
     }
@@ -67,6 +68,7 @@ class IssueTypeService
             'icon' => array_key_exists('icon', $data) ? $data['icon'] : $issueType->icon,
             'color' => array_key_exists('color', $data) ? $data['color'] : $issueType->color,
             'is_subtask' => array_key_exists('is_subtask', $data) ? $data['is_subtask'] : $issueType->is_subtask,
+            'hierarchy_level' => $data['hierarchy_level'] ?? $issueType->hierarchy_level,
             'position' => array_key_exists('position', $data) ? $data['position'] : $issueType->position,
         ]);
 
