@@ -5,6 +5,7 @@ import Topbar from './Topbar';
 import ThemeSettingsDrawer from './ThemeSettingsDrawer';
 import ImpersonationBanner from './ImpersonationBanner';
 import Breadcrumbs from './Breadcrumbs';
+import ErrorBoundary from './ErrorBoundary';
 import CommandPalette from './search/CommandPalette';
 import { BreadcrumbProvider } from '../context/BreadcrumbContext';
 import { PageTitleProvider } from '../context/PageTitleContext';
@@ -85,7 +86,9 @@ export default function AdminLayout() {
                     <BreadcrumbProvider>
                         <div key={location.pathname} className="animate-fade-in-up">
                             <Breadcrumbs />
-                            <Outlet />
+                            <ErrorBoundary resetKey={location.pathname}>
+                                <Outlet />
+                            </ErrorBoundary>
                         </div>
                     </BreadcrumbProvider>
                 </main>
