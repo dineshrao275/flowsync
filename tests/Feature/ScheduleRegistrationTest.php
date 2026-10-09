@@ -41,6 +41,7 @@ class ScheduleRegistrationTest extends TestCase
         $expected = [
             'tenants:collect-usage',
             'tenants:backup --all --verify',
+            'tenants:prune-exports',
             'tenants:expire-trials',
             'hrms:surveys-open-close --all',
             'hrms:documents-expiry --all',
