@@ -90,13 +90,14 @@ class LeaveRequestService
         }
 
         $approval = $this->approvals->request(
-            $this->routing->stepsFor($employee),
+            $this->routing->stepsFor($employee, 'leave', ['days' => $input->total]),
             $request,
             'leave.request',
             'Leave request',
             ['work_dates' => $input->from->toDateString().' to '.$input->to->toDateString(), 'total_days' => $input->total],
             $actor,
             $employee->id,
+            'leave',
         );
 
         $request->update(['approval_id' => $approval->id]);

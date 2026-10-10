@@ -57,13 +57,14 @@ class LeaveExemptionService
             ]);
 
             $approval = $this->approvals->request(
-                $this->routing->stepsFor($employee),
+                $this->routing->stepsFor($employee, 'leave_exemption', ['days' => (float) $data['days']]),
                 $request,
                 'leave.exemption',
                 'Leave exemption request',
                 ['work_dates' => $from->toDateString().' to '.$to->toDateString(), 'days' => (float) $data['days']],
                 $actor,
                 $employee->id,
+                'leave_exemption',
             );
 
             $request->update(['approval_id' => $approval->id]);

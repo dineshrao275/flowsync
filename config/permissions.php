@@ -214,6 +214,7 @@ return [
         ['name' => 'View HR Analytics', 'slug' => 'hrms.analytics.view', 'description' => 'View HR analytics dashboards'],
         ['name' => 'View HRMS Audit Log', 'slug' => 'hrms.audit.view', 'description' => 'View the HRMS audit log'],
         ['name' => 'Override Approvals', 'slug' => 'hrms.approvals.override', 'description' => 'Approve or reject a step on behalf of its assigned approver (reason required, audited)'],
+        ['name' => 'Manage Approval Chains', 'slug' => 'hrms.approvals.manage', 'description' => 'Edit who approves each kind of request, step modes, conditions and deadlines'],
     ]),
 
     /*

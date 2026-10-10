@@ -13,6 +13,7 @@ use App\Models\Hrms\Org\Location;
 use App\Models\Hrms\Payroll\PayslipTemplate;
 use App\Models\Hrms\Payroll\SalaryComponent;
 use App\Models\Hrms\Shared\HrmsSetting;
+use App\Services\Hrms\Approval\ApprovalTemplateSeeder;
 use App\Services\Hrms\Holiday\HolidayYearSeeder;
 use Illuminate\Support\Str;
 
@@ -83,6 +84,7 @@ class HrmsDefaultsProvisioner
         $this->seedSalaryComponents();
         $this->seedPayslipTemplates();
         $this->seedExpenseCategories();
+        app(ApprovalTemplateSeeder::class)->seed();
     }
 
     /**

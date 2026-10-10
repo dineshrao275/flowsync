@@ -54,6 +54,7 @@ class ScheduleRegistrationTest extends TestCase
             'hrms:comp-off-accrue --all',
             'hrms:retention --all',
             'hrms:onboarding-reminders --all',
+            'hrms:approvals-sla --all',
             'hrms:assets-overdue --all',
             'hrms:report-digests --all',
             'hrms:performance-evidence --all',

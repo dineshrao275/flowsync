@@ -228,6 +228,8 @@ Route::prefix('api')->group(function () {
 
         require __DIR__.'/web/hrms_talent.php';
 
+        require __DIR__.'/web/hrms_approvals.php';
+
     }); // tenant_context + onboarding_complete over the HRMS block
 
     // Signed temporary download link for task attachments. Intentionally OUTSIDE

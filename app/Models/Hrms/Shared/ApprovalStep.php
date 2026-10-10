@@ -2,10 +2,12 @@
 
 namespace App\Models\Hrms\Shared;
 
+use App\Enums\Hrms\ApprovalStepMode;
 use App\Enums\Hrms\ApprovalStepStatus;
 use App\Enums\Hrms\ApproverType;
 use App\Models\Role;
 use App\Models\User;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -29,6 +31,10 @@ use Illuminate\Support\Carbon;
  * @property Carbon|null $acted_at
  * @property int|null $acted_by_user_id
  * @property string|null $note
+ * @property int|null $stage
+ * @property ApprovalStepMode $mode
+ * @property int|null $sla_hours
+ * @property int|null $acted_for_user_id
  */
 class ApprovalStep extends Model
 {
@@ -47,6 +53,10 @@ class ApprovalStep extends Model
         'acted_at',
         'acted_by_user_id',
         'note',
+        'stage',
+        'mode',
+        'sla_hours',
+        'acted_for_user_id',
     ];
 
     protected function casts(): array
@@ -54,6 +64,7 @@ class ApprovalStep extends Model
         return [
             'approver_type' => ApproverType::class,
             'status' => ApprovalStepStatus::class,
+            'mode' => ApprovalStepMode::class,
             'step_order' => 'integer',
             'acted_at' => 'datetime',
         ];
@@ -81,6 +92,29 @@ class ApprovalStep extends Model
     public function actor(): BelongsTo
     {
         return $this->belongsTo(User::class, 'acted_by_user_id');
+    }
+
+    /**
+     * Steps of one stage. A row written before v2 has no `stage`; its step
+     * order is its stage (one step per stage), so the COALESCE keeps old and
+     * factory-built rows reading exactly as they did.
+     *
+     * @param  Builder<ApprovalStep>  $query
+     */
+    public function scopeInStage(Builder $query, int $stage): void
+    {
+        $query->whereRaw('COALESCE(stage, step_order) = ?', [$stage]);
+    }
+
+    /** @param Builder<ApprovalStep> $query */
+    public function scopeAfterStage(Builder $query, int $stage): void
+    {
+        $query->whereRaw('COALESCE(stage, step_order) > ?', [$stage]);
+    }
+
+    public function stageNumber(): int
+    {
+        return $this->stage ?? $this->step_order;
     }
 
     public function isActionable(): bool

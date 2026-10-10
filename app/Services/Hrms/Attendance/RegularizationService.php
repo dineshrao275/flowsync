@@ -2,16 +2,15 @@
 
 namespace App\Services\Hrms\Attendance;
 
-use App\Enums\Hrms\ApproverType;
 use App\Enums\Hrms\RegularizationStatus;
 use App\Models\Hrms\Attendance\AttendanceRegularizationRequest;
 use App\Models\Hrms\Employee\Employee;
 use App\Models\Hrms\Shared\HrmsSetting;
 use App\Models\User;
 use App\Services\Hrms\AttendanceService;
+use App\Services\Hrms\Approval\ChainBuilder;
 use App\Services\Hrms\Employee\ReportingLine;
 use App\Services\Hrms\Shared\ApprovalService;
-use App\Services\Hrms\Shared\ValueObjects\ApproverSpec;
 use App\Services\HrmsAuditLogger;
 use App\Support\Hrms\Auditable;
 use Illuminate\Support\Carbon;
@@ -43,6 +42,7 @@ class RegularizationService
         private readonly AttendanceService $attendance,
         private readonly ApprovalService $approvals,
         private readonly ReportingLine $reporting,
+        private readonly ChainBuilder $chains,
         private readonly RegularizationNotifier $notifier,
         private readonly HrmsAuditLogger $audit,
     ) {}
@@ -94,13 +94,14 @@ class RegularizationService
         $manager = $this->reporting->managerOf($employee);
 
         $approval = $this->approvals->request(
-            new ApproverSpec(ApproverType::Manager, userId: $manager?->user_id, employeeId: $manager?->id),
+            $this->chains->stepsFor('regularization', $employee),
             $request,
             'regularize',
             'Regularization request',
             ['work_date' => $input->workDate->toDateString(), 'employee_id' => $employee->id],
             $actor,
             $employee->id,
+            'regularization',
         );
 
         $request->update(['approval_id' => $approval->id]);

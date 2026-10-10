@@ -6,6 +6,7 @@ use App\Enums\Hrms\ApprovalStatus;
 use App\Enums\Hrms\ApprovalStepStatus;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -33,6 +34,10 @@ use Illuminate\Support\Carbon;
  * @property int|null $resolved_by_user_id
  * @property string|null $decision_note
  * @property array<string, mixed>|null $meta
+ * @property string|null $domain
+ * @property Carbon|null $reminded_at
+ * @property Carbon|null $escalated_at
+ * @property int|null $resubmission_of_id
  */
 class Approval extends Model
 {
@@ -54,6 +59,10 @@ class Approval extends Model
         'resolved_by_user_id',
         'decision_note',
         'meta',
+        'domain',
+        'reminded_at',
+        'escalated_at',
+        'resubmission_of_id',
     ];
 
     protected function casts(): array
@@ -64,6 +73,8 @@ class Approval extends Model
             'meta' => 'array',
             'due_at' => 'datetime',
             'resolved_at' => 'datetime',
+            'reminded_at' => 'datetime',
+            'escalated_at' => 'datetime',
         ];
     }
 
@@ -92,7 +103,8 @@ class Approval extends Model
     }
 
     /**
-     * The step currently awaiting a decision, if the flow is still open.
+     * The first step still awaiting a decision in the current stage, if the
+     * flow is open. For a sequential chain this is the single current step.
      *
      * A method rather than a relation: the answer depends on both the step's
      * own status and this approval's `current_step`, which a relation's
@@ -100,14 +112,31 @@ class Approval extends Model
      */
     public function currentStepRecord(): ?ApprovalStep
     {
+        return $this->currentStageSteps()->first();
+    }
+
+    /**
+     * Every pending step of the current stage (more than one only for a
+     * parallel stage). The stage is the one the `current_step` cursor sits in.
+     *
+     * @return Collection<int, ApprovalStep>
+     */
+    public function currentStageSteps(): Collection
+    {
         if (! $this->isOpen()) {
-            return null;
+            return new Collection;
+        }
+
+        $cursor = $this->steps()->where('step_order', $this->current_step)->first();
+
+        if ($cursor === null) {
+            return new Collection;
         }
 
         return $this->steps()
-            ->where('step_order', $this->current_step)
+            ->inStage($cursor->stageNumber())
             ->where('status', ApprovalStepStatus::Pending)
-            ->first();
+            ->get();
     }
 
     public function isOpen(): bool
