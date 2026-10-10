@@ -16,7 +16,7 @@ use Illuminate\Support\Carbon;
  * @property int $to_user_id
  * @property Carbon $starts_at
  * @property Carbon $ends_at
- * @property list<string>|null $domains  null = every domain
+ * @property list<string>|null $domains null = every domain
  * @property string|null $reason
  * @property Carbon|null $revoked_at
  * @property int|null $created_by_user_id

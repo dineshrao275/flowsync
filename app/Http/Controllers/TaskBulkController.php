@@ -7,10 +7,10 @@ use App\Http\Requests\TaskCloneRequest;
 use App\Http\Requests\TaskMoveProjectRequest;
 use App\Models\Project;
 use App\Models\Task;
-use App\Services\TaskService;
 use App\Services\Tasks\TaskBulk;
 use App\Services\Tasks\TaskCloner;
 use App\Services\Tasks\TaskMover;
+use App\Services\TaskService;
 use App\Support\TaskScope;
 use Illuminate\Http\JsonResponse;
 
