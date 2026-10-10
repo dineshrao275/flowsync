@@ -82,24 +82,24 @@ export default function Webhooks() {
             {secret && (
                 <Alert type="success">
                     <p className="font-semibold">Signing secret — copy it now, it is shown only once.</p>
-                    <code className="mt-1 block break-all rounded bg-white/70 p-2 text-xs">{secret.value}</code>
+                    <code className="mt-1 block break-all rounded bg-white dark:bg-[#161B26] dark:border-[#2F3A4C] p-2 text-xs">{secret.value}</code>
                     <p className="mt-2 text-xs">Verify each request: <code>X-FlowSync-Signature: t=&lt;unix&gt;,v1=&lt;HMAC-SHA256(secret, "&lt;t&gt;.&lt;raw body&gt;")&gt;</code>, and reject old timestamps.</p>
                     <button className="mt-2 text-xs underline" onClick={() => setSecret(null)}>I have saved it</button>
                 </Alert>
             )}
 
             {creating && (
-                <Card title="New endpoint" subtitle="https only; private and internal addresses are refused.">
+                <Card title="New endpoint" subtitle="https only; private and internal addresses are refused." className="border-gray-200 dark:border-[#2F3A4C]">
                     <form onSubmit={create} className="space-y-4">
-                        <Input label="Endpoint URL" name="url" required placeholder="https://example.com/hooks/flowsync" value={form.url} onChange={(e) => setForm((f) => ({ ...f, url: e.target.value }))} error={errors.url} />
-                        <Input label="Description (optional)" name="description" value={form.description} onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))} error={errors.description} />
+                        <Input label="Endpoint URL" name="url" required placeholder="https://example.com/hooks/flowsync" value={form.url} onChange={(e) => setForm((f) => ({ ...f, url: e.target.value }))} error={errors.url} className="bg-white dark:bg-[#161B26] border-gray-200 dark:border-[#2F3A4C] text-gray-900 dark:text-[#F3F4F6]" />
+                        <Input label="Description (optional)" name="description" value={form.description} onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))} error={errors.description} className="bg-white dark:bg-[#161B26] border-gray-200 dark:border-[#2F3A4C] text-gray-900 dark:text-[#F3F4F6]" />
                         <div>
                             <p className="mb-1.5 text-sm font-medium text-gray-700">Events</p>
                             <label className="mb-2 flex items-center gap-2 text-sm"><input type="checkbox" checked={form.events.includes('*')} onChange={() => toggleEvent('*')} /> All events</label>
                             <div className="grid grid-cols-1 gap-1 sm:grid-cols-2">
                                 {data.catalog.map((t) => (
-                                    <label key={t} className="flex items-center gap-2 text-sm text-gray-700">
-                                        <input type="checkbox" disabled={form.events.includes('*')} checked={form.events.includes('*') || form.events.includes(t)} onChange={() => toggleEvent(t)} /> {t}
+                                    <label key={t} className="flex items-center gap-2 text-sm">
+                                        <input type="checkbox" disabled={form.events.includes('*')} checked={form.events.includes('*') || form.events.includes(t)} onChange={() => toggleEvent(t)} className="rounded border-gray-200 dark:border-[#2F3A4C] bg-white dark:bg-[#161B26] text-gray-900 dark:text-[#F3F4F6]" /> {t}
                                     </label>
                                 ))}
                             </div>
@@ -116,14 +116,14 @@ export default function Webhooks() {
             {data.endpoints.length === 0 ? <p className="py-10 text-center text-sm text-gray-400">No endpoints yet.</p> : (
                 <ul className="space-y-3">
                     {data.endpoints.map((e) => (
-                        <li key={e.id} className="rounded-xl border border-gray-200 bg-white p-4">
+                        <li key={e.id} className="rounded-xl border border-gray-200 bg-white dark:bg-[#161B26] p-4">
                             <div className="flex flex-wrap items-start justify-between gap-2">
                                 <div className="min-w-0">
-                                    <p className="truncate font-mono text-sm text-gray-900">{e.url}</p>
-                                    <p className="text-xs text-gray-500">{e.description || 'No description'} · {e.events.join(', ')}</p>
+                                    <p className="truncate font-mono text-sm text-gray-800 dark:text-gray-200">{e.url}</p>
+                                    <p className="text-xs text-gray-500 dark:text-gray-400">{e.description || 'No description'} · {e.events.join(', ')}</p>
                                     {e.disabled_reason && <p className="mt-1 text-xs text-red-600">{e.disabled_reason}</p>}
                                 </div>
-                                <Badge>{e.is_active ? 'active' : 'off'}</Badge>
+                                <Badge className="text-xs">{e.is_active ? 'active' : 'off'}</Badge>
                             </div>
                             <div className="mt-3 flex flex-wrap gap-2 text-sm">
                                 <Button size="sm" variant="secondary" onClick={() => test(e.id)}>Send test</Button>
@@ -133,18 +133,18 @@ export default function Webhooks() {
                                 <Button size="sm" variant="danger" onClick={() => window.confirm('Delete this endpoint and its delivery log?') && act(() => api.delete(`/webhooks/${e.id}`), 'Endpoint deleted.')}>Delete</Button>
                             </div>
                             {open === e.id && (
-                                <div className="mt-3 overflow-x-auto rounded-lg border border-gray-100">
+                                <div className="mt-3 overflow-x-auto rounded-lg border border-gray-200 dark:border-[#2F3A4C]">
                                     <table className="min-w-full text-xs">
-                                        <thead className="bg-gray-50 text-left uppercase text-gray-500"><tr><th className="px-3 py-2">Event</th><th className="px-3 py-2">Status</th><th className="px-3 py-2">Tries</th><th className="px-3 py-2">HTTP</th><th className="px-3 py-2">When</th><th /></tr></thead>
-                                        <tbody className="divide-y divide-gray-50">
+                                        <thead className="bg-gray-900 text-left uppercase text-gray-300 dark:bg-[#161B26]"><tr><th className="px-3 py-2">Event</th><th className="px-3 py-2">Status</th><th className="px-3 py-2">Tries</th><th className="px-3 py-2">HTTP</th><th className="px-3 py-2">When</th><th /></tr></thead>
+                                        <tbody className="divide-y divide-gray-200 dark:divide-[#2F3A4C]">
                                             {deliveries.length === 0 && <tr><td colSpan={6} className="px-3 py-4 text-center text-gray-400">No deliveries yet.</td></tr>}
                                             {deliveries.map((d) => (
-                                                <tr key={d.id}>
-                                                    <td className="px-3 py-2 font-mono">{d.event_type}</td>
+                                                <tr key={d.id} className="hover:bg-gray-50 dark:hover:bg-[#1C2433]">
+                                                    <td className="px-3 py-2 font-mono text-gray-300 dark:text-gray-300">{d.event_type}</td>
                                                     <td className={`px-3 py-2 font-medium ${STATUS_TONE[d.status]}`}>{d.status}{d.error ? ` — ${d.error}` : ''}</td>
-                                                    <td className="px-3 py-2">{d.attempts}</td>
-                                                    <td className="px-3 py-2">{d.response_status ?? '—'}</td>
-                                                    <td className="px-3 py-2">{formatDateTime(d.created_at)}</td>
+                                                    <td className="px-3 py-2 text-gray-300 dark:text-gray-300">{d.attempts}</td>
+                                                    <td className="px-3 py-2 text-gray-300 dark:text-gray-300">{d.response_status ?? '—'}</td>
+                                                    <td className="px-3 py-2 text-gray-300 dark:text-gray-300">{formatDateTime(d.created_at)}</td>
                                                     <td className="px-3 py-2 text-right"><button className="text-indigo-600 hover:underline" onClick={() => act(() => api.post(`/webhook-deliveries/${d.id}/redeliver`), 'Queued.')}>Redeliver</button></td>
                                                 </tr>
                                             ))}

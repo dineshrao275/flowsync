@@ -140,6 +140,7 @@ export default function Users() {
                                 onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
                                 error={formErrors.name}
                                 required
+                                className="bg-white dark:bg-[#161B26] border border-gray-200 dark:border-[#2F3A4C] text-gray-900 dark:text-[#F3F4F6] placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:border-[var(--accent)] focus:ring-1 focus:ring-[var(--accent)]/30 rounded-lg"
                             />
                             <Input
                                 label="Email address"
@@ -150,6 +151,7 @@ export default function Users() {
                                 onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))}
                                 error={formErrors.email}
                                 required
+                                className="bg-white dark:bg-[#161B26] border border-gray-200 dark:border-[#2F3A4C] text-gray-900 dark:text-[#F3F4F6] placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:border-[var(--accent)] focus:ring-1 focus:ring-[var(--accent)]/30 rounded-lg"
                             />
                             <Input
                                 label="Password"
@@ -160,6 +162,7 @@ export default function Users() {
                                 onChange={(e) => setForm((f) => ({ ...f, password: e.target.value }))}
                                 error={formErrors.password}
                                 required
+                                className="bg-white dark:bg-[#161B26] border border-gray-200 dark:border-[#2F3A4C] text-gray-900 dark:text-[#F3F4F6] placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:border-[var(--accent)] focus:ring-1 focus:ring-[var(--accent)]/30 rounded-lg"
                             />
                             <Input
                                 label="Confirm password"
@@ -170,6 +173,7 @@ export default function Users() {
                                 onChange={(e) => setForm((f) => ({ ...f, password_confirmation: e.target.value }))}
                                 error={formErrors.password_confirmation}
                                 required
+                                className="bg-white dark:bg-[#161B26] border border-gray-200 dark:border-[#2F3A4C] text-gray-900 dark:text-[#F3F4F6] placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:border-[var(--accent)] focus:ring-1 focus:ring-[var(--accent)]/30 rounded-lg"
                             />
                         </div>
                         <div>
@@ -183,7 +187,7 @@ export default function Users() {
                                         roles: Array.from(e.target.selectedOptions, (o) => o.value),
                                     }))
                                 }
-                                className="block w-full rounded-lg border border-gray-300 bg-white px-3.5 py-2.5 text-sm shadow-sm transition focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-100"
+                                className="block w-full rounded-lg border border-gray-200 dark:border-[#2F3A4C] bg-white dark:bg-[#161B26] text-gray-900 dark:text-[#F3F4F6] placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:border-[var(--accent)] focus:ring-1 focus:ring-[var(--accent)]/30 rounded-lg shadow-sm transition"
                             >
                                 {roleOptions.map((r) => (
                                     <option key={r.value} value={r.value}>
@@ -221,7 +225,7 @@ export default function Users() {
                         users.map((user, index) => (
                             <tr
                                 key={user.id}
-                                className="animate-fade-in transition-colors duration-150 hover:bg-gray-50"
+                                className="animate-fade-in transition-colors duration-150 hover:bg-gray-50/70 dark:hover:bg-[#1C2433] border-b border-gray-200 dark:border-[#2F3A4C]"
                                 style={{ animationDelay: `${index * 30}ms` }}
                             >
                                 <Td>
@@ -241,11 +245,11 @@ export default function Users() {
                                     </div>
                                 </Td>
                                 <Td>
-                                    <span className="text-gray-500">{user.email}</span>
+                                    <span className="text-gray-400 dark:text-[#64748B]">{user.email}</span>
                                 </Td>
                                 <Td>
                                     <div className="flex flex-wrap gap-1">
-                                        {user.roles.map((role) => <Badge key={role}>{role}</Badge>)}
+                                        {user.roles.map((role) => <Badge key={role} className="text-gray-300 dark:text-[#64748B]">{role}</Badge>)}
                                     </div>
                                 </Td>
                                 <Td align="right">

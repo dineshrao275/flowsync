@@ -4,7 +4,7 @@ export default function Card({ title, subtitle, actions, children, className = '
 
     return (
         <div
-            className={`rounded-xl border border-[var(--border-hairline)]/70 bg-white shadow-card transition-shadow duration-200 hover:shadow-popover ${className}`}
+            className={`rounded-xl border border-[var(--border-hairline)]/70 bg-white dark:bg-[#1A202C] shadow-card transition-shadow duration-200 hover:shadow-popover ${className}`}
             style={{ backgroundColor: 'var(--card-bg)' }}
         >
             {(title || actions) && (

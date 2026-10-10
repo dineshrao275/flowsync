@@ -87,8 +87,8 @@ export default function Workspaces() {
         <div className="space-y-6">
             <div className="flex flex-wrap items-center justify-between gap-3">
                 <div>
-                    <h2 className="text-2xl font-bold text-gray-900">Workspaces</h2>
-                    <p className="mt-1 text-sm text-gray-500">Workspaces group projects, tasks and members.</p>
+                    <h2 className="text-2xl font-bold text-gray-900 dark:text-[#F3F4F6]">Workspaces</h2>
+                    <p className="mt-1 text-sm text-gray-600 dark:text-[#94A3B8]">Workspaces group projects, tasks and members.</p>
                 </div>
                 {canCreate && (
                     <Button onClick={() => setCreating((open) => !open)}>New workspace</Button>
@@ -133,23 +133,39 @@ export default function Workspaces() {
             <Table>
                 <thead>
                     <tr>
-                        <Th>Workspace</Th>
-                        <Th>Description</Th>
-                        <Th>Your role</Th>
-                        <Th align="right">Members</Th>
-                        <Th align="right">Projects</Th>
-                        <Th align="right">Labels</Th>
-                        <Th align="right">Status</Th>
+                        <Th className="text-left text-gray-600 dark:text-[#94A3B8] px-4 py-3 text-xs font-medium text-uppercase tracking-wider">
+                            Workspace
+                        </Th>
+                        <Th className="text-left text-gray-600 dark:text-[#94A3B8] px-4 py-3 text-xs font-medium text-uppercase tracking-wider">
+                            Description
+                        </Th>
+                        <Th className="text-left text-gray-600 dark:text-[#94A3B8] px-4 py-3 text-xs font-medium text-uppercase tracking-wider">
+                            Your role
+                        </Th>
+                        <Th className="text-right text-gray-600 dark:text-[#94A3B8] px-4 py-3 text-xs font-medium text-uppercase tracking-wider">
+                            Members
+                        </Th>
+                        <Th className="text-right text-gray-600 dark:text-[#94A3B8] px-4 py-3 text-xs font-medium text-uppercase tracking-wider">
+                            Projects
+                        </Th>
+                        <Th className="text-right text-gray-600 dark:text-[#94A3B8] px-4 py-3 text-xs font-medium text-uppercase tracking-wider">
+                            Labels
+                        </Th>
+                        <Th className="text-right text-gray-600 dark:text-[#94A3B8] px-4 py-3 text-xs font-medium text-uppercase tracking-wider">
+                            Status
+                        </Th>
                     </tr>
                 </thead>
                 <tbody>
                     {workspaces.length === 0 ? (
-                        <TableEmpty colSpan={7}>No workspaces yet.</TableEmpty>
+                        <TableEmpty colSpan={7} className="text-gray-600 dark:text-[#94A3B8]">
+                            No workspaces yet.
+                        </TableEmpty>
                     ) : (
                         workspaces.map((workspace, index) => (
                             <tr
                                 key={workspace.id}
-                                className="animate-fade-in transition-colors duration-150 hover:bg-gray-50"
+                                className="animate-fade-in transition-colors duration-150 border-b border-gray-200 dark:border-[#2F3A4C] hover:bg-gray-50/70 dark:hover:bg-[#1C2433]"
                                 style={{ animationDelay: `${index * 30}ms` }}
                             >
                                 <Td>
@@ -176,8 +192,7 @@ export default function Workspaces() {
                                 </Td>
                                 <Td>
                                     <span
-                                        className="inline-flex items-center gap-2 text-gray-500"
-                                        title={`Your role: ${workspace.my_role || 'none'}`}
+                                        className="inline-flex items-center gap-2 text-gray-500 dark:text-[#94A3B8] title={`Your role: ${workspace.my_role || 'none'}`}"
                                     >
                                         <MemberIcon role={workspace.my_role} />
                                         <span className="capitalize">{workspace.my_role || 'none'}</span>
@@ -194,9 +209,9 @@ export default function Workspaces() {
                                 </Td>
                                 <Td align="right">
                                     {workspace.archived_at ? (
-                                        <Badge>archived</Badge>
+                                        <Badge className="text-gray-500 dark:text-[#64748B]">archived</Badge>
                                     ) : (
-                                        <span className="text-xs text-gray-400">active</span>
+                                        <span className="text-xs text-gray-400 dark:text-[#64748B]">active</span>
                                     )}
                                 </Td>
                             </tr>
@@ -207,7 +222,7 @@ export default function Workspaces() {
 
             {workspaces.length === 0 && !creating && canCreate && (
                 <div className="flex flex-col items-center gap-3 py-2 text-center">
-                    <p className="text-sm text-gray-600">Create one to start organizing projects and tasks.</p>
+                    <p className="text-sm text-gray-600 dark:text-[#94A3B8]">Create one to start organizing projects and tasks.</p>
                     <Button onClick={() => setCreating(true)}>Create your first workspace</Button>
                 </div>
             )}

@@ -29,7 +29,7 @@ export default function AccessExplainer({ userId, permissions = [] }) {
             <form onSubmit={check} className="flex flex-wrap items-center gap-2">
                 <input
                     list="access-permissions" value={slug} onChange={(e) => setSlug(e.target.value)} placeholder="e.g. hrms.payroll.view"
-                    className="min-w-64 flex-1 rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200"
+                    className="min-w-64 flex-1 rounded-lg border border-gray-200 dark:border-[#2F3A4C] bg-white dark:bg-[#161B26] text-gray-900 dark:text-[#F3F4F6] placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:border-[var(--accent)] focus:ring-1 focus:ring-[var(--accent)]/30 rounded-lg"
                 />
                 <datalist id="access-permissions">
                     {permissions.map((p) => <option key={p.slug} value={p.slug}>{p.name}</option>)}
@@ -38,7 +38,7 @@ export default function AccessExplainer({ userId, permissions = [] }) {
             </form>
             <Alert>{error}</Alert>
             {result && (
-                <div className={`mt-3 rounded-lg border p-3 text-sm ${result.allowed ? 'border-emerald-200 bg-emerald-50 text-emerald-900' : 'border-amber-200 bg-amber-50 text-amber-900'}`}>
+                <div className={`mt-3 rounded-lg border p-3 text-sm ${result.allowed ? 'border-emerald-200 bg-emerald-50 dark:text-emerald-900 dark:bg-emerald-900/10' : 'border-amber-200 bg-amber-50 dark:text-amber-900 dark:bg-amber-900/10'}`}>
                     <p className="font-semibold">{result.allowed ? 'Allowed' : 'Not allowed'}</p>
                     <p className="mt-1">{result.reason}</p>
                     {result.granted_by?.length > 0 && (

@@ -115,15 +115,15 @@ export default function UserEdit() {
                 <Card title="Profile" subtitle="The email is the login; changing it changes how they sign in.">
                     <Alert>{errors.form}</Alert>
                     <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                        <Input label="Full name" name="name" required disabled={!manageable} value={form.name} onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))} error={errors.name} />
-                        <Input label="Email address" name="email" type="email" required disabled={!manageable} value={form.email} onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))} error={errors.email} />
+                        <Input label="Full name" name="name" required disabled={!manageable} value={form.name} onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))} error={errors.name} className="bg-white dark:bg-[#161B26] border border-gray-200 dark:border-[#2F3A4C] text-gray-900 dark:text-[#F3F4F6] placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:border-[var(--accent)] focus:ring-1 focus:ring-[var(--accent)]/30 rounded-lg" />
+                        <Input label="Email address" name="email" type="email" required disabled={!manageable} value={form.email} onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))} error={errors.email} className="bg-white dark:bg-[#161B26] border border-gray-200 dark:border-[#2F3A4C] text-gray-900 dark:text-[#F3F4F6] placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:border-[var(--accent)] focus:ring-1 focus:ring-[var(--accent)]/30 rounded-lg" />
                     </div>
                 </Card>
 
                 <Card title="Roles" subtitle="You can only assign roles whose permissions you hold yourself.">
                     <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
                         {roles.map((role) => (
-                            <label key={role.slug} className="flex cursor-pointer items-start gap-2 rounded-lg border border-gray-200 px-3 py-2 text-sm hover:bg-gray-50">
+                            <label key={role.slug} className="flex cursor-pointer items-start gap-2 rounded-lg border border-gray-200 dark:border-[#2F3A4C] px-3 py-2 text-sm hover:bg-gray-50/70 dark:hover:bg-[#1C2433]">
                                 <input
                                     type="checkbox"
                                     className="mt-0.5 h-4 w-4 accent-[var(--accent)]"
@@ -131,9 +131,9 @@ export default function UserEdit() {
                                     checked={form.roles.includes(role.slug)}
                                     onChange={() => toggleRole(role.slug)}
                                 />
-                                <span className="text-gray-700">
+                                <span className="text-gray-700 dark:text-[#64748B]">
                                     {role.name}
-                                    <span className="block text-xs text-gray-400">{role.slug}</span>
+                                    <span className="block text-xs text-gray-400 dark:text-[#64748B]">{role.slug}</span>
                                 </span>
                             </label>
                         ))}

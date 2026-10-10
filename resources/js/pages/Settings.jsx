@@ -56,35 +56,40 @@ function NotificationPreferences() {
         );
     }
 
-    return (
-        <ul className="divide-y divide-gray-100">
-            {Object.keys(prefs).map((event) => (
-                <li key={event} className="flex items-center justify-between gap-4 py-3">
-                    <div>
-                        <p className="text-sm font-medium text-gray-800">
-                            {EVENT_LABELS[event] ?? event}
-                        </p>
-                        <p className="text-xs text-gray-400">Email me when this happens</p>
-                    </div>
-                    <button
-                        type="button"
-                        role="switch"
-                        aria-checked={prefs[event]}
-                        aria-label={EVENT_LABELS[event] ?? event}
-                        onClick={() => toggle(event)}
-                        disabled={saving}
-                        className={`relative h-6 w-11 shrink-0 rounded-full transition-colors ${
-                            prefs[event] ? 'bg-indigo-600' : 'bg-gray-300'
-                        } disabled:opacity-60`}
-                    >
-                        <span
-                            className={`absolute top-0.5 left-0.5 h-5 w-5 rounded-full bg-white shadow transition-transform ${
-                                prefs[event] ? 'translate-x-5' : ''
-                            }`}
-                        />
-                    </button>
-                </li>
-            ))}
+return (
+        <ul className="divide-y divide-gray-200 dark:divide-[#2F3A4C]">
+            {Object.keys(prefs).map((event) => {
+                const isEnabled = prefs[event];
+                return (
+                    <li key={event} className="flex items-center justify-between gap-4 py-3">
+                        <div>
+                            <p className="text-sm font-medium text-gray-800 dark:text-[#F3F4F6]">
+                                {EVENT_LABELS[event] ?? event}
+                            </p>
+                            <p className="text-xs text-gray-400 dark:text-[#64748B]">
+                                Email me when this happens
+                            </p>
+                        </div>
+                        <button
+                            type="button"
+                            role="switch"
+                            aria-checked={isEnabled}
+                            aria-label={EVENT_LABELS[event] ?? event}
+                            onClick={() => toggle(event)}
+                            disabled={saving}
+                            className={`relative h-6 w-11 shrink-0 rounded-full transition-colors ${
+                                isEnabled ? 'bg-[var(--accent)]' : 'bg-gray-300'
+                            } disabled:opacity-60`}
+                        >
+                            <span
+                                className={`absolute top-0.5 left-0.5 h-5 w-5 rounded-full bg-white shadow transition-transform ${
+                                    isEnabled ? 'translate-x-5' : ''
+                                }`}
+                            />
+                        </button>
+                    </li>
+                );
+            })}
         </ul>
     );
 }
@@ -101,24 +106,24 @@ export default function Settings() {
             </div>
 
             <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-                <div className="animate-fade-in-up">
+<div className="animate-fade-in-up">
                     <Card title="Profile" subtitle="Your account details">
-                    <dl className="space-y-4">
+                    <dl className="space-y-4" style={{ borderColor: 'border-gray-200 dark:border-[#2F3A4C]' }}>
                         <div>
-                            <dt className="text-xs font-semibold uppercase tracking-wide text-gray-400">Name</dt>
-                            <dd className="mt-1 text-sm font-medium text-gray-800">{user?.name}</dd>
+                            <dt className="text-xs font-semibold uppercase tracking-wide text-gray-400 dark:text-[#94A3B8]">Name</dt>
+                            <dd className="mt-1 text-sm font-medium text-gray-800 dark:text-[#F3F4F6]">{user?.name}</dd>
                         </div>
                         <div>
-                            <dt className="text-xs font-semibold uppercase tracking-wide text-gray-400">Email</dt>
-                            <dd className="mt-1 text-sm font-medium text-gray-800">{user?.email}</dd>
+                            <dt className="text-xs font-semibold uppercase tracking-wide text-gray-400 dark:text-[#94A3B8]">Email</dt>
+                            <dd className="mt-1 text-sm font-medium text-gray-800 dark:text-[#F3F4F6]">{user?.email}</dd>
                         </div>
                         <div>
-                            <dt className="text-xs font-semibold uppercase tracking-wide text-gray-400">Roles</dt>
+                            <dt className="text-xs font-semibold uppercase tracking-wide text-gray-400 dark:text-[#94A3B8]">Roles</dt>
                             <dd className="mt-1 flex flex-wrap gap-1">
                                 {(user?.roles || []).map((role) => (
                                     <span
                                         key={role}
-                                        className="rounded-full bg-gray-100 px-2.5 py-0.5 text-xs font-medium capitalize text-gray-700"
+                                        className="rounded-full bg-gray-100/60 dark:bg-[#161B26] px-2.5 py-0.5 text-xs font-medium capitalize text-gray-300 dark:text-[#64748B]"
                                     >
                                         {role}
                                     </span>
@@ -126,12 +131,12 @@ export default function Settings() {
                             </dd>
                         </div>
                         <div>
-                            <dt className="text-xs font-semibold uppercase tracking-wide text-gray-400">Permissions</dt>
+                            <dt className="text-xs font-semibold uppercase tracking-wide text-gray-400 dark:text-[#94A3B8]">Permissions</dt>
                             <dd className="mt-1 flex flex-wrap gap-1">
                                 {(user?.permissions || []).map((permission) => (
                                     <span
                                         key={permission}
-                                        className="rounded bg-gray-100 px-2 py-0.5 text-[11px] text-gray-600"
+                                        className="rounded bg-gray-100/60 dark:bg-[#161B26] px-2 py-0.5 text-[11px] text-gray-300 dark:text-[#64748B]"
                                     >
                                         {permission}
                                     </span>
@@ -142,8 +147,8 @@ export default function Settings() {
                 </Card>
                 </div>
 
-                <div className="animate-fade-in-up" style={{ animationDelay: '100ms' }}>
-                <Card title="Appearance" subtitle="Theme customization is per-account">
+                 <div className="animate-fade-in-up" style={{ animationDelay: '100ms' }}>
+                 <Card title="Appearance" subtitle="Theme customization is per-account">
                     <p className="text-sm text-gray-600">
                         Your saved theme is stored against your account and reapplied automatically on
                         every sign-in. Other admins each keep their own theme, so changes you make here

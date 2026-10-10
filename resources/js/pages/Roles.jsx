@@ -40,9 +40,9 @@ function PermissionGrid({ permissions, isChecked, onToggle, disabled = false, de
                     value={query}
                     onChange={(e) => setQuery(e.target.value)}
                     placeholder="Search permissions…"
-                    className="min-w-48 flex-1 rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200"
+                    className="min-w-48 flex-1 rounded-lg border border-gray-200 dark:border-[#2F3A4C] bg-white dark:bg-[#161B26] text-gray-900 dark:text-[#F3F4F6] placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:border-[var(--accent)] focus:ring-1 focus:ring-[var(--accent)]/30 rounded-lg"
                 />
-                <span className="text-xs text-gray-500">{selected} of {total} selected</span>
+                <span className="text-xs text-gray-400 dark:text-[#64748B]">{selected} of {total} selected</span>
             </div>
             {groups.length === 0 && <p className="text-sm text-gray-400">No permission matches “{query}”.</p>}
             {groups.map(({ domain, items, all }) => {
@@ -59,7 +59,7 @@ function PermissionGrid({ permissions, isChecked, onToggle, disabled = false, de
                             >
                                 <span>{open ? '▾' : '▸'}</span>
                                 {prettyDomain(domain)}
-                                <span className="rounded-full bg-white px-1.5 py-0.5 text-[10px] font-medium normal-case text-gray-500">
+                                <span className="rounded-full bg-white dark:bg-[#161B26] px-1.5 py-0.5 text-[10px] font-medium normal-case text-gray-300 dark:text-[#64748B]">
                                     {on}/{all.length}
                                 </span>
                             </button>
@@ -75,8 +75,8 @@ function PermissionGrid({ permissions, isChecked, onToggle, disabled = false, de
                                 {items.map((permission) => (
                                     <label
                                         key={permission.id}
-                                        className={`flex cursor-pointer rounded-lg text-sm transition hover:bg-gray-50 ${
-                                            dense ? 'items-start gap-2 px-2 py-1.5' : 'items-center gap-2 border border-gray-200 px-3 py-2'
+                                        className={`flex cursor-pointer rounded-lg text-sm transition hover:bg-gray-50/70 dark:hover:bg-[#1C2433] ${
+                                            dense ? 'items-start gap-2 px-2 py-1.5' : 'items-center gap-2 border border-gray-200 dark:border-[#2F3A4C] px-3 py-2'
                                         } ${disabled ? 'cursor-default hover:bg-transparent' : ''}`}
                                     >
                                         <input
@@ -84,11 +84,11 @@ function PermissionGrid({ permissions, isChecked, onToggle, disabled = false, de
                                             checked={isChecked(permission)}
                                             disabled={disabled}
                                             onChange={() => onToggle(permission)}
-                                            className="mt-0.5 h-4 w-4 shrink-0 rounded border-gray-300 text-[var(--accent)] accent-[var(--accent)] transition-all duration-150 focus:ring-[var(--accent-ring)] disabled:cursor-not-allowed disabled:opacity-50"
+                                            className="mt-0.5 h-4 w-4 shrink-0 rounded border-gray-200 dark:border-[#2F3A4C] text-[var(--accent)] accent-[var(--accent)] transition-all duration-150 focus:ring-[var(--accent-ring)] disabled:cursor-not-allowed disabled:opacity-50"
                                         />
-                                        <span className="text-gray-700">
+                                        <span className="text-gray-700 dark:text-[#64748B]">
                                             {permission.name}
-                                            <span className="block text-xs text-gray-400">{permission.slug}</span>
+                                            <span className="block text-xs text-gray-400 dark:text-[#64748B]">{permission.slug}</span>
                                         </span>
                                     </label>
                                 ))}
@@ -260,6 +260,7 @@ export default function Roles() {
                                 onChange={(e) => setCreateForm((f) => ({ ...f, name: e.target.value }))}
                                 error={createErrors.name}
                                 required
+                                className="bg-white dark:bg-[#161B26] border border-gray-200 dark:border-[#2F3A4C] text-gray-900 dark:text-[#F3F4F6] placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:border-[var(--accent)] focus:ring-1 focus:ring-[var(--accent)]/30 rounded-lg"
                             />
                             <Input
                                 label="Slug"
@@ -269,10 +270,11 @@ export default function Roles() {
                                 onChange={(e) => setCreateForm((f) => ({ ...f, slug: e.target.value }))}
                                 error={createErrors.slug}
                                 required
+                                className="bg-white dark:bg-[#161B26] border border-gray-200 dark:border-[#2F3A4C] text-gray-900 dark:text-[#F3F4F6] placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:border-[var(--accent)] focus:ring-1 focus:ring-[var(--accent)]/30 rounded-lg"
                             />
                         </div>
                         <div>
-                            <label className="mb-1.5 block text-sm font-medium text-gray-700">Permissions</label>
+                            <label className="mb-1.5 block text-sm font-medium text-gray-700 dark:text-[#64748B]">Permissions</label>
                             <PermissionGrid
                                 permissions={permissions}
                                 isChecked={(permission) => createForm.permissions.includes(permission.id)}
@@ -325,8 +327,8 @@ export default function Roles() {
                             return (
                                 <tr
                                     key={role.id}
-                                    className="animate-fade-in align-top transition-colors duration-150 hover:bg-gray-50"
-                                    style={{ animationDelay: `${index * 30}ms` }}
+className="animate-fade-in align-top transition-colors duration-150 hover:bg-gray-50/70 dark:hover:bg-[#1C2433]"
+                                style={{ animationDelay: `${index * 30}ms` }}
                                 >
                                     <Td>
                                         <span className="block font-medium capitalize">
@@ -348,7 +350,7 @@ export default function Roles() {
                                         </span>
                                     </Td>
                                     <Td>
-                                        <Badge>{role.slug}</Badge>
+                                        <Badge className="text-gray-300 dark:text-[#64748B]">{role.slug}</Badge>
                                         {role.is_system && (
                                             <span className="ml-2 text-xs text-gray-400">Built-in</span>
                                         )}
@@ -363,7 +365,7 @@ export default function Roles() {
                                                 onToggle={(permission) => togglePermission(role.id, permission.id)}
                                             />
                                         ) : (
-                                            <span className="text-sm text-gray-500">
+                                            <span className="text-sm text-gray-400 dark:text-[#64748B]">
                                                 {granted.length ? granted.join(', ') : 'No permissions'}
                                             </span>
                                         )}

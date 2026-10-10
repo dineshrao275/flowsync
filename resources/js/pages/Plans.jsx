@@ -111,7 +111,7 @@ function PlanForm({ initial, onSave, onCancel }) {
                     value={form.product || 'suite'}
                     disabled={Boolean(initial.id)}
                     onChange={(e) => set('product', e.target.value)}
-                    className="mt-1.5 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm disabled:bg-gray-50"
+                    className="mt-1.5 w-full rounded-lg border border-gray-200 dark:border-[#2F3A4C] bg-white dark:bg-[#161B26] text-gray-900 dark:text-[#F3F4F6] placeholder:text-gray-400 dark:placeholder:text-gray-500"
                 >
                     <option value="suite">Bundle (TMS + HRMS)</option>
                     <option value="tms">Task Management (TMS)</option>
@@ -145,7 +145,7 @@ function PlanForm({ initial, onSave, onCancel }) {
                 <p className="mb-2 text-sm font-medium text-gray-700">Included modules</p>
                 <div className="grid grid-cols-2 gap-2">
                     {MODULES.map((module) => (
-                        <label key={module} className="flex items-center gap-2 rounded-lg border border-gray-200 px-3 py-2 text-sm text-gray-700">
+                        <label key={module} className="flex items-center gap-2 rounded-lg border border-gray-200 dark:border-[#2F3A4C] px-3 py-2 text-sm text-gray-700 dark:text-[#64748B]">
                             <input type="checkbox" checked={modules.includes(module)} onChange={() => toggleModule(module)} />
                             {module}
                         </label>
@@ -281,12 +281,12 @@ export default function Plans() {
                 <tbody>
                     {plans.length === 0 && <TableEmpty colSpan={7}>No plans yet.</TableEmpty>}
                     {plans.map((plan) => (
-                        <tr key={plan.id} className="hover:bg-gray-50/60">
+                        <tr key={plan.id} className="hover:bg-gray-50/70 dark:hover:bg-[#1C2433]">
                             <Td>
                                 <span className="font-medium text-gray-900">{plan.name}</span>
                                 {plan.is_default && <span className="ml-2"><Badge>default</Badge></span>}
                                 {plan.product && plan.product !== 'suite' && <span className="ml-2"><Badge>{plan.product.toUpperCase()}</Badge></span>}
-                                <span className="mt-0.5 block text-xs text-gray-500">
+                                <span className="mt-0.5 block text-xs text-gray-500 dark:text-[#94A3B8]">
                                     {plan.slug}
                                     {plan.description ? ` · ${plan.description}` : ''}
                                 </span>
@@ -295,7 +295,7 @@ export default function Plans() {
                             <Td className="whitespace-nowrap">
                                 {plan.billing_cycle}
                                 {plan.trial_duration_days ? (
-                                    <span className="mt-0.5 block text-xs text-gray-500">{plan.trial_duration_days}-day trial</span>
+                                    <span className="mt-0.5 block text-xs text-gray-500 dark:text-[#94A3B8]">{plan.trial_duration_days}-day trial</span>
                                 ) : null}
                             </Td>
                             <Td>

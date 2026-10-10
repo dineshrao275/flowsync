@@ -64,21 +64,21 @@ function TicketList() {
                 <Card title="New ticket" subtitle="Tell us what happened and what you expected.">
                     <form onSubmit={create} className="space-y-4">
                         <Alert>{errors.form}</Alert>
-                        <Input label="Subject" name="subject" required value={form.subject} onChange={(e) => setForm((f) => ({ ...f, subject: e.target.value }))} error={errors.subject} />
+                        <Input label="Subject" name="subject" required value={form.subject} onChange={(e) => setForm((f) => ({ ...f, subject: e.target.value }))} error={errors.subject} className="bg-white dark:bg-[#161B26] border-gray-200 dark:border-[#2F3A4C] text-gray-900 dark:text-[#F3F4F6]" />
                         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                             <label className="block text-sm font-medium text-gray-700">Category
                                 <select value={form.category} onChange={(e) => setForm((f) => ({ ...f, category: e.target.value }))} className="mt-1.5 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm">
                                     {CATEGORIES.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
                                 </select>
                             </label>
-                            <label className="block text-sm font-medium text-gray-700">Priority
-                                <select value={form.priority} onChange={(e) => setForm((f) => ({ ...f, priority: e.target.value }))} className="mt-1.5 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm">
+                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-200">Priority
+                                <select value={form.priority} onChange={(e) => setForm((f) => ({ ...f, priority: e.target.value }))} className="mt-1.5 w-full rounded-lg bg-white dark:bg-[#161B26] border-gray-200 dark:border-[#2F3A4C] text-gray-900 dark:text-[#F3F4F6] px-3 py-2 text-sm">
                                     {PRIORITIES.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
                                 </select>
                             </label>
                         </div>
-                        <label className="block text-sm font-medium text-gray-700">Details
-                            <textarea rows={6} value={form.body} onChange={(e) => setForm((f) => ({ ...f, body: e.target.value }))} className="mt-1.5 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm" />
+                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-200">Details
+                            <textarea rows={6} value={form.body} onChange={(e) => setForm((f) => ({ ...f, body: e.target.value }))} className="mt-1.5 w-full rounded-lg bg-white dark:bg-[#161B26] border border-gray-200 dark:border-[#2F3A4C] text-gray-900 dark:text-[#F3F4F6] placeholder-gray-400 dark:placeholder-gray-500" />
                             {errors.body && <span className="mt-1 block text-sm text-red-600">{errors.body}</span>}
                         </label>
                         <div className="flex gap-2">
@@ -91,22 +91,22 @@ function TicketList() {
 
             <div className="flex gap-2 text-sm">
                 {[['open', 'Open'], ['closed', 'Resolved & closed'], ['', 'All']].map(([v, l]) => (
-                    <button key={l} onClick={() => setFilter(v)} className={`rounded-full px-3 py-1 ${filter === v ? 'bg-indigo-600 text-white' : 'bg-gray-100 text-gray-600'}`}>{l}</button>
+                    <button key={l} onClick={() => setFilter(v)} className={`rounded-full px-3 py-1 ${filter === v ? 'bg-indigo-600 text-white' : 'border-gray-200 dark:border-[#2F3A4C] text-gray-900 dark:text-[#F3F4F6]'}`}>{l}</button>
                 ))}
             </div>
 
             {tickets === null ? <div className="flex justify-center py-10"><Spinner /></div> : tickets.length === 0 ? (
                 <p className="py-10 text-center text-sm text-gray-400">No tickets here.</p>
             ) : (
-                <ul className="divide-y divide-gray-100 rounded-xl border border-gray-200 bg-white">
+                <ul className="divide-y divide-gray-200 dark:divide-[#2F3A4C] rounded-xl border border-gray-200 dark:border-[#2F3A4C] bg-white dark:bg-[#161B26]">
                     {tickets.map((t) => (
-                        <li key={t.id}>
-                            <Link to={`/support/${t.id}`} className="flex flex-wrap items-center gap-3 px-4 py-3 hover:bg-gray-50">
-                                <span className="font-mono text-xs text-gray-400">{t.reference}</span>
-                                <span className="min-w-0 flex-1 truncate font-medium text-gray-800">{t.subject}</span>
+                        <li key={t.id} className="hover:bg-gray-50 dark:hover:bg-[#1C2433]">
+                            <Link to={`/support/${t.id}`} className="flex flex-wrap items-center gap-3 px-4 py-3 dark:text-gray-300 hover:bg-gray-50">
+                                <span className="font-mono text-xs text-gray-400 dark:text-gray-500">{t.reference}</span>
+                                <span className="min-w-0 flex-1 truncate font-medium text-gray-800 dark:text-gray-200">{t.subject}</span>
                                 <span className={`text-xs capitalize ${PRIORITY_STYLES[t.priority]}`}>{t.priority}</span>
                                 <StatusPill status={t.status} />
-                                <span className="text-xs text-gray-400">{formatDateTime(t.last_activity_at)}</span>
+                                <span className="text-xs text-gray-400 dark:text-gray-500">{formatDateTime(t.last_activity_at)}</span>
                             </Link>
                         </li>
                     ))}

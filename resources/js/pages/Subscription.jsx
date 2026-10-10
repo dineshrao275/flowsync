@@ -44,16 +44,16 @@ function daysRemaining(iso) {
 function ModuleList({ title, modules, tone }) {
     return (
         <div>
-            <p className="text-xs font-semibold uppercase tracking-wide text-gray-400">{title}</p>
+            <p className="text-xs font-semibold uppercase tracking-wide text-gray-400 dark:text-[#64748B]">{title}</p>
             {modules.length === 0 ? (
-                <p className="mt-2 text-sm text-gray-500">None.</p>
+                <p className="mt-2 text-sm text-gray-500 dark:text-[#94A3B8]">None.</p>
             ) : (
                 <ul className="mt-2 space-y-1.5">
                     {modules.map((m) => (
                         <li
                             key={m}
                             className={`flex items-center gap-2 text-sm ${
-                                tone === 'included' ? 'font-medium text-emerald-700' : 'text-gray-500'
+                                tone === 'included' ? 'font-medium text-emerald-700 dark:text-emerald-400' : 'text-gray-500 dark:text-[#94A3B8]'
                             }`}
                         >
                             {tone === 'included' ? (
@@ -368,19 +368,19 @@ export default function Subscription() {
                                     const over = !unlimited && used > limit;
 
                                     return (
-                                        <tr key={r.key} className="transition-colors duration-150 hover:bg-gray-50/60">
+                                        <tr key={r.key} className="transition-colors duration-150 hover:bg-gray-50/70 dark:hover:bg-[#1C2433]">
                                             <Td>
-                                                <span className="font-medium text-gray-800">{r.label}</span>
+                                                <span className="font-medium text-gray-900 dark:text-[#F3F4F6]">{r.label}</span>
                                                 {over && (
                                                     <span className="mt-0.5 block text-xs text-red-600">
                                                         Over the plan limit — you may not be able to create more.
                                                     </span>
                                                 )}
                                             </Td>
-                                            <Td align="right" className={`tabular-nums ${over ? 'font-semibold text-red-600' : 'text-gray-700'}`}>
+                                            <Td align="right" className={`tabular-nums ${over ? 'font-semibold text-red-600' : 'text-gray-700 dark:text-[#C5C5C5]'}`}>
                                                 {used.toLocaleString()}
                                             </Td>
-                                            <Td align="right" className="whitespace-nowrap tabular-nums text-gray-500">
+                                            <Td align="right" className="whitespace-nowrap tabular-nums text-gray-500 dark:text-[#94A3B8]">
                                                 {unlimited ? 'Unlimited' : limit.toLocaleString()}
                                             </Td>
                                         </tr>
@@ -424,22 +424,22 @@ export default function Subscription() {
                                 const isCurrent = currentPlanIds.includes(p.id);
 
                                 return (
-                                    <tr key={p.id} className="transition-colors duration-150 hover:bg-gray-50/60">
+<tr key={p.id} className="transition-colors duration-150 hover:bg-gray-50/70 dark:hover:bg-[#1C2433]">
                                         <Td>
                                             <span className="font-medium text-gray-900">{p.name}</span>
                                             {p.product && p.product !== 'suite' && <span className="ml-2"><Badge>{PRODUCT_NAMES[p.product]}</Badge></span>}
                                             {p.is_default && <span className="ml-2"><Badge>default</Badge></span>}
-                                            <span className="mt-0.5 block text-xs text-gray-500">
+                                            <span className="mt-0.5 block text-xs text-gray-500 dark:text-[#94A3B8]">
                                                 {p.description || 'No description'}
                                             </span>
-                                            <span className="mt-0.5 block text-xs text-gray-500">
-                                                <span className="tabular-nums font-semibold text-gray-800">{p.limits?.users ?? '∞'}</span> users ·{' '}
-                                                <span className="tabular-nums font-semibold text-gray-800">{p.limits?.projects ?? '∞'}</span> projects ·{' '}
-                                                <span className="tabular-nums font-semibold text-gray-800">{p.limits?.tasks ?? '∞'}</span> tasks
+                                            <span className="mt-0.5 block text-xs text-gray-500 dark:text-[#94A3B8]">
+                                                <span className="tabular-nums font-semibold text-gray-900 dark:text-[#F3F4F6]">{p.limits?.users ?? '∞'}</span> users ·{' '}
+                                                <span className="tabular-nums font-semibold text-gray-900 dark:text-[#F3F4F6]">{p.limits?.projects ?? '∞'}</span> projects ·{' '}
+                                                <span className="tabular-nums font-semibold text-gray-900 dark:text-[#F3F4F6]">{p.limits?.tasks ?? '∞'}</span> tasks
                                             </span>
                                         </Td>
                                         <Td className="whitespace-nowrap font-medium text-gray-900">{formatPrice(p)}</Td>
-                                        <Td className="whitespace-nowrap text-gray-500">
+                                        <Td className="whitespace-nowrap text-gray-500 dark:text-[#94A3B8]">
                                             {p.trial_duration_days ? `${p.trial_duration_days} days` : '—'}
                                         </Td>
                                         <Td align="right" className="tabular-nums">{(p.limits?.modules || []).length}</Td>
@@ -475,7 +475,7 @@ export default function Subscription() {
                         </thead>
                         <tbody>
                             {events.map((e) => (
-                                <tr key={e.id} className="transition-colors duration-150 hover:bg-gray-50/60">
+                                <tr key={e.id} className="transition-colors duration-150 hover:bg-gray-50/70 dark:hover:bg-[#1C2433]">
                                     <Td className="font-medium capitalize text-gray-900">{String(e.type).replace(/_/g, ' ')}</Td>
                                     <Td className="text-gray-500">
                                         {e.from_plan && e.to_plan && e.from_plan.id !== e.to_plan.id
@@ -514,7 +514,7 @@ export default function Subscription() {
                         </thead>
                         <tbody>
                             {payments.map((p) => (
-                                <tr key={p.id} className="transition-colors duration-150 hover:bg-gray-50/60">
+                                <tr key={p.id} className="transition-colors duration-150 hover:bg-gray-50/70 dark:hover:bg-[#1C2433]">
                                     <Td className="font-mono text-xs text-gray-600">#{p.id}</Td>
                                     <Td className="font-medium text-gray-900">{p.plan_name || '—'}</Td>
                                     <Td className="font-medium text-gray-900">{p.formatted_amount}</Td>

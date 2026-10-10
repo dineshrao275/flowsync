@@ -74,9 +74,9 @@ export default function LimitsEditor({ limits, errors = {}, onChange, legend = '
     }
 
     return (
-        <fieldset className="rounded-lg border border-gray-200 p-4">
+        <fieldset className="rounded-lg border border-gray-200 dark:border-[#2F3A4C] p-4">
             <legend className="px-1 text-sm font-medium text-gray-700">{legend}</legend>
-            <p className="mb-3 text-xs text-gray-500">{hint}</p>
+            <p className="mb-3 text-xs text-gray-500 dark:text-[#94A3B8]">{hint}</p>
             <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
                 {FIELDS.map((field) => (
                     <Input
@@ -92,7 +92,7 @@ export default function LimitsEditor({ limits, errors = {}, onChange, legend = '
                     />
                 ))}
             </div>
-            <p className="mt-3 text-xs text-gray-500">
+            <p className="mt-3 text-xs text-gray-500 dark:text-[#94A3B8]">
                 <span className="font-medium text-gray-600">Seats</span> is a seat-based alias of users; both are capped
                 by whichever value is set.
             </p>

@@ -60,7 +60,7 @@ export default function Projects() {
         <div className="space-y-6">
             <div>
                 <h2 className="text-2xl font-bold text-gray-900">Projects</h2>
-                <p className="mt-1 text-sm text-gray-500">All projects you can access across your workspaces.</p>
+                <p className="mt-1 text-sm text-gray-500 dark:text-[#94A3B8]">All projects you can access across your workspaces.</p>
             </div>
 
             {error && <Alert>{error}</Alert>}
@@ -95,12 +95,11 @@ export default function Projects() {
                                 </tr>
                             </thead>
                             <tbody>
-                                {wsProjects.map((project, index) => (
-                                    <tr
-                                        key={project.id}
-                                        className="animate-fade-in transition-colors duration-150 hover:bg-gray-50"
-                                        style={{ animationDelay: `${index * 30}ms` }}
-                                    >
+                                {wsProjects.map((project) => (
+<tr
+                                            key={project.id}
+                                            className="animate-fade-in transition-colors duration-150 hover:bg-gray-50 dark:hover:bg-[#1C2433]"
+                                        >
                                         <Td>
                                             <Link
                                                 to={`/projects/${project.id}`}
@@ -119,7 +118,7 @@ export default function Projects() {
                                             </Link>
                                         </Td>
                                         <Td>
-                                            <span className="block max-w-md truncate text-gray-500">
+                                            <span className="block max-w-md truncate text-gray-500 dark:text-[#94A3B8]">
                                                 {project.description || 'No description'}
                                             </span>
                                         </Td>
@@ -129,7 +128,7 @@ export default function Projects() {
                                                     {ROLE_LABELS[project.my_role]?.toLowerCase() || project.my_role}
                                                 </Badge>
                                             ) : (
-                                                <span className="text-gray-400">—</span>
+                                                <span className="text-gray-400 dark:text-[#64748B]">—</span>
                                             )}
                                         </Td>
                                         <Td align="right" className="tabular-nums">

@@ -40,7 +40,7 @@ function SchemeField({ value, onChange }) {
                         className={`flex flex-col items-center gap-1.5 rounded-lg border p-2.5 transition-all duration-150 hover:-translate-y-px hover:shadow-sm active:scale-95 ${
                             active
                                 ? 'border-[var(--accent)] bg-[var(--accent-soft)] text-[var(--accent-soft-text)]'
-                                : 'border-gray-200 text-gray-700 hover:border-gray-300 hover:bg-gray-50'
+                                : 'border-gray-200 dark:border-[#2F3A4C] text-gray-700 dark:text-[#64748B] hover:border-gray-300 hover:bg-gray-50 dark:hover:bg-[#1C2433]'
                         }`}
                     >
                         <span className={`h-5 w-9 rounded border ${scheme.swatch}`} />
@@ -55,12 +55,12 @@ function SchemeField({ value, onChange }) {
 
 function ColorField({ field, value, onChange }) {
     return (
-        <div className="flex items-center justify-between gap-3 rounded-lg border border-gray-200 px-3 py-2.5 transition-all duration-150 hover:border-gray-300 hover:shadow-sm">
-            <label className="text-sm font-medium text-gray-700">{field.label}</label>
+        <div className="flex items-center justify-between gap-3 rounded-lg border border-gray-200 dark:border-[#2F3A4C] px-3 py-2.5 transition-all duration-150 hover:border-indigo-500 hover:shadow-sm focus:border-[var(--accent)] focus:ring-1 focus:ring-[var(--accent)]/30">
+            <label className="text-sm font-medium text-gray-700 dark:text-[#64748B]">{field.label}</label>
             <div className="flex items-center gap-2">
-                <span className="text-xs uppercase text-gray-400">{value}</span>
+                <span className="text-xs uppercase text-gray-400 dark:text-[#64748B]">{value}</span>
                 <label
-                    className="relative h-8 w-10 cursor-pointer overflow-hidden rounded-md border border-gray-300 shadow-inner transition-transform duration-150 hover:scale-110 active:scale-95"
+                    className="relative h-8 w-10 cursor-pointer overflow-hidden rounded-md border border-gray-300 dark:border-[#2F3A4C] shadow-inner transition-transform duration-150 hover:scale-110 active:scale-95"
                     style={{ backgroundColor: value }}
                 >
                     <input
@@ -101,7 +101,7 @@ export default function ThemeSettingsDrawer({ open, onClose }) {
             )}
 
             <aside
-                className={`fixed inset-y-0 right-0 z-50 flex w-full max-w-md transform flex-col bg-white shadow-2xl transition-transform duration-300 ease-out ${
+                className={`fixed inset-y-0 right-0 z-50 flex w-full max-w-md transform flex-col bg-white dark:bg-[#1A202C] shadow-2xl transition-transform duration-300 ease-out ${
                     open ? 'translate-x-0' : 'translate-x-full'
                 }`}
                 role="dialog"
@@ -125,7 +125,7 @@ export default function ThemeSettingsDrawer({ open, onClose }) {
 
                 <div className="flex-1 space-y-6 animate-fade-in-up overflow-y-auto px-6 py-5" style={{ animationDelay: '40ms' }}>
                     <section>
-                        <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-gray-500">Appearance</h3>
+                        <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-[#94A3B8]">Appearance</h3>
                         <SchemeField
                             value={draft.mode ?? 'system'}
                             onChange={preview}
@@ -146,7 +146,7 @@ export default function ThemeSettingsDrawer({ open, onClose }) {
                                         className={`rounded-lg border p-2 text-left text-xs font-medium transition-all duration-150 hover:-translate-y-px hover:shadow-sm active:scale-95 ${
                                             active
                                                 ? 'border-[var(--accent)] bg-[var(--accent-soft)] text-[var(--accent-soft-text)]'
-                                                : 'border-gray-200 text-gray-700 hover:border-gray-300 hover:bg-gray-50'
+                                                : 'border-gray-200 dark:border-[#2F3A4C] text-gray-700 dark:text-[#64748B] hover:border-gray-300 hover:bg-gray-50 dark:hover:bg-[#1C2433]'
                                         }`}
                                     >
                                         {preset.name}
@@ -172,7 +172,7 @@ export default function ThemeSettingsDrawer({ open, onClose }) {
 
                     <button
                         onClick={reset}
-                        className="text-sm font-medium text-gray-500 underline-offset-2 transition hover:text-gray-800 hover:underline"
+                        className="text-sm font-medium text-gray-500 dark:text-[#64748B] underline-offset-2 transition hover:text-gray-800 dark:hover:text-gray-200 hover:underline"
                     >
                         Reset to default theme
                     </button>

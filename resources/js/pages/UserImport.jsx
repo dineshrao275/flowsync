@@ -88,7 +88,7 @@ export default function UserImport() {
                 <div className="mt-3 flex gap-2">
                     <Button variant="secondary" onClick={() => downloadCsv('users-import-sample.csv', SAMPLE_ROWS)}>Download sample CSV</Button>
                 </div>
-                <pre className="mt-3 overflow-x-auto rounded-lg bg-gray-50 p-3 text-xs text-gray-700">{SAMPLE_ROWS.map((r) => r.join(',')).join('\n')}</pre>
+                <pre className="mt-3 overflow-x-auto rounded-lg bg-gray-50 dark:bg-[#161B26] p-3 text-xs text-gray-300 dark:text-[#64748B]">{SAMPLE_ROWS.map((r) => r.join(',')).join('\n')}</pre>
             </Card>
 
             <Card title="2. Upload & check">
@@ -101,7 +101,7 @@ export default function UserImport() {
 
             {report && (
                 <Card title="3. Review" subtitle={`${report.summary.valid} of ${report.summary.total} rows are ready to import.`}>
-                    {roles.length > 0 && <p className="mb-3 text-xs text-gray-500">Roles you may assign: {roles.map((r) => r.slug).join(', ')}</p>}
+                    {roles.length > 0 && <p className="mb-3 text-xs text-gray-400 dark:text-[#64748B]">Roles you may assign: {roles.map((r) => r.slug).join(', ')}</p>}
                     <div className="max-h-96 overflow-auto rounded-lg border border-gray-200">
                         <table className="min-w-full divide-y divide-gray-100 text-sm">
                             <thead className="bg-gray-50 text-left text-xs uppercase tracking-wide text-gray-500">
@@ -109,11 +109,11 @@ export default function UserImport() {
                             </thead>
                             <tbody className="divide-y divide-gray-50">
                                 {report.rows.map((r) => (
-                                    <tr key={r.line} className={r.errors.length ? 'bg-red-50/50' : ''}>
-                                        <td className="px-3 py-2 text-gray-500">{r.line}</td>
-                                        <td className="px-3 py-2">{r.name}</td>
-                                        <td className="px-3 py-2">{r.email}</td>
-                                        <td className="px-3 py-2">{r.roles.join(', ')}</td>
+                                    <tr key={r.line} className={r.errors.length ? 'bg-red-50/50 dark:bg-red-500/20' : 'hover:bg-gray-50/70 dark:hover:bg-[#1C2433]'}>
+                                        <td className="px-3 py-2 text-gray-400 dark:text-[#64748B]">{r.line}</td>
+                                        <td className="px-3 py-2 text-gray-400 dark:text-[#64748B]">{r.name}</td>
+                                        <td className="px-3 py-2 text-gray-400 dark:text-[#64748B]">{r.email}</td>
+                                        <td className="px-3 py-2 text-gray-400 dark:text-[#64748B]">{r.roles.join(', ')}</td>
                                         <td className="px-3 py-2">
                                             {r.errors.length ? <ul className="text-red-700">{r.errors.map((e) => <li key={e}>{e}</li>)}</ul> : <span className="text-emerald-700">Ready</span>}
                                         </td>

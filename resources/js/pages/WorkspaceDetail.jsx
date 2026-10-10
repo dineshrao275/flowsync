@@ -39,8 +39,8 @@ function Tabs({ tabs, active, onChange }) {
                     type="button"
                     onClick={() => onChange(tab.key)}
                     className={`-mb-px border-b-2 px-4 py-2.5 text-sm font-medium transition ${active === tab.key
-                            ? 'border-indigo-600 text-indigo-600'
-                            : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700'
+                            ? 'border-[var(--accent)] text-[var(--accent)] hover:text-gray-700 dark:hover:text-[#F3F4F6]'
+                            : 'border-transparent text-gray-500 dark:text-[#94A3B8] hover:text-gray-700 dark:hover:text-[#F3F4F6]'
                         }`}
                 >
                     {tab.label}
@@ -312,8 +312,7 @@ export default function WorkspaceDetail() {
             <div className="flex flex-wrap items-start justify-between gap-3">
                 <div className="flex items-center gap-4">
                     <span
-                        className="flex h-14 w-14 flex-shrink-0 items-center justify-center rounded-xl text-xl font-bold text-white shadow-md"
-                        style={{ backgroundColor: 'var(--accent)' }}
+                        className="flex h-14 w-14 flex-shrink-0 items-center justify-center rounded-xl text-xl font-bold text-white shadow-md bg-white dark:bg-[#1A202C]"
                     >
                         {workspace.name.charAt(0).toUpperCase()}
                     </span>
@@ -323,8 +322,8 @@ export default function WorkspaceDetail() {
                             {workspace.my_role && <Badge>{ROLE_LABELS[workspace.my_role]?.toLowerCase()}</Badge>}
                             {archived && <Badge>archived</Badge>}
                         </div>
-                        <p className="mt-1 text-sm text-gray-500">{workspace.description || 'No description'}</p>
-                        <p className="mt-0.5 text-xs text-gray-400">{workspace.slug}</p>
+                        <p className="mt-1 text-sm text-gray-500 dark:text-[#94A3B8]">{workspace.description || 'No description'}</p>
+                        <p className="mt-0.5 text-xs text-gray-400 dark:text-[#64748B]">{workspace.slug}</p>
                     </div>
                 </div>
                 {archived && isOwner ? (
@@ -356,7 +355,7 @@ export default function WorkspaceDetail() {
                         }
                     >
                         {creatingProject && (
-                            <form onSubmit={createProject} className="mb-5 space-y-4 rounded-lg border border-gray-200 p-4">
+                            <form onSubmit={createProject} className="mb-5 space-y-4 rounded-lg border border-gray-200 dark:border-[#2F3A4C] p-4">
                                 {formErrors.form && <Alert>{formErrors.form}</Alert>}
                                 <div className="grid gap-4 sm:grid-cols-2">
                                     <Input
@@ -450,7 +449,7 @@ export default function WorkspaceDetail() {
                             <form onSubmit={addMember} className="flex flex-col gap-3 sm:flex-row sm:items-end">
                                 <div className="flex-1">
                                     <select
-                                        className="block w-full rounded-lg border border-gray-300 bg-white px-3.5 py-2.5 text-sm shadow-sm focus:border-indigo-500 focus:outline-none"
+                                        className="block w-full rounded-lg border border-gray-300 bg-white dark:bg-[#1A202C] px-3.5 py-2.5 text-sm shadow-sm focus:border-indigo-500 focus:outline-none"
                                         value={memberForm.user_id}
                                         onChange={(e) => setMemberForm((f) => ({ ...f, user_id: e.target.value }))}
                                     >
@@ -465,7 +464,7 @@ export default function WorkspaceDetail() {
                                 </div>
                                 <div>
                                     <select
-                                        className="block w-full rounded-lg border border-gray-300 bg-white px-3.5 py-2.5 text-sm shadow-sm focus:border-indigo-500 focus:outline-none"
+                                        className="block w-full rounded-lg border border-gray-300 bg-white dark:bg-[#1A202C] px-3.5 py-2.5 text-sm shadow-sm focus:border-indigo-500 focus:outline-none"
                                         value={memberForm.role}
                                         onChange={(e) => setMemberForm((f) => ({ ...f, role: e.target.value }))}
                                     >
@@ -499,17 +498,17 @@ export default function WorkspaceDetail() {
                                                 {member.name.charAt(0).toUpperCase()}
                                             </span>
                                             <div>
-                                                <p className="text-sm font-medium text-gray-900">
-                                                    {member.name} {self && <span className="text-gray-400">(you)</span>}
+                                                <p className="text-sm font-medium text-gray-900 dark:text-[#F3F4F6]">
+                                                    {member.name} {self && <span className="text-gray-400 dark:text-[#64748B]">(you)</span>}
                                                 </p>
-                                                <p className="text-xs text-gray-400">{member.email}</p>
+                                                <p className="text-xs text-gray-400 dark:text-[#64748B]">{member.email}</p>
                                             </div>
                                         </div>
                                         <div className="flex items-center gap-2">
                                             <Badge>{member.role}</Badge>
                                             {canDemote && (
                                                 <select
-                                                    className="rounded-lg border border-gray-300 bg-white px-2 py-1 text-xs shadow-sm focus:outline-none"
+                                                    className="rounded-lg border border-gray-300 bg-white dark:bg-[#1A202C] px-2 py-1 text-xs shadow-sm focus:outline-none"
                                                     value={member.role}
                                                     onChange={(e) => changeRole(member, e.target.value)}
                                                 >
@@ -551,10 +550,10 @@ export default function WorkspaceDetail() {
                                     />
                                 </div>
                                 <div>
-                                    <label className="mb-1.5 block text-sm font-medium text-gray-700">Color</label>
+                                    <label className="mb-1.5 block text-sm font-medium text-gray-900 dark:text-[#F3F4F6]">Color</label>
                                     <input
                                         type="color"
-                                        className="h-[42px] w-16 rounded-lg border border-gray-300 bg-white p-1 shadow-sm focus:outline-none"
+                                        className="h-[42px] w-16 rounded-lg border border-gray-300 bg-white dark:bg-[#1A202C] dark:border-[#2F3A4C] p-1 shadow-sm focus:outline-none"
                                         value={labelForm.color}
                                         onChange={(e) => setLabelForm((f) => ({ ...f, color: e.target.value }))}
                                     />
@@ -568,7 +567,7 @@ export default function WorkspaceDetail() {
 
                     <Card title="Labels">
                         {labels.length === 0 ? (
-                            <p className="text-sm text-gray-500">No labels yet.</p>
+                            <p className="text-sm text-gray-500 dark:text-[#94A3B8]">No labels yet.</p>
                         ) : (
                             <ul className="flex flex-wrap gap-2">
                                 {labels.map((label) => (
