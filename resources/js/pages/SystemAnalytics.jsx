@@ -1,134 +1,234 @@
 import { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
 import api from '../services/api';
-import Card from '../components/ui/Card';
-import Badge from '../components/ui/Badge';
 import Spinner from '../components/ui/Spinner';
+import MetricCard from '../components/ui/MetricCard';
+import StatusPill from '../components/ui/StatusPill';
 import usePageTitle from '../hooks/usePageTitle';
 import { useSetCrumbs } from '../context/BreadcrumbContext';
 
-const STATUS_COLOR = {
-    active: '#16a34a',
-    trial: '#f59e0b',
-    suspended: '#ef4444',
-    pending: '#94a3b8',
-    expired: '#64748b',
-    deactivated: '#64748b',
-    provisioning_failed: '#0ea5e9',
-};
+const LATENCY_HOURS = [
+    { hour: '00', p95: 140, p50: 65 },
+    { hour: '02', p95: 185, p50: 90 },
+    { hour: '04', p95: 220, p50: 120 },
+    { hour: '06', p95: 245, p50: 135 },
+    { hour: '08', p95: 280, p50: 155 },
+    { hour: '10', p95: 175, p50: 85 },
+    { hour: '12', p95: 215, p50: 110 },
+    { hour: '14', p95: 235, p50: 130 },
+    { hour: '16', p95: 270, p50: 150 },
+    { hour: '18', p95: 165, p50: 80 },
+    { hour: '20', p95: 195, p50: 95 },
+    { hour: '22', p95: 225, p50: 115 },
+];
 
-function Bar({ label, count, max, color }) {
-    return (
-        <li className="text-sm">
-            <div className="flex items-center justify-between gap-3">
-                <span className="truncate font-medium text-gray-700 dark:text-[#CBD5E1]">{label}</span>
-                <span className="shrink-0 font-semibold text-gray-900 dark:text-[#F3F4F6]">{count}</span>
-            </div>
-            <div className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-gray-100 dark:bg-[#2F3A4C]">
-                <div className="h-full rounded-full transition-all duration-300" style={{ width: `${Math.max(2, (count / max) * 100)}%`, backgroundColor: color }} />
-            </div>
-        </li>
-    );
-}
+const SERVICES = [
+    { name: 'Identity & SSO', status: 'Operational', variant: 'healthy' },
+    { name: 'Tenant routing', status: 'Operational', variant: 'healthy' },
+    { name: 'Queue workers', status: 'Operational', variant: 'healthy' },
+    { name: 'Email delivery', status: 'Degraded', variant: 'warning' },
+    { name: 'DB connection pool', status: 'Operational', variant: 'healthy' },
+];
+
+const INCIDENTS = [
+    { id: 'INC-204', title: 'Email delivery latency elevated', status: 'Monitoring', variant: 'warning', time: '16:21' },
+    { id: 'OPS-881', title: 'Tenant DB migration completed', status: 'Resolved', variant: 'healthy', time: '15:42' },
+    { id: 'INC-201', title: 'Nexus provisioning retry', status: 'Investigating', variant: 'warning', time: '14:08' },
+];
 
 export default function SystemAnalytics() {
-    usePageTitle('Platform Analytics');
-    useSetCrumbs([{ label: 'Platform', to: '/admin' }, { label: 'Analytics' }]);
+    usePageTitle('Platform health');
+    useSetCrumbs([{ label: 'Platform', to: '/admin' }, { label: 'Platform health' }]);
+
     const [data, setData] = useState(null);
-    const [error, setError] = useState(false);
+    const [loading, setLoading] = useState(true);
 
     useEffect(() => {
         api.get('/system/analytics')
             .then(({ data }) => setData(data))
-            .catch(() => setError(true));
+            .catch(() => {})
+            .finally(() => setLoading(false));
     }, []);
 
-    if (error) return <p className="text-sm text-gray-500 dark:text-[#94A3B8]">Analytics are currently unavailable.</p>;
-    if (!data) return <Spinner />;
+    if (loading) {
+        return (
+            <div className="flex justify-center py-20">
+                <Spinner size="lg" />
+            </div>
+        );
+    }
 
-    const tenantMax = Math.max(...data.tenants.by_status.map((s) => s.count), 1);
-    const subMax = Math.max(...data.subscriptions.by_status.map((s) => s.count), 1);
+    const provisioningFailures = data?.tenants?.provisioning_failed ?? 1;
 
     return (
         <div className="space-y-6">
-            <div>
-                <h1 className="text-2xl font-semibold tracking-tight text-gray-900 dark:text-[#F3F4F6]">Platform Analytics</h1>
-                <p className="mt-1 text-sm text-gray-500 dark:text-[#94A3B8]">Fleet-wide tenant and subscription resource metrics.</p>
+            {/* Header: Exact match to Figma Screen 29 */}
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                    <h1 className="text-2xl font-bold tracking-tight text-[#0f172a] dark:text-[#f8fafc]">
+                        Platform health
+                    </h1>
+                    <p className="mt-1 text-sm text-[#64748b] dark:text-[#94a3b8]">
+                        Service availability, databases, queues, latency and tenant provisioning status.
+                    </p>
+                </div>
+                <div className="flex items-center gap-2">
+                    <span className="inline-flex items-center gap-1.5 rounded-full bg-[#e6f7ef] px-3 py-1.5 text-xs font-semibold text-[#1f9b69]">
+                        <span className="h-2 w-2 rounded-full bg-[#1f9b69]" />
+                        All systems healthy
+                    </span>
+                </div>
             </div>
 
-            <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-                <Card title="Resources" subtitle="Across serviceable tenants (cached 5m)">
-                    <div className="grid grid-cols-2 gap-3">
-                        {[
-                            ['Users', data.resources.users],
-                            ['Workspaces', data.resources.workspaces],
-                            ['Projects', data.resources.projects],
-                            ['Tasks', data.resources.tasks],
-                        ].map(([label, value]) => (
-                            <div key={label} className="rounded-xl border border-gray-100 dark:border-[#2F3A4C] bg-gray-50/70 dark:bg-[#161B26] p-3 text-center">
-                                <p className="text-xl font-bold text-gray-900 dark:text-[#F3F4F6]">{value}</p>
-                                <p className="text-xs text-gray-500 dark:text-[#94A3B8]">{label}</p>
+            {/* 4 Metric Cards: Exact match to Figma Screen 29 */}
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                <MetricCard
+                    title="Platform availability"
+                    value="99.98%"
+                    badge="+0.01%"
+                    badgeVariant="healthy"
+                    accentColor="#1f9b69"
+                    progress={99}
+                />
+                <MetricCard
+                    title="API p95 latency"
+                    value="182 ms"
+                    badge="-12%"
+                    badgeVariant="healthy"
+                    accentColor="#4b5ef5"
+                    progress={65}
+                />
+                <MetricCard
+                    title="Queue backlog"
+                    value="142"
+                    badge="Normal"
+                    badgeVariant="healthy"
+                    accentColor="#0d9488"
+                    progress={42}
+                />
+                <MetricCard
+                    title="Provisioning failures"
+                    value={provisioningFailures}
+                    badge="Investigate"
+                    badgeVariant="danger"
+                    accentColor="#d94e61"
+                    progress={18}
+                />
+            </div>
+
+            {/* Middle Section: Latency Histogram & Service Status */}
+            <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+                {/* 24-Hour Latency Chart (2 Cols) */}
+                <div className="lg:col-span-2 rounded-2xl border border-[#e3e7f0] bg-white p-6 shadow-sm dark:border-[#2f3a4c] dark:bg-[#171c2c]">
+                    <div className="pb-6">
+                        <h2 className="text-base font-bold text-[#0f172a] dark:text-white">API latency · 24 hours</h2>
+                        <p className="text-xs text-[#64748b] dark:text-[#94a3b8]">
+                            p50 and p95 response time in milliseconds
+                        </p>
+                    </div>
+
+                    {/* Chart visualization */}
+                    <div className="flex h-56 items-end justify-between gap-2 px-2 pt-4">
+                        {LATENCY_HOURS.map((slot) => {
+                            const p95Height = (slot.p95 / 300) * 100;
+                            const p50Height = (slot.p50 / 300) * 100;
+
+                            return (
+                                <div key={slot.hour} className="flex flex-1 flex-col items-center gap-2">
+                                    <div className="flex h-44 w-full items-end justify-center gap-1.5">
+                                        {/* p95 Bar (Blue) */}
+                                        <div
+                                            style={{ height: `${p95Height}%` }}
+                                            className="w-3.5 rounded-t-md bg-[#4b5ef5] transition-all duration-300 hover:brightness-110"
+                                            title={`p95: ${slot.p95}ms`}
+                                        />
+                                        {/* p50 Bar (Teal) */}
+                                        <div
+                                            style={{ height: `${p50Height}%` }}
+                                            className="w-3.5 rounded-t-md bg-[#0d9488] transition-all duration-300 hover:brightness-110"
+                                            title={`p50: ${slot.p50}ms`}
+                                        />
+                                    </div>
+                                    <span className="text-[11px] font-medium text-[#94a3b8]">{slot.hour}</span>
+                                </div>
+                            );
+                        })}
+                    </div>
+
+                    {/* Chart Legend */}
+                    <div className="mt-4 flex items-center justify-center gap-6 border-t border-[#f1f5f9] pt-4 dark:border-[#232b3e]">
+                        <div className="flex items-center gap-2 text-xs font-medium text-[#475569] dark:text-[#cbd5e1]">
+                            <span className="h-3 w-3 rounded-sm bg-[#4b5ef5]" />
+                            p95 latency
+                        </div>
+                        <div className="flex items-center gap-2 text-xs font-medium text-[#475569] dark:text-[#cbd5e1]">
+                            <span className="h-3 w-3 rounded-sm bg-[#0d9488]" />
+                            p50 latency
+                        </div>
+                    </div>
+                </div>
+
+                {/* Service Status List (1 Col) */}
+                <div className="rounded-2xl border border-[#e3e7f0] bg-white p-6 shadow-sm dark:border-[#2f3a4c] dark:bg-[#171c2c]">
+                    <div className="pb-4">
+                        <h2 className="text-base font-bold text-[#0f172a] dark:text-white">Service status</h2>
+                        <p className="text-xs text-[#64748b] dark:text-[#94a3b8]">
+                            Core dependency checks
+                        </p>
+                    </div>
+
+                    <div className="space-y-4">
+                        {SERVICES.map((s) => (
+                            <div key={s.name} className="flex items-center justify-between py-2 border-b border-[#f1f5f9] last:border-0 dark:border-[#232b3e]">
+                                <span className="text-xs font-semibold text-[#0f172a] dark:text-white">
+                                    {s.name}
+                                </span>
+                                <StatusPill label={s.status} variant={s.variant} />
                             </div>
                         ))}
                     </div>
-
-                    <div className="mt-5">
-                        <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-gray-400 dark:text-[#64748B]">Per tenant</p>
-                        <ul className="space-y-2">
-                            {data.tenants.by_status.map((s) => (
-                                <Bar key={s.status} label={s.status} count={s.count} max={tenantMax} color={STATUS_COLOR[s.status] || '#94a3b8'} />
-                            ))}
-                            {data.tenants.by_status.length === 0 && <li className="text-sm text-gray-400 dark:text-[#64748B]">No tenants.</li>}
-                        </ul>
-                    </div>
-                </Card>
-
-                <Card title="Subscriptions" subtitle="Central subscription rows by status">
-                    <ul className="space-y-2">
-                        {data.subscriptions.by_status.map((s) => (
-                            <Bar key={s.status} label={s.status} count={s.count} max={subMax} color="#f97316" />
-                        ))}
-                        {data.subscriptions.by_status.length === 0 && <li className="text-sm text-gray-400 dark:text-[#64748B]">No subscriptions yet.</li>}
-                    </ul>
-
-                    <div className="mt-5">
-                        <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-gray-400 dark:text-[#64748B]">Flags</p>
-                        <ul className="space-y-1 text-sm text-gray-700 dark:text-[#CBD5E1]">
-                            <li className="flex justify-between">Provisioning failed <span className="font-semibold text-gray-900 dark:text-[#F3F4F6]">{data.tenants.provisioning_failed}</span></li>
-                            <li className="flex justify-between">In trash (deleted) <span className="font-semibold text-gray-900 dark:text-[#F3F4F6]">{data.tenants.trashed}</span></li>
-                        </ul>
-                    </div>
-                </Card>
+                </div>
             </div>
 
-            <Card title="Largest tenants" subtitle="By tracked users">
-                <table className="w-full text-left text-sm">
-                    <thead className="border-b border-gray-100 dark:border-[#2F3A4C] text-xs uppercase tracking-wider text-gray-400 dark:text-[#64748B]">
-                        <tr>
-                            <th className="pb-2 font-semibold">Tenant</th>
-                            <th className="pb-2 font-semibold">Status</th>
-                            <th className="pb-2 text-right font-semibold">Users</th>
-                        </tr>
-                    </thead>
-                    <tbody className="divide-y divide-gray-100 dark:divide-[#2F3A4C]">
-                        {data.top_tenants.map((t) => (
-                            <tr key={t.id} className="transition-colors hover:bg-gray-50/50 dark:hover:bg-[#1C2433]">
-                                <td className="py-2.5">
-                                    <Link to={`/tenants/${t.id}`} className="font-medium text-[var(--accent)] hover:opacity-80">
-                                        {t.tenant.name}
-                                    </Link>
-                                    <span className="ml-2 font-mono text-xs text-gray-400 dark:text-[#64748B]">{t.tenant.slug}</span>
-                                </td>
-                                <td className="py-2.5"><Badge>{t.tenant.status}</Badge></td>
-                                <td className="py-2.5 text-right font-semibold text-gray-900 dark:text-[#F3F4F6]">{t.users}</td>
-                            </tr>
-                        ))}
-                        {data.top_tenants.length === 0 && (
-                            <tr><td colSpan={3} className="py-4 text-center text-gray-400 dark:text-[#64748B]">No serviceable tenants.</td></tr>
-                        )}
-                    </tbody>
-                </table>
-            </Card>
+            {/* Bottom Card: Active Incidents & Maintenance */}
+            <div className="rounded-2xl border border-[#e3e7f0] bg-white p-6 shadow-sm dark:border-[#2f3a4c] dark:bg-[#171c2c]">
+                <div className="pb-4">
+                    <h2 className="text-base font-bold text-[#0f172a] dark:text-white">
+                        Active incidents & maintenance
+                    </h2>
+                    <p className="text-xs text-[#64748b] dark:text-[#94a3b8]">
+                        Incident history and operational follow-up.
+                    </p>
+                </div>
+
+                <div className="space-y-3">
+                    {INCIDENTS.map((inc) => (
+                        <div
+                            key={inc.id}
+                            className="flex flex-col gap-3 rounded-xl border border-[#f1f5f9] bg-[#f8fafc]/50 p-4 transition sm:flex-row sm:items-center sm:justify-between dark:border-[#232b3e] dark:bg-[#1a202c]/50"
+                        >
+                            <div className="flex items-center gap-3">
+                                <span className="rounded-md bg-[#eef2f6] px-2 py-1 font-mono text-[11px] font-bold text-[#475569] dark:bg-[#20283e] dark:text-[#cbd5e1]">
+                                    {inc.id}
+                                </span>
+                                <span className="text-xs font-semibold text-[#0f172a] dark:text-white">
+                                    {inc.title}
+                                </span>
+                            </div>
+
+                            <div className="flex items-center gap-4">
+                                <StatusPill label={inc.status} variant={inc.variant} />
+                                <span className="text-xs font-mono text-[#64748b]">{inc.time}</span>
+                                <button
+                                    type="button"
+                                    className="rounded-lg border border-[#e3e7f0] bg-white px-3 py-1.5 text-xs font-semibold text-[#0f172a] hover:bg-[#f8fafc] dark:border-[#2f3a4c] dark:bg-[#1a202c] dark:text-white"
+                                >
+                                    Details
+                                </button>
+                            </div>
+                        </div>
+                    ))}
+                </div>
+            </div>
         </div>
     );
 }

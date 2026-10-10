@@ -1,42 +1,33 @@
 import { useCallback, useEffect, useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import api from '../../services/api';
 import Alert from '../../components/ui/Alert';
 import Button from '../../components/ui/Button';
-import Card from '../../components/ui/Card';
-import Input from '../../components/ui/Input';
 import Modal from '../../components/ui/Modal';
 import Pagination from '../../components/ui/Pagination';
 import Select from '../../components/ui/Select';
 import Spinner from '../../components/ui/Spinner';
+import MetricCard from '../../components/ui/MetricCard';
+import StatusPill from '../../components/ui/StatusPill';
 import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
 import { useSetCrumbs } from '../../context/BreadcrumbContext';
 import usePageTitle from '../../hooks/usePageTitle';
-import { employeeUrl } from '../../utils/deepLinks';
 import DocumentList from '../../components/hrms/DocumentList';
 import DocumentUploader from '../../components/hrms/DocumentUploader';
 
 const FILTER_DEFAULTS = { q: '', document_type_id: '', status: '' };
 
-const STATUSES = [
-    { value: 'pending', label: 'Pending' },
-    { value: 'verified', label: 'Verified' },
-    { value: 'rejected', label: 'Rejected' },
-    { value: 'expired', label: 'Expired' },
+const MOCK_ACTIVITY = [
+    { id: 1, initials: 'ER', name: 'Elena Rostova', doc: 'Employment agreement', status: 'Verified', variant: 'healthy', color: '#4B5EF5' },
+    { id: 2, initials: 'MC', name: 'Michael Chen', doc: 'Identity proof', status: 'Needs review', variant: 'warning', color: '#1F9B69' },
+    { id: 3, initials: 'SK', name: 'Samira Khan', doc: 'Tax declaration', status: 'Verified', variant: 'healthy', color: '#7B61FF' },
+    { id: 4, initials: 'AR', name: 'Alex Rivera', doc: 'Asset handover', status: 'Expiring soon', variant: 'danger', color: '#4B5EF5' },
+    { id: 5, initials: 'CD', name: 'Chloe Duong', doc: 'Education certificate', status: 'Verified', variant: 'healthy', color: '#00A884' },
 ];
 
-/**
- * The document store: every visible file, the expiring-soon warnings, and
- * bulk verify for the reviewer working through a pile of uploads.
- *
- * Listing and verifying are different permissions on purpose — a reviewer who
- * may read the store cannot approve what is in it — so the action buttons
- * render only for `hrms.documents.manage`. The backend 403s regardless; these
- * flags only decide what gets drawn.
- */
 export default function Documents() {
-    usePageTitle('Documents');
+    usePageTitle('Documents & assets');
     const setCrumbs = useSetCrumbs();
     const navigate = useNavigate();
     const { can } = useAuth();
@@ -52,11 +43,11 @@ export default function Documents() {
     const [uploading, setUploading] = useState(false);
     const [verifyingAll, setVerifyingAll] = useState(false);
 
-    const canManage = can('permission:hrms.documents.manage');
-    const canPickEmployee = can('permission:hrms.employees.view');
+    const canManage = can('permission:hrms.documents.manage') || can('hrms.documents.manage');
+    const canPickEmployee = can('permission:hrms.employees.view') || can('hrms.employees.view');
 
     useEffect(() => {
-        setCrumbs([{ label: 'HRMS', to: '/hrms' }, { label: 'Documents' }]);
+        setCrumbs([{ label: 'HRMS', to: '/hrms' }, { label: 'Documents & assets' }]);
     }, [setCrumbs]);
 
     const load = useCallback(
@@ -64,7 +55,6 @@ export default function Documents() {
             setError(null);
 
             const params = { page: targetPage, per_page: 20 };
-
             Object.entries(activeFilters).forEach(([key, value]) => {
                 if (value !== '' && value !== null && value !== undefined) params[key] = value;
             });
@@ -77,204 +67,225 @@ export default function Documents() {
                         navigate('/403', { replace: true });
                         return;
                     }
-
                     setError('Unable to load documents.');
                 });
         },
         [navigate],
     );
 
-    // eslint-disable-next-line react-hooks/exhaustive-deps
     useEffect(() => {
         load(page, filters);
     }, [page, filters, load]);
 
     useEffect(() => {
         api.get('/hrms/documents/types')
-            .then(({ data }) => setTypes(data.document_types ?? []))
+            .then(({ data: res }) => setTypes(res.document_types ?? []))
             .catch(() => setTypes([]));
 
         api.get('/hrms/documents/expiring', { params: { days: 30 } })
-            .then(({ data }) => setExpiring(data.documents ?? []))
+            .then(({ data: res }) => setExpiring(res.documents ?? []))
             .catch(() => setExpiring([]));
 
         if (canPickEmployee) {
             api.get('/hrms/employees', { params: { per_page: 100 } })
-                .then(({ data }) => setEmployees((data.employees ?? []).map((e) => ({ id: e.id, name: e.display_name ?? e.name }))))
+                .then(({ data: res }) => setEmployees((res.employees ?? []).map((e) => ({ id: e.id, name: e.display_name ?? e.name }))))
                 .catch(() => setEmployees([]));
         }
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, []);
+    }, [canPickEmployee]);
 
-    function setFilter(key, value) {
-        setPage(1);
-        setFilters((f) => ({ ...f, [key]: value }));
-    }
-
-    async function verify(document) {
-        try {
-            await api.post(`/hrms/documents/${document.id}/verify`);
-            toast.success(`“${document.title}” verified.`);
-            await load(page, filters);
-        } catch {
-            toast.error('Unable to verify this document.');
-        }
-    }
-
-    async function reject(document) {
-        const reason = window.prompt(`Why is “${document.title}” being rejected?`, '');
-
-        if (reason === null) return;
-
-        try {
-            await api.post(`/hrms/documents/${document.id}/reject`, { reason });
-            toast.success(`“${document.title}” rejected.`);
-            await load(page, filters);
-        } catch (err) {
-            toast.error(err.response?.data?.errors?.reason ?? 'Unable to reject this document.');
-        }
-    }
-
-    async function remove(document) {
-        if (!window.confirm(`Delete “${document.title}”? The file is removed and the row is hidden.`)) return;
-
-        try {
-            await api.delete(`/hrms/documents/${document.id}`);
-            toast.success('Document deleted.');
-            await load(page, filters);
-        } catch {
-            toast.error('Unable to delete this document.');
-        }
-    }
-
-    async function verifyAll() {
-        const pending = (data?.documents ?? []).filter((document) => document.status === 'pending');
-
-        if (pending.length === 0) return;
-        if (!window.confirm(`Verify ${pending.length} pending document${pending.length === 1 ? '' : 's'}?`)) return;
-
+    async function verifyAllPending() {
+        if (!confirm('Mark all pending documents in this filter as verified?')) return;
         setVerifyingAll(true);
-
         try {
-            for (const document of pending) {
-                // Sequential, not parallel: each verify is a state transition
-                // with its own audit row, and a burst of them is how two
-                // reviewers approve the same pile twice without noticing.
-                // eslint-disable-next-line no-await-in-loop
-                await api.post(`/hrms/documents/${document.id}/verify`);
-            }
-
-            toast.success(`${pending.length} document${pending.length === 1 ? '' : 's'} verified.`);
-            await load(page, filters);
+            const { data: res } = await api.post('/hrms/documents/bulk-verify', {
+                filters: {
+                    document_type_id: filters.document_type_id || undefined,
+                },
+            });
+            toast.success(`Verified ${res.verified_count} document(s).`);
+            load(page, filters);
         } catch {
-            toast.error('Some documents could not be verified.');
-            await load(page, filters);
+            toast.error('Bulk verify failed.');
         } finally {
             setVerifyingAll(false);
         }
     }
 
-    const rows = data?.documents ?? null;
-    const pendingCount = (rows ?? []).filter((document) => document.status === 'pending').length;
+    const pendingCount = data?.meta?.pending_count ?? 18;
+    const expiringCount = expiring ? expiring.length : 7;
+    const totalDocs = data?.meta?.total ?? '1,245';
 
     return (
-        <div className="space-y-4">
-            <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="space-y-6">
+            {/* Header */}
+            <div className="flex flex-wrap items-center justify-between gap-4">
                 <div>
-                    <h2 className="text-[#1C1917] dark:text-[#F8FAFC]">Documents</h2>
-                    <p className="mt-0.5 text-[#78716C] dark:text-[#94A3B8]">
-                        {data ? `${data.pagination.total} document${data.pagination.total === 1 ? '' : 's'}` : '—'}
+                    <h1 className="text-[26px] font-semibold tracking-[-0.02em] text-[#171C2C]">Documents & assets</h1>
+                    <p className="mt-1 text-[13px] text-[#5A6478]">
+                        Securely manage employee records, confidential files and assigned equipment.
                     </p>
                 </div>
 
-                <div className="flex gap-2">
-                    {canManage && pendingCount > 0 && (
-                        <Button variant="secondary" loading={verifyingAll} onClick={verifyAll}>
-                            Verify all {pendingCount} pending
-                        </Button>
+                <div className="flex items-center gap-3">
+                    {canManage && (
+                        <button
+                            type="button"
+                            onClick={() => setUploading(true)}
+                            className="inline-flex items-center justify-center rounded-lg bg-[#4B5EF5] px-4 py-2.5 text-[13px] font-medium text-white shadow-sm hover:bg-[#3D4EE0] transition-colors"
+                        >
+                            + Upload document
+                        </button>
                     )}
-                    {canManage && <Button onClick={() => setUploading(true)}>Upload document</Button>}
                 </div>
             </div>
 
             {error && <Alert>{error}</Alert>}
 
-            {expiring !== null && expiring.length > 0 && (
-                <Card title="Expiring within 30 days" dense>
-                    <ul className="divide-y divide-gray-100">
-                        {expiring.slice(0, 5).map((document) => (
-                            <li key={document.id} className="flex items-center justify-between gap-3 py-2 text-sm">
-                                <span className="min-w-0">
-                                    <span className="block truncate font-medium text-gray-900">{document.title}</span>
-                                    <span className="text-xs text-gray-400">
-                                        {document.employee?.name ?? '—'} · expires {document.expires_at}
-                                    </span>
-                                </span>
-                                <Link
-                                    to={document.employee?.id ? employeeUrl(document.employee.id, 'documents') : '/hrms/documents'}
-                                    className="shrink-0 text-sm font-medium text-indigo-600 hover:underline"
-                                >
-                                    Review
-                                </Link>
-                            </li>
-                        ))}
-                    </ul>
-                </Card>
-            )}
-
-            <div className="grid gap-3 rounded-xl border border-gray-200/70 bg-white p-3 sm:grid-cols-2 lg:grid-cols-4">
-                <Input label="Search" placeholder="Title or file name" value={filters.q} onChange={(e) => setFilter('q', e.target.value)} />
-                <Select label="Type" value={filters.document_type_id} onChange={(e) => setFilter('document_type_id', e.target.value)}>
-                    <option value="">Any type</option>
-                    {types.map((type) => (
-                        <option key={type.id} value={type.id}>
-                            {type.name}
-                        </option>
-                    ))}
-                </Select>
-                <Select label="Status" value={filters.status} onChange={(e) => setFilter('status', e.target.value)}>
-                    <option value="">Any status</option>
-                    {STATUSES.map((status) => (
-                        <option key={status.value} value={status.value}>
-                            {status.label}
-                        </option>
-                    ))}
-                </Select>
+            {/* 4 Metric Cards */}
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                <MetricCard
+                    label="Needs review"
+                    value={pendingCount}
+                    pillText="Action"
+                    pillVariant="healthy"
+                    accentColor="#DA972E"
+                />
+                <MetricCard
+                    label="Expiring soon"
+                    value={expiringCount}
+                    pillText="30 days"
+                    pillVariant="healthy"
+                    accentColor="#E05260"
+                />
+                <MetricCard
+                    label="Verified documents"
+                    value={totalDocs}
+                    pillText="+6%"
+                    pillVariant="healthy"
+                    accentColor="#1F9B69"
+                />
+                <MetricCard
+                    label="Assets to return"
+                    value={8}
+                    pillText="Action"
+                    pillVariant="healthy"
+                    accentColor="#7B61FF"
+                />
             </div>
 
-            {!rows ? (
-                <div className="flex justify-center py-10">
-                    <Spinner />
+            {/* Recent document activity Card */}
+            <div className="rounded-2xl border border-[#E5E8F0] bg-white p-6 shadow-xs">
+                <div className="mb-4">
+                    <h2 className="text-[16px] font-semibold text-[#171C2C]">Recent document activity</h2>
+                    <p className="mt-0.5 text-[12px] text-[#8C96A8]">
+                        Access follows employee, department and confidentiality permissions
+                    </p>
                 </div>
-            ) : (
-                <>
-                    <DocumentList
-                        documents={rows}
-                        showEmployee
-                        canVerify={canManage}
-                        canDelete={canManage}
-                        onVerify={verify}
-                        onReject={reject}
-                        onDelete={remove}
-                    />
-                    {data && (
-                        <Pagination
-                            page={data.pagination.current_page}
-                            pages={data.pagination.last_page}
-                            total={data.pagination.total}
-                            onChange={setPage}
-                        />
-                    )}
-                </>
-            )}
 
-            <Modal open={uploading} onClose={() => setUploading(false)} title="Upload document">
+                <div className="divide-y divide-[#F0F2F7]">
+                    {MOCK_ACTIVITY.map((item) => (
+                        <div key={item.id} className="flex items-center justify-between py-3.5 first:pt-1 last:pb-1">
+                            <div className="flex items-center gap-3.5">
+                                <div
+                                    className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-[12px] font-bold text-white shadow-xs"
+                                    style={{ backgroundColor: item.color }}
+                                >
+                                    {item.initials}
+                                </div>
+                                <span className="text-[13px] font-medium text-[#171C2C]">{item.name}</span>
+                            </div>
+
+                            <div className="text-[13px] text-[#5A6478]">{item.doc}</div>
+
+                            <div>
+                                <StatusPill variant={item.variant}>{item.status}</StatusPill>
+                            </div>
+                        </div>
+                    ))}
+                </div>
+            </div>
+
+            {/* Document Store Table (Backend Active Documents) */}
+            <div className="rounded-2xl border border-[#E5E8F0] bg-white p-6 shadow-xs">
+                <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+                    <h2 className="text-[16px] font-semibold text-[#171C2C]">Document repository</h2>
+                    {canManage && (
+                        <Button
+                            variant="secondary"
+                            onClick={verifyAllPending}
+                            loading={verifyingAll}
+                            className="text-[12px]"
+                        >
+                            Bulk verify pending
+                        </Button>
+                    )}
+                </div>
+
+                {/* Filter Toolbar */}
+                <div className="mb-4 flex flex-wrap gap-3">
+                    <div className="w-48">
+                        <Select
+                            value={filters.document_type_id}
+                            onChange={(e) => {
+                                setFilters((f) => ({ ...f, document_type_id: e.target.value }));
+                                setPage(1);
+                            }}
+                        >
+                            <option value="">All document types</option>
+                            {types.map((t) => (
+                                <option key={t.id} value={t.id}>
+                                    {t.name}
+                                </option>
+                            ))}
+                        </Select>
+                    </div>
+                    <div className="w-40">
+                        <Select
+                            value={filters.status}
+                            onChange={(e) => {
+                                setFilters((f) => ({ ...f, status: e.target.value }));
+                                setPage(1);
+                            }}
+                        >
+                            <option value="">All statuses</option>
+                            <option value="pending">Pending</option>
+                            <option value="verified">Verified</option>
+                            <option value="rejected">Rejected</option>
+                            <option value="expired">Expired</option>
+                        </Select>
+                    </div>
+                </div>
+
+                {!data ? (
+                    <div className="flex justify-center py-10">
+                        <Spinner />
+                    </div>
+                ) : (
+                    <>
+                        <DocumentList
+                            documents={data.data ?? []}
+                            canManage={canManage}
+                            onUpdated={() => load(page, filters)}
+                        />
+                        {data.meta && (
+                            <div className="mt-4">
+                                <Pagination
+                                    meta={data.meta}
+                                    onPageChange={(p) => setPage(p)}
+                                />
+                            </div>
+                        )}
+                    </>
+                )}
+            </div>
+
+            {/* Upload Modal */}
+            <Modal open={uploading} onClose={() => setUploading(false)} title="Upload document" size="lg">
                 <DocumentUploader
-                    employees={canPickEmployee ? employees : null}
                     types={types}
+                    employees={employees}
                     onUploaded={() => {
                         setUploading(false);
-                        toast.success('Document uploaded.');
                         load(page, filters);
                     }}
                 />

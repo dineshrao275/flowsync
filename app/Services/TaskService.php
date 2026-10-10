@@ -324,6 +324,8 @@ class TaskService
                     'comments',
                     'attachments',
                     'openBlockers as open_blockers_count',
+                    'checklistItems as checklist_total',
+                    'checklistItems as checklist_done_count' => fn ($q) => $q->where('is_done', true),
                 ]),
             $user,
             TaskScope::resolveQueryScope($project, $user, 'tasks.view'),

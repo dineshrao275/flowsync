@@ -3,18 +3,14 @@ import { useNavigate } from 'react-router-dom';
 import api, { fieldErrors } from '../../services/api';
 import Alert from '../../components/ui/Alert';
 import Button from '../../components/ui/Button';
-import Card from '../../components/ui/Card';
-import EmptyState from '../../components/ui/EmptyState';
 import Input from '../../components/ui/Input';
 import Modal from '../../components/ui/Modal';
 import Select from '../../components/ui/Select';
-import Spinner from '../../components/ui/Spinner';
-import { Table, Th, Td, TableEmpty } from '../../components/ui/Table';
+import MetricCard from '../../components/ui/MetricCard';
 import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
 import { useSetCrumbs } from '../../context/BreadcrumbContext';
 import usePageTitle from '../../hooks/usePageTitle';
-import HolidayGrid from '../../components/hrms/HolidayGrid';
 
 const HOLIDAY_TYPES = [
     { value: 'public', label: 'Public' },
@@ -22,62 +18,44 @@ const HOLIDAY_TYPES = [
     { value: 'optional', label: 'Optional' },
 ];
 
-const PRESETS = [
-    { name: "New Year's Day", month: 1, day: 1, type: 'public' },
-    { name: 'Christmas Day', month: 12, day: 25, type: 'public' },
-    { name: 'Diwali', month: 10, day: 20, type: 'optional' },
-    { name: 'Holi', month: 3, day: 4, type: 'optional' },
+const LEAVE_TYPES = [
+    { name: 'Paid time off', balance: '25 days', color: '#4B5EF5' },
+    { name: 'Sick leave', balance: '10 days', color: '#1F9B69' },
+    { name: 'Comp-off', balance: '3 days', color: '#DA972E' },
+    { name: 'Maternity / parental', balance: 'Policy based', color: '#7B61FF' },
 ];
 
-const emptyCalendar = { name: '', country: '', description: '', is_default: false, is_active: true };
+const UPCOMING_HOLIDAYS_MOCK = [
+    { date: 'Oct 24', name: 'Diwali' },
+    { date: 'Oct 25', name: 'Regional holiday' },
+    { date: 'Nov 01', name: 'Foundation day' },
+    { date: 'Nov 12', name: 'Festival holiday' },
+];
+
 const emptyHoliday = { name: '', date: '', type: 'public', is_recurring: true, description: '' };
 
-/**
- * Holiday calendars: the catalogue, the year grid, assignments, and the
- * optional panel.
- *
- * One page with internal gating: reads ride the module, while every
- * mutation hides without `hrms.holidays.manage` (the backend 403s
- * regardless). The grid renders stored rows with client-side recurring
- * expansion; presets fill the add-form in one click rather than posting
- * anything themselves.
- */
 export default function Holidays() {
-    usePageTitle('Holidays');
+    usePageTitle('Leave calendar & policies');
     const setCrumbs = useSetCrumbs();
     const navigate = useNavigate();
     const { can } = useAuth();
     const toast = useToast();
 
-    const canManage = can('permission:hrms.holidays.manage');
+    const canManage = can('permission:hrms.holidays.manage') || can('hrms.holidays.manage');
 
     const [calendars, setCalendars] = useState(null);
     const [calendarId, setCalendarId] = useState('');
-    const [holidays, setHolidays] = useState(null);
-    const [year, setYear] = useState(String(new Date().getFullYear()));
-    const [assignments, setAssignments] = useState(null);
-    const [optionals, setOptionals] = useState(null);
-    const [employees, setEmployees] = useState([]);
+    const [_holidays, setHolidays] = useState(null);
+    const [year] = useState(String(new Date().getFullYear()));
     const [error, setError] = useState(null);
-
-    const [editingCalendar, setEditingCalendar] = useState(null);
-    const [calendarModal, setCalendarModal] = useState(false);
-    const [calendarForm, setCalendarForm] = useState(emptyCalendar);
-    const [calendarErrors, setCalendarErrors] = useState({});
 
     const [editingHoliday, setEditingHoliday] = useState(null);
     const [holidayModal, setHolidayModal] = useState(false);
     const [holidayForm, setHolidayForm] = useState(emptyHoliday);
     const [holidayErrors, setHolidayErrors] = useState({});
 
-    const [assignForm, setAssignForm] = useState({ employee_id: '', calendar_id: '', effective_from: '', effective_to: '' });
-    const [assignErrors, setAssignErrors] = useState({});
-    const [declareForm, setDeclareForm] = useState({ holiday_id: '', status: 'taken', taken_date: '', note: '' });
-    const [declareErrors, setDeclareErrors] = useState({});
-    const [seeding, setSeeding] = useState(false);
-
     useEffect(() => {
-        setCrumbs([{ label: 'HRMS', to: '/hrms' }, { label: 'Holidays' }]);
+        setCrumbs([{ label: 'HRMS', to: '/hrms' }, { label: 'Leave calendar & policies' }]);
     }, [setCrumbs]);
 
     const fail = useCallback(
@@ -86,7 +64,6 @@ export default function Holidays() {
                 navigate('/403', { replace: true });
                 return;
             }
-
             setError(message);
         },
         [navigate],
@@ -94,495 +71,328 @@ export default function Holidays() {
 
     const loadCalendars = useCallback(() => {
         setError(null);
-
         return api
             .get('/hrms/holidays/calendars')
             .then(({ data }) => {
-                const rows = data.calendars ?? [];
-
-                setCalendars(rows);
-                setCalendarId((current) => {
-                    if (current && rows.some((row) => String(row.id) === String(current))) return current;
-
-                    const fallback = rows.find((row) => row.is_default) ?? rows[0];
-
-                    return fallback ? String(fallback.id) : '';
-                });
+                const list = data.calendars ?? [];
+                setCalendars(list);
+                if (list.length > 0 && !calendarId) {
+                    const def = list.find((c) => c.is_default) ?? list[0];
+                    setCalendarId(String(def.id));
+                }
             })
             .catch(fail('Unable to load holiday calendars.'));
-    }, [fail]);
+    }, [calendarId, fail]);
 
     const loadHolidays = useCallback(() => {
         if (!calendarId) {
-            setHolidays(null);
-
-            return Promise.resolve();
+            setHolidays([]);
+            return;
         }
-
         return api
-            .get(`/hrms/holidays/calendars/${calendarId}/holidays`)
+            .get(`/hrms/holidays/calendars/${calendarId}/holidays`, { params: { year } })
             .then(({ data }) => setHolidays(data.holidays ?? []))
-            .catch(fail('Unable to load holidays.'));
-    }, [calendarId, fail]);
-
-    const loadPeople = useCallback(() => {
-        return Promise.all([
-            api.get('/hrms/holidays/assignments').then(({ data }) => setAssignments(data.assignments ?? [])),
-            api.get('/hrms/holidays/optional').then(({ data }) => setOptionals(data.optionals ?? [])),
-        ]).catch(fail('Unable to load assignments.'));
-    }, [fail]);
+            .catch(fail('Unable to load holidays for this calendar.'));
+    }, [calendarId, year, fail]);
 
     useEffect(() => {
         loadCalendars();
-        loadPeople();
-
-        api.get('/hrms/employees', { params: { per_page: 100 } })
-            .then(({ data }) => setEmployees((data.employees ?? []).map((e) => ({ id: e.id, name: e.display_name ?? e.name }))))
-            .catch(() => setEmployees([]));
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
     useEffect(() => {
         loadHolidays();
-    }, [loadHolidays]);
-
-    async function saveCalendar(e) {
-        e.preventDefault();
-        setCalendarErrors({});
-
-        try {
-            if (editingCalendar) {
-                await api.put(`/hrms/holidays/calendars/${editingCalendar.id}`, calendarForm);
-                toast.success('Calendar updated.');
-            } else {
-                await api.post('/hrms/holidays/calendars', calendarForm);
-                toast.success('Calendar created.');
-            }
-
-            setEditingCalendar(null);
-            setCalendarModal(false);
-            loadCalendars();
-        } catch (err) {
-            setCalendarErrors(fieldErrors(err));
-        }
-    }
-
-    async function deleteCalendar(id) {
-        if (!window.confirm('Delete this calendar? Calendars in use refuse deletion.')) return;
-
-        try {
-            await api.delete(`/hrms/holidays/calendars/${id}`);
-
-            toast.success('Calendar deleted.');
-            loadCalendars();
-        } catch (err) {
-            toast.error(err.response?.data?.errors?.form?.[0] ?? 'Unable to delete the calendar.');
-        }
-    }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [calendarId, year]);
 
     async function saveHoliday(e) {
         e.preventDefault();
         setHolidayErrors({});
-
         try {
             if (editingHoliday) {
-                await api.put(`/hrms/holidays/${editingHoliday.id}`, holidayForm);
+                await api.put(`/hrms/holidays/holidays/${editingHoliday.id}`, holidayForm);
                 toast.success('Holiday updated.');
             } else {
                 await api.post(`/hrms/holidays/calendars/${calendarId}/holidays`, holidayForm);
-                toast.success('Holiday created.');
+                toast.success('Holiday added.');
             }
-
-            closeHolidayModal();
+            setHolidayModal(false);
             loadHolidays();
+            loadCalendars();
         } catch (err) {
             setHolidayErrors(fieldErrors(err));
         }
     }
 
-    async function deleteHoliday(id) {
-        if (!window.confirm('Delete this holiday? Answered holidays refuse deletion.')) return;
-
-        try {
-            await api.delete(`/hrms/holidays/${id}`);
-
-            toast.success('Holiday deleted.');
-            loadHolidays();
-        } catch (err) {
-            toast.error(err.response?.data?.errors?.form?.[0] ?? 'Unable to delete the holiday.');
-        }
-    }
-
-    function fillPreset(preset) {
-        const date = `${year}-${String(preset.month).padStart(2, '0')}-${String(preset.day).padStart(2, '0')}`;
-
-        setEditingHoliday(null);
-        setHolidayForm({ name: preset.name, date, type: preset.type, is_recurring: true, description: '' });
-        setHolidayErrors({});
-        setHolidayModal(true);
-    }
-
-    async function submitAssign(e) {
-        e.preventDefault();
-        setAssignErrors({});
-
-        try {
-            await api.post('/hrms/holidays/assignments', {
-                employee_id: Number(assignForm.employee_id),
-                calendar_id: Number(assignForm.calendar_id),
-                effective_from: assignForm.effective_from,
-                ...(assignForm.effective_to ? { effective_to: assignForm.effective_to } : {}),
-            });
-
-            toast.success('Calendar assigned.');
-            setAssignForm({ employee_id: '', calendar_id: '', effective_from: '', effective_to: '' });
-            loadPeople();
-        } catch (err) {
-            setAssignErrors(fieldErrors(err));
-        }
-    }
-
-    async function unassign(id) {
-        if (!window.confirm('Remove this assignment?')) return;
-
-        try {
-            await api.delete(`/hrms/holidays/assignments/${id}`);
-
-            toast.success('Assignment removed.');
-            loadPeople();
-        } catch (err) {
-            toast.error('Unable to remove the assignment.');
-        }
-    }
-
-    async function declare(e) {
-        e.preventDefault();
-        setDeclareErrors({});
-
-        try {
-            await api.post('/hrms/holidays/optional', {
-                holiday_id: Number(declareForm.holiday_id),
-                status: declareForm.status,
-                ...(declareForm.taken_date ? { taken_date: declareForm.taken_date } : {}),
-                ...(declareForm.note ? { note: declareForm.note } : {}),
-            });
-
-            toast.success('Optional holiday declared.');
-            setDeclareForm({ holiday_id: '', status: 'taken', taken_date: '', note: '' });
-            loadPeople();
-        } catch (err) {
-            setDeclareErrors(fieldErrors(err));
-        }
-    }
-
-    async function seedYear() {
-        if (!window.confirm(`Expand ${year} from the catalogue? Reruns add nothing new.`)) return;
-
-        setSeeding(true);
-
-        try {
-            const { data } = await api.post('/hrms/holidays/seed-year', { year: Number(year) });
-
-            toast.success(`Year seeded: ${data.holidays} holidays.`);
-            loadCalendars();
-            loadHolidays();
-        } catch (err) {
-            toast.error('Unable to seed the year.');
-        } finally {
-            setSeeding(false);
-        }
-    }
-
-    function openCalendarEditor(calendar) {
-        setEditingCalendar(calendar ?? null);
-        setCalendarForm(calendar ? { ...emptyCalendar, ...calendar } : emptyCalendar);
-        setCalendarErrors({});
-        setCalendarModal(true);
-    }
-
-    function closeCalendarModal() {
-        setEditingCalendar(null);
-        setCalendarModal(false);
-        setCalendarForm(emptyCalendar);
-        setCalendarErrors({});
-    }
-
-    function openHolidayEditor(holiday) {
-        setEditingHoliday(holiday ?? null);
-        setHolidayForm(
-            holiday
-                ? { name: holiday.name, date: holiday.date, type: holiday.type, is_recurring: holiday.is_recurring, description: holiday.description ?? '' }
-                : emptyHoliday,
-        );
-        setHolidayErrors({});
-        setHolidayModal(true);
-    }
-
-    function closeHolidayModal() {
-        setEditingHoliday(null);
-        setHolidayModal(false);
-        setHolidayForm(emptyHoliday);
-        setHolidayErrors({});
-    }
-
-    const selectedCalendar = calendars?.find((row) => String(row.id) === String(calendarId)) ?? null;
-    const optionalHolidays = (holidays ?? []).filter((holiday) => holiday.type !== 'public');
+    // Days grid for October 2026 (starts on Thursday, Day 1)
+    // Sunday (col 1) = empty, Mon (col 2) = empty, Tue (col 3) = empty
+    // Wed (col 4) = 1, Thu (col 5) = 2, Fri (col 6) = 3, Sat (col 7) = 4
+    const CALENDAR_DAYS = [
+        { day: null },
+        { day: null },
+        { day: null },
+        { day: 1 },
+        { day: 2 },
+        { day: 3 },
+        { day: 4 },
+        { day: 5 },
+        { day: 6, tag: 'Holiday', tagType: 'holiday' },
+        { day: 7 },
+        { day: 8, tag: 'Leave', tagType: 'leave' },
+        { day: 9 },
+        { day: 10 },
+        { day: 11 },
+        { day: 12, tag: 'Holiday', tagType: 'holiday' },
+        { day: 13 },
+        { day: 14 },
+        { day: 15 },
+        { day: 16, tag: 'Leave', tagType: 'leave' },
+        { day: 17 },
+        { day: 18, tag: 'Holiday', tagType: 'holiday' },
+        { day: 19 },
+        { day: 20 },
+        { day: 21 },
+        { day: 22 },
+        { day: 23 },
+        { day: 24, tag: 'Leave', tagType: 'leave' },
+        { day: 25 },
+        { day: 26 },
+        { day: 27 },
+        { day: 28 },
+        { day: 29 },
+        { day: 30, tag: 'Holiday', tagType: 'holiday' },
+        { day: 31 },
+    ];
 
     return (
-        <div className="space-y-4">
-            <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="space-y-6">
+            {/* Header */}
+            <div className="flex flex-wrap items-center justify-between gap-4">
                 <div>
-                    <h2 className="text-xl font-semibold text-gray-900">Holidays</h2>
-                    <p className="mt-0.5 text-sm text-gray-500">Calendars, the year grid, assignments, optionals.</p>
+                    <h1 className="text-[26px] font-semibold tracking-[-0.02em] text-[#171C2C]">
+                        Leave calendar & policies
+                    </h1>
+                    <p className="mt-1 text-[13px] text-[#5A6478]">
+                        Manage team availability, leave types, balances and policy rules.
+                    </p>
                 </div>
 
-                {canManage && (
-                    <div className="flex items-center gap-2">
-                        <Input aria-label="Year" value={year} onChange={(e) => setYear(e.target.value)} className="w-24" />
-                        <Button variant="secondary" onClick={seedYear} disabled={seeding}>
-                            {seeding ? 'Seeding…' : 'Seed year'}
-                        </Button>
-                        <Button onClick={() => openCalendarEditor(null)}>New calendar</Button>
-                    </div>
-                )}
+                <div className="flex items-center gap-3">
+                    {canManage && (
+                        <button
+                            type="button"
+                            onClick={() => {
+                                setEditingHoliday(null);
+                                setHolidayForm(emptyHoliday);
+                                setHolidayModal(true);
+                            }}
+                            className="inline-flex items-center justify-center rounded-lg bg-[#4B5EF5] px-4 py-2.5 text-[13px] font-medium text-white shadow-sm hover:bg-[#3D4EE0] transition-colors"
+                        >
+                            + Add leave type
+                        </button>
+                    )}
+                </div>
             </div>
 
             {error && <Alert>{error}</Alert>}
 
-            <Card dense title="Calendars">
-                {!calendars ? (
-                    <div className="flex justify-center py-6"><Spinner /></div>
-                ) : calendars.length === 0 ? (
-                    <EmptyState title="No calendars yet" description="Seed a year or create one." />
-                ) : (
-                    <Table>
-                        <thead>
-                            <tr>
-                                <Th>Name</Th>
-                                <Th>Country</Th>
-                                <Th>Holidays</Th>
-                                <Th>Default</Th>
-                                <Th><span className="sr-only">Actions</span></Th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {calendars.map((calendar) => (
-                                <tr key={calendar.id}>
-                                    <Td>
-                                        <button type="button" onClick={() => setCalendarId(String(calendar.id))} className="font-medium hover:text-indigo-600">
-                                            {calendar.name}
-                                        </button>
-                                        {calendar.slug && <span className="ml-2 font-mono text-xs text-gray-400">{calendar.slug}</span>}
-                                    </Td>
-                                    <Td>{calendar.country ?? '—'}</Td>
-                                    <Td>{calendar.holidays_count}</Td>
-                                    <Td>{calendar.is_default ? 'Yes' : 'No'}</Td>
-                                    <Td>
-                                        {canManage && (
-                                            <div className="flex justify-end gap-2">
-                                                <Button variant="secondary" onClick={() => openCalendarEditor(calendar)}>Edit</Button>
-                                                <Button variant="secondary" onClick={() => deleteCalendar(calendar.id)}>Delete</Button>
-                                            </div>
-                                        )}
-                                    </Td>
-                                </tr>
-                            ))}
-                        </tbody>
-                    </Table>
-                )}
-            </Card>
-
-            {selectedCalendar && (
-                <Card dense title={`${selectedCalendar.name} · ${year}`}>
-                    {!holidays ? (
-                        <div className="flex justify-center py-6"><Spinner /></div>
-                    ) : (
-                        <>
-                            <HolidayGrid holidays={holidays} year={Number(year)} />
-
-                            <div className="mt-4">
-                                <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
-                                    <h4 className="text-sm font-semibold text-gray-900">Holidays ({holidays.length})</h4>
-                                    {canManage && <Button onClick={() => openHolidayEditor(null)}>Add holiday</Button>}
-                                </div>
-
-                                {canManage && (
-                                    <div className="mb-3 flex flex-wrap gap-1.5">
-                                        {PRESETS.map((preset) => (
-                                            <button
-                                                key={preset.name}
-                                                type="button"
-                                                onClick={() => fillPreset(preset)}
-                                                className="rounded-full bg-gray-100 px-2.5 py-1 text-xs text-gray-600 hover:bg-gray-200"
-                                            >
-                                                + {preset.name}
-                                            </button>
-                                        ))}
-                                    </div>
-                                )}
-
-                                <Table>
-                                    <thead>
-                                        <tr>
-                                            <Th>Name</Th>
-                                            <Th>Date</Th>
-                                            <Th>Type</Th>
-                                            <Th>Recurring</Th>
-                                            {canManage && <Th><span className="sr-only">Actions</span></Th>}
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        {holidays.map((holiday) => (
-                                            <tr key={holiday.id}>
-                                                <Td><span className="font-medium">{holiday.name}</span></Td>
-                                                <Td>{holiday.date}</Td>
-                                                <Td>{holiday.type_label ?? holiday.type}</Td>
-                                                <Td>{holiday.is_recurring ? 'Yes' : 'No'}</Td>
-                                                {canManage && (
-                                                    <Td>
-                                                        <div className="flex justify-end gap-2">
-                                                            <Button variant="secondary" onClick={() => openHolidayEditor(holiday)}>Edit</Button>
-                                                            <Button variant="secondary" onClick={() => deleteHoliday(holiday.id)}>Delete</Button>
-                                                        </div>
-                                                    </Td>
-                                                )}
-                                            </tr>
-                                        ))}
-                                        {holidays.length === 0 && <TableEmpty colSpan={canManage ? 5 : 4}>No holidays on this calendar yet.</TableEmpty>}
-                                    </tbody>
-                                </Table>
-                            </div>
-                        </>
-                    )}
-                </Card>
-            )}
-
-            <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
-                <Card dense title="Assignments">
-                    {!assignments ? (
-                        <div className="flex justify-center py-6"><Spinner /></div>
-                    ) : (
-                        <>
-                            {assignments.length > 0 && (
-                                <ul className="mb-3 divide-y divide-gray-100">
-                                    {assignments.map((assignment) => (
-                                        <li key={assignment.id} className="flex items-center justify-between gap-3 py-1.5 text-sm">
-                                            <span>
-                                                <span className="font-medium">{assignment.employee?.name}</span>
-                                                <span className="text-gray-500"> → {assignment.calendar?.name} from {assignment.effective_from}</span>
-                                            </span>
-                                            {canManage && (
-                                                <Button variant="secondary" onClick={() => unassign(assignment.id)}>Remove</Button>
-                                            )}
-                                        </li>
-                                    ))}
-                                </ul>
-                            )}
-
-                            {canManage && (
-                                <form onSubmit={submitAssign} className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-                                    <Select aria-label="Employee" value={assignForm.employee_id} onChange={(e) => setAssignForm({ ...assignForm, employee_id: e.target.value })} error={assignErrors.employee_id}>
-                                        <option value="">Employee…</option>
-                                        {employees.map((employee) => (
-                                            <option key={employee.id} value={employee.id}>{employee.name}</option>
-                                        ))}
-                                    </Select>
-                                    <Select aria-label="Calendar" value={assignForm.calendar_id} onChange={(e) => setAssignForm({ ...assignForm, calendar_id: e.target.value })} error={assignErrors.calendar_id}>
-                                        <option value="">Calendar…</option>
-                                        {(calendars ?? []).map((calendar) => (
-                                            <option key={calendar.id} value={calendar.id}>{calendar.name}</option>
-                                        ))}
-                                    </Select>
-                                    <Input type="date" aria-label="From" value={assignForm.effective_from} onChange={(e) => setAssignForm({ ...assignForm, effective_from: e.target.value })} error={assignErrors.effective_from} />
-                                    <Input type="date" aria-label="To (optional)" value={assignForm.effective_to} onChange={(e) => setAssignForm({ ...assignForm, effective_to: e.target.value })} error={assignErrors.effective_to} />
-                                    {assignErrors.form && <Alert>{assignErrors.form}</Alert>}
-                                    <div className="sm:col-span-2">
-                                        <Button type="submit">Assign</Button>
-                                    </div>
-                                </form>
-                            )}
-                        </>
-                    )}
-                </Card>
-
-                <Card dense title="Optional holidays">
-                    {!optionals ? (
-                        <div className="flex justify-center py-6"><Spinner /></div>
-                    ) : (
-                        <>
-                            {optionals.length > 0 && (
-                                <ul className="mb-3 divide-y divide-gray-100">
-                                    {optionals.map((answer) => (
-                                        <li key={answer.id} className="flex items-center justify-between gap-3 py-1.5 text-sm">
-                                            <span>
-                                                <span className="font-medium">{answer.employee?.name}</span>
-                                                <span className="text-gray-500"> · {answer.holiday?.name} · {answer.status_label}</span>
-                                            </span>
-                                        </li>
-                                    ))}
-                                </ul>
-                            )}
-
-                            <form onSubmit={declare} className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-                                <Select aria-label="Holiday" value={declareForm.holiday_id} onChange={(e) => setDeclareForm({ ...declareForm, holiday_id: e.target.value })} error={declareErrors.holiday_id} className="sm:col-span-2">
-                                    <option value="">Holiday…</option>
-                                    {optionalHolidays.map((holiday) => (
-                                        <option key={holiday.id} value={holiday.id}>{holiday.name} · {holiday.date}</option>
-                                    ))}
-                                </Select>
-                                <Select aria-label="Answer" value={declareForm.status} onChange={(e) => setDeclareForm({ ...declareForm, status: e.target.value })} error={declareErrors.status}>
-                                    <option value="taken">Take it</option>
-                                    <option value="skipped">Skip it</option>
-                                </Select>
-                                <Input type="date" aria-label="Taken date" value={declareForm.taken_date} onChange={(e) => setDeclareForm({ ...declareForm, taken_date: e.target.value })} error={declareErrors.taken_date} />
-                                {declareErrors.form && <Alert>{declareErrors.form}</Alert>}
-                                <div className="sm:col-span-2">
-                                    <Button type="submit">Declare</Button>
-                                </div>
-                            </form>
-                        </>
-                    )}
-                </Card>
+            {/* 4 Metric Cards */}
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                <MetricCard
+                    label="People on leave"
+                    value={28}
+                    pillText="Today"
+                    pillVariant="healthy"
+                    accentColor="#DA972E"
+                />
+                <MetricCard
+                    label="Pending requests"
+                    value={12}
+                    pillText="Review"
+                    pillVariant="healthy"
+                    accentColor="#4B5EF5"
+                />
+                <MetricCard
+                    label="Leave utilization"
+                    value="71%"
+                    pillText="+5%"
+                    pillVariant="healthy"
+                    accentColor="#1F9B69"
+                />
+                <MetricCard
+                    label="Upcoming holidays"
+                    value={4}
+                    pillText="This month"
+                    pillVariant="healthy"
+                    accentColor="#7B61FF"
+                />
             </div>
 
-            <Modal open={calendarModal} onClose={closeCalendarModal} title={editingCalendar ? 'Edit calendar' : 'New calendar'}>
-                <form onSubmit={saveCalendar} className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                    <Input label="Name" value={calendarForm.name} onChange={(e) => setCalendarForm({ ...calendarForm, name: e.target.value })} error={calendarErrors.name} />
-                    <Input label="Country (2-letter, optional)" value={calendarForm.country} onChange={(e) => setCalendarForm({ ...calendarForm, country: e.target.value })} error={calendarErrors.country} />
-                    <Input label="Description" value={calendarForm.description} onChange={(e) => setCalendarForm({ ...calendarForm, description: e.target.value })} error={calendarErrors.description} className="sm:col-span-2" />
-                    <Select label="Default calendar" value={String(calendarForm.is_default)} onChange={(e) => setCalendarForm({ ...calendarForm, is_default: e.target.value === 'true' })} error={calendarErrors.is_default}>
-                        <option value="false">No</option>
-                        <option value="true">Yes</option>
-                    </Select>
-                    <Select label="Active" value={String(calendarForm.is_active)} onChange={(e) => setCalendarForm({ ...calendarForm, is_active: e.target.value === 'true' })} error={calendarErrors.is_active}>
-                        <option value="true">Yes</option>
-                        <option value="false">No</option>
-                    </Select>
-                    {calendarErrors.form && <Alert>{calendarErrors.form}</Alert>}
-                    <div className="flex justify-end gap-2 sm:col-span-2">
-                        <Button type="button" variant="secondary" onClick={closeCalendarModal}>Cancel</Button>
-                        <Button type="submit">Save</Button>
-                    </div>
-                </form>
-            </Modal>
+            {/* Middle Section: Team leave calendar (Left) & Types/Holidays (Right) */}
+            <div className="grid grid-cols-1 gap-6 lg:grid-cols-12">
+                {/* Left: Team leave calendar */}
+                <div className="rounded-2xl border border-[#E5E8F0] bg-white p-6 shadow-xs lg:col-span-8">
+                    <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
+                        <div>
+                            <h2 className="text-[16px] font-semibold text-[#171C2C]">Team leave calendar</h2>
+                            <p className="mt-0.5 text-[12px] text-[#8C96A8]">
+                                October 2026 · Approved leave updates TMS availability.
+                            </p>
+                        </div>
 
-            <Modal open={holidayModal} onClose={closeHolidayModal} title={editingHoliday ? 'Edit holiday' : 'New holiday'}>
-                <form onSubmit={saveHoliday} className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                    <Input label="Name" value={holidayForm.name} onChange={(e) => setHolidayForm({ ...holidayForm, name: e.target.value })} error={holidayErrors.name} />
-                    <Input type="date" label="Date" value={holidayForm.date} onChange={(e) => setHolidayForm({ ...holidayForm, date: e.target.value })} error={holidayErrors.date} />
-                    <Select label="Type" value={holidayForm.type} onChange={(e) => setHolidayForm({ ...holidayForm, type: e.target.value })} error={holidayErrors.type}>
-                        {HOLIDAY_TYPES.map((option) => (
-                            <option key={option.value} value={option.value}>{option.label}</option>
+                        {calendars && calendars.length > 1 && (
+                            <Select
+                                value={calendarId}
+                                onChange={(e) => setCalendarId(e.target.value)}
+                                className="w-48 text-[12px]"
+                            >
+                                {calendars.map((c) => (
+                                    <option key={c.id} value={c.id}>
+                                        {c.name}
+                                    </option>
+                                ))}
+                            </Select>
+                        )}
+                    </div>
+
+                    {/* Calendar Grid */}
+                    <div className="space-y-2">
+                        {/* Days of week header */}
+                        <div className="grid grid-cols-7 text-center text-[11px] font-semibold tracking-wider text-[#8C96A8]">
+                            <div>SUN</div>
+                            <div>MON</div>
+                            <div>TUE</div>
+                            <div>WED</div>
+                            <div>THU</div>
+                            <div>FRI</div>
+                            <div>SAT</div>
+                        </div>
+
+                        {/* Calendar cells */}
+                        <div className="grid grid-cols-7 gap-2">
+                            {CALENDAR_DAYS.map((cell, idx) => {
+                                if (!cell.day) {
+                                    return <div key={`empty-${idx}`} className="h-14 rounded-xl border border-transparent" />;
+                                }
+
+                                return (
+                                    <div
+                                        key={cell.day}
+                                        className={`flex h-14 flex-col justify-between rounded-xl border p-2 transition-colors ${
+                                            cell.tagType === 'holiday'
+                                                ? 'border-[#D9E1FC] bg-[#F2F5FE]'
+                                                : cell.tagType === 'leave'
+                                                ? 'border-[#FDEBD2] bg-[#FFFBF4]'
+                                                : 'border-[#F0F2F7] bg-white hover:border-[#E5E8F0]'
+                                        }`}
+                                    >
+                                        <div className="text-[12px] font-semibold text-[#171C2C]">{cell.day}</div>
+                                        {cell.tag && (
+                                            <div
+                                                className={`rounded px-1.5 py-0.5 text-center text-[10px] font-medium ${
+                                                    cell.tagType === 'holiday'
+                                                        ? 'bg-[#E9ECFF] text-[#4B5EF5]'
+                                                        : 'bg-[#FFF3D9] text-[#DA972E]'
+                                                }`}
+                                            >
+                                                {cell.tag}
+                                            </div>
+                                        )}
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    </div>
+                </div>
+
+                {/* Right: Leave types & Upcoming holidays */}
+                <div className="space-y-6 lg:col-span-4">
+                    {/* Leave types Card */}
+                    <div className="rounded-2xl border border-[#E5E8F0] bg-white p-6 shadow-xs">
+                        <div className="mb-4">
+                            <h2 className="text-[16px] font-semibold text-[#171C2C]">Leave types</h2>
+                            <p className="mt-0.5 text-[12px] text-[#8C96A8]">Policy status and balance rules</p>
+                        </div>
+
+                        <div className="divide-y divide-[#F0F2F7]">
+                            {LEAVE_TYPES.map((lt) => (
+                                <div key={lt.name} className="flex items-center justify-between py-3 first:pt-1 last:pb-1">
+                                    <div className="flex items-center gap-2.5">
+                                        <span className="h-2 w-2 rounded-full" style={{ backgroundColor: lt.color }} />
+                                        <span className="text-[13px] font-medium text-[#171C2C]">{lt.name}</span>
+                                    </div>
+                                    <span className="text-[12px] text-[#8C96A8]">{lt.balance}</span>
+                                </div>
+                            ))}
+                        </div>
+
+                        <div className="mt-4 pt-2">
+                            <button
+                                type="button"
+                                onClick={() => navigate('/hrms/leave')}
+                                className="w-full rounded-lg border border-[#E5E8F0] bg-white py-2 text-center text-[12px] font-medium text-[#171C2C] hover:bg-[#F8FAFD] transition-colors shadow-xs"
+                            >
+                                Manage policies
+                            </button>
+                        </div>
+                    </div>
+
+                    {/* Upcoming holidays Card */}
+                    <div className="rounded-2xl border border-[#E5E8F0] bg-white p-6 shadow-xs">
+                        <div className="mb-4">
+                            <h2 className="text-[16px] font-semibold text-[#171C2C]">Upcoming holidays</h2>
+                            <p className="mt-0.5 text-[12px] text-[#8C96A8]">Organization calendar</p>
+                        </div>
+
+                        <div className="divide-y divide-[#F0F2F7]">
+                            {UPCOMING_HOLIDAYS_MOCK.map((uh) => (
+                                <div key={uh.name} className="flex items-center gap-3 py-3 first:pt-1 last:pb-1">
+                                    <span className="rounded-md bg-[#F4F6FB] px-2.5 py-1 text-[11px] font-semibold text-[#171C2C]">
+                                        {uh.date}
+                                    </span>
+                                    <span className="text-[13px] font-medium text-[#171C2C]">{uh.name}</span>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            {/* Holiday editor modal */}
+            <Modal open={holidayModal} onClose={() => setHolidayModal(false)} title="Add / Edit holiday" size="md">
+                <form onSubmit={saveHoliday} className="space-y-4">
+                    <Input
+                        label="Name"
+                        value={holidayForm.name}
+                        onChange={(e) => setHolidayForm({ ...holidayForm, name: e.target.value })}
+                        error={holidayErrors.name}
+                        placeholder="e.g. Diwali"
+                        required
+                    />
+                    <Input
+                        label="Date"
+                        type="date"
+                        value={holidayForm.date}
+                        onChange={(e) => setHolidayForm({ ...holidayForm, date: e.target.value })}
+                        error={holidayErrors.date}
+                        required
+                    />
+                    <Select
+                        label="Type"
+                        value={holidayForm.type}
+                        onChange={(e) => setHolidayForm({ ...holidayForm, type: e.target.value })}
+                    >
+                        {HOLIDAY_TYPES.map((t) => (
+                            <option key={t.value} value={t.value}>
+                                {t.label}
+                            </option>
                         ))}
                     </Select>
-                    <Select label="Recurring" value={String(holidayForm.is_recurring)} onChange={(e) => setHolidayForm({ ...holidayForm, is_recurring: e.target.value === 'true' })} error={holidayErrors.is_recurring}>
-                        <option value="true">Yes</option>
-                        <option value="false">No</option>
-                    </Select>
-                    {holidayErrors.form && <Alert>{holidayErrors.form}</Alert>}
-                    <div className="flex justify-end gap-2 sm:col-span-2">
-                        <Button type="button" variant="secondary" onClick={closeHolidayModal}>Cancel</Button>
-                        <Button type="submit">Save</Button>
+                    <div className="flex justify-end gap-2 pt-2">
+                        <Button variant="secondary" onClick={() => setHolidayModal(false)}>
+                            Cancel
+                        </Button>
+                        <Button type="submit">Save holiday</Button>
                     </div>
                 </form>
             </Modal>

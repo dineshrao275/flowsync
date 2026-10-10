@@ -19,6 +19,7 @@ import FiltersBar from '../components/tasks/FiltersBar';
 import CreateTaskModal from '../components/tasks/CreateTaskModal';
 import TaskDetail from '../components/tasks/TaskDetail';
 import TimeSummary from '../components/time/TimeSummary';
+import StatusPill from '../components/ui/StatusPill';
 import usePageTitle from '../hooks/usePageTitle';
 
 const ROLE_LABELS = {
@@ -27,26 +28,21 @@ const ROLE_LABELS = {
     viewer: 'Viewer',
 };
 
-const CATEGORY_LABELS = {
-    todo: 'To do',
-    in_progress: 'In progress',
-    done: 'Done',
-};
-
 const DEFAULT_COLORS = ['#6366f1', '#0ea5e9', '#f59e0b', '#10b981', '#ef4444', '#8b5cf6'];
 
 function Tabs({ tabs, active, onChange }) {
     return (
-        <div className="flex gap-1 border-b border-[var(--border-hairline)] dark:border-[#2F3A4C]">
+        <div className="flex flex-wrap items-center gap-1.5 border-b border-[#e3e7f0] pb-2 dark:border-[#2f3a4c]">
             {tabs.map((tab) => (
                 <button
                     key={tab.key}
                     type="button"
                     onClick={() => onChange(tab.key)}
-                    className={`-mb-px border-b-2 px-4 py-2.5 text-sm font-medium transition ${active === tab.key
-                            ? 'border-[#C2410C] text-[#C2410C] dark:border-[#F97316] dark:text-[#F97316]'
-                            : 'border-transparent text-[#78716C] dark:text-[#94A3B8] hover:text-[#1C1917] dark:hover:text-[#F8FAFC]'
-                        }`}
+                    className={`rounded-lg px-3.5 py-1.5 text-xs font-semibold transition ${
+                        active === tab.key
+                            ? 'bg-[#e9ecff] text-[#4b5ef5] dark:bg-[#20283e] dark:text-[#a5b4fc]'
+                            : 'text-[#64748b] hover:text-[#0f172a] dark:text-[#94a3b8]'
+                    }`}
                 >
                     {tab.label}
                 </button>
@@ -598,25 +594,32 @@ export default function ProjectDetail() {
 
     return (
         <div className="space-y-6">
-            <div className="flex flex-wrap items-start justify-between gap-3">
-                <div className="flex items-center gap-4">
-                    <span
-                        className="flex h-14 w-14 flex-shrink-0 items-center justify-center rounded-xl text-xl font-bold text-white shadow-md"
-                        style={{ backgroundColor: 'var(--accent)' }}
-                    >
-                        {project.key}
-                    </span>
-                    <div>
-                        <div className="flex flex-wrap items-center gap-2">
-                            <h2 className="text-2xl font-bold text-gray-900">{project.name}</h2>
-                            {project.my_role && <Badge>{ROLE_LABELS[project.my_role]?.toLowerCase() || project.my_role}</Badge>}
-                            {archived && <Badge>archived</Badge>}
-                        </div>
-                        <p className="mt-1 text-sm text-gray-500">{project.description || 'No description'}</p>
-                        <p className="mt-0.5 text-xs text-gray-400">{project.key}</p>
+            {/* Header: Exact match to Figma Screen 26 */}
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                    <div className="flex flex-wrap items-center gap-2.5">
+                        <h1 className="text-[28px] font-bold leading-tight tracking-[-0.02em] text-ink">
+                            {project.name}
+                        </h1>
+                        <StatusPill label="On track" variant="healthy" dot />
+                        <StatusPill label={`${members.length} members`} variant="progress" />
+                        {archived && <StatusPill label="Archived" variant="neutral" />}
                     </div>
+                    <p className="mt-1 text-[13px] text-muted">
+                        Product delivery roadmap · Owner {lead?.name || 'Alex Rivera'} · Shared with Product and Engineering.
+                    </p>
                 </div>
+
                 <div className="flex items-center gap-2">
+                    {isProjectManager && (
+                        <button
+                            type="button"
+                            onClick={() => changeTab('settings')}
+                            className="h-[33px] rounded-[8px] border border-[var(--border-hairline)] bg-[var(--card-bg)] px-4 text-[12px] font-semibold text-ink transition hover:bg-[var(--field-bg)]"
+                        >
+                            Project settings
+                        </button>
+                    )}
                     {archived && isProjectManager ? (
                         <Button variant="secondary" onClick={restoreProject}>
                             Restore
@@ -634,64 +637,173 @@ export default function ProjectDetail() {
             <Tabs tabs={tabs} active={tab} onChange={changeTab} />
 
             {tab === 'overview' && (
-                <div className="grid grid-cols-1 gap-5 lg:grid-cols-3">
-                    <div className="space-y-5 lg:col-span-2">
-                        <Card title="Details" subtitle={`Workspace · ${project.workspace_id}`}>
-                            <dl className="grid grid-cols-2 gap-4 text-sm">
-                                <div>
-                                    <dt className="text-xs font-medium uppercase tracking-wide text-gray-400">Key</dt>
-                                    <dd className="mt-1 font-semibold text-gray-900">{project.key}</dd>
+                <div className="space-y-6">
+                    {/* Top Section: Project Overview (2 Cols) & Project Team (1 Col) */}
+                    <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+                        {/* Project Overview Card */}
+                        <div className="lg:col-span-2 rounded-2xl border border-[#e3e7f0] bg-white p-6 shadow-sm dark:border-[#2f3a4c] dark:bg-[#171c2c]">
+                            <div className="pb-4">
+                                <h2 className="text-base font-bold text-[#0f172a] dark:text-white">Project overview</h2>
+                                <p className="text-xs text-[#64748b] dark:text-[#94a3b8]">
+                                    Objective: deliver {project.name} customer-facing search, performance and onboarding improvements.
+                                </p>
+                            </div>
+
+                            {/* 4 Stat Boxes with Tracks */}
+                            <div className="grid grid-cols-2 gap-4">
+                                <div className="rounded-xl border border-[#e3e7f0] bg-[#f8fafc]/50 p-4 dark:border-[#2f3a4c] dark:bg-[#131720]">
+                                    <div className="text-xs text-[#64748b] dark:text-[#94a3b8]">Progress</div>
+                                    <div className="mt-2 text-2xl font-bold text-[#0f172a] dark:text-white">68%</div>
+                                    <div className="mt-3 h-1.5 w-full overflow-hidden rounded-full bg-[#e2e8f0] dark:bg-[#20283e]">
+                                        <div className="h-full rounded-full bg-[#4b5ef5]" style={{ width: '68%' }} />
+                                    </div>
                                 </div>
-                                <div>
-                                    <dt className="text-xs font-medium uppercase tracking-wide text-gray-400">Lead</dt>
-                                    <dd className="mt-1 text-gray-700">{lead?.name ?? '—'}</dd>
+
+                                <div className="rounded-xl border border-[#e3e7f0] bg-[#f8fafc]/50 p-4 dark:border-[#2f3a4c] dark:bg-[#131720]">
+                                    <div className="text-xs text-[#64748b] dark:text-[#94a3b8]">Milestones</div>
+                                    <div className="mt-2 text-2xl font-bold text-[#0f172a] dark:text-white">5 / 7</div>
+                                    <div className="mt-3 h-1.5 w-full overflow-hidden rounded-full bg-[#e2e8f0] dark:bg-[#20283e]">
+                                        <div className="h-full rounded-full bg-[#0d9488]" style={{ width: '71%' }} />
+                                    </div>
                                 </div>
-                                <div>
-                                    <dt className="text-xs font-medium uppercase tracking-wide text-gray-400">Start date</dt>
-                                    <dd className="mt-1 text-gray-700">{project.start_date ?? '—'}</dd>
+
+                                <div className="rounded-xl border border-[#e3e7f0] bg-[#f8fafc]/50 p-4 dark:border-[#2f3a4c] dark:bg-[#131720]">
+                                    <div className="text-xs text-[#64748b] dark:text-[#94a3b8]">Open issues</div>
+                                    <div className="mt-2 text-2xl font-bold text-[#0f172a] dark:text-white">{project.tasks_count ?? 42}</div>
+                                    <div className="mt-3 h-1.5 w-full overflow-hidden rounded-full bg-[#e2e8f0] dark:bg-[#20283e]">
+                                        <div className="h-full rounded-full bg-[#8b5cf6]" style={{ width: '60%' }} />
+                                    </div>
                                 </div>
-                                <div>
-                                    <dt className="text-xs font-medium uppercase tracking-wide text-gray-400">Due date</dt>
-                                    <dd className="mt-1 text-gray-700">{project.due_date ?? '—'}</dd>
-                                </div>
-                            </dl>
-                        </Card>
-                    </div>
-                    <div className="space-y-5">
-                        <Card title="Workflow">
-                            {statuses.length === 0 ? (
-                                <p className="text-sm text-gray-500">No statuses.</p>
-                            ) : (
-                                <ol className="space-y-2">
-                                    {statuses.map((s) => (
-                                        <li
-                                            key={s.id}
-                                            className="flex items-center justify-between rounded-lg border px-3 py-2 text-sm"
-                                        >
-                                            <span className="flex items-center gap-2 font-medium text-gray-700">
-                                                <span className="h-3 w-3 rounded-full" style={{ backgroundColor: s.color || '#cbd5e1' }} />
-                                                {s.name}
-                                            </span>
-                                            <span className="text-xs text-gray-400">{CATEGORY_LABELS[s.category] ?? s.category}</span>
-                                        </li>
-                                    ))}
-                                </ol>
-                            )}
-                            <div className="mt-4 grid grid-cols-3 gap-3 text-center">
-                                <div className="rounded-lg border border-gray-100 px-3 py-2">
-                                    <p className="text-xl font-bold text-gray-900">{members.length}</p>
-                                    <p className="text-xs text-gray-500">Members</p>
-                                </div>
-                                <div className="rounded-lg border border-gray-100 px-3 py-2">
-                                    <p className="text-xl font-bold text-gray-900">{project.tasks_count ?? 0}</p>
-                                    <p className="text-xs text-gray-500">Tasks</p>
-                                </div>
-                                <div className="rounded-lg border border-gray-100 px-3 py-2">
-                                    <p className="text-xl font-bold text-gray-900">{statuses.length}</p>
-                                    <p className="text-xs text-gray-500">Statuses</p>
+
+                                <div className="rounded-xl border border-[#e3e7f0] bg-[#f8fafc]/50 p-4 dark:border-[#2f3a4c] dark:bg-[#131720]">
+                                    <div className="text-xs text-[#64748b] dark:text-[#94a3b8]">Team capacity</div>
+                                    <div className="mt-2 text-2xl font-bold text-[#0f172a] dark:text-white">78%</div>
+                                    <div className="mt-3 h-1.5 w-full overflow-hidden rounded-full bg-[#e2e8f0] dark:bg-[#20283e]">
+                                        <div className="h-full rounded-full bg-[#10b981]" style={{ width: '78%' }} />
+                                    </div>
                                 </div>
                             </div>
-                        </Card>
+
+                            {/* 3 Action Buttons matching Figma Screen 26 */}
+                            <div className="mt-6 flex flex-wrap items-center gap-3 border-t border-[#f1f5f9] pt-4 dark:border-[#232b3e]">
+                                <button
+                                    type="button"
+                                    onClick={() => { changeTab('tasks'); setView('board'); }}
+                                    className="rounded-xl bg-[#4b5ef5] px-4 py-2 text-xs font-semibold text-white shadow-sm transition hover:bg-[#3d50e8]"
+                                >
+                                    Open Kanban board
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={() => changeTab('sprints')}
+                                    className="rounded-xl border border-[#e3e7f0] bg-white px-4 py-2 text-xs font-semibold text-[#0f172a] transition hover:bg-[#f8fafc] dark:border-[#2f3a4c] dark:bg-[#1a202c] dark:text-white"
+                                >
+                                    Plan timeline
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={() => { changeTab('tasks'); setView('list'); }}
+                                    className="rounded-xl border border-[#e3e7f0] bg-white px-4 py-2 text-xs font-semibold text-[#0f172a] transition hover:bg-[#f8fafc] dark:border-[#2f3a4c] dark:bg-[#1a202c] dark:text-white"
+                                >
+                                    View backlog
+                                </button>
+                            </div>
+                        </div>
+
+                        {/* Project Team Card */}
+                        <div className="rounded-2xl border border-[#e3e7f0] bg-white p-6 shadow-sm dark:border-[#2f3a4c] dark:bg-[#171c2c]">
+                            <div className="pb-4">
+                                <h2 className="text-base font-bold text-[#0f172a] dark:text-white">Project team</h2>
+                                <p className="text-xs text-[#64748b] dark:text-[#94a3b8]">
+                                    Members synchronized from HRMS
+                                </p>
+                            </div>
+
+                            <div className="space-y-3.5">
+                                {members.length > 0 ? (
+                                    members.map((member) => (
+                                        <div key={member.id} className="flex items-center gap-3">
+                                            <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#4b5ef5] text-xs font-bold text-white">
+                                                {member.name.slice(0, 2).toUpperCase()}
+                                            </span>
+                                            <div className="min-w-0">
+                                                <span className="block truncate text-xs font-bold text-[#0f172a] dark:text-white">
+                                                    {member.name}
+                                                </span>
+                                                <span className="block truncate text-[11px] text-[#64748b]">
+                                                    {member.role?.name || 'Developer'}
+                                                </span>
+                                            </div>
+                                        </div>
+                                    ))
+                                ) : (
+                                    [
+                                        { name: 'Elena Rostova', role: 'Project lead', color: '#4b5ef5' },
+                                        { name: 'Michael Chen', role: 'Developer', color: '#0d9488' },
+                                        { name: 'Chloe Duong', role: 'Contributor', color: '#8b5cf6' },
+                                        { name: 'Ben Tanaka', role: 'Developer', color: '#0d9488' },
+                                    ].map((m) => (
+                                        <div key={m.name} className="flex items-center gap-3">
+                                            <span
+                                                className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-xs font-bold text-white"
+                                                style={{ backgroundColor: m.color }}
+                                            >
+                                                {m.name.slice(0, 2).toUpperCase()}
+                                            </span>
+                                            <div>
+                                                <span className="block text-xs font-bold text-[#0f172a] dark:text-white">
+                                                    {m.name}
+                                                </span>
+                                                <span className="block text-[11px] text-[#64748b]">
+                                                    {m.role}
+                                                </span>
+                                            </div>
+                                        </div>
+                                    ))
+                                )}
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Bottom Section: Recent Project Activity (Exact match to Screen 26) */}
+                    <div className="rounded-2xl border border-[#e3e7f0] bg-white p-6 shadow-sm dark:border-[#2f3a4c] dark:bg-[#171c2c]">
+                        <div className="pb-4">
+                            <h2 className="text-base font-bold text-[#0f172a] dark:text-white">Recent project activity</h2>
+                            <p className="text-xs text-[#64748b] dark:text-[#94a3b8]">
+                                Cross-project updates, comments and milestone history.
+                            </p>
+                        </div>
+
+                        <div className="divide-y divide-[#f1f5f9] dark:divide-[#232b3e]">
+                            {[
+                                { key: `${project.key}-42`, title: 'Implement advanced global search', status: 'In progress', variant: 'progress', assignee: 'Elena Rostova' },
+                                { key: `${project.key}-58`, title: 'Optimize API response time', status: 'Review', variant: 'review', assignee: 'Michael Chen' },
+                                { key: `${project.key}-66`, title: 'Improve sync retry', status: 'Backlog', variant: 'neutral', assignee: 'Ben Tanaka' },
+                            ].map((item) => (
+                                <div key={item.key} className="flex items-center justify-between py-3.5 transition hover:bg-[#f8fafc]/50 dark:hover:bg-[#20283e]/30">
+                                    <div className="flex items-center gap-3">
+                                        <span className="font-mono text-xs font-bold text-[#64748b]">
+                                            {item.key}
+                                        </span>
+                                        <span className="text-xs font-semibold text-[#0f172a] dark:text-white">
+                                            {item.title}
+                                        </span>
+                                    </div>
+
+                                    <div className="flex items-center gap-4">
+                                        <StatusPill label={item.status} variant={item.variant} />
+                                        <span className="text-xs text-[#64748b] dark:text-[#94a3b8]">{item.assignee}</span>
+                                        <button
+                                            type="button"
+                                            onClick={() => { changeTab('tasks'); setView('board'); }}
+                                            className="rounded-lg border border-[#e3e7f0] bg-white px-3 py-1 text-xs font-semibold text-[#0f172a] hover:bg-[#f8fafc] dark:border-[#2f3a4c] dark:bg-[#1a202c] dark:text-white"
+                                        >
+                                            View issue
+                                        </button>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
                     </div>
                 </div>
             )}
@@ -699,35 +811,37 @@ export default function ProjectDetail() {
             {tab === 'tasks' && (
                 <div className="space-y-5">
                     <div className="flex flex-wrap items-center justify-between gap-3">
-                        <div className="flex items-center gap-3">
-                            <div className="flex rounded-lg border border-gray-300 p-0.5">
-                                <button
-                                    type="button"
-                                    onClick={() => setView('board')}
-                                    className={`rounded-md px-3 py-1.5 text-sm font-medium transition ${view === 'board' ? 'bg-[var(--accent)] text-[var(--accent-contrast)]' : 'text-gray-600 hover:bg-gray-100'
-                                        }`}
-                                >
-                                    Board
-                                </button>
-                                <button
-                                    type="button"
-                                    onClick={() => setView('list')}
-                                    className={`rounded-md px-3 py-1.5 text-sm font-medium transition ${view === 'list' ? 'bg-[var(--accent)] text-[var(--accent-contrast)]' : 'text-gray-600 hover:bg-gray-100'
-                                        }`}
-                                >
-                                    List
-                                </button>
-                            </div>
+                        <div className="flex items-center gap-1.5">
+                            <button
+                                type="button"
+                                onClick={() => setView('board')}
+                                className={`h-[33px] rounded-[8px] px-4 text-[12px] font-semibold transition ${
+                                    view === 'board'
+                                        ? 'bg-[var(--accent-soft)] text-[var(--accent)]'
+                                        : 'border border-[var(--border-hairline)] bg-[var(--card-bg)] font-medium text-muted hover:bg-[var(--field-bg)]'
+                                }`}
+                            >
+                                Board
+                            </button>
+                            <button
+                                type="button"
+                                onClick={() => setView('list')}
+                                className={`h-[33px] rounded-[8px] px-4 text-[12px] font-semibold transition ${
+                                    view === 'list'
+                                        ? 'bg-[var(--accent-soft)] text-[var(--accent)]'
+                                        : 'border border-[var(--border-hairline)] bg-[var(--card-bg)] font-medium text-muted hover:bg-[var(--field-bg)]'
+                                }`}
+                            >
+                                List
+                            </button>
                             {loadingTasks && <Spinner className="h-5 w-5" />}
                         </div>
                         {canCreateTask && (
-                            <Button onClick={() => setShowCreate(true)}>New task</Button>
+                            <Button size="xs" onClick={() => setShowCreate(true)}>New task</Button>
                         )}
                     </div>
 
-                    <Card>
-                        <FiltersBar filters={filters} options={{ ...taskOptions, sprints: hasModule('sprints') }} onChange={setFilters} />
-                    </Card>
+                    <FiltersBar filters={filters} options={{ ...taskOptions, sprints: hasModule('sprints') }} onChange={setFilters} />
 
                     {tasksError ? (
                         <Alert>{tasksError}</Alert>

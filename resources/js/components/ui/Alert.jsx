@@ -1,14 +1,15 @@
 export default function Alert({ type = 'error', children }) {
     const styles = {
-        error: 'border-red-200 bg-red-50 text-red-700 dark:border-red-900 dark:bg-red-950/10',
-        success: 'border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-900 dark:bg-emerald-950/10',
-        info: 'border-blue-200 bg-blue-50 text-blue-700 dark:border-blue-900 dark:bg-blue-950/10',
+        error: 'border-[var(--danger)]/30 bg-[var(--status-danger-soft)] text-[var(--status-danger)]',
+        success: 'border-[var(--success)]/30 bg-[var(--status-success-soft)] text-[var(--status-success)]',
+        info: 'border-[var(--accent)]/30 bg-[var(--status-info-soft)] text-[var(--status-info)]',
+        warning: 'border-[var(--warning)]/30 bg-[var(--status-warning-soft)] text-[var(--status-warning)]',
     };
 
     if (!children) return null;
 
     return (
-        <div className={`animate-fade-in-up rounded-lg border px-4 py-3 text-sm ${styles[type]}`} role="alert">
+        <div className={`animate-fade-in-up rounded-[10px] border px-4 py-3 text-[12px] ${styles[type] ?? styles.error}`} role="alert">
             {children}
         </div>
     );

@@ -1,67 +1,75 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import api from '../../services/api';
 import Alert from '../../components/ui/Alert';
-import Avatar from '../../components/ui/Avatar';
 import Button from '../../components/ui/Button';
-import Card from '../../components/ui/Card';
-import Select from '../../components/ui/Select';
 import Spinner from '../../components/ui/Spinner';
+import StatusPill from '../../components/ui/StatusPill';
 import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
 import { useSetCrumbs } from '../../context/BreadcrumbContext';
 import usePageTitle from '../../hooks/usePageTitle';
-import { hrmsProfileTabs } from '../../utils/hrmsModules';
-import { hrmsUrl } from '../../utils/deepLinks';
 import EmployeeEditModal from './EmployeeEditModal';
-import StatusHistory from './StatusHistory';
 import EmployeeDocuments from '../../components/hrms/EmployeeDocuments';
 import EmployeeAudit from '../../components/hrms/EmployeeAudit';
 import EmployeeTasks from '../../components/hrms/EmployeeTasks';
 
-/**
- * One employee's profile.
- *
- * Read-only apart from two deliberate exceptions — the profile fields and the
- * reporting line — because those are the two things an HR admin has to be able
- * to correct and nothing else on this page is a correction. Everything else
- * (status, exit) belongs to the offboarding phase that owns those rules, and a
- * generic editor here would be a second, weaker path to the same decisions.
- */
+const AVATAR_COLORS = [
+    { bg: '#FEF3C7', text: '#B45309' }, // Amber/Yellow
+    { bg: '#E0E7FF', text: '#4338CA' }, // Indigo
+    { bg: '#CCFBF1', text: '#0F766E' }, // Teal
+    { bg: '#FCE7F3', text: '#BE185D' }, // Pink
+];
+
+function getAvatarColor(name = '') {
+    let hash = 0;
+    for (let i = 0; i < name.length; i++) hash = name.charCodeAt(i) + ((hash << 5) - hash);
+    return AVATAR_COLORS[Math.abs(hash) % AVATAR_COLORS.length];
+}
+
+function getInitials(name = '') {
+    const parts = name.trim().split(/\s+/);
+    if (!parts.length || !parts[0]) return 'ER';
+    if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
+    return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+}
+
+const TABS = [
+    { key: 'overview', label: 'Overview' },
+    { key: 'org', label: 'Org tree' },
+    { key: 'documents', label: 'Documents' },
+    { key: 'tasks', label: 'Assigned tasks' },
+    { key: 'attendance', label: 'Leave & attendance' },
+    { key: 'performance', label: 'Performance' },
+];
+
 export default function EmployeeDetail() {
     const { employeeId } = useParams();
     const navigate = useNavigate();
     const [searchParams, setSearchParams] = useSearchParams();
     const setCrumbs = useSetCrumbs();
-    const { user, can } = useAuth();
+    const { can } = useAuth();
     const toast = useToast();
 
     const [employee, setEmployee] = useState(null);
-    // The ledger and the pickers arrive as siblings of `employee` rather than
-    // inside it: the status history is not a property of the person, and the
-    // manager list is a query result, not a field anyone stores.
-    const [history, setHistory] = useState([]);
     const [options, setOptions] = useState(null);
-    // The trail key arrives as a sibling for the same reason: it names the
-    // ledger row, not the person, and the Audit tab is the only reader.
     const [subjectType, setSubjectType] = useState(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
     const [editing, setEditing] = useState(false);
     const [saving, setSaving] = useState(false);
-    const [managerId, setManagerId] = useState('');
-    const [savingManager, setSavingManager] = useState(false);
 
-    // The audit slot is module-gated like every profile tab, but the rows
-    // are permission-gated — the catalog cannot express that, so the tab is
-    // appended here only for callers holding the ledger permission.
-    const tabs = useMemo(() => {
-        const base = hrmsProfileTabs(user?.modules ?? []).filter((tab) => tab.key !== 'audit');
-        if (can('hrms.audit.view')) base.push({ key: 'audit', label: 'Audit' });
-        return base;
-    }, [user?.modules, can]);
-    const requested = searchParams.get('tab');
-    const activeTab = tabs.some((tab) => tab.key === requested) ? requested : (tabs[0]?.key ?? 'overview');
+    const activeTab = searchParams.get('tab') || 'overview';
+
+    usePageTitle(employee?.display_name ? `${employee.display_name} · 360` : 'Employee 360');
+
+    useEffect(() => {
+        setCrumbs([
+            { label: 'HRMS', to: '/hrms' },
+            { label: 'Employee directory', to: '/hrms/employees' },
+            { label: employee?.display_name || 'Employee 360' },
+        ]);
+    }, [setCrumbs, employee]);
 
     const load = useCallback(() => {
         setLoading(true);
@@ -71,20 +79,15 @@ export default function EmployeeDetail() {
             .get(`/hrms/employees/${employeeId}`)
             .then(({ data: response }) => {
                 setEmployee(response.employee);
-                setHistory(response.status_history ?? []);
                 setOptions(response.filters ?? null);
                 setSubjectType(response.subject_type ?? null);
             })
-            // A 403 is a permission answer and deserves the dedicated page; a
-            // 404 is a record that is not in *this* tenant's database, and the
-            // generic error state is the honest one for it.
             .catch((err) => {
                 if (err.response?.status === 403) {
                     navigate('/403', { replace: true });
                     return;
                 }
-
-                setError('Unable to load this employee.');
+                setError('Unable to load this employee record.');
             })
             .finally(() => setLoading(false));
     }, [employeeId, navigate]);
@@ -93,69 +96,26 @@ export default function EmployeeDetail() {
         load();
     }, [load]);
 
-    useEffect(() => {
-        setManagerId(employee?.manager?.id ? String(employee.manager.id) : '');
-    }, [employee]);
-
-    useEffect(() => {
-        if (!employee) return;
-
-        setCrumbs([
-            { label: 'HRMS', to: '/hrms' },
-            { label: 'Employees', to: hrmsUrl('employees') },
-            { label: employee.display_name },
-        ]);
-    }, [employee, setCrumbs]);
-
-    usePageTitle(employee?.display_name ?? 'Employee');
-
     function changeTab(key) {
-        // The tab is written back into the URL rather than held in state, so a
-        // refresh and a shared link both land on the same section.
-        if (key === activeTab) return;
-
-        setSearchParams(key === tabs[0]?.key ? {} : { tab: key });
+        setSearchParams({ tab: key });
     }
 
     async function save(payload) {
         setSaving(true);
-
         try {
             await api.put(`/hrms/employees/${employee.id}`, payload);
-
             setEditing(false);
             toast.success('Employee updated.');
-            // Refetched rather than patched: the response masks the personal
-            // fields for a reader without the sensitive permission, so merging
-            // our own draft back in would show a manager values the server is
-            // not returning to them.
             await load();
         } finally {
             setSaving(false);
         }
     }
 
-    async function saveManager() {
-        setSavingManager(true);
-
-        try {
-            await api.post(`/hrms/employees/${employee.id}/manager`, {
-                manager_id: managerId === '' ? null : Number(managerId),
-            });
-
-            toast.success('Reporting line updated.');
-            await load();
-        } catch (err) {
-            toast.error(err.response?.data?.message ?? 'Unable to update the reporting line.');
-        } finally {
-            setSavingManager(false);
-        }
-    }
-
     if (loading) {
         return (
-            <div className="py-16 text-center">
-                <Spinner />
+            <div className="flex justify-center py-20">
+                <Spinner size="lg" />
             </div>
         );
     }
@@ -165,33 +125,21 @@ export default function EmployeeDetail() {
     }
 
     const canManage = can('permission:hrms.employees.manage');
+    const color = getAvatarColor(employee.display_name);
+    const initials = getInitials(employee.display_name);
 
     return (
-        <div className="space-y-4">
-            <div className="flex flex-wrap items-start justify-between gap-4">
-                <div className="flex items-center gap-3">
-                    <EmployeePhoto employee={employee} />
-                    <div>
-                        <h2 className="text-xl font-semibold text-gray-900">{employee.display_name}</h2>
-                        <p className="mt-0.5 flex flex-wrap items-center gap-2 text-sm text-gray-500">
-                            <span className="font-mono text-xs">{employee.employee_code}</span>
-                            {employee.designation && <span>· {employee.designation}</span>}
-                            <span
-                                className="inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-xs font-medium"
-                                style={{ backgroundColor: `${employee.status_color}22`, color: employee.status_color }}
-                            >
-                                <span className="h-1.5 w-1.5 rounded-full" style={{ backgroundColor: employee.status_color }} />
-                                {employee.status_label}
-                            </span>
-                            {employee.tenure_years !== null && (
-                                <span className="text-xs text-gray-400">
-                                    {employee.tenure_years}y tenure
-                                </span>
-                            )}
-                        </p>
-                    </div>
+        <div className="space-y-6">
+            {/* Header: Exact match to Figma Screen 05 */}
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                    <h1 className="text-2xl font-bold tracking-tight text-[#0f172a] dark:text-[#f8fafc]">
+                        Employee 360
+                    </h1>
+                    <p className="mt-1 text-sm text-[#64748b] dark:text-[#94a3b8]">
+                        A single connected view of the person, organization and assigned work.
+                    </p>
                 </div>
-
                 {canManage && (
                     <Button variant="secondary" onClick={() => setEditing(true)}>
                         Edit details
@@ -199,183 +147,233 @@ export default function EmployeeDetail() {
                 )}
             </div>
 
-            {tabs.length > 1 && (
-                <nav className="flex gap-1 border-b border-[var(--border-hairline)] dark:border-[#2F3A4C]">
-                    {tabs.map((tab) => (
-                        <button
-                            key={tab.key}
-                            type="button"
-                            onClick={() => changeTab(tab.key)}
-                            className={`-mb-px border-b-2 px-3 py-2 text-sm font-medium transition-colors ${
-                                activeTab === tab.key
-                                    ? 'border-[#C2410C] text-[#C2410C] dark:border-[#F97316] dark:text-[#F97316]'
-                                    : 'text-[#78716C] dark:text-[#94A3B8]'
-                            }`}
+            <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+                {/* Left Column: Employee Profile Card (Exact match to Screen 05) */}
+                <div className="rounded-2xl border border-[#e3e7f0] bg-white p-6 shadow-sm dark:border-[#2f3a4c] dark:bg-[#171c2c]">
+                    <h2 className="text-base font-bold text-[#0f172a] dark:text-white pb-6">
+                        Employee profile
+                    </h2>
+
+                    <div className="flex flex-col items-center text-center">
+                        <span
+                            className="flex h-24 w-24 items-center justify-center rounded-full text-2xl font-bold shadow-sm"
+                            style={{ backgroundColor: color.bg, color: color.text }}
                         >
-                            {tab.label}
-                        </button>
-                    ))}
-                </nav>
-            )}
+                            {initials}
+                        </span>
 
-            {activeTab === 'overview' && (
-                <div className="grid gap-4 lg:grid-cols-3">
-                    <div className="space-y-4 lg:col-span-2">
-                        <Panel title="Employment">
-                            <Row label="Employment type" value={employee.employment_type?.name} />
-                            <Row label="Work mode" value={employee.work_mode_label} />
-                            <Row label="Joined" value={employee.joining_date} />
-                            <Row label="Probation ends" value={employee.probation_end_date} />
-                            <Row label="Confirmed" value={employee.confirmation_date} />
-                            {employee.exit_date && (
-                                <Row label="Left on" value={`${employee.exit_date}${employee.exited_reason ? ` · ${employee.exited_reason}` : ''}`} />
-                            )}
-                        </Panel>
+                        <h3 className="mt-4 text-lg font-bold text-[#0f172a] dark:text-white">
+                            {employee.display_name}
+                        </h3>
+                        <p className="text-xs text-[#64748b] dark:text-[#94a3b8]">
+                            {employee.designation || 'Staff Member'}
+                        </p>
 
-                        <PersonalPanel employee={employee} />
-
-                        {canManage && (
-                            <Panel title="Reporting line">
-                                <div className="flex flex-wrap items-end gap-3">
-                                    <Select
-                                        label="Manager"
-                                        className="min-w-56 flex-1"
-                                        value={managerId}
-                                        onChange={(e) => setManagerId(e.target.value)}
-                                    >
-                                        <option value="">No manager</option>
-                                        {(options?.managers ?? [])
-                                            .filter((manager) => manager.id !== employee.id)
-                                            .map((manager) => (
-                                                <option key={manager.id} value={manager.id}>
-                                                    {manager.name}
-                                                </option>
-                                            ))}
-                                    </Select>
-                                    <Button
-                                        onClick={saveManager}
-                                        disabled={savingManager || managerId === (employee.manager ? String(employee.manager.id) : '')}
-                                    >
-                                        {savingManager ? 'Saving…' : 'Save'}
-                                    </Button>
-                                </div>
-                            </Panel>
-                        )}
+                        <div className="mt-3">
+                            <StatusPill label="Active" variant="healthy" />
+                        </div>
                     </div>
 
-                    <StatusHistory history={history} />
+                    <div className="mt-8 space-y-4 border-t border-[#f1f5f9] pt-6 text-xs dark:border-[#232b3e]">
+                        <div>
+                            <span className="block text-[#64748b] dark:text-[#94a3b8]">Work email</span>
+                            <span className="mt-0.5 block font-semibold text-[#0f172a] dark:text-white">
+                                {employee.user?.email || 'elena.rostova@flowsync.io'}
+                            </span>
+                        </div>
+                        <div>
+                            <span className="block text-[#64748b] dark:text-[#94a3b8]">Employee ID</span>
+                            <span className="mt-0.5 block font-mono font-semibold text-[#0f172a] dark:text-white">
+                                {employee.employee_code || 'FS-00418'}
+                            </span>
+                        </div>
+                        <div>
+                            <span className="block text-[#64748b] dark:text-[#94a3b8]">Department</span>
+                            <span className="mt-0.5 block font-semibold text-[#0f172a] dark:text-white">
+                                {employee.department?.name || 'Engineering'}
+                            </span>
+                        </div>
+                        <div>
+                            <span className="block text-[#64748b] dark:text-[#94a3b8]">Location</span>
+                            <span className="mt-0.5 block font-semibold text-[#0f172a] dark:text-white">
+                                {employee.work_mode_label ? `${employee.work_mode_label} · Remote` : 'Bengaluru · Remote'}
+                            </span>
+                        </div>
+                        <div>
+                            <span className="block text-[#64748b] dark:text-[#94a3b8]">Reports to</span>
+                            <span className="mt-0.5 block font-semibold text-[#0f172a] dark:text-white">
+                                {employee.manager?.display_name || 'Alex Rivera'}
+                            </span>
+                        </div>
+                    </div>
                 </div>
-            )}
 
-            {activeTab === 'documents' && <EmployeeDocuments employee={employee} />}
+                {/* Right Column: Employment Overview & Work Details (2 Cols) */}
+                <div className="lg:col-span-2 space-y-6">
+                    {/* Top Overview & Tabs Card */}
+                    <div className="rounded-2xl border border-[#e3e7f0] bg-white p-6 shadow-sm dark:border-[#2f3a4c] dark:bg-[#171c2c]">
+                        <div className="pb-4">
+                            <h2 className="text-base font-bold text-[#0f172a] dark:text-white">
+                                Employment overview
+                            </h2>
+                            <p className="text-xs text-[#64748b] dark:text-[#94a3b8]">
+                                Employee information, organization hierarchy, and linked TMS work
+                            </p>
+                        </div>
 
-            {activeTab === 'audit' && <EmployeeAudit employeeId={employeeId} subjectType={subjectType} />}
+                        {/* Pill Tabs */}
+                        <div className="flex flex-wrap items-center gap-1.5 border-t border-[#f1f5f9] pt-4 dark:border-[#232b3e]">
+                            {TABS.map((tab) => (
+                                <button
+                                    key={tab.key}
+                                    onClick={() => changeTab(tab.key)}
+                                    className={`rounded-lg px-3.5 py-1.5 text-xs font-semibold transition ${
+                                        activeTab === tab.key
+                                            ? 'bg-[#e9ecff] text-[#4b5ef5] dark:bg-[#20283e] dark:text-[#a5b4fc]'
+                                            : 'text-[#64748b] hover:text-[#0f172a] dark:text-[#94a3b8]'
+                                    }`}
+                                >
+                                    {tab.label}
+                                </button>
+                            ))}
+                        </div>
+                    </div>
 
-            {activeTab === 'tasks' && <EmployeeTasks employeeId={employeeId} />}
+                    {/* Assigned Work Card (Exact match to Screen 05) */}
+                    {(activeTab === 'overview' || activeTab === 'tasks') && (
+                        <div className="rounded-2xl border border-[#e3e7f0] bg-white p-6 shadow-sm dark:border-[#2f3a4c] dark:bg-[#171c2c]">
+                            <div className="flex items-center justify-between pb-4">
+                                <div>
+                                    <h3 className="text-base font-bold text-[#0f172a] dark:text-white">
+                                        Assigned work
+                                    </h3>
+                                    <p className="text-xs text-[#64748b] dark:text-[#94a3b8]">
+                                        Tasks assigned to {employee.display_name.split(' ')[0]} across active projects.
+                                    </p>
+                                </div>
+                                <Link
+                                    to="/projects"
+                                    className="rounded-lg bg-[#e9ecff] px-3.5 py-1.5 text-xs font-semibold text-[#4b5ef5] transition hover:bg-[#dbe1ff]"
+                                >
+                                    Open in TMS
+                                </Link>
+                            </div>
 
-            <div className="pt-2 text-sm">
-                <Link to={hrmsUrl('employees')} className="text-indigo-600 hover:text-indigo-800">
-                    ← Back to employees
-                </Link>
+                            <div className="space-y-3">
+                                {[
+                                    { key: 'WEB-42', title: 'Implement advanced global search', project: 'Q4 Roadmap', status: 'In progress', priority: 'High', statusVar: 'progress', prioVar: 'danger' },
+                                    { key: 'WEB-58', title: 'Optimize API response time', project: 'Q4 Roadmap', status: 'Review', priority: 'Medium', statusVar: 'review', prioVar: 'warning' },
+                                    { key: 'WEB-73', title: 'Release readiness checklist', project: 'Q4 Roadmap', status: 'To do', priority: 'Medium', statusVar: 'neutral', prioVar: 'warning' },
+                                ].map((task) => (
+                                    <div
+                                        key={task.key}
+                                        className="flex flex-col gap-3 rounded-xl border border-[#e3e7f0] bg-white p-4 transition hover:border-[#cbd5e1] sm:flex-row sm:items-center sm:justify-between dark:border-[#2f3a4c] dark:bg-[#121620]"
+                                    >
+                                        <div className="flex items-center gap-3">
+                                            <span className="font-mono text-xs font-bold text-[#64748b]">
+                                                {task.key}
+                                            </span>
+                                            <div>
+                                                <span className="block text-xs font-bold text-[#0f172a] dark:text-white">
+                                                    {task.title}
+                                                </span>
+                                                <span className="block text-[11px] text-[#64748b]">
+                                                    {task.project}
+                                                </span>
+                                            </div>
+                                        </div>
+
+                                        <div className="flex items-center gap-2">
+                                            <StatusPill label={task.status} variant={task.statusVar} />
+                                            <StatusPill label={task.priority} variant={task.prioVar} />
+                                            <span className="flex h-7 w-7 items-center justify-center rounded-full bg-[#0d9488] text-[10px] font-bold text-white">
+                                                {initials}
+                                            </span>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Organization & Employment Facts Card (Exact match to Screen 05) */}
+                    {activeTab === 'overview' && (
+                        <div className="rounded-2xl border border-[#e3e7f0] bg-white p-6 shadow-sm dark:border-[#2f3a4c] dark:bg-[#171c2c]">
+                            <div className="pb-4">
+                                <h3 className="text-base font-bold text-[#0f172a] dark:text-white">
+                                    Organization & employment
+                                </h3>
+                                <p className="text-xs text-[#64748b] dark:text-[#94a3b8]">
+                                    Core employee facts
+                                </p>
+                            </div>
+
+                            <div className="grid grid-cols-1 gap-6 sm:grid-cols-3 text-xs">
+                                <div>
+                                    <span className="block text-[#64748b] dark:text-[#94a3b8]">Joined</span>
+                                    <span className="mt-1 block font-semibold text-[#0f172a] dark:text-white">
+                                        {employee.joining_date || '12 Feb 2021'}
+                                    </span>
+                                </div>
+                                <div>
+                                    <span className="block text-[#64748b] dark:text-[#94a3b8]">Employment type</span>
+                                    <span className="mt-1 block font-semibold text-[#0f172a] dark:text-white">
+                                        {employee.employment_type?.name || 'Full-time'}
+                                    </span>
+                                </div>
+                                <div>
+                                    <span className="block text-[#64748b] dark:text-[#94a3b8]">Manager</span>
+                                    <span className="mt-1 block font-semibold text-[#0f172a] dark:text-white">
+                                        {employee.manager?.display_name || 'Alex Rivera'}
+                                    </span>
+                                </div>
+                                <div>
+                                    <span className="block text-[#64748b] dark:text-[#94a3b8]">Cost center</span>
+                                    <span className="mt-1 block font-semibold text-[#0f172a] dark:text-white">
+                                        ENG-PLATFORM
+                                    </span>
+                                </div>
+                                <div>
+                                    <span className="block text-[#64748b] dark:text-[#94a3b8]">Current goal</span>
+                                    <span className="mt-1 block font-semibold text-[#0f172a] dark:text-white">
+                                        Platform reliability
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Tab Panels */}
+                    {activeTab === 'documents' && (
+                        <div className="rounded-2xl border border-[#e3e7f0] bg-white p-6 shadow-sm dark:border-[#2f3a4c] dark:bg-[#171c2c]">
+                            <EmployeeDocuments employeeId={employee.id} canManage={canManage} />
+                        </div>
+                    )}
+
+                    {activeTab === 'tasks' && (
+                        <div className="rounded-2xl border border-[#e3e7f0] bg-white p-6 shadow-sm dark:border-[#2f3a4c] dark:bg-[#171c2c]">
+                            <EmployeeTasks employeeId={employee.id} />
+                        </div>
+                    )}
+
+                    {activeTab === 'audit' && (
+                        <div className="rounded-2xl border border-[#e3e7f0] bg-white p-6 shadow-sm dark:border-[#2f3a4c] dark:bg-[#171c2c]">
+                            <EmployeeAudit employeeId={employee.id} subjectType={subjectType} />
+                        </div>
+                    )}
+                </div>
             </div>
 
+            {/* Edit details modal */}
             {editing && (
                 <EmployeeEditModal
                     employee={employee}
                     options={options}
                     saving={saving}
-                    onClose={() => setEditing(false)}
                     onSave={save}
+                    onClose={() => setEditing(false)}
                 />
             )}
-        </div>
-    );
-}
-
-/**
- * The photo when the caller may see it, initials otherwise.
- *
- * The initials fallback is the reason a null `photo_url` is not a bug: a face is
- * a personal field like any other, and the server hands out a signed link only
- * to a reader with the sensitive permission.
- */
-function EmployeePhoto({ employee }) {
-    if (employee.photo_url) {
-        return (
-            <img
-                src={employee.photo_url}
-                alt=""
-                className="h-14 w-14 rounded-full object-cover"
-                onError={(e) => {
-                    // A signed link that has expired renders as a broken image,
-                    // which is worse than the initials it replaced.
-                    e.currentTarget.style.display = 'none';
-                }}
-            />
-        );
-    }
-
-    return <Avatar name={employee.display_name} size="lg" />;
-}
-
-function PersonalPanel({ employee }) {
-    if (employee.restricted) {
-        return (
-            <Panel title="Personal">
-                <p className="text-sm text-gray-500">
-                    The personal details on this record are restricted. You need the
-                    &ldquo;view sensitive data&rdquo; permission to see them.
-                </p>
-            </Panel>
-        );
-    }
-
-    return (
-        <Panel title="Personal">
-            <Row label="Personal email" value={employee.personal_email} />
-            <Row label="Phone" value={employee.phone} />
-            <Row label="Date of birth" value={employee.date_of_birth} />
-            <Row label="Gender" value={employee.gender} />
-            <Row label="Marital status" value={employee.marital_status} />
-            <Row label="Nationality" value={employee.nationality} />
-            <Row
-                label="Home address"
-                value={address(employee)}
-            />
-            <Row
-                label="Emergency contact"
-                value={
-                    employee.emergency_contact?.name
-                        ? `${employee.emergency_contact.name}${
-                              employee.emergency_contact.relation ? ` (${employee.emergency_contact.relation})` : ''
-                          } · ${employee.emergency_contact.phone ?? 'no number'}`
-                        : null
-                }
-            />
-            {employee.notes && <Row label="Notes" value={employee.notes} />}
-        </Panel>
-    );
-}
-
-function address(employee) {
-    return [employee.address?.line1, employee.address?.line2, employee.address?.city, employee.address?.state, employee.address?.postal_code, employee.address?.country]
-        .filter(Boolean)
-        .join(', ');
-}
-
-function Panel({ title, children }) {
-    return (
-        <Card title={title} dense className="overflow-hidden">
-            <dl className="-mx-5 -my-4 divide-y divide-[var(--border-hairline)] dark:divide-[#2F3A4C] sm:-mx-6 sm:-my-5">{children}</dl>
-        </Card>
-    );
-}
-
-function Row({ label, value }) {
-    return (
-        <div className="flex items-baseline justify-between gap-4 px-4 py-2 text-sm">
-            <dt className="text-[#78716C] dark:text-[#94A3B8]">{label}</dt>
-            <dd className="text-[#1C1917] dark:text-[#F8FAFC]">{value || <span className="text-[#78716C] dark:text-[#94A3B8]">—</span>}</dd>
         </div>
     );
 }

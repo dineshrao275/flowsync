@@ -8,7 +8,7 @@ export default function Pagination({
     onChange,
     variant = 'secondary',
     placement = 'between',
-    size = 'md',
+    size = 'sm',
     className = '',
 }) {
     if (!pages || pages <= 1) return null;
@@ -29,8 +29,8 @@ export default function Pagination({
 
     if (placement === 'sides') {
         return (
-            <div className={`flex items-center justify-between text-sm ${className}`}>
-                <span className="text-[#57534E] dark:text-[#94A3B8]">{center(label)}</span>
+            <div className={`flex items-center justify-between text-[12px] ${className}`}>
+                <span className="text-muted">{center(label)}</span>
                 <div className="flex gap-2">
                     {prevBtn}
                     {nextBtn}
@@ -42,7 +42,7 @@ export default function Pagination({
     return (
         <div className={`flex items-center justify-between ${className}`}>
             {prevBtn}
-            <span className="text-[#57534E] dark:text-[#94A3B8] text-sm">{center(label)}</span>
+            <span className="text-[12px] text-muted">{center(label)}</span>
             {nextBtn}
         </div>
     );

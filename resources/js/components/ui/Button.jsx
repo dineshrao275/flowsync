@@ -1,9 +1,10 @@
 /**
- * Button variants read the theme's accent tokens (`--accent*`, derived in
- * resources/js/theme.js from the admin's `accent` color) instead of a fixed
- * indigo, so the whole control set follows the theme. Destructive actions
- * read the parallel `--danger*` tokens, which step brighter in dark mode so
- * red buttons stay distinct on dark surfaces.
+ * Button — Figma "Buttons" component (reusable-components/00 — Design System).
+ *
+ * Extracted geometry: primary fill `#4B5EF5`, radius 9, height 42 (md).
+ * Labels are DM Sans SemiBold; secondary carries a 1px `#E3E7F0` hairline.
+ * Variants read semantic CSS tokens (`--accent*`, `--danger*`) so the whole
+ * control set follows the theme, while keeping the Figma brand as the default.
  */
 export default function Button({
     variant = 'primary',
@@ -15,33 +16,34 @@ export default function Button({
 }) {
     const variants = {
         primary:
-            'bg-[var(--accent)] text-[var(--accent-contrast)] shadow-sm hover:bg-[var(--accent-hover)] active:bg-[var(--accent-active)] focus:ring-[var(--accent-ring)]',
+            'bg-[var(--accent)] text-[var(--accent-contrast)] hover:bg-[var(--accent-hover)] active:bg-[var(--accent-active)] focus-visible:ring-[var(--accent-ring)]',
         secondary:
-            'bg-white text-gray-700 border border-[var(--border-hairline)] shadow-sm hover:bg-[var(--surface-elevated)] active:bg-[var(--surface-elevated)] dark:bg-[var(--card-bg)] dark:text-[#F8FAFC] dark:border-[#2F3A4C] dark:hover:bg-[#232B3A]',
+            'bg-[var(--card-bg)] text-ink border border-[var(--border-hairline)] hover:bg-[var(--surface-elevated)] active:bg-[var(--surface-elevated)] focus-visible:ring-[var(--accent-ring)]',
         danger:
-            'bg-[var(--danger)] text-[var(--danger-contrast)] shadow-sm hover:bg-[var(--danger-hover)] active:bg-[var(--danger-active)] focus:ring-[var(--danger-ring)]',
+            'bg-[var(--danger)] text-[var(--danger-contrast)] hover:bg-[var(--danger-hover)] active:bg-[var(--danger-active)] focus-visible:ring-[var(--danger-ring)]',
         warning:
-            'bg-amber-500 text-white shadow-sm hover:bg-amber-400 active:bg-amber-600 focus:ring-amber-200',
+            'bg-[var(--status-warning)] text-white hover:opacity-90 active:opacity-100 focus-visible:ring-[var(--status-warning)]/40',
         ghost:
-            'bg-transparent text-gray-600 border border-[var(--border-hairline)] hover:bg-[var(--surface-elevated)] dark:text-[#F8FAFC] dark:border-[#2F3A4C] dark:hover:bg-[#232B3A]',
+            'bg-transparent text-muted border border-[var(--border-hairline)] hover:bg-[var(--surface-elevated)] hover:text-ink focus-visible:ring-[var(--accent-ring)]',
         subtle:
-            'bg-[var(--accent-soft)] text-[var(--accent-soft-text)] hover:bg-[var(--accent-soft-hover)] focus:ring-[var(--accent-ring)]',
+            'bg-[var(--accent-soft)] text-[var(--accent-soft-text)] hover:bg-[var(--accent-soft-hover)] focus-visible:ring-[var(--accent-ring)]',
     };
 
     const sizes = {
-        sm: 'px-3 py-1.5 text-xs',
-        md: 'px-4 py-2.5 text-sm',
-        lg: 'px-5 py-3 text-sm',
+        xs: 'h-[33px] px-3.5 text-[12px] gap-1.5',
+        sm: 'h-9 px-3.5 text-[12px] gap-1.5',
+        md: 'h-[42px] px-4 text-[13px] gap-2',
+        lg: 'h-[46px] px-5 text-[14px] gap-2',
     };
 
     return (
         <button
-            className={`inline-flex items-center justify-center gap-2 rounded-lg font-medium transition-all duration-150 focus:outline-none focus:ring-2 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60 disabled:active:scale-100 ${variants[variant] ?? variants.primary} ${sizes[size] ?? sizes.md} ${className}`}
+            className={`inline-flex items-center justify-center rounded-[9px] font-semibold tracking-[-0.01em] transition-colors duration-150 focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-1 disabled:cursor-not-allowed disabled:opacity-50 ${variants[variant] ?? variants.primary} ${sizes[size] ?? sizes.md} ${className}`}
             disabled={loading || props.disabled}
             {...props}
         >
             {loading && (
-                <span className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
+                <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-current border-t-transparent" />
             )}
             {children}
         </button>

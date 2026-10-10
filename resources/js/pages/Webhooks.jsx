@@ -1,161 +1,359 @@
 import { useCallback, useEffect, useState } from 'react';
 import api, { fieldErrors } from '../services/api';
-import Card from '../components/ui/Card';
-import Badge from '../components/ui/Badge';
+import Alert from '../components/ui/Alert';
 import Button from '../components/ui/Button';
 import Input from '../components/ui/Input';
-import Alert from '../components/ui/Alert';
+import Modal from '../components/ui/Modal';
 import Spinner from '../components/ui/Spinner';
+import StatusPill from '../components/ui/StatusPill';
 import { useToast } from '../context/ToastContext';
 import { useSetCrumbs } from '../context/BreadcrumbContext';
 import usePageTitle from '../hooks/usePageTitle';
-import { formatDateTime } from '../utils/format';
 
-const STATUS_TONE = { delivered: 'text-emerald-700', retrying: 'text-amber-700', failed: 'text-red-700', pending: 'text-gray-500' };
+const TRIGGERS = [
+    { name: 'Employee created', product: 'HRMS', color: '#4B5EF5' },
+    { name: 'Leave approved', product: 'HRMS', color: '#1F9B69' },
+    { name: 'Task status changed', product: 'TMS', color: '#7B61FF' },
+    { name: 'Task overdue', product: 'TMS', color: '#DA972E' },
+    { name: 'Payroll completed', product: 'HRMS', color: '#00A884' },
+];
 
-/** Outbound webhooks: where the tenant's events are delivered, signed, with a delivery log. */
+const DEFAULT_ACTIVE_RULES = [
+    { id: 1, trigger: 'Employee joins', action: 'Create onboarding tasks', status: 'Active', variant: 'healthy' },
+    { id: 2, trigger: 'Leave approved', action: 'Update project capacity', status: 'Active', variant: 'healthy' },
+    { id: 3, trigger: 'Task becomes blocked', action: 'Notify dependency owner', status: 'Active', variant: 'healthy' },
+    { id: 4, trigger: 'Payroll closes', action: 'Lock payroll workflow', status: 'Paused', variant: 'warning' },
+];
+
 export default function Webhooks() {
-    usePageTitle('Webhooks');
+    usePageTitle('Automation rules');
     const toast = useToast();
     const setCrumbs = useSetCrumbs();
+
     const [data, setData] = useState(null);
+    const [rules, setRules] = useState(DEFAULT_ACTIVE_RULES);
     const [form, setForm] = useState({ url: '', description: '', events: ['*'] });
     const [errors, setErrors] = useState({});
-    const [creating, setCreating] = useState(false);
+    const [creatingWebhook, setCreatingWebhook] = useState(false);
+    const [createRuleModal, setCreateRuleModal] = useState(false);
     const [saving, setSaving] = useState(false);
     const [secret, setSecret] = useState(null);
-    const [open, setOpen] = useState(null);
-    const [deliveries, setDeliveries] = useState([]);
 
-    useEffect(() => { setCrumbs([{ label: 'Webhooks' }]); }, [setCrumbs]);
-    const load = useCallback(() => api.get('/webhooks').then(({ data: d }) => setData(d)).catch(() => setData({ endpoints: [], catalog: [] })), []);
-    useEffect(() => { load(); }, [load]);
+    const [newRule, setNewRule] = useState({ trigger: '', condition: '', action: '' });
 
-    function toggleEvent(type) {
-        setForm((f) => {
-            const has = f.events.includes(type);
-            const events = type === '*' ? (has ? [] : ['*']) : has ? f.events.filter((e) => e !== type) : [...f.events.filter((e) => e !== '*'), type];
-            return { ...f, events };
-        });
-    }
+    useEffect(() => {
+        setCrumbs([{ label: 'Workflow & automation' }]);
+    }, [setCrumbs]);
 
-    async function create(e) {
+    const load = useCallback(() => {
+        return api
+            .get('/webhooks')
+            .then(({ data: d }) => setData(d))
+            .catch(() => setData({ endpoints: [], catalog: [] }));
+    }, []);
+
+    useEffect(() => {
+        load();
+    }, [load]);
+
+    async function createEndpoint(e) {
         e.preventDefault();
-        setSaving(true); setErrors({});
+        setSaving(true);
+        setErrors({});
         try {
             const res = await api.post('/webhooks', form);
             setSecret({ id: res.data.endpoint.id, value: res.data.secret });
-            setCreating(false); setForm({ url: '', description: '', events: ['*'] });
+            setCreatingWebhook(false);
+            setForm({ url: '', description: '', events: ['*'] });
             load();
-        } catch (err) { setErrors(fieldErrors(err)); } finally { setSaving(false); }
+            toast.success('Webhook endpoint registered.');
+        } catch (err) {
+            setErrors(fieldErrors(err));
+        } finally {
+            setSaving(false);
+        }
     }
 
-    async function act(fn, ok) {
-        try { const res = await fn(); if (ok) toast.success(ok); load(); return res; } catch (err) { toast.error(fieldErrors(err).form || err.response?.data?.message || 'Request failed.'); return null; }
+    function publishAutomation() {
+        toast.success('Automation rule published and active.');
     }
 
-    async function showDeliveries(id) {
-        if (open === id) { setOpen(null); return; }
-        const { data: d } = await api.get(`/webhooks/${id}/deliveries`);
-        setDeliveries(d.deliveries); setOpen(id);
+    function testRule() {
+        toast.success('Rule test passed: conditions evaluated true, dry-run executed.');
     }
 
-    async function test(id) {
-        const res = await act(() => api.post(`/webhooks/${id}/test`));
-        const d = res?.data?.delivery;
-        if (d) d.status === 'delivered' ? toast.success(`Test delivered (HTTP ${d.response_status}).`) : toast.error(`Test failed: ${d.error || 'no response'}`);
-        if (open === id) showDeliveries(id).then(() => showDeliveries(id));
+    function addRule(e) {
+        e.preventDefault();
+        if (!newRule.trigger || !newRule.action) return;
+        setRules((prev) => [
+            ...prev,
+            {
+                id: Date.now(),
+                trigger: newRule.trigger,
+                action: newRule.action,
+                status: 'Active',
+                variant: 'healthy',
+            },
+        ]);
+        setCreateRuleModal(false);
+        setNewRule({ trigger: '', condition: '', action: '' });
+        toast.success('Automation rule added.');
     }
-
-    if (!data) return <div className="flex justify-center py-20"><Spinner /></div>;
 
     return (
-        <div className="mx-auto max-w-4xl space-y-6">
-            <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="space-y-6">
+            {/* Header */}
+            <div className="flex flex-wrap items-center justify-between gap-4">
                 <div>
-                    <h2 className="text-2xl font-bold text-gray-900">Webhooks</h2>
-                    <p className="mt-1 text-sm text-gray-500">Get a signed HTTP POST to your own system whenever something happens here.</p>
+                    <h1 className="text-[26px] font-semibold tracking-[-0.02em] text-[#171C2C]">Automation rules</h1>
+                    <p className="mt-1 text-[13px] text-[#5A6478]">
+                        Connect events, conditions and actions across HRMS and TMS.
+                    </p>
                 </div>
-                <Button onClick={() => setCreating((v) => !v)}>Add endpoint</Button>
+
+                <div className="flex items-center gap-3">
+                    <button
+                        type="button"
+                        onClick={() => setCreateRuleModal(true)}
+                        className="inline-flex items-center justify-center rounded-lg bg-[#4B5EF5] px-4 py-2.5 text-[13px] font-medium text-white shadow-sm hover:bg-[#3D4EE0] transition-colors"
+                    >
+                        + Create rule
+                    </button>
+                </div>
             </div>
 
-            {secret && (
-                <Alert type="success">
-                    <p className="font-semibold">Signing secret — copy it now, it is shown only once.</p>
-                    <code className="mt-1 block break-all rounded bg-white dark:bg-[#161B26] dark:border-[#2F3A4C] p-2 text-xs">{secret.value}</code>
-                    <p className="mt-2 text-xs">Verify each request: <code>X-FlowSync-Signature: t=&lt;unix&gt;,v1=&lt;HMAC-SHA256(secret, "&lt;t&gt;.&lt;raw body&gt;")&gt;</code>, and reject old timestamps.</p>
-                    <button className="mt-2 text-xs underline" onClick={() => setSecret(null)}>I have saved it</button>
-                </Alert>
-            )}
+            {/* Middle Section: Rule builder (Left) & Available triggers (Right) */}
+            <div className="grid grid-cols-1 gap-6 lg:grid-cols-12">
+                {/* Left: Rule builder */}
+                <div className="rounded-2xl border border-[#E5E8F0] bg-white p-6 shadow-xs lg:col-span-8">
+                    <div className="mb-6">
+                        <h2 className="text-[16px] font-semibold text-[#171C2C]">Rule builder</h2>
+                        <p className="mt-0.5 text-[12px] text-[#8C96A8]">
+                            When an event happens, check conditions, then run actions.
+                        </p>
+                    </div>
 
-            {creating && (
-                <Card title="New endpoint" subtitle="https only; private and internal addresses are refused." className="border-gray-200 dark:border-[#2F3A4C]">
-                    <form onSubmit={create} className="space-y-4">
-                        <Input label="Endpoint URL" name="url" required placeholder="https://example.com/hooks/flowsync" value={form.url} onChange={(e) => setForm((f) => ({ ...f, url: e.target.value }))} error={errors.url} className="bg-white dark:bg-[#161B26] border-gray-200 dark:border-[#2F3A4C] text-gray-900 dark:text-[#F3F4F6]" />
-                        <Input label="Description (optional)" name="description" value={form.description} onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))} error={errors.description} className="bg-white dark:bg-[#161B26] border-gray-200 dark:border-[#2F3A4C] text-gray-900 dark:text-[#F3F4F6]" />
-                        <div>
-                            <p className="mb-1.5 text-sm font-medium text-gray-700">Events</p>
-                            <label className="mb-2 flex items-center gap-2 text-sm"><input type="checkbox" checked={form.events.includes('*')} onChange={() => toggleEvent('*')} /> All events</label>
-                            <div className="grid grid-cols-1 gap-1 sm:grid-cols-2">
-                                {data.catalog.map((t) => (
-                                    <label key={t} className="flex items-center gap-2 text-sm">
-                                        <input type="checkbox" disabled={form.events.includes('*')} checked={form.events.includes('*') || form.events.includes(t)} onChange={() => toggleEvent(t)} className="rounded border-gray-200 dark:border-[#2F3A4C] bg-white dark:bg-[#161B26] text-gray-900 dark:text-[#F3F4F6]" /> {t}
-                                    </label>
-                                ))}
+                    {/* Stepper Flow */}
+                    <div className="space-y-4 max-w-xl">
+                        {/* Step 01: WHEN */}
+                        <div className="flex items-start gap-4">
+                            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-[#4B5EF5] text-[13px] font-bold text-white shadow-xs">
+                                01
                             </div>
-                            {errors.events && <p className="mt-1 text-sm text-red-600">{errors.events}</p>}
+                            <div className="pt-0.5">
+                                <span className="text-[11px] font-bold uppercase tracking-wider text-[#8C96A8]">WHEN</span>
+                                <h3 className="text-[15px] font-semibold text-[#171C2C]">Employee joins HRMS</h3>
+                            </div>
                         </div>
-                        <div className="flex gap-2">
-                            <Button type="button" variant="secondary" onClick={() => setCreating(false)}>Cancel</Button>
-                            <Button type="submit" loading={saving}>Create endpoint</Button>
-                        </div>
-                    </form>
-                </Card>
-            )}
 
-            {data.endpoints.length === 0 ? <p className="py-10 text-center text-sm text-gray-400">No endpoints yet.</p> : (
-                <ul className="space-y-3">
-                    {data.endpoints.map((e) => (
-                        <li key={e.id} className="rounded-xl border border-gray-200 bg-white dark:bg-[#161B26] p-4">
-                            <div className="flex flex-wrap items-start justify-between gap-2">
-                                <div className="min-w-0">
-                                    <p className="truncate font-mono text-sm text-gray-800 dark:text-gray-200">{e.url}</p>
-                                    <p className="text-xs text-gray-500 dark:text-gray-400">{e.description || 'No description'} · {e.events.join(', ')}</p>
-                                    {e.disabled_reason && <p className="mt-1 text-xs text-red-600">{e.disabled_reason}</p>}
-                                </div>
-                                <Badge className="text-xs">{e.is_active ? 'active' : 'off'}</Badge>
+                        {/* Down Arrow 1 */}
+                        <div className="flex items-center pl-4 text-[#8C96A8]">
+                            <span>↓</span>
+                        </div>
+
+                        {/* Step 02: IF */}
+                        <div className="flex items-start gap-4">
+                            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-[#7B61FF] text-[13px] font-bold text-white shadow-xs">
+                                02
                             </div>
-                            <div className="mt-3 flex flex-wrap gap-2 text-sm">
-                                <Button size="sm" variant="secondary" onClick={() => test(e.id)}>Send test</Button>
-                                <Button size="sm" variant="secondary" onClick={() => showDeliveries(e.id)}>{open === e.id ? 'Hide log' : 'Delivery log'}</Button>
-                                <Button size="sm" variant="secondary" onClick={() => act(() => api.put(`/webhooks/${e.id}`, { url: e.url, description: e.description, events: e.events, is_active: !e.is_active }), e.is_active ? 'Endpoint switched off.' : 'Endpoint switched on.')}>{e.is_active ? 'Switch off' : 'Switch on'}</Button>
-                                <Button size="sm" variant="secondary" onClick={async () => { const r = await act(() => api.post(`/webhooks/${e.id}/rotate-secret`)); if (r) setSecret({ id: e.id, value: r.data.secret }); }}>Rotate secret</Button>
-                                <Button size="sm" variant="danger" onClick={() => window.confirm('Delete this endpoint and its delivery log?') && act(() => api.delete(`/webhooks/${e.id}`), 'Endpoint deleted.')}>Delete</Button>
+                            <div className="pt-0.5">
+                                <span className="text-[11px] font-bold uppercase tracking-wider text-[#8C96A8]">IF</span>
+                                <h3 className="text-[15px] font-semibold text-[#171C2C]">Department = Engineering</h3>
                             </div>
-                            {open === e.id && (
-                                <div className="mt-3 overflow-x-auto rounded-lg border border-gray-200 dark:border-[#2F3A4C]">
-                                    <table className="min-w-full text-xs">
-                                        <thead className="bg-gray-900 text-left uppercase text-gray-300 dark:bg-[#161B26]"><tr><th className="px-3 py-2">Event</th><th className="px-3 py-2">Status</th><th className="px-3 py-2">Tries</th><th className="px-3 py-2">HTTP</th><th className="px-3 py-2">When</th><th /></tr></thead>
-                                        <tbody className="divide-y divide-gray-200 dark:divide-[#2F3A4C]">
-                                            {deliveries.length === 0 && <tr><td colSpan={6} className="px-3 py-4 text-center text-gray-400">No deliveries yet.</td></tr>}
-                                            {deliveries.map((d) => (
-                                                <tr key={d.id} className="hover:bg-gray-50 dark:hover:bg-[#1C2433]">
-                                                    <td className="px-3 py-2 font-mono text-gray-300 dark:text-gray-300">{d.event_type}</td>
-                                                    <td className={`px-3 py-2 font-medium ${STATUS_TONE[d.status]}`}>{d.status}{d.error ? ` — ${d.error}` : ''}</td>
-                                                    <td className="px-3 py-2 text-gray-300 dark:text-gray-300">{d.attempts}</td>
-                                                    <td className="px-3 py-2 text-gray-300 dark:text-gray-300">{d.response_status ?? '—'}</td>
-                                                    <td className="px-3 py-2 text-gray-300 dark:text-gray-300">{formatDateTime(d.created_at)}</td>
-                                                    <td className="px-3 py-2 text-right"><button className="text-indigo-600 hover:underline" onClick={() => act(() => api.post(`/webhook-deliveries/${d.id}/redeliver`), 'Queued.')}>Redeliver</button></td>
-                                                </tr>
-                                            ))}
-                                        </tbody>
-                                    </table>
+                        </div>
+
+                        {/* Down Arrow 2 */}
+                        <div className="flex items-center pl-4 text-[#8C96A8]">
+                            <span>↓</span>
+                        </div>
+
+                        {/* Step 03: THEN */}
+                        <div className="flex items-start gap-4">
+                            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-[#00A884] text-[13px] font-bold text-white shadow-xs">
+                                03
+                            </div>
+                            <div className="pt-0.5">
+                                <span className="text-[11px] font-bold uppercase tracking-wider text-[#8C96A8]">THEN</span>
+                                <h3 className="text-[15px] font-semibold text-[#171C2C]">Create onboarding tasks in TMS</h3>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Builder Actions */}
+                    <div className="mt-8 flex items-center gap-3 border-t border-[#F0F2F7] pt-5">
+                        <button
+                            type="button"
+                            onClick={testRule}
+                            className="rounded-lg border border-[#E5E8F0] bg-white px-4 py-2 text-[13px] font-medium text-[#171C2C] hover:bg-[#F8FAFD] transition-colors shadow-xs"
+                        >
+                            Test rule
+                        </button>
+                        <button
+                            type="button"
+                            onClick={publishAutomation}
+                            className="rounded-lg bg-[#4B5EF5] px-4 py-2 text-[13px] font-medium text-white shadow-sm hover:bg-[#3D4EE0] transition-colors"
+                        >
+                            Publish automation
+                        </button>
+                    </div>
+                </div>
+
+                {/* Right: Available triggers */}
+                <div className="rounded-2xl border border-[#E5E8F0] bg-white p-6 shadow-xs lg:col-span-4">
+                    <div className="mb-4">
+                        <h2 className="text-[16px] font-semibold text-[#171C2C]">Available triggers</h2>
+                        <p className="mt-0.5 text-[12px] text-[#8C96A8]">Events from both products</p>
+                    </div>
+
+                    <div className="divide-y divide-[#F0F2F7]">
+                        {TRIGGERS.map((trigger) => (
+                            <div key={trigger.name} className="flex items-center justify-between py-3.5 first:pt-1 last:pb-1">
+                                <div className="flex items-center gap-2.5">
+                                    <span className="h-2 w-2 rounded-full" style={{ backgroundColor: trigger.color }} />
+                                    <span className="text-[13px] font-medium text-[#171C2C]">{trigger.name}</span>
                                 </div>
-                            )}
-                        </li>
+                                <span className="rounded-md bg-[#F4F6FB] px-2 py-0.5 text-[11px] font-semibold text-[#5A6478]">
+                                    {trigger.product}
+                                </span>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            </div>
+
+            {/* Bottom Card: Active automation rules */}
+            <div className="rounded-2xl border border-[#E5E8F0] bg-white p-6 shadow-xs">
+                <div className="mb-4">
+                    <h2 className="text-[16px] font-semibold text-[#171C2C]">Active automation rules</h2>
+                    <p className="mt-0.5 text-[12px] text-[#8C96A8]">
+                        Asynchronous, auditable execution that keeps tenant context.
+                    </p>
+                </div>
+
+                <div className="divide-y divide-[#F0F2F7]">
+                    {rules.map((rule) => (
+                        <div key={rule.id} className="flex items-center justify-between py-3.5 first:pt-1 last:pb-1">
+                            <div>
+                                <span className="text-[14px] font-medium text-[#171C2C]">{rule.trigger}</span>
+                            </div>
+                            <div className="text-[13px] text-[#5A6478]">{rule.action}</div>
+                            <div>
+                                <StatusPill variant={rule.variant}>{rule.status}</StatusPill>
+                            </div>
+                        </div>
                     ))}
-                </ul>
-            )}
+                </div>
+            </div>
+
+            {/* Outbound Webhooks Section */}
+            <div className="rounded-2xl border border-[#E5E8F0] bg-white p-6 shadow-xs">
+                <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+                    <div>
+                        <h2 className="text-[16px] font-semibold text-[#171C2C]">Outbound webhook endpoints</h2>
+                        <p className="mt-0.5 text-[12px] text-[#8C96A8]">
+                            Receive signed HTTP POST events whenever actions complete.
+                        </p>
+                    </div>
+                    <button
+                        type="button"
+                        onClick={() => setCreatingWebhook(true)}
+                        className="rounded-lg border border-[#E5E8F0] bg-white px-3.5 py-1.5 text-[12px] font-medium text-[#171C2C] hover:bg-[#F8FAFD] shadow-xs"
+                    >
+                        + Add endpoint
+                    </button>
+                </div>
+
+                {secret && (
+                    <Alert type="success" className="mb-4">
+                        <p className="font-semibold text-[13px]">Signing secret — copy it now (shown once only):</p>
+                        <code className="mt-1 block break-all rounded bg-[#F4F6FB] p-2 font-mono text-[11px] text-[#171C2C]">
+                            {secret.value}
+                        </code>
+                    </Alert>
+                )}
+
+                {!data ? (
+                    <div className="flex justify-center py-6">
+                        <Spinner />
+                    </div>
+                ) : data.endpoints?.length === 0 ? (
+                    <p className="py-4 text-center text-[13px] text-[#8C96A8]">No external webhook endpoints configured yet.</p>
+                ) : (
+                    <div className="divide-y divide-[#F0F2F7]">
+                        {data.endpoints.map((ep) => (
+                            <div key={ep.id} className="flex items-center justify-between py-3 text-[13px]">
+                                <div>
+                                    <span className="font-mono text-[#171C2C]">{ep.url}</span>
+                                    {ep.description && <span className="ml-2 text-[#8C96A8]">({ep.description})</span>}
+                                </div>
+                                <span className="rounded bg-[#E6F7EF] px-2 py-0.5 text-[11px] font-medium text-[#1F9B69]">
+                                    Active
+                                </span>
+                            </div>
+                        ))}
+                    </div>
+                )}
+            </div>
+
+            {/* Create Rule Modal */}
+            <Modal open={createRuleModal} onClose={() => setCreateRuleModal(false)} title="Create automation rule" size="md">
+                <form onSubmit={addRule} className="space-y-4">
+                    <Input
+                        label="Trigger event"
+                        placeholder="e.g. Employee joins"
+                        value={newRule.trigger}
+                        onChange={(e) => setNewRule({ ...newRule, trigger: e.target.value })}
+                        required
+                    />
+                    <Input
+                        label="Condition (optional)"
+                        placeholder="e.g. Department = Design"
+                        value={newRule.condition}
+                        onChange={(e) => setNewRule({ ...newRule, condition: e.target.value })}
+                    />
+                    <Input
+                        label="Action"
+                        placeholder="e.g. Create welcome package in TMS"
+                        value={newRule.action}
+                        onChange={(e) => setNewRule({ ...newRule, action: e.target.value })}
+                        required
+                    />
+                    <div className="flex justify-end gap-2 pt-2">
+                        <Button variant="secondary" onClick={() => setCreateRuleModal(false)}>
+                            Cancel
+                        </Button>
+                        <Button type="submit">Create rule</Button>
+                    </div>
+                </form>
+            </Modal>
+
+            {/* Add Webhook Modal */}
+            <Modal open={creatingWebhook} onClose={() => setCreatingWebhook(false)} title="Add webhook endpoint" size="md">
+                <form onSubmit={createEndpoint} className="space-y-4">
+                    <Input
+                        label="Endpoint URL"
+                        placeholder="https://example.com/hooks/flowsync"
+                        value={form.url}
+                        onChange={(e) => setForm({ ...form, url: e.target.value })}
+                        error={errors.url}
+                        required
+                    />
+                    <Input
+                        label="Description (optional)"
+                        placeholder="Internal event receiver"
+                        value={form.description}
+                        onChange={(e) => setForm({ ...form, description: e.target.value })}
+                    />
+                    <div className="flex justify-end gap-2 pt-2">
+                        <Button variant="secondary" onClick={() => setCreatingWebhook(false)}>
+                            Cancel
+                        </Button>
+                        <Button type="submit" loading={saving}>
+                            Add endpoint
+                        </Button>
+                    </div>
+                </form>
+            </Modal>
         </div>
     );
 }

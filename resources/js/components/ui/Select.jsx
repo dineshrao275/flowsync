@@ -6,18 +6,18 @@ export default function Select({ label, error, id, className = '', children, ...
     return (
         <div className={className}>
             {label && (
-                <label htmlFor={selectId} className="mb-1.5 block text-sm font-medium text-[#1C1917] dark:text-[#F8FAFC]">
+                <label htmlFor={selectId} className="mb-1.5 block text-[12px] font-semibold text-ink">
                     {label}
                 </label>
             )}
             <select
                 id={selectId}
-                className={`${fieldClass} ${error ? 'border-red-400 focus:border-red-500 focus:ring-red-100' : ''}`}
+                className={`${fieldClass} ${error ? 'border-[var(--danger)] focus:border-[var(--danger)] focus:ring-[var(--danger-ring)]/50' : ''}`}
                 {...props}
             >
                 {children}
             </select>
-            {error && <p className="mt-1.5 text-sm text-red-600">{error}</p>}
+            {error && <p className="mt-1.5 text-[12px] text-[var(--danger)]">{error}</p>}
         </div>
     );
 }

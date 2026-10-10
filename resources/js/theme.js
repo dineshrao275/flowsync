@@ -5,15 +5,15 @@ export const THEME_STORAGE_KEY = `${STORAGE_PREFIX}.theme`;
 export const THEME_MODES = ['light', 'dark', 'system'];
 
 export const DEFAULT_THEME = {
-    sidebar_bg: '#1C1917',
-    sidebar_hover: '#232B3A',
-    active_menu: '#6366F1',
-    sidebar_text: '#78716C',
-    dashboard_bg: '#fbfbfa',
+    sidebar_bg: '#171c2c',
+    sidebar_hover: '#22293d',
+    active_menu: '#4b5ef5',
+    sidebar_text: '#8f9bb3',
+    dashboard_bg: '#f4f6fb',
     header_bg: '#FFFFFF',
-    header_text: '#1C1917',
+    header_text: '#0F172A',
     card_bg: '#FFFFFF',
-    accent: '#6366F1',
+    accent: '#4b5ef5',
     mode: 'system',
 };
 

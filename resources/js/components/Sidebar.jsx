@@ -2,88 +2,65 @@ import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useNotifications } from '../context/NotificationContext';
 
-const sections = [
+const tmsSections = [
     {
-        label: 'Main',
+        label: 'TMS WORKSPACE',
+        tag: 'TMS WORKSPACE',
         items: [
-            { to: '/dashboard', label: 'Dashboard', capabilities: ['dashboard.view', 'product:tms'], icon: 'M3 12l9-9 9 9M5 10v10h14V10' },
-            { to: '/my', label: 'My HR', capabilities: ['module:hrms.core'], icon: 'M12 12a4 4 0 100-8 4 4 0 000 8zm-7 8a7 7 0 0114 0' },
-            { to: '/workspaces', label: 'Workspaces', capabilities: ['workspaces.view', 'product:tms'], icon: 'M3 7a2 2 0 012-2h4l2 2h8a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2V7z' },
-            { to: '/projects', label: 'Projects', capabilities: ['workspaces.view', 'product:tms'], icon: 'M2 4h20v16H2V4zm2 2v2h16V6H4zm0 6h16v-2H4v2zm0 4h16v-2H4v2z' },
-            { to: '/search', label: 'Search', capabilities: ['workspaces.view', 'product:tms', 'module:global_search'], icon: 'M21 21l-4.35-4.35M17 11a6 6 0 11-12 0 6 6 0 0112 0z' },
+            { to: '/dashboard', label: 'Overview', capabilities: ['dashboard.view', 'product:tms'] },
+            { to: '/projects', label: 'Projects & boards', capabilities: ['workspaces.view', 'product:tms'] },
+            { to: '/my', label: 'My tasks', capabilities: ['module:hrms.core'] },
+            { to: '/timeline', label: 'Timeline & roadmap', capabilities: ['workspaces.view', 'product:tms'] },
+            { to: '/time-tracking', label: 'Time tracking', capabilities: ['workspaces.view', 'product:tms'] },
+            { to: '/reports', label: 'Reports', capabilities: ['reports.view', 'product:tms'] },
+            { to: '/webhooks', label: 'Workflow & automation', capabilities: ['webhooks.manage', 'module:webhooks'] },
+            { to: '/users', label: 'Team', capabilities: ['users.view'] },
+            { to: '/settings', label: 'Integrations', capabilities: ['settings.view'] },
+            { to: '/settings', label: 'Settings', capabilities: ['settings.view'] },
         ],
     },
+];
+
+const hrmsSections = [
     {
-        label: 'Insights',
+        label: 'HRMS WORKSPACE',
+        tag: 'HRMS WORKSPACE',
         items: [
-            { to: '/reports', label: 'Reports', capabilities: ['reports.view', 'product:tms', 'module:reports'], icon: 'M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z' },
-        ],
-    },
-    {
-        label: 'People',
-        items: [
-            // The whole HRMS hangs off this one entry: every feature is a
-            // sub-tab inside the hub (`HrmsLayout` renders `hrmsNav.js`),
-            // filtered by the same capability that guards its route —
-            // `HrmsNavTest` fails when the two drift apart.
-            { to: '/hrms', label: 'HR', capabilities: ['module:hrms.core'], icon: 'M17 20h5v-2a4 4 0 00-3-3.87M9 20H4v-2a4 4 0 013-3.87m4-1.13a4 4 0 10-4-4 4 4 0 004 4zm6 2a3 3 0 10-3-3', badge: 'inbox' },
-        ],
-    },
-    {
-        label: 'Administration',
-        items: [
-            { to: '/users', label: 'Users', capabilities: ['users.view'], icon: 'M17 20h5v-2a4 4 0 00-3-3.87M9 20H4v-2a4 4 0 013-3.87m4-1.13a4 4 0 10-4-4 4 4 0 004 4zm6 2a3 3 0 10-3-3' },
-            { to: '/roles', label: 'Roles', capabilities: ['roles.view'], icon: 'M12 2l8 4v6c0 5-3.5 8-8 10-4.5-2-8-5-8-10V6l8-4zm-1 10l-2-2-1 1 3 3 5-5-1-1-4 4z' },
-            { to: '/webhooks', label: 'Webhooks', capabilities: ['webhooks.manage', 'module:webhooks'], icon: 'M13 10V3L4 14h7v7l9-11h-7z' },
-            { to: '/settings', label: 'Settings', capabilities: ['settings.view'], icon: 'M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 001.065-2.572c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z M15 12a3 3 0 11-6 0 3 3 0 016 0z' },
-        ],
-    },
-    {
-        label: 'Billing',
-        items: [
-            { to: '/subscription', label: 'Subscription', icon: 'M3 17l5-2 8 3 5-2v6H3v-5zm5-4l5-2 8 3 3-1v-3l-3-1-8-3-5 2-5-2 3 2v3l2 1z', capabilities: ['billing.view'] },
-            { to: '/support', label: 'Support', icon: 'M8 10h8M8 14h5m-9 7l3-3h11a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v15z', capabilities: ['support.manage'] },
-            { to: '/export', label: 'Data Export', icon: 'M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4', capabilities: ['module:export.full', 'billing.view'] },
+            { to: '/hrms', label: 'Overview', capabilities: ['module:hrms.core'] },
+            { to: '/hrms/employees', label: 'Employees', capabilities: ['hrms.employees.view'] },
+            { to: '/hrms/org', label: 'Organization', capabilities: ['hrms.org.view'] },
+            { to: '/hrms/onboarding', label: 'Onboarding', capabilities: ['hrms.onboarding.view'] },
+            { to: '/hrms/attendance', label: 'Attendance', capabilities: ['module:hrms.core'] },
+            { to: '/hrms/leave', label: 'Leave & approvals', capabilities: ['module:hrms.core'], badge: 'inbox' },
+            { to: '/hrms/payroll', label: 'Payroll', capabilities: ['module:hrms.core'] },
+            { to: '/hrms/performance', label: 'Performance', capabilities: ['module:hrms.core'] },
+            { to: '/hrms/documents', label: 'Documents & assets', capabilities: ['hrms.documents.view'] },
+            { to: '/reports', label: 'Reports', capabilities: ['reports.view'] },
+            { to: '/settings', label: 'Settings', capabilities: ['settings.view'] },
         ],
     },
 ];
 
 const superAdminSections = [
     {
-        label: 'Administration',
+        label: 'PLATFORM WORKSPACE',
+        tag: 'PLATFORM WORKSPACE',
         items: [
-            { to: '/admin', label: 'Overview', capabilities: ['dashboard.view'], icon: 'M4 13h6V3H4v10zm0 8h6v-6H4v6zm10 0h6V11h-6v10zm0-18v6h6V3h-6z' },
-            { to: '/tenants', label: 'Tenants', capabilities: ['dashboard.view'], icon: 'M3 20h18M6 8V6a3 3 0 013-3h6a3 3 0 013 3v2m-12 0h12a3 3 0 013 3v5a3 3 0 01-3 3H9a3 3 0 01-3-3v-5a3 3 0 013-3z' },
-            { to: '/plans', label: 'Plans', capabilities: ['dashboard.view'], icon: 'M9 3h6l4 4v14H5V7l4-4zm0 5h6m-4 4h4m-4 4h4' },
-            { to: '/admin/features', label: 'Features', capabilities: ['dashboard.view'], icon: 'M12 3l8 4v13H4V7l8-4zm0 5a2.5 2.5 0 00-2.5 2.5c0 1.5 2.5 3 2.5 3s2.5-1.5 2.5-3A2.5 2.5 0 0012 8zm0 10a2 2 0 100-4 2 2 0 000 4z' },
-            { to: '/admin/pages', label: 'Website', capabilities: ['dashboard.view'], icon: 'M12 3l8 4v13H4V7l8-4zm2 6v6m-4-6v2' },
-        ],
-    },
-    {
-        label: 'Platform',
-        items: [
-            { to: '/admin/users', label: 'Users', capabilities: ['dashboard.view'], icon: 'M17 20h5v-2a4 4 0 00-3-3.87M9 20H4v-2a4 4 0 013-3.87m4-1.13a4 4 0 10-4-4 4 4 0 004 4zm6 2a3 3 0 10-3-3' },
-            { to: '/admin/support', label: 'Support', capabilities: ['dashboard.view'], icon: 'M8 10h8M8 14h5m-9 7l3-3h11a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v15z' },
-            { to: '/admin/analytics', label: 'Analytics', capabilities: ['dashboard.view'], icon: 'M3 3v18h18M8 17V9m4 8V5m4 12v-6' },
-            { to: '/admin/audit-logs', label: 'Audit Logs', capabilities: ['dashboard.view'], icon: 'M4 7V5a2 2 0 012-2h8l2 2h6v14a2 2 0 01-2 2H6a2 2 0 01-2-2v-2m0 0V7h18M8 12h8M8 16h8' },
-            { to: '/admin/settings', label: 'Settings', capabilities: ['dashboard.view'], icon: 'M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 001.065-2.572c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z M15 12a3 3 0 11-6 0 3 3 0 016 0z' },
+            { to: '/admin', label: 'Overview', capabilities: ['dashboard.view'] },
+            { to: '/tenants', label: 'Tenants', capabilities: ['dashboard.view'] },
+            { to: '/plans', label: 'Plans & features', capabilities: ['dashboard.view'] },
+            { to: '/subscription', label: 'Billing', capabilities: ['dashboard.view'] },
+            { to: '/admin/users', label: 'Users & access', capabilities: ['dashboard.view'] },
+            { to: '/admin/audit-logs', label: 'Audit log', capabilities: ['dashboard.view'] },
+            { to: '/admin/analytics', label: 'Platform health', capabilities: ['dashboard.view'] },
         ],
     },
 ];
 
-function Icon({ path, className = '' }) {
-    return (
-        <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-            <path d={path} />
-        </svg>
-    );
-}
-
 function SidebarLink({ item, collapsed, onClose }) {
     const location = useLocation();
     const { inboxUnread } = useNotifications();
-    const isActive = location.pathname === item.to;
-    const labelClass = collapsed ? 'hidden lg:hidden' : 'block';
+    const isActive = location.pathname === item.to || (item.to !== '/dashboard' && item.to !== '/hrms' && location.pathname.startsWith(item.to));
 
     return (
         <Link
@@ -92,97 +69,65 @@ function SidebarLink({ item, collapsed, onClose }) {
             role="menuitem"
             aria-current={isActive ? 'page' : undefined}
             title={collapsed ? item.label : undefined}
-            className={`group relative flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors duration-150 ${
-                isActive ? 'bg-[var(--active-menu)]' : 'hover:bg-[var(--sidebar-hover)]'
-            } ${collapsed ? 'justify-center lg:justify-center' : ''}`}
-            style={{ color: isActive ? '#ffffff' : 'var(--sidebar-text)' }}
+            className={`group relative flex items-center gap-3 rounded-[10px] px-3 py-2 text-[12px] font-medium transition-all duration-150 ${
+                isActive
+                    ? 'bg-[var(--sidebar-active)] text-white shadow-sm'
+                    : 'text-[#8f9bb3] hover:bg-[var(--sidebar-hover)] hover:text-white'
+            } ${collapsed ? 'justify-center' : ''}`}
         >
-            {isActive && (
-                <span
-                    className={`absolute left-0 top-1/2 h-6 w-1 -translate-y-1/2 rounded-full bg-white transition-opacity ${
-                        collapsed ? 'hidden lg:hidden' : 'block'
-                    }`}
-                    aria-hidden="true"
-                />
+            {/* Dot icon matching Figma navigation */}
+            {isActive ? (
+                <span className="flex h-3.5 w-3.5 shrink-0 items-center justify-center">
+                    <span className="h-2 w-2 rounded-full bg-white" />
+                </span>
+            ) : (
+                <span className="h-3.5 w-3.5 shrink-0 rounded-full border border-[#4a5568] transition-colors group-hover:border-[#94a3b8]" />
             )}
-            <Icon path={item.icon} className="h-5 w-5 shrink-0" />
-            <span className={`min-w-0 ${labelClass}`}>
-                <span className="flex items-center justify-between gap-2">
+
+            {!collapsed && (
+                <span className="flex flex-1 items-center justify-between gap-2 truncate">
                     <span className="truncate">{item.label}</span>
                     {item.badge === 'inbox' && inboxUnread > 0 && (
-                        <span className="flex h-4 min-w-4 shrink-0 items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-bold normal-case tracking-normal text-white">
+                        <span className="flex h-4 min-w-4 shrink-0 items-center justify-center rounded-full bg-[#d94e61] px-1 text-[10px] font-bold text-white">
                             {inboxUnread > 99 ? '99+' : inboxUnread}
                         </span>
                     )}
                 </span>
-            </span>
+            )}
         </Link>
-    );
-}
-
-function SidebarSection({ section, collapsed, onClose, canViewPlans }) {
-    return (
-        <div className="space-y-0.5">
-            {!collapsed && (
-                <p
-                    className="flex items-center justify-between px-3 pb-1.5 pt-4 text-[10px] font-bold uppercase tracking-wider"
-                    style={{ color: 'var(--sidebar-text)', opacity: 0.55 }}
-                >
-                    <span>{section.label}</span>
-                </p>
-            )}
-            {section.items.length === 0 && !collapsed && (
-                <div
-                    className="rounded-lg px-3 py-2 text-xs leading-relaxed"
-                    style={{ color: 'var(--sidebar-text)', opacity: 0.6 }}
-                >
-                    <span>Locked by your plan.</span>{' '}
-                    {canViewPlans ? (
-                        <Link to="/subscription" className="underline transition-colors hover:opacity-80">
-                            View plans
-                        </Link>
-                    ) : (
-                        'An admin can change it.'
-                    )}
-                </div>
-            )}
-            {section.items.map((item) => (
-                <SidebarLink key={item.to} item={item} collapsed={collapsed} onClose={onClose} />
-            ))}
-        </div>
     );
 }
 
 export default function Sidebar({ open, collapsed, onClose, onToggleCollapse }) {
     const { check, user } = useAuth();
+    const location = useLocation();
     const isSuperAdmin = user?.is_super_admin && !user?.impersonating;
 
-    // A section that filtered to zero because every item was module-gated
-    // (not permission-gated) survives with a "locked by your plan" note —
-    // otherwise it would just vanish and read as an admin artifact.
-    const items = (isSuperAdmin ? superAdminSections : sections)
-        .map((section) => {
-            const filtered = section.items.filter(
-                (item) => !item.capabilities?.length || item.capabilities.every((capability) => check(capability)),
-            );
+    // Detect module context
+    const isHrms = location.pathname.startsWith('/hrms') || location.pathname.startsWith('/my');
+    const workspaceType = isSuperAdmin ? 'PLATFORM' : isHrms ? 'HRMS' : 'TMS';
+    const workspaceTag = `${workspaceType} WORKSPACE`;
 
-            return {
-                ...section,
-                items: filtered,
-                lockedByModule:
-                    filtered.length === 0 &&
-                    section.items.some((item) =>
-                        item.capabilities?.some((capability) => capability.startsWith('module:') && !check(capability)),
-                    ),
-            };
-        })
-        .filter((section) => section.items.length > 0 || section.lockedByModule);
+    const activeSections = isSuperAdmin
+        ? superAdminSections
+        : isHrms
+        ? hrmsSections
+        : tmsSections;
+
+    const items = activeSections.map((section) => ({
+        ...section,
+        items: section.items.filter(
+            (item) => !item.capabilities?.length || item.capabilities.every((cap) => check(cap)),
+        ),
+    }));
+
+    const primaryRole = (user?.roles && user.roles[0]) || (isSuperAdmin ? 'Platform Admin' : 'Workspace admin');
 
     return (
         <>
             {open && (
                 <div
-                    className="fixed inset-0 z-30 animate-backdrop-in bg-stone-900/50 backdrop-blur-sm lg:hidden"
+                    className="fixed inset-0 z-30 animate-backdrop-in bg-stone-900/60 backdrop-blur-sm lg:hidden"
                     onClick={onClose}
                     aria-hidden="true"
                 />
@@ -191,63 +136,114 @@ export default function Sidebar({ open, collapsed, onClose, onToggleCollapse }) 
             <aside
                 className={`fixed inset-y-0 left-0 z-40 flex flex-col transition-all duration-300 lg:translate-x-0 ${
                     open ? 'translate-x-0' : '-translate-x-full'
-                } ${collapsed ? 'w-16 lg:w-16' : 'w-64'} border-r border-[var(--border-hairline)] dark:border-[#2F3A4C]`}
-                style={
-                    user?.impersonating
-                        ? { backgroundColor: 'var(--sidebar-bg)', top: '2.5rem', height: 'calc(100% - 2.5rem)' }
-                        : { backgroundColor: 'var(--sidebar-bg)' }
-                }
+                } ${collapsed ? 'w-16 lg:w-16' : 'w-[228px] lg:w-[228px]'} border-r border-[#232b3e]`}
+                style={{
+                    backgroundColor: '#171c2c',
+                    top: user?.impersonating ? '2.5rem' : '0',
+                    height: user?.impersonating ? 'calc(100% - 2.5rem)' : '100%',
+                }}
             >
-                <div className={`flex shrink-0 items-center gap-3 px-4 py-5 ${collapsed ? 'justify-center lg:justify-center px-0' : ''}`}>
-                    <div
-                        className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-sm font-bold text-white shadow-lg"
-                        style={{ backgroundColor: 'var(--accent)' }}
-                    >
+                {/* Header: Logo & Workspace Title */}
+                <div className={`relative flex shrink-0 items-center gap-3 px-4 py-4 ${collapsed ? 'flex-col justify-center gap-2 px-0' : ''}`}>
+                    <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[10px] bg-[#4b5ef5] text-base font-bold text-white shadow-md">
                         F
                     </div>
                     {!collapsed && (
-                        <div className="min-w-0">
-                            <p className="truncate text-base font-semibold text-white">
+                        <div className="min-w-0 pr-6">
+                            <p className="truncate text-base font-bold tracking-tight text-white">
                                 FlowSync
                             </p>
-                            <p className="truncate text-xs font-normal" style={{ color: '#a8a29a' }}>
-                                {isSuperAdmin ? 'Super Admin Panel' : user?.tenant?.name || 'Admin Panel'}
+                            <p className="truncate text-[10px] font-semibold uppercase tracking-wider text-[#8f9bb3]">
+                                {workspaceTag}
                             </p>
                         </div>
                     )}
-                </div>
-
-                <nav className="flex-1 space-y-4 overflow-y-auto px-3 py-2">
-                    {items.map((section) => (
-                        <SidebarSection
-                            key={section.label}
-                            section={section}
-                            collapsed={collapsed}
-                            onClose={onClose}
-                            canViewPlans={check('billing.view')}
-                        />
-                    ))}
-                </nav>
-
-                <div className="border-t px-3 py-3" style={{ borderColor: 'var(--sidebar-hover)' }}>
                     <button
                         type="button"
                         onClick={onToggleCollapse}
                         title={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
-                        className={`hidden w-full items-center rounded-lg py-2 text-sm font-medium transition-colors hover:bg-[var(--sidebar-hover)] lg:flex ${
-                            collapsed ? 'justify-center' : 'gap-2 px-3'
+                        aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+                        aria-expanded={!collapsed}
+                        className={`rounded p-1 text-[#8f9bb3] transition hover:bg-[#222a40] hover:text-white ${
+                            collapsed ? '' : 'absolute right-3 top-1/2 -translate-y-1/2'
                         }`}
-                        style={{ color: 'var(--sidebar-text)' }}
+                    >
+                        {collapsed ? (
+                            <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                <path d="M13 5l7 7-7 7M5 5l7 7-7 7" />
+                            </svg>
+                        ) : (
+                            <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                <path d="M11 5l-7 7 7 7M19 5l-7 7 7 7" />
+                            </svg>
+                        )}
+                    </button>
+                </div>
+
+                {/* Suite Overview Top Action */}
+                <div className="px-3 pt-1 pb-2">
+                    <Link
+                        to="/suite"
+                        onClick={onClose}
+                        title={collapsed ? 'Suite overview' : undefined}
+                        className={`flex items-center gap-2.5 rounded-xl px-3 py-2 text-xs font-semibold transition-all ${
+                            location.pathname === '/suite'
+                                ? 'bg-[#4b5ef5] text-white shadow-sm'
+                                : 'text-[#8f9bb3] hover:bg-[#1a2133] hover:text-white'
+                        } ${collapsed ? 'justify-center' : ''}`}
                     >
                         <svg className="h-4 w-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                            {collapsed ? (
-                                <path d="M13 5l7 7-7 7M5 5l7 7-7 7" />
-                            ) : (
-                                <path d="M11 5l-7 7 7 7M19 5l-7 7 7 7" />
-                            )}
+                            <rect x="3" y="3" width="7" height="7" rx="1" />
+                            <rect x="14" y="3" width="7" height="7" rx="1" />
+                            <rect x="14" y="14" width="7" height="7" rx="1" />
+                            <rect x="3" y="14" width="7" height="7" rx="1" />
                         </svg>
-                        {!collapsed && <span>Collapse</span>}
-                    </button>
+                        {!collapsed && <span>Suite overview</span>}
+                    </Link>
+                </div>
+
+                {/* Workspace Section Bar Tag */}
+                {!collapsed && (
+                    <div className="px-3 py-1">
+                        <div className="rounded-lg bg-[#111625] px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-[#64748b]">
+                            {workspaceTag}
+                        </div>
+                    </div>
+                )}
+
+                {/* Navigation Items */}
+                <nav className="min-h-0 flex-1 space-y-1 overflow-y-auto px-3 py-1 scrollbar-thin">
+                    {items.map((section) => (
+                        <div key={section.label} className="space-y-0.5">
+                            {section.items.map((item) => (
+                                <SidebarLink key={item.label} item={item} collapsed={collapsed} onClose={onClose} />
+                            ))}
+                        </div>
+                    ))}
+                </nav>
+
+                {/* Bottom User Profile Row matching Figma */}
+                <div className="border-t border-[#232b3e] p-3">
+                    <div className={`flex items-center gap-3 ${collapsed ? 'justify-center' : ''}`}>
+                        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#4b5ef5] text-xs font-bold text-white shadow-sm">
+                            {(user?.name || 'Alex Rivera')
+                                .split(' ')
+                                .map((n) => n[0])
+                                .slice(0, 2)
+                                .join('')
+                                .toUpperCase()}
+                        </div>
+                        {!collapsed && (
+                            <div className="min-w-0 flex-1">
+                                <div className="truncate text-xs font-semibold text-white">
+                                    {user?.name || 'Alex Rivera'}
+                                </div>
+                                <div className="truncate text-[10px] text-[#8f9bb3] capitalize">
+                                    {primaryRole}
+                                </div>
+                            </div>
+                        )}
+                    </div>
                 </div>
             </aside>
         </>

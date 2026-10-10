@@ -1,6 +1,7 @@
 import DatePicker from 'react-datepicker';
 import 'react-datepicker/dist/react-datepicker.css';
 import { format } from 'date-fns';
+import { fieldClass, fieldClassCompact } from './fieldStyles';
 
 function parseDate(value) {
     if (!value || typeof value !== 'string') return null;
@@ -17,6 +18,8 @@ function parseDateTime(value) {
     const date = new Date(value.includes('T') ? value : value.replace(' ', 'T'));
     return Number.isNaN(date.getTime()) ? null : date;
 }
+
+const labelClass = 'mb-1.5 block text-[12px] font-semibold text-ink';
 
 /**
  * Every date input in the app flows through here, so `type="date"` (and
@@ -41,16 +44,19 @@ function DateField({ label, labelClassName = '', error, id, className = '', lead
         });
     };
 
+    const base = compact ? fieldClassCompact : fieldClass;
+    const errorClass = 'border-[var(--danger)] focus:border-[var(--danger)] focus:ring-[var(--danger-ring)]/50';
+
     return (
         <div className={className}>
             {label && (
-                <label htmlFor={inputId} className={`mb-1.5 block text-sm font-medium text-gray-700 ${labelClassName}`}>
+                <label htmlFor={inputId} className={`${labelClass} ${labelClassName}`}>
                     {label}
                 </label>
             )}
             <div className="relative">
                 {leadingIcon && (
-                    <span className="pointer-events-none absolute left-3 top-1/2 z-10 -translate-y-1/2 text-gray-400">
+                    <span className="pointer-events-none absolute left-3 top-1/2 z-10 -translate-y-1/2 text-[var(--text-faint)]">
                         {leadingIcon}
                     </span>
                 )}
@@ -72,16 +78,10 @@ function DateField({ label, labelClassName = '', error, id, className = '', lead
                     isClearable={!props.required && !props.disabled && !!props.value}
                     showPopperArrow={false}
                     calendarClassName="flowsync-calendar"
-                    className={`block w-full border text-sm shadow-sm transition focus:outline-none focus:ring-2 focus:ring-[#C2410C]/20 ${
-                        compact ? 'rounded-md px-2.5 py-1.5' : 'rounded-lg px-3.5 py-2.5'
-                    } ${leadingIcon ? 'pl-9' : ''} ${
-                        error
-                            ? 'border-red-400 focus-border-red-500 focus:ring-red-100'
-                            : 'border-[var(--border-hairline)] bg-[var(--surface-elevated)] text-[#1C1917] dark:text-[#F8FAFC] dark:border-[#2F3A4C] dark:bg-[#1E2638] placeholder-[#A8A29E] dark:placeholder-[#64748B] focus:border-[#C2410C]'
-                    } ${props.disabled ? 'cursor-not-allowed bg-gray-50 text-gray-500' : 'bg-white text-gray-900'}`}
+                    className={`${base} ${leadingIcon ? 'pl-9' : ''} ${error ? errorClass : ''} ${props.disabled ? 'cursor-not-allowed opacity-60' : ''}`}
                 />
             </div>
-            {error && <p className="mt-1.5 text-sm text-red-600">{error}</p>}
+            {error && <p className="mt-1.5 text-[12px] text-[var(--danger)]">{error}</p>}
         </div>
     );
 }
@@ -95,34 +95,30 @@ export default function Input({ label, labelClassName = '', error, id, className
     }
 
     const inputId = id || props.name;
+    const base = compact ? fieldClassCompact : fieldClass;
+    const errorClass = 'border-[var(--danger)] focus:border-[var(--danger)] focus:ring-[var(--danger-ring)]/50';
 
     return (
         <div className={className}>
             {label && (
-                <label htmlFor={inputId} className={`mb-1.5 block text-sm font-medium text-gray-700 ${labelClassName}`}>
+                <label htmlFor={inputId} className={`${labelClass} ${labelClassName}`}>
                     {label}
                 </label>
             )}
             <div className="relative">
                 {leadingIcon && (
-                    <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">
+                    <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[var(--text-faint)]">
                         {leadingIcon}
                     </span>
                 )}
                 <input
                     id={inputId}
                     placeholder={typeof hint === 'string' ? hint : undefined}
-                    className={`block w-full border text-sm shadow-sm transition focus:outline-none focus:ring-2 ${
-                        compact ? 'rounded-md px-2.5 py-1.5' : 'rounded-lg px-3.5 py-2.5'
-                    } ${leadingIcon ? 'pl-9' : ''} ${
-                        error
-                            ? 'border-red-400 focus:border-red-500 focus:ring-red-100'
-                            : 'border-[var(--border-hairline)] bg-[var(--surface-elevated)] text-[#1C1917] dark:text-[#F8FAFC] dark:border-[#2F3A4C] dark:bg-[#1E2638] placeholder-[#A8A29E] dark:placeholder-[#64748B] focus:border-[#C2410C]'
-                    } ${props.disabled ? 'cursor-not-allowed bg-gray-50 text-gray-500' : 'bg-white text-gray-900'}`}
+                    className={`${base} ${leadingIcon ? 'pl-9' : ''} ${error ? errorClass : ''} ${props.disabled ? 'cursor-not-allowed opacity-60' : ''}`}
                     {...props}
                 />
             </div>
-            {error && <p className="mt-1.5 text-sm text-red-600">{error}</p>}
+            {error && <p className="mt-1.5 text-[12px] text-[var(--danger)]">{error}</p>}
         </div>
     );
 }

@@ -13,13 +13,12 @@ export default function Drawer({ open, onClose, title, subtitle, children, heade
     // block/stacking context that would otherwise trap a nested `fixed` panel.
     return createPortal(
         <div
-            className="fixed inset-0 z-50 flex justify-end bg-stone-900/40 backdrop-blur-md dark:bg-black/60 animate-backdrop-in"
+            className="fixed inset-0 z-50 flex justify-end bg-[#151b2c]/40 backdrop-blur-[2px] animate-backdrop-in dark:bg-black/60"
             onClick={onClose}
             role="presentation"
         >
             <div
-                className={`flex h-full w-full max-w-xl animate-from-right flex-col overflow-hidden border-l border-[var(--border-hairline)] shadow-drawer sm:max-w-3xl ${className} dark:border-[#2F3A4C]`}
-                style={{ backgroundColor: 'var(--card-bg)' }}
+                className={`flex h-full w-full max-w-xl animate-from-right flex-col overflow-hidden border-l border-[var(--border-hairline)] bg-[var(--card-bg)] shadow-[var(--shadow-drawer)] sm:max-w-3xl ${className}`}
                 onClick={(e) => e.stopPropagation()}
                 role="dialog"
                 aria-modal="true"
@@ -30,8 +29,8 @@ export default function Drawer({ open, onClose, title, subtitle, children, heade
                 {(title || onClose) && (
                     <div className="flex shrink-0 items-start justify-between gap-4 border-b border-[var(--border-hairline)] px-6 py-4">
                         <div className="min-w-0 flex-1">
-                            {title && <h3 id={titleId} className="truncate text-lg font-semibold text-[#1C1917] dark:text-[#F8FAFC]">{title}</h3>}
-                            {subtitle && <p className="mt-0.5 truncate text-xs font-semibold uppercase tracking-wide text-[#57534E] dark:text-[#94A3B8]">{subtitle}</p>}
+                            {title && <h3 id={titleId} className="truncate text-[16px] font-semibold text-ink">{title}</h3>}
+                            {subtitle && <p className="mt-0.5 truncate text-[11px] font-semibold uppercase tracking-wide text-muted">{subtitle}</p>}
                             {headerExtras}
                         </div>
                         {onClose && (
@@ -39,7 +38,7 @@ export default function Drawer({ open, onClose, title, subtitle, children, heade
                                 type="button"
                                 onClick={onClose}
                                 aria-label="Close"
-                                className="-mr-1 -mt-1 rounded-lg p-1.5 text-gray-400 dark:text-[#64748B] transition hover:bg-gray-100 dark:hover:bg-[#252E3E] hover:text-gray-700 dark:hover:text-[#F8FAFC]"
+                                className="-mr-1 -mt-1 rounded-[8px] p-1.5 text-[var(--text-faint)] transition-colors hover:bg-[var(--surface-elevated)] hover:text-ink"
                             >
                                 <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
                                     <path d="M6 6l12 12M18 6L6 18" />
@@ -49,7 +48,7 @@ export default function Drawer({ open, onClose, title, subtitle, children, heade
                     </div>
                 )}
                 <div className="min-h-0 flex-1 overflow-y-auto">{children}</div>
-                {footer && <div className="shrink-0 border-t border-gray-100 dark:border-[#2F3A4C] px-6 py-3">{footer}</div>}
+                {footer && <div className="shrink-0 border-t border-[var(--border-hairline)] px-6 py-3">{footer}</div>}
             </div>
         </div>,
         document.body,

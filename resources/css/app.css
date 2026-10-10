@@ -6,37 +6,108 @@
 @source '../**/*.{js,jsx}';
 
 @theme {
-    --font-sans: 'Instrument Sans', ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji',
+    --font-sans: 'DM Sans', ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji',
         'Segoe UI Symbol', 'Noto Color Emoji';
 
-    --shadow-card: 0 1px 2px rgba(15, 23, 42, 0.04), 0 2px 8px -2px rgba(15, 23, 42, 0.06);
-    --shadow-popover: 0 4px 12px -2px rgba(15, 23, 42, 0.08), 0 12px 32px -8px rgba(15, 23, 42, 0.14);
-    --shadow-drawer: -12px 0 40px -12px rgba(15, 23, 42, 0.25);
+    /* ── FlowSync design tokens ──────────────────────────────────────────────
+       Extracted verbatim from the Figma design system
+       (figma/svg-designs/reusable-components/00 — Design System & Screen Index).
+       Use these semantic utilities in JSX: bg-canvas, bg-surface, text-ink,
+       text-muted, border-hairline, bg-brand, text-brand, rounded-card, … */
+    --color-brand: #4b5ef5;
+    --color-brand-dark: #3546d7;
+    --color-brand-soft: #e9ecff;
+    --color-canvas: #f4f6fb;
+    --color-surface: #ffffff;
+    --color-hairline: #e3e7f0;
+    --color-ink: #151b2c;
+    --color-muted: #68738a;
+    --color-faint: #8a93a7;
+    --color-success: #1f9b69;
+    --color-success-soft: #e6f7ef;
+    --color-warning: #d58a16;
+    --color-warning-soft: #fff3d9;
+    --color-danger: #d94e61;
+    --color-danger-soft: #fdecef;
+    --color-purple: #7858de;
+    --color-purple-soft: #f0ecff;
+    --color-teal: #25a6a1;
+    --color-track: #eef1f7;
+    --color-column: #eef1f8;
+    --color-field: #f8f9fc;
+    --color-sidebar: #171c2c;
+    --color-sidebar-active: #2a3350;
+    --color-sidebar-hover: #222a40;
+
+    --radius-chip: 8px;
+    --radius-button: 9px;
+    --radius-field: 10px;
+    --radius-card: 12px;
+    --radius-hero: 16px;
+
+    --shadow-card: 0 1px 3px rgba(15, 23, 42, 0.04), 0 1px 2px rgba(15, 23, 42, 0.02);
+    --shadow-popover: 0 4px 14px -2px rgba(15, 23, 42, 0.08), 0 12px 32px -8px rgba(15, 23, 42, 0.12);
+    --shadow-drawer: -12px 0 40px -12px rgba(15, 23, 42, 0.22);
 }
 
 :root {
-    --sidebar-bg: #0f172a;
-    --sidebar-hover: #1e293b;
-    --active-menu: #6366f1;
-    --sidebar-text: #cbd5e1;
-    --dashboard-bg: #fbfbfa;
-    --surface-elevated: #f4f3ef;
-    --border-hairline: #e8e7e3;
-    --text-primary: #1c1917;
-    --text-secondary: #57534e;
+    /* Sidebar shell (Figma: 228px, #171C2C) */
+    --sidebar-bg: #171c2c;
+    --sidebar-hover: #222a40;
+    --sidebar-active: #2a3350;
+    --active-menu: #4b5ef5;
+    --sidebar-text: #aab2c5;
+    --sidebar-muted: #8f9bb3;
+
+    /* Surfaces */
+    --dashboard-bg: #f4f6fb;
+    --canvas: #f4f6fb;
+    --surface-elevated: #f8f9fc;
+    --surface-overlay: #ffffff;
+    --border-hairline: #e3e7f0;
+    --hairline: #e3e7f0;
+    --track: #eef1f7;
+    --column-bg: #eef1f8;
+    --field-bg: #f8f9fc;
+
+    /* Text */
+    --text-primary: #151b2c;
+    --text-secondary: #68738a;
+    --text-faint: #8a93a7;
     --header-bg: #ffffff;
-    --header-text: #0f172a;
+    --header-text: #151b2c;
     --card-bg: #ffffff;
-    --accent: #6366f1;
-    /* Accent-derived tokens; re-computed in resources/js/theme.js whenever the
-       admin changes `accent`, and mirrored here so the first paint is themed. */
-    --accent-hover: #7c7ff3;
-    --accent-active: #585bd5;
+
+    /* Brand / accent (Figma: #4B5EF5) */
+    --accent: #4b5ef5;
+    --accent-hover: #3d50e8;
+    --accent-active: #3546d7;
     --accent-contrast: #ffffff;
-    --accent-soft: #eef0fe;
-    --accent-soft-hover: #e0e3fd;
-    --accent-soft-text: #4f46e5;
-    --accent-ring: #c7c9f9;
+    --accent-soft: #e9ecff;
+    --accent-soft-hover: #dfe3fe;
+    --accent-soft-text: #4b5ef5;
+    --accent-ring: #c5cdfc;
+
+    /* Destructive */
+    --danger: #d94e61;
+    --danger-hover: #c74355;
+    --danger-active: #b23a4a;
+    --danger-contrast: #ffffff;
+    --danger-soft: #fdecef;
+    --danger-ring: #f6c3cc;
+
+    /* Semantic status colors from Figma Design System */
+    --status-success: #1f9b69;
+    --status-success-soft: #e6f7ef;
+    --status-warning: #d58a16;
+    --status-warning-soft: #fff3d9;
+    --status-danger: #d94e61;
+    --status-danger-soft: #fdecef;
+    --status-info: #4b5ef5;
+    --status-info-soft: #e9ecff;
+    --status-purple: #7858de;
+    --status-purple-soft: #f0ecff;
+    --status-teal: #25a6a1;
 }
 
 /*
@@ -139,10 +210,30 @@
 
     /* Warm palette overrides for dark mode */
     --dashboard-bg: #131720;
+    --canvas: #131720;
     --surface-elevated: #232b3a;
+    --surface-overlay: #1a2133;
     --border-hairline: #2f3a4c;
+    --hairline: #2f3a4c;
+    --track: #2a3348;
+    --column-bg: #1a2133;
+    --field-bg: #1a2133;
+    --card-bg: #1a2133;
     --text-primary: #f8fafc;
     --text-secondary: #94a3b8;
+    --text-faint: #64748b;
+
+    /* Semantic tints step down for dark surfaces */
+    --accent-soft: #1f2446;
+    --accent-soft-hover: #252b57;
+    --accent-soft-text: #a5b4fc;
+    --accent-ring: #3546d7;
+    --danger-soft: #47232d;
+    --status-success-soft: #123f3c;
+    --status-warning-soft: #483820;
+    --status-danger-soft: #47232d;
+    --status-info-soft: #1f2446;
+    --status-purple-soft: #2a2450;
 }
 
 .dark .bg-white {

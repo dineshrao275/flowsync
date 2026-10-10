@@ -7,6 +7,8 @@ import { useClickOutside } from '../hooks/useClickOutside';
 import NotificationBell from './NotificationBell';
 import Avatar from './ui/Avatar';
 
+import AppSwitcher from './ui/AppSwitcher';
+
 export default function Topbar({ onOpenTheme, onToggleSidebar, onOpenSearch, showSearch, showTheme = true }) {
     const { user, logout } = useAuth();
     const toast = useToast();
@@ -36,9 +38,11 @@ export default function Topbar({ onOpenTheme, onToggleSidebar, onOpenSearch, sho
         navigate('/login');
     }
 
+    const primaryRole = (user?.roles && user.roles[0]) || (user?.is_super_admin ? 'Super Admin' : 'Workspace admin');
+
     return (
         <header
-            className={`sticky z-20 flex h-16 items-center justify-between border-b px-4 sm:px-6 ${
+            className={`sticky z-20 flex h-[68px] items-center justify-between border-b px-4 sm:px-6 ${
                 user?.impersonating ? 'top-10' : 'top-0'
             }`}
             style={{ backgroundColor: 'var(--header-bg)', borderColor: 'var(--border-hairline)', color: 'var(--header-text)' }}
@@ -53,37 +57,34 @@ export default function Topbar({ onOpenTheme, onToggleSidebar, onOpenSearch, sho
                         <path d="M4 6h16M4 12h16M4 18h16" />
                     </svg>
                 </button>
-                <h1 className="text-lg font-semibold">{title}</h1>
-            </div>
 
-            <div className="flex items-center gap-2 sm:gap-3">
-{showSearch && (
-                            <button
-                                onClick={onOpenSearch}
-                                className="border border-[var(--border-hairline)] dark:border-[#2F3A4C] bg-[var(--surface-elevated)] dark:bg-[#1E2638] text-[#57534E] dark:text-[#94A3B8] rounded-lg py-2 pl-3 pr-2 text-sm shadow-sm transition hover:bg-stone-100 dark:hover:bg-[#232B3A] sm:flex sm:w-56"
-                                aria-label="Global search"
-                            >
-                        <svg className="h-4 w-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                            <path d="M21 21l-4.35-4.35M17 11a6 6 0 11-12 0 6 6 0 0112 0z" />
+                {/* Global Search input matching Figma Search Field/Global.png */}
+                {showSearch ? (
+                    <button
+                        onClick={onOpenSearch}
+                        className="flex h-10 items-center gap-2.5 rounded-[10px] border border-[var(--border-hairline)] bg-[var(--field-bg)] px-3.5 text-[13px] text-muted transition-colors hover:border-[var(--accent)]/40 hover:bg-[var(--card-bg)] sm:w-80 md:w-96 text-left"
+                        aria-label="Global search"
+                    >
+                        <svg className="h-4 w-4 shrink-0 text-[var(--text-faint)]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <circle cx="11" cy="11" r="8" />
+                            <line x1="21" y1="21" x2="16.65" y2="16.65" />
                         </svg>
-                        <span className="flex-1 text-left">Search…</span>
-                        <kbd className="rounded border border-[var(--border-hairline)] dark:border-[#2F3A4C] bg-white dark:bg-[#131720] text-[#78716C] dark:text-[#94A3B8]">
+                        <span className="flex-1 text-[13px] font-normal">Search people, projects, tasks...</span>
+                        <kbd className="hidden rounded-[6px] border border-[var(--border-hairline)] bg-[var(--card-bg)] px-1.5 py-0.5 text-[10px] font-semibold text-muted sm:inline-block">
                             ⌘K
                         </kbd>
                     </button>
+                ) : (
+                    <h1 className="text-[16px] font-semibold text-ink">{title}</h1>
                 )}
-{showSearch && (
-                            <button
-                                onClick={onOpenSearch}
-                                className="border border-[var(--border-hairline)] dark:border-[#2F3A4C] bg-[var(--surface-elevated)] dark:bg-[#1E2638] text-[#57534E] dark:text-[#94A3B8] rounded-lg p-2 transition-all duration-150 active:scale-90 sm:hidden"
-                                aria-label="Global search"
-                            >
-                        <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                            <path d="M21 21l-4.35-4.35M17 11a6 6 0 11-12 0 6 6 0 0112 0z" />
-                        </svg>
-                    </button>
-                )}
+            </div>
+
+            <div className="flex items-center gap-2 sm:gap-4">
+                {/* Connected Workspace Switcher */}
+                <AppSwitcher />
+
                 <NotificationBell />
+
                 {showTheme && (
                     <button
                         onClick={onOpenTheme}
@@ -97,12 +98,21 @@ export default function Topbar({ onOpenTheme, onToggleSidebar, onOpenSearch, sho
                     </button>
                 )}
 
+                {/* User Profile matching Figma Topbar */}
                 <div className="relative" ref={menuRef}>
                     <button
                         onClick={() => setMenuOpen((open) => !open)}
-                        className="flex items-center gap-2 rounded-full p-1 transition-all duration-150 hover:bg-black/5 active:scale-95"
+                        className="flex items-center gap-2.5 rounded-xl p-1 transition-all duration-150 hover:bg-black/5 dark:hover:bg-white/10 active:scale-95"
                     >
-                        <Avatar name={user?.name} />
+                        <Avatar name={user?.name || 'Alex Rivera'} className="h-8 w-8 text-xs font-semibold" />
+                        <div className="hidden text-left sm:block">
+                            <div className="text-xs font-semibold text-[#0f172a] dark:text-[#f8fafc]">
+                                {user?.name || 'Alex Rivera'}
+                            </div>
+                            <div className="text-[10px] text-[#64748b] dark:text-[#94a3b8] capitalize">
+                                {primaryRole}
+                            </div>
+                        </div>
                     </button>
 
                     {menuOpen && (

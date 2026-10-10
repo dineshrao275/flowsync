@@ -15,6 +15,8 @@ import RegisterComplete from './pages/auth/RegisterComplete';
 import ForgotPassword from './pages/auth/ForgotPassword';
 import ResetPassword from './pages/auth/ResetPassword';
 import Onboarding from './pages/Onboarding';
+import SuiteHome from './pages/SuiteHome';
+import FigmaExplorer from './pages/FigmaExplorer';
 import Dashboard from './pages/Dashboard';
 import Workspaces from './pages/Workspaces';
 import WorkspaceDetail from './pages/WorkspaceDetail';
@@ -29,6 +31,8 @@ import UserImport from './pages/UserImport';
 import Roles from './pages/Roles';
 import Settings from './pages/Settings';
 import Reports from './pages/Reports';
+import Timeline from './pages/Timeline';
+import TimeTracking from './pages/TimeTracking';
 import HrmsLayout from './components/hrms/HrmsLayout';
 import HrmsOverview from './pages/hrms/HrmsOverview';
 import Employees from './pages/hrms/Employees';
@@ -146,6 +150,8 @@ function AppRoutes() {
                         <Route element={<ProtectedRoute permission="dashboard.view" />}>
                             {/* A platform super admin has no tenant context, so the tenant
                                 dashboard endpoints 403 — send them to the platform overview. */}
+                            <Route path="/suite" element={<SuiteHome />} />
+                            <Route path="/figma" element={<FigmaExplorer />} />
                             <Route
                                 path="/dashboard"
                                 element={homeRouteFor(user) !== '/dashboard' ? <Navigate to={homeRouteFor(user)} replace /> : <Dashboard />}
@@ -174,6 +180,8 @@ function AppRoutes() {
                             <Route path="/workspaces/:workspaceId" element={<WorkspaceDetail />} />
                             <Route path="/projects" element={<Projects />} />
                             <Route path="/projects/:projectId" element={<ProjectDetail />} />
+                            <Route path="/timeline" element={<Timeline />} />
+                            <Route path="/time-tracking" element={<TimeTracking />} />
                         </Route>
                         <Route element={<ProtectedRoute permission="workspaces.view" product="tms" module="global_search" />}>
                             <Route path="/search" element={<Search />} />

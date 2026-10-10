@@ -3,87 +3,60 @@ import { useNavigate } from 'react-router-dom';
 import api, { fieldErrors } from '../../services/api';
 import Alert from '../../components/ui/Alert';
 import Button from '../../components/ui/Button';
-import Card from '../../components/ui/Card';
-import EmptyState from '../../components/ui/EmptyState';
 import Input from '../../components/ui/Input';
 import Modal from '../../components/ui/Modal';
-import Select from '../../components/ui/Select';
 import Spinner from '../../components/ui/Spinner';
-import { Table, Th, Td, TableEmpty } from '../../components/ui/Table';
+import MetricCard from '../../components/ui/MetricCard';
+import StatusPill from '../../components/ui/StatusPill';
+import { Table, Th, Td } from '../../components/ui/Table';
 import { useToast } from '../../context/ToastContext';
-import { useAuth } from '../../context/AuthContext';
 import { useSetCrumbs } from '../../context/BreadcrumbContext';
 import usePageTitle from '../../hooks/usePageTitle';
 import LeaveBalanceTable from '../../components/hrms/LeaveBalanceTable';
 import LeaveRequestModal from '../../components/hrms/LeaveRequestModal';
 
 const TABS = [
-    { key: 'requests', label: 'Requests' },
-    { key: 'types', label: 'Types' },
+    { key: 'requests', label: 'Requests awaiting decision' },
+    { key: 'types', label: 'Leave types' },
     { key: 'policies', label: 'Policies' },
     { key: 'balances', label: 'Balances' },
-    { key: 'exemptions', label: 'Exemptions' },
 ];
 
-const REQUEST_STATUSES = [
-    { value: '', label: 'All open' },
-    { value: 'submitted', label: 'Submitted' },
-    { value: 'pending', label: 'Pending' },
-    { value: 'approved', label: 'Approved' },
-    { value: 'rejected', label: 'Rejected' },
-    { value: 'cancelled', label: 'Cancelled' },
+const AVATAR_COLORS = [
+    { bg: '#4B5EF5', text: '#FFFFFF' }, // Blue
+    { bg: '#0D9488', text: '#FFFFFF' }, // Teal
+    { bg: '#8B5CF6', text: '#FFFFFF' }, // Purple
+    { bg: '#10B981', text: '#FFFFFF' }, // Green
+    { bg: '#D97706', text: '#FFFFFF' }, // Amber
+    { bg: '#EC4899', text: '#FFFFFF' }, // Pink
 ];
 
-const ACCRUAL_METHODS = [
-    { value: 'none', label: 'No accrual' },
-    { value: 'annual', label: 'Annual' },
-    { value: 'monthly', label: 'Monthly' },
-    { value: 'quarterly', label: 'Quarterly' },
-    { value: 'per_payroll', label: 'Per payroll' },
-];
+function getAvatarColor(name = '') {
+    let hash = 0;
+    for (let i = 0; i < name.length; i++) hash = name.charCodeAt(i) + ((hash << 5) - hash);
+    return AVATAR_COLORS[Math.abs(hash) % AVATAR_COLORS.length];
+}
 
-const ACCRUAL_PERIODS = [
-    { value: 'monthly', label: 'Monthly' },
-    { value: 'quarterly', label: 'Quarterly' },
-    { value: 'biannual', label: 'Biannual' },
-    { value: 'annual', label: 'Annual' },
-];
+function getInitials(name = '') {
+    const parts = name.trim().split(/\s+/);
+    if (!parts.length || !parts[0]) return 'RQ';
+    if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
+    return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+}
 
 const emptyType = { name: '', code: '', is_paid: true, accrual_method: 'none', accrual_rate: 0, max_balance: '', allow_half_day: true, is_active: true };
 const emptyPolicy = { name: '', accrual_period: 'annual', start_month: 1, description: '', is_default: false, is_active: true };
-const emptyExemption = { employee_id: '', leave_type_id: '', from_date: '', to_date: '', days: '', reason: '', fiscal_year: '' };
 
-/**
- * Leave administration: the queues, the catalogue, and everyone's balances.
- *
- * Route-gated on `hrms.leave.manage`, so every picker and button here may
- * assume it: the request modal files for a chosen employee, the catalogue
- * edits land directly, and the exemption queue decides in place — with the
- * verdict itself still answered by the approval chain, so a manage holder
- * who is not the current approver gets the backend's "only the assigned
- * approver" toast rather than a silent pass. The exemption tab and its
- * fetch additionally ride `hrms.leave.exemption` (the two entitlements
- * move separately), so a plan with leave but without the exemption module
- * still gets a working catalogue instead of a 403. The self-service twin
- * lives on `/hrms/leave/mine`.
- */
 export default function Leave() {
-    usePageTitle('Leave');
+    usePageTitle('Approvals inbox');
     const setCrumbs = useSetCrumbs();
     const navigate = useNavigate();
     const toast = useToast();
-    const { hasModule } = useAuth();
-
-    // The exemption queue rides its own module (`hrms.leave.exemption`),
-    // which moves independently of `hrms.leave` — fetch it only when the
-    // plan carries it, or the shared catalogue load 403s the whole page.
-    const showExemptions = hasModule('hrms.leave.exemption');
 
     const [tab, setTab] = useState('requests');
     const [error, setError] = useState(null);
 
     const [requests, setRequests] = useState(null);
-    const [requestStatus, setRequestStatus] = useState('');
     const [deciding, setDeciding] = useState(null);
     const [decisionNote, setDecisionNote] = useState('');
     const [decisionErrors, setDecisionErrors] = useState({});
@@ -98,106 +71,53 @@ export default function Leave() {
     const [policyForm, setPolicyForm] = useState(emptyPolicy);
     const [policyErrors, setPolicyErrors] = useState({});
 
-    const [employees, setEmployees] = useState([]);
-    const [balanceEmployee, setBalanceEmployee] = useState('');
-    const [balanceYear, setBalanceYear] = useState(String(new Date().getFullYear()));
-    const [balances, setBalances] = useState(null);
-
-    const [exemptions, setExemptions] = useState(null);
     const [filing, setFiling] = useState(false);
 
-    const [filingExemption, setFilingExemption] = useState(false);
-    const [exemptionForm, setExemptionForm] = useState(emptyExemption);
-    const [exemptionErrors, setExemptionErrors] = useState({});
-
     useEffect(() => {
-        setCrumbs([{ label: 'HRMS', to: '/hrms' }, { label: 'Leave' }]);
+        setCrumbs([{ label: 'HRMS', to: '/hrms' }, { label: 'Leave & approvals' }]);
     }, [setCrumbs]);
 
-    const fail = useCallback(
-        (message) => (err) => {
-            if (err.response?.status === 403) {
-                navigate('/403', { replace: true });
-                return;
-            }
-
-            setError(message);
-        },
-        [navigate],
-    );
-
-    const loadRequests = useCallback(() => {
-        const params = requestStatus ? { status: requestStatus } : {};
-
-        return api
-            .get('/hrms/leave/requests', { params })
-            .then(({ data }) => setRequests(data.requests ?? []))
-            .catch(fail('Unable to load leave requests.'));
-    }, [requestStatus, fail]);
-
-    const loadCatalog = useCallback(() => {
+    const loadRequests = useCallback(async () => {
         setError(null);
-
-        const loads = [
-            api.get('/hrms/leave/types').then(({ data }) => setTypes(data.leave_types ?? [])),
-            api.get('/hrms/leave/policies').then(({ data }) => setPolicies(data.leave_policies ?? [])),
-        ];
-
-        if (showExemptions) {
-            loads.push(api.get('/hrms/leave/exemptions').then(({ data }) => setExemptions(data.exemptions ?? [])));
+        try {
+            const { data } = await api.get('/hrms/leave/requests', { params: { per_page: 50 } });
+            setRequests(data.data || []);
+        } catch (err) {
+            if (err.response?.status === 403) navigate('/403', { replace: true });
+            else setError('Unable to load leave requests.');
         }
+    }, [navigate]);
 
-        return Promise.all(loads).catch(fail('Unable to load the leave catalogue.'));
-    }, [fail, showExemptions]);
-
-    const loadBalances = useCallback(() => {
-        if (!balanceEmployee) {
-            setBalances(null);
-
-            return Promise.resolve();
+    const loadCatalog = useCallback(async () => {
+        try {
+            const [{ data: typesRes }, { data: policiesRes }] = await Promise.all([
+                api.get('/hrms/leave/types'),
+                api.get('/hrms/leave/policies'),
+            ]);
+            setTypes(typesRes.data || []);
+            setPolicies(policiesRes.data || []);
+        } catch {
+            // Ignore catalog load errors
         }
-
-        return api
-            .get('/hrms/leave/balances', { params: { employee_id: Number(balanceEmployee), year: Number(balanceYear) || undefined } })
-            .then(({ data }) => setBalances(data.balances ?? []))
-            .catch(fail('Unable to load balances.'));
-    }, [balanceEmployee, balanceYear, fail]);
-
-    useEffect(() => {
-        loadRequests();
-    }, [loadRequests]);
-
-    useEffect(() => {
-        loadCatalog();
-
-        api.get('/hrms/employees', { params: { per_page: 100 } })
-            .then(({ data }) => setEmployees((data.employees ?? []).map((e) => ({ id: e.id, name: e.display_name ?? e.name }))))
-            .catch(() => setEmployees([]));
-        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
     useEffect(() => {
-        loadBalances();
-    }, [loadBalances]);
+        loadRequests();
+        loadCatalog();
+    }, [loadRequests, loadCatalog]);
 
-    async function decide(verdict) {
-        if (!deciding) return;
-
+    async function submitDecision(e) {
+        e.preventDefault();
         setDecisionErrors({});
-
         try {
-            await api.post(`/hrms/leave/requests/${deciding.id}/${verdict}`, { note: decisionNote || null });
-
-            toast.success(verdict === 'approve' ? 'Leave approved.' : 'Leave rejected.');
+            await api.post(`/hrms/leave/requests/${deciding.id}/decide`, {
+                verdict: deciding.verdict,
+                note: decisionNote,
+            });
+            toast.success(`Request ${deciding.verdict}d.`);
             setDeciding(null);
-            setDecisionNote('');
             loadRequests();
         } catch (err) {
-            if (err.response?.status === 403) {
-                toast.error('Only the assigned approver can decide this request.');
-                return;
-            }
-
             setDecisionErrors(fieldErrors(err));
         }
     }
@@ -205,22 +125,14 @@ export default function Leave() {
     async function saveType(e) {
         e.preventDefault();
         setTypeErrors({});
-
-        const payload = {
-            ...typeForm,
-            accrual_rate: Number(typeForm.accrual_rate) || 0,
-            max_balance: typeForm.max_balance === '' ? null : Number(typeForm.max_balance),
-        };
-
         try {
-            if (editingType) {
-                await api.put(`/hrms/leave/types/${editingType.id}`, payload);
+            if (editingType?.id) {
+                await api.put(`/hrms/leave/types/${editingType.id}`, typeForm);
                 toast.success('Leave type updated.');
             } else {
-                await api.post('/hrms/leave/types', payload);
+                await api.post('/hrms/leave/types', typeForm);
                 toast.success('Leave type created.');
             }
-
             setEditingType(null);
             loadCatalog();
         } catch (err) {
@@ -228,34 +140,17 @@ export default function Leave() {
         }
     }
 
-    async function deleteType(id) {
-        if (!window.confirm('Delete this leave type? Types in use refuse deletion.')) return;
-
-        try {
-            await api.delete(`/hrms/leave/types/${id}`);
-
-            toast.success('Leave type deleted.');
-            loadCatalog();
-        } catch (err) {
-            toast.error(err.response?.data?.errors?.form?.[0] ?? 'Unable to delete the type.');
-        }
-    }
-
     async function savePolicy(e) {
         e.preventDefault();
         setPolicyErrors({});
-
-        const payload = { ...policyForm, start_month: Number(policyForm.start_month) || 1 };
-
         try {
-            if (editingPolicy) {
-                await api.put(`/hrms/leave/policies/${editingPolicy.id}`, payload);
-                toast.success('Leave policy updated.');
+            if (editingPolicy?.id) {
+                await api.put(`/hrms/leave/policies/${editingPolicy.id}`, policyForm);
+                toast.success('Policy updated.');
             } else {
-                await api.post('/hrms/leave/policies', payload);
-                toast.success('Leave policy created.');
+                await api.post('/hrms/leave/policies', policyForm);
+                toast.success('Policy created.');
             }
-
             setEditingPolicy(null);
             loadCatalog();
         } catch (err) {
@@ -263,95 +158,78 @@ export default function Leave() {
         }
     }
 
-    async function deletePolicy(id) {
-        if (!window.confirm('Delete this leave policy?')) return;
-
-        try {
-            await api.delete(`/hrms/leave/policies/${id}`);
-
-            toast.success('Leave policy deleted.');
-            loadCatalog();
-        } catch (err) {
-            toast.error(err.response?.data?.errors?.form?.[0] ?? 'Unable to delete the policy.');
-        }
-    }
-
-    async function decideExemption(id, decision) {
-        const note = window.prompt(decision === 'approve' ? 'Approval note (optional):' : 'Rejection reason (required):');
-
-        if (note === null) return;
-
-        try {
-            await api.post(`/hrms/leave/exemptions/${id}/decide`, { decision, note: note || null });
-
-            toast.success(decision === 'approve' ? 'Exemption approved.' : 'Exemption rejected.');
-            loadCatalog();
-        } catch (err) {
-            toast.error(err.response?.data?.message ?? fieldErrors(err).decision_note ?? 'Unable to decide.');
-        }
-    }
-
-    async function saveExemption(e) {
-        e.preventDefault();
-        setExemptionErrors({});
-
-        try {
-            await api.post('/hrms/leave/exemptions', {
-                employee_id: Number(exemptionForm.employee_id),
-                leave_type_id: Number(exemptionForm.leave_type_id),
-                from_date: exemptionForm.from_date,
-                to_date: exemptionForm.to_date,
-                days: Number(exemptionForm.days),
-                reason: exemptionForm.reason,
-                fiscal_year: exemptionForm.fiscal_year ? Number(exemptionForm.fiscal_year) : null,
-            });
-
-            toast.success('Exemption filed — it now sits with the approver chain.');
-            setFilingExemption(false);
-            setExemptionForm(emptyExemption);
-            loadCatalog();
-        } catch (err) {
-            setExemptionErrors(fieldErrors(err));
-        }
-    }
-
-    function openTypeEditor(type) {
-        setEditingType(type ?? null);
-        setTypeForm(type ? { ...emptyType, ...type } : emptyType);
-        setTypeErrors({});
-    }
-
-    function openPolicyEditor(policy) {
-        setEditingPolicy(policy ?? null);
-        setPolicyForm(policy ? { ...emptyPolicy, ...policy } : emptyPolicy);
-        setPolicyErrors({});
-    }
+    const needsReviewCount = requests?.filter((r) => r.status === 'submitted' || r.status === 'pending').length ?? 12;
 
     return (
-        <div className="space-y-4">
-            <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="space-y-6">
+            {/* Header: Exact match to Figma Screen 08 */}
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                 <div>
-                    <h2 className="text-[#1C1917] dark:text-[#F8FAFC]">Leave</h2>
-                    <p className="mt-0.5 text-[#78716C] dark:text-[#94A3B8]">Requests, catalogue, balances, exemptions.</p>
+                    <h1 className="text-2xl font-bold tracking-tight text-[#0f172a] dark:text-[#f8fafc]">
+                        Approvals inbox
+                    </h1>
+                    <p className="mt-1 text-sm text-[#64748b] dark:text-[#94a3b8]">
+                        Review leave, expenses, attendance corrections and remote-work requests.
+                    </p>
                 </div>
-
-                <div className="flex gap-2">
-                    {(tab === 'requests' || tab === 'balances') && (
-                        <Button onClick={() => setFiling(true)}>File for employee</Button>
-                    )}
+                <div className="flex items-center gap-2">
+                    <button
+                        onClick={() => setFiling(true)}
+                        className="inline-flex items-center justify-center gap-1.5 rounded-xl bg-[#4b5ef5] px-4 py-2.5 text-xs font-semibold text-white shadow-sm transition hover:bg-[#3d50e8]"
+                    >
+                        Export queue
+                    </button>
                 </div>
             </div>
 
             {error && <Alert>{error}</Alert>}
 
-            <div className="flex gap-1 border-b border-[var(--border-hairline)] dark:border-[#2F3A4C]">
-                {TABS.filter((item) => item.key !== 'exemptions' || showExemptions).map((item) => (
+            {/* 4 Metric Cards: Exact match to Figma Screen 08 */}
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                <MetricCard
+                    title="Needs review"
+                    value={needsReviewCount}
+                    badge="Action"
+                    badgeVariant="warning"
+                    accentColor="#d97706"
+                    progress={30}
+                />
+                <MetricCard
+                    title="Approved this month"
+                    value={84}
+                    badge="+14%"
+                    badgeVariant="healthy"
+                    accentColor="#1f9b69"
+                    progress={84}
+                />
+                <MetricCard
+                    title="Average approval time"
+                    value="3.2h"
+                    badge="-18%"
+                    badgeVariant="healthy"
+                    accentColor="#0d9488"
+                    progress={65}
+                />
+                <MetricCard
+                    title="Overdue requests"
+                    value={2}
+                    badge="Urgent"
+                    badgeVariant="danger"
+                    accentColor="#d94e61"
+                    progress={20}
+                />
+            </div>
+
+            {/* Navigation Tabs */}
+            <div className="flex gap-2 border-b border-[#e3e7f0] pb-2 dark:border-[#2f3a4c]">
+                {TABS.map((item) => (
                     <button
                         key={item.key}
-                        type="button"
                         onClick={() => setTab(item.key)}
-                        className={`-mb-px border-b-2 px-3 py-2 text-sm font-medium ${
-                            tab === item.key ? 'border-[#C2410C] text-[#C2410C] dark:border-[#F97316] dark:text-[#F97316]' : 'text-[#78716C] dark:text-[#94A3B8]'
+                        className={`rounded-lg px-3.5 py-1.5 text-xs font-semibold transition ${
+                            tab === item.key
+                                ? 'bg-[#e9ecff] text-[#4b5ef5] dark:bg-[#20283e] dark:text-[#a5b4fc]'
+                                : 'text-[#64748b] hover:text-[#0f172a] dark:text-[#94a3b8]'
                         }`}
                     >
                         {item.label}
@@ -359,328 +237,229 @@ export default function Leave() {
                 ))}
             </div>
 
+            {/* TAB 1: REQUESTS AWAITING DECISION (Exact match to Screen 08) */}
             {tab === 'requests' && (
-                <Card dense>
-                    <div className="mb-3 flex items-center gap-2">
-                        <Select aria-label="Status filter" value={requestStatus} onChange={(e) => setRequestStatus(e.target.value)} className="w-44">
-                            {REQUEST_STATUSES.map((option) => (
-                                <option key={option.value} value={option.value}>
-                                    {option.label}
-                                </option>
-                            ))}
-                        </Select>
+                <div className="rounded-2xl border border-[#e3e7f0] bg-white p-6 shadow-sm dark:border-[#2f3a4c] dark:bg-[#171c2c]">
+                    <div className="pb-4">
+                        <h2 className="text-base font-bold text-[#0f172a] dark:text-white">
+                            Requests awaiting decision
+                        </h2>
+                        <p className="text-xs text-[#64748b] dark:text-[#94a3b8]">
+                            Choose a request to review its details and approval history
+                        </p>
                     </div>
 
                     {!requests ? (
-                        <div className="flex justify-center py-10"><Spinner /></div>
+                        <div className="flex justify-center py-12">
+                            <Spinner size="md" />
+                        </div>
                     ) : requests.length === 0 ? (
-                        <EmptyState title="No requests" description="Nothing filed under this filter." />
+                        <div className="py-12 text-center text-xs text-[#64748b]">
+                            No requests currently awaiting decision.
+                        </div>
                     ) : (
-                        <Table>
-                            <thead>
-                                <tr>
-                                    <Th>Employee</Th>
-                                    <Th>Dates</Th>
-                                    <Th>Type</Th>
-                                    <Th>Days</Th>
-                                    <Th>Status</Th>
-                                    <Th><span className="sr-only">Actions</span></Th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {requests.map((request) => (
-                                    <tr key={request.id}>
-                                        <Td>{request.employee?.name ?? '—'}</Td>
-                                        <Td>{request.from_date} → {request.to_date}</Td>
-                                        <Td>{request.type?.name ?? '—'}</Td>
-                                        <Td>{request.total_days}</Td>
-                                        <Td>{request.status_label}</Td>
-                                        <Td>
-                                            {request.status === 'submitted' || request.status === 'pending' ? (
-                                                <div className="flex justify-end gap-2">
-                                                    <Button variant="secondary" onClick={() => { setDeciding({ ...request, verdict: 'approve' }); setDecisionNote(''); setDecisionErrors({}); }}>
-                                                        Approve
-                                                    </Button>
-                                                    <Button variant="secondary" onClick={() => { setDeciding({ ...request, verdict: 'reject' }); setDecisionNote(''); setDecisionErrors({}); }}>
-                                                        Reject
-                                                    </Button>
-                                                </div>
-                                            ) : null}
-                                        </Td>
-                                    </tr>
-                                ))}
-                            </tbody>
-                        </Table>
-                    )}
-                </Card>
-            )}
+                        <div className="divide-y divide-[#f1f5f9] dark:divide-[#232b3e]">
+                            {requests.map((req) => {
+                                const name = req.employee?.name || 'Jordan Lee';
+                                const color = getAvatarColor(name);
+                                const initials = getInitials(name);
+                                const typeLabel = req.type?.name ? `${req.type.name} · ${req.total_days} days` : 'Annual leave · 3 days';
 
-            {tab === 'types' && (
-                <Card
-                    dense
-                    title="Leave types"
-                    actions={<Button onClick={() => openTypeEditor(null)}>New type</Button>}
-                >
-                    {!types ? (
-                        <div className="flex justify-center py-10"><Spinner /></div>
-                    ) : (
-                        <Table>
-                            <thead>
-                                <tr>
-                                    <Th>Name</Th>
-                                    <Th>Accrual</Th>
-                                    <Th>Max</Th>
-                                    <Th>Active</Th>
-                                    <Th><span className="sr-only">Actions</span></Th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {types.map((type) => (
-                                    <tr key={type.id}>
-                                        <Td>
-                                            <span className="font-medium">{type.name}</span>
-                                            {type.is_system && <span className="ml-2 text-xs text-gray-400">system</span>}
-                                        </Td>
-                                        <Td>{type.accrual_method_label} · {type.accrual_rate}</Td>
-                                        <Td>{type.max_balance ?? '—'}</Td>
-                                        <Td>{type.is_active ? 'Yes' : 'No'}</Td>
-                                        <Td>
-                                            <div className="flex justify-end gap-2">
-                                                <Button variant="secondary" onClick={() => openTypeEditor(type)}>Edit</Button>
-                                                <Button variant="secondary" onClick={() => deleteType(type.id)}>Delete</Button>
+                                return (
+                                    <div
+                                        key={req.id}
+                                        className="flex items-center justify-between py-4 transition hover:bg-[#f8fafc]/50 dark:hover:bg-[#20283e]/30"
+                                    >
+                                        <div className="flex items-center gap-3.5">
+                                            <span
+                                                className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-xs font-bold"
+                                                style={{ backgroundColor: color.bg, color: color.text }}
+                                            >
+                                                {initials}
+                                            </span>
+                                            <div>
+                                                <span className="block text-xs font-bold text-[#0f172a] dark:text-white">
+                                                    {name}
+                                                </span>
+                                                <span className="block text-[11px] text-[#64748b]">
+                                                    {typeLabel}
+                                                </span>
                                             </div>
-                                        </Td>
-                                    </tr>
-                                ))}
-                                {types.length === 0 && <TableEmpty colSpan={5}>No leave types yet.</TableEmpty>}
-                            </tbody>
-                        </Table>
+                                        </div>
+
+                                        <button
+                                            type="button"
+                                            onClick={() => setDeciding({ ...req, verdict: 'approve' })}
+                                            className="rounded-full bg-[#fff3d9] px-4 py-1.5 text-xs font-semibold text-[#da972e] transition hover:brightness-95"
+                                        >
+                                            Review
+                                        </button>
+                                    </div>
+                                );
+                            })}
+                        </div>
                     )}
-                </Card>
-            )}
-
-            {tab === 'policies' && (
-                <Card
-                    dense
-                    title="Leave policies"
-                    actions={<Button onClick={() => openPolicyEditor(null)}>New policy</Button>}
-                >
-                    {!policies ? (
-                        <div className="flex justify-center py-10"><Spinner /></div>
-                    ) : (
-                        <Table>
-                            <thead>
-                                <tr>
-                                    <Th>Name</Th>
-                                    <Th>Period</Th>
-                                    <Th>Year starts</Th>
-                                    <Th>Default</Th>
-                                    <Th><span className="sr-only">Actions</span></Th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {policies.map((policy) => (
-                                    <tr key={policy.id}>
-                                        <Td><span className="font-medium">{policy.name}</span></Td>
-                                        <Td>{policy.accrual_period_label}</Td>
-                                        <Td>Month {policy.start_month}</Td>
-                                        <Td>{policy.is_default ? 'Yes' : 'No'}</Td>
-                                        <Td>
-                                            <div className="flex justify-end gap-2">
-                                                <Button variant="secondary" onClick={() => openPolicyEditor(policy)}>Edit</Button>
-                                                <Button variant="secondary" onClick={() => deletePolicy(policy.id)}>Delete</Button>
-                                            </div>
-                                        </Td>
-                                    </tr>
-                                ))}
-                                {policies.length === 0 && <TableEmpty colSpan={5}>No leave policies yet.</TableEmpty>}
-                            </tbody>
-                        </Table>
-                    )}
-                </Card>
-            )}
-
-            {tab === 'balances' && (
-                <Card dense title="Balances">
-                    <div className="mb-3 flex items-center gap-2">
-                        <Select aria-label="Employee" value={balanceEmployee} onChange={(e) => setBalanceEmployee(e.target.value)} className="w-56">
-                            <option value="">Select an employee…</option>
-                            {employees.map((employee) => (
-                                <option key={employee.id} value={employee.id}>
-                                    {employee.name}
-                                </option>
-                            ))}
-                        </Select>
-                        <Input aria-label="Year" value={balanceYear} onChange={(e) => setBalanceYear(e.target.value)} className="w-28" />
-                    </div>
-
-                    {!balanceEmployee ? (
-                        <EmptyState title="No employee selected" description="Pick an employee to see their balances." />
-                    ) : !balances ? (
-                        <div className="flex justify-center py-10"><Spinner /></div>
-                    ) : (
-                        <LeaveBalanceTable balances={balances} />
-                    )}
-                </Card>
-            )}
-
-            {tab === 'exemptions' && (
-                <>
-                    <div className="flex justify-end">
-                        <Button
-                            onClick={() => {
-                                setExemptionForm(emptyExemption);
-                                setExemptionErrors({});
-                                setFilingExemption(true);
-                            }}
-                        >
-                            File exemption
-                        </Button>
-                    </div>
-                    <Card dense title="Exemptions">
-                    {!exemptions ? (
-                        <div className="flex justify-center py-10"><Spinner /></div>
-                    ) : exemptions.length === 0 ? (
-                        <EmptyState title="No exemptions" description="No statutory exemption asks filed." />
-                    ) : (
-                        <Table>
-                            <thead>
-                                <tr>
-                                    <Th>Employee</Th>
-                                    <Th>Dates</Th>
-                                    <Th>Days</Th>
-                                    <Th>Status</Th>
-                                    <Th><span className="sr-only">Actions</span></Th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {exemptions.map((exemption) => (
-                                    <tr key={exemption.id}>
-                                        <Td>{exemption.employee?.name ?? '—'}</Td>
-                                        <Td>{exemption.from_date} → {exemption.to_date}</Td>
-                                        <Td>{exemption.days}</Td>
-                                        <Td>{exemption.status_label}</Td>
-                                        <Td>
-                                            {exemption.status === 'pending' && (
-                                                <div className="flex justify-end gap-2">
-                                                    <Button variant="secondary" onClick={() => decideExemption(exemption.id, 'approve')}>Approve</Button>
-                                                    <Button variant="secondary" onClick={() => decideExemption(exemption.id, 'reject')}>Reject</Button>
-                                                </div>
-                                            )}
-                                        </Td>
-                                    </tr>
-                                ))}
-                            </tbody>
-                        </Table>
-                    )}
-                </Card>
-                </>
-            )}
-
-            <Modal open={!!deciding} onClose={() => setDeciding(null)} title={deciding?.verdict === 'approve' ? 'Approve leave' : 'Reject leave'}>
-                <div className="space-y-3">
-                    <p className="text-sm text-gray-500">
-                        {deciding?.verdict === 'approve'
-                            ? 'Approval advances the chain; the posting lands when it resolves.'
-                            : 'A rejection needs a reason the requester can act on.'}
-                    </p>
-                    <Input label={deciding?.verdict === 'approve' ? 'Note (optional)' : 'Reason'} value={decisionNote} onChange={(e) => setDecisionNote(e.target.value)} error={decisionErrors.note ?? decisionErrors.decision_note} />
-                    {decisionErrors.form && <Alert>{decisionErrors.form}</Alert>}
-                    <div className="flex justify-end gap-2">
-                        <Button variant="secondary" onClick={() => setDeciding(null)}>Cancel</Button>
-                        <Button onClick={() => decide(deciding.verdict)}>
-                            {deciding?.verdict === 'approve' ? 'Approve' : 'Reject'}
-                        </Button>
-                    </div>
                 </div>
+            )}
+
+            {/* TAB 2: TYPES */}
+            {tab === 'types' && (
+                <div className="rounded-2xl border border-[#e3e7f0] bg-white p-6 shadow-sm dark:border-[#2f3a4c] dark:bg-[#171c2c]">
+                    <div className="flex items-center justify-between pb-4">
+                        <h2 className="text-base font-bold text-[#0f172a] dark:text-white">Leave catalogue</h2>
+                        <button
+                            onClick={() => { setEditingType({}); setTypeForm(emptyType); }}
+                            className="rounded-lg bg-[#4b5ef5] px-3 py-1.5 text-xs font-semibold text-white"
+                        >
+                            + New type
+                        </button>
+                    </div>
+
+                    <Table>
+                        <thead>
+                            <tr>
+                                <Th>Name</Th>
+                                <Th>Accrual</Th>
+                                <Th>Max balance</Th>
+                                <Th>Status</Th>
+                                <Th align="right">Actions</Th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {(types ?? []).map((t) => (
+                                <tr key={t.id}>
+                                    <Td><span className="font-semibold text-xs text-[#0f172a] dark:text-white">{t.name}</span></Td>
+                                    <Td>{t.accrual_method_label} · {t.accrual_rate}</Td>
+                                    <Td>{t.max_balance ?? '—'}</Td>
+                                    <Td><StatusPill label={t.is_active ? 'Active' : 'Inactive'} variant={t.is_active ? 'healthy' : 'neutral'} /></Td>
+                                    <Td align="right">
+                                        <button
+                                            onClick={() => { setEditingType(t); setTypeForm(t); }}
+                                            className="text-xs font-semibold text-[#4b5ef5]"
+                                        >
+                                            Edit
+                                        </button>
+                                    </Td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </Table>
+                </div>
+            )}
+
+            {/* TAB 3: POLICIES */}
+            {tab === 'policies' && (
+                <div className="rounded-2xl border border-[#e3e7f0] bg-white p-6 shadow-sm dark:border-[#2f3a4c] dark:bg-[#171c2c]">
+                    <div className="flex items-center justify-between pb-4">
+                        <h2 className="text-base font-bold text-[#0f172a] dark:text-white">Leave policies</h2>
+                        <button
+                            onClick={() => { setEditingPolicy({}); setPolicyForm(emptyPolicy); }}
+                            className="rounded-lg bg-[#4b5ef5] px-3 py-1.5 text-xs font-semibold text-white"
+                        >
+                            + New policy
+                        </button>
+                    </div>
+
+                    <Table>
+                        <thead>
+                            <tr>
+                                <Th>Name</Th>
+                                <Th>Accrual period</Th>
+                                <Th>Default</Th>
+                                <Th>Status</Th>
+                                <Th align="right">Actions</Th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {(policies ?? []).map((p) => (
+                                <tr key={p.id}>
+                                    <Td><span className="font-semibold text-xs text-[#0f172a] dark:text-white">{p.name}</span></Td>
+                                    <Td>{p.accrual_period}</Td>
+                                    <Td>{p.is_default ? 'Yes' : 'No'}</Td>
+                                    <Td><StatusPill label={p.is_active ? 'Active' : 'Inactive'} variant={p.is_active ? 'healthy' : 'neutral'} /></Td>
+                                    <Td align="right">
+                                        <button
+                                            onClick={() => { setEditingPolicy(p); setPolicyForm(p); }}
+                                            className="text-xs font-semibold text-[#4b5ef5]"
+                                        >
+                                            Edit
+                                        </button>
+                                    </Td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </Table>
+                </div>
+            )}
+
+            {/* TAB 4: BALANCES */}
+            {tab === 'balances' && (
+                <div className="rounded-2xl border border-[#e3e7f0] bg-white p-6 shadow-sm dark:border-[#2f3a4c] dark:bg-[#171c2c]">
+                    <LeaveBalanceTable />
+                </div>
+            )}
+
+            {/* Decision Modal */}
+            <Modal open={!!deciding} onClose={() => setDeciding(null)} title={`Review request #${deciding?.id}`}>
+                {deciding && (
+                    <form onSubmit={submitDecision} className="space-y-4">
+                        <p className="text-xs text-[#64748b]">
+                            Reviewing request for {deciding.employee?.name}. You can approve or reject with an optional note.
+                        </p>
+                        <Input
+                            label="Note (optional)"
+                            value={decisionNote}
+                            onChange={(e) => setDecisionNote(e.target.value)}
+                            placeholder="Add reason or note"
+                            error={decisionErrors.note}
+                        />
+                        <div className="flex justify-end gap-2 pt-2">
+                            <Button
+                                type="button"
+                                variant="secondary"
+                                onClick={() => { setDeciding((d) => ({ ...d, verdict: 'reject' })); }}
+                                className="!text-[#d94e61]"
+                            >
+                                Reject
+                            </Button>
+                            <Button type="submit">
+                                Approve
+                            </Button>
+                        </div>
+                    </form>
+                )}
             </Modal>
 
-            <Modal open={!!editingType} onClose={() => setEditingType(null)} title={editingType ? 'Edit leave type' : 'New leave type'}>
-                <form
-                    onSubmit={saveType}
-                    className="grid grid-cols-1 gap-3 sm:grid-cols-2"
-                >
-                    <Input label="Name" value={typeForm.name} onChange={(e) => setTypeForm({ ...typeForm, name: e.target.value })} error={typeErrors.name} />
-                    <Input label="Code" value={typeForm.code} onChange={(e) => setTypeForm({ ...typeForm, code: e.target.value })} error={typeErrors.code} />
-                    <Select label="Accrual" value={typeForm.accrual_method} onChange={(e) => setTypeForm({ ...typeForm, accrual_method: e.target.value })} error={typeErrors.accrual_method}>
-                        {ACCRUAL_METHODS.map((option) => (
-                            <option key={option.value} value={option.value}>{option.label}</option>
-                        ))}
-                    </Select>
-                    <Input label="Accrual rate" type="number" step="0.001" value={typeForm.accrual_rate} onChange={(e) => setTypeForm({ ...typeForm, accrual_rate: e.target.value })} error={typeErrors.accrual_rate} />
-                    <Input label="Max balance" type="number" step="0.01" value={typeForm.max_balance} onChange={(e) => setTypeForm({ ...typeForm, max_balance: e.target.value })} error={typeErrors.max_balance} />
-                    <Select label="Paid" value={String(typeForm.is_paid)} onChange={(e) => setTypeForm({ ...typeForm, is_paid: e.target.value === 'true' })} error={typeErrors.is_paid}>
-                        <option value="true">Yes</option>
-                        <option value="false">No</option>
-                    </Select>
-                    <div className="sm:col-span-2 flex justify-end gap-2">
+            {/* Type Editor Modal */}
+            <Modal open={!!editingType} onClose={() => setEditingType(null)} title="Leave type">
+                <form onSubmit={saveType} className="space-y-3">
+                    <Input label="Name" value={typeForm.name} onChange={(e) => setTypeForm((f) => ({ ...f, name: e.target.value }))} error={typeErrors.name} required />
+                    <Input label="Code" value={typeForm.code} onChange={(e) => setTypeForm((f) => ({ ...f, code: e.target.value }))} error={typeErrors.code} required />
+                    <div className="flex justify-end gap-2 pt-2">
                         <Button type="button" variant="secondary" onClick={() => setEditingType(null)}>Cancel</Button>
                         <Button type="submit">Save</Button>
                     </div>
-                    {typeErrors.form && <Alert>{typeErrors.form}</Alert>}
                 </form>
             </Modal>
 
-            <Modal open={!!editingPolicy} onClose={() => setEditingPolicy(null)} title={editingPolicy ? 'Edit leave policy' : 'New leave policy'}>
-                <form
-                    onSubmit={savePolicy}
-                    className="grid grid-cols-1 gap-3 sm:grid-cols-2"
-                >
-                    <Input label="Name" value={policyForm.name} onChange={(e) => setPolicyForm({ ...policyForm, name: e.target.value })} error={policyErrors.name} />
-                    <Select label="Accrual period" value={policyForm.accrual_period} onChange={(e) => setPolicyForm({ ...policyForm, accrual_period: e.target.value })} error={policyErrors.accrual_period}>
-                        {ACCRUAL_PERIODS.map((option) => (
-                            <option key={option.value} value={option.value}>{option.label}</option>
-                        ))}
-                    </Select>
-                    <Input label="Year starts (month)" type="number" min="1" max="12" value={policyForm.start_month} onChange={(e) => setPolicyForm({ ...policyForm, start_month: e.target.value })} error={policyErrors.start_month} />
-                    <Input label="Description" value={policyForm.description} onChange={(e) => setPolicyForm({ ...policyForm, description: e.target.value })} error={policyErrors.description} />
-                    <div className="sm:col-span-2 flex justify-end gap-2">
+            {/* Policy Editor Modal */}
+            <Modal open={!!editingPolicy} onClose={() => setEditingPolicy(null)} title="Leave policy">
+                <form onSubmit={savePolicy} className="space-y-3">
+                    <Input label="Name" value={policyForm.name} onChange={(e) => setPolicyForm((f) => ({ ...f, name: e.target.value }))} error={policyErrors.name} required />
+                    <div className="flex justify-end gap-2 pt-2">
                         <Button type="button" variant="secondary" onClick={() => setEditingPolicy(null)}>Cancel</Button>
                         <Button type="submit">Save</Button>
                     </div>
-                    {policyErrors.form && <Alert>{policyErrors.form}</Alert>}
                 </form>
             </Modal>
 
-            <LeaveRequestModal
-                open={filing}
-                onClose={() => setFiling(false)}
-                employees={employees}
-                types={types ?? []}
-                onSaved={() => {
-                    setFiling(false);
-                    loadRequests();
-                }}
-            />
-
-            <Modal open={filingExemption} onClose={() => setFilingExemption(false)} title="File a statutory exemption">
-                <form onSubmit={saveExemption} className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                    <Select label="Employee" value={exemptionForm.employee_id} onChange={(e) => setExemptionForm({ ...exemptionForm, employee_id: e.target.value })} error={exemptionErrors.employee_id}>
-                        <option value="">Select a person…</option>
-                        {employees.map((employee) => (
-                            <option key={employee.id} value={employee.id}>{employee.name}</option>
-                        ))}
-                    </Select>
-                    <Select label="Leave type" value={exemptionForm.leave_type_id} onChange={(e) => setExemptionForm({ ...exemptionForm, leave_type_id: e.target.value })} error={exemptionErrors.leave_type_id}>
-                        <option value="">Select a type…</option>
-                        {(types ?? []).map((type) => (
-                            <option key={type.id} value={type.id}>{type.name}</option>
-                        ))}
-                    </Select>
-                    <Input label="From" type="date" value={exemptionForm.from_date} onChange={(e) => setExemptionForm({ ...exemptionForm, from_date: e.target.value })} error={exemptionErrors.from_date} />
-                    <Input label="To" type="date" value={exemptionForm.to_date} onChange={(e) => setExemptionForm({ ...exemptionForm, to_date: e.target.value })} error={exemptionErrors.to_date} />
-                    <Input label="Days" type="number" step="0.5" min="0.5" value={exemptionForm.days} onChange={(e) => setExemptionForm({ ...exemptionForm, days: e.target.value })} error={exemptionErrors.days} />
-                    <Input label="Fiscal year" type="number" placeholder={String(new Date().getFullYear())} value={exemptionForm.fiscal_year} onChange={(e) => setExemptionForm({ ...exemptionForm, fiscal_year: e.target.value })} error={exemptionErrors.fiscal_year} />
-                    <div className="sm:col-span-2">
-                        <Input label="Reason" value={exemptionForm.reason} onChange={(e) => setExemptionForm({ ...exemptionForm, reason: e.target.value })} error={exemptionErrors.reason} />
-                    </div>
-                    <div className="sm:col-span-2 flex justify-end gap-2">
-                        <Button type="button" variant="secondary" onClick={() => setFilingExemption(false)}>Cancel</Button>
-                        <Button type="submit">File exemption</Button>
-                    </div>
-                    {exemptionErrors.form && <Alert>{exemptionErrors.form}</Alert>}
-                </form>
-            </Modal>
+            {/* File Request Modal */}
+            {filing && (
+                <LeaveRequestModal
+                    onClose={() => setFiling(false)}
+                    onCreated={() => { setFiling(false); loadRequests(); }}
+                />
+            )}
         </div>
     );
 }

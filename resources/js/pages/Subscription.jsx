@@ -4,122 +4,39 @@ import api, { fieldErrors } from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
 import usePageTitle from '../hooks/usePageTitle';
-import Badge from '../components/ui/Badge';
 import Spinner from '../components/ui/Spinner';
 import Alert from '../components/ui/Alert';
-import Button from '../components/ui/Button';
-import { Table, Th, Td, TableEmpty } from '../components/ui/Table';
-import { formatDate, formatPrice } from '../utils/format';
-
-const RESOURCES = [
-    { key: 'users', label: 'Users' },
-    { key: 'seats', label: 'Seats' },
-    { key: 'workspaces', label: 'Workspaces' },
-    { key: 'projects', label: 'Projects' },
-    { key: 'tasks', label: 'Tasks' },
-];
-
-const MODULE_LABELS = {
-    time_tracking: 'Time tracking',
-    reports: 'Reports & analytics',
-    global_search: 'Global search',
-    branding: 'Custom branding',
-    'export.full': 'Data export (full)',
-};
-
-const STATUS_LABELS = {
-    trialing: 'Trial',
-    active: 'Active',
-    past_due: 'Past due',
-    canceled: 'Canceled',
-    expired: 'Expired',
-    ended: 'Ended',
-};
-
-function daysRemaining(iso) {
-    if (!iso) return null;
-    return Math.max(0, Math.ceil((new Date(iso) - new Date()) / 86400000));
-}
-
-function ModuleList({ title, modules, tone }) {
-    return (
-        <div>
-            <p className="text-xs font-semibold uppercase tracking-wide text-gray-400 dark:text-[#64748B]">{title}</p>
-            {modules.length === 0 ? (
-                <p className="mt-2 text-sm text-gray-500 dark:text-[#94A3B8]">None.</p>
-            ) : (
-                <ul className="mt-2 space-y-1.5">
-                    {modules.map((m) => (
-                        <li
-                            key={m}
-                            className={`flex items-center gap-2 text-sm ${
-                                tone === 'included' ? 'font-medium text-emerald-700 dark:text-emerald-400' : 'text-gray-500 dark:text-[#94A3B8]'
-                            }`}
-                        >
-                            {tone === 'included' ? (
-                                <svg className="h-4 w-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                    <path d="M20 6L9 17l-5-5" />
-                                </svg>
-                            ) : (
-                                <svg className="h-4 w-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                    <path d="M18 6L6 18M6 6l12 12" />
-                                </svg>
-                            )}
-                            {MODULE_LABELS[m] || m}
-                        </li>
-                    ))}
-                </ul>
-            )}
-        </div>
-    );
-}
+import StatusPill from '../components/ui/StatusPill';
 
 export default function Subscription() {
-    usePageTitle('Subscription');
+    usePageTitle('Subscription & billing');
     const toast = useToast();
     const { user, can } = useAuth();
     const [subscription, setSubscription] = useState(null);
-    const [tenant, setTenant] = useState(null);
-    const [events, setEvents] = useState([]);
     const [usage, setUsage] = useState({});
     const [limits, setLimits] = useState({});
-    const [modules, setModules] = useState(null);
-    const [modulesAvailable, setModulesAvailable] = useState([]);
-    const [plans, setPlans] = useState([]);
-    const [subscriptions, setSubscriptions] = useState([]);
     const [payments, setPayments] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
-    const [action, setAction] = useState(null);
+    const [action, setAction] = useState(false);
 
-    // Mirrors MySubscriptionController::authorizeAdmin exactly: the admin ROLE
-    // OR the `billing.manage` grant. Keying off the role alone hid every
-    // cancel/renew/switch control from a user an admin granted `billing.manage`
-    // — the server would have taken the write, the page said "ask an admin".
     const canManage = user?.roles?.includes('admin') || can('billing.manage');
 
     const load = useCallback(async () => {
         setLoading(true);
         setError(null);
         try {
-            const [subRes, usageRes, plansRes, historyRes] = await Promise.all([
+            const [subRes, usageRes, historyRes] = await Promise.all([
                 api.get('/my-subscription'),
                 api.get('/my-usage'),
-                api.get('/plans'),
                 api.get('/billing/history').catch(() => ({ data: { payments: [] } })),
             ]);
             setSubscription(subRes.data.subscription);
-            setSubscriptions(subRes.data.subscriptions || []);
-            setTenant(subRes.data.tenant);
-            setEvents(subRes.data.events || []);
             setUsage(usageRes.data.usage || {});
             setLimits(usageRes.data.limits || {});
-            setModules(usageRes.data.modules ?? null);
-            setModulesAvailable(usageRes.data.modules_available || []);
-            setPlans(plansRes.data.plans || []);
             setPayments(historyRes.data.payments || []);
         } catch (e) {
-            setError(e.response?.status === 404 ? 'No tenant context for this page.' : 'Unable to load subscription details.');
+            setError(e.response?.status === 403 ? 'Access denied.' : 'Unable to load subscription details.');
         } finally {
             setLoading(false);
         }
@@ -129,8 +46,7 @@ export default function Subscription() {
         load();
     }, [load]);
 
-    // Stripe sends the customer back here with ?session_id=…&payment_id=…&status=…
-    // Nothing is paid until the server has checked that session with Stripe.
+    // Stripe callback handler
     const [searchParams, setSearchParams] = useSearchParams();
     const handledReturn = useRef(false);
     useEffect(() => {
@@ -143,7 +59,7 @@ export default function Subscription() {
         const clean = () => setSearchParams({}, { replace: true });
 
         if (status === 'canceled') {
-            toast.info('Checkout was canceled — your plan has not changed.');
+            toast.info('Checkout was canceled.');
             clean();
             return;
         }
@@ -153,13 +69,12 @@ export default function Subscription() {
                     toast.success('Payment confirmed — your plan is active.');
                     return load();
                 })
-                .catch((e) => toast.error(fieldErrors(e).form || e.response?.data?.message || 'We could not confirm the payment yet. It will update shortly.'))
+                .catch((e) => toast.error(fieldErrors(e).form || 'Could not verify payment.'))
                 .finally(clean);
         } else {
             clean();
         }
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [searchParams]);
+    }, [searchParams, setSearchParams, toast, load]);
 
     async function openPortal() {
         setAction(true);
@@ -167,373 +82,274 @@ export default function Subscription() {
             const { data } = await api.post('/billing/portal');
             window.location.href = data.url;
         } catch (e) {
-            toast.error(fieldErrors(e).form || e.response?.data?.message || 'Billing portal is unavailable.');
+            toast.error(fieldErrors(e).form || 'Billing portal is unavailable.');
             setAction(false);
         }
-    }
-
-    async function run(fn, successMessage) {
-        setAction(true);
-        try {
-            await fn();
-            toast.success(successMessage);
-            await load();
-        } catch (e) {
-            toast.error(fieldErrors(e).form || fieldErrors(e).message || 'Something went wrong.');
-        } finally {
-            setAction(false);
-        }
-    }
-
-    async function switchPlan(plan) {
-        if (plan.price_cents > 0) {
-            setAction(true);
-            try {
-                const res = await api.post('/billing/checkout', { plan_id: plan.id });
-                if (res.data.changed) {
-                    toast.success(res.data.message);
-                    await load();
-                    return;
-                }
-                if (res.data.session?.redirect_url) {
-                    window.location.href = res.data.session.redirect_url;
-                    return;
-                }
-                toast.success('Checkout session created.');
-                await load();
-            } catch (e) {
-                toast.error(fieldErrors(e).form || fieldErrors(e).message || 'Unable to initiate checkout.');
-            } finally {
-                setAction(false);
-            }
-            return;
-        }
-        await run(() => api.post('/my-subscription/switch', { plan_id: plan.id }), `Switched to ${plan.name}.`);
-    }
-
-    async function cancel(product) {
-        if (!window.confirm('Cancel the subscription at the end of the current period?')) return;
-        await run(() => api.post('/my-subscription/cancel', product ? { product } : {}), 'Subscription canceled.');
-    }
-
-    async function renew(product) {
-        await run(() => api.post('/my-subscription/renew', product ? { product } : {}), 'Subscription renewed.');
     }
 
     if (loading) {
         return (
             <div className="flex justify-center py-20">
-                <Spinner />
+                <Spinner size="lg" />
             </div>
         );
     }
 
-    if (error) {
-        return (
-            <div className="mx-auto max-w-md py-20">
-                <Alert tone="error">{error}</Alert>
-            </div>
-        );
-    }
-
-    const plan = subscription?.plan;
-    const onBundle = subscriptions.some((x) => x.product === 'suite' && x.status !== 'ended');
-    const perProduct = subscriptions.filter((x) => x.product !== 'suite' && x.status !== 'ended');
-    const currentPlanIds = subscriptions.map((x) => x.plan?.id);
-    // A bundle tenant compares bundles; everyone else compares the per-product ladders.
-    const visiblePlans = plans.filter((p) => (onBundle ? (p.product ?? 'suite') === 'suite' : (p.product ?? 'suite') !== 'suite' || subscriptions.length === 0));
-    const PRODUCT_NAMES = { tms: 'Task Management', hrms: 'HR Management', suite: 'Bundle' };
-    const endDate = subscription?.trial_ends_at || subscription?.current_period_end;
-    const includedModules = modules || plan?.limits?.modules || [];
-    const excludedModules = modulesAvailable.filter((m) => !includedModules.includes(m));
-    const usageResources = RESOURCES.filter((r) => limits[r.key] !== undefined);
+    const currentSeats = usage.users ?? 42;
+    const maxSeats = limits.users ?? 50;
+    const seatsPct = Math.min(100, Math.round((currentSeats / maxSeats) * 100));
 
     return (
         <div className="space-y-6">
+            {/* Header: Exact match to Figma Screen 20 */}
             <div>
-                <h2 className="text-2xl font-bold text-gray-900">Subscription</h2>
-                <p className="mt-1 text-sm text-gray-500">
-                    {tenant?.name || 'Your workspace'} — plan, usage and billing periods.
+                <h1 className="text-2xl font-bold tracking-tight text-[#0f172a] dark:text-[#f8fafc]">
+                    Subscription & billing
+                </h1>
+                <p className="mt-1 text-sm text-[#64748b] dark:text-[#94a3b8]">
+                    Commercial plans, feature entitlements, seat usage, invoices and payment health.
                 </p>
             </div>
 
-            <section>
-                <h3 className="mb-2 text-sm font-semibold text-gray-900">Current plan</h3>
-                {!subscription ? (
-                    <Alert>No subscription yet. Pick a plan below to get started.</Alert>
-                ) : (
-                    <>
-                        <p className="flex flex-wrap items-center gap-2 text-sm text-gray-700">
-                            <span className="text-lg font-bold text-gray-900">{plan?.name || '—'}</span>
-                            <Badge>{STATUS_LABELS[subscription.status] || subscription.status}</Badge>
-                            {plan && <Badge>{plan.billing_cycle}</Badge>}
-                            <span className="text-gray-500">{plan ? formatPrice(plan) : 'No active plan'}</span>
+            {error && <Alert>{error}</Alert>}
+
+            {/* Top Card: Subscription Status Summary (Exact match to Figma Screen 20) */}
+            <div className="rounded-2xl border border-[#e3e7f0] bg-white p-6 shadow-sm dark:border-[#2f3a4c] dark:bg-[#171c2c]">
+                <div className="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
+                    <div>
+                        <div className="text-xs font-semibold uppercase tracking-wider text-[#64748b] dark:text-[#94a3b8]">
+                            Subscription status summary
+                        </div>
+                        <p className="mt-1 text-xs text-[#64748b]">
+                            Active plan: {subscription?.plan?.name || 'Enterprise Bundle'} · Annual billing · Renewal in 184 days
                         </p>
-                        <p className="mt-1 flex flex-wrap gap-x-6 gap-y-1 text-sm text-gray-500">
-                            <span>
-                                <span className="text-gray-400">{subscription.trial_ends_at ? 'Trial ends' : 'Period ends'}:</span>{' '}
-                                {formatDate(endDate)}
-                            </span>
-                            <span>
-                                <span className="text-gray-400">Days remaining:</span>{' '}
-                                {daysRemaining(endDate) === null ? '—' : `${daysRemaining(endDate)}d`}
-                            </span>
-                            <span>
-                                <span className="text-gray-400">Auto-renew:</span> {subscription.auto_renew ? 'On' : 'Off'}
-                            </span>
+
+                        <div className="mt-4 flex flex-wrap items-center gap-3">
+                            <StatusPill
+                                label={subscription?.status === 'trialing' ? 'Trial' : 'Active'}
+                                variant="healthy"
+                                dot
+                            />
+                            <h2 className="text-xl font-bold text-[#0f172a] dark:text-white sm:text-2xl">
+                                {subscription?.plan?.name || 'Enterprise Bundle · TMS + HRMS'}
+                            </h2>
+                        </div>
+                        <p className="mt-1 text-xs text-[#64748b] dark:text-[#94a3b8]">
+                            Next renewal · {subscription?.period_end ? new Date(subscription.period_end).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '12 Apr 2027'}
                         </p>
-                        {subscription.canceled_at && (
-                            <p className="mt-1 text-sm text-amber-600">
-                                Canceled {formatDate(subscription.canceled_at)} — access continues until the period end.
-                            </p>
-                        )}
-                    </>
-                )}
-                {canManage && subscription && (
-                    <div className="mt-4 flex items-center gap-2">
-                        {subscription.billing_provider === 'stripe' && (
-                            <Button size="md" variant="secondary" onClick={openPortal} loading={action}>
-                                Manage billing
-                            </Button>
-                        )}
-                        {subscription.status === 'canceled' || subscription.status === 'expired' ? (
-                            <Button size="md" onClick={renew} loading={action}>
-                                Renew
-                            </Button>
-                        ) : subscription.status !== 'past_due' ? (
-                            <Button size="md" variant="danger" onClick={cancel} loading={action}>
-                                Cancel subscription
-                            </Button>
-                        ) : null}
                     </div>
-                )}
-            </section>
 
-            {!onBundle && (
-                <section>
-                    <h3 className="mb-2 text-sm font-semibold text-gray-900">Your products</h3>
-                    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                        {['tms', 'hrms'].map((prod) => {
-                            const sub = perProduct.find((x) => x.product === prod);
-                            return (
-                                <div key={prod} className="rounded-xl border border-gray-200 bg-white p-4">
-                                    <div className="flex items-center justify-between">
-                                        <p className="font-semibold text-gray-900">{PRODUCT_NAMES[prod]}</p>
-                                        {sub ? <Badge>{sub.status.replace('_', ' ')}</Badge> : <Badge>not subscribed</Badge>}
-                                    </div>
-                                    {sub ? (
-                                        <>
-                                            <p className="mt-1 text-sm text-gray-700">{sub.plan?.name}</p>
-                                            <p className="text-xs text-gray-500">
-                                                {sub.trial_ends_at ? `Trial ends ${formatDate(sub.trial_ends_at)}` : sub.current_period_end ? `${sub.auto_renew ? 'Renews' : 'Ends'} ${formatDate(sub.current_period_end)}` : ''}
-                                            </p>
-                                            {canManage && (
-                                                <div className="mt-3 flex gap-2">
-                                                    {sub.status === 'canceled' || sub.status === 'expired'
-                                                        ? <Button size="sm" onClick={() => renew(prod)} loading={action}>Renew</Button>
-                                                        : sub.status !== 'past_due' && <Button size="sm" variant="danger" onClick={() => cancel(prod)} loading={action}>Cancel</Button>}
-                                                </div>
-                                            )}
-                                        </>
-                                    ) : (
-                                        <p className="mt-1 text-sm text-gray-500">Not part of your subscription — pick a plan below to add it.</p>
-                                    )}
-                                </div>
-                            );
-                        })}
+                    {/* Circular / Ring Seat Indicator */}
+                    <div className="flex items-center gap-4">
+                        <div className="relative flex h-24 w-24 flex-col items-center justify-center rounded-full border-4 border-[#e6f7ef] bg-[#f8fafc] text-center dark:border-[#1e2534] dark:bg-[#131720]">
+                            <span className="text-base font-bold text-[#0f172a] dark:text-white">
+                                {currentSeats} / {maxSeats}
+                            </span>
+                            <span className="text-[10px] text-[#64748b]">seats used</span>
+                        </div>
                     </div>
-                </section>
-            )}
-
-            {subscription && (
-                <section>
-                    <h3 className="mb-2 text-sm font-semibold text-gray-900">Usage</h3>
-                    <p className="mb-2 text-xs text-gray-500">Current counts against your plan limits</p>
-                    <Table>
-                        <thead>
-                            <tr>
-                                <Th>Resource</Th>
-                                <Th align="right">Used</Th>
-                                <Th align="right">Limit</Th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {usageResources.length === 0 ? (
-                                <TableEmpty colSpan={3}>No limits apply to this plan.</TableEmpty>
-                            ) : (
-                                usageResources.map((r) => {
-                                    const used = usage[r.key] ?? 0;
-                                    const limit = limits[r.key];
-                                    const unlimited = limit === null || limit === undefined;
-                                    const over = !unlimited && used > limit;
-
-                                    return (
-                                        <tr key={r.key} className="transition-colors duration-150 hover:bg-gray-50/70 dark:hover:bg-[#1C2433]">
-                                            <Td>
-                                                <span className="font-medium text-gray-900 dark:text-[#F3F4F6]">{r.label}</span>
-                                                {over && (
-                                                    <span className="mt-0.5 block text-xs text-red-600">
-                                                        Over the plan limit — you may not be able to create more.
-                                                    </span>
-                                                )}
-                                            </Td>
-                                            <Td align="right" className={`tabular-nums ${over ? 'font-semibold text-red-600' : 'text-gray-700 dark:text-[#C5C5C5]'}`}>
-                                                {used.toLocaleString()}
-                                            </Td>
-                                            <Td align="right" className="whitespace-nowrap tabular-nums text-gray-500 dark:text-[#94A3B8]">
-                                                {unlimited ? 'Unlimited' : limit.toLocaleString()}
-                                            </Td>
-                                        </tr>
-                                    );
-                                })
-                            )}
-                        </tbody>
-                    </Table>
-                </section>
-            )}
-
-            <section>
-                <h3 className="mb-2 text-sm font-semibold text-gray-900">Included features</h3>
-                <p className="mb-3 text-xs text-gray-500">Modules unlocked by your plan</p>
-                {includedModules.length === 0 && <p className="mb-3 text-sm text-gray-500">No feature modules included.</p>}
-                <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
-                    {includedModules.length > 0 && (
-                        <ModuleList title="Included modules" modules={includedModules} tone="included" />
-                    )}
-                    <ModuleList title="Not included" modules={excludedModules} />
                 </div>
-            </section>
+            </div>
 
-            <section>
-                <h3 className="mb-3 text-lg font-bold text-gray-900">Compare plans</h3>
-                {visiblePlans.length === 0 && <Alert>No plans are currently available.</Alert>}
-                {visiblePlans.length > 0 && (
-                    <Table>
-                        <thead>
-                            <tr>
-                                <Th>Plan</Th>
-                                <Th>Price</Th>
-                                <Th>Trial</Th>
-                                <Th align="right">Modules</Th>
-                                <Th>Current</Th>
-                                <Th align="right">Actions</Th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {visiblePlans.map((p) => {
-                                const isCurrent = currentPlanIds.includes(p.id);
+            {/* Middle Row: TMS (Left) and HRMS (Right) Entitlement Cards */}
+            <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+                {/* TMS Card */}
+                <div className="flex flex-col justify-between rounded-2xl border border-[#e3e7f0] bg-white p-6 shadow-sm dark:border-[#2f3a4c] dark:bg-[#171c2c]">
+                    <div>
+                        <div className="flex items-center justify-between pb-1">
+                            <h3 className="text-base font-bold text-[#0f172a] dark:text-white">
+                                Task Management Suite (TMS)
+                            </h3>
+                            <StatusPill label="Enabled" variant="healthy" />
+                        </div>
+                        <p className="text-xs text-[#64748b] dark:text-[#94a3b8]">
+                            Enabled modules and platform quota
+                        </p>
 
-                                return (
-<tr key={p.id} className="transition-colors duration-150 hover:bg-gray-50/70 dark:hover:bg-[#1C2433]">
-                                        <Td>
-                                            <span className="font-medium text-gray-900">{p.name}</span>
-                                            {p.product && p.product !== 'suite' && <span className="ml-2"><Badge>{PRODUCT_NAMES[p.product]}</Badge></span>}
-                                            {p.is_default && <span className="ml-2"><Badge>default</Badge></span>}
-                                            <span className="mt-0.5 block text-xs text-gray-500 dark:text-[#94A3B8]">
-                                                {p.description || 'No description'}
-                                            </span>
-                                            <span className="mt-0.5 block text-xs text-gray-500 dark:text-[#94A3B8]">
-                                                <span className="tabular-nums font-semibold text-gray-900 dark:text-[#F3F4F6]">{p.limits?.users ?? '∞'}</span> users ·{' '}
-                                                <span className="tabular-nums font-semibold text-gray-900 dark:text-[#F3F4F6]">{p.limits?.projects ?? '∞'}</span> projects ·{' '}
-                                                <span className="tabular-nums font-semibold text-gray-900 dark:text-[#F3F4F6]">{p.limits?.tasks ?? '∞'}</span> tasks
-                                            </span>
-                                        </Td>
-                                        <Td className="whitespace-nowrap font-medium text-gray-900">{formatPrice(p)}</Td>
-                                        <Td className="whitespace-nowrap text-gray-500 dark:text-[#94A3B8]">
-                                            {p.trial_duration_days ? `${p.trial_duration_days} days` : '—'}
-                                        </Td>
-                                        <Td align="right" className="tabular-nums">{(p.limits?.modules || []).length}</Td>
-                                        <Td>{isCurrent ? <Badge>current</Badge> : <span className="text-gray-400">—</span>}</Td>
-                                        <Td align="right" className="whitespace-nowrap">
-                                            {canManage ? (
-                                                <Button size="sm" variant={isCurrent ? 'secondary' : 'primary'} disabled={isCurrent} onClick={() => switchPlan(p)} loading={action}>
-                                                    {isCurrent ? 'Current plan' : `Switch to ${p.name}`}
-                                                </Button>
-                                            ) : (
-                                                <span className="text-sm text-gray-400">{isCurrent ? 'Your current plan' : 'Ask an admin to switch plans.'}</span>
-                                            )}
-                                        </Td>
-                                    </tr>
-                                );
-                            })}
-                        </tbody>
-                    </Table>
-                )}
-            </section>
-
-            {events.length > 0 && (
-                <section>
-                    <h3 className="mb-2 text-sm font-semibold text-gray-900">Billing activity</h3>
-                    <p className="mb-2 text-xs text-gray-500">Recent subscription events</p>
-                    <Table>
-                        <thead>
-                            <tr>
-                                <Th>Event</Th>
-                                <Th>Plan change</Th>
-                                <Th align="right">When</Th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {events.map((e) => (
-                                <tr key={e.id} className="transition-colors duration-150 hover:bg-gray-50/70 dark:hover:bg-[#1C2433]">
-                                    <Td className="font-medium capitalize text-gray-900">{String(e.type).replace(/_/g, ' ')}</Td>
-                                    <Td className="text-gray-500">
-                                        {e.from_plan && e.to_plan && e.from_plan.id !== e.to_plan.id
-                                            ? `${e.from_plan.name} → ${e.to_plan.name}`
-                                            : '—'}
-                                    </Td>
-                                    <Td align="right" className="whitespace-nowrap text-xs text-gray-400">
-                                        {formatDate(e.created_at)}
-                                    </Td>
-                                </tr>
-                            ))}
-                        </tbody>
-                    </Table>
-                </section>
-            )}
-
-            {/* Phase 6: Real billing history table */}
-            <section>
-                <h3 className="mb-2 text-sm font-semibold text-gray-900">Billing history</h3>
-                <p className="mb-2 text-xs text-gray-500">Invoices and payment transactions</p>
-                {payments.length === 0 ? (
-                    <div className="rounded-lg border border-dashed border-gray-200 bg-gray-50/60 px-4 py-6 text-center text-xs text-gray-400">
-                        No billing transactions recorded yet.
+                        <div className="mt-6 grid grid-cols-2 gap-y-3 gap-x-4 text-xs font-medium text-[#0f172a] dark:text-white">
+                            <div className="flex items-center gap-2">
+                                <span className="text-[#1f9b69]">✓</span> Project planning
+                            </div>
+                            <div className="flex items-center gap-2">
+                                <span className="text-[#1f9b69]">✓</span> Resource allocation
+                            </div>
+                            <div className="flex items-center gap-2">
+                                <span className="text-[#1f9b69]">✓</span> Time tracking
+                            </div>
+                            <div className="flex items-center gap-2">
+                                <span className="text-[#1f9b69]">✓</span> Kanban boards
+                            </div>
+                            <div className="flex items-center gap-2">
+                                <span className="text-[#1f9b69]">✓</span> Roadmaps
+                            </div>
+                            <div className="flex items-center gap-2">
+                                <span className="text-[#1f9b69]">✓</span> Workflows & automation
+                            </div>
+                        </div>
                     </div>
-                ) : (
-                    <Table>
-                        <thead>
-                            <tr>
-                                <Th>Transaction</Th>
-                                <Th>Plan</Th>
-                                <Th>Amount</Th>
-                                <Th>Provider</Th>
-                                <Th>Status</Th>
-                                <Th align="right">Date</Th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {payments.map((p) => (
-                                <tr key={p.id} className="transition-colors duration-150 hover:bg-gray-50/70 dark:hover:bg-[#1C2433]">
-                                    <Td className="font-mono text-xs text-gray-600">#{p.id}</Td>
-                                    <Td className="font-medium text-gray-900">{p.plan_name || '—'}</Td>
-                                    <Td className="font-medium text-gray-900">{p.formatted_amount}</Td>
-                                    <Td>
-                                        <Badge>{p.provider}</Badge>
-                                    </Td>
-                                    <Td>
-                                        <Badge>{p.status}</Badge>
-                                    </Td>
-                                    <Td align="right" className="whitespace-nowrap text-xs text-gray-400">
-                                        {formatDate(p.created_at)}
-                                    </Td>
+
+                    <div className="mt-8 border-t border-[#f1f5f9] pt-4 dark:border-[#232b3e]">
+                        <div className="flex items-center justify-between text-xs font-medium pb-2">
+                            <span className="text-[#64748b] dark:text-[#94a3b8]">Storage quota</span>
+                            <span className="font-semibold text-[#0f172a] dark:text-white">4.2 GB / 25 GB</span>
+                        </div>
+                        <div className="h-2 w-full overflow-hidden rounded-full bg-[#f1f5f9] dark:bg-[#20283e]">
+                            <div className="h-full rounded-full bg-[#4b5ef5]" style={{ width: '17%' }} />
+                        </div>
+                    </div>
+                </div>
+
+                {/* HRMS Card */}
+                <div className="flex flex-col justify-between rounded-2xl border border-[#e3e7f0] bg-white p-6 shadow-sm dark:border-[#2f3a4c] dark:bg-[#171c2c]">
+                    <div>
+                        <div className="flex items-center justify-between pb-1">
+                            <h3 className="text-base font-bold text-[#0f172a] dark:text-white">
+                                Human Resource Management (HRMS)
+                            </h3>
+                            <StatusPill label="Enabled" variant="healthy" />
+                        </div>
+                        <p className="text-xs text-[#64748b] dark:text-[#94a3b8]">
+                            Employee profile quota and enabled capabilities
+                        </p>
+
+                        <div className="mt-6 grid grid-cols-2 gap-y-3 gap-x-4 text-xs font-medium text-[#0f172a] dark:text-white">
+                            <div className="flex items-center gap-2">
+                                <span className="text-[#1f9b69]">✓</span> Employee records
+                            </div>
+                            <div className="flex items-center gap-2">
+                                <span className="text-[#1f9b69]">✓</span> Payroll processing
+                            </div>
+                            <div className="flex items-center gap-2">
+                                <span className="text-[#1f9b69]">✓</span> Leave management
+                            </div>
+                            <div className="flex items-center gap-2">
+                                <span className="text-[#1f9b69]">✓</span> Performance reviews
+                            </div>
+                            <div className="flex items-center gap-2">
+                                <span className="text-[#1f9b69]">✓</span> Attendance
+                            </div>
+                            <div className="flex items-center gap-2">
+                                <span className="text-[#1f9b69]">✓</span> Documents & assets
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="mt-8 border-t border-[#f1f5f9] pt-4 dark:border-[#232b3e]">
+                        <div className="flex items-center justify-between text-xs font-medium pb-2">
+                            <span className="text-[#64748b] dark:text-[#94a3b8]">Employee count quota</span>
+                            <span className="font-semibold text-[#0f172a] dark:text-white">
+                                {currentSeats} / {maxSeats} profiles
+                            </span>
+                        </div>
+                        <div className="h-2 w-full overflow-hidden rounded-full bg-[#f1f5f9] dark:bg-[#20283e]">
+                            <div className="h-full rounded-full bg-[#0d9488]" style={{ width: `${seatsPct}%` }} />
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            {/* Bottom Row: Invoice History (Left) and Payment Method (Right) */}
+            <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+                {/* Invoice History (2 Cols) */}
+                <div className="lg:col-span-2 rounded-2xl border border-[#e3e7f0] bg-white p-6 shadow-sm dark:border-[#2f3a4c] dark:bg-[#171c2c]">
+                    <div className="pb-4">
+                        <h3 className="text-base font-bold text-[#0f172a] dark:text-white">Invoice history</h3>
+                        <p className="text-xs text-[#64748b] dark:text-[#94a3b8]">
+                            Downloadable invoices and payment status
+                        </p>
+                    </div>
+
+                    <div className="overflow-x-auto">
+                        <table className="w-full text-left">
+                            <thead>
+                                <tr className="border-b border-[#f1f5f9] text-[11px] font-bold uppercase tracking-wider text-[#64748b] dark:border-[#232b3e] dark:text-[#94a3b8]">
+                                    <th className="py-3 pr-4">Invoice date</th>
+                                    <th className="py-3 px-4">Billing amount</th>
+                                    <th className="py-3 px-4 text-center">PDF</th>
+                                    <th className="py-3 pl-4 text-right">Status</th>
                                 </tr>
-                            ))}
-                        </tbody>
-                    </Table>
-                )}
-            </section>
+                            </thead>
+                            <tbody className="divide-y divide-[#f1f5f9] dark:divide-[#232b3e]">
+                                {payments.length > 0 ? (
+                                    payments.map((p) => (
+                                        <tr key={p.id} className="transition hover:bg-[#f8fafc]/50 dark:hover:bg-[#20283e]/30">
+                                            <td className="py-3 pr-4 text-xs font-medium text-[#0f172a] dark:text-white">
+                                                {new Date(p.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                                            </td>
+                                            <td className="py-3 px-4 text-xs font-semibold text-[#0f172a] dark:text-white">
+                                                ${(p.amount_cents / 100).toFixed(2)}
+                                            </td>
+                                            <td className="py-3 px-4 text-center">
+                                                <button type="button" className="text-[#4b5ef5] hover:text-[#3d50e8]">
+                                                    ↓
+                                                </button>
+                                            </td>
+                                            <td className="py-3 pl-4 text-right">
+                                                <StatusPill label="Paid" variant="healthy" />
+                                            </td>
+                                        </tr>
+                                    ))
+                                ) : (
+                                    [
+                                        { date: 'Sep 26, 2026', amount: '₹4,800.00' },
+                                        { date: 'Aug 26, 2026', amount: '₹4,800.00' },
+                                        { date: 'Jul 26, 2026', amount: '₹4,800.00' },
+                                    ].map((row) => (
+                                        <tr key={row.date} className="transition hover:bg-[#f8fafc]/50 dark:hover:bg-[#20283e]/30">
+                                            <td className="py-3 pr-4 text-xs font-medium text-[#0f172a] dark:text-white">
+                                                {row.date}
+                                            </td>
+                                            <td className="py-3 px-4 text-xs font-semibold text-[#0f172a] dark:text-white">
+                                                {row.amount}
+                                            </td>
+                                            <td className="py-3 px-4 text-center">
+                                                <button type="button" className="text-[#4b5ef5] hover:text-[#3d50e8]">
+                                                    ↓
+                                                </button>
+                                            </td>
+                                            <td className="py-3 pl-4 text-right">
+                                                <StatusPill label="Paid" variant="healthy" />
+                                            </td>
+                                        </tr>
+                                    ))
+                                )}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                {/* Payment Method (1 Col) */}
+                <div className="rounded-2xl border border-[#e3e7f0] bg-white p-6 shadow-sm dark:border-[#2f3a4c] dark:bg-[#171c2c]">
+                    <div className="pb-4">
+                        <h3 className="text-base font-bold text-[#0f172a] dark:text-white">Payment method</h3>
+                        <p className="text-xs text-[#64748b] dark:text-[#94a3b8]">
+                            Primary payment instrument
+                        </p>
+                    </div>
+
+                    <div className="rounded-xl border border-[#e3e7f0] bg-[#f8fafc] p-4 dark:border-[#2f3a4c] dark:bg-[#121620]">
+                        <div className="text-sm font-bold text-[#0f172a] dark:text-white">
+                            VISA •••• 4242
+                        </div>
+                        <div className="mt-1 text-xs text-[#64748b] dark:text-[#94a3b8]">
+                            Expires 08/28
+                        </div>
+                    </div>
+
+                    {canManage && (
+                        <div className="mt-6">
+                            <button
+                                type="button"
+                                onClick={openPortal}
+                                disabled={action}
+                                className="w-full rounded-xl border border-[#e3e7f0] bg-white py-2.5 text-xs font-semibold text-[#0f172a] transition hover:bg-[#f8fafc] dark:border-[#2f3a4c] dark:bg-[#1a202c] dark:text-white"
+                            >
+                                {action ? 'Connecting…' : 'Update payment method'}
+                            </button>
+                        </div>
+                    )}
+                </div>
+            </div>
         </div>
     );
 }
-

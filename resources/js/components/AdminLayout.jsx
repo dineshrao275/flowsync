@@ -71,7 +71,7 @@ export default function AdminLayout() {
 
             <div
                 className={`flex min-h-screen flex-col transition-[padding] duration-300 ${
-                    collapsed ? 'lg:pl-16' : 'lg:pl-64'
+                    collapsed ? 'lg:pl-16' : 'lg:pl-[228px]'
                 }`}
             >
                 <Topbar

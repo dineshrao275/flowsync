@@ -19,13 +19,12 @@ export default function Modal({ open, onClose, title, subtitle, size = 'md', chi
     // block/stacking context that would otherwise trap a nested `fixed` modal.
     return createPortal(
         <div
-            className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-stone-900/40 backdrop-blur-md dark:bg-black/60 p-4 animate-backdrop-in sm:p-6"
+            className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-[#151b2c]/40 backdrop-blur-[2px] p-4 animate-backdrop-in dark:bg-black/60 sm:p-6"
             onMouseDown={onClose}
             role="presentation"
         >
             <div
-                className={`my-6 w-full ${sizes[size]} max-h-[calc(100dvh-3rem)] overflow-y-auto rounded-xl border border-[var(--border-hairline)] shadow-popover animate-scale-in ${className} dark:border-[#2F3A4C]`}
-                style={{ backgroundColor: 'var(--card-bg)' }}
+                className={`my-6 w-full ${sizes[size]} max-h-[calc(100dvh-3rem)] overflow-y-auto rounded-[16px] border border-[var(--border-hairline)] bg-[var(--card-bg)] shadow-[var(--shadow-popover)] animate-scale-in ${className}`}
                 onMouseDown={(e) => e.stopPropagation()}
                 role="dialog"
                 aria-modal="true"
@@ -35,16 +34,16 @@ export default function Modal({ open, onClose, title, subtitle, size = 'md', chi
             >
                 {(title || onClose) && (
                     <div className="flex items-start justify-between gap-4 border-b border-[var(--border-hairline)] px-6 py-4">
-                        <div>
-                            {title && <h3 id={titleId} className="text-base font-semibold text-[#1C1917] dark:text-[#F8FAFC]">{title}</h3>}
-                            {subtitle && <p className="mt-0.5 text-sm text-[#57534E] dark:text-[#94A3B8]">{subtitle}</p>}
+                        <div className="min-w-0">
+                            {title && <h3 id={titleId} className="text-[15px] font-semibold text-ink">{title}</h3>}
+                            {subtitle && <p className="mt-0.5 text-[12px] text-muted">{subtitle}</p>}
                         </div>
                         {onClose && (
                             <button
                                 type="button"
                                 onClick={onClose}
                                 aria-label="Close"
-                                className="-mr-1 -mt-1 rounded-lg p-1.5 text-gray-400 dark:text-[#64748B] transition hover:bg-gray-100 dark:hover:bg-[#252E3E] hover:text-gray-700 dark:hover:text-[#F8FAFC]"
+                                className="-mr-1 -mt-1 rounded-[8px] p-1.5 text-[var(--text-faint)] transition-colors hover:bg-[var(--surface-elevated)] hover:text-ink"
                             >
                                 <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
                                     <path d="M6 6l12 12M18 6L6 18" />

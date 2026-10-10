@@ -8,21 +8,18 @@ function Column({ status, canMove, canEdit, onOpen }) {
     return (
         <div
             ref={setNodeRef}
-            className={`flex w-72 shrink-0 flex-col rounded-2xl border border-[var(--border-hairline)] dark:border-[#2F3A4C] bg-[var(--surface-elevated)] dark:bg-[#1E2638] p-3 transition ${
-                isOver ? 'border-[#C2410C]/60 bg-[#C2410C]/5 dark:border-[#F97316]/60 dark:bg-[#F97316]/10' : ''
+            className={`flex w-[270px] shrink-0 flex-col rounded-[12px] bg-[var(--column-bg)] p-[10px] transition ${
+                isOver ? 'ring-1 ring-[var(--accent)]/50' : ''
             }`}
         >
-            <div className="flex items-center justify-between px-2 pb-2 pt-1">
-                <div className="flex min-w-0 items-center gap-2">
-                    <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ backgroundColor: status.color || '#cbd5e1' }} />
-                    <span className="truncate text-xs font-semibold uppercase tracking-wide text-[#1C1917] dark:text-[#F8FAFC]">{status.name}</span>
-                </div>
-                <span className="ml-2 shrink-0 rounded-full bg-white px-2 py-0.5 text-[11px] font-semibold text-[#57534E] dark:text-[#94A3B8] shadow-sm">
+            <div className="flex items-center justify-between gap-2 px-0.5 pb-3 pt-0.5">
+                <span className="truncate text-[13px] font-semibold text-ink">{status.name}</span>
+                <span className="ml-2 inline-flex h-[23px] min-w-[30px] shrink-0 items-center justify-center rounded-[8px] bg-[var(--card-bg)] px-2 text-[11px] font-semibold text-muted">
                     {status.tasks_count}
                 </span>
             </div>
             <SortableContext items={status.tasks.map((t) => t.id)}>
-                <div className="flex flex-col gap-2">
+                <div className="mt-3 flex flex-col gap-[13px]">
                     {status.tasks.map((task) => (
                         <TaskCard
                             key={task.id}
@@ -32,7 +29,7 @@ function Column({ status, canMove, canEdit, onOpen }) {
                         />
                     ))}
                     {status.tasks.length === 0 && (
-                        <div className="rounded-lg border border-dashed border-[var(--border-hairline)] dark:border-[#2F3A4C] text-[#A8A29E] dark:text-[#64748B] px-3 py-6 text-center text-xs">
+                        <div className="rounded-[9.5px] border border-dashed border-[var(--border-hairline)] px-3 py-6 text-center text-[11px] text-faint">
                             Drop tasks here
                         </div>
                     )}
@@ -48,7 +45,7 @@ export default function KanbanBoard({ board, canMove, canEdit, onOpen, onDragEnd
     return (
         <DndContext sensors={sensors} collisionDetection={closestCorners} onDragEnd={onDragEnd}>
             <div className="board-scroll -mx-1 overflow-x-auto px-1 pb-3">
-                <div className="flex items-start gap-3">
+                <div className="flex items-start gap-5">
                     {board.statuses.map((status) => (
                         <Column
                             key={status.id}
