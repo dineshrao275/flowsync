@@ -18,7 +18,7 @@ This file adds: a re-verification at HEAD, new gaps (G-58+), the first cleanup a
 - FlowSync is a **modular Laravel 12 + React 19 monolith** with database-per-tenant isolation, a very broad HRMS (P1-P21 shipped) and a solid TMS core. **The architecture is the right one; do not redesign it.** The remaining work is features, wiring, and hardening.
 - All 23 "missing" claims in the older register are **still true at HEAD**. The 8 commits since `d5bc70c` only closed items already marked resolved (scheduler, login audit, exited-user login block, watchers, issue-type CRUD, SPA fields).
 - **Three new P0s** the earlier audits missed (§21): a frontend route wrapper that very likely renders blank pages, four tenant routes with no authorization, and a tracked `.env.docker` containing secrets.
-- The largest product gaps against the brief: **JIRA-class layer** (workflow transitions, sprints, epics, JQL, automation), **shared engines** (event bus, approval v2, custom fields, API tokens, outbound webhooks), **HRMS staples** (shifts, transfers/promotions, F&F, bulk import, talent), **billing completeness** (invoices, dunning), and **HRMS↔TMS depth** (only task-links and work-log derivation exist).
+- The largest product gaps against the brief: **JIRA-class layer** (JQL, capacity, roadmap/timeline views, saved filters — workflow transitions/sprints/epics/automation now shipped), **shared engines** (approval v2, custom fields — event bus/outbound webhooks/API tokens shipped), **HRMS staples** (transfers/promotions, F&F, talent — shifts/rosters/bulk import/leave rollover/doc versioning now shipped), **billing completeness** (dunning now shipped vs invoices+portal), and **HRMS↔TMS depth** (only task-links and work-log derivation exist).
 - **RBAC audit (§8A):** the permission/scope/tenant-isolation foundation is strong, but a role manager can grant permissions they do not hold (P0 escalation), system roles are unprotected, role changes are unaudited, the brief's `employee`/`hr_executive`/`finance_admin`/`auditor` roles do not exist, and impersonation has no reason, time-box, read-only mode or action blocklist. Fixed by P0.7 and Phase 1A (R1-R15).
 - Roadmap: phases 0-9 plus **Phase 1A** (RBAC hardening), **Phase 10** (core freeze, 2-4 test accounts, end-to-end validation, §37) and **Phase 11** (marketing website, final, §38), ordered by dependency (§29); mandatory development rules in §36. **Do Phase 0 next** (§35).
 
@@ -176,7 +176,7 @@ Verified by reading `RoleController`, `UserController::updateRoles`, `Impersonat
 | RB-5 | P1 | **Role vocabulary does not match the brief.** Defaults are `admin/editor/viewer/manager/hr_manager/payroll_manager`. There is no `employee` (self-service) role — `editor`/`viewer` are legacy task-era names that double as employees — and no `team_lead`, `hr_executive`, `finance_admin`, `auditor`, or `tenant_owner` distinct from admin. | `config/permissions.php` roles | R4: add `employee`, `hr_executive`, `finance_admin`, `auditor`; keep legacy slugs as aliases; backfill by repair, never re-granting existing users |
 | RB-6 | P1 | **Authorization by role name** in 6 places (`hasRole('admin')`: subscription mutations, billing, onboarding, user default rules). Custom roles can never be delegated these abilities, and the catalog says one thing while code does another. `billing.manage` exists but is not the only gate. | `MySubscriptionController`, `BillingController`, `UserController` | R5: replace with permissions (`billing.manage`, `tenant.manage`), admin keeps via `*` |
 | RB-7 | P2 | **No role inheritance and no deny rules** (only config-time `!selector` subtraction). Acceptable; the lattice is the only implicit inheritance. | `PermissionSelector` | R6: decision = *no runtime inheritance*; add **clone role** and **role templates** instead; document precedence (grant-only union) |
-| RB-8 | P1 | **Platform side is one flag** (`is_super_admin`); `platform_roles/permissions` unused. | §23, G-19/H-19 | P8.3 (kept) |
+| RB-8 | P1 | **Platform side is one flag** (`is_super_admin`); `platform_roles/permissions` unused. | §23, G-19/H-19 | P8.3 (shipped — personas on `platform_roles`, break-glass `is_super_admin` kept) |
 | RB-9 | P1 | **Impersonation controls are thin**: start/stop + IP log + throttle only. Missing: mandatory reason/ticket; automatic time-box and server-side expiry (an abandoned session never writes `ended_at`); read-only mode; a blocklist of sensitive actions while impersonating (role/user changes, billing, password change, exports, delete); tenant-visible notice; per-action attribution (`impersonator_id` on audit/activity rows ❓ verify); alert on impersonating a tenant owner. | `ImpersonationController`, `ImpersonationLog` | R7-R8 (P8.4 consent sessions builds on these) |
 | RB-10 | **P0** | **Open routes without authorization** (G-59) and no automated route-audit test. | §21 | P0.2 + R9 |
 | RB-11 | P2 | **Global reads ignore row scope** (`search/tasks`, dashboard, reports use project membership only — H-13): a scoped project role sees counts/rows its board would refuse. | `ScopesVisibleTasks` | R10 |
@@ -278,13 +278,13 @@ Mitigations and tests per threat (all must have a test before the owning phase c
 | Subscription bypass | fail-closed | module-key diff test (P1.14) |
 | Signed URL abuse | tenant+actor in signature | keep, add expiry/replay tests for new downloads |
 | File upload | MIME allowlist, SVG removed | add AV hook point, size per plan |
-| XSS/CSRF/SQLi | Laravel defaults, bound params | add CSP (P8.5); lint rule against raw SQL interpolation |
+| XSS/CSRF/SQLi | Laravel defaults, bound params | CSP shipped report-only (P8.5); lint rule against raw SQL interpolation |
 | SSRF/webhook abuse | n/a yet | built into P2.8 |
 | Replay | payment webhooks guarded | same for outbound consumers |
-| Session / token theft | DB sessions | 2FA (P8.1), token abilities+expiry |
-| Impersonation abuse | logged, guarded | consent-based support sessions (P8.4) |
+| Session / token theft | DB sessions | 2FA shipped (P8.1), token abilities+expiry |
+| Impersonation abuse | logged, guarded | consent-based support sessions shipped (P8.4) |
 | Secrets in repo | **`.env.docker` tracked** | P0.3 |
-| Audit tampering | append-only HRMS audit; platform audit | hash-chain or WORM export (P8.6) |
+| Audit tampering | append-only HRMS audit; platform audit | hash chain + tombstoned retention shipped (P8.6) |
 
 ## 18. Data Lifecycle
 
@@ -308,10 +308,10 @@ Today: PHP feature tests only (isolated per-tenant sqlite), PG path exercised ma
 | G-61 | P1 | Eventing | No domain event bus | Blocks automation, webhooks, loose coupling | P2.1 |
 | G-62 | P1 | Entitlement | Module keys that gate nothing (`hrms.shifts/talent/inbox/exemptions`) and sub-modules under `hrms.core` only | Plans sell what they cannot switch off | P1.14 |
 | G-63 | P1 | Approvals | Chains hard-coded; tenant admin cannot configure | Brief §13 | P2.4 |
-| G-64 | P2 | TMS | No clone/move-between-projects/bulk ops, no task checklists, no templates | Daily-driver gaps | P4.6, P4.8, P4.9 |
+| G-64 | P2 | TMS | No clone/move-between-projects/bulk ops, no templates (task checklists shipped, P4.9a) | Daily-driver gaps | P4.6, P4.8, P4.9 |
 | G-65 | P2 | TMS | No timer/timesheet/billable/approval | Time→payroll link impossible | P4.12 |
-| G-66 | P2 | Platform | No runtime feature flags / rollout rules | Safe rollout of new engines | P8.7 |
-| G-67 | P2 | Platform | No consent-based support access; impersonation is the only path | Enterprise trust | P8.4 |
+| G-66 | P2 | Platform | No runtime feature flags / rollout rules | Safe rollout of new engines | P8.7 (closed) |
+| G-67 | P2 | Platform | No consent-based support access; impersonation is the only path | Enterprise trust | P8.4 (closed) |
 | G-68 | P2 | Org | No matrix reporting, BU/legal entity/cost center, employee tags | Enterprise modelling | P5.13-P5.14 |
 | G-69 | P2 | Integration | No employee→project/workspace auto-membership, leave→task availability, expense→project, workload | HRMS↔TMS thesis unproven | Phase 7 |
 | G-70 | P2 | Service mgmt | No request types/queues/SLAs | Brief §6 | separate module (§22) |
@@ -481,7 +481,7 @@ Shipped: P0.1 `e77cbee`, P0.2 `c6b4035`, P0.7 `89adede`, P0.3 `f56aec5`, P0.4 `c
 | P0.7 | **Escalation guard (R1 hotfix):** reject granting permissions the actor does not hold; only holders of `admin` may assign/modify the `admin` role; default user keeps `admin` | `RoleController`, `UserController::updateRoles`, new `GrantCeiling` support class | — | escalation suite: editor with `roles.manage` cannot create a `*`-equivalent role; `users.manage` non-admin cannot grant `admin` or self-promote; admin unaffected. Existing roles untouched (no data migration) | — | S | Med (custom roles that relied on the loophole will 422; report, don't auto-fix) |
 
 ### Phase 1 — Cleanup & foundations
-Progress 2026-10-09: **P1.1 ✅** `77e3ffa`, **P1.2 ✅** `5cf1984`, **P1.3 ✅** `6964dae`, **P1.4 ✅ (reports overview only)** `f5f2c88`, **P1.5 ✅** `ab595f5`. **P1.12 partial ✅** (Vitest + RTL + ESLint installed, `ProtectedRoute` spec, 16 lint errors fixed; shared `ConfirmDialog`/`Tabs`/`useResource`, enum constants, lazy routes and the oversize-page splits remain). P1.10 needs a design correction (see its row). **P1.14 partial ✅** (onboarding/offboarding/documents now gate their routes; compensation/payroll/inbox/shifts/talent/exemptions await decisions — see AGENTS.md). **P1.9 ✅** (`App\Support\Like` escape-aware search on task/global/tenant/system-user searches), **P1.11 ✅** (completing through `TaskService::update` now refreshes linked goals once and enforces the open-blocker rule; both skip HRMS work for tenants without the HRMS tables), **R15 ✅** (`AuthorizationMatrixTest`, generated from the route table × every default role, >400 cells), **R14 ✅ UI** (`AccessExplainer` on the user page). **P2.1 ✅** (domain event bus via `ActivityLogger`; HRMS events and approvals not yet emitted), **P2.8 ✅** (outbound webhooks incl. signing, SSRF guard, retries, log, UI). **P3.4 ✅ + P3.5 ✅** (automation engine, builder UI, time triggers; starter rule packs P3.6 not built). **P3.1 ✅ + P3.2 ✅ (validators as entry rules; transition permissions/post-actions not built — automation covers post-actions)**. **P4.2 ✅ + P4.5 ✅ (sprints, backlog, burndown/velocity/lead & cycle time/throughput; capacity P4.3, swimlanes/WIP P4.10 not built)**. Open: P1.6–P1.8, P1.13–P1.15, P2.2–P2.7, P3.3, P3.6, P4.1, P4.3–P4.4, P4.6–P4.12.
+Progress **2026-10-10** (validated by the focused runs below; full-suite gate still pending): **P1.6–P1.8 ✅ + P1.13 ✅ + P1.15 ✅ + P2.2 ✅ + P2.3 ✅** (track/foundation merged — `NotificationService` split, `TaskService`/route split, shared helpers, `Auditable::snapshot`), **P2.7 ✅** (track/platform-engines merged — personal API tokens `api.manage`, `/api/v1`, idempotency, per-token throttle, integration log; tests green after fixing the un-run track's test-isolation gaps), **P4.1 ✅** (track/tms-p4 merged — issue hierarchy, levels, epic links, tree view), **P4.9a ✅** (task checklists, already on the development line), **P5.1/5.2/5.5/5.9/5.12/5.15/5.16 ✅** (track/hrms-p5 merged — shifts, rosters/rotation templates, bulk CSV import + bulk status, leave rollover/adjustments/blackouts, document versioning, geofence/break punches, holiday CSV/ICS + asset replacement), **P6.1–P6.5 ✅** (track/billing merged — Stripe subscription checkout/verify, recurring webhooks, plan change, portal), **P8.1 + P8.3–P8.7 ✅** (track/security merged — 2FA, platform personas, support sessions, CSP, hash-chained audit, feature flags; P8.2 SSO deferred). Earlier: **P1.1–P1.5, P1.9–P1.12, P1.14 ✅**, **P2.1 ✅ + P2.8 ✅**, **P3.1 ✅ + P3.2 ✅ + P3.4 ✅ + P3.5 ✅**, **P4.2 ✅ + P4.5 ✅**. Open: P1.12 remainder (shared ConfirmDialog/Tabs/useResource, enum constants, lazy routes, splits), P1.10 (goal↔task link merge), P2.4/P2.5/P2.6/P2.9 (approvals v2, chains, custom fields, digest), P3.3, P3.6, P4.3–P4.4, P4.6–P4.12 (minus 4.9a), P5.3/P5.4/P5.6–P5.8/P5.10–P5.11/P5.13–P5.14/P5.17–P5.18, P6.6, P7–P11.
 | ID | Task | Notes | Size |
 |---|---|---|---|
 | P1.1 | Pint unused imports (11) | code + tests | S |
@@ -529,7 +529,7 @@ Progress 2026-10-09: **R1 ✅** (`89adede`), **R3 ✅** (`7f909ad`), **R5 ✅ fo
 | P2.4 | Approvals v2: modes, conditions, delegation, SLA/reminders/escalation scheduler, resubmission; `approval_templates` seeded from today's hard-coded chains; tenant UI to edit chains | `approval_templates`, `approval_delegations`, use `due_at` | P2.1 | XL (3 slices: engine; delegation+SLA; UI) |
 | P2.5 | Migrate leave/expense/regularization/comp-off/revision/document to template-driven chains | — | P2.4 | M |
 | P2.6 | Custom-field engine: definitions per entity, typed JSONB values, validation, filter integration, entitlement `custom_fields` | tables above | P1.12 | XL (employees → tasks → projects → others) |
-| P2.7 | Sanctum tokens: model, abilities↔permissions, expiry, UI, `/api/v1` for token routes, idempotency, per-token throttle, integration log; module `api` re-added with its gate | `personal_access_tokens`, logs | P0.2 | L |
+| P2.7 | Sanctum tokens: model, abilities↔permissions, expiry, UI, `/api/v1` for token routes, idempotency, per-token throttle, integration log; module `api` re-added with its gate | `personal_access_tokens`, logs | P0.2 | L (**shipped, non-Sanctum self-built; `ApiTokenTest` green**) |
 | P2.8 | Outbound webhooks: endpoints, HMAC signing, retries, delivery log, SSRF guard, UI; module `webhooks` | tables | P2.1, P2.7 | L |
 | P2.9 | Notification digest/throttle/dedup + tenant channel policy + locale-aware templates | | P2.3 | M |
 
@@ -546,7 +546,7 @@ Progress 2026-10-09: **R1 ✅** (`89adede`), **R3 ✅** (`7f909ad`), **R5 ✅ fo
 ### Phase 4 — TMS agile layer (each a vertical slice)
 | ID | Task | Deps | Size |
 |---|---|---|---|
-| P4.1 | Issue hierarchy: `parent` rules per issue type, epic link, hierarchy validation, tree views, permission inheritance | P3.1 | L |
+| P4.1 | Issue hierarchy: `parent` rules per issue type, epic link, hierarchy validation, tree views, permission inheritance | P3.1 | L (**shipped; `IssueHierarchyTest` green**) |
 | P4.2 | Sprints & backlog: tables, planning board, start/close, carry-over | P4.1 | XL |
 | P4.3 | Capacity (hooks into shifts/leave later) | P4.2 | M |
 | P4.4 | Roadmap/timeline & calendar views (versions, epics, due dates) | P4.1 | L |
@@ -595,7 +595,7 @@ Progress 2026-10-09: **R1 ✅** (`89adede`), **R3 ✅** (`7f909ad`), **R5 ✅ fo
 P7.1 auto-membership policy (L) · P7.2 leave/holiday awareness on assignment (M) · P7.3 workload & capacity read model (L) · P7.4 timesheet→payroll component (L) · P7.5 goal↔epic/project links (M) · P7.6 cross-domain reports on summary tables (L). Deps: P3.6, P4.3, P4.12, P5.1.
 
 ### Phase 8 — Enterprise security
-P8.1 TOTP 2FA + recovery codes + enforce-per-role (L) · P8.2 OIDC SSO then SAML (XL) · P8.3 platform personas on `platform_roles` replacing blanket `super_admin` route by route (L) · P8.4 consent-based time-boxed support sessions (M) · P8.5 CSP + security headers (S) · P8.6 audit export/WORM/hash chain + retention per plan (M) · P8.7 runtime feature flags with tenant overrides (M) · P8.8 SCIM (Enterprise, L).
+P8.1 TOTP 2FA + recovery codes + enforce-per-role (**shipped**, ✅) · P8.2 OIDC SSO then SAML (**deferred**) · P8.3 platform personas on `platform_roles` replacing blanket `super_admin` route by route (**shipped**, ✅) · P8.4 consent-based time-boxed support sessions (**shipped**, ✅) · P8.5 CSP + security headers (**shipped**, ✅) · P8.6 audit export/WORM/hash chain + retention per plan (**shipped**, ✅) · P8.7 runtime feature flags with tenant overrides (**shipped**, ✅) · P8.8 SCIM (Enterprise, L, **deferred**).
 
 ### Phase 9 — Scale, ops, mobile
 P9.1 SA pages: health, queues, failed jobs, backups (M) · P9.2 real queue probe (S) · P9.3 `tenants:restore`, clone, hard purge/erasure (L, legal first) · P9.4 summary-table refresh jobs (M) · P9.5 PWA manifest + service worker + mobile punch/leave/approvals/my-tasks (L) · P9.6 TMS retention (M) · P9.7 `tsvector` indexes (M) · P9.8 localisation scaffolding (`lang/`, tenant locale) (M) · P9.9 Playwright E2E, k6 load, route×tenant matrix test (L).
