@@ -19,12 +19,12 @@ export default function Modal({ open, onClose, title, subtitle, size = 'md', chi
     // block/stacking context that would otherwise trap a nested `fixed` modal.
     return createPortal(
         <div
-            className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-gray-900/40 p-4 animate-backdrop-in sm:p-6"
+            className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-stone-900/40 backdrop-blur-md dark:bg-black/60 p-4 animate-backdrop-in sm:p-6"
             onMouseDown={onClose}
             role="presentation"
         >
             <div
-                className={`my-6 w-full ${sizes[size]} max-h-[calc(100dvh-3rem)] overflow-y-auto rounded-xl border border-gray-200 shadow-popover animate-scale-in ${className}`}
+                className={`my-6 w-full ${sizes[size]} max-h-[calc(100dvh-3rem)] overflow-y-auto rounded-xl border border-[var(--border-hairline)] shadow-popover animate-scale-in ${className} dark:border-[#2F3A4C]`}
                 style={{ backgroundColor: 'var(--card-bg)' }}
                 onMouseDown={(e) => e.stopPropagation()}
                 role="dialog"
@@ -34,10 +34,10 @@ export default function Modal({ open, onClose, title, subtitle, size = 'md', chi
                 tabIndex={-1}
             >
                 {(title || onClose) && (
-                    <div className="flex items-start justify-between gap-4 border-b border-gray-100 px-6 py-4">
+                    <div className="flex items-start justify-between gap-4 border-b border-[var(--border-hairline)] px-6 py-4">
                         <div>
-                            {title && <h3 id={titleId} className="text-base font-semibold text-gray-900">{title}</h3>}
-                            {subtitle && <p className="mt-0.5 text-sm text-gray-500">{subtitle}</p>}
+                            {title && <h3 id={titleId} className="text-base font-semibold text-[#1C1917] dark:text-[#F8FAFC]">{title}</h3>}
+                            {subtitle && <p className="mt-0.5 text-sm text-[#57534E] dark:text-[#94A3B8]">{subtitle}</p>}
                         </div>
                         {onClose && (
                             <button

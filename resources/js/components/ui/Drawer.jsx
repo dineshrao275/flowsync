@@ -13,12 +13,12 @@ export default function Drawer({ open, onClose, title, subtitle, children, heade
     // block/stacking context that would otherwise trap a nested `fixed` panel.
     return createPortal(
         <div
-            className="fixed inset-0 z-50 flex justify-end bg-gray-900/30 animate-backdrop-in"
+            className="fixed inset-0 z-50 flex justify-end bg-stone-900/40 backdrop-blur-md dark:bg-black/60 animate-backdrop-in"
             onClick={onClose}
             role="presentation"
         >
             <div
-                className={`flex h-full w-full max-w-xl animate-from-right flex-col overflow-hidden border-l border-gray-200 shadow-drawer sm:max-w-3xl ${className}`}
+                className={`flex h-full w-full max-w-xl animate-from-right flex-col overflow-hidden border-l border-[var(--border-hairline)] shadow-drawer sm:max-w-3xl ${className} dark:border-[#2F3A4C]`}
                 style={{ backgroundColor: 'var(--card-bg)' }}
                 onClick={(e) => e.stopPropagation()}
                 role="dialog"
@@ -28,10 +28,10 @@ export default function Drawer({ open, onClose, title, subtitle, children, heade
                 tabIndex={-1}
             >
                 {(title || onClose) && (
-                    <div className="flex shrink-0 items-start justify-between gap-4 border-b border-gray-100 px-6 py-4">
+                    <div className="flex shrink-0 items-start justify-between gap-4 border-b border-[var(--border-hairline)] px-6 py-4">
                         <div className="min-w-0 flex-1">
-                            {title && <h3 id={titleId} className="truncate text-lg font-semibold text-gray-900">{title}</h3>}
-                            {subtitle && <p className="mt-0.5 truncate text-xs font-semibold uppercase tracking-wide text-gray-400">{subtitle}</p>}
+                            {title && <h3 id={titleId} className="truncate text-lg font-semibold text-[#1C1917] dark:text-[#F8FAFC]">{title}</h3>}
+                            {subtitle && <p className="mt-0.5 truncate text-xs font-semibold uppercase tracking-wide text-[#57534E] dark:text-[#94A3B8]">{subtitle}</p>}
                             {headerExtras}
                         </div>
                         {onClose && (

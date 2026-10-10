@@ -17,13 +17,13 @@ export default function Button({
         primary:
             'bg-[var(--accent)] text-[var(--accent-contrast)] shadow-sm hover:bg-[var(--accent-hover)] active:bg-[var(--accent-active)] focus:ring-[var(--accent-ring)]',
         secondary:
-            'bg-white text-gray-700 border border-gray-300 shadow-sm hover:bg-gray-50 hover:text-gray-900 focus:ring-gray-200',
+            'bg-white text-gray-700 border border-[var(--border-hairline)] shadow-sm hover:bg-[var(--surface-elevated)] active:bg-[var(--surface-elevated)] dark:bg-[var(--card-bg)] dark:text-[#F8FAFC] dark:border-[#2F3A4C] dark:hover:bg-[#232B3A]',
         danger:
             'bg-[var(--danger)] text-[var(--danger-contrast)] shadow-sm hover:bg-[var(--danger-hover)] active:bg-[var(--danger-active)] focus:ring-[var(--danger-ring)]',
         warning:
             'bg-amber-500 text-white shadow-sm hover:bg-amber-400 active:bg-amber-600 focus:ring-amber-200',
         ghost:
-            'bg-transparent text-gray-600 hover:bg-gray-100 hover:text-gray-900 focus:ring-gray-200',
+            'bg-transparent text-gray-600 border border-[var(--border-hairline)] hover:bg-[var(--surface-elevated)] dark:text-[#F8FAFC] dark:border-[#2F3A4C] dark:hover:bg-[#232B3A]',
         subtle:
             'bg-[var(--accent-soft)] text-[var(--accent-soft-text)] hover:bg-[var(--accent-soft-hover)] focus:ring-[var(--accent-ring)]',
     };

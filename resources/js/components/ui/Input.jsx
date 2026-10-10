@@ -72,12 +72,12 @@ function DateField({ label, labelClassName = '', error, id, className = '', lead
                     isClearable={!props.required && !props.disabled && !!props.value}
                     showPopperArrow={false}
                     calendarClassName="flowsync-calendar"
-                    className={`block w-full border text-sm shadow-sm transition focus:outline-none focus:ring-2 ${
+                    className={`block w-full border text-sm shadow-sm transition focus:outline-none focus:ring-2 focus:ring-[#C2410C]/20 ${
                         compact ? 'rounded-md px-2.5 py-1.5' : 'rounded-lg px-3.5 py-2.5'
                     } ${leadingIcon ? 'pl-9' : ''} ${
                         error
-                            ? 'border-red-400 focus:border-red-500 focus:ring-red-100'
-                            : 'border-gray-300 focus:border-indigo-500 focus:ring-indigo-100'
+                            ? 'border-red-400 focus-border-red-500 focus:ring-red-100'
+                            : 'border-[var(--border-hairline)] bg-[var(--surface-elevated)] text-[#1C1917] dark:text-[#F8FAFC] dark:border-[#2F3A4C] dark:bg-[#1E2638] placeholder-[#A8A29E] dark:placeholder-[#64748B] focus:border-[#C2410C]'
                     } ${props.disabled ? 'cursor-not-allowed bg-gray-50 text-gray-500' : 'bg-white text-gray-900'}`}
                 />
             </div>
@@ -117,7 +117,7 @@ export default function Input({ label, labelClassName = '', error, id, className
                     } ${leadingIcon ? 'pl-9' : ''} ${
                         error
                             ? 'border-red-400 focus:border-red-500 focus:ring-red-100'
-                            : 'border-gray-300 focus:border-indigo-500 focus:ring-indigo-100'
+                            : 'border-[var(--border-hairline)] bg-[var(--surface-elevated)] text-[#1C1917] dark:text-[#F8FAFC] dark:border-[#2F3A4C] dark:bg-[#1E2638] placeholder-[#A8A29E] dark:placeholder-[#64748B] focus:border-[#C2410C]'
                     } ${props.disabled ? 'cursor-not-allowed bg-gray-50 text-gray-500' : 'bg-white text-gray-900'}`}
                     {...props}
                 />

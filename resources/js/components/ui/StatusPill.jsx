@@ -13,7 +13,7 @@ export default function StatusPill({ color = '#6b7280', label, className = '' })
             style={{ backgroundColor: `${color}22` }}
         >
             <span className="h-1.5 w-1.5 shrink-0 rounded-full" style={{ backgroundColor: color }} />
-            <span className="text-gray-800">{label}</span>
+            <span className="text-[#1C1917] dark:text-[#F8FAFC]">{label}</span>
         </span>
     );
 }

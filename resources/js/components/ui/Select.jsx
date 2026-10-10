@@ -6,7 +6,7 @@ export default function Select({ label, error, id, className = '', children, ...
     return (
         <div className={className}>
             {label && (
-                <label htmlFor={selectId} className="mb-1.5 block text-sm font-medium text-gray-700">
+                <label htmlFor={selectId} className="mb-1.5 block text-sm font-medium text-[#1C1917] dark:text-[#F8FAFC]">
                     {label}
                 </label>
             )}

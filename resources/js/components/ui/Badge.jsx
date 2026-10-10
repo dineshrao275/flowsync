@@ -1,7 +1,7 @@
 const palette = {
-    admin: 'bg-indigo-100 text-indigo-700',
-    editor: 'bg-amber-100 text-amber-700',
-    viewer: 'bg-sky-100 text-sky-700',
+    admin: 'bg-[#F5F0EB] text-[#1C1917] dark:bg-[#1E2638] dark:text-[#F8FAFC]',
+    editor: 'bg-[#F5F0EB] text-[#1C1917] dark:bg-[#1E2638] dark:text-[#F8FAFC]',
+    viewer: 'bg-[#F5F0EB] text-[#1C1917] dark:bg-[#1E2638] dark:text-[#F8FAFC]',
 };
 
 export default function Badge({ children, tone, className = '', ...props }) {
@@ -13,7 +13,7 @@ export default function Badge({ children, tone, className = '', ...props }) {
 
     return (
         <span
-            className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${colors} ${className}`}
+            className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${colors} border border-[var(--border-hairline)] dark:border-[#2F3A4C] ${className}`}
             {...props}
         >
             {children}

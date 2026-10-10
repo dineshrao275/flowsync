@@ -30,7 +30,7 @@ export default function Pagination({
     if (placement === 'sides') {
         return (
             <div className={`flex items-center justify-between text-sm ${className}`}>
-                <span className="text-gray-400">{center(label)}</span>
+                <span className="text-[#57534E] dark:text-[#94A3B8]">{center(label)}</span>
                 <div className="flex gap-2">
                     {prevBtn}
                     {nextBtn}
@@ -42,7 +42,7 @@ export default function Pagination({
     return (
         <div className={`flex items-center justify-between ${className}`}>
             {prevBtn}
-            <span className="text-sm text-gray-500">{center(label)}</span>
+            <span className="text-[#57534E] dark:text-[#94A3B8] text-sm">{center(label)}</span>
             {nextBtn}
         </div>
     );
