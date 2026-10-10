@@ -15,6 +15,7 @@ use App\Http\Controllers\ProjectRoleController;
 use App\Http\Controllers\ProjectVersionController;
 use App\Http\Controllers\SprintController;
 use App\Http\Controllers\StatusController;
+use App\Http\Controllers\TaskBulkController;
 use App\Http\Controllers\TaskChecklistController;
 use App\Http\Controllers\TaskController;
 use App\Http\Controllers\TaskMoveController;
@@ -118,11 +119,14 @@ Route::middleware(['permission:workspaces.view', 'ensure_product:tms'])->group(f
     Route::get('projects/{project}/hierarchy', [ProjectHierarchyController::class, 'show']);
     Route::get('projects/{project}/tasks', [TaskController::class, 'index']);
     Route::post('projects/{project}/tasks', [TaskController::class, 'store']);
+    Route::post('projects/{project}/tasks/bulk', [TaskBulkController::class, 'bulk'])->middleware('throttle:30,1');
     Route::get('projects/{project}/tasks/key/{key}', [TaskController::class, 'showByKey'])->where('key', '[A-Za-z0-9-]+');
     Route::get('projects/{project}/tasks/{task}', [TaskController::class, 'show']);
     Route::put('projects/{project}/tasks/{task}', [TaskController::class, 'update']);
     Route::delete('projects/{project}/tasks/{task}', [TaskController::class, 'destroy']);
     Route::post('projects/{project}/tasks/{task}/move', [TaskMoveController::class, 'move']);
+    Route::post('projects/{project}/tasks/{task}/clone', [TaskBulkController::class, 'clone'])->middleware('throttle:60,1');
+    Route::post('projects/{project}/tasks/{task}/move-project', [TaskBulkController::class, 'moveProject'])->middleware('throttle:30,1');
 
     // Phase 4: collaboration. Comments (thread + replies, ownership/role
     // policy, CommentSynced broadcast), dependencies (cycle-checked), and
