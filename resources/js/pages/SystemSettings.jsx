@@ -10,17 +10,17 @@ import { useSetCrumbs } from '../context/BreadcrumbContext';
 
 function Toggle({ label, hint, checked, onChange, disabled }) {
     return (
-        <label className={`flex items-center justify-between gap-4 ${disabled ? 'opacity-60' : ''}`}>
+        <label className={`flex items-center justify-between gap-4 ${disabled ? 'opacity-60 cursor-not-allowed' : 'cursor-pointer'}`}>
             <span>
-                <span className="block text-sm font-medium text-gray-800">{label}</span>
-                {hint && <span className="block text-xs text-gray-400">{hint}</span>}
+                <span className="block text-sm font-medium text-gray-900 dark:text-[#F3F4F6]">{label}</span>
+                {hint && <span className="block text-xs text-gray-500 dark:text-[#94A3B8]">{hint}</span>}
             </span>
             <input
                 type="checkbox"
                 checked={checked}
                 disabled={disabled}
                 onChange={(e) => onChange(e.target.checked)}
-                className="h-5 w-5 rounded border-gray-300 text-[var(--accent)] focus:ring-[var(--accent-ring)]"
+                className="h-5 w-5 rounded border-gray-300 dark:border-[#2F3A4C] bg-white dark:bg-[#161B26] text-[var(--accent)] focus:ring-[var(--accent)]/30 transition-colors"
             />
         </label>
     );
@@ -67,8 +67,8 @@ export default function SystemSettings() {
     return (
         <div className="max-w-2xl space-y-6">
             <div>
-                <h1 className="text-2xl font-bold text-gray-800">System Settings</h1>
-                <p className="text-sm text-gray-500">Platform-wide configuration (central system database).</p>
+                <h1 className="text-2xl font-semibold tracking-tight text-gray-900 dark:text-[#F3F4F6]">System Settings</h1>
+                <p className="mt-1 text-sm text-gray-500 dark:text-[#94A3B8]">Platform-wide configuration (central system database).</p>
             </div>
 
             <Card>
@@ -81,7 +81,7 @@ export default function SystemSettings() {
                         error={errors.app_name}
                     />
 
-                    <div className="space-y-4">
+                    <div className="space-y-4 rounded-xl border border-gray-100 dark:border-[#2F3A4C] bg-gray-50/50 dark:bg-[#161B26] p-4">
                         <Toggle
                             label="Public registration"
                             hint="Allow anyone to self-register a workspace at /register."
@@ -97,11 +97,11 @@ export default function SystemSettings() {
                     </div>
 
                     <div>
-                        <label className="mb-1.5 block text-sm font-medium text-gray-700">Default plan for new tenants</label>
+                        <label className="mb-1.5 block text-sm font-medium text-gray-700 dark:text-[#CBD5E1]">Default plan for new tenants</label>
                         <select
                             value={settings.default_plan_id || ''}
                             onChange={(e) => set('default_plan_id', e.target.value ? Number(e.target.value) : null)}
-                            className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100"
+                            className="w-full rounded-lg border border-gray-200 dark:border-[#2F3A4C] bg-white dark:bg-[#161B26] px-3 py-2 text-sm text-gray-900 dark:text-[#F3F4F6] outline-none focus:border-[var(--accent)] focus:ring-1 focus:ring-[var(--accent)]/30 transition-colors"
                         >
                             <option value="">None (first-come uses the plan’s own default)</option>
                             {plans.map((p) => (
@@ -113,7 +113,7 @@ export default function SystemSettings() {
                         {errors.default_plan_id && <p className="mt-1 text-xs text-red-600">{errors.default_plan_id}</p>}
                     </div>
 
-                    {saved && <p className="text-sm font-medium text-green-600">Saved.</p>}
+                    {saved && <p className="text-sm font-medium text-emerald-600 dark:text-emerald-400">Settings saved successfully.</p>}
 
                     <div className="flex justify-end">
                         <Button type="submit" disabled={saving}>{saving ? 'Saving…' : 'Save settings'}</Button>

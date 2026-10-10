@@ -113,8 +113,8 @@ export default function TenantIntake() {
     return (
         <div className="mx-auto max-w-4xl space-y-4">
             <div>
-                <h2 className="text-2xl font-bold text-gray-900">{tenantId ? 'Finish tenant setup' : 'New tenant'}</h2>
-                <p className="mt-1 text-sm text-gray-500">
+                <h2 className="text-2xl font-bold text-gray-900 dark:text-[#F3F4F6]">{tenantId ? 'Finish tenant setup' : 'New tenant'}</h2>
+                <p className="mt-1 text-sm text-gray-500 dark:text-[#94A3B8]">
                     The tenant stays a draft, with no database, until every required field is complete.
                 </p>
             </div>

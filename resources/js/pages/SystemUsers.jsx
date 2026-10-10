@@ -65,8 +65,8 @@ export default function SystemUsers() {
         <div className="space-y-6">
             <div className="flex items-center justify-between">
                 <div>
-                    <h1 className="text-2xl font-bold text-gray-800">Platform Users</h1>
-                    <p className="text-sm text-gray-500">Super-admin accounts on the central system database.</p>
+                    <h1 className="text-2xl font-semibold tracking-tight text-gray-900 dark:text-[#F3F4F6]">Platform Users</h1>
+                    <p className="mt-1 text-sm text-gray-500 dark:text-[#94A3B8]">Super-admin accounts on the central system database.</p>
                 </div>
                 <Button onClick={() => setShowCreate(true)}>New admin</Button>
             </div>
@@ -77,7 +77,7 @@ export default function SystemUsers() {
                     value={q}
                     onChange={(e) => setQ(e.target.value)}
                     placeholder="Search name or email…"
-                    className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100"
+                    className="w-full rounded-lg border border-gray-200 dark:border-[#2F3A4C] bg-white dark:bg-[#161B26] px-3 py-2 text-sm text-gray-900 dark:text-[#F3F4F6] placeholder-gray-400 dark:placeholder-gray-500 outline-none focus:border-[var(--accent)] focus:ring-1 focus:ring-[var(--accent)]/30 transition-colors"
                 />
                 <Button type="submit">Search</Button>
             </form>
@@ -87,7 +87,7 @@ export default function SystemUsers() {
                     <Spinner />
                 ) : (
                     <table className="w-full text-left text-sm">
-                        <thead className="text-xs uppercase tracking-wide text-gray-400">
+                        <thead className="border-b border-gray-100 dark:border-[#2F3A4C] text-xs uppercase tracking-wider text-gray-400 dark:text-[#64748B]">
                             <tr>
                                 <th className="pb-2 font-semibold">Name</th>
                                 <th className="pb-2 font-semibold">Email</th>
@@ -95,19 +95,19 @@ export default function SystemUsers() {
                                 <th className="pb-2 text-right font-semibold">Created</th>
                             </tr>
                         </thead>
-                        <tbody>
+                        <tbody className="divide-y divide-gray-100 dark:divide-[#2F3A4C]">
                             {users.map((u) => (
-                                <tr key={u.id} className="border-t border-gray-100">
-                                    <td className="py-2.5 font-medium text-gray-800">{u.name}</td>
-                                    <td className="py-2.5 text-gray-600">{u.email}</td>
+                                <tr key={u.id} className="transition-colors hover:bg-gray-50/50 dark:hover:bg-[#1C2433]">
+                                    <td className="py-2.5 font-medium text-gray-900 dark:text-[#F3F4F6]">{u.name}</td>
+                                    <td className="py-2.5 text-gray-600 dark:text-[#94A3B8]">{u.email}</td>
                                     <td className="py-2.5"><Badge>admin</Badge></td>
-                                    <td className="py-2.5 text-right text-gray-400">
+                                    <td className="py-2.5 text-right font-mono text-xs text-gray-400 dark:text-[#64748B]">
                                         {u.created_at ? new Date(u.created_at).toLocaleDateString() : '—'}
                                     </td>
                                 </tr>
                             ))}
                             {users.length === 0 && (
-                                <tr><td colSpan={4} className="py-6 text-center text-gray-400">No platform users found.</td></tr>
+                                <tr><td colSpan={4} className="py-6 text-center text-gray-400 dark:text-[#64748B]">No platform users found.</td></tr>
                             )}
                         </tbody>
                     </table>

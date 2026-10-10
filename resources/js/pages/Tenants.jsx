@@ -65,10 +65,10 @@ function renewalLabel(tenant) {
 
 function SummaryCard({ label, value, hint }) {
     return (
-        <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
-            <p className="text-xs font-medium uppercase tracking-wide text-gray-400">{label}</p>
-            <p className="mt-1 text-2xl font-bold text-gray-900">{value}</p>
-            <p className="mt-0.5 text-xs text-gray-500">{hint}</p>
+        <div className="rounded-xl border border-gray-200 dark:border-[#2F3A4C] bg-white dark:bg-[#1A202C] p-4 shadow-sm">
+            <p className="text-xs font-medium uppercase tracking-wide text-gray-400 dark:text-[#64748B]">{label}</p>
+            <p className="mt-1 text-2xl font-bold text-gray-900 dark:text-[#F3F4F6]">{value}</p>
+            <p className="mt-0.5 text-xs text-gray-500 dark:text-[#94A3B8]">{hint}</p>
         </div>
     );
 }
@@ -163,7 +163,7 @@ function TenantActions({ tenant, onChanged, onImpersonate }) {
                 type="button"
                 aria-label="Tenant actions"
                 onClick={toggle}
-                className="rounded-lg p-2 text-gray-400 transition hover:bg-gray-100 hover:text-gray-600"
+                className="rounded-lg p-2 text-gray-400 dark:text-[#64748B] transition hover:bg-gray-100/70 dark:hover:bg-[#1C2433] hover:text-gray-600 dark:hover:text-[#E2E8F0]"
             >
                 <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                     <circle cx="12" cy="5" r="1" />
@@ -173,36 +173,36 @@ function TenantActions({ tenant, onChanged, onImpersonate }) {
             </button>
 
             {open && (
-                <div className="absolute right-0 top-full z-10 mt-1 w-52 origin-top-right animate-scale-in overflow-hidden rounded-xl border border-gray-200 bg-white py-1 shadow-xl">
+                <div className="absolute right-0 top-full z-10 mt-1 w-52 origin-top-right animate-scale-in overflow-hidden rounded-xl border border-gray-200 dark:border-[#2F3A4C] bg-white dark:bg-[#1A202C] py-1 shadow-xl">
                     {mode === 'users' ? (
                         <>
                             <button
                                 type="button"
                                 onClick={() => setMode('menu')}
-                                className="flex w-full items-center gap-2 px-4 py-2 text-left text-sm text-gray-500 transition hover:bg-gray-50"
+                                className="flex w-full items-center gap-2 px-4 py-2 text-left text-sm text-gray-500 dark:text-[#94A3B8] transition hover:bg-gray-50/70 dark:hover:bg-[#1C2433]"
                             >
                                 <svg className="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                                     <path d="M19 12H5M12 19l-7-7 7-7" />
                                 </svg>
                                 Back
                             </button>
-                            <p className="border-b border-gray-100 px-4 py-2 text-xs font-medium text-gray-400">
+                            <p className="border-b border-gray-100 dark:border-[#2F3A4C] px-4 py-2 text-xs font-medium text-gray-400 dark:text-[#64748B]">
                                 View as a user
                             </p>
                             <div className="max-h-64 overflow-y-auto">
                                 {loadingUsers ? (
-                                    <p className="px-4 py-3 text-sm text-gray-400">Loading…</p>
+                                    <p className="px-4 py-3 text-sm text-gray-400 dark:text-[#64748B]">Loading…</p>
                                 ) : (
                                     users.map((user) => (
                                         <button
                                             key={user.id}
                                             type="button"
                                             onClick={() => onImpersonate(user)}
-                                            className="flex w-full items-center gap-2 px-4 py-2 text-left text-sm transition hover:bg-gray-50"
+                                            className="flex w-full items-center gap-2 px-4 py-2 text-left text-sm transition hover:bg-gray-50/70 dark:hover:bg-[#1C2433]"
                                         >
                                             <span className="min-w-0">
-                                                <span className="block truncate font-medium text-gray-800">{user.name}</span>
-                                                <span className="block truncate text-xs text-gray-500">{user.email}</span>
+                                                <span className="block truncate font-medium text-gray-800 dark:text-[#E2E8F0]">{user.name}</span>
+                                                <span className="block truncate text-xs text-gray-500 dark:text-[#94A3B8]">{user.email}</span>
                                             </span>
                                         </button>
                                     ))
@@ -225,11 +225,11 @@ function TenantActions({ tenant, onChanged, onImpersonate }) {
                                     <ActionButton onClick={loadUsers}>
                                         View as user…
                                     </ActionButton>
-                                    <div className="my-1 border-t border-gray-100" />
+                                    <div className="my-1 border-t border-gray-100 dark:border-[#2F3A4C]" />
                                     <ActionButton disabled={busy} onClick={toggleSuspend}>
                                         {tenant.status === 'suspended' ? 'Enable (activate)' : 'Disable (suspend)'}
                                     </ActionButton>
-                                    <div className="my-1 border-t border-gray-100" />
+                                    <div className="my-1 border-t border-gray-100 dark:border-[#2F3A4C]" />
                                     <ActionButton disabled={busy} onClick={remove} danger>
                                         Delete
                                     </ActionButton>
@@ -240,7 +240,7 @@ function TenantActions({ tenant, onChanged, onImpersonate }) {
                                     <ActionButton disabled={busy} onClick={restore}>
                                         Restore
                                     </ActionButton>
-                                    <div className="my-1 border-t border-gray-100" />
+                                    <div className="my-1 border-t border-gray-100 dark:border-[#2F3A4C]" />
                                     <ActionButton disabled={busy} onClick={remove} danger>
                                         Delete
                                     </ActionButton>
@@ -259,7 +259,7 @@ function ActionLink({ to, onClick, children }) {
         <Link
             to={to}
             onClick={onClick}
-            className="flex w-full items-center px-4 py-2 text-left text-sm text-gray-700 transition hover:bg-gray-50"
+            className="flex w-full items-center px-4 py-2 text-left text-sm text-gray-700 dark:text-[#E2E8F0] transition hover:bg-gray-50/70 dark:hover:bg-[#1C2433]"
         >
             {children}
         </Link>
@@ -272,7 +272,7 @@ function ActionButton({ children, onClick, disabled, danger = false }) {
             type="button"
             onClick={onClick}
             disabled={disabled}
-            className={`flex w-full items-center px-4 py-2 text-left text-sm transition hover:bg-gray-50 disabled:opacity-50 ${danger ? 'text-red-600' : 'text-gray-700'}`}
+            className={`flex w-full items-center px-4 py-2 text-left text-sm transition hover:bg-gray-50/70 dark:hover:bg-[#1C2433] disabled:opacity-50 ${danger ? 'text-red-600 dark:text-red-400' : 'text-gray-700 dark:text-[#E2E8F0]'}`}
         >
             {children}
         </button>
@@ -355,8 +355,8 @@ export default function Tenants() {
         <div className="space-y-6">
             <div className="flex flex-wrap items-center justify-between gap-3">
                 <div>
-                    <h2 className="text-2xl font-bold text-gray-900">Tenants</h2>
-                    <p className="mt-1 text-sm text-gray-500">
+                    <h2 className="text-2xl font-bold text-gray-900 dark:text-[#F3F4F6]">Tenants</h2>
+                    <p className="mt-1 text-sm text-gray-500 dark:text-[#94A3B8]">
                         Every tenant is fully isolated with its own users, roles and permissions.
                     </p>
                 </div>
@@ -377,13 +377,13 @@ export default function Tenants() {
                         <SummaryCard label="Drafts" value={summary.tenants.by_status.draft || 0} hint="setup incomplete" />
                     </div>
                     {summary.attention.length > 0 && (
-                        <div className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm">
-                            <p className="mb-1 font-semibold text-amber-900">Needs attention</p>
+                        <div className="rounded-xl border border-amber-200 dark:border-amber-900/50 bg-amber-50 dark:bg-amber-950/20 p-3 text-sm">
+                            <p className="mb-1 font-semibold text-amber-900 dark:text-amber-200">Needs attention</p>
                             <ul className="grid gap-x-6 gap-y-1 sm:grid-cols-2">
                                 {summary.attention.map((a, i) => (
                                     <li key={`${a.tenant_id}-${i}`} className="flex justify-between gap-3">
-                                        <Link className="font-medium text-amber-900 hover:underline" to={`/tenants/${a.tenant_id}`}>{a.name}</Link>
-                                        <span className="text-amber-800">{a.reason}</span>
+                                        <Link className="font-medium text-amber-900 dark:text-amber-300 hover:underline" to={`/tenants/${a.tenant_id}`}>{a.name}</Link>
+                                        <span className="text-amber-800 dark:text-amber-400">{a.reason}</span>
                                     </li>
                                 ))}
                             </ul>
@@ -393,18 +393,18 @@ export default function Tenants() {
             )}
 
             <Card className="p-0">
-                <div className="flex flex-wrap items-center gap-3 border-b border-gray-100 px-4 py-3">
+                <div className="flex flex-wrap items-center gap-3 border-b border-gray-100 dark:border-[#2F3A4C] px-4 py-3">
                     <input
                         type="search"
                         placeholder="Search name, slug, description…"
                         value={q}
                         onChange={(e) => applyFilter({ q: e.target.value })}
-                        className="min-w-48 flex-1 rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200"
+                        className="min-w-48 flex-1 rounded-lg border border-gray-200 dark:border-[#2F3A4C] bg-white dark:bg-[#161B26] px-3 py-2 text-sm text-gray-900 dark:text-[#F3F4F6] placeholder-gray-400 dark:placeholder-gray-500 focus:border-[var(--accent)] focus:ring-1 focus:ring-[var(--accent)]/30"
                     />
                     <select
                         value={status}
                         onChange={(e) => applyFilter({ status: e.target.value })}
-                        className="rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200"
+                        className="rounded-lg border border-gray-200 dark:border-[#2F3A4C] bg-white dark:bg-[#161B26] px-3 py-2 text-sm text-gray-900 dark:text-[#F3F4F6] focus:border-[var(--accent)] focus:ring-1 focus:ring-[var(--accent)]/30"
                     >
                         <option value="">All statuses</option>
                         {STATUS_OPTIONS.map((option) => (
@@ -416,7 +416,7 @@ export default function Tenants() {
                     <select
                         value={plan_id}
                         onChange={(e) => applyFilter({ plan_id: e.target.value })}
-                        className="rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200"
+                        className="rounded-lg border border-gray-200 dark:border-[#2F3A4C] bg-white dark:bg-[#161B26] px-3 py-2 text-sm text-gray-900 dark:text-[#F3F4F6] focus:border-[var(--accent)] focus:ring-1 focus:ring-[var(--accent)]/30"
                     >
                         <option value="">All plans</option>
                         {plans.map((plan) => (
@@ -428,7 +428,7 @@ export default function Tenants() {
                     <select
                         value={filters.subscription_status}
                         onChange={(e) => applyFilter({ subscription_status: e.target.value })}
-                        className="rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200"
+                        className="rounded-lg border border-gray-200 dark:border-[#2F3A4C] bg-white dark:bg-[#161B26] px-3 py-2 text-sm text-gray-900 dark:text-[#F3F4F6] focus:border-[var(--accent)] focus:ring-1 focus:ring-[var(--accent)]/30"
                     >
                         <option value="">Any subscription</option>
                         <option value="trialing">Trialing</option>
@@ -441,7 +441,7 @@ export default function Tenants() {
                     <select
                         value={sort}
                         onChange={(e) => applyFilter({ sort: e.target.value })}
-                        className="rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200"
+                        className="rounded-lg border border-gray-200 dark:border-[#2F3A4C] bg-white dark:bg-[#161B26] px-3 py-2 text-sm text-gray-900 dark:text-[#F3F4F6] focus:border-[var(--accent)] focus:ring-1 focus:ring-[var(--accent)]/30"
                     >
                         {SORT_OPTIONS.map((option) => (
                             <option key={option.value} value={option.value}>
@@ -449,21 +449,21 @@ export default function Tenants() {
                             </option>
                         ))}
                     </select>
-                    <label className="flex items-center gap-2 text-sm text-gray-600">
+                    <label className="flex items-center gap-2 text-sm text-gray-600 dark:text-[#94A3B8]">
                         <input
                             type="checkbox"
                             checked={trashed}
                             onChange={(e) => applyFilter({ trashed: e.target.checked })}
-                            className="h-4 w-4 rounded border-gray-300 text-[var(--accent)] focus:ring-[var(--accent-ring)]"
+                            className="h-4 w-4 rounded border-gray-300 dark:border-[#2F3A4C] text-[var(--accent)] focus:ring-[var(--accent-ring)]"
                         />
                         Include deleted
                     </label>
                 </div>
 
                 <div className="overflow-x-auto">
-                    <table className="min-w-full divide-y divide-gray-100">
+                    <table className="min-w-full divide-y divide-gray-100 dark:divide-[#2F3A4C]">
                         <thead>
-                            <tr className="bg-gray-50 text-left text-xs font-medium uppercase tracking-wide text-gray-500">
+                            <tr className="bg-gray-50/70 dark:bg-[#161B26] text-left text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-[#94A3B8] border-b border-gray-200 dark:border-[#2F3A4C]">
                                 <th className="px-4 py-2.5">Tenant</th>
                                 <th className="px-4 py-2.5">Status</th>
                                 <th className="px-4 py-2.5">Plan</th>
@@ -473,7 +473,7 @@ export default function Tenants() {
                                 <th className="px-4 py-2.5 text-right">Actions</th>
                             </tr>
                         </thead>
-                        <tbody className="divide-y divide-gray-50">
+                        <tbody className="divide-y divide-gray-50 dark:divide-[#2F3A4C]">
                             {loading ? (
                                 <tr>
                                     <td colSpan={7} className="px-4 py-14 text-center">
@@ -484,23 +484,23 @@ export default function Tenants() {
                                 </tr>
                             ) : tenants.length === 0 ? (
                                 <tr>
-                                    <td colSpan={7} className="px-4 py-14 text-center text-sm text-gray-400">
+                                    <td colSpan={7} className="px-4 py-14 text-center text-sm text-gray-400 dark:text-[#64748B]">
                                         No tenants match these filters.
                                     </td>
                                 </tr>
                             ) : (
                                 tenants.map((tenant) => (
-                                    <tr key={tenant.id} className="transition hover:bg-gray-50/50">
+                                    <tr key={tenant.id} className="transition hover:bg-gray-50/70 dark:hover:bg-[#1C2433]">
                                         <td className="px-4 py-3">
                                             <Link
                                                 to={`/tenants/${tenant.id}`}
-                                                className="flex items-center gap-2 font-medium text-gray-800 hover:text-[var(--accent)]"
+                                                className="flex items-center gap-2 font-medium text-gray-900 dark:text-[#F3F4F6] hover:text-[var(--accent)]"
                                             >
                                                 {tenant.name}
                                                 <Badge>{tenant.slug}</Badge>
                                             </Link>
                                             {tenant.description && (
-                                                <p className="mt-0.5 truncate text-xs text-gray-400">{tenant.description}</p>
+                                                <p className="mt-0.5 truncate text-xs text-gray-400 dark:text-[#64748B]">{tenant.description}</p>
                                             )}
                                         </td>
                                         <td className="px-4 py-3">
@@ -510,19 +510,19 @@ export default function Tenants() {
                                             {tenant.plan_name ? (
                                                 <div className="flex items-center gap-1.5">
                                                     <Badge>{tenant.plan_slug}</Badge>
-                                                    <span className="text-xs capitalize text-gray-400">
+                                                    <span className="text-xs capitalize text-gray-400 dark:text-[#64748B]">
                                                         {tenant.subscription_status?.replace('_', ' ')}
                                                     </span>
                                                 </div>
                                             ) : (
-                                                <span className="text-sm text-gray-400">—</span>
+                                                <span className="text-sm text-gray-400 dark:text-[#64748B]">—</span>
                                             )}
                                         </td>
-                                        <td className="px-4 py-3 text-sm text-gray-600">
+                                        <td className="px-4 py-3 text-sm text-gray-600 dark:text-[#94A3B8]">
                                             {renewalLabel(tenant)}
                                         </td>
-                                        <td className="px-4 py-3 text-sm text-gray-600">{tenant.users_count}</td>
-                                        <td className="px-4 py-3 text-sm text-gray-500">
+                                        <td className="px-4 py-3 text-sm text-gray-600 dark:text-[#94A3B8]">{tenant.users_count}</td>
+                                        <td className="px-4 py-3 text-sm text-gray-500 dark:text-[#94A3B8]">
                                             {new Date(tenant.created_at).toLocaleDateString()}
                                         </td>
                                         <td className="px-4 py-3 text-right">
@@ -548,7 +548,7 @@ export default function Tenants() {
                         pages={pagination.last_page}
                         total={pagination.total}
                         label={`${pagination.total} tenants · page ${pagination.current_page} of ${pagination.last_page}`}
-                        className="border-t border-gray-100 px-4 py-3"
+                        className="border-t border-gray-100 dark:border-[#2F3A4C] px-4 py-3"
                         onChange={setPage}
                     />
                 )}

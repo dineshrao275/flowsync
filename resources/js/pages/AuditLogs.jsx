@@ -68,19 +68,19 @@ export default function AuditLogs() {
     return (
         <div className="space-y-6">
             <div>
-                <h1 className="text-2xl font-bold text-gray-800">Audit Logs</h1>
-                <p className="text-sm text-gray-500">Platform events + impersonations across the full trail (paginated, exportable).</p>
+                <h1 className="text-2xl font-semibold tracking-tight text-gray-900 dark:text-[#F3F4F6]">Audit Logs</h1>
+                <p className="mt-1 text-sm text-gray-500 dark:text-[#94A3B8]">Platform events and impersonations across the full trail (paginated, exportable).</p>
             </div>
 
             <div className="flex flex-wrap items-center gap-2">
-                <div className="flex overflow-hidden rounded-lg border border-gray-200">
+                <div className="flex overflow-hidden rounded-lg border border-gray-200 dark:border-[#2F3A4C] bg-white dark:bg-[#161B26]">
                     {Object.entries(TYPE_LABEL).map(([key, label]) => (
                         <button
                             key={key}
                             type="button"
                             onClick={() => setType(key)}
-                            className={`px-3 py-2 text-sm font-medium ${
-                                type === key ? 'bg-[var(--accent)] text-[var(--accent-contrast)]' : 'bg-white text-gray-600 hover:bg-gray-50'
+                            className={`px-3 py-2 text-sm font-medium transition-colors ${
+                                type === key ? 'bg-[var(--accent)] text-[var(--accent-contrast)]' : 'bg-transparent text-gray-600 dark:text-[#94A3B8] hover:bg-gray-50 dark:hover:bg-[#1C2433]'
                             }`}
                         >
                             {label}
@@ -93,7 +93,7 @@ export default function AuditLogs() {
                         value={q}
                         onChange={(e) => setQ(e.target.value)}
                         placeholder="Filter action, actor…"
-                        className="w-56 rounded-lg border border-gray-200 px-3 py-2 text-sm outline-none focus:border-indigo-400"
+                        className="w-56 rounded-lg border border-gray-200 dark:border-[#2F3A4C] bg-white dark:bg-[#161B26] px-3 py-2 text-sm text-gray-900 dark:text-[#F3F4F6] placeholder-gray-400 dark:placeholder-gray-500 outline-none focus:border-[var(--accent)] focus:ring-1 focus:ring-[var(--accent)]/30 transition-colors"
                     />
                     <Button type="submit">Filter</Button>
                 </form>
@@ -102,7 +102,7 @@ export default function AuditLogs() {
                         type,
                         ...(q ? { q } : {}),
                     }).toString()}`}
-                    className="ml-auto inline-flex items-center gap-1.5 rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm font-medium text-gray-600 hover:bg-gray-50"
+                    className="ml-auto inline-flex items-center gap-1.5 rounded-lg border border-gray-200 dark:border-[#2F3A4C] bg-white dark:bg-[#1A202C] px-3 py-2 text-sm font-medium text-gray-700 dark:text-[#F3F4F6] hover:bg-gray-50 dark:hover:bg-[#1C2433] transition-colors"
                 >
                     Export CSV
                 </a>
@@ -134,27 +134,27 @@ export default function AuditLogs() {
                                 return (
                                     <tr
                                         key={item.id}
-                                        className="animate-fade-in transition-colors duration-150 hover:bg-gray-50/60"
+                                        className="transition-colors duration-150 hover:bg-gray-50/60 dark:hover:bg-[#1C2433]"
                                         style={{ animationDelay: `${index * 30}ms` }}
                                     >
-                                        <Td align="right" className="whitespace-nowrap text-xs text-gray-400">
+                                        <Td align="right" className="whitespace-nowrap font-mono text-xs text-gray-400 dark:text-[#64748B]">
                                             {item.created_at ? new Date(item.created_at).toLocaleString() : '—'}
                                         </Td>
                                         <Td>
-                                            <span className="block truncate font-medium text-gray-800">
+                                            <span className="block truncate font-medium text-gray-900 dark:text-[#F3F4F6]">
                                                 {item.actor?.name || 'System'}
                                             </span>
                                             {item.actor?.email && (
-                                                <span className="block truncate text-xs text-gray-400">{item.actor.email}</span>
+                                                <span className="block truncate text-xs text-gray-400 dark:text-[#64748B]">{item.actor.email}</span>
                                             )}
                                         </Td>
                                         <Td>
                                             <Badge>{item.type === 'impersonation' ? 'impersonation' : 'event'}</Badge>
-                                            <span className="mt-0.5 block truncate font-medium text-gray-800">
+                                            <span className="mt-0.5 block truncate font-medium text-gray-900 dark:text-[#F3F4F6]">
                                                 {describe(item.action, item.data)}
                                             </span>
                                         </Td>
-                                        <Td className="whitespace-nowrap text-gray-600">
+                                        <Td className="whitespace-nowrap text-gray-600 dark:text-[#94A3B8]">
                                             {item.subject_type || targetId ? (
                                                 <span>
                                                     {item.subject_type ?? '—'}
@@ -164,10 +164,10 @@ export default function AuditLogs() {
                                                 '—'
                                             )}
                                         </Td>
-                                        <Td className="whitespace-nowrap">
-                                            {item.tenant?.name ?? <span className="text-gray-400">—</span>}
+                                        <Td className="whitespace-nowrap text-gray-700 dark:text-[#CBD5E1]">
+                                            {item.tenant?.name ?? <span className="text-gray-400 dark:text-[#64748B]">—</span>}
                                         </Td>
-                                        <Td align="right" className="whitespace-nowrap text-xs text-gray-400">
+                                        <Td align="right" className="whitespace-nowrap font-mono text-xs text-gray-400 dark:text-[#64748B]">
                                             {item.ip_address ?? '—'}
                                         </Td>
                                     </tr>

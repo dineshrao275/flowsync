@@ -66,9 +66,9 @@ const FIELDS = {
 
 function StatCell({ label, value }) {
     return (
-        <div className="rounded-lg bg-white p-3 text-center shadow-sm">
-            <p className="text-xl font-bold text-gray-800">{value}</p>
-            <p className="text-xs text-gray-400">{label}</p>
+        <div className="rounded-lg bg-gray-50/70 dark:bg-[#161B26] border border-gray-100 dark:border-[#2F3A4C] p-3 text-center shadow-sm">
+            <p className="text-xl font-bold text-gray-900 dark:text-[#F3F4F6]">{value}</p>
+            <p className="text-xs text-gray-400 dark:text-[#64748B]">{label}</p>
         </div>
     );
 }
@@ -76,7 +76,7 @@ function StatCell({ label, value }) {
 function Group({ section, form, setForm, errors }) {
     return (
         <section>
-            <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-gray-500">{section.title}</h3>
+            <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-[#94A3B8]">{section.title}</h3>
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 {section.fields.map((key) => (
                     <Input
@@ -194,11 +194,11 @@ export default function TenantDetail() {
         <div className="space-y-6">
             <div>
                 <div className="flex flex-wrap items-center gap-2">
-                    <h2 className="text-2xl font-bold text-gray-900">{tenant?.name}</h2>
+                    <h2 className="text-2xl font-bold text-gray-900 dark:text-[#F3F4F6]">{tenant?.name}</h2>
                     <Badge>{tenant?.slug}</Badge>
                     {tenant?.status && <Badge>{tenant.status}</Badge>}
                 </div>
-                <p className="mt-1 text-sm text-gray-500">{tenant?.description || 'No description'}</p>
+                <p className="mt-1 text-sm text-gray-500 dark:text-[#94A3B8]">{tenant?.description || 'No description'}</p>
             </div>
 
             {error && <Alert>{error}</Alert>}
@@ -264,34 +264,34 @@ export default function TenantDetail() {
                         {tenant?.status === 'draft' && (
                             <Alert>
                                 This tenant is an incomplete draft with no database yet.{' '}
-                                <Link className="font-semibold underline" to={`/tenants/${tenant.id}/setup`}>Continue setup</Link>
+                                <Link className="font-semibold underline text-[var(--accent)]" to={`/tenants/${tenant.id}/setup`}>Continue setup</Link>
                             </Alert>
                         )}
                         <Card title="Default user" subtitle="The tenant admin can change this from their Users page.">
                             {defaultUser ? (
                                 <div className="text-sm">
-                                    <p className="font-medium text-gray-800">{defaultUser.name}</p>
-                                    <p className="text-gray-500">{defaultUser.email}</p>
+                                    <p className="font-medium text-gray-900 dark:text-[#F3F4F6]">{defaultUser.name}</p>
+                                    <p className="text-gray-500 dark:text-[#94A3B8]">{defaultUser.email}</p>
                                 </div>
                             ) : (
-                                <p className="text-sm text-gray-400">No default user yet.</p>
+                                <p className="text-sm text-gray-400 dark:text-[#64748B]">No default user yet.</p>
                             )}
                         </Card>
                         <ProductsPanel tenantId={tenantId} onChanged={() => api.get(`/tenants/${tenantId}`).then(({ data }) => setDefaultUser(data.default_user)).catch(() => {})} />
                     </div>
 
-                    <div className="mt-6 space-y-3 rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm">
+                    <div className="mt-6 space-y-3 rounded-xl border border-gray-200 dark:border-[#2F3A4C] bg-gray-50/70 dark:bg-[#161B26] p-4 text-sm">
                         <div>
-                            <span className="text-xs font-semibold uppercase tracking-wide text-gray-400">Status</span>
-                            <p className="mt-0.5 font-medium text-gray-800">{tenant?.status || '—'}</p>
+                            <span className="text-xs font-semibold uppercase tracking-wide text-gray-400 dark:text-[#64748B]">Status</span>
+                            <p className="mt-0.5 font-medium text-gray-900 dark:text-[#F3F4F6]">{tenant?.status || '—'}</p>
                         </div>
                         <div>
-                            <span className="text-xs font-semibold uppercase tracking-wide text-gray-400">Provisioning</span>
-                            <p className="mt-0.5 font-medium text-gray-800">{tenant?.provisioning_status || '—'}</p>
+                            <span className="text-xs font-semibold uppercase tracking-wide text-gray-400 dark:text-[#64748B]">Provisioning</span>
+                            <p className="mt-0.5 font-medium text-gray-900 dark:text-[#F3F4F6]">{tenant?.provisioning_status || '—'}</p>
                         </div>
                         <div>
-                            <span className="text-xs font-semibold uppercase tracking-wide text-gray-400">Trial ends</span>
-                            <p className="mt-0.5 font-medium text-gray-800">
+                            <span className="text-xs font-semibold uppercase tracking-wide text-gray-400 dark:text-[#64748B]">Trial ends</span>
+                            <p className="mt-0.5 font-medium text-gray-900 dark:text-[#F3F4F6]">
                                 {tenant?.trial_ends_at ? new Date(tenant.trial_ends_at).toLocaleDateString() : '—'}
                             </p>
                         </div>

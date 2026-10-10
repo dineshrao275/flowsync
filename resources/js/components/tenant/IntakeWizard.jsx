@@ -105,8 +105,12 @@ export default function IntakeWizard({
                 {steps.map((key, i) => (
                     <li
                         key={key}
-                        className={`flex items-center gap-2 rounded-full px-3 py-1 ${
-                            i === index ? 'bg-indigo-600 text-white' : i < index ? 'bg-indigo-50 text-indigo-700' : 'bg-gray-100 text-gray-500'
+                        className={`flex items-center gap-2 rounded-full px-3 py-1 text-xs font-medium transition ${
+                            i === index
+                                ? 'bg-[var(--accent)] text-white shadow-sm'
+                                : i < index
+                                ? 'bg-gray-100 dark:bg-[#161B26] text-[var(--accent)] border border-transparent dark:border-[#2F3A4C]'
+                                : 'bg-gray-100/70 dark:bg-[#161B26] text-gray-500 dark:text-[#94A3B8]'
                         }`}
                     >
                         <span className="font-semibold">{i + 1}</span>
@@ -134,16 +138,16 @@ export default function IntakeWizard({
                             error={err('slug')}
                         />
                         <Input label="Industry" name="industry" required value={values.industry || ''} onChange={(e) => set('industry', e.target.value)} error={err('industry')} />
-                        <label className="block text-sm font-medium text-gray-700">
+                        <label className="block text-sm font-medium text-gray-900 dark:text-[#F3F4F6]">
                             Company size
                             <select
                                 name="company_size" value={values.company_size || ''} onChange={(e) => set('company_size', e.target.value)}
-                                className="mt-1.5 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200"
+                                className="mt-1.5 w-full rounded-lg border border-gray-200 dark:border-[#2F3A4C] bg-white dark:bg-[#161B26] px-3 py-2 text-sm text-gray-900 dark:text-[#F3F4F6] focus:border-[var(--accent)] focus:ring-1 focus:ring-[var(--accent)]/30"
                             >
                                 <option value="">Select…</option>
                                 {COMPANY_SIZES.map((s) => <option key={s} value={s}>{s} people</option>)}
                             </select>
-                            {err('company_size') && <span className="mt-1 block text-sm text-red-600">{err('company_size')}</span>}
+                            {err('company_size') && <span className="mt-1 block text-sm text-red-600 dark:text-red-400">{err('company_size')}</span>}
                         </label>
                         <Input label="Country (2-letter code)" name="country" required maxLength={2} placeholder="US" value={values.country || ''} onChange={(e) => set('country', e.target.value.toUpperCase())} error={err('country')} />
                         {!isRegister && (
@@ -178,7 +182,7 @@ export default function IntakeWizard({
                         if (choices.length === 0) return null;
                         return (
                             <div key={product} className="mb-4">
-                                <p className="mb-2 text-sm font-semibold text-gray-800">{title}</p>
+                                <p className="mb-2 text-sm font-semibold text-gray-900 dark:text-[#F3F4F6]">{title}</p>
                                 <div className="grid grid-cols-1 gap-3 md:grid-cols-4">
                                     <PlanChoice selected={!values[field]} onClick={() => onChange({ ...values, [field]: '' })} title="None" body="Not needed yet" />
                                     {choices.map((p) => (
@@ -195,8 +199,8 @@ export default function IntakeWizard({
                         );
                     })}
                     {plans.some((p) => !p.product || p.product === 'suite') && (
-                        <details className="mb-2 text-sm text-gray-600" open={Boolean(values.plan_id)}>
-                            <summary className="cursor-pointer">Legacy bundle plans (both products in one)</summary>
+                        <details className="mb-2 text-sm text-gray-600 dark:text-[#94A3B8]" open={Boolean(values.plan_id)}>
+                            <summary className="cursor-pointer font-medium hover:text-gray-900 dark:hover:text-[#F3F4F6]">Legacy bundle plans (both products in one)</summary>
                             <div className="mt-2 grid grid-cols-1 gap-3 md:grid-cols-3">
                                 {plans.filter((p) => !p.product || p.product === 'suite').map((p) => (
                                     <PlanChoice
@@ -210,9 +214,9 @@ export default function IntakeWizard({
                             </div>
                         </details>
                     )}
-                    {err('plan_id') && <p className="mt-2 text-sm text-red-600">{err('plan_id')}</p>}
-                    <label className="mt-4 flex items-start gap-2 text-sm text-gray-700">
-                        <input type="checkbox" className="mt-1" checked={Boolean(values.start_trial)} onChange={(e) => set('start_trial', e.target.checked)} />
+                    {err('plan_id') && <p className="mt-2 text-sm text-red-600 dark:text-red-400">{err('plan_id')}</p>}
+                    <label className="mt-4 flex items-start gap-2 text-sm text-gray-700 dark:text-[#E2E8F0]">
+                        <input type="checkbox" className="mt-1 h-4 w-4 rounded border-gray-300 dark:border-[#2F3A4C] text-[var(--accent)] focus:ring-[var(--accent-ring)]" checked={Boolean(values.start_trial)} onChange={(e) => set('start_trial', e.target.checked)} />
                         <span>Start with a {trialDays}-day free trial.</span>
                     </label>
                     {values.start_trial && requireCard && (
@@ -222,7 +226,7 @@ export default function IntakeWizard({
                                 placeholder="Card on file reference" onChange={(e) => set('payment_method', e.target.value)}
                                 error={err('payment_method')}
                             />
-                            <p className="mt-1 text-xs text-gray-500">A card is required to start a trial and is not charged until it ends.</p>
+                            <p className="mt-1 text-xs text-gray-500 dark:text-[#94A3B8]">A card is required to start a trial and is not charged until it ends.</p>
                         </div>
                     )}
                 </Card>
@@ -264,9 +268,9 @@ export default function IntakeWizard({
 
 function Row({ k, v }) {
     return (
-        <div className="flex justify-between gap-3 border-b border-gray-100 py-1">
-            <dt className="text-gray-500">{k}</dt>
-            <dd className="font-medium text-gray-800">{v || '—'}</dd>
+        <div className="flex justify-between gap-3 border-b border-gray-100 dark:border-[#2F3A4C] py-1">
+            <dt className="text-gray-500 dark:text-[#94A3B8]">{k}</dt>
+            <dd className="font-medium text-gray-900 dark:text-[#F3F4F6]">{v || '—'}</dd>
         </div>
     );
 }
@@ -276,10 +280,14 @@ function PlanChoice({ selected, onClick, title, body }) {
         <button
             type="button"
             onClick={onClick}
-            className={`rounded-xl border p-3 text-left transition ${selected ? 'border-indigo-500 ring-2 ring-indigo-200' : 'border-gray-200 hover:border-gray-300'}`}
+            className={`rounded-xl border p-3 text-left transition ${
+                selected
+                    ? 'border-[var(--accent)] bg-[var(--accent-soft)] ring-1 ring-[var(--accent)] text-[var(--accent-soft-text)]'
+                    : 'border-gray-200 dark:border-[#2F3A4C] bg-white dark:bg-[#1A202C] hover:border-gray-300 dark:hover:border-gray-600'
+            }`}
         >
-            <p className="font-semibold text-gray-900">{title}</p>
-            <p className="text-sm text-gray-500">{body}</p>
+            <p className="font-semibold text-gray-900 dark:text-[#F3F4F6]">{title}</p>
+            <p className="text-sm text-gray-500 dark:text-[#94A3B8]">{body}</p>
         </button>
     );
 }
