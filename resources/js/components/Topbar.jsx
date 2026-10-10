@@ -112,7 +112,7 @@ export default function Topbar({ onOpenTheme, onToggleSidebar, onOpenSearch, sho
                                 <p className="truncate text-xs text-[#78716C] dark:text-[#94A3B8]">{user?.email}</p>
                                 <div className="mt-2 flex flex-wrap gap-1">
                                     {(user?.roles || []).map((role) => (
-                                        <span key={role} className="rounded bg-gray-100 px-1.5 py-0.5 text-[10px] uppercase tracking-wide text-gray-600">
+                                        <span key={role} className="rounded bg-gray-100 dark:bg-[#252E3E] px-1.5 py-0.5 text-[10px] uppercase tracking-wide text-gray-600 dark:text-[#CBD5E1]">
                                             {role}
                                         </span>
                                     ))}

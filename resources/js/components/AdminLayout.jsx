@@ -94,10 +94,10 @@ export default function AdminLayout() {
                 </main>
 
                 <footer
-                    className="border-t border-[var(--border-hairline)] dark:border-[#2F3A4C] text-[#A8A29E] dark:text-[#64748B]"
+                    className="border-t border-[var(--border-hairline)] dark:border-[#2F3A4C] px-4 py-3 text-center text-xs text-[#A8A29E] dark:text-[#64748B]"
                     style={{ backgroundColor: 'var(--header-bg)' }}
                 >
-                    FlowSync Admin &middot; Laravel + React
+                    FlowSync &middot; Multi-Tenant Workspace & HRMS
                 </footer>
             </div>
 

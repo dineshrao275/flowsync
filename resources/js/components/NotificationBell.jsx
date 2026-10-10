@@ -50,13 +50,13 @@ export default function NotificationBell() {
             </button>
 
             {open && (
-                <div className="absolute right-0 z-30 mt-2 w-80 origin-top-right animate-scale-in overflow-hidden rounded-xl border border-[var(--border-hairline)] dark:border-[#2F3A4C] bg-[var(--card-bg)] dark:bg-[#182030] shadow-popover">
-                    <div className="flex items-center justify-between border-b border-gray-100 px-4 py-3">
+                <div className="absolute -right-12 sm:right-0 z-30 mt-2 w-80 sm:w-96 max-w-[calc(100vw-2rem)] origin-top-right animate-scale-in overflow-hidden rounded-xl border border-[var(--border-hairline)] dark:border-[#2F3A4C] bg-[var(--card-bg)] dark:bg-[#182030] shadow-popover">
+                    <div className="flex items-center justify-between border-b border-gray-100 dark:border-[#2F3A4C] px-4 py-3">
                         <p className="text-sm font-semibold text-[#1C1917] dark:text-[#F8FAFC]">Notifications</p>
                         {unreadCount > 0 && (
                             <button
                                 onClick={markAllRead}
-                                className="text-[var(--accent)] hover:underline"
+                                className="text-xs font-medium text-[var(--accent)] hover:underline"
                             >
                                 Mark all read
                             </button>
@@ -69,9 +69,9 @@ export default function NotificationBell() {
                                 <Spinner />
                             </div>
                         ) : notifications.length === 0 ? (
-                            <p className="px-4 py-10 text-center text-sm text-gray-400">You&apos;re all caught up.</p>
+                            <p className="px-4 py-10 text-center text-sm text-gray-400 dark:text-[#64748B]">You&apos;re all caught up.</p>
                         ) : (
-                            <ul className="divide-y divide-gray-50">
+                            <ul className="divide-y divide-gray-100 dark:divide-[#2F3A4C]">
                                 {notifications.map((notification) => (
                                     <li key={notification.id}>
                                         <button

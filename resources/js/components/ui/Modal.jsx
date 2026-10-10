@@ -44,7 +44,7 @@ export default function Modal({ open, onClose, title, subtitle, size = 'md', chi
                                 type="button"
                                 onClick={onClose}
                                 aria-label="Close"
-                                className="-mr-1 -mt-1 rounded-lg p-1.5 text-gray-400 transition hover:bg-gray-100 hover:text-gray-600"
+                                className="-mr-1 -mt-1 rounded-lg p-1.5 text-gray-400 dark:text-[#64748B] transition hover:bg-gray-100 dark:hover:bg-[#252E3E] hover:text-gray-700 dark:hover:text-[#F8FAFC]"
                             >
                                 <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
                                     <path d="M6 6l12 12M18 6L6 18" />

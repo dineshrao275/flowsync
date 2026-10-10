@@ -39,7 +39,7 @@ export default function Drawer({ open, onClose, title, subtitle, children, heade
                                 type="button"
                                 onClick={onClose}
                                 aria-label="Close"
-                                className="-mr-1 -mt-1 rounded-lg p-1.5 text-gray-400 transition hover:bg-gray-100 hover:text-gray-600"
+                                className="-mr-1 -mt-1 rounded-lg p-1.5 text-gray-400 dark:text-[#64748B] transition hover:bg-gray-100 dark:hover:bg-[#252E3E] hover:text-gray-700 dark:hover:text-[#F8FAFC]"
                             >
                                 <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
                                     <path d="M6 6l12 12M18 6L6 18" />
@@ -49,7 +49,7 @@ export default function Drawer({ open, onClose, title, subtitle, children, heade
                     </div>
                 )}
                 <div className="min-h-0 flex-1 overflow-y-auto">{children}</div>
-                {footer && <div className="shrink-0 border-t border-gray-100 px-6 py-3">{footer}</div>}
+                {footer && <div className="shrink-0 border-t border-gray-100 dark:border-[#2F3A4C] px-6 py-3">{footer}</div>}
             </div>
         </div>,
         document.body,
