@@ -9,7 +9,7 @@ export const DEFAULT_THEME = {
     sidebar_hover: '#1e293b',
     active_menu: '#6366f1',
     sidebar_text: '#cbd5e1',
-    dashboard_bg: '#f1f5f9',
+    dashboard_bg: '#fbfbfa',
     header_bg: '#ffffff',
     header_text: '#0f172a',
     card_bg: '#ffffff',

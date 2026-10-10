@@ -19,7 +19,11 @@
     --sidebar-hover: #1e293b;
     --active-menu: #6366f1;
     --sidebar-text: #cbd5e1;
-    --dashboard-bg: #f1f5f9;
+    --dashboard-bg: #fbfbfa;
+    --surface-elevated: #f4f3ef;
+    --border-hairline: #e8e7e3;
+    --text-primary: #1c1917;
+    --text-secondary: #57534e;
     --header-bg: #ffffff;
     --header-text: #0f172a;
     --card-bg: #ffffff;
@@ -132,6 +136,13 @@
     --color-green-600: #d3f3df;
     --color-green-700: #e4f8ec;
     --color-green-800: #f4fcf7;
+
+    /* Warm palette overrides for dark mode */
+    --dashboard-bg: #131720;
+    --surface-elevated: #232b3a;
+    --border-hairline: #2f3a4c;
+    --text-primary: #f8fafc;
+    --text-secondary: #94a3b8;
 }
 
 .dark .bg-white {
