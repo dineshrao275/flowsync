@@ -94,21 +94,21 @@ export default function Register() {
             title="Create your workspace"
             subtitle="Start a free trial for your team"
             footer={
-                <span className="text-sm text-slate-500">
+                <span className="text-sm text-gray-500 dark:text-[#94A3B8]">
                     Already have an account?{' '}
-                    <Link to="/login" className="font-medium text-indigo-600 hover:text-indigo-500">
+                    <Link to="/login" className="font-medium text-[var(--accent)] hover:opacity-80 transition-opacity">
                         Sign in
                     </Link>
                 </span>
             }
         >
             {closed ? (
-                <p className="text-sm text-slate-600">Self-registration is currently unavailable. Please contact us for access.</p>
+                <p className="text-sm text-gray-600 dark:text-[#94A3B8]">Self-registration is currently unavailable. Please contact us for access.</p>
             ) : !options ? (
                 <div className="flex justify-center py-10"><Spinner /></div>
             ) : (
                 <>
-                {canceledCard && <p className="mb-3 text-sm text-amber-700">Card setup was canceled — nothing was created. You can try again.</p>}
+                {canceledCard && <p className="mb-3 text-sm text-amber-700 dark:text-amber-400">Card setup was canceled — nothing was created. You can try again.</p>}
                 <IntakeWizard
                     mode="register"
                     values={values}

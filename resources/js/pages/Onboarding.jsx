@@ -132,7 +132,7 @@ export default function Onboarding() {
             <button
                 type="button"
                 onClick={() => setBusinessOpen((open) => !open)}
-                className="rounded-lg border border-gray-300 px-3 py-1.5 text-sm font-medium text-gray-700 transition hover:bg-gray-50"
+                className="rounded-lg border border-gray-200 dark:border-[#2F3A4C] bg-white dark:bg-[#161B26] px-3 py-1.5 text-sm font-medium text-gray-700 dark:text-[#CBD5E1] transition hover:bg-gray-50 dark:hover:bg-[#1C2433]"
             >
                 {businessOpen ? 'Hide form' : 'Fill business details'}
             </button>
@@ -157,7 +157,7 @@ export default function Onboarding() {
                 <button
                     type="button"
                     onClick={() => setHrmsOpen((open) => !open)}
-                    className="rounded-lg border border-gray-300 px-3 py-1.5 text-sm font-medium text-gray-700 transition hover:bg-gray-50"
+                    className="rounded-lg border border-gray-200 dark:border-[#2F3A4C] bg-white dark:bg-[#161B26] px-3 py-1.5 text-sm font-medium text-gray-700 dark:text-[#CBD5E1] transition hover:bg-gray-50 dark:hover:bg-[#1C2433]"
                 >
                     {hrmsOpen ? 'Hide form' : 'Set up people'}
                 </button>
@@ -181,44 +181,44 @@ export default function Onboarding() {
     return (
         <div className="mx-auto max-w-2xl">
             <div className="mb-8">
-                <h2 className="text-2xl font-bold text-gray-900">Welcome{user ? `, ${user.name.split(' ')[0]}` : ''}!</h2>
-                <p className="mt-1 text-sm text-gray-500">A few quick steps to set up your FlowSync workspace.</p>
+                <h2 className="text-2xl font-semibold tracking-tight text-gray-900 dark:text-[#F3F4F6]">Welcome{user ? `, ${user.name.split(' ')[0]}` : ''}!</h2>
+                <p className="mt-1 text-sm text-gray-500 dark:text-[#94A3B8]">A few quick steps to set up your FlowSync workspace.</p>
             </div>
 
             {error && <Alert className="mb-4">{error}</Alert>}
 
             <div className="mb-6">
                 <div className="flex items-center justify-between text-sm">
-                    <span className="font-medium text-gray-700">
+                    <span className="font-medium text-gray-700 dark:text-[#CBD5E1]">
                         {done} of {steps.length} steps complete
                     </span>
-                    <span className="text-gray-500">{progress}%</span>
+                    <span className="text-gray-500 dark:text-[#94A3B8]">{progress}%</span>
                 </div>
-                <div className="mt-2 h-2 overflow-hidden rounded-full bg-gray-200">
+                <div className="mt-2 h-2 overflow-hidden rounded-full bg-gray-100 dark:bg-[#2F3A4C]">
                     <div className="h-full rounded-full bg-[var(--accent)] transition-all" style={{ width: `${progress}%` }} />
                 </div>
             </div>
 
             <div className="space-y-3">
                 {steps.map((step, index) => (
-                    <div key={step.key} className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
+                    <div key={step.key} className="rounded-xl border border-gray-200 dark:border-[#2F3A4C] bg-white dark:bg-[#1A202C] p-5 shadow-sm">
                         <div className="flex items-start justify-between gap-4">
                             <div className="flex items-start gap-3">
                                 <span
                                     className={`mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-xs font-bold ${
-                                        step.complete ? 'bg-emerald-100 text-emerald-700' : 'bg-indigo-100 text-indigo-700'
+                                        step.complete ? 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400' : 'bg-orange-50 dark:bg-orange-950/40 text-[var(--accent)]'
                                     }`}
                                 >
                                     {step.complete ? '✓' : index + 1}
                                 </span>
                                 <div>
                                     <div className="flex items-center gap-2">
-                                        <h3 className="text-sm font-semibold text-gray-900">{step.title}</h3>
-                                        {!step.required && <span className="text-xs text-gray-400">optional</span>}
+                                        <h3 className="text-sm font-semibold text-gray-900 dark:text-[#F3F4F6]">{step.title}</h3>
+                                        {!step.required && <span className="text-xs text-gray-400 dark:text-[#64748B]">optional</span>}
                                     </div>
-                                    <p className="mt-0.5 text-sm text-gray-500">{step.description}</p>
+                                    <p className="mt-0.5 text-sm text-gray-500 dark:text-[#94A3B8]">{step.description}</p>
                                     {step.key === 'business' && businessOpen && (
-                                        <div className="mt-3 rounded-lg border border-gray-100 bg-gray-50 p-4">
+                                        <div className="mt-3 rounded-xl border border-gray-100 dark:border-[#2F3A4C] bg-gray-50/70 dark:bg-[#161B26] p-4">
                                             <div className="mb-3 space-y-3">
                                                 <Input
                                                     label="Legal name"
@@ -266,7 +266,7 @@ export default function Onboarding() {
                                         </div>
                                     )}
                                     {step.key === 'hrms' && hrmsOpen && (
-                                        <div className="mt-3 rounded-lg border border-gray-100 bg-gray-50 p-4">
+                                        <div className="mt-3 rounded-xl border border-gray-100 dark:border-[#2F3A4C] bg-gray-50/70 dark:bg-[#161B26] p-4">
                                             <div className="mb-3 space-y-3">
                                                 <div className="grid grid-cols-2 gap-3">
                                                     <Input
@@ -317,7 +317,7 @@ export default function Onboarding() {
                                 </div>
                             </div>
                             {step.complete ? (
-                                <span className="inline-flex items-center rounded-full bg-emerald-50 px-2.5 py-0.5 text-xs font-medium text-emerald-700">
+                                <span className="inline-flex items-center rounded-full bg-emerald-50 dark:bg-emerald-950/40 px-2.5 py-0.5 text-xs font-medium text-emerald-600 dark:text-emerald-400">
                                     Complete
                                 </span>
                             ) : (

@@ -45,9 +45,9 @@ export default function Login() {
             title="Welcome back"
             subtitle="Sign in to your admin account"
             footer={
-                <span className="text-sm text-slate-500">
+                <span className="text-sm text-gray-500 dark:text-[#94A3B8]">
                     Access is managed by your tenant administrator.{' '}
-                    <Link to="/register" className="font-medium text-[var(--accent)] hover:text-indigo-500">
+                    <Link to="/register" className="font-medium text-[var(--accent)] hover:opacity-80 transition-opacity">
                         New here? Create a workspace
                     </Link>
                 </span>
@@ -78,18 +78,18 @@ export default function Login() {
                     error={errors.password}
                 />
                 <div className="flex items-center justify-between">
-                    <label className="flex items-center gap-2 text-sm text-slate-600">
+                    <label className="flex items-center gap-2 text-sm text-gray-600 dark:text-[#CBD5E1] cursor-pointer">
                         <input
                             type="checkbox"
                             checked={form.remember}
                             onChange={(e) => update('remember', e.target.checked)}
-                            className="h-4 w-4 rounded border-slate-300 text-[var(--accent)] accent-[var(--accent)] transition-all duration-150 focus:ring-[var(--accent-ring)]"
+                            className="h-4 w-4 rounded border-gray-300 dark:border-[#2F3A4C] bg-white dark:bg-[#161B26] text-[var(--accent)] accent-[var(--accent)] transition-all duration-150 focus:ring-[var(--accent)]/30"
                         />
                         Remember me
                     </label>
                     <Link
                         to="/forgot-password"
-                        className="text-sm font-medium text-[var(--accent)] hover:text-indigo-500"
+                        className="text-sm font-medium text-[var(--accent)] hover:opacity-80 transition-opacity"
                     >
                         Forgot password?
                     </Link>

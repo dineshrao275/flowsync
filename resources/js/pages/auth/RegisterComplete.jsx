@@ -35,7 +35,7 @@ export default function RegisterComplete() {
             {error ? (
                 <div className="space-y-3">
                     <Alert>{error}</Alert>
-                    <Link to="/register" className="text-sm font-medium text-indigo-600">Start again</Link>
+                    <Link to="/register" className="text-sm font-medium text-[var(--accent)] hover:opacity-80 transition-opacity">Start again</Link>
                 </div>
             ) : (
                 <div className="flex justify-center py-8"><Spinner /></div>
