@@ -182,7 +182,7 @@ export default function Sidebar({ open, collapsed, onClose, onToggleCollapse }) 
         <>
             {open && (
                 <div
-                    className="fixed inset-0 z-30 animate-backdrop-in bg-black/50 lg:hidden"
+                    className="fixed inset-0 z-30 animate-backdrop-in bg-stone-900/50 backdrop-blur-sm lg:hidden"
                     onClick={onClose}
                     aria-hidden="true"
                 />
@@ -191,7 +191,7 @@ export default function Sidebar({ open, collapsed, onClose, onToggleCollapse }) 
             <aside
                 className={`fixed inset-y-0 left-0 z-40 flex flex-col transition-all duration-300 lg:translate-x-0 ${
                     open ? 'translate-x-0' : '-translate-x-full'
-                } ${collapsed ? 'w-16 lg:w-16' : 'w-64'}`}
+                } ${collapsed ? 'w-16 lg:w-16' : 'w-64'} border-r border-[var(--border-hairline)] dark:border-[#2F3A4C]`}
                 style={
                     user?.impersonating
                         ? { backgroundColor: 'var(--sidebar-bg)', top: '2.5rem', height: 'calc(100% - 2.5rem)' }
@@ -210,7 +210,7 @@ export default function Sidebar({ open, collapsed, onClose, onToggleCollapse }) 
                             <p className="truncate text-base font-semibold" style={{ color: 'var(--header-bg)' }}>
                                 FlowSync
                             </p>
-                            <p className="truncate text-xs" style={{ color: 'var(--sidebar-text)' }}>
+                            <p className="truncate text-xs font-normal" style={{ color: '#a8a29a' }}>
                                 {isSuperAdmin ? 'Super Admin Panel' : user?.tenant?.name || 'Admin Panel'}
                             </p>
                         </div>

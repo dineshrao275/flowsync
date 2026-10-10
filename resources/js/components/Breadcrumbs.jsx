@@ -4,7 +4,7 @@ import { useCrumbs } from '../context/BreadcrumbContext';
 
 function Chevron() {
     return (
-        <svg className="h-3.5 w-3.5 text-gray-300" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <svg className="h-3.5 w-3.5 text-[#A8A29E] dark:text-[#64748B]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <path d="M9 18l6-6-6-6" />
         </svg>
     );
@@ -20,14 +20,14 @@ export default function Breadcrumbs() {
 
     return (
         <nav aria-label="Breadcrumb" className="mb-4">
-            <ol className="flex flex-wrap items-center gap-1.5 text-xs text-gray-500">
+            <ol className="flex flex-wrap items-center gap-1.5 text-[10px] text-[#78716C] dark:text-[#94A3B8]">
                 {trail.map((crumb, index) => {
                     const last = index === trail.length - 1;
                     return (
                         <li key={crumb.label} className="flex items-center gap-1.5">
                             {index > 0 && <Chevron />}
                             {last || !crumb.to ? (
-                                <span className="font-semibold text-gray-700">{crumb.label}</span>
+                                <span className="font-semibold text-[#1C1917] dark:text-[#F8FAFC]">{crumb.label}</span>
                             ) : (
                                 <Link
                                     to={crumb.to}

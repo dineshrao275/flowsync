@@ -41,7 +41,7 @@ export default function Topbar({ onOpenTheme, onToggleSidebar, onOpenSearch, sho
             className={`sticky z-20 flex h-16 items-center justify-between border-b px-4 sm:px-6 ${
                 user?.impersonating ? 'top-10' : 'top-0'
             }`}
-            style={{ backgroundColor: 'var(--header-bg)', borderColor: 'rgba(0,0,0,0.06)', color: 'var(--header-text)' }}
+            style={{ backgroundColor: 'var(--header-bg)', borderColor: 'var(--border-hairline)', color: 'var(--header-text)' }}
         >
             <div className="flex items-center gap-3">
                 <button
@@ -57,27 +57,27 @@ export default function Topbar({ onOpenTheme, onToggleSidebar, onOpenSearch, sho
             </div>
 
             <div className="flex items-center gap-2 sm:gap-3">
-                {showSearch && (
-                    <button
-                        onClick={onOpenSearch}
-                        className="hidden items-center gap-2 rounded-lg border border-gray-300 bg-white py-2 pl-3 pr-2 text-sm text-gray-500 shadow-sm transition hover:bg-gray-50 hover:text-gray-700 sm:flex sm:w-56"
-                        aria-label="Global search"
-                    >
+{showSearch && (
+                            <button
+                                onClick={onOpenSearch}
+                                className="border border-[var(--border-hairline)] dark:border-[#2F3A4C] bg-[var(--surface-elevated)] dark:bg-[#1E2638] text-[#57534E] dark:text-[#94A3B8] rounded-lg py-2 pl-3 pr-2 text-sm shadow-sm transition hover:bg-stone-100 dark:hover:bg-[#232B3A] sm:flex sm:w-56"
+                                aria-label="Global search"
+                            >
                         <svg className="h-4 w-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                             <path d="M21 21l-4.35-4.35M17 11a6 6 0 11-12 0 6 6 0 0112 0z" />
                         </svg>
                         <span className="flex-1 text-left">Search…</span>
-                        <kbd className="rounded border border-gray-200 bg-gray-50 px-1.5 py-0.5 text-[10px] font-medium text-gray-400">
+                        <kbd className="rounded border border-[var(--border-hairline)] dark:border-[#2F3A4C] bg-white dark:bg-[#131720] text-[#78716C] dark:text-[#94A3B8]">
                             ⌘K
                         </kbd>
                     </button>
                 )}
-                {showSearch && (
-                    <button
-                        onClick={onOpenSearch}
-                        className="rounded-lg p-2 transition-all duration-150 hover:bg-black/5 active:scale-90 sm:hidden"
-                        aria-label="Global search"
-                    >
+{showSearch && (
+                            <button
+                                onClick={onOpenSearch}
+                                className="border border-[var(--border-hairline)] dark:border-[#2F3A4C] bg-[var(--surface-elevated)] dark:bg-[#1E2638] text-[#57534E] dark:text-[#94A3B8] rounded-lg p-2 transition-all duration-150 active:scale-90 sm:hidden"
+                                aria-label="Global search"
+                            >
                         <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                             <path d="M21 21l-4.35-4.35M17 11a6 6 0 11-12 0 6 6 0 0112 0z" />
                         </svg>
@@ -87,7 +87,7 @@ export default function Topbar({ onOpenTheme, onToggleSidebar, onOpenSearch, sho
                 {showTheme && (
                     <button
                         onClick={onOpenTheme}
-                        className="rounded-lg p-2 transition-all duration-150 hover:rotate-12 hover:bg-black/5 active:scale-90"
+                        className="rounded-lg p-2 transition-all duration-150 hover:bg-black/5 dark:hover:bg-white/10 active:scale-90"
                         title="Theme settings"
                         style={{ color: 'var(--header-text)' }}
                     >
@@ -106,10 +106,10 @@ export default function Topbar({ onOpenTheme, onToggleSidebar, onOpenSearch, sho
                     </button>
 
                     {menuOpen && (
-                        <div className="absolute right-0 mt-2 w-56 origin-top-right animate-scale-in overflow-hidden rounded-xl border border-gray-200 bg-white shadow-lg">
-                            <div className="border-b border-gray-100 px-4 py-3">
-                                <p className="truncate text-sm font-medium text-gray-900">{user?.name}</p>
-                                <p className="truncate text-xs text-gray-500">{user?.email}</p>
+                        <div className="absolute right-0 mt-2 w-56 origin-top-right animate-scale-in overflow-hidden rounded-xl border border-[var(--border-hairline)] dark:border-[#2F3A4C] bg-[var(--card-bg)] dark:bg-[#182030] shadow-popover">
+                            <div className="border-b border-[var(--border-hairline)] dark:border-[#2F3A4C] px-4 py-3">
+                                <p className="truncate text-sm font-medium text-[#1C1917] dark:text-[#F8FAFC]">{user?.name}</p>
+                                <p className="truncate text-xs text-[#78716C] dark:text-[#94A3B8]">{user?.email}</p>
                                 <div className="mt-2 flex flex-wrap gap-1">
                                     {(user?.roles || []).map((role) => (
                                         <span key={role} className="rounded bg-gray-100 px-1.5 py-0.5 text-[10px] uppercase tracking-wide text-gray-600">
@@ -120,13 +120,13 @@ export default function Topbar({ onOpenTheme, onToggleSidebar, onOpenSearch, sho
                             </div>
                             <button
                                 onClick={() => navigate('/settings')}
-                                className="flex w-full items-center gap-2 px-4 py-2.5 text-sm text-gray-700 transition hover:bg-gray-50"
+                                className="flex w-full items-center gap-2 px-4 py-2.5 text-sm font-medium text-[#1C1917] dark:text-[#F8FAFC] transition hover:bg-[var(--surface-elevated)] dark:hover:bg-[#232B3A]"
                             >
                                 Account settings
                             </button>
                             <button
                                 onClick={handleLogout}
-                                className="flex w-full items-center gap-2 px-4 py-2.5 text-sm text-red-600 transition hover:bg-red-50"
+                                className="flex w-full items-center gap-2 px-4 py-2.5 text-sm text-red-600 dark:text-red-500 transition hover:bg-red-50 dark:hover:bg-red-950/30"
                             >
                                 Sign out
                             </button>

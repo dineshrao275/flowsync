@@ -94,7 +94,7 @@ export default function AdminLayout() {
                 </main>
 
                 <footer
-                    className="border-t px-6 py-4 text-center text-xs text-gray-400"
+                    className="border-t border-[var(--border-hairline)] dark:border-[#2F3A4C] text-[#A8A29E] dark:text-[#64748B]"
                     style={{ backgroundColor: 'var(--header-bg)' }}
                 >
                     FlowSync Admin &middot; Laravel + React

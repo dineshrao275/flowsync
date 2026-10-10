@@ -165,13 +165,13 @@ export default function CommandPalette({ open, onClose }) {
 
     return (
         <div
-            className="fixed inset-0 z-[80] bg-gray-900/40 animate-backdrop-in"
+            className="fixed inset-0 z-[80] bg-stone-900/40 backdrop-blur-md dark:bg-black/60"
             onClick={onClose}
             onKeyDown={(e) => e.key === 'Escape' && onClose()}
             role="presentation"
         >
             <div className="mx-auto mt-[8vh] w-full max-w-xl px-4" onClick={(e) => e.stopPropagation()}>
-                <div className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-popover animate-scale-in">
+                <div className="overflow-hidden rounded-2xl border border-[var(--border-hairline)] dark:border-[#2F3A4C] bg-[var(--card-bg)] dark:bg-[#182030] shadow-popover animate-scale-in">
                     <div className="flex items-center gap-3 border-b border-gray-100 px-4">
                         <svg
                             className="h-5 w-5 shrink-0 text-gray-400"
@@ -184,16 +184,16 @@ export default function CommandPalette({ open, onClose }) {
                         >
                             <path d="M21 21l-4.35-4.35M17 11a6 6 0 11-12 0 6 6 0 0112 0z" />
                         </svg>
-                        <input
-                            ref={inputRef}
-                            value={query}
-                            onChange={(e) => setQuery(e.target.value)}
-                            onKeyDown={onKeyDown}
-                            placeholder="Search workspaces, projects, tasks, people…"
-                            className="h-12 flex-1 bg-transparent text-sm text-gray-900 outline-none placeholder:text-gray-400"
-                            aria-label="Global search"
-                        />
-                        <kbd className="shrink-0 rounded border border-gray-200 bg-gray-50 px-1.5 py-0.5 text-[10px] font-medium text-gray-400">
+<input
+                                ref={inputRef}
+                                value={query}
+                                onChange={(e) => setQuery(e.target.value)}
+                                onKeyDown={onKeyDown}
+                                placeholder="#{A8A29E} dark:placeholder-[#64748B]"
+                                className="h-12 flex-1 bg-transparent text-[#1C1917] dark:text-[#F8FAFC] outline-none placeholder:text-[#A8A29E] dark:placeholder-[#64748B]"
+                                aria-label="Global search"
+                            />
+                        <kbd className="shrink-0 rounded border border-[var(--border-hairline)] dark:border-[#2F3A4C] bg-[var(--surface-elevated)] dark:bg-[#1E2638] text-[#78716C] dark:text-[#94A3B8]">
                             ESC
                         </kbd>
                     </div>
@@ -223,12 +223,12 @@ export default function CommandPalette({ open, onClose }) {
                                             onMouseEnter={() => setActive(flatIndex)}
                                             onClick={() => openIndex(flatIndex)}
                                             className={`flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left transition ${
-                                                isActive ? 'bg-indigo-50' : 'hover:bg-gray-50'
+                                                isActive ? 'bg-[var(--accent-soft)] dark:bg-[#232B3A] text-[var(--accent-soft-text)] dark:text-[#F8FAFC]' : 'hover:bg-[var(--surface-elevated)] dark:hover:bg-[#1E2638]'}
                                             }`}
                                         >
                                             <svg
                                                 className={`h-4 w-4 shrink-0 ${
-                                                    isActive ? 'text-indigo-600' : 'text-gray-400'
+                                                    isActive ? 'text-[var(--accent-soft-text)] dark:text-[#F8FAFC]' : 'text-gray-400'
                                                 }`}
                                                 viewBox="0 0 24 24"
                                                 fill="none"
@@ -240,12 +240,12 @@ export default function CommandPalette({ open, onClose }) {
                                                 <path d={group.icon} />
                                             </svg>
                                             <span className="min-w-0 flex-1">
-                                                <span className="block truncate text-sm font-medium text-gray-800">
+                                                <span className="block truncate text-sm font-medium text-[#1C1917] dark:text-[#F8FAFC]">
                                                     {group.key === 'tasks' || group.key === 'projects'
                                                         ? `${item.key} · ${item.title ?? item.name}`
                                                         : item.name}
                                                 </span>
-                                                <span className="block truncate text-xs text-gray-400">
+                                                <span className="block truncate text-xs text-[#78716C] dark:text-[#94A3B8]">
                                                     {subtitleFor(group.key, item)}
                                                 </span>
                                             </span>
@@ -256,7 +256,7 @@ export default function CommandPalette({ open, onClose }) {
 
                                 return (
                                     <div key={group.key} className="mb-1 last:mb-0">
-                                        <p className="px-3 pb-1 pt-2 text-[10px] font-bold uppercase tracking-wider text-gray-400">
+                                        <p className="px-3 pb-1 pt-2 text-[10px] font-bold uppercase tracking-wider text-[#78716C] dark:text-[#64748B]">
                                             {group.label}
                                         </p>
                                         {rows}
@@ -266,7 +266,7 @@ export default function CommandPalette({ open, onClose }) {
                         )}
                     </div>
 
-                    <div className="border-t border-gray-100 px-4 py-2 text-[11px] text-gray-400">
+                    <div className="border-t border-[var(--border-hairline)] dark:border-[#2F3A4C] text-[#78716C] dark:text-[#64748B]">
                         ↑↓ navigate &middot; ↵ select &middot; esc close
                     </div>
                 </div>

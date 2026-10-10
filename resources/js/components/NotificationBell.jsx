@@ -50,13 +50,13 @@ export default function NotificationBell() {
             </button>
 
             {open && (
-                <div className="absolute right-0 z-30 mt-2 w-80 origin-top-right animate-scale-in overflow-hidden rounded-xl border border-gray-200 bg-white shadow-lg">
+                <div className="absolute right-0 z-30 mt-2 w-80 origin-top-right animate-scale-in overflow-hidden rounded-xl border border-[var(--border-hairline)] dark:border-[#2F3A4C] bg-[var(--card-bg)] dark:bg-[#182030] shadow-popover">
                     <div className="flex items-center justify-between border-b border-gray-100 px-4 py-3">
-                        <p className="text-sm font-semibold text-gray-900">Notifications</p>
+                        <p className="text-sm font-semibold text-[#1C1917] dark:text-[#F8FAFC]">Notifications</p>
                         {unreadCount > 0 && (
                             <button
                                 onClick={markAllRead}
-                                className="text-xs font-medium text-indigo-600 transition hover:text-indigo-800"
+                                className="text-[var(--accent)] hover:underline"
                             >
                                 Mark all read
                             </button>
@@ -76,7 +76,7 @@ export default function NotificationBell() {
                                     <li key={notification.id}>
                                         <button
                                             onClick={() => handleOpen(notification)}
-                                            className="flex w-full items-start gap-3 px-4 py-3 text-left transition hover:bg-gray-50"
+                                            className="flex w-full items-start gap-3 px-4 py-3 text-left transition hover:bg-[var(--surface-elevated)] dark:hover:bg-[#1E2638]"
                                         >
                                             <span className="mt-1">
                                                 {notification.type?.startsWith('hrms.') ? (
@@ -91,14 +91,14 @@ export default function NotificationBell() {
                                                 )}
                                             </span>
                                             <span className="min-w-0 flex-1">
-                                                <span className="block text-sm text-gray-800">
+                                                <span className="block text-sm text-[#1C1917] dark:text-[#F8FAFC]">
                                                     {describeNotification(
                                                         notification.type,
                                                         notification.data ?? {},
                                                         notification.actor?.name ?? 'Someone',
                                                     )}
                                                 </span>
-                                                <span className="block text-xs text-gray-400">{timeAgo(notification.created_at)}</span>
+                                                <span className="block text-xs text-[#A8A29E] dark:text-[#64748B]">{timeAgo(notification.created_at)}</span>
                                             </span>
                                             {!notification.read_at && <span className="mt-2 h-2 w-2 shrink-0 rounded-full bg-[var(--accent)]" />}
                                         </button>
@@ -113,7 +113,7 @@ export default function NotificationBell() {
                             setOpen(false);
                             navigate('/notifications');
                         }}
-                        className="w-full border-t border-gray-100 px-4 py-2.5 text-center text-sm font-medium text-indigo-600 transition hover:bg-indigo-50"
+                        className="w-full border-t border-[var(--border-hairline)] dark:border-[#2F3A4C] text-[var(--accent)] hover:bg-[var(--surface-elevated)] dark:hover:bg-[#1E2638]"
                     >
                         View all notifications
                     </button>

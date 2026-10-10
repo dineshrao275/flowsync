@@ -5,15 +5,15 @@ export const THEME_STORAGE_KEY = `${STORAGE_PREFIX}.theme`;
 export const THEME_MODES = ['light', 'dark', 'system'];
 
 export const DEFAULT_THEME = {
-    sidebar_bg: '#0f172a',
-    sidebar_hover: '#1e293b',
-    active_menu: '#6366f1',
-    sidebar_text: '#cbd5e1',
+    sidebar_bg: '#1C1917',
+    sidebar_hover: '#232B3A',
+    active_menu: '#6366F1',
+    sidebar_text: '#78716C',
     dashboard_bg: '#fbfbfa',
-    header_bg: '#ffffff',
-    header_text: '#0f172a',
-    card_bg: '#ffffff',
-    accent: '#6366f1',
+    header_bg: '#FFFFFF',
+    header_text: '#1C1917',
+    card_bg: '#FFFFFF',
+    accent: '#6366F1',
     mode: 'system',
 };
 
@@ -129,13 +129,13 @@ function luminance(hex) {
 }
 
 export const DARK_SURFACES = {
-    sidebar_bg: '#0b0f1a',
-    sidebar_hover: '#1b2333',
-    sidebar_text: '#cbd5e1',
-    dashboard_bg: '#0f1420',
-    header_bg: '#151a26',
-    header_text: '#e8eaf0',
-    card_bg: '#171d2b',
+    sidebar_bg: '#182030',
+    sidebar_hover: '#232B3A',
+    sidebar_text: '#94A3B8',
+    dashboard_bg: '#131720',
+    header_bg: '#182030',
+    header_text: '#F8FAFC',
+    card_bg: '#182030',
 };
 
 /**
