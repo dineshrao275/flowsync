@@ -97,7 +97,8 @@ class HrmsEmployeeBulkTest extends TestCase
     {
         $this->actAs($this->userWith(['hrms.view', 'hrms.employees.view']));
         $this->postJson('/api/hrms/employees/import', ['file' => $this->csv([self::HEADER, 'X,,,,,,,,'])])->assertForbidden();
-        $this->postJson('/api/hrms/employees/bulk-status', ['employee_ids' => [1], 'to' => 'active'])->assertForbidden();
+        $target = $this->makeEmployee('Bulk Target');
+        $this->postJson('/api/hrms/employees/bulk-status', ['employee_ids' => [$target->id], 'to' => 'active'])->assertForbidden();
 
         $this->loginAdmin();
         $this->postJson('/api/hrms/employees/import', ['file' => $this->csv(['email', 'a@b.c'])])

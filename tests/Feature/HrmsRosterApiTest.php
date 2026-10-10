@@ -136,7 +136,7 @@ class HrmsRosterApiTest extends TestCase
         $this->actAs($viewer);
         $this->getJson('/api/hrms/shifts/rosters')->assertOk()->assertJsonCount(1, 'rosters');
         $this->postJson('/api/hrms/shifts/rosters', ['employee_id' => $employee->id, 'effective_from' => '2026-12-01'])->assertForbidden();
-        $this->postJson('/api/hrms/shifts/rotations', [])->assertForbidden();
+        $this->postJson('/api/hrms/shifts/rotations', ['name' => 'Alt', 'code' => 'alt', 'cycle' => [$this->shift('general'), null]])->assertForbidden();
 
         $plain = $this->userWith(['hrms.view']);
         $this->actAs($plain);

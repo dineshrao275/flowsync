@@ -115,6 +115,7 @@ class ApiTokenTest extends TestCase
         $this->getJson('/api/v1/me', $this->bearer('nonsense'))->assertUnauthorized();
         $this->getJson('/api/v1/me', $this->bearer('fst_'.$this->acme()->id.'_'.str_repeat('a', 40)))->assertUnauthorized();
 
+        $this->connectTenant('acme');
         ApiToken::query()->update(['revoked_at' => now()]);
         $this->getJson('/api/v1/me', $this->bearer($token))->assertUnauthorized();
     }
@@ -122,6 +123,7 @@ class ApiTokenTest extends TestCase
     public function test_an_expired_token_is_refused(): void
     {
         $token = $this->issue();
+        $this->connectTenant('acme');
         ApiToken::query()->update(['expires_at' => now()->subMinute()]);
 
         $this->getJson('/api/v1/me', $this->bearer($token))->assertUnauthorized();
@@ -236,12 +238,14 @@ class ApiTokenTest extends TestCase
     {
         $token = $this->issue();
         $this->login();
+        $this->connectTenant('acme');
         $id = ApiToken::firstOrFail()->id;
         $this->deleteJson("/api/api-tokens/{$id}")->assertOk();
         $this->postJson('/api/auth/logout');
         $this->flushSession();
 
         $this->getJson('/api/v1/me', $this->bearer($token))->assertUnauthorized();
+        $this->connectTenant('acme');
         $this->assertNotNull(ApiToken::find($id)->revoked_at);
     }
 
@@ -260,7 +264,7 @@ class ApiTokenTest extends TestCase
         $this->connectTenant('acme');
         $id = ApiToken::firstOrFail()->id;
         IntegrationLog::query()->update(['created_at' => now()->subDays(40)]);
-        ApiIdempotencyKey::create(['token_id' => $id, 'key' => 'old-key-0001']);
+        ApiIdempotencyKey::create(['token_id' => $id, 'key' => 'old-key-0001', 'fingerprint' => hash('sha256', 'GET /api/v1/me')]);
         ApiIdempotencyKey::query()->update(['created_at' => now()->subDays(3)]);
 
         Artisan::call('events:prune', ['--all' => true]);

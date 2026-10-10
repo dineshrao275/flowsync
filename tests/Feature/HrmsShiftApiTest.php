@@ -45,7 +45,7 @@ class HrmsShiftApiTest extends TestCase
 
         $this->actAs($this->userWith(['hrms.view', 'hrms.shifts.view']));
         $this->getJson('/api/hrms/shifts')->assertOk()->assertJsonPath('shifts.0.is_system', true);
-        $this->postJson('/api/hrms/shifts', [])->assertForbidden();
+        $this->postJson('/api/hrms/shifts', ['name' => 'Late', 'code' => 'late', 'start_time' => '21:00', 'end_time' => '05:00'])->assertForbidden();
     }
 
     public function test_the_module_gate_blocks_a_plan_without_shifts(): void
