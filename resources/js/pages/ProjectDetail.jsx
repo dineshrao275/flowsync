@@ -84,7 +84,7 @@ export default function ProjectDetail() {
     const [updating, setUpdating] = useState(false);
 
     const [memberForm, setMemberForm] = useState({ user_id: '', role_id: '' });
-    const [statusForm, setStatusForm] = useState({ name: '', category: 'todo', color: DEFAULT_COLORS[0] });
+    const [statusForm, setStatusForm] = useState({ name: '', category: 'todo', color: DEFAULT_COLORS[0], wip_limit: null });
     const [issueTypes, setIssueTypes] = useState([]);
     const [issueTypeForm, setIssueTypeForm] = useState({ name: '', description: '', color: '#3b82f6', is_subtask: false });
     const [savingIssueType, setSavingIssueType] = useState(false);
@@ -95,6 +95,7 @@ export default function ProjectDetail() {
     const [settingsDates, setSettingsDates] = useState(null);
 
     const [view, setView] = useState('board');
+    const [swimlane, setSwimlane] = useState('none');
     const [filters, setFilters] = useState({});
     const [board, setBoard] = useState(null);
     const [listTasks, setListTasks] = useState([]);
@@ -191,6 +192,7 @@ export default function ProjectDetail() {
         const requestedView = view;
         const params = {};
         if (view === 'list') params.view = 'list';
+        if (view === 'board' && swimlane === 'assignee') params.swimlane = 'assignee';
         Object.entries(filters).forEach(([key, value]) => {
             if (value !== '' && value != null) params[key] = value;
         });
@@ -227,7 +229,7 @@ export default function ProjectDetail() {
         if (!project || (tab !== 'tasks' && tab !== 'automation')) return;
         loadTasks();
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [projectId, tab, view, filters]);
+    }, [projectId, tab, view, swimlane, filters]);
 
     useEffect(() => {
         if (!project || !window.Echo) return undefined;
@@ -257,7 +259,7 @@ export default function ProjectDetail() {
         const deepKey = searchParams.get('task');
         if (!project || tab !== 'tasks' || !deepKey || openedDeepTaskRef.current === deepKey) return;
         const pool = view === 'board'
-            ? board?.statuses.flatMap((s) => s.tasks) ?? []
+            ? ((board?.statuses ?? board?.swimlanes?.flatMap((lane) => lane.statuses)) ?? []).flatMap((s) => s.tasks)
             : listTasks;
         const found = pool.find((t) => t.key === deepKey);
         if (found) {
@@ -296,15 +298,17 @@ export default function ProjectDetail() {
     function handleDragEnd({ active, over }) {
         if (!over || active.id === over.id || !board) return;
 
+        const columns = board.statuses ?? board.swimlanes.flatMap((lane) => lane.statuses);
+
         let statusId;
         let index;
         const colMatch = String(over.id).match(/^col-(\d+)$/);
         if (colMatch) {
             statusId = Number(colMatch[1]);
-            index = board.statuses.find((s) => s.id === statusId)?.tasks.length ?? 0;
+            index = columns.find((s) => s.id === statusId)?.tasks.length ?? 0;
         } else {
             let found = null;
-            board.statuses.forEach((s) => {
+            columns.forEach((s) => {
                 const i = s.tasks.findIndex((t) => t.id === over.id);
                 if (i >= 0 && !found) found = { status: s, index: i };
             });
@@ -313,10 +317,10 @@ export default function ProjectDetail() {
             index = found.index;
         }
 
-        const task = board.statuses.flatMap((s) => s.tasks).find((t) => t.id === active.id);
+        const task = columns.flatMap((s) => s.tasks).find((t) => t.id === active.id);
         if (!task) return;
 
-        const dest = board.statuses.find((s) => s.id === statusId);
+        const dest = columns.find((s) => s.id === statusId);
         if (task.status_id === statusId && (dest?.tasks.findIndex((t) => t.id === task.id) ?? -1) === index) {
             return;
         }
@@ -720,6 +724,17 @@ export default function ProjectDetail() {
                                     List
                                 </button>
                             </div>
+                            {view === 'board' && (
+                                <select
+                                    value={swimlane}
+                                    onChange={(e) => setSwimlane(e.target.value)}
+                                    className="rounded-lg border border-gray-300 bg-white px-2 py-1.5 text-sm text-gray-600 shadow-sm focus:outline-none"
+                                    title="Group the board into swimlanes"
+                                >
+                                    <option value="none">No swimlanes</option>
+                                    <option value="assignee">Swimlanes by assignee</option>
+                                </select>
+                            )}
                             {loadingTasks && <Spinner className="h-5 w-5" />}
                         </div>
                         {canCreateTask && (
@@ -903,6 +918,17 @@ export default function ProjectDetail() {
                                     onChange={(e) => setStatusForm((f) => ({ ...f, color: e.target.value }))}
                                 />
                             </div>
+                            <div>
+                                <Input
+                                    label="WIP limit (optional)"
+                                    name="status-wip"
+                                    type="number"
+                                    min="1"
+                                    placeholder="Unlimited"
+                                    value={statusForm.wip_limit ?? ''}
+                                    onChange={(e) => setStatusForm((f) => ({ ...f, wip_limit: e.target.value === '' ? null : Number(e.target.value) }))}
+                                />
+                            </div>
                             <Button type="submit" loading={savingStatus}>
                                 Add status
                             </Button>
@@ -960,6 +986,20 @@ export default function ProjectDetail() {
                                             <option value="in_progress">In progress</option>
                                             <option value="done">Done</option>
                                         </select>
+                                        <input
+                                            type="number"
+                                            min="1"
+                                            placeholder="WIP"
+                                            title="WIP limit (leave empty for unlimited)"
+                                            className="w-16 rounded-lg border border-gray-300 bg-white px-2 py-1 text-xs shadow-sm focus:border-indigo-300 focus:outline-none"
+                                            defaultValue={status.wip_limit ?? ''}
+                                            onBlur={(e) => {
+                                                const next = e.target.value === '' ? null : Number(e.target.value);
+                                                if ((next ?? '') !== (status.wip_limit ?? '')) {
+                                                    updateStatus(status, { wip_limit: next });
+                                                }
+                                            }}
+                                        />
                                         {status.is_default && <Badge>default</Badge>}
                                         <Button size="sm" variant="ghost" onClick={() => deleteStatus(status)}>
                                             Delete

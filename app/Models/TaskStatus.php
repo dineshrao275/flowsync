@@ -22,6 +22,7 @@ class TaskStatus extends Model
         'is_default',
         'is_done',
         'entry_rules',
+        'wip_limit',
     ];
 
     protected function casts(): array
@@ -32,6 +33,7 @@ class TaskStatus extends Model
             'is_default' => 'boolean',
             'is_done' => 'boolean',
             'entry_rules' => 'array',
+            'wip_limit' => 'integer',
         ];
     }
 

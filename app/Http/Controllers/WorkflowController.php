@@ -82,7 +82,7 @@ class WorkflowController extends Controller
     {
         return [
             'enforce_workflow' => $project->enforce_workflow,
-            'statuses' => $project->statuses()->orderBy('position')->get()->map(fn ($s) => ['id' => $s->id, 'name' => $s->name, 'category' => $s->category, 'entry_rules' => $s->entry_rules ?? []]),
+            'statuses' => $project->statuses()->orderBy('position')->get()->map(fn ($s) => ['id' => $s->id, 'name' => $s->name, 'category' => $s->category, 'entry_rules' => $s->entry_rules ?? [], 'wip_limit' => $s->wip_limit]),
             'transitions' => StatusTransition::where('project_id', $project->id)->get(['from_status_id', 'to_status_id']),
             'entry_rule_catalog' => WorkflowGuard::ENTRY_RULES,
         ];

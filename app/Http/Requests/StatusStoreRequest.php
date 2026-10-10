@@ -15,6 +15,7 @@ class StatusStoreRequest extends FormRequest
             'category' => ['required', Rule::enum(TaskStatusCategory::class)],
             'color' => ['nullable', 'string', 'max:16'],
             'position' => ['nullable', 'integer', 'min:1'],
+            'wip_limit' => ['nullable', 'integer', 'min:1'],
         ];
     }
 }

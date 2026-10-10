@@ -73,6 +73,7 @@ class StatusController extends Controller
             'color' => $status->color,
             'is_default' => $status->is_default,
             'is_done' => $status->is_done,
+            'wip_limit' => $status->wip_limit,
         ];
     }
 }

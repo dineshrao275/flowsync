@@ -16,6 +16,7 @@ class StatusUpdateRequest extends FormRequest
             'color' => ['nullable', 'string', 'max:16'],
             'position' => ['nullable', 'integer', 'min:1'],
             'is_done' => ['nullable', 'boolean'],
+            'wip_limit' => ['nullable', 'integer', 'min:1'],
         ];
     }
 }

@@ -42,6 +42,7 @@ class TaskController extends Controller
             'epic_id' => ['nullable', 'integer'],
             'component_id' => ['nullable', 'integer'],
             'sprint' => ['nullable', 'regex:/^(active|none|\d+)$/'],
+            'swimlane' => ['nullable', 'in:none,assignee'],
             'q' => ['nullable', 'string', 'max:255'],
             'due_from' => ['nullable', 'date'],
             'due_to' => ['nullable', 'date'],

@@ -51,6 +51,8 @@ class TaskService
             ]);
         }
 
+        $this->assertWip($status);
+
         $key = $this->keyGenerator->nextTaskKey($project);
         $issueType = $this->inputs->issueType($data['issue_type_id'] ?? null);
         $epic = $this->hierarchy->epic($project, $data['epic_id'] ?? null);
@@ -133,6 +135,7 @@ class TaskService
         $fromStatusId = (int) $task->status_id;
         $statusMoves = $fromStatusId !== (int) $status->id;
         if ($statusMoves) {
+            $this->assertWip($status);
             // Judge the task as it is about to be saved, so one edit can satisfy the entry rule it triggers.
             $this->workflow->assertCanMove($task, $status, array_intersect_key($updateData, array_flip(['assignee_id', 'due_date', 'estimate_minutes', 'story_points'])));
         }
@@ -182,6 +185,26 @@ class TaskService
         }
     }
 
+    /** A column's WIP limit caps the open cards it may hold; exceeding it is a 422. */
+    private function assertWip(TaskStatus $status, ?Task $exclude = null): void
+    {
+        if ($status->wip_limit === null) {
+            return;
+        }
+
+        $count = $status->tasks()
+            ->whereNull('parent_id')
+            ->whereNull('completed_at')
+            ->when($exclude !== null, fn ($q) => $q->whereKeyNot($exclude->id))
+            ->count();
+
+        if ($count >= $status->wip_limit) {
+            throw ValidationException::withMessages([
+                'form' => sprintf('"%s" is at its WIP limit (%d). Move a card out or raise the limit.', $status->name, $status->wip_limit),
+            ]);
+        }
+    }
+
     /** One history row per status change — the basis for cycle and lead time. */
     private function recordStatusChange(Task $task, ?int $from, int $to): void
     {
@@ -220,6 +243,10 @@ class TaskService
         }
 
         $this->workflow->assertCanMove($task, $status);
+
+        // WIP applies to arrivals into the column: a reorder inside the same
+        // column keeps its own occupancy, so the mover is not counted there.
+        $this->assertWip($status, $task->status_id === $status->id ? $task : null);
 
         $task->update([
             'status_id' => $status->id,
