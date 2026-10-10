@@ -200,7 +200,7 @@ export default function EmployeeDetail() {
             </div>
 
             {tabs.length > 1 && (
-                <nav className="flex gap-1 border-b border-gray-200">
+                <nav className="flex gap-1 border-b border-[var(--border-hairline)] dark:border-[#2F3A4C]">
                     {tabs.map((tab) => (
                         <button
                             key={tab.key}
@@ -208,8 +208,8 @@ export default function EmployeeDetail() {
                             onClick={() => changeTab(tab.key)}
                             className={`-mb-px border-b-2 px-3 py-2 text-sm font-medium transition-colors ${
                                 activeTab === tab.key
-                                    ? 'border-indigo-600 text-indigo-700'
-                                    : 'border-transparent text-gray-500 hover:text-gray-800'
+                                    ? 'border-[#C2410C] text-[#C2410C] dark:border-[#F97316] dark:text-[#F97316]'
+                                    : 'text-[#78716C] dark:text-[#94A3B8]'
                             }`}
                         >
                             {tab.label}
@@ -366,7 +366,7 @@ function address(employee) {
 function Panel({ title, children }) {
     return (
         <Card title={title} dense className="overflow-hidden">
-            <dl className="-mx-5 -my-4 divide-y divide-gray-100 sm:-mx-6 sm:-my-5">{children}</dl>
+            <dl className="-mx-5 -my-4 divide-y divide-[var(--border-hairline)] dark:divide-[#2F3A4C] sm:-mx-6 sm:-my-5">{children}</dl>
         </Card>
     );
 }
@@ -374,8 +374,8 @@ function Panel({ title, children }) {
 function Row({ label, value }) {
     return (
         <div className="flex items-baseline justify-between gap-4 px-4 py-2 text-sm">
-            <dt className="text-gray-500">{label}</dt>
-            <dd className="text-right text-gray-800">{value || <span className="text-gray-300">—</span>}</dd>
+            <dt className="text-[#78716C] dark:text-[#94A3B8]">{label}</dt>
+            <dd className="text-[#1C1917] dark:text-[#F8FAFC]">{value || <span className="text-[#78716C] dark:text-[#94A3B8]">—</span>}</dd>
         </div>
     );
 }

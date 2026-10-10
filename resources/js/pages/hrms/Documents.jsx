@@ -181,8 +181,8 @@ export default function Documents() {
         <div className="space-y-4">
             <div className="flex flex-wrap items-center justify-between gap-3">
                 <div>
-                    <h2 className="text-xl font-semibold text-gray-900">Documents</h2>
-                    <p className="mt-0.5 text-sm text-gray-500">
+                    <h2 className="text-[#1C1917] dark:text-[#F8FAFC]">Documents</h2>
+                    <p className="mt-0.5 text-[#78716C] dark:text-[#94A3B8]">
                         {data ? `${data.pagination.total} document${data.pagination.total === 1 ? '' : 's'}` : '—'}
                     </p>
                 </div>

@@ -31,7 +31,7 @@ export default function HrmsOverview() {
     return (
         <div className="space-y-6">
             <div>
-                <h1 className="text-xl font-semibold text-gray-900">Human Resources</h1>
+                <h1 className="text-[#1C1917] dark:text-[#F8FAFC] font-semibold">Human Resources</h1>
                 <p className="mt-1 text-sm text-gray-500">
                     {modules.length} module{modules.length === 1 ? '' : 's'} enabled on your plan.
                 </p>
@@ -47,7 +47,7 @@ export default function HrmsOverview() {
             ) : (
                 groups.map(({ group, modules: items }) => (
                     <div key={group}>
-                        <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-gray-500">
+                        <h2 className="mb-3 text-sm font-semibold uppercase text-[#78716C] dark:text-[#64748B]">
                             {group.replace(/^HRMS · /, '')}
                         </h2>
 
@@ -77,8 +77,7 @@ function ModuleTile({ item }) {
     if (!item.to) {
         return (
             <div
-                className="rounded-xl border border-dashed border-gray-200 bg-gray-50/60 p-5 text-left"
-                style={{ backgroundColor: 'var(--card-bg)' }}
+                className="border border-dashed border-[var(--border-hairline)] dark:border-[#2F3A4C] bg-[var(--surface-elevated)] dark:bg-[#182030]"
             >
                 {body}
             </div>
@@ -88,8 +87,7 @@ function ModuleTile({ item }) {
     return (
         <Link
             to={item.to}
-            className="rounded-xl border border-gray-200/70 bg-white p-5 text-left shadow-card transition-shadow duration-200 hover:shadow-popover"
-            style={{ backgroundColor: 'var(--card-bg)' }}
+            className="rounded-xl border border-[var(--border-hairline)] dark:border-[#2F3A4C] bg-[var(--card-bg)] dark:bg-[#182030] shadow-card hover:shadow-popover hover:border-[#C2410C]/40 dark:hover:border-[#F97316]/40"
         >
             {body}
         </Link>

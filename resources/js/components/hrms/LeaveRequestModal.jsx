@@ -42,7 +42,7 @@ function TeamMiniCalendar({ year, month, days }) {
                 key={date}
                 title={entries.length === 0 ? date : `${date}: ${entries.map((e) => `${e.employee_name} (${e.type_name})`).join(', ')}`}
                 className={`flex h-7 items-center justify-center rounded text-xs ${
-                    entries.length === 0 ? 'text-gray-400' : 'bg-indigo-100 font-semibold text-indigo-800'
+                    entries.length === 0 ? 'text-gray-400' : 'bg-[var(--accent-soft)] font-semibold text-[var(--accent-soft-text)] dark:bg-[#1E2638] dark:text-[#F8FAFC]'
                 }`}
             >
                 {day}

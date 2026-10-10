@@ -134,7 +134,7 @@ export default function ExpenseClaimModal({ open, onClose, onSaved, employeeId, 
                 {errors.items && <Alert>{errors.items}</Alert>}
 
                 {lines.map((line, index) => (
-                    <div key={index} className="rounded-lg border border-gray-200 p-3">
+                    <div key={index} className="rounded-xl border border-[var(--border-hairline)] dark:border-[#2F3A4C] bg-[var(--surface-elevated)] dark:bg-[#1E2638] p-3">
                         <div className="grid gap-3 sm:grid-cols-2">
                             <Select label={`Line ${index + 1} category`} value={line.category_id} onChange={(e) => setLine(index, { category_id: e.target.value })}>
                                 <option value="">Ad-hoc (no head)…</option>
@@ -148,7 +148,7 @@ export default function ExpenseClaimModal({ open, onClose, onSaved, employeeId, 
                         </div>
                         <div className="mt-3 flex flex-wrap items-end gap-3">
                             <label className="block text-sm">
-                                <span className="mb-1.5 block font-medium text-gray-700">Receipt</span>
+                                <span className="text-[#1C1917] dark:text-[#F8FAFC] mb-1.5 block font-medium">Receipt</span>
                                 <input
                                     type="file"
                                     disabled={uploading === index || types.length === 0}

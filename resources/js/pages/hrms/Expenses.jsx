@@ -156,8 +156,8 @@ export default function Expenses() {
     return (
         <div className="space-y-4">
             <div>
-                <h2 className="text-xl font-semibold text-gray-900">Expenses</h2>
-                <p className="mt-0.5 text-sm text-gray-500">
+                <h2 className="text-[#1C1917] dark:text-[#F8FAFC]">Expenses</h2>
+                <p className="mt-0.5 text-[#78716C] dark:text-[#94A3B8]">
                     {claims ? `${claims.length} claim${claims.length === 1 ? '' : 's'}` : '—'}
                 </p>
             </div>

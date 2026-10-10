@@ -331,8 +331,8 @@ export default function Leave() {
         <div className="space-y-4">
             <div className="flex flex-wrap items-center justify-between gap-3">
                 <div>
-                    <h2 className="text-xl font-semibold text-gray-900">Leave</h2>
-                    <p className="mt-0.5 text-sm text-gray-500">Requests, catalogue, balances, exemptions.</p>
+                    <h2 className="text-[#1C1917] dark:text-[#F8FAFC]">Leave</h2>
+                    <p className="mt-0.5 text-[#78716C] dark:text-[#94A3B8]">Requests, catalogue, balances, exemptions.</p>
                 </div>
 
                 <div className="flex gap-2">
@@ -344,14 +344,14 @@ export default function Leave() {
 
             {error && <Alert>{error}</Alert>}
 
-            <div className="flex gap-1 border-b border-gray-200">
+            <div className="flex gap-1 border-b border-[var(--border-hairline)] dark:border-[#2F3A4C]">
                 {TABS.filter((item) => item.key !== 'exemptions' || showExemptions).map((item) => (
                     <button
                         key={item.key}
                         type="button"
                         onClick={() => setTab(item.key)}
                         className={`-mb-px border-b-2 px-3 py-2 text-sm font-medium ${
-                            tab === item.key ? 'border-indigo-500 text-indigo-600' : 'border-transparent text-gray-500 hover:text-gray-700'
+                            tab === item.key ? 'border-[#C2410C] text-[#C2410C] dark:border-[#F97316] dark:text-[#F97316]' : 'text-[#78716C] dark:text-[#94A3B8]'
                         }`}
                     >
                         {item.label}

@@ -144,8 +144,8 @@ export default function Employees() {
         <div className="space-y-4">
             <div className="flex flex-wrap items-center justify-between gap-3">
                 <div>
-                    <h2 className="text-xl font-semibold text-gray-900">Employees</h2>
-                    <p className="mt-0.5 text-sm text-gray-500">
+                    <h2 className="text-[#1C1917] dark:text-[#F8FAFC]">Employees</h2>
+                    <p className="mt-0.5 text-[#78716C] dark:text-[#94A3B8]">
                         {data ? `${data.pagination.total} record${data.pagination.total === 1 ? '' : 's'}` : '—'}
                     </p>
                 </div>
@@ -155,7 +155,7 @@ export default function Employees() {
                 )}
             </div>
 
-            <div className="grid gap-3 rounded-xl border border-gray-200/70 bg-white p-3 sm:grid-cols-2 lg:grid-cols-4">
+            <div className="rounded-2xl border border-[var(--border-hairline)] dark:border-[#2F3A4C] bg-[var(--surface-elevated)] dark:bg-[#182030] p-4">
                 <Input
                     label="Search"
                     placeholder="Name or code"

@@ -47,7 +47,7 @@ export default function AttendanceCalendar({ year, month, days = [], selectedDat
         const color = entry ? ATTENDANCE_STATUS_COLORS[entry.status] ?? '#6b7280' : null;
         const selected = selectedDate === date;
 
-        cells.push(
+cells.push(
             <button
                 key={date}
                 type="button"
@@ -56,9 +56,9 @@ export default function AttendanceCalendar({ year, month, days = [], selectedDat
                 title={entry ? `${entry.status_label} · ${formatMinutes(entry.worked_minutes)}` : 'Upcoming'}
                 className={`flex min-h-14 flex-col items-start justify-between rounded-lg border p-1.5 text-left transition-colors ${
                     selected
-                        ? 'border-indigo-500 ring-1 ring-indigo-200'
-                        : 'border-gray-100 hover:border-gray-300'
-                } ${entry ? '' : 'bg-gray-50/50'} ${!entry || !onSelectDay ? 'cursor-default' : 'cursor-pointer'}`}
+                        ? 'border-[#C2410C] ring-2 ring-[#C2410C]/20 dark:border-[#F97316]'
+                        : ''
+                } ${!entry || !onSelectDay ? 'cursor-default cursor-pointer' : 'cursor-pointer'} ${entry ? `border-[var(--border-hairline)] dark:border-[#2F3A4C] hover:border-stone-400 dark:hover:border-stone-500 text-[#1C1917] dark:text-[#F8FAFC]` : 'border-[var(--border-hairline)] dark:border-[#2F3A4C] hover:border-stone-400 dark:hover:border-stone-500 text-[#1C1917] dark:text-[#F8FAFC]'}`}
             >
                 <span className="text-xs font-medium text-gray-500">{day}</span>
                 {entry ? (
@@ -87,9 +87,9 @@ export default function AttendanceCalendar({ year, month, days = [], selectedDat
 
     return (
         <div>
-            <div className="mb-1 grid grid-cols-7 gap-1">
-                {WEEKDAYS.map((day) => (
-                    <span key={day} className="pb-1 text-center text-xs font-medium text-gray-400">
+<div className="mb-1 grid grid-cols-7 gap-1">
+                {WEEKDAYS.map((day, i) => (
+                    <span key={i} className="text-center text-[11px] font-medium text-[#78716C] dark:text-[#94A3B8]">
                         {day}
                     </span>
                 ))}

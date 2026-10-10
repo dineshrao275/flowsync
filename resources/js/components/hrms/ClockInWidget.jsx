@@ -45,8 +45,8 @@ export default function ClockInWidget({ today, punching, onPunch, allowPunch = t
             <div className="space-y-3">
                 <div className="flex items-center justify-between">
                     <div>
-                        <p className="text-sm font-medium text-gray-900">Today · {today.status_label}</p>
-                        <p className="text-xs text-gray-500">
+                        <p className="text-[#1C1917] dark:text-[#F8FAFC] font-medium">Today · {today.status_label}</p>
+                        <p className="text-[#78716C] dark:text-[#94A3B8]">
                             {today.day
                                 ? `In ${clockTime(today.day.first_in_at)} · Out ${clockTime(today.day.last_out_at)}`
                                 : 'No day record yet'}

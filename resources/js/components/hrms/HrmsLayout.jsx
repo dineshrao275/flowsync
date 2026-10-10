@@ -24,8 +24,8 @@ export default function HrmsLayout() {
     const flat = groups.flatMap((group) => group.items);
 
     const linkClass = (tab) =>
-        `block rounded-lg px-3 py-2 text-sm font-medium transition-colors duration-150 ${
-            active === tab.to ? 'bg-[var(--active-menu)] text-white' : 'text-[var(--sidebar-text)] hover:bg-[var(--sidebar-hover)]'
+        `block rounded-2xl border border-[var(--border-hairline)] dark:border-[#2F3A4C] bg-[var(--surface-elevated)] dark:bg-[#182030] px-3 py-2 text-sm font-medium transition-colors duration-150 ${
+            active === tab.to ? 'bg-[var(--active-menu)] text-white' : 'text-[#57534E] dark:text-[#94A3B8] hover:bg-stone-200/60 dark:hover:bg-[#232B3A] hover:text-[#1C1917] dark:hover:text-[#F8FAFC]'
         }`;
 
     const label = (tab) => (
@@ -43,18 +43,18 @@ export default function HrmsLayout() {
         <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:gap-7">
             {/* Mobile: a horizontal strip — a 30-item rail inside the content
                 column would leave no room for the page itself. */}
-            <nav
+<nav
                 aria-label="HRMS sections"
-                className="-mx-1 flex gap-1 overflow-x-auto pb-1 lg:hidden"
+                className="-mx-1 flex gap-1 overflow-x-auto pb-1 lg:hidden rounded-xl border border-[var(--border-hairline)] dark:border-[#2F3A4C] bg-[var(--surface-elevated)] dark:bg-[#182030] p-1"
             >
                 {flat.map((tab) => (
                     <Link
                         key={tab.to}
                         to={tab.to}
                         aria-current={active === tab.to ? 'page' : undefined}
-                        className={`shrink-0 whitespace-nowrap rounded-lg px-3 py-2 text-sm font-medium ${
-                            active === tab.to ? 'bg-[var(--active-menu)] text-white' : 'text-[var(--sidebar-text)] hover:bg-[var(--sidebar-hover)]'
-                        }`}
+                        className={`shrink-0 whitespace-nowrap rounded-xl px-3 py-2 text-sm font-medium ${
+                            active === tab.to ? 'bg-[var(--active-menu)] text-white' : 'text-[#57534E] dark:text-[#94A3B8] hover:bg-stone-200/60 dark:hover:bg-[#232B3A] hover:text-[#1C1917] dark:hover:text-[#F8FAFC]'}
+                        `}
                     >
                         {label(tab)}
                     </Link>
@@ -70,8 +70,7 @@ export default function HrmsLayout() {
                     <div key={group.group} className="space-y-0.5">
                         {group.group !== 'Overview' && (
                             <p
-                                className="px-3 pb-1.5 text-[10px] font-bold uppercase tracking-wider"
-                                style={{ color: 'var(--sidebar-text)', opacity: 0.55 }}
+                                className="px-3 pb-1.5 text-[10px] font-bold uppercase text-[#78716C] dark:text-[#64748B]"
                             >
                                 {group.group}
                             </p>
