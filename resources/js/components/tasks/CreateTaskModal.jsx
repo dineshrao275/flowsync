@@ -165,7 +165,7 @@ export default function CreateTaskModal({ options, topLevelTasks, projectKey, sa
                     </Select>
                 </div>
                 <div>
-                    <label className="mb-1.5 block text-sm font-medium text-gray-700">Description</label>
+                    <label className="mb-1.5 block text-sm font-medium text-[#1C1917] dark:text-[#F8FAFC]">Description</label>
                     <textarea
                         className={`${fieldClass} min-h-20`}
                         rows="3"
@@ -176,7 +176,7 @@ export default function CreateTaskModal({ options, topLevelTasks, projectKey, sa
                 </div>
                 {options.components?.length > 0 && (
                     <div>
-                        <label className="mb-1.5 block text-sm font-medium text-gray-700">Components</label>
+                        <label className="mb-1.5 block text-sm font-medium text-[#1C1917] dark:text-[#F8FAFC]">Components</label>
                         <div className="flex flex-wrap gap-2">
                             {options.components.map((comp) => (
                                 <button
@@ -186,7 +186,7 @@ export default function CreateTaskModal({ options, topLevelTasks, projectKey, sa
                                     className={`rounded-md px-2.5 py-1 text-xs font-medium transition ${
                                         form.components.includes(comp.id)
                                             ? 'bg-indigo-600 text-white'
-                                            : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                                            : 'bg-gray-100 text-gray-600 hover:bg-gray-200 dark:bg-[#1E2638] dark:text-[#94A3B8] dark:hover:bg-[#232B3A]'
                                     }`}
                                 >
                                     {comp.name}
@@ -198,7 +198,7 @@ export default function CreateTaskModal({ options, topLevelTasks, projectKey, sa
                 )}
                 {options.labels?.length > 0 && (
                     <div>
-                        <label className="mb-1.5 block text-sm font-medium text-gray-700">Labels</label>
+                        <label className="mb-1.5 block text-sm font-medium text-[#1C1917] dark:text-[#F8FAFC]">Labels</label>
                         <div className="flex flex-wrap gap-2">
                             {options.labels.map((label) => (
                                 <button
@@ -208,7 +208,7 @@ export default function CreateTaskModal({ options, topLevelTasks, projectKey, sa
                                     className={`rounded-full px-3 py-1 text-xs font-medium transition ${
                                         form.labels.includes(label.id)
                                             ? 'bg-[var(--accent)] text-[var(--accent-contrast)]'
-                                            : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                                            : 'bg-gray-100 text-gray-600 hover:bg-gray-200 dark:bg-[#1E2638] dark:text-[#94A3B8] dark:hover:bg-[#232B3A]'
                                     }`}
                                 >
                                     {label.name}

@@ -8,9 +8,9 @@ export default function TaskTable({ tasks, canEdit, onOpen }) {
     }
 
     return (
-        <div className="overflow-x-auto rounded-xl border border-gray-200/70 shadow-sm">
+        <div className="overflow-x-auto rounded-2xl border border-[var(--border-hairline)] dark:border-[#2F3A4C] bg-[var(--card-bg)] dark:bg-[#182030] shadow-card">
             <table className="w-full text-left text-sm">
-                <thead className="border-b border-gray-100 bg-gray-50/80 text-xs uppercase tracking-wide text-gray-500">
+                <thead className="border-b border-[var(--border-hairline)] dark:border-[#2F3A4C] bg-[var(--surface-elevated)] dark:bg-[#1E2638] text-[#57534E] dark:text-[#94A3B8] text-xs uppercase tracking-wide text-gray-500">
                     <tr>
                         <th className="px-4 py-3 font-medium">Key</th>
                         <th className="px-4 py-3 font-medium">Type</th>
@@ -22,7 +22,7 @@ export default function TaskTable({ tasks, canEdit, onOpen }) {
                         <th className="px-4 py-3 font-medium">Due</th>
                     </tr>
                 </thead>
-                <tbody className="divide-y divide-gray-50">
+                <tbody className="divide-y divide-[var(--border-hairline)] dark:divide-[#2F3A4C]">
                     {tasks.map((task) => (
                         <tr
                             key={task.id}
@@ -47,7 +47,7 @@ export default function TaskTable({ tasks, canEdit, onOpen }) {
                             </td>
                             <td className="px-4 py-3">
                                 <div className="flex flex-wrap items-center gap-2">
-                                    <span className={`font-medium text-gray-900 ${task.completed_at ? 'line-through opacity-60' : ''}`}>
+                                    <span className={`font-medium text-[#1C1917] dark:text-[#F8FAFC] ${task.completed_at ? 'line-through opacity-60' : ''}`}>
                                         {task.title}
                                     </span>
                                     {task.subtasks_count > 0 && (

@@ -8,16 +8,16 @@ function Column({ status, canMove, canEdit, onOpen }) {
     return (
         <div
             ref={setNodeRef}
-            className={`flex w-72 shrink-0 flex-col rounded-xl border p-2 transition ${
-                isOver ? 'border-indigo-300 bg-indigo-50/60' : 'border-gray-100 bg-gray-50/80'
+            className={`flex w-72 shrink-0 flex-col rounded-2xl border border-[var(--border-hairline)] dark:border-[#2F3A4C] bg-[var(--surface-elevated)] dark:bg-[#1E2638] transition ${
+                isOver ? 'border-[#C2410C]/60 bg-[#C2410C]/5' : 'dark:border-[#F97316]/60 dark:bg-[#F97316]/10'
             }`}
         >
             <div className="flex items-center justify-between px-2 pb-2 pt-1">
                 <div className="flex min-w-0 items-center gap-2">
                     <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ backgroundColor: status.color || '#cbd5e1' }} />
-                    <span className="truncate text-xs font-semibold uppercase tracking-wide text-gray-600">{status.name}</span>
+                    <span className="truncate text-xs font-semibold uppercase tracking-wide text-[#1C1917] dark:text-[#F8FAFC]">{status.name}</span>
                 </div>
-                <span className="ml-2 shrink-0 rounded-full bg-white px-2 py-0.5 text-[11px] font-semibold text-gray-500 shadow-sm">
+                <span className="ml-2 shrink-0 rounded-full bg-white px-2 py-0.5 text-[11px] font-semibold text-[#57534E] dark:text-[#94A3B8] shadow-sm">
                     {status.tasks_count}
                 </span>
             </div>
@@ -32,7 +32,7 @@ function Column({ status, canMove, canEdit, onOpen }) {
                         />
                     ))}
                     {status.tasks.length === 0 && (
-                        <div className="rounded-lg border border-dashed border-gray-200 px-3 py-6 text-center text-xs text-gray-400">
+                        <div className="rounded-lg border border-dashed border-[var(--border-hairline)] dark:border-[#2F3A4C] text-[#A8A29E] dark:text-[#64748B] px-3 py-6 text-center text-xs">
                             Drop tasks here
                         </div>
                     )}

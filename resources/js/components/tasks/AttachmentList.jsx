@@ -90,7 +90,7 @@ export default function AttachmentList({ task, projectId, canUpload, canManage }
             {attachments.length === 0 ? (
                 <p className="py-6 text-center text-sm text-gray-400">No attachments.</p>
             ) : (
-                <ul className="divide-y divide-gray-100 rounded-lg border border-gray-100">
+                <ul className="divide-y divide-[var(--border-hairline)] dark:divide-[#2F3A4C] rounded-lg border border-[var(--border-hairline)] dark:border-[#2F3A4C]">
                     {attachments.map((attachment) => {
                         const own = attachment.user?.id && attachment.user.id === user?.id;
                         return (
@@ -100,7 +100,7 @@ export default function AttachmentList({ task, projectId, canUpload, canManage }
                                         href={attachment.download_url}
                                         target="_blank"
                                         rel="noopener noreferrer"
-                                        className="block truncate text-sm font-medium text-indigo-600 hover:underline"
+                                        className="block truncate text-sm font-medium text-[#1C1917] dark:text-[#F8FAFC] hover:underline"
                                     >
                                         {attachment.original_name}
                                     </a>

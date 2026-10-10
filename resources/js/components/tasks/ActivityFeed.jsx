@@ -83,11 +83,11 @@ export default function ActivityFeed({ task, projectId }) {
             {activities.map((activity) => (
                 <li key={activity.id} className="relative py-1.5">
                     <span className="absolute -left-[21px] top-3 h-2.5 w-2.5 rounded-full border-2 border-white bg-[var(--accent)] shadow" />
-                    <p className="text-sm text-gray-700">
-                        <span className="font-medium text-gray-900">{activity.actor?.name ?? 'Someone'}</span>{' '}
+                    <p className="text-sm text-[#57534E] dark:text-[#94A3B8]">
+                        <span className="font-medium text-[#1C1917] dark:text-[#F8FAFC]">{activity.actor?.name ?? 'Someone'}</span>{' '}
                         {describe(activity.action, activity.data)}
                     </p>
-                    <p className="text-xs text-gray-400">{new Date(activity.created_at).toLocaleString()}</p>
+                    <p className="text-xs text-[#A8A29E] dark:text-[#64748B]">{new Date(activity.created_at).toLocaleString()}</p>
                 </li>
             ))}
         </ol>

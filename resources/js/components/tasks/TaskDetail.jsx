@@ -238,7 +238,7 @@ export default function TaskDetail({
                             <div className="grid gap-5 sm:grid-cols-3">
                                 <div className="space-y-4 sm:col-span-2">
                                     <div>
-                                        <label className="mb-1.5 block text-sm font-medium text-gray-700">Description</label>
+                                        <label className="mb-1.5 block text-sm font-medium text-[#1C1917] dark:text-[#F8FAFC]">Description</label>
                                         <textarea
                                             rows="5"
                                             className={`${fieldClass} min-h-32`}
@@ -251,7 +251,7 @@ export default function TaskDetail({
 
                                     {options.components?.length > 0 && (
                                         <div>
-                                            <label className="mb-1.5 block text-sm font-medium text-gray-700">Components</label>
+                                            <label className="mb-1.5 block text-sm font-medium text-[#1C1917] dark:text-[#F8FAFC]">Components</label>
                                             <div className="flex flex-wrap gap-2">
                                                 {options.components.map((comp) => (
                                                     <button
@@ -274,7 +274,7 @@ export default function TaskDetail({
                                     )}
 
                                     <div className="rounded-lg border border-gray-100 bg-gray-50/50 p-3.5 space-y-3">
-                                        <h4 className="text-xs font-semibold uppercase tracking-wider text-gray-500">Dates & Effort</h4>
+                                        <h4 className="text-xs font-semibold uppercase tracking-wider text-[#78716C] dark:text-[#94A3B8]">Dates & Effort</h4>
                                         <div className="grid gap-3 sm:grid-cols-2">
                                             <Input
                                                 label="Start date"
@@ -410,7 +410,7 @@ export default function TaskDetail({
                                     </Select>
                                     {options.labels?.length > 0 && (
                                         <div>
-                                            <label className="mb-1.5 block text-sm font-medium text-gray-700">Labels</label>
+                                            <label className="mb-1.5 block text-sm font-medium text-[#1C1917] dark:text-[#F8FAFC]">Labels</label>
                                             <div className="flex flex-wrap gap-2">
                                                 {options.labels.map((label) => (
                                                     <button
@@ -434,7 +434,7 @@ export default function TaskDetail({
 
                                     <div className="border-t border-gray-100 pt-3">
                                         <div className="flex items-center justify-between">
-                                            <span className="text-xs font-medium uppercase tracking-wide text-gray-500">
+                                            <span className="text-xs font-medium uppercase tracking-wide text-[#78716C] dark:text-[#94A3B8]">
                                                 Watchers ({watchers.length})
                                             </span>
                                             <button
@@ -456,7 +456,7 @@ export default function TaskDetail({
                                                 {watchers.map((w) => (
                                                     <span
                                                         key={w.id}
-                                                        className="inline-flex items-center gap-1 rounded-full bg-gray-100 py-0.5 pl-2 pr-1 text-xs text-gray-700"
+                                                        className="inline-flex items-center gap-1 rounded-full bg-gray-100 py-0.5 pl-2 pr-1 text-xs text-[#1C1917] dark:text-[#F8FAFC]"
                                                     >
                                                         <span>{w.name}</span>
                                                         {(canEdit || w.id === user?.id) && (
@@ -493,12 +493,12 @@ export default function TaskDetail({
 
                                     <dl className="space-y-2 border-t border-gray-100 pt-3 text-sm">
                                         <div className="flex items-center justify-between gap-2">
-                                            <dt className="text-xs uppercase tracking-wide text-gray-400">Reporter</dt>
-                                            <dd className="font-medium text-gray-700">{task.reporter?.name ?? '—'}</dd>
+                                            <dt className="text-xs uppercase tracking-wide text-[#78716C] dark:text-[#94A3B8]">Reporter</dt>
+                                            <dd className="font-medium text-[#1C1917] dark:text-[#F8FAFC]">{task.reporter?.name ?? '—'}</dd>
                                         </div>
                                         <div className="flex items-center justify-between gap-2">
-                                            <dt className="text-xs uppercase tracking-wide text-gray-400">Created</dt>
-                                            <dd className="font-medium text-gray-700">
+                                            <dt className="text-xs uppercase tracking-wide text-[#78716C] dark:text-[#94A3B8]">Created</dt>
+                                            <dd className="font-medium text-[#1C1917] dark:text-[#F8FAFC]">
                                                 {task.created_at ? new Date(task.created_at).toLocaleDateString() : '—'}
                                             </dd>
                                         </div>

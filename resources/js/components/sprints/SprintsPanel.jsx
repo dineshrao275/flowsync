@@ -9,11 +9,11 @@ import Spinner from '../ui/Spinner';
 import { useToast } from '../../context/ToastContext';
 import { formatDate } from '../../utils/format';
 
-const sel = 'rounded-lg border border-gray-300 px-2 py-1.5 text-sm';
+const sel = 'rounded-lg border border-[var(--border-hairline)] dark:border-[#2F3A4C] bg-[var(--surface-elevated)] dark:bg-[#1E2638] text-[#1C1917] dark:text-[#F8FAFC]';
 
 function TaskRow({ task, sprints, onMove, canPlan }) {
     return (
-        <li className="flex flex-wrap items-center gap-2 border-t border-gray-100 px-3 py-2 text-sm">
+        <li className="flex flex-wrap items-center gap-2 border-t border-[var(--border-hairline)] dark:border-[#2F3A4C] text-[#1C1917] dark:text-[#F8FAFC] px-3 py-2 text-sm">
             <span className="font-mono text-xs text-gray-400">{task.key}</span>
             <span className={`min-w-0 flex-1 truncate ${task.status?.is_done ? 'text-gray-400 line-through' : 'text-gray-800'}`}>{task.title}</span>
             <span className="text-xs text-gray-500">{task.story_points != null ? `${task.story_points} pts` : '— pts'}</span>

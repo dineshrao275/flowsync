@@ -213,14 +213,14 @@ export default function CommentThread({ task, projectId, isManager }) {
                         const own = comment.user?.id && comment.user.id === user?.id;
                         const canEdit = own || isManager;
                         return (
-                            <li key={comment.id} className="rounded-lg border border-gray-100 px-3 py-2.5">
+                            <li key={comment.id} className="rounded-lg border border-[var(--border-hairline)] dark:border-[#2F3A4C] bg-[var(--surface-elevated)] dark:bg-[#1E2638]">
                                 <div className="flex items-start justify-between gap-2">
                                     <div className="min-w-0">
-                                        <p className="text-xs text-gray-400">
-                                            <span className="font-semibold text-gray-700">{comment.user?.name ?? 'Unknown'}</span>
+                                        <p className="text-xs text-[#A8A29E] dark:text-[#64748B]">
+                                            <span className="font-semibold text-[#1C1917] dark:text-[#F8FAFC]">{comment.user?.name ?? 'Unknown'}</span>
                                             {comment.edited_at ? ' · edited' : ''} · {new Date(comment.created_at).toLocaleString()}
                                         </p>
-                                        <p className="mt-1 whitespace-pre-wrap text-sm text-gray-800">{comment.comment}</p>
+                                        <p className="mt-1 whitespace-pre-wrap text-[#1C1917] dark:text-[#F8FAFC]">{comment.comment}</p>
                                     </div>
                                     <div className="flex flex-shrink-0 items-center gap-1">
                                         {canEdit && (
@@ -252,11 +252,11 @@ export default function CommentThread({ task, projectId, isManager }) {
                                 </div>
 
                                 {comment.replies?.length > 0 && (
-                                    <ul className="mt-3 space-y-2 border-l-2 border-gray-100 pl-3">
+                                    <ul className="mt-3 space-y-2 border-l-2 border-[var(--border-hairline)] dark:border-[#2F3A4C]">
                                         {comment.replies.map((reply) => (
                                             <li key={reply.id}>
-                                                <p className="text-xs text-gray-400">
-                                                    <span className="font-semibold text-gray-700">{reply.user?.name ?? 'Unknown'}</span>
+                                                <p className="text-xs text-[#A8A29E] dark:text-[#64748B]">
+                                                    <span className="font-semibold text-[#1C1917] dark:text-[#F8FAFC]">{reply.user?.name ?? 'Unknown'}</span>
                                                     {reply.edited_at ? ' · edited' : ''} · {new Date(reply.created_at).toLocaleString()}
                                                 </p>
                                                 <p className="mt-0.5 whitespace-pre-wrap text-sm text-gray-700">{reply.comment}</p>

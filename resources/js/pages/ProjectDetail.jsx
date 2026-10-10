@@ -37,15 +37,15 @@ const DEFAULT_COLORS = ['#6366f1', '#0ea5e9', '#f59e0b', '#10b981', '#ef4444', '
 
 function Tabs({ tabs, active, onChange }) {
     return (
-        <div className="flex gap-1 border-b border-gray-200">
+        <div className="flex gap-1 border-b border-[var(--border-hairline)] dark:border-[#2F3A4C]">
             {tabs.map((tab) => (
                 <button
                     key={tab.key}
                     type="button"
                     onClick={() => onChange(tab.key)}
                     className={`-mb-px border-b-2 px-4 py-2.5 text-sm font-medium transition ${active === tab.key
-                            ? 'border-indigo-600 text-indigo-600'
-                            : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700'
+                            ? 'border-[#C2410C] text-[#C2410C] dark:border-[#F97316] dark:text-[#F97316]'
+                            : 'border-transparent text-[#78716C] dark:text-[#94A3B8] hover:text-[#1C1917] dark:hover:text-[#F8FAFC]'
                         }`}
                 >
                     {tab.label}
