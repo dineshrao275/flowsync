@@ -95,8 +95,8 @@ class TaskService
     {
         $status = $this->inputs->status($task->project, $data['status_id'] ?? $task->status_id);
         $priority = $this->inputs->priority($task->project, $data['priority_id'] ?? $task->priority_id);
-        $assignee = $this->inputs->assignee($task->project, $data['assignee_id'] ?? $task->assignee_id);
-        $parent = $this->inputs->parent($task->project, $data['parent_id'] ?? $task->parent_id);
+        $assignee = $this->inputs->assignee($task->project, array_key_exists('assignee_id', $data) ? $data['assignee_id'] : $task->assignee_id);
+        $parent = $this->inputs->parent($task->project, array_key_exists('parent_id', $data) ? $data['parent_id'] : $task->parent_id);
 
         $statusChanged = ($data['status_id'] ?? null) !== null && (int) $data['status_id'] !== $task->status_id;
 

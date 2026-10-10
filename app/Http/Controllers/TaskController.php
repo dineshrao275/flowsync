@@ -8,6 +8,7 @@ use App\Models\Priority;
 use App\Models\Project;
 use App\Models\Task;
 use App\Services\ActivityLogger;
+use App\Services\Tasks\TaskChangeLogger;
 use App\Services\TaskService;
 use App\Support\TaskScope;
 use Illuminate\Http\JsonResponse;
@@ -17,6 +18,7 @@ class TaskController extends Controller
 {
     public function __construct(
         private readonly TaskService $service,
+        private readonly TaskChangeLogger $changes,
         private readonly ActivityLogger $logger,
     ) {}
 
@@ -103,16 +105,7 @@ class TaskController extends Controller
 
         $task = $this->service->create($project, $data, $request->user());
 
-        $this->logger->log(
-            subjectType: Task::class,
-            subjectId: $task->id,
-            action: 'task.created',
-            data: ['key' => $task->key, 'title' => $task->title, 'assignee_id' => $task->assignee_id],
-            actor: $request->user(),
-            ipAddress: $request->ip(),
-        );
-
-        broadcast(new TaskSynced($task, 'created'));
+        $this->changes->created($task, $request->user(), $request->ip());
 
         return response()->json([
             'message' => 'Task created.',
@@ -180,32 +173,7 @@ class TaskController extends Controller
         $oldStatus = $task->status;
         $updated = $this->service->update($task, $data);
 
-        $assigneeChanged = array_key_exists('assignee_id', $data) && $updated->assignee_id !== $oldAssigneeId;
-        $statusChanged = array_key_exists('status_id', $data) && $updated->status_id !== $oldStatusId;
-
-        $changed = array_intersect(
-            array_keys($data),
-            ['title', 'description', 'status_id', 'priority_id', 'assignee_id', 'parent_id', 'epic_id', 'due_date', 'estimate_minutes', 'labels', 'start_date', 'story_points', 'issue_type_id', 'version_id', 'components'],
-        );
-
-        $this->logger->log(
-            subjectType: Task::class,
-            subjectId: $task->id,
-            action: 'task.updated',
-            data: [
-                'fields' => array_values($changed),
-                'key' => $updated->key,
-                'to_is_done' => $updated->status_id !== $oldStatusId && (bool) $updated->status?->is_done,
-                'assignee_changed' => $assigneeChanged,
-                'status_changed' => $statusChanged,
-                'from_status' => $oldStatus?->name ?? 'Unknown',
-                'to_status' => $updated->status?->name ?? 'Unknown',
-            ],
-            actor: $request->user(),
-            ipAddress: $request->ip(),
-        );
-
-        broadcast(new TaskSynced($updated, 'updated'));
+        $this->changes->updated($updated, $data, $oldAssigneeId, $oldStatusId, $oldStatus, $request->user(), $request->ip());
 
         return response()->json([
             'message' => 'Task updated.',

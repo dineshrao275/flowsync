@@ -2,10 +2,9 @@
 
 namespace App\Http\Controllers;
 
-use App\Events\TaskSynced;
 use App\Models\Project;
 use App\Models\Task;
-use App\Services\ActivityLogger;
+use App\Services\Tasks\TaskChangeLogger;
 use App\Services\TaskService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -14,7 +13,7 @@ class TaskMoveController extends Controller
 {
     public function __construct(
         private readonly TaskService $service,
-        private readonly ActivityLogger $logger,
+        private readonly TaskChangeLogger $changes,
     ) {}
 
     public function move(Request $request, Project $project, Task $task): JsonResponse
@@ -30,23 +29,7 @@ class TaskMoveController extends Controller
         $oldStatus = $task->status;
         $moved = $this->service->move($task, $data['status_id'], $data['index'] ?? null);
 
-        $this->logger->log(
-            subjectType: Task::class,
-            subjectId: $task->id,
-            action: 'task.moved',
-            data: [
-                'from_status_id' => $oldStatusId,
-                'from_status' => $oldStatus?->name,
-                'to_status_id' => $moved->status_id,
-                'to_status' => $moved->status?->name,
-                'key' => $moved->key,
-                'to_is_done' => $moved->status_id !== $oldStatusId && (bool) $moved->status?->is_done,
-            ],
-            actor: $request->user(),
-            ipAddress: $request->ip(),
-        );
-
-        broadcast(new TaskSynced($moved, 'moved'));
+        $this->changes->moved($moved, $oldStatusId, $oldStatus, $request->user(), $request->ip());
 
         return response()->json([
             'message' => 'Task moved.',
