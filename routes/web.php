@@ -234,6 +234,8 @@ Route::prefix('api')->group(function () {
         // HRMS Phase 5 completion slices (shifts, rosters, bulk ops, …) — isolated file.
         require base_path('routes/hrms_p5.php');
 
+        require __DIR__.'/web/hrms_approvals.php';
+
     }); // tenant_context + onboarding_complete over the HRMS block
 
     // Signed temporary download link for task attachments. Intentionally OUTSIDE

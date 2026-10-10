@@ -49,6 +49,8 @@ Schedule::command('hrms:leave-rollover --all')->dailyAt('04:50')->withoutOverlap
 // Retention's bare run reports only; `--apply` (the deleting run) stays manual.
 Schedule::command('hrms:retention --all')->weeklyOn(0, '05:00')->withoutOverlapping();
 Schedule::command('hrms:onboarding-reminders --all')->dailyAt('08:30')->withoutOverlapping();
+// Approval SLA: reminder before a stage is due, one escalation once overdue (each once per stage).
+Schedule::command('hrms:approvals-sla --all')->hourly()->withoutOverlapping();
 Schedule::command('hrms:assets-overdue --all')->dailyAt('10:30')->withoutOverlapping();
 Schedule::command('hrms:report-digests --all')->dailyAt('18:00')->withoutOverlapping();
 Schedule::command('hrms:performance-evidence --all')->dailyAt('21:30')->withoutOverlapping();

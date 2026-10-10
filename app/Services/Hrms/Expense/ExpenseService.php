@@ -2,7 +2,6 @@
 
 namespace App\Services\Hrms\Expense;
 
-use App\Enums\Hrms\ApproverType;
 use App\Enums\Hrms\ExpenseClaimStatus;
 use App\Models\Hrms\Document\EmployeeDocument;
 use App\Models\Hrms\Employee\Employee;
@@ -10,11 +9,9 @@ use App\Models\Hrms\Expense\ExpenseCategory;
 use App\Models\Hrms\Expense\ExpenseClaim;
 use App\Models\Hrms\Payroll\PayrollRun;
 use App\Models\Hrms\Payroll\PayslipAdjustment;
-use App\Models\Role;
 use App\Models\User;
-use App\Services\Hrms\Employee\ReportingLine;
+use App\Services\Hrms\Approval\ChainBuilder;
 use App\Services\Hrms\Shared\ApprovalService;
-use App\Services\Hrms\Shared\ValueObjects\ApproverSpec;
 use App\Services\HrmsAuditLogger;
 use App\Services\NotificationService;
 use App\Support\Hrms\Auditable;
@@ -28,7 +25,7 @@ use Illuminate\Validation\ValidationException;
  * Expense/HRMS — claims from filing to reimbursement.
  *
  * Six public methods, one per verb: file with items, replace the items,
- * submit into the chain, decide both ways, and reimburse into payroll.
+ * submit into the (template-driven, P2.5) chain, decide both ways, and reimburse into payroll.
  * Totals are recomputed from the items on every write (a client total is
  * never read); submission locks the figures; only a resolved chain
  * approves; and the payroll hand-off is a reference (an adjustment row
@@ -39,7 +36,7 @@ class ExpenseService
 {
     public function __construct(
         private readonly ApprovalService $approvals,
-        private readonly ReportingLine $reporting,
+        private readonly ChainBuilder $chains,
         private readonly HrmsAuditLogger $audit,
         private readonly NotificationService $notifications,
     ) {}
@@ -128,19 +125,15 @@ class ExpenseService
         $this->requireStatus($claim, ExpenseClaimStatus::Draft, 'Only a draft claim can be submitted.');
 
         return DB::transaction(function () use ($claim, $actor): ExpenseClaim {
-            $manager = $this->reporting->managerOf($claim->employee);
-
             $approval = $this->approvals->request(
-                [
-                    new ApproverSpec(ApproverType::Manager, userId: $manager?->user_id, employeeId: $manager?->id),
-                    $this->financeStep(),
-                ],
+                $this->chains->stepsFor('expense', $claim->employee, ['amount' => $claim->total_amount]),
                 $claim,
                 'expense.decide',
                 'Expense claim',
                 ['claim_number' => $claim->claim_number],
                 $actor,
                 $claim->employee_id,
+                'expense',
             );
 
             $claim->update(['status' => ExpenseClaimStatus::Submitted, 'approval_id' => $approval->id]);
@@ -285,23 +278,6 @@ class ExpenseService
             ->whereNull('paid_in_payroll_run_id')
             ->orderBy('id')
             ->get();
-    }
-
-    /**
-     * The finance leg: the first role holding the approve permission, or a
-     * candidate-less step the engine skips visibly when no tenant built
-     * one. The requester holding that permission does not remove the leg —
-     * self-approval is refused at decision time instead, so the chain still
-     * names who should have acted.
-     */
-    private function financeStep(): ApproverSpec
-    {
-        $roleId = Role::query()
-            ->whereHas('permissions', fn ($query) => $query->where('slug', 'hrms.expenses.approve'))
-            ->orderBy('id')
-            ->value('id');
-
-        return new ApproverSpec(ApproverType::Role, roleId: $roleId === null ? null : (int) $roleId);
     }
 
     /**
