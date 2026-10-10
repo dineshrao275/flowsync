@@ -8,8 +8,8 @@ function Column({ status, canMove, canEdit, onOpen }) {
     return (
         <div
             ref={setNodeRef}
-            className={`flex w-72 shrink-0 flex-col rounded-2xl border border-[var(--border-hairline)] dark:border-[#2F3A4C] bg-[var(--surface-elevated)] dark:bg-[#1E2638] transition ${
-                isOver ? 'border-[#C2410C]/60 bg-[#C2410C]/5' : 'dark:border-[#F97316]/60 dark:bg-[#F97316]/10'
+            className={`flex w-72 shrink-0 flex-col rounded-2xl border border-[var(--border-hairline)] dark:border-[#2F3A4C] bg-[var(--surface-elevated)] dark:bg-[#1E2638] p-3 transition ${
+                isOver ? 'border-[#C2410C]/60 bg-[#C2410C]/5 dark:border-[#F97316]/60 dark:bg-[#F97316]/10' : ''
             }`}
         >
             <div className="flex items-center justify-between px-2 pb-2 pt-1">
