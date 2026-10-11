@@ -10,6 +10,7 @@ import Select from '../ui/Select';
 import Spinner from '../ui/Spinner';
 import { Table, Th, Td } from '../ui/Table';
 import { useToast } from '../../context/ToastContext';
+import { useConfirm } from '../ui/ConfirmDialog';
 
 const DAYS = ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'];
 
@@ -37,6 +38,7 @@ const emptyForm = {
  */
 export default function ShiftCatalog({ canManage, onChanged }) {
     const toast = useToast();
+    const confirm = useConfirm();
     const [shifts, setShifts] = useState(null);
     const [error, setError] = useState(null);
     const [editing, setEditing] = useState(null);
@@ -116,7 +118,7 @@ export default function ShiftCatalog({ canManage, onChanged }) {
     }
 
     async function remove(shift) {
-        if (!window.confirm(`Delete "${shift.name}"? Shifts in use refuse deletion.`)) return;
+        if (!(await confirm({ title: 'Delete shift?', message: `Delete "${shift.name}"? Shifts in use refuse deletion.`, variant: 'danger' }))) return;
 
         try {
             await api.delete(`/hrms/shifts/${shift.id}`);

@@ -3,6 +3,7 @@ import { useSearchParams } from 'react-router-dom';
 import api, { fieldErrors } from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
+import { useConfirm } from '../components/ui/ConfirmDialog';
 import usePageTitle from '../hooks/usePageTitle';
 import Badge from '../components/ui/Badge';
 import Spinner from '../components/ui/Spinner';
@@ -77,6 +78,7 @@ function ModuleList({ title, modules, tone }) {
 export default function Subscription() {
     usePageTitle('Subscription');
     const toast = useToast();
+    const confirm = useConfirm();
     const { user, can } = useAuth();
     const [subscription, setSubscription] = useState(null);
     const [tenant, setTenant] = useState(null);
@@ -215,7 +217,7 @@ export default function Subscription() {
     }
 
     async function cancel(product) {
-        if (!window.confirm('Cancel the subscription at the end of the current period?')) return;
+        if (!(await confirm({ title: 'Cancel subscription?', message: 'Cancel the subscription at the end of the current period?', variant: 'danger' }))) return;
         await run(() => api.post('/my-subscription/cancel', product ? { product } : {}), 'Subscription canceled.');
     }
 

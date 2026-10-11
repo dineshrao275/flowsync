@@ -4,6 +4,7 @@ import Button from '../ui/Button';
 import Alert from '../ui/Alert';
 import Spinner from '../ui/Spinner';
 import { useAuth } from '../../context/AuthContext';
+import { useConfirm } from '../ui/ConfirmDialog';
 
 function formatSize(bytes) {
     if (!bytes) return '—';
@@ -13,6 +14,7 @@ function formatSize(bytes) {
 
 export default function AttachmentList({ task, projectId, canUpload, canManage }) {
     const { user } = useAuth();
+    const confirm = useConfirm();
     const [attachments, setAttachments] = useState(null);
     const [error, setError] = useState(null);
     const [file, setFile] = useState(null);
@@ -51,8 +53,8 @@ export default function AttachmentList({ task, projectId, canUpload, canManage }
             .finally(() => setUploading(false));
     }
 
-    function remove(attachment) {
-        if (!window.confirm(`Delete ${attachment.original_name}?`)) return;
+    async function remove(attachment) {
+        if (!(await confirm({ title: 'Delete attachment?', message: `Delete ${attachment.original_name}?`, variant: 'danger' }))) return;
         api.delete(`/projects/${projectId}/tasks/${task.id}/attachments/${attachment.id}`)
             .then(fetchAttachments)
             .catch(() => {});

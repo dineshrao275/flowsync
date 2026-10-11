@@ -9,6 +9,7 @@ import Button from '../components/ui/Button';
 import Input from '../components/ui/Input';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
+import { useConfirm } from '../components/ui/ConfirmDialog';
 import { useSetCrumbs } from '../context/BreadcrumbContext';
 import TimeSummary from '../components/time/TimeSummary';
 import usePageTitle from '../hooks/usePageTitle';
@@ -55,6 +56,7 @@ export default function WorkspaceDetail() {
     const navigate = useNavigate();
     const { user, can, hasModule } = useAuth();
     const toast = useToast();
+    const confirm = useConfirm();
     const setCrumbs = useSetCrumbs();
     const [workspace, setWorkspace] = useState(null);
     usePageTitle(workspace?.name || 'Workspace');
@@ -143,7 +145,7 @@ export default function WorkspaceDetail() {
     }
 
     async function archiveWorkspace() {
-        if (!window.confirm('Archive this workspace? It will be hidden but not deleted.')) return;
+        if (!(await confirm({ title: 'Archive workspace?', message: 'Archive this workspace? It will be hidden but not deleted.' }))) return;
         try {
             const { data } = await api.post(`/workspaces/${workspaceId}/archive`);
             setWorkspace(data.workspace);
@@ -164,7 +166,7 @@ export default function WorkspaceDetail() {
     }
 
     async function deleteWorkspace() {
-        if (!window.confirm('Permanently delete this workspace? This cannot be undone.')) return;
+        if (!(await confirm({ title: 'Delete workspace?', message: 'Permanently delete this workspace? This cannot be undone.', variant: 'danger' }))) return;
         try {
             await api.delete(`/workspaces/${workspaceId}`);
             toast.success('Workspace deleted.');
@@ -213,7 +215,7 @@ export default function WorkspaceDetail() {
     }
 
     async function removeMember(member) {
-        if (!window.confirm(`Remove ${member.name} from this workspace?`)) return;
+        if (!(await confirm({ title: 'Remove member?', message: `Remove ${member.name} from this workspace?`, variant: 'danger' }))) return;
         try {
             await api.delete(`/workspaces/${workspaceId}/members/${member.id}`);
             await loadMembers();
@@ -240,7 +242,7 @@ export default function WorkspaceDetail() {
     }
 
     async function deleteLabel(label) {
-        if (!window.confirm(`Delete label "${label.name}"?`)) return;
+        if (!(await confirm({ title: 'Delete label?', message: `Delete label "${label.name}"?`, variant: 'danger' }))) return;
         try {
             await api.delete(`/labels/${label.id}`);
             setLabels((l) => l.filter((x) => x.id !== label.id));

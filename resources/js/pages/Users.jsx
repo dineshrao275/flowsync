@@ -10,6 +10,7 @@ import Input from '../components/ui/Input';
 import { Table, Th, Td, TableEmpty } from '../components/ui/Table';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
+import { useConfirm } from '../components/ui/ConfirmDialog';
 import usePageTitle from '../hooks/usePageTitle';
 
 export default function Users() {
@@ -17,6 +18,7 @@ export default function Users() {
     const navigate = useNavigate();
     const { can, user: currentUser } = useAuth();
     const toast = useToast();
+    const confirm = useConfirm();
     const [users, setUsers] = useState([]);
     const [roles, setRoles] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -67,7 +69,7 @@ export default function Users() {
     }
 
     async function deleteUser(user) {
-        if (!window.confirm(`Delete ${user.name}? This cannot be undone.`)) return;
+        if (!(await confirm({ title: 'Delete user?', message: `Delete ${user.name}? This cannot be undone.`, variant: 'danger' }))) return;
 
         setSaving(true);
         try {

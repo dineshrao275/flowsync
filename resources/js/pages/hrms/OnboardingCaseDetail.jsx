@@ -8,6 +8,7 @@ import Spinner from '../../components/ui/Spinner';
 import StatusPill from '../../components/ui/StatusPill';
 import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
+import { useConfirm } from '../../components/ui/ConfirmDialog';
 import { useSetCrumbs } from '../../context/BreadcrumbContext';
 import usePageTitle from '../../hooks/usePageTitle';
 import { hrmsUrl } from '../../utils/deepLinks';
@@ -38,6 +39,7 @@ export default function OnboardingCaseDetail() {
     const setCrumbs = useSetCrumbs();
     const { user, can } = useAuth();
     const toast = useToast();
+    const confirm = useConfirm();
 
     const [detail, setDetail] = useState(null);
     const [error, setError] = useState(null);
@@ -134,7 +136,7 @@ export default function OnboardingCaseDetail() {
     }
 
     async function cancel() {
-        if (!window.confirm('Cancel this onboarding case? The rows stay for the audit trail.')) return;
+        if (!(await confirm({ title: 'Cancel onboarding case?', message: 'Cancel this onboarding case? The rows stay for the audit trail.', variant: 'danger' }))) return;
 
         setActing(true);
 

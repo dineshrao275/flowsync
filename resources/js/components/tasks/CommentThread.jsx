@@ -5,10 +5,12 @@ import Alert from '../ui/Alert';
 import Spinner from '../ui/Spinner';
 import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
+import { useConfirm } from '../ui/ConfirmDialog';
 
 export default function CommentThread({ task, projectId, isManager }) {
     const { user } = useAuth();
     const toast = useToast();
+    const confirm = useConfirm();
     const [comments, setComments] = useState(null);
     const [error, setError] = useState(null);
     const [newComment, setNewComment] = useState('');
@@ -170,8 +172,8 @@ export default function CommentThread({ task, projectId, isManager }) {
             .catch(() => {});
     }
 
-    function deleteComment(id) {
-        if (!window.confirm('Delete this comment?')) return;
+    async function deleteComment(id) {
+        if (!(await confirm({ title: 'Delete comment?', message: 'Delete this comment?', variant: 'danger' }))) return;
         api.delete(`/projects/${projectId}/tasks/${task.id}/comments/${id}`)
             .then(fetchComments)
             .catch(() => {});

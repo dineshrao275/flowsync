@@ -10,6 +10,7 @@ import Input from '../components/ui/Input';
 import { Table, Th, Td, TableEmpty } from '../components/ui/Table';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
+import { useConfirm } from '../components/ui/ConfirmDialog';
 import usePageTitle from '../hooks/usePageTitle';
 import { groupPermissionsByDomain, prettyDomain } from '../utils/permissions';
 
@@ -106,6 +107,7 @@ export default function Roles() {
     const navigate = useNavigate();
     const { can } = useAuth();
     const toast = useToast();
+    const confirm = useConfirm();
     const [roles, setRoles] = useState([]);
     const [permissions, setPermissions] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -206,7 +208,7 @@ export default function Roles() {
     }
 
     async function remove(role) {
-        if (!window.confirm(`Delete the role "${role.name}"? This cannot be undone.`)) return;
+        if (!(await confirm({ title: 'Delete role?', message: `Delete the role "${role.name}"? This cannot be undone.`, variant: 'danger' }))) return;
         setSavingId(role.id);
         setError(null);
         try {

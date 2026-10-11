@@ -7,6 +7,7 @@ import Card from '../../components/ui/Card';
 import Spinner from '../../components/ui/Spinner';
 import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
+import { useConfirm } from '../../components/ui/ConfirmDialog';
 import { useSetCrumbs } from '../../context/BreadcrumbContext';
 import usePageTitle from '../../hooks/usePageTitle';
 import { hrmsUrl } from '../../utils/deepLinks';
@@ -27,6 +28,7 @@ export default function OffboardingCaseDetail() {
     const setCrumbs = useSetCrumbs();
     const { user, can } = useAuth();
     const toast = useToast();
+    const confirm = useConfirm();
 
     const [detail, setDetail] = useState(null);
     const [error, setError] = useState(null);
@@ -95,7 +97,7 @@ export default function OffboardingCaseDetail() {
     }
 
     async function clear() {
-        if (!window.confirm('Sign off this exit? This records that nothing is outstanding.')) return;
+        if (!(await confirm({ title: 'Sign off exit?', message: 'Sign off this exit? This records that nothing is outstanding.' }))) return;
 
         setActing(true);
 
@@ -125,7 +127,7 @@ export default function OffboardingCaseDetail() {
     }
 
     async function cancel() {
-        if (!window.confirm('Cancel this exit run? The rows stay for the audit trail.')) return;
+        if (!(await confirm({ title: 'Cancel exit run?', message: 'Cancel this exit run? The rows stay for the audit trail.', variant: 'danger' }))) return;
 
         setActing(true);
 

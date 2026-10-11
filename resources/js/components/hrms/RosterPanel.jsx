@@ -8,6 +8,7 @@ import Select from '../ui/Select';
 import Spinner from '../ui/Spinner';
 import { Table, Th, Td, TableEmpty } from '../ui/Table';
 import { useToast } from '../../context/ToastContext';
+import { useConfirm } from '../ui/ConfirmDialog';
 
 const DAY_LABELS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 
@@ -23,6 +24,7 @@ function isoDate(date) {
  */
 export default function RosterPanel({ shifts, canManage, canView }) {
     const toast = useToast();
+    const confirm = useConfirm();
     const today = new Date();
     const [from, setFrom] = useState(isoDate(today));
     const [to, setTo] = useState(isoDate(new Date(today.getTime() + 13 * 86400000)));
@@ -77,7 +79,7 @@ export default function RosterPanel({ shifts, canManage, canView }) {
     }
 
     async function remove(id) {
-        if (!window.confirm('Remove this roster row?')) return;
+        if (!(await confirm({ title: 'Remove roster row?', message: 'Remove this roster row?', variant: 'danger' }))) return;
 
         try {
             await api.delete(`/hrms/shifts/rosters/${id}`);

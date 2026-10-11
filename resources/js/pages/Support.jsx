@@ -8,6 +8,7 @@ import Input from '../components/ui/Input';
 import Alert from '../components/ui/Alert';
 import TicketThread, { PRIORITY_STYLES, StatusPill } from '../components/support/TicketThread';
 import { useToast } from '../context/ToastContext';
+import { useConfirm } from '../components/ui/ConfirmDialog';
 import { useSetCrumbs } from '../context/BreadcrumbContext';
 import usePageTitle from '../hooks/usePageTitle';
 import { formatDateTime } from '../utils/format';
@@ -118,6 +119,7 @@ function TicketList() {
 
 function TicketDetail({ id }) {
     const toast = useToast();
+    const confirm = useConfirm();
     const setCrumbs = useSetCrumbs();
     const [ticket, setTicket] = useState(null);
     const [errors, setErrors] = useState({});
@@ -136,7 +138,7 @@ function TicketDetail({ id }) {
     }
 
     async function close() {
-        if (!window.confirm('Close this ticket? You can open a new one if the problem continues.')) return;
+        if (!(await confirm({ title: 'Close ticket?', message: 'Close this ticket? You can open a new one if the problem continues.' }))) return;
         const { data } = await api.post(`/support/tickets/${id}/close`);
         setTicket(data.ticket);
         toast.success(data.message);

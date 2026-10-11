@@ -12,6 +12,7 @@ import Spinner from '../../components/ui/Spinner';
 import { Table, Th, Td } from '../../components/ui/Table';
 import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
+import { useConfirm } from '../../components/ui/ConfirmDialog';
 import { useSetCrumbs } from '../../context/BreadcrumbContext';
 import usePageTitle from '../../hooks/usePageTitle';
 
@@ -47,6 +48,7 @@ export default function Compensation() {
     const navigate = useNavigate();
     const { can } = useAuth();
     const toast = useToast();
+    const confirm = useConfirm();
 
     const canManage = can('hrms.compensation.manage');
 
@@ -176,7 +178,7 @@ export default function Compensation() {
     }
 
     async function deleteHead(head) {
-        if (!window.confirm(`Delete “${head.name}”? Starter and in-use heads refuse.`)) return;
+        if (!(await confirm({ title: 'Delete head?', message: `Delete “${head.name}”? Starter and in-use heads refuse.`, variant: 'danger' }))) return;
 
         try {
             await api.delete(`/hrms/payroll/components/${head.id}`);
@@ -233,7 +235,7 @@ export default function Compensation() {
     }
 
     async function deleteTemplate(template) {
-        if (!window.confirm(`Delete “${template.name}”? Priced templates refuse — deactivate instead.`)) return;
+        if (!(await confirm({ title: 'Delete template?', message: `Delete “${template.name}”? Priced templates refuse — deactivate instead.`, variant: 'danger' }))) return;
 
         try {
             await api.delete(`/hrms/payroll/structures/${template.id}`);

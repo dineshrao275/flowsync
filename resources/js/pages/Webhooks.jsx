@@ -7,6 +7,7 @@ import Input from '../components/ui/Input';
 import Alert from '../components/ui/Alert';
 import Spinner from '../components/ui/Spinner';
 import { useToast } from '../context/ToastContext';
+import { useConfirm } from '../components/ui/ConfirmDialog';
 import { useSetCrumbs } from '../context/BreadcrumbContext';
 import usePageTitle from '../hooks/usePageTitle';
 import { formatDateTime } from '../utils/format';
@@ -17,6 +18,7 @@ const STATUS_TONE = { delivered: 'text-emerald-700', retrying: 'text-amber-700',
 export default function Webhooks() {
     usePageTitle('Webhooks');
     const toast = useToast();
+    const confirm = useConfirm();
     const setCrumbs = useSetCrumbs();
     const [data, setData] = useState(null);
     const [form, setForm] = useState({ url: '', description: '', events: ['*'] });
@@ -130,7 +132,7 @@ export default function Webhooks() {
                                 <Button size="sm" variant="secondary" onClick={() => showDeliveries(e.id)}>{open === e.id ? 'Hide log' : 'Delivery log'}</Button>
                                 <Button size="sm" variant="secondary" onClick={() => act(() => api.put(`/webhooks/${e.id}`, { url: e.url, description: e.description, events: e.events, is_active: !e.is_active }), e.is_active ? 'Endpoint switched off.' : 'Endpoint switched on.')}>{e.is_active ? 'Switch off' : 'Switch on'}</Button>
                                 <Button size="sm" variant="secondary" onClick={async () => { const r = await act(() => api.post(`/webhooks/${e.id}/rotate-secret`)); if (r) setSecret({ id: e.id, value: r.data.secret }); }}>Rotate secret</Button>
-                                <Button size="sm" variant="danger" onClick={() => window.confirm('Delete this endpoint and its delivery log?') && act(() => api.delete(`/webhooks/${e.id}`), 'Endpoint deleted.')}>Delete</Button>
+                                <Button size="sm" variant="danger" onClick={async () => { if (await confirm({ title: 'Delete endpoint?', message: 'Delete this endpoint and its delivery log?', variant: 'danger' })) act(() => api.delete(`/webhooks/${e.id}`), 'Endpoint deleted.'); }}>Delete</Button>
                             </div>
                             {open === e.id && (
                                 <div className="mt-3 overflow-x-auto rounded-lg border border-gray-100">

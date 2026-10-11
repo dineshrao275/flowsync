@@ -12,6 +12,7 @@ import Spinner from '../../components/ui/Spinner';
 import { Table, Th, Td } from '../../components/ui/Table';
 import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
+import { useConfirm } from '../../components/ui/ConfirmDialog';
 import { useSetCrumbs } from '../../context/BreadcrumbContext';
 import usePageTitle from '../../hooks/usePageTitle';
 
@@ -35,6 +36,7 @@ export default function Statutory() {
     const navigate = useNavigate();
     const { can } = useAuth();
     const toast = useToast();
+    const confirm = useConfirm();
 
     const canManage = can('hrms.payroll.statutory.manage');
 
@@ -215,7 +217,7 @@ export default function Statutory() {
     }
 
     async function deleteConfig(config) {
-        if (!window.confirm(`Delete “${config.name}”? Locked payslips price from snapshots, so history is safe.`)) return;
+        if (!(await confirm({ title: 'Delete configuration?', message: `Delete “${config.name}”? Locked payslips price from snapshots, so history is safe.`, variant: 'danger' }))) return;
 
         try {
             await api.delete(`/hrms/payroll/statutory/configurations/${config.id}`);

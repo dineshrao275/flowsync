@@ -11,6 +11,7 @@ import Select from '../../components/ui/Select';
 import Spinner from '../../components/ui/Spinner';
 import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
+import { useConfirm } from '../../components/ui/ConfirmDialog';
 import { useSetCrumbs } from '../../context/BreadcrumbContext';
 import usePageTitle from '../../hooks/usePageTitle';
 import { employeeUrl } from '../../utils/deepLinks';
@@ -41,6 +42,7 @@ export default function Documents() {
     const navigate = useNavigate();
     const { can } = useAuth();
     const toast = useToast();
+    const confirm = useConfirm();
 
     const [filters, setFilters] = useState(FILTER_DEFAULTS);
     const [page, setPage] = useState(1);
@@ -136,7 +138,7 @@ export default function Documents() {
     }
 
     async function remove(document) {
-        if (!window.confirm(`Delete “${document.title}”? The file is removed and the row is hidden.`)) return;
+        if (!(await confirm({ title: 'Delete document?', message: `Delete “${document.title}”? The file is removed and the row is hidden.`, variant: 'danger' }))) return;
 
         try {
             await api.delete(`/hrms/documents/${document.id}`);
@@ -151,7 +153,7 @@ export default function Documents() {
         const pending = (data?.documents ?? []).filter((document) => document.status === 'pending');
 
         if (pending.length === 0) return;
-        if (!window.confirm(`Verify ${pending.length} pending document${pending.length === 1 ? '' : 's'}?`)) return;
+        if (!(await confirm({ title: 'Verify documents?', message: `Verify ${pending.length} pending document${pending.length === 1 ? '' : 's'}?` }))) return;
 
         setVerifyingAll(true);
 

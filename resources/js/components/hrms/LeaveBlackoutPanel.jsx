@@ -6,6 +6,7 @@ import Input from '../ui/Input';
 import Select from '../ui/Select';
 import { Table, Th, Td, TableEmpty } from '../ui/Table';
 import { useToast } from '../../context/ToastContext';
+import { useConfirm } from '../ui/ConfirmDialog';
 
 const empty = { name: '', from_date: '', to_date: '', leave_type_id: '', department_id: '', reason: '' };
 
@@ -15,6 +16,7 @@ const empty = { name: '', from_date: '', to_date: '', leave_type_id: '', departm
  */
 export default function LeaveBlackoutPanel({ types }) {
     const toast = useToast();
+    const confirm = useConfirm();
     const [rows, setRows] = useState(null);
     const [form, setForm] = useState(empty);
     const [errors, setErrors] = useState({});
@@ -48,7 +50,7 @@ export default function LeaveBlackoutPanel({ types }) {
     }
 
     async function remove(id) {
-        if (!window.confirm('Delete this blackout window?')) return;
+        if (!(await confirm({ title: 'Delete blackout window?', message: 'Delete this blackout window?', variant: 'danger' }))) return;
 
         try {
             await api.delete(`/hrms/leave/blackouts/${id}`);

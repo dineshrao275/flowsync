@@ -9,6 +9,7 @@ import Modal from '../components/ui/Modal';
 import { Table, Th, Td, TableEmpty } from '../components/ui/Table';
 import LimitsEditor, { limitValue, formatBytes } from '../components/billing/LimitsEditor';
 import { useToast } from '../context/ToastContext';
+import { useConfirm } from '../components/ui/ConfirmDialog';
 import { formatPrice } from '../utils/format';
 import usePageTitle from '../hooks/usePageTitle';
 
@@ -168,6 +169,7 @@ function PlanForm({ initial, onSave, onCancel }) {
 export default function Plans() {
     usePageTitle('Plans');
     const toast = useToast();
+    const confirm = useConfirm();
     const [plans, setPlans] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
@@ -203,7 +205,7 @@ export default function Plans() {
     }
 
     async function remove(plan) {
-        if (!window.confirm(`Delete plan "${plan.name}"?`)) return;
+        if (!(await confirm({ title: 'Delete plan?', message: `Delete plan "${plan.name}"?`, variant: 'danger' }))) return;
         try {
             await api.delete(`/plans/${plan.id}`);
             toast.success('Plan deleted.');

@@ -7,6 +7,7 @@ import Button from '../ui/Button';
 import Input from '../ui/Input';
 import Spinner from '../ui/Spinner';
 import { useToast } from '../../context/ToastContext';
+import { useConfirm } from '../ui/ConfirmDialog';
 import { formatDate } from '../../utils/format';
 
 const sel = 'rounded-lg border border-gray-300 px-2 py-1.5 text-sm';
@@ -32,6 +33,7 @@ function TaskRow({ task, sprints, onMove, canPlan }) {
 /** Sprints & backlog planning, and the agile reports computed from the tracker's own history. */
 export default function SprintsPanel({ projectId, canPlan }) {
     const toast = useToast();
+    const confirm = useConfirm();
     const [view, setView] = useState('plan');
     const [data, setData] = useState(null);
     const [sprintTasks, setSprintTasks] = useState({});
@@ -104,7 +106,7 @@ export default function SprintsPanel({ projectId, canPlan }) {
                                     <p className="text-xs text-gray-500">{s.start_date ? `${formatDate(s.start_date)} → ${formatDate(s.end_date)}` : 'No dates yet'} · {s.tasks_count} tasks · {s.points || 0} pts{s.goal ? ` · ${s.goal}` : ''}</p>
                                 </div>
                                 {canPlan && s.status === 'planned' && <Button size="sm" onClick={() => act(() => api.post(`/projects/${projectId}/sprints/${s.id}/start`), 'Sprint started.')}>Start sprint</Button>}
-                                {canPlan && s.status === 'planned' && <Button size="sm" variant="danger" onClick={() => window.confirm('Delete this sprint? Its tasks return to the backlog.') && act(() => api.delete(`/projects/${projectId}/sprints/${s.id}`), 'Sprint deleted.')}>Delete</Button>}
+                                {canPlan && s.status === 'planned' && <Button size="sm" variant="danger" onClick={async () => { if (await confirm({ title: 'Delete sprint?', message: 'Delete this sprint? Its tasks return to the backlog.', variant: 'danger' })) act(() => api.delete(`/projects/${projectId}/sprints/${s.id}`), 'Sprint deleted.'); }}>Delete</Button>}
                                 {canPlan && s.status === 'active' && <Button size="sm" variant="secondary" onClick={() => { setCompleting(s); setLeftover({ mode: 'backlog', target: '' }); }}>Complete sprint</Button>}
                             </div>
                             {completing?.id === s.id && (

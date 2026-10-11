@@ -4,6 +4,7 @@ import { AuthProvider, useAuth } from './context/AuthContext';
 import { ThemeProvider } from './context/ThemeContext';
 import { ToastProvider } from './context/ToastContext';
 import { NotificationProvider } from './context/NotificationContext';
+import { ConfirmProvider } from './components/ui/ConfirmDialog';
 import GuestRoute from './components/GuestRoute';
 import ProtectedRoute from './components/ProtectedRoute';
 import AdminLayout from './components/AdminLayout';
@@ -490,7 +491,9 @@ export default function App() {
             <AuthProvider>
                 <ToastProvider>
                     <NotificationProvider>
-                        <AppRoutes />
+                        <ConfirmProvider>
+                            <AppRoutes />
+                        </ConfirmProvider>
                     </NotificationProvider>
                 </ToastProvider>
             </AuthProvider>

@@ -11,6 +11,7 @@ import Select from '../../components/ui/Select';
 import Spinner from '../../components/ui/Spinner';
 import { Table, Th, Td } from '../../components/ui/Table';
 import { useToast } from '../../context/ToastContext';
+import { useConfirm } from '../../components/ui/ConfirmDialog';
 import { useSetCrumbs } from '../../context/BreadcrumbContext';
 import usePageTitle from '../../hooks/usePageTitle';
 import { formatMinutes } from '../../utils/time';
@@ -44,6 +45,7 @@ export default function CompOff() {
     const setCrumbs = useSetCrumbs();
     const navigate = useNavigate();
     const toast = useToast();
+    const confirm = useConfirm();
 
     const [employees, setEmployees] = useState([]);
     const [employeeId, setEmployeeId] = useState('');
@@ -162,7 +164,7 @@ export default function CompOff() {
     async function runAccrual() {
         const { from, to } = previousMonth();
 
-        if (!window.confirm(`Credit comp-off for ${from} → ${to}? Reruns credit nothing new.`)) return;
+        if (!(await confirm({ title: 'Credit comp-off?', message: `Credit comp-off for ${from} → ${to}? Reruns credit nothing new.` }))) return;
 
         setAccruing(true);
 

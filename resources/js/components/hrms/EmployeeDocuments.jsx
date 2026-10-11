@@ -4,6 +4,7 @@ import Alert from '../ui/Alert';
 import Spinner from '../ui/Spinner';
 import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
+import { useConfirm } from '../ui/ConfirmDialog';
 import DocumentList from './DocumentList';
 import DocumentUploader from './DocumentUploader';
 
@@ -20,6 +21,7 @@ import DocumentUploader from './DocumentUploader';
 export default function EmployeeDocuments({ employee }) {
     const { user, can } = useAuth();
     const toast = useToast();
+    const confirm = useConfirm();
 
     const [documents, setDocuments] = useState(null);
     const [types, setTypes] = useState([]);
@@ -76,7 +78,7 @@ export default function EmployeeDocuments({ employee }) {
     }
 
     async function remove(document) {
-        if (!window.confirm(`Delete “${document.title}”? The file is removed and the row is hidden.`)) return;
+        if (!(await confirm({ title: 'Delete document?', message: `Delete “${document.title}”? The file is removed and the row is hidden.`, variant: 'danger' }))) return;
 
         try {
             await api.delete(`/hrms/documents/${document.id}`);

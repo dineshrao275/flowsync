@@ -11,6 +11,7 @@ import Select from '../../components/ui/Select';
 import Spinner from '../../components/ui/Spinner';
 import { Table, Th, Td } from '../../components/ui/Table';
 import { useToast } from '../../context/ToastContext';
+import { useConfirm } from '../../components/ui/ConfirmDialog';
 import { useSetCrumbs } from '../../context/BreadcrumbContext';
 import usePageTitle from '../../hooks/usePageTitle';
 import { monthLabel, PAYSLIP_STATUS_LABELS } from '../../utils/payroll';
@@ -28,6 +29,7 @@ export default function PayrollRunDetail() {
     const setCrumbs = useSetCrumbs();
     const navigate = useNavigate();
     const toast = useToast();
+    const confirm = useConfirm();
     const { runId } = useParams();
 
     const [run, setRun] = useState(null);
@@ -86,7 +88,7 @@ export default function PayrollRunDetail() {
     }
 
     async function removeAdjustment(adjustment) {
-        if (!window.confirm(`Remove “${adjustment.label}”? Totals recompute without it.`)) return;
+        if (!(await confirm({ title: 'Remove adjustment?', message: `Remove “${adjustment.label}”? Totals recompute without it.`, variant: 'danger' }))) return;
 
         try {
             const { data } = await api.delete(`/hrms/payroll/payslips/${selected.id}/adjustments/${adjustment.id}`);

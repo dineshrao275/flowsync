@@ -10,6 +10,7 @@ import Pagination from '../components/ui/Pagination';
 import { useAuth } from '../context/AuthContext';
 import ImpersonateModal from '../components/ImpersonateModal';
 import { useToast } from '../context/ToastContext';
+import { useConfirm } from '../components/ui/ConfirmDialog';
 import { useClickOutside } from '../hooks/useClickOutside';
 import usePageTitle from '../hooks/usePageTitle';
 
@@ -95,6 +96,7 @@ function TenantActions({ tenant, onChanged, onImpersonate }) {
 
     useClickOutside(ref, () => setOpen(false));
 
+    const confirm = useConfirm();
     const trashed = Boolean(tenant.deleted_at);
 
     function toggle() {
@@ -131,7 +133,7 @@ function TenantActions({ tenant, onChanged, onImpersonate }) {
     }
 
     async function remove() {
-        if (!window.confirm(`Delete tenant "${tenant.name}"? It can be restored later.`)) return;
+        if (!(await confirm({ title: 'Delete tenant?', message: `Delete tenant "${tenant.name}"? It can be restored later.`, variant: 'danger' }))) return;
         setBusy(true);
         try {
             await api.delete(`/tenants/${tenant.id}`);

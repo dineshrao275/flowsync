@@ -8,6 +8,7 @@ import Select from '../ui/Select';
 import Spinner from '../ui/Spinner';
 import { Table, Th, Td, TableEmpty } from '../ui/Table';
 import { useToast } from '../../context/ToastContext';
+import { useConfirm } from '../ui/ConfirmDialog';
 
 /**
  * Rotation templates ("6 on, 2 off") and applying one to people over a
@@ -16,6 +17,7 @@ import { useToast } from '../../context/ToastContext';
  */
 export default function RotationPanel({ shifts, canManage }) {
     const toast = useToast();
+    const confirm = useConfirm();
     const [rotations, setRotations] = useState(null);
     const [employees, setEmployees] = useState([]);
     const [form, setForm] = useState({ name: '', code: '', cycle: ['', ''] });
@@ -60,7 +62,7 @@ export default function RotationPanel({ shifts, canManage }) {
     }
 
     async function remove(id) {
-        if (!window.confirm('Delete this rotation? Rows it already produced stay.')) return;
+        if (!(await confirm({ title: 'Delete rotation?', message: 'Delete this rotation? Rows it already produced stay.', variant: 'danger' }))) return;
 
         try {
             await api.delete(`/hrms/shifts/rotations/${id}`);

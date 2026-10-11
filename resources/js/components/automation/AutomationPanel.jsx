@@ -7,6 +7,7 @@ import Input from '../ui/Input';
 import Alert from '../ui/Alert';
 import Spinner from '../ui/Spinner';
 import { useToast } from '../../context/ToastContext';
+import { useConfirm } from '../ui/ConfirmDialog';
 import { formatDateTime } from '../../utils/format';
 
 const blankRule = { name: '', trigger: 'task.completed', is_active: true, conditions: [], actions: [{ type: 'add_comment', text: '' }] };
@@ -15,6 +16,7 @@ const sel = 'rounded-lg border border-gray-300 px-2 py-1.5 text-sm';
 /** Project automation: list, build and review rules ("when … and … then …"). */
 export default function AutomationPanel({ projectId, members, statuses, labels, priorities }) {
     const toast = useToast();
+    const confirm = useConfirm();
     const [catalog, setCatalog] = useState(null);
     const [rules, setRules] = useState(null);
     const [editing, setEditing] = useState(null); // null | {id?, ...rule}
@@ -149,7 +151,7 @@ export default function AutomationPanel({ projectId, members, statuses, labels, 
                                 <Button size="sm" variant="secondary" onClick={() => { setErrors({}); setEditing({ ...r }); }}>Edit</Button>
                                 <Button size="sm" variant="secondary" onClick={() => api.put(`/projects/${projectId}/automations/${r.id}`, { name: r.name, trigger: r.trigger, conditions: r.conditions, actions: r.actions, is_active: !r.is_active }).then(load)}>{r.is_active ? 'Turn off' : 'Turn on'}</Button>
                                 <Button size="sm" variant="secondary" onClick={() => showRuns(r.id)}>{runs.id === r.id ? 'Hide runs' : 'Run log'}</Button>
-                                <Button size="sm" variant="danger" onClick={() => window.confirm('Delete this rule?') && api.delete(`/projects/${projectId}/automations/${r.id}`).then(load)}>Delete</Button>
+                                <Button size="sm" variant="danger" onClick={async () => { if (await confirm({ title: 'Delete rule?', message: 'Delete this rule?', variant: 'danger' })) api.delete(`/projects/${projectId}/automations/${r.id}`).then(load); }}>Delete</Button>
                             </div>
                             {runs.id === r.id && (
                                 <ul className="mt-3 divide-y divide-gray-100 rounded-lg border border-gray-100 text-xs">

@@ -12,6 +12,7 @@ import Spinner from '../../components/ui/Spinner';
 import { Table, Th, Td, TableEmpty } from '../../components/ui/Table';
 import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
+import { useConfirm } from '../../components/ui/ConfirmDialog';
 import { useSetCrumbs } from '../../context/BreadcrumbContext';
 import usePageTitle from '../../hooks/usePageTitle';
 import HolidayGrid from '../../components/hrms/HolidayGrid';
@@ -49,6 +50,7 @@ export default function Holidays() {
     const navigate = useNavigate();
     const { can } = useAuth();
     const toast = useToast();
+    const confirm = useConfirm();
 
     const canManage = can('permission:hrms.holidays.manage');
 
@@ -170,7 +172,7 @@ export default function Holidays() {
     }
 
     async function deleteCalendar(id) {
-        if (!window.confirm('Delete this calendar? Calendars in use refuse deletion.')) return;
+        if (!(await confirm({ title: 'Delete calendar?', message: 'Delete this calendar? Calendars in use refuse deletion.', variant: 'danger' }))) return;
 
         try {
             await api.delete(`/hrms/holidays/calendars/${id}`);
@@ -203,7 +205,7 @@ export default function Holidays() {
     }
 
     async function deleteHoliday(id) {
-        if (!window.confirm('Delete this holiday? Answered holidays refuse deletion.')) return;
+        if (!(await confirm({ title: 'Delete holiday?', message: 'Delete this holiday? Answered holidays refuse deletion.', variant: 'danger' }))) return;
 
         try {
             await api.delete(`/hrms/holidays/${id}`);
@@ -245,7 +247,7 @@ export default function Holidays() {
     }
 
     async function unassign(id) {
-        if (!window.confirm('Remove this assignment?')) return;
+        if (!(await confirm({ title: 'Remove assignment?', message: 'Remove this assignment?', variant: 'danger' }))) return;
 
         try {
             await api.delete(`/hrms/holidays/assignments/${id}`);
@@ -278,7 +280,7 @@ export default function Holidays() {
     }
 
     async function seedYear() {
-        if (!window.confirm(`Expand ${year} from the catalogue? Reruns add nothing new.`)) return;
+        if (!(await confirm({ title: 'Expand year?', message: `Expand ${year} from the catalogue? Reruns add nothing new.` }))) return;
 
         setSeeding(true);
 

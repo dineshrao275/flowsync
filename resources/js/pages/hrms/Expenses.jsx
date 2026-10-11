@@ -12,6 +12,7 @@ import Spinner from '../../components/ui/Spinner';
 import { Table, Th, Td } from '../../components/ui/Table';
 import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
+import { useConfirm } from '../../components/ui/ConfirmDialog';
 import { useSetCrumbs } from '../../context/BreadcrumbContext';
 import usePageTitle from '../../hooks/usePageTitle';
 
@@ -33,6 +34,7 @@ export default function Expenses() {
     const navigate = useNavigate();
     const { can } = useAuth();
     const toast = useToast();
+    const confirm = useConfirm();
 
     const canDecide = can('hrms.expenses.approve');
     const canManage = can('hrms.expenses.manage');
@@ -142,7 +144,7 @@ export default function Expenses() {
     }
 
     async function deleteCategory(category) {
-        if (!window.confirm(`Delete “${category.name}”? Starter and in-use rows refuse.`)) return;
+        if (!(await confirm({ title: 'Delete category?', message: `Delete “${category.name}”? Starter and in-use rows refuse.`, variant: 'danger' }))) return;
 
         try {
             await api.delete(`/hrms/expenses/categories/${category.id}`);

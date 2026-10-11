@@ -13,6 +13,7 @@ import SprintsPanel from '../components/sprints/SprintsPanel';
 import HierarchyPanel from '../components/hierarchy/HierarchyPanel';
 import WorkflowRules from '../components/tasks/WorkflowRules';
 import { useToast } from '../context/ToastContext';
+import { useConfirm } from '../components/ui/ConfirmDialog';
 import { useSetCrumbs } from '../context/BreadcrumbContext';
 import KanbanBoard from '../components/tasks/KanbanBoard';
 import TaskTable from '../components/tasks/TaskTable';
@@ -61,6 +62,7 @@ export default function ProjectDetail() {
     const navigate = useNavigate();
     const { user, can, hasModule } = useAuth();
     const toast = useToast();
+    const confirm = useConfirm();
     const setCrumbs = useSetCrumbs();
     const [project, setProject] = useState(null);
     usePageTitle(project?.name || 'Project');
@@ -373,7 +375,7 @@ export default function ProjectDetail() {
 
     async function deleteTask() {
         if (!selectedTask) return;
-        if (!window.confirm(`Delete ${selectedTask.key}? This cannot be undone.`)) return;
+        if (!(await confirm({ title: 'Delete task?', message: `Delete ${selectedTask.key}? This cannot be undone.`, variant: 'danger' }))) return;
         setSavingTask(true);
         try {
             await api.delete(`/projects/${projectId}/tasks/${selectedTask.id}`);
@@ -422,7 +424,7 @@ export default function ProjectDetail() {
     }
 
     async function deleteProject() {
-        if (!window.confirm('Permanently delete this project? This cannot be undone.')) return;
+        if (!(await confirm({ title: 'Delete project?', message: 'Permanently delete this project? This cannot be undone.', variant: 'danger' }))) return;
         try {
             await api.delete(`/projects/${projectId}`);
             toast.success('Project deleted.');
@@ -471,7 +473,7 @@ export default function ProjectDetail() {
     }
 
     async function removeMember(member) {
-        if (!window.confirm(`Remove ${member.name} from this project?`)) return;
+        if (!(await confirm({ title: 'Remove member?', message: `Remove ${member.name} from this project?`, variant: 'danger' }))) return;
         try {
             await api.delete(`/projects/${projectId}/members/${member.id}`);
             await loadMemberCandidates();
@@ -514,7 +516,7 @@ export default function ProjectDetail() {
     }
 
     async function deleteStatus(status) {
-        if (!window.confirm(`Delete status "${status.name}"? Tasks in it must move first.`)) return;
+        if (!(await confirm({ title: 'Delete status?', message: `Delete status "${status.name}"? Tasks in it must move first.`, variant: 'danger' }))) return;
         try {
             await api.delete(`/projects/${projectId}/statuses/${status.id}`);
             const { data } = await api.get(`/projects/${projectId}/statuses`);
@@ -562,7 +564,7 @@ export default function ProjectDetail() {
     }
 
     async function deleteIssueType(type) {
-        if (!window.confirm(`Delete issue type "${type.name}"?`)) return;
+        if (!(await confirm({ title: 'Delete issue type?', message: `Delete issue type "${type.name}"?`, variant: 'danger' }))) return;
         try {
             await api.delete(`/issue-types/${type.id}`);
             await loadIssueTypes();

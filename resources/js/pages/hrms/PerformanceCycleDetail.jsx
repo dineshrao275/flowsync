@@ -10,6 +10,7 @@ import Select from '../../components/ui/Select';
 import Spinner from '../../components/ui/Spinner';
 import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
+import { useConfirm } from '../../components/ui/ConfirmDialog';
 import { useSetCrumbs } from '../../context/BreadcrumbContext';
 import usePageTitle from '../../hooks/usePageTitle';
 import GoalCard from '../../components/hrms/GoalCard';
@@ -32,6 +33,7 @@ export default function PerformanceCycleDetail() {
     const setCrumbs = useSetCrumbs();
     const navigate = useNavigate();
     const toast = useToast();
+    const confirm = useConfirm();
     const { can } = useAuth();
     const { cycleId } = useParams();
 
@@ -160,7 +162,7 @@ export default function PerformanceCycleDetail() {
     }
 
     async function unlinkGoalTask(goal, task) {
-        if (!window.confirm(`Unlink ${task.key}? The task itself is untouched.`)) return;
+        if (!(await confirm({ title: 'Unlink task?', message: `Unlink ${task.key}? The task itself is untouched.`, variant: 'danger' }))) return;
 
         try {
             await api.delete(`/hrms/performance/goals/${goal.id}/tasks/${task.id}`);

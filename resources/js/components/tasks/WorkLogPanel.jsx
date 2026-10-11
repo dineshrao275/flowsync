@@ -7,6 +7,7 @@ import Alert from '../ui/Alert';
 import Spinner from '../ui/Spinner';
 import Input from '../ui/Input';
 import { fieldClass } from '../ui/fieldStyles';
+import { useConfirm } from '../ui/ConfirmDialog';
 
 function toLocalInput(iso) {
     if (!iso) return '';
@@ -26,6 +27,7 @@ function formatRange(log) {
 
 export default function WorkLogPanel({ task, projectId, canLog, canManage }) {
     const { user } = useAuth();
+    const confirm = useConfirm();
     const [logs, setLogs] = useState([]);
     const [totals, setTotals] = useState({ total_minutes: 0, estimate_minutes: null, remaining_minutes: null, logs_count: 0 });
     const [loading, setLoading] = useState(true);
@@ -91,8 +93,8 @@ export default function WorkLogPanel({ task, projectId, canLog, canManage }) {
             .finally(() => setSaving(false));
     }
 
-    function remove(log) {
-        if (!window.confirm('Remove this work log? This cannot be undone.')) return;
+    async function remove(log) {
+        if (!(await confirm({ title: 'Remove work log?', message: 'Remove this work log? This cannot be undone.', variant: 'danger' }))) return;
         api.delete(`${base}/${log.id}`).then(() => load()).catch((e) => setErrors(fieldErrors(e)));
     }
 
