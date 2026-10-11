@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import api from '../services/api';
 import Avatar from '../components/ui/Avatar';
@@ -13,34 +13,20 @@ import { useSetCrumbs } from '../context/BreadcrumbContext';
 import { describeNotification, notificationHref, timeAgo } from '../utils/notifications';
 import { projectUrl, taskUrl } from '../utils/deepLinks';
 import usePageTitle from '../hooks/usePageTitle';
+import { usePaginated } from '../hooks/useResource';
 
 export default function Notifications() {
     usePageTitle('Notifications');
     const { markAllRead, markRead } = useNotifications();
     const setCrumbs = useSetCrumbs();
     const navigate = useNavigate();
-    const [data, setData] = useState(null);
-    const [page, setPage] = useState(1);
-    const [error, setError] = useState(null);
+    const { data, error, page, setPage } = usePaginated((p, signal) =>
+        api.get('/notifications', { params: { page: p, per_page: 20 }, signal }).then(({ data: response }) => response),
+    );
 
     useEffect(() => {
         setCrumbs([{ label: 'Notifications' }]);
     }, [setCrumbs]);
-
-    const load = useCallback(
-        (targetPage) => {
-            setError(null);
-            api.get('/notifications', { params: { page: targetPage, per_page: 20 } })
-                .then(({ data: response }) => setData(response))
-                .catch(() => setError('Unable to load notifications.'));
-        },
-        [],
-    );
-
-    useEffect(() => {
-        load(page);
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [page]);
 
     function openNotification(notification) {
         markRead(notification.id);
@@ -61,7 +47,7 @@ export default function Notifications() {
                 )}
             </div>
 
-            {error && <Alert>{error}</Alert>}
+            {error && <Alert>Unable to load notifications.</Alert>}
 
             <Table>
                 <thead>
@@ -159,7 +145,7 @@ export default function Notifications() {
                 </tbody>
             </Table>
 
-            <Pagination page={page} pages={pagination.last_page} onChange={setPage} />
+            {pagination && <Pagination page={page} pages={pagination.last_page} onChange={setPage} />}
         </div>
     );
 }

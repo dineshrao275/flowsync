@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import api, { fieldErrors } from '../services/api';
 import Card from '../components/ui/Card';
 import Badge from '../components/ui/Badge';
@@ -8,6 +8,7 @@ import Input from '../components/ui/Input';
 import Modal from '../components/ui/Modal';
 import { useToast } from '../context/ToastContext';
 import usePageTitle from '../hooks/usePageTitle';
+import { useResource } from '../hooks/useResource';
 import { useSetCrumbs } from '../context/BreadcrumbContext';
 
 const emptyForm = {
@@ -208,18 +209,10 @@ export default function CmsPages() {
     usePageTitle('Website Pages');
     useSetCrumbs([{ label: 'Platform', to: '/admin' }, { label: 'Website' }]);
     const toast = useToast();
-    const [pages, setPages] = useState([]);
-    const [loading, setLoading] = useState(true);
+    const { data: pages = [], loading, reload: fetchPages } = useResource((signal) =>
+        api.get('/system/pages', { signal }).then(({ data }) => data.pages),
+    );
     const [editor, setEditor] = useState(null);
-
-    const fetchPages = () => {
-        setLoading(true);
-        api.get('/system/pages')
-            .then(({ data }) => setPages(data.pages))
-            .finally(() => setLoading(false));
-    };
-
-    useEffect(fetchPages, []);
 
     async function save(form) {
         const payload = { ...form };
