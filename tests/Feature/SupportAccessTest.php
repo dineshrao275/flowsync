@@ -23,7 +23,7 @@ class SupportAccessTest extends TestCase
             ->assertCreated()->json('grant.id');
     }
 
-    private function startSession(array $extra = [])
+    private function beginSupportSession(array $extra = [])
     {
         $this->postJson('/api/auth/logout');
         $this->postJson('/api/auth/login', ['email' => 'superadmin@flowsync.test', 'password' => 'password'])->assertOk();
@@ -79,10 +79,10 @@ class SupportAccessTest extends TestCase
     {
         PlatformSetting::set(SupportAccessGrants::POLICY_KEY, true);
 
-        $this->startSession()->assertStatus(422)->assertJsonValidationErrors('grant_id');
+        $this->beginSupportSession()->assertStatus(422)->assertJsonValidationErrors('grant_id');
 
         $id = $this->grantAsAdmin();
-        $this->startSession(['grant_id' => $id])->assertOk()->assertJsonPath('user.impersonating', true);
+        $this->beginSupportSession(['grant_id' => $id])->assertOk()->assertJsonPath('user.impersonating', true);
 
         $log = ImpersonationLog::latest('id')->first();
         $this->assertSame($id, (int) $log->support_access_grant_id);
@@ -94,8 +94,8 @@ class SupportAccessTest extends TestCase
     {
         $id = $this->grantAsAdmin(['session_minutes' => 10, 'hours' => 1]);
 
-        $this->startSession(['grant_id' => $id, 'mode' => 'write'])->assertStatus(422)->assertJsonValidationErrors('mode');
-        $this->startSession(['grant_id' => $id])->assertOk();
+        $this->beginSupportSession(['grant_id' => $id, 'mode' => 'write'])->assertStatus(422)->assertJsonValidationErrors('mode');
+        $this->beginSupportSession(['grant_id' => $id])->assertOk();
 
         $log = ImpersonationLog::latest('id')->first();
         $this->assertLessThanOrEqual(10 * 60 + 5, $log->expires_at->timestamp - now()->timestamp);
@@ -107,17 +107,17 @@ class SupportAccessTest extends TestCase
             'tenant_id' => $this->globex()->id, 'granted_by_user_id' => 1, 'granted_by_name' => 'G', 'granted_by_email' => 'g@globex.test',
             'note' => 'globex only', 'expires_at' => now()->addDay(),
         ]);
-        $this->startSession(['grant_id' => $foreign->id])->assertStatus(422)->assertJsonValidationErrors('grant_id');
+        $this->beginSupportSession(['grant_id' => $foreign->id])->assertStatus(422)->assertJsonValidationErrors('grant_id');
 
         $id = $this->grantAsAdmin();
         SupportAccessGrant::find($id)->update(['revoked_at' => now()]);
-        $this->startSession(['grant_id' => $id])->assertStatus(422)->assertJsonValidationErrors('grant_id');
+        $this->beginSupportSession(['grant_id' => $id])->assertStatus(422)->assertJsonValidationErrors('grant_id');
     }
 
     public function test_revoking_ends_a_running_session_on_its_next_request(): void
     {
         $id = $this->grantAsAdmin();
-        $this->startSession(['grant_id' => $id])->assertOk();
+        $this->beginSupportSession(['grant_id' => $id])->assertOk();
         $this->getJson('/api/auth/me')->assertOk();
 
         SupportAccessGrant::find($id)->update(['revoked_at' => now(), 'revoked_by_name' => 'Admin']);
@@ -128,7 +128,7 @@ class SupportAccessTest extends TestCase
     public function test_support_cannot_manage_grants_while_impersonating(): void
     {
         $id = $this->grantAsAdmin();
-        $this->startSession(['grant_id' => $id, 'mode' => 'write'])->assertOk();
+        $this->beginSupportSession(['grant_id' => $id, 'mode' => 'write'])->assertOk();
 
         $this->postJson('/api/support-access', ['note' => 'self issued consent'])->assertForbidden();
         $this->deleteJson("/api/support-access/{$id}")->assertForbidden();
