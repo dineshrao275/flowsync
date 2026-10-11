@@ -14,18 +14,7 @@ import { useConfirm } from '../components/ui/ConfirmDialog';
 import { useSetCrumbs } from '../context/BreadcrumbContext';
 import TimeSummary from '../components/time/TimeSummary';
 import usePageTitle from '../hooks/usePageTitle';
-
-const ROLE_LABELS = {
-    owner: 'Owner',
-    admin: 'Admin',
-    member: 'Member',
-};
-
-const PROJECT_ROLE_LABELS = {
-    lead: 'Lead',
-    developer: 'Developer',
-    viewer: 'Viewer',
-};
+import { projectRoleLabel, workspaceRoleLabel } from '../utils/roles';
 
 const roleOptions = [
     { value: 'admin', label: 'Admin' },
@@ -303,7 +292,7 @@ export default function WorkspaceDetail() {
                     <div>
                         <div className="flex flex-wrap items-center gap-2">
                             <h2 className="text-2xl font-bold text-gray-900">{workspace.name}</h2>
-                            {workspace.my_role && <Badge>{ROLE_LABELS[workspace.my_role]?.toLowerCase()}</Badge>}
+                            {workspace.my_role && <Badge>{workspaceRoleLabel(workspace.my_role)}</Badge>}
                             {archived && <Badge>archived</Badge>}
                         </div>
                         <p className="mt-1 text-sm text-gray-500">{workspace.description || 'No description'}</p>
@@ -404,7 +393,7 @@ export default function WorkspaceDetail() {
                                                     <p className="flex flex-wrap items-center gap-2 text-sm font-medium text-gray-900">
                                                         {project.name}
                                                         {project.my_role && (
-                                                            <Badge>{PROJECT_ROLE_LABELS[project.my_role]?.toLowerCase() || project.my_role}</Badge>
+                                                            <Badge>{projectRoleLabel(project.my_role)}</Badge>
                                                         )}
                                                         {project.archived_at && <Badge>archived</Badge>}
                                                     </p>

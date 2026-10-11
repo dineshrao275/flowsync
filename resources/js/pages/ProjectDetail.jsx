@@ -23,12 +23,7 @@ import CreateTaskModal from '../components/tasks/CreateTaskModal';
 import TaskDetail from '../components/tasks/TaskDetail';
 import TimeSummary from '../components/time/TimeSummary';
 import usePageTitle from '../hooks/usePageTitle';
-
-const ROLE_LABELS = {
-    lead: 'Lead',
-    developer: 'Developer',
-    viewer: 'Viewer',
-};
+import { projectRoleLabel } from '../utils/roles';
 
 const CATEGORY_LABELS = {
     todo: 'To do',
@@ -598,7 +593,7 @@ export default function ProjectDetail() {
                     <div>
                         <div className="flex flex-wrap items-center gap-2">
                             <h2 className="text-2xl font-bold text-gray-900">{project.name}</h2>
-                            {project.my_role && <Badge>{ROLE_LABELS[project.my_role]?.toLowerCase() || project.my_role}</Badge>}
+                            {project.my_role && <Badge>{projectRoleLabel(project.my_role)}</Badge>}
                             {archived && <Badge>archived</Badge>}
                         </div>
                         <p className="mt-1 text-sm text-gray-500">{project.description || 'No description'}</p>
@@ -831,7 +826,7 @@ export default function ProjectDetail() {
                                                         ))}
                                                     </select>
                                                 ) : (
-                                                    <Badge>{ROLE_LABELS[member.role.slug]?.toLowerCase() || member.role.name.toLowerCase()}</Badge>
+                                                    <Badge>{projectRoleLabel(member.role.slug, member.role.name)}</Badge>
                                                 )
                                             ) : (
                                                 <Badge>member</Badge>
