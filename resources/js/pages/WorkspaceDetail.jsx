@@ -7,6 +7,7 @@ import Spinner from '../components/ui/Spinner';
 import Alert from '../components/ui/Alert';
 import Button from '../components/ui/Button';
 import Input from '../components/ui/Input';
+import Tabs from '../components/ui/Tabs';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
 import { useConfirm } from '../components/ui/ConfirmDialog';
@@ -30,26 +31,6 @@ const roleOptions = [
     { value: 'admin', label: 'Admin' },
     { value: 'member', label: 'Member' },
 ];
-
-function Tabs({ tabs, active, onChange }) {
-    return (
-        <div className="flex gap-1 border-b border-gray-200">
-            {tabs.map((tab) => (
-                <button
-                    key={tab.key}
-                    type="button"
-                    onClick={() => onChange(tab.key)}
-                    className={`-mb-px border-b-2 px-4 py-2.5 text-sm font-medium transition ${active === tab.key
-                            ? 'border-indigo-600 text-indigo-600'
-                            : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700'
-                        }`}
-                >
-                    {tab.label}
-                </button>
-            ))}
-        </div>
-    );
-}
 
 export default function WorkspaceDetail() {
     const { workspaceId } = useParams();
