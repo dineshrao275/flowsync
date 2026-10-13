@@ -8,6 +8,7 @@ import Select from '../ui/Select';
 import Input from '../ui/Input';
 import Spinner from '../ui/Spinner';
 import EmptyState from '../ui/EmptyState';
+import { useConfirm } from '../ui/ConfirmDialog';
 
 const KINDS = [
     { value: 'goal', label: 'Goal evidence' },
@@ -29,6 +30,7 @@ const KINDS = [
 export default function TaskLinkPanel({ task, canManage }) {
     const { can } = useAuth();
     const toast = useToast();
+    const confirm = useConfirm();
     const [links, setLinks] = useState(null);
     const [forbidden, setForbidden] = useState(false);
     const [employees, setEmployees] = useState([]);
@@ -80,6 +82,13 @@ export default function TaskLinkPanel({ task, canManage }) {
     }
 
     async function unlink(link) {
+        if (!(await confirm({
+            title: 'Remove HR link?',
+            message: `Remove the link to ${link.employee?.name || 'this employee'}?`,
+            variant: 'danger',
+            confirmLabel: 'Unlink',
+        }))) return;
+
         try {
             await api.delete(`/hrms/tasks/${task.id}/links/${link.id}`);
             toast.success('Link removed.');

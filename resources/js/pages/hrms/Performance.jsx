@@ -13,6 +13,7 @@ import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
 import { useSetCrumbs } from '../../context/BreadcrumbContext';
 import usePageTitle from '../../hooks/usePageTitle';
+import { useConfirm } from '../../components/ui/ConfirmDialog';
 
 const STAGES = ['goal_setting', 'check_in', 'self_review', 'manager_review', 'calibration', 'completed'];
 const STAGE_LABELS = {
@@ -49,6 +50,7 @@ export default function Performance() {
     const navigate = useNavigate();
     const { can } = useAuth();
     const toast = useToast();
+    const confirm = useConfirm();
 
     const canManage = can('hrms.performance.manage');
 
@@ -105,6 +107,18 @@ export default function Performance() {
     }
 
     async function transition(cycle, action, done) {
+        const isComplete = action === 'complete';
+        const nextStep = NEXT_STEP[cycle.stage];
+        const confirmed = await confirm({
+            title: isComplete ? 'Complete review cycle?' : `${nextStep?.label || 'Advance stage'}?`,
+            message: isComplete
+                ? `Complete review cycle “${cycle.name}”? This locks calibrations and marks the cycle completed.`
+                : `Advance review cycle “${cycle.name}” to the next stage? Stage transitions move forward only.`,
+            variant: isComplete ? 'warning' : 'primary',
+            confirmLabel: isComplete ? 'Complete cycle' : nextStep?.label || 'Advance',
+        });
+        if (!confirmed) return;
+
         setActing(`${cycle.id}:${action}`);
 
         try {

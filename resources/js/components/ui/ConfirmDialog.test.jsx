@@ -67,6 +67,27 @@ describe('ConfirmDialog / useConfirm', () => {
         await waitFor(() => expect(results).toEqual([true]));
     });
 
+    it('supports warning variant and custom cancelLabel', async () => {
+        const results = mount({
+            title: 'Complete review cycle?',
+            message: 'This cannot be undone.',
+            variant: 'warning',
+            confirmLabel: 'Complete',
+            cancelLabel: 'Keep open',
+        });
+
+        fireEvent.click(screen.getByText('trigger'));
+        await screen.findByRole('dialog');
+
+        expect(screen.getByText('Complete review cycle?')).toBeInTheDocument();
+        expect(screen.getByText('This cannot be undone.')).toBeInTheDocument();
+        expect(screen.getByText('Keep open')).toBeInTheDocument();
+
+        fireEvent.click(screen.getByText('Keep open'));
+
+        await waitFor(() => expect(results).toEqual([false]));
+    });
+
     it('throws when useConfirm is used outside a ConfirmProvider', () => {
         function Bare() {
             useConfirm();

@@ -9,6 +9,7 @@ import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
 import usePageTitle from '../hooks/usePageTitle';
 import { useSetCrumbs } from '../context/BreadcrumbContext';
+import { useConfirm } from '../components/ui/ConfirmDialog';
 
 function RecoveryCodes({ codes }) {
     return (
@@ -23,6 +24,7 @@ function RecoveryCodes({ codes }) {
 
 function TwoFactorCard({ onChanged }) {
     const toast = useToast();
+    const confirm = useConfirm();
     const [state, setState] = useState(null);
     const [setup, setSetup] = useState(null);
     const [codes, setCodes] = useState(null);
@@ -93,7 +95,18 @@ function TwoFactorCard({ onChanged }) {
                             New recovery codes
                         </Button>
                         {!state.required && (
-                            <Button variant="danger" onClick={() => call(() => api.post('/auth/2fa/disable', { password, code }), () => setCodes(null))}>
+                            <Button
+                                variant="danger"
+                                onClick={async () => {
+                                    if (!(await confirm({
+                                        title: 'Disable two-factor authentication?',
+                                        message: 'Turning off two-factor authentication makes your account less secure.',
+                                        variant: 'danger',
+                                        confirmLabel: 'Turn off 2FA',
+                                    }))) return;
+                                    call(() => api.post('/auth/2fa/disable', { password, code }), () => setCodes(null));
+                                }}
+                            >
                                 Turn off
                             </Button>
                         )}
@@ -106,6 +119,7 @@ function TwoFactorCard({ onChanged }) {
 
 function SupportAccessCard() {
     const toast = useToast();
+    const confirm = useConfirm();
     const [data, setData] = useState(null);
     const [form, setForm] = useState({ note: '', hours: 24, mode: 'read_only' });
     const [errors, setErrors] = useState({});
@@ -130,6 +144,12 @@ function SupportAccessCard() {
     }
 
     async function revoke(id) {
+        if (!(await confirm({
+            title: 'Revoke support access?',
+            message: 'Revoke this support access grant immediately?',
+            variant: 'danger',
+            confirmLabel: 'Revoke access',
+        }))) return;
         const { data: res } = await api.delete(`/support-access/${id}`);
         toast.success(res.message);
         load();

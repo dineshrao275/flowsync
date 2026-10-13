@@ -8,6 +8,7 @@ import Input from '../components/ui/Input';
 import { useToast } from '../context/ToastContext';
 import usePageTitle from '../hooks/usePageTitle';
 import { useSetCrumbs } from '../context/BreadcrumbContext';
+import { useConfirm } from '../components/ui/ConfirmDialog';
 
 const emptyForm = { key: '', description: '' };
 
@@ -15,6 +16,7 @@ export default function FeatureFlags() {
     usePageTitle('Feature Flags');
     useSetCrumbs([{ label: 'Platform', to: '/admin' }, { label: 'Feature flags' }]);
     const toast = useToast();
+    const confirm = useConfirm();
     const [flags, setFlags] = useState(null);
     const [tenants, setTenants] = useState([]);
     const [form, setForm] = useState(emptyForm);
@@ -101,7 +103,19 @@ export default function FeatureFlags() {
                                         && run(api.put(`/system/feature-flags/${flag.id}`, { rollout_percent: Number(e.target.value) }))} />
                                 %
                             </label>
-                            <Button variant="danger" onClick={() => run(api.delete(`/system/feature-flags/${flag.id}`), load)}>Delete</Button>
+                            <Button
+                                variant="danger"
+                                onClick={async () => {
+                                    if (!(await confirm({
+                                        title: 'Delete feature flag?',
+                                        message: `Delete flag "${flag.key}"? Any tenant overrides will also be removed.`,
+                                        variant: 'danger',
+                                    }))) return;
+                                    run(api.delete(`/system/feature-flags/${flag.id}`), load);
+                                }}
+                            >
+                                Delete
+                            </Button>
                         </div>
                     </div>
 
@@ -111,8 +125,21 @@ export default function FeatureFlags() {
                             {flag.overrides.map((o) => (
                                 <Badge key={o.tenant_id}>
                                     {o.tenant?.name || o.tenant_id}: {o.enabled ? 'on' : 'off'}
-                                    <button type="button" className="ml-2 text-gray-400"
-                                        onClick={() => run(api.delete(`/system/feature-flags/${flag.id}/overrides/${o.tenant_id}`))}>x</button>
+                                    <button
+                                        type="button"
+                                        className="ml-2 text-gray-400 hover:text-red-600"
+                                        aria-label="Remove override"
+                                        onClick={async () => {
+                                            if (!(await confirm({
+                                                title: 'Remove tenant override?',
+                                                message: `Remove override for ${o.tenant?.name || `tenant ${o.tenant_id}`}?`,
+                                                variant: 'danger',
+                                            }))) return;
+                                            run(api.delete(`/system/feature-flags/${flag.id}/overrides/${o.tenant_id}`));
+                                        }}
+                                    >
+                                        x
+                                    </button>
                                 </Badge>
                             ))}
                         </div>

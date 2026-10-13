@@ -10,6 +10,7 @@ import { useToast } from '../context/ToastContext';
 import usePageTitle from '../hooks/usePageTitle';
 import { useResource } from '../hooks/useResource';
 import { useSetCrumbs } from '../context/BreadcrumbContext';
+import { useConfirm } from '../components/ui/ConfirmDialog';
 
 const emptyForm = {
     slug: '',
@@ -209,6 +210,7 @@ export default function CmsPages() {
     usePageTitle('Website Pages');
     useSetCrumbs([{ label: 'Platform', to: '/admin' }, { label: 'Website' }]);
     const toast = useToast();
+    const confirm = useConfirm();
     const { data: pages = [], loading, reload: fetchPages } = useResource((signal) =>
         api.get('/system/pages', { signal }).then(({ data }) => data.pages),
     );
@@ -241,7 +243,7 @@ export default function CmsPages() {
     }
 
     async function remove(page) {
-        if (!confirm(`Delete "${page.title}"?`)) return;
+        if (!(await confirm({ title: 'Delete page?', message: `Delete "${page.title}"? This cannot be undone.`, variant: 'danger' }))) return;
         try {
             await api.delete(`/system/pages/${page.id}`);
             toast.success('Page deleted.');
