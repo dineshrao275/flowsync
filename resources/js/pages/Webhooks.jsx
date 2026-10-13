@@ -10,7 +10,7 @@ import { useToast } from '../context/ToastContext';
 import { useConfirm } from '../components/ui/ConfirmDialog';
 import { useSetCrumbs } from '../context/BreadcrumbContext';
 import usePageTitle from '../hooks/usePageTitle';
-import { formatDateTime } from '../utils/format';
+import Timestamp from '../components/ui/Timestamp';
 
 const STATUS_TONE = { delivered: 'text-emerald-700', retrying: 'text-amber-700', failed: 'text-red-700', pending: 'text-gray-500' };
 
@@ -146,7 +146,7 @@ export default function Webhooks() {
                                                     <td className={`px-3 py-2 font-medium ${STATUS_TONE[d.status]}`}>{d.status}{d.error ? ` — ${d.error}` : ''}</td>
                                                     <td className="px-3 py-2">{d.attempts}</td>
                                                     <td className="px-3 py-2">{d.response_status ?? '—'}</td>
-                                                    <td className="px-3 py-2">{formatDateTime(d.created_at)}</td>
+                                                    <td className="px-3 py-2"><Timestamp date={d.created_at} /></td>
                                                     <td className="px-3 py-2 text-right"><button className="text-indigo-600 hover:underline" onClick={() => act(() => api.post(`/webhook-deliveries/${d.id}/redeliver`), 'Queued.')}>Redeliver</button></td>
                                                 </tr>
                                             ))}

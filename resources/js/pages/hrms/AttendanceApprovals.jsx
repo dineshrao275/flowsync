@@ -13,18 +13,13 @@ import { Table, Th, Td } from '../../components/ui/Table';
 import { useToast } from '../../context/ToastContext';
 import { useSetCrumbs } from '../../context/BreadcrumbContext';
 import usePageTitle from '../../hooks/usePageTitle';
+import Timestamp from '../../components/ui/Timestamp';
 
 const STATUS_OPTIONS = [
     { value: '', label: 'Pending only' },
     { value: 'approved', label: 'Approved' },
     { value: 'rejected', label: 'Rejected' },
 ];
-
-function correctedTime(value) {
-    if (!value) return '—';
-
-    return new Date(value).toLocaleString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
-}
 
 /**
  * The regularization queue: correction asks awaiting a decision, and the
@@ -154,9 +149,9 @@ export default function AttendanceApprovals() {
                                     <Td>{request.employee?.name ?? '—'}</Td>
                                     <Td>{request.work_date}</Td>
                                     <Td>
-                                        {correctedTime(request.requested_first_in_at)}
+                                        <Timestamp date={request.requested_first_in_at} />
                                         {' → '}
-                                        {correctedTime(request.requested_punch_at)}
+                                        <Timestamp date={request.requested_punch_at} />
                                     </Td>
                                     <Td>
                                         <span className="block max-w-xs truncate" title={request.reason}>

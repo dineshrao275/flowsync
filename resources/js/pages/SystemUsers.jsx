@@ -10,6 +10,7 @@ import Pagination from '../components/ui/Pagination';
 import { useToast } from '../context/ToastContext';
 import usePageTitle from '../hooks/usePageTitle';
 import { useSetCrumbs } from '../context/BreadcrumbContext';
+import Timestamp from '../components/ui/Timestamp';
 
 const emptyForm = { name: '', email: '', password: '' };
 
@@ -126,7 +127,7 @@ export default function SystemUsers() {
                                             onClick={() => { setEditing(u); setPicked(u.platform_roles || []); }}>Edit</button>
                                     </td>
                                     <td className="py-2.5 text-right text-gray-400">
-                                        {u.created_at ? new Date(u.created_at).toLocaleDateString() : '—'}
+                                        <Timestamp date={u.created_at} />
                                     </td>
                                 </tr>
                             ))}

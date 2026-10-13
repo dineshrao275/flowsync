@@ -3,6 +3,7 @@ import api from '../services/api';
 import Modal from './ui/Modal';
 import Button from './ui/Button';
 import { fieldClass } from './ui/fieldStyles';
+import { formatDateTime } from '../utils/format';
 
 const MIN_REASON = 8;
 
@@ -89,7 +90,7 @@ export default function ImpersonateModal({ target, onCancel, onConfirm }) {
                             {!consentRequired && <option value="">Without a grant</option>}
                             {grants.map((g) => (
                                 <option key={g.id} value={g.id}>
-                                    {g.granted_by.name}: {g.mode === 'write' ? 'changes allowed' : 'read-only'}, until {new Date(g.expires_at).toLocaleString()}
+                                    {g.granted_by.name}: {g.mode === 'write' ? 'changes allowed' : 'read-only'}, until {formatDateTime(g.expires_at)}
                                 </option>
                             ))}
                         </select>

@@ -10,6 +10,7 @@ import { useToast } from '../context/ToastContext';
 import usePageTitle from '../hooks/usePageTitle';
 import { useSetCrumbs } from '../context/BreadcrumbContext';
 import { useConfirm } from '../components/ui/ConfirmDialog';
+import Timestamp from '../components/ui/Timestamp';
 
 function RecoveryCodes({ codes }) {
     return (
@@ -182,7 +183,7 @@ function SupportAccessCard() {
                     <li key={g.id} className="flex items-center justify-between py-2">
                         <span>
                             <span className="font-medium">{g.mode === 'write' ? 'Changes allowed' : 'Read-only'}</span>
-                            {' · '}{g.active ? `until ${new Date(g.expires_at).toLocaleString()}` : (g.revoked_at ? 'revoked' : 'expired')}
+                            {' · '}{g.active ? <>until <Timestamp date={g.expires_at} /></> : (g.revoked_at ? 'revoked' : 'expired')}
                             {' · '}{g.uses} session{g.uses === 1 ? '' : 's'}
                             <span className="block text-xs text-gray-500">{g.note} (by {g.granted_by.name})</span>
                         </span>

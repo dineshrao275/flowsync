@@ -6,6 +6,7 @@ import Spinner from '../ui/Spinner';
 import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
 import { useConfirm, usePrompt } from '../ui/ConfirmDialog';
+import Timestamp from '../ui/Timestamp';
 
 export default function CommentThread({ task, projectId, isManager }) {
     const { user } = useAuth();
@@ -229,7 +230,7 @@ export default function CommentThread({ task, projectId, isManager }) {
                                     <div className="min-w-0">
                                         <p className="text-xs text-gray-400">
                                             <span className="font-semibold text-gray-700">{comment.user?.name ?? 'Unknown'}</span>
-                                            {comment.edited_at ? ' · edited' : ''} · {new Date(comment.created_at).toLocaleString()}
+                                            {comment.edited_at ? ' · edited' : ''} · <Timestamp date={comment.created_at} />
                                         </p>
                                         <p className="mt-1 whitespace-pre-wrap text-sm text-gray-800">{comment.comment}</p>
                                     </div>
@@ -268,7 +269,7 @@ export default function CommentThread({ task, projectId, isManager }) {
                                             <li key={reply.id}>
                                                 <p className="text-xs text-gray-400">
                                                     <span className="font-semibold text-gray-700">{reply.user?.name ?? 'Unknown'}</span>
-                                                    {reply.edited_at ? ' · edited' : ''} · {new Date(reply.created_at).toLocaleString()}
+                                                    {reply.edited_at ? ' · edited' : ''} · <Timestamp date={reply.created_at} />
                                                 </p>
                                                 <p className="mt-0.5 whitespace-pre-wrap text-sm text-gray-700">{reply.comment}</p>
                                                 {(reply.user?.id && reply.user.id === user?.id) || isManager ? (

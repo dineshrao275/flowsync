@@ -11,6 +11,7 @@ import Alert from '../components/ui/Alert';
 import Button from '../components/ui/Button';
 import { Table, Th, Td, TableEmpty } from '../components/ui/Table';
 import { formatDate, formatPrice } from '../utils/format';
+import Timestamp from '../components/ui/Timestamp';
 
 const RESOURCES = [
     { key: 'users', label: 'Users' },
@@ -289,7 +290,7 @@ export default function Subscription() {
                         </p>
                         {subscription.canceled_at && (
                             <p className="mt-1 text-sm text-amber-600">
-                                Canceled {formatDate(subscription.canceled_at)} — access continues until the period end.
+                                Canceled <Timestamp date={subscription.canceled_at} /> — access continues until the period end.
                             </p>
                         )}
                     </>
@@ -488,7 +489,7 @@ export default function Subscription() {
                                             : '—'}
                                     </Td>
                                     <Td align="right" className="whitespace-nowrap text-xs text-gray-400">
-                                        {formatDate(e.created_at)}
+                                        <Timestamp date={e.created_at} />
                                     </Td>
                                 </tr>
                             ))}
@@ -523,7 +524,7 @@ export default function Subscription() {
                                     <Td>
                                         <Badge>{inv.status}</Badge>
                                     </Td>
-                                    <Td className="whitespace-nowrap text-xs text-gray-500">{formatDate(inv.issued_at)}</Td>
+                                    <Td className="whitespace-nowrap text-xs text-gray-500"><Timestamp date={inv.issued_at} /></Td>
                                     <Td align="right">
                                         <a
                                             href={`/api/billing/invoices/${inv.id}/pdf`}
@@ -572,7 +573,7 @@ export default function Subscription() {
                                         <Badge>{p.status}</Badge>
                                     </Td>
                                     <Td align="right" className="whitespace-nowrap text-xs text-gray-400">
-                                        {formatDate(p.created_at)}
+                                        <Timestamp date={p.created_at} />
                                     </Td>
                                 </tr>
                             ))}

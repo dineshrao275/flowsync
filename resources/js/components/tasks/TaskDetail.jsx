@@ -14,6 +14,7 @@ import WorkLogPanel from './WorkLogPanel';
 import TaskLinkPanel from '../hrms/TaskLinkPanel';
 import { useAuth } from '../../context/AuthContext';
 import { fieldClass } from '../ui/fieldStyles';
+import Timestamp from '../ui/Timestamp';
 
 export default function TaskDetail({
     task,
@@ -516,7 +517,7 @@ export default function TaskDetail({
                                         <div className="flex items-center justify-between gap-2">
                                             <dt className="text-xs uppercase tracking-wide text-gray-400">Created</dt>
                                             <dd className="font-medium text-gray-700">
-                                                {task.created_at ? new Date(task.created_at).toLocaleDateString() : '—'}
+                                                <Timestamp date={task.created_at} />
                                             </dd>
                                         </div>
                                     </dl>

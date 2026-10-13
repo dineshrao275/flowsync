@@ -5,6 +5,7 @@ import Alert from '../ui/Alert';
 import Spinner from '../ui/Spinner';
 import { useAuth } from '../../context/AuthContext';
 import { useConfirm } from '../ui/ConfirmDialog';
+import Timestamp from '../ui/Timestamp';
 
 function formatSize(bytes) {
     if (!bytes) return '—';
@@ -108,7 +109,7 @@ export default function AttachmentList({ task, projectId, canUpload, canManage }
                                     </a>
                                     <p className="text-xs text-gray-400">
                                         {attachment.user?.name ?? 'Unknown'} · {formatSize(attachment.size)} ·{' '}
-                                        {new Date(attachment.created_at).toLocaleDateString()}
+                                        <Timestamp date={attachment.created_at} />
                                     </p>
                                 </div>
                                 {(canManage || own) && (

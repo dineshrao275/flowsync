@@ -9,6 +9,7 @@ import Spinner from '../ui/Spinner';
 import { useToast } from '../../context/ToastContext';
 import { useConfirm } from '../ui/ConfirmDialog';
 import { formatDate } from '../../utils/format';
+import Timestamp from '../ui/Timestamp';
 
 const sel = 'rounded-lg border border-gray-300 px-2 py-1.5 text-sm';
 
@@ -140,7 +141,7 @@ export default function SprintsPanel({ projectId, canPlan }) {
                     {closed.length > 0 && (
                         <Card title="Completed sprints">
                             <ul className="divide-y divide-gray-100 text-sm">
-                                {closed.map((s) => <li key={s.id} className="flex flex-wrap justify-between gap-2 py-2"><span className="font-medium">{s.name}</span><span className="text-gray-500">{s.completed_points ?? 0} of {s.committed_points ?? 0} pts · {formatDate(s.completed_at)}</span></li>)}
+                                {closed.map((s) => <li key={s.id} className="flex flex-wrap justify-between gap-2 py-2"><span className="font-medium">{s.name}</span><span className="text-gray-500">{s.completed_points ?? 0} of {s.committed_points ?? 0} pts · <Timestamp date={s.completed_at} /></span></li>)}
                             </ul>
                         </Card>
                     )}

@@ -11,7 +11,7 @@ import { useToast } from '../context/ToastContext';
 import { useConfirm } from '../components/ui/ConfirmDialog';
 import { useSetCrumbs } from '../context/BreadcrumbContext';
 import usePageTitle from '../hooks/usePageTitle';
-import { formatDateTime } from '../utils/format';
+import Timestamp from '../components/ui/Timestamp';
 
 const CATEGORIES = [['technical', 'Technical problem'], ['billing', 'Billing'], ['access', 'Access & accounts'], ['feature_request', 'Feature request'], ['other', 'Other']];
 const PRIORITIES = [['low', 'Low'], ['normal', 'Normal'], ['high', 'High'], ['urgent', 'Urgent']];
@@ -107,7 +107,7 @@ function TicketList() {
                                 <span className="min-w-0 flex-1 truncate font-medium text-gray-800">{t.subject}</span>
                                 <span className={`text-xs capitalize ${PRIORITY_STYLES[t.priority]}`}>{t.priority}</span>
                                 <StatusPill status={t.status} />
-                                <span className="text-xs text-gray-400">{formatDateTime(t.last_activity_at)}</span>
+                                <span className="text-xs text-gray-400"><Timestamp date={t.last_activity_at} /></span>
                             </Link>
                         </li>
                     ))}
@@ -191,7 +191,7 @@ function TicketDetail({ id }) {
                     <p className="font-mono text-xs text-gray-400">{ticket.reference}</p>
                     <h2 className="text-2xl font-bold text-gray-900">{ticket.subject}</h2>
                     <p className="mt-1 text-sm text-gray-500">
-                        <span className="capitalize">{ticket.category.replace('_', ' ')}</span> · <span className="capitalize">{ticket.priority}</span> priority · opened {formatDateTime(ticket.created_at)} by {ticket.created_by_name}
+                        <span className="capitalize">{ticket.category.replace('_', ' ')}</span> · <span className="capitalize">{ticket.priority}</span> priority · opened <Timestamp date={ticket.created_at} /> by {ticket.created_by_name}
                     </p>
                 </div>
                 <div className="flex items-center gap-2">

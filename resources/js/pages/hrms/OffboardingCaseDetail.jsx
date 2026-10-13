@@ -13,6 +13,7 @@ import usePageTitle from '../../hooks/usePageTitle';
 import { hrmsUrl } from '../../utils/deepLinks';
 import Checklist from '../../components/hrms/Checklist';
 import ConvertTaskModal from '../../components/hrms/ConvertTaskModal';
+import Timestamp from '../../components/ui/Timestamp';
 
 /**
  * One exit run: the clearance sign-off first, the checklist second.
@@ -197,7 +198,7 @@ export default function OffboardingCaseDetail() {
             >
                 {signed ? (
                     <p className="text-sm text-green-700">
-                        Signed{clearance.cleared_at ? ` on ${new Date(clearance.cleared_at).toLocaleDateString()}` : ''}.
+                        Signed{clearance.cleared_at ? <> on <Timestamp date={clearance.cleared_at} /></> : ''}.
                         Nothing is outstanding.
                     </p>
                 ) : blockedReasons.length > 0 ? (

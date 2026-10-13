@@ -8,7 +8,7 @@ import Alert from '../ui/Alert';
 import Spinner from '../ui/Spinner';
 import { useToast } from '../../context/ToastContext';
 import { useConfirm } from '../ui/ConfirmDialog';
-import { formatDateTime } from '../../utils/format';
+import Timestamp from '../ui/Timestamp';
 
 const blankRule = { name: '', trigger: 'task.completed', is_active: true, conditions: [], actions: [{ type: 'add_comment', text: '' }] };
 const sel = 'rounded-lg border border-gray-300 px-2 py-1.5 text-sm';
@@ -143,7 +143,7 @@ export default function AutomationPanel({ projectId, members, statuses, labels, 
                                 <div>
                                     <p className="font-semibold text-gray-900">{r.name}</p>
                                     <p className="text-xs text-gray-500">When {catalog.triggers[r.trigger]?.toLowerCase()} · {r.conditions.length} condition(s) · {r.actions.map((a) => catalog.actions[a.type]).join(', ')}</p>
-                                    <p className="text-xs text-gray-400">{r.run_count} run(s){r.last_run_at ? ` · last ${formatDateTime(r.last_run_at)}` : ''}</p>
+                                    <p className="text-xs text-gray-400">{r.run_count} run(s){r.last_run_at ? <> · last <Timestamp date={r.last_run_at} /></> : ''}</p>
                                 </div>
                                 <Badge>{r.is_active ? 'on' : 'off'}</Badge>
                             </div>
@@ -160,7 +160,7 @@ export default function AutomationPanel({ projectId, members, statuses, labels, 
                                         <li key={x.id} className="flex flex-wrap gap-2 px-3 py-2">
                                             <span className={x.status === 'success' ? 'text-emerald-700' : x.status === 'failed' ? 'text-red-700' : 'text-gray-500'}>{x.status}</span>
                                             <span className="text-gray-600">{x.summary}</span>
-                                            <span className="ml-auto text-gray-400">{formatDateTime(x.created_at)}</span>
+                                            <span className="ml-auto text-gray-400"><Timestamp date={x.created_at} /></span>
                                         </li>
                                     ))}
                                 </ul>

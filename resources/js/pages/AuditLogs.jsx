@@ -8,6 +8,7 @@ import { Table, Th, Td, TableEmpty } from '../components/ui/Table';
 import usePageTitle from '../hooks/usePageTitle';
 import { useSetCrumbs } from '../context/BreadcrumbContext';
 import { useToast } from '../context/ToastContext';
+import Timestamp from '../components/ui/Timestamp';
 
 const TYPE_LABEL = { all: 'All activity', audit: 'System events', impersonation: 'Impersonations' };
 
@@ -151,7 +152,7 @@ export default function AuditLogs() {
                                         style={{ animationDelay: `${index * 30}ms` }}
                                     >
                                         <Td align="right" className="whitespace-nowrap text-xs text-gray-400">
-                                            {item.created_at ? new Date(item.created_at).toLocaleString() : '—'}
+                                            <Timestamp date={item.created_at} />
                                         </Td>
                                         <Td>
                                             <span className="block truncate font-medium text-gray-800">

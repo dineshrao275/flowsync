@@ -7,6 +7,7 @@ import Input from '../ui/Input';
 import Select from '../ui/Select';
 import { Table, Th, Td, TableEmpty } from '../ui/Table';
 import { useToast } from '../../context/ToastContext';
+import Timestamp from '../ui/Timestamp';
 
 /**
  * Leave admin tools: a signed, reasoned balance correction, the ledger behind
@@ -100,7 +101,7 @@ export default function LeaveAdjustPanel({ employees, types }) {
                         <tbody>
                             {(ledger ?? []).map((row) => (
                                 <tr key={row.id}>
-                                    <Td>{row.created_at?.slice(0, 10)}</Td>
+                                    <Td><Timestamp date={row.created_at} /></Td>
                                     <Td>{row.leave_type}</Td>
                                     <Td>{row.kind_label}</Td>
                                     <Td align="right">{row.quantity > 0 ? `+${row.quantity}` : row.quantity}</Td>

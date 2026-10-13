@@ -10,10 +10,11 @@ import Alert from '../components/ui/Alert';
 import { Table, Th, Td, TableEmpty } from '../components/ui/Table';
 import { useNotifications } from '../context/NotificationContext';
 import { useSetCrumbs } from '../context/BreadcrumbContext';
-import { describeNotification, notificationHref, timeAgo } from '../utils/notifications';
+import { describeNotification, notificationHref } from '../utils/notifications';
 import { projectUrl, taskUrl } from '../utils/deepLinks';
 import usePageTitle from '../hooks/usePageTitle';
 import { usePaginated } from '../hooks/useResource';
+import Timestamp from '../components/ui/Timestamp';
 
 export default function Notifications() {
     usePageTitle('Notifications');
@@ -126,7 +127,7 @@ export default function Notifications() {
                                         )}
                                     </Td>
                                     <Td align="right" className="whitespace-nowrap text-xs text-gray-400">
-                                        {timeAgo(notification.created_at)}
+                                        <Timestamp date={notification.created_at} />
                                     </Td>
                                     <Td align="right" className="whitespace-nowrap">
                                         {notification.read_at ? (

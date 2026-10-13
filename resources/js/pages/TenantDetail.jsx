@@ -12,6 +12,7 @@ import Input from '../components/ui/Input';
 import { useToast } from '../context/ToastContext';
 import { useSetCrumbs } from '../context/BreadcrumbContext';
 import usePageTitle from '../hooks/usePageTitle';
+import Timestamp from '../components/ui/Timestamp';
 
 const SECTIONS = [
     {
@@ -292,7 +293,7 @@ export default function TenantDetail() {
                         <div>
                             <span className="text-xs font-semibold uppercase tracking-wide text-gray-400">Trial ends</span>
                             <p className="mt-0.5 font-medium text-gray-800">
-                                {tenant?.trial_ends_at ? new Date(tenant.trial_ends_at).toLocaleDateString() : '—'}
+                                <Timestamp date={tenant?.trial_ends_at} />
                             </p>
                         </div>
                     </div>

@@ -8,7 +8,7 @@ import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
 import { useSetCrumbs } from '../context/BreadcrumbContext';
 import usePageTitle from '../hooks/usePageTitle';
-import { formatDateTime } from '../utils/format';
+import Timestamp from '../components/ui/Timestamp';
 
 /** Super Admin support inbox: /admin/support (queue) and /admin/support/:ticketId (work a ticket). */
 export default function AdminSupport() {
@@ -75,7 +75,7 @@ function Inbox() {
                                 <span className={`text-xs capitalize ${PRIORITY_STYLES[t.priority]}`}>{t.priority}</span>
                                 <StatusPill status={t.status} />
                                 <span className="w-24 truncate text-xs text-gray-500">{t.assignee || 'Unassigned'}</span>
-                                <span className="text-xs text-gray-400">{formatDateTime(t.last_activity_at)}</span>
+                                <span className="text-xs text-gray-400"><Timestamp date={t.last_activity_at} /></span>
                             </Link>
                         </li>
                     ))}

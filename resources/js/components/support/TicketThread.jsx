@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import Button from '../ui/Button';
 import Alert from '../ui/Alert';
-import { formatDateTime } from '../../utils/format';
+import Timestamp from '../ui/Timestamp';
 
 export const STATUS_LABELS = {
     open: 'Open', in_progress: 'In progress', waiting_on_customer: 'Waiting on customer', resolved: 'Resolved', closed: 'Closed',
@@ -46,7 +46,7 @@ export default function TicketThread({ messages, onSend, disabled = false, allow
                             <span className="font-semibold text-gray-800">{m.author_name}</span>
                             <span>{m.author_type === 'staff' ? 'Support' : 'Customer'}</span>
                             {m.is_internal && <span className="rounded bg-amber-200 px-1.5 py-0.5 font-medium text-amber-900">Internal note</span>}
-                            <span className="ml-auto">{formatDateTime(m.created_at)}</span>
+                            <span className="ml-auto"><Timestamp date={m.created_at} /></span>
                         </div>
                         <p className="whitespace-pre-wrap text-gray-800">{m.body}</p>
                     </li>

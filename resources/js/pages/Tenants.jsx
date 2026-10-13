@@ -13,6 +13,7 @@ import { useToast } from '../context/ToastContext';
 import { useConfirm } from '../components/ui/ConfirmDialog';
 import { useClickOutside } from '../hooks/useClickOutside';
 import usePageTitle from '../hooks/usePageTitle';
+import Timestamp from '../components/ui/Timestamp';
 
 const STATUS_OPTIONS = [
     { value: 'pending', label: 'Pending' },
@@ -525,7 +526,7 @@ export default function Tenants() {
                                         </td>
                                         <td className="px-4 py-3 text-sm text-gray-600">{tenant.users_count}</td>
                                         <td className="px-4 py-3 text-sm text-gray-500">
-                                            {new Date(tenant.created_at).toLocaleDateString()}
+                                            <Timestamp date={tenant.created_at} />
                                         </td>
                                         <td className="px-4 py-3 text-right">
                                             <TenantActions

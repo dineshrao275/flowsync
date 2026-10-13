@@ -6,7 +6,7 @@ import Button from '../ui/Button';
 import Input from '../ui/Input';
 import Spinner from '../ui/Spinner';
 import { useToast } from '../../context/ToastContext';
-import { formatDateTime } from '../../utils/format';
+import Timestamp from '../ui/Timestamp';
 
 const EMPTY = { name: '', abilities: [], can_write: false, rate_limit: '', expires_at: '' };
 
@@ -135,9 +135,9 @@ export default function ApiTokens() {
                                     <p className="text-sm font-medium text-gray-900">{t.name} <span className="font-mono text-xs text-gray-400">{t.hint}</span></p>
                                     <p className="text-xs text-gray-500">
                                         {t.abilities.join(', ')} · {t.can_write ? 'read + write' : 'read-only'}
-                                        {t.expires_at ? ` · expires ${formatDateTime(t.expires_at)}` : ' · no expiry'}
+                                        {t.expires_at ? <> · expires <Timestamp date={t.expires_at} /></> : ' · no expiry'}
                                     </p>
-                                    <p className="text-xs text-gray-400">{t.last_used_at ? `Last used ${formatDateTime(t.last_used_at)}` : 'Never used'}</p>
+                                    <p className="text-xs text-gray-400">{t.last_used_at ? <>Last used <Timestamp date={t.last_used_at} /></> : 'Never used'}</p>
                                 </div>
                                 <Badge>{t.active ? 'active' : t.revoked_at ? 'revoked' : 'expired'}</Badge>
                             </div>
@@ -160,7 +160,7 @@ export default function ApiTokens() {
                                             {logs.length === 0 && <tr><td colSpan={5} className="px-3 py-4 text-center text-gray-400">No calls yet.</td></tr>}
                                             {logs.map((l) => (
                                                 <tr key={l.id}>
-                                                    <td className="px-3 py-2">{formatDateTime(l.created_at)}</td>
+                                                    <td className="px-3 py-2"><Timestamp date={l.created_at} /></td>
                                                     <td className="px-3 py-2 font-mono">{l.method} /{l.path}</td>
                                                     <td className="px-3 py-2">{l.status}</td>
                                                     <td className="px-3 py-2">{l.duration_ms}</td>
