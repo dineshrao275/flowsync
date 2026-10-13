@@ -11,7 +11,7 @@ import Select from '../../components/ui/Select';
 import Spinner from '../../components/ui/Spinner';
 import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
-import { useConfirm } from '../../components/ui/ConfirmDialog';
+import { useConfirm, usePrompt } from '../../components/ui/ConfirmDialog';
 import { useSetCrumbs } from '../../context/BreadcrumbContext';
 import usePageTitle from '../../hooks/usePageTitle';
 import { employeeUrl } from '../../utils/deepLinks';
@@ -43,6 +43,7 @@ export default function Documents() {
     const { can } = useAuth();
     const toast = useToast();
     const confirm = useConfirm();
+    const prompt = usePrompt();
 
     const [filters, setFilters] = useState(FILTER_DEFAULTS);
     const [page, setPage] = useState(1);
@@ -124,7 +125,14 @@ export default function Documents() {
     }
 
     async function reject(document) {
-        const reason = window.prompt(`Why is “${document.title}” being rejected?`, '');
+        const reason = await prompt({
+            title: 'Reject Document',
+            message: `Why is “${document.title}” being rejected?`,
+            placeholder: 'Reason for rejection…',
+            required: true,
+            confirmLabel: 'Reject',
+            variant: 'danger',
+        });
 
         if (reason === null) return;
 

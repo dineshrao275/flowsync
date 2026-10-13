@@ -1,20 +1,24 @@
-import { createContext, useCallback, useContext, useMemo, useRef, useState } from 'react';
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import Modal from './Modal';
 import Button from './Button';
 
 /**
- * Promise-based confirmation dialog, the sanctioned replacement for raw
- * `window.confirm` (roadmap P1.12 / Definition of Done: "no raw
- * window.confirm"). Mount `ConfirmProvider` once near the app root and call
- * `useConfirm()` anywhere below it:
+ * Promise-based dialog system, the sanctioned replacement for raw
+ * `window.confirm`, `window.prompt`, and `window.alert`.
+ * Mount `ConfirmProvider` (or `DialogProvider`) once near the app root and call
+ * `useConfirm()`, `usePrompt()`, or `useAlert()` anywhere below it:
  *
  *     const confirm = useConfirm();
  *     if (!(await confirm({ title: 'Delete plan?', message: '…', variant: 'danger' }))) return;
  *
- * The promise resolves `true` on confirm and `false` on cancel/dismiss, so the
- * call site reads like the native dialog it replaces but renders an in-app modal.
+ *     const prompt = usePrompt();
+ *     const reason = await prompt({ title: 'Rejection Reason', message: 'Why is this rejected?', required: true });
+ *     if (reason === null) return;
+ *
+ *     const alert = useAlert();
+ *     await alert({ title: 'Notice', message: 'Action completed.' });
  */
-const ConfirmContext = createContext(null);
+const DialogContext = createContext(null);
 
 function VariantIcon({ variant }) {
     if (variant === 'danger') {
@@ -84,6 +88,128 @@ export function ConfirmDialog({
     );
 }
 
+export function PromptDialog({
+    open,
+    title = 'Input Required',
+    message = '',
+    defaultValue = '',
+    placeholder = '',
+    confirmLabel = 'Submit',
+    cancelLabel = 'Cancel',
+    variant = 'primary',
+    multiline = false,
+    required = false,
+    onConfirm,
+    onCancel,
+}) {
+    const [val, setVal] = useState(defaultValue);
+    const [touched, setTouched] = useState(false);
+    const inputRef = useRef(null);
+
+    useEffect(() => {
+        setVal(defaultValue);
+        setTouched(false);
+    }, [defaultValue, open]);
+
+    useEffect(() => {
+        if (open) {
+            setTimeout(() => {
+                inputRef.current?.focus();
+                inputRef.current?.select?.();
+            }, 50);
+        }
+    }, [open]);
+
+    const isInvalid = required && !val.trim();
+
+    const handleSubmit = (e) => {
+        if (e) e.preventDefault();
+        setTouched(true);
+        if (isInvalid) return;
+        onConfirm(val);
+    };
+
+    return (
+        <Modal open={open} onClose={onCancel} title={title} size="sm">
+            <form onSubmit={handleSubmit}>
+                <div className="px-6 py-5">
+                    <div className="flex items-start gap-3.5">
+                        <VariantIcon variant={variant} />
+                        <div className="min-w-0 flex-1 pt-0.5 space-y-3">
+                            {message && (
+                                <p className="text-sm leading-relaxed text-gray-600">
+                                    {message}
+                                </p>
+                            )}
+                            {multiline ? (
+                                <textarea
+                                    ref={inputRef}
+                                    rows={3}
+                                    value={val}
+                                    placeholder={placeholder}
+                                    onChange={(e) => setVal(e.target.value)}
+                                    className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                                />
+                            ) : (
+                                <input
+                                    ref={inputRef}
+                                    type="text"
+                                    value={val}
+                                    placeholder={placeholder}
+                                    onChange={(e) => setVal(e.target.value)}
+                                    className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                                />
+                            )}
+                            {touched && isInvalid && (
+                                <p className="text-xs text-red-600">This field is required.</p>
+                            )}
+                        </div>
+                    </div>
+                </div>
+                <div className="flex justify-end gap-2 border-t border-gray-100 px-6 py-4">
+                    <Button type="button" variant="secondary" onClick={onCancel}>
+                        {cancelLabel}
+                    </Button>
+                    <Button type="submit" variant={variant} disabled={required && !val.trim()}>
+                        {confirmLabel}
+                    </Button>
+                </div>
+            </form>
+        </Modal>
+    );
+}
+
+export function AlertDialog({
+    open,
+    title = 'Notice',
+    message = '',
+    confirmLabel = 'OK',
+    variant = 'primary',
+    onClose,
+}) {
+    return (
+        <Modal open={open} onClose={onClose} title={title} size="sm">
+            <div className="px-6 py-5">
+                <div className="flex items-start gap-3.5">
+                    <VariantIcon variant={variant} />
+                    <div className="min-w-0 flex-1 pt-0.5">
+                        {message && (
+                            <p className="text-sm leading-relaxed text-gray-600">
+                                {message}
+                            </p>
+                        )}
+                    </div>
+                </div>
+            </div>
+            <div className="flex justify-end gap-2 border-t border-gray-100 px-6 py-4">
+                <Button type="button" variant={variant} onClick={onClose}>
+                    {confirmLabel}
+                </Button>
+            </div>
+        </Modal>
+    );
+}
+
 export function ConfirmProvider({ children }) {
     const [request, setRequest] = useState(null);
     const resolver = useRef(null);
@@ -92,6 +218,7 @@ export function ConfirmProvider({ children }) {
         return new Promise((resolve) => {
             resolver.current = resolve;
             setRequest({
+                type: 'confirm',
                 title: options.title ?? 'Are you sure?',
                 message: options.message ?? '',
                 confirmLabel:
@@ -102,18 +229,51 @@ export function ConfirmProvider({ children }) {
         });
     }, []);
 
+    const prompt = useCallback((options = {}, defaultVal = '') => {
+        const opts = typeof options === 'string' ? { message: options, defaultValue: defaultVal } : options;
+        return new Promise((resolve) => {
+            resolver.current = resolve;
+            setRequest({
+                type: 'prompt',
+                title: opts.title ?? 'Input Required',
+                message: opts.message ?? '',
+                defaultValue: opts.defaultValue ?? '',
+                placeholder: opts.placeholder ?? '',
+                confirmLabel: opts.confirmLabel ?? 'Submit',
+                cancelLabel: opts.cancelLabel ?? 'Cancel',
+                variant: opts.variant ?? 'primary',
+                multiline: opts.multiline ?? false,
+                required: opts.required ?? false,
+            });
+        });
+    }, []);
+
+    const alert = useCallback((options = {}) => {
+        const opts = typeof options === 'string' ? { message: options } : options;
+        return new Promise((resolve) => {
+            resolver.current = resolve;
+            setRequest({
+                type: 'alert',
+                title: opts.title ?? 'Notice',
+                message: opts.message ?? '',
+                confirmLabel: opts.confirmLabel ?? 'OK',
+                variant: opts.variant ?? 'primary',
+            });
+        });
+    }, []);
+
     const settle = useCallback((value) => {
         resolver.current?.(value);
         resolver.current = null;
         setRequest(null);
     }, []);
 
-    const value = useMemo(() => ({ confirm }), [confirm]);
+    const value = useMemo(() => ({ confirm, prompt, alert }), [confirm, prompt, alert]);
 
     return (
-        <ConfirmContext.Provider value={value}>
+        <DialogContext.Provider value={value}>
             {children}
-            {request && (
+            {request && request.type === 'confirm' && (
                 <ConfirmDialog
                     open
                     {...request}
@@ -121,14 +281,47 @@ export function ConfirmProvider({ children }) {
                     onCancel={() => settle(false)}
                 />
             )}
-        </ConfirmContext.Provider>
+            {request && request.type === 'prompt' && (
+                <PromptDialog
+                    open
+                    {...request}
+                    onConfirm={(val) => settle(val)}
+                    onCancel={() => settle(null)}
+                />
+            )}
+            {request && request.type === 'alert' && (
+                <AlertDialog
+                    open
+                    {...request}
+                    onClose={() => settle(undefined)}
+                />
+            )}
+        </DialogContext.Provider>
     );
 }
 
+export const DialogProvider = ConfirmProvider;
+
 export function useConfirm() {
-    const context = useContext(ConfirmContext);
+    const context = useContext(DialogContext);
     if (!context) {
         throw new Error('useConfirm must be used within a ConfirmProvider');
     }
     return context.confirm;
+}
+
+export function usePrompt() {
+    const context = useContext(DialogContext);
+    if (!context) {
+        throw new Error('usePrompt must be used within a ConfirmProvider');
+    }
+    return context.prompt;
+}
+
+export function useAlert() {
+    const context = useContext(DialogContext);
+    if (!context) {
+        throw new Error('useAlert must be used within a ConfirmProvider');
+    }
+    return context.alert;
 }

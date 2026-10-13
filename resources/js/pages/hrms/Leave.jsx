@@ -11,7 +11,7 @@ import Select from '../../components/ui/Select';
 import Spinner from '../../components/ui/Spinner';
 import { Table, Th, Td, TableEmpty } from '../../components/ui/Table';
 import { useToast } from '../../context/ToastContext';
-import { useConfirm } from '../../components/ui/ConfirmDialog';
+import { useConfirm, usePrompt } from '../../components/ui/ConfirmDialog';
 import { useAuth } from '../../context/AuthContext';
 import { useSetCrumbs } from '../../context/BreadcrumbContext';
 import usePageTitle from '../../hooks/usePageTitle';
@@ -78,6 +78,7 @@ export default function Leave() {
     const navigate = useNavigate();
     const toast = useToast();
     const confirm = useConfirm();
+    const prompt = usePrompt();
     const { hasModule } = useAuth();
 
     // The exemption queue rides its own module (`hrms.leave.exemption`),
@@ -283,7 +284,15 @@ export default function Leave() {
     }
 
     async function decideExemption(id, decision) {
-        const note = window.prompt(decision === 'approve' ? 'Approval note (optional):' : 'Rejection reason (required):');
+        const isApprove = decision === 'approve';
+        const note = await prompt({
+            title: isApprove ? 'Approve Exemption' : 'Reject Exemption',
+            message: isApprove ? 'Approval note (optional):' : 'Rejection reason (required):',
+            placeholder: isApprove ? 'Optional note…' : 'Reason for rejection…',
+            required: !isApprove,
+            confirmLabel: isApprove ? 'Approve' : 'Reject',
+            variant: isApprove ? 'primary' : 'danger',
+        });
 
         if (note === null) return;
 

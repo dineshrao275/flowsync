@@ -209,17 +209,30 @@ export default function ProjectDetail() {
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [projectId, tab, view, swimlane, filters]);
 
+    const tabRef = useRef(tab);
+    tabRef.current = tab;
+    const selectedTaskRef = useRef(selectedTask);
+    selectedTaskRef.current = selectedTask;
+    const loadTasksRef = useRef(loadTasks);
+    loadTasksRef.current = loadTasks;
+
     useEffect(() => {
         if (!project || !window.Echo) return undefined;
         const channel = window.Echo.private(`project.${projectId}`);
-        channel.listen('.task.synced', () => {
-            if (tab === 'tasks') loadTasks();
+        channel.listen('.task.synced', (event) => {
+            if (tabRef.current === 'tasks') {
+                loadTasksRef.current();
+            }
+            if (selectedTaskRef.current && (!event?.task_id || event.task_id === selectedTaskRef.current.id)) {
+                api.get(`/projects/${projectId}/tasks/${selectedTaskRef.current.id}`)
+                    .then(({ data }) => setSelectedTask(data.task))
+                    .catch(() => {});
+            }
         });
         return () => {
             channel.stopListening('.task.synced');
             window.Echo.leaveChannel(channel.name);
         };
-        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [projectId, project]);
 
     function openTask(task, section = null) {

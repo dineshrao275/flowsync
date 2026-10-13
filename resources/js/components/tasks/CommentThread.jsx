@@ -5,12 +5,13 @@ import Alert from '../ui/Alert';
 import Spinner from '../ui/Spinner';
 import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
-import { useConfirm } from '../ui/ConfirmDialog';
+import { useConfirm, usePrompt } from '../ui/ConfirmDialog';
 
 export default function CommentThread({ task, projectId, isManager }) {
     const { user } = useAuth();
     const toast = useToast();
     const confirm = useConfirm();
+    const prompt = usePrompt();
     const [comments, setComments] = useState(null);
     const [error, setError] = useState(null);
     const [newComment, setNewComment] = useState('');
@@ -164,9 +165,17 @@ export default function CommentThread({ task, projectId, isManager }) {
             .finally(() => setBusy(false));
     }
 
-    function editComment(id) {
-        const next = window.prompt('Edit comment:');
-        if (!next) return;
+    async function editComment(id, currentComment = '') {
+        const next = await prompt({
+            title: 'Edit comment',
+            message: 'Update your comment below:',
+            defaultValue: currentComment,
+            placeholder: 'Write comment…',
+            multiline: true,
+            required: true,
+            confirmLabel: 'Save',
+        });
+        if (!next || !next.trim()) return;
         api.put(`/projects/${projectId}/tasks/${task.id}/comments/${id}`, { comment: next.trim() })
             .then(fetchComments)
             .catch(() => {});
@@ -230,7 +239,7 @@ export default function CommentThread({ task, projectId, isManager }) {
                                                 <button
                                                     type="button"
                                                     className="text-xs text-gray-400 transition hover:text-indigo-600"
-                                                    onClick={() => editComment(comment.id)}
+                                                    onClick={() => editComment(comment.id, comment.comment)}
                                                 >
                                                     Edit
                                                 </button>
@@ -267,7 +276,7 @@ export default function CommentThread({ task, projectId, isManager }) {
                                                         <button
                                                             type="button"
                                                             className="text-xs text-gray-400 transition hover:text-indigo-600"
-                                                            onClick={() => editComment(reply.id)}
+                                                            onClick={() => editComment(reply.id, reply.comment)}
                                                         >
                                                             Edit
                                                         </button>

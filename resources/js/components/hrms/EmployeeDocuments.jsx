@@ -4,7 +4,7 @@ import Alert from '../ui/Alert';
 import Spinner from '../ui/Spinner';
 import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
-import { useConfirm } from '../ui/ConfirmDialog';
+import { useConfirm, usePrompt } from '../ui/ConfirmDialog';
 import DocumentList from './DocumentList';
 import DocumentUploader from './DocumentUploader';
 
@@ -22,6 +22,7 @@ export default function EmployeeDocuments({ employee }) {
     const { user, can } = useAuth();
     const toast = useToast();
     const confirm = useConfirm();
+    const prompt = usePrompt();
 
     const [documents, setDocuments] = useState(null);
     const [types, setTypes] = useState([]);
@@ -64,7 +65,14 @@ export default function EmployeeDocuments({ employee }) {
     }
 
     async function reject(document) {
-        const reason = window.prompt(`Why is “${document.title}” being rejected?`, '');
+        const reason = await prompt({
+            title: 'Reject Document',
+            message: `Why is “${document.title}” being rejected?`,
+            placeholder: 'Reason for rejection…',
+            required: true,
+            confirmLabel: 'Reject',
+            variant: 'danger',
+        });
 
         if (reason === null) return;
 

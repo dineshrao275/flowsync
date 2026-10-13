@@ -97,6 +97,45 @@ function Detail({ id }) {
     useEffect(() => { setCrumbs([{ label: 'Support inbox', to: '/admin/support' }, { label: ticket?.reference || 'Ticket' }]); }, [setCrumbs, ticket?.reference]);
     useEffect(() => { api.get(`/system/support/tickets/${id}`).then(({ data }) => setTicket(data.ticket)).catch(() => setTicket(false)); }, [id]);
 
+    useEffect(() => {
+        if (!window.Echo || !id) return undefined;
+        const channel = window.Echo.private(`support.ticket.${id}.staff`);
+        channel.listen('.support.message.sent', (data) => {
+            if (data?.message) {
+                setTicket((prev) => {
+                    if (!prev || typeof prev !== 'object') return prev;
+                    if (prev.messages?.some((m) => m.id === data.message.id)) return prev;
+                    return {
+                        ...prev,
+                        status: data.ticket_status ?? prev.status,
+                        last_activity_at: data.last_activity_at ?? prev.last_activity_at,
+                        messages: [...(prev.messages || []), data.message],
+                    };
+                });
+            }
+        });
+        channel.listen('.support.ticket.updated', (data) => {
+            if (data) {
+                setTicket((prev) => {
+                    if (!prev || typeof prev !== 'object') return prev;
+                    return {
+                        ...prev,
+                        status: data.status ?? prev.status,
+                        priority: data.priority ?? prev.priority,
+                        assigned_to: data.assigned_to !== undefined ? data.assigned_to : prev.assigned_to,
+                        assignee: data.assignee !== undefined ? data.assignee : prev.assignee,
+                        last_activity_at: data.last_activity_at ?? prev.last_activity_at,
+                    };
+                });
+            }
+        });
+        return () => {
+            channel.stopListening('.support.message.sent');
+            channel.stopListening('.support.ticket.updated');
+            window.Echo.leaveChannel(channel.name);
+        };
+    }, [id]);
+
     async function patch(body) {
         try {
             const { data } = await api.put(`/system/support/tickets/${id}`, body);

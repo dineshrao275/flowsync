@@ -2,6 +2,8 @@
 
 namespace App\Services\Support;
 
+use App\Events\SupportMessageSent;
+use App\Events\SupportTicketUpdated;
 use App\Models\SupportTicket;
 use App\Models\SupportTicketMessage;
 use App\Models\Tenant;
@@ -74,6 +76,8 @@ class SupportDesk
             'status' => SupportTicket::STATUS_OPEN, 'resolved_at' => null, 'last_activity_at' => now(),
         ])->save();
 
+        broadcast(new SupportMessageSent($ticket->fresh(), $message));
+
         return $message;
     }
 
@@ -89,6 +93,8 @@ class SupportDesk
         ]);
 
         if ($internal) {
+            broadcast(new SupportMessageSent($ticket->fresh(), $message));
+
             return $message; // a note changes nothing the customer can see
         }
 
@@ -99,6 +105,8 @@ class SupportDesk
         ])->save();
 
         $this->notifyRequester($ticket, 'support.reply', ['snippet' => str($body)->limit(120)->toString()]);
+
+        broadcast(new SupportMessageSent($ticket->fresh(), $message));
 
         return $message;
     }
@@ -125,6 +133,8 @@ class SupportDesk
         if ($actor?->is_super_admin && in_array($status, [SupportTicket::STATUS_RESOLVED, SupportTicket::STATUS_CLOSED], true)) {
             $this->notifyRequester($ticket, 'support.'.$status);
         }
+
+        broadcast(new SupportTicketUpdated($ticket->fresh(), 'status_changed'));
 
         return $ticket;
     }

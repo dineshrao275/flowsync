@@ -1,6 +1,7 @@
 <?php
 
 use App\Models\ProjectMember;
+use App\Models\SupportTicket;
 use App\Models\Tenant;
 use App\Models\User;
 use App\Models\WorkspaceMember;
@@ -54,4 +55,43 @@ Broadcast::channel('project.{id}', function (User $user, $projectId) use ($isTen
         ->exists()
         ? ['id' => $user->id, 'name' => $user->name]
         : false;
+});
+
+Broadcast::channel('support.ticket.{id}', function (User $user, $id) use ($isTenantActive) {
+    if (! $isTenantActive($user)) {
+        return false;
+    }
+
+    $ticket = SupportTicket::find((int) $id);
+    if (! $ticket) {
+        return false;
+    }
+
+    if ($user->is_super_admin) {
+        return ['id' => $user->id, 'name' => $user->name, 'type' => 'staff'];
+    }
+
+    $tenantId = app(TenantContext::class)->currentId()
+        ?? (request()->hasSession() ? (request()->session()->get('impersonate.tenant_id') ?? request()->session()->get('login.tenant_id')) : null);
+
+    if ($tenantId && (int) $ticket->tenant_id === (int) $tenantId) {
+        if ($user->hasPermission('support.manage') || (int) $ticket->created_by_user_id === (int) $user->id) {
+            return ['id' => $user->id, 'name' => $user->name, 'type' => 'tenant'];
+        }
+    }
+
+    return false;
+});
+
+Broadcast::channel('support.ticket.{id}.staff', function (User $user, $id) {
+    if (! $user->is_super_admin) {
+        return false;
+    }
+
+    $ticket = SupportTicket::find((int) $id);
+    if (! $ticket) {
+        return false;
+    }
+
+    return ['id' => $user->id, 'name' => $user->name, 'type' => 'staff'];
 });

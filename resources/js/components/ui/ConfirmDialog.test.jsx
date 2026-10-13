@@ -1,6 +1,6 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
-import { ConfirmProvider, useConfirm } from './ConfirmDialog';
+import { ConfirmProvider, useAlert, useConfirm, usePrompt } from './ConfirmDialog';
 
 function Harness({ options, onResult }) {
     const confirm = useConfirm();
@@ -17,11 +17,62 @@ function Harness({ options, onResult }) {
     );
 }
 
+function PromptHarness({ options, onResult }) {
+    const prompt = usePrompt();
+
+    return (
+        <button
+            type="button"
+            onClick={async () => {
+                onResult(await prompt(options));
+            }}
+        >
+            trigger-prompt
+        </button>
+    );
+}
+
+function AlertHarness({ options, onResult }) {
+    const alert = useAlert();
+
+    return (
+        <button
+            type="button"
+            onClick={async () => {
+                await alert(options);
+                onResult(true);
+            }}
+        >
+            trigger-alert
+        </button>
+    );
+}
+
 function mount(options = {}) {
     const results = [];
     render(
         <ConfirmProvider>
             <Harness options={options} onResult={(value) => results.push(value)} />
+        </ConfirmProvider>,
+    );
+    return results;
+}
+
+function mountPrompt(options = {}) {
+    const results = [];
+    render(
+        <ConfirmProvider>
+            <PromptHarness options={options} onResult={(value) => results.push(value)} />
+        </ConfirmProvider>,
+    );
+    return results;
+}
+
+function mountAlert(options = {}) {
+    const results = [];
+    render(
+        <ConfirmProvider>
+            <AlertHarness options={options} onResult={(value) => results.push(value)} />
         </ConfirmProvider>,
     );
     return results;
@@ -99,5 +150,89 @@ describe('ConfirmDialog / useConfirm', () => {
         expect(() => render(<Bare />)).toThrow(/ConfirmProvider/);
 
         spy.mockRestore();
+    });
+});
+
+describe('PromptDialog / usePrompt', () => {
+    it('opens prompt dialog, accepts typing, and resolves entered text', async () => {
+        const results = mountPrompt({
+            title: 'Reason for rejection',
+            message: 'Please provide details:',
+            defaultValue: 'Initial draft',
+            confirmLabel: 'Submit Reason',
+        });
+
+        fireEvent.click(screen.getByText('trigger-prompt'));
+
+        const dialog = await screen.findByRole('dialog');
+        expect(dialog).toBeInTheDocument();
+        expect(screen.getByText('Reason for rejection')).toBeInTheDocument();
+
+        const input = screen.getByRole('textbox');
+        expect(input).toHaveValue('Initial draft');
+
+        fireEvent.change(input, { target: { value: 'Incomplete document provided' } });
+        fireEvent.click(screen.getByText('Submit Reason'));
+
+        await waitFor(() => expect(results).toEqual(['Incomplete document provided']));
+        expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    });
+
+    it('resolves null when user cancels prompt', async () => {
+        const results = mountPrompt({ title: 'Enter value' });
+
+        fireEvent.click(screen.getByText('trigger-prompt'));
+        await screen.findByRole('dialog');
+
+        fireEvent.click(screen.getByText('Cancel'));
+
+        await waitFor(() => expect(results).toEqual([null]));
+        expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    });
+
+    it('supports multiline textarea in prompt', async () => {
+        mountPrompt({
+            title: 'Feedback',
+            multiline: true,
+            placeholder: 'Type feedback…',
+        });
+
+        fireEvent.click(screen.getByText('trigger-prompt'));
+        await screen.findByRole('dialog');
+
+        const textarea = screen.getByPlaceholderText('Type feedback…');
+        expect(textarea.tagName).toBe('TEXTAREA');
+    });
+
+    it('throws when usePrompt is used outside a ConfirmProvider', () => {
+        function Bare() {
+            usePrompt();
+            return null;
+        }
+
+        const spy = vi.spyOn(console, 'error').mockImplementation(() => {});
+        expect(() => render(<Bare />)).toThrow(/ConfirmProvider/);
+        spy.mockRestore();
+    });
+});
+
+describe('AlertDialog / useAlert', () => {
+    it('shows alert dialog and resolves when OK is clicked', async () => {
+        const results = mountAlert({
+            title: 'Sync completed',
+            message: 'All tasks have synchronized successfully.',
+        });
+
+        fireEvent.click(screen.getByText('trigger-alert'));
+
+        const dialog = await screen.findByRole('dialog');
+        expect(dialog).toBeInTheDocument();
+        expect(screen.getByText('Sync completed')).toBeInTheDocument();
+        expect(screen.getByText('All tasks have synchronized successfully.')).toBeInTheDocument();
+
+        fireEvent.click(screen.getByText('OK'));
+
+        await waitFor(() => expect(results).toEqual([true]));
+        expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
     });
 });
