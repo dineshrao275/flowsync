@@ -55,7 +55,10 @@ class TaskReader
         // Fast single-pass totals scan
         $totalsRow = (clone $topLevel)
             ->reorder()
-            ->selectRaw('count(case when completed_at is null then 1 end) as open_count, count(case when completed_at is not null then 1 end) as done_count')
+            ->select([
+                DB::raw('count(case when completed_at is null then 1 end) as open_count'),
+                DB::raw('count(case when completed_at is not null then 1 end) as done_count'),
+            ])
             ->first();
 
         return [
