@@ -81,6 +81,7 @@ export default function ProjectDetail() {
     const [taskOptions, setTaskOptions] = useState({ statuses: [], priorities: [], assignees: [], labels: [] });
     const [selectedTask, setSelectedTask] = useState(null);
     const [selectedTaskSection, setSelectedTaskSection] = useState(null);
+    const [selectedCommentId, setSelectedCommentId] = useState(null);
     const [showCreate, setShowCreate] = useState(false);
     const [savingTask, setSavingTask] = useState(false);
     const [loadingTasks, setLoadingTasks] = useState(false);
@@ -235,11 +236,21 @@ export default function ProjectDetail() {
         };
     }, [projectId, project]);
 
-    function openTask(task, section = null) {
+    function openTask(task, section = null, commentId = null) {
         setSelectedTaskSection(section);
+        setSelectedCommentId(commentId);
         api.get(`/projects/${projectId}/tasks/${task.id}`)
             .then(({ data }) => setSelectedTask(data.task))
-            .catch(() => setSelectedTask(task));
+            .catch((err) => {
+                if (err?.response?.status === 403) {
+                    toast.error('You do not have permission to view this task.');
+                    setSelectedTask(null);
+                    setSelectedTaskSection(null);
+                    setSelectedCommentId(null);
+                } else {
+                    setSelectedTask(task);
+                }
+            });
     }
 
     const DEEP_SECTIONS = ['comments', 'attachments', 'dependencies', 'time', 'activity'];
@@ -248,29 +259,37 @@ export default function ProjectDetail() {
     const fetchedDeepTaskRef = useRef(null);
     useEffect(() => {
         const deepKey = searchParams.get('task');
-        if (!project || tab !== 'tasks' || !deepKey || openedDeepTaskRef.current === deepKey) return;
+        const section = searchParams.get('section');
+        const commentId = searchParams.get('comment');
+        const deepStateKey = deepKey ? `${deepKey}:${section ?? ''}:${commentId ?? ''}` : null;
+
+        if (!project || tab !== 'tasks' || !deepKey || openedDeepTaskRef.current === deepStateKey) return;
         const pool = view === 'board'
             ? ((board?.statuses ?? board?.swimlanes?.flatMap((lane) => lane.statuses)) ?? []).flatMap((s) => s.tasks)
             : listTasks;
         const found = pool.find((t) => t.key === deepKey);
         if (found) {
-            openedDeepTaskRef.current = deepKey;
-            const section = searchParams.get('section');
-            openTask(found, DEEP_SECTIONS.includes(section) ? section : null);
+            openedDeepTaskRef.current = deepStateKey;
+            openTask(found, DEEP_SECTIONS.includes(section) ? section : null, commentId);
             return;
         }
         // Not in this view's pool (subtasks never ride the board; filters
         // can hide anything): resolve by key directly so the drawer opens
         // in either view. One attempt per key — a 404 stays closed.
-        if (fetchedDeepTaskRef.current === deepKey) return;
-        fetchedDeepTaskRef.current = deepKey;
+        if (fetchedDeepTaskRef.current === deepStateKey) return;
+        fetchedDeepTaskRef.current = deepStateKey;
         api.get(`/projects/${projectId}/tasks/key/${encodeURIComponent(deepKey)}`)
             .then(({ data }) => {
-                openedDeepTaskRef.current = deepKey;
-                const section = searchParams.get('section');
-                openTask(data.task, DEEP_SECTIONS.includes(section) ? section : null);
+                openedDeepTaskRef.current = deepStateKey;
+                openTask(data.task, DEEP_SECTIONS.includes(section) ? section : null, commentId);
             })
-            .catch(() => {});
+            .catch((err) => {
+                if (err?.response?.status === 403) {
+                    toast.error('You do not have permission to view this task.');
+                } else if (err?.response?.status === 404) {
+                    toast.error('Task not found.');
+                }
+            });
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [project, tab, view, board, listTasks, searchParams]);
 
@@ -282,6 +301,7 @@ export default function ProjectDetail() {
         if (next !== 'tasks') {
             params.delete('task');
             params.delete('section');
+            params.delete('comment');
         }
         navigate(`?${params.toString()}`);
     }
@@ -1142,6 +1162,7 @@ export default function ProjectDetail() {
                     options={taskOptions}
                     topLevelTasks={board?.statuses.flatMap((s) => s.tasks) ?? []}
                     initialSection={selectedTaskSection}
+                    initialCommentId={selectedCommentId}
                     canEdit={canEditTask}
                     canAssign={canAssignTask}
                     canDelete={canDeleteTask}
@@ -1153,6 +1174,14 @@ export default function ProjectDetail() {
                     onClose={() => {
                         setSelectedTask(null);
                         setSelectedTaskSection(null);
+                        setSelectedCommentId(null);
+                        openedDeepTaskRef.current = null;
+                        fetchedDeepTaskRef.current = null;
+                        const params = new URLSearchParams(searchParams.toString());
+                        params.delete('task');
+                        params.delete('section');
+                        params.delete('comment');
+                        navigate(`?${params.toString()}`, { replace: true });
                     }}
                     onUpdate={(data) => updateTask(selectedTask.id, data)}
                     onDelete={deleteTask}

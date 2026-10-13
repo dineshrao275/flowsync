@@ -11,7 +11,7 @@ import { Table, Th, Td, TableEmpty } from '../components/ui/Table';
 import { useNotifications } from '../context/NotificationContext';
 import { useSetCrumbs } from '../context/BreadcrumbContext';
 import { describeNotification, notificationHref } from '../utils/notifications';
-import { projectUrl, taskUrl } from '../utils/deepLinks';
+import { projectUrl } from '../utils/deepLinks';
 import usePageTitle from '../hooks/usePageTitle';
 import { usePaginated } from '../hooks/useResource';
 import Timestamp from '../components/ui/Timestamp';
@@ -110,7 +110,7 @@ export default function Notifications() {
                                     <Td className="whitespace-nowrap">
                                         {payload.project_id && payload.key ? (
                                             <Link
-                                                to={taskUrl(payload.project_id, payload.key)}
+                                                to={notificationHref(notification.data ?? {}, notification.type)}
                                                 className="font-medium text-indigo-600 hover:text-indigo-800"
                                             >
                                                 {payload.key} · {payload.project_name ?? payload.title}

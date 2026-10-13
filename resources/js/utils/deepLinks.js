@@ -1,6 +1,15 @@
-export function taskUrl(projectId, key, section = null) {
+export function taskUrl(projectId, key, section = null, extra = null) {
     let url = `/projects/${projectId}?tab=tasks&task=${encodeURIComponent(key)}`;
-    if (section) url += `&section=${section}`;
+    if (section) url += `&section=${encodeURIComponent(section)}`;
+    if (extra && typeof extra === 'object') {
+        Object.entries(extra).forEach(([k, v]) => {
+            if (v != null && v !== '') {
+                url += `&${encodeURIComponent(k)}=${encodeURIComponent(v)}`;
+            }
+        });
+    } else if (extra) {
+        url += `&comment=${encodeURIComponent(extra)}`;
+    }
     return url;
 }
 

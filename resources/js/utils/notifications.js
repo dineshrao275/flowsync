@@ -109,6 +109,7 @@ function describeTaskDue(data = {}) {
 const SECTION_BY_TYPE = {
     'task.commented': 'comments',
     'task.work_logged': 'time',
+    'task.unblocked': 'dependencies',
 };
 
 /**
@@ -229,7 +230,12 @@ export function notificationHref(data = {}, type = '') {
     }
 
     if (project_id && key) {
-        return taskUrl(project_id, key, SECTION_BY_TYPE[type] ?? null);
+        const section = SECTION_BY_TYPE[type] ?? null;
+        const extra = {};
+        if (type === 'task.commented' && data?.comment_id) {
+            extra.comment = data.comment_id;
+        }
+        return taskUrl(project_id, key, section, extra);
     }
 
     if (project_id) return projectUrl(project_id);

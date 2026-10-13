@@ -23,6 +23,7 @@ export default function TaskDetail({
     options,
     topLevelTasks,
     initialSection,
+    initialCommentId = null,
     canEdit,
     canAssign,
     canDelete,
@@ -527,7 +528,12 @@ export default function TaskDetail({
                     ) : (
                         <div className="px-6 py-5">
                             {tab === 'comments' && (
-                                <CommentThread task={task} projectId={projectId} isManager={isCollabManager} />
+                                <CommentThread
+                                    task={task}
+                                    projectId={projectId}
+                                    isManager={isCollabManager}
+                                    targetCommentId={initialCommentId}
+                                />
                             )}
                             {tab === 'attachments' && (
                                 <AttachmentList

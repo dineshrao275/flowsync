@@ -8,7 +8,7 @@ import { useToast } from '../../context/ToastContext';
 import { useConfirm, usePrompt } from '../ui/ConfirmDialog';
 import Timestamp from '../ui/Timestamp';
 
-export default function CommentThread({ task, projectId, isManager }) {
+export default function CommentThread({ task, projectId, isManager, targetCommentId = null }) {
     const { user } = useAuth();
     const toast = useToast();
     const confirm = useConfirm();
@@ -52,6 +52,26 @@ export default function CommentThread({ task, projectId, isManager }) {
     }, [fetchComments, projectId]);
 
     useEffect(() => () => clearTimeout(debounceRef.current), []);
+
+    const lastScrolledCommentRef = useRef(null);
+
+    useEffect(() => {
+        if (!comments || !targetCommentId || lastScrolledCommentRef.current === targetCommentId) return;
+
+        const timer = setTimeout(() => {
+            const el = document.getElementById(`comment-${targetCommentId}`);
+            if (el) {
+                lastScrolledCommentRef.current = targetCommentId;
+                el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                el.classList.add('ring-2', 'ring-indigo-500', 'bg-indigo-50/70', 'transition-all', 'duration-500');
+                setTimeout(() => {
+                    el.classList.remove('ring-2', 'ring-indigo-500', 'bg-indigo-50/70');
+                }, 3000);
+            }
+        }, 120);
+
+        return () => clearTimeout(timer);
+    }, [comments, targetCommentId]);
 
     function closeSuggestions() {
         setSugField(null);
@@ -225,7 +245,7 @@ export default function CommentThread({ task, projectId, isManager }) {
                         const own = comment.user?.id && comment.user.id === user?.id;
                         const canEdit = own || isManager;
                         return (
-                            <li key={comment.id} className="rounded-lg border border-gray-100 px-3 py-2.5">
+                            <li key={comment.id} id={`comment-${comment.id}`} className="rounded-lg border border-gray-100 px-3 py-2.5 transition-all">
                                 <div className="flex items-start justify-between gap-2">
                                     <div className="min-w-0">
                                         <p className="text-xs text-gray-400">
@@ -266,7 +286,7 @@ export default function CommentThread({ task, projectId, isManager }) {
                                 {comment.replies?.length > 0 && (
                                     <ul className="mt-3 space-y-2 border-l-2 border-gray-100 pl-3">
                                         {comment.replies.map((reply) => (
-                                            <li key={reply.id}>
+                                            <li key={reply.id} id={`comment-${reply.id}`} className="rounded-md p-1.5 transition-all">
                                                 <p className="text-xs text-gray-400">
                                                     <span className="font-semibold text-gray-700">{reply.user?.name ?? 'Unknown'}</span>
                                                     {reply.edited_at ? ' · edited' : ''} · <Timestamp date={reply.created_at} />

@@ -108,6 +108,13 @@ class NotificationDispatcher implements NotificationSender
 
         if ($type === 'task.commented') {
             $query['section'] = 'comments';
+            if (! empty($data['comment_id'])) {
+                $query['comment'] = $data['comment_id'];
+            }
+        } elseif ($type === 'task.work_logged') {
+            $query['section'] = 'time';
+        } elseif ($type === 'task.unblocked') {
+            $query['section'] = 'dependencies';
         }
 
         return url('/app/projects/'.($data['project_id'] ?? '0').'?'.http_build_query($query));
