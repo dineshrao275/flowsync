@@ -1,6 +1,7 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import Button from '../ui/Button';
+import logger from '../../utils/logger';
 
 /**
  * H8 — Graceful error boundary for HRMS hub pages.
@@ -19,8 +20,11 @@ export default class HrmsErrorBoundary extends React.Component {
         return { hasError: true, error };
     }
 
-    componentDidCatch(error) {
-        // Log locally for debugging without crashing React tree
+    componentDidCatch(error, info) {
+        logger.error('HrmsErrorBoundary', error.message || 'HRMS tab crashed', {
+            stack: error.stack,
+            componentStack: info?.componentStack,
+        });
         if (typeof window !== 'undefined' && window.reportError) {
             window.reportError(error);
         }

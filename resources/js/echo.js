@@ -1,5 +1,6 @@
 import Echo from 'laravel-echo';
 import Pusher from 'pusher-js';
+import logger from './utils/logger';
 
 window.Pusher = Pusher;
 
@@ -17,6 +18,26 @@ if (key) {
         authEndpoint: '/broadcasting/auth',
         withCredentials: true,
     });
+
+    if (window.Echo?.connector?.pusher?.connection) {
+        const connection = window.Echo.connector.pusher.connection;
+
+        connection.bind('state_change', (states) => {
+            logger.info('Reverb', `WebSocket state: ${states.previous} -> ${states.current}`);
+        });
+
+        connection.bind('connected', () => {
+            logger.info('Reverb', `WebSocket connected to ${import.meta.env.VITE_REVERB_HOST ?? 'localhost'}:${import.meta.env.VITE_REVERB_PORT ?? 8080}`);
+        });
+
+        connection.bind('disconnected', () => {
+            logger.warn('Reverb', 'WebSocket disconnected');
+        });
+
+        connection.bind('error', (err) => {
+            logger.error('Reverb', 'WebSocket connection error', err);
+        });
+    }
 }
 
 export default window.Echo ?? null;

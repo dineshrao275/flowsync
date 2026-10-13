@@ -4,6 +4,7 @@ use App\Http\Controllers\AnalyticsController;
 use App\Http\Controllers\AttachmentController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\BillingController;
+use App\Http\Controllers\ClientLogController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\ExportController;
 use App\Http\Controllers\ForgotPasswordController;
@@ -57,6 +58,7 @@ Route::prefix('api')->group(function () {
     Route::post('register/card', [RegisterCardController::class, 'card'])->middleware('throttle:10,1');
     Route::post('register/complete', [RegisterCardController::class, 'complete'])->middleware('throttle:10,1');
     Route::get('register/options', [RegisterController::class, 'options'])->middleware('throttle:30,1');
+    Route::post('logs/client', [ClientLogController::class, 'store'])->middleware('throttle:60,1');
 
     Route::middleware(['switch_tenant', 'auth', 'tenant'])->group(function () {
         Route::post('auth/logout', [AuthController::class, 'logout']);

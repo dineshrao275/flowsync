@@ -7,6 +7,7 @@ use App\Support\ImpersonationGuard;
 use App\Support\TenantDatabaseManager;
 use Closure;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 use Symfony\Component\HttpFoundation\Response;
 
 /**
@@ -37,8 +38,14 @@ class SwitchTenant
         $tenant = $tenantId ? Tenant::find($tenantId) : null;
 
         if ($tenant && $tenant->isServiceable()) {
+            Log::shareContext([
+                'tenant_id' => $tenant->id,
+                'tenant_slug' => $tenant->slug,
+            ]);
+            Log::debug("Switched database connection to tenant [{$tenant->slug}#{$tenant->id}].");
             $this->dbm->connect($tenant);
         } else {
+            Log::debug('Switched database connection to system database.');
             $this->dbm->connectSystem();
         }
 

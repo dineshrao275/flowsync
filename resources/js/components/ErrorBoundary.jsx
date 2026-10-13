@@ -1,6 +1,7 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import Button from './ui/Button';
+import logger from '../utils/logger';
 
 /**
  * App-level error boundary: a render error in any routed page shows a
@@ -16,7 +17,11 @@ export default class ErrorBoundary extends React.Component {
         return { hasError: true, error };
     }
 
-    componentDidCatch(error) {
+    componentDidCatch(error, info) {
+        logger.error('ErrorBoundary', error.message || 'Component crashed', {
+            stack: error.stack,
+            componentStack: info?.componentStack,
+        });
         if (typeof window !== 'undefined' && window.reportError) {
             window.reportError(error);
         }

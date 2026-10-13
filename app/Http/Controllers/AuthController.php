@@ -25,6 +25,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 
@@ -52,6 +53,12 @@ class AuthController extends Controller
             'user_id' => $user?->id,
             'tenant_id' => $tenantId,
         ], $user !== null && $user->is_super_admin ? (int) $user->id : null);
+
+        Log::info("User logged out: {$user?->email}", [
+            'user_id' => $user?->id,
+            'tenant_id' => $tenantId,
+            'ip' => $request->ip(),
+        ]);
 
         Auth::logout();
 
@@ -132,12 +139,21 @@ class AuthController extends Controller
                     'via' => 'password',
                 ]);
 
+                Log::info("Super Admin logged in: {$email}", [
+                    'user_id' => Auth::id(),
+                    'ip' => $request->ip(),
+                ]);
+
                 return response()->json($this->payload($request));
             }
 
             app(PlatformAudit::class)->auth($request, 'auth.login_failed', [
                 'email' => $email,
                 'via' => 'password',
+            ]);
+
+            Log::warning("Failed login attempt for: {$email}", [
+                'ip' => $request->ip(),
             ]);
 
             throw ValidationException::withMessages(['email' => __('auth.failed')]);
@@ -208,6 +224,12 @@ class AuthController extends Controller
                 'user_id' => Auth::id(),
                 'tenant_id' => $tenant->id,
                 'via' => 'password',
+            ]);
+
+            Log::info("Tenant user logged in: {$email} [tenant: {$tenant->slug}#{$tenant->id}]", [
+                'user_id' => Auth::id(),
+                'tenant_id' => $tenant->id,
+                'ip' => $request->ip(),
             ]);
 
             return response()->json($this->payload($request));

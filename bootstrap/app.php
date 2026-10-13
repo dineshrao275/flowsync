@@ -12,6 +12,7 @@ use App\Http\Middleware\EnsureProduct;
 use App\Http\Middleware\EnsureSuperAdmin;
 use App\Http\Middleware\EnsureTenantContext;
 use App\Http\Middleware\EnsureTwoFactorEnrolled;
+use App\Http\Middleware\LogHttpRequests;
 use App\Http\Middleware\SecurityHeaders;
 use App\Http\Middleware\SetTenantContext;
 use App\Http\Middleware\SwitchTenant;
@@ -49,6 +50,7 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withMiddleware(function (Middleware $middleware): void {
         // First in the global stack so even a request rejected by a later
         // middleware (CSRF, session, throttle) carries an id in its logs.
+        $middleware->prepend(LogHttpRequests::class);
         $middleware->prepend(AssignRequestId::class);
         $middleware->append(SecurityHeaders::class);
         $middleware->appendToGroup('web', EnsureTwoFactorEnrolled::class);
@@ -104,8 +106,8 @@ return Application::configure(basePath: dirname(__DIR__))
             Authorize::class,
         ]);
 
-        // Token routes authenticate with a bearer token (never a cookie), so there is nothing for CSRF to protect.
-        $middleware->validateCsrfTokens(except: ['api/v1/*']);
+        // Token routes and client log beacon routes are exempted from CSRF.
+        $middleware->validateCsrfTokens(except: ['api/v1/*', 'api/logs/client']);
 
         $middleware->redirectGuestsTo('/login');
     })
