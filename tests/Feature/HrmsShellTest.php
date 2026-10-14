@@ -102,13 +102,14 @@ class HrmsShellTest extends TestCase
 
     public function test_the_sidebar_and_route_gate_share_one_module_key(): void
     {
-        // Sidebar.jsx gates the People > HRMS item and App.jsx wraps /hrms in
+        // The HR shell sections (utils/nav.js, derived from the HRMS_NAV hub
+        // catalog) gate on module:hrms.core, and App.jsx wraps /hrms in
         // ProtectedRoute module="hrms.core". A mismatch would show an entry that
         // leads to a 403, or hide a route that works.
-        $sidebar = file_get_contents(resource_path('js/components/Sidebar.jsx'));
+        $nav = file_get_contents(resource_path('js/utils/nav.js'));
         $app = file_get_contents(resource_path('js/App.jsx'));
 
-        $this->assertStringContainsString("capabilities: ['module:hrms.core']", $sidebar);
+        $this->assertStringContainsString('module:hrms.core', $nav);
         $this->assertStringContainsString('<Route path="/hrms"', $app);
         $this->assertStringContainsString('module="hrms.core"', $app);
     }

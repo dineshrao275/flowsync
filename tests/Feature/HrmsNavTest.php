@@ -157,25 +157,48 @@ class HrmsNavTest extends TestCase
         return $matches[1];
     }
 
-    /** The `/hrms*` links the primary sidebar offers. @return array<int, string> */
+    /**
+     * The `/hrms*` links the TMS shell's sidebar offers (the `tmsSections`
+     * block of `utils/nav.js`). @return array<int, string>
+     */
     private function sidebarLinks(): array
     {
+        $nav = file_get_contents(resource_path('js/utils/nav.js'));
+        $hrms = strpos($nav, 'export const hrmsSections');
+
+        $this->assertNotFalse($hrms, 'utils/nav.js no longer defines hrmsSections.');
+
         preg_match_all(
             "/to: '([^']*\/hrms[^']*)'/",
-            file_get_contents(resource_path('js/components/Sidebar.jsx')),
+            substr($nav, 0, $hrms),
             $matches
         );
 
         return $matches[1];
     }
 
-    public function test_the_sidebar_exposes_a_single_hrms_entry(): void
+    public function test_the_tms_shell_offers_no_hrms_entry(): void
     {
         $this->assertSame(
-            ['/hrms'],
+            [],
             $this->sidebarLinks(),
-            'The People section must carry ONE entry that opens the hub; feature pages are sub-tabs of it.'
+            'Crossing shells is the topbar ProductSwitcher\'s job: the TMS sidebar must not link into /hrms.'
         );
+    }
+
+    public function test_the_hrms_shell_derives_its_sections_from_the_hub_catalog(): void
+    {
+        // hrmsSections is built from HRMS_NAV, never re-listed: a forked copy
+        // would drift from the tab capabilities HrmsNavTest pins above.
+        $nav = file_get_contents(resource_path('js/utils/nav.js'));
+
+        $this->assertStringContainsString("from './hrmsNav'", $nav);
+        $this->assertStringContainsString('HRMS_NAV', $nav);
+
+        $sidebar = file_get_contents(resource_path('js/components/Sidebar.jsx'));
+
+        $this->assertStringContainsString('productForPath', $sidebar);
+        $this->assertStringContainsString('hrmsSections', $sidebar);
     }
 
     public function test_every_hrms_route_is_a_hub_tab_and_vice_versa(): void

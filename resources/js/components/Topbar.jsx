@@ -5,6 +5,7 @@ import { useToast } from '../context/ToastContext';
 import { usePageTitleContext } from '../context/PageTitleContext';
 import { useClickOutside } from '../hooks/useClickOutside';
 import NotificationBell from './NotificationBell';
+import ProductSwitcher from './ProductSwitcher';
 import Avatar from './ui/Avatar';
 
 export default function Topbar({ onOpenTheme, onToggleSidebar, onOpenSearch, showSearch, showTheme = true }) {
@@ -57,6 +58,7 @@ export default function Topbar({ onOpenTheme, onToggleSidebar, onOpenSearch, sho
             </div>
 
             <div className="flex items-center gap-2 sm:gap-3">
+                <ProductSwitcher />
                 {showSearch && (
                     <button
                         onClick={onOpenSearch}
