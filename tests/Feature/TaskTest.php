@@ -481,6 +481,28 @@ class TaskTest extends TestCase
         $this->assertSame(['WEB-3', 'WEB-1', 'WEB-2'], $order);
     }
 
+    public function test_description_accepts_and_returns_rich_text_html(): void
+    {
+        // The description editor stores HTML: the backend must accept and
+        // return it verbatim (a future max/strip_tags refactor would
+        // silently corrupt every formatted description).
+        $ws = $this->makeWorkspace();
+        $project = $this->createProject($ws);
+        $this->login('admin@flowsync.test');
+
+        $html = '<h2>Done when</h2><ul><li>ships</li></ul>';
+
+        $task = $this->postJson("/api/projects/{$project->id}/tasks", ['title' => 'Rich', 'description' => $html])
+            ->assertCreated()
+            ->json('task');
+
+        $this->assertSame($html, $task['description']);
+
+        $this->putJson("/api/projects/{$project->id}/tasks/{$task['id']}", ['description' => '<p>edited</p>'])
+            ->assertOk()
+            ->assertJsonPath('task.description', '<p>edited</p>');
+    }
+
     public function test_move_writes_positions_with_no_bound_parameters(): void
     {
         // PDO binds every parameter as text and PostgreSQL refuses to store

@@ -18,6 +18,7 @@ import { useConfirm } from '../components/ui/ConfirmDialog';
 import { useSetCrumbs } from '../context/BreadcrumbContext';
 import KanbanBoard from '../components/tasks/KanbanBoard';
 import TaskTable from '../components/tasks/TaskTable';
+import Pagination from '../components/ui/Pagination';
 import FiltersBar from '../components/tasks/FiltersBar';
 import CreateTaskModal from '../components/tasks/CreateTaskModal';
 import TaskDetail from '../components/tasks/TaskDetail';
@@ -78,6 +79,7 @@ export default function ProjectDetail() {
     const [board, setBoard] = useState(null);
     const [listTasks, setListTasks] = useState([]);
     const [pagination, setPagination] = useState(null);
+    const [page, setPage] = useState(1);
     const [taskOptions, setTaskOptions] = useState({ statuses: [], priorities: [], assignees: [], labels: [] });
     const [selectedTask, setSelectedTask] = useState(null);
     const [selectedTaskSection, setSelectedTaskSection] = useState(null);
@@ -170,7 +172,10 @@ export default function ProjectDetail() {
         const seq = ++loadSeqRef.current;
         const requestedView = view;
         const params = {};
-        if (view === 'list') params.view = 'list';
+        if (view === 'list') {
+            params.view = 'list';
+            params.page = page;
+        }
         if (view === 'board' && swimlane === 'assignee') params.swimlane = 'assignee';
         Object.entries(filters).forEach(([key, value]) => {
             if (value !== '' && value != null) params[key] = value;
@@ -208,7 +213,16 @@ export default function ProjectDetail() {
         if (!project || (tab !== 'tasks' && tab !== 'automation')) return;
         loadTasks();
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [projectId, tab, view, swimlane, filters]);
+    }, [projectId, tab, view, swimlane, filters, page]);
+
+    // A filter change or a deletion can strand the list past its last page —
+    // fall back instead of showing an empty table.
+    useEffect(() => {
+        if (pagination && view === 'list' && page > pagination.last_page) {
+            setPage(pagination.last_page);
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [pagination]);
 
     const tabRef = useRef(tab);
     tabRef.current = tab;
@@ -720,7 +734,10 @@ export default function ProjectDetail() {
                             <div className="flex rounded-lg border border-gray-300 p-0.5">
                                 <button
                                     type="button"
-                                    onClick={() => setView('board')}
+                                    onClick={() => {
+                                        setView('board');
+                                        setPage(1);
+                                    }}
                                     className={`rounded-md px-3 py-1.5 text-sm font-medium transition ${view === 'board' ? 'bg-[var(--accent)] text-[var(--accent-contrast)]' : 'text-gray-600 hover:bg-gray-100'
                                         }`}
                                 >
@@ -728,7 +745,10 @@ export default function ProjectDetail() {
                                 </button>
                                 <button
                                     type="button"
-                                    onClick={() => setView('list')}
+                                    onClick={() => {
+                                        setView('list');
+                                        setPage(1);
+                                    }}
                                     className={`rounded-md px-3 py-1.5 text-sm font-medium transition ${view === 'list' ? 'bg-[var(--accent)] text-[var(--accent-contrast)]' : 'text-gray-600 hover:bg-gray-100'
                                         }`}
                                 >
@@ -754,7 +774,14 @@ export default function ProjectDetail() {
                     </div>
 
                     <Card>
-                        <FiltersBar filters={filters} options={{ ...taskOptions, sprints: hasModule('sprints') }} onChange={setFilters} />
+                        <FiltersBar
+                            filters={filters}
+                            options={{ ...taskOptions, sprints: hasModule('sprints') }}
+                            onChange={(next) => {
+                                setFilters(next);
+                                setPage(1);
+                            }}
+                        />
                     </Card>
 
                     {tasksError ? (
@@ -771,10 +798,12 @@ export default function ProjectDetail() {
                         <div className="space-y-3">
                             <TaskTable tasks={listTasks} canEdit={canEditTask} onOpen={openTask} />
                             {pagination && (
-                                <p className="text-xs text-gray-500">
-                                    Page {pagination.current_page} of {pagination.last_page} · {pagination.total} task
-                                    {pagination.total === 1 ? '' : 's'}
-                                </p>
+                                <Pagination
+                                    page={pagination.current_page}
+                                    pages={pagination.last_page}
+                                    total={pagination.total}
+                                    onChange={setPage}
+                                />
                             )}
                         </div>
                     ) : null}
