@@ -79,7 +79,6 @@ import Plans from './pages/Plans';
 import Subscription from './pages/Subscription';
 import DataExport from './pages/DataExport';
 import SystemDashboard from './pages/SystemDashboard';
-import SystemAnalytics from './pages/SystemAnalytics';
 import SystemUsers from './pages/SystemUsers';
 import SystemSettings from './pages/SystemSettings';
 import AuditLogs from './pages/AuditLogs';
@@ -151,7 +150,8 @@ function AppRoutes() {
                         {userIsSuperAdmin && (
                             <Route element={<ProtectedRoute permission="dashboard.view" />}>
                                 <Route path="/admin" element={<SystemDashboard />} />
-                                <Route path="/admin/analytics" element={<SystemAnalytics />} />
+                                {/* Merged into the overview (same payload, one page) — keep old bookmarks working. */}
+                                <Route path="/admin/analytics" element={<Navigate to="/admin" replace />} />
                                 <Route path="/admin/users" element={<SystemUsers />} />
                                 <Route path="/admin/settings" element={<SystemSettings />} />
                                 <Route path="/admin/audit-logs" element={<AuditLogs />} />

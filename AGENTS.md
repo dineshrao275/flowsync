@@ -507,9 +507,9 @@ Hierarchy: **Tenant → Workspace → Project → Task** (subtask `tasks.parent_
   by-status from central DB + cross-tenant resource totals via capped fan-out of the first 100
   serviceable tenants, `Cache::remember 300s`). `FeatureManagementController` (module catalog × plan
   toggle grid persisting `plans.limits.modules`, `plan.module_toggled` audit — drives P15 gates).
-  Frontend: `/admin` (SA Overview, `/` redirects SA here), `/admin/analytics|users|audit-logs|features|
+  Frontend: `/admin` (SA Overview, `/` redirects SA here — the old `/admin/analytics` page was merged into it, same `/system/analytics` payload; the route redirects), `/admin/users|audit-logs|features|
   settings` pages + expanded SA sidebar (Administration: Overview/Tenants/Plans/Features; Platform:
-  Users/Analytics/Audit Logs/Settings).
+  Users/Support/Audit Logs/Settings).
   `ProvisionTenants` command repairs isolated tenants. Tenant DBs run the **full current migration set**
   (central-table clutter accepted pre-cutover).
 - **P13 cutover shipped** (see the Tenant-isolation section above; full test suite now runs through

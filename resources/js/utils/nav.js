@@ -150,7 +150,6 @@ export const superAdminSections = [
         items: [
             { to: '/admin/users', label: 'Users', capabilities: ['platform_users.view'], icon: ICONS.users },
             { to: '/admin/support', label: 'Support', capabilities: ['support.view'], icon: ICONS.support },
-            { to: '/admin/analytics', label: 'Analytics', capabilities: ['analytics.view'], icon: ICONS.chart },
             { to: '/admin/audit-logs', label: 'Audit Logs', capabilities: ['audit.view'], icon: ICONS.archive },
             { to: '/admin/settings', label: 'Settings', capabilities: ['settings.view'], icon: ICONS.settings },
             { to: '/security', label: 'Security', icon: ICONS.security },
