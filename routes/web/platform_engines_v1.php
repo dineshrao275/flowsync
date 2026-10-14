@@ -23,7 +23,7 @@ Route::prefix('api/v1')
             Route::get('projects', [ProjectController::class, 'indexAll'])->middleware('ensure_product:tms');
             Route::get('projects/{project}/tasks', [TaskController::class, 'index'])->middleware('ensure_product:tms');
             Route::post('projects/{project}/tasks', [TaskController::class, 'store'])->middleware(['ensure_product:tms', 'idempotent']);
-            Route::get('search/tasks', [SearchController::class, 'tasks'])->middleware('ensure_module:global_search');
+            Route::get('search/tasks', [SearchController::class, 'tasks'])->middleware(['ensure_product:tms', 'ensure_module:global_search']);
         });
 
         Route::get('hrms/employees', [EmployeeController::class, 'index'])->middleware(['ensure_module:hrms.core', 'token_can:hrms.view']);

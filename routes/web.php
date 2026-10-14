@@ -156,7 +156,7 @@ Route::prefix('api')->group(function () {
         // Phase 9: global multi-entity search. Lives OUTSIDE tenant_context so a
         // non-impersonating super admin can search across all tenants (the
         // controller fans out over the central tenancy index via TenantDatabaseManager).
-        Route::get('search/global', GlobalSearchController::class)->middleware(['permission:workspaces.view', 'ensure_module:global_search']);
+        Route::get('search/global', GlobalSearchController::class)->middleware(['permission:workspaces.view', 'ensure_product:tms', 'ensure_module:global_search']);
 
         Route::get('roles', [RoleController::class, 'index'])->middleware('permission:roles.view');
         Route::post('roles', [RoleController::class, 'store'])->middleware('permission:roles.manage');
@@ -198,13 +198,13 @@ Route::prefix('api')->group(function () {
         // Phase 7: discovery + reporting on the same tenant_context scope.
         // Global task search rides the domain `workspaces.view` permission;
         // dashboard and reports are gated by their own tenant permissions.
-        Route::get('search/tasks', [SearchController::class, 'tasks'])->middleware(['permission:workspaces.view', 'ensure_module:global_search']);
+        Route::get('search/tasks', [SearchController::class, 'tasks'])->middleware(['permission:workspaces.view', 'ensure_product:tms', 'ensure_module:global_search']);
 
         Route::get('dashboard', [DashboardController::class, '__invoke'])->middleware(['permission:dashboard.view', 'ensure_product:tms']);
 
         Route::get('analytics/overview', [AnalyticsController::class, '__invoke'])->middleware(['permission:dashboard.view', 'ensure_product:tms']);
 
-        Route::get('reports/overview', [ReportsController::class, 'overview'])->middleware(['permission:reports.view', 'ensure_module:reports']);
+        Route::get('reports/overview', [ReportsController::class, 'overview'])->middleware(['permission:reports.view', 'ensure_product:tms', 'ensure_module:reports']);
 
         Route::post('workspaces', [WorkspaceController::class, 'store'])->middleware(['permission:workspaces.create', 'ensure_product:tms']);
         Route::post('project-roles', [ProjectRoleController::class, 'store'])->middleware(['permission:roles.manage', 'ensure_product:tms']);
@@ -223,7 +223,7 @@ Route::prefix('api')->group(function () {
     // central DB in production) and every bound HRMS route answers 500
     // instead of data. The signed file routes further below stay outside —
     // the signature is their credential.
-    Route::middleware(['switch_tenant', 'auth', 'tenant', 'tenant_context', 'onboarding_complete'])->group(function () {
+    Route::middleware(['switch_tenant', 'auth', 'tenant', 'tenant_context', 'onboarding_complete', 'ensure_product:hrms'])->group(function () {
 
         require __DIR__.'/web/hrms_people.php';
 
