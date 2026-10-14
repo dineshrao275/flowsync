@@ -20,7 +20,9 @@ class LeadReceivedMail extends Mailable
         public string $leadName,
         public string $leadEmail,
         public ?string $company,
-        public string $message,
+        // Named leadMessage: `$message` is reserved in mail views (the
+        // message under construction) and rendering it crashes the send.
+        public string $leadMessage,
         public string $source,
     ) {}
 

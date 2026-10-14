@@ -22,11 +22,15 @@ class SiteSettingsTest extends TestCase
     {
         $this->loginSuperAdmin();
 
-        $this->getJson('/api/system/website-settings')
-            ->assertOk()
-            ->assertJsonPath('settings.tagline', 'Project management in motion — boards, time tracking, and HR in one calm workspace.')
-            ->assertJsonPath('settings.nav.0.label', 'Home')
-            ->assertJsonPath('settings.ga_measurement_id', null);
+        // The seeder ships a full nav/tagline, so assert shape — not seed copy.
+        $settings = $this->getJson('/api/system/website-settings')->assertOk()->json('settings');
+        $this->assertIsString($settings['tagline']);
+        $this->assertNotEmpty($settings['nav']);
+        foreach ($settings['nav'] as $link) {
+            $this->assertNotEmpty($link['label']);
+            $this->assertNotEmpty($link['href']);
+        }
+        $this->assertNull($settings['ga_measurement_id']);
 
         $this->putJson('/api/system/website-settings', [
             'tagline' => 'Ship work worldwide.',

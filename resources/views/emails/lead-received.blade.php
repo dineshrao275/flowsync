@@ -5,6 +5,6 @@ Email: {{ $leadEmail }}
 @if($company)Company: {{ $company }}
 @endif
 Message:
-{{ $message }}
+{{ $leadMessage }}
 
 Reply to the sender directly, then mark the lead worked in /app → Platform → Leads.
