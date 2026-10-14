@@ -268,6 +268,17 @@ class HrmsShellTest extends TestCase
         $this->assertStringContainsString("return '/hrms/performance/mine';", $js);
     }
 
+    public function test_the_notification_helpers_cover_talent_nudges(): void
+    {
+        // Same rule as every pin before it: a sealed review lands on the
+        // self-service page beside the acknowledgement receipt — each
+        // where the reader can see what sealed, carrying identifiers only.
+        $js = file_get_contents(resource_path('js/utils/notifications.js'));
+
+        $this->assertStringContainsString('talent.review_finalized', $js);
+        $this->assertStringContainsString("return '/hrms/performance/mine';", $js);
+    }
+
     public function test_the_notification_helpers_cover_asset_nudges(): void
     {
         // Same rule as every pin before it: the holder's nudges land on

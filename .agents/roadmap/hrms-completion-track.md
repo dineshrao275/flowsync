@@ -56,8 +56,14 @@ graphical org-chart.
   API policy (view+update are manage-only). Route↔tab parity + gate
   pins cover it (aggregate assertions, so the count holds while the
   coverage grows).
-- **24** — Talent, sub-tasks 24.1 migration → 24.2 service/policies →
-  24.3 HTTP → 24.4 SPA → 24.5 notifications. (pending)
+- **24 ✅ Talent** — 24.0 `calibrated_*` columns (raw-SQL FK, CHECK-safe)
+  → 24.1 `TalentCalibrationService` + strict `calibrate`/`finalize`
+  policy (talent.manage alone) → 24.2 `hrms/talent/*` HTTP (grid,
+  writes, counts-only distribution, numbers-only 360 summary) →
+  24.3 `Talent.jsx` + NAV + tile + route → 24.4 anonymity/no-score
+  pins → 24.5 `talent.review_finalized` nudge (identifiers only, skips
+  self) + JS describe/href branches. Previously enum-only
+  `Calibrating`/`Final` statuses are now reachable.
 - **25–26** — item E. (pending)
 
 Conventions: one reviewed commit per task, focused tests per task, full

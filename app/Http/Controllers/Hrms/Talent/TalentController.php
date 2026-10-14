@@ -8,6 +8,7 @@ use App\Models\Hrms\Performance\FeedbackRequest;
 use App\Models\Hrms\Performance\PerformanceCycle;
 use App\Models\Hrms\Performance\ReviewSummary;
 use App\Services\Hrms\Talent\TalentCalibrationService;
+use App\Services\NotificationService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -28,6 +29,7 @@ class TalentController extends Controller
 {
     public function __construct(
         private readonly TalentCalibrationService $calibration,
+        private readonly NotificationService $notifications,
     ) {}
 
     /**
@@ -66,6 +68,11 @@ class TalentController extends Controller
         $this->authorize('finalize', $review);
 
         $final = $this->calibration->finalize($review, $request->user());
+
+        // The receipt lands where the person it is about can see it —
+        // skipped for the login-less and for self-finalizes, like every
+        // other nudge.
+        $this->notifications->talentReviewFinalized($final, $request->user());
 
         return response()->json([
             'message' => 'Review finalized.',

@@ -22,6 +22,7 @@ use App\Services\Notifications\Families\AssetNotifications;
 use App\Services\Notifications\Families\ExpenseNotifications;
 use App\Services\Notifications\Families\LifecycleNotifications;
 use App\Services\Notifications\Families\PerformanceNotifications;
+use App\Services\Notifications\Families\TalentNotifications;
 use App\Services\Notifications\Families\TaskNotifications;
 use App\Services\Notifications\Families\TimeOffNotifications;
 use App\Services\Notifications\NotificationDispatcher;
@@ -45,6 +46,7 @@ class NotificationService
         private ExpenseNotifications $expense,
         private PerformanceNotifications $performance,
         private AssetNotifications $asset,
+        private TalentNotifications $talent,
     ) {}
 
     public function notify(
@@ -182,6 +184,11 @@ class NotificationService
     public function performanceReviewShared(ReviewSummary $review, ?User $actor = null): ?UserNotification
     {
         return $this->performance->performanceReviewShared($review, $actor);
+    }
+
+    public function talentReviewFinalized(ReviewSummary $review, ?User $actor = null): ?UserNotification
+    {
+        return $this->talent->talentReviewFinalized($review, $actor);
     }
 
     public function assetAssigned(AssetAssignment $assignment, ?User $actor = null): array

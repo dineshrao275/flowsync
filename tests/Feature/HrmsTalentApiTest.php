@@ -8,6 +8,7 @@ use App\Models\Permission;
 use App\Models\Role;
 use App\Models\SubscriptionPlan;
 use App\Models\User;
+use App\Models\UserNotification;
 use App\Services\SubscriptionService;
 use Tests\IsolatesDatabase;
 use Tests\TestCase;
@@ -85,6 +86,55 @@ class HrmsTalentApiTest extends TestCase
         $this->postJson("/api/hrms/talent/reviews/{$review['id']}/finalize", [])
             ->assertOk()
             ->assertJsonPath('review.status', 'final');
+    }
+
+    public function test_finalize_notifies_the_reviewee_and_skips_self(): void
+    {
+        [$manager, $report] = $this->reportingLine();
+        $cycleId = $this->calibrationReadyCycle($report);
+
+        // The reviewee holds the talent grant: sealing their own review
+        // notifies nobody — a self-nudge is noise.
+        $this->actAs($this->userWith(['hrms.view', 'hrms.performance.manage', 'hrms.talent.manage'], $report));
+
+        $own = $this->postJson("/api/hrms/performance/cycles/{$cycleId}/reviews", [
+            'employee_id' => $report->id,
+        ])->assertCreated()->json('review');
+
+        $this->postJson("/api/hrms/talent/reviews/{$own['id']}/finalize", [])->assertOk();
+
+        $this->assertFalse(UserNotification::query()
+            ->where('user_id', $report->user->id)
+            ->where('type', 'talent.review_finalized')
+            ->exists());
+
+        // HR sealing someone else's review notifies them — identifiers
+        // only, never the ratings.
+        $this->connectTenant('acme');
+        $secondUser = User::create([
+            'name' => 'Talent Second', 'email' => 'talent.second@flowsync.test', 'password' => 'password',
+        ]);
+        $second = Employee::create([
+            'employee_code' => 'EMP-TA-2ND', 'name' => 'Talent Second',
+            'status' => EmployeeStatus::Active, 'user_id' => $secondUser->id, 'manager_id' => $manager->id,
+        ]);
+
+        $this->actAs($this->userWith(['hrms.view', 'hrms.performance.manage', 'hrms.talent.manage']));
+
+        $theirs = $this->postJson("/api/hrms/performance/cycles/{$cycleId}/reviews", [
+            'employee_id' => $second->id,
+        ])->assertCreated()->json('review');
+
+        $this->postJson("/api/hrms/talent/reviews/{$theirs['id']}/finalize", [])->assertOk();
+
+        $note = UserNotification::query()
+            ->where('user_id', $secondUser->id)
+            ->where('type', 'talent.review_finalized')
+            ->firstOrFail();
+
+        $this->assertSame($theirs['id'], $note->data['review_summary_id']);
+        $this->assertArrayNotHasKey('manager_rating', $note->data);
+        $this->assertArrayNotHasKey('calibrated_rating', $note->data);
     }
 
     public function test_cross_tenant_review_is_404(): void
