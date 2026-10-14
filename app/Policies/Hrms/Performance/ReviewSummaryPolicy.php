@@ -54,6 +54,22 @@ class ReviewSummaryPolicy
         return $this->isManagerOf($user, $review) || $this->canManage($user);
     }
 
+    /**
+     * Calibration is the talent module's signature action: `hrms.talent.manage`
+     * alone. Deliberately stricter than `canManage()` (which also admits
+     * performance managers) — rewriting someone's rating is a talent
+     * decision, not a performance-cycle one.
+     */
+    public function calibrate(User $user, ReviewSummary $review): bool
+    {
+        return $user->hasPermission('hrms.talent.manage');
+    }
+
+    public function finalize(User $user, ReviewSummary $review): bool
+    {
+        return $user->hasPermission('hrms.talent.manage');
+    }
+
     private function canManage(User $user): bool
     {
         return $user->hasPermission('hrms.talent.manage')
