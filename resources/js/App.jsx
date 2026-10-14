@@ -63,6 +63,7 @@ import MyTeam from './pages/hrms/MyTeam';
 import Performance from './pages/hrms/Performance';
 import PerformanceCycleDetail from './pages/hrms/PerformanceCycleDetail';
 import MyPerformance from './pages/hrms/MyPerformance';
+import Talent from './pages/hrms/Talent';
 import Assets from './pages/hrms/Assets';
 import MyAssets from './pages/hrms/MyAssets';
 import Engagement from './pages/hrms/Engagement';
@@ -427,6 +428,19 @@ function AppRoutes() {
                                         }
                                     />
                                     <Route path="/hrms/performance/mine" element={<MyPerformance />} />
+                                </Route>
+                                {/* Talent: the calibration room is manage-only
+                                    end to end — the grid names reviewees and
+                                    their ratings, so there is no viewer tier. */}
+                                <Route element={<ProtectedRoute module="hrms.talent" />}>
+                                    <Route
+                                        path="/hrms/talent"
+                                        element={
+                                            <ProtectedRoute permission="hrms.talent.manage">
+                                                <Talent />
+                                            </ProtectedRoute>
+                                        }
+                                    />
                                 </Route>
                                 {/* Assets: the register needs the view permission,
                                     the self-service page rides the module alone

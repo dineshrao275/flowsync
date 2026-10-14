@@ -48,6 +48,7 @@ export const HRMS_NAV = [
     { to: '/hrms/performance/mine', label: 'My performance', group: 'Performance', capabilities: ['module:hrms.core', 'module:hrms.performance'] },
     { to: '/hrms/engagement', label: 'Engagement', group: 'Performance', capabilities: ['module:hrms.core', 'module:hrms.engagement', 'permission:hrms.engagement.view'] },
     { to: '/hrms/engagement/mine', label: 'My surveys', group: 'Performance', capabilities: ['module:hrms.core', 'module:hrms.engagement'] },
+    { to: '/hrms/talent', label: 'Talent', group: 'Performance', capabilities: ['module:hrms.core', 'module:hrms.talent', 'permission:hrms.talent.manage'] },
 
     { to: '/hrms/assets', label: 'Assets', group: 'Records', capabilities: ['module:hrms.core', 'module:hrms.assets', 'permission:hrms.assets.view'] },
     { to: '/hrms/assets/mine', label: 'My assets', group: 'Records', capabilities: ['module:hrms.core', 'module:hrms.assets'] },

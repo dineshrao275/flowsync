@@ -86,6 +86,7 @@ export const HRMS_MODULE_ROUTES = {
     'hrms.payroll': hrmsUrl('payroll'),
     'hrms.payroll.statutory': hrmsUrl('statutory'),
     'hrms.performance': hrmsUrl('performance'),
+    'hrms.talent': hrmsUrl('talent'),
     'hrms.engagement': hrmsUrl('engagement'),
     'hrms.expenses': hrmsUrl('expenses'),
     'hrms.assets': hrmsUrl('assets'),
