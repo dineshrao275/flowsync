@@ -6,6 +6,7 @@ use App\Http\Controllers\AuthController;
 use App\Http\Controllers\BillingController;
 use App\Http\Controllers\BlogController;
 use App\Http\Controllers\ClientLogController;
+use App\Http\Controllers\ContactController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\ExportController;
 use App\Http\Controllers\ForgotPasswordController;
@@ -298,6 +299,9 @@ Route::prefix('api')->group(function () {
 
 // Bearer-token API (/api/v1, P2.7): its own middleware stack, no session group.
 require __DIR__.'/web/platform_engines_v1.php';
+
+// Public contact endpoint (outside auth/tenant groups).
+Route::post('api/contact', [ContactController::class, 'store'])->middleware('throttle:10,1');
 
 // Phase 6: Public payment webhook endpoints (outside auth/tenant groups).
 Route::post('api/webhooks/stripe', [WebhookController::class, 'handleStripe'])->middleware('throttle:60,1');
