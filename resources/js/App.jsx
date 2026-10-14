@@ -86,6 +86,7 @@ import FeatureManagement from './pages/FeatureManagement';
 import FeatureFlags from './pages/FeatureFlags';
 import Security from './pages/Security';
 import CmsPages from './pages/CmsPages';
+import MediaLibrary from './pages/MediaLibrary';
 import Forbidden from './pages/Forbidden';
 import ModuleDenied from './pages/ModuleDenied';
 import NotFound from './pages/NotFound';
@@ -160,6 +161,7 @@ function AppRoutes() {
                                 <Route path="/admin/features" element={<FeatureManagement />} />
                                 <Route path="/admin/feature-flags" element={<FeatureFlags />} />
                                 <Route path="/admin/pages" element={<CmsPages />} />
+                                <Route path="/admin/media" element={<MediaLibrary />} />
                                 <Route path="/tenants" element={<Tenants />} />
                                 <Route path="/tenants/new" element={<TenantIntake />} />
                                 <Route path="/tenants/:tenantId/setup" element={<TenantIntake />} />

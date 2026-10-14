@@ -143,6 +143,7 @@ export const superAdminSections = [
             { to: '/admin/features', label: 'Features', capabilities: ['billing.view'], icon: 'M12 3l8 4v13H4V7l8-4zm0 5a2.5 2.5 0 00-2.5 2.5c0 1.5 2.5 3 2.5 3s2.5-1.5 2.5-3A2.5 2.5 0 0012 8zm0 10a2 2 0 100-4 2 2 0 000 4z' },
             { to: '/admin/feature-flags', label: 'Feature flags', capabilities: ['flags.view'], icon: 'M5 3v18M5 4h12l-2 4 2 4H5' },
             { to: '/admin/pages', label: 'Website', capabilities: ['content.view'], icon: 'M12 3l8 4v13H4V7l8-4zm2 6v6m-4-6v2' },
+            { to: '/admin/media', label: 'Media', capabilities: ['content.view'], icon: 'M4 5h16v14H4zM4 15l4-4 3 3 3-3 6 6' },
         ],
     },
     {
