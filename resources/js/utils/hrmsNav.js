@@ -51,6 +51,7 @@ export const HRMS_NAV = [
 
     { to: '/hrms/assets', label: 'Assets', group: 'Records', capabilities: ['module:hrms.core', 'module:hrms.assets', 'permission:hrms.assets.view'] },
     { to: '/hrms/assets/mine', label: 'My assets', group: 'Records', capabilities: ['module:hrms.core', 'module:hrms.assets'] },
+    { to: '/hrms/approvals/chains', label: 'Approval chains', group: 'Records', capabilities: ['module:hrms.core', 'permission:hrms.approvals.manage'] },
 
     { to: '/hrms/analytics', label: 'Analytics', group: 'Insight', capabilities: ['module:hrms.core', 'module:hrms.analytics', 'permission:hrms.analytics.view'] },
     { to: '/hrms/audit', label: 'Audit log', group: 'Insight', capabilities: ['module:hrms.core', 'permission:hrms.audit.view'] },

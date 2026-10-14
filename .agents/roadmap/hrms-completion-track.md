@@ -51,7 +51,11 @@ graphical org-chart.
   hrms-enterprise lists + JS mirror removed (G-9/H-2 precedent: re-add
   only with a route gate). `ModuleCatalogTest` counts 22→21 (catalog +
   enterprise tier). Nothing ever gated on it, so no behavior changes.
-- **23** — wire or delete `ApprovalChains.jsx`. (pending)
+- **23 ✅ ApprovalChains wired** — `/hrms/approvals/chains` route +
+  `HRMS_NAV` Records entry, both gated `hrms.approvals.manage` like the
+  API policy (view+update are manage-only). Route↔tab parity + gate
+  pins cover it (aggregate assertions, so the count holds while the
+  coverage grows).
 - **24** — Talent, sub-tasks 24.1 migration → 24.2 service/policies →
   24.3 HTTP → 24.4 SPA → 24.5 notifications. (pending)
 - **25–26** — item E. (pending)

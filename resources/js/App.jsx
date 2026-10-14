@@ -31,6 +31,7 @@ import Roles from './pages/Roles';
 import Settings from './pages/Settings';
 import Reports from './pages/Reports';
 import HrmsErrorBoundary from './components/hrms/HrmsErrorBoundary';
+import ApprovalChains from './pages/hrms/ApprovalChains';
 import HrmsOverview from './pages/hrms/HrmsOverview';
 import Employees from './pages/hrms/Employees';
 import EmployeeDetail from './pages/hrms/EmployeeDetail';
@@ -475,6 +476,18 @@ function AppRoutes() {
                                     element={
                                         <ProtectedRoute permission="hrms.audit.view">
                                             <AuditLog />
+                                        </ProtectedRoute>
+                                    }
+                                />
+                                {/* Approval chains (Phase 23): the tenant's
+                                    editable chains live here, not scattered
+                                    across the domain hubs. Manage-only, like
+                                    the API policy — the page 403s otherwise. */}
+                                <Route
+                                    path="/hrms/approvals/chains"
+                                    element={
+                                        <ProtectedRoute permission="hrms.approvals.manage">
+                                            <ApprovalChains />
                                         </ProtectedRoute>
                                     }
                                 />
