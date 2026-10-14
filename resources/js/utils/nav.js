@@ -144,6 +144,7 @@ export const superAdminSections = [
             { to: '/admin/feature-flags', label: 'Feature flags', capabilities: ['flags.view'], icon: 'M5 3v18M5 4h12l-2 4 2 4H5' },
             { to: '/admin/pages', label: 'Website', capabilities: ['content.view'], icon: 'M12 3l8 4v13H4V7l8-4zm2 6v6m-4-6v2' },
             { to: '/admin/media', label: 'Media', capabilities: ['content.view'], icon: 'M4 5h16v14H4zM4 15l4-4 3 3 3-3 6 6' },
+            { to: '/admin/site-settings', label: 'Site settings', capabilities: ['content.view'], icon: 'M4 6h16M4 12h16M4 18h16' },
         ],
     },
     {

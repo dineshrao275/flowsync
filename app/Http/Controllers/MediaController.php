@@ -47,6 +47,11 @@ class MediaController extends Controller
         ]);
     }
 
+    public function show(Media $medium): JsonResponse
+    {
+        return response()->json(['media' => $this->present($medium)]);
+    }
+
     public function store(MediaUploadRequest $request): JsonResponse
     {
         $file = $request->file('file');

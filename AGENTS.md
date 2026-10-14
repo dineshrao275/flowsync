@@ -231,7 +231,13 @@ Hierarchy: **Tenant → Workspace → Project → Task** (subtask `tasks.parent_
   (system table, public disk; raster-only uploads ≤5MB, SVGs refused, dimensions + alt recorded) backs
   public-site images via `api/system/media*` (`MediaController`: searchable list, alt update, delete removes
   the file); SPA `pages/MediaLibrary.jsx` at `/admin/media` + reusable `components/cms/MediaPicker.jsx`
-  (browser mounts only while open, so no request fires until needed). Content editing
+  (browser mounts only while open, so no request fires until needed). Global site config lives in
+  `website.*` platform settings via `App\Support\SiteConfig` (one `whereIn` query per render, no static
+  memo): logo (Media row), tagline, header nav, footer columns, social profiles, GA4 + Search Console
+  IDs, contact/sales emails, announcement bar, and raw custom head/body — all consumed by the layout
+  (which self-loads `SiteConfig` so error pages render too) and edited on `pages/WebsiteSettings.jsx`
+  at `/admin/site-settings` (`api/system/website-settings`, `SiteHref` rule rejects `javascript:`-style
+  targets). Content editing
   publishes live without code changes.
 
 ## Tenant intake (FB-3)
