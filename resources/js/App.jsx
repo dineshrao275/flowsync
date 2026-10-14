@@ -348,31 +348,42 @@ function AppRoutes() {
                                     without the directory. Payroll: the hub and
                                     the run detail are runner tools; my-payslips
                                     rides the module alone like My files. */}
-                                <Route
-                                    path="/hrms/compensation"
-                                    element={
-                                        <ProtectedRoute permission="hrms.compensation.view">
-                                            <Compensation />
-                                        </ProtectedRoute>
-                                    }
-                                />
-                                <Route
-                                    path="/hrms/payroll"
-                                    element={
-                                        <ProtectedRoute permission="hrms.payroll.run">
-                                            <Payroll />
-                                        </ProtectedRoute>
-                                    }
-                                />
-                                <Route
-                                    path="/hrms/payroll/runs/:runId"
-                                    element={
-                                        <ProtectedRoute permission="hrms.payroll.run">
-                                            <PayrollRunDetail />
-                                        </ProtectedRoute>
-                                    }
-                                />
-                                <Route path="/hrms/payroll/mine" element={<MyPayslips />} />
+                                {/* Compensation: the page rides the compensation
+                                    module on top of core, matching the API
+                                    gate — a core-only plan loses the sidebar
+                                    entry and the route together. */}
+                                <Route element={<ProtectedRoute module="hrms.compensation" />}>
+                                    <Route
+                                        path="/hrms/compensation"
+                                        element={
+                                            <ProtectedRoute permission="hrms.compensation.view">
+                                                <Compensation />
+                                            </ProtectedRoute>
+                                        }
+                                    />
+                                </Route>
+                                {/* Payroll: runs, run detail and my-payslips
+                                    all ride the payroll module, matching the
+                                    API gate. */}
+                                <Route element={<ProtectedRoute module="hrms.payroll" />}>
+                                    <Route
+                                        path="/hrms/payroll"
+                                        element={
+                                            <ProtectedRoute permission="hrms.payroll.run">
+                                                <Payroll />
+                                            </ProtectedRoute>
+                                        }
+                                    />
+                                    <Route
+                                        path="/hrms/payroll/runs/:runId"
+                                        element={
+                                            <ProtectedRoute permission="hrms.payroll.run">
+                                                <PayrollRunDetail />
+                                            </ProtectedRoute>
+                                        }
+                                    />
+                                    <Route path="/hrms/payroll/mine" element={<MyPayslips />} />
+                                </Route>
                                 {/* Statutory: the whole page rides the statutory
                                     module; internal gating splits rulebooks and
                                     decisions (manage) from claims filing and

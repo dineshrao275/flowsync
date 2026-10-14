@@ -135,6 +135,43 @@ class ModuleGateTest extends TestCase
         $this->getJson('/api/hrms/holidays/calendars')->assertOk();
     }
 
+    /**
+     * `hrms.compensation` and `hrms.payroll` were sold above Pro/Business but
+     * gated nothing (the §3.5 deviation): a core-only plan reached the pay
+     * surface. Both groups now carry their domain gate beside `hrms.core`.
+     */
+    public function test_compensation_routes_gate_on_the_hrms_compensation_module(): void
+    {
+        $this->assignProToAcme();
+        $this->setAcmeModules(['hrms.core']);
+        $this->login('admin@flowsync.test');
+        $this->connectTenant('acme');
+
+        $this->getJson('/api/hrms/payroll/components')
+            ->assertForbidden()
+            ->assertHeader('X-Module-Denied', 'hrms.compensation');
+
+        $this->setAcmeModules(['hrms.core', 'hrms.compensation']);
+
+        $this->getJson('/api/hrms/payroll/components')->assertOk();
+    }
+
+    public function test_payroll_routes_gate_on_the_hrms_payroll_module(): void
+    {
+        $this->assignProToAcme();
+        $this->setAcmeModules(['hrms.core']);
+        $this->login('admin@flowsync.test');
+        $this->connectTenant('acme');
+
+        $this->getJson('/api/hrms/payroll/runs')
+            ->assertForbidden()
+            ->assertHeader('X-Module-Denied', 'hrms.payroll');
+
+        $this->setAcmeModules(['hrms.core', 'hrms.payroll']);
+
+        $this->getJson('/api/hrms/payroll/runs')->assertOk();
+    }
+
     public function test_ensure_module_fails_closed_when_tenant_not_found(): void
     {
         $middleware = new EnsureModule;

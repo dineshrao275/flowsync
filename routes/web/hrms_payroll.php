@@ -16,23 +16,27 @@ use Illuminate\Support\Facades\Route;
 // Required from routes/web.php inside the same middleware group the block lived in,
 // at the same position, so route order (and `route:list`) is unchanged.
 
-// HRMS payroll reads (Phase 15 P9.4). Same two gates as the rest of the
-// HRMS surface; PayslipPolicy decides per record — the run grid is a
-// runner tool (`hrms.payroll.run`), one payslip is an all-viewer or
-// self-with-view read. Every read writes its access rows inside the
-// service, and the remaining payroll surface (policies, requests, write
-// routes) lands in P9.5.
-Route::group(['middleware' => ['ensure_module:hrms.core', 'permission:hrms.view']], function () {
+// HRMS payroll reads (Phase 15 P9.4). The `hrms.payroll` gate is the
+// domain one from the §3.5 table — payroll is the Enterprise-only payoff,
+// so a plan holding `hrms.core` without it gets a 403 here, not the rows.
+// PayslipPolicy decides per record — the run grid is a runner tool
+// (`hrms.payroll.run`), one payslip is an all-viewer or self-with-view
+// read. Every read writes its access rows inside the service, and the
+// remaining payroll surface (policies, requests, write routes) lands in
+// P9.5.
+Route::group(['middleware' => ['ensure_module:hrms.core', 'ensure_module:hrms.payroll', 'permission:hrms.view']], function () {
     Route::get('hrms/payroll/runs/{run}/payslips', [PayslipController::class, 'index']);
     Route::get('hrms/payroll/payslips/{payslip}', [PayslipController::class, 'show']);
 });
 
-// HRMS compensation writes (Phase 15 P9.5a). Same two gates; the component
-// and structure policies split reads (`hrms.compensation.view`) from
-// writes (`hrms.compensation.manage`), and the salary controller answers
+// HRMS compensation writes (Phase 15 P9.5a). The `hrms.compensation` gate
+// is the domain one from the §3.5 table — like payroll, it is sold above
+// Pro, so core-alone plans 403 here. The component and structure policies
+// split reads (`hrms.compensation.view`) from writes
+// (`hrms.compensation.manage`), and the salary controller answers
 // self-service reads itself — pay is sensitive, and the person in the
 // record may see their own basis.
-Route::group(['middleware' => ['ensure_module:hrms.core', 'permission:hrms.view']], function () {
+Route::group(['middleware' => ['ensure_module:hrms.core', 'ensure_module:hrms.compensation', 'permission:hrms.view']], function () {
     Route::get('hrms/payroll/components', [SalaryComponentController::class, 'index']);
     Route::post('hrms/payroll/components', [SalaryComponentController::class, 'store']);
     Route::get('hrms/payroll/components/{component}', [SalaryComponentController::class, 'show']);
@@ -51,10 +55,14 @@ Route::group(['middleware' => ['ensure_module:hrms.core', 'permission:hrms.view'
     Route::get('hrms/payroll/employees/{employee}/revisions', [EmployeeSalaryController::class, 'revisions']);
     Route::post('hrms/payroll/employees/{employee}/revisions', [EmployeeSalaryController::class, 'revise']);
     Route::post('hrms/payroll/employees/{employee}/revisions/{revision}/apply', [EmployeeSalaryController::class, 'applyRevision']);
+});
 
-    // HRMS payroll runs (Phase 15 P9.5b). Same two gates; the run policy
-    // answers every step with the one runner permission, and adjustments
-    // ride the payslip's `adjust` ability with both models bound.
+// HRMS payroll runs (Phase 15 P9.5b). Same `hrms.payroll` domain gate as
+// the reads above — runs, adjustments and my-payslips are payroll, not
+// core. The run policy answers every step with the one runner permission,
+// and adjustments ride the payslip's `adjust` ability with both models
+// bound.
+Route::group(['middleware' => ['ensure_module:hrms.core', 'ensure_module:hrms.payroll', 'permission:hrms.view']], function () {
     Route::get('hrms/payroll/runs', [PayrollRunController::class, 'index']);
     Route::post('hrms/payroll/runs', [PayrollRunController::class, 'store']);
     Route::get('hrms/payroll/runs/{run}', [PayrollRunController::class, 'show']);

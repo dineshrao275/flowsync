@@ -37,9 +37,9 @@ export const HRMS_NAV = [
     { to: '/hrms/holidays', label: 'Holidays', group: 'Time', capabilities: ['module:hrms.core', 'module:hrms.holidays'] },
     { to: '/hrms/shifts', label: 'Shifts', group: 'Time', capabilities: ['module:hrms.core', 'module:hrms.shifts'] },
 
-    { to: '/hrms/compensation', label: 'Compensation', group: 'Pay & benefits', capabilities: ['module:hrms.core', 'permission:hrms.compensation.view'] },
-    { to: '/hrms/payroll', label: 'Payroll', group: 'Pay & benefits', capabilities: ['module:hrms.core', 'permission:hrms.payroll.run'] },
-    { to: '/hrms/payroll/mine', label: 'My payslips', group: 'Pay & benefits', capabilities: ['module:hrms.core'] },
+    { to: '/hrms/compensation', label: 'Compensation', group: 'Pay & benefits', capabilities: ['module:hrms.core', 'module:hrms.compensation', 'permission:hrms.compensation.view'] },
+    { to: '/hrms/payroll', label: 'Payroll', group: 'Pay & benefits', capabilities: ['module:hrms.core', 'module:hrms.payroll', 'permission:hrms.payroll.run'] },
+    { to: '/hrms/payroll/mine', label: 'My payslips', group: 'Pay & benefits', capabilities: ['module:hrms.core', 'module:hrms.payroll'] },
     { to: '/hrms/statutory', label: 'Statutory', group: 'Pay & benefits', capabilities: ['module:hrms.core', 'module:hrms.payroll.statutory'] },
     { to: '/hrms/expenses', label: 'Expenses', group: 'Pay & benefits', capabilities: ['module:hrms.core', 'module:hrms.expenses', 'permission:hrms.expenses.view'] },
     { to: '/hrms/expenses/mine', label: 'My expenses', group: 'Pay & benefits', capabilities: ['module:hrms.core', 'module:hrms.expenses'] },
