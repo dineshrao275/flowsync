@@ -11,6 +11,7 @@ import usePageTitle from '../hooks/usePageTitle';
 import { useResource } from '../hooks/useResource';
 import { useSetCrumbs } from '../context/BreadcrumbContext';
 import { useConfirm } from '../components/ui/ConfirmDialog';
+import RichTextEditor from '../components/ui/RichTextEditor';
 
 const emptyForm = {
     slug: '',
@@ -20,9 +21,15 @@ const emptyForm = {
     seo_title: '',
     meta_description: '',
     og_image: '',
+    canonical_url: '',
+    noindex: false,
+    og_title: '',
+    og_description: '',
     sitemap_include: true,
     sort_order: 0,
 };
+
+const BLOCK_TYPES = ['hero', 'features', 'text', 'richtext', 'cta'];
 
 function BlockEditor({ blocks, onChange }) {
 
@@ -83,6 +90,13 @@ function BlockEditor({ blocks, onChange }) {
                             className="w-full rounded border border-gray-200 px-2 py-1.5 text-sm outline-none focus:border-indigo-400"
                         />
                     )}
+                    {b.type === 'richtext' && (
+                        <RichTextEditor
+                            value={b.html || ''}
+                            onChange={(html) => update(i, { html })}
+                            placeholder="Formatted body (headings, lists, links…)"
+                        />
+                    )}
                     {b.type === 'cta' && (
                         <input
                             value={b.text || ''}
@@ -138,7 +152,7 @@ function BlockEditor({ blocks, onChange }) {
                 </div>
             ))}
             <div className="flex flex-wrap gap-2">
-                {['hero', 'features', 'text', 'cta'].map((t) => (
+                {BLOCK_TYPES.map((t) => (
                     <Button key={t} type="button" variant="ghost" onClick={() => add(t)}>+ {t}</Button>
                 ))}
             </div>
@@ -193,6 +207,20 @@ function PageFormModal({ initial, onClose, onSave }) {
                     <Input label="OG image URL" name="og_image" value={form.og_image || ''} onChange={(e) => set('og_image', e.target.value)} />
                 </div>
                 <Input label="Meta description" name="meta_description" value={form.meta_description || ''} onChange={(e) => set('meta_description', e.target.value)} error={errors.meta_description?.[0]} />
+                <div className="rounded-lg bg-gray-50 p-3">
+                    <p className="mb-3 text-sm font-semibold text-gray-700">SEO</p>
+                    <div className="grid gap-4 sm:grid-cols-2">
+                        <Input label="OG title (defaults to SEO title)" name="og_title" value={form.og_title || ''} onChange={(e) => set('og_title', e.target.value)} />
+                        <Input label="Canonical URL (defaults to this page)" name="canonical_url" value={form.canonical_url || ''} onChange={(e) => set('canonical_url', e.target.value)} error={errors.canonical_url?.[0]} />
+                    </div>
+                    <div className="mt-4">
+                        <Input label="OG description (defaults to meta description)" name="og_description" value={form.og_description || ''} onChange={(e) => set('og_description', e.target.value)} />
+                    </div>
+                    <label className="mt-3 flex items-center gap-2 text-sm text-gray-700">
+                        <input type="checkbox" checked={!!form.noindex} onChange={(e) => set('noindex', e.target.checked)} className="h-4 w-4 rounded border-gray-300 text-indigo-600" />
+                        Hide from search engines (noindex, excluded from sitemap)
+                    </label>
+                </div>
                 <div>
                     <p className="mb-1.5 text-sm font-medium text-gray-700">Content blocks</p>
                     <BlockEditor blocks={form.content || []} onChange={(content) => set('content', content)} />
@@ -215,6 +243,37 @@ export default function CmsPages() {
         api.get('/system/pages', { signal }).then(({ data }) => data.pages),
     );
     const [editor, setEditor] = useState(null);
+
+    // The list payload carries no content blocks — always open the full page
+    // (which also yields the signed preview URL), or edits would save back
+    // an empty block list and wipe the page.
+    async function openEditor(page) {
+        try {
+            const { data } = await api.get(`/system/pages/${page.id}`);
+            setEditor({ ...emptyForm, ...data.page });
+        } catch {
+            toast.error('Could not load the page.');
+        }
+    }
+
+    async function openPreview(page) {
+        try {
+            const { data } = await api.get(`/system/pages/${page.id}`);
+            window.open(data.page.preview_url, '_blank', 'noopener');
+        } catch {
+            toast.error('Could not build the preview link.');
+        }
+    }
+
+    async function duplicate(page) {
+        try {
+            const { data } = await api.post(`/system/pages/${page.id}/duplicate`);
+            toast.success(`Duplicated as ${data.page.slug}.`);
+            fetchPages();
+        } catch (e) {
+            toast.error(fieldErrors(e).form || 'Could not duplicate the page.');
+        }
+    }
 
     async function save(form) {
         const payload = { ...form };
@@ -289,7 +348,9 @@ export default function CmsPages() {
                                     <td className="py-2.5">
                                         <div className="flex justify-end gap-2">
                                             <a href={page.slug === 'home' ? '/' : `/${page.slug}`} target="_blank" rel="noreferrer" className="text-indigo-600 hover:text-indigo-500">view</a>
-                                            <button type="button" onClick={() => setEditor({ ...emptyForm, ...page, content: page.content || [] })} className="text-gray-500 hover:text-gray-700">edit</button>
+                                            <button type="button" onClick={() => openPreview(page)} className="text-indigo-600 hover:text-indigo-500">preview</button>
+                                            <button type="button" onClick={() => openEditor(page)} className="text-gray-500 hover:text-gray-700">edit</button>
+                                            <button type="button" onClick={() => duplicate(page)} className="text-gray-500 hover:text-gray-700">duplicate</button>
                                             {page.status === 'published' ? (
                                                 <button type="button" onClick={() => unpublish(page)} className="text-amber-600 hover:text-amber-500">unpublish</button>
                                             ) : (

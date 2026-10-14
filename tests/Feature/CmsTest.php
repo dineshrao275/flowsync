@@ -185,6 +185,120 @@ class CmsTest extends TestCase
         $this->getJson('/api/definitely-not-a-route')->assertNotFound();
     }
 
+    public function test_super_admin_duplicates_a_page(): void
+    {
+        $this->loginSuperAdmin();
+
+        $created = $this->postJson('/api/system/pages', [
+            'slug' => 'tour',
+            'title' => 'Tour',
+            'status' => 'published',
+            'content' => [['type' => 'text', 'heading' => 'Tour', 'body' => 'Look around.']],
+        ])->assertStatus(201);
+
+        $id = $created->json('page.id');
+
+        $copy = $this->postJson("/api/system/pages/{$id}/duplicate")
+            ->assertStatus(201)
+            ->assertJsonPath('page.slug', 'tour-copy')
+            ->assertJsonPath('page.title', 'Copy of Tour')
+            ->assertJsonPath('page.status', 'draft')
+            ->assertJsonPath('page.published_at', null);
+
+        $this->assertDatabaseHas('audit_logs', ['action' => 'cms.page_duplicated']);
+
+        // The copy starts unpublished even though the source is live.
+        $this->get('/tour-copy')->assertNotFound();
+
+        // A second duplicate keeps slugs unique.
+        $this->postJson("/api/system/pages/{$id}/duplicate")
+            ->assertStatus(201)
+            ->assertJsonPath('page.slug', 'tour-copy-2');
+
+        $this->deleteJson("/api/system/pages/{$copy->json('page.id')}")->assertOk();
+    }
+
+    public function test_signed_preview_renders_drafts_without_indexing(): void
+    {
+        $this->loginSuperAdmin();
+
+        $created = $this->postJson('/api/system/pages', [
+            'slug' => 'secret-launch',
+            'title' => 'Secret Launch',
+            'status' => 'draft',
+            'content' => [
+                ['type' => 'text', 'heading' => 'Secret', 'body' => 'Shh.'],
+                ['type' => 'richtext', 'html' => '<h2>Formatted</h2><p>Rich <a href="/pricing">body</a>.</p>'],
+            ],
+        ])->assertStatus(201);
+
+        $id = $created->json('page.id');
+
+        $previewUrl = $this->getJson("/api/system/pages/{$id}")
+            ->assertOk()
+            ->json('page.preview_url');
+
+        $this->assertNotNull($previewUrl);
+
+        // Drafts never serve publicly…
+        $this->get('/secret-launch')->assertNotFound();
+
+        // …but the signed preview renders them, formatted blocks included,
+        // while telling every crawler to stay away.
+        $this->get($previewUrl)
+            ->assertOk()
+            ->assertSee('Shh.')
+            ->assertSee('<h2>Formatted</h2>', false)
+            ->assertSee('<meta name="robots" content="noindex, nofollow">', false)
+            ->assertHeader('X-Robots-Tag', 'noindex, nofollow');
+
+        // A tampered signature is refused.
+        $this->get($previewUrl.'tampered')->assertForbidden();
+    }
+
+    public function test_page_seo_overrides_shape_the_head_and_sitemap(): void
+    {
+        $this->loginSuperAdmin();
+
+        $created = $this->postJson('/api/system/pages', [
+            'slug' => 'campaign',
+            'title' => 'Campaign',
+            'status' => 'published',
+            'seo_title' => 'Campaign Page',
+            'meta_description' => 'Default description.',
+            'canonical_url' => 'https://example.com/campaign',
+            'noindex' => true,
+            'og_title' => 'Social Campaign',
+            'og_description' => 'Social description.',
+            'content' => [['type' => 'text', 'heading' => 'Campaign', 'body' => 'Hello.']],
+        ])->assertStatus(201);
+
+        $id = $created->json('page.id');
+
+        $this->get('/campaign')
+            ->assertOk()
+            ->assertSee('<link rel="canonical" href="https://example.com/campaign">', false)
+            ->assertSee('<meta name="robots" content="noindex, follow">', false)
+            ->assertSee('<meta property="og:title" content="Social Campaign">', false)
+            ->assertSee('<meta property="og:description" content="Social description.">', false);
+
+        // Noindexed pages stay out of the sitemap even when published.
+        $this->get('/sitemap.xml')
+            ->assertOk()
+            ->assertDontSee('/campaign');
+
+        $this->putJson("/api/system/pages/{$id}", [
+            'slug' => 'campaign',
+            'title' => 'Campaign',
+            'status' => 'published',
+            'noindex' => false,
+        ])->assertOk();
+
+        $this->get('/sitemap.xml')
+            ->assertOk()
+            ->assertSee('<loc>http://localhost/campaign</loc>', false);
+    }
+
     public function test_public_layout_has_skip_link_mobile_menu_and_footer(): void
     {
         $this->get('/')

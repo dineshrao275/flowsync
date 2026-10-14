@@ -93,6 +93,7 @@ Route::middleware('super_admin')->group(function () {
     Route::delete('system/pages/{websitePage}', [CmsController::class, 'destroy']);
     Route::post('system/pages/{websitePage}/publish', [CmsController::class, 'publish']);
     Route::post('system/pages/{websitePage}/unpublish', [CmsController::class, 'unpublish']);
+    Route::post('system/pages/{websitePage}/duplicate', [CmsController::class, 'duplicate']);
     Route::get('system/media', [MediaController::class, 'index']);
     Route::get('system/media/{medium}', [MediaController::class, 'show']);
     Route::post('system/media', [MediaController::class, 'store'])->middleware('throttle:30,1');

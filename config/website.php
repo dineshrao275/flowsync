@@ -13,6 +13,7 @@ return [
         'build',
         'up',
         'page',
+        'preview',
         'blog',
         'sitemap.xml',
         'robots.txt',

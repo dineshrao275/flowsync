@@ -18,6 +18,10 @@ class CmsPageRequest extends FormRequest
             'seo_title' => ['nullable', 'string', 'max:255'],
             'meta_description' => ['nullable', 'string', 'max:500'],
             'og_image' => ['nullable', 'string', 'max:500'],
+            'canonical_url' => ['nullable', 'url', 'max:500'],
+            'noindex' => ['nullable', 'boolean'],
+            'og_title' => ['nullable', 'string', 'max:255'],
+            'og_description' => ['nullable', 'string', 'max:500'],
             'sitemap_include' => ['nullable', 'boolean'],
             'sort_order' => ['nullable', 'integer', 'min:0'],
         ];

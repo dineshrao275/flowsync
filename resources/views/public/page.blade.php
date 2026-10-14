@@ -3,6 +3,10 @@
     'seoTitle' => $page->seo_title ?: $page->title,
     'metaDescription' => $page->meta_description,
     'ogImage' => $page->og_image,
+    'canonicalOverride' => $canonicalOverride ?? null,
+    'forceRobots' => $forceRobots ?? null,
+    'ogTitleOverride' => $ogTitleOverride ?? null,
+    'ogDescriptionOverride' => $ogDescriptionOverride ?? null,
 ])
 
 @section('content')
@@ -57,6 +61,14 @@
                                 <x-site.button href="{{ $block['cta']['href'] ?? '/app/register' }}" variant="light" size="lg">{{ $block['cta']['label'] }}</x-site.button>
                             @endif
                         </div>
+                    </div>
+                </section>
+                @break
+
+            @case('richtext')
+                <section class="mx-auto max-w-3xl px-4 py-12 sm:px-6">
+                    <div class="space-y-4 rounded-2xl border border-slate-200/80 bg-white p-6 shadow-sm sm:p-10 [&_h2]:text-2xl [&_h2]:font-extrabold [&_h2]:tracking-tight [&_h2]:text-slate-900 [&_h3]:text-xl [&_h3]:font-bold [&_h3]:text-slate-900 [&_p]:leading-relaxed [&_p]:text-slate-600 [&_ul]:list-disc [&_ul]:space-y-2 [&_ul]:pl-6 [&_ul]:text-slate-600 [&_ol]:list-decimal [&_ol]:space-y-2 [&_ol]:pl-6 [&_ol]:text-slate-600 [&_a]:font-medium [&_a]:text-indigo-600 [&_a]:underline [&_blockquote]:border-l-4 [&_blockquote]:border-indigo-200 [&_blockquote]:pl-4 [&_blockquote]:italic [&_blockquote]:text-slate-600">
+                        {!! $block['html'] ?? '' !!}
                     </div>
                 </section>
                 @break

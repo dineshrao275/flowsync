@@ -8,6 +8,10 @@
         :title="$seoTitle ?? $title ?? null"
         :description="$metaDescription ?? null"
         :ogImage="$ogImage ?? null"
+        :canonical="$canonicalOverride ?? null"
+        :robots="$forceRobots ?? 'index, follow'"
+        :ogTitle="$ogTitleOverride ?? null"
+        :ogDescription="$ogDescriptionOverride ?? null"
     />
     @if(!empty($site['gsc_verification']))<meta name="google-site-verification" content="{{ $site['gsc_verification'] }}">@endif
     @if(!empty($site['ga_measurement_id']))

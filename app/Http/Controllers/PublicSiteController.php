@@ -65,6 +65,23 @@ class PublicSiteController extends Controller
         return redirect()->to($page->slug === 'home' ? '/' : '/'.$page->slug, 301);
     }
 
+    public function preview(Request $request, WebsitePage $websitePage): View|Response
+    {
+        if (! $request->hasValidSignature()) {
+            abort(403);
+        }
+
+        // Previews must never be indexed, whatever the page says.
+        return response()
+            ->view('public.page', [
+                'page' => $websitePage,
+                'siteName' => (string) PlatformSetting::value('app_name', 'FlowSync'),
+                'crumbs' => [],
+                'forceRobots' => 'noindex, nofollow',
+            ])
+            ->header('X-Robots-Tag', 'noindex, nofollow');
+    }
+
     public function fallback(Request $request): Response
     {
         $path = ltrim($request->path(), '/');
@@ -83,6 +100,7 @@ class PublicSiteController extends Controller
     {
         $urls = WebsitePage::where('status', WebsitePage::STATUS_PUBLISHED)
             ->where('sitemap_include', true)
+            ->where('noindex', false)
             ->orderBy('sort_order')
             ->orderBy('id')
             ->get(['slug', 'updated_at']);
@@ -153,6 +171,10 @@ class PublicSiteController extends Controller
             'page' => $page,
             'siteName' => (string) PlatformSetting::value('app_name', 'FlowSync'),
             'crumbs' => $crumbs,
+            'canonicalOverride' => $page->canonical_url,
+            'forceRobots' => $page->noindex ? 'noindex, follow' : null,
+            'ogTitleOverride' => $page->og_title,
+            'ogDescriptionOverride' => $page->og_description,
         ]);
     }
 }

@@ -306,6 +306,9 @@ Route::post('api/webhooks/razorpay', [WebhookController::class, 'handleRazorpay'
 Route::get('/', [PublicSiteController::class, 'home']);
 Route::get('page/{slug}', [PublicSiteController::class, 'page']);
 
+// Signed draft preview for the CMS (never indexed — see controller).
+Route::get('preview/{websitePage}', [PublicSiteController::class, 'preview'])->name('site.preview')->middleware('signed');
+
 // Named reset landing for the framework's ResetPassword mail: the notification
 // builds its URL via `route('password.reset', token + email)`, and without this
 // name every forgot-password request for a REAL address 500s with

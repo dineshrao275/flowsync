@@ -237,7 +237,13 @@ Hierarchy: **Tenant → Workspace → Project → Task** (subtask `tasks.parent_
   IDs, contact/sales emails, announcement bar, and raw custom head/body — all consumed by the layout
   (which self-loads `SiteConfig` so error pages render too) and edited on `pages/WebsiteSettings.jsx`
   at `/admin/site-settings` (`api/system/website-settings`, `SiteHref` rule rejects `javascript:`-style
-  targets). Content editing
+  targets). `website_pages` also carries per-page `canonical_url`, `noindex` (excluded from sitemap),
+  `og_title`, `og_description` (all editable in the page form's SEO section); drafts preview through a
+  signed `preview/{page}` URL (`site.preview`, 24h, `X-Robots-Tag: noindex` — unsigned is 403); pages
+  duplicate as drafts via `POST system/pages/{page}/duplicate` (`-copy` slug walk). The block editor
+  gained a `richtext` type (shared TipTap `RichTextEditor`, HTML rendered server-side), and the page
+  edit form always loads the full row via `show` — the list payload has no blocks, so editing from it
+  would save back an empty list. Content editing
   publishes live without code changes.
 
 ## Tenant intake (FB-3)
