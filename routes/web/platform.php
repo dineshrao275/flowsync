@@ -4,6 +4,7 @@ use App\Http\Controllers\AuditLogsController;
 use App\Http\Controllers\CmsController;
 use App\Http\Controllers\FeatureManagementController;
 use App\Http\Controllers\ImpersonationController;
+use App\Http\Controllers\MediaController;
 use App\Http\Controllers\OnboardingController;
 use App\Http\Controllers\PlanController;
 use App\Http\Controllers\PlatformHealthController;
@@ -91,6 +92,10 @@ Route::middleware('super_admin')->group(function () {
     Route::delete('system/pages/{websitePage}', [CmsController::class, 'destroy']);
     Route::post('system/pages/{websitePage}/publish', [CmsController::class, 'publish']);
     Route::post('system/pages/{websitePage}/unpublish', [CmsController::class, 'unpublish']);
+    Route::get('system/media', [MediaController::class, 'index']);
+    Route::post('system/media', [MediaController::class, 'store'])->middleware('throttle:30,1');
+    Route::put('system/media/{medium}', [MediaController::class, 'update']);
+    Route::delete('system/media/{medium}', [MediaController::class, 'destroy']);
     Route::get('system/redirects', [WebsiteRedirectController::class, 'index']);
     Route::post('system/redirects', [WebsiteRedirectController::class, 'store']);
     Route::delete('system/redirects/{websiteRedirect}', [WebsiteRedirectController::class, 'destroy']);

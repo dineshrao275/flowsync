@@ -79,6 +79,7 @@ return [
         ['api/system/pages*', 'content.view', 'content.manage'],
         ['api/system/redirects*', 'content.view', 'content.manage'],
         ['api/system/invoices*', 'billing.view', 'billing.view'],
+        ['api/system/media*', 'content.view', 'content.manage'],
         ['api/system/settings', 'settings.view', 'settings.manage'],
         ['api/system/two-factor-policy', 'settings.view', 'settings.manage'],
         ['api/system/users*', 'platform_users.view', 'platform_users.manage'],
