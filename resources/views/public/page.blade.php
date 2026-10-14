@@ -7,6 +7,7 @@
     'forceRobots' => $forceRobots ?? null,
     'ogTitleOverride' => $ogTitleOverride ?? null,
     'ogDescriptionOverride' => $ogDescriptionOverride ?? null,
+    'faqSchema' => $faqSchema ?? [],
 ])
 
 @section('content')
@@ -204,6 +205,102 @@
                     @elseif(!empty($block['embed_url']))
                         <div class="text-center"><x-site.button href="{{ $block['embed_url'] }}" variant="ghost">Watch the video</x-site.button></div>
                     @endif
+                </section>
+                @break
+
+            @case('pricing')
+                @php($plans = \App\Models\SubscriptionPlan::where('is_active', true)->when(!empty($block['product']), fn ($q) => $q->where('product', $block['product']))->orderBy('sort_order')->orderBy('id')->get())
+                @php($planCols = match (min(3, max(1, $plans->count()))) { 1 => 'lg:grid-cols-1 lg:max-w-xl lg:mx-auto', 2 => 'lg:grid-cols-2 lg:max-w-4xl lg:mx-auto', default => 'lg:grid-cols-3' })
+                @php($moduleMeta = config('subscriptions.module_meta', []))
+                @if($plans->isNotEmpty())
+                    <section class="mx-auto max-w-6xl px-4 py-14 sm:px-6">
+                        <x-site.section-heading :eyebrow="$block['eyebrow'] ?? null" :heading="$block['heading'] ?? 'Simple pricing'" :lead="$block['lead'] ?? null" align="center" class="mb-10" />
+                        <div class="grid items-stretch gap-5 {{ $planCols }}">
+                            @foreach ($plans as $plan)
+                                @php($modules = array_values(array_filter((array) ($plan->limits['modules'] ?? []))))
+                                <div class="relative flex flex-col rounded-3xl p-7 {{ $plan->is_default ? 'bg-slate-950 text-white shadow-2xl shadow-slate-900/20 ring-2 ring-indigo-500' : 'border border-slate-200/80 bg-white shadow-sm' }}">
+                                    @if($plan->is_default)
+                                        <span class="absolute -top-3.5 left-1/2 -translate-x-1/2 rounded-full bg-indigo-600 px-3 py-1 text-xs font-bold uppercase tracking-wider text-white shadow-lg shadow-indigo-600/30">Most popular</span>
+                                    @endif
+                                    <h3 class="text-lg font-extrabold tracking-tight {{ $plan->is_default ? 'text-white' : 'text-slate-900' }}">{{ $plan->name }}</h3>
+                                    @if($plan->description)<p class="mt-1 text-sm {{ $plan->is_default ? 'text-indigo-100/70' : 'text-slate-500' }}">{{ $plan->description }}</p>@endif
+                                    <p class="mt-5 flex items-baseline gap-1.5">
+                                        <span class="text-4xl font-extrabold tracking-tight {{ $plan->is_default ? 'text-white' : 'text-slate-900' }}">{{ $plan->price_cents > 0 ? number_format($plan->price_cents / 100, 0).' '.strtoupper($plan->currency ?? 'USD') : 'Free' }}</span>
+                                        @if($plan->price_cents > 0)<span class="text-sm {{ $plan->is_default ? 'text-indigo-100/70' : 'text-slate-500' }}">/ mo{{ $plan->billing_cycle === 'annual' ? ', billed annually' : '' }}</span>@endif
+                                    </p>
+                                    @if($plan->trial_duration_days)<p class="mt-1 text-xs font-medium {{ $plan->is_default ? 'text-indigo-200' : 'text-indigo-600' }}">{{ $plan->trial_duration_days }}-day free trial</p>@endif
+                                    @if($modules)
+                                        <ul class="mt-6 flex-1 space-y-2.5 text-sm {{ $plan->is_default ? 'text-indigo-50' : 'text-slate-600' }}">
+                                            @foreach (array_slice($modules, 0, 6) as $module)
+                                                <li class="flex items-start gap-2.5">
+                                                    <svg class="mt-0.5 h-4 w-4 shrink-0 {{ $plan->is_default ? 'text-indigo-300' : 'text-indigo-500' }}" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 8.5l3.5 3.5L13 4.5" /></svg>
+                                                    {{ $moduleMeta[$module]['label'] ?? \Illuminate\Support\Str::headline(str_replace(['.', '_'], ' ', $module)) }}
+                                                </li>
+                                            @endforeach
+                                            @if(count($modules) > 6)<li class="pl-6 text-xs opacity-70">+{{ count($modules) - 6 }} more included</li>@endif
+                                        </ul>
+                                    @endif
+                                    <div class="mt-7"><x-site.button href="/app/register" :variant="$plan->is_default ? 'light' : 'primary'" class="w-full">Start free</x-site.button></div>
+                                </div>
+                            @endforeach
+                        </div>
+                    </section>
+                @endif
+                @break
+
+            @case('faq')
+                <section class="mx-auto max-w-3xl px-4 py-14 sm:px-6">
+                    <x-site.section-heading :eyebrow="$block['eyebrow'] ?? null" :heading="$block['heading'] ?? 'Questions, answered'" :lead="$block['lead'] ?? null" align="center" class="mb-8" />
+                    <div class="space-y-3">
+                        @foreach ($block['items'] ?? [] as $faq)
+                            <details class="group rounded-2xl border border-slate-200/80 bg-white px-5 shadow-sm open:border-indigo-200 open:shadow-md">
+                                <summary class="flex cursor-pointer list-none items-center justify-between gap-4 py-4 text-[15px] font-bold text-slate-900 [&::-webkit-details-marker]:hidden">
+                                    {{ $faq['q'] ?? '' }}
+                                    <span class="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-slate-100 text-slate-500 transition group-open:rotate-45 group-open:bg-indigo-600 group-open:text-white" aria-hidden="true">+</span>
+                                </summary>
+                                <p class="pb-5 leading-relaxed text-slate-600">{{ $faq['a'] ?? '' }}</p>
+                            </details>
+                        @endforeach
+                    </div>
+                </section>
+                @break
+
+            @case('comparison')
+                <section class="mx-auto max-w-5xl px-4 py-14 sm:px-6">
+                    @if(!empty($block['heading']))
+                        <h2 class="mb-8 text-center text-3xl font-extrabold tracking-tight text-slate-900">{{ $block['heading'] }}</h2>
+                    @endif
+                    <div class="overflow-x-auto rounded-2xl border border-slate-200/80 shadow-sm">
+                        <table class="w-full min-w-[560px] border-collapse bg-white text-left text-sm">
+                            <thead>
+                                <tr class="border-b border-slate-200 bg-slate-50/70">
+                                    <th scope="col" class="px-5 py-4 font-semibold text-slate-500"></th>
+                                    @foreach ($block['columns'] ?? [] as $column)
+                                        <th scope="col" class="px-5 py-4 font-extrabold tracking-tight text-slate-900">{{ $column['heading'] ?? '' }}</th>
+                                    @endforeach
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach ($block['rows'] ?? [] as $row)
+                                    <tr class="border-b border-slate-100 last:border-0">
+                                        <th scope="row" class="px-5 py-3.5 font-semibold text-slate-700">{{ $row['label'] ?? '' }}</th>
+                                        @foreach ($block['columns'] ?? [] as $ci => $column)
+                                            @php($cell = trim((string) ($row['values'][$ci] ?? '')))
+                                            <td class="px-5 py-3.5 text-slate-600">
+                                                @if(strtolower($cell) === 'yes')
+                                                    <span class="inline-flex h-6 w-6 items-center justify-center rounded-full bg-emerald-100 text-emerald-700" role="img" aria-label="Included">✓</span>
+                                                @elseif(strtolower($cell) === 'no' || $cell === '')
+                                                    <span class="text-slate-300" aria-label="Not included">—</span>
+                                                @else
+                                                    {{ $cell }}
+                                                @endif
+                                            </td>
+                                        @endforeach
+                                    </tr>
+                                @endforeach
+                            </tbody>
+                        </table>
+                    </div>
                 </section>
                 @break
 

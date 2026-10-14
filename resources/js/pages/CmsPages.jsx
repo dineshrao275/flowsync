@@ -30,7 +30,7 @@ const emptyForm = {
     sort_order: 0,
 };
 
-const BLOCK_TYPES = ['hero', 'logo_cloud', 'features', 'split', 'steps', 'stats', 'testimonials', 'team', 'video', 'text', 'richtext', 'cta'];
+const BLOCK_TYPES = ['hero', 'logo_cloud', 'features', 'split', 'steps', 'stats', 'testimonials', 'team', 'video', 'pricing', 'faq', 'comparison', 'text', 'richtext', 'cta'];
 
 // Media id ↔ picker object bridge: blocks store the id, the picker needs the
 // row. Hydrated once per id; a deleted image resolves to null (unpicked).
@@ -137,7 +137,7 @@ function BlockEditor({ blocks, onChange }) {
                             className="mb-2 w-full rounded border border-gray-200 px-2 py-1.5 text-sm outline-none focus:border-indigo-400"
                         />
                     )}
-                    {['steps', 'split', 'testimonials', 'team'].includes(b.type) && (
+                    {['steps', 'split', 'testimonials', 'team', 'pricing', 'faq'].includes(b.type) && (
                         <div className="mb-2 grid gap-2 sm:grid-cols-2">
                             <input
                                 value={b.eyebrow || ''}
@@ -334,6 +334,102 @@ function BlockEditor({ blocks, onChange }) {
                         <div className="mb-2">
                             {textInput(b.embed_url, (embed_url) => update(i, { embed_url }), 'YouTube or Vimeo URL')}
                             <p className="mt-1 text-xs text-gray-400">Only YouTube/Vimeo embed; anything else renders as a link.</p>
+                        </div>
+                    )}
+                    {b.type === 'pricing' && (
+                        <div className="mb-2 grid gap-2 sm:grid-cols-2">
+                            <select
+                                value={b.product || ''}
+                                onChange={(e) => update(i, { product: e.target.value || null })}
+                                className="rounded border border-gray-200 px-2 py-1.5 text-sm outline-none focus:border-indigo-400"
+                            >
+                                <option value="">All active plans</option>
+                                <option value="suite">Suite plans</option>
+                                <option value="tms">TMS plans</option>
+                                <option value="hrms">HRMS plans</option>
+                            </select>
+                            <p className="self-center text-xs text-gray-400">Cards, prices, and features pull live from subscription plans.</p>
+                        </div>
+                    )}
+                    {b.type === 'faq' && (
+                        <div className="space-y-2">
+                            {(b.items || []).map((faq, j) => (
+                                <div key={j} className="space-y-2 rounded border border-gray-100 p-2">
+                                    <input
+                                        value={faq.q || ''}
+                                        onChange={(e) => {
+                                            const items = b.items.map((it, idx) => (idx === j ? { ...it, q: e.target.value } : it));
+                                            update(i, { items });
+                                        }}
+                                        placeholder="Question"
+                                        className="w-full rounded border border-gray-200 px-2 py-1.5 text-sm font-medium"
+                                    />
+                                    <textarea
+                                        value={faq.a || ''}
+                                        onChange={(e) => {
+                                            const items = b.items.map((it, idx) => (idx === j ? { ...it, a: e.target.value } : it));
+                                            update(i, { items });
+                                        }}
+                                        placeholder="Answer (also feeds Google's FAQ rich result)"
+                                        rows={2}
+                                        className="w-full rounded border border-gray-200 px-2 py-1.5 text-sm"
+                                    />
+                                    <div className="text-right">
+                                        <button type="button" onClick={() => update(i, { items: b.items.filter((_, idx) => idx !== j) })} className="text-xs text-red-400">remove</button>
+                                    </div>
+                                </div>
+                            ))}
+                            <Button type="button" variant="ghost" onClick={() => update(i, { items: [...(b.items || []), { q: '', a: '' }] })}>+ question</Button>
+                        </div>
+                    )}
+                    {b.type === 'comparison' && (
+                        <div className="space-y-2">
+                            <div className="flex gap-2">
+                                {(b.columns || []).map((col, j) => (
+                                    <div key={j} className="flex flex-1 gap-1">
+                                        <input
+                                            value={col.heading || ''}
+                                            onChange={(e) => {
+                                                const columns = b.columns.map((c, idx) => (idx === j ? { ...c, heading: e.target.value } : c));
+                                                update(i, { columns });
+                                            }}
+                                            placeholder={`Column ${j + 1}`}
+                                            className="w-full rounded border border-gray-200 px-2 py-1.5 text-sm"
+                                        />
+                                        <button type="button" onClick={() => update(i, { columns: b.columns.filter((_, idx) => idx !== j) })} className="text-red-400">✕</button>
+                                    </div>
+                                ))}
+                                <Button type="button" variant="ghost" onClick={() => update(i, { columns: [...(b.columns || []), { heading: '' }] })}>+ column</Button>
+                            </div>
+                            {(b.rows || []).map((row, j) => (
+                                <div key={j} className="flex gap-2">
+                                    <input
+                                        value={row.label || ''}
+                                        onChange={(e) => {
+                                            const rows = b.rows.map((r, idx) => (idx === j ? { ...r, label: e.target.value } : r));
+                                            update(i, { rows });
+                                        }}
+                                        placeholder="Row label"
+                                        className="w-1/3 rounded border border-gray-200 px-2 py-1.5 text-sm"
+                                    />
+                                    {(b.columns || []).map((col, k) => (
+                                        <input
+                                            key={k}
+                                            value={row.values?.[k] || ''}
+                                            onChange={(e) => {
+                                                const values = [...(row.values || [])];
+                                                values[k] = e.target.value;
+                                                const rows = b.rows.map((r, idx) => (idx === j ? { ...r, values } : r));
+                                                update(i, { rows });
+                                            }}
+                                            placeholder="yes / no / text"
+                                            className="flex-1 rounded border border-gray-200 px-2 py-1.5 text-sm"
+                                        />
+                                    ))}
+                                    <button type="button" onClick={() => update(i, { rows: b.rows.filter((_, idx) => idx !== j) })} className="text-red-400">✕</button>
+                                </div>
+                            ))}
+                            <Button type="button" variant="ghost" onClick={() => update(i, { rows: [...(b.rows || []), { label: '', values: [] }] })}>+ row</Button>
                         </div>
                     )}
                     {b.cta && (

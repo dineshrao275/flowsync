@@ -1,7 +1,8 @@
 {{-- Structured data for the public site. Organization + WebSite ship on
      every page; BreadcrumbList on every non-home page via $crumbs
-     ([['name' => …, 'url' => …], …], last item may omit url). --}}
-@props(['crumbs' => []])
+     ([['name' => …, 'url' => …], …], last item may omit url); FAQPage
+     ships when $faq carries [['q' => …, 'a' => …], …] pairs. --}}
+@props(['crumbs' => [], 'faq' => []])
 
 @php
     $siteName = $siteName ?? config('app.name', 'FlowSync');
@@ -31,6 +32,18 @@
             $items[] = $item;
         }
         $graph[] = ['@type' => 'BreadcrumbList', 'itemListElement' => $items];
+    }
+
+    $faq = array_values(array_filter($faq, fn ($entry) => is_array($entry) && trim((string) ($entry['q'] ?? '')) !== '' && trim((string) ($entry['a'] ?? '')) !== ''));
+    if ($faq !== []) {
+        $graph[] = [
+            '@type' => 'FAQPage',
+            'mainEntity' => array_map(fn ($entry) => [
+                '@type' => 'Question',
+                'name' => $entry['q'],
+                'acceptedAnswer' => ['@type' => 'Answer', 'text' => $entry['a']],
+            ], $faq),
+        ];
     }
 @endphp
 

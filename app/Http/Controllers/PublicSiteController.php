@@ -140,6 +140,32 @@ class PublicSiteController extends Controller
         return response($text, 200)->header('Content-Type', 'text/plain');
     }
 
+    /**
+     * Every answered FAQ on the page feeds the FAQPage rich result.
+     *
+     * @return list<array{q: string, a: string}>
+     */
+    private function faqPairs(mixed $content): array
+    {
+        $pairs = [];
+
+        foreach ((array) $content as $block) {
+            if (! is_array($block) || ($block['type'] ?? null) !== 'faq') {
+                continue;
+            }
+
+            foreach ($block['items'] ?? [] as $item) {
+                if (! is_array($item)) {
+                    continue;
+                }
+
+                $pairs[] = ['q' => (string) ($item['q'] ?? ''), 'a' => (string) ($item['a'] ?? '')];
+            }
+        }
+
+        return $pairs;
+    }
+
     private function redirectFor(string $fromPath): ?RedirectResponse
     {
         $redirect = WebsiteRedirect::where('from_path', $fromPath)->first();
@@ -178,6 +204,7 @@ class PublicSiteController extends Controller
             'ogTitleOverride' => $page->og_title,
             'ogDescriptionOverride' => $page->og_description,
             'mediaMap' => SiteMedia::mapForContent($page->content),
+            'faqSchema' => $this->faqPairs($page->content),
         ]);
     }
 }

@@ -186,6 +186,58 @@ class CmsTest extends TestCase
         $this->getJson('/api/definitely-not-a-route')->assertNotFound();
     }
 
+    public function test_pricing_faq_and_comparison_blocks_render(): void
+    {
+        $this->loginSuperAdmin();
+
+        $this->postJson('/api/system/pages', [
+            'slug' => 'pricing',
+            'title' => 'Pricing',
+            'status' => 'published',
+            'content' => [
+                ['type' => 'pricing', 'eyebrow' => 'Plans', 'heading' => 'Simple pricing'],
+                ['type' => 'faq', 'heading' => 'Questions', 'items' => [
+                    ['q' => 'Is there a free trial?', 'a' => 'Yes — fourteen days, no card.'],
+                    ['q' => 'Empty answer', 'a' => ''],
+                ]],
+                ['type' => 'comparison', 'heading' => 'Compare', 'columns' => [
+                    ['heading' => 'Starter'], ['heading' => 'Pro'],
+                ], 'rows' => [
+                    ['label' => 'Time tracking', 'values' => ['yes', 'yes']],
+                    ['label' => 'API access', 'values' => ['no', 'yes']],
+                    ['label' => 'Support', 'values' => ['Email', 'Priority email']],
+                ]],
+            ],
+        ])->assertStatus(201);
+
+        $this->get('/pricing')
+            ->assertOk()
+            // Live plans: seeded catalog names, real prices, module labels.
+            ->assertSee('Starter')
+            ->assertSee('Most popular')
+            ->assertSee('Time Tracking')
+            // FAQ accordion + FAQPage rich result (unanswered items excluded).
+            ->assertSee('Is there a free trial?')
+            ->assertSee('<details', false)
+            ->assertSee('"@type":"FAQPage"', false)
+            ->assertSee('fourteen days, no card.')
+            ->assertDontSee('"name":"Empty answer"', false)
+            // Comparison table cells.
+            ->assertSee('Compare')
+            ->assertSee('aria-label="Included"', false)
+            ->assertSee('Priority email');
+
+        // Product filter narrows to that product's plans.
+        $page = WebsitePage::where('slug', 'pricing')->first();
+        $content = $page->content;
+        $content[0] = ['type' => 'pricing', 'heading' => 'TMS plans', 'product' => 'tms'];
+        $page->update(['content' => $content]);
+
+        $this->get('/pricing')
+            ->assertOk()
+            ->assertSee('TMS Starter');
+    }
+
     public function test_display_blocks_render_with_media(): void
     {
         $this->loginSuperAdmin();

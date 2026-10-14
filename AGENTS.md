@@ -219,9 +219,13 @@ Hierarchy: **Tenant → Workspace → Project → Task** (subtask `tasks.parent_
   `section-heading`) + designed `resources/views/errors/404.blade.php`. The public site ships its own
   Tailwind v4 entry `resources/css/site.css` (`@source` scoped to the site views) and a framework-free
   `resources/js/site.js` (mobile menu + Escape/resize handling), both registered in `vite.config.js`.
+  Blocks: `hero|features|text|richtext|cta` + `logo_cloud|stats|steps|split|testimonials|team|video`
+  (media via `components/site/img.blade.php`, bulk-loaded by `App\Support\SiteMedia`, YouTube/Vimeo-only
+  embeds) + `pricing` (live active `SubscriptionPlan` cards with `module_meta` labels, optional product
+  filter) + `faq` (`<details>` accordion feeding the FAQPage schema) + `comparison` (yes→✓/no→— table).
   SEO ships in `components/site/seo-head.blade.php` (canonical, robots, og:*/twitter:*, favicon
   `public/favicon.svg`, theme-color) + `components/site/json-ld.blade.php` (Organization + WebSite on
-  every page, BreadcrumbList on non-home pages via `$crumbs`). Pages live at top-level `/{slug}`
+  every page, BreadcrumbList on non-home pages via `$crumbs`, FAQPage from answered items). Pages live at top-level `/{slug}`
   (`site.page` route, registered last; `config/website.php` `reserved_slugs` can never become pages and
   404 in the controller regardless); legacy `/page/{slug}` 301s to the canonical URL, and the route
   fallback resolves `website_redirects` (`WebsiteRedirect`, auto-created on slug rename, `hits` counted)
