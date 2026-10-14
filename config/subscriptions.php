@@ -53,7 +53,6 @@ return [
         'hrms.assets',
         'hrms.inbox',
         'hrms.analytics',
-        'hrms.exemptions',
     ],
 
     // Display metadata for the module catalog: slug => label + group. The keys
@@ -89,7 +88,6 @@ return [
         'hrms.expenses' => ['label' => 'Expenses & Claims', 'group' => 'HRMS · Pay & Benefits'],
         'hrms.payroll' => ['label' => 'Payroll', 'group' => 'HRMS · Pay & Benefits'],
         'hrms.payroll.statutory' => ['label' => 'Statutory Deductions', 'group' => 'HRMS · Pay & Benefits'],
-        'hrms.exemptions' => ['label' => 'Tax Exemptions', 'group' => 'HRMS · Pay & Benefits'],
 
         'hrms.performance' => ['label' => 'Performance Goals', 'group' => 'HRMS · Performance'],
         'hrms.talent' => ['label' => 'Reviews & Talent', 'group' => 'HRMS · Performance'],
@@ -243,7 +241,7 @@ return [
                     'hrms.comp_off', 'hrms.holidays', 'hrms.shifts', 'hrms.inbox',
                     'hrms.compensation', 'hrms.expenses', 'hrms.performance', 'hrms.talent',
                     'hrms.engagement', 'hrms.analytics',
-                    'hrms.payroll', 'hrms.payroll.statutory', 'hrms.leave.exemption', 'hrms.exemptions',
+                    'hrms.payroll', 'hrms.payroll.statutory', 'hrms.leave.exemption',
                 ],
             ],
         ],
@@ -313,7 +311,7 @@ return [
                     'hrms.assets', 'hrms.attendance', 'hrms.attendance.remote', 'hrms.leave', 'hrms.comp_off',
                     'hrms.holidays', 'hrms.shifts', 'hrms.expenses', 'hrms.compensation', 'hrms.performance',
                     'hrms.talent', 'hrms.engagement', 'hrms.analytics', 'hrms.payroll', 'hrms.payroll.statutory',
-                    'hrms.leave.exemption', 'hrms.exemptions',
+                    'hrms.leave.exemption',
                 ],
             ],
         ],

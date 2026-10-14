@@ -55,7 +55,9 @@ class ModuleCatalogTest extends TestCase
             fn (string $m) => str_starts_with($m, 'hrms.'),
         ));
 
-        $this->assertCount(22, $hrms, 'Plan 3.1 defines exactly 22 hrms.* module keys');
+        // 22 minus `hrms.exemptions`, delisted in Phase 22.3: catalog-only,
+        // no route ever gated on it (G-9/H-2 precedent).
+        $this->assertCount(21, $hrms, 'Plan 3.1 defines exactly 21 hrms.* module keys');
     }
 
     public function test_plan_module_lists_only_reference_known_modules(): void
@@ -102,7 +104,7 @@ class ModuleCatalogTest extends TestCase
         $this->assertSame([], $starter, 'Starter ships no HRMS');
         $this->assertCount(12, $pro);
         $this->assertCount(18, $business);
-        $this->assertCount(22, $enterprise);
+        $this->assertCount(21, $enterprise);
 
         // Payroll is the Enterprise-only payoff.
         $this->assertNotContains('hrms.payroll', $business);

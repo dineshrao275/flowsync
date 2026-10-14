@@ -40,10 +40,17 @@ graphical org-chart.
   changes: `ModuleCatalogTest` pins payroll as Enterprise-only, so
   Pro/Business/hrms-professional/hrms-starter tenants lose pay access
   they were never sold (intended). `ModuleGateTest` +2.
-- **22.2** — tiles for the 8 shipped tile-less modules; no shipped page
-  shows "Planned". (pending)
-- **22.3** — resolve `hrms.exemptions`: recommended delist (precedent:
-  `api`/`audit_export`). (pending)
+- **22.2 ✅ tiles for shipped modules** — `HRMS_MODULE_ROUTES` gains
+  compensation/payroll/statutory/performance/engagement/expenses/assets/
+  inbox (all target router-owned hub pages; shell pin
+  `test_hrms_tiles_only_link_to_sections_the_router_owns` green). No
+  shipped page shows "Planned" anymore; remaining inert tiles are the
+  truly unshipped `hrms.talent` (+ `hrms.attendance.remote`, tile-less by
+  design).
+- **22.3 ✅ `hrms.exemptions` delisted** — catalog + meta + enterprise +
+  hrms-enterprise lists + JS mirror removed (G-9/H-2 precedent: re-add
+  only with a route gate). `ModuleCatalogTest` counts 22→21 (catalog +
+  enterprise tier). Nothing ever gated on it, so no behavior changes.
 - **23** — wire or delete `ApprovalChains.jsx`. (pending)
 - **24** — Talent, sub-tasks 24.1 migration → 24.2 service/policies →
   24.3 HTTP → 24.4 SPA → 24.5 notifications. (pending)
