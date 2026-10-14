@@ -23,9 +23,9 @@ class BlogTest extends TestCase
         $this->loginSuperAdmin();
 
         $category = $this->postJson('/api/system/blog-categories', [
-            'slug' => 'guides',
-            'name' => 'Guides',
-        ])->assertStatus(201)->assertJsonPath('category.slug', 'guides');
+            'slug' => 'howtos',
+            'name' => 'How-tos',
+        ])->assertStatus(201)->assertJsonPath('category.slug', 'howtos');
 
         $categoryId = $category->json('category.id');
 
@@ -80,7 +80,7 @@ class BlogTest extends TestCase
         $this->loginSuperAdmin();
 
         $categoryId = $this->postJson('/api/system/blog-categories', [
-            'slug' => 'guides', 'name' => 'Guides',
+            'slug' => 'howtos', 'name' => 'How-tos',
         ])->json('category.id');
 
         $live = $this->postJson('/api/system/blog-posts', [
@@ -112,9 +112,9 @@ class BlogTest extends TestCase
             ->assertSee('Team FlowSync')
             ->assertSee('"@type":"BlogPosting"', false)
             ->assertSee('"@type":"BreadcrumbList"', false)
-            ->assertSee('/blog/category/guides');
+            ->assertSee('/blog/category/howtos');
 
-        $this->get('/blog/category/guides')
+        $this->get('/blog/category/howtos')
             ->assertOk()
             ->assertSee('Kanban Tips')
             ->assertDontSee('Unfinished Thoughts');
@@ -131,7 +131,7 @@ class BlogTest extends TestCase
         $this->get('/sitemap.xml')
             ->assertOk()
             ->assertSee('<loc>http://localhost/blog/kanban-tips</loc>', false)
-            ->assertSee('<loc>http://localhost/blog/category/guides</loc>', false);
+            ->assertSee('<loc>http://localhost/blog/category/howtos</loc>', false);
 
         // Noindexed posts stay out of the sitemap.
         $this->putJson("/api/system/blog-posts/{$live}", [

@@ -208,7 +208,11 @@ Hierarchy: **Tenant → Workspace → Project → Task** (subtask `tasks.parent_
   `published` stamps `published_at` (preserved on later published edits); the `home` page can't be
   deleted (422). Frontend: `pages/CmsPages.jsx` at `/admin/pages` (sidebar "Website" under
   Administration) — table + `PageFormModal` with a typed block editor (add/reorder/remove blocks,
-  inline CTA fields, per-block fields).
+  inline CTA fields, per-block fields). Seeded idempotently in `TenantSeeder::seedWebsitePages()`
+  (17 pages: home/features/pricing/solutions/integrations/customers/security/about/careers/contact/
+  faq/changelog published + in sitemap; privacy/terms/dpa/cookies/refunds published but
+  `sitemap_include=false`), `seedWebsiteConfig()` (nav/footer/social/announcement/contact via
+  `firstOrCreate` — admin owns after), and `seedBlogContent()` (Guides/Company categories + 2 posts).
 - **Public server-rendered site** (`PublicSiteController`, no auth): `GET /` renders the published
   `home` page (404-ish text if unseeded), `GET /page/{slug}` (published only, drafts 404),
   `GET /sitemap.xml` (published pages with `sitemap_include=true`, home always first; `lastmod` from

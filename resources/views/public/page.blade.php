@@ -130,7 +130,20 @@
                             @if($splitMedia)
                                 <x-site.img :media="$splitMedia" class="w-full rounded-3xl shadow-2xl shadow-slate-900/10 ring-1 ring-slate-900/5" />
                             @else
-                                <div class="flex aspect-[4/3] w-full items-center justify-center rounded-3xl bg-gradient-to-br from-indigo-100 via-violet-50 to-white text-sm font-medium text-indigo-300 ring-1 ring-slate-900/5">Add an image in the CMS</div>
+                                <div class="relative aspect-[4/3] w-full overflow-hidden rounded-3xl bg-slate-950 shadow-2xl shadow-slate-900/10 ring-1 ring-slate-900/5" aria-hidden="true">
+                                    <div class="absolute -left-16 -top-16 h-64 w-64 rounded-full bg-indigo-600/40 blur-3xl"></div>
+                                    <div class="absolute -bottom-20 -right-16 h-72 w-72 rounded-full bg-violet-600/40 blur-3xl"></div>
+                                    <div class="absolute inset-6 rounded-2xl border border-white/10 bg-white/5"></div>
+                                    <div class="absolute inset-10 space-y-3">
+                                        <div class="h-3 w-2/3 rounded-full bg-white/20"></div>
+                                        <div class="h-3 w-1/2 rounded-full bg-white/10"></div>
+                                        <div class="grid grid-cols-3 gap-3 pt-2">
+                                            <div class="h-16 rounded-xl bg-white/10"></div>
+                                            <div class="h-16 rounded-xl bg-indigo-500/30"></div>
+                                            <div class="h-16 rounded-xl bg-white/10"></div>
+                                        </div>
+                                    </div>
+                                </div>
                             @endif
                         </div>
                         <div class="{{ !empty($block['flip']) ? 'lg:order-1' : '' }}">

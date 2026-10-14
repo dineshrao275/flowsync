@@ -27,24 +27,24 @@ class CmsTest extends TestCase
         $this->getJson('/api/system/pages')
             ->assertOk()
             ->assertJsonPath('pages.0.slug', 'home')
-            ->assertJsonCount(4, 'pages');
+            ->assertJsonCount(17, 'pages');
 
         $created = $this->postJson('/api/system/pages', [
-            'slug' => 'changelog',
+            'slug' => 'release-notes',
             'title' => 'Changelog',
             'status' => 'draft',
-            'content' => [['type' => 'text', 'heading' => 'Changelog', 'body' => 'What changed.']],
+            'content' => [['type' => 'text', 'heading' => 'Release notes', 'body' => 'What changed.']],
             'sitemap_include' => true,
             'sort_order' => 5,
         ])->assertStatus(201)
-            ->assertJsonPath('page.slug', 'changelog')
+            ->assertJsonPath('page.slug', 'release-notes')
             ->assertJsonPath('page.status', 'draft')
             ->assertJsonPath('page.published_at', null);
 
         $id = $created->json('page.id');
 
         $this->putJson("/api/system/pages/{$id}", [
-            'slug' => 'changelog',
+            'slug' => 'release-notes',
             'title' => 'Product Updates',
             'status' => 'draft',
             'content' => [['type' => 'text', 'heading' => 'Product Updates', 'body' => 'What shipped.']],
@@ -88,9 +88,11 @@ class CmsTest extends TestCase
         $this->get('/privacy')
             ->assertOk()
             ->assertSee('Privacy')
-            ->assertSee('We keep your data in your own database.');
+            ->assertSee('Your data lives in your own database');
 
-        $this->get('/about')->assertNotFound();
+        $this->get('/about')
+            ->assertOk()
+            ->assertSee('Calm software for teams in motion.');
         $this->get('/does-not-exist')->assertNotFound();
     }
 
@@ -126,7 +128,7 @@ class CmsTest extends TestCase
         $this->loginSuperAdmin();
 
         $created = $this->postJson('/api/system/pages', [
-            'slug' => 'old-pricing',
+            'slug' => 'plans-archive',
             'title' => 'Pricing',
             'status' => 'published',
             'content' => [['type' => 'text', 'heading' => 'Pricing', 'body' => 'Plans.']],
@@ -135,23 +137,23 @@ class CmsTest extends TestCase
         $id = $created->json('page.id');
 
         $this->putJson("/api/system/pages/{$id}", [
-            'slug' => 'pricing',
+            'slug' => 'plans-retired',
             'title' => 'Pricing',
             'status' => 'published',
         ])->assertOk();
 
         $this->assertDatabaseHas('website_redirects', [
-            'from_path' => 'old-pricing',
-            'to_path' => '/pricing',
+            'from_path' => 'plans-archive',
+            'to_path' => '/plans-retired',
             'status_code' => 301,
         ]);
 
         // The old URL 301s to the new one and records the hit.
-        $this->get('/old-pricing')->assertRedirect('/pricing');
-        $this->get('/old-pricing')->assertRedirect('/pricing');
-        $this->assertSame(2, WebsiteRedirect::where('from_path', 'old-pricing')->value('hits'));
+        $this->get('/plans-archive')->assertRedirect('/plans-retired');
+        $this->get('/plans-archive')->assertRedirect('/plans-retired');
+        $this->assertSame(2, WebsiteRedirect::where('from_path', 'plans-archive')->value('hits'));
 
-        $this->get('/pricing')
+        $this->get('/plans-retired')
             ->assertOk()
             ->assertSee('Pricing');
     }
@@ -191,7 +193,7 @@ class CmsTest extends TestCase
         $this->loginSuperAdmin();
 
         $this->postJson('/api/system/pages', [
-            'slug' => 'contact',
+            'slug' => 'contact-sales',
             'title' => 'Contact',
             'status' => 'published',
             'content' => [
@@ -199,7 +201,7 @@ class CmsTest extends TestCase
             ],
         ])->assertStatus(201);
 
-        $this->get('/contact')
+        $this->get('/contact-sales')
             ->assertOk()
             ->assertSee('Book a demo')
             ->assertSee('data-contact-form', false)
@@ -214,8 +216,8 @@ class CmsTest extends TestCase
         $this->loginSuperAdmin();
 
         $this->postJson('/api/system/pages', [
-            'slug' => 'pricing',
-            'title' => 'Pricing',
+            'slug' => 'plan-details',
+            'title' => 'Plan details',
             'status' => 'published',
             'content' => [
                 ['type' => 'pricing', 'eyebrow' => 'Plans', 'heading' => 'Simple pricing'],
@@ -233,7 +235,7 @@ class CmsTest extends TestCase
             ],
         ])->assertStatus(201);
 
-        $this->get('/pricing')
+        $this->get('/plan-details')
             ->assertOk()
             // Live plans: seeded catalog names, real prices, module labels.
             ->assertSee('Starter')
@@ -251,12 +253,12 @@ class CmsTest extends TestCase
             ->assertSee('Priority email');
 
         // Product filter narrows to that product's plans.
-        $page = WebsitePage::where('slug', 'pricing')->first();
+        $page = WebsitePage::where('slug', 'plan-details')->first();
         $content = $page->content;
         $content[0] = ['type' => 'pricing', 'heading' => 'TMS plans', 'product' => 'tms'];
         $page->update(['content' => $content]);
 
-        $this->get('/pricing')
+        $this->get('/plan-details')
             ->assertOk()
             ->assertSee('TMS Starter');
     }
