@@ -13,6 +13,7 @@ use App\Models\Task;
 use App\Models\User;
 use App\Services\Hrms\TaskLinkService;
 use App\Services\TaskService;
+use App\Support\Integration\BridgeSchema;
 use Illuminate\Validation\ValidationException;
 
 /**
@@ -106,6 +107,12 @@ class CaseTaskConversion
 
     public function linkedTask(OnboardingCaseTask|OffboardingCaseTask $item): ?Task
     {
+        // Without the bridge set there can be no conversion link — and
+        // querying the absent table would 500 instead of answering null.
+        if (! BridgeSchema::present()) {
+            return null;
+        }
+
         $link = TaskLink::query()
             ->where('source_type', $this->sourceType($item))
             ->where('source_id', $item->id)
@@ -117,6 +124,10 @@ class CaseTaskConversion
 
     public function isConverted(OnboardingCaseTask|OffboardingCaseTask $item): bool
     {
+        if (! BridgeSchema::present()) {
+            return false;
+        }
+
         return TaskLink::query()
             ->where('source_type', $this->sourceType($item))
             ->where('source_id', $item->id)

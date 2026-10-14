@@ -15,6 +15,7 @@ use App\Models\Tenant;
 use App\Services\Hrms\Asset\AssetAssignmentService;
 use App\Services\Hrms\Asset\AssetService;
 use App\Services\Hrms\DocumentService;
+use App\Support\Hrms\HrmsSchema;
 use App\Support\TenantDatabaseManager;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -174,6 +175,10 @@ class AssetController extends Controller
         abort_if($tenant === null, 404);
 
         $invoiceId = $this->tenants->using($tenant, function () use ($asset): ?int {
+            // A signed link outlives a product change: without the HRMS schema
+            // the answer is 404, not a missing-table 500.
+            abort_unless(HrmsSchema::present(), 404);
+
             return Asset::query()->find($asset)?->invoice_document_id;
         });
         abort_if($invoiceId === null, 404);

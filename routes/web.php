@@ -206,14 +206,14 @@ Route::prefix('api')->group(function () {
 
         Route::get('reports/overview', [ReportsController::class, 'overview'])->middleware(['permission:reports.view', 'ensure_module:reports']);
 
-        Route::post('workspaces', [WorkspaceController::class, 'store'])->middleware('permission:workspaces.create');
-        Route::post('project-roles', [ProjectRoleController::class, 'store'])->middleware('permission:roles.manage');
-        Route::put('project-roles/{role}', [ProjectRoleController::class, 'update'])->middleware('permission:roles.manage');
-        Route::delete('project-roles/{role}', [ProjectRoleController::class, 'destroy'])->middleware('permission:roles.manage');
+        Route::post('workspaces', [WorkspaceController::class, 'store'])->middleware(['permission:workspaces.create', 'ensure_product:tms']);
+        Route::post('project-roles', [ProjectRoleController::class, 'store'])->middleware(['permission:roles.manage', 'ensure_product:tms']);
+        Route::put('project-roles/{role}', [ProjectRoleController::class, 'update'])->middleware(['permission:roles.manage', 'ensure_product:tms']);
+        Route::delete('project-roles/{role}', [ProjectRoleController::class, 'destroy'])->middleware(['permission:roles.manage', 'ensure_product:tms']);
 
-        Route::post('issue-types', [IssueTypeController::class, 'store'])->middleware('permission:workspaces.manage');
-        Route::put('issue-types/{issueType}', [IssueTypeController::class, 'update'])->middleware('permission:workspaces.manage');
-        Route::delete('issue-types/{issueType}', [IssueTypeController::class, 'destroy'])->middleware('permission:workspaces.manage');
+        Route::post('issue-types', [IssueTypeController::class, 'store'])->middleware(['permission:workspaces.manage', 'ensure_product:tms']);
+        Route::put('issue-types/{issueType}', [IssueTypeController::class, 'update'])->middleware(['permission:workspaces.manage', 'ensure_product:tms']);
+        Route::delete('issue-types/{issueType}', [IssueTypeController::class, 'destroy'])->middleware(['permission:workspaces.manage', 'ensure_product:tms']);
     });
 
     // HRMS tenant scope. Every HRMS surface below runs the FULL domain stack

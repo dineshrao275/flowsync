@@ -17,6 +17,8 @@ use App\Services\Hrms\Lifecycle\DocumentRequestService;
 use App\Services\Hrms\Lifecycle\LifecyclePresenter;
 use App\Services\Hrms\OffboardingService;
 use App\Services\Hrms\TaskLinkPresenter;
+use App\Support\Integration\BridgeSchema;
+use App\Support\Tms\TmsSchema;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
@@ -104,6 +106,11 @@ class OffboardingCaseController extends Controller
     {
         $this->authorize('completeTask', $task);
         $this->belonging($case, $task);
+
+        // Conversion files a real project task and a bridge link row — both
+        // products must be on, otherwise the answer is 422, not a 500 from a
+        // missing table.
+        abort_unless(TmsSchema::present() && BridgeSchema::present(), 422, 'Converting checklist items needs both products.');
 
         $project = Project::findOrFail((int) $request->validated()['project_id']);
         $this->authorize('createTask', $project);

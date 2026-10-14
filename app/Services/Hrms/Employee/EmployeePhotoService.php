@@ -7,6 +7,7 @@ use App\Models\Hrms\Employee\Employee;
 use App\Models\Tenant;
 use App\Models\User;
 use App\Services\HrmsAuditLogger;
+use App\Support\Hrms\HrmsSchema;
 use App\Support\TenantContext;
 use App\Support\TenantDatabaseManager;
 use Illuminate\Support\Facades\Gate;
@@ -75,6 +76,10 @@ class EmployeePhotoService
         abort_if($tenant === null, 404);
 
         return app(TenantDatabaseManager::class)->using($tenant, function () use ($employeeId, $actorUserId, $ipAddress) {
+            // A signed link outlives a product change: without the HRMS schema
+            // the answer is 404, not a missing-table 500.
+            abort_unless(HrmsSchema::present(), 404);
+
             $record = Employee::query()->where('id', $employeeId)->first();
 
             abort_if($record === null || $record->photo_path === null, 404);

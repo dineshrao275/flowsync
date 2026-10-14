@@ -6,16 +6,11 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 
 /**
- * Phase 2 — Performance indexes (additive only, repair-safe).
+ * Tenant Core performance indexes (additive only, repair-safe).
  *
- * Adds (the HRMS reference indexes live with the HRMS migrations, tenant_hrms/):
- *   1. tasks(status_id, position) covering index for board column sort.
- *   2. Optional pg_trgm GIN indexes (ENABLE_TRGM / tenancy.tenant.enable_trgm).
- *
- * Notifications already carry (user_id, read_at, created_at); attendance_days
- * already unique(employee_id, work_date); approvals already index
- * (approvable_type, approvable_id). Those are asserted in DBPerformanceTest,
- * not re-created here.
+ * The TMS half (the tasks board/trigram indexes) now lives with the TMS
+ * migrations (`tenant_tms/2026_10_13_000036_add_tms_phase2_performance_indexes.php`)
+ * so a non-TMS tenant never indexes the tasks table.
  *
  * PostgreSQL CREATE INDEX CONCURRENTLY cannot run inside a transaction.
  */
@@ -25,49 +20,12 @@ return new class extends Migration
 
     public function up(): void
     {
-        $this->addIndex('tasks', 'tasks_status_id_position_index', ['status_id', 'position'], concurrently: true);
-
         $this->addTrigramIndexes();
     }
 
     public function down(): void
     {
-        $this->dropNamedIndex('tasks', 'tasks_title_trgm');
-        $this->dropNamedIndex('tasks', 'tasks_description_trgm');
         $this->dropNamedIndex('users', 'users_email_trgm');
-        $this->dropNamedIndex('tasks', 'tasks_status_id_position_index');
-    }
-
-    /**
-     * @param  list<string>  $columns
-     */
-    private function addIndex(string $table, string $name, array $columns, bool $concurrently = false): void
-    {
-        if (! Schema::hasTable($table) || $this->indexExists($table, $name)) {
-            return;
-        }
-
-        foreach ($columns as $column) {
-            if (! Schema::hasColumn($table, $column)) {
-                return;
-            }
-        }
-
-        if ($concurrently && $this->isPostgres()) {
-            $quoted = implode(', ', array_map(fn (string $column) => $this->wrap($column), $columns));
-            DB::statement(sprintf(
-                'CREATE INDEX CONCURRENTLY IF NOT EXISTS %s ON %s (%s)',
-                $this->wrap($name),
-                $this->wrap($table),
-                $quoted,
-            ));
-
-            return;
-        }
-
-        Schema::table($table, function (Blueprint $table) use ($name, $columns) {
-            $table->index($columns, $name);
-        });
     }
 
     private function addTrigramIndexes(): void
@@ -78,8 +36,6 @@ return new class extends Migration
 
         DB::statement('CREATE EXTENSION IF NOT EXISTS pg_trgm');
 
-        $this->addGinTrigram('tasks', 'tasks_title_trgm', 'title');
-        $this->addGinTrigram('tasks', 'tasks_description_trgm', 'description');
         $this->addGinTrigram('users', 'users_email_trgm', 'email');
     }
 

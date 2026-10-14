@@ -107,8 +107,11 @@ Route::group(['middleware' => ['ensure_module:hrms.core', 'permission:hrms.view'
 // project policy on the task side (view to read, edit to file or
 // cut) and the employee policy on the person side; the employee's
 // task list additionally intersects with the caller's visible
-// tasks, so a link never widens what the login may see.
-Route::group(['middleware' => ['ensure_module:hrms.core', 'permission:hrms.view']], function () {
+// tasks, so a link never widens what the login may see. The bridge
+// tables exist only when both products are on, so this group also
+// carries the TMS product gate (the HRMS side rides hrms.core) —
+// without it, binding `Task` on a TMS-less tenant 500s instead of 403ing.
+Route::group(['middleware' => ['ensure_module:hrms.core', 'ensure_product:tms', 'permission:hrms.view']], function () {
     Route::get('hrms/tasks/{task}/links', [TaskLinkController::class, 'index']);
     Route::post('hrms/tasks/{task}/links', [TaskLinkController::class, 'store']);
     Route::delete('hrms/tasks/{task}/links/{link}', [TaskLinkController::class, 'destroy']);
@@ -165,8 +168,11 @@ Route::group(['middleware' => ['ensure_module:hrms.core', 'ensure_module:hrms.pe
     Route::get('hrms/performance/goals/{goal}', [PerformanceGoalController::class, 'show']);
     Route::put('hrms/performance/goals/{goal}', [PerformanceGoalController::class, 'update']);
     Route::post('hrms/performance/goals/{goal}/refresh', [PerformanceGoalController::class, 'refresh']);
-    Route::post('hrms/performance/goals/{goal}/tasks', [PerformanceGoalController::class, 'linkTask']);
-    Route::delete('hrms/performance/goals/{goal}/tasks/{task}', [PerformanceGoalController::class, 'unlinkTask']);
+    // Goal↔task evidence writes touch the bridge table (`goal_task_links`,
+    // both-products only), so they carry the TMS product gate on top of the
+    // group's HRMS gates — binding `Task` on a TMS-less tenant 500s otherwise.
+    Route::post('hrms/performance/goals/{goal}/tasks', [PerformanceGoalController::class, 'linkTask'])->middleware('ensure_product:tms');
+    Route::delete('hrms/performance/goals/{goal}/tasks/{task}', [PerformanceGoalController::class, 'unlinkTask'])->middleware('ensure_product:tms');
 
     Route::get('hrms/performance/cycles/{cycle}/check-ins', [CheckInController::class, 'index']);
     Route::post('hrms/performance/cycles/{cycle}/check-ins', [CheckInController::class, 'store']);
