@@ -37,7 +37,16 @@ class RoleController extends Controller
                 ->withCount('users')
                 ->orderBy('name')
                 ->get(),
-            'permissions' => $permissions,
+            // Each catalog row names its product ('tms', 'hrms', 'shared') so
+            // the Roles page can badge it; the list itself is already scoped
+            // to the tenant's subscribed products above.
+            'permissions' => $permissions->map(fn (Permission $p) => [
+                'id' => $p->id,
+                'name' => $p->name,
+                'slug' => $p->slug,
+                'description' => $p->description,
+                'product' => ProductCatalog::ofPermission($p->slug) ?? 'shared',
+            ])->values(),
         ]);
     }
 

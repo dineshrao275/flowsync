@@ -14,6 +14,8 @@ import { useConfirm } from '../components/ui/ConfirmDialog';
 import usePageTitle from '../hooks/usePageTitle';
 import { groupPermissionsByDomain, prettyDomain } from '../utils/permissions';
 
+const PRODUCT_BADGES = { tms: 'TMS', hrms: 'HRMS', shared: 'Shared' };
+
 function PermissionGrid({ permissions, isChecked, onToggle, disabled = false, dense = false }) {
     const [query, setQuery] = useState('');
     const [collapsed, setCollapsed] = useState({});
@@ -23,7 +25,7 @@ function PermissionGrid({ permissions, isChecked, onToggle, disabled = false, de
             domain,
             all: items,
             items: needle
-                ? items.filter((p) => `${p.name} ${p.slug} ${prettyDomain(domain)}`.toLowerCase().includes(needle))
+                ? items.filter((p) => `${p.name} ${p.slug} ${prettyDomain(domain)} ${PRODUCT_BADGES[p.product] ?? ''}`.toLowerCase().includes(needle))
                 : items,
         }))
         .filter((g) => g.items.length > 0);
@@ -88,7 +90,12 @@ function PermissionGrid({ permissions, isChecked, onToggle, disabled = false, de
                                             className="mt-0.5 h-4 w-4 shrink-0 rounded border-gray-300 text-[var(--accent)] accent-[var(--accent)] transition-all duration-150 focus:ring-[var(--accent-ring)] disabled:cursor-not-allowed disabled:opacity-50"
                                         />
                                         <span className="text-gray-700">
-                                            {permission.name}
+                                            <span className="flex flex-wrap items-center gap-1.5">
+                                                {permission.name}
+                                                <span className="rounded bg-gray-100 px-1 py-px text-[10px] font-medium uppercase tracking-wide text-gray-500">
+                                                    {PRODUCT_BADGES[permission.product] ?? 'Shared'}
+                                                </span>
+                                            </span>
                                             <span className="block text-xs text-gray-400">{permission.slug}</span>
                                         </span>
                                     </label>

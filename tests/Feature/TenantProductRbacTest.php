@@ -123,4 +123,18 @@ class TenantProductRbacTest extends TestCase
         $this->assertContains('workspaces.view', $slugs);
         $this->assertContains('hrms.employees.view', $slugs);
     }
+
+    public function test_each_catalog_row_names_its_product(): void
+    {
+        $this->assignPlan('hrms-starter');
+        $this->login('admin@flowsync.test');
+
+        $permissions = collect($this->getJson('/api/roles')->assertOk()->json('permissions'));
+
+        $this->assertNotEmpty($permissions);
+        $this->assertSame([], $permissions->pluck('product')->filter(fn ($p) => ! in_array($p, ['tms', 'hrms', 'shared'], true))->all());
+        $this->assertSame([], $permissions->where('product', 'tms')->values()->all());
+        $this->assertSame('hrms', $permissions->firstWhere('slug', 'hrms.employees.view')['product']);
+        $this->assertSame('shared', $permissions->firstWhere('slug', 'users.view')['product']);
+    }
 }
