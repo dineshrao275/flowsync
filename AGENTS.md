@@ -219,7 +219,10 @@ Hierarchy: **Tenant → Workspace → Project → Task** (subtask `tasks.parent_
   `section-heading`) + designed `resources/views/errors/404.blade.php`. The public site ships its own
   Tailwind v4 entry `resources/css/site.css` (`@source` scoped to the site views) and a framework-free
   `resources/js/site.js` (mobile menu + Escape/resize handling), both registered in `vite.config.js`.
-  Content editing publishes live without code changes.
+  SEO ships in `components/site/seo-head.blade.php` (canonical, robots, og:*/twitter:*, favicon
+  `public/favicon.svg`, theme-color) + `components/site/json-ld.blade.php` (Organization + WebSite on
+  every page, BreadcrumbList on non-home pages via `$crumbs`). Content editing
+  publishes live without code changes.
 
 ## Tenant intake (FB-3)
 - A tenant is a **`draft`** row (no database, `provisioning_status=pending`) until every required field is in. `App\Services\Tenancy\TenantIntake` is the one definition (rules per step `business|admin|plan`, `state()` lists what is missing); both the Super Admin wizard and `POST /api/register` use it, so required data is identical. `TenantActivation::activate()` is the only draft → `pending` → provisioning door: it 422s listing missing fields, then queues `ProvisionTenantJob` with plan, trial (14 days = `onboarding.trial_days`; `0` = no trial) and the **default user** (`DefaultUserClaim` swaps the seeded `owner@{slug}.test` for the real account; the password travels only as a hash and is never stored in the draft).

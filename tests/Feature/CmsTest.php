@@ -104,6 +104,29 @@ class CmsTest extends TestCase
             ->assertSee('/sitemap.xml');
     }
 
+    public function test_public_pages_carry_seo_head_and_structured_data(): void
+    {
+        $this->get('/')
+            ->assertOk()
+            ->assertSee('<link rel="canonical" href="http://localhost"', false)
+            ->assertSee('<meta name="robots" content="index, follow">', false)
+            ->assertSee('<meta name="theme-color" content="#4f46eb">', false)
+            ->assertSee('<link rel="icon" type="image/svg+xml"', false)
+            ->assertSee('<meta property="og:site_name" content="FlowSync">', false)
+            ->assertSee('<meta property="og:type" content="website">', false)
+            ->assertSee('<meta property="og:locale" content="en_US">', false)
+            ->assertSee('<meta name="twitter:card"', false)
+            ->assertSee('"@type":"Organization"', false)
+            ->assertSee('"@type":"WebSite"', false)
+            ->assertDontSee('"@type":"BreadcrumbList"', false);
+
+        // Non-home pages get a breadcrumb trail for Google rich results.
+        $this->get('/page/privacy')
+            ->assertOk()
+            ->assertSee('"@type":"BreadcrumbList"', false)
+            ->assertSee('Privacy');
+    }
+
     public function test_unknown_public_pages_render_the_designed_404(): void
     {
         $this->get('/page/does-not-exist')

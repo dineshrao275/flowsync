@@ -76,9 +76,17 @@ class PublicSiteController extends Controller
 
     private function render(WebsitePage $page): View
     {
+        $crumbs = $page->slug === 'home'
+            ? []
+            : [
+                ['name' => 'Home', 'url' => url('/')],
+                ['name' => $page->title],
+            ];
+
         return view('public.page', [
             'page' => $page,
             'siteName' => (string) PlatformSetting::value('app_name', 'FlowSync'),
+            'crumbs' => $crumbs,
         ]);
     }
 }

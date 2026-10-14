@@ -3,9 +3,12 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>{{ $seoTitle ?? $title ?? $siteName ?? config('app.name', 'FlowSync') }}</title>
-    <meta name="description" content="{{ $metaDescription ?? '' }}">
-    @if(!empty($ogImage))<meta property="og:image" content="{{ $ogImage }}">@endif
+    <x-site.seo-head
+        :title="$seoTitle ?? $title ?? null"
+        :description="$metaDescription ?? null"
+        :ogImage="$ogImage ?? null"
+    />
+    <x-site.json-ld :crumbs="$crumbs ?? []" />
     @vite(['resources/css/site.css', 'resources/js/site.js'])
 </head>
 <body class="bg-white font-sans text-slate-600 antialiased">
