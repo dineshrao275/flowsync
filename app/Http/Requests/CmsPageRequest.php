@@ -11,7 +11,7 @@ class CmsPageRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'slug' => ['required', 'string', 'max:255', 'alpha_dash', Rule::unique('website_pages', 'slug')->ignore($this->route('websitePage'))],
+            'slug' => ['required', 'string', 'max:255', 'alpha_dash', Rule::notIn(config('website.reserved_slugs', [])), Rule::unique('website_pages', 'slug')->ignore($this->route('websitePage'))],
             'title' => ['required', 'string', 'max:255'],
             'content' => ['nullable', 'array'],
             'status' => ['required', 'string', Rule::in([WebsitePage::STATUS_DRAFT, WebsitePage::STATUS_PUBLISHED])],

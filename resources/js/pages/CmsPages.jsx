@@ -283,12 +283,12 @@ export default function CmsPages() {
                                     <td className="py-2.5"><Badge>{page.status}</Badge></td>
                                     <td className="py-2.5">
                                         <span className="font-mono text-xs text-gray-500">
-                                            {page.slug === 'home' ? '/' : `/page/${page.slug}`}
+                                            {page.slug === 'home' ? '/' : `/${page.slug}`}
                                         </span>
                                     </td>
                                     <td className="py-2.5">
                                         <div className="flex justify-end gap-2">
-                                            <a href={page.slug === 'home' ? '/' : `/page/${page.slug}`} target="_blank" rel="noreferrer" className="text-indigo-600 hover:text-indigo-500">view</a>
+                                            <a href={page.slug === 'home' ? '/' : `/${page.slug}`} target="_blank" rel="noreferrer" className="text-indigo-600 hover:text-indigo-500">view</a>
                                             <button type="button" onClick={() => setEditor({ ...emptyForm, ...page, content: page.content || [] })} className="text-gray-500 hover:text-gray-700">edit</button>
                                             {page.status === 'published' ? (
                                                 <button type="button" onClick={() => unpublish(page)} className="text-amber-600 hover:text-amber-500">unpublish</button>

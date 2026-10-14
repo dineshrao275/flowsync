@@ -17,6 +17,7 @@ use App\Http\Controllers\TenantHrmsController;
 use App\Http\Controllers\TenantIntakeController;
 use App\Http\Controllers\TenantSubscriptionController;
 use App\Http\Controllers\TenantSummaryController;
+use App\Http\Controllers\WebsiteRedirectController;
 use Illuminate\Support\Facades\Route;
 
 // Platform administration (super admin): tenants, plans, system settings, CMS, support desk staff side, impersonation start.
@@ -90,6 +91,9 @@ Route::middleware('super_admin')->group(function () {
     Route::delete('system/pages/{websitePage}', [CmsController::class, 'destroy']);
     Route::post('system/pages/{websitePage}/publish', [CmsController::class, 'publish']);
     Route::post('system/pages/{websitePage}/unpublish', [CmsController::class, 'unpublish']);
+    Route::get('system/redirects', [WebsiteRedirectController::class, 'index']);
+    Route::post('system/redirects', [WebsiteRedirectController::class, 'store']);
+    Route::delete('system/redirects/{websiteRedirect}', [WebsiteRedirectController::class, 'destroy']);
 
     Route::post('impersonate', [ImpersonationController::class, 'start'])->middleware('throttle:10,1');
 });

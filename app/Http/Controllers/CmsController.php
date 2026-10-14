@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Http\Requests\CmsPageRequest;
 use App\Models\WebsitePage;
+use App\Models\WebsiteRedirect;
 use App\Services\PlatformAudit;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -60,7 +61,18 @@ class CmsController extends Controller
             $data['published_at'] = now();
         }
 
+        $oldSlug = $websitePage->slug;
+
         $websitePage->update($data);
+
+        // A renamed page keeps its Google juice: the old URL 301s to the new
+        // one (created once, never overwritten — a hand-edited target wins).
+        if ($oldSlug !== $websitePage->slug) {
+            WebsiteRedirect::firstOrCreate(
+                ['from_path' => $oldSlug],
+                ['to_path' => '/'.$websitePage->slug, 'status_code' => 301]
+            );
+        }
 
         $this->audit($request, 'cms.page_updated', $websitePage, $before, $this->snapshot($websitePage));
 

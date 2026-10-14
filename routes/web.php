@@ -338,3 +338,14 @@ require __DIR__.'/../routes/channels.php';
 
 // Security track (P8.x) routes live in their own file.
 require __DIR__.'/security.php';
+
+// Published CMS pages at top-level slugs (SEO-canonical URLs). These come
+// last on purpose: `/{slug}` and the fallback only see requests no other
+// route claimed, and reserved slugs 404 in the controller regardless, so a
+// page can never shadow a real route (notably POST broadcasting/auth above).
+Route::get('{slug}', [PublicSiteController::class, 'topPage'])->name('site.page');
+
+// Legacy `/page/{slug}` prefix 301s to the canonical URL (see controller).
+// Unknown paths resolve `website_redirects` before the designed 404; the
+// handler lets framework prefixes keep their own 404 shape.
+Route::fallback([PublicSiteController::class, 'fallback']);

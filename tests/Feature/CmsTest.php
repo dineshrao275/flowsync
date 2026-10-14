@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Models\WebsitePage;
+use App\Models\WebsiteRedirect;
 use Tests\IsolatesDatabase;
 use Tests\TestCase;
 
@@ -83,13 +84,105 @@ class CmsTest extends TestCase
             ->assertSee('Keep your whole team in motion.')
             ->assertSee('FlowSync');
 
-        $this->get('/page/privacy')
+        $this->get('/privacy')
             ->assertOk()
             ->assertSee('Privacy')
             ->assertSee('We keep your data in your own database.');
 
-        $this->get('/page/about')->assertNotFound();
+        $this->get('/about')->assertNotFound();
+        $this->get('/does-not-exist')->assertNotFound();
+    }
+
+    public function test_pages_live_at_top_level_slugs_with_legacy_redirects(): void
+    {
+        // Canonical URLs are top-level; the legacy prefix 301s to them.
+        $this->get('/page/privacy')
+            ->assertRedirect('/privacy');
+
+        $this->get('/page/home')->assertRedirect('/');
+
         $this->get('/page/does-not-exist')->assertNotFound();
+
+        // Reserved slugs never become pages, and the SPA keeps its routes.
+        $this->get('/app/login')
+            ->assertOk()
+            ->assertSee('id="root"', false);
+    }
+
+    public function test_reserved_slugs_are_rejected_by_the_cms(): void
+    {
+        $this->loginSuperAdmin();
+
+        $this->postJson('/api/system/pages', [
+            'slug' => 'app',
+            'title' => 'App',
+            'status' => 'draft',
+        ])->assertStatus(422)->assertJsonValidationErrors('slug');
+    }
+
+    public function test_renaming_a_page_creates_a_redirect_from_the_old_url(): void
+    {
+        $this->loginSuperAdmin();
+
+        $created = $this->postJson('/api/system/pages', [
+            'slug' => 'old-pricing',
+            'title' => 'Pricing',
+            'status' => 'published',
+            'content' => [['type' => 'text', 'heading' => 'Pricing', 'body' => 'Plans.']],
+        ])->assertStatus(201);
+
+        $id = $created->json('page.id');
+
+        $this->putJson("/api/system/pages/{$id}", [
+            'slug' => 'pricing',
+            'title' => 'Pricing',
+            'status' => 'published',
+        ])->assertOk();
+
+        $this->assertDatabaseHas('website_redirects', [
+            'from_path' => 'old-pricing',
+            'to_path' => '/pricing',
+            'status_code' => 301,
+        ]);
+
+        // The old URL 301s to the new one and records the hit.
+        $this->get('/old-pricing')->assertRedirect('/pricing');
+        $this->get('/old-pricing')->assertRedirect('/pricing');
+        $this->assertSame(2, WebsiteRedirect::where('from_path', 'old-pricing')->value('hits'));
+
+        $this->get('/pricing')
+            ->assertOk()
+            ->assertSee('Pricing');
+    }
+
+    public function test_super_admin_manages_redirects(): void
+    {
+        $this->loginSuperAdmin();
+
+        $created = $this->postJson('/api/system/redirects', [
+            'from_path' => '/legacy-tour',
+            'to_path' => '/features',
+        ])->assertStatus(201)
+            ->assertJsonPath('redirect.from_path', 'legacy-tour')
+            ->assertJsonPath('redirect.status_code', 301);
+
+        $id = $created->json('redirect.id');
+
+        $this->getJson('/api/system/redirects')
+            ->assertOk()
+            ->assertJsonPath('redirects.0.from_path', 'legacy-tour');
+
+        $this->get('/legacy-tour')->assertRedirect('/features');
+
+        $this->deleteJson("/api/system/redirects/{$id}")->assertOk();
+        $this->assertDatabaseMissing('website_redirects', ['id' => $id]);
+        $this->assertDatabaseHas('audit_logs', ['action' => 'cms.redirect_created']);
+        $this->assertDatabaseHas('audit_logs', ['action' => 'cms.redirect_deleted']);
+    }
+
+    public function test_api_unknown_paths_keep_their_json_404(): void
+    {
+        $this->getJson('/api/definitely-not-a-route')->assertNotFound();
     }
 
     public function test_public_layout_has_skip_link_mobile_menu_and_footer(): void
@@ -121,7 +214,7 @@ class CmsTest extends TestCase
             ->assertDontSee('"@type":"BreadcrumbList"', false);
 
         // Non-home pages get a breadcrumb trail for Google rich results.
-        $this->get('/page/privacy')
+        $this->get('/privacy')
             ->assertOk()
             ->assertSee('"@type":"BreadcrumbList"', false)
             ->assertSee('Privacy');
@@ -157,9 +250,10 @@ class CmsTest extends TestCase
         $this->get('/sitemap.xml')
             ->assertOk()
             ->assertHeader('Content-Type', 'application/xml')
-            ->assertSee('/page/docs')
-            ->assertDontSee('/page/internal')
-            ->assertDontSee('/page/privacy');
+            ->assertSee('<loc>http://localhost/docs</loc>', false)
+            ->assertDontSee('/internal')
+            ->assertDontSee('/page/privacy')
+            ->assertSee('<lastmod>', false);
 
         $this->get('/robots.txt')
             ->assertOk()

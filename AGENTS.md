@@ -221,7 +221,13 @@ Hierarchy: **Tenant → Workspace → Project → Task** (subtask `tasks.parent_
   `resources/js/site.js` (mobile menu + Escape/resize handling), both registered in `vite.config.js`.
   SEO ships in `components/site/seo-head.blade.php` (canonical, robots, og:*/twitter:*, favicon
   `public/favicon.svg`, theme-color) + `components/site/json-ld.blade.php` (Organization + WebSite on
-  every page, BreadcrumbList on non-home pages via `$crumbs`). Content editing
+  every page, BreadcrumbList on non-home pages via `$crumbs`). Pages live at top-level `/{slug}`
+  (`site.page` route, registered last; `config/website.php` `reserved_slugs` can never become pages and
+  404 in the controller regardless); legacy `/page/{slug}` 301s to the canonical URL, and the route
+  fallback resolves `website_redirects` (`WebsiteRedirect`, auto-created on slug rename, `hits` counted)
+  before the designed 404 — single-segment redirects resolve in `topPage()` because `/{slug}` matches
+  before the fallback. The fallback lets `api/*`, `storage/*`, `build/*`, `up` keep their own 404 shape.
+  Redirect CRUD at `api/system/redirects*` (`content.view`/`content.manage`). Content editing
   publishes live without code changes.
 
 ## Tenant intake (FB-3)

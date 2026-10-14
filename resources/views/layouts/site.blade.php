@@ -22,8 +22,8 @@
             </a>
             <nav class="hidden items-center gap-1 lg:flex" aria-label="Primary">
                 <a href="/" class="rounded-lg px-3.5 py-2 text-sm font-medium text-slate-600 transition hover:bg-slate-100 hover:text-slate-900">Home</a>
-                <a href="/page/privacy" class="rounded-lg px-3.5 py-2 text-sm font-medium text-slate-600 transition hover:bg-slate-100 hover:text-slate-900">Privacy</a>
-                <a href="/page/terms" class="rounded-lg px-3.5 py-2 text-sm font-medium text-slate-600 transition hover:bg-slate-100 hover:text-slate-900">Terms</a>
+                <a href="/privacy" class="rounded-lg px-3.5 py-2 text-sm font-medium text-slate-600 transition hover:bg-slate-100 hover:text-slate-900">Privacy</a>
+                <a href="/terms" class="rounded-lg px-3.5 py-2 text-sm font-medium text-slate-600 transition hover:bg-slate-100 hover:text-slate-900">Terms</a>
             </nav>
             <div class="hidden items-center gap-2 lg:flex">
                 <x-site.button href="/app/login" variant="ghost">Log in</x-site.button>
@@ -36,8 +36,8 @@
         <div id="site-mobile-menu" class="hidden border-t border-slate-200/70 bg-white lg:hidden">
             <nav class="mx-auto flex max-w-6xl flex-col gap-1 px-4 py-4 sm:px-6" aria-label="Mobile">
                 <a href="/" class="rounded-lg px-3 py-2.5 text-sm font-medium text-slate-700 transition hover:bg-slate-100">Home</a>
-                <a href="/page/privacy" class="rounded-lg px-3 py-2.5 text-sm font-medium text-slate-700 transition hover:bg-slate-100">Privacy</a>
-                <a href="/page/terms" class="rounded-lg px-3 py-2.5 text-sm font-medium text-slate-700 transition hover:bg-slate-100">Terms</a>
+                <a href="/privacy" class="rounded-lg px-3 py-2.5 text-sm font-medium text-slate-700 transition hover:bg-slate-100">Privacy</a>
+                <a href="/terms" class="rounded-lg px-3 py-2.5 text-sm font-medium text-slate-700 transition hover:bg-slate-100">Terms</a>
                 <div class="mt-2 flex flex-col gap-2 border-t border-slate-100 pt-4">
                     <x-site.button href="/app/login" variant="ghost">Log in</x-site.button>
                     <x-site.button href="/app/register">Start free</x-site.button>
@@ -76,8 +76,8 @@
             <nav aria-label="Legal">
                 <p class="mb-3 text-xs font-semibold uppercase tracking-widest text-slate-500">Legal</p>
                 <ul class="space-y-2.5 text-sm">
-                    <li><a href="/page/privacy" class="transition hover:text-white">Privacy</a></li>
-                    <li><a href="/page/terms" class="transition hover:text-white">Terms</a></li>
+                    <li><a href="/privacy" class="transition hover:text-white">Privacy</a></li>
+                    <li><a href="/terms" class="transition hover:text-white">Terms</a></li>
                 </ul>
             </nav>
         </div>
@@ -85,8 +85,8 @@
             <div class="mx-auto flex max-w-6xl flex-col items-center justify-between gap-2 px-4 py-5 text-xs sm:flex-row sm:px-6">
                 <p>&copy; {{ date('Y') }} {{ $siteName ?? config('app.name', 'FlowSync') }}. All rights reserved.</p>
                 <p class="flex gap-4">
-                    <a href="/page/privacy" class="transition hover:text-white">Privacy</a>
-                    <a href="/page/terms" class="transition hover:text-white">Terms</a>
+                    <a href="/privacy" class="transition hover:text-white">Privacy</a>
+                    <a href="/terms" class="transition hover:text-white">Terms</a>
                 </p>
             </div>
         </div>
