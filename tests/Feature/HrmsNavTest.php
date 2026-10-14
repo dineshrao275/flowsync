@@ -276,6 +276,16 @@ class HrmsNavTest extends TestCase
         $this->assertStringNotContainsString('<HrmsLayout', $app);
         $this->assertFileDoesNotExist(resource_path('js/components/hrms/HrmsLayout.jsx'));
 
+        // The scope renders `<Outlet />`, so it must import it: ESLint's
+        // `no-undef` cannot see JSX identifiers, and a missing import turns
+        // every `/hrms` page into a runtime "Outlet is not defined" while the
+        // sidebar stays up (the content boundary catches only the content).
+        $this->assertMatchesRegularExpression(
+            '/^import \{[^}]*Outlet[^}]*\} from \'react-router-dom\';$/m',
+            $app,
+            'App.jsx renders <Outlet /> but no longer imports it from react-router-dom.'
+        );
+
         $nav = file_get_contents(resource_path('js/utils/hrmsNav.js'));
         foreach ($this->sidebarLinks() as $to) {
             $this->assertStringContainsString("to: '{$to}'", $nav, "The sidebar's {$to} entry has no hub tab.");
