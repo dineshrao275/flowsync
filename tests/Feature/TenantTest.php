@@ -7,6 +7,7 @@ use App\Models\ImpersonationLog;
 use App\Models\Tenant;
 use App\Models\TenantUserRouting;
 use App\Models\User;
+use App\Support\Like;
 use Tests\IsolatesDatabase;
 use Tests\TestCase;
 
@@ -145,6 +146,11 @@ class TenantTest extends TestCase
             ->assertOk()
             ->assertJsonCount(0, 'tenants');
 
+        // A typed `_` is literal: `ac_e` must not match `acme`.
+        $this->getJson('/api/tenants?q=ac_e')
+            ->assertOk()
+            ->assertJsonCount(0, 'tenants');
+
         // status filter.
         $this->getJson('/api/tenants?status=active')
             ->assertOk()
@@ -165,6 +171,19 @@ class TenantTest extends TestCase
         $this->getJson('/api/tenants?per_page=1&sort=slug&dir=desc&page=1')
             ->assertOk()
             ->assertJsonPath('tenants.0.slug', 'globex');
+    }
+
+    public function test_multi_column_search_issues_no_backslash_escapes(): void
+    {
+        // PDO's placeholder parser treats `\'` as an escaped quote, so a
+        // second `escape '\'` clause swallows the `?` between them and
+        // PostgreSQL answers HY093 (SQLite tolerates it, which is why only
+        // the statement text is pinnable here).
+        $query = Tenant::query();
+        Like::any($query, ['name', 'slug', 'description'], 'dk');
+
+        $this->assertStringNotContainsString("\\'", $query->toSql());
+        $this->assertSame(['%dk%', '%dk%', '%dk%'], $query->getBindings());
     }
 
     public function test_tenant_list_accepts_boolean_ish_query_strings(): void

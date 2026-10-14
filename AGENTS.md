@@ -1298,6 +1298,12 @@ Phase 13
   sqlite-tolerated statement (`WHERE is_default = 1` on a boolean column) only fails once a tenant DB is
   actually Postgres. When touching a tenant migration, either stay on the schema builder or exercise the PG
   path (`TENANT_DB_PG_ROLE=... TENANT_DB_DRIVER=pgsql php artisan tenants:provision`).
+- **Never put a backslash-quote sequence in raw SQL text.** PDO's placeholder parser treats `\'` as an
+  escaped quote, so a second `escape '\'` clause swallows the `?` between them as string content and
+  PostgreSQL answers HY093 (SQLite tolerates it — `Like::any` 500d every multi-column search in prod
+  while green here). `App\Support\Like` escapes with `!` for exactly this reason; keep backslashes out
+  of SQL text (bound values are safe — the parser only scans the statement). Pin new raw SQL with a
+  `toSql()` shape assertion, since SQLite cannot reproduce the failure.
 - **Laravel `SortedMiddleware` reorders route middleware by the Kernel `$middlewarePriority` list.**
   Any custom middleware that must run BEFORE route-model binding (Swizzlen i.e. `SwitchTenant`,
   `SetTenantContext`, `EnsureTenantContext`, `EnsureSuperAdmin`, `EnsurePermission`) MUST be registered
