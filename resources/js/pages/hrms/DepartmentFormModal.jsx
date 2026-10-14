@@ -5,7 +5,7 @@ import Button from '../../components/ui/Button';
 import Input from '../../components/ui/Input';
 import Modal from '../../components/ui/Modal';
 import Select from '../../components/ui/Select';
-import { fieldClass } from '../../components/ui/fieldStyles';
+import RichTextEditor from '../../components/ui/RichTextEditor';
 
 /**
  * Create or edit a department.
@@ -94,17 +94,12 @@ export default function DepartmentFormModal({ department, departments, heads, sa
 
                 <div>
                     <label htmlFor="department-description" className="mb-1.5 block text-sm font-medium text-gray-700">Description</label>
-                    <textarea
-                        id="department-description"
-                        className={`${fieldClass} min-h-20`}
-                        rows={3}
+                    <RichTextEditor
                         value={form.description}
-                        onChange={(e) => set('description', e.target.value)}
+                        onChange={(html) => set('description', html)}
                         placeholder="What this team is responsible for…"
+                        error={errors.description}
                     />
-                    {errors.description && (
-                        <p className="mt-1 text-sm text-red-600">{errors.description}</p>
-                    )}
                 </div>
 
                 <Select

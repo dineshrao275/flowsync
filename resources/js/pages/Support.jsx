@@ -7,6 +7,7 @@ import Button from '../components/ui/Button';
 import Input from '../components/ui/Input';
 import Alert from '../components/ui/Alert';
 import TicketThread, { PRIORITY_STYLES, StatusPill } from '../components/support/TicketThread';
+import RichTextEditor from '../components/ui/RichTextEditor';
 import { useToast } from '../context/ToastContext';
 import { useConfirm } from '../components/ui/ConfirmDialog';
 import { useSetCrumbs } from '../context/BreadcrumbContext';
@@ -78,10 +79,17 @@ function TicketList() {
                                 </select>
                             </label>
                         </div>
-                        <label className="block text-sm font-medium text-gray-700">Details
-                            <textarea rows={6} value={form.body} onChange={(e) => setForm((f) => ({ ...f, body: e.target.value }))} className="mt-1.5 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm" />
-                            {errors.body && <span className="mt-1 block text-sm text-red-600">{errors.body}</span>}
-                        </label>
+                        <div>
+                            <span className="block text-sm font-medium text-gray-700">Details</span>
+                            <div className="mt-1.5">
+                                <RichTextEditor
+                                    value={form.body}
+                                    onChange={(html) => setForm((f) => ({ ...f, body: html }))}
+                                    placeholder="Steps to reproduce, what you expected…"
+                                    error={errors.body}
+                                />
+                            </div>
+                        </div>
                         <div className="flex gap-2">
                             <Button type="button" variant="secondary" onClick={() => setCreating(false)}>Cancel</Button>
                             <Button type="submit" loading={saving}>Submit ticket</Button>

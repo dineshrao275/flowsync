@@ -1,6 +1,21 @@
 import { render, screen } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
-import RichText from './RichText';
+import RichText, { stripRichText } from './RichText';
+
+describe('stripRichText', () => {
+    it('returns an empty string for empty input', () => {
+        expect(stripRichText('')).toBe('');
+        expect(stripRichText(null)).toBe('');
+    });
+
+    it('reduces editor HTML to its visible text', () => {
+        expect(stripRichText('<h2>Done when</h2><ul><li>ships</li></ul>')).toBe('Done whenships');
+    });
+
+    it('leaves plain text alone', () => {
+        expect(stripRichText('Just words')).toBe('Just words');
+    });
+});
 
 describe('RichText', () => {
     it('renders nothing for an empty value', () => {

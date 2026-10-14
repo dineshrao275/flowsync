@@ -18,7 +18,8 @@ import { useConfirm } from '../components/ui/ConfirmDialog';
 import { useSetCrumbs } from '../context/BreadcrumbContext';
 import KanbanBoard from '../components/tasks/KanbanBoard';
 import TaskTable from '../components/tasks/TaskTable';
-import Pagination from '../components/ui/Pagination';
+import RichTextEditor from '../components/ui/RichTextEditor';
+import RichText from '../components/ui/RichText';
 import FiltersBar from '../components/tasks/FiltersBar';
 import CreateTaskModal from '../components/tasks/CreateTaskModal';
 import TaskDetail from '../components/tasks/TaskDetail';
@@ -643,7 +644,11 @@ export default function ProjectDetail() {
                             {project.my_role && <Badge>{projectRoleLabel(project.my_role)}</Badge>}
                             {archived && <Badge>archived</Badge>}
                         </div>
-                        <p className="mt-1 text-sm text-gray-500">{project.description || 'No description'}</p>
+                        {project.description ? (
+                            <RichText value={project.description} className="mt-1 text-gray-500" />
+                        ) : (
+                            <p className="mt-1 text-sm text-gray-500">No description</p>
+                        )}
                         <p className="mt-0.5 text-xs text-gray-400">{project.key}</p>
                     </div>
                 </div>
@@ -1228,6 +1233,9 @@ export default function ProjectDetail() {
  */
 function SettingsForm({ project, settingsDates, onDatesChange, formErrors, updating, updateProject, deleteProject }) {
     const dates = settingsDates ?? { start_date: project.start_date ?? '', due_date: project.due_date ?? '' };
+    // Editor-controlled description (the form remounts per project, and a
+    // same-id refetch after save already matches what was typed).
+    const [description, setDescription] = useState(project.description ?? '');
 
     return (
         <form
@@ -1236,7 +1244,7 @@ function SettingsForm({ project, settingsDates, onDatesChange, formErrors, updat
                 e.preventDefault();
                 updateProject({
                     name: e.currentTarget.name.value,
-                    description: e.currentTarget.description.value,
+                    description: description || undefined,
                     start_date: dates.start_date || null,
                     due_date: dates.due_date || null,
                 });
@@ -1244,12 +1252,15 @@ function SettingsForm({ project, settingsDates, onDatesChange, formErrors, updat
         >
             {formErrors.form && <Alert>{formErrors.form}</Alert>}
             <Input label="Name" name="name" defaultValue={project.name} error={formErrors.name} required />
-            <Input
-                label="Description"
-                name="description"
-                defaultValue={project.description}
-                error={formErrors.description}
-            />
+            <div>
+                <label className="mb-1.5 block text-sm font-medium text-gray-700">Description</label>
+                <RichTextEditor
+                    value={description}
+                    onChange={setDescription}
+                    placeholder="What is this project about?"
+                    error={formErrors.description}
+                />
+            </div>
             <div className="grid gap-4 sm:grid-cols-2">
                 <Input
                     label="Start date"

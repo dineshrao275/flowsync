@@ -7,6 +7,7 @@ import Card from '../../components/ui/Card';
 import EmptyState from '../../components/ui/EmptyState';
 import Spinner from '../../components/ui/Spinner';
 import DepartmentTreeColumn from '../../components/hrms/DepartmentTreeColumn';
+import RichText from '../../components/ui/RichText';
 import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
 import { useSetCrumbs } from '../../context/BreadcrumbContext';
@@ -346,7 +347,7 @@ function DepartmentPanel({
                             {department.employees_count} here · {department.children_count} sub-departments
                         </p>
                         {department.description && (
-                            <p className="mt-2 text-sm text-gray-600">{department.description}</p>
+                            <RichText value={department.description} className="mt-2 text-gray-600" />
                         )}
                     </div>
 
