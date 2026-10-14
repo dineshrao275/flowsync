@@ -36,6 +36,12 @@ class TaskColumnOrder
     /**
      * One UPDATE with CASE id WHEN … THEN … instead of N per-row writes.
      *
+     * Values are inlined as cast ints, not bound: PDO binds every
+     * parameter as text and PostgreSQL refuses to store text into the
+     * numeric `position` column (42804), while SQLite silently coerces —
+     * which is why the suite never caught it. The `(int)` casts make the
+     * interpolation injection-free on both grammars.
+     *
      * @param  Collection<int, int>  $ids
      */
     private function writePositions(Collection $ids): void
@@ -45,20 +51,16 @@ class TaskColumnOrder
         }
 
         $cases = [];
-        $bindings = [];
+        $in = [];
 
         foreach ($ids as $offset => $id) {
-            $cases[] = 'when ? then ?';
-            $bindings[] = $id;
-            $bindings[] = $offset + 1;
+            $id = (int) $id;
+            $cases[] = 'when '.$id.' then '.($offset + 1);
+            $in[] = $id;
         }
 
-        $placeholders = implode(',', array_fill(0, $ids->count(), '?'));
-        $bindings = array_merge($bindings, $ids->all());
-
         DB::update(
-            'update tasks set position = case id '.implode(' ', $cases).' end where id in ('.$placeholders.')',
-            $bindings,
+            'update tasks set position = case id '.implode(' ', $cases).' end where id in ('.implode(',', $in).')',
         );
     }
 
