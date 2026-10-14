@@ -304,6 +304,37 @@
                 </section>
                 @break
 
+            @case('contact_form')
+                <section class="mx-auto max-w-2xl px-4 py-14 sm:px-6">
+                    <div class="rounded-3xl border border-slate-200/80 bg-white p-6 shadow-sm sm:p-10">
+                        <x-site.section-heading :eyebrow="$block['eyebrow'] ?? null" :heading="$block['heading'] ?? 'Talk to us'" :lead="$block['lead'] ?? null" align="center" class="mb-8" />
+                        <form data-contact-form data-source="{{ $block['source'] ?? 'contact' }}" class="space-y-4" novalidate>
+                            <div class="grid gap-4 sm:grid-cols-2">
+                                <div>
+                                    <label class="mb-1.5 block text-sm font-medium text-slate-700" for="cf-name">Name</label>
+                                    <input id="cf-name" name="name" type="text" required autocomplete="name" class="w-full rounded-xl border border-slate-200 px-3.5 py-2.5 text-sm outline-none focus:border-indigo-400">
+                                </div>
+                                <div>
+                                    <label class="mb-1.5 block text-sm font-medium text-slate-700" for="cf-email">Work email</label>
+                                    <input id="cf-email" name="email" type="email" required autocomplete="email" class="w-full rounded-xl border border-slate-200 px-3.5 py-2.5 text-sm outline-none focus:border-indigo-400">
+                                </div>
+                            </div>
+                            <div>
+                                <label class="mb-1.5 block text-sm font-medium text-slate-700" for="cf-company">Company <span class="font-normal text-slate-400">(optional)</span></label>
+                                <input id="cf-company" name="company" type="text" autocomplete="organization" class="w-full rounded-xl border border-slate-200 px-3.5 py-2.5 text-sm outline-none focus:border-indigo-400">
+                            </div>
+                            <div>
+                                <label class="mb-1.5 block text-sm font-medium text-slate-700" for="cf-message">How can we help?</label>
+                                <textarea id="cf-message" name="message" required rows="4" minlength="10" class="w-full rounded-xl border border-slate-200 px-3.5 py-2.5 text-sm outline-none focus:border-indigo-400"></textarea>
+                            </div>
+                            <input type="text" name="website" tabindex="-1" autocomplete="off" class="hidden" aria-hidden="true">
+                            <p data-contact-error class="hidden rounded-xl bg-red-50 px-4 py-2.5 text-sm text-red-700" role="alert"></p>
+                            <x-site.button type="submit" size="lg" class="w-full" data-contact-submit>{{ ($block['source'] ?? 'contact') === 'demo' ? 'Book my demo' : 'Send message' }}</x-site.button>
+                        </form>
+                    </div>
+                </section>
+                @break
+
             @default
                 <section class="mx-auto max-w-3xl px-4 py-12 sm:px-6">
                     <div class="rounded-2xl border border-slate-200/80 bg-white p-6 shadow-sm sm:p-10">

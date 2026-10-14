@@ -27,6 +27,8 @@ return [
         'flags.manage' => 'Change feature flags and tenant overrides',
         'content.view' => 'See marketing site pages',
         'content.manage' => 'Edit and publish marketing site pages',
+        'leads.view' => 'Read marketing site leads',
+        'leads.manage' => 'Work and delete marketing site leads',
         'settings.view' => 'See platform settings',
         'settings.manage' => 'Change platform settings and security policy',
         'platform_users.view' => 'See platform accounts and their personas',
@@ -42,12 +44,12 @@ return [
         'support' => [
             'name' => 'Support',
             'description' => 'Answers tickets and, with a reason, signs in as tenant users.',
-            'permissions' => ['tenants.view', 'support.view', 'support.manage', 'impersonate.start'],
+            'permissions' => ['tenants.view', 'support.view', 'support.manage', 'leads.view', 'leads.manage', 'impersonate.start'],
         ],
         'auditor' => [
             'name' => 'Auditor',
             'description' => 'Read-only across the platform, including the audit trail and its export.',
-            'permissions' => ['tenants.view', 'billing.view', 'support.view', 'audit.view', 'audit.export', 'analytics.view', 'flags.view', 'content.view', 'settings.view', 'platform_users.view'],
+            'permissions' => ['tenants.view', 'billing.view', 'support.view', 'audit.view', 'audit.export', 'analytics.view', 'flags.view', 'content.view', 'leads.view', 'settings.view', 'platform_users.view'],
         ],
         'operator' => [
             'name' => 'Operator',
@@ -78,6 +80,7 @@ return [
         ['api/system/feature-flags*', 'flags.view', 'flags.manage'],
         ['api/system/pages*', 'content.view', 'content.manage'],
         ['api/system/blog*', 'content.view', 'content.manage'],
+        ['api/system/leads*', 'leads.view', 'leads.manage'],
         ['api/system/redirects*', 'content.view', 'content.manage'],
         ['api/system/invoices*', 'billing.view', 'billing.view'],
         ['api/system/media*', 'content.view', 'content.manage'],

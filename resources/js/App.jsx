@@ -24,6 +24,7 @@ import Projects from './pages/Projects';
 import Support from './pages/Support';
 import Webhooks from './pages/Webhooks';
 import AdminSupport from './pages/AdminSupport';
+import Leads from './pages/Leads';
 import Users from './pages/Users';
 import UserEdit from './pages/UserEdit';
 import UserImport from './pages/UserImport';
@@ -160,6 +161,7 @@ function AppRoutes() {
                                 <Route path="/admin/audit-logs" element={<AuditLogs />} />
                                 <Route path="/admin/support" element={<AdminSupport />} />
                                 <Route path="/admin/support/:ticketId" element={<AdminSupport />} />
+                                <Route path="/admin/leads" element={<Leads />} />
                                 <Route path="/admin/features" element={<FeatureManagement />} />
                                 <Route path="/admin/feature-flags" element={<FeatureFlags />} />
                                 <Route path="/admin/pages" element={<CmsPages />} />

@@ -30,7 +30,7 @@ const emptyForm = {
     sort_order: 0,
 };
 
-const BLOCK_TYPES = ['hero', 'logo_cloud', 'features', 'split', 'steps', 'stats', 'testimonials', 'team', 'video', 'pricing', 'faq', 'comparison', 'text', 'richtext', 'cta'];
+const BLOCK_TYPES = ['hero', 'logo_cloud', 'features', 'split', 'steps', 'stats', 'testimonials', 'team', 'video', 'pricing', 'faq', 'comparison', 'contact_form', 'text', 'richtext', 'cta'];
 
 // Media id ↔ picker object bridge: blocks store the id, the picker needs the
 // row. Hydrated once per id; a deleted image resolves to null (unpicked).
@@ -137,7 +137,7 @@ function BlockEditor({ blocks, onChange }) {
                             className="mb-2 w-full rounded border border-gray-200 px-2 py-1.5 text-sm outline-none focus:border-indigo-400"
                         />
                     )}
-                    {['steps', 'split', 'testimonials', 'team', 'pricing', 'faq'].includes(b.type) && (
+                    {['steps', 'split', 'testimonials', 'team', 'pricing', 'faq', 'contact_form'].includes(b.type) && (
                         <div className="mb-2 grid gap-2 sm:grid-cols-2">
                             <input
                                 value={b.eyebrow || ''}
@@ -380,6 +380,19 @@ function BlockEditor({ blocks, onChange }) {
                                 </div>
                             ))}
                             <Button type="button" variant="ghost" onClick={() => update(i, { items: [...(b.items || []), { q: '', a: '' }] })}>+ question</Button>
+                        </div>
+                    )}
+                    {b.type === 'contact_form' && (
+                        <div className="mb-2 grid gap-2 sm:grid-cols-2">
+                            <select
+                                value={b.source || 'contact'}
+                                onChange={(e) => update(i, { source: e.target.value })}
+                                className="rounded border border-gray-200 px-2 py-1.5 text-sm outline-none focus:border-indigo-400"
+                            >
+                                <option value="contact">Contact request</option>
+                                <option value="demo">Demo request</option>
+                            </select>
+                            <p className="self-center text-xs text-gray-400">Submissions land in Platform → Leads.</p>
                         </div>
                     )}
                     {b.type === 'comparison' && (

@@ -6,6 +6,7 @@ use App\Http\Controllers\BlogPostController;
 use App\Http\Controllers\CmsController;
 use App\Http\Controllers\FeatureManagementController;
 use App\Http\Controllers\ImpersonationController;
+use App\Http\Controllers\LeadController;
 use App\Http\Controllers\MediaController;
 use App\Http\Controllers\OnboardingController;
 use App\Http\Controllers\PlanController;
@@ -114,6 +115,10 @@ Route::middleware('super_admin')->group(function () {
     Route::post('system/blog-posts/{blogPost}/unpublish', [BlogPostController::class, 'unpublish']);
     Route::get('system/website-settings', [SiteSettingsController::class, 'index']);
     Route::put('system/website-settings', [SiteSettingsController::class, 'update']);
+    Route::get('system/leads', [LeadController::class, 'index']);
+    Route::get('system/leads/{lead}', [LeadController::class, 'show']);
+    Route::put('system/leads/{lead}', [LeadController::class, 'update']);
+    Route::delete('system/leads/{lead}', [LeadController::class, 'destroy']);
     Route::get('system/redirects', [WebsiteRedirectController::class, 'index']);
     Route::post('system/redirects', [WebsiteRedirectController::class, 'store']);
     Route::delete('system/redirects/{websiteRedirect}', [WebsiteRedirectController::class, 'destroy']);

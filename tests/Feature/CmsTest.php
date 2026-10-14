@@ -186,6 +186,29 @@ class CmsTest extends TestCase
         $this->getJson('/api/definitely-not-a-route')->assertNotFound();
     }
 
+    public function test_contact_form_block_renders_a_self_posting_form(): void
+    {
+        $this->loginSuperAdmin();
+
+        $this->postJson('/api/system/pages', [
+            'slug' => 'contact',
+            'title' => 'Contact',
+            'status' => 'published',
+            'content' => [
+                ['type' => 'contact_form', 'heading' => 'Book a demo', 'lead' => 'Tell us about your team.', 'source' => 'demo'],
+            ],
+        ])->assertStatus(201);
+
+        $this->get('/contact')
+            ->assertOk()
+            ->assertSee('Book a demo')
+            ->assertSee('data-contact-form', false)
+            ->assertSee('data-source="demo"', false)
+            ->assertSee('name="website"', false)
+            ->assertSee('Book my demo')
+            ->assertSee('name="csrf-token"', false);
+    }
+
     public function test_pricing_faq_and_comparison_blocks_render(): void
     {
         $this->loginSuperAdmin();

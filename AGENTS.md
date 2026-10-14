@@ -252,7 +252,11 @@ Hierarchy: **Tenant → Workspace → Project → Task** (subtask `tasks.parent_
   `api/system/blog*` (SPA `pages/BlogPosts.jsx` at `/admin/blog` with inline category manager) and a
   public surface (`BlogController`: `/blog`, `/blog/category/{slug}`, `/blog/{post}`, `/blog/rss.xml`,
   signed `blog-preview/{post}`) with `BlogPosting` schema, related posts, and sitemap integration
-  (posts + populated categories; noindex excluded). Content editing
+  (posts + populated categories; noindex excluded). Contact/demo requests land in `marketing_leads`
+  via unauthenticated `POST api/contact` (throttle + honeypot + queued `LeadReceivedMail` to the
+  sales inbox) and are worked in the SA inbox at `/admin/leads` (`api/system/leads*`,
+  `leads.view`/`leads.manage` + `platform:sync-access` additive repair); the `contact_form` block
+  posts via `site.js` fetch with the layout's CSRF meta and swaps to a thanks state inline. Content editing
   publishes live without code changes.
 
 ## Tenant intake (FB-3)

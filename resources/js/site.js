@@ -32,4 +32,67 @@ document.addEventListener('DOMContentLoaded', () => {
             setOpen(false);
         }
     });
+
+    // Contact/demo forms post to the JSON endpoint with the CSRF token and
+    // swap to a thanks state inline — no page reload, no redirect hop.
+    const token = document.querySelector('meta[name="csrf-token"]')?.content;
+
+    document.querySelectorAll('[data-contact-form]').forEach((form) => {
+        form.addEventListener('submit', async (event) => {
+            event.preventDefault();
+
+            const error = form.querySelector('[data-contact-error]');
+            const submit = form.querySelector('[data-contact-submit]');
+            if (error) error.classList.add('hidden');
+
+            if (!form.checkValidity()) {
+                form.reportValidity();
+                return;
+            }
+
+            // Named access (form.elements.name) — `form.name` itself is the
+            // form's own name property, not the field.
+            const field = (name) => form.querySelector(`[name="${name}"]`)?.value.trim() || '';
+            const payload = {
+                name: field('name'),
+                email: field('email'),
+                company: field('company') || null,
+                message: field('message'),
+                source: form.dataset.source || 'contact',
+                website: field('website'),
+            };
+
+            if (submit) submit.disabled = true;
+
+            try {
+                const response = await fetch('/api/contact', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        Accept: 'application/json',
+                        ...(token ? { 'X-CSRF-TOKEN': token } : {}),
+                    },
+                    body: JSON.stringify(payload),
+                });
+
+                if (!response.ok) {
+                    const data = await response.json().catch(() => ({}));
+                    const first = data.errors ? Object.values(data.errors)[0]?.[0] : null;
+                    throw new Error(first || 'Something went wrong — please try again.');
+                }
+
+                form.innerHTML =
+                    '<div class="rounded-2xl bg-emerald-50 px-6 py-10 text-center">' +
+                    '<p class="text-lg font-bold text-emerald-900">Thanks — we will be in touch.</p>' +
+                    '<p class="mt-1 text-sm text-emerald-700">We usually reply within one business day.</p>' +
+                    '</div>';
+            } catch (err) {
+                if (error) {
+                    error.textContent = err.message;
+                    error.classList.remove('hidden');
+                }
+                if (submit) submit.disabled = false;
+            }
+        });
+    });
 });

@@ -1,4 +1,4 @@
-@props(['href' => null, 'variant' => 'primary', 'size' => 'md'])
+@props(['href' => null, 'variant' => 'primary', 'size' => 'md', 'type' => 'button'])
 
 @php
     $sizes = [
@@ -22,5 +22,5 @@
 @if($href)
     <a href="{{ $href }}" {{ $attributes->merge(['class' => $classes]) }}>{{ $slot }}</a>
 @else
-    <button type="button" {{ $attributes->merge(['class' => $classes]) }}>{{ $slot }}</button>
+    <button type="{{ $type }}" {{ $attributes->merge(['class' => $classes]) }}>{{ $slot }}</button>
 @endif
