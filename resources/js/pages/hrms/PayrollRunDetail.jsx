@@ -166,7 +166,7 @@ export default function PayrollRunDetail() {
 
             <Modal open={!!selected} onClose={() => setSelected(null)} title={selected?.employee?.name ?? 'Payslip'} size="lg">
                 {selected && (
-                    <div className="text-sm">
+                    <div className="px-6 py-5 text-sm">
                         <p className="text-gray-500">
                             {selected.employee?.employee_code} · paid {selected.paid_days} of {selected.working_days} · LOP {selected.lop_days} · overtime {selected.ot_minutes} min
                         </p>
@@ -206,7 +206,7 @@ export default function PayrollRunDetail() {
             </Modal>
 
             <Modal open={adjustModal} onClose={() => setAdjustModal(false)} title="Add adjustment" subtitle="Review runs only — past review the backend refuses.">
-                <form onSubmit={saveAdjustment} className="grid gap-3">
+                <form onSubmit={saveAdjustment} className="grid gap-3 px-6 py-5">
                     <Select label="Kind" value={adjustForm.kind} error={adjustErrors.kind} onChange={(e) => setAdjustForm({ ...adjustForm, kind: e.target.value })}>
                         <option value="earning">Earning (adds to net)</option>
                         <option value="deduction">Deduction (takes from net)</option>

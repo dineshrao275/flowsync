@@ -59,7 +59,7 @@ export default function DocumentUploader({ employeeId, employees, types, onUploa
     const ready = file && title.trim() !== '' && typeId !== '' && (employees ? pickedEmployee !== '' : employeeId);
 
     return (
-        <form onSubmit={upload} className="space-y-3">
+        <form onSubmit={upload} className="space-y-3 px-6 py-5">
             {employees && (
                 <Select label="Employee" value={pickedEmployee} onChange={(e) => setPickedEmployee(e.target.value)}>
                     <option value="">Select an employee</option>

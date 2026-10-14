@@ -205,7 +205,7 @@ export default function Performance() {
             )}
 
             <Modal open={modal} onClose={() => setModal(false)} title="New review cycle">
-                <form onSubmit={create} className="grid gap-3">
+                <form onSubmit={create} className="grid gap-3 px-6 py-5">
                     <Input label="Name" value={form.name} error={formErrors.name} onChange={(e) => setForm({ ...form, name: e.target.value })} required />
                     <div className="grid grid-cols-2 gap-3">
                         <Input label="Period start" type="date" value={form.period_start} error={formErrors.period_start} onChange={(e) => setForm({ ...form, period_start: e.target.value })} required />

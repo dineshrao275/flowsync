@@ -432,7 +432,7 @@ export default function Compensation() {
             </Card>
 
             <Modal open={headModal} onClose={() => setHeadModal(false)} title={editingHead ? 'Edit pay head' : 'New pay head'}>
-                <form onSubmit={saveHead} className="grid gap-3">
+                <form onSubmit={saveHead} className="grid gap-3 px-6 py-5">
                     <Input label="Name" value={headForm.name} error={headErrors.name} onChange={(e) => setHeadForm({ ...headForm, name: e.target.value })} required />
                     <Input label="Code" value={headForm.code} error={headErrors.code} onChange={(e) => setHeadForm({ ...headForm, code: e.target.value })} />
                     <div className="grid grid-cols-2 gap-3">
@@ -454,7 +454,7 @@ export default function Compensation() {
             </Modal>
 
             <Modal open={templateModal} onClose={() => setTemplateModal(false)} title="New salary template">
-                <form onSubmit={saveTemplate} className="grid gap-3">
+                <form onSubmit={saveTemplate} className="grid gap-3 px-6 py-5">
                     <Input label="Name" value={templateForm.name} error={templateErrors.name} onChange={(e) => setTemplateForm({ ...templateForm, name: e.target.value })} required />
                     <div className="grid grid-cols-2 gap-3">
                         <Input label="Currency" value={templateForm.currency} error={templateErrors.currency} onChange={(e) => setTemplateForm({ ...templateForm, currency: e.target.value })} maxLength={3} />
@@ -466,7 +466,7 @@ export default function Compensation() {
             </Modal>
 
             <Modal open={!!openTemplate} onClose={() => setOpenTemplate(null)} title={`Heads — ${openTemplate?.name ?? ''}`} subtitle="The whole set, replaced in one save.">
-                <div className="grid gap-2">
+                <div className="grid gap-2 px-6 py-5">
                     {(heads ?? []).map((head) => {
                         const row = linkForm.find((r) => r.component_id === head.id);
                         return (

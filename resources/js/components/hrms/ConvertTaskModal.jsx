@@ -48,7 +48,7 @@ export default function ConvertTaskModal({ caseKind, caseId, item, onClose, onDo
 
     return (
         <Modal open onClose={onClose} title={`Convert “${item.title}”`}>
-            <form onSubmit={submit} className="space-y-4">
+            <form onSubmit={submit} className="space-y-4 px-6 py-5">
                 <Select
                     label="Project"
                     value={projectId}

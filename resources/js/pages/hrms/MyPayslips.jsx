@@ -115,7 +115,7 @@ export default function MyPayslips() {
 
             <Modal open={!!selected} onClose={() => setSelected(null)} title={selected?.run ? monthLabel(selected.run.period_year, selected.run.period_month) : 'Payslip'} size="lg">
                 {selected && (
-                    <div className="text-sm">
+                    <div className="px-6 py-5 text-sm">
                         <p className="text-gray-500">
                             Paid {selected.paid_days} of {selected.working_days} · LOP {selected.lop_days} · overtime {selected.ot_minutes} min
                         </p>

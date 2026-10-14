@@ -214,7 +214,7 @@ export default function MyCompOff() {
             </Card>
 
             <Modal open={filing} onClose={() => setFiling(false)} title="Redeem comp-off">
-                <form onSubmit={submit} className="space-y-3">
+                <form onSubmit={submit} className="space-y-3 px-6 py-5">
                     <div className="grid grid-cols-2 gap-3">
                         <Input type="date" label="From" value={form.from_date} onChange={(e) => setForm({ ...form, from_date: e.target.value })} error={formErrors.from_date} />
                         <Input type="date" label="To" value={form.to_date} onChange={(e) => setForm({ ...form, to_date: e.target.value })} error={formErrors.to_date} />

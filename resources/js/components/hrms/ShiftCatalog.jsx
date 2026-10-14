@@ -187,7 +187,7 @@ export default function ShiftCatalog({ canManage, onChanged }) {
             </Card>
 
             <Modal open={open} onClose={() => setOpen(false)} title={editing ? 'Edit shift' : 'New shift'}>
-                <form onSubmit={save} className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                <form onSubmit={save} className="grid grid-cols-1 gap-3 px-6 py-5 sm:grid-cols-2">
                     <Input label="Name" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} error={errors.name} />
                     <Input label="Code" value={form.code} disabled={editing?.is_system} onChange={(e) => setForm({ ...form, code: e.target.value })} error={errors.code} />
                     <Select label="Split shift" value={String(form.split)} onChange={(e) => setForm({ ...form, split: e.target.value === 'true' })}>

@@ -115,7 +115,7 @@ export default function EmployeeBulkModal({ mode, onClose, onDone }) {
 
     return (
         <Modal open onClose={onClose} title={mode === 'import' ? 'Import employees from CSV' : 'Change status in bulk'}>
-            <div className="space-y-3">
+            <div className="space-y-3 px-6 py-5">
                 {error && <Alert>{error}</Alert>}
 
                 {mode === 'import' ? (

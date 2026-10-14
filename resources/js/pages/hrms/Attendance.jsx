@@ -444,7 +444,7 @@ export default function Attendance() {
             </div>
 
             <Modal open={correcting} onClose={() => setCorrecting(false)} title={`Correct ${selected?.date ?? ''}`}>
-                <form onSubmit={submitCorrection} className="space-y-3">
+                <form onSubmit={submitCorrection} className="space-y-3 px-6 py-5">
                     <p className="text-sm text-gray-500">
                         Ask your manager to correct this day. At least one corrected time is required.
                     </p>
@@ -480,16 +480,16 @@ export default function Attendance() {
             </Modal>
 
             <Modal
-                isOpen={settingsOpen}
+                open={settingsOpen}
                 onClose={() => setSettingsOpen(false)}
                 title="Attendance Settings"
             >
                 {settingsLoading ? (
-                    <div className="flex justify-center py-8">
+                    <div className="flex justify-center px-6 py-8">
                         <Spinner />
                     </div>
                 ) : (
-                    <form onSubmit={saveSettings} className="space-y-4">
+                    <form onSubmit={saveSettings} className="space-y-4 px-6 py-5">
                         <div className="rounded-lg border border-gray-200 bg-gray-50/50 p-4 dark:border-gray-800 dark:bg-gray-800/40">
                             <label className="flex items-start gap-3 cursor-pointer">
                                 <input

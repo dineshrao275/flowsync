@@ -42,7 +42,7 @@ export default function AssetReplaceModal({ asset, candidates, onClose, onDone }
 
     return (
         <Modal open onClose={onClose} title={`Replace ${asset.asset_code}`}>
-            <form onSubmit={submit} className="space-y-3">
+            <form onSubmit={submit} className="space-y-3 px-6 py-5">
                 <Select label="Replacement (available assets)" value={form.replacement_asset_id} error={errors.replacement_asset_id} onChange={(e) => setForm({ ...form, replacement_asset_id: e.target.value })}>
                     <option value="">Choose…</option>
                     {candidates.map((c) => <option key={c.id} value={c.id}>{c.asset_code} · {c.name}</option>)}
