@@ -1,18 +1,19 @@
 /**
- * The HRMS hub's secondary navigation — the "sub-tabs" of the single HRMS
- * sidebar entry (Phase 3).
+ * The HRMS hub's navigation catalog (Phase 3).
  *
- * One sidebar item opens `/hrms`; every feature is a tab inside that hub. The
- * catalog is data on purpose: `HrmsNavTest` reads this file and App.jsx and
- * fails when a tab's capability is not enforced by the matching route gate, or
- * when a route the router owns is missing from this list (an HRMS page nobody
- * can reach from the hub). Without that pin a tab would drift from the policy
- * that guards it and show an entry that leads to a 403 — or, worse, hide a
- * page that still answers on a hand-typed URL.
+ * The HR product shell's sidebar (`utils/nav.js` `hrmsSections`) is derived
+ * from this list — never re-listed — so a sidebar entry cannot drift from
+ * the tab capabilities it filters by. The catalog is data on purpose:
+ * `HrmsNavTest` reads this file and App.jsx and fails when a tab's capability
+ * is not enforced by the matching route gate, or when a route the router owns
+ * is missing from this list (an HRMS page nobody can reach from the shell).
+ * Without that pin a tab would drift from the policy that guards it and show
+ * an entry that leads to a 403 — or, worse, hide a page that still answers on
+ * a hand-typed URL.
  *
  * `to` is always the canonical path: every deep link, notification href and
  * `HRMS_MODULE_ROUTES` entry already spells `/hrms/{section}`, so path-based
- * sub-tabs keep bookmarks working with no redirect layer.
+ * tabs keep bookmarks working with no redirect layer.
  */
 
 export const HRMS_NAV = [
@@ -55,44 +56,3 @@ export const HRMS_NAV = [
     { to: '/hrms/audit', label: 'Audit log', group: 'Insight', capabilities: ['module:hrms.core', 'permission:hrms.audit.view'] },
 ];
 
-/**
- * The nav in render order, grouped and filtered to what this caller may open.
- *
- * A tab is *hidden*, not disabled, when its gate fails — the route answers 403
- * either way, and a rail full of dead entries reads as broken navigation.
- *
- * @param {(capability: string) => boolean} check
- * @returns {{ group: string, items: object[] }[]}
- */
-export function hrmsNavGroups(check) {
-    const groups = new Map();
-
-    for (const tab of HRMS_NAV) {
-        if (!tab.capabilities.every((capability) => check(capability))) continue;
-
-        if (!groups.has(tab.group)) groups.set(tab.group, []);
-        groups.get(tab.group).push(tab);
-    }
-
-    return [...groups.entries()].map(([group, items]) => ({ group, items }));
-}
-
-/**
- * The tab a pathname belongs to.
- *
- * Detail routes (`/hrms/employees/7`) stay on their section's tab, and the
- * overview only matches itself — a prefix test would light up Overview on
- * every page in the hub.
- *
- * @param {string} pathname
- * @returns {string}
- */
-export function activeHrmsTab(pathname) {
-    if (pathname === '/hrms') return '/hrms';
-
-    const match = HRMS_NAV.filter(
-        (tab) => tab.to !== '/hrms' && (pathname === tab.to || pathname.startsWith(`${tab.to}/`)),
-    ).sort((a, b) => b.to.length - a.to.length)[0];
-
-    return match?.to ?? '/hrms';
-}

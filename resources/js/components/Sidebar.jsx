@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useNotifications } from '../context/NotificationContext';
@@ -91,10 +92,103 @@ function SidebarSection({ section, collapsed, onClose, canViewPlans }) {
     );
 }
 
+/**
+ * Whether a sidebar item covers the current path. Detail pages (e.g.
+ * `/hrms/employees/7`) belong to their section's tab; `/hrms` itself matches
+ * exactly, or every HRMS page would light up the Overview group.
+ */
+function isItemActive(item, pathname) {
+    if (pathname === item.to) return true;
+    if (item.to === '/hrms' || item.to === '/my') return false;
+    return pathname.startsWith(`${item.to}/`);
+}
+
+/**
+ * One collapsible HR-shell group (Overview, Workforce, Time, …). Clicking the
+ * header expands its related pages inline; the group holding the current page
+ * opens on its own. When the sidebar is collapsed there is no room for a
+ * submenu, so the group icon navigates straight to its first reachable page.
+ */
+function CollapsibleSection({ section, collapsed, onClose, open, onToggle }) {
+    const { inboxUnread } = useNotifications();
+    const { pathname } = useLocation();
+    const [first] = section.items;
+    const activeInside = section.items.some((item) => isItemActive(item, pathname));
+    const showBadge = section.items.some((item) => item.badge === 'inbox') && inboxUnread > 0;
+    const badge = showBadge && (
+        <span className="flex h-4 min-w-4 shrink-0 items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-bold normal-case tracking-normal text-white">
+            {inboxUnread > 99 ? '99+' : inboxUnread}
+        </span>
+    );
+
+    if (collapsed) {
+        if (!first) return null;
+        const active = isItemActive(first, pathname) || activeInside;
+        return (
+            <Link
+                to={first.to}
+                onClick={onClose}
+                role="menuitem"
+                aria-current={active ? 'page' : undefined}
+                title={section.label}
+                aria-label={section.label}
+                className={`group relative flex items-center justify-center rounded-lg px-3 py-2.5 text-sm font-medium transition-colors duration-150 ${
+                    active ? 'bg-[var(--active-menu)]' : 'hover:bg-[var(--sidebar-hover)]'
+                }`}
+                style={{ color: active ? '#ffffff' : 'var(--sidebar-text)' }}
+            >
+                <Icon path={first.icon} className="h-5 w-5 shrink-0" />
+                {badge}
+            </Link>
+        );
+    }
+
+    return (
+        <div className="space-y-0.5">
+            <button
+                type="button"
+                onClick={onToggle}
+                aria-expanded={open}
+                title={open ? `Collapse ${section.label}` : `Expand ${section.label}`}
+                className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors duration-150 hover:bg-[var(--sidebar-hover)]"
+                style={{ color: 'var(--sidebar-text)' }}
+            >
+                <Icon path={first?.icon} className="h-5 w-5 shrink-0" />
+                <span className="min-w-0 flex-1 truncate text-left">{section.label}</span>
+                {badge}
+                <svg
+                    className={`h-4 w-4 shrink-0 transition-transform duration-150 ${open ? 'rotate-180' : ''}`}
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    aria-hidden="true"
+                >
+                    <path d="M6 9l6 6 6-6" />
+                </svg>
+            </button>
+            {open && (
+                <div className="ml-5 space-y-0.5 border-l pl-1.5" style={{ borderColor: 'var(--sidebar-hover)' }}>
+                    {section.items.map((item) => (
+                        <SidebarLink key={item.to} item={item} collapsed={collapsed} onClose={onClose} />
+                    ))}
+                </div>
+            )}
+        </div>
+    );
+}
+
 export default function Sidebar({ open, collapsed, onClose, onToggleCollapse }) {
     const { check, user } = useAuth();
     const { pathname } = useLocation();
     const isSuperAdmin = user?.is_super_admin && !user?.impersonating;
+
+    // Explicit per-group open state; a group with no entry falls back to
+    // holding the current page open, so deep links and back/forward always
+    // land on a visible, highlighted item.
+    const [manualGroups, setManualGroups] = useState({});
 
     // The product shell follows the URL: /hrms* and /my render the HR shell,
     // everything else the task shell. Crossing shells is the topbar
@@ -164,15 +258,28 @@ export default function Sidebar({ open, collapsed, onClose, onToggleCollapse }) 
                 </div>
 
                 <nav className="flex-1 space-y-4 overflow-y-auto px-3 py-2">
-                    {items.map((section) => (
-                        <SidebarSection
-                            key={section.label}
-                            section={section}
-                            collapsed={collapsed}
-                            onClose={onClose}
-                            canViewPlans={check('billing.view')}
-                        />
-                    ))}
+                    {items.map((section) => {
+                        const open = manualGroups[section.label] ?? section.items.some((item) => isItemActive(item, pathname));
+
+                        return section.collapsible && section.items.length > 0 ? (
+                            <CollapsibleSection
+                                key={section.label}
+                                section={section}
+                                collapsed={collapsed}
+                                onClose={onClose}
+                                open={open}
+                                onToggle={() => setManualGroups((groups) => ({ ...groups, [section.label]: !open }))}
+                            />
+                        ) : (
+                            <SidebarSection
+                                key={section.label}
+                                section={section}
+                                collapsed={collapsed}
+                                onClose={onClose}
+                                canViewPlans={check('billing.view')}
+                            />
+                        );
+                    })}
                 </nav>
 
                 <div className="border-t px-3 py-3" style={{ borderColor: 'var(--sidebar-hover)' }}>

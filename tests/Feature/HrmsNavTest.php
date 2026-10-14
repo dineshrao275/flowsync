@@ -5,19 +5,20 @@ namespace Tests\Feature;
 use Tests\TestCase;
 
 /**
- * Phase 3 — the HRMS sidebar is ONE entry, every feature is a sub-tab of the
- * hub.
+ * The HR product shell's sidebar: grouped, collapsible sections derived from
+ * the `HRMS_NAV` hub catalog — never a second nav column inside the content.
  *
- * Before this phase the sidebar carried ~30 flat HRMS links that had to be
- * kept in step with App.jsx by hand. The hub (`HrmsLayout` + `utils/hrmsNav.js`)
- * makes that step testable instead of conventional:
+ * The catalog (`utils/hrmsNav.js`) makes the sidebar testable instead of
+ * conventional:
  *
  *   - every `/hrms` route the router owns is a tab, and every tab is a route
  *     (a feature page nobody can reach, or a tab that 404s, fails);
  *   - a tab claims exactly the gates its route enforces — inherited group
  *     gates (`<Route element={<ProtectedRoute module="…">}`) as well as inline
- *     ones — so a sub-tab can never offer a route the caller's policy refuses,
- *     or hide one it would have allowed.
+ *     ones — so a sidebar entry can never offer a route the caller's policy
+ *     refuses, or hide one it would have allowed;
+ *   - the TMS shell links nowhere into `/hrms` (crossing shells is the
+ *     topbar switcher's job), and My HR lives in the HR shell only.
  *
  * The gate extraction mirrors App.jsx's indentation-scoped JSX: a group gate
  * applies to every route nested deeper than the `</Route>` that closes it, and
@@ -30,8 +31,8 @@ class HrmsNavTest extends TestCase
     {
         $src = file_get_contents(resource_path('js/App.jsx'));
 
-        $layout = strpos($src, '<Route path="/hrms" element={<HrmsLayout />}>');
-        $this->assertNotFalse($layout, 'App.jsx no longer renders HrmsLayout at /hrms.');
+        $layout = strpos($src, '<Route path="/hrms" element={<HrmsErrorScope />}>');
+        $this->assertNotFalse($layout, 'App.jsx no longer renders the HRMS hub at /hrms.');
 
         $parent = strrpos(substr($src, 0, $layout), '<Route element={<ProtectedRoute module="hrms.core" />}>');
         $this->assertNotFalse($parent, 'the /hrms hub is no longer wrapped in the hrms.core module gate.');
@@ -256,25 +257,48 @@ class HrmsNavTest extends TestCase
         $this->assertSame([], $failures, implode("\n", $failures));
     }
 
-    public function test_the_hub_layout_renders_the_index_and_reads_the_nav_catalog(): void
+    public function test_the_hub_renders_without_a_secondary_rail(): void
     {
         $app = file_get_contents(resource_path('js/App.jsx'));
 
         $this->assertMatchesRegularExpression(
-            '#<Route element=\{<ProtectedRoute module="hrms\.core" />\}>\s*<Route path="/hrms" element=\{<HrmsLayout />\}>\s*<Route index element=\{<HrmsOverview />\}\s*/>#',
+            '#<Route element=\{<ProtectedRoute module="hrms\.core" />\}>\s*<Route path="/hrms" element=\{<HrmsErrorScope />\}>\s*<Route index element=\{<HrmsOverview />\}\s*/>#',
             $app,
-            '/hrms must render HrmsLayout (the rail) with the overview as its index route.'
+            '/hrms must render the overview as its index route inside the error scope.'
         );
 
-        $layout = file_get_contents(resource_path('js/components/hrms/HrmsLayout.jsx'));
-
-        $this->assertStringContainsString('hrmsNavGroups', $layout);
-        $this->assertStringContainsString('<Outlet />', $layout);
-        $this->assertStringContainsString('activeHrmsTab', $layout);
+        // Crash isolation survived the rail removal …
+        $this->assertStringContainsString('HrmsErrorBoundary', $app);
+        // … but the rail itself is gone: no import, no route element —
+        // navigation lives in the HR shell's sidebar now, not in a second
+        // column inside the content.
+        $this->assertStringNotContainsString("from './components/hrms/HrmsLayout'", $app);
+        $this->assertStringNotContainsString('<HrmsLayout', $app);
+        $this->assertFileDoesNotExist(resource_path('js/components/hrms/HrmsLayout.jsx'));
 
         $nav = file_get_contents(resource_path('js/utils/hrmsNav.js'));
         foreach ($this->sidebarLinks() as $to) {
             $this->assertStringContainsString("to: '{$to}'", $nav, "The sidebar's {$to} entry has no hub tab.");
         }
+    }
+
+    public function test_my_hr_lives_in_the_hr_shell_only(): void
+    {
+        $nav = file_get_contents(resource_path('js/utils/nav.js'));
+        $tmsStart = strpos($nav, 'export const tmsSections');
+        $hrmsStart = strpos($nav, 'export const hrmsSections', $tmsStart);
+
+        $this->assertNotFalse($tmsStart, 'utils/nav.js no longer defines tmsSections.');
+        $this->assertNotFalse($hrmsStart, 'utils/nav.js no longer defines hrmsSections.');
+
+        $tmsBlock = substr($nav, $tmsStart, $hrmsStart - $tmsStart);
+
+        $this->assertDoesNotMatchRegularExpression("/to: '\/hrms/", $tmsBlock, 'The TMS sidebar must not link into /hrms.');
+        $this->assertDoesNotMatchRegularExpression("/to: '\/my'/", $tmsBlock, 'My HR must not appear in the TMS shell.');
+
+        // Exactly one My HR entry, defined in the HR derivation above the
+        // TMS block — never a second copy in either shell's section list.
+        $this->assertSame(1, substr_count($nav, "to: '/my'"));
+        $this->assertLessThan($tmsStart, strpos($nav, "to: '/my'"), 'My HR belongs to the HR shell.');
     }
 }

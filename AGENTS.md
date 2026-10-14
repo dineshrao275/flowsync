@@ -880,17 +880,19 @@ Phase 13
   cell links via `employeeUrl(id, tab)`. **Two product shells (TMS/HRMS separation):** the sidebar is
   product-aware — `Sidebar.jsx` picks `tmsSections` vs `hrmsSections` from `utils/nav.js` by
   `productForPath()` (`utils/product.js`: `/hrms*` + `/my` render the HR shell, everything else the
-  task shell). The HR shell lists the HRMS hub groups (derived from `HRMS_NAV`, never re-listed) plus
-  shared Administration (Users/Roles/Settings/Security, no Webhooks) and Billing; the TMS shell has no
-  `/hrms` entry at all — crossing shells is the topbar `ProductSwitcher.jsx`'s job (shown only for the
-  other product the caller can reach: subscribed product + a TMS landing permission / the `hrms.core`
-  module; never for a non-impersonating super admin). Every HRMS page stays a path-based sub-tab of the
-  `/hrms` hub rendered by `components/hrms/HrmsLayout.jsx` (grouped rail + mobile strip) from the
-  `HRMS_NAV` catalog in `utils/hrmsNav.js` (`capabilities` filtered by `AuthContext.check()`, active
-  tab via `activeHrmsTab()`). Routes keep their literal `/hrms/{section}` paths and gates — preserve
-  both when adding a page and add it to `HRMS_NAV`; `tests/Feature/HrmsNavTest.php` asserts the TMS
-  shell offers no `/hrms` entry, HRMS sections derive from the hub catalog, route↔tab parity and
-  per-tab gate equality.
+  task shell). The HR shell lists the HRMS hub groups as **collapsible sections** (derived from
+  `HRMS_NAV`, never re-listed; the group holding the current page opens on its own, explicit toggles
+  persist per label, collapsed sidebar navigates a group icon to its first page) with My HR leading
+  Overview, plus shared Administration (Users/Roles/Settings/Security, no Webhooks) and Billing; the
+  TMS shell has no `/hrms` entry and no My HR at all — crossing shells is the topbar
+  `ProductSwitcher.jsx`'s job (shown only for the other product the caller can reach: subscribed
+  product + a TMS landing permission / the `hrms.core` module; never for a non-impersonating super
+  admin). There is no secondary rail: `HrmsLayout.jsx` is deleted and `/hrms` routes render pages
+  directly inside an invisible `HrmsErrorScope` (App.jsx) that keeps the route-keyed crash isolation.
+  Routes keep their literal `/hrms/{section}` paths and gates — preserve both when adding a page and
+  add it to `HRMS_NAV`; `tests/Feature/HrmsNavTest.php` asserts the TMS shell offers no `/hrms` entry,
+  HRMS sections derive from the hub catalog, My HR lives in the HR shell only, no rail element/file
+  remains, route↔tab parity and per-tab gate equality.
 - **Never submit a masked value back, and never build a picker from a report list.**
   `EmployeeEditModal` omits the whole personal block when the record arrived `restricted`, because
   prefilling it from masked values and posting them would store `p***@***` as somebody's real address.

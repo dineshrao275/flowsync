@@ -30,7 +30,7 @@ import UserImport from './pages/UserImport';
 import Roles from './pages/Roles';
 import Settings from './pages/Settings';
 import Reports from './pages/Reports';
-import HrmsLayout from './components/hrms/HrmsLayout';
+import HrmsErrorBoundary from './components/hrms/HrmsErrorBoundary';
 import HrmsOverview from './pages/hrms/HrmsOverview';
 import Employees from './pages/hrms/Employees';
 import EmployeeDetail from './pages/hrms/EmployeeDetail';
@@ -106,6 +106,23 @@ function ScrollToTop() {
     }, [location.pathname]);
 
     return null;
+}
+
+/**
+ * The HRMS hub's invisible shell: crash isolation only, no navigation UI.
+ * The hub rail (HrmsLayout) was removed once the HR product shell gained its
+ * own sidebar — every HRMS page is reached from there now, so a second nav
+ * column only stole content width. The error boundary stays: one broken tab
+ * must not take down the whole shell.
+ */
+function HrmsErrorScope() {
+    const location = useLocation();
+
+    return (
+        <HrmsErrorBoundary resetKey={location.pathname}>
+            <Outlet />
+        </HrmsErrorBoundary>
+    );
 }
 
 function AppRoutes() {
@@ -188,7 +205,7 @@ function AppRoutes() {
                             <Route path="/reports" element={<Reports />} />
                         </Route>
                         <Route element={<ProtectedRoute module="hrms.core" />}>
-                            <Route path="/hrms" element={<HrmsLayout />}>
+                            <Route path="/hrms" element={<HrmsErrorScope />}>
                                 <Route index element={<HrmsOverview />} />
                                 {/* The queue sits first: it is self-scoped, so it
                                     needs the module and nothing else. */}

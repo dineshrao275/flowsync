@@ -49,7 +49,7 @@ const GROUP_ICONS = {
     Insight: ICONS.search,
 };
 
-/** HRMS hub tabs as sidebar sections, in HRMS_NAV order. */
+/** HRMS hub tabs as collapsible sidebar sections, in HRMS_NAV order. */
 function hrmsGroups() {
     const groups = new Map();
 
@@ -64,7 +64,18 @@ function hrmsGroups() {
         });
     }
 
-    return [...groups.entries()].map(([label, items]) => ({ label, items }));
+    const sections = [...groups.entries()].map(([label, items]) => ({ label, items, collapsible: true }));
+
+    // My HR is self-service HR, not a hub tab — but it belongs to this shell,
+    // not the task shell, so it leads the Overview group.
+    sections.find((section) => section.label === 'Overview')?.items.unshift({
+        to: '/my',
+        label: 'My HR',
+        capabilities: ['module:hrms.core'],
+        icon: ICONS.myHr,
+    });
+
+    return sections;
 }
 
 const SHARED_ADMIN = [
@@ -85,7 +96,6 @@ export const tmsSections = [
         label: 'Main',
         items: [
             { to: '/dashboard', label: 'Dashboard', capabilities: ['dashboard.view', 'product:tms'], icon: ICONS.dashboard },
-            { to: '/my', label: 'My HR', capabilities: ['module:hrms.core'], icon: ICONS.myHr },
             { to: '/workspaces', label: 'Workspaces', capabilities: ['workspaces.view', 'product:tms'], icon: ICONS.workspaces },
             { to: '/projects', label: 'Projects', capabilities: ['workspaces.view', 'product:tms'], icon: ICONS.projects },
             { to: '/search', label: 'Search', capabilities: ['workspaces.view', 'product:tms', 'module:global_search'], icon: ICONS.search },
