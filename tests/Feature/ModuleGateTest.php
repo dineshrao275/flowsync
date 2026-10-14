@@ -172,6 +172,24 @@ class ModuleGateTest extends TestCase
         $this->getJson('/api/hrms/payroll/runs')->assertOk();
     }
 
+    public function test_talent_routes_gate_on_the_hrms_talent_module(): void
+    {
+        $this->assignProToAcme();
+        $this->setAcmeModules(['hrms.core', 'hrms.performance']);
+        $this->login('admin@flowsync.test');
+        $this->connectTenant('acme');
+
+        // The module gate runs before binding, so a missing cycle still
+        // answers the gate, not a 404.
+        $this->getJson('/api/hrms/talent/cycles/1/distribution')
+            ->assertForbidden()
+            ->assertHeader('X-Module-Denied', 'hrms.talent');
+
+        $this->setAcmeModules(['hrms.core', 'hrms.performance', 'hrms.talent']);
+
+        $this->getJson('/api/hrms/talent/cycles/1/distribution')->assertNotFound();
+    }
+
     public function test_ensure_module_fails_closed_when_tenant_not_found(): void
     {
         $middleware = new EnsureModule;

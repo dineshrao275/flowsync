@@ -55,6 +55,17 @@ class ReviewSummaryPolicy
     }
 
     /**
+     * The calibration room reads (grid, distribution, 360 summary): the
+     * whole audience is calibrators, so this is manage-only like the
+     * writes below. Managers keep their own rooms (the performance
+     * endpoints); nothing here names a peer reviewer or quotes a body.
+     */
+    public function viewCalibration(User $user): bool
+    {
+        return $user->hasPermission('hrms.talent.manage');
+    }
+
+    /**
      * Calibration is the talent module's signature action: `hrms.talent.manage`
      * alone. Deliberately stricter than `canManage()` (which also admits
      * performance managers) — rewriting someone's rating is a talent

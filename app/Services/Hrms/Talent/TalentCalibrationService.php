@@ -45,6 +45,7 @@ class TalentCalibrationService
         $review->refresh();
 
         $this->requireCalibrationStage($review);
+        $this->requireUnsealed($review);
 
         return DB::transaction(function () use ($review, $rating, $actor): ReviewSummary {
             $before = $this->snapshot($review);
@@ -69,12 +70,7 @@ class TalentCalibrationService
         $review->refresh();
 
         $this->requireCalibrationStage($review);
-
-        if (in_array($review->status, [ReviewStatus::Final, ReviewStatus::Acknowledged], true)) {
-            throw ValidationException::withMessages([
-                'form' => 'That review is already final — final is a seal, not a toggle.',
-            ]);
-        }
+        $this->requireUnsealed($review);
 
         return DB::transaction(function () use ($review, $actor): ReviewSummary {
             $before = $this->snapshot($review);
@@ -96,6 +92,21 @@ class TalentCalibrationService
         if ($stage !== PerformanceCycleStage::Calibration) {
             throw ValidationException::withMessages([
                 'stage' => "That cycle is {$stage->value}, not calibration — reviews calibrate from calibration.",
+            ]);
+        }
+    }
+
+    /**
+     * A sealed review stays sealed: recalibrating a final write-up would
+     * silently reopen it behind the employee's acknowledgement.
+     *
+     * @throws ValidationException on a final or acknowledged review
+     */
+    private function requireUnsealed(ReviewSummary $review): void
+    {
+        if (in_array($review->status, [ReviewStatus::Final, ReviewStatus::Acknowledged], true)) {
+            throw ValidationException::withMessages([
+                'form' => 'That review is already final — final is a seal, not a toggle.',
             ]);
         }
     }

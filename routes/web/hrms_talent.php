@@ -16,6 +16,7 @@ use App\Http\Controllers\Hrms\Performance\PerformanceGoalController;
 use App\Http\Controllers\Hrms\Performance\ReviewSummaryController;
 use App\Http\Controllers\Hrms\Survey\SurveyCampaignController;
 use App\Http\Controllers\Hrms\Survey\SurveyTemplateController;
+use App\Http\Controllers\Hrms\Talent\TalentController;
 use App\Http\Controllers\Hrms\TaskLinkController;
 use Illuminate\Support\Facades\Route;
 
@@ -210,4 +211,18 @@ Route::group(['middleware' => ['ensure_module:hrms.attendance.remote']], functio
     // thirty a minute is generous for a shift boundary and stops a
     // stuck client from flooding the ledger.
     Route::post('hrms/attendance/punch', [AttendanceController::class, 'punch'])->middleware('throttle:30,1');
+});
+
+// HRMS talent (Phase 24): the calibration room. Same core gate plus the
+// talent module from the §3.5 table — a plan holding performance without
+// talent keeps cycles and reviews but gets no calibration grid, no
+// finalize, and no 360 summary. All three reads and both writes are
+// calibrator-only (policy); the grid names reviewees, so managers keep
+// their own rooms.
+Route::group(['middleware' => ['ensure_module:hrms.core', 'ensure_module:hrms.talent', 'permission:hrms.view']], function () {
+    Route::get('hrms/talent/cycles/{cycle}/reviews', [TalentController::class, 'reviews']);
+    Route::post('hrms/talent/reviews/{review}/calibrate', [TalentController::class, 'calibrate']);
+    Route::post('hrms/talent/reviews/{review}/finalize', [TalentController::class, 'finalize']);
+    Route::get('hrms/talent/cycles/{cycle}/distribution', [TalentController::class, 'distribution']);
+    Route::get('hrms/talent/cycles/{cycle}/feedback-summary', [TalentController::class, 'feedbackSummary']);
 });

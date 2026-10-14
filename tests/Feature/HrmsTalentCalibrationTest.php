@@ -95,6 +95,21 @@ class HrmsTalentCalibrationTest extends TestCase
         }
     }
 
+    public function test_calibrate_refuses_a_sealed_review(): void
+    {
+        $hr = $this->hr();
+        $review = $this->reviewInStage(PerformanceCycleStage::Calibration);
+
+        app(TalentCalibrationService::class)->finalize($review, $hr);
+
+        try {
+            app(TalentCalibrationService::class)->calibrate($review->refresh(), 5, $hr);
+            $this->fail('Calibrating a final review must refuse.');
+        } catch (ValidationException $e) {
+            $this->assertArrayHasKey('form', $e->errors());
+        }
+    }
+
     public function test_finalize_outside_calibration_refuses(): void
     {
         $review = $this->reviewInStage(PerformanceCycleStage::Completed);
