@@ -88,6 +88,7 @@ import Security from './pages/Security';
 import CmsPages from './pages/CmsPages';
 import MediaLibrary from './pages/MediaLibrary';
 import WebsiteSettings from './pages/WebsiteSettings';
+import BlogPosts from './pages/BlogPosts';
 import Forbidden from './pages/Forbidden';
 import ModuleDenied from './pages/ModuleDenied';
 import NotFound from './pages/NotFound';
@@ -164,6 +165,7 @@ function AppRoutes() {
                                 <Route path="/admin/pages" element={<CmsPages />} />
                                 <Route path="/admin/media" element={<MediaLibrary />} />
                                 <Route path="/admin/site-settings" element={<WebsiteSettings />} />
+                                <Route path="/admin/blog" element={<BlogPosts />} />
                                 <Route path="/tenants" element={<Tenants />} />
                                 <Route path="/tenants/new" element={<TenantIntake />} />
                                 <Route path="/tenants/:tenantId/setup" element={<TenantIntake />} />
