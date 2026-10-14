@@ -92,6 +92,26 @@ class CmsTest extends TestCase
         $this->get('/page/does-not-exist')->assertNotFound();
     }
 
+    public function test_public_layout_has_skip_link_mobile_menu_and_footer(): void
+    {
+        $this->get('/')
+            ->assertOk()
+            ->assertSee('Skip to content', false)
+            ->assertSee('id="site-menu-button"', false)
+            ->assertSee('id="site-mobile-menu"', false)
+            ->assertSee('id="main-content"', false)
+            ->assertSee('<footer', false)
+            ->assertSee('/sitemap.xml');
+    }
+
+    public function test_unknown_public_pages_render_the_designed_404(): void
+    {
+        $this->get('/page/does-not-exist')
+            ->assertNotFound()
+            ->assertSee('wandered off the board')
+            ->assertSee('Back to home');
+    }
+
     public function test_sitemap_and_robots_are_derived_from_cms_pages(): void
     {
         WebsitePage::create([

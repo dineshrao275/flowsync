@@ -1,0 +1,23 @@
+@extends('layouts.site', [
+    'title' => 'Page not found',
+    'seoTitle' => 'Page not found',
+    'metaDescription' => 'The page you are looking for does not exist.',
+])
+
+@section('content')
+    <section class="relative overflow-hidden">
+        <div class="pointer-events-none absolute inset-0 -z-10" aria-hidden="true">
+            <div class="absolute inset-0 bg-gradient-to-b from-indigo-50 via-white to-white"></div>
+            <div class="absolute -top-32 left-1/2 h-96 w-[52rem] -translate-x-1/2 rounded-full bg-indigo-200/40 blur-3xl"></div>
+        </div>
+        <div class="mx-auto max-w-6xl px-4 py-24 text-center sm:px-6 sm:py-32">
+            <p class="text-sm font-bold uppercase tracking-widest text-indigo-600">404</p>
+            <h1 class="mx-auto mt-3 max-w-xl text-4xl font-extrabold tracking-tight text-balance text-slate-900 sm:text-5xl">This page wandered off the board</h1>
+            <p class="mx-auto mt-4 max-w-md text-lg text-slate-600">The link may be broken, or the page may have moved. Let's get you back in motion.</p>
+            <div class="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
+                <x-site.button href="/" size="lg">Back to home</x-site.button>
+                <x-site.button href="/app/login" variant="ghost" size="lg">Log in</x-site.button>
+            </div>
+        </div>
+    </section>
+@endsection

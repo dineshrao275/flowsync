@@ -213,9 +213,13 @@ Hierarchy: **Tenant → Workspace → Project → Task** (subtask `tasks.parent_
   `home` page (404-ish text if unseeded), `GET /page/{slug}` (published only, drafts 404),
   `GET /sitemap.xml` (published pages with `sitemap_include=true`, home always first; `lastmod` from
   `updated_at`), `GET /robots.txt` (Allow all + Sitemap line). Blade: `resources/views/layouts/site.blade.php`
-  (inline CSS, brand/nav/footer; links to `/app/login` + `/app/register`) + `resources/views/public/page.blade.php`
-  (block switch: hero/features/cta/text; text paragraphs split on double newlines). Content editing
-  publishes live without code changes.
+  (sticky glassy header, mobile menu, skip-link, dark footer; links to `/app/login` + `/app/register`) +
+  `resources/views/public/page.blade.php` (block switch: hero/features/cta/text; text paragraphs split on
+  double newlines) + shared `resources/views/components/site/` (`button` variants, `eyebrow`,
+  `section-heading`) + designed `resources/views/errors/404.blade.php`. The public site ships its own
+  Tailwind v4 entry `resources/css/site.css` (`@source` scoped to the site views) and a framework-free
+  `resources/js/site.js` (mobile menu + Escape/resize handling), both registered in `vite.config.js`.
+  Content editing publishes live without code changes.
 
 ## Tenant intake (FB-3)
 - A tenant is a **`draft`** row (no database, `provisioning_status=pending`) until every required field is in. `App\Services\Tenancy\TenantIntake` is the one definition (rules per step `business|admin|plan`, `state()` lists what is missing); both the Super Admin wizard and `POST /api/register` use it, so required data is identical. `TenantActivation::activate()` is the only draft → `pending` → provisioning door: it 422s listing missing fields, then queues `ProvisionTenantJob` with plan, trial (14 days = `onboarding.trial_days`; `0` = no trial) and the **default user** (`DefaultUserClaim` swaps the seeded `owner@{slug}.test` for the real account; the password travels only as a hash and is never stored in the draft).
