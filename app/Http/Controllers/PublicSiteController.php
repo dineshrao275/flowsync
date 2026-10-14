@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\PlatformSetting;
 use App\Models\WebsitePage;
 use App\Models\WebsiteRedirect;
+use App\Support\SiteMedia;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
@@ -78,6 +79,7 @@ class PublicSiteController extends Controller
                 'siteName' => (string) PlatformSetting::value('app_name', 'FlowSync'),
                 'crumbs' => [],
                 'forceRobots' => 'noindex, nofollow',
+                'mediaMap' => SiteMedia::mapForContent($websitePage->content),
             ])
             ->header('X-Robots-Tag', 'noindex, nofollow');
     }
@@ -175,6 +177,7 @@ class PublicSiteController extends Controller
             'forceRobots' => $page->noindex ? 'noindex, follow' : null,
             'ogTitleOverride' => $page->og_title,
             'ogDescriptionOverride' => $page->og_description,
+            'mediaMap' => SiteMedia::mapForContent($page->content),
         ]);
     }
 }

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import api, { fieldErrors } from '../services/api';
 import Card from '../components/ui/Card';
 import Badge from '../components/ui/Badge';
@@ -12,6 +12,7 @@ import { useResource } from '../hooks/useResource';
 import { useSetCrumbs } from '../context/BreadcrumbContext';
 import { useConfirm } from '../components/ui/ConfirmDialog';
 import RichTextEditor from '../components/ui/RichTextEditor';
+import MediaPicker from '../components/cms/MediaPicker';
 
 const emptyForm = {
     slug: '',
@@ -29,7 +30,38 @@ const emptyForm = {
     sort_order: 0,
 };
 
-const BLOCK_TYPES = ['hero', 'features', 'text', 'richtext', 'cta'];
+const BLOCK_TYPES = ['hero', 'logo_cloud', 'features', 'split', 'steps', 'stats', 'testimonials', 'team', 'video', 'text', 'richtext', 'cta'];
+
+// Media id ↔ picker object bridge: blocks store the id, the picker needs the
+// row. Hydrated once per id; a deleted image resolves to null (unpicked).
+function ImageField({ mediaId, onChange }) {
+    const [media, setMedia] = useState(null);
+
+    useEffect(() => {
+        if (!mediaId) {
+            setMedia(null);
+            return;
+        }
+        let live = true;
+        api.get(`/system/media/${mediaId}`)
+            .then(({ data }) => { if (live) setMedia(data.media); })
+            .catch(() => { if (live) setMedia(null); });
+        return () => { live = false; };
+    }, [mediaId]);
+
+    return <MediaPicker label="Image" value={media} onSelect={(m) => onChange(m?.id ?? null)} />;
+}
+
+function textInput(value, onChange, placeholder) {
+    return (
+        <input
+            value={value || ''}
+            onChange={(e) => onChange(e.target.value)}
+            placeholder={placeholder}
+            className="w-full rounded border border-gray-200 px-2 py-1.5 text-sm outline-none focus:border-indigo-400"
+        />
+    );
+}
 
 function BlockEditor({ blocks, onChange }) {
 
@@ -104,6 +136,205 @@ function BlockEditor({ blocks, onChange }) {
                             placeholder="Supporting text"
                             className="mb-2 w-full rounded border border-gray-200 px-2 py-1.5 text-sm outline-none focus:border-indigo-400"
                         />
+                    )}
+                    {['steps', 'split', 'testimonials', 'team'].includes(b.type) && (
+                        <div className="mb-2 grid gap-2 sm:grid-cols-2">
+                            <input
+                                value={b.eyebrow || ''}
+                                onChange={(e) => update(i, { eyebrow: e.target.value })}
+                                placeholder="Eyebrow (small pill label)"
+                                className="rounded border border-gray-200 px-2 py-1.5 text-sm outline-none focus:border-indigo-400"
+                            />
+                            {b.type !== 'split' && (
+                                <input
+                                    value={b.lead || ''}
+                                    onChange={(e) => update(i, { lead: e.target.value })}
+                                    placeholder="Lead paragraph"
+                                    className="rounded border border-gray-200 px-2 py-1.5 text-sm outline-none focus:border-indigo-400"
+                                />
+                            )}
+                        </div>
+                    )}
+                    {b.type === 'logo_cloud' && (
+                        <div className="space-y-2">
+                            {(b.logos || []).map((logo, j) => (
+                                <div key={j} className="flex items-center gap-2">
+                                    <div className="w-1/2">
+                                        <ImageField mediaId={logo.media_id} onChange={(media_id) => {
+                                            const logos = b.logos.map((it, idx) => (idx === j ? { ...it, media_id } : it));
+                                            update(i, { logos });
+                                        }} />
+                                    </div>
+                                    <input
+                                        value={logo.name || ''}
+                                        onChange={(e) => {
+                                            const logos = b.logos.map((it, idx) => (idx === j ? { ...it, name: e.target.value } : it));
+                                            update(i, { logos });
+                                        }}
+                                        placeholder="Company name (when no logo image)"
+                                        className="flex-1 rounded border border-gray-200 px-2 py-1.5 text-sm"
+                                    />
+                                    <button type="button" onClick={() => update(i, { logos: b.logos.filter((_, idx) => idx !== j) })} className="text-red-400">✕</button>
+                                </div>
+                            ))}
+                            <Button type="button" variant="ghost" onClick={() => update(i, { logos: [...(b.logos || []), { name: '', media_id: null }] })}>+ logo</Button>
+                        </div>
+                    )}
+                    {b.type === 'stats' && (
+                        <div className="space-y-2">
+                            {(b.items || []).map((stat, j) => (
+                                <div key={j} className="flex gap-2">
+                                    <input
+                                        value={stat.value || ''}
+                                        onChange={(e) => {
+                                            const items = b.items.map((it, idx) => (idx === j ? { ...it, value: e.target.value } : it));
+                                            update(i, { items });
+                                        }}
+                                        placeholder="Value (e.g. 99.99%)"
+                                        className="w-1/3 rounded border border-gray-200 px-2 py-1.5 text-sm"
+                                    />
+                                    <input
+                                        value={stat.label || ''}
+                                        onChange={(e) => {
+                                            const items = b.items.map((it, idx) => (idx === j ? { ...it, label: e.target.value } : it));
+                                            update(i, { items });
+                                        }}
+                                        placeholder="Label"
+                                        className="flex-1 rounded border border-gray-200 px-2 py-1.5 text-sm"
+                                    />
+                                    <button type="button" onClick={() => update(i, { items: b.items.filter((_, idx) => idx !== j) })} className="text-red-400">✕</button>
+                                </div>
+                            ))}
+                            <Button type="button" variant="ghost" onClick={() => update(i, { items: [...(b.items || []), { value: '', label: '' }] })}>+ stat</Button>
+                        </div>
+                    )}
+                    {b.type === 'steps' && (
+                        <div className="space-y-2">
+                            {(b.items || []).map((step, j) => (
+                                <div key={j} className="flex gap-2">
+                                    <input
+                                        value={step.title || ''}
+                                        onChange={(e) => {
+                                            const items = b.items.map((it, idx) => (idx === j ? { ...it, title: e.target.value } : it));
+                                            update(i, { items });
+                                        }}
+                                        placeholder="Step title"
+                                        className="w-1/3 rounded border border-gray-200 px-2 py-1.5 text-sm"
+                                    />
+                                    <input
+                                        value={step.text || ''}
+                                        onChange={(e) => {
+                                            const items = b.items.map((it, idx) => (idx === j ? { ...it, text: e.target.value } : it));
+                                            update(i, { items });
+                                        }}
+                                        placeholder="What happens"
+                                        className="flex-1 rounded border border-gray-200 px-2 py-1.5 text-sm"
+                                    />
+                                    <button type="button" onClick={() => update(i, { items: b.items.filter((_, idx) => idx !== j) })} className="text-red-400">✕</button>
+                                </div>
+                            ))}
+                            <Button type="button" variant="ghost" onClick={() => update(i, { items: [...(b.items || []), { title: '', text: '' }] })}>+ step</Button>
+                        </div>
+                    )}
+                    {b.type === 'split' && (
+                        <div className="space-y-2">
+                            <textarea
+                                value={b.body || ''}
+                                onChange={(e) => update(i, { body: e.target.value })}
+                                placeholder="Supporting paragraph"
+                                rows={3}
+                                className="w-full rounded border border-gray-200 px-2 py-1.5 text-sm outline-none focus:border-indigo-400"
+                            />
+                            <ImageField mediaId={b.media_id} onChange={(media_id) => update(i, { media_id })} />
+                            <label className="flex items-center gap-2 text-sm text-gray-700">
+                                <input type="checkbox" checked={!!b.flip} onChange={(e) => update(i, { flip: e.target.checked })} className="h-4 w-4 rounded border-gray-300 text-indigo-600" />
+                                Image on the left
+                            </label>
+                        </div>
+                    )}
+                    {b.type === 'testimonials' && (
+                        <div className="space-y-2">
+                            {(b.items || []).map((quote, j) => (
+                                <div key={j} className="space-y-2 rounded border border-gray-100 p-2">
+                                    <textarea
+                                        value={quote.quote || ''}
+                                        onChange={(e) => {
+                                            const items = b.items.map((it, idx) => (idx === j ? { ...it, quote: e.target.value } : it));
+                                            update(i, { items });
+                                        }}
+                                        placeholder="Quote"
+                                        rows={2}
+                                        className="w-full rounded border border-gray-200 px-2 py-1.5 text-sm"
+                                    />
+                                    <div className="flex gap-2">
+                                        <input
+                                            value={quote.name || ''}
+                                            onChange={(e) => {
+                                                const items = b.items.map((it, idx) => (idx === j ? { ...it, name: e.target.value } : it));
+                                                update(i, { items });
+                                            }}
+                                            placeholder="Name"
+                                            className="w-1/3 rounded border border-gray-200 px-2 py-1.5 text-sm"
+                                        />
+                                        <input
+                                            value={quote.role || ''}
+                                            onChange={(e) => {
+                                                const items = b.items.map((it, idx) => (idx === j ? { ...it, role: e.target.value } : it));
+                                                update(i, { items });
+                                            }}
+                                            placeholder="Role, company"
+                                            className="flex-1 rounded border border-gray-200 px-2 py-1.5 text-sm"
+                                        />
+                                        <button type="button" onClick={() => update(i, { items: b.items.filter((_, idx) => idx !== j) })} className="text-red-400">✕</button>
+                                    </div>
+                                    <ImageField mediaId={quote.media_id} onChange={(media_id) => {
+                                        const items = b.items.map((it, idx) => (idx === j ? { ...it, media_id } : it));
+                                        update(i, { items });
+                                    }} />
+                                </div>
+                            ))}
+                            <Button type="button" variant="ghost" onClick={() => update(i, { items: [...(b.items || []), { quote: '', name: '', role: '', media_id: null }] })}>+ testimonial</Button>
+                        </div>
+                    )}
+                    {b.type === 'team' && (
+                        <div className="space-y-2">
+                            {(b.members || []).map((member, j) => (
+                                <div key={j} className="space-y-2 rounded border border-gray-100 p-2">
+                                    <div className="flex gap-2">
+                                        <input
+                                            value={member.name || ''}
+                                            onChange={(e) => {
+                                                const members = b.members.map((it, idx) => (idx === j ? { ...it, name: e.target.value } : it));
+                                                update(i, { members });
+                                            }}
+                                            placeholder="Name"
+                                            className="w-1/3 rounded border border-gray-200 px-2 py-1.5 text-sm"
+                                        />
+                                        <input
+                                            value={member.role || ''}
+                                            onChange={(e) => {
+                                                const members = b.members.map((it, idx) => (idx === j ? { ...it, role: e.target.value } : it));
+                                                update(i, { members });
+                                            }}
+                                            placeholder="Role"
+                                            className="flex-1 rounded border border-gray-200 px-2 py-1.5 text-sm"
+                                        />
+                                        <button type="button" onClick={() => update(i, { members: b.members.filter((_, idx) => idx !== j) })} className="text-red-400">✕</button>
+                                    </div>
+                                    <ImageField mediaId={member.media_id} onChange={(media_id) => {
+                                        const members = b.members.map((it, idx) => (idx === j ? { ...it, media_id } : it));
+                                        update(i, { members });
+                                    }} />
+                                </div>
+                            ))}
+                            <Button type="button" variant="ghost" onClick={() => update(i, { members: [...(b.members || []), { name: '', role: '', media_id: null }] })}>+ member</Button>
+                        </div>
+                    )}
+                    {b.type === 'video' && (
+                        <div className="mb-2">
+                            {textInput(b.embed_url, (embed_url) => update(i, { embed_url }), 'YouTube or Vimeo URL')}
+                            <p className="mt-1 text-xs text-gray-400">Only YouTube/Vimeo embed; anything else renders as a link.</p>
+                        </div>
                     )}
                     {b.cta && (
                         <div className="flex gap-2">

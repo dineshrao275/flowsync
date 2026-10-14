@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Models\Media;
 use App\Models\WebsitePage;
 use App\Models\WebsiteRedirect;
 use Tests\IsolatesDatabase;
@@ -183,6 +184,66 @@ class CmsTest extends TestCase
     public function test_api_unknown_paths_keep_their_json_404(): void
     {
         $this->getJson('/api/definitely-not-a-route')->assertNotFound();
+    }
+
+    public function test_display_blocks_render_with_media(): void
+    {
+        $this->loginSuperAdmin();
+
+        $logo = Media::create(['disk' => 'public', 'path' => 'media/acme.png', 'original_name' => 'acme.png', 'mime' => 'image/png', 'size' => 100, 'alt' => 'Acme logo']);
+        $photo = Media::create(['disk' => 'public', 'path' => 'media/ada.png', 'original_name' => 'ada.png', 'mime' => 'image/png', 'size' => 100, 'width' => 200, 'height' => 200]);
+
+        $this->postJson('/api/system/pages', [
+            'slug' => 'showcase',
+            'title' => 'Showcase',
+            'status' => 'published',
+            'content' => [
+                ['type' => 'logo_cloud', 'heading' => 'Loved by teams at', 'logos' => [
+                    ['name' => 'Acme Corp', 'media_id' => $logo->id],
+                    ['name' => 'Globex'],
+                ]],
+                ['type' => 'stats', 'items' => [
+                    ['value' => '99.99%', 'label' => 'Uptime'],
+                    ['value' => '40+', 'label' => 'Countries'],
+                ]],
+                ['type' => 'steps', 'eyebrow' => 'How it works', 'heading' => 'Live in three steps', 'items' => [
+                    ['title' => 'Sign up', 'text' => 'Create your workspace.'],
+                ]],
+                ['type' => 'split', 'eyebrow' => 'Boards', 'heading' => 'See everything', 'body' => 'One calm view.', 'media_id' => $photo->id, 'flip' => true, 'cta' => ['label' => 'Try it', 'href' => '/app/register']],
+                ['type' => 'testimonials', 'heading' => 'Customers', 'items' => [
+                    ['quote' => 'It changed how we ship.', 'name' => 'Ada', 'role' => 'CTO, Acme', 'media_id' => $photo->id],
+                ]],
+                ['type' => 'team', 'heading' => 'Team', 'members' => [
+                    ['name' => 'Grace', 'role' => 'Founder', 'media_id' => $photo->id],
+                ]],
+                ['type' => 'video', 'heading' => 'Watch', 'embed_url' => 'https://www.youtube.com/watch?v=abc123XYZ_-'],
+            ],
+        ])->assertStatus(201);
+
+        $this->get('/showcase')
+            ->assertOk()
+            ->assertSee('Loved by teams at')
+            ->assertSee('storage/media/acme.png', false)
+            ->assertSee('Globex')
+            ->assertSee('99.99%')
+            ->assertSee('Live in three steps')
+            ->assertSee('Sign up')
+            ->assertSee('See everything')
+            ->assertSee('storage/media/ada.png', false)
+            ->assertSee('It changed how we ship.')
+            ->assertSee('Grace')
+            ->assertSee('https://www.youtube.com/embed/abc123XYZ_-', false);
+
+        // Unknown video hosts never become iframes.
+        $page = WebsitePage::where('slug', 'showcase')->first();
+        $content = $page->content;
+        $content[6] = ['type' => 'video', 'heading' => 'Watch', 'embed_url' => 'https://evil.example/v.mp4'];
+        $page->update(['content' => $content]);
+
+        $this->get('/showcase')
+            ->assertOk()
+            ->assertDontSee('<iframe', false)
+            ->assertSee('Watch the video');
     }
 
     public function test_super_admin_duplicates_a_page(): void
