@@ -1,6 +1,8 @@
 <?php
 
 use App\Http\Controllers\AuditLogsController;
+use App\Http\Controllers\BlogCategoryController;
+use App\Http\Controllers\BlogPostController;
 use App\Http\Controllers\CmsController;
 use App\Http\Controllers\FeatureManagementController;
 use App\Http\Controllers\ImpersonationController;
@@ -99,6 +101,17 @@ Route::middleware('super_admin')->group(function () {
     Route::post('system/media', [MediaController::class, 'store'])->middleware('throttle:30,1');
     Route::put('system/media/{medium}', [MediaController::class, 'update']);
     Route::delete('system/media/{medium}', [MediaController::class, 'destroy']);
+    Route::get('system/blog-categories', [BlogCategoryController::class, 'index']);
+    Route::post('system/blog-categories', [BlogCategoryController::class, 'store']);
+    Route::put('system/blog-categories/{blogCategory}', [BlogCategoryController::class, 'update']);
+    Route::delete('system/blog-categories/{blogCategory}', [BlogCategoryController::class, 'destroy']);
+    Route::get('system/blog-posts', [BlogPostController::class, 'index']);
+    Route::post('system/blog-posts', [BlogPostController::class, 'store']);
+    Route::get('system/blog-posts/{blogPost}', [BlogPostController::class, 'show']);
+    Route::put('system/blog-posts/{blogPost}', [BlogPostController::class, 'update']);
+    Route::delete('system/blog-posts/{blogPost}', [BlogPostController::class, 'destroy']);
+    Route::post('system/blog-posts/{blogPost}/publish', [BlogPostController::class, 'publish']);
+    Route::post('system/blog-posts/{blogPost}/unpublish', [BlogPostController::class, 'unpublish']);
     Route::get('system/website-settings', [SiteSettingsController::class, 'index']);
     Route::put('system/website-settings', [SiteSettingsController::class, 'update']);
     Route::get('system/redirects', [WebsiteRedirectController::class, 'index']);

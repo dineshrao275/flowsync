@@ -77,6 +77,7 @@ return [
         ['api/tenants/{tenant}/products', 'billing.view', 'billing.manage'],
         ['api/system/feature-flags*', 'flags.view', 'flags.manage'],
         ['api/system/pages*', 'content.view', 'content.manage'],
+        ['api/system/blog*', 'content.view', 'content.manage'],
         ['api/system/redirects*', 'content.view', 'content.manage'],
         ['api/system/invoices*', 'billing.view', 'billing.view'],
         ['api/system/media*', 'content.view', 'content.manage'],
