@@ -4,6 +4,7 @@ use App\Http\Controllers\AnalyticsController;
 use App\Http\Controllers\AttachmentController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\BillingController;
+use App\Http\Controllers\BlogController;
 use App\Http\Controllers\ClientLogController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\ExportController;
@@ -308,6 +309,14 @@ Route::get('page/{slug}', [PublicSiteController::class, 'page']);
 
 // Signed draft preview for the CMS (never indexed — see controller).
 Route::get('preview/{websitePage}', [PublicSiteController::class, 'preview'])->name('site.preview')->middleware('signed');
+
+// Public blog. Specific routes first: `blog/{post}` would otherwise claim
+// the feed and category paths as post slugs.
+Route::get('blog', [BlogController::class, 'index'])->name('site.blog');
+Route::get('blog/rss.xml', [BlogController::class, 'feed'])->name('site.blog_feed');
+Route::get('blog/category/{slug}', [BlogController::class, 'category'])->name('site.blog_category');
+Route::get('blog/{post}', [BlogController::class, 'show'])->name('site.blog_post');
+Route::get('blog-preview/{blogPost}', [BlogController::class, 'preview'])->name('site.blog_preview')->middleware('signed');
 
 // Named reset landing for the framework's ResetPassword mail: the notification
 // builds its URL via `route('password.reset', token + email)`, and without this

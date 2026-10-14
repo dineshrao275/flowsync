@@ -2,7 +2,7 @@
      every page; BreadcrumbList on every non-home page via $crumbs
      ([['name' => …, 'url' => …], …], last item may omit url); FAQPage
      ships when $faq carries [['q' => …, 'a' => …], …] pairs. --}}
-@props(['crumbs' => [], 'faq' => []])
+@props(['crumbs' => [], 'faq' => [], 'article' => null])
 
 @php
     $siteName = $siteName ?? config('app.name', 'FlowSync');
@@ -32,6 +32,18 @@
             $items[] = $item;
         }
         $graph[] = ['@type' => 'BreadcrumbList', 'itemListElement' => $items];
+    }
+
+    if (is_array($article) && ! empty($article['headline'])) {
+        $posting = ['@type' => 'BlogPosting', 'headline' => $article['headline']];
+        foreach (['description' => 'description', 'image' => 'image', 'datePublished' => 'datePublished', 'dateModified' => 'dateModified'] as $key => $prop) {
+            if (! empty($article[$key])) {
+                $posting[$prop] = $article[$key];
+            }
+        }
+        $posting['author'] = ['@type' => $article['author'] ?? null ? 'Person' : 'Organization', 'name' => $article['author'] ?? $siteName];
+        $posting['inLanguage'] = 'en';
+        $graph[] = $posting;
     }
 
     $faq = array_values(array_filter($faq, fn ($entry) => is_array($entry) && trim((string) ($entry['q'] ?? '')) !== '' && trim((string) ($entry['a'] ?? '')) !== ''));

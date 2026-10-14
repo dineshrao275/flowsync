@@ -247,7 +247,12 @@ Hierarchy: **Tenant → Workspace → Project → Task** (subtask `tasks.parent_
   duplicate as drafts via `POST system/pages/{page}/duplicate` (`-copy` slug walk). The block editor
   gained a `richtext` type (shared TipTap `RichTextEditor`, HTML rendered server-side), and the page
   edit form always loads the full row via `show` — the list payload has no blocks, so editing from it
-  would save back an empty list. Content editing
+  would save back an empty list. The blog (`blog_categories` + `blog_posts`, cover via media FK, TipTap
+  body, computed reading time, SEO parity columns) ships CRUD + publish lifecycle at
+  `api/system/blog*` (SPA `pages/BlogPosts.jsx` at `/admin/blog` with inline category manager) and a
+  public surface (`BlogController`: `/blog`, `/blog/category/{slug}`, `/blog/{post}`, `/blog/rss.xml`,
+  signed `blog-preview/{post}`) with `BlogPosting` schema, related posts, and sitemap integration
+  (posts + populated categories; noindex excluded). Content editing
   publishes live without code changes.
 
 ## Tenant intake (FB-3)

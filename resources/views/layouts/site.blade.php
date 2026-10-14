@@ -19,7 +19,7 @@
         <script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','{{ $site['ga_measurement_id'] }}');</script>
     @endif
     @if(!empty($site['custom_head'])){!! $site['custom_head'] !!}@endif
-    <x-site.json-ld :crumbs="$crumbs ?? []" :faq="$faqSchema ?? []" />
+    <x-site.json-ld :crumbs="$crumbs ?? []" :faq="$faqSchema ?? []" :article="$article ?? null" />
     @vite(['resources/css/site.css', 'resources/js/site.js'])
 </head>
 <body class="bg-white font-sans text-slate-600 antialiased">

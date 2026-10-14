@@ -126,6 +126,11 @@ class PublicSiteController extends Controller
                 .'<lastmod>'.$page->updated_at?->toDateString().'</lastmod></url>'."\n";
         }
 
+        foreach (app(BlogController::class)->sitemapUrls() as $entry) {
+            $xml .= '  <url><loc>'.e($entry['loc']).'</loc>'
+                .'<lastmod>'.$entry['lastmod'].'</lastmod></url>'."\n";
+        }
+
         $xml .= '</urlset>';
 
         return response($xml, 200)->header('Content-Type', 'application/xml');
