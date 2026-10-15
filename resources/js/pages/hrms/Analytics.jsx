@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import api from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
@@ -16,14 +17,14 @@ import { Tiles, HBar } from '../../components/hrms/AnalyticsWidgets';
 import { formatMinutes } from '../../utils/time';
 
 const TABS = [
-    { key: 'overview', label: 'Overview', permission: 'hrms.analytics.view', endpoint: '/hrms/analytics/overview', exportDomain: null },
-    { key: 'attendance', label: 'Attendance', permission: 'hrms.attendance.view', endpoint: '/hrms/analytics/attendance', exportDomain: 'attendance' },
-    { key: 'leave', label: 'Leave', permission: 'hrms.leave.manage', endpoint: '/hrms/analytics/leave', exportDomain: 'leave' },
-    { key: 'lifecycle', label: 'Lifecycle', permission: 'hrms.analytics.view', endpoint: '/hrms/analytics/lifecycle', exportDomain: 'lifecycle' },
-    { key: 'performance', label: 'Performance', permission: 'hrms.analytics.view', endpoint: '/hrms/analytics/performance', exportDomain: 'performance' },
-    { key: 'payroll', label: 'Payroll', permission: 'hrms.payroll.run', endpoint: '/hrms/analytics/payroll', exportDomain: 'payroll' },
-    { key: 'documents', label: 'Documents', permission: 'hrms.documents.view', endpoint: '/hrms/analytics/documents', exportDomain: 'documents' },
-    { key: 'assets', label: 'Assets', permission: 'hrms.assets.view', endpoint: '/hrms/analytics/assets', exportDomain: 'assets' },
+    { key: 'overview', labelKey: 'hrms.analytics.tabs.overview', permission: 'hrms.analytics.view', endpoint: '/hrms/analytics/overview', exportDomain: null },
+    { key: 'attendance', labelKey: 'hrms.analytics.tabs.attendance', permission: 'hrms.attendance.view', endpoint: '/hrms/analytics/attendance', exportDomain: 'attendance' },
+    { key: 'leave', labelKey: 'hrms.analytics.tabs.leave', permission: 'hrms.leave.manage', endpoint: '/hrms/analytics/leave', exportDomain: 'leave' },
+    { key: 'lifecycle', labelKey: 'hrms.analytics.tabs.lifecycle', permission: 'hrms.analytics.view', endpoint: '/hrms/analytics/lifecycle', exportDomain: 'lifecycle' },
+    { key: 'performance', labelKey: 'hrms.analytics.tabs.performance', permission: 'hrms.analytics.view', endpoint: '/hrms/analytics/performance', exportDomain: 'performance' },
+    { key: 'payroll', labelKey: 'hrms.analytics.tabs.payroll', permission: 'hrms.payroll.run', endpoint: '/hrms/analytics/payroll', exportDomain: 'payroll' },
+    { key: 'documents', labelKey: 'hrms.analytics.tabs.documents', permission: 'hrms.documents.view', endpoint: '/hrms/analytics/documents', exportDomain: 'documents' },
+    { key: 'assets', labelKey: 'hrms.analytics.tabs.assets', permission: 'hrms.assets.view', endpoint: '/hrms/analytics/assets', exportDomain: 'assets' },
 ];
 
 /**
@@ -36,7 +37,8 @@ const TABS = [
  * the same filters on screen; the backend writes the access row.
  */
 export default function Analytics() {
-    usePageTitle('Analytics');
+    const { t } = useTranslation();
+    usePageTitle(t('hrms.analytics.pageTitle'));
     const setCrumbs = useSetCrumbs();
     const navigate = useNavigate();
     const { can } = useAuth();
@@ -58,8 +60,8 @@ export default function Analytics() {
     cacheRef.current = cache;
 
     useEffect(() => {
-        setCrumbs([{ label: 'HRMS', to: '/hrms' }, { label: 'Analytics' }]);
-    }, [setCrumbs]);
+        setCrumbs([{ label: 'HRMS', to: '/hrms' }, { label: t('hrms.analytics.pageTitle') }]);
+    }, [setCrumbs, t]);
 
     const cacheKey = `${active.key}|${filters.from}|${filters.to}`;
     const data = cache[cacheKey] ?? null;
@@ -87,7 +89,7 @@ export default function Analytics() {
                 if (!cancelled) setCache((prev) => ({ ...prev, [cacheKey]: response.data }));
             })
             .catch((err) => {
-                if (!cancelled) fail('Unable to load analytics.')(err);
+                if (!cancelled) fail(t('hrms.analytics.loadFailed'))(err);
             })
             .finally(() => {
                 if (!cancelled) setLoading(false);
@@ -96,7 +98,7 @@ export default function Analytics() {
         return () => {
             cancelled = true;
         };
-    }, [cacheKey, active, filters.from, filters.to, fail]);
+    }, [cacheKey, active, filters.from, filters.to, fail, t]);
 
     function changeTab(key) {
         setSearchParams(key === tabs[0]?.key ? {} : { tab: key });
@@ -125,41 +127,41 @@ export default function Analytics() {
             link.click();
             link.remove();
             window.URL.revokeObjectURL(url);
-            toast.success('Export downloaded. The pull was logged.');
-        } catch (err) {
-            toast.error('Unable to export analytics.');
+            toast.success(t('hrms.analytics.exportDownloaded'));
+        } catch {
+            toast.error(t('hrms.analytics.exportFailed'));
         } finally {
             setExporting(false);
         }
     }
 
     if (tabs.length === 0) {
-        return <EmptyState title="No analytics access" message="Your role has no analytics permissions." />;
+        return <EmptyState title={t('hrms.analytics.noAccessTitle')} message={t('hrms.analytics.noAccessMessage')} />;
     }
 
     return (
         <div className="space-y-4">
             <div className="flex flex-wrap items-center justify-between gap-3">
                 <div>
-                    <h2 className="text-xl font-semibold text-gray-900">Analytics</h2>
-                    <p className="mt-0.5 text-sm text-gray-500">Workforce dashboards across every HRMS domain.</p>
+                    <h2 className="text-xl font-semibold text-gray-900">{t('hrms.analytics.pageTitle')}</h2>
+                    <p className="mt-0.5 text-sm text-gray-500">{t('hrms.analytics.subtitle')}</p>
                 </div>
                 {active.exportDomain && canExport && (
                     <Button variant="secondary" onClick={exportCsv} disabled={exporting || !data}>
-                        {exporting ? 'Exporting…' : 'Export CSV'}
+                        {exporting ? t('hrms.analytics.exporting') : t('hrms.analytics.exportCsv')}
                     </Button>
                 )}
             </div>
 
             <div className="flex flex-wrap items-end gap-3">
                 <Input
-                    label="From"
+                    label={t('hrms.analytics.from')}
                     type="date"
                     value={filters.from}
                     onChange={(e) => setFilters((prev) => ({ ...prev, from: e.target.value }))}
                 />
                 <Input
-                    label="To"
+                    label={t('hrms.analytics.to')}
                     type="date"
                     value={filters.to}
                     onChange={(e) => setFilters((prev) => ({ ...prev, to: e.target.value }))}
@@ -179,7 +181,7 @@ export default function Analytics() {
                                     : 'border-transparent text-gray-500 hover:text-gray-800'
                             }`}
                         >
-                            {tab.label}
+                            {t(tab.labelKey)}
                         </button>
                     ))}
                 </nav>
@@ -212,6 +214,7 @@ function mapOf(record) {
 }
 
 function OverviewTab({ payload }) {
+    const { t } = useTranslation();
     const headcount = payload.headcount ?? {};
     const attendance = payload.attendance ?? {};
     const leave = payload.leave ?? {};
@@ -222,26 +225,26 @@ function OverviewTab({ payload }) {
         <div className="space-y-6">
             <Tiles
                 items={[
-                    { label: 'Headcount', value: headcount.total },
-                    { label: 'New hires (month)', value: headcount.new_hires_this_month },
-                    { label: 'Exits (month)', value: headcount.exits_this_month },
-                    { label: 'Attrition (3 mo)', value: headcount.attrition_3mo_percent != null ? `${headcount.attrition_3mo_percent}%` : null },
-                    { label: 'Present days', value: attendance.present_days, hint: 'current window' },
-                    { label: 'Absent days', value: attendance.absent_days, hint: 'current window' },
-                    { label: 'Leave pending', value: leave.pending_approvals },
-                    { label: 'Onboarding done', value: lifecycle.onboarding_completion_percent != null ? `${lifecycle.onboarding_completion_percent}%` : null },
-                    { label: 'Reviews complete', value: performance.review_completion_percent != null ? `${performance.review_completion_percent}%` : null },
+                    { label: t('hrms.analytics.tiles.headcount'), value: headcount.total },
+                    { label: t('hrms.analytics.tiles.newHiresThisMonth'), value: headcount.new_hires_this_month },
+                    { label: t('hrms.analytics.tiles.exitsThisMonth'), value: headcount.exits_this_month },
+                    { label: t('hrms.analytics.tiles.attrition3mo'), value: headcount.attrition_3mo_percent != null ? `${headcount.attrition_3mo_percent}%` : null },
+                    { label: t('hrms.analytics.tiles.presentDays'), value: attendance.present_days, hint: t('hrms.analytics.hints.currentWindow') },
+                    { label: t('hrms.analytics.tiles.absentDays'), value: attendance.absent_days, hint: t('hrms.analytics.hints.currentWindow') },
+                    { label: t('hrms.analytics.tiles.leavePending'), value: leave.pending_approvals },
+                    { label: t('hrms.analytics.tiles.onboardingDone'), value: lifecycle.onboarding_completion_percent != null ? `${lifecycle.onboarding_completion_percent}%` : null },
+                    { label: t('hrms.analytics.tiles.reviewsComplete'), value: performance.review_completion_percent != null ? `${performance.review_completion_percent}%` : null },
                 ]}
             />
             <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-                <Card title="Headcount by department" subtitle="Active employees per team">
-                    <HBar data={mapOf(headcount.by_department)} emptyHint="No departments to chart yet." />
+                <Card title={t('hrms.analytics.cards.headcountByDept')} subtitle={t('hrms.analytics.cards.activePerTeam')}>
+                    <HBar data={mapOf(headcount.by_department)} emptyHint={t('hrms.analytics.empties.noDepartments')} />
                 </Card>
-                <Card title="Leave by type" subtitle="Approved days per leave type">
+                <Card title={t('hrms.analytics.cards.leaveByType')} subtitle={t('hrms.analytics.cards.approvedDaysPerType')}>
                     <HBar
                         data={(leave.by_type ?? []).map((row) => ({ name: row.type, value: Number(row.days) || 0 }))}
                         color="#059669"
-                        emptyHint="No approved leave in this window."
+                        emptyHint={t('hrms.analytics.empties.noApprovedLeave')}
                     />
                 </Card>
             </div>
@@ -250,33 +253,35 @@ function OverviewTab({ payload }) {
 }
 
 function AttendanceTab({ payload }) {
+    const { t } = useTranslation();
+
     return (
         <div className="space-y-6">
             <Tiles
                 items={[
-                    { label: 'Present days', value: payload.present_days },
-                    { label: 'Absent days', value: payload.absent_days },
-                    { label: 'Late days', value: payload.late_days },
-                    { label: 'Leave days', value: payload.leave_days },
-                    { label: 'Avg worked', value: payload.average_worked_hours != null ? `${payload.average_worked_hours}h` : null },
-                    { label: 'Overtime', value: formatMinutes(payload.overtime_minutes) },
+                    { label: t('hrms.analytics.tiles.presentDays'), value: payload.present_days },
+                    { label: t('hrms.analytics.tiles.absentDays'), value: payload.absent_days },
+                    { label: t('hrms.analytics.tiles.lateDays'), value: payload.late_days },
+                    { label: t('hrms.analytics.tiles.leaveDays'), value: payload.leave_days },
+                    { label: t('hrms.analytics.tiles.avgWorked'), value: payload.average_worked_hours != null ? `${payload.average_worked_hours}h` : null },
+                    { label: t('hrms.analytics.tiles.overtime'), value: formatMinutes(payload.overtime_minutes) },
                 ]}
             />
             <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-                <Card title="Most late" subtitle="Top 5 by late minutes">
+                <Card title={t('hrms.analytics.cards.mostLate')} subtitle={t('hrms.analytics.cards.top5LateMinutes')}>
                     <HBar
                         data={(payload.top_late ?? []).map((row) => ({ name: row.name, value: Number(row.minutes) || 0 }))}
                         color="#d97706"
                         format={(value) => formatMinutes(value)}
-                        emptyHint="Nobody ran late in this window."
+                        emptyHint={t('hrms.analytics.empties.nobodyLate')}
                     />
                 </Card>
-                <Card title="Most overtime" subtitle="Top 5 by overtime minutes">
+                <Card title={t('hrms.analytics.cards.mostOvertime')} subtitle={t('hrms.analytics.cards.top5OvertimeMinutes')}>
                     <HBar
                         data={(payload.top_overtime ?? []).map((row) => ({ name: row.name, value: Number(row.minutes) || 0 }))}
                         color="#2563eb"
                         format={(value) => formatMinutes(value)}
-                        emptyHint="No overtime in this window."
+                        emptyHint={t('hrms.analytics.empties.noOvertime')}
                     />
                 </Card>
             </div>
@@ -285,43 +290,44 @@ function AttendanceTab({ payload }) {
 }
 
 function LeaveTab({ payload }) {
+    const { t } = useTranslation();
     const pending = payload.pending_items ?? [];
 
     return (
         <div className="space-y-6">
             <Tiles
                 items={[
-                    { label: 'Pending approvals', value: payload.pending_approvals },
-                    { label: 'Expiry liability', value: payload.expiry_liability ?? 'Withheld', hint: payload.expiry_liability == null ? 'needs the payroll run permission' : 'estimate' },
+                    { label: t('hrms.analytics.tiles.pendingApprovals'), value: payload.pending_approvals },
+                    { label: t('hrms.analytics.tiles.expiryLiability'), value: payload.expiry_liability ?? t('hrms.analytics.withheld'), hint: payload.expiry_liability == null ? t('hrms.analytics.hints.needsPayrollRun') : t('hrms.analytics.hints.estimate') },
                 ]}
             />
             <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-                <Card title="Leave by type" subtitle="Approved days per leave type">
+                <Card title={t('hrms.analytics.cards.leaveByType')} subtitle={t('hrms.analytics.cards.approvedDaysPerType')}>
                     <HBar
                         data={(payload.by_type ?? []).map((row) => ({ name: row.type, value: Number(row.days) || 0 }))}
                         color="#059669"
-                        emptyHint="No approved leave in this window."
+                        emptyHint={t('hrms.analytics.empties.noApprovedLeave')}
                     />
                 </Card>
-                <Card title="Top consumers" subtitle="Top 5 by approved days">
+                <Card title={t('hrms.analytics.cards.topConsumers')} subtitle={t('hrms.analytics.cards.top5ApprovedDays')}>
                     <HBar
                         data={(payload.top_consumers ?? []).map((row) => ({ name: row.name, value: Number(row.days) || 0 }))}
-                        emptyHint="No approved leave in this window."
+                        emptyHint={t('hrms.analytics.empties.noApprovedLeave')}
                     />
                 </Card>
             </div>
-            <Card title="Pending requests" subtitle="Oldest ten awaiting a decision">
+            <Card title={t('hrms.analytics.cards.pendingRequests')} subtitle={t('hrms.analytics.cards.oldestTen')}>
                 <Table>
                     <thead>
                         <tr>
-                            <Th>Employee</Th>
-                            <Th>From</Th>
-                            <Th>To</Th>
+                            <Th>{t('hrms.analytics.table.employee')}</Th>
+                            <Th>{t('hrms.analytics.table.from')}</Th>
+                            <Th>{t('hrms.analytics.table.to')}</Th>
                         </tr>
                     </thead>
                     <tbody>
                         {pending.length === 0 ? (
-                            <TableEmpty colSpan={3}>Nothing awaiting a decision.</TableEmpty>
+                            <TableEmpty colSpan={3}>{t('hrms.analytics.empties.nothingAwaiting')}</TableEmpty>
                         ) : (
                             pending.map((row) => (
                                 <tr key={row.id}>
@@ -339,22 +345,24 @@ function LeaveTab({ payload }) {
 }
 
 function LifecycleTab({ payload }) {
+    const { t } = useTranslation();
+
     return (
         <div className="space-y-6">
             <Tiles
                 items={[
-                    { label: 'Onboarding avg', value: payload.onboarding_avg_days != null ? `${payload.onboarding_avg_days} days` : null },
-                    { label: 'Offboarding avg', value: payload.offboarding_avg_days != null ? `${payload.offboarding_avg_days} days` : null },
-                    { label: 'Onboarding done', value: payload.onboarding_completion_percent != null ? `${payload.onboarding_completion_percent}%` : null },
-                    { label: 'Offboarding done', value: payload.offboarding_completion_percent != null ? `${payload.offboarding_completion_percent}%` : null },
-                    { label: 'Time to first day', value: payload.time_to_first_day_avg != null ? `${payload.time_to_first_day_avg} days` : null },
+                    { label: t('hrms.analytics.tiles.onboardingAvg'), value: payload.onboarding_avg_days != null ? t('hrms.analytics.days', { count: payload.onboarding_avg_days }) : null },
+                    { label: t('hrms.analytics.tiles.offboardingAvg'), value: payload.offboarding_avg_days != null ? t('hrms.analytics.days', { count: payload.offboarding_avg_days }) : null },
+                    { label: t('hrms.analytics.tiles.onboardingDone'), value: payload.onboarding_completion_percent != null ? `${payload.onboarding_completion_percent}%` : null },
+                    { label: t('hrms.analytics.tiles.offboardingDone'), value: payload.offboarding_completion_percent != null ? `${payload.offboarding_completion_percent}%` : null },
+                    { label: t('hrms.analytics.tiles.timeToFirstDay'), value: payload.time_to_first_day_avg != null ? t('hrms.analytics.days', { count: payload.time_to_first_day_avg }) : null },
                 ]}
             />
-            <Card title="Checklist completion" subtitle="Share of mandatory items closed">
+            <Card title={t('hrms.analytics.cards.checklistCompletion')} subtitle={t('hrms.analytics.cards.shareMandatory')}>
                 <HBar
                     data={[
-                        { name: 'Onboarding', value: Number(payload.onboarding_completion_percent) || 0 },
-                        { name: 'Offboarding', value: Number(payload.offboarding_completion_percent) || 0 },
+                        { name: t('hrms.analytics.onboarding'), value: Number(payload.onboarding_completion_percent) || 0 },
+                        { name: t('hrms.analytics.offboarding'), value: Number(payload.offboarding_completion_percent) || 0 },
                     ]}
                     color="#059669"
                     format={(value) => `${value}%`}
@@ -365,6 +373,7 @@ function LifecycleTab({ payload }) {
 }
 
 function PerformanceTab({ payload }) {
+    const { t } = useTranslation();
     const ratings = payload.ratings ?? null;
     const goals = Object.entries(payload.goals_by_status ?? {}).reduce((sum, [, count]) => sum + Number(count), 0);
 
@@ -372,26 +381,26 @@ function PerformanceTab({ payload }) {
         <div className="space-y-6">
             <Tiles
                 items={[
-                    { label: 'Goals tracked', value: goals },
-                    { label: 'Reviews complete', value: payload.review_completion_percent != null ? `${payload.review_completion_percent}%` : null },
+                    { label: t('hrms.analytics.tiles.goalsTracked'), value: goals },
+                    { label: t('hrms.analytics.tiles.reviewsComplete'), value: payload.review_completion_percent != null ? `${payload.review_completion_percent}%` : null },
                 ]}
             />
-            <Card title="Goals by status" subtitle="Counts only — never scores">
-                <HBar data={mapOf(payload.goals_by_status)} emptyHint="No goals to chart yet." />
+            <Card title={t('hrms.analytics.cards.goalsByStatus')} subtitle={t('hrms.analytics.cards.countsOnly')}>
+                <HBar data={mapOf(payload.goals_by_status)} emptyHint={t('hrms.analytics.empties.noGoals')} />
             </Card>
             {ratings && (
-                <Card title="Manager ratings" subtitle="Non-peer cycles with a shared rating">
+                <Card title={t('hrms.analytics.cards.managerRatings')} subtitle={t('hrms.analytics.cards.nonPeerCycles')}>
                     <Table>
                         <thead>
                             <tr>
-                                <Th>Cycle</Th>
-                                <Th>Average</Th>
-                                <Th>Reviews</Th>
+                                <Th>{t('hrms.analytics.table.cycle')}</Th>
+                                <Th>{t('hrms.analytics.table.average')}</Th>
+                                <Th>{t('hrms.analytics.table.reviews')}</Th>
                             </tr>
                         </thead>
                         <tbody>
                             {ratings.length === 0 ? (
-                                <TableEmpty colSpan={3}>No shared ratings yet.</TableEmpty>
+                                <TableEmpty colSpan={3}>{t('hrms.analytics.empties.noSharedRatings')}</TableEmpty>
                             ) : (
                                 ratings.map((row) => (
                                     <tr key={row.cycle}>
@@ -410,20 +419,22 @@ function PerformanceTab({ payload }) {
 }
 
 function PayrollTab({ payload }) {
+    const { t } = useTranslation();
+
     return (
         <div className="space-y-6">
             <Tiles
                 items={[
-                    { label: 'Total gross', value: payload.total_gross },
-                    { label: 'Total net', value: payload.total_net },
-                    { label: 'Annual CTC', value: payload.total_annual_ctc, hint: 'trailing 365 days' },
+                    { label: t('hrms.analytics.tiles.totalGross'), value: payload.total_gross },
+                    { label: t('hrms.analytics.tiles.totalNet'), value: payload.total_net },
+                    { label: t('hrms.analytics.tiles.annualCtc'), value: payload.total_annual_ctc, hint: t('hrms.analytics.hints.trailing365') },
                 ]}
             />
-            <Card title="Cost by department" subtitle="Annual CTC from live salary structures">
+            <Card title={t('hrms.analytics.cards.costByDept')} subtitle={t('hrms.analytics.cards.annualCtcFromStructures')}>
                 <HBar
                     data={(payload.department_cost ?? []).map((row) => ({ name: row.department, value: Number(row.annual_ctc) || 0 }))}
                     color="#059669"
-                    emptyHint="No salary structures to cost yet."
+                    emptyHint={t('hrms.analytics.empties.noSalaryStructures')}
                 />
             </Card>
         </div>
@@ -431,6 +442,7 @@ function PayrollTab({ payload }) {
 }
 
 function DocumentsTab({ payload }) {
+    const { t } = useTranslation();
     const expiring = payload.expiring ?? {};
     const windows = Object.entries(expiring);
 
@@ -438,31 +450,31 @@ function DocumentsTab({ payload }) {
         <div className="space-y-6">
             <Tiles
                 items={[
-                    { label: 'Mandatory types', value: (payload.compliance ?? []).length },
-                    ...windows.map(([window, bucket]) => ({ label: `Expiring ${window}`, value: bucket?.count })),
+                    { label: t('hrms.analytics.tiles.mandatoryTypes'), value: (payload.compliance ?? []).length },
+                    ...windows.map(([window, bucket]) => ({ label: t('hrms.analytics.expiring', { window }), value: bucket?.count })),
                 ]}
             />
-            <Card title="Compliance" subtitle="Share of active employees holding each mandatory type">
+            <Card title={t('hrms.analytics.cards.compliance')} subtitle={t('hrms.analytics.cards.shareActive')}>
                 <HBar
                     data={(payload.compliance ?? []).map((row) => ({ name: row.type, value: Number(row.percent) || 0 }))}
                     color="#059669"
                     format={(value) => `${value}%`}
-                    emptyHint="No mandatory document types yet."
+                    emptyHint={t('hrms.analytics.empties.noMandatoryDocs')}
                 />
             </Card>
             {windows.map(([window, bucket]) => (
-                <Card key={window} title={`Expiring in ${window}`} subtitle={`${bucket?.count ?? 0} files`}>
+                <Card key={window} title={t('hrms.analytics.expiringIn', { window })} subtitle={t('hrms.analytics.files', { count: bucket?.count ?? 0 })}>
                     <Table>
                         <thead>
                             <tr>
-                                <Th>File</Th>
-                                <Th>Employee</Th>
-                                <Th>Expires</Th>
+                                <Th>{t('hrms.analytics.table.file')}</Th>
+                                <Th>{t('hrms.analytics.table.employee')}</Th>
+                                <Th>{t('hrms.analytics.table.expires')}</Th>
                             </tr>
                         </thead>
                         <tbody>
                             {(bucket?.items ?? []).length === 0 ? (
-                                <TableEmpty colSpan={3}>Nothing expiring in this window.</TableEmpty>
+                                <TableEmpty colSpan={3}>{t('hrms.analytics.empties.nothingExpiring')}</TableEmpty>
                             ) : (
                                 (bucket.items ?? []).map((row) => (
                                     <tr key={row.id}>
@@ -481,20 +493,21 @@ function DocumentsTab({ payload }) {
 }
 
 function AssetsTab({ payload }) {
+    const { t } = useTranslation();
     const total = Object.values(payload.by_status ?? {}).reduce((sum, count) => sum + Number(count), 0);
 
     return (
         <div className="space-y-6">
-            <Tiles items={[{ label: 'Assets tracked', value: total }]} />
+            <Tiles items={[{ label: t('hrms.analytics.tiles.assetsTracked'), value: total }]} />
             <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-                <Card title="Assets by status" subtitle="Register counts per lifecycle state">
-                    <HBar data={mapOf(payload.by_status)} emptyHint="No assets on the register yet." />
+                <Card title={t('hrms.analytics.cards.assetsByStatus')} subtitle={t('hrms.analytics.cards.registerCounts')}>
+                    <HBar data={mapOf(payload.by_status)} emptyHint={t('hrms.analytics.empties.noAssets')} />
                 </Card>
-                <Card title="Assigned per department" subtitle="By the holder's department">
+                <Card title={t('hrms.analytics.cards.assignedPerDept')} subtitle={t('hrms.analytics.cards.byHolderDept')}>
                     <HBar
                         data={(payload.per_department ?? []).map((row) => ({ name: row.department, value: Number(row.assigned) || 0 }))}
                         color="#059669"
-                        emptyHint="Nothing assigned yet."
+                        emptyHint={t('hrms.analytics.empties.nothingAssigned')}
                     />
                 </Card>
             </div>

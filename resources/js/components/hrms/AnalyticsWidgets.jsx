@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { Bar as BarShape, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 
 const axisProps = { tick: { fontSize: 11, fill: '#9aa3b2' }, tickMargin: 8 };
@@ -42,9 +43,12 @@ export function Tiles({ items }) {
  * One horizontal bar chart over `{ name, value }` rows. Zero rows render a
  * sentence, never an empty frame that reads as broken (the Dashboard rule).
  */
-export function HBar({ data, color = '#2563eb', format = (value) => value, emptyHint = 'Nothing to chart yet.' }) {
+export function HBar({ data, color = '#2563eb', format = (value) => value, emptyHint }) {
+    const { t } = useTranslation();
+    const empty = emptyHint ?? t('hrms.analytics.nothingToChart');
+
     if (!data || data.length === 0) {
-        return <p className="py-8 text-center text-sm text-gray-400">{emptyHint}</p>;
+        return <p className="py-8 text-center text-sm text-gray-400">{empty}</p>;
     }
 
     return (

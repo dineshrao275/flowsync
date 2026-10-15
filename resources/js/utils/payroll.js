@@ -1,34 +1,25 @@
-const MONTHS = [
-    'January', 'February', 'March', 'April', 'May', 'June',
-    'July', 'August', 'September', 'October', 'November', 'December',
-];
+import i18n, { intlTag } from '../i18n';
 
 /**
- * Payroll display helpers. Month names and run-step hints live here rather
- * than in PHP: the backend speaks ids and statuses, and a JS copy of a PHP
- * *enum* would be drift no test can catch — but a month name is locale
- * display, not domain data.
+ * Payroll display helpers. Month names, the run-step hint and the payslip
+ * status pill are render-time copy (i18n), not domain data — the backend
+ * speaks ids and statuses, and a JS copy of a PHP *enum* would be drift no
+ * test can catch. The status helpers take `t` so the dictionary stays the
+ * single source for every visible label.
  */
 export function monthLabel(year, month) {
-    const name = MONTHS[Number(month) - 1] ?? `Month ${month}`;
+    const value = Number(month);
+    const name = value >= 1 && value <= 12
+        ? new Date(2000, value - 1, 1).toLocaleDateString(intlTag(i18n.language), { month: 'long' })
+        : `Month ${month}`;
 
     return `${name} ${year}`;
 }
 
-export const RUN_STATUS_STEPS = {
-    draft: 'not calculated yet',
-    calculating: 'calculating now',
-    review: 'in review',
-    approved: 'approved, not published',
-    processing: 'published, disbursing',
-    paid: 'paid, not locked',
-    void: 'abandoned',
-    locked: 'sealed',
-};
+export function runStepHint(t, status) {
+    return t(`hrms.payroll.runSteps.${status}`, { defaultValue: status });
+}
 
-export const PAYSLIP_STATUS_LABELS = {
-    draft: 'Draft',
-    published: 'Published',
-    disputed: 'Disputed',
-    paid: 'Paid',
-};
+export function payslipStatusLabel(t, status) {
+    return t(`hrms.payroll.payslipStatuses.${status}`, { defaultValue: status });
+}

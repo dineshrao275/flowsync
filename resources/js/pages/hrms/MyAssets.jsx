@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import api from '../../services/api';
 import Alert from '../../components/ui/Alert';
 import Button from '../../components/ui/Button';
@@ -24,7 +25,8 @@ import usePageTitle from '../../hooks/usePageTitle';
  * for triage rather than back on the shelf.
  */
 export default function MyAssets() {
-    usePageTitle('My assets');
+    const { t } = useTranslation();
+    usePageTitle(t('hrms.myAssets.pageTitle'));
     const setCrumbs = useSetCrumbs();
     const navigate = useNavigate();
     const toast = useToast();
@@ -37,8 +39,8 @@ export default function MyAssets() {
     const [damageErrors, setDamageErrors] = useState({});
 
     useEffect(() => {
-        setCrumbs([{ label: 'HRMS', to: '/hrms' }, { label: 'My assets' }]);
-    }, [setCrumbs]);
+        setCrumbs([{ label: 'HRMS', to: '/hrms' }, { label: t('hrms.myAssets.pageTitle') }]);
+    }, [setCrumbs, t]);
 
     const load = useCallback(() => {
         setError(null);
@@ -52,9 +54,9 @@ export default function MyAssets() {
                     return;
                 }
 
-                setError('Unable to load your hardware.');
+                setError(t('hrms.myAssets.loadFailed'));
             });
-    }, [navigate]);
+    }, [navigate, t]);
 
     useEffect(() => {
         load();
@@ -64,10 +66,10 @@ export default function MyAssets() {
     async function acknowledge(assignment) {
         try {
             await api.post(`/hrms/assets/assignments/${assignment.id}/acknowledge`, {});
-            toast.success('Receipt recorded.');
+            toast.success(t('hrms.myAssets.recorded'));
             load();
         } catch {
-            setError('That handover cannot be acknowledged.');
+            setError(t('hrms.myAssets.acknowledgeFailed'));
         }
     }
 
@@ -83,12 +85,12 @@ export default function MyAssets() {
                 condition_in: 'damaged',
                 return_note: damageNote || null,
             });
-            toast.success('Damage reported — the item goes to triage.');
+            toast.success(t('hrms.myAssets.damageReported'));
             setDamaging(null);
             setDamageNote('');
             load();
         } catch (err) {
-            setDamageErrors(err.response?.data?.errors ?? { form: ['That item cannot be returned.'] });
+            setDamageErrors(err.response?.data?.errors ?? { form: [t('hrms.myAssets.damageFailed')] });
         }
     }
 
@@ -97,9 +99,9 @@ export default function MyAssets() {
     return (
         <div className="space-y-4">
             <div>
-                <h2 className="text-xl font-semibold text-gray-900">My assets</h2>
+                <h2 className="text-xl font-semibold text-gray-900">{t('hrms.myAssets.pageTitle')}</h2>
                 <p className="mt-0.5 text-sm text-gray-500">
-                    {rows ? `${rows.length} open handover${rows.length === 1 ? '' : 's'}` : '—'}
+                    {rows ? (rows.length === 1 ? t('hrms.myAssets.handoverCountOne') : t('hrms.myAssets.handoverCount', { count: rows.length })) : '—'}
                 </p>
             </div>
 
@@ -108,7 +110,7 @@ export default function MyAssets() {
             {!rows ? (
                 <div className="flex justify-center py-10"><Spinner /></div>
             ) : rows.length === 0 ? (
-                <EmptyState title="Nothing checked out" hint="Hardware assigned to you appears here for acknowledgement." />
+                <EmptyState title={t('hrms.myAssets.emptyTitle')} hint={t('hrms.myAssets.emptyHint')} />
             ) : (
                 <Card dense>
                     <ul className="divide-y divide-gray-100">
@@ -120,16 +122,16 @@ export default function MyAssets() {
                                             {assignment.asset?.asset_code} · {assignment.asset?.name}
                                         </span>
                                         <p className="text-sm text-gray-500">
-                                            Out {assignment.condition_out}
-                                            {assignment.acknowledged_at ? '' : ' · awaiting your signature'}
+                                            {t('hrms.myAssets.out', { condition: assignment.condition_out })}
+                                            {assignment.acknowledged_at ? '' : ` · ${t('hrms.myAssets.awaitingSignature')}`}
                                         </p>
                                     </div>
                                     <div className="flex gap-2">
                                         {!assignment.acknowledged_at && (
-                                            <Button size="sm" onClick={() => acknowledge(assignment)}>Acknowledge</Button>
+                                            <Button size="sm" onClick={() => acknowledge(assignment)}>{t('hrms.myAssets.acknowledge')}</Button>
                                         )}
                                         <Button size="sm" variant="secondary" onClick={() => { setDamaging(assignment); setDamageNote(''); setDamageErrors({}); }}>
-                                            Report damage
+                                            {t('hrms.myAssets.reportDamage')}
                                         </Button>
                                     </div>
                                 </div>
@@ -139,13 +141,13 @@ export default function MyAssets() {
                 </Card>
             )}
 
-            <Modal open={!!damaging} onClose={() => setDamaging(null)} title={`Report damage — ${damaging?.asset?.asset_code ?? ''}`}>
+            <Modal open={!!damaging} onClose={() => setDamaging(null)} title={t('hrms.myAssets.damageTitle', { code: damaging?.asset?.asset_code ?? '' })}>
                 <form onSubmit={reportDamage} className="grid gap-3 px-6 py-5">
-                    <Select label="Condition in" value="damaged" disabled>
+                    <Select label={t('hrms.myAssets.conditionIn')} value="damaged" disabled>
                         <option value="damaged">damaged</option>
                     </Select>
-                    <Input label="What happened?" value={damageNote} error={damageErrors.return_note} onChange={(e) => setDamageNote(e.target.value)} />
-                    <div><Button type="submit" variant="danger">Send to triage</Button></div>
+                    <Input label={t('hrms.myAssets.whatHappened')} value={damageNote} error={damageErrors.return_note} onChange={(e) => setDamageNote(e.target.value)} />
+                    <div><Button type="submit" variant="danger">{t('hrms.myAssets.sendToTriage')}</Button></div>
                 </form>
             </Modal>
         </div>

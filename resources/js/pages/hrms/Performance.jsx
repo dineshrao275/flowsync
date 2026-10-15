@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import api, { fieldErrors } from '../../services/api';
 import Alert from '../../components/ui/Alert';
 import Button from '../../components/ui/Button';
@@ -16,20 +17,12 @@ import usePageTitle from '../../hooks/usePageTitle';
 import { useConfirm } from '../../components/ui/ConfirmDialog';
 
 const STAGES = ['goal_setting', 'check_in', 'self_review', 'manager_review', 'calibration', 'completed'];
-const STAGE_LABELS = {
-    goal_setting: 'Goal setting',
-    check_in: 'Check-in',
-    self_review: 'Self review',
-    manager_review: 'Manager review',
-    calibration: 'Calibration',
-    completed: 'Completed',
-};
-const NEXT_STEP = {
-    goal_setting: { action: 'open-check-in', label: 'Open check-ins', done: 'Check-ins opened.' },
-    check_in: { action: 'open-self-review', label: 'Open self review', done: 'Self review opened.' },
-    self_review: { action: 'open-manager-review', label: 'Open manager review', done: 'Manager review opened.' },
-    manager_review: { action: 'open-calibration', label: 'Open calibration', done: 'Calibration opened.' },
-    calibration: { action: 'complete', label: 'Complete cycle', done: 'Cycle completed.' },
+const NEXT_ACTIONS = {
+    goal_setting: 'open-check-in',
+    check_in: 'open-self-review',
+    self_review: 'open-manager-review',
+    manager_review: 'open-calibration',
+    calibration: 'complete',
 };
 
 const emptyCycle = { name: '', description: '', period_start: '', period_end: '', anonymity: 'none' };
@@ -45,7 +38,8 @@ const emptyCycle = { name: '', description: '', period_start: '', period_end: ''
  * not offer what the backend will not do.
  */
 export default function Performance() {
-    usePageTitle('Performance');
+    const { t } = useTranslation();
+    usePageTitle(t('hrms.performance.pageTitle'));
     const setCrumbs = useSetCrumbs();
     const navigate = useNavigate();
     const { can } = useAuth();
@@ -62,8 +56,8 @@ export default function Performance() {
     const [acting, setActing] = useState(null);
 
     useEffect(() => {
-        setCrumbs([{ label: 'HRMS', to: '/hrms' }, { label: 'Performance' }]);
-    }, [setCrumbs]);
+        setCrumbs([{ label: t('hrms.overview.pageTitle'), to: '/hrms' }, { label: t('hrms.performance.pageTitle') }]);
+    }, [setCrumbs, t]);
 
     const fail = useCallback(
         (message) => (err) => {
@@ -83,8 +77,8 @@ export default function Performance() {
         return api
             .get('/hrms/performance/cycles')
             .then(({ data }) => setCycles(data.cycles ?? []))
-            .catch(fail('Unable to load cycles.'));
-    }, [fail]);
+            .catch(fail(t('hrms.performance.loadFailed')));
+    }, [fail, t]);
 
     useEffect(() => {
         load();
@@ -97,7 +91,7 @@ export default function Performance() {
 
         try {
             await api.post('/hrms/performance/cycles', form);
-            toast.success('Cycle created in goal setting.');
+            toast.success(t('hrms.performance.created'));
             setModal(false);
             setForm(emptyCycle);
             load();
@@ -106,16 +100,17 @@ export default function Performance() {
         }
     }
 
-    async function transition(cycle, action, done) {
+    async function transition(cycle, action) {
         const isComplete = action === 'complete';
-        const nextStep = NEXT_STEP[cycle.stage];
+        const label = t(`hrms.performance.next.${cycle.stage}.label`);
+        const done = t(`hrms.performance.next.${cycle.stage}.done`);
         const confirmed = await confirm({
-            title: isComplete ? 'Complete review cycle?' : `${nextStep?.label || 'Advance stage'}?`,
+            title: isComplete ? t('hrms.performance.confirmCompleteTitle') : t('hrms.performance.confirmAdvanceTitle', { label }),
             message: isComplete
-                ? `Complete review cycle “${cycle.name}”? This locks calibrations and marks the cycle completed.`
-                : `Advance review cycle “${cycle.name}” to the next stage? Stage transitions move forward only.`,
+                ? t('hrms.performance.confirmCompleteMessage', { name: cycle.name })
+                : t('hrms.performance.confirmAdvanceMessage', { name: cycle.name }),
             variant: isComplete ? 'warning' : 'primary',
-            confirmLabel: isComplete ? 'Complete cycle' : nextStep?.label || 'Advance',
+            confirmLabel: isComplete ? t('hrms.performance.confirmCompleteLabel') : label,
         });
         if (!confirmed) return;
 
@@ -126,7 +121,7 @@ export default function Performance() {
             toast.success(done);
             load();
         } catch {
-            setError('That move was refused — weights may not total 100, or the stage already moved.');
+            setError(t('hrms.performance.advanceFailed'));
         } finally {
             setActing(null);
         }
@@ -142,7 +137,7 @@ export default function Performance() {
                         <span
                             className={`rounded-full px-2 py-0.5 text-xs font-medium ${i < at ? 'bg-green-100 text-green-800' : i === at ? 'bg-[var(--accent-soft)] text-[var(--accent-soft-text)]' : 'bg-gray-100 text-gray-400'}`}
                         >
-                            {STAGE_LABELS[step]}
+                            {t(`hrms.performance.stage.${step}`)}
                         </span>
                         {i < STAGES.length - 1 && <span className="text-gray-300">›</span>}
                     </li>
@@ -155,12 +150,12 @@ export default function Performance() {
         <div className="space-y-4">
             <div className="flex flex-wrap items-center justify-between gap-3">
                 <div>
-                    <h2 className="text-xl font-semibold text-gray-900">Performance</h2>
+                    <h2 className="text-xl font-semibold text-gray-900">{t('hrms.performance.pageTitle')}</h2>
                     <p className="mt-0.5 text-sm text-gray-500">
-                        {cycles ? `${cycles.length} cycle${cycles.length === 1 ? '' : 's'}` : '—'}
+                        {cycles ? (cycles.length === 1 ? t('hrms.performance.cycleCountOne') : t('hrms.performance.cycleCount', { count: cycles.length })) : '—'}
                     </p>
                 </div>
-                {canManage && <Button onClick={() => setModal(true)}>New cycle</Button>}
+                {canManage && <Button onClick={() => setModal(true)}>{t('hrms.performance.newCycle')}</Button>}
             </div>
 
             {error && <Alert>{error}</Alert>}
@@ -168,11 +163,11 @@ export default function Performance() {
             {!cycles ? (
                 <div className="flex justify-center py-10"><Spinner /></div>
             ) : cycles.length === 0 ? (
-                <EmptyState title="No cycles yet" hint="Open one to start goal setting." />
+                <EmptyState title={t('hrms.performance.emptyTitle')} hint={t('hrms.performance.emptyHint')} />
             ) : (
                 <div className="grid gap-4">
                     {cycles.map((cycle) => {
-                        const next = NEXT_STEP[cycle.stage];
+                        const action = NEXT_ACTIONS[cycle.stage];
 
                         return (
                             <Card key={cycle.id} dense>
@@ -182,19 +177,19 @@ export default function Performance() {
                                             {cycle.name}
                                         </Link>
                                         <p className="text-xs text-gray-400">
-                                            {cycle.period_start} → {cycle.period_end} · {cycle.anonymity} anonymity
+                                            {t('hrms.performance.meta', { start: cycle.period_start, end: cycle.period_end, anonymity: cycle.anonymity })}
                                         </p>
                                         {stepper(cycle.stage)}
                                     </div>
-                                    {canManage && next && (
+                                    {canManage && action && (
                                         <Button
                                             size="sm"
-                                            variant={next.action === 'complete' ? 'warning' : 'secondary'}
+                                            variant={action === 'complete' ? 'warning' : 'secondary'}
                                             disabled={acting !== null}
-                                            loading={acting === `${cycle.id}:${next.action}`}
-                                            onClick={() => transition(cycle, next.action, next.done)}
+                                            loading={acting === `${cycle.id}:${action}`}
+                                            onClick={() => transition(cycle, action)}
                                         >
-                                            {next.label}
+                                            {t(`hrms.performance.next.${cycle.stage}.label`)}
                                         </Button>
                                     )}
                                 </div>
@@ -204,20 +199,20 @@ export default function Performance() {
                 </div>
             )}
 
-            <Modal open={modal} onClose={() => setModal(false)} title="New review cycle">
+            <Modal open={modal} onClose={() => setModal(false)} title={t('hrms.performance.newCycleTitle')}>
                 <form onSubmit={create} className="grid gap-3 px-6 py-5">
-                    <Input label="Name" value={form.name} error={formErrors.name} onChange={(e) => setForm({ ...form, name: e.target.value })} required />
+                    <Input label={t('hrms.performance.name')} value={form.name} error={formErrors.name} onChange={(e) => setForm({ ...form, name: e.target.value })} required />
                     <div className="grid grid-cols-2 gap-3">
-                        <Input label="Period start" type="date" value={form.period_start} error={formErrors.period_start} onChange={(e) => setForm({ ...form, period_start: e.target.value })} required />
-                        <Input label="Period end" type="date" value={form.period_end} error={formErrors.period_end} onChange={(e) => setForm({ ...form, period_end: e.target.value })} required />
+                        <Input label={t('hrms.performance.periodStart')} type="date" value={form.period_start} error={formErrors.period_start} onChange={(e) => setForm({ ...form, period_start: e.target.value })} required />
+                        <Input label={t('hrms.performance.periodEnd')} type="date" value={form.period_end} error={formErrors.period_end} onChange={(e) => setForm({ ...form, period_end: e.target.value })} required />
                     </div>
-                    <Select label="Feedback anonymity" value={form.anonymity} error={formErrors.anonymity} onChange={(e) => setForm({ ...form, anonymity: e.target.value })}>
-                        <option value="none">None — everything attributed</option>
-                        <option value="reviewer">Reviewer — words shown, names hidden</option>
-                        <option value="peer">Peer — peer answers aggregated</option>
+                    <Select label={t('hrms.performance.anonymity')} value={form.anonymity} error={formErrors.anonymity} onChange={(e) => setForm({ ...form, anonymity: e.target.value })}>
+                        <option value="none">{t('hrms.performance.anonymityNone')}</option>
+                        <option value="reviewer">{t('hrms.performance.anonymityReviewer')}</option>
+                        <option value="peer">{t('hrms.performance.anonymityPeer')}</option>
                     </Select>
-                    <Input label="Description" value={form.description} error={formErrors.description} onChange={(e) => setForm({ ...form, description: e.target.value })} />
-                    <div><Button type="submit">Create cycle</Button></div>
+                    <Input label={t('hrms.performance.description')} value={form.description} error={formErrors.description} onChange={(e) => setForm({ ...form, description: e.target.value })} />
+                    <div><Button type="submit">{t('hrms.performance.createCycle')}</Button></div>
                 </form>
             </Modal>
         </div>

@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import api from '../../services/api';
 import Alert from '../../components/ui/Alert';
 import Button from '../../components/ui/Button';
@@ -9,7 +10,7 @@ import Modal from '../../components/ui/Modal';
 import Spinner from '../../components/ui/Spinner';
 import { useSetCrumbs } from '../../context/BreadcrumbContext';
 import usePageTitle from '../../hooks/usePageTitle';
-import { monthLabel, PAYSLIP_STATUS_LABELS } from '../../utils/payroll';
+import { monthLabel, payslipStatusLabel } from '../../utils/payroll';
 
 /**
  * The caller's own payslips across runs, newest first.
@@ -19,7 +20,8 @@ import { monthLabel, PAYSLIP_STATUS_LABELS } from '../../utils/payroll';
  * full breakdown with the signed download link.
  */
 export default function MyPayslips() {
-    usePageTitle('My payslips');
+    const { t } = useTranslation();
+    usePageTitle(t('hrms.myPayslips.pageTitle'));
     const setCrumbs = useSetCrumbs();
     const navigate = useNavigate();
 
@@ -28,8 +30,8 @@ export default function MyPayslips() {
     const [selected, setSelected] = useState(null);
 
     useEffect(() => {
-        setCrumbs([{ label: 'HRMS', to: '/hrms' }, { label: 'My payslips' }]);
-    }, [setCrumbs]);
+        setCrumbs([{ label: 'HRMS', to: '/hrms' }, { label: t('hrms.myPayslips.pageTitle') }]);
+    }, [setCrumbs, t]);
 
     const load = useCallback(() => {
         setError(null);
@@ -43,9 +45,9 @@ export default function MyPayslips() {
                     return;
                 }
 
-                setError('Unable to load your payslips.');
+                setError(t('hrms.myPayslips.loadFailed'));
             });
-    }, [navigate]);
+    }, [navigate, t]);
 
     useEffect(() => {
         load();
@@ -75,9 +77,9 @@ export default function MyPayslips() {
     return (
         <div className="space-y-4">
             <div>
-                <h2 className="text-xl font-semibold text-gray-900">My payslips</h2>
+                <h2 className="text-xl font-semibold text-gray-900">{t('hrms.myPayslips.pageTitle')}</h2>
                 <p className="mt-0.5 text-sm text-gray-500">
-                    {rows ? `${rows.length} payslip${rows.length === 1 ? '' : 's'}` : '—'}
+                    {rows ? (rows.length === 1 ? t('hrms.myPayslips.payslipCountOne') : t('hrms.myPayslips.payslipCount', { count: rows.length })) : '—'}
                 </p>
             </div>
 
@@ -86,7 +88,7 @@ export default function MyPayslips() {
             {!rows ? (
                 <div className="flex justify-center py-10"><Spinner /></div>
             ) : rows.length === 0 ? (
-                <EmptyState title="No payslips yet" hint="Your payslips appear here once payroll publishes a run." />
+                <EmptyState title={t('hrms.myPayslips.emptyTitle')} hint={t('hrms.myPayslips.emptyHint')} />
             ) : (
                 <Card dense>
                     <ul className="divide-y divide-gray-100">
@@ -94,16 +96,16 @@ export default function MyPayslips() {
                             <li key={payslip.id} className="flex flex-wrap items-center justify-between gap-3 py-3">
                                 <div>
                                     <button type="button" className="font-medium text-[var(--accent-soft-text)] hover:underline" onClick={() => setSelected(payslip)}>
-                                        {payslip.run ? monthLabel(payslip.run.period_year, payslip.run.period_month) : `Payslip #${payslip.id}`}
+                                        {payslip.run ? monthLabel(payslip.run.period_year, payslip.run.period_month) : t('hrms.myPayslips.payslipFallback', { id: payslip.id })}
                                     </button>
-                                    <span className="ml-2 text-xs text-gray-400">{PAYSLIP_STATUS_LABELS[payslip.status] ?? payslip.status}</span>
-                                    <p className="text-sm text-gray-500">net {payslip.net_pay} · paid {payslip.paid_days} of {payslip.working_days}</p>
+                                    <span className="ml-2 text-xs text-gray-400">{payslipStatusLabel(t, payslip.status)}</span>
+                                    <p className="text-sm text-gray-500">{t('hrms.myPayslips.rowMeta', { net: payslip.net_pay, paid: payslip.paid_days, working: payslip.working_days })}</p>
                                 </div>
                                 <div className="flex gap-2">
-                                    <Button size="sm" variant="secondary" onClick={() => setSelected(payslip)}>View</Button>
+                                    <Button size="sm" variant="secondary" onClick={() => setSelected(payslip)}>{t('hrms.common.view')}</Button>
                                     {payslip.download_url && (
                                         <a href={payslip.download_url} target="_blank" rel="noopener noreferrer">
-                                            <Button size="sm" variant="secondary">Download</Button>
+                                            <Button size="sm" variant="secondary">{t('hrms.common.download')}</Button>
                                         </a>
                                     )}
                                 </div>
@@ -113,24 +115,24 @@ export default function MyPayslips() {
                 </Card>
             )}
 
-            <Modal open={!!selected} onClose={() => setSelected(null)} title={selected?.run ? monthLabel(selected.run.period_year, selected.run.period_month) : 'Payslip'} size="lg">
+            <Modal open={!!selected} onClose={() => setSelected(null)} title={selected?.run ? monthLabel(selected.run.period_year, selected.run.period_month) : t('hrms.myPayslips.payslip')} size="lg">
                 {selected && (
                     <div className="px-6 py-5 text-sm">
                         <p className="text-gray-500">
-                            Paid {selected.paid_days} of {selected.working_days} · LOP {selected.lop_days} · overtime {selected.ot_minutes} min
+                            {t('hrms.myPayslips.drawerMeta', { paid: selected.paid_days, working: selected.working_days, lop: selected.lop_days, ot: selected.ot_minutes })}
                         </p>
-                        {lines('Earnings', selected.earnings)}
-                        {lines('Deductions', selected.deductions)}
-                        {lines('Adjustments', selected.adjustments, 'amount')}
+                        {lines(t('hrms.myPayslips.earnings'), selected.earnings)}
+                        {lines(t('hrms.myPayslips.deductions'), selected.deductions)}
+                        {lines(t('hrms.myPayslips.adjustments'), selected.adjustments, 'amount')}
                         <div className="mt-4 rounded-lg border border-gray-200 p-3">
-                            <div className="flex justify-between py-0.5"><span className="text-gray-600">Gross</span><span className="font-medium">{selected.gross_pay}</span></div>
-                            <div className="flex justify-between py-0.5"><span className="text-gray-600">Deductions</span><span className="font-medium">{selected.total_deductions}</span></div>
-                            <div className="flex justify-between py-0.5"><span className="font-semibold text-gray-900">Net</span><span className="font-semibold text-gray-900">{selected.net_pay}</span></div>
+                            <div className="flex justify-between py-0.5"><span className="text-gray-600">{t('hrms.myPayslips.gross')}</span><span className="font-medium">{selected.gross_pay}</span></div>
+                            <div className="flex justify-between py-0.5"><span className="text-gray-600">{t('hrms.myPayslips.deductions')}</span><span className="font-medium">{selected.total_deductions}</span></div>
+                            <div className="flex justify-between py-0.5"><span className="font-semibold text-gray-900">{t('hrms.myPayslips.net')}</span><span className="font-semibold text-gray-900">{selected.net_pay}</span></div>
                         </div>
                         {selected.download_url && (
                             <div className="mt-4">
                                 <a href={selected.download_url} target="_blank" rel="noopener noreferrer">
-                                    <Button variant="secondary" size="sm">Download payslip</Button>
+                                    <Button variant="secondary" size="sm">{t('hrms.myPayslips.downloadPayslip')}</Button>
                                 </a>
                             </div>
                         )}

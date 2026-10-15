@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import api from '../../services/api';
 import { useSetCrumbs } from '../../context/BreadcrumbContext';
 import usePageTitle from '../../hooks/usePageTitle';
@@ -20,7 +21,8 @@ const emptyFilters = { q: '', subject_type: '', action: '', actor_user_id: '', f
  * history, which is the point of the table.
  */
 export default function AuditLog() {
-    usePageTitle('Audit log');
+    const { t } = useTranslation();
+    usePageTitle(t('hrms.auditLog.pageTitle'));
     const setCrumbs = useSetCrumbs();
     const navigate = useNavigate();
     const [searchParams, setSearchParams] = useSearchParams();
@@ -34,8 +36,8 @@ export default function AuditLog() {
     const page = Math.max(1, Number(searchParams.get('page') ?? 1) || 1);
 
     useEffect(() => {
-        setCrumbs([{ label: 'HRMS', to: '/hrms' }, { label: 'Audit log' }]);
-    }, [setCrumbs]);
+        setCrumbs([{ label: 'HRMS', to: '/hrms' }, { label: t('hrms.auditLog.pageTitle') }]);
+    }, [setCrumbs, t]);
 
     const applied = Object.fromEntries(
         [...searchParams.entries()].filter(([key, value]) => key !== 'page' && value !== ''),
@@ -57,11 +59,11 @@ export default function AuditLog() {
                         return;
                     }
 
-                    setError('Unable to load the audit trail.');
+                    setError(t('hrms.auditLog.loadFailed'));
                 })
                 .finally(() => setLoading(false));
         },
-        [navigate],
+        [navigate, t],
     );
 
     useEffect(() => {
@@ -88,22 +90,22 @@ export default function AuditLog() {
     return (
         <div className="space-y-4">
             <div>
-                <h2 className="text-xl font-semibold text-gray-900">Audit log</h2>
-                <p className="mt-0.5 text-sm text-gray-500">Every recorded change, newest first. Values stay masked as stored.</p>
+                <h2 className="text-xl font-semibold text-gray-900">{t('hrms.auditLog.pageTitle')}</h2>
+                <p className="mt-0.5 text-sm text-gray-500">{t('hrms.auditLog.subtitle')}</p>
             </div>
 
-            <Card title="Filters" subtitle="All optional — an empty bar lists the whole ledger">
+            <Card title={t('hrms.auditLog.filters')} subtitle={t('hrms.auditLog.filtersHint')}>
                 <form onSubmit={apply} className="grid grid-cols-1 gap-3 md:grid-cols-3">
-                    <Input label="Search action or subject" value={draft.q} onChange={set('q')} placeholder="employee.status_changed" />
-                    <Input label="Subject type" value={draft.subject_type} onChange={set('subject_type')} placeholder="App\Models\Hrms\Employee\Employee" />
-                    <Input label="Action" value={draft.action} onChange={set('action')} placeholder="employee.created" />
-                    <Input label="Actor user id" value={draft.actor_user_id} onChange={set('actor_user_id')} placeholder="12" />
-                    <Input label="From" type="date" value={draft.from} onChange={set('from')} />
-                    <Input label="To" type="date" value={draft.to} onChange={set('to')} />
+                    <Input label={t('hrms.auditLog.searchAction')} value={draft.q} onChange={set('q')} placeholder="employee.status_changed" />
+                    <Input label={t('hrms.auditLog.subjectType')} value={draft.subject_type} onChange={set('subject_type')} placeholder="App\Models\Hrms\Employee\Employee" />
+                    <Input label={t('hrms.auditLog.action')} value={draft.action} onChange={set('action')} placeholder="employee.created" />
+                    <Input label={t('hrms.auditLog.actorUserId')} value={draft.actor_user_id} onChange={set('actor_user_id')} placeholder="12" />
+                    <Input label={t('hrms.auditLog.from')} type="date" value={draft.from} onChange={set('from')} />
+                    <Input label={t('hrms.auditLog.to')} type="date" value={draft.to} onChange={set('to')} />
                     <div className="flex items-end gap-2 md:col-span-3">
-                        <Button type="submit">Apply</Button>
+                        <Button type="submit">{t('hrms.auditLog.apply')}</Button>
                         <Button type="button" variant="secondary" onClick={reset}>
-                            Reset
+                            {t('hrms.auditLog.reset')}
                         </Button>
                     </div>
                 </form>
@@ -115,7 +117,7 @@ export default function AuditLog() {
                 <Spinner />
             ) : (
                 rows && (
-                    <Card title="Trail" subtitle={pagination ? `${pagination.total} rows` : ''}>
+                    <Card title={t('hrms.auditLog.trail')} subtitle={pagination ? t('hrms.auditLog.rows', { count: pagination.total }) : ''}>
                         <AuditTrail rows={rows} />
                         {pagination && (
                             <Pagination

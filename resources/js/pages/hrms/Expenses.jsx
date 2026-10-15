@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import api, { fieldErrors } from '../../services/api';
 import Alert from '../../components/ui/Alert';
 import Button from '../../components/ui/Button';
@@ -29,7 +30,8 @@ const STATUSES = ['', 'draft', 'submitted', 'pending', 'approved', 'rejected', '
  * without the reason the claimant can act on.
  */
 export default function Expenses() {
-    usePageTitle('Expenses');
+    const { t } = useTranslation();
+    usePageTitle(t('hrms.expenses.pageTitle'));
     const setCrumbs = useSetCrumbs();
     const navigate = useNavigate();
     const { can } = useAuth();
@@ -55,8 +57,8 @@ export default function Expenses() {
     const [categoryErrors, setCategoryErrors] = useState({});
 
     useEffect(() => {
-        setCrumbs([{ label: 'HRMS', to: '/hrms' }, { label: 'Expenses' }]);
-    }, [setCrumbs]);
+        setCrumbs([{ label: 'HRMS', to: '/hrms' }, { label: t('hrms.expenses.pageTitle') }]);
+    }, [setCrumbs, t]);
 
     const fail = useCallback(
         (message) => (err) => {
@@ -78,8 +80,8 @@ export default function Expenses() {
         return Promise.all([
             api.get('/hrms/expenses/claims', { params }).then(({ data }) => setClaims(data.claims ?? [])),
             api.get('/hrms/expenses/categories').then(({ data }) => setCategories(data.categories ?? [])),
-        ]).catch(fail('Unable to load claims.'));
-    }, [filters, fail]);
+        ]).catch(fail(t('hrms.expenses.loadFailed')));
+    }, [filters, fail, t]);
 
     useEffect(() => {
         load();
@@ -113,7 +115,7 @@ export default function Expenses() {
                 approved_amount: approvedAmount === '' ? null : approvedAmount,
                 reason: reason || null,
             });
-            toast.success(verdict === 'approve' ? 'Claim approved.' : 'Claim rejected.');
+            toast.success(verdict === 'approve' ? t('hrms.expenses.claimApproved') : t('hrms.expenses.claimRejected'));
             setDeciding(null);
             load();
         } catch (err) {
@@ -135,7 +137,7 @@ export default function Expenses() {
                 name: categoryForm.name,
                 requires_receipt_above: categoryForm.requires_receipt_above === '' ? null : categoryForm.requires_receipt_above,
             });
-            toast.success('Category created.');
+            toast.success(t('hrms.expenses.categoryCreated'));
             setCategoryForm({ name: '', requires_receipt_above: '' });
             load();
         } catch (err) {
@@ -144,23 +146,23 @@ export default function Expenses() {
     }
 
     async function deleteCategory(category) {
-        if (!(await confirm({ title: 'Delete category?', message: `Delete “${category.name}”? Starter and in-use rows refuse.`, variant: 'danger' }))) return;
+        if (!(await confirm({ title: t('hrms.expenses.deleteCategoryTitle'), message: t('hrms.expenses.deleteCategoryMessage', { name: category.name }), variant: 'danger' }))) return;
 
         try {
             await api.delete(`/hrms/expenses/categories/${category.id}`);
-            toast.success('Category deleted.');
+            toast.success(t('hrms.expenses.categoryDeleted'));
             load();
         } catch {
-            setError('That category cannot be deleted.');
+            setError(t('hrms.expenses.categoryDeleteFailed'));
         }
     }
 
     return (
         <div className="space-y-4">
             <div>
-                <h2 className="text-xl font-semibold text-gray-900">Expenses</h2>
+                <h2 className="text-xl font-semibold text-gray-900">{t('hrms.expenses.pageTitle')}</h2>
                 <p className="mt-0.5 text-sm text-gray-500">
-                    {claims ? `${claims.length} claim${claims.length === 1 ? '' : 's'}` : '—'}
+                    {claims ? (claims.length === 1 ? t('hrms.expenses.claimCountOne') : t('hrms.expenses.claimCount', { count: claims.length })) : '—'}
                 </p>
             </div>
 
@@ -168,23 +170,23 @@ export default function Expenses() {
 
             <Card dense>
                 <div className="grid gap-3 sm:grid-cols-3">
-                    <Select label="Status" value={filters.status} onChange={(e) => setFilters({ ...filters, status: e.target.value })}>
-                        {STATUSES.map((s) => <option key={s} value={s}>{s === '' ? 'All statuses' : s}</option>)}
+                    <Select label={t('hrms.expenses.status')} value={filters.status} onChange={(e) => setFilters({ ...filters, status: e.target.value })}>
+                        {STATUSES.map((s) => <option key={s} value={s}>{s === '' ? t('hrms.expenses.allStatuses') : s}</option>)}
                     </Select>
-                    <Input label="Year" value={filters.period_year} onChange={(e) => setFilters({ ...filters, period_year: e.target.value })} />
-                    <Input label="Month" value={filters.period_month} onChange={(e) => setFilters({ ...filters, period_month: e.target.value })} />
+                    <Input label={t('hrms.expenses.year')} value={filters.period_year} onChange={(e) => setFilters({ ...filters, period_year: e.target.value })} />
+                    <Input label={t('hrms.expenses.month')} value={filters.period_month} onChange={(e) => setFilters({ ...filters, period_month: e.target.value })} />
                 </div>
             </Card>
 
             {!claims ? (
                 <div className="flex justify-center py-10"><Spinner /></div>
             ) : claims.length === 0 ? (
-                <EmptyState title="No claims match" hint="File one from My expenses, or loosen the filters." />
+                <EmptyState title={t('hrms.expenses.emptyTitle')} hint={t('hrms.expenses.emptyHint')} />
             ) : (
                 <Card dense>
                     <Table>
                         <thead>
-                            <tr><Th>Claim</Th><Th>Employee</Th><Th>Period</Th><Th>Total</Th><Th>Approved</Th><Th>Status</Th>{canDecide && <Th><span className="sr-only">Actions</span></Th>}</tr>
+                            <tr><Th>{t('hrms.expenses.claim')}</Th><Th>{t('hrms.expenses.employee')}</Th><Th>{t('hrms.expenses.period')}</Th><Th>{t('hrms.expenses.total')}</Th><Th>{t('hrms.expenses.approved')}</Th><Th>{t('hrms.expenses.status')}</Th>{canDecide && <Th><span className="sr-only">{t('hrms.common.actions')}</span></Th>}</tr>
                         </thead>
                         <tbody>
                             {claims.map((claim) => (
@@ -201,7 +203,7 @@ export default function Expenses() {
                                     {canDecide && (
                                         <Td>
                                             {claim.status === 'submitted' && (
-                                                <Button size="sm" variant="secondary" onClick={() => openDecide(claim)}>Decide</Button>
+                                                <Button size="sm" variant="secondary" onClick={() => openDecide(claim)}>{t('hrms.expenses.decide')}</Button>
                                             )}
                                         </Td>
                                     )}
@@ -213,40 +215,40 @@ export default function Expenses() {
             )}
 
             {canManage && (
-                <Card title="Claim categories" dense>
+                <Card title={t('hrms.expenses.categories')} dense>
                     <ul className="mb-3 divide-y divide-gray-100 text-sm">
                         {categories.map((category) => (
                             <li key={category.id} className="flex items-center justify-between gap-2 py-1.5">
                                 <span>
                                     {category.name}
                                     <span className="ml-2 text-xs text-gray-400">
-                                        {category.is_system ? 'starter · ' : ''}{category.requires_receipt_above === null ? 'receipt optional' : `receipt over ${category.requires_receipt_above}`}
+                                        {category.is_system ? t('hrms.expenses.starter') : ''}{category.requires_receipt_above === null ? t('hrms.expenses.receiptOptional') : t('hrms.expenses.receiptOver', { amount: category.requires_receipt_above })}
                                     </span>
                                 </span>
-                                <Button size="sm" variant="danger" onClick={() => deleteCategory(category)}>Delete</Button>
+                                <Button size="sm" variant="danger" onClick={() => deleteCategory(category)}>{t('hrms.common.delete')}</Button>
                             </li>
                         ))}
                     </ul>
                     <form onSubmit={saveCategory} className="grid gap-3 sm:grid-cols-3">
-                        <Input label="Name" value={categoryForm.name} error={categoryErrors.name} onChange={(e) => setCategoryForm({ ...categoryForm, name: e.target.value })} required />
-                        <Input label="Receipt over (empty = optional)" value={categoryForm.requires_receipt_above} error={categoryErrors.requires_receipt_above} onChange={(e) => setCategoryForm({ ...categoryForm, requires_receipt_above: e.target.value })} />
-                        <div className="flex items-end"><Button type="submit" variant="secondary">Add category</Button></div>
+                        <Input label={t('hrms.expenses.name')} value={categoryForm.name} error={categoryErrors.name} onChange={(e) => setCategoryForm({ ...categoryForm, name: e.target.value })} required />
+                        <Input label={t('hrms.expenses.receiptOverLabel')} value={categoryForm.requires_receipt_above} error={categoryErrors.requires_receipt_above} onChange={(e) => setCategoryForm({ ...categoryForm, requires_receipt_above: e.target.value })} />
+                        <div className="flex items-end"><Button type="submit" variant="secondary">{t('hrms.expenses.addCategory')}</Button></div>
                     </form>
                 </Card>
             )}
 
-            <Modal open={!!deciding} onClose={() => setDeciding(null)} title={`Decide ${deciding?.claim_number ?? ''}`}>
+            <Modal open={!!deciding} onClose={() => setDeciding(null)} title={t('hrms.expenses.decideTitle', { number: deciding?.claim_number ?? '' })}>
                 <form onSubmit={decide} className="grid gap-3 px-6 py-5">
-                    <p className="text-sm text-gray-500">Filed total {deciding?.total_amount}.</p>
-                    <Select label="Verdict" value={verdict} error={decideErrors.verdict} onChange={(e) => setVerdict(e.target.value)}>
-                        <option value="approve">Approve</option>
-                        <option value="reject">Reject</option>
+                    <p className="text-sm text-gray-500">{t('hrms.expenses.filedTotal', { amount: deciding?.total_amount })}</p>
+                    <Select label={t('hrms.expenses.verdict')} value={verdict} error={decideErrors.verdict} onChange={(e) => setVerdict(e.target.value)}>
+                        <option value="approve">{t('hrms.expenses.approve')}</option>
+                        <option value="reject">{t('hrms.expenses.reject')}</option>
                     </Select>
                     {verdict === 'approve' && (
-                        <Input label="Approved amount" value={approvedAmount} error={decideErrors.approved_amount} onChange={(e) => setApprovedAmount(e.target.value)} />
+                        <Input label={t('hrms.expenses.approvedAmount')} value={approvedAmount} error={decideErrors.approved_amount} onChange={(e) => setApprovedAmount(e.target.value)} />
                     )}
-                    <Input label={verdict === 'approve' ? 'Reason (required for a cut)' : 'Reason'} value={reason} error={decideErrors.reason} onChange={(e) => setReason(e.target.value)} />
-                    <div><Button type="submit">Record decision</Button></div>
+                    <Input label={verdict === 'approve' ? t('hrms.expenses.reasonForCut') : t('hrms.expenses.reason')} value={reason} error={decideErrors.reason} onChange={(e) => setReason(e.target.value)} />
+                    <div><Button type="submit">{t('hrms.expenses.recordDecision')}</Button></div>
                 </form>
             </Modal>
         </div>

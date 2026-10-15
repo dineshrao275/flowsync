@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import api, { fieldErrors } from '../../services/api';
 import Alert from '../ui/Alert';
 import Button from '../ui/Button';
@@ -7,10 +8,10 @@ import Select from '../ui/Select';
 import { useToast } from '../../context/ToastContext';
 
 const REASONS = [
-    { value: 'lost', label: 'Lost' },
-    { value: 'damaged', label: 'Damaged' },
-    { value: 'faulty', label: 'Faulty' },
-    { value: 'obsolete', label: 'Obsolete' },
+    { value: 'lost', key: 'hrms.assetReplace.reasonLost' },
+    { value: 'damaged', key: 'hrms.assetReplace.reasonDamaged' },
+    { value: 'faulty', key: 'hrms.assetReplace.reasonFaulty' },
+    { value: 'obsolete', key: 'hrms.assetReplace.reasonObsolete' },
 ];
 
 /**
@@ -19,6 +20,7 @@ const REASONS = [
  * replacement is handed straight to whoever held it.
  */
 export default function AssetReplaceModal({ asset, candidates, onClose, onDone }) {
+    const { t } = useTranslation();
     const toast = useToast();
     const [form, setForm] = useState({ replacement_asset_id: '', reason: 'damaged', assign_to_holder: true });
     const [errors, setErrors] = useState({});
@@ -33,7 +35,7 @@ export default function AssetReplaceModal({ asset, candidates, onClose, onDone }
                 reason: form.reason,
                 assign_to_holder: form.assign_to_holder,
             });
-            toast.success('Asset replaced.');
+            toast.success(t('hrms.assetReplace.replaced'));
             onDone();
         } catch (err) {
             setErrors(fieldErrors(err));
@@ -41,25 +43,25 @@ export default function AssetReplaceModal({ asset, candidates, onClose, onDone }
     }
 
     return (
-        <Modal open onClose={onClose} title={`Replace ${asset.asset_code}`}>
+        <Modal open onClose={onClose} title={t('hrms.assetReplace.title', { code: asset.asset_code })}>
             <form onSubmit={submit} className="space-y-3 px-6 py-5">
-                <Select label="Replacement (available assets)" value={form.replacement_asset_id} error={errors.replacement_asset_id} onChange={(e) => setForm({ ...form, replacement_asset_id: e.target.value })}>
-                    <option value="">Choose…</option>
+                <Select label={t('hrms.assetReplace.replacement')} value={form.replacement_asset_id} error={errors.replacement_asset_id} onChange={(e) => setForm({ ...form, replacement_asset_id: e.target.value })}>
+                    <option value="">{t('hrms.assetReplace.choose')}</option>
                     {candidates.map((c) => <option key={c.id} value={c.id}>{c.asset_code} · {c.name}</option>)}
                 </Select>
-                <Select label="Why" value={form.reason} error={errors.reason} onChange={(e) => setForm({ ...form, reason: e.target.value })}>
-                    {REASONS.map((r) => <option key={r.value} value={r.value}>{r.label}</option>)}
+                <Select label={t('hrms.assetReplace.why')} value={form.reason} error={errors.reason} onChange={(e) => setForm({ ...form, reason: e.target.value })}>
+                    {REASONS.map((r) => <option key={r.value} value={r.value}>{t(r.key)}</option>)}
                 </Select>
                 {asset.assignee && (
                     <label className="flex items-center gap-2 text-sm">
                         <input type="checkbox" checked={form.assign_to_holder} onChange={(e) => setForm({ ...form, assign_to_holder: e.target.checked })} />
-                        Hand the replacement to {asset.assignee.name}
+                        {t('hrms.assetReplace.handTo', { name: asset.assignee.name })}
                     </label>
                 )}
                 {errors.form && <Alert>{errors.form}</Alert>}
                 <div className="flex justify-end gap-2">
-                    <Button type="button" variant="secondary" onClick={onClose}>Cancel</Button>
-                    <Button type="submit">Replace</Button>
+                    <Button type="button" variant="secondary" onClick={onClose}>{t('hrms.common.cancel')}</Button>
+                    <Button type="submit">{t('hrms.assetReplace.replace')}</Button>
                 </div>
             </form>
         </Modal>

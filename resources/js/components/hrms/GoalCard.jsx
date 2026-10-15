@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 
 /**
  * One goal with its progress bar, its evidence disclosure, and its linked
@@ -15,24 +16,30 @@ import { useState } from 'react';
  * card is missing.
  */
 export default function GoalCard({ goal, onRefresh, refreshing = false, actions = null, onLink = null, onUnlink = null }) {
+    const { t } = useTranslation();
     const evidence = goal.progress_evidence ?? null;
     const percent = Number(goal.progress_percent ?? 0);
     const [key, setKey] = useState('');
     const [linking, setLinking] = useState(false);
 
     function disclosure() {
-        if (!evidence) return 'No evidence photographed yet.';
+        if (!evidence) return t('hrms.goalCard.noEvidence');
 
         if (evidence.minutes !== undefined) {
-            return `${evidence.hours ?? 0}h logged across ${evidence.days_logged ?? 0} day${evidence.days_logged === 1 ? '' : 's'}`;
+            const hours = evidence.hours ?? 0;
+            const days = evidence.days_logged ?? 0;
+
+            return days === 1
+                ? t('hrms.goalCard.hoursLoggedOne', { hours })
+                : t('hrms.goalCard.hoursLogged', { hours, days });
         }
 
         const parts = [];
-        if (evidence.completed !== undefined) parts.push(`${evidence.completed} completed`);
-        if (evidence.created !== undefined) parts.push(`${evidence.created} created`);
-        if (evidence.overdue !== undefined) parts.push(`${evidence.overdue} overdue`);
+        if (evidence.completed !== undefined) parts.push(t('hrms.goalCard.completed', { count: evidence.completed }));
+        if (evidence.created !== undefined) parts.push(t('hrms.goalCard.created', { count: evidence.created }));
+        if (evidence.overdue !== undefined) parts.push(t('hrms.goalCard.overdue', { count: evidence.overdue }));
 
-        return parts.length > 0 ? parts.join(' · ') : 'No evidence photographed yet.';
+        return parts.length > 0 ? parts.join(' · ') : t('hrms.goalCard.noEvidence');
     }
 
     return (
@@ -41,8 +48,12 @@ export default function GoalCard({ goal, onRefresh, refreshing = false, actions 
                 <div className="min-w-0">
                     <p className="font-medium text-gray-900">{goal.title}</p>
                     <p className="mt-0.5 text-xs text-gray-400">
-                        {goal.employee?.name ?? ''} · weight {goal.weight} · {goal.status}
-                        {goal.metric_type !== 'manual' && goal.metric_type !== 'none' ? ` · ${goal.metric_type}` : ''}
+                        {t(goal.metric_type !== 'manual' && goal.metric_type !== 'none' ? 'hrms.goalCard.metaMetric' : 'hrms.goalCard.meta', {
+                            name: goal.employee?.name ?? '',
+                            weight: goal.weight,
+                            status: goal.status,
+                            metric: goal.metric_type,
+                        })}
                     </p>
                 </div>
                 <div className="flex shrink-0 gap-2">
@@ -53,7 +64,7 @@ export default function GoalCard({ goal, onRefresh, refreshing = false, actions 
                             disabled={refreshing}
                             className="text-xs font-medium text-[var(--accent-soft-text)] hover:underline disabled:opacity-50"
                         >
-                            Refresh evidence
+                            {t('hrms.goalCard.refreshEvidence')}
                         </button>
                     )}
                     {actions}
@@ -71,19 +82,19 @@ export default function GoalCard({ goal, onRefresh, refreshing = false, actions 
                 <span className="font-medium text-gray-700">{percent}%</span>
             </div>
             {goal.progress_source === 'manual' && (
-                <p className="mt-1 text-xs text-gray-400">Set by hand — no automatic evidence for this goal.</p>
+                <p className="mt-1 text-xs text-gray-400">{t('hrms.goalCard.setByHand')}</p>
             )}
 
             {(goal.tasks?.length > 0 || onLink) && (
                 <div className="mt-3 border-t border-gray-100 pt-2">
-                    <p className="text-xs font-medium text-gray-500">Linked tasks</p>
+                    <p className="text-xs font-medium text-gray-500">{t('hrms.goalCard.linkedTasks')}</p>
                     {goal.tasks?.length > 0 ? (
                         <ul className="mt-1 space-y-1 text-xs">
                             {goal.tasks.map((task) => (
                                 <li key={task.id} className="flex items-center justify-between gap-2">
                                     <span className="text-gray-600">
                                         {task.key} · {task.title}
-                                        {task.completed_at ? ' · done' : ''}
+                                        {task.completed_at ? t('hrms.goalCard.doneSuffix') : ''}
                                     </span>
                                     {onUnlink && (
                                         <button
@@ -91,14 +102,14 @@ export default function GoalCard({ goal, onRefresh, refreshing = false, actions 
                                             onClick={() => onUnlink(goal, task)}
                                             className="shrink-0 font-medium text-red-600 hover:underline"
                                         >
-                                            Unlink
+                                            {t('hrms.goalCard.unlink')}
                                         </button>
                                     )}
                                 </li>
                             ))}
                         </ul>
                     ) : (
-                        <p className="mt-1 text-xs text-gray-400">No linked tasks yet.</p>
+                        <p className="mt-1 text-xs text-gray-400">{t('hrms.goalCard.noLinkedTasks')}</p>
                     )}
                     {onLink && (
                         <form
@@ -116,8 +127,8 @@ export default function GoalCard({ goal, onRefresh, refreshing = false, actions 
                             <input
                                 value={key}
                                 onChange={(e) => setKey(e.target.value)}
-                                placeholder="Task key (PRJ-123)"
-                                aria-label="Task key to link"
+                                placeholder={t('hrms.goalCard.taskKeyPlaceholder')}
+                                aria-label={t('hrms.goalCard.taskKeyAria')}
                                 className="min-w-0 flex-1 rounded-lg border border-gray-300 px-2 py-1 text-xs"
                             />
                             <button
@@ -125,7 +136,7 @@ export default function GoalCard({ goal, onRefresh, refreshing = false, actions 
                                 disabled={linking || !key.trim()}
                                 className="shrink-0 text-xs font-medium text-[var(--accent-soft-text)] hover:underline disabled:opacity-50"
                             >
-                                Link
+                                {t('hrms.goalCard.link')}
                             </button>
                         </form>
                     )}

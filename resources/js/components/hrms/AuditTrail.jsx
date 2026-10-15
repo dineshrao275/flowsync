@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import Timestamp from '../ui/Timestamp';
 
 /** Shortens a stored morph class (`App\Models\…\Employee`) to its basename. */
@@ -21,19 +22,20 @@ function DiffValue({ value }) {
  * of a redaction as if it were data.
  */
 export function AuditDiff({ data }) {
+    const { t } = useTranslation();
     const before = data?.before ?? null;
     const after = data?.after ?? null;
     const keys = [...new Set([...Object.keys(before ?? {}), ...Object.keys(after ?? {})])];
 
     if (keys.length === 0) {
-        return <p className="text-xs text-gray-400">No field snapshot on this row.</p>;
+        return <p className="text-xs text-gray-400">{t('hrms.auditTrail.noSnapshot')}</p>;
     }
 
     return (
         <div className="grid grid-cols-3 gap-2 text-sm">
-            <p className="text-xs font-medium text-gray-400">Field</p>
-            <p className="text-xs font-medium text-gray-400">Before</p>
-            <p className="text-xs font-medium text-gray-400">After</p>
+            <p className="text-xs font-medium text-gray-400">{t('hrms.auditTrail.field')}</p>
+            <p className="text-xs font-medium text-gray-400">{t('hrms.auditTrail.before')}</p>
+            <p className="text-xs font-medium text-gray-400">{t('hrms.auditTrail.after')}</p>
             {keys.map((key) => (
                 <div key={key} className="contents">
                     <p className="font-mono text-xs text-gray-500">{key}</p>
@@ -55,10 +57,11 @@ export function AuditDiff({ data }) {
  * tab so the same ledger never renders two dialects.
  */
 export default function AuditTrail({ rows }) {
+    const { t } = useTranslation();
     const [openId, setOpenId] = useState(null);
 
     if (!rows || rows.length === 0) {
-        return <p className="py-8 text-center text-sm text-gray-400">No trail rows yet.</p>;
+        return <p className="py-8 text-center text-sm text-gray-400">{t('hrms.auditTrail.empty')}</p>;
     }
 
     return (
@@ -75,7 +78,7 @@ export default function AuditTrail({ rows }) {
                             {shortSubjectType(row.subject_type)} #{row.subject_id}
                         </span>
                         <span className="ml-auto text-xs text-gray-400">
-                            {row.actor?.name ?? 'System'}
+                            {row.actor?.name ?? t('hrms.auditTrail.system')}
                             {row.created_at ? (
                                 <>
                                     {' · '}
