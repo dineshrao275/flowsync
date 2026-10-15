@@ -23,6 +23,10 @@ jobs:
         with:
           path: vendor
           key: composer-${{ hashFiles('composer.lock') }}
+      # .env first: composer scripts boot the app (package:discover), and a
+      # fresh checkout has no .env — without one APP_ENV defaults to
+      # production and the infrastructure-pin guard fails the install.
+      - run: cp .env.example .env && php artisan key:generate --no-interaction
       - run: composer install --no-interaction --no-progress --prefer-dist
       - run: ./vendor/bin/pint --test
 
@@ -54,6 +58,8 @@ jobs:
         with:
           path: vendor
           key: composer-${{ hashFiles('composer.lock') }}
-      - run: composer install --no-interaction --no-progress --prefer-dist
+      # Same ordering reason as the pint job: the env file must exist before
+      # any composer script boots the app.
       - run: cp .env.example .env && php artisan key:generate
+      - run: composer install --no-interaction --no-progress --prefer-dist
       - run: php artisan test

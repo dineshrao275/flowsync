@@ -10,6 +10,7 @@ use App\Services\Tenancy\TenantProductSync;
 use App\Services\TenantLifecycle;
 use App\Services\TenantLimits;
 use App\Support\TenantProvisioner;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 use Tests\IsolatesDatabase;
 use Tests\TestCase;
@@ -173,7 +174,7 @@ class TenantModuleSchemaTest extends TestCase
     private function countRows(Tenant $tenant, string $table): int
     {
         return $this->dbm->using($tenant, fn (): int => Schema::hasTable($table)
-            ? (int) \Illuminate\Support\Facades\DB::table($table)->count()
+            ? (int) DB::table($table)->count()
             : -1);
     }
 
