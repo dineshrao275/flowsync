@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import api, { fieldErrors } from '../services/api';
 import Card from '../components/ui/Card';
 import Badge from '../components/ui/Badge';
@@ -14,7 +15,8 @@ import { useConfirm } from '../components/ui/ConfirmDialog';
 import usePageTitle from '../hooks/usePageTitle';
 
 export default function Users() {
-    usePageTitle('Users');
+    const { t } = useTranslation();
+    usePageTitle(t('admin.users.pageTitle'));
     const navigate = useNavigate();
     const { can, user: currentUser } = useAuth();
     const toast = useToast();
@@ -42,7 +44,7 @@ export default function Users() {
                 navigate('/403', { replace: true });
                 return;
             }
-            setError('Unable to load users.');
+            setError(t('admin.users.loadFailed'));
         } finally {
             setLoading(false);
         }
@@ -62,22 +64,22 @@ export default function Users() {
             );
             toast.success(data.message);
         } catch (e) {
-            setError(fieldErrors(e).form || 'Failed to shift the default user.');
+            setError(fieldErrors(e).form || t('admin.users.defaultFailed'));
         } finally {
             setSaving(false);
         }
     }
 
     async function deleteUser(user) {
-        if (!(await confirm({ title: 'Delete user?', message: `Delete ${user.name}? This cannot be undone.`, variant: 'danger' }))) return;
+        if (!(await confirm({ title: t('admin.users.deleteTitle'), message: t('admin.users.deleteMessage', { name: user.name }), variant: 'danger' }))) return;
 
         setSaving(true);
         try {
             await api.delete(`/users/${user.id}`);
             setUsers((current) => current.filter((u) => u.id !== user.id));
-            toast.success(`${user.name} was deleted.`);
+            toast.success(t('admin.users.deleted', { name: user.name }));
         } catch (e) {
-            setError(fieldErrors(e).form || 'Failed to delete the user.');
+            setError(fieldErrors(e).form || t('admin.users.deleteFailed'));
         } finally {
             setSaving(false);
         }
@@ -92,7 +94,7 @@ export default function Users() {
             setUsers((current) => [...current, data.user]);
             setCreating(false);
             setForm({ name: '', email: '', password: '', password_confirmation: '', roles: [] });
-            toast.success(`${data.user.name} added to this tenant.`);
+            toast.success(t('admin.users.added', { name: data.user.name }));
         } catch (e) {
             setFormErrors(fieldErrors(e));
         } finally {
@@ -114,15 +116,15 @@ export default function Users() {
         <div className="space-y-6">
             <div className="flex flex-wrap items-center justify-between gap-3">
                 <div>
-                    <h2 className="text-2xl font-bold text-gray-900">Users</h2>
+                    <h2 className="text-2xl font-bold text-gray-900">{t('admin.users.pageTitle')}</h2>
                     <p className="mt-1 text-sm text-gray-500">
-                        Accounts within your tenant. The default user is protected from deletion.
+                        {t('admin.users.subtitle')}
                     </p>
                 </div>
                 {manageable && (
                     <div className="flex gap-2">
-                        <Button variant="secondary" onClick={() => navigate('/users/import')}>Import CSV</Button>
-                        <Button onClick={() => setCreating((open) => !open)}>Add user</Button>
+                        <Button variant="secondary" onClick={() => navigate('/users/import')}>{t('admin.users.importCsv')}</Button>
+                        <Button onClick={() => setCreating((open) => !open)}>{t('admin.users.addUser')}</Button>
                     </div>
                 )}
             </div>
@@ -130,44 +132,44 @@ export default function Users() {
             {error && <Alert>{error}</Alert>}
 
             {creating && (
-                <Card title="Add user" subtitle="Accounts can be created by tenant admins.">
+                <Card title={t('admin.users.addTitle')} subtitle={t('admin.users.addSubtitle')}>
                     <form onSubmit={createUser} className="space-y-4">
                         {formErrors.form && <Alert>{formErrors.form}</Alert>}
                         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                             <Input
-                                label="Full name"
+                                label={t('admin.users.fullName')}
                                 name="name"
-                                placeholder="Jane Doe"
+                                placeholder={t('admin.users.fullNamePlaceholder')}
                                 value={form.name}
                                 onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
                                 error={formErrors.name}
                                 required
                             />
                             <Input
-                                label="Email address"
+                                label={t('admin.users.emailAddress')}
                                 name="email"
                                 type="email"
-                                placeholder="jane@company.com"
+                                placeholder={t('admin.users.emailPlaceholder')}
                                 value={form.email}
                                 onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))}
                                 error={formErrors.email}
                                 required
                             />
                             <Input
-                                label="Password"
+                                label={t('admin.users.password')}
                                 name="password"
                                 type="password"
-                                placeholder="At least 8 characters"
+                                placeholder={t('admin.users.passwordPlaceholder')}
                                 value={form.password}
                                 onChange={(e) => setForm((f) => ({ ...f, password: e.target.value }))}
                                 error={formErrors.password}
                                 required
                             />
                             <Input
-                                label="Confirm password"
+                                label={t('admin.users.confirmPassword')}
                                 name="password_confirmation"
                                 type="password"
-                                placeholder="Repeat password"
+                                placeholder={t('admin.users.confirmPasswordPlaceholder')}
                                 value={form.password_confirmation}
                                 onChange={(e) => setForm((f) => ({ ...f, password_confirmation: e.target.value }))}
                                 error={formErrors.password_confirmation}
@@ -175,7 +177,7 @@ export default function Users() {
                             />
                         </div>
                         <div>
-                            <label className="mb-1.5 block text-sm font-medium text-gray-700">Roles</label>
+                            <label className="mb-1.5 block text-sm font-medium text-gray-700">{t('admin.users.roles')}</label>
                             <select
                                 multiple
                                 value={form.roles}
@@ -197,10 +199,10 @@ export default function Users() {
                         </div>
                         <div className="flex gap-2 pt-1">
                             <Button type="button" variant="secondary" onClick={() => setCreating(false)}>
-                                Cancel
+                                {t('admin.common.cancel')}
                             </Button>
                             <Button type="submit" loading={saving}>
-                                Add user
+                                {t('admin.users.addUser')}
                             </Button>
                         </div>
                     </form>
@@ -210,15 +212,15 @@ export default function Users() {
             <Table>
                 <thead>
                     <tr>
-                        <Th>Name</Th>
-                        <Th>Email</Th>
-                        <Th>Roles</Th>
-                        <Th align="right">Actions</Th>
+                        <Th>{t('admin.common.name')}</Th>
+                        <Th>{t('admin.common.email')}</Th>
+                        <Th>{t('admin.users.roles')}</Th>
+                        <Th align="right">{t('admin.common.actions')}</Th>
                     </tr>
                 </thead>
                 <tbody>
                     {users.length === 0 ? (
-                        <TableEmpty colSpan={4}>No users yet.</TableEmpty>
+                        <TableEmpty colSpan={4}>{t('admin.users.empty')}</TableEmpty>
                     ) : (
                         users.map((user, index) => (
                             <tr
@@ -236,8 +238,8 @@ export default function Users() {
                                         </span>
                                         <span className="font-medium text-gray-800">{user.name}</span>
                                         {user.is_default && (
-                                            <Badge tone="accent" title="Protected from deletion">
-                                                Default
+                                            <Badge tone="accent" title={t('admin.users.defaultBadgeTitle')}>
+                                                {t('admin.users.defaultBadge')}
                                             </Badge>
                                         )}
                                     </div>
@@ -254,7 +256,7 @@ export default function Users() {
                                     {manageable && (
                                         <div className="flex items-center justify-end gap-2">
                                             <Button size="sm" variant="secondary" onClick={() => navigate(`/users/${user.id}`)}>
-                                                Edit
+                                                {t('admin.common.edit')}
                                             </Button>
                                             {!user.is_default && (
                                                 <Button
@@ -266,12 +268,12 @@ export default function Users() {
                                                     disabled={!user.roles?.includes('admin')}
                                                     title={
                                                         user.roles?.includes('admin')
-                                                            ? 'Make this user the tenant default'
-                                                            : 'Only an admin can be the default user'
+                                                            ? t('admin.users.makeDefaultTitle')
+                                                            : t('admin.users.onlyAdminDefault')
                                                     }
                                                     onClick={() => makeDefault(user)}
                                                 >
-                                                    Make default
+                                                    {t('admin.users.makeDefault')}
                                                 </Button>
                                             )}
                                             {user.id !== currentUser?.id && (
@@ -281,12 +283,12 @@ export default function Users() {
                                                     disabled={user.is_default}
                                                     title={
                                                         user.is_default
-                                                            ? 'The default user cannot be deleted. Shift the default to another admin first.'
-                                                            : 'Delete user'
+                                                            ? t('admin.users.defaultDeleteTitle')
+                                                            : t('admin.users.deleteTooltip')
                                                     }
                                                     onClick={() => deleteUser(user)}
                                                 >
-                                                    Delete
+                                                    {t('admin.common.delete')}
                                                 </Button>
                                             )}
                                         </div>
