@@ -43,7 +43,7 @@ export default function RangeFilter({ preset, onChange }) {
                     max={custom.to || undefined}
                     onChange={(e) => setCustom((c) => ({ ...c, from: e.target.value }))}
                 />
-                <span className="text-xs text-gray-400">→</span>
+                <span className="text-xs text-gray-400">–</span>
                 <Input
                     type="date"
                     compact
