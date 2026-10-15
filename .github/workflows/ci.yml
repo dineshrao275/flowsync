@@ -62,4 +62,13 @@ jobs:
       # any composer script boots the app.
       - run: cp .env.example .env && php artisan key:generate
       - run: composer install --no-interaction --no-progress --prefer-dist
+      # View-rendering tests hit @vite() Blade directives, and public/build
+      # is gitignored — build the real manifest first so tests exercise the
+      # production asset path instead of 500ing on a missing manifest.
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - run: npm run build
       - run: php artisan test

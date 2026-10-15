@@ -1,6 +1,6 @@
 <?php
 
-namespace Tests\Unit;
+namespace Tests\Unit\Hrms;
 
 use App\Models\Hrms\Employee\Employee;
 use App\Services\Hrms\Employee\SensitiveFieldRedactor;
