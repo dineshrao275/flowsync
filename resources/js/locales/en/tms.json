@@ -565,7 +565,8 @@
         "deleteTitle": "Delete rule?",
         "deleteMessage": "Delete this rule?",
         "noRuns": "No runs yet.",
-        "messagePlaceholder": "Message"
+        "messagePlaceholder": "Message",
+        "commentPlaceholder": "Comment text — {{key}} {{title}} {{assignee}}"
     },
     "sprints": {
         "planning": "Planning",

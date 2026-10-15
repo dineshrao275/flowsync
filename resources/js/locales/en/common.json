@@ -173,6 +173,25 @@
             "fallback": "Unknown error",
             "retry": "Try again",
             "dashboard": "Go to dashboard"
+        },
+        "commandPalette": {
+            "groups": {
+                "tasks": "Tasks",
+                "projects": "Projects",
+                "workspaces": "Workspaces",
+                "users": "People",
+                "hrms": "HR"
+            },
+            "goToSection": "Go to section",
+            "goTo": "Go to {{label}}",
+            "projectsCount": "{{count}} projects",
+            "projectsCountOne": "1 project",
+            "placeholder": "Search workspaces, projects, tasks, people…",
+            "ariaLabel": "Global search",
+            "escLabel": "ESC",
+            "hint": "Type at least 2 characters to search.",
+            "noResults": "No results for “{{query}}”.",
+            "footer": "↑↓ navigate · ↵ select · esc close"
         }
     }
 }

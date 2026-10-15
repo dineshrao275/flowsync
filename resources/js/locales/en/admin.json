@@ -11,6 +11,7 @@
         "search": "Search",
         "actions": "Actions",
         "loading": "Loading…",
+        "loadingLabel": "Loading",
         "required": "Required",
         "optional": "Optional",
         "name": "Name",
@@ -1030,5 +1031,140 @@
         "previewFailed": "Could not build the preview link.",
         "deleteTitle": "Delete post?",
         "deleted": "Post deleted."
+    },
+    "accessExplainer": {
+        "title": "Why can't they?",
+        "subtitle": "Pick a permission to see what grants or blocks it for this user.",
+        "placeholder": "e.g. hrms.payroll.view",
+        "check": "Check",
+        "error": "Could not check that permission.",
+        "allowed": "Allowed",
+        "notAllowed": "Not allowed",
+        "planModule": "Plan module",
+        "included": "included",
+        "notIncluded": "not included"
+    },
+    "mediaPicker": {
+        "searchLibrary": "Search library",
+        "empty": "No images yet — upload one above.",
+        "noImage": "No image",
+        "choose": "Choose…",
+        "clear": "Clear",
+        "chooseImage": "Choose image",
+        "image": "Image"
+    },
+    "productsPanel": {
+        "products": "Products",
+        "productsPlans": "Products & plans",
+        "subtitle": "Each product has its own plan and its own on/off switch.",
+        "unavailable": "Unavailable.",
+        "bundleNote": "On the bundle plan <0>{{plan}}</0>. Pick a plan for each product to move to per-product billing.",
+        "none": "none",
+        "moveToPerProduct": "Move to per-product plans",
+        "enabled": "enabled",
+        "disabled": "disabled",
+        "coveredBy": "Covered by {{plan}}",
+        "noPlan": "No plan",
+        "assignPlan": "Assign a plan…",
+        "assign": "Assign",
+        "switchLabel": "Switch",
+        "followPlan": "Follow plan",
+        "forceOn": "Force on",
+        "forceOff": "Force off",
+        "savedSwitch": "Product switch saved.",
+        "savedSplit": "Moved to per-product plans.",
+        "savedAssign": "Plan assigned.",
+        "saveFailed": "Could not save."
+    },
+    "apiTokens": {
+        "intro": "Call /api/v1 with Authorization: Bearer <token>. A token can never do more than you can.",
+        "newToken": "New token",
+        "copyNow": "Copy your token now, it is shown only once.",
+        "saved": "I have saved it",
+        "abilities": "Abilities",
+        "allowWrites": "Allow writes (create tasks). Off means read-only.",
+        "rateLimit": "Requests per minute (default {{default}})",
+        "expiresOptional": "Expires (optional)",
+        "createToken": "Create token",
+        "noTokens": "No tokens yet.",
+        "readWrite": "read + write",
+        "readOnly": "read-only",
+        "expires": "expires",
+        "noExpiry": "no expiry",
+        "lastUsed": "Last used",
+        "neverUsed": "Never used",
+        "active": "active",
+        "revoked": "revoked",
+        "expired": "expired",
+        "hideLog": "Hide log",
+        "callLog": "Call log",
+        "confirmRevoke": "Confirm revoke",
+        "keep": "Keep",
+        "revoke": "Revoke",
+        "when": "When",
+        "call": "Call",
+        "http": "HTTP",
+        "noCalls": "No calls yet.",
+        "revokedToast": "Token revoked.",
+        "revokeFailed": "Could not revoke the token."
+    },
+    "limitsEditor": {
+        "legend": "Resource limits",
+        "hint": "Blank = unlimited. Caps are enforced on create, and a tenant override wins over its plan.",
+        "fields": {
+            "users": {
+                "label": "Users",
+                "hint": "User accounts in the tenant"
+            },
+            "seats": {
+                "label": "Seats",
+                "hint": "Seat-based alias of users"
+            },
+            "workspaces": {
+                "label": "Workspaces"
+            },
+            "projects": {
+                "label": "Projects"
+            },
+            "tasks": {
+                "label": "Tasks"
+            },
+            "storage_bytes": {
+                "label": "Storage (GB)"
+            },
+            "attachments_per_task": {
+                "label": "Attachments / task"
+            }
+        },
+        "aliasesFootnote": "<0>Seats</0> is a seat-based alias of users; both are capped by whichever value is set."
+    },
+    "dialog": {
+        "areYouSure": "Are you sure?",
+        "confirm": "Confirm",
+        "inputRequired": "Input Required",
+        "submit": "Submit",
+        "notice": "Notice",
+        "ok": "OK",
+        "required": "This field is required."
+    },
+    "editor": {
+        "toolbar": "Formatting",
+        "bold": "Bold",
+        "italic": "Italic",
+        "strikethrough": "Strikethrough",
+        "underline": "Underline",
+        "heading1": "Heading 1",
+        "heading2": "Heading 2",
+        "heading3": "Heading 3",
+        "paragraph": "Paragraph",
+        "bulletList": "Bullet list",
+        "numberedList": "Numbered list",
+        "checklist": "Checklist",
+        "quote": "Quote",
+        "codeBlock": "Code block",
+        "horizontalLine": "Horizontal line",
+        "undo": "Undo",
+        "redo": "Redo",
+        "clearFormatting": "Clear formatting"
     }
 }

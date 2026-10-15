@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { Trans, useTranslation } from 'react-i18next';
 import Input from '../ui/Input';
 
 const GIB = 1024 ** 3;
@@ -64,7 +65,8 @@ export function formatBytes(bytes) {
     return `${Math.round(bytes / 1024 / 1024)} MB`;
 }
 
-export default function LimitsEditor({ limits, errors = {}, onChange, legend = 'Resource limits', hint = 'Blank = unlimited. Caps are enforced on create, and a tenant override wins over its plan.' }) {
+export default function LimitsEditor({ limits, errors = {}, onChange, legend, hint }) {
+    const { t } = useTranslation();
     const [values, setValues] = useState(() => toFormValues(limits));
 
     function set(key, value) {
@@ -75,13 +77,13 @@ export default function LimitsEditor({ limits, errors = {}, onChange, legend = '
 
     return (
         <fieldset className="rounded-lg border border-gray-200 p-4">
-            <legend className="px-1 text-sm font-medium text-gray-700">{legend}</legend>
-            <p className="mb-3 text-xs text-gray-500">{hint}</p>
+            <legend className="px-1 text-sm font-medium text-gray-700">{legend ?? t('admin.limitsEditor.legend')}</legend>
+            <p className="mb-3 text-xs text-gray-500">{hint ?? t('admin.limitsEditor.hint')}</p>
             <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
                 {FIELDS.map((field) => (
                     <Input
                         key={field.key}
-                        label={field.label}
+                        label={t(`admin.limitsEditor.fields.${field.key}.label`, { defaultValue: field.label })}
                         type="number"
                         min="0"
                         name={`limits.${field.key}`}
@@ -93,8 +95,7 @@ export default function LimitsEditor({ limits, errors = {}, onChange, legend = '
                 ))}
             </div>
             <p className="mt-3 text-xs text-gray-500">
-                <span className="font-medium text-gray-600">Seats</span> is a seat-based alias of users; both are capped
-                by whichever value is set.
+                <Trans i18nKey="admin.limitsEditor.aliasesFootnote" components={[<span key="0" className="font-medium text-gray-600" />]} />
             </p>
         </fieldset>
     );

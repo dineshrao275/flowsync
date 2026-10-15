@@ -1,5 +1,6 @@
 import { useId } from 'react';
 import { createPortal } from 'react-dom';
+import { useTranslation } from 'react-i18next';
 import useDialogFocus from '../../hooks/useDialogFocus';
 
 const sizes = {
@@ -9,6 +10,7 @@ const sizes = {
 };
 
 export default function Modal({ open, onClose, title, subtitle, size = 'md', children, className = '' }) {
+    const { t } = useTranslation();
     const panelRef = useDialogFocus(open, onClose);
     const titleId = useId();
 
@@ -43,7 +45,7 @@ export default function Modal({ open, onClose, title, subtitle, size = 'md', chi
                             <button
                                 type="button"
                                 onClick={onClose}
-                                aria-label="Close"
+                                aria-label={t('admin.common.close')}
                                 className="-mr-1 -mt-1 rounded-lg p-1.5 text-gray-400 transition hover:bg-gray-100 hover:text-gray-600"
                             >
                                 <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
