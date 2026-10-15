@@ -123,6 +123,9 @@ class AuditChainTest extends TestCase
         $this->assertNotNull(AuditLog::find($oldGlobex->id), 'no retention on that plan: kept forever');
         $this->assertNotNull(AuditLog::find($oldPlatform->id), 'platform-only rows are never pruned');
         $this->assertNotNull(AuditLog::find($recentAcme->id));
+        // assertDatabaseHas resolves the default (tenant) connection — pin
+        // central first, the CollaborationTest precedent.
+        DB::setDefaultConnection(config('tenancy.system.connection'));
         $this->assertDatabaseHas('audit_log_tombstones', ['audit_log_id' => $oldAcme->id, 'tenant_id' => $acme->id]);
         $this->assertDatabaseHas('audit_logs', ['action' => 'audit.retention_pruned']);
 

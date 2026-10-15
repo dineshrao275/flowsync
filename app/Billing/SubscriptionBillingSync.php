@@ -9,7 +9,7 @@ use App\Models\PaymentEvent;
 use App\Models\Subscription;
 use App\Models\Tenant;
 use App\Services\SubscriptionService;
-use Carbon\Carbon;
+use Illuminate\Support\Carbon;
 
 /**
  * Applies a recurring-billing webhook (renewal paid, renewal failed, provider

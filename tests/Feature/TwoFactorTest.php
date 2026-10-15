@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Models\PlatformSetting;
 use App\Support\Totp;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Testing\TestResponse;
 use Tests\IsolatesDatabase;
 use Tests\TestCase;
@@ -42,6 +43,9 @@ class TwoFactorTest extends TestCase
             ->assertOk()->assertJsonPath('user.email', 'admin@flowsync.test');
         $this->getJson('/api/auth/me')->assertOk();
 
+        // audit_logs is central; the auth requests above leave the default
+        // connection on the tenant DB.
+        DB::setDefaultConnection(config('tenancy.system.connection'));
         $this->assertDatabaseHas('audit_logs', ['action' => 'auth.2fa_enabled']);
         $this->assertDatabaseHas('audit_logs', ['action' => 'auth.2fa_failed']);
     }

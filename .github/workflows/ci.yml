@@ -23,7 +23,14 @@ jobs:
         with:
           path: vendor
           key: composer-${{ hashFiles('composer.lock') }}
+      # .env first: composer scripts boot the app (package:discover), and a
+      # fresh checkout has no .env — without one APP_ENV defaults to
+      # production and the infrastructure-pin guard fails the install.
+      # Split in two: key:generate needs vendor/, which only exists after
+      # install, but the .env copy needs no vendor at all.
+      - run: cp .env.example .env
       - run: composer install --no-interaction --no-progress --prefer-dist
+      - run: php artisan key:generate --no-interaction
       - run: ./vendor/bin/pint --test
 
   js:
@@ -40,9 +47,29 @@ jobs:
       - run: npm test
       - run: npm run build
 
+  # The suite (~1900 tests, each seeding fresh sqlite DBs) takes hours
+  # sequentially. It shards by test-class prefix — five disjoint,
+  # letter-balanced filters (verified: every class in exactly one shard,
+  # new files auto-include by prefix) — each running its shard with
+  # paratest --functional across 6 workers. Wall clock drops to the
+  # slowest shard (~15 min) instead of the whole suite (~3 h).
   php-tests:
-    name: PHPUnit (sqlite fast path)
+    name: PHPUnit shard ${{ matrix.shard }}
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - shard: 1-unit-and-a-g
+            filter: '/^Tests\\Unit\\|^Tests\\Feature\\([A-G]|HardeningTest)/'
+          - shard: 2-hrms-a-k
+            filter: '/^Tests\\Feature\\Hrms[A-K]/'
+          - shard: 3-hrms-l-z
+            filter: '/^Tests\\Feature\\Hrms[L-Z]/'
+          - shard: 4-i-to-s
+            filter: '/^Tests\\Feature\\[I-S]/'
+          - shard: 5-t-to-z
+            filter: '/^Tests\\Feature\\[T-Z]/'
     steps:
       - uses: actions/checkout@v4
       - uses: shivammathur/setup-php@v2
@@ -54,6 +81,19 @@ jobs:
         with:
           path: vendor
           key: composer-${{ hashFiles('composer.lock') }}
+      # Same ordering reason as the pint job: the env file must exist before
+      # any composer script boots the app (key:generate waits until vendor/
+      # exists, like above).
+      - run: cp .env.example .env
       - run: composer install --no-interaction --no-progress --prefer-dist
-      - run: cp .env.example .env && php artisan key:generate
-      - run: php artisan test
+      - run: php artisan key:generate
+      # View-rendering tests hit @vite() Blade directives, and public/build
+      # is gitignored — build the real manifest first so tests exercise the
+      # production asset path instead of 500ing on a missing manifest.
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - run: npm run build
+      - run: vendor/bin/paratest --functional -p6 --filter '${{ matrix.filter }}' tests/

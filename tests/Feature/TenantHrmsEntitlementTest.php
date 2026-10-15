@@ -192,6 +192,7 @@ class TenantHrmsEntitlementTest extends TestCase
             ->andReturnSelf();
         Log::shouldReceive('info')->andReturnNull();
         Log::shouldReceive('warning')->andReturnNull();
+        Log::shouldReceive('debug')->andReturnNull(); // SwitchTenant connection notes
         Log::shouldReceive('shareContext')->andReturnNull(); // AssignRequestId (P2.2)
 
         $this->loginSuperAdmin();
