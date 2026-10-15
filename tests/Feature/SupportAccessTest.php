@@ -7,6 +7,7 @@ use App\Models\PlatformSetting;
 use App\Models\SupportAccessGrant;
 use App\Models\User;
 use App\Services\Security\SupportAccessGrants;
+use Illuminate\Support\Facades\DB;
 use Tests\IsolatesDatabase;
 use Tests\TestCase;
 
@@ -28,8 +29,12 @@ class SupportAccessTest extends TestCase
         $this->postJson('/api/auth/logout');
         $this->postJson('/api/auth/login', ['email' => 'superadmin@flowsync.test', 'password' => 'password'])->assertOk();
 
+        // The viewer id lives in the tenant DB; User on the system
+        // connection would read the central users table and find nothing.
+        $viewerId = $this->dbm->using($this->acme(), fn () => User::where('email', 'viewer@flowsync.test')->value('id'));
+
         return $this->postJson('/api/impersonate', $extra + [
-            'user_id' => User::where('email', 'viewer@flowsync.test')->value('id'),
+            'user_id' => $viewerId,
             'tenant_id' => $this->acme()->id,
             'reason' => 'Ticket 4411 payroll run',
         ]);
@@ -43,6 +48,9 @@ class SupportAccessTest extends TestCase
             ->assertJsonPath('grants.0.id', $id)->assertJsonPath('grants.0.mode', 'read_only')->assertJsonPath('grants.0.active', true);
         $this->deleteJson("/api/support-access/{$id}")->assertOk()->assertJsonPath('grant.active', false);
 
+        // audit_logs is central; the tenant-scoped requests above leave the
+        // default connection on the tenant DB.
+        DB::setDefaultConnection(config('tenancy.system.connection'));
         $this->assertDatabaseHas('audit_logs', ['action' => 'support_access.granted']);
         $this->assertDatabaseHas('audit_logs', ['action' => 'support_access.revoked']);
     }
@@ -86,6 +94,7 @@ class SupportAccessTest extends TestCase
 
         $log = ImpersonationLog::latest('id')->first();
         $this->assertSame($id, (int) $log->support_access_grant_id);
+        DB::setDefaultConnection(config('tenancy.system.connection'));
         $this->assertDatabaseHas('audit_logs', ['action' => 'support_access.used']);
         $this->assertSame(1, SupportAccessGrant::find($id)->uses);
     }
@@ -127,7 +136,8 @@ class SupportAccessTest extends TestCase
 
     public function test_support_cannot_manage_grants_while_impersonating(): void
     {
-        $id = $this->grantAsAdmin();
+        // A write session needs a write grant — read_only caps the session at the start.
+        $id = $this->grantAsAdmin(['mode' => 'write']);
         $this->beginSupportSession(['grant_id' => $id, 'mode' => 'write'])->assertOk();
 
         $this->postJson('/api/support-access', ['note' => 'self issued consent'])->assertForbidden();

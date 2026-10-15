@@ -84,6 +84,9 @@ class AdminEntitlementTest extends TestCase
                 continue; // routes this plan does include
             }
             $response = $this->getJson('/'.$uri);
+            if ($response->status() === 401 && str_starts_with($uri, 'api/v1/')) {
+                continue; // token routes refuse session callers at auth, before module gates run
+            }
             if ($response->status() !== 403 || ! $response->headers->has('X-Module-Reason')) {
                 $leaks[] = "{$uri} ({$key}) => ".$response->status();
             }

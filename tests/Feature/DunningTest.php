@@ -50,7 +50,9 @@ class DunningTest extends TestCase
         $this->sweep();
 
         $this->assertSame(1, DunningAttempt::where('stage', 'reminder')->where('step_day', 0)->count());
-        $this->assertSame(1, UserNotification::where('type', 'billing.payment_failed')->count());
+        // Acme seeds two admins (owner + admin@): one row each, and the
+        // second sweep adds none — that is the "once" being pinned.
+        $this->assertSame(2, UserNotification::where('type', 'billing.payment_failed')->count());
         $this->assertSame('active', Tenant::where('slug', 'acme')->first()->status);
     }
 
@@ -62,7 +64,7 @@ class DunningTest extends TestCase
 
         $this->assertSame(['done'], DunningAttempt::where('stage', 'final_notice')->pluck('outcome')->all());
         $this->assertSame(['skipped', 'skipped'], DunningAttempt::where('stage', 'reminder')->orderBy('step_day')->pluck('outcome')->all());
-        $this->assertSame(1, UserNotification::where('type', 'billing.final_notice')->count());
+        $this->assertSame(2, UserNotification::where('type', 'billing.final_notice')->count());
         $this->assertSame(0, UserNotification::where('type', 'billing.payment_failed')->count());
     }
 
@@ -74,7 +76,7 @@ class DunningTest extends TestCase
         $this->sweep();
 
         $this->assertSame('suspended', Tenant::where('slug', 'acme')->first()->status);
-        $this->assertSame(1, UserNotification::where('type', 'billing.suspended')->count());
+        $this->assertSame(2, UserNotification::where('type', 'billing.suspended')->count());
         $this->assertSame(1, DunningAttempt::where('stage', 'suspend')->count());
     }
 

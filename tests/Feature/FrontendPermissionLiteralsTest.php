@@ -23,7 +23,11 @@ class FrontendPermissionLiteralsTest extends TestCase
 
     public function test_every_permission_literal_in_the_spa_exists_in_the_catalog(): void
     {
-        $catalog = array_flip(array_column(config('permissions.permissions'), 'slug'));
+        // Tenant UI uses the tenant catalog; the super-admin shell uses the
+        // platform catalog — a literal from either is legitimate, anything
+        // else is a typo hiding UI.
+        $catalog = array_flip(array_column(config('permissions.permissions'), 'slug'))
+            + array_flip(array_keys(config('platform_access.permissions', [])));
         $unknown = [];
 
         foreach ($this->spaFiles() as $file) {

@@ -18,7 +18,9 @@ class PeriodEndTest extends TestCase
     {
         $tenant = Tenant::where('slug', 'acme')->firstOrFail();
         $subscription = app(SubscriptionService::class)->assign($tenant, SubscriptionPlan::where('slug', $plan)->firstOrFail());
-        $subscription->update(['current_period_end' => now()->subHour()] + $attributes);
+        // array_merge: an explicit override (e.g. a future period end) must
+        // win — `+` keeps the left side and silently discards it.
+        $subscription->update(array_merge(['current_period_end' => now()->subHour()], $attributes));
 
         return $subscription->refresh();
     }

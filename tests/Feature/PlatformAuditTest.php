@@ -75,14 +75,14 @@ class PlatformAuditTest extends TestCase
         $this->loginSuperAdmin();
 
         $id = $this->postJson('/api/system/pages', [
-            'slug' => 'changelog',
+            'slug' => 'audit-changelog',
             'title' => 'Changelog',
             'status' => 'draft',
             'content' => [['type' => 'text', 'heading' => 'Changelog', 'body' => 'What changed.']],
         ])->assertStatus(201)->json('page.id');
 
         $this->putJson("/api/system/pages/{$id}", [
-            'slug' => 'changelog',
+            'slug' => 'audit-changelog',
             'title' => 'Product Updates',
             'status' => 'draft',
             'content' => [['type' => 'text', 'heading' => 'Changelog', 'body' => 'What changed.']],
@@ -92,7 +92,7 @@ class PlatformAuditTest extends TestCase
 
         $this->assertSame('website_pages', $log->subject_type);
         $this->assertSame($id, $log->subject_id);
-        $this->assertSame('changelog', $log->data['slug']);
+        $this->assertSame('audit-changelog', $log->data['slug']);
         $this->assertSame(['title'], array_keys($log->data['before']));
         $this->assertSame('Changelog', $log->data['before']['title']);
         $this->assertSame('Product Updates', $log->data['after']['title']);

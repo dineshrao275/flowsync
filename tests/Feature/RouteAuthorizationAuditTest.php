@@ -48,6 +48,8 @@ class RouteAuthorizationAuditTest extends TestCase
         'TwoFactorController@disable' => 'self-scoped: password + current code re-check',
         'TwoFactorController@recoveryCodes' => 'self-scoped: password + current code re-check',
         'ApiV1Controller@me' => 'bearer-token identity: returns the token owner\'s own record and the token\'s abilities',
+        'ContactController@store' => 'public: throttled + honeypot-guarded, writes only a lead row',
+        'ClientLogController@store' => 'public: throttled client error reporting, writes only a log line',
     ];
 
     /** Calls that count as an explicit authorization decision. */

@@ -9,6 +9,7 @@ use App\Support\TenantProvisioner;
 use Illuminate\Routing\Route as LaravelRoute;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Route;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 use Tests\IsolatesDatabase;
 use Tests\TestCase;
 
@@ -82,17 +83,24 @@ class AuthorizationMatrixTest extends TestCase
                 $response = $this->getJson('/'.$uri);
                 $cells++;
 
+                // Export routes stream CSV: no status()/json() helpers, and a
+                // 403 denial is JSON while a 200 is a stream — read the code
+                // off the base response either way.
+                $status = $response->baseResponse instanceof StreamedResponse
+                    ? $response->baseResponse->getStatusCode()
+                    : $response->status();
+
                 if ($missing !== []) {
                     // Denied: it must be 403 and it must name the first missing grant (middleware order).
-                    if ($response->status() !== 403) {
-                        $wrong[] = "{$slug} reached {$uri} without ".implode(', ', $missing)." (got {$response->status()})";
+                    if ($status !== 403) {
+                        $wrong[] = "{$slug} reached {$uri} without ".implode(', ', $missing)." (got {$status})";
                     }
 
                     continue;
                 }
 
                 // Allowed: the permission gate must not be what stops it.
-                if ($response->status() === 403) {
+                if ($status === 403) {
                     foreach ($permissions as $p) {
                         if (str_contains((string) $response->json('message'), EnsurePermission::denial($p))) {
                             $wrong[] = "{$slug} was refused {$uri} although it holds {$p}";
