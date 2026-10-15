@@ -1,4 +1,5 @@
 import { fieldClassCompact } from '../ui/fieldStyles';
+import Button from '../ui/Button';
 import Input from '../ui/Input';
 
 export default function FiltersBar({ filters, options, onChange }) {
@@ -13,8 +14,9 @@ export default function FiltersBar({ filters, options, onChange }) {
     return (
         <div className="flex flex-wrap items-end gap-3">
             <div className="w-56">
-                <label className="mb-1 block text-xs font-medium uppercase tracking-wide text-gray-500">Search</label>
+                <label htmlFor="filter-q" className="mb-1 block text-xs font-medium text-gray-500">Search</label>
                 <input
+                    id="filter-q"
                     type="text"
                     placeholder="Title, key, description…"
                     value={filters.q || ''}
@@ -23,8 +25,8 @@ export default function FiltersBar({ filters, options, onChange }) {
                 />
             </div>
             <div>
-                <label className="mb-1 block text-xs font-medium uppercase tracking-wide text-gray-500">Status</label>
-                <select className={fieldClassCompact} value={filters.status_id || ''} onChange={(e) => set('status_id', e.target.value)}>
+                <label htmlFor="filter-status" className="mb-1 block text-xs font-medium text-gray-500">Status</label>
+                <select id="filter-status" className={fieldClassCompact} value={filters.status_id || ''} onChange={(e) => set('status_id', e.target.value)}>
                     <option value="">All statuses</option>
                     {options.statuses.map((s) => (
                         <option key={s.id} value={s.id}>
@@ -34,8 +36,8 @@ export default function FiltersBar({ filters, options, onChange }) {
                 </select>
             </div>
             <div>
-                <label className="mb-1 block text-xs font-medium uppercase tracking-wide text-gray-500">Priority</label>
-                <select className={fieldClassCompact} value={filters.priority_id || ''} onChange={(e) => set('priority_id', e.target.value)}>
+                <label htmlFor="filter-priority" className="mb-1 block text-xs font-medium text-gray-500">Priority</label>
+                <select id="filter-priority" className={fieldClassCompact} value={filters.priority_id || ''} onChange={(e) => set('priority_id', e.target.value)}>
                     <option value="">All priorities</option>
                     {options.priorities.map((p) => (
                         <option key={p.id} value={p.id}>
@@ -45,8 +47,8 @@ export default function FiltersBar({ filters, options, onChange }) {
                 </select>
             </div>
             <div>
-                <label className="mb-1 block text-xs font-medium uppercase tracking-wide text-gray-500">Assignee</label>
-                <select className={fieldClassCompact} value={filters.assignee_id || ''} onChange={(e) => set('assignee_id', e.target.value)}>
+                <label htmlFor="filter-assignee" className="mb-1 block text-xs font-medium text-gray-500">Assignee</label>
+                <select id="filter-assignee" className={fieldClassCompact} value={filters.assignee_id || ''} onChange={(e) => set('assignee_id', e.target.value)}>
                     <option value="">Everyone</option>
                     {options.assignees.map((u) => (
                         <option key={u.id} value={u.id}>
@@ -57,8 +59,8 @@ export default function FiltersBar({ filters, options, onChange }) {
             </div>
             {options.sprints && (
                 <div>
-                    <label className="mb-1 block text-xs font-medium uppercase tracking-wide text-gray-500">Sprint</label>
-                    <select className={fieldClassCompact} value={filters.sprint || ''} onChange={(e) => set('sprint', e.target.value)}>
+                    <label htmlFor="filter-sprint" className="mb-1 block text-xs font-medium text-gray-500">Sprint</label>
+                    <select id="filter-sprint" className={fieldClassCompact} value={filters.sprint || ''} onChange={(e) => set('sprint', e.target.value)}>
                         <option value="">All work</option>
                         <option value="active">Active sprint</option>
                         <option value="none">Backlog</option>
@@ -67,8 +69,8 @@ export default function FiltersBar({ filters, options, onChange }) {
             )}
             {options.labels?.length > 0 && (
                 <div>
-                    <label className="mb-1 block text-xs font-medium uppercase tracking-wide text-gray-500">Label</label>
-                    <select className={fieldClassCompact} value={filters.label_id || ''} onChange={(e) => set('label_id', e.target.value)}>
+                    <label htmlFor="filter-label" className="mb-1 block text-xs font-medium text-gray-500">Label</label>
+                    <select id="filter-label" className={fieldClassCompact} value={filters.label_id || ''} onChange={(e) => set('label_id', e.target.value)}>
                         <option value="">Any label</option>
                         {options.labels.map((l) => (
                             <option key={l.id} value={l.id}>
@@ -80,8 +82,8 @@ export default function FiltersBar({ filters, options, onChange }) {
             )}
             {options.issue_types?.length > 0 && (
                 <div>
-                    <label className="mb-1 block text-xs font-medium uppercase tracking-wide text-gray-500">Type</label>
-                    <select className={fieldClassCompact} value={filters.issue_type_id || ''} onChange={(e) => set('issue_type_id', e.target.value)}>
+                    <label htmlFor="filter-type" className="mb-1 block text-xs font-medium text-gray-500">Type</label>
+                    <select id="filter-type" className={fieldClassCompact} value={filters.issue_type_id || ''} onChange={(e) => set('issue_type_id', e.target.value)}>
                         <option value="">All types</option>
                         {options.issue_types.map((t) => (
                             <option key={t.id} value={t.id}>
@@ -93,8 +95,8 @@ export default function FiltersBar({ filters, options, onChange }) {
             )}
             {options.versions?.length > 0 && (
                 <div>
-                    <label className="mb-1 block text-xs font-medium uppercase tracking-wide text-gray-500">Version</label>
-                    <select className={fieldClassCompact} value={filters.version_id || ''} onChange={(e) => set('version_id', e.target.value)}>
+                    <label htmlFor="filter-version" className="mb-1 block text-xs font-medium text-gray-500">Version</label>
+                    <select id="filter-version" className={fieldClassCompact} value={filters.version_id || ''} onChange={(e) => set('version_id', e.target.value)}>
                         <option value="">All versions</option>
                         {options.versions.map((v) => (
                             <option key={v.id} value={v.id}>
@@ -106,8 +108,8 @@ export default function FiltersBar({ filters, options, onChange }) {
             )}
             {options.components?.length > 0 && (
                 <div>
-                    <label className="mb-1 block text-xs font-medium uppercase tracking-wide text-gray-500">Component</label>
-                    <select className={fieldClassCompact} value={filters.component_id || ''} onChange={(e) => set('component_id', e.target.value)}>
+                    <label htmlFor="filter-component" className="mb-1 block text-xs font-medium text-gray-500">Component</label>
+                    <select id="filter-component" className={fieldClassCompact} value={filters.component_id || ''} onChange={(e) => set('component_id', e.target.value)}>
                         <option value="">All components</option>
                         {options.components.map((c) => (
                             <option key={c.id} value={c.id}>
@@ -119,7 +121,7 @@ export default function FiltersBar({ filters, options, onChange }) {
             )}
             <Input
                 label="Due from"
-                labelClassName="mb-1 block text-xs font-medium uppercase tracking-wide text-gray-500"
+                labelClassName="mb-1 block text-xs font-medium text-gray-500"
                 type="date"
                 compact
                 value={filters.due_from || ''}
@@ -127,19 +129,15 @@ export default function FiltersBar({ filters, options, onChange }) {
             />
             <Input
                 label="Due to"
-                labelClassName="mb-1 block text-xs font-medium uppercase tracking-wide text-gray-500"
+                labelClassName="mb-1 block text-xs font-medium text-gray-500"
                 type="date"
                 compact
                 value={filters.due_to || ''}
                 onChange={(e) => set('due_to', e.target.value)}
             />
-            <button
-                type="button"
-                onClick={clear}
-                className="rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-600 shadow-sm transition hover:bg-gray-50"
-            >
+            <Button type="button" size="sm" variant="secondary" onClick={clear}>
                 Clear
-            </button>
+            </Button>
         </div>
     );
 }

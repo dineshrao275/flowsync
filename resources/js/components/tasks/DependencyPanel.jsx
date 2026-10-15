@@ -131,7 +131,7 @@ export default function DependencyPanel({ task, projectId, canManage, allTasks }
                     <label className="block text-sm font-medium text-gray-700">Add dependency</label>
                     <div className="flex gap-2">
                         <select
-                            className="block w-full rounded-lg border border-gray-300 bg-white px-3.5 py-2.5 text-sm shadow-sm focus:border-indigo-500 focus:outline-none"
+                            className="block w-full rounded-lg border border-gray-300 bg-white px-3.5 py-2.5 text-sm shadow-sm focus:border-[var(--accent)] focus:outline-none"
                             value={selected}
                             onChange={(e) => setSelected(e.target.value)}
                         >

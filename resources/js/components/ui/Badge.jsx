@@ -1,5 +1,5 @@
 const palette = {
-    admin: 'bg-indigo-100 text-indigo-700',
+    admin: 'bg-[var(--accent-soft)] text-[var(--accent-soft-text)]',
     editor: 'bg-amber-100 text-amber-700',
     viewer: 'bg-sky-100 text-sky-700',
 };

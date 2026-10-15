@@ -63,9 +63,9 @@ export default function CommentThread({ task, projectId, isManager, targetCommen
             if (el) {
                 lastScrolledCommentRef.current = targetCommentId;
                 el.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                el.classList.add('ring-2', 'ring-indigo-500', 'bg-indigo-50/70', 'transition-all', 'duration-500');
+                el.classList.add('ring-2', 'ring-[var(--accent-ring)]', 'bg-[var(--accent-soft)]', 'transition-all', 'duration-500');
                 setTimeout(() => {
-                    el.classList.remove('ring-2', 'ring-indigo-500', 'bg-indigo-50/70');
+                    el.classList.remove('ring-2', 'ring-[var(--accent-ring)]', 'bg-[var(--accent-soft)]');
                 }, 3000);
             }
         }, 120);
@@ -226,7 +226,7 @@ export default function CommentThread({ task, projectId, isManager, targetCommen
             <form onSubmit={submitComment} className="relative flex gap-2">
                 <textarea
                     rows="2"
-                    className="flex-1 rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm shadow-sm focus:border-indigo-500 focus:outline-none"
+                    className="flex-1 rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm shadow-sm focus:border-[var(--accent)] focus:outline-none"
                     placeholder="Add a comment…  (type @ to mention someone)"
                     value={newComment}
                     onChange={(e) => handleTyping('comment', e.target.value, e.target.selectionStart, e.currentTarget)}
@@ -259,7 +259,7 @@ export default function CommentThread({ task, projectId, isManager, targetCommen
                                             <>
                                                 <button
                                                     type="button"
-                                                    className="text-xs text-gray-400 transition hover:text-indigo-600"
+                                                    className="text-xs text-gray-400 transition hover:text-[var(--accent-soft-text)]"
                                                     onClick={() => editComment(comment.id, comment.comment)}
                                                 >
                                                     Edit
@@ -275,7 +275,7 @@ export default function CommentThread({ task, projectId, isManager, targetCommen
                                         )}
                                         <button
                                             type="button"
-                                            className="text-xs text-gray-400 transition hover:text-indigo-600"
+                                            className="text-xs text-gray-400 transition hover:text-[var(--accent-soft-text)]"
                                             onClick={() => setReplyTo(replyTo === comment.id ? null : comment.id)}
                                         >
                                             Reply
@@ -296,7 +296,7 @@ export default function CommentThread({ task, projectId, isManager, targetCommen
                                                     <div className="mt-1 flex gap-2">
                                                         <button
                                                             type="button"
-                                                            className="text-xs text-gray-400 transition hover:text-indigo-600"
+                                                            className="text-xs text-gray-400 transition hover:text-[var(--accent-soft-text)]"
                                                             onClick={() => editComment(reply.id, reply.comment)}
                                                         >
                                                             Edit
@@ -319,7 +319,7 @@ export default function CommentThread({ task, projectId, isManager, targetCommen
                                     <form onSubmit={(e) => submitReply(e, comment.id)} className="relative mt-3 flex gap-2">
                                         <textarea
                                             rows="2"
-                                            className="flex-1 rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm shadow-sm focus:border-indigo-500 focus:outline-none"
+                                            className="flex-1 rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm shadow-sm focus:border-[var(--accent)] focus:outline-none"
                                             placeholder="Write a reply…"
                                             value={replyText}
                                             onChange={(e) => handleTyping('reply', e.target.value, e.target.selectionStart, e.currentTarget)}
@@ -347,12 +347,12 @@ export default function CommentThread({ task, projectId, isManager, targetCommen
                             type="button"
                             key={member.id}
                             className={`flex w-full items-center gap-2 px-3 py-1.5 text-left text-sm ${
-                                index === sugActive ? 'bg-indigo-50' : 'hover:bg-gray-50'
+                                 index === sugActive ? 'bg-[var(--accent-soft)]' : 'hover:bg-gray-50'
                             }`}
                             onMouseEnter={() => setSugActive(index)}
                             onClick={() => selectSuggestion(member)}
                         >
-                            <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-indigo-100 text-[11px] font-semibold text-indigo-700">
+                            <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[var(--accent-soft)] text-[11px] font-semibold text-[var(--accent-soft-text)]">
                                 {member.name
                                     .split(' ')
                                     .map((part) => part[0])

@@ -81,7 +81,7 @@ export default function SprintsPanel({ projectId, canPlan }) {
         <div className="space-y-5">
             <div className="flex gap-2 text-sm">
                 {[['plan', 'Planning'], ['reports', 'Reports']].map(([k, l]) => (
-                    <button key={k} onClick={() => setView(k)} className={`rounded-full px-3 py-1 ${view === k ? 'bg-indigo-600 text-white' : 'bg-gray-100 text-gray-600'}`}>{l}</button>
+                    <button key={k} onClick={() => setView(k)} className={`rounded-full px-3 py-1 ${view === k ? 'bg-[var(--accent)] text-[var(--accent-contrast)]' : 'bg-gray-100 text-gray-600'}`}>{l}</button>
                 ))}
             </div>
 

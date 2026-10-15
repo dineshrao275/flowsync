@@ -103,7 +103,7 @@ export default function AttachmentList({ task, projectId, canUpload, canManage }
                                         href={attachment.download_url}
                                         target="_blank"
                                         rel="noopener noreferrer"
-                                        className="block truncate text-sm font-medium text-indigo-600 hover:underline"
+                                        className="block truncate text-sm font-medium text-[var(--accent-soft-text)] hover:underline"
                                     >
                                         {attachment.original_name}
                                     </a>

@@ -69,19 +69,20 @@ function DateField({ label, labelClassName = '', error, id, className = '', lead
                     required={props.required}
                     autoComplete="off"
                     aria-label={props['aria-label']}
+                    aria-describedby={error && inputId ? `${inputId}-error` : undefined}
                     isClearable={!props.required && !props.disabled && !!props.value}
                     showPopperArrow={false}
                     calendarClassName="flowsync-calendar"
-                    className={`block w-full border text-sm shadow-sm transition focus:outline-none focus:ring-2 ${
+                    className={`block w-full border text-sm shadow-sm transition focus:outline-none ${
                         compact ? 'rounded-md px-2.5 py-1.5' : 'rounded-lg px-3.5 py-2.5'
                     } ${leadingIcon ? 'pl-9' : ''} ${
                         error
-                            ? 'border-red-400 focus:border-red-500 focus:ring-red-100'
-                            : 'border-gray-300 focus:border-indigo-500 focus:ring-indigo-100'
+                            ? 'border-red-400 focus:border-red-500'
+                            : 'border-gray-300 focus:border-[var(--accent)]'
                     } ${props.disabled ? 'cursor-not-allowed bg-gray-50 text-gray-500' : 'bg-white text-gray-900'}`}
                 />
             </div>
-            {error && <p className="mt-1.5 text-sm text-red-600">{error}</p>}
+            {error && <p id={inputId ? `${inputId}-error` : undefined} className="mt-1.5 text-sm text-red-600">{error}</p>}
         </div>
     );
 }
@@ -112,17 +113,18 @@ export default function Input({ label, labelClassName = '', error, id, className
                 <input
                     id={inputId}
                     placeholder={typeof hint === 'string' ? hint : undefined}
-                    className={`block w-full border text-sm shadow-sm transition focus:outline-none focus:ring-2 ${
+                    className={`block w-full border text-sm shadow-sm transition focus:outline-none ${
                         compact ? 'rounded-md px-2.5 py-1.5' : 'rounded-lg px-3.5 py-2.5'
                     } ${leadingIcon ? 'pl-9' : ''} ${
                         error
-                            ? 'border-red-400 focus:border-red-500 focus:ring-red-100'
-                            : 'border-gray-300 focus:border-indigo-500 focus:ring-indigo-100'
+                            ? 'border-red-400 focus:border-red-500'
+                            : 'border-gray-300 focus:border-[var(--accent)]'
                     } ${props.disabled ? 'cursor-not-allowed bg-gray-50 text-gray-500' : 'bg-white text-gray-900'}`}
+                    aria-describedby={error && inputId ? `${inputId}-error` : undefined}
                     {...props}
                 />
             </div>
-            {error && <p className="mt-1.5 text-sm text-red-600">{error}</p>}
+            {error && <p id={inputId ? `${inputId}-error` : undefined} className="mt-1.5 text-sm text-red-600">{error}</p>}
         </div>
     );
 }

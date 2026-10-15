@@ -27,7 +27,7 @@ export default function TaskTable({ tasks, canEdit, onOpen }) {
                         <tr
                             key={task.id}
                             onClick={() => canEdit && onOpen(task)}
-                            className={`bg-white align-middle transition ${canEdit ? 'cursor-pointer hover:bg-indigo-50/50' : ''}`}
+                            className={`bg-white align-middle transition ${canEdit ? 'cursor-pointer hover:bg-[var(--accent-soft)]' : ''}`}
                         >
                             <td className="px-4 py-3 font-semibold text-gray-500">{task.key}</td>
                             <td className="px-4 py-3">

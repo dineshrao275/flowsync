@@ -30,7 +30,7 @@ describe('Tabs', () => {
     it('accent-marks the active tab only', () => {
         render(<Tabs tabs={tabs} active="members" onChange={() => {}} />);
 
-        expect(screen.getByText('Members (3)').className).toContain('border-indigo-600');
+        expect(screen.getByText('Members (3)').className).toContain('border-[var(--accent)]');
         expect(screen.getByText('Projects').className).toContain('border-transparent');
     });
 });
