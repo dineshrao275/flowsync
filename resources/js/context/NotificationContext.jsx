@@ -1,4 +1,5 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import api from '../services/api';
 import { useAuth } from './AuthContext';
 import { useToast } from './ToastContext';
@@ -7,6 +8,7 @@ import { describeNotification } from '../utils/notifications';
 const NotificationContext = createContext(null);
 
 export function NotificationProvider({ children }) {
+    const { t } = useTranslation();
     const { user } = useAuth();
     const toast = useToast();
     const [unreadCount, setUnreadCount] = useState(0);
@@ -53,11 +55,11 @@ export function NotificationProvider({ children }) {
         const channel = window.Echo.private(`user.${user.id}`);
         const handler = (event) => {
             setUnreadCount((count) => count + 1);
-            toast.info(describeNotification(event.type, event.data ?? {}, event.actor?.name ?? 'Someone'));
+            toast.info(describeNotification(t, event.type, event.data ?? {}, event.actor?.name ?? null));
         };
         channel.listen('.notification.sent', handler);
         return () => channel.stopListening('.notification.sent');
-    }, [user, platformOnly, toast]);
+    }, [user, platformOnly, toast, t]);
 
     const markAllRead = useCallback(async () => {
         await api.post('/notifications/mark-all-read');

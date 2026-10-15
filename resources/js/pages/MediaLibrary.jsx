@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import api, { fieldErrors } from '../services/api';
 import Card from '../components/ui/Card';
 import Button from '../components/ui/Button';
@@ -18,8 +19,9 @@ function formatSize(bytes) {
 }
 
 export default function MediaLibrary() {
-    usePageTitle('Media Library');
-    useSetCrumbs([{ label: 'Platform', to: '/admin' }, { label: 'Media' }]);
+    const { t } = useTranslation();
+    usePageTitle(t('admin.mediaLibrary.pageTitle'));
+    useSetCrumbs([{ label: t('admin.platform.breadcrumb'), to: '/admin' }, { label: t('admin.mediaLibrary.crumb') }]);
     const toast = useToast();
     const confirm = useConfirm();
     const [q, setQ] = useState('');
@@ -45,7 +47,7 @@ export default function MediaLibrary() {
             form.append('file', file);
             if (alt) form.append('alt', alt);
             await api.post('/system/media', form, { headers: { 'Content-Type': 'multipart/form-data' } });
-            toast.success('Image uploaded.');
+            toast.success(t('admin.mediaLibrary.uploaded'));
             setFile(null);
             setAlt('');
             setPage(1);
@@ -60,21 +62,21 @@ export default function MediaLibrary() {
     async function saveAlt(item) {
         try {
             await api.put(`/system/media/${item.id}`, { alt: editingAlt[item.id] ?? '' });
-            toast.success('Alt text saved.');
+            toast.success(t('admin.mediaLibrary.altSaved'));
             reload();
         } catch {
-            toast.error('Could not save alt text.');
+            toast.error(t('admin.mediaLibrary.altSaveFailed'));
         }
     }
 
     async function remove(item) {
-        if (!(await confirm({ title: 'Delete image?', message: `Delete "${item.original_name}"? Pages using it will show a broken image.`, variant: 'danger' }))) return;
+        if (!(await confirm({ title: t('admin.mediaLibrary.deleteTitle'), message: t('admin.mediaLibrary.deleteMessage', { name: item.original_name }), variant: 'danger' }))) return;
         try {
             await api.delete(`/system/media/${item.id}`);
-            toast.success('Image deleted.');
+            toast.success(t('admin.mediaLibrary.deleted'));
             reload();
         } catch {
-            toast.error('Could not delete the image.');
+            toast.error(t('admin.mediaLibrary.deleteFailed'));
         }
     }
 
@@ -82,33 +84,33 @@ export default function MediaLibrary() {
         <div className="space-y-6">
             <div className="flex items-center justify-between">
                 <div>
-                    <h1 className="text-2xl font-bold text-gray-800">Media Library</h1>
-                    <p className="text-sm text-gray-500">Images for the public marketing site. Alt text feeds SEO.</p>
+                    <h1 className="text-2xl font-bold text-gray-800">{t('admin.mediaLibrary.pageTitle')}</h1>
+                    <p className="text-sm text-gray-500">{t('admin.mediaLibrary.subtitle')}</p>
                 </div>
             </div>
 
             <Card>
                 <form onSubmit={upload} className="flex flex-col gap-3 sm:flex-row sm:items-end">
                     <div className="flex-1">
-                        <label className="mb-1.5 block text-sm font-medium text-gray-700">Upload image (JPEG/PNG/GIF/WebP, max 5 MB)</label>
+                        <label className="mb-1.5 block text-sm font-medium text-gray-700">{t('admin.mediaLibrary.uploadLabel')}</label>
                         <input type="file" accept="image/jpeg,image/png,image/gif,image/webp" onChange={(e) => setFile(e.target.files[0] || null)} className="w-full text-sm text-gray-600" />
                         {errors.file?.[0] && <p className="mt-1 text-xs text-red-600">{errors.file[0]}</p>}
                     </div>
                     <div className="flex-1">
-                        <Input label="Alt text" name="alt" value={alt} onChange={(e) => setAlt(e.target.value)} placeholder="Describe the image" />
+                        <Input label={t('admin.mediaLibrary.altText')} name="alt" value={alt} onChange={(e) => setAlt(e.target.value)} placeholder={t('admin.mediaLibrary.altPlaceholder')} />
                     </div>
-                    <Button type="submit" disabled={uploading || !file}>{uploading ? 'Uploading…' : 'Upload'}</Button>
+                    <Button type="submit" disabled={uploading || !file}>{uploading ? t('admin.mediaLibrary.uploading') : t('admin.mediaLibrary.upload')}</Button>
                 </form>
             </Card>
 
             <Card>
                 <div className="mb-4 max-w-sm">
-                    <Input label="Search" name="q" value={q} onChange={(e) => { setQ(e.target.value); setPage(1); }} placeholder="File name or alt text" />
+                    <Input label={t('admin.mediaLibrary.searchLabel')} name="q" value={q} onChange={(e) => { setQ(e.target.value); setPage(1); }} placeholder={t('admin.mediaLibrary.searchPlaceholder')} />
                 </div>
                 {loading ? (
                     <Spinner />
                 ) : items.length === 0 ? (
-                    <p className="py-6 text-center text-sm text-gray-400">No images yet.</p>
+                    <p className="py-6 text-center text-sm text-gray-400">{t('admin.mediaLibrary.empty')}</p>
                 ) : (
                     <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
                         {items.map((item) => (
@@ -120,15 +122,15 @@ export default function MediaLibrary() {
                                         {[item.width && item.height ? `${item.width}×${item.height}` : null, formatSize(item.size)].filter(Boolean).join(' · ')}
                                     </p>
                                     <Input
-                                        label="Alt text"
+                                        label={t('admin.mediaLibrary.altText')}
                                         name={`alt-${item.id}`}
                                         value={editingAlt[item.id] ?? item.alt ?? ''}
                                         onChange={(e) => setEditingAlt((s) => ({ ...s, [item.id]: e.target.value }))}
-                                        placeholder="Describe the image"
+                                        placeholder={t('admin.mediaLibrary.altPlaceholder')}
                                     />
                                     <div className="flex justify-end gap-3 text-xs">
-                                        <button type="button" onClick={() => saveAlt(item)} className="font-medium text-[var(--accent-soft-text)] hover:text-[var(--accent)]">save alt</button>
-                                        <button type="button" onClick={() => remove(item)} className="font-medium text-red-500 hover:text-red-400">delete</button>
+                                        <button type="button" onClick={() => saveAlt(item)} className="font-medium text-[var(--accent-soft-text)] hover:text-[var(--accent)]">{t('admin.mediaLibrary.saveAlt')}</button>
+                                        <button type="button" onClick={() => remove(item)} className="font-medium text-red-500 hover:text-red-400">{t('admin.mediaLibrary.delete')}</button>
                                     </div>
                                 </div>
                             </div>
