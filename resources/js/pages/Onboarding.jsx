@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import api, { fieldErrors } from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
@@ -10,7 +11,8 @@ import Spinner from '../components/ui/Spinner';
 import usePageTitle from '../hooks/usePageTitle';
 
 export default function Onboarding() {
-    usePageTitle('Set up your workspace');
+    const { t } = useTranslation();
+    usePageTitle(t('auth.pageTitles.onboarding'));
     const { user, refresh } = useAuth();
     const toast = useToast();
     const navigate = useNavigate();
@@ -30,7 +32,7 @@ export default function Onboarding() {
             const { data } = await api.get('/onboarding');
             setOnboarding(data.onboarding);
         } catch (err) {
-            setError(fieldErrors(err).form || 'Unable to load onboarding.');
+            setError(fieldErrors(err).form || t('auth.onboarding.loadFailed'));
         } finally {
             setLoading(false);
         }
@@ -66,7 +68,7 @@ export default function Onboarding() {
             const { data } = await api.put('/onboarding/step', { step });
             setOnboarding(data.onboarding);
         } catch (err) {
-            setError(fieldErrors(err).form || `Could not complete the ${step} step.`);
+            setError(fieldErrors(err).form || t('auth.onboarding.stepFailed', { step }));
         } finally {
             setWorking(null);
         }
@@ -117,11 +119,11 @@ export default function Onboarding() {
         try {
             const { data } = await api.post('/onboarding/complete');
             setOnboarding(data.onboarding);
-            toast.success('Setup complete — welcome to FlowSync!');
+            toast.success(t('auth.onboarding.finished'));
             await refresh();
             navigate('/dashboard', { replace: true });
         } catch (err) {
-            setError(fieldErrors(err).form || 'Could not finish setup.');
+            setError(fieldErrors(err).form || t('auth.onboarding.finishFailed'));
         } finally {
             setWorking(null);
         }
@@ -134,22 +136,22 @@ export default function Onboarding() {
                 onClick={() => setBusinessOpen((open) => !open)}
                 className="rounded-lg border border-gray-300 px-3 py-1.5 text-sm font-medium text-gray-700 transition hover:bg-gray-50"
             >
-                {businessOpen ? 'Hide form' : 'Fill business details'}
+                {businessOpen ? t('auth.onboarding.hideForm') : t('auth.onboarding.fillBusiness')}
             </button>
         ),
         admin: (
             <Button size="sm" onClick={() => markStep('admin')} loading={working === 'admin'}>
-                Mark as done
+                {t('auth.onboarding.markDone')}
             </Button>
         ),
         subscription: (
             <Button size="sm" onClick={() => markStep('subscription')} loading={working === 'subscription'}>
-                Use default plan
+                {t('auth.onboarding.useDefaultPlan')}
             </Button>
         ),
         configuration: (
             <Button size="sm" variant="secondary" onClick={() => markStep('configuration')} loading={working === 'configuration'}>
-                I'll set it up later
+                {t('auth.onboarding.setupLater')}
             </Button>
         ),
         hrms: (
@@ -159,21 +161,21 @@ export default function Onboarding() {
                     onClick={() => setHrmsOpen((open) => !open)}
                     className="rounded-lg border border-gray-300 px-3 py-1.5 text-sm font-medium text-gray-700 transition hover:bg-gray-50"
                 >
-                    {hrmsOpen ? 'Hide form' : 'Set up people'}
+                    {hrmsOpen ? t('auth.onboarding.hideForm') : t('auth.onboarding.setupPeople')}
                 </button>
                 <Button size="sm" variant="secondary" onClick={() => markStep('hrms')} loading={working === 'hrms'}>
-                    Later
+                    {t('auth.onboarding.later')}
                 </Button>
             </div>
         ),
         verification: (
             <Button size="sm" variant="secondary" onClick={() => markStep('verification')} loading={working === 'verification'}>
-                Confirm details
+                {t('auth.onboarding.confirmDetails')}
             </Button>
         ),
         completion: (
             <Button size="sm" onClick={finish} loading={working === 'completion'}>
-                Finish setup
+                {t('auth.onboarding.finishSetup')}
             </Button>
         ),
     };
@@ -181,8 +183,8 @@ export default function Onboarding() {
     return (
         <div className="mx-auto max-w-2xl">
             <div className="mb-8">
-                <h2 className="text-2xl font-bold text-gray-900">Welcome{user ? `, ${user.name.split(' ')[0]}` : ''}!</h2>
-                <p className="mt-1 text-sm text-gray-500">A few quick steps to set up your FlowSync workspace.</p>
+                <h2 className="text-2xl font-bold text-gray-900">{user ? t('auth.onboarding.greeting', { name: user.name.split(' ')[0] }) : t('auth.onboarding.greetingGeneric')}</h2>
+                <p className="mt-1 text-sm text-gray-500">{t('auth.onboarding.intro')}</p>
             </div>
 
             {error && <Alert className="mb-4">{error}</Alert>}
@@ -190,7 +192,7 @@ export default function Onboarding() {
             <div className="mb-6">
                 <div className="flex items-center justify-between text-sm">
                     <span className="font-medium text-gray-700">
-                        {done} of {steps.length} steps complete
+                        {t('auth.onboarding.progress', { done, total: steps.length })}
                     </span>
                     <span className="text-gray-500">{progress}%</span>
                 </div>
@@ -214,14 +216,14 @@ export default function Onboarding() {
                                 <div>
                                     <div className="flex items-center gap-2">
                                         <h3 className="text-sm font-semibold text-gray-900">{step.title}</h3>
-                                        {!step.required && <span className="text-xs text-gray-400">optional</span>}
+                                        {!step.required && <span className="text-xs text-gray-400">{t('auth.onboarding.optional')}</span>}
                                     </div>
                                     <p className="mt-0.5 text-sm text-gray-500">{step.description}</p>
                                     {step.key === 'business' && businessOpen && (
                                         <div className="mt-3 rounded-lg border border-gray-100 bg-gray-50 p-4">
                                             <div className="mb-3 space-y-3">
                                                 <Input
-                                                    label="Legal name"
+                                                    label={t('auth.onboarding.legalName')}
                                                     name="legal_name"
                                                     value={business.legal_name}
                                                     onChange={(e) => setBusiness((b) => ({ ...b, legal_name: e.target.value }))}
@@ -229,14 +231,14 @@ export default function Onboarding() {
                                                 />
                                                 <div className="grid grid-cols-2 gap-3">
                                                     <Input
-                                                        label="Industry"
+                                                        label={t('auth.onboarding.industry')}
                                                         name="industry"
                                                         value={business.industry}
                                                         onChange={(e) => setBusiness((b) => ({ ...b, industry: e.target.value }))}
                                                         error={businessErrors.industry}
                                                     />
                                                     <Input
-                                                        label="Company size"
+                                                        label={t('auth.onboarding.companySize')}
                                                         name="company_size"
                                                         value={business.company_size}
                                                         onChange={(e) => setBusiness((b) => ({ ...b, company_size: e.target.value }))}
@@ -245,14 +247,14 @@ export default function Onboarding() {
                                                 </div>
                                                 <div className="grid grid-cols-2 gap-3">
                                                     <Input
-                                                        label="Country (2-letter code)"
+                                                        label={t('auth.onboarding.country')}
                                                         name="country"
                                                         value={business.country}
                                                         onChange={(e) => setBusiness((b) => ({ ...b, country: e.target.value }))}
                                                         error={businessErrors.country}
                                                     />
                                                     <Input
-                                                        label="Website"
+                                                        label={t('auth.onboarding.website')}
                                                         name="website"
                                                         value={business.website}
                                                         onChange={(e) => setBusiness((b) => ({ ...b, website: e.target.value }))}
@@ -261,7 +263,7 @@ export default function Onboarding() {
                                                 </div>
                                             </div>
                                             <Button size="sm" onClick={saveBusiness} loading={working === 'business'}>
-                                                Save & continue
+                                                {t('auth.onboarding.saveContinue')}
                                             </Button>
                                         </div>
                                     )}
@@ -270,14 +272,14 @@ export default function Onboarding() {
                                             <div className="mb-3 space-y-3">
                                                 <div className="grid grid-cols-2 gap-3">
                                                     <Input
-                                                        label="Company size"
+                                                        label={t('auth.onboarding.companySize')}
                                                         name="company_size"
                                                         value={hrms.company_size}
                                                         onChange={(e) => setHrms((h) => ({ ...h, company_size: e.target.value }))}
                                                         error={hrmsErrors.company_size}
                                                     />
                                                     <Input
-                                                        label="Industry"
+                                                        label={t('auth.onboarding.industry')}
                                                         name="industry"
                                                         value={hrms.industry}
                                                         onChange={(e) => setHrms((h) => ({ ...h, industry: e.target.value }))}
@@ -285,23 +287,23 @@ export default function Onboarding() {
                                                     />
                                                 </div>
                                                 <Input
-                                                    label="First office name"
+                                                    label={t('auth.onboarding.firstOffice')}
                                                     name="office_name"
                                                     value={hrms.office_name}
                                                     onChange={(e) => setHrms((h) => ({ ...h, office_name: e.target.value }))}
                                                     error={hrmsErrors.name}
-                                                    placeholder="Head office"
+                                                    placeholder={t('auth.onboarding.firstOfficePlaceholder')}
                                                 />
                                                 <div className="grid grid-cols-2 gap-3">
                                                     <Input
-                                                        label="Office city"
+                                                        label={t('auth.onboarding.officeCity')}
                                                         name="office_city"
                                                         value={hrms.office_city}
                                                         onChange={(e) => setHrms((h) => ({ ...h, office_city: e.target.value }))}
                                                         error={hrmsErrors.city}
                                                     />
                                                     <Input
-                                                        label="Office country"
+                                                        label={t('auth.onboarding.officeCountry')}
                                                         name="office_country"
                                                         value={hrms.office_country}
                                                         onChange={(e) => setHrms((h) => ({ ...h, office_country: e.target.value }))}
@@ -310,7 +312,7 @@ export default function Onboarding() {
                                                 </div>
                                             </div>
                                             <Button size="sm" onClick={saveHrms} loading={working === 'hrms'}>
-                                                Save & continue
+                                                {t('auth.onboarding.saveContinue')}
                                             </Button>
                                         </div>
                                     )}
@@ -318,7 +320,7 @@ export default function Onboarding() {
                             </div>
                             {step.complete ? (
                                 <span className="inline-flex items-center rounded-full bg-emerald-50 px-2.5 py-0.5 text-xs font-medium text-emerald-700">
-                                    Complete
+                                    {t('auth.onboarding.complete')}
                                 </span>
                             ) : (
                                 <div className="shrink-0">{stepContent[step.key]}</div>

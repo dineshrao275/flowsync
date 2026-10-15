@@ -1,6 +1,7 @@
 import i18n from 'i18next';
 import { initReactI18next } from 'react-i18next';
 import enCommon from './locales/en/common.json';
+import enAuth from './locales/en/auth.json';
 
 const STORAGE_PREFIX = (typeof window !== 'undefined' && window.__FLOWSYNC_CONFIG__?.storagePrefix) || 'flowsync';
 
@@ -57,12 +58,17 @@ export function applyServerLocale(locale) {
 }
 
 i18n.use(initReactI18next).init({
-    // Per-shell `en` dictionaries land in Phase 2; `common` carries the
-    // shell chrome migrated first (Topbar). Until a screen migrates, `t()`
-    // returns the key, so partially-migrated screens degrade to visible
-    // keys, never blanks.
+    // One flat tree, one namespace. Shell dictionaries (`auth`, `tms`,
+    // `hrms`, …) are separate JSON files merged here so translators work
+    // per shell, but i18next sees a single `common` namespace: its namespace
+    // separator is `:`, so dotted `t('auth.login.title')` keys resolve by
+    // NESTING, not by namespace — a per-shell `ns` array would silently miss
+    // every dotted lookup. Static bundling keeps this honest (no lazy
+    // namespaces to drift); the whole `en` tree is smaller than one chart
+    // chunk. Until a screen migrates, `t()` returns the key, so
+    // partially-migrated screens degrade to visible keys, never blanks.
     resources: {
-        en: { common: enCommon },
+        en: { common: { ...enCommon, auth: enAuth } },
     },
     lng: storedLocale() || DEFAULT_LOCALE,
     fallbackLng: DEFAULT_LOCALE,

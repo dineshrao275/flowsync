@@ -8,7 +8,7 @@ describe('i18n framework', () => {
     });
 
     it('falls back to the key when no dictionary ships yet', () => {
-        expect(i18n.t('common:auth.login.title')).toBe('auth.login.title');
+        expect(i18n.t('hrms.talent.grid.title')).toBe('hrms.talent.grid.title');
     });
 
     it('serves the migrated shell chrome from dictionaries', () => {

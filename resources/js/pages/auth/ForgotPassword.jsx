@@ -1,5 +1,6 @@
 import { useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
+import { Trans, useTranslation } from 'react-i18next';
 import api, { fieldErrors } from '../../services/api';
 import Button from '../../components/ui/Button';
 import Input from '../../components/ui/Input';
@@ -9,7 +10,8 @@ import useErrorFocus from '../../hooks/useErrorFocus';
 import usePageTitle from '../../hooks/usePageTitle';
 
 export default function ForgotPassword() {
-    usePageTitle('Forgot password');
+    const { t } = useTranslation();
+    usePageTitle(t('auth.pageTitles.forgot'));
     const [email, setEmail] = useState('');
     const [errors, setErrors] = useState({});
     const [sent, setSent] = useState(false);
@@ -34,23 +36,22 @@ export default function ForgotPassword() {
 
     return (
         <AuthShell
-            title="Reset your password"
-            subtitle="We'll email you a link to reset your password"
+            title={t('auth.forgot.title')}
+            subtitle={t('auth.forgot.subtitle')}
             footer={
                 <Link to="/login" className="font-medium text-[var(--accent-soft-text)] hover:text-[var(--accent)]">
-                    Back to sign in
+                    {t('auth.forgot.backToSignIn')}
                 </Link>
             }
         >
             {sent ? (
                 <div className="space-y-4">
                     <Alert type="success">
-                        If an account exists for <strong>{email}</strong>, a password reset link has been
-                        sent. Check your inbox (and spam folder).
+                        <Trans i18nKey="auth.forgot.sent" values={{ email }} components={{ strong: <strong /> }} />
                     </Alert>
                     <Link to="/login">
                         <Button variant="secondary" className="w-full">
-                            Return to sign in
+                            {t('auth.forgot.returnToSignIn')}
                         </Button>
                     </Link>
                 </div>
@@ -58,18 +59,18 @@ export default function ForgotPassword() {
                 <form ref={formRef} onSubmit={handleSubmit} className="space-y-4" noValidate>
                     <Alert>{errors.form}</Alert>
                     <Input
-                        label="Email address"
+                        label={t('auth.forgot.email')}
                         name="email"
                         type="email"
                         autoComplete="email"
                         required
-                        placeholder="you@example.com"
+                        placeholder={t('auth.forgot.emailPlaceholder')}
                         value={email}
                         onChange={(e) => setEmail(e.target.value)}
                         error={errors.email}
                     />
                     <Button type="submit" className="w-full" loading={submitting}>
-                        Send reset link
+                        {t('auth.forgot.sendLink')}
                     </Button>
                 </form>
             )}
