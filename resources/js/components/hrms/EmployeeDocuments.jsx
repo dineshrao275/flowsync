@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import api from '../../services/api';
 import Alert from '../ui/Alert';
 import Spinner from '../ui/Spinner';
@@ -19,6 +20,7 @@ import DocumentUploader from './DocumentUploader';
  * 403, which is the real gate; this only decides what gets drawn.
  */
 export default function EmployeeDocuments({ employee }) {
+    const { t } = useTranslation();
     const { user, can } = useAuth();
     const toast = useToast();
     const confirm = useConfirm();
@@ -39,8 +41,8 @@ export default function EmployeeDocuments({ employee }) {
         return api
             .get('/hrms/documents', { params: { employee_id: employee.id, per_page: 50 } })
             .then(({ data }) => setDocuments(data.documents ?? []))
-            .catch(() => setError('Unable to load these documents.'));
-    }, [employee.id]);
+            .catch(() => setError(t('hrms.docs.profileFailed')));
+    }, [employee.id, t]);
 
     useEffect(() => {
         load();
@@ -57,20 +59,20 @@ export default function EmployeeDocuments({ employee }) {
     async function verify(document) {
         try {
             await api.post(`/hrms/documents/${document.id}/verify`);
-            toast.success(`“${document.title}” verified.`);
+            toast.success(t('hrms.docs.verified', { title: document.title }));
             await load();
         } catch {
-            toast.error('Unable to verify this document.');
+            toast.error(t('hrms.docs.verifyFailed'));
         }
     }
 
     async function reject(document) {
         const reason = await prompt({
-            title: 'Reject Document',
-            message: `Why is “${document.title}” being rejected?`,
-            placeholder: 'Reason for rejection…',
+            title: t('hrms.docs.rejectTitle'),
+            message: t('hrms.docs.rejectMessage', { title: document.title }),
+            placeholder: t('hrms.docs.rejectPlaceholder'),
             required: true,
-            confirmLabel: 'Reject',
+            confirmLabel: t('hrms.docs.rejectConfirm'),
             variant: 'danger',
         });
 
@@ -78,22 +80,22 @@ export default function EmployeeDocuments({ employee }) {
 
         try {
             await api.post(`/hrms/documents/${document.id}/reject`, { reason });
-            toast.success(`“${document.title}” rejected.`);
+            toast.success(t('hrms.docs.rejected', { title: document.title }));
             await load();
         } catch (err) {
-            toast.error(err.response?.data?.errors?.reason ?? 'Unable to reject this document.');
+            toast.error(err.response?.data?.errors?.reason ?? t('hrms.docs.rejectFailed'));
         }
     }
 
     async function remove(document) {
-        if (!(await confirm({ title: 'Delete document?', message: `Delete “${document.title}”? The file is removed and the row is hidden.`, variant: 'danger' }))) return;
+        if (!(await confirm({ title: t('hrms.docs.deleteTitle'), message: t('hrms.docs.deleteMessage', { title: document.title }), variant: 'danger' }))) return;
 
         try {
             await api.delete(`/hrms/documents/${document.id}`);
-            toast.success('Document deleted.');
+            toast.success(t('hrms.docs.deleted'));
             await load();
         } catch {
-            toast.error('Unable to delete this document.');
+            toast.error(t('hrms.docs.deleteFailed'));
         }
     }
 
@@ -113,26 +115,26 @@ export default function EmployeeDocuments({ employee }) {
         <div className="space-y-4">
             {canUpload && (
                 <div className="rounded-xl border border-gray-200/70 bg-white p-4">
-                    <button
-                        type="button"
-                        onClick={() => setUploading((v) => !v)}
-                        className="text-sm font-medium text-[var(--accent-soft-text)] hover:underline"
-                    >
-                        {uploading ? 'Hide upload form' : 'Upload a document'}
-                    </button>
-                    {uploading && (
-                        <div className="pt-3">
-                            <DocumentUploader
-                                employeeId={employee.id}
-                                types={types}
-                                onUploaded={() => {
-                                    setUploading(false);
-                                    toast.success('Document uploaded.');
-                                    load();
-                                }}
-                            />
-                        </div>
-                    )}
+                        <button
+                            type="button"
+                            onClick={() => setUploading((v) => !v)}
+                            className="text-sm font-medium text-[var(--accent-soft-text)] hover:underline"
+                        >
+                            {uploading ? t('hrms.docs.hideUpload') : t('hrms.docs.showUpload')}
+                        </button>
+                        {uploading && (
+                            <div className="pt-3">
+                                <DocumentUploader
+                                    employeeId={employee.id}
+                                    types={types}
+                                    onUploaded={() => {
+                                        setUploading(false);
+                                        toast.success(t('hrms.docs.uploaded'));
+                                        load();
+                                    }}
+                                />
+                            </div>
+                        )}
                 </div>
             )}
             <DocumentList

@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import api, { fieldErrors } from '../../services/api';
 import Alert from '../ui/Alert';
 import Button from '../ui/Button';
@@ -17,6 +18,7 @@ import Select from '../ui/Select';
  * dropdown that should not have been there.
  */
 export default function DocumentUploader({ employeeId, employees, types, onUploaded }) {
+    const { t } = useTranslation();
     const [title, setTitle] = useState('');
     const [typeId, setTypeId] = useState('');
     const [pickedEmployee, setPickedEmployee] = useState(employeeId ? String(employeeId) : '');
@@ -61,8 +63,8 @@ export default function DocumentUploader({ employeeId, employees, types, onUploa
     return (
         <form onSubmit={upload} className="space-y-3 px-6 py-5">
             {employees && (
-                <Select label="Employee" value={pickedEmployee} onChange={(e) => setPickedEmployee(e.target.value)}>
-                    <option value="">Select an employee</option>
+                <Select label={t('hrms.docs.uploadEmployee')} value={pickedEmployee} onChange={(e) => setPickedEmployee(e.target.value)}>
+                    <option value="">{t('hrms.docs.uploadEmployeePlaceholder')}</option>
                     {employees.map((employee) => (
                         <option key={employee.id} value={employee.id}>
                             {employee.name}
@@ -70,10 +72,10 @@ export default function DocumentUploader({ employeeId, employees, types, onUploa
                     ))}
                 </Select>
             )}
-            <Input label="Title" placeholder="Passport" value={title} onChange={(e) => setTitle(e.target.value)} />
+            <Input label={t('hrms.docs.uploadTitle')} placeholder={t('hrms.docs.uploadTitlePlaceholder')} value={title} onChange={(e) => setTitle(e.target.value)} />
             {errors.title && <Alert>{errors.title}</Alert>}
-            <Select label="Document type" value={typeId} onChange={(e) => setTypeId(e.target.value)}>
-                <option value="">Select a type</option>
+            <Select label={t('hrms.docs.uploadType')} value={typeId} onChange={(e) => setTypeId(e.target.value)}>
+                <option value="">{t('hrms.docs.uploadTypePlaceholder')}</option>
                 {(types ?? []).map((type) => (
                     <option key={type.id} value={type.id}>
                         {type.name}
@@ -82,7 +84,7 @@ export default function DocumentUploader({ employeeId, employees, types, onUploa
             </Select>
             {errors.document_type_id && <Alert>{errors.document_type_id}</Alert>}
             <div>
-            <label htmlFor="document-file" className="mb-1 block text-sm font-medium text-gray-700">File</label>
+            <label htmlFor="document-file" className="mb-1 block text-sm font-medium text-gray-700">{t('hrms.docs.uploadFile')}</label>
             <input
                 id="document-file"
                 type="file"
@@ -94,11 +96,11 @@ export default function DocumentUploader({ employeeId, employees, types, onUploa
             {errors.employee_id && <Alert>{errors.employee_id}</Alert>}
             <label className="flex items-center gap-2 text-sm text-gray-700">
                 <input type="checkbox" checked={confidential} onChange={(e) => setConfidential(e.target.checked)} />
-                Confidential — needs the sensitive-documents permission to open
+                {t('hrms.docs.uploadConfidential')}
             </label>
             {errors.form && <Alert>{errors.form}</Alert>}
             <Button type="submit" loading={uploading} disabled={!ready}>
-                Upload document
+                {t('hrms.docs.uploadDocument')}
             </Button>
         </form>
     );

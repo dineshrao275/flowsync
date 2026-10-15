@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { fieldErrors } from '../../services/api';
 import Alert from '../../components/ui/Alert';
 import Button from '../../components/ui/Button';
@@ -21,6 +22,7 @@ import Modal from '../../components/ui/Modal';
  * opens unticked, which is the truth about it rather than what was once stored.
  */
 export default function LocationFormModal({ location, saving, onClose, onSubmit }) {
+    const { t } = useTranslation();
     const editing = Boolean(location);
 
     const [form, setForm] = useState(() => ({
@@ -75,8 +77,8 @@ export default function LocationFormModal({ location, saving, onClose, onSubmit 
     return (
         <Modal
             open
-            title={editing ? 'Edit location' : 'New location'}
-            subtitle={editing ? location.name : 'A site, an office, or a region'}
+            title={editing ? t('hrms.orgModals.editLocation') : t('hrms.orgModals.newLocation')}
+            subtitle={editing ? location.name : t('hrms.orgModals.locSubtitle')}
             onClose={onClose}
             size="lg"
         >
@@ -84,7 +86,7 @@ export default function LocationFormModal({ location, saving, onClose, onSubmit 
                 {errors.form && <Alert>{errors.form}</Alert>}
 
                 <Input
-                    label="Name"
+                    label={t('hrms.orgModals.name')}
                     value={form.name}
                     onChange={(e) => set('name', e.target.value)}
                     error={errors.name}
@@ -93,40 +95,40 @@ export default function LocationFormModal({ location, saving, onClose, onSubmit 
                 />
 
                 <fieldset className="space-y-3">
-                    <legend className="text-sm font-semibold text-gray-700">Address</legend>
+                    <legend className="text-sm font-semibold text-gray-700">{t('hrms.orgModals.address')}</legend>
                     <Input
-                        label="Address line 1"
+                        label={t('hrms.orgModals.address1')}
                         value={form.address_line1}
                         onChange={(e) => set('address_line1', e.target.value)}
                         error={errors.address_line1}
                     />
                     <Input
-                        label="Address line 2"
+                        label={t('hrms.orgModals.address2')}
                         value={form.address_line2}
                         onChange={(e) => set('address_line2', e.target.value)}
                         error={errors.address_line2}
                     />
                     <div className="grid gap-4 sm:grid-cols-2">
-                        <Input label="City" value={form.city} onChange={(e) => set('city', e.target.value)} error={errors.city} />
-                        <Input label="State" value={form.state} onChange={(e) => set('state', e.target.value)} error={errors.state} />
+                        <Input label={t('hrms.orgModals.city')} value={form.city} onChange={(e) => set('city', e.target.value)} error={errors.city} />
+                        <Input label={t('hrms.orgModals.state')} value={form.state} onChange={(e) => set('state', e.target.value)} error={errors.state} />
                         <Input
-                            label="Postal code"
+                            label={t('hrms.orgModals.postal')}
                             value={form.postal_code}
                             onChange={(e) => set('postal_code', e.target.value)}
                             error={errors.postal_code}
                         />
                         <Input
-                            label="Country"
+                            label={t('hrms.orgModals.country')}
                             value={form.country}
                             onChange={(e) => set('country', e.target.value)}
                             error={errors.country}
-                            placeholder="Two-letter code, e.g. IN"
+                            placeholder={t('hrms.orgModals.countryPlaceholder')}
                         />
                     </div>
                 </fieldset>
 
                 <fieldset className="space-y-3">
-                    <legend className="text-sm font-semibold text-gray-700">Geofence</legend>
+                    <legend className="text-sm font-semibold text-gray-700">{t('hrms.orgModals.geofence')}</legend>
 
                     <label className="flex items-center gap-2 text-sm text-gray-700">
                         <input
@@ -135,26 +137,26 @@ export default function LocationFormModal({ location, saving, onClose, onSubmit 
                             onChange={(e) => set('is_geo_fenced', e.target.checked)}
                             className="h-4 w-4 rounded border-gray-300"
                         />
-                        Clock in only within range of this site
+                        {t('hrms.orgModals.fenceIntent')}
                     </label>
 
                     <div className="grid gap-4 sm:grid-cols-3">
                         <Input
-                            label="Latitude"
+                            label={t('hrms.orgModals.latitude')}
                             value={form.geo_lat}
                             onChange={(e) => set('geo_lat', e.target.value)}
                             error={errors.geo_lat}
                             placeholder="19.0760"
                         />
                         <Input
-                            label="Longitude"
+                            label={t('hrms.orgModals.longitude')}
                             value={form.geo_lng}
                             onChange={(e) => set('geo_lng', e.target.value)}
                             error={errors.geo_lng}
                             placeholder="72.8777"
                         />
                         <Input
-                            label="Radius (m)"
+                            label={t('hrms.orgModals.radius')}
                             type="number"
                             min="1"
                             value={form.geo_radius_m}
@@ -165,17 +167,16 @@ export default function LocationFormModal({ location, saving, onClose, onSubmit 
                     </div>
 
                     <p className="text-xs text-gray-500">
-                        Coordinates on their own are fine — a site is useful on a map before anyone
-                        configures a fence. Ticking the box needs all three.
+                        {t('hrms.orgModals.fenceNote')}
                     </p>
                 </fieldset>
 
                 <div className="flex justify-end gap-2 border-t border-gray-100 pt-4">
                     <Button variant="secondary" type="button" onClick={onClose}>
-                        Cancel
+                        {t('hrms.orgModals.cancel')}
                     </Button>
                     <Button type="submit" loading={saving}>
-                        {editing ? 'Save changes' : 'Create location'}
+                        {editing ? t('hrms.orgModals.save') : t('hrms.orgModals.createLocation')}
                     </Button>
                 </div>
             </form>

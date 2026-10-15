@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import Card from '../../components/ui/Card';
 import Badge from '../../components/ui/Badge';
 import EmptyState from '../../components/ui/EmptyState';
@@ -21,9 +22,10 @@ import usePageTitle from '../../hooks/usePageTitle';
  * bug rather than as "not built yet".
  */
 export default function HrmsOverview() {
+    const { t } = useTranslation();
     const { user } = useAuth();
-    usePageTitle('HRMS');
-    useSetCrumbs([{ label: 'HRMS' }]);
+    usePageTitle(t('hrms.overview.pageTitle'));
+    useSetCrumbs([{ label: t('hrms.overview.pageTitle') }]);
 
     const modules = user?.modules ?? [];
     const groups = hrmsModuleGroups(modules);
@@ -31,17 +33,17 @@ export default function HrmsOverview() {
     return (
         <div className="space-y-6">
             <div>
-                <h1 className="text-xl font-semibold text-gray-900">Human Resources</h1>
+                <h1 className="text-xl font-semibold text-gray-900">{t('hrms.overview.heading')}</h1>
                 <p className="mt-1 text-sm text-gray-500">
-                    {modules.length} module{modules.length === 1 ? '' : 's'} enabled on your plan.
+                    {modules.length === 1 ? t('hrms.overview.modulesOne') : t('hrms.overview.modules', { count: modules.length })}
                 </p>
             </div>
 
             {groups.length === 0 ? (
                 <Card>
                     <EmptyState
-                        title="No HRMS modules enabled"
-                        description="Your plan does not include any HRMS modules. Contact an administrator to upgrade."
+                        title={t('hrms.overview.emptyTitle')}
+                        description={t('hrms.overview.emptyDesc')}
                     />
                 </Card>
             ) : (
@@ -64,11 +66,12 @@ export default function HrmsOverview() {
 }
 
 function ModuleTile({ item }) {
+    const { t } = useTranslation();
     const body = (
         <>
             <div className="flex items-start justify-between gap-3">
                 <span className="font-medium text-gray-900">{item.label}</span>
-                {!item.to && <Badge>Planned</Badge>}
+                {!item.to && <Badge>{t('hrms.overview.planned')}</Badge>}
             </div>
             <p className="mt-1 font-mono text-xs text-gray-400">{item.key}</p>
         </>

@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import api from '../../services/api';
 import Alert from '../../components/ui/Alert';
 import Button from '../../components/ui/Button';
@@ -28,6 +29,7 @@ import { useConfirm } from '../../components/ui/ConfirmDialog';
  * its own filter would print a different total than the badge beside it.
  */
 export default function DepartmentMembersPanel({ department, canManage, onChanged }) {
+    const { t } = useTranslation();
     const toast = useToast();
     const confirm = useConfirm();
 
@@ -48,14 +50,14 @@ export default function DepartmentMembersPanel({ department, canManage, onChange
                     // Inline, not a /403: the org page itself is readable —
                     // only the members strip needs the directory permission.
                     if (err.response?.status === 403) {
-                        setError('Members need the employee directory permission.');
+                        setError(t('hrms.deptMembers.forbidden'));
                         return;
                     }
 
-                    setError('Unable to load the members of this department.');
+                    setError(t('hrms.deptMembers.loadFailed'));
                 });
         },
-        [],
+        [t],
     );
 
     useEffect(() => {
@@ -98,13 +100,13 @@ export default function DepartmentMembersPanel({ department, canManage, onChange
 
         try {
             await api.put(`/hrms/employees/${employee.id}`, { department_id: department.id });
-            toast.success(`${employee.display_name} moved to ${department.name}.`);
+            toast.success(t('hrms.deptMembers.moved', { name: employee.display_name, department: department.name }));
             setTerm('');
             setCandidates(null);
             await load(department.id);
             onChanged();
         } catch (err) {
-            toast.error(err?.response?.data?.message ?? 'Could not move that person.');
+            toast.error(err?.response?.data?.message ?? t('hrms.deptMembers.moveFailed'));
         } finally {
             setBusy(false);
         }
@@ -112,10 +114,10 @@ export default function DepartmentMembersPanel({ department, canManage, onChange
 
     async function remove(employee) {
         if (!(await confirm({
-            title: 'Remove member?',
-            message: `Remove ${employee.display_name} from ${department.name}?`,
+            title: t('hrms.deptMembers.removeTitle'),
+            message: t('hrms.deptMembers.removeMessage', { name: employee.display_name, department: department.name }),
             variant: 'danger',
-            confirmLabel: 'Remove',
+            confirmLabel: t('hrms.deptMembers.removeConfirm'),
         }))) return;
 
         setBusy(true);
@@ -125,11 +127,11 @@ export default function DepartmentMembersPanel({ department, canManage, onChange
             // "leave it alone", so omitting `department_id` would report a
             // successful removal while the record stayed where it was.
             await api.put(`/hrms/employees/${employee.id}`, { department_id: null });
-            toast.success(`${employee.display_name} removed from ${department.name}.`);
+            toast.success(t('hrms.deptMembers.removed', { name: employee.display_name, department: department.name }));
             await load(department.id);
             onChanged();
         } catch (err) {
-            toast.error(err?.response?.data?.message ?? 'Could not remove that person.');
+            toast.error(err?.response?.data?.message ?? t('hrms.deptMembers.removeFailed'));
         } finally {
             setBusy(false);
         }
@@ -144,10 +146,10 @@ export default function DepartmentMembersPanel({ department, canManage, onChange
             {canManage && (
                 <div className="relative">
                     <Input
-                        label="Add someone"
+                        label={t('hrms.deptMembers.addSomeone')}
                         value={term}
                         onChange={(e) => setTerm(e.target.value)}
-                        placeholder="Search by name or code"
+                        placeholder={t('hrms.deptMembers.addPlaceholder')}
                         disabled={busy}
                     />
 
@@ -181,11 +183,11 @@ export default function DepartmentMembersPanel({ department, canManage, onChange
                 </div>
             ) : members.length === 0 ? (
                 <EmptyState
-                    title="No one here yet"
+                    title={t('hrms.deptMembers.emptyTitle')}
                     description={
                         canManage
-                            ? 'Search above to put somebody in this department.'
-                            : 'This department has no members.'
+                            ? t('hrms.deptMembers.emptyManage')
+                            : t('hrms.deptMembers.emptyView')
                     }
                 />
             ) : (
@@ -201,7 +203,7 @@ export default function DepartmentMembersPanel({ department, canManage, onChange
                             <span className="shrink-0 text-xs text-gray-400">{person.designation ?? '—'}</span>
                             {canManage && (
                                 <Button variant="ghost" size="sm" disabled={busy} onClick={() => remove(person)}>
-                                    Remove
+                                    {t('hrms.deptMembers.remove')}
                                 </Button>
                             )}
                         </li>

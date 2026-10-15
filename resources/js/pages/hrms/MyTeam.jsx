@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import api from '../../services/api';
 import Alert from '../../components/ui/Alert';
 import Button from '../../components/ui/Button';
@@ -23,7 +24,8 @@ import { employeeUrl } from '../../utils/deepLinks';
  * backend omits from the payload entirely.
  */
 export default function MyTeam() {
-    usePageTitle('My team');
+    const { t } = useTranslation();
+    usePageTitle(t('hrms.team.pageTitle'));
     const setCrumbs = useSetCrumbs();
     const navigate = useNavigate();
 
@@ -33,8 +35,8 @@ export default function MyTeam() {
     const [error, setError] = useState(null);
 
     useEffect(() => {
-        setCrumbs([{ label: 'HRMS', to: '/hrms' }, { label: 'My team' }]);
-    }, [setCrumbs]);
+        setCrumbs([{ label: t('hrms.overview.pageTitle'), to: '/hrms' }, { label: t('hrms.team.pageTitle') }]);
+    }, [setCrumbs, t]);
 
     const load = useCallback(() => {
         setError(null);
@@ -50,9 +52,9 @@ export default function MyTeam() {
                     return;
                 }
 
-                setError('Unable to load your team.');
+                setError(t('hrms.team.loadFailed'));
             });
-    }, [from, to, navigate]);
+    }, [from, to, navigate, t]);
 
     useEffect(() => {
         load();
@@ -62,9 +64,9 @@ export default function MyTeam() {
     return (
         <div className="space-y-4">
             <div>
-                <h2 className="text-xl font-semibold text-gray-900">My team</h2>
+                <h2 className="text-xl font-semibold text-gray-900">{t('hrms.team.pageTitle')}</h2>
                 <p className="mt-0.5 text-sm text-gray-500">
-                    {reports ? `${reports.length} direct report${reports.length === 1 ? '' : 's'}` : '—'}
+                    {reports ? (reports.length === 1 ? t('hrms.team.reportsOne') : t('hrms.team.reports', { count: reports.length })) : '—'}
                 </p>
             </div>
 
@@ -72,21 +74,21 @@ export default function MyTeam() {
 
             <Card dense>
                 <div className="grid gap-3 sm:grid-cols-3">
-                    <Input label="From" type="date" value={from} onChange={(e) => setFrom(e.target.value)} />
-                    <Input label="To" type="date" value={to} onChange={(e) => setTo(e.target.value)} />
-                    <div className="flex items-end"><Button variant="secondary" onClick={load}>Apply window</Button></div>
+                    <Input label={t('hrms.team.from')} type="date" value={from} onChange={(e) => setFrom(e.target.value)} />
+                    <Input label={t('hrms.team.to')} type="date" value={to} onChange={(e) => setTo(e.target.value)} />
+                    <div className="flex items-end"><Button variant="secondary" onClick={load}>{t('hrms.team.apply')}</Button></div>
                 </div>
             </Card>
 
             {!reports ? (
                 <div className="flex justify-center py-10"><Spinner /></div>
             ) : reports.length === 0 ? (
-                <EmptyState title="No direct reports" hint="Anyone reporting to you appears here." />
+                <EmptyState title={t('hrms.team.emptyTitle')} hint={t('hrms.team.emptyHint')} />
             ) : (
                 <Card dense>
                     <Table>
                         <thead>
-                            <tr><Th>Person</Th><Th>Today</Th><Th>Leave</Th><Th>Overdue</Th><Th>Approvals</Th><Th>Balance</Th></tr>
+                            <tr><Th>{t('hrms.team.thPerson')}</Th><Th>{t('hrms.team.thToday')}</Th><Th>{t('hrms.team.thLeave')}</Th><Th>{t('hrms.team.thOverdue')}</Th><Th>{t('hrms.team.thApprovals')}</Th><Th>{t('hrms.team.thBalance')}</Th></tr>
                         </thead>
                         <tbody>
                             {reports.map((report) => (
@@ -97,7 +99,7 @@ export default function MyTeam() {
                                         </Link>
                                         <span className="block text-xs text-gray-400">{report.department ?? report.status}</span>
                                     </Td>
-                                    <Td>{report.today}{report.on_leave_today ? ' · on leave' : ''}</Td>
+                                    <Td>{report.today}{report.on_leave_today ? t('hrms.team.onLeave') : ''}</Td>
                                     <Td>
                                         {(report.leave_balances ?? []).map((b, i) => (
                                             <span key={i} className="mr-2">{b.type}: {b.balance}</span>

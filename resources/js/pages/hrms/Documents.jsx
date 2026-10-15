@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import api from '../../services/api';
 import Alert from '../../components/ui/Alert';
 import Button from '../../components/ui/Button';
@@ -21,10 +22,10 @@ import DocumentUploader from '../../components/hrms/DocumentUploader';
 const FILTER_DEFAULTS = { q: '', document_type_id: '', status: '' };
 
 const STATUSES = [
-    { value: 'pending', label: 'Pending' },
-    { value: 'verified', label: 'Verified' },
-    { value: 'rejected', label: 'Rejected' },
-    { value: 'expired', label: 'Expired' },
+    { value: 'pending', key: 'stPending' },
+    { value: 'verified', key: 'stVerified' },
+    { value: 'rejected', key: 'stRejected' },
+    { value: 'expired', key: 'stExpired' },
 ];
 
 /**
@@ -37,7 +38,8 @@ const STATUSES = [
  * flags only decide what gets drawn.
  */
 export default function Documents() {
-    usePageTitle('Documents');
+    const { t } = useTranslation();
+    usePageTitle(t('hrms.docs.pageTitle'));
     const setCrumbs = useSetCrumbs();
     const navigate = useNavigate();
     const { can } = useAuth();
@@ -59,8 +61,8 @@ export default function Documents() {
     const canPickEmployee = can('permission:hrms.employees.view');
 
     useEffect(() => {
-        setCrumbs([{ label: 'HRMS', to: '/hrms' }, { label: 'Documents' }]);
-    }, [setCrumbs]);
+        setCrumbs([{ label: t('hrms.overview.pageTitle'), to: '/hrms' }, { label: t('hrms.docs.pageTitle') }]);
+    }, [setCrumbs, t]);
 
     const load = useCallback(
         (targetPage, activeFilters) => {
@@ -81,10 +83,10 @@ export default function Documents() {
                         return;
                     }
 
-                    setError('Unable to load documents.');
+                    setError(t('hrms.docs.loadFailed'));
                 });
         },
-        [navigate],
+        [navigate, t],
     );
 
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -117,20 +119,20 @@ export default function Documents() {
     async function verify(document) {
         try {
             await api.post(`/hrms/documents/${document.id}/verify`);
-            toast.success(`“${document.title}” verified.`);
+            toast.success(t('hrms.docs.verified', { title: document.title }));
             await load(page, filters);
         } catch {
-            toast.error('Unable to verify this document.');
+            toast.error(t('hrms.docs.verifyFailed'));
         }
     }
 
     async function reject(document) {
         const reason = await prompt({
-            title: 'Reject Document',
-            message: `Why is “${document.title}” being rejected?`,
-            placeholder: 'Reason for rejection…',
+            title: t('hrms.docs.rejectTitle'),
+            message: t('hrms.docs.rejectMessage', { title: document.title }),
+            placeholder: t('hrms.docs.rejectPlaceholder'),
             required: true,
-            confirmLabel: 'Reject',
+            confirmLabel: t('hrms.docs.rejectConfirm'),
             variant: 'danger',
         });
 
@@ -138,22 +140,22 @@ export default function Documents() {
 
         try {
             await api.post(`/hrms/documents/${document.id}/reject`, { reason });
-            toast.success(`“${document.title}” rejected.`);
+            toast.success(t('hrms.docs.rejected', { title: document.title }));
             await load(page, filters);
         } catch (err) {
-            toast.error(err.response?.data?.errors?.reason ?? 'Unable to reject this document.');
+            toast.error(err.response?.data?.errors?.reason ?? t('hrms.docs.rejectFailed'));
         }
     }
 
     async function remove(document) {
-        if (!(await confirm({ title: 'Delete document?', message: `Delete “${document.title}”? The file is removed and the row is hidden.`, variant: 'danger' }))) return;
+        if (!(await confirm({ title: t('hrms.docs.deleteTitle'), message: t('hrms.docs.deleteMessage', { title: document.title }), variant: 'danger' }))) return;
 
         try {
             await api.delete(`/hrms/documents/${document.id}`);
-            toast.success('Document deleted.');
+            toast.success(t('hrms.docs.deleted'));
             await load(page, filters);
         } catch {
-            toast.error('Unable to delete this document.');
+            toast.error(t('hrms.docs.deleteFailed'));
         }
     }
 
@@ -161,7 +163,7 @@ export default function Documents() {
         const pending = (data?.documents ?? []).filter((document) => document.status === 'pending');
 
         if (pending.length === 0) return;
-        if (!(await confirm({ title: 'Verify documents?', message: `Verify ${pending.length} pending document${pending.length === 1 ? '' : 's'}?` }))) return;
+        if (!(await confirm({ title: t('hrms.docs.verifyAllTitle'), message: pending.length === 1 ? t('hrms.docs.verifyAllMessageOne') : t('hrms.docs.verifyAllMessage', { count: pending.length }) }))) return;
 
         setVerifyingAll(true);
 
@@ -174,10 +176,10 @@ export default function Documents() {
                 await api.post(`/hrms/documents/${document.id}/verify`);
             }
 
-            toast.success(`${pending.length} document${pending.length === 1 ? '' : 's'} verified.`);
+            toast.success(pending.length === 1 ? t('hrms.docs.verifiedOne') : t('hrms.docs.verifiedMany', { count: pending.length }));
             await load(page, filters);
         } catch {
-            toast.error('Some documents could not be verified.');
+            toast.error(t('hrms.docs.verifyAllFailed'));
             await load(page, filters);
         } finally {
             setVerifyingAll(false);
@@ -191,40 +193,40 @@ export default function Documents() {
         <div className="space-y-4">
             <div className="flex flex-wrap items-center justify-between gap-3">
                 <div>
-                    <h2 className="text-xl font-semibold text-gray-900">Documents</h2>
+                    <h2 className="text-xl font-semibold text-gray-900">{t('hrms.docs.pageTitle')}</h2>
                     <p className="mt-0.5 text-sm text-gray-500">
-                        {data ? `${data.pagination.total} document${data.pagination.total === 1 ? '' : 's'}` : '—'}
+                        {data ? (data.pagination.total === 1 ? t('hrms.docs.documentsOne') : t('hrms.docs.documents', { count: data.pagination.total })) : '—'}
                     </p>
                 </div>
 
                 <div className="flex gap-2">
                     {canManage && pendingCount > 0 && (
                         <Button variant="secondary" loading={verifyingAll} onClick={verifyAll}>
-                            Verify all {pendingCount} pending
+                            {t('hrms.docs.verifyAll', { count: pendingCount })}
                         </Button>
                     )}
-                    {canManage && <Button onClick={() => setUploading(true)}>Upload document</Button>}
+                    {canManage && <Button onClick={() => setUploading(true)}>{t('hrms.docs.uploadDocument')}</Button>}
                 </div>
             </div>
 
             {error && <Alert>{error}</Alert>}
 
             {expiring !== null && expiring.length > 0 && (
-                <Card title="Expiring within 30 days" dense>
+                <Card title={t('hrms.docs.expiringTitle')} dense>
                     <ul className="divide-y divide-gray-100">
                         {expiring.slice(0, 5).map((document) => (
                             <li key={document.id} className="flex items-center justify-between gap-3 py-2 text-sm">
                                 <span className="min-w-0">
                                     <span className="block truncate font-medium text-gray-900">{document.title}</span>
                                     <span className="text-xs text-gray-400">
-                                        {document.employee?.name ?? '—'} · expires {document.expires_at}
+                                        {document.employee?.name ?? '—'} · {t('hrms.docs.expires', { date: document.expires_at })}
                                     </span>
                                 </span>
                                 <Link
                                     to={document.employee?.id ? employeeUrl(document.employee.id, 'documents') : '/hrms/documents'}
                                     className="shrink-0 text-sm font-medium text-[var(--accent-soft-text)] hover:underline"
                                 >
-                                    Review
+                                    {t('hrms.docs.review')}
                                 </Link>
                             </li>
                         ))}
@@ -233,20 +235,20 @@ export default function Documents() {
             )}
 
             <div className="grid gap-3 rounded-xl border border-gray-200/70 bg-white p-3 sm:grid-cols-2 lg:grid-cols-4">
-                <Input label="Search" placeholder="Title or file name" value={filters.q} onChange={(e) => setFilter('q', e.target.value)} />
-                <Select label="Type" value={filters.document_type_id} onChange={(e) => setFilter('document_type_id', e.target.value)}>
-                    <option value="">Any type</option>
+                <Input label={t('hrms.docs.search')} placeholder={t('hrms.docs.searchPlaceholder')} value={filters.q} onChange={(e) => setFilter('q', e.target.value)} />
+                <Select label={t('hrms.docs.type')} value={filters.document_type_id} onChange={(e) => setFilter('document_type_id', e.target.value)}>
+                    <option value="">{t('hrms.docs.anyType')}</option>
                     {types.map((type) => (
                         <option key={type.id} value={type.id}>
                             {type.name}
                         </option>
                     ))}
                 </Select>
-                <Select label="Status" value={filters.status} onChange={(e) => setFilter('status', e.target.value)}>
-                    <option value="">Any status</option>
+                <Select label={t('hrms.docs.status')} value={filters.status} onChange={(e) => setFilter('status', e.target.value)}>
+                    <option value="">{t('hrms.docs.anyStatus')}</option>
                     {STATUSES.map((status) => (
                         <option key={status.value} value={status.value}>
-                            {status.label}
+                            {t(`hrms.docs.${status.key}`)}
                         </option>
                     ))}
                 </Select>
@@ -280,13 +282,13 @@ export default function Documents() {
                 </>
             )}
 
-            <Modal open={uploading} onClose={() => setUploading(false)} title="Upload document">
+            <Modal open={uploading} onClose={() => setUploading(false)} title={t('hrms.docs.uploadDocument')}>
                 <DocumentUploader
                     employees={canPickEmployee ? employees : null}
                     types={types}
                     onUploaded={() => {
                         setUploading(false);
-                        toast.success('Document uploaded.');
+                        toast.success(t('hrms.docs.uploaded'));
                         load(page, filters);
                     }}
                 />

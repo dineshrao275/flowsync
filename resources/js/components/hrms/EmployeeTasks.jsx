@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import api from '../../services/api';
 import { taskUrl } from '../../utils/deepLinks';
 import Spinner from '../ui/Spinner';
@@ -12,6 +13,7 @@ import EmptyState from '../ui/EmptyState';
  * not assignments, so it never duplicates the project's own views.
  */
 export default function EmployeeTasks({ employeeId }) {
+    const { t } = useTranslation();
     const [tasks, setTasks] = useState(null);
     const [error, setError] = useState(null);
 
@@ -20,14 +22,14 @@ export default function EmployeeTasks({ employeeId }) {
 
         api.get(`/hrms/employees/${employeeId}/tasks`)
             .then(({ data }) => setTasks(data.tasks ?? []))
-            .catch(() => setError('Unable to load linked tasks.'));
-    }, [employeeId]);
+            .catch(() => setError(t('hrms.empTasks.loadFailed')));
+    }, [employeeId, t]);
 
     if (error) return <p className="py-8 text-center text-sm text-red-600">{error}</p>;
     if (!tasks) return <Spinner />;
 
     if (tasks.length === 0) {
-        return <EmptyState title="No linked tasks" message="No project task counts toward this person yet." />;
+        return <EmptyState title={t('hrms.empTasks.emptyTitle')} message={t('hrms.empTasks.emptyHint')} />;
     }
 
     return (

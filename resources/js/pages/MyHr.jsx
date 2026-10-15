@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import api from '../services/api';
 import Alert from '../components/ui/Alert';
 import Button from '../components/ui/Button';
@@ -23,7 +24,8 @@ import ClockInWidget from '../components/hrms/ClockInWidget';
  * punches), and hides entirely where the attendance module is off.
  */
 export default function MyHr() {
-    usePageTitle('My HR');
+    const { t } = useTranslation();
+    usePageTitle(t('hrms.home.pageTitle'));
     const setCrumbs = useSetCrumbs();
     const navigate = useNavigate();
     const toast = useToast();
@@ -36,8 +38,8 @@ export default function MyHr() {
     const [punching, setPunching] = useState(false);
 
     useEffect(() => {
-        setCrumbs([{ label: 'My HR' }]);
-    }, [setCrumbs]);
+        setCrumbs([{ label: t('hrms.home.pageTitle') }]);
+    }, [setCrumbs, t]);
 
     const load = useCallback(() => {
         setError(null);
@@ -51,9 +53,9 @@ export default function MyHr() {
                     return;
                 }
 
-                setError('Unable to load your HR home.');
+                setError(t('hrms.home.loadFailed'));
             });
-    }, [navigate]);
+    }, [navigate, t]);
 
     const loadToday = useCallback(() => {
         return api
@@ -73,11 +75,11 @@ export default function MyHr() {
 
         try {
             await api.post('/hrms/attendance/punch', { direction });
-            toast.success(direction === 'in' ? 'Clocked in.' : 'Clocked out.');
+            toast.success(direction === 'in' ? t('hrms.home.clockedIn') : t('hrms.home.clockedOut'));
             loadToday();
             load();
         } catch (err) {
-            toast.error(err.response?.data?.message ?? 'Unable to record the punch.');
+            toast.error(err.response?.data?.message ?? t('hrms.home.punchFailed'));
         } finally {
             setPunching(false);
         }
@@ -86,7 +88,7 @@ export default function MyHr() {
     if (!home && !error) {
         return (
             <div className="space-y-4">
-                <h2 className="text-xl font-semibold text-gray-900">My HR</h2>
+                <h2 className="text-xl font-semibold text-gray-900">{t('hrms.home.pageTitle')}</h2>
                 <div className="flex justify-center py-10"><Spinner /></div>
             </div>
         );
@@ -95,7 +97,7 @@ export default function MyHr() {
     if (error) {
         return (
             <div className="space-y-4">
-                <h2 className="text-xl font-semibold text-gray-900">My HR</h2>
+                <h2 className="text-xl font-semibold text-gray-900">{t('hrms.home.pageTitle')}</h2>
                 <Alert>{error}</Alert>
             </div>
         );
@@ -104,8 +106,8 @@ export default function MyHr() {
     if (!home.profile) {
         return (
             <div className="space-y-4">
-                <h2 className="text-xl font-semibold text-gray-900">My HR</h2>
-                <EmptyState title="No employment record" hint="Ask HR to link this login to an employee record." />
+                <h2 className="text-xl font-semibold text-gray-900">{t('hrms.home.pageTitle')}</h2>
+                <EmptyState title={t('hrms.home.emptyTitle')} hint={t('hrms.home.emptyHint')} />
             </div>
         );
     }
@@ -121,7 +123,7 @@ export default function MyHr() {
     return (
         <div className="space-y-4">
             <div>
-                <h2 className="text-xl font-semibold text-gray-900">Hi, {home.profile.name?.split(' ')[0] ?? 'there'}</h2>
+                <h2 className="text-xl font-semibold text-gray-900">{home.profile.name?.split(' ')[0] ? t('hrms.home.greeting', { name: home.profile.name.split(' ')[0] }) : t('hrms.home.greetingFallback')}</h2>
                 <p className="mt-0.5 text-sm text-gray-500">
                     {[home.profile.designation, home.profile.department].filter(Boolean).join(' · ') || home.profile.employee_code}
                 </p>
@@ -144,33 +146,33 @@ export default function MyHr() {
                     <ClockInWidget today={todayData} punching={punching} onPunch={punch} />
                 )}
 
-                <Card title="Leave" dense>
+                <Card title={t('hrms.home.leave')} dense>
                     {(leave.balances ?? []).length === 0 ? (
-                        <p className="text-sm text-gray-500">No balances this year.</p>
+                        <p className="text-sm text-gray-500">{t('hrms.home.noBalances')}</p>
                     ) : (
                         <ul className="divide-y divide-gray-100 text-sm">
                             {leave.balances.map((row, i) => (
                                 <li key={i} className="flex justify-between py-1.5">
-                                    <span className="text-gray-600">{row.type ?? 'Leave'}</span>
-                                    <span className="font-medium">{row.balance} days</span>
+                                    <span className="text-gray-600">{row.type ?? t('hrms.home.leave')}</span>
+                                    <span className="font-medium">{t('hrms.home.days', { count: row.balance })}</span>
                                 </li>
                             ))}
                         </ul>
                     )}
                     {(leave.upcoming ?? []).length > 0 && (
                         <p className="mt-2 text-xs text-gray-400">
-                            Upcoming: {leave.upcoming.map((u) => `${u.type ?? 'leave'} ${u.from_date} → ${u.to_date}`).join('; ')}
+                            {t('hrms.home.upcoming', { items: leave.upcoming.map((u) => `${u.type ?? 'leave'} ${u.from_date} → ${u.to_date}`).join('; ') })}
                         </p>
                     )}
                 </Card>
 
                 <Card
-                    title={`Inbox · ${sections.inbox_count ?? 0} unread`}
+                    title={t('hrms.home.inbox', { count: sections.inbox_count ?? 0 })}
                     dense
-                    actions={<Link to="/hrms/inbox" className="text-sm font-medium text-[var(--accent-soft-text)] hover:underline">Open inbox</Link>}
+                    actions={<Link to="/hrms/inbox" className="text-sm font-medium text-[var(--accent-soft-text)] hover:underline">{t('hrms.home.openInbox')}</Link>}
                 >
                     {(requests.leave ?? []).length + (requests.expenses ?? []).length === 0 ? (
-                        <p className="text-sm text-gray-500">Nothing waiting on you.</p>
+                        <p className="text-sm text-gray-500">{t('hrms.home.nothingWaiting')}</p>
                     ) : (
                         <ul className="divide-y divide-gray-100 text-sm">
                             {(requests.leave ?? []).map((r) => (
@@ -184,48 +186,48 @@ export default function MyHr() {
                 </Card>
 
                 <Card
-                    title="Pay"
+                    title={t('hrms.home.pay')}
                     dense
-                    actions={<Link to="/hrms/payroll/mine" className="text-sm font-medium text-[var(--accent-soft-text)] hover:underline">My payslips</Link>}
+                    actions={<Link to="/hrms/payroll/mine" className="text-sm font-medium text-[var(--accent-soft-text)] hover:underline">{t('hrms.home.myPayslips')}</Link>}
                 >
                     {payroll.latest ? (
                         <p className="text-sm text-gray-600">
-                            Latest: {payroll.latest.period} · {payroll.latest.status}
-                            {payroll.next_pay_date ? <span className="block text-xs text-gray-400">Next pay date {payroll.next_pay_date}</span> : null}
+                            {t('hrms.home.latest', { period: payroll.latest.period, status: payroll.latest.status })}
+                            {payroll.next_pay_date ? <span className="block text-xs text-gray-400">{t('hrms.home.nextPay', { date: payroll.next_pay_date })}</span> : null}
                         </p>
                     ) : (
-                        <p className="text-sm text-gray-500">No payslip yet.</p>
+                        <p className="text-sm text-gray-500">{t('hrms.home.noPayslip')}</p>
                     )}
                 </Card>
 
-                <Card title="Hardware" dense>
+                <Card title={t('hrms.home.hardware')} dense>
                     {(sections.assets ?? []).length === 0 ? (
-                        <p className="text-sm text-gray-500">Nothing checked out.</p>
+                        <p className="text-sm text-gray-500">{t('hrms.home.nothingOut')}</p>
                     ) : (
                         <ul className="divide-y divide-gray-100 text-sm">
                             {sections.assets.map((a, i) => (
-                                <li key={i} className="py-1.5">{a.asset_code} · {a.name}{a.acknowledged ? '' : ' · awaiting your signature'}</li>
+                                <li key={i} className="py-1.5">{a.asset_code} · {a.name}{a.acknowledged ? '' : t('hrms.home.awaitingSignature')}</li>
                             ))}
                         </ul>
                     )}
                 </Card>
 
-                <Card title="Files" dense>
+                <Card title={t('hrms.home.files')} dense>
                     {(documents.expiring ?? []).length === 0 && (documents.pending_asks ?? 0) === 0 ? (
-                        <p className="text-sm text-gray-500">Files are in order.</p>
+                        <p className="text-sm text-gray-500">{t('hrms.home.filesOk')}</p>
                     ) : (
                         <div className="text-sm text-gray-600">
                             {(documents.expiring ?? []).map((d) => (
-                                <p key={d.id}>{d.title} · expires {d.expires_at}</p>
+                                <p key={d.id}>{t('hrms.home.fileExpires', { title: d.title, date: d.expires_at })}</p>
                             ))}
-                            {(documents.pending_asks ?? 0) > 0 && <p>{documents.pending_asks} file asks waiting.</p>}
+                            {(documents.pending_asks ?? 0) > 0 && <p>{t('hrms.home.fileAsks', { count: documents.pending_asks })}</p>}
                         </div>
                     )}
                 </Card>
 
-                <Card title="Goals" dense>
+                <Card title={t('hrms.home.goals')} dense>
                     {(performance.goals ?? []).length === 0 ? (
-                        <p className="text-sm text-gray-500">No active goals.</p>
+                        <p className="text-sm text-gray-500">{t('hrms.home.noGoals')}</p>
                     ) : (
                         <ul className="divide-y divide-gray-100 text-sm">
                             {performance.goals.map((g) => (
@@ -237,17 +239,17 @@ export default function MyHr() {
                         </ul>
                     )}
                     {performance.next_one_on_one && (
-                        <p className="mt-2 text-xs text-gray-400">Next 1:1 {performance.next_one_on_one.scheduled_at}</p>
+                        <p className="mt-2 text-xs text-gray-400">{t('hrms.home.nextOneOnOne', { at: performance.next_one_on_one.scheduled_at })}</p>
                     )}
                 </Card>
 
                 {cases.length > 0 && (
-                    <Card title="Open items" dense>
+                    <Card title={t('hrms.home.openItems')} dense>
                         <ul className="divide-y divide-gray-100 text-sm">
                             {cases.map((c) => (
                                 <li key={`${c.kind}-${c.id}`} className="py-1.5">
                                     {c.title}
-                                    <span className="ml-2 text-xs text-gray-400">{c.kind}{c.due_date ? ` · due ${c.due_date}` : ''}</span>
+                                    <span className="ml-2 text-xs text-gray-400">{c.kind}{c.due_date ? t('hrms.home.caseDue', { date: c.due_date }) : ''}</span>
                                 </li>
                             ))}
                         </ul>
@@ -256,7 +258,7 @@ export default function MyHr() {
             </div>
 
             <div className="flex gap-2">
-                <Button variant="secondary" onClick={() => { load(); loadToday(); }}>Refresh</Button>
+                <Button variant="secondary" onClick={() => { load(); loadToday(); }}>{t('hrms.home.refresh')}</Button>
             </div>
         </div>
     );

@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import api from '../../services/api';
 import Alert from '../../components/ui/Alert';
 import Avatar from '../../components/ui/Avatar';
@@ -29,6 +30,7 @@ import EmployeeTasks from '../../components/hrms/EmployeeTasks';
  * generic editor here would be a second, weaker path to the same decisions.
  */
 export default function EmployeeDetail() {
+    const { t } = useTranslation();
     const { employeeId } = useParams();
     const navigate = useNavigate();
     const [searchParams, setSearchParams] = useSearchParams();
@@ -58,8 +60,8 @@ export default function EmployeeDetail() {
     const tabs = useMemo(() => {
         const base = hrmsProfileTabs(user?.modules ?? []).filter((tab) => tab.key !== 'audit');
         if (can('hrms.audit.view')) base.push({ key: 'audit', label: 'Audit' });
-        return base;
-    }, [user?.modules, can]);
+        return base.map((tab) => ({ ...tab, label: t(`hrms.employee.tabs.${tab.key}`, { defaultValue: tab.label }) }));
+    }, [user?.modules, can, t]);
     const requested = searchParams.get('tab');
     const activeTab = tabs.some((tab) => tab.key === requested) ? requested : (tabs[0]?.key ?? 'overview');
 
@@ -84,10 +86,10 @@ export default function EmployeeDetail() {
                     return;
                 }
 
-                setError('Unable to load this employee.');
+                setError(t('hrms.employee.loadFailed'));
             })
             .finally(() => setLoading(false));
-    }, [employeeId, navigate]);
+    }, [employeeId, navigate, t]);
 
     useEffect(() => {
         load();
@@ -101,13 +103,13 @@ export default function EmployeeDetail() {
         if (!employee) return;
 
         setCrumbs([
-            { label: 'HRMS', to: '/hrms' },
-            { label: 'Employees', to: hrmsUrl('employees') },
+            { label: t('hrms.overview.pageTitle'), to: '/hrms' },
+            { label: t('hrms.employees.pageTitle'), to: hrmsUrl('employees') },
             { label: employee.display_name },
         ]);
-    }, [employee, setCrumbs]);
+    }, [employee, setCrumbs, t]);
 
-    usePageTitle(employee?.display_name ?? 'Employee');
+    usePageTitle(employee?.display_name ?? t('hrms.employee.fallbackTitle'));
 
     function changeTab(key) {
         // The tab is written back into the URL rather than held in state, so a
@@ -124,7 +126,7 @@ export default function EmployeeDetail() {
             await api.put(`/hrms/employees/${employee.id}`, payload);
 
             setEditing(false);
-            toast.success('Employee updated.');
+            toast.success(t('hrms.employee.saved'));
             // Refetched rather than patched: the response masks the personal
             // fields for a reader without the sensitive permission, so merging
             // our own draft back in would show a manager values the server is
@@ -143,10 +145,10 @@ export default function EmployeeDetail() {
                 manager_id: managerId === '' ? null : Number(managerId),
             });
 
-            toast.success('Reporting line updated.');
+            toast.success(t('hrms.employee.reportingSaved'));
             await load();
         } catch (err) {
-            toast.error(err.response?.data?.message ?? 'Unable to update the reporting line.');
+            toast.error(err.response?.data?.message ?? t('hrms.employee.reportingFailed'));
         } finally {
             setSavingManager(false);
         }
@@ -161,7 +163,7 @@ export default function EmployeeDetail() {
     }
 
     if (error || !employee) {
-        return <Alert>{error ?? 'This employee could not be found.'}</Alert>;
+        return <Alert>{error ?? t('hrms.employee.notFound')}</Alert>;
     }
 
     const canManage = can('permission:hrms.employees.manage');
@@ -185,7 +187,7 @@ export default function EmployeeDetail() {
                             </span>
                             {employee.tenure_years !== null && (
                                 <span className="text-xs text-gray-400">
-                                    {employee.tenure_years}y tenure
+                                    {t('hrms.employee.tenure', { years: employee.tenure_years })}
                                 </span>
                             )}
                         </p>
@@ -194,7 +196,7 @@ export default function EmployeeDetail() {
 
                 {canManage && (
                     <Button variant="secondary" onClick={() => setEditing(true)}>
-                        Edit details
+                        {t('hrms.employee.editDetails')}
                     </Button>
                 )}
             </div>
@@ -221,29 +223,29 @@ export default function EmployeeDetail() {
             {activeTab === 'overview' && (
                 <div className="grid gap-4 lg:grid-cols-3">
                     <div className="space-y-4 lg:col-span-2">
-                        <Panel title="Employment">
-                            <Row label="Employment type" value={employee.employment_type?.name} />
-                            <Row label="Work mode" value={employee.work_mode_label} />
-                            <Row label="Joined" value={employee.joining_date} />
-                            <Row label="Probation ends" value={employee.probation_end_date} />
-                            <Row label="Confirmed" value={employee.confirmation_date} />
+                        <Panel title={t('hrms.employee.employment')}>
+                            <Row label={t('hrms.employee.employmentType')} value={employee.employment_type?.name} />
+                            <Row label={t('hrms.employee.workMode')} value={employee.work_mode_label} />
+                            <Row label={t('hrms.employee.joined')} value={employee.joining_date} />
+                            <Row label={t('hrms.employee.probationEnds')} value={employee.probation_end_date} />
+                            <Row label={t('hrms.employee.confirmed')} value={employee.confirmation_date} />
                             {employee.exit_date && (
-                                <Row label="Left on" value={`${employee.exit_date}${employee.exited_reason ? ` · ${employee.exited_reason}` : ''}`} />
+                                <Row label={t('hrms.employee.leftOn')} value={`${employee.exit_date}${employee.exited_reason ? ` · ${employee.exited_reason}` : ''}`} />
                             )}
                         </Panel>
 
-                        <PersonalPanel employee={employee} />
+                        <PersonalPanel employee={employee} t={t} />
 
                         {canManage && (
-                            <Panel title="Reporting line">
+                            <Panel title={t('hrms.employee.reporting')}>
                                 <div className="flex flex-wrap items-end gap-3">
                                     <Select
-                                        label="Manager"
+                                        label={t('hrms.employee.manager')}
                                         className="min-w-56 flex-1"
                                         value={managerId}
                                         onChange={(e) => setManagerId(e.target.value)}
                                     >
-                                        <option value="">No manager</option>
+                                        <option value="">{t('hrms.employee.noManager')}</option>
                                         {(options?.managers ?? [])
                                             .filter((manager) => manager.id !== employee.id)
                                             .map((manager) => (
@@ -256,7 +258,7 @@ export default function EmployeeDetail() {
                                         onClick={saveManager}
                                         disabled={savingManager || managerId === (employee.manager ? String(employee.manager.id) : '')}
                                     >
-                                        {savingManager ? 'Saving…' : 'Save'}
+                                        {savingManager ? t('hrms.employee.saving') : t('hrms.employee.save')}
                                     </Button>
                                 </div>
                             </Panel>
@@ -275,7 +277,7 @@ export default function EmployeeDetail() {
 
             <div className="pt-2 text-sm">
                 <Link to={hrmsUrl('employees')} className="text-[var(--accent-soft-text)] hover:text-[var(--accent)]">
-                    ← Back to employees
+                    {t('hrms.employee.back')}
                 </Link>
             </div>
 
@@ -318,41 +320,40 @@ function EmployeePhoto({ employee }) {
     return <Avatar name={employee.display_name} size="lg" />;
 }
 
-function PersonalPanel({ employee }) {
+function PersonalPanel({ employee, t }) {
     if (employee.restricted) {
         return (
-            <Panel title="Personal">
+            <Panel title={t('hrms.employee.personal')}>
                 <p className="text-sm text-gray-500">
-                    The personal details on this record are restricted. You need the
-                    &ldquo;view sensitive data&rdquo; permission to see them.
+                    {t('hrms.employee.restricted')}
                 </p>
             </Panel>
         );
     }
 
     return (
-        <Panel title="Personal">
-            <Row label="Personal email" value={employee.personal_email} />
-            <Row label="Phone" value={employee.phone} />
-            <Row label="Date of birth" value={employee.date_of_birth} />
-            <Row label="Gender" value={employee.gender} />
-            <Row label="Marital status" value={employee.marital_status} />
-            <Row label="Nationality" value={employee.nationality} />
+        <Panel title={t('hrms.employee.personal')}>
+            <Row label={t('hrms.employee.personalEmail')} value={employee.personal_email} />
+            <Row label={t('hrms.employee.phone')} value={employee.phone} />
+            <Row label={t('hrms.employee.dob')} value={employee.date_of_birth} />
+            <Row label={t('hrms.employee.gender')} value={employee.gender} />
+            <Row label={t('hrms.employee.marital')} value={employee.marital_status} />
+            <Row label={t('hrms.employee.nationality')} value={employee.nationality} />
             <Row
-                label="Home address"
+                label={t('hrms.employee.address')}
                 value={address(employee)}
             />
             <Row
-                label="Emergency contact"
+                label={t('hrms.employee.emergency')}
                 value={
                     employee.emergency_contact?.name
                         ? `${employee.emergency_contact.name}${
                               employee.emergency_contact.relation ? ` (${employee.emergency_contact.relation})` : ''
-                          } · ${employee.emergency_contact.phone ?? 'no number'}`
+                          } · ${employee.emergency_contact.phone ?? t('hrms.employee.noNumber')}`
                         : null
                 }
             />
-            {employee.notes && <Row label="Notes" value={employee.notes} />}
+            {employee.notes && <Row label={t('hrms.employee.notes')} value={employee.notes} />}
         </Panel>
     );
 }
