@@ -29,7 +29,7 @@ class WorkspaceController extends Controller
         $data = $request->validate([
             'name' => ['required', 'string', 'max:255'],
             'slug' => ['nullable', 'string', 'max:255', 'alpha_dash'],
-            'description' => ['nullable', 'string', 'max:2000'],
+            'description' => ['nullable', 'string', 'max:20000'],
             'icon' => ['nullable', 'string', 'max:64'],
             'color' => ['nullable', 'string', 'max:16'],
             'timezone' => ['nullable', 'string', 'max:64'],
@@ -60,7 +60,7 @@ class WorkspaceController extends Controller
 
         $data = $request->validate([
             'name' => ['required', 'string', 'max:255'],
-            'description' => ['nullable', 'string', 'max:2000'],
+            'description' => ['nullable', 'string', 'max:20000'],
             'icon' => ['nullable', 'string', 'max:64'],
             'color' => ['nullable', 'string', 'max:16'],
             'timezone' => ['nullable', 'string', 'max:64'],

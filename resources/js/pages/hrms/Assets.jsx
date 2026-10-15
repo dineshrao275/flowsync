@@ -253,7 +253,7 @@ export default function Assets() {
             )}
 
             <Modal open={registerModal} onClose={() => setRegisterModal(false)} title="Register an asset">
-                <form onSubmit={register} className="grid gap-3 sm:grid-cols-2">
+                <form onSubmit={register} className="grid gap-3 px-6 py-5 sm:grid-cols-2">
                     <Input label="Name" value={registerForm.name} error={registerErrors.name} onChange={(e) => setRegisterForm({ ...registerForm, name: e.target.value })} required />
                     <Select label="Category" value={registerForm.category_id} error={registerErrors.category_id} onChange={(e) => setRegisterForm({ ...registerForm, category_id: e.target.value })} required>
                         <option value="">Select…</option>
@@ -270,7 +270,7 @@ export default function Assets() {
             </Modal>
 
             <Modal open={!!assigning} onClose={() => setAssigning(null)} title={`Assign ${assigning?.asset_code ?? ''}`}>
-                <form onSubmit={assign} className="grid gap-3">
+                <form onSubmit={assign} className="grid gap-3 px-6 py-5">
                     <Select label="Person" value={assignForm.employee_id} error={assignErrors.employee_id} onChange={(e) => setAssignForm({ ...assignForm, employee_id: e.target.value })} required>
                         <option value="">Select…</option>
                         {employees.map((e) => <option key={e.id} value={e.id}>{e.name}</option>)}
@@ -283,7 +283,7 @@ export default function Assets() {
             </Modal>
 
             <Modal open={!!returning} onClose={() => setReturning(null)} title={`Take back ${returning?.asset_code ?? ''}`}>
-                <form onSubmit={returnAsset} className="grid gap-3">
+                <form onSubmit={returnAsset} className="grid gap-3 px-6 py-5">
                     <Select label="Condition in" value={returnForm.condition_in} error={returnErrors.condition_in} onChange={(e) => setReturnForm({ ...returnForm, condition_in: e.target.value })}>
                         {CONDITIONS.map((c) => <option key={c} value={c}>{c}</option>)}
                     </Select>
@@ -293,7 +293,7 @@ export default function Assets() {
             </Modal>
 
             <Modal open={!!repairing} onClose={() => setRepairing(null)} title={`Repair ${repairing?.asset_code ?? ''}`}>
-                <form onSubmit={openRepair} className="grid gap-3">
+                <form onSubmit={openRepair} className="grid gap-3 px-6 py-5">
                     <Select label="Type" value={repairForm.type} error={repairErrors.type} onChange={(e) => setRepairForm({ ...repairForm, type: e.target.value })}>
                         {['repair', 'service', 'upgrade', 'inspection'].map((t) => <option key={t} value={t}>{t}</option>)}
                     </Select>
@@ -308,7 +308,7 @@ export default function Assets() {
 
             <Modal open={!!detail} onClose={() => setDetail(null)} title={detail ? `${detail.asset_code} — ${detail.name}` : ''} size="lg">
                 {detail && (
-                    <div className="space-y-4 text-sm">
+                    <div className="space-y-4 px-6 py-5 text-sm">
                         <p className="text-gray-500">
                             {detail.brand ?? ''} {detail.model ?? ''} · {detail.serial_number ?? 'no serial'} · {detail.condition} · {detail.status}
                         </p>

@@ -2,8 +2,12 @@
 
 namespace App\Support;
 
+use App\Models\SubscriptionPlan;
 use App\Models\Tenant;
 use App\Services\TenantLimits;
+use App\Support\Hrms\HrmsSchema;
+use App\Support\Integration\BridgeSchema;
+use App\Support\Tms\TmsSchema;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\DB;
@@ -221,25 +225,51 @@ class TenantDatabaseManager
     }
 
     /**
-     * Run the tenant migration set against the tenant's database: always the core schema,
-     * plus the HRMS tables when the tenant has (or is getting) the HRMS product.
+     * Run the tenant migration sets against the tenant's database.
+     *
+     * Tenant Core (`database/migrations/tenant`) always runs. The TMS set runs for a
+     * TMS tenant, the HRMS set for an HRMS tenant, and the cross-product integration
+     * set only when both are on (its tables FK across the two schemas). Which sets a
+     * tenant gets comes from its live subscriptions (`coveredProducts`) unless the
+     * caller names them explicitly (provisioning passes the plans being subscribed).
      */
     public function migrateTenant(Tenant $tenant, ?array $products = null): void
     {
         $connection = config('tenancy.tenant.connection', self::TENANT_CONNECTION);
-        // Identity + task management are the core schema every tenant gets; the HRMS
-        // tables (database/migrations/tenant_hrms) only exist for tenants with that product.
-        $withHrms = in_array('hrms', $products ?? [], true)
-            || ($products === null && app(TenantLimits::class)->productEnabled($tenant, 'hrms'));
+        $products ??= app(TenantLimits::class)->coveredProducts($tenant);
 
-        $this->using($tenant, function () use ($connection, $tenant, $withHrms): void {
-            foreach (array_filter(['database/migrations/tenant', $withHrms ? 'database/migrations/tenant_hrms' : null]) as $path) {
+        $withTms = in_array(SubscriptionPlan::PRODUCT_TMS, $products, true);
+        $withHrms = in_array(SubscriptionPlan::PRODUCT_HRMS, $products, true);
+
+        $paths = ['database/migrations/tenant'];
+
+        if ($withTms) {
+            $paths[] = 'database/migrations/tenant_tms';
+        }
+
+        if ($withHrms) {
+            $paths[] = 'database/migrations/tenant_hrms';
+        }
+
+        if ($withTms && $withHrms) {
+            $paths[] = 'database/migrations/tenant_integration';
+        }
+
+        $this->using($tenant, function () use ($connection, $tenant, $paths): void {
+            foreach ($paths as $path) {
                 Artisan::call('migrate', [
                     '--database' => $connection,
                     '--path' => $path,
                     '--force' => true,
                 ]);
             }
+
+            // A product just added (or removed) changes which schema probes are
+            // valid, so never let a remembered answer outlive the migration.
+            TmsSchema::flush();
+            HrmsSchema::flush();
+            BridgeSchema::flush();
+
             $tenant->update(['provisioning_status' => Tenant::PROVISIONING_MIGRATED]);
         });
     }

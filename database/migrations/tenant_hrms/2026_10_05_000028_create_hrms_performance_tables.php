@@ -7,10 +7,12 @@ use Illuminate\Support\Facades\Schema;
 /**
  * HRMS/P12.1 — the performance management tables.
  *
- * Eight repair-safe tables (`hasTable` guards — `tenants:provision` re-runs
+ * Seven repair-safe tables (`hasTable` guards — `tenants:provision` re-runs
  * migrations that failed partway): cycles own goals, check-ins, feedback
- * and review summaries; goals link tasks as evidence; one-on-ones stand
- * outside cycles (a conversation is not a review period).
+ * and review summaries; one-on-ones stand outside cycles (a conversation is
+ * not a review period). The goal↔task evidence bridge (`goal_task_links`)
+ * lives with the cross-product integration set instead — its `task_id` FKs
+ * the TMS `tasks` table.
  *
  * Deliberately absent: any `overall_score` — ratings are 1-5 per dimension,
  * entered by humans, and the engine this phase builds reads counts, never
@@ -27,7 +29,6 @@ return new class extends Migration
     {
         $this->createPerformanceCycles();
         $this->createPerformanceGoals();
-        $this->createGoalTaskLinks();
         $this->createCheckIns();
         $this->createOneOnOnes();
         $this->createFeedbackRequests();
@@ -42,7 +43,6 @@ return new class extends Migration
         Schema::dropIfExists('feedback_requests');
         Schema::dropIfExists('one_on_ones');
         Schema::dropIfExists('check_ins');
-        Schema::dropIfExists('goal_task_links');
         Schema::dropIfExists('performance_goals');
         Schema::dropIfExists('performance_cycles');
     }
@@ -95,23 +95,6 @@ return new class extends Migration
             $table->timestamps();
 
             $table->index(['cycle_id', 'employee_id']);
-        });
-    }
-
-    private function createGoalTaskLinks(): void
-    {
-        if (Schema::hasTable('goal_task_links')) {
-            return;
-        }
-
-        Schema::create('goal_task_links', function (Blueprint $table) {
-            $table->id();
-            $table->foreignId('goal_id')->constrained('performance_goals')->cascadeOnDelete();
-            $table->foreignId('task_id')->constrained('tasks')->cascadeOnDelete();
-            $table->foreignId('created_by')->nullable()->constrained('users')->nullOnDelete();
-            $table->timestamps();
-
-            $table->unique(['goal_id', 'task_id']);
         });
     }
 

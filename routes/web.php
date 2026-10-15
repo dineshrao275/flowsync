@@ -4,7 +4,9 @@ use App\Http\Controllers\AnalyticsController;
 use App\Http\Controllers\AttachmentController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\BillingController;
+use App\Http\Controllers\BlogController;
 use App\Http\Controllers\ClientLogController;
+use App\Http\Controllers\ContactController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\ExportController;
 use App\Http\Controllers\ForgotPasswordController;
@@ -156,7 +158,7 @@ Route::prefix('api')->group(function () {
         // Phase 9: global multi-entity search. Lives OUTSIDE tenant_context so a
         // non-impersonating super admin can search across all tenants (the
         // controller fans out over the central tenancy index via TenantDatabaseManager).
-        Route::get('search/global', GlobalSearchController::class)->middleware(['permission:workspaces.view', 'ensure_module:global_search']);
+        Route::get('search/global', GlobalSearchController::class)->middleware(['permission:workspaces.view', 'ensure_product:tms', 'ensure_module:global_search']);
 
         Route::get('roles', [RoleController::class, 'index'])->middleware('permission:roles.view');
         Route::post('roles', [RoleController::class, 'store'])->middleware('permission:roles.manage');
@@ -198,22 +200,22 @@ Route::prefix('api')->group(function () {
         // Phase 7: discovery + reporting on the same tenant_context scope.
         // Global task search rides the domain `workspaces.view` permission;
         // dashboard and reports are gated by their own tenant permissions.
-        Route::get('search/tasks', [SearchController::class, 'tasks'])->middleware(['permission:workspaces.view', 'ensure_module:global_search']);
+        Route::get('search/tasks', [SearchController::class, 'tasks'])->middleware(['permission:workspaces.view', 'ensure_product:tms', 'ensure_module:global_search']);
 
         Route::get('dashboard', [DashboardController::class, '__invoke'])->middleware(['permission:dashboard.view', 'ensure_product:tms']);
 
         Route::get('analytics/overview', [AnalyticsController::class, '__invoke'])->middleware(['permission:dashboard.view', 'ensure_product:tms']);
 
-        Route::get('reports/overview', [ReportsController::class, 'overview'])->middleware(['permission:reports.view', 'ensure_module:reports']);
+        Route::get('reports/overview', [ReportsController::class, 'overview'])->middleware(['permission:reports.view', 'ensure_product:tms', 'ensure_module:reports']);
 
-        Route::post('workspaces', [WorkspaceController::class, 'store'])->middleware('permission:workspaces.create');
-        Route::post('project-roles', [ProjectRoleController::class, 'store'])->middleware('permission:roles.manage');
-        Route::put('project-roles/{role}', [ProjectRoleController::class, 'update'])->middleware('permission:roles.manage');
-        Route::delete('project-roles/{role}', [ProjectRoleController::class, 'destroy'])->middleware('permission:roles.manage');
+        Route::post('workspaces', [WorkspaceController::class, 'store'])->middleware(['permission:workspaces.create', 'ensure_product:tms']);
+        Route::post('project-roles', [ProjectRoleController::class, 'store'])->middleware(['permission:roles.manage', 'ensure_product:tms']);
+        Route::put('project-roles/{role}', [ProjectRoleController::class, 'update'])->middleware(['permission:roles.manage', 'ensure_product:tms']);
+        Route::delete('project-roles/{role}', [ProjectRoleController::class, 'destroy'])->middleware(['permission:roles.manage', 'ensure_product:tms']);
 
-        Route::post('issue-types', [IssueTypeController::class, 'store'])->middleware('permission:workspaces.manage');
-        Route::put('issue-types/{issueType}', [IssueTypeController::class, 'update'])->middleware('permission:workspaces.manage');
-        Route::delete('issue-types/{issueType}', [IssueTypeController::class, 'destroy'])->middleware('permission:workspaces.manage');
+        Route::post('issue-types', [IssueTypeController::class, 'store'])->middleware(['permission:workspaces.manage', 'ensure_product:tms']);
+        Route::put('issue-types/{issueType}', [IssueTypeController::class, 'update'])->middleware(['permission:workspaces.manage', 'ensure_product:tms']);
+        Route::delete('issue-types/{issueType}', [IssueTypeController::class, 'destroy'])->middleware(['permission:workspaces.manage', 'ensure_product:tms']);
     });
 
     // HRMS tenant scope. Every HRMS surface below runs the FULL domain stack
@@ -223,7 +225,7 @@ Route::prefix('api')->group(function () {
     // central DB in production) and every bound HRMS route answers 500
     // instead of data. The signed file routes further below stay outside —
     // the signature is their credential.
-    Route::middleware(['switch_tenant', 'auth', 'tenant', 'tenant_context', 'onboarding_complete'])->group(function () {
+    Route::middleware(['switch_tenant', 'auth', 'tenant', 'tenant_context', 'onboarding_complete', 'ensure_product:hrms'])->group(function () {
 
         require __DIR__.'/web/hrms_people.php';
 
@@ -298,6 +300,9 @@ Route::prefix('api')->group(function () {
 // Bearer-token API (/api/v1, P2.7): its own middleware stack, no session group.
 require __DIR__.'/web/platform_engines_v1.php';
 
+// Public contact endpoint (outside auth/tenant groups).
+Route::post('api/contact', [ContactController::class, 'store'])->middleware('throttle:10,1');
+
 // Phase 6: Public payment webhook endpoints (outside auth/tenant groups).
 Route::post('api/webhooks/stripe', [WebhookController::class, 'handleStripe'])->middleware('throttle:60,1');
 Route::post('api/webhooks/razorpay', [WebhookController::class, 'handleRazorpay'])->middleware('throttle:60,1');
@@ -305,6 +310,17 @@ Route::post('api/webhooks/razorpay', [WebhookController::class, 'handleRazorpay'
 // Public marketing site (server-rendered from the DB-backed CMS pages).
 Route::get('/', [PublicSiteController::class, 'home']);
 Route::get('page/{slug}', [PublicSiteController::class, 'page']);
+
+// Signed draft preview for the CMS (never indexed — see controller).
+Route::get('preview/{websitePage}', [PublicSiteController::class, 'preview'])->name('site.preview')->middleware('signed');
+
+// Public blog. Specific routes first: `blog/{post}` would otherwise claim
+// the feed and category paths as post slugs.
+Route::get('blog', [BlogController::class, 'index'])->name('site.blog');
+Route::get('blog/rss.xml', [BlogController::class, 'feed'])->name('site.blog_feed');
+Route::get('blog/category/{slug}', [BlogController::class, 'category'])->name('site.blog_category');
+Route::get('blog/{post}', [BlogController::class, 'show'])->name('site.blog_post');
+Route::get('blog-preview/{blogPost}', [BlogController::class, 'preview'])->name('site.blog_preview')->middleware('signed');
 
 // Named reset landing for the framework's ResetPassword mail: the notification
 // builds its URL via `route('password.reset', token + email)`, and without this
@@ -338,3 +354,14 @@ require __DIR__.'/../routes/channels.php';
 
 // Security track (P8.x) routes live in their own file.
 require __DIR__.'/security.php';
+
+// Published CMS pages at top-level slugs (SEO-canonical URLs). These come
+// last on purpose: `/{slug}` and the fallback only see requests no other
+// route claimed, and reserved slugs 404 in the controller regardless, so a
+// page can never shadow a real route (notably POST broadcasting/auth above).
+Route::get('{slug}', [PublicSiteController::class, 'topPage'])->name('site.page');
+
+// Legacy `/page/{slug}` prefix 301s to the canonical URL (see controller).
+// Unknown paths resolve `website_redirects` before the designed 404; the
+// handler lets framework prefixes keep their own 404 shape.
+Route::fallback([PublicSiteController::class, 'fallback']);

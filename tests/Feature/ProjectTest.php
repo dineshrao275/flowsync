@@ -75,6 +75,19 @@ class ProjectTest extends TestCase
         $this->assertTrue($project->isMember($this->admin()));
     }
 
+    public function test_project_description_accepts_rich_text_beyond_plain_limits(): void
+    {
+        $ws = $this->makeWorkspace();
+        $this->login('admin@flowsync.test');
+        $this->connectTenant('acme');
+
+        $html = '<h2>Scope</h2><p>'.str_repeat('Marketing site. ', 200).'</p>';
+
+        $this->postJson("/api/workspaces/{$ws->id}/projects", ['name' => 'Rich Project', 'description' => $html])
+            ->assertCreated()
+            ->assertJsonPath('project.description', $html);
+    }
+
     public function test_project_key_is_unique_per_tenant(): void
     {
         $ws = $this->makeWorkspace();

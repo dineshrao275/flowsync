@@ -239,7 +239,8 @@ export default function OnboardingCases() {
             )}
 
             <Modal open={managingTemplates} onClose={() => setManagingTemplates(false)} title="Onboarding templates" size="lg">
-                <form onSubmit={createTemplate} className="mb-4 flex items-end gap-2">
+                <div className="space-y-4 px-6 py-5">
+                <form onSubmit={createTemplate} className="flex items-end gap-2">
                     <Input label="New template" placeholder="Standard hire" value={newTemplateName} onChange={(e) => setNewTemplateName(e.target.value)} />
                     <Button type="submit" disabled={!newTemplateName.trim()}>
                         Create
@@ -260,6 +261,7 @@ export default function OnboardingCases() {
                 ) : (
                     <p className="py-6 text-center text-sm text-gray-400">No templates yet — create the first one above.</p>
                 )}
+                </div>
             </Modal>
         </div>
     );

@@ -116,7 +116,7 @@ export default function ExpenseClaimModal({ open, onClose, onSaved, employeeId, 
 
     return (
         <Modal open={open} onClose={onClose} title={claim ? `Re-line ${claim.claim_number}` : 'File a claim'} size="lg">
-            <form onSubmit={save} className="grid gap-3">
+            <form onSubmit={save} className="grid gap-3 px-6 py-5">
                 {!claim && (
                     <>
                         <div className="grid grid-cols-2 gap-3">

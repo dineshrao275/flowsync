@@ -5,7 +5,7 @@ import Input from '../ui/Input';
 import Select from '../ui/Select';
 import Modal from '../ui/Modal';
 import Alert from '../ui/Alert';
-import { fieldClass } from '../ui/fieldStyles';
+import RichTextEditor from '../ui/RichTextEditor';
 
 export default function CreateTaskModal({ options, topLevelTasks, projectKey, saving, onClose, onCreate }) {
     const [form, setForm] = useState({
@@ -176,12 +176,11 @@ export default function CreateTaskModal({ options, topLevelTasks, projectKey, sa
                 </div>
                 <div>
                     <label className="mb-1.5 block text-sm font-medium text-gray-700">Description</label>
-                    <textarea
-                        className={`${fieldClass} min-h-20`}
-                        rows="3"
+                    <RichTextEditor
                         value={form.description}
-                        onChange={(e) => set('description', e.target.value)}
+                        onChange={(html) => set('description', html)}
                         placeholder="Context, acceptance criteria…"
+                        error={errors.description}
                     />
                 </div>
                 {options.components?.length > 0 && (

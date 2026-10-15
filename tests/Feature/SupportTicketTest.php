@@ -48,6 +48,29 @@ class SupportTicketTest extends TestCase
         $this->getJson("/api/support/tickets/{$id}")->assertOk()->assertJsonCount(1, 'ticket.messages');
     }
 
+    public function test_support_bodies_measure_visible_text_not_markup(): void
+    {
+        $this->login('admin@flowsync.test');
+
+        // An empty paragraph is an empty message, tags or not.
+        $this->postJson('/api/support/tickets', [
+            'subject' => 'Empty', 'category' => 'technical', 'priority' => 'low', 'body' => '<p></p>',
+        ])->assertUnprocessable()->assertJsonValidationErrors(['body']);
+
+        // A short visible text wrapped in tags is still too short.
+        $this->postJson('/api/support/tickets', [
+            'subject' => 'Short', 'category' => 'technical', 'priority' => 'low', 'body' => '<p><strong>tiny</strong></p>',
+        ])->assertUnprocessable()->assertJsonValidationErrors(['body']);
+
+        // Formatted bodies store verbatim — the markup is the feature.
+        $html = '<h2>Steps</h2><ul><li>open exports</li><li>click <strong>retry</strong> today please</li></ul>';
+        $id = $this->postJson('/api/support/tickets', [
+            'subject' => 'Formatted', 'category' => 'technical', 'priority' => 'low', 'body' => $html,
+        ])->assertCreated()->json('ticket.id');
+
+        $this->assertSame($html, SupportTicket::findOrFail($id)->messages()->firstOrFail()->body);
+    }
+
     public function test_only_users_with_the_support_permission_can_use_the_desk(): void
     {
         $this->login('viewer@flowsync.test');

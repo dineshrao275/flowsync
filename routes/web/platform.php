@@ -1,12 +1,17 @@
 <?php
 
 use App\Http\Controllers\AuditLogsController;
+use App\Http\Controllers\BlogCategoryController;
+use App\Http\Controllers\BlogPostController;
 use App\Http\Controllers\CmsController;
 use App\Http\Controllers\FeatureManagementController;
 use App\Http\Controllers\ImpersonationController;
+use App\Http\Controllers\LeadController;
+use App\Http\Controllers\MediaController;
 use App\Http\Controllers\OnboardingController;
 use App\Http\Controllers\PlanController;
 use App\Http\Controllers\PlatformHealthController;
+use App\Http\Controllers\SiteSettingsController;
 use App\Http\Controllers\SystemAnalyticsController;
 use App\Http\Controllers\SystemInvoiceController;
 use App\Http\Controllers\SystemSettingsController;
@@ -17,6 +22,7 @@ use App\Http\Controllers\TenantHrmsController;
 use App\Http\Controllers\TenantIntakeController;
 use App\Http\Controllers\TenantSubscriptionController;
 use App\Http\Controllers\TenantSummaryController;
+use App\Http\Controllers\WebsiteRedirectController;
 use Illuminate\Support\Facades\Route;
 
 // Platform administration (super admin): tenants, plans, system settings, CMS, support desk staff side, impersonation start.
@@ -90,6 +96,32 @@ Route::middleware('super_admin')->group(function () {
     Route::delete('system/pages/{websitePage}', [CmsController::class, 'destroy']);
     Route::post('system/pages/{websitePage}/publish', [CmsController::class, 'publish']);
     Route::post('system/pages/{websitePage}/unpublish', [CmsController::class, 'unpublish']);
+    Route::post('system/pages/{websitePage}/duplicate', [CmsController::class, 'duplicate']);
+    Route::get('system/media', [MediaController::class, 'index']);
+    Route::get('system/media/{medium}', [MediaController::class, 'show']);
+    Route::post('system/media', [MediaController::class, 'store'])->middleware('throttle:30,1');
+    Route::put('system/media/{medium}', [MediaController::class, 'update']);
+    Route::delete('system/media/{medium}', [MediaController::class, 'destroy']);
+    Route::get('system/blog-categories', [BlogCategoryController::class, 'index']);
+    Route::post('system/blog-categories', [BlogCategoryController::class, 'store']);
+    Route::put('system/blog-categories/{blogCategory}', [BlogCategoryController::class, 'update']);
+    Route::delete('system/blog-categories/{blogCategory}', [BlogCategoryController::class, 'destroy']);
+    Route::get('system/blog-posts', [BlogPostController::class, 'index']);
+    Route::post('system/blog-posts', [BlogPostController::class, 'store']);
+    Route::get('system/blog-posts/{blogPost}', [BlogPostController::class, 'show']);
+    Route::put('system/blog-posts/{blogPost}', [BlogPostController::class, 'update']);
+    Route::delete('system/blog-posts/{blogPost}', [BlogPostController::class, 'destroy']);
+    Route::post('system/blog-posts/{blogPost}/publish', [BlogPostController::class, 'publish']);
+    Route::post('system/blog-posts/{blogPost}/unpublish', [BlogPostController::class, 'unpublish']);
+    Route::get('system/website-settings', [SiteSettingsController::class, 'index']);
+    Route::put('system/website-settings', [SiteSettingsController::class, 'update']);
+    Route::get('system/leads', [LeadController::class, 'index']);
+    Route::get('system/leads/{lead}', [LeadController::class, 'show']);
+    Route::put('system/leads/{lead}', [LeadController::class, 'update']);
+    Route::delete('system/leads/{lead}', [LeadController::class, 'destroy']);
+    Route::get('system/redirects', [WebsiteRedirectController::class, 'index']);
+    Route::post('system/redirects', [WebsiteRedirectController::class, 'store']);
+    Route::delete('system/redirects/{websiteRedirect}', [WebsiteRedirectController::class, 'destroy']);
 
     Route::post('impersonate', [ImpersonationController::class, 'start'])->middleware('throttle:10,1');
 });

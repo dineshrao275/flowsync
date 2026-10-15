@@ -44,7 +44,7 @@ class ProjectController extends Controller
         $data = $request->validate([
             'name' => ['required', 'string', 'max:255'],
             'key' => ['nullable', 'string', 'max:16', 'alpha_num'],
-            'description' => ['nullable', 'string', 'max:2000'],
+            'description' => ['nullable', 'string', 'max:20000'],
             'icon' => ['nullable', 'string', 'max:64'],
             'color' => ['nullable', 'string', 'max:16'],
             'default_assignee_id' => ['nullable', 'integer'],
@@ -75,7 +75,7 @@ class ProjectController extends Controller
 
         $data = $request->validate([
             'name' => ['required', 'string', 'max:255'],
-            'description' => ['nullable', 'string', 'max:2000'],
+            'description' => ['nullable', 'string', 'max:20000'],
             'icon' => ['nullable', 'string', 'max:64'],
             'color' => ['nullable', 'string', 'max:16'],
             'default_assignee_id' => ['nullable', 'integer'],

@@ -38,7 +38,7 @@ class DepartmentRequest extends FormRequest
                 'max:255',
             ],
             'code' => ['sometimes', 'nullable', 'string', 'max:64'],
-            'description' => ['sometimes', 'nullable', 'string', 'max:2000'],
+            'description' => ['sometimes', 'nullable', 'string', 'max:20000'],
             'is_active' => ['sometimes', 'boolean'],
 
             'parent_id' => ['sometimes', 'nullable', 'integer', 'exists:departments,id'],

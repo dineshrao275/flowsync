@@ -247,13 +247,13 @@ export default function Engagement() {
 
             <Modal open={!!resultsFor} onClose={() => setResultsFor(null)} title={`Results — ${resultsFor?.name ?? ''}`} size="lg">
                 {!results ? (
-                    <div className="flex justify-center py-6"><Spinner /></div>
+                    <div className="flex justify-center px-6 py-6"><Spinner /></div>
                 ) : results.results.length === 0 ? (
-                    <p className="text-sm text-gray-500">
+                    <p className="px-6 py-5 text-sm text-gray-500">
                         Below the anonymity threshold ({results.response_count} of {results.anonymity_threshold} answers) — nothing shows until enough voices are in.
                     </p>
                 ) : (
-                    <div className="space-y-5">
+                    <div className="space-y-5 px-6 py-5">
                         {results.results.map((row) => (
                             <div key={row.question_id}>
                                 <p className="mb-1 text-sm font-medium text-gray-900">{row.text}</p>
@@ -265,7 +265,7 @@ export default function Engagement() {
             </Modal>
 
             <Modal open={templateModal} onClose={() => setTemplateModal(false)} title="New template" size="lg">
-                <form onSubmit={saveTemplate} className="grid gap-3">
+                <form onSubmit={saveTemplate} className="grid gap-3 px-6 py-5">
                     <div className="grid gap-3 sm:grid-cols-2">
                         <Input label="Name" value={templateForm.name} error={templateErrors.name} onChange={(e) => setTemplateForm({ ...templateForm, name: e.target.value })} required />
                         <Select label="Type" value={templateForm.type} error={templateErrors.type} onChange={(e) => setTemplateForm({ ...templateForm, type: e.target.value })}>
@@ -331,7 +331,7 @@ export default function Engagement() {
             </Modal>
 
             <Modal open={campaignModal} onClose={() => setCampaignModal(false)} title="Schedule a campaign">
-                <form onSubmit={saveCampaign} className="grid gap-3">
+                <form onSubmit={saveCampaign} className="grid gap-3 px-6 py-5">
                     <Select label="Template" value={campaignForm.template_id} error={campaignErrors.template_id} onChange={(e) => setCampaignForm({ ...campaignForm, template_id: e.target.value })} required>
                         <option value="">Select…</option>
                         {(templates ?? []).map((t) => <option key={t.id} value={t.id}>{t.name}</option>)}

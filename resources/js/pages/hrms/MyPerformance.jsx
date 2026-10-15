@@ -258,7 +258,7 @@ function GoalDraftForm({ cycleId, employeeId, onDrafted }) {
     }
 
     return (
-        <form onSubmit={save} className="grid gap-3">
+        <form onSubmit={save} className="grid gap-3 px-6 py-5">
             <Input label="Title" value={form.title} error={errors.title} onChange={(e) => setForm({ ...form, title: e.target.value })} required />
             <div className="grid grid-cols-2 gap-3">
                 <Input label="Target (optional)" value={form.target_value} error={errors.target_value} onChange={(e) => setForm({ ...form, target_value: e.target.value })} />

@@ -303,7 +303,7 @@ export default function CompOff() {
             </Card>
 
             <Modal open={!!deciding} onClose={() => setDeciding(null)} title={deciding?.verdict === 'approve' ? 'Approve comp-off' : 'Reject comp-off'}>
-                <div className="space-y-3">
+                <div className="space-y-3 px-6 py-5">
                     <p className="text-sm text-gray-500">
                         {deciding?.verdict === 'approve'
                             ? 'Approval spends the banked minutes immediately.'
@@ -321,7 +321,7 @@ export default function CompOff() {
             </Modal>
 
             <Modal open={granting} onClose={() => setGranting(false)} title="Grant comp-off">
-                <form onSubmit={submitGrant} className="space-y-3">
+                <form onSubmit={submitGrant} className="space-y-3 px-6 py-5">
                     <Select label="Employee" value={grant.employee_id} onChange={(e) => setGrant({ ...grant, employee_id: e.target.value })} error={grantErrors.employee_id}>
                         <option value="">Select…</option>
                         {employees.map((employee) => (

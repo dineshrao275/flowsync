@@ -8,6 +8,7 @@ use App\Models\Hrms\Payroll\Payslip;
 use App\Models\Tenant;
 use App\Models\User;
 use App\Services\HrmsAuditLogger;
+use App\Support\Hrms\HrmsSchema;
 use App\Support\TenantContext;
 use App\Support\TenantDatabaseManager;
 use Illuminate\Validation\ValidationException;
@@ -60,6 +61,10 @@ class PayslipDownload
         abort_if($tenant === null, 404);
 
         return $this->tenants->using($tenant, function () use ($payslipId, $actorUserId, $ipAddress): StreamedResponse {
+            // A signed link outlives a product change: without the HRMS schema
+            // the answer is 404, not a missing-table 500.
+            abort_unless(HrmsSchema::present(), 404);
+
             $payslip = Payslip::query()->with('employee:id,employee_code,name,user_id')->find($payslipId);
             abort_if($payslip === null, 404);
 

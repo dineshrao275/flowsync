@@ -567,7 +567,7 @@ export default function Holidays() {
             )}
 
             <Modal open={calendarModal} onClose={closeCalendarModal} title={editingCalendar ? 'Edit calendar' : 'New calendar'}>
-                <form onSubmit={saveCalendar} className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                <form onSubmit={saveCalendar} className="grid grid-cols-1 gap-3 px-6 py-5 sm:grid-cols-2">
                     <Input label="Name" value={calendarForm.name} onChange={(e) => setCalendarForm({ ...calendarForm, name: e.target.value })} error={calendarErrors.name} />
                     <Input label="Country (2-letter, optional)" value={calendarForm.country} onChange={(e) => setCalendarForm({ ...calendarForm, country: e.target.value })} error={calendarErrors.country} />
                     <Input label="Description" value={calendarForm.description} onChange={(e) => setCalendarForm({ ...calendarForm, description: e.target.value })} error={calendarErrors.description} className="sm:col-span-2" />
@@ -588,7 +588,7 @@ export default function Holidays() {
             </Modal>
 
             <Modal open={holidayModal} onClose={closeHolidayModal} title={editingHoliday ? 'Edit holiday' : 'New holiday'}>
-                <form onSubmit={saveHoliday} className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                <form onSubmit={saveHoliday} className="grid grid-cols-1 gap-3 px-6 py-5 sm:grid-cols-2">
                     <Input label="Name" value={holidayForm.name} onChange={(e) => setHolidayForm({ ...holidayForm, name: e.target.value })} error={holidayErrors.name} />
                     <Input type="date" label="Date" value={holidayForm.date} onChange={(e) => setHolidayForm({ ...holidayForm, date: e.target.value })} error={holidayErrors.date} />
                     <Select label="Type" value={holidayForm.type} onChange={(e) => setHolidayForm({ ...holidayForm, type: e.target.value })} error={holidayErrors.type}>

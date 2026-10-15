@@ -16,6 +16,7 @@ use App\Http\Controllers\Hrms\Performance\PerformanceGoalController;
 use App\Http\Controllers\Hrms\Performance\ReviewSummaryController;
 use App\Http\Controllers\Hrms\Survey\SurveyCampaignController;
 use App\Http\Controllers\Hrms\Survey\SurveyTemplateController;
+use App\Http\Controllers\Hrms\Talent\TalentController;
 use App\Http\Controllers\Hrms\TaskLinkController;
 use Illuminate\Support\Facades\Route;
 
@@ -107,8 +108,11 @@ Route::group(['middleware' => ['ensure_module:hrms.core', 'permission:hrms.view'
 // project policy on the task side (view to read, edit to file or
 // cut) and the employee policy on the person side; the employee's
 // task list additionally intersects with the caller's visible
-// tasks, so a link never widens what the login may see.
-Route::group(['middleware' => ['ensure_module:hrms.core', 'permission:hrms.view']], function () {
+// tasks, so a link never widens what the login may see. The bridge
+// tables exist only when both products are on, so this group also
+// carries the TMS product gate (the HRMS side rides hrms.core) —
+// without it, binding `Task` on a TMS-less tenant 500s instead of 403ing.
+Route::group(['middleware' => ['ensure_module:hrms.core', 'ensure_product:tms', 'permission:hrms.view']], function () {
     Route::get('hrms/tasks/{task}/links', [TaskLinkController::class, 'index']);
     Route::post('hrms/tasks/{task}/links', [TaskLinkController::class, 'store']);
     Route::delete('hrms/tasks/{task}/links/{link}', [TaskLinkController::class, 'destroy']);
@@ -165,8 +169,11 @@ Route::group(['middleware' => ['ensure_module:hrms.core', 'ensure_module:hrms.pe
     Route::get('hrms/performance/goals/{goal}', [PerformanceGoalController::class, 'show']);
     Route::put('hrms/performance/goals/{goal}', [PerformanceGoalController::class, 'update']);
     Route::post('hrms/performance/goals/{goal}/refresh', [PerformanceGoalController::class, 'refresh']);
-    Route::post('hrms/performance/goals/{goal}/tasks', [PerformanceGoalController::class, 'linkTask']);
-    Route::delete('hrms/performance/goals/{goal}/tasks/{task}', [PerformanceGoalController::class, 'unlinkTask']);
+    // Goal↔task evidence writes touch the bridge table (`goal_task_links`,
+    // both-products only), so they carry the TMS product gate on top of the
+    // group's HRMS gates — binding `Task` on a TMS-less tenant 500s otherwise.
+    Route::post('hrms/performance/goals/{goal}/tasks', [PerformanceGoalController::class, 'linkTask'])->middleware('ensure_product:tms');
+    Route::delete('hrms/performance/goals/{goal}/tasks/{task}', [PerformanceGoalController::class, 'unlinkTask'])->middleware('ensure_product:tms');
 
     Route::get('hrms/performance/cycles/{cycle}/check-ins', [CheckInController::class, 'index']);
     Route::post('hrms/performance/cycles/{cycle}/check-ins', [CheckInController::class, 'store']);
@@ -204,4 +211,18 @@ Route::group(['middleware' => ['ensure_module:hrms.attendance.remote']], functio
     // thirty a minute is generous for a shift boundary and stops a
     // stuck client from flooding the ledger.
     Route::post('hrms/attendance/punch', [AttendanceController::class, 'punch'])->middleware('throttle:30,1');
+});
+
+// HRMS talent (Phase 24): the calibration room. Same core gate plus the
+// talent module from the §3.5 table — a plan holding performance without
+// talent keeps cycles and reviews but gets no calibration grid, no
+// finalize, and no 360 summary. All three reads and both writes are
+// calibrator-only (policy); the grid names reviewees, so managers keep
+// their own rooms.
+Route::group(['middleware' => ['ensure_module:hrms.core', 'ensure_module:hrms.talent', 'permission:hrms.view']], function () {
+    Route::get('hrms/talent/cycles/{cycle}/reviews', [TalentController::class, 'reviews']);
+    Route::post('hrms/talent/reviews/{review}/calibrate', [TalentController::class, 'calibrate']);
+    Route::post('hrms/talent/reviews/{review}/finalize', [TalentController::class, 'finalize']);
+    Route::get('hrms/talent/cycles/{cycle}/distribution', [TalentController::class, 'distribution']);
+    Route::get('hrms/talent/cycles/{cycle}/feedback-summary', [TalentController::class, 'feedbackSummary']);
 });

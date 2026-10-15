@@ -14,8 +14,11 @@ use App\Services\Notifications\NotificationDispatcher;
 use App\Services\ReportsTo;
 use App\Services\Security\PlatformAccess;
 use App\Services\TenantLimits;
+use App\Support\Hrms\HrmsSchema;
+use App\Support\Integration\BridgeSchema;
 use App\Support\TenantContext;
 use App\Support\TenantDatabaseManager;
+use App\Support\Tms\TmsSchema;
 use Illuminate\Auth\Access\Response;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Foundation\Http\Events\RequestHandled;
@@ -91,16 +94,24 @@ class AppServiceProvider extends ServiceProvider
      * `limits_override` edit would stay invisible until the process recycled.
      * A plan edit must take effect on the very next read; `ModuleGateTest`
      * (grants a module, expects the next request to allow it) is the guard.
+     * The schema probes (TMS/HRMS/bridge) ride the same boundary: enabling a
+     * product must flip the next `present()` answer, not the next recycle.
      */
     private function registerTenantLimitsMemoBoundaries(): void
     {
         Event::listen(RequestHandled::class, function (): void {
             TenantLimits::resetMemo();
             ReportsTo::resetMemo();
+            TmsSchema::flush();
+            HrmsSchema::flush();
+            BridgeSchema::flush();
         });
         Event::listen(JobProcessing::class, function (): void {
             TenantLimits::resetMemo();
             ReportsTo::resetMemo();
+            TmsSchema::flush();
+            HrmsSchema::flush();
+            BridgeSchema::flush();
         });
     }
 

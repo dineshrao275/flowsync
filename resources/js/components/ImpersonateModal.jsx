@@ -61,7 +61,7 @@ export default function ImpersonateModal({ target, onCancel, onConfirm }) {
             title="View as user"
             subtitle={target ? `${target.user.name} · ${target.tenant.name}` : undefined}
         >
-            <form onSubmit={submit} className="space-y-4">
+            <form onSubmit={submit} className="space-y-4 px-6 py-5">
                 <div>
                     <label htmlFor="impersonation-reason" className="mb-1 block text-sm font-medium text-gray-700">
                         Reason

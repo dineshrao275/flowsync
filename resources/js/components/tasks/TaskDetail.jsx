@@ -13,7 +13,8 @@ import ActivityFeed from './ActivityFeed';
 import WorkLogPanel from './WorkLogPanel';
 import TaskLinkPanel from '../hrms/TaskLinkPanel';
 import { useAuth } from '../../context/AuthContext';
-import { fieldClass } from '../ui/fieldStyles';
+import RichTextEditor from '../ui/RichTextEditor';
+import RichText from '../ui/RichText';
 import Timestamp from '../ui/Timestamp';
 
 export default function TaskDetail({
@@ -243,14 +244,18 @@ export default function TaskDetail({
                                 <div className="space-y-4 sm:col-span-2">
                                     <div>
                                         <label className="mb-1.5 block text-sm font-medium text-gray-700">Description</label>
-                                        <textarea
-                                            rows="5"
-                                            className={`${fieldClass} min-h-32`}
-                                            value={form.description}
-                                            placeholder="Context, acceptance criteria…"
-                                            onChange={(e) => set('description', e.target.value)}
-                                            disabled={!canEdit}
-                                        />
+                                        {canEdit ? (
+                                            <RichTextEditor
+                                                value={form.description}
+                                                onChange={(html) => set('description', html)}
+                                                placeholder="Context, acceptance criteria…"
+                                                error={errors.description}
+                                            />
+                                        ) : form.description ? (
+                                            <RichText value={form.description} />
+                                        ) : (
+                                            <p className="text-sm text-gray-400">No description</p>
+                                        )}
                                     </div>
 
                                     {options.components?.length > 0 && (

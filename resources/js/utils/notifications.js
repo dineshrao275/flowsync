@@ -54,6 +54,8 @@ export function describeNotification(type, data = {}, actorName = 'Someone') {
             return `The ${data.cycle_name ?? 'review'} cycle opened`;
         case 'hrms.performance.review_shared':
             return 'Your review was shared';
+        case 'talent.review_finalized':
+            return 'Your review was finalized';
         case 'hrms.asset.assigned':
             return `${actorName} assigned ${data.asset_code ?? 'an asset'} to you — acknowledge the receipt`;
         case 'hrms.asset.acknowledged':
@@ -185,6 +187,12 @@ export function notificationHref(data = {}, type = '') {
     }
 
     if (type === 'hrms.performance.review_acknowledged') {
+        return '/hrms/performance/mine';
+    }
+
+    // A finalized review lands on the self-service page beside the
+    // acknowledgement receipt — each where the reader can see what sealed.
+    if (type === 'talent.review_finalized') {
         return '/hrms/performance/mine';
     }
 

@@ -54,7 +54,7 @@ export default function DocumentVersionsModal({ document, canReplace, onClose, o
 
     return (
         <Modal open onClose={onClose} title={`Versions · ${document.title}`}>
-            <div className="space-y-3">
+            <div className="space-y-3 px-6 py-5">
                 {error && <Alert>{error}</Alert>}
                 {!versions ? (
                     <div className="flex justify-center py-6"><Spinner /></div>

@@ -140,7 +140,7 @@ export default function MyAssets() {
             )}
 
             <Modal open={!!damaging} onClose={() => setDamaging(null)} title={`Report damage — ${damaging?.asset?.asset_code ?? ''}`}>
-                <form onSubmit={reportDamage} className="grid gap-3">
+                <form onSubmit={reportDamage} className="grid gap-3 px-6 py-5">
                     <Select label="Condition in" value="damaged" disabled>
                         <option value="damaged">damaged</option>
                     </Select>

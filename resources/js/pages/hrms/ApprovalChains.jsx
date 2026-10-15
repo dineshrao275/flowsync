@@ -198,16 +198,18 @@ export default function ApprovalChains() {
             ))}
 
             <Modal open={!!resetting} onClose={() => setResetting(null)} title="Reset to default?" size="sm">
+                <div className="space-y-4 px-6 py-5">
                 <p className="text-sm text-gray-600">
                     “{resetting?.label}” goes back to the shipped chain. Approvals already in flight are not affected.
                 </p>
-                <div className="mt-4 flex justify-end gap-2">
+                <div className="flex justify-end gap-2">
                     <Button variant="secondary" onClick={() => setResetting(null)}>
                         Cancel
                     </Button>
                     <Button variant="danger" onClick={reset}>
                         Reset chain
                     </Button>
+                </div>
                 </div>
             </Modal>
 
@@ -218,7 +220,7 @@ export default function ApprovalChains() {
                 size="lg"
             >
                 {draft && (
-                    <div className="space-y-4">
+                    <div className="space-y-4 px-6 py-5">
                         {errors.form && <Alert type="error">{errors.form}</Alert>}
                         {errors.steps && <Alert type="error">{errors.steps}</Alert>}
 

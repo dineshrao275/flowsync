@@ -30,7 +30,6 @@ export const HRMS_MODULE_META = {
     'hrms.compensation': { label: 'Compensation', group: 'HRMS · Pay & Benefits' },
     'hrms.payroll': { label: 'Payroll', group: 'HRMS · Pay & Benefits' },
     'hrms.payroll.statutory': { label: 'Statutory Deductions', group: 'HRMS · Pay & Benefits' },
-    'hrms.exemptions': { label: 'Tax Exemptions', group: 'HRMS · Pay & Benefits' },
 
     'hrms.performance': { label: 'Performance Goals', group: 'HRMS · Performance' },
     'hrms.talent': { label: 'Reviews & Talent', group: 'HRMS · Performance' },
@@ -80,6 +79,18 @@ export const HRMS_MODULE_ROUTES = {
     // P18.5 ships the workforce dashboards; the tile points at the page,
     // and the tabs gate themselves per domain.
     'hrms.analytics': hrmsUrl('analytics'),
+    // Phase 22.2 closes the "Planned"-for-shipped gap: every module below
+    // already owns its page, so the tile points at the hub — the hub's own
+    // gates decide who gets in, exactly like the sidebar entries.
+    'hrms.compensation': hrmsUrl('compensation'),
+    'hrms.payroll': hrmsUrl('payroll'),
+    'hrms.payroll.statutory': hrmsUrl('statutory'),
+    'hrms.performance': hrmsUrl('performance'),
+    'hrms.talent': hrmsUrl('talent'),
+    'hrms.engagement': hrmsUrl('engagement'),
+    'hrms.expenses': hrmsUrl('expenses'),
+    'hrms.assets': hrmsUrl('assets'),
+    'hrms.inbox': hrmsUrl('inbox'),
 };
 
 /**

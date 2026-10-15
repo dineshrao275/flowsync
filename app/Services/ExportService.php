@@ -9,6 +9,7 @@ use App\Models\User;
 use App\Models\WorkLog;
 use App\Models\Workspace;
 use App\Support\Hrms\HrmsSchema;
+use App\Support\Tms\TmsSchema;
 use ZipArchive;
 
 /**
@@ -133,15 +134,19 @@ class ExportService
         $headers = ['id', 'name', 'slug', 'status', 'members_count', 'projects_count', 'created_at'];
         $rows = [];
 
-        Workspace::withCount(['members', 'projects'])->chunk(self::CHUNK, function ($batch) use (&$rows) {
-            foreach ($batch as $w) {
-                $rows[] = [
-                    $w->id, $w->name, $w->slug, $w->status,
-                    $w->members_count, $w->projects_count,
-                    $w->created_at?->toIso8601String(),
-                ];
-            }
-        });
+        // TMS-less tenants hold no workspaces table: an empty CSV, not a 500
+        // (the HRMS-categories precedent below).
+        if (TmsSchema::present()) {
+            Workspace::withCount(['members', 'projects'])->chunk(self::CHUNK, function ($batch) use (&$rows) {
+                foreach ($batch as $w) {
+                    $rows[] = [
+                        $w->id, $w->name, $w->slug, $w->status,
+                        $w->members_count, $w->projects_count,
+                        $w->created_at?->toIso8601String(),
+                    ];
+                }
+            });
+        }
 
         $this->writeCsv($zip, 'workspaces.csv', $headers, $rows);
     }
@@ -151,15 +156,17 @@ class ExportService
         $headers = ['id', 'key', 'name', 'workspace_id', 'status', 'tasks_count', 'created_at'];
         $rows = [];
 
-        Project::withCount('tasks')->chunk(self::CHUNK, function ($batch) use (&$rows) {
-            foreach ($batch as $p) {
-                $rows[] = [
-                    $p->id, $p->key, $p->name, $p->workspace_id,
-                    $p->status, $p->tasks_count,
-                    $p->created_at?->toIso8601String(),
-                ];
-            }
-        });
+        if (TmsSchema::present()) {
+            Project::withCount('tasks')->chunk(self::CHUNK, function ($batch) use (&$rows) {
+                foreach ($batch as $p) {
+                    $rows[] = [
+                        $p->id, $p->key, $p->name, $p->workspace_id,
+                        $p->status, $p->tasks_count,
+                        $p->created_at?->toIso8601String(),
+                    ];
+                }
+            });
+        }
 
         $this->writeCsv($zip, 'projects.csv', $headers, $rows);
     }
@@ -173,16 +180,18 @@ class ExportService
         ];
         $rows = [];
 
-        Task::withTrashed()->chunk(self::CHUNK, function ($batch) use (&$rows) {
-            foreach ($batch as $t) {
-                $rows[] = [
-                    $t->id, $t->key, $t->title, $t->project_id, $t->status_id,
-                    $t->priority_id, $t->assignee_id, $t->parent_id, $t->position,
-                    $t->due_date?->toDateString(), $t->completed_at?->toIso8601String(),
-                    $t->created_at?->toIso8601String(), $t->deleted_at?->toIso8601String(),
-                ];
-            }
-        });
+        if (TmsSchema::present()) {
+            Task::withTrashed()->chunk(self::CHUNK, function ($batch) use (&$rows) {
+                foreach ($batch as $t) {
+                    $rows[] = [
+                        $t->id, $t->key, $t->title, $t->project_id, $t->status_id,
+                        $t->priority_id, $t->assignee_id, $t->parent_id, $t->position,
+                        $t->due_date?->toDateString(), $t->completed_at?->toIso8601String(),
+                        $t->created_at?->toIso8601String(), $t->deleted_at?->toIso8601String(),
+                    ];
+                }
+            });
+        }
 
         $this->writeCsv($zip, 'tasks.csv', $headers, $rows);
     }
@@ -192,15 +201,17 @@ class ExportService
         $headers = ['id', 'task_id', 'user_id', 'minutes', 'started_at', 'note', 'created_at'];
         $rows = [];
 
-        WorkLog::chunk(self::CHUNK, function ($batch) use (&$rows) {
-            foreach ($batch as $wl) {
-                $rows[] = [
-                    $wl->id, $wl->task_id, $wl->user_id, $wl->minutes,
-                    $wl->started_at?->toIso8601String(), $wl->note,
-                    $wl->created_at?->toIso8601String(),
-                ];
-            }
-        });
+        if (TmsSchema::present()) {
+            WorkLog::chunk(self::CHUNK, function ($batch) use (&$rows) {
+                foreach ($batch as $wl) {
+                    $rows[] = [
+                        $wl->id, $wl->task_id, $wl->user_id, $wl->minutes,
+                        $wl->started_at?->toIso8601String(), $wl->note,
+                        $wl->created_at?->toIso8601String(),
+                    ];
+                }
+            });
+        }
 
         $this->writeCsv($zip, 'work_logs.csv', $headers, $rows);
     }

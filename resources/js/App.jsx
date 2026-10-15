@@ -1,4 +1,4 @@
-import { BrowserRouter, Navigate, Route, Routes, useLocation } from 'react-router-dom';
+import { BrowserRouter, Navigate, Outlet, Route, Routes, useLocation } from 'react-router-dom';
 import { useEffect } from 'react';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { ThemeProvider } from './context/ThemeContext';
@@ -24,13 +24,15 @@ import Projects from './pages/Projects';
 import Support from './pages/Support';
 import Webhooks from './pages/Webhooks';
 import AdminSupport from './pages/AdminSupport';
+import Leads from './pages/Leads';
 import Users from './pages/Users';
 import UserEdit from './pages/UserEdit';
 import UserImport from './pages/UserImport';
 import Roles from './pages/Roles';
 import Settings from './pages/Settings';
 import Reports from './pages/Reports';
-import HrmsLayout from './components/hrms/HrmsLayout';
+import HrmsErrorBoundary from './components/hrms/HrmsErrorBoundary';
+import ApprovalChains from './pages/hrms/ApprovalChains';
 import HrmsOverview from './pages/hrms/HrmsOverview';
 import Employees from './pages/hrms/Employees';
 import EmployeeDetail from './pages/hrms/EmployeeDetail';
@@ -62,6 +64,7 @@ import MyTeam from './pages/hrms/MyTeam';
 import Performance from './pages/hrms/Performance';
 import PerformanceCycleDetail from './pages/hrms/PerformanceCycleDetail';
 import MyPerformance from './pages/hrms/MyPerformance';
+import Talent from './pages/hrms/Talent';
 import Assets from './pages/hrms/Assets';
 import MyAssets from './pages/hrms/MyAssets';
 import Engagement from './pages/hrms/Engagement';
@@ -77,7 +80,6 @@ import Plans from './pages/Plans';
 import Subscription from './pages/Subscription';
 import DataExport from './pages/DataExport';
 import SystemDashboard from './pages/SystemDashboard';
-import SystemAnalytics from './pages/SystemAnalytics';
 import SystemUsers from './pages/SystemUsers';
 import SystemSettings from './pages/SystemSettings';
 import AuditLogs from './pages/AuditLogs';
@@ -85,6 +87,9 @@ import FeatureManagement from './pages/FeatureManagement';
 import FeatureFlags from './pages/FeatureFlags';
 import Security from './pages/Security';
 import CmsPages from './pages/CmsPages';
+import MediaLibrary from './pages/MediaLibrary';
+import WebsiteSettings from './pages/WebsiteSettings';
+import BlogPosts from './pages/BlogPosts';
 import Forbidden from './pages/Forbidden';
 import ModuleDenied from './pages/ModuleDenied';
 import NotFound from './pages/NotFound';
@@ -106,6 +111,23 @@ function ScrollToTop() {
     }, [location.pathname]);
 
     return null;
+}
+
+/**
+ * The HRMS hub's invisible shell: crash isolation only, no navigation UI.
+ * The hub rail (HrmsLayout) was removed once the HR product shell gained its
+ * own sidebar — every HRMS page is reached from there now, so a second nav
+ * column only stole content width. The error boundary stays: one broken tab
+ * must not take down the whole shell.
+ */
+function HrmsErrorScope() {
+    const location = useLocation();
+
+    return (
+        <HrmsErrorBoundary resetKey={location.pathname}>
+            <Outlet />
+        </HrmsErrorBoundary>
+    );
 }
 
 function AppRoutes() {
@@ -132,15 +154,20 @@ function AppRoutes() {
                         {userIsSuperAdmin && (
                             <Route element={<ProtectedRoute permission="dashboard.view" />}>
                                 <Route path="/admin" element={<SystemDashboard />} />
-                                <Route path="/admin/analytics" element={<SystemAnalytics />} />
+                                {/* Merged into the overview (same payload, one page) — keep old bookmarks working. */}
+                                <Route path="/admin/analytics" element={<Navigate to="/admin" replace />} />
                                 <Route path="/admin/users" element={<SystemUsers />} />
                                 <Route path="/admin/settings" element={<SystemSettings />} />
                                 <Route path="/admin/audit-logs" element={<AuditLogs />} />
                                 <Route path="/admin/support" element={<AdminSupport />} />
                                 <Route path="/admin/support/:ticketId" element={<AdminSupport />} />
+                                <Route path="/admin/leads" element={<Leads />} />
                                 <Route path="/admin/features" element={<FeatureManagement />} />
                                 <Route path="/admin/feature-flags" element={<FeatureFlags />} />
                                 <Route path="/admin/pages" element={<CmsPages />} />
+                                <Route path="/admin/media" element={<MediaLibrary />} />
+                                <Route path="/admin/site-settings" element={<WebsiteSettings />} />
+                                <Route path="/admin/blog" element={<BlogPosts />} />
                                 <Route path="/tenants" element={<Tenants />} />
                                 <Route path="/tenants/new" element={<TenantIntake />} />
                                 <Route path="/tenants/:tenantId/setup" element={<TenantIntake />} />
@@ -188,7 +215,7 @@ function AppRoutes() {
                             <Route path="/reports" element={<Reports />} />
                         </Route>
                         <Route element={<ProtectedRoute module="hrms.core" />}>
-                            <Route path="/hrms" element={<HrmsLayout />}>
+                            <Route path="/hrms" element={<HrmsErrorScope />}>
                                 <Route index element={<HrmsOverview />} />
                                 {/* The queue sits first: it is self-scoped, so it
                                     needs the module and nothing else. */}
@@ -331,31 +358,42 @@ function AppRoutes() {
                                     without the directory. Payroll: the hub and
                                     the run detail are runner tools; my-payslips
                                     rides the module alone like My files. */}
-                                <Route
-                                    path="/hrms/compensation"
-                                    element={
-                                        <ProtectedRoute permission="hrms.compensation.view">
-                                            <Compensation />
-                                        </ProtectedRoute>
-                                    }
-                                />
-                                <Route
-                                    path="/hrms/payroll"
-                                    element={
-                                        <ProtectedRoute permission="hrms.payroll.run">
-                                            <Payroll />
-                                        </ProtectedRoute>
-                                    }
-                                />
-                                <Route
-                                    path="/hrms/payroll/runs/:runId"
-                                    element={
-                                        <ProtectedRoute permission="hrms.payroll.run">
-                                            <PayrollRunDetail />
-                                        </ProtectedRoute>
-                                    }
-                                />
-                                <Route path="/hrms/payroll/mine" element={<MyPayslips />} />
+                                {/* Compensation: the page rides the compensation
+                                    module on top of core, matching the API
+                                    gate — a core-only plan loses the sidebar
+                                    entry and the route together. */}
+                                <Route element={<ProtectedRoute module="hrms.compensation" />}>
+                                    <Route
+                                        path="/hrms/compensation"
+                                        element={
+                                            <ProtectedRoute permission="hrms.compensation.view">
+                                                <Compensation />
+                                            </ProtectedRoute>
+                                        }
+                                    />
+                                </Route>
+                                {/* Payroll: runs, run detail and my-payslips
+                                    all ride the payroll module, matching the
+                                    API gate. */}
+                                <Route element={<ProtectedRoute module="hrms.payroll" />}>
+                                    <Route
+                                        path="/hrms/payroll"
+                                        element={
+                                            <ProtectedRoute permission="hrms.payroll.run">
+                                                <Payroll />
+                                            </ProtectedRoute>
+                                        }
+                                    />
+                                    <Route
+                                        path="/hrms/payroll/runs/:runId"
+                                        element={
+                                            <ProtectedRoute permission="hrms.payroll.run">
+                                                <PayrollRunDetail />
+                                            </ProtectedRoute>
+                                        }
+                                    />
+                                    <Route path="/hrms/payroll/mine" element={<MyPayslips />} />
+                                </Route>
                                 {/* Statutory: the whole page rides the statutory
                                     module; internal gating splits rulebooks and
                                     decisions (manage) from claims filing and
@@ -398,6 +436,19 @@ function AppRoutes() {
                                         }
                                     />
                                     <Route path="/hrms/performance/mine" element={<MyPerformance />} />
+                                </Route>
+                                {/* Talent: the calibration room is manage-only
+                                    end to end — the grid names reviewees and
+                                    their ratings, so there is no viewer tier. */}
+                                <Route element={<ProtectedRoute module="hrms.talent" />}>
+                                    <Route
+                                        path="/hrms/talent"
+                                        element={
+                                            <ProtectedRoute permission="hrms.talent.manage">
+                                                <Talent />
+                                            </ProtectedRoute>
+                                        }
+                                    />
                                 </Route>
                                 {/* Assets: the register needs the view permission,
                                     the self-service page rides the module alone
@@ -447,6 +498,18 @@ function AppRoutes() {
                                     element={
                                         <ProtectedRoute permission="hrms.audit.view">
                                             <AuditLog />
+                                        </ProtectedRoute>
+                                    }
+                                />
+                                {/* Approval chains (Phase 23): the tenant's
+                                    editable chains live here, not scattered
+                                    across the domain hubs. Manage-only, like
+                                    the API policy — the page 403s otherwise. */}
+                                <Route
+                                    path="/hrms/approvals/chains"
+                                    element={
+                                        <ProtectedRoute permission="hrms.approvals.manage">
+                                            <ApprovalChains />
                                         </ProtectedRoute>
                                     }
                                 />

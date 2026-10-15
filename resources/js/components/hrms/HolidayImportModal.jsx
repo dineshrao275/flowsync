@@ -58,7 +58,7 @@ export default function HolidayImportModal({ calendar, onClose, onDone }) {
 
     return (
         <Modal open onClose={onClose} title={`Import into ${calendar.name}`}>
-            <div className="space-y-3">
+            <div className="space-y-3 px-6 py-5">
                 {error && <Alert>{error}</Alert>}
                 <p className="text-sm text-gray-500">Upload a .csv (name, date, type, is_recurring) or an .ics calendar. Existing holidays with the same name and date are skipped.</p>
                 <input type="file" accept=".csv,.txt,.ics,text/csv,text/calendar" onChange={(e) => { setFile(e.target.files?.[0] ?? null); setReport(null); }} />

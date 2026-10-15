@@ -186,7 +186,7 @@ export default function AttendanceApprovals() {
                 onClose={() => setDeciding(null)}
                 title={deciding?.verdict === 'approve' ? `Approve correction for ${deciding?.work_date}` : `Reject correction for ${deciding?.work_date}`}
             >
-                <form onSubmit={submitDecide} className="space-y-3">
+                <form onSubmit={submitDecide} className="space-y-3 px-6 py-5">
                     <p className="text-sm text-gray-500">
                         {deciding?.verdict === 'approve'
                             ? 'Approval inserts the corrected punches and recomputes the day. A short note is optional.'

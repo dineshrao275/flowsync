@@ -183,7 +183,7 @@ export default function LeaveRequestModal({ open, onClose, onSaved, employeeId =
 
     return (
         <Modal open={open} onClose={onClose} title="Request leave" size="lg">
-            <form onSubmit={submit} className="space-y-3">
+            <form onSubmit={submit} className="space-y-3 px-6 py-5">
                 <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                     {employees && (
                         <Select label="Employee" value={form.employee_id} onChange={set('employee_id')} error={formErrors.employee_id}>

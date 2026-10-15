@@ -53,7 +53,7 @@ class SystemSupportController extends Controller
 
     public function reply(Request $request, SupportTicket $ticket): JsonResponse
     {
-        $data = $request->validate(['body' => ['required', 'string', 'max:10000'], 'internal' => ['sometimes', 'boolean']]);
+        $data = $request->validate(['body' => ['required', 'string', SupportTicketController::bodyLength(null, 10000)], 'internal' => ['sometimes', 'boolean']]);
 
         $this->desk->replyAsStaff($ticket, $request->user(), $data['body'], (bool) ($data['internal'] ?? false));
 

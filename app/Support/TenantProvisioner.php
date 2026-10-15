@@ -13,6 +13,8 @@ use App\Models\User;
 use App\Services\Hrms\Defaults\HrmsDefaultsProvisioner;
 use App\Services\TenantLifecycle;
 use App\Support\Hrms\HrmsSchema;
+use App\Support\Integration\BridgeSchema;
+use App\Support\Tms\TmsSchema;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 
@@ -44,7 +46,9 @@ class TenantProvisioner
 
         $dbm->using($tenant, function () use ($dbm, $tenant, $products): void {
             $dbm->migrateTenant($tenant, $products);
+            TmsSchema::flush();
             HrmsSchema::flush();
+            BridgeSchema::flush();
             $this->seed($tenant);
             $tenant->update(['provisioning_status' => Tenant::PROVISIONING_SEEDED]);
         });
@@ -102,14 +106,30 @@ class TenantProvisioner
             }
         }
 
-        $this->provisionPriorities();
-        $this->provisionIssueTypes();
-        $this->provisionProjectRoles();
+        // TMS catalogs only exist where the TMS schema does: a TMS-only tenant
+        // has no priorities/project-roles tables, and an upgrade adds them via
+        // seedTmsCatalogs() (see TenantProductSync). The HRMS defaults gate the
+        // same way — the shared identity/permissions catalogs above always run.
+        if (TmsSchema::present()) {
+            $this->seedTmsCatalogs();
+        }
         if (HrmsSchema::present()) {
             app(HrmsDefaultsProvisioner::class)->provision();
         }
         $this->createAdmin($tenant, $adminRole);
         $this->ensureDefaultUser($adminRole);
+    }
+
+    /**
+     * Idempotent TMS starter catalogs (priorities, issue types, project roles).
+     * Called by seed() for TMS tenants, and by TenantProductSync when TMS is
+     * added to a tenant that never had it — existing data is never touched.
+     */
+    public function seedTmsCatalogs(): void
+    {
+        $this->provisionPriorities();
+        $this->provisionIssueTypes();
+        $this->provisionProjectRoles();
     }
 
     private function provisionPriorities(): void

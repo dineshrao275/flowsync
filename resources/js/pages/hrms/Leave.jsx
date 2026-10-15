@@ -596,7 +596,7 @@ export default function Leave() {
             )}
 
             <Modal open={!!deciding} onClose={() => setDeciding(null)} title={deciding?.verdict === 'approve' ? 'Approve leave' : 'Reject leave'}>
-                <div className="space-y-3">
+                <div className="space-y-3 px-6 py-5">
                     <p className="text-sm text-gray-500">
                         {deciding?.verdict === 'approve'
                             ? 'Approval advances the chain; the posting lands when it resolves.'
@@ -616,7 +616,7 @@ export default function Leave() {
             <Modal open={!!editingType} onClose={() => setEditingType(null)} title={editingType ? 'Edit leave type' : 'New leave type'}>
                 <form
                     onSubmit={saveType}
-                    className="grid grid-cols-1 gap-3 sm:grid-cols-2"
+                    className="grid grid-cols-1 gap-3 px-6 py-5 sm:grid-cols-2"
                 >
                     <Input label="Name" value={typeForm.name} onChange={(e) => setTypeForm({ ...typeForm, name: e.target.value })} error={typeErrors.name} />
                     <Input label="Code" value={typeForm.code} onChange={(e) => setTypeForm({ ...typeForm, code: e.target.value })} error={typeErrors.code} />
@@ -642,7 +642,7 @@ export default function Leave() {
             <Modal open={!!editingPolicy} onClose={() => setEditingPolicy(null)} title={editingPolicy ? 'Edit leave policy' : 'New leave policy'}>
                 <form
                     onSubmit={savePolicy}
-                    className="grid grid-cols-1 gap-3 sm:grid-cols-2"
+                    className="grid grid-cols-1 gap-3 px-6 py-5 sm:grid-cols-2"
                 >
                     <Input label="Name" value={policyForm.name} onChange={(e) => setPolicyForm({ ...policyForm, name: e.target.value })} error={policyErrors.name} />
                     <Select label="Accrual period" value={policyForm.accrual_period} onChange={(e) => setPolicyForm({ ...policyForm, accrual_period: e.target.value })} error={policyErrors.accrual_period}>
@@ -672,7 +672,7 @@ export default function Leave() {
             />
 
             <Modal open={filingExemption} onClose={() => setFilingExemption(false)} title="File a statutory exemption">
-                <form onSubmit={saveExemption} className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                <form onSubmit={saveExemption} className="grid grid-cols-1 gap-3 px-6 py-5 sm:grid-cols-2">
                     <Select label="Employee" value={exemptionForm.employee_id} onChange={(e) => setExemptionForm({ ...exemptionForm, employee_id: e.target.value })} error={exemptionErrors.employee_id}>
                         <option value="">Select a person…</option>
                         {employees.map((employee) => (

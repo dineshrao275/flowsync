@@ -18,6 +18,8 @@ import { useConfirm } from '../components/ui/ConfirmDialog';
 import { useSetCrumbs } from '../context/BreadcrumbContext';
 import KanbanBoard from '../components/tasks/KanbanBoard';
 import TaskTable from '../components/tasks/TaskTable';
+import RichTextEditor from '../components/ui/RichTextEditor';
+import RichText from '../components/ui/RichText';
 import FiltersBar from '../components/tasks/FiltersBar';
 import CreateTaskModal from '../components/tasks/CreateTaskModal';
 import TaskDetail from '../components/tasks/TaskDetail';
@@ -78,6 +80,7 @@ export default function ProjectDetail() {
     const [board, setBoard] = useState(null);
     const [listTasks, setListTasks] = useState([]);
     const [pagination, setPagination] = useState(null);
+    const [page, setPage] = useState(1);
     const [taskOptions, setTaskOptions] = useState({ statuses: [], priorities: [], assignees: [], labels: [] });
     const [selectedTask, setSelectedTask] = useState(null);
     const [selectedTaskSection, setSelectedTaskSection] = useState(null);
@@ -170,7 +173,10 @@ export default function ProjectDetail() {
         const seq = ++loadSeqRef.current;
         const requestedView = view;
         const params = {};
-        if (view === 'list') params.view = 'list';
+        if (view === 'list') {
+            params.view = 'list';
+            params.page = page;
+        }
         if (view === 'board' && swimlane === 'assignee') params.swimlane = 'assignee';
         Object.entries(filters).forEach(([key, value]) => {
             if (value !== '' && value != null) params[key] = value;
@@ -208,7 +214,16 @@ export default function ProjectDetail() {
         if (!project || (tab !== 'tasks' && tab !== 'automation')) return;
         loadTasks();
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [projectId, tab, view, swimlane, filters]);
+    }, [projectId, tab, view, swimlane, filters, page]);
+
+    // A filter change or a deletion can strand the list past its last page —
+    // fall back instead of showing an empty table.
+    useEffect(() => {
+        if (pagination && view === 'list' && page > pagination.last_page) {
+            setPage(pagination.last_page);
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [pagination]);
 
     const tabRef = useRef(tab);
     tabRef.current = tab;
@@ -629,7 +644,11 @@ export default function ProjectDetail() {
                             {project.my_role && <Badge>{projectRoleLabel(project.my_role)}</Badge>}
                             {archived && <Badge>archived</Badge>}
                         </div>
-                        <p className="mt-1 text-sm text-gray-500">{project.description || 'No description'}</p>
+                        {project.description ? (
+                            <RichText value={project.description} className="mt-1 text-gray-500" />
+                        ) : (
+                            <p className="mt-1 text-sm text-gray-500">No description</p>
+                        )}
                         <p className="mt-0.5 text-xs text-gray-400">{project.key}</p>
                     </div>
                 </div>
@@ -720,7 +739,10 @@ export default function ProjectDetail() {
                             <div className="flex rounded-lg border border-gray-300 p-0.5">
                                 <button
                                     type="button"
-                                    onClick={() => setView('board')}
+                                    onClick={() => {
+                                        setView('board');
+                                        setPage(1);
+                                    }}
                                     className={`rounded-md px-3 py-1.5 text-sm font-medium transition ${view === 'board' ? 'bg-[var(--accent)] text-[var(--accent-contrast)]' : 'text-gray-600 hover:bg-gray-100'
                                         }`}
                                 >
@@ -728,7 +750,10 @@ export default function ProjectDetail() {
                                 </button>
                                 <button
                                     type="button"
-                                    onClick={() => setView('list')}
+                                    onClick={() => {
+                                        setView('list');
+                                        setPage(1);
+                                    }}
                                     className={`rounded-md px-3 py-1.5 text-sm font-medium transition ${view === 'list' ? 'bg-[var(--accent)] text-[var(--accent-contrast)]' : 'text-gray-600 hover:bg-gray-100'
                                         }`}
                                 >
@@ -754,7 +779,14 @@ export default function ProjectDetail() {
                     </div>
 
                     <Card>
-                        <FiltersBar filters={filters} options={{ ...taskOptions, sprints: hasModule('sprints') }} onChange={setFilters} />
+                        <FiltersBar
+                            filters={filters}
+                            options={{ ...taskOptions, sprints: hasModule('sprints') }}
+                            onChange={(next) => {
+                                setFilters(next);
+                                setPage(1);
+                            }}
+                        />
                     </Card>
 
                     {tasksError ? (
@@ -771,10 +803,12 @@ export default function ProjectDetail() {
                         <div className="space-y-3">
                             <TaskTable tasks={listTasks} canEdit={canEditTask} onOpen={openTask} />
                             {pagination && (
-                                <p className="text-xs text-gray-500">
-                                    Page {pagination.current_page} of {pagination.last_page} · {pagination.total} task
-                                    {pagination.total === 1 ? '' : 's'}
-                                </p>
+                                <Pagination
+                                    page={pagination.current_page}
+                                    pages={pagination.last_page}
+                                    total={pagination.total}
+                                    onChange={setPage}
+                                />
                             )}
                         </div>
                     ) : null}
@@ -1199,6 +1233,9 @@ export default function ProjectDetail() {
  */
 function SettingsForm({ project, settingsDates, onDatesChange, formErrors, updating, updateProject, deleteProject }) {
     const dates = settingsDates ?? { start_date: project.start_date ?? '', due_date: project.due_date ?? '' };
+    // Editor-controlled description (the form remounts per project, and a
+    // same-id refetch after save already matches what was typed).
+    const [description, setDescription] = useState(project.description ?? '');
 
     return (
         <form
@@ -1207,7 +1244,7 @@ function SettingsForm({ project, settingsDates, onDatesChange, formErrors, updat
                 e.preventDefault();
                 updateProject({
                     name: e.currentTarget.name.value,
-                    description: e.currentTarget.description.value,
+                    description: description || undefined,
                     start_date: dates.start_date || null,
                     due_date: dates.due_date || null,
                 });
@@ -1215,12 +1252,15 @@ function SettingsForm({ project, settingsDates, onDatesChange, formErrors, updat
         >
             {formErrors.form && <Alert>{formErrors.form}</Alert>}
             <Input label="Name" name="name" defaultValue={project.name} error={formErrors.name} required />
-            <Input
-                label="Description"
-                name="description"
-                defaultValue={project.description}
-                error={formErrors.description}
-            />
+            <div>
+                <label className="mb-1.5 block text-sm font-medium text-gray-700">Description</label>
+                <RichTextEditor
+                    value={description}
+                    onChange={setDescription}
+                    placeholder="What is this project about?"
+                    error={formErrors.description}
+                />
+            </div>
             <div className="grid gap-4 sm:grid-cols-2">
                 <Input
                     label="Start date"

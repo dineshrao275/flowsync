@@ -34,7 +34,10 @@ class SupportTicketController extends Controller
             'subject' => ['required', 'string', 'max:255'],
             'category' => ['required', Rule::in(SupportTicket::CATEGORIES)],
             'priority' => ['required', Rule::in(SupportTicket::PRIORITIES)],
-            'body' => ['required', 'string', 'min:10', 'max:10000'],
+            // Length is measured on the visible text, not the markup: the
+            // reply box is a rich-text editor and tags must not eat the
+            // budget (or satisfy the minimum with an empty paragraph).
+            'body' => ['required', 'string', self::bodyLength(10, 10000)],
         ]);
 
         $ticket = $this->desk->open(Tenant::findOrFail($this->tenantId()), $request->user(), $data);
@@ -50,7 +53,7 @@ class SupportTicketController extends Controller
     public function reply(Request $request, int $ticket): JsonResponse
     {
         $record = $this->own($ticket);
-        $data = $request->validate(['body' => ['required', 'string', 'max:10000']]);
+        $data = $request->validate(['body' => ['required', 'string', self::bodyLength(null, 10000)]]);
 
         $this->desk->replyAsTenant($record, $request->user(), $data['body']);
 
@@ -70,6 +73,29 @@ class SupportTicketController extends Controller
         abort_unless($id, 404, 'No active tenant context.');
 
         return $id;
+    }
+
+    /**
+     * Length guard measured on visible text: support bodies are HTML from
+     * the rich-text composer, so min/max apply to the stripped text —
+     * tags neither satisfy the minimum with an empty paragraph nor eat
+     * the budget. Messages match Laravel's min/max wording.
+     *
+     * @return \Closure(string, mixed, \Closure): void
+     */
+    public static function bodyLength(?int $min, ?int $max): \Closure
+    {
+        return function (string $attribute, mixed $value, \Closure $fail) use ($min, $max): void {
+            $length = mb_strlen(trim(strip_tags((string) $value)));
+
+            if ($min !== null && $length < $min) {
+                $fail("The {$attribute} must be at least {$min} characters.");
+            }
+
+            if ($max !== null && $length > $max) {
+                $fail("The {$attribute} may not be greater than {$max} characters.");
+            }
+        };
     }
 
     /** A ticket of another tenant is a 404, not a 403: its existence is not ours to confirm. */

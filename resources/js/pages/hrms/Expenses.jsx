@@ -236,7 +236,7 @@ export default function Expenses() {
             )}
 
             <Modal open={!!deciding} onClose={() => setDeciding(null)} title={`Decide ${deciding?.claim_number ?? ''}`}>
-                <form onSubmit={decide} className="grid gap-3">
+                <form onSubmit={decide} className="grid gap-3 px-6 py-5">
                     <p className="text-sm text-gray-500">Filed total {deciding?.total_amount}.</p>
                     <Select label="Verdict" value={verdict} error={decideErrors.verdict} onChange={(e) => setVerdict(e.target.value)}>
                         <option value="approve">Approve</option>

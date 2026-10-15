@@ -13,6 +13,8 @@ import { useToast } from '../context/ToastContext';
 import { useConfirm } from '../components/ui/ConfirmDialog';
 import { useSetCrumbs } from '../context/BreadcrumbContext';
 import TimeSummary from '../components/time/TimeSummary';
+import RichTextEditor from '../components/ui/RichTextEditor';
+import RichText, { stripRichText } from '../components/ui/RichText';
 import usePageTitle from '../hooks/usePageTitle';
 import { projectRoleLabel, workspaceRoleLabel } from '../utils/roles';
 
@@ -42,6 +44,15 @@ export default function WorkspaceDetail() {
     const [memberForm, setMemberForm] = useState({ user_id: '', role: 'member' });
     const [labelForm, setLabelForm] = useState({ name: '', color: '#6366f1' });
     const [projectForm, setProjectForm] = useState({ name: '', key: '', description: '' });
+    // The settings description is editor-controlled; it follows the loaded
+    // workspace (the page remounts per workspace, and a same-id refetch
+    // after save already matches what was typed).
+    const [settingsDescription, setSettingsDescription] = useState('');
+
+    useEffect(() => {
+        if (workspace) setSettingsDescription(workspace.description || '');
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [workspace?.id]);
     const [formErrors, setFormErrors] = useState({});
     const [savingMember, setSavingMember] = useState(false);
     const [savingLabel, setSavingLabel] = useState(false);
@@ -295,7 +306,11 @@ export default function WorkspaceDetail() {
                             {workspace.my_role && <Badge>{workspaceRoleLabel(workspace.my_role)}</Badge>}
                             {archived && <Badge>archived</Badge>}
                         </div>
-                        <p className="mt-1 text-sm text-gray-500">{workspace.description || 'No description'}</p>
+                        {workspace.description ? (
+                            <RichText value={workspace.description} className="mt-1 text-gray-500" />
+                        ) : (
+                            <p className="mt-1 text-sm text-gray-500">No description</p>
+                        )}
                         <p className="mt-0.5 text-xs text-gray-400">{workspace.slug}</p>
                     </div>
                 </div>
@@ -349,14 +364,15 @@ export default function WorkspaceDetail() {
                                         error={formErrors.key}
                                     />
                                 </div>
-                                <Input
-                                    label="Description"
-                                    name="project-description"
-                                    placeholder="What is this project about?"
-                                    value={projectForm.description}
-                                    onChange={(e) => setProjectForm((f) => ({ ...f, description: e.target.value }))}
-                                    error={formErrors.description}
-                                />
+                                <div>
+                                    <label className="mb-1.5 block text-sm font-medium text-gray-700">Description</label>
+                                    <RichTextEditor
+                                        value={projectForm.description}
+                                        onChange={(html) => setProjectForm((f) => ({ ...f, description: html }))}
+                                        placeholder="What is this project about?"
+                                        error={formErrors.description}
+                                    />
+                                </div>
                                 <div className="flex gap-2 pt-1">
                                     <Button type="button" variant="secondary" onClick={() => setCreatingProject(false)}>
                                         Cancel
@@ -397,9 +413,9 @@ export default function WorkspaceDetail() {
                                                         )}
                                                         {project.archived_at && <Badge>archived</Badge>}
                                                     </p>
-                                                    <p className="mt-0.5 line-clamp-1 text-xs text-gray-400">
-                                                        {project.description || 'No description'}
-                                                    </p>
+                                                        <p className="mt-0.5 line-clamp-1 text-xs text-gray-400">
+                                                            {stripRichText(project.description) || 'No description'}
+                                                        </p>
                                                 </div>
                                             </div>
                                             <div className="flex items-center gap-4 text-xs text-gray-400">
@@ -583,7 +599,7 @@ export default function WorkspaceDetail() {
                             e.preventDefault();
                             updateWorkspace({
                                 name: e.currentTarget.name.value,
-                                description: e.currentTarget.description.value,
+                                description: settingsDescription || undefined,
                             });
                         }}
                     >
@@ -595,12 +611,15 @@ export default function WorkspaceDetail() {
                             error={formErrors.name}
                             required
                         />
-                        <Input
-                            label="Description"
-                            name="description"
-                            defaultValue={workspace.description}
-                            error={formErrors.description}
-                        />
+                        <div>
+                            <label className="mb-1.5 block text-sm font-medium text-gray-700">Description</label>
+                            <RichTextEditor
+                                value={settingsDescription}
+                                onChange={setSettingsDescription}
+                                placeholder="What is this workspace for?"
+                                error={formErrors.description}
+                            />
+                        </div>
                         <div className="flex gap-2">
                             <Button type="submit" loading={updating}>
                                 Save changes
