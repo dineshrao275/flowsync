@@ -7,13 +7,13 @@ export const THEME_MODES = ['light', 'dark', 'system'];
 export const DEFAULT_THEME = {
     sidebar_bg: '#0f172a',
     sidebar_hover: '#1e293b',
-    active_menu: '#6366f1',
+    active_menu: '#2563eb',
     sidebar_text: '#cbd5e1',
     dashboard_bg: '#f1f5f9',
     header_bg: '#ffffff',
     header_text: '#0f172a',
     card_bg: '#ffffff',
-    accent: '#6366f1',
+    accent: '#2563eb',
     mode: 'system',
 };
 
@@ -91,7 +91,7 @@ function hexToRgb(hex) {
     const value = String(hex || '').replace('#', '').trim();
     const full = value.length === 3 ? value.split('').map((c) => c + c).join('') : value;
 
-    if (!/^[0-9a-fA-F]{6}$/.test(full)) return { r: 99, g: 102, b: 241 };
+    if (!/^[0-9a-fA-F]{6}$/.test(full)) return { r: 37, g: 99, b: 235 };
 
     return {
         r: parseInt(full.slice(0, 2), 16),

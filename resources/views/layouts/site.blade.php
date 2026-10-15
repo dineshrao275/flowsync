@@ -21,6 +21,12 @@
     @endif
     @if(!empty($site['custom_head'])){!! $site['custom_head'] !!}@endif
     <x-site.json-ld :crumbs="$crumbs ?? []" :faq="$faqSchema ?? []" :article="$article ?? null" />
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap"
+        rel="stylesheet"
+    >
     @vite(['resources/css/site.css', 'resources/js/site.js'])
 </head>
 <body class="bg-white font-sans text-slate-600 antialiased">
