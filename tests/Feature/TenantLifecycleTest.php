@@ -46,7 +46,7 @@ class TenantLifecycleTest extends TestCase
 
     public function test_service_has_complete_and_derived_transition_map(): void
     {
-        $this->assertCount(8, TenantLifecycle::TRANSITIONS);
+        $this->assertCount(9, TenantLifecycle::TRANSITIONS);
 
         foreach (TenantLifecycle::TRANSITIONS as $from => $toList) {
             foreach ($toList as $to) {
@@ -61,6 +61,7 @@ class TenantLifecycleTest extends TestCase
     public function test_allowed_transitions_are_accepted(): void
     {
         $scenarios = [
+            [Tenant::STATUS_DRAFT, Tenant::STATUS_PENDING],
             [Tenant::STATUS_PENDING, Tenant::STATUS_PROVISIONING],
             [Tenant::STATUS_PROVISIONING, Tenant::STATUS_TRIAL],
             [Tenant::STATUS_PROVISIONING, Tenant::STATUS_ACTIVE],

@@ -8,18 +8,19 @@ import Input from '../../components/ui/Input';
 import Alert from '../../components/ui/Alert';
 import AuthShell from '../../components/ui/AuthShell';
 import usePageTitle from '../../hooks/usePageTitle';
+import { homeRouteFor } from '../../utils/deepLinks';
 
 export default function Login() {
     usePageTitle('Sign in');
-    const { login } = useAuth();
+    const { login, verifyTwoFactor } = useAuth();
     const toast = useToast();
     const navigate = useNavigate();
     const location = useLocation();
     const [form, setForm] = useState({ email: '', password: '', remember: false });
     const [errors, setErrors] = useState({});
     const [submitting, setSubmitting] = useState(false);
-
-    const from = location.state?.from || '/dashboard';
+    const [needsCode, setNeedsCode] = useState(false);
+    const [code, setCode] = useState('');
 
     function update(field, value) {
         setForm((current) => ({ ...current, [field]: value }));
@@ -31,11 +32,22 @@ export default function Login() {
         setErrors({});
 
         try {
-            const data = await login(form);
+            const data = needsCode ? await verifyTwoFactor(code) : await login(form);
+            if (data.two_factor_required) {
+                setNeedsCode(true);
+                return;
+            }
             toast.success(`Welcome back, ${data.user.name.split(' ')[0]}!`);
-            navigate(from, { replace: true });
+            navigate(location.state?.from || homeRouteFor(data.user), { replace: true });
         } catch (error) {
-            setErrors(fieldErrors(error));
+            if (error.response?.data?.code === 'two_factor_expired') {
+                // The pending sign-in lapsed or burned its attempts: back to the password step.
+                setNeedsCode(false);
+                setCode('');
+                setErrors({ form: error.response.data.message });
+            } else {
+                setErrors(fieldErrors(error));
+            }
         } finally {
             setSubmitting(false);
         }
@@ -48,7 +60,7 @@ export default function Login() {
             footer={
                 <span className="text-sm text-slate-500">
                     Access is managed by your tenant administrator.{' '}
-                    <Link to="/register" className="font-medium text-indigo-600 hover:text-indigo-500">
+                    <Link to="/register" className="font-medium text-[var(--accent)] hover:text-indigo-500">
                         New here? Create a workspace
                     </Link>
                 </span>
@@ -56,6 +68,19 @@ export default function Login() {
         >
             <form onSubmit={handleSubmit} className="space-y-4" noValidate>
                 <Alert>{errors.form}</Alert>
+                {needsCode ? (
+                    <Input
+                        label="Authentication code"
+                        name="code"
+                        autoComplete="one-time-code"
+                        autoFocus
+                        required
+                        placeholder="123456 or a recovery code"
+                        value={code}
+                        onChange={(e) => setCode(e.target.value)}
+                        error={errors.code}
+                    />
+                ) : (<>
                 <Input
                     label="Email address"
                     name="email"
@@ -84,19 +109,20 @@ export default function Login() {
                             type="checkbox"
                             checked={form.remember}
                             onChange={(e) => update('remember', e.target.checked)}
-                            className="h-4 w-4 rounded border-slate-300 text-indigo-600 accent-indigo-600 transition-all duration-150 focus:ring-indigo-500"
+                            className="h-4 w-4 rounded border-slate-300 text-[var(--accent)] accent-[var(--accent)] transition-all duration-150 focus:ring-[var(--accent-ring)]"
                         />
                         Remember me
                     </label>
                     <Link
                         to="/forgot-password"
-                        className="text-sm font-medium text-indigo-600 hover:text-indigo-500"
+                        className="text-sm font-medium text-[var(--accent)] hover:text-indigo-500"
                     >
                         Forgot password?
                     </Link>
                 </div>
+                </>)}
                 <Button type="submit" className="w-full" loading={submitting}>
-                    Sign in
+                    {needsCode ? 'Verify' : 'Sign in'}
                 </Button>
             </form>
         </AuthShell>

@@ -242,7 +242,7 @@ class HardeningTest extends TestCase
         $this->login('superadmin@flowsync.test');
 
         $target = $this->admin();
-        $this->postJson('/api/impersonate', ['user_id' => $target->id])->assertOk();
+        $this->postJson('/api/impersonate', ['user_id' => $target->id, 'reason' => 'Automated impersonation test.'])->assertOk();
 
         $this->getJson('/api/search/tasks')->assertOk()->assertJsonPath('pagination.total', 1);
         $this->getJson('/api/dashboard')->assertOk()->assertJsonPath('counts.open', 1);

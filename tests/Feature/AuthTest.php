@@ -24,7 +24,23 @@ class AuthTest extends TestCase
             ->assertJsonPath('user.roles.0', 'admin')
             ->assertJsonPath('user.tenant.slug', 'acme');
 
-        $this->getJson('/api/auth/me')->assertOk();
+        $this->getJson('/api/auth/me')
+            ->assertOk()
+            ->assertJsonStructure([
+                'user' => [
+                    'id',
+                    'name',
+                    'email',
+                    'timezone',
+                    'locale',
+                    'tenant' => [
+                        'id',
+                        'name',
+                        'slug',
+                        'branding' => ['primary_color', 'logo_url'],
+                    ],
+                ],
+            ]);
 
         $this->postJson('/api/auth/logout')->assertOk();
         $this->getJson('/api/auth/me')->assertUnauthorized();

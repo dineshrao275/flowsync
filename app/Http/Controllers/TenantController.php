@@ -2,17 +2,20 @@
 
 namespace App\Http\Controllers;
 
-use App\Jobs\ProvisionTenantJob;
-use App\Models\AuditLog;
+use App\Http\Controllers\Concerns\NormalizesBooleanInput;
+use App\Http\Controllers\Concerns\RequiresTenantAdmin;
+use App\Http\Controllers\Concerns\ValidatesResourceLimits;
 use App\Models\Tenant;
 use App\Models\TenantUserRouting;
+use App\Models\User;
+use App\Services\PlatformAudit;
 use App\Services\TenantLifecycle;
+use App\Support\Like;
 use App\Support\TenantContext;
 use App\Support\TenantDatabaseManager;
-use Database\Seeders\SubscriptionPlanSeeder;
+use App\Support\Tms\TmsSchema;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -20,14 +23,23 @@ use Illuminate\Validation\Rule;
 
 class TenantController extends Controller
 {
+    use NormalizesBooleanInput;
+    use RequiresTenantAdmin;
+    use ValidatesResourceLimits;
+
     protected const SORTABLE = ['name', 'slug', 'status', 'created_at', 'updated_at', 'users_count'];
 
     public function index(Request $request): JsonResponse
     {
         // users/roles live in per-tenant DBs; surface the routing-index counts.
+        // The UI sends `trashed=false` in the query string, so normalize the
+        // boolean-ish query values before the strict `boolean` rule runs.
+        $this->normalizeRequestBooleans($request, ['trashed']);
+
         $data = $request->validate([
             'q' => ['nullable', 'string', 'max:255'],
             'status' => ['nullable', 'string', Rule::in([
+                Tenant::STATUS_DRAFT,
                 Tenant::STATUS_PENDING,
                 Tenant::STATUS_PROVISIONING,
                 Tenant::STATUS_TRIAL,
@@ -38,6 +50,7 @@ class TenantController extends Controller
                 Tenant::STATUS_PROVISIONING_FAILED,
             ])],
             'plan_id' => ['nullable', 'integer', 'exists:subscription_plans,id'],
+            'subscription_status' => ['nullable', 'string', Rule::in(['trialing', 'active', 'past_due', 'canceled', 'expired', 'ended', 'none'])],
             'trashed' => ['nullable', 'boolean'],
             'sort' => ['nullable', 'string', Rule::in(self::SORTABLE)],
             'dir' => ['nullable', 'string', Rule::in(['asc', 'desc'])],
@@ -47,12 +60,7 @@ class TenantController extends Controller
         $query = Tenant::query();
 
         if (! empty($data['q'])) {
-            $q = $data['q'];
-            $query->where(function ($sub) use ($q): void {
-                $sub->where('name', 'like', "%{$q}%")
-                    ->orWhere('slug', 'like', "%{$q}%")
-                    ->orWhere('description', 'like', "%{$q}%");
-            });
+            Like::any($query, ['name', 'slug', 'description'], $data['q']);
         }
 
         if (! empty($data['status'])) {
@@ -61,6 +69,12 @@ class TenantController extends Controller
 
         if (! empty($data['plan_id'])) {
             $query->whereHas('subscription', fn ($sub) => $sub->where('plan_id', $data['plan_id']));
+        }
+
+        if (! empty($data['subscription_status'])) {
+            $data['subscription_status'] === 'none'
+                ? $query->whereDoesntHave('subscription')
+                : $query->whereHas('subscription', fn ($sub) => $sub->where('status', $data['subscription_status']));
         }
 
         if (filter_var($data['trashed'] ?? false, FILTER_VALIDATE_BOOL)) {
@@ -92,7 +106,10 @@ class TenantController extends Controller
             $tenant->setAttribute('plan_slug', $subscription?->plan?->slug);
             $tenant->setAttribute('plan_name', $subscription?->plan?->name);
             $tenant->setAttribute('subscription_status', $subscription?->status);
-            $tenant->setAttribute('subscription_ends_at', $subscription?->ends_at);
+            $tenant->setAttribute('trial_ends_at', $subscription?->trial_ends_at ?? $tenant->trial_ends_at);
+            $tenant->setAttribute('period_end', $subscription?->current_period_end);
+            $tenant->setAttribute('billing_provider', $subscription?->billing_provider);
+            $tenant->setAttribute('auto_renew', $subscription?->auto_renew);
 
             return $tenant;
         });
@@ -108,47 +125,34 @@ class TenantController extends Controller
         ]);
     }
 
-    public function store(Request $request): JsonResponse
-    {
-        $data = $request->validate([
-            'name' => ['required', 'string', 'max:255'],
-            'slug' => ['required', 'string', 'max:255', 'alpha_dash', 'unique:tenants,slug'],
-            'description' => ['nullable', 'string', 'max:255'],
-            // Phase 14: onboarding plan + trial (provisioned after the DB exists).
-            'plan_id' => ['nullable', 'integer', 'exists:subscription_plans,id'],
-            'trial_days' => ['nullable', 'integer', 'min:0', 'max:3650'],
-            'billing_email' => ['nullable', 'email', 'max:255'],
-            'contact_name' => ['nullable', 'string', 'max:255'],
-            'contact_email' => ['nullable', 'email', 'max:255'],
-        ]);
-
-        // The plan catalog must exist before the provisioning job plans anything.
-        (new SubscriptionPlanSeeder)->run();
-
-        $trialDays = $data['trial_days'] ?? null;
-
-        $tenant = Tenant::create([
-            ...Arr::except($data, ['plan_id', 'trial_days']),
-            'slug' => Str::slug($data['slug']),
-            'status' => Tenant::STATUS_PENDING,
-            'provisioning_status' => Tenant::PROVISIONING_PENDING,
-            'trial_ends_at' => $trialDays ? now()->addDays((int) $trialDays) : null,
-        ]);
-
-        // Async provisioning (QUEUE sync in tests runs it inline).
-        ProvisionTenantJob::dispatch($tenant, $data['plan_id'] ?? null, $trialDays);
-
-        return response()->json([
-            'message' => 'Tenant creation queued for provisioning.',
-            'tenant' => $this->counts($tenant),
-        ], 202);
-    }
-
     public function show(Tenant $tenant): JsonResponse
     {
         return response()->json([
             'tenant' => $this->counts($tenant),
+            'default_user' => $this->defaultUser($tenant),
+            'subscription' => $tenant->subscription?->load('plan'),
         ]);
+    }
+
+    /**
+     * The tenant's default user, read from its own database. Null while the
+     * tenant is a draft or not provisioned (there is no database to read).
+     *
+     * @return array{id: int, name: string, email: string}|null
+     */
+    private function defaultUser(Tenant $tenant): ?array
+    {
+        if (! $tenant->isProvisioned()) {
+            return null;
+        }
+
+        try {
+            $user = app(TenantDatabaseManager::class)->using($tenant, fn () => User::defaultUser());
+        } catch (\Throwable) {
+            return null;
+        }
+
+        return $user ? ['id' => $user->id, 'name' => $user->name, 'email' => $user->email] : null;
     }
 
     public function update(Request $request, Tenant $tenant): JsonResponse
@@ -157,12 +161,16 @@ class TenantController extends Controller
             'name' => ['required', 'string', 'max:255'],
             'slug' => ['required', 'string', 'max:255', 'alpha_dash', 'unique:tenants,slug,'.$tenant->id],
             'description' => ['nullable', 'string', 'max:255'],
+            // Per-tenant caps that win over the plan's (null key = unlimited).
+            'limits_override' => ['nullable', 'array'],
+            ...$this->resourceLimitRules('limits_override'),
         ]);
 
         $tenant->update([
             'name' => $data['name'],
             'slug' => Str::slug($data['slug']),
             'description' => $data['description'] ?? null,
+            'limits_override' => $this->cleanResourceLimits($data['limits_override'] ?? null, 'limits_override'),
         ]);
 
         return response()->json([
@@ -225,34 +233,65 @@ class TenantController extends Controller
         return response()->json(['tenant' => $tenant]);
     }
 
-    public function destroy(Tenant $tenant): JsonResponse
+    /**
+     * Tenant-facing profile write: the onboarding wizard's business step calls
+     * this. Deliberately a narrow subset of `updateProfile` (which is
+     * `super_admin`-gated and takes a route-bound Tenant) — a tenant user may
+     * only fill in the fields the wizard owns, never billing, plan, or
+     * entitlement fields. `nullable` throughout so a partial save cannot blank
+     * a field the wizard did not send.
+     */
+    public function updateSelfProfile(Request $request): JsonResponse
+    {
+        abort_unless(app(TenantContext::class)->currentId(), 404);
+        $this->requireTenantAdmin($request, 'Only tenant admins can edit the company profile.');
+
+        $data = $request->validate([
+            'legal_name' => ['nullable', 'string', 'max:255'],
+            'industry' => ['nullable', 'string', 'max:255'],
+            'company_size' => ['nullable', 'string', 'max:255'],
+            'country' => ['nullable', 'string', 'max:2'],
+            'website' => ['nullable', 'url', 'max:255'],
+        ]);
+
+        $tenant = Tenant::findOrFail(app(TenantContext::class)->currentId());
+
+        // Only write keys the request actually sent, so `null` (absent) does not
+        // overwrite an existing value with null.
+        $tenant->update(array_filter($data, fn ($value) => $value !== null));
+
+        return response()->json([
+            'message' => 'Business profile saved.',
+            'tenant' => $tenant->fresh(),
+        ]);
+    }
+
+    public function destroy(Request $request, Tenant $tenant): JsonResponse
     {
         $tenant->delete();
 
-        AuditLog::create([
-            'subject_type' => Tenant::class,
-            'subject_id' => $tenant->id,
-            'action' => 'tenant.deleted',
-            'data' => ['name' => $tenant->name, 'slug' => $tenant->slug],
-            'actor_id' => auth()->id(),
-            'ip_address' => request()->ip(),
-        ]);
+        app(PlatformAudit::class)->record(
+            $request,
+            'tenant.deleted',
+            Tenant::class,
+            $tenant->id,
+            ['name' => $tenant->name, 'slug' => $tenant->slug],
+        );
 
         return response()->json(['message' => 'Tenant deleted.']);
     }
 
-    public function restore(Tenant $tenant): JsonResponse
+    public function restore(Request $request, Tenant $tenant): JsonResponse
     {
         $tenant->restore();
 
-        AuditLog::create([
-            'subject_type' => Tenant::class,
-            'subject_id' => $tenant->id,
-            'action' => 'tenant.restored',
-            'data' => ['name' => $tenant->name, 'slug' => $tenant->slug],
-            'actor_id' => auth()->id(),
-            'ip_address' => request()->ip(),
-        ]);
+        app(PlatformAudit::class)->record(
+            $request,
+            'tenant.restored',
+            Tenant::class,
+            $tenant->id,
+            ['name' => $tenant->name, 'slug' => $tenant->slug],
+        );
 
         return response()->json(['message' => 'Tenant restored.', 'tenant' => $this->counts($tenant)]);
     }
@@ -304,9 +343,10 @@ class TenantController extends Controller
 
                 return [
                     'users' => $db->table('users')->count(),
-                    'workspaces' => $db->table('workspaces')->count(),
-                    'projects' => $db->table('projects')->count(),
-                    'tasks' => $db->table('tasks')->whereNull('deleted_at')->count(),
+                    // Single-product tenants hold no TMS tables: zero, not a 500.
+                    'workspaces' => TmsSchema::present() ? $db->table('workspaces')->count() : 0,
+                    'projects' => TmsSchema::present() ? $db->table('projects')->count() : 0,
+                    'tasks' => TmsSchema::present() ? $db->table('tasks')->whereNull('deleted_at')->count() : 0,
                 ];
             });
         });

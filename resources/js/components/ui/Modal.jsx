@@ -1,4 +1,6 @@
-import { useEffect } from 'react';
+import { useId } from 'react';
+import { createPortal } from 'react-dom';
+import useDialogFocus from '../../hooks/useDialogFocus';
 
 const sizes = {
     sm: 'max-w-md',
@@ -7,25 +9,15 @@ const sizes = {
 };
 
 export default function Modal({ open, onClose, title, subtitle, size = 'md', children, className = '' }) {
-    useEffect(() => {
-        if (!open) return;
-
-        function onKey(e) {
-            if (e.key === 'Escape') onClose();
-        }
-
-        document.addEventListener('keydown', onKey);
-        document.body.style.overflow = 'hidden';
-
-        return () => {
-            document.removeEventListener('keydown', onKey);
-            document.body.style.overflow = '';
-        };
-    }, [open, onClose]);
+    const panelRef = useDialogFocus(open, onClose);
+    const titleId = useId();
 
     if (!open) return null;
 
-    return (
+    // Portalled to <body> so the overlay always sits above page content: the
+    // page wrapper runs a transform animation, which makes it a containing
+    // block/stacking context that would otherwise trap a nested `fixed` modal.
+    return createPortal(
         <div
             className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-gray-900/40 p-4 animate-backdrop-in sm:p-6"
             onMouseDown={onClose}
@@ -37,11 +29,14 @@ export default function Modal({ open, onClose, title, subtitle, size = 'md', chi
                 onMouseDown={(e) => e.stopPropagation()}
                 role="dialog"
                 aria-modal="true"
+                aria-labelledby={title ? titleId : undefined}
+                ref={panelRef}
+                tabIndex={-1}
             >
                 {(title || onClose) && (
                     <div className="flex items-start justify-between gap-4 border-b border-gray-100 px-6 py-4">
                         <div>
-                            {title && <h3 className="text-base font-semibold text-gray-900">{title}</h3>}
+                            {title && <h3 id={titleId} className="text-base font-semibold text-gray-900">{title}</h3>}
                             {subtitle && <p className="mt-0.5 text-sm text-gray-500">{subtitle}</p>}
                         </div>
                         {onClose && (
@@ -60,6 +55,7 @@ export default function Modal({ open, onClose, title, subtitle, size = 'md', chi
                 )}
                 {children}
             </div>
-        </div>
+        </div>,
+        document.body,
     );
 }

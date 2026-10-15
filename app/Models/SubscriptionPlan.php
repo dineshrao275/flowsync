@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Models\Concerns\CentralConnection;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Carbon;
@@ -10,8 +11,26 @@ use Illuminate\Support\Carbon;
 class SubscriptionPlan extends Model
 {
     use CentralConnection;
+    use HasFactory;
+
+    public const PRODUCT_SUITE = 'suite';
+
+    public const PRODUCT_TMS = 'tms';
+
+    public const PRODUCT_HRMS = 'hrms';
+
+    /** The products a plan of this kind makes available. @return list<string> */
+    public function covers(): array
+    {
+        return match ($this->product ?? self::PRODUCT_SUITE) {
+            self::PRODUCT_TMS => [self::PRODUCT_TMS],
+            self::PRODUCT_HRMS => [self::PRODUCT_HRMS],
+            default => [self::PRODUCT_TMS, self::PRODUCT_HRMS],
+        };
+    }
 
     protected $fillable = [
+        'product',
         'name',
         'slug',
         'description',
@@ -23,6 +42,8 @@ class SubscriptionPlan extends Model
         'trial_duration_days',
         'limits',
         'sort_order',
+        'stripe_price_id',
+        'stripe_price_key',
     ];
 
     protected function casts(): array
@@ -53,11 +74,6 @@ class SubscriptionPlan extends Model
     public function limit(string $key): mixed
     {
         return data_get($this->limits, $key);
-    }
-
-    public function limitsFor(string $key): mixed
-    {
-        return $this->limit($key);
     }
 
     public function hasModule(string $module): bool

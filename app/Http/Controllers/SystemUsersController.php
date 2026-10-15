@@ -4,8 +4,10 @@ namespace App\Http\Controllers;
 
 use App\Http\Requests\SystemUserIndexRequest;
 use App\Http\Requests\SystemUserStoreRequest;
-use App\Models\AuditLog;
 use App\Models\SystemUser;
+use App\Services\PlatformAudit;
+use App\Services\Security\PlatformAccess;
+use App\Support\Like;
 use Illuminate\Http\JsonResponse;
 
 /**
@@ -21,15 +23,13 @@ class SystemUsersController extends Controller
         $query = SystemUser::query();
 
         if (! empty($data['q'])) {
-            $q = '%'.$data['q'].'%';
-            $query->where(fn ($w) => $w
-                ->where('name', 'like', $q)
-                ->orWhere('email', 'like', $q));
+            Like::any($query, ['name', 'email'], $data['q']);
         }
 
         $users = $query->latest()->paginate($data['per_page'] ?? 15)
             ->withQueryString()
-            ->through(fn (SystemUser $user) => $user->only(['id', 'name', 'email', 'is_super_admin', 'created_at']));
+            ->through(fn (SystemUser $user) => $user->only(['id', 'name', 'email', 'is_super_admin', 'created_at'])
+                + ['platform_roles' => app(PlatformAccess::class)->roleSlugsOf($user)]);
 
         return response()->json([
             'users' => $users->items(),
@@ -53,14 +53,14 @@ class SystemUsersController extends Controller
             'is_super_admin' => true,
         ]);
 
-        AuditLog::create([
-            'subject_type' => 'users',
-            'subject_id' => $user->id,
-            'action' => 'system.user_created',
-            'data' => ['name' => $user->name, 'email' => $user->email],
-            'actor_id' => $request->user()?->id,
-            'ip_address' => $request->ip(),
-        ]);
+        app(PlatformAudit::class)->diff(
+            $request,
+            'system.user_created',
+            'users',
+            $user->id,
+            null,
+            ['name' => $user->name, 'email' => $user->email],
+        );
 
         return response()->json(['user' => $user->only(['id', 'name', 'email', 'is_super_admin', 'created_at'])], 201);
     }

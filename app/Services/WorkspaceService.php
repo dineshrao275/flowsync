@@ -5,7 +5,9 @@ namespace App\Services;
 use App\Enums\WorkspaceMemberRole;
 use App\Models\User;
 use App\Models\Workspace;
+use App\Support\UniqueSlug;
 use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 
@@ -41,7 +43,10 @@ class WorkspaceService
             'slug' => $slug,
             'description' => $data['description'] ?? null,
             'icon' => $data['icon'] ?? null,
+            'color' => $data['color'] ?? null,
             'timezone' => $data['timezone'] ?? null,
+            'default_assignee_id' => $data['default_assignee_id'] ?? null,
+            'settings' => $data['settings'] ?? null,
         ]);
 
         $workspace->members()->attach($creator->id, [
@@ -56,9 +61,12 @@ class WorkspaceService
     {
         $workspace->update([
             'name' => $data['name'],
-            'description' => $data['description'] ?? $workspace->description,
-            'icon' => $data['icon'] ?? $workspace->icon,
-            'timezone' => $data['timezone'] ?? $workspace->timezone,
+            'description' => array_key_exists('description', $data) ? $data['description'] : $workspace->description,
+            'icon' => array_key_exists('icon', $data) ? $data['icon'] : $workspace->icon,
+            'color' => array_key_exists('color', $data) ? $data['color'] : $workspace->color,
+            'timezone' => array_key_exists('timezone', $data) ? $data['timezone'] : $workspace->timezone,
+            'default_assignee_id' => array_key_exists('default_assignee_id', $data) ? $data['default_assignee_id'] : $workspace->default_assignee_id,
+            'settings' => array_key_exists('settings', $data) ? $data['settings'] : $workspace->settings,
         ]);
 
         return $workspace;
@@ -141,20 +149,23 @@ class WorkspaceService
 
         $this->ensureNotOnlyOwner($workspace, $member);
 
-        $workspace->members()->detach($member->id);
+        // Project membership is only valid inside workspace membership (adding a
+        // project member requires it), so losing the workspace must also lose every
+        // project of that workspace — otherwise the user keeps moving tasks,
+        // commenting and uploading there, and the projects stay visible to them.
+        DB::transaction(function () use ($workspace, $member): void {
+            DB::table('project_members')
+                ->where('user_id', $member->id)
+                ->whereIn('project_id', $workspace->projects()->select('projects.id'))
+                ->delete();
+
+            $workspace->members()->detach($member->id);
+        });
     }
 
     private function uniqueSlug(string $slug): string
     {
-        $base = $slug;
-        $candidate = $base;
-        $i = 1;
-
-        while (Workspace::where('slug', $candidate)->exists()) {
-            $candidate = $base.'-'.(++$i);
-        }
-
-        return $candidate;
+        return UniqueSlug::make($slug, fn (string $candidate): bool => Workspace::where('slug', $candidate)->exists());
     }
 
     private function ensureNotOnlyOwner(Workspace $workspace, User $member): void

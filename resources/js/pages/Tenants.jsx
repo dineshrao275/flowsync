@@ -7,15 +7,18 @@ import Spinner from '../components/ui/Spinner';
 import Alert from '../components/ui/Alert';
 import Button from '../components/ui/Button';
 import Pagination from '../components/ui/Pagination';
-import Input from '../components/ui/Input';
 import { useAuth } from '../context/AuthContext';
+import ImpersonateModal from '../components/ImpersonateModal';
 import { useToast } from '../context/ToastContext';
+import { useConfirm } from '../components/ui/ConfirmDialog';
 import { useClickOutside } from '../hooks/useClickOutside';
 import usePageTitle from '../hooks/usePageTitle';
+import Timestamp from '../components/ui/Timestamp';
 
 const STATUS_OPTIONS = [
     { value: 'pending', label: 'Pending' },
     { value: 'provisioning', label: 'Provisioning' },
+    { value: 'draft', label: 'Draft (incomplete)' },
     { value: 'trial', label: 'Trial' },
     { value: 'active', label: 'Active' },
     { value: 'suspended', label: 'Suspended' },
@@ -31,7 +34,8 @@ const STATUS_STYLES = {
     expired: 'bg-rose-100 text-rose-700',
     deactivated: 'bg-gray-200 text-gray-600',
     pending: 'bg-gray-100 text-gray-600',
-    provisioning: 'bg-indigo-100 text-indigo-600',
+    draft: 'bg-yellow-100 text-yellow-800',
+    provisioning: 'bg-indigo-100 text-[var(--accent)]',
     provisioning_failed: 'bg-rose-100 text-rose-700',
 };
 
@@ -49,6 +53,28 @@ function parseSort(value) {
     return { sort: value.replace(/^-/, ''), dir };
 }
 
+/** "Trial ends in 4d", "Renews 12 Nov", "Ends 3 Nov" — whichever date matters for this tenant. */
+function renewalLabel(tenant) {
+    const fmt = (v) => new Date(v).toLocaleDateString(undefined, { day: 'numeric', month: 'short' });
+    if (tenant.subscription_status === 'trialing' && tenant.trial_ends_at) {
+        const days = Math.ceil((new Date(tenant.trial_ends_at) - Date.now()) / 86400000);
+        return `Trial ends ${days <= 0 ? 'today' : `in ${days}d`}`;
+    }
+    if (!tenant.period_end) return '—';
+    if (tenant.auto_renew === false || tenant.subscription_status === 'canceled') return `Ends ${fmt(tenant.period_end)}`;
+    return `Renews ${fmt(tenant.period_end)}`;
+}
+
+function SummaryCard({ label, value, hint }) {
+    return (
+        <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
+            <p className="text-xs font-medium uppercase tracking-wide text-gray-400">{label}</p>
+            <p className="mt-1 text-2xl font-bold text-gray-900">{value}</p>
+            <p className="mt-0.5 text-xs text-gray-500">{hint}</p>
+        </div>
+    );
+}
+
 function StatusBadge({ status }) {
     return (
         <span
@@ -61,7 +87,7 @@ function StatusBadge({ status }) {
     );
 }
 
-function TenantActions({ tenant, onEdited, onChanged, onImpersonate }) {
+function TenantActions({ tenant, onChanged, onImpersonate }) {
     const ref = useRef(null);
     const [open, setOpen] = useState(false);
     const [mode, setMode] = useState('menu');
@@ -71,6 +97,7 @@ function TenantActions({ tenant, onEdited, onChanged, onImpersonate }) {
 
     useClickOutside(ref, () => setOpen(false));
 
+    const confirm = useConfirm();
     const trashed = Boolean(tenant.deleted_at);
 
     function toggle() {
@@ -107,7 +134,7 @@ function TenantActions({ tenant, onEdited, onChanged, onImpersonate }) {
     }
 
     async function remove() {
-        if (!window.confirm(`Delete tenant "${tenant.name}"? It can be restored later.`)) return;
+        if (!(await confirm({ title: 'Delete tenant?', message: `Delete tenant "${tenant.name}"? It can be restored later.`, variant: 'danger' }))) return;
         setBusy(true);
         try {
             await api.delete(`/tenants/${tenant.id}`);
@@ -189,12 +216,15 @@ function TenantActions({ tenant, onEdited, onChanged, onImpersonate }) {
                         <>
                             {!trashed && (
                                 <>
-                                    <ActionLink to={`/tenants/${tenant.id}`} onClick={() => setOpen(false)}>
-                                        View details
-                                    </ActionLink>
-                                    <ActionButton onClick={() => { setOpen(false); onEdited(tenant); }}>
-                                        Edit
-                                    </ActionButton>
+                                    {tenant.status === 'draft' ? (
+                                        <ActionLink to={`/tenants/${tenant.id}/setup`} onClick={() => setOpen(false)}>
+                                            Continue setup
+                                        </ActionLink>
+                                    ) : (
+                                        <ActionLink to={`/tenants/${tenant.id}`} onClick={() => setOpen(false)}>
+                                            View / edit
+                                        </ActionLink>
+                                    )}
                                     <ActionButton onClick={loadUsers}>
                                         View as user…
                                     </ActionButton>
@@ -257,21 +287,15 @@ export default function Tenants() {
     const { refresh } = useAuth();
     const toast = useToast();
     const navigate = useNavigate();
+    const [impersonateTarget, setImpersonateTarget] = useState(null);
     const [tenants, setTenants] = useState([]);
     const [plans, setPlans] = useState([]);
+    const [summary, setSummary] = useState(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
-    const [filters, setFilters] = useState({ q: '', status: '', plan_id: '', sort: 'name', trashed: false });
+    const [filters, setFilters] = useState({ q: '', status: '', plan_id: '', subscription_status: '', sort: 'name', trashed: false });
     const [page, setPage] = useState(1);
     const [pagination, setPagination] = useState({ current_page: 1, last_page: 1, total: 0 });
-    const [creating, setCreating] = useState(false);
-    const [form, setForm] = useState({ name: '', slug: '', description: '', plan_id: '', trial_days: '' });
-    const [errors, setErrors] = useState({});
-    const [saving, setSaving] = useState(false);
-    const [editing, setEditing] = useState(null);
-    const [editForm, setEditForm] = useState({ name: '', slug: '', description: '' });
-    const [editErrors, setEditErrors] = useState({});
-    const [editSaving, setEditSaving] = useState(false);
 
     const load = useCallback(async () => {
         setLoading(true);
@@ -288,6 +312,7 @@ export default function Tenants() {
                 }),
                 api.get('/plans').catch(() => ({ data: { plans: [] } })),
             ]);
+            api.get('/tenants/summary').then(({ data }) => setSummary(data.summary)).catch(() => {});
             setTenants(tenantData.tenants);
             setPlans(planData.plans);
             setPagination(tenantData.pagination || { current_page: 1, last_page: 1, total: tenantData.tenants.length });
@@ -308,45 +333,6 @@ export default function Tenants() {
         load();
     }
 
-    async function createTenant(e) {
-        e.preventDefault();
-        setSaving(true);
-        setErrors({});
-        try {
-            await api.post('/tenants', form);
-            setCreating(false);
-            setForm({ name: '', slug: '', description: '', plan_id: '', trial_days: '' });
-            toast.success(`Tenant "${form.name}" created and provisioned.`);
-            await load();
-        } catch (e) {
-            setErrors(fieldErrors(e));
-        } finally {
-            setSaving(false);
-        }
-    }
-
-    function startEdit(tenant) {
-        setEditing(tenant);
-        setEditForm({ name: tenant.name, slug: tenant.slug, description: tenant.description || '' });
-        setEditErrors({});
-    }
-
-    async function saveEdit(e) {
-        e.preventDefault();
-        setEditSaving(true);
-        setEditErrors({});
-        try {
-            await api.put(`/tenants/${editing.id}`, editForm);
-            setEditing(null);
-            toast.success('Tenant updated.');
-            await load();
-        } catch (e) {
-            setEditErrors(fieldErrors(e));
-        } finally {
-            setEditSaving(false);
-        }
-    }
-
     const { q, status, plan_id, sort, trashed } = filters;
 
     function applyFilter(patch) {
@@ -354,14 +340,17 @@ export default function Tenants() {
         setPage(1);
     }
 
-    async function impersonate(tenant, user) {
+    async function impersonate({ reason, mode, grant_id }) {
+        const { tenant, user } = impersonateTarget;
         try {
-            await api.post('/impersonate', { user_id: user.id, tenant_id: tenant.id });
+            await api.post('/impersonate', { user_id: user.id, tenant_id: tenant.id, reason, mode, grant_id });
             await refresh();
-            toast.success(`Viewing panel as ${user.name}.`);
+            setImpersonateTarget(null);
+            toast.success(`Viewing panel as ${user.name}${mode === 'write' ? ' (changes enabled)' : ' (read-only)'}.`);
             navigate('/dashboard', { replace: true });
         } catch (e) {
-            toast.error(fieldErrors(e).form || 'Failed to impersonate.');
+            const errors = fieldErrors(e);
+            toast.error(errors.reason || errors.form || errors.user_id || errors.grant_id || errors.mode || 'Failed to impersonate.');
         }
     }
 
@@ -374,118 +363,36 @@ export default function Tenants() {
                         Every tenant is fully isolated with its own users, roles and permissions.
                     </p>
                 </div>
-                <Button size="md" onClick={() => setCreating((open) => !open)}>
+                <Button size="md" onClick={() => navigate('/tenants/new')}>
                     New tenant
                 </Button>
             </div>
 
             {error && <Alert>{error}</Alert>}
 
-            {creating && (
-                <Card title="Create tenant" subtitle="Users, roles and permissions are provisioned automatically.">
-                    <form onSubmit={createTenant} className="space-y-4">
-                        <Input
-                            label="Tenant name"
-                            name="name"
-                            placeholder="Acme Corp"
-                            value={form.name}
-                            onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
-                            error={errors.name}
-                            required
-                        />
-                        <Input
-                            label="Slug"
-                            name="slug"
-                            placeholder="acme"
-                            value={form.slug}
-                            onChange={(e) => setForm((f) => ({ ...f, slug: e.target.value }))}
-                            error={errors.slug}
-                            required
-                        />
-                        <Input
-                            label="Description (optional)"
-                            name="description"
-                            placeholder="What this tenant does"
-                            value={form.description}
-                            onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))}
-                            error={errors.description}
-                        />
-                        <div className="grid grid-cols-2 gap-4">
-                            <label className="block text-sm font-medium text-gray-700">
-                                Plan
-                                <select
-                                    name="plan_id"
-                                    value={form.plan_id}
-                                    onChange={(e) => setForm((f) => ({ ...f, plan_id: e.target.value }))}
-                                    className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200"
-                                >
-                                    <option value="">No subscription</option>
-                                    {plans.map((plan) => (
-                                        <option key={plan.id} value={plan.id}>
-                                            {plan.name}
-                                        </option>
-                                    ))}
-                                </select>
-                                {errors.plan_id && <span className="mt-1 block text-xs text-red-500">{errors.plan_id}</span>}
-                            </label>
-                            <Input
-                                label="Trial days (optional)"
-                                type="number"
-                                name="trial_days"
-                                placeholder="e.g. 14"
-                                value={form.trial_days}
-                                onChange={(e) => setForm((f) => ({ ...f, trial_days: e.target.value }))}
-                                error={errors.trial_days}
-                            />
+            {summary && (
+                <div className="space-y-3">
+                    <div className="grid grid-cols-2 gap-3 lg:grid-cols-5">
+                        <SummaryCard label="Tenants" value={summary.tenants.total} hint={`${summary.tenants.enabled} enabled · ${summary.tenants.disabled} disabled`} />
+                        <SummaryCard label="On trial" value={summary.tenants.by_status.trial || 0} hint={`${summary.subscriptions.trials_ending_7d} ending within 7 days`} />
+                        <SummaryCard label="Paying" value={summary.subscriptions.by_status.active || 0} hint={`${summary.subscriptions.by_status.past_due || 0} past due`} />
+                        <SummaryCard label="Est. MRR" value={new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(summary.mrr_cents / 100)} hint="active, auto-renewing" />
+                        <SummaryCard label="Drafts" value={summary.tenants.by_status.draft || 0} hint="setup incomplete" />
+                    </div>
+                    {summary.attention.length > 0 && (
+                        <div className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm">
+                            <p className="mb-1 font-semibold text-amber-900">Needs attention</p>
+                            <ul className="grid gap-x-6 gap-y-1 sm:grid-cols-2">
+                                {summary.attention.map((a, i) => (
+                                    <li key={`${a.tenant_id}-${i}`} className="flex justify-between gap-3">
+                                        <Link className="font-medium text-amber-900 hover:underline" to={`/tenants/${a.tenant_id}`}>{a.name}</Link>
+                                        <span className="text-amber-800">{a.reason}</span>
+                                    </li>
+                                ))}
+                            </ul>
                         </div>
-                        <div className="flex gap-2 pt-1">
-                            <Button type="button" variant="secondary" onClick={() => setCreating(false)}>
-                                Cancel
-                            </Button>
-                            <Button type="submit" loading={saving}>
-                                Create tenant
-                            </Button>
-                        </div>
-                    </form>
-                </Card>
-            )}
-
-            {editing && (
-                <Card title={`Edit ${editing.name}`} subtitle="Rename the tenant or adjust its slug.">
-                    <form onSubmit={saveEdit} className="space-y-4">
-                        <Input
-                            label="Tenant name"
-                            name="name"
-                            value={editForm.name}
-                            onChange={(e) => setEditForm((f) => ({ ...f, name: e.target.value }))}
-                            error={editErrors.name}
-                            required
-                        />
-                        <Input
-                            label="Slug"
-                            name="slug"
-                            value={editForm.slug}
-                            onChange={(e) => setEditForm((f) => ({ ...f, slug: e.target.value }))}
-                            error={editErrors.slug}
-                            required
-                        />
-                        <Input
-                            label="Description (optional)"
-                            name="description"
-                            value={editForm.description}
-                            onChange={(e) => setEditForm((f) => ({ ...f, description: e.target.value }))}
-                            error={editErrors.description}
-                        />
-                        <div className="flex gap-2 pt-1">
-                            <Button type="button" variant="secondary" onClick={() => setEditing(null)}>
-                                Cancel
-                            </Button>
-                            <Button type="submit" loading={editSaving}>
-                                Save
-                            </Button>
-                        </div>
-                    </form>
-                </Card>
+                    )}
+                </div>
             )}
 
             <Card className="p-0">
@@ -522,6 +429,19 @@ export default function Tenants() {
                         ))}
                     </select>
                     <select
+                        value={filters.subscription_status}
+                        onChange={(e) => applyFilter({ subscription_status: e.target.value })}
+                        className="rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200"
+                    >
+                        <option value="">Any subscription</option>
+                        <option value="trialing">Trialing</option>
+                        <option value="active">Active</option>
+                        <option value="past_due">Past due</option>
+                        <option value="canceled">Canceled</option>
+                        <option value="expired">Expired</option>
+                        <option value="none">No subscription</option>
+                    </select>
+                    <select
                         value={sort}
                         onChange={(e) => applyFilter({ sort: e.target.value })}
                         className="rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200"
@@ -537,7 +457,7 @@ export default function Tenants() {
                             type="checkbox"
                             checked={trashed}
                             onChange={(e) => applyFilter({ trashed: e.target.checked })}
-                            className="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                            className="h-4 w-4 rounded border-gray-300 text-[var(--accent)] focus:ring-[var(--accent-ring)]"
                         />
                         Include deleted
                     </label>
@@ -550,6 +470,7 @@ export default function Tenants() {
                                 <th className="px-4 py-2.5">Tenant</th>
                                 <th className="px-4 py-2.5">Status</th>
                                 <th className="px-4 py-2.5">Plan</th>
+                                <th className="px-4 py-2.5">Renews / trial ends</th>
                                 <th className="px-4 py-2.5">Users</th>
                                 <th className="px-4 py-2.5">Created</th>
                                 <th className="px-4 py-2.5 text-right">Actions</th>
@@ -558,7 +479,7 @@ export default function Tenants() {
                         <tbody className="divide-y divide-gray-50">
                             {loading ? (
                                 <tr>
-                                    <td colSpan={6} className="px-4 py-14 text-center">
+                                    <td colSpan={7} className="px-4 py-14 text-center">
                                         <div className="flex justify-center">
                                             <Spinner />
                                         </div>
@@ -566,7 +487,7 @@ export default function Tenants() {
                                 </tr>
                             ) : tenants.length === 0 ? (
                                 <tr>
-                                    <td colSpan={6} className="px-4 py-14 text-center text-sm text-gray-400">
+                                    <td colSpan={7} className="px-4 py-14 text-center text-sm text-gray-400">
                                         No tenants match these filters.
                                     </td>
                                 </tr>
@@ -576,7 +497,7 @@ export default function Tenants() {
                                         <td className="px-4 py-3">
                                             <Link
                                                 to={`/tenants/${tenant.id}`}
-                                                className="flex items-center gap-2 font-medium text-gray-800 hover:text-indigo-600"
+                                                className="flex items-center gap-2 font-medium text-gray-800 hover:text-[var(--accent)]"
                                             >
                                                 {tenant.name}
                                                 <Badge>{tenant.slug}</Badge>
@@ -600,16 +521,18 @@ export default function Tenants() {
                                                 <span className="text-sm text-gray-400">—</span>
                                             )}
                                         </td>
+                                        <td className="px-4 py-3 text-sm text-gray-600">
+                                            {renewalLabel(tenant)}
+                                        </td>
                                         <td className="px-4 py-3 text-sm text-gray-600">{tenant.users_count}</td>
                                         <td className="px-4 py-3 text-sm text-gray-500">
-                                            {new Date(tenant.created_at).toLocaleDateString()}
+                                            <Timestamp date={tenant.created_at} />
                                         </td>
                                         <td className="px-4 py-3 text-right">
                                             <TenantActions
                                                 tenant={tenant}
-                                                onEdited={startEdit}
                                                 onChanged={notify}
-                                                onImpersonate={(user) => impersonate(tenant, user)}
+                                                onImpersonate={(user) => setImpersonateTarget({ tenant, user })}
                                             />
                                         </td>
                                     </tr>
@@ -633,6 +556,11 @@ export default function Tenants() {
                     />
                 )}
             </Card>
+            <ImpersonateModal
+                target={impersonateTarget}
+                onCancel={() => setImpersonateTarget(null)}
+                onConfirm={impersonate}
+            />
         </div>
     );
 }

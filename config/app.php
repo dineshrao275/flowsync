@@ -13,7 +13,9 @@ return [
     |
     */
 
-    'name' => env('APP_NAME', 'Laravel'),
+    'name' => env('APP_NAME', 'FlowSync'),
+
+    'storage_prefix' => env('APP_STORAGE_PREFIX', 'flowsync'),
 
     /*
     |--------------------------------------------------------------------------

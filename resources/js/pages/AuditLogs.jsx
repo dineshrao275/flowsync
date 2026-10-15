@@ -1,12 +1,14 @@
 import { useCallback, useEffect, useState } from 'react';
 import api from '../services/api';
-import Card from '../components/ui/Card';
 import Badge from '../components/ui/Badge';
 import Spinner from '../components/ui/Spinner';
 import Button from '../components/ui/Button';
 import Pagination from '../components/ui/Pagination';
+import { Table, Th, Td, TableEmpty } from '../components/ui/Table';
 import usePageTitle from '../hooks/usePageTitle';
 import { useSetCrumbs } from '../context/BreadcrumbContext';
+import { useToast } from '../context/ToastContext';
+import Timestamp from '../components/ui/Timestamp';
 
 const TYPE_LABEL = { all: 'All activity', audit: 'System events', impersonation: 'Impersonations' };
 
@@ -18,7 +20,7 @@ function describe(action, data) {
         case 'platform.settings_updated':
             return `Updated platform settings (${(data?.keys || []).join(', ')})`;
         case 'system.user_created':
-            return `Created platform admin ${data?.email}`;
+            return `Created platform admin ${data?.after?.name}`;
         case 'plan.module_toggled':
             return `${data?.enabled ? 'Enabled' : 'Disabled'} module ${data?.module}`;
         case 'tenant.status_changed':
@@ -26,6 +28,14 @@ function describe(action, data) {
         case 'tenant.deleted':
         case 'tenant.restored':
             return action.split('.').map((w) => w[0].toUpperCase() + w.slice(1)).join(' ');
+        case 'auth.login':
+            return data?.via === 'registration' ? 'Signed in (registration)' : 'Signed in';
+        case 'auth.login_failed':
+            return 'Failed sign-in';
+        case 'auth.logout':
+            return 'Signed out';
+        case 'audit.exported':
+            return `Exported ${data?.rows ?? 0} audit rows`;
         default:
             return action;
     }
@@ -39,6 +49,17 @@ export default function AuditLogs() {
     const [type, setType] = useState('all');
     const [q, setQ] = useState('');
     const [loading, setLoading] = useState(true);
+    const toast = useToast();
+
+    async function verifyChain() {
+        try {
+            const { data } = await api.get('/system/audit-logs/verify');
+            if (data.ok) toast.success(`Audit chain intact: ${data.checked} sealed rows, ${data.tombstones} retention tombstones.`);
+            else toast.error(`Audit chain broken at row ${data.break.id}: ${data.break.reason}`);
+        } catch (e) {
+            toast.error('Could not verify the audit chain.');
+        }
+    }
 
     const fetchLogs = useCallback((page = 1) => {
         setLoading(true);
@@ -61,7 +82,7 @@ export default function AuditLogs() {
         <div className="space-y-6">
             <div>
                 <h1 className="text-2xl font-bold text-gray-800">Audit Logs</h1>
-                <p className="text-sm text-gray-500">Platform events + impersonations (latest 100 per source).</p>
+                <p className="text-sm text-gray-500">Platform events + impersonations across the full trail (paginated, exportable).</p>
             </div>
 
             <div className="flex flex-wrap items-center gap-2">
@@ -72,7 +93,7 @@ export default function AuditLogs() {
                             type="button"
                             onClick={() => setType(key)}
                             className={`px-3 py-2 text-sm font-medium ${
-                                type === key ? 'bg-indigo-600 text-white' : 'bg-white text-gray-600 hover:bg-gray-50'
+                                type === key ? 'bg-[var(--accent)] text-[var(--accent-contrast)]' : 'bg-white text-gray-600 hover:bg-gray-50'
                             }`}
                         >
                             {label}
@@ -89,35 +110,87 @@ export default function AuditLogs() {
                     />
                     <Button type="submit">Filter</Button>
                 </form>
+                <Button type="button" variant="secondary" className="ml-auto" onClick={verifyChain}>Verify chain</Button>
+                <a
+                    href={`/api/system/audit-logs/export?${new URLSearchParams({
+                        type,
+                        ...(q ? { q } : {}),
+                    }).toString()}`}
+                    className="inline-flex items-center gap-1.5 rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm font-medium text-gray-600 hover:bg-gray-50"
+                >
+                    Export CSV
+                </a>
             </div>
 
-            <Card>
-                {loading ? (
+            {loading ? (
+                <div className="flex justify-center py-12">
                     <Spinner />
-                ) : (
-                    <ul className="divide-y divide-gray-100">
-                        {items.map((item) => (
-                            <li key={item.id} className="flex items-start gap-3 py-3">
-                                <Badge>{item.type === 'impersonation' ? 'impersonation' : 'event'}</Badge>
-                                <div className="min-w-0 flex-1">
-                                    <p className="truncate text-sm font-medium text-gray-800">{describe(item.action, item.data)}</p>
-                                    <p className="truncate text-xs text-gray-400">
-                                        {item.actor?.name || 'System'} {item.actor?.email ? `(${item.actor.email})` : ''}
-                                        {item.tenant?.name ? ` · ${item.tenant.name}` : ''}
-                                        {item.subject_type ? ` · ${item.subject_type}` : ''}
-                                    </p>
-                                </div>
-                                <span className="shrink-0 text-xs text-gray-400">
-                                    {item.created_at ? new Date(item.created_at).toLocaleString() : '—'}
-                                </span>
-                            </li>
-                        ))}
-                        {items.length === 0 && (
-                            <li className="py-6 text-center text-gray-400">Nothing logged yet.</li>
+                </div>
+            ) : (
+                <Table>
+                    <thead>
+                        <tr>
+                            <Th align="right">When</Th>
+                            <Th>Actor</Th>
+                            <Th>Action</Th>
+                            <Th>Target</Th>
+                            <Th>Tenant</Th>
+                            <Th align="right">IP</Th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {items.length === 0 ? (
+                            <TableEmpty colSpan={6}>Nothing logged yet.</TableEmpty>
+                        ) : (
+                            items.map((item, index) => {
+                                const targetId = item.subject_id ?? item.data?.impersonated_user_id ?? null;
+
+                                return (
+                                    <tr
+                                        key={item.id}
+                                        className="animate-fade-in transition-colors duration-150 hover:bg-gray-50/60"
+                                        style={{ animationDelay: `${index * 30}ms` }}
+                                    >
+                                        <Td align="right" className="whitespace-nowrap text-xs text-gray-400">
+                                            <Timestamp date={item.created_at} />
+                                        </Td>
+                                        <Td>
+                                            <span className="block truncate font-medium text-gray-800">
+                                                {item.actor?.name || 'System'}
+                                            </span>
+                                            {item.actor?.email && (
+                                                <span className="block truncate text-xs text-gray-400">{item.actor.email}</span>
+                                            )}
+                                        </Td>
+                                        <Td>
+                                            <Badge>{item.type === 'impersonation' ? 'impersonation' : 'event'}</Badge>
+                                            <span className="mt-0.5 block truncate font-medium text-gray-800">
+                                                {describe(item.action, item.data)}
+                                            </span>
+                                        </Td>
+                                        <Td className="whitespace-nowrap text-gray-600">
+                                            {item.subject_type || targetId ? (
+                                                <span>
+                                                    {item.subject_type ?? '—'}
+                                                    {targetId ? <span className="tabular-nums"> #{targetId}</span> : null}
+                                                </span>
+                                            ) : (
+                                                '—'
+                                            )}
+                                        </Td>
+                                        <Td className="whitespace-nowrap">
+                                            {item.tenant?.name ?? <span className="text-gray-400">—</span>}
+                                        </Td>
+                                        <Td align="right" className="whitespace-nowrap text-xs text-gray-400">
+                                            {item.ip_address ?? '—'}
+                                        </Td>
+                                    </tr>
+                                );
+                            })
                         )}
-                    </ul>
-                )}
-            </Card>
+                    </tbody>
+                </Table>
+            )}
 
             {pagination && (
                 <Pagination

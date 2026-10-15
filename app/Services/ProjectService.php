@@ -62,6 +62,8 @@ class ProjectService
             'key' => $key,
             'description' => $data['description'] ?? null,
             'icon' => $data['icon'] ?? null,
+            'color' => $data['color'] ?? null,
+            'default_assignee_id' => $data['default_assignee_id'] ?? null,
             'start_date' => $data['start_date'] ?? null,
             'due_date' => $data['due_date'] ?? null,
         ]);
@@ -81,10 +83,12 @@ class ProjectService
     {
         $project->update([
             'name' => $data['name'],
-            'description' => $data['description'] ?? $project->description,
-            'icon' => $data['icon'] ?? $project->icon,
-            'start_date' => $data['start_date'] ?? $project->start_date,
-            'due_date' => $data['due_date'] ?? $project->due_date,
+            'description' => array_key_exists('description', $data) ? $data['description'] : $project->description,
+            'icon' => array_key_exists('icon', $data) ? $data['icon'] : $project->icon,
+            'color' => array_key_exists('color', $data) ? $data['color'] : $project->color,
+            'default_assignee_id' => array_key_exists('default_assignee_id', $data) ? $data['default_assignee_id'] : $project->default_assignee_id,
+            'start_date' => array_key_exists('start_date', $data) ? $data['start_date'] : $project->start_date,
+            'due_date' => array_key_exists('due_date', $data) ? $data['due_date'] : $project->due_date,
         ]);
 
         return $project;
@@ -224,6 +228,7 @@ class ProjectService
             'color' => $data['color'] ?? null,
             'is_default' => $data['is_default'] ?? false,
             'is_done' => $data['category'] === 'done',
+            'wip_limit' => $data['wip_limit'] ?? null,
         ]);
 
         $this->normalizePositions($project);
@@ -238,6 +243,8 @@ class ProjectService
             'category' => TaskStatusCategory::from($data['category'] ?? $status->category->value),
             'color' => $data['color'] ?? $status->color,
             'is_done' => $data['is_done'] ?? ($data['category'] ?? $status->category->value) === 'done',
+            // `wip_limit: null` clears the limit, so null must reach the model.
+            'wip_limit' => array_key_exists('wip_limit', $data) ? $data['wip_limit'] : $status->wip_limit,
         ]);
 
         if (isset($data['position'])) {

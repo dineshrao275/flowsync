@@ -1,6 +1,7 @@
 *.log
 .DS_Store
 .env
+.env.docker
 .env.backup
 .env.production
 .phpactor.json
@@ -22,3 +23,7 @@
 Homestead.json
 Homestead.yaml
 Thumbs.db
+.agents/orchestrator/mcp-server/node_modules/
+.agents/workflow/
+.claude/
+figma

@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
@@ -9,6 +10,8 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Project extends Model
 {
+    use HasFactory;
+
     protected $fillable = [
         'workspace_id',
         'created_by',
@@ -17,10 +20,13 @@ class Project extends Model
         'key',
         'description',
         'icon',
+        'color',
+        'default_assignee_id',
         'start_date',
         'due_date',
         'last_task_sequence',
         'archived_at',
+        'enforce_workflow',
     ];
 
     protected function casts(): array
@@ -29,8 +35,24 @@ class Project extends Model
             'start_date' => 'date',
             'due_date' => 'date',
             'archived_at' => 'datetime',
+            'enforce_workflow' => 'boolean',
             'last_task_sequence' => 'integer',
         ];
+    }
+
+    public function defaultAssignee(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'default_assignee_id');
+    }
+
+    public function components(): HasMany
+    {
+        return $this->hasMany(ProjectComponent::class);
+    }
+
+    public function versions(): HasMany
+    {
+        return $this->hasMany(ProjectVersion::class);
     }
 
     public function workspace(): BelongsTo
@@ -63,6 +85,16 @@ class Project extends Model
     public function tasks(): HasMany
     {
         return $this->hasMany(Task::class);
+    }
+
+    public function sprints(): HasMany
+    {
+        return $this->hasMany(Sprint::class);
+    }
+
+    public function automationRules(): HasMany
+    {
+        return $this->hasMany(AutomationRule::class);
     }
 
     public function memberRole(User $user): ?ProjectRole

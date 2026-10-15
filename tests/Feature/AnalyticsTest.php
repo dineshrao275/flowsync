@@ -162,4 +162,41 @@ class AnalyticsTest extends TestCase
     {
         $this->getJson('/api/analytics/overview')->assertUnauthorized();
     }
+
+    public function test_analytics_accepts_a_range_and_scopes_the_series(): void
+    {
+        $this->loginAs('admin@flowsync.test');
+
+        $workspace = $this->makeWorkspace();
+        $project = $this->createProject($workspace);
+        $old = $this->makeTask($project, 'Old done', ['completed_at' => now()->subDays(60)]);
+        // created_at rides the query builder: the factory stamps now, which
+        // would silently join the window under test.
+        Task::query()->whereKey($old->id)->update(['created_at' => now()->subDays(60)]);
+        $recent = $this->makeTask($project, 'Fresh');
+        $this->makeLog($recent, 60);
+
+        $from = now()->subDays(6)->toDateString();
+        $to = now()->toDateString();
+
+        $this->getJson("/api/analytics/overview?from={$from}&to={$to}")
+            ->assertOk()
+            ->assertJsonPath('range.days', 7)
+            ->assertJsonPath('range.from', $from)
+            ->assertJsonPath('range.to', $to)
+            ->assertJsonPath('counts.created_in_range', 1)
+            ->assertJsonPath('work_logs.total_minutes', 60)
+            ->assertJsonCount(7, 'work_logs.daily')
+            ->assertJsonCount(7, 'tasks_created.daily')
+            ->assertJsonPath('tasks_created.daily.6.count', 1);
+    }
+
+    public function test_analytics_rejects_bad_ranges(): void
+    {
+        $this->loginAs('admin@flowsync.test');
+
+        $this->getJson('/api/analytics/overview?from=2026-05-01&to=2026-04-01')->assertUnprocessable();
+        $this->getJson('/api/analytics/overview?from=2024-01-01&to=2026-12-31')->assertStatus(422);
+        $this->getJson('/api/analytics/overview?from=not-a-date')->assertUnprocessable();
+    }
 }

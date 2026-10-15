@@ -7,22 +7,25 @@ import Spinner from '../components/ui/Spinner';
 import Alert from '../components/ui/Alert';
 import Button from '../components/ui/Button';
 import Input from '../components/ui/Input';
+import Tabs from '../components/ui/Tabs';
 import { useAuth } from '../context/AuthContext';
+import AutomationPanel from '../components/automation/AutomationPanel';
+import SprintsPanel from '../components/sprints/SprintsPanel';
+import HierarchyPanel from '../components/hierarchy/HierarchyPanel';
+import WorkflowRules from '../components/tasks/WorkflowRules';
 import { useToast } from '../context/ToastContext';
+import { useConfirm } from '../components/ui/ConfirmDialog';
 import { useSetCrumbs } from '../context/BreadcrumbContext';
 import KanbanBoard from '../components/tasks/KanbanBoard';
 import TaskTable from '../components/tasks/TaskTable';
+import RichTextEditor from '../components/ui/RichTextEditor';
+import RichText from '../components/ui/RichText';
 import FiltersBar from '../components/tasks/FiltersBar';
 import CreateTaskModal from '../components/tasks/CreateTaskModal';
 import TaskDetail from '../components/tasks/TaskDetail';
 import TimeSummary from '../components/time/TimeSummary';
 import usePageTitle from '../hooks/usePageTitle';
-
-const ROLE_LABELS = {
-    lead: 'Lead',
-    developer: 'Developer',
-    viewer: 'Viewer',
-};
+import { projectRoleLabel } from '../utils/roles';
 
 const CATEGORY_LABELS = {
     todo: 'To do',
@@ -32,34 +35,15 @@ const CATEGORY_LABELS = {
 
 const DEFAULT_COLORS = ['#6366f1', '#0ea5e9', '#f59e0b', '#10b981', '#ef4444', '#8b5cf6'];
 
-function Tabs({ tabs, active, onChange }) {
-    return (
-        <div className="flex gap-1 border-b border-gray-200">
-            {tabs.map((tab) => (
-                <button
-                    key={tab.key}
-                    type="button"
-                    onClick={() => onChange(tab.key)}
-                    className={`-mb-px border-b-2 px-4 py-2.5 text-sm font-medium transition ${active === tab.key
-                            ? 'border-indigo-600 text-indigo-600'
-                            : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700'
-                        }`}
-                >
-                    {tab.label}
-                </button>
-            ))}
-        </div>
-    );
-}
-
 export default function ProjectDetail() {
     const { projectId } = useParams();
     const navigate = useNavigate();
     const { user, can, hasModule } = useAuth();
     const toast = useToast();
+    const confirm = useConfirm();
     const setCrumbs = useSetCrumbs();
-    usePageTitle(project?.name || 'Project');
     const [project, setProject] = useState(null);
+    usePageTitle(project?.name || 'Project');
     const [members, setMembers] = useState([]);
     const [roles, setRoles] = useState([]);
     const [statuses, setStatuses] = useState([]);
@@ -80,22 +64,31 @@ export default function ProjectDetail() {
     const [updating, setUpdating] = useState(false);
 
     const [memberForm, setMemberForm] = useState({ user_id: '', role_id: '' });
-    const [statusForm, setStatusForm] = useState({ name: '', category: 'todo', color: DEFAULT_COLORS[0] });
+    const [statusForm, setStatusForm] = useState({ name: '', category: 'todo', color: DEFAULT_COLORS[0], wip_limit: null });
+    const [issueTypes, setIssueTypes] = useState([]);
+    const [issueTypeForm, setIssueTypeForm] = useState({ name: '', description: '', color: '#3b82f6', is_subtask: false });
+    const [savingIssueType, setSavingIssueType] = useState(false);
+    const [issueTypeErrors, setIssueTypeErrors] = useState({});
     const [formErrors, setFormErrors] = useState({});
     const [savingMember, setSavingMember] = useState(false);
     const [savingStatus, setSavingStatus] = useState(false);
+    const [settingsDates, setSettingsDates] = useState(null);
 
     const [view, setView] = useState('board');
+    const [swimlane, setSwimlane] = useState('none');
     const [filters, setFilters] = useState({});
     const [board, setBoard] = useState(null);
     const [listTasks, setListTasks] = useState([]);
     const [pagination, setPagination] = useState(null);
+    const [page, setPage] = useState(1);
     const [taskOptions, setTaskOptions] = useState({ statuses: [], priorities: [], assignees: [], labels: [] });
     const [selectedTask, setSelectedTask] = useState(null);
     const [selectedTaskSection, setSelectedTaskSection] = useState(null);
+    const [selectedCommentId, setSelectedCommentId] = useState(null);
     const [showCreate, setShowCreate] = useState(false);
     const [savingTask, setSavingTask] = useState(false);
     const [loadingTasks, setLoadingTasks] = useState(false);
+    const [tasksError, setTasksError] = useState(null);
 
     const isProjectManager = can('workspaces.manage') || project?.my_role === 'lead';
     const archived = Boolean(project?.archived_at);
@@ -103,7 +96,10 @@ export default function ProjectDetail() {
     const isTaskAdmin = can('workspaces.manage');
     const isLead = project?.my_role === 'lead';
     const isDev = project?.my_role === 'developer';
-    const canCreateTask = isTaskAdmin || isLead || isDev;
+    // A read-only impersonation session is refused by the server on every write;
+    // hide the controls instead of letting each one fail with a 403.
+    const readOnlySession = Boolean(user?.impersonating) && user?.impersonation_mode === 'read_only';
+    const canCreateTask = !readOnlySession && (isTaskAdmin || isLead || isDev);
     const canEditTask = canCreateTask;
     const canAssignTask = canCreateTask;
     const canMoveTask = canCreateTask;
@@ -119,14 +115,16 @@ export default function ProjectDetail() {
             api.get(`/projects/${projectId}/members`),
             api.get(`/projects/${projectId}/statuses`),
             api.get('/project-roles'),
+            api.get('/issue-types'),
             can('users.view') ? api.get('/users') : Promise.resolve({ data: { users: [] } }),
         ])
-            .then(([proj, mem, st, ro, users]) => {
+            .then(([proj, mem, st, ro, it, users]) => {
                 if (!active) return;
                 setProject(proj.data.project);
                 setMembers(mem.data.members);
                 setStatuses(st.data.statuses);
                 setRoles(ro.data.roles);
+                setIssueTypes(it.data.issue_types);
                 setCandidateUsers(
                     users.data.users.filter((u) => !mem.data.members.some((m) => m.id === u.id)),
                 );
@@ -152,6 +150,10 @@ export default function ProjectDetail() {
     }, [projectId]);
 
     useEffect(() => {
+        setSettingsDates(null);
+    }, [projectId]);
+
+    useEffect(() => {
         setCrumbs(
             project
                 ? [
@@ -163,30 +165,30 @@ export default function ProjectDetail() {
         );
     }, [project, setCrumbs]);
 
-    function refresh() {
-        return Promise.all([
-            api.get(`/projects/${projectId}`),
-            api.get(`/projects/${projectId}/members`),
-            api.get(`/projects/${projectId}/statuses`),
-        ]).then(([proj, mem, st]) => {
-            setProject(proj.data.project);
-            setMembers(mem.data.members);
-            setStatuses(st.data.statuses);
-        });
-    }
+    // Latest request wins: a slow earlier fetch (view toggle, filter change, a
+    // realtime refetch) must never overwrite a newer board with stale data.
+    const loadSeqRef = useRef(0);
 
     function loadTasks() {
+        const seq = ++loadSeqRef.current;
+        const requestedView = view;
         const params = {};
-        if (view === 'list') params.view = 'list';
+        if (view === 'list') {
+            params.view = 'list';
+            params.page = page;
+        }
+        if (view === 'board' && swimlane === 'assignee') params.swimlane = 'assignee';
         Object.entries(filters).forEach(([key, value]) => {
             if (value !== '' && value != null) params[key] = value;
         });
 
         setLoadingTasks(true);
+        setTasksError(null);
         return api
             .get(`/projects/${projectId}/tasks`, { params })
             .then(({ data }) => {
-                if (view === 'board') {
+                if (seq !== loadSeqRef.current) return;
+                if (requestedView === 'board') {
                     setBoard(data.board);
                 } else {
                     setListTasks(data.tasks);
@@ -194,51 +196,115 @@ export default function ProjectDetail() {
                 }
                 setTaskOptions(data.filters);
             })
-            .catch(() => { })
-            .finally(() => setLoadingTasks(false));
+            .catch((err) => {
+                if (seq !== loadSeqRef.current) return;
+                if (err?.response?.status === 403) {
+                    navigate('/403', { replace: true });
+                    return;
+                }
+                setTasksError('Unable to load tasks.');
+            })
+            .finally(() => {
+                if (seq === loadSeqRef.current) setLoadingTasks(false);
+            });
     }
 
     useEffect(() => {
-        if (!project || tab !== 'tasks') return;
+        // The automation builder borrows the task filter options (labels, priorities) from the same payload.
+        if (!project || (tab !== 'tasks' && tab !== 'automation')) return;
         loadTasks();
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [projectId, tab, view, filters]);
+    }, [projectId, tab, view, swimlane, filters, page]);
+
+    // A filter change or a deletion can strand the list past its last page —
+    // fall back instead of showing an empty table.
+    useEffect(() => {
+        if (pagination && view === 'list' && page > pagination.last_page) {
+            setPage(pagination.last_page);
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [pagination]);
+
+    const tabRef = useRef(tab);
+    tabRef.current = tab;
+    const selectedTaskRef = useRef(selectedTask);
+    selectedTaskRef.current = selectedTask;
+    const loadTasksRef = useRef(loadTasks);
+    loadTasksRef.current = loadTasks;
 
     useEffect(() => {
         if (!project || !window.Echo) return undefined;
         const channel = window.Echo.private(`project.${projectId}`);
-        channel.listen('.task.synced', () => {
-            if (tab === 'tasks') loadTasks();
+        channel.listen('.task.synced', (event) => {
+            if (tabRef.current === 'tasks') {
+                loadTasksRef.current();
+            }
+            if (selectedTaskRef.current && (!event?.task_id || event.task_id === selectedTaskRef.current.id)) {
+                api.get(`/projects/${projectId}/tasks/${selectedTaskRef.current.id}`)
+                    .then(({ data }) => setSelectedTask(data.task))
+                    .catch(() => {});
+            }
         });
         return () => {
             channel.stopListening('.task.synced');
             window.Echo.leaveChannel(channel.name);
         };
-        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [projectId, project]);
 
-    function openTask(task, section = null) {
+    function openTask(task, section = null, commentId = null) {
         setSelectedTaskSection(section);
+        setSelectedCommentId(commentId);
         api.get(`/projects/${projectId}/tasks/${task.id}`)
             .then(({ data }) => setSelectedTask(data.task))
-            .catch(() => setSelectedTask(task));
+            .catch((err) => {
+                if (err?.response?.status === 403) {
+                    toast.error('You do not have permission to view this task.');
+                    setSelectedTask(null);
+                    setSelectedTaskSection(null);
+                    setSelectedCommentId(null);
+                } else {
+                    setSelectedTask(task);
+                }
+            });
     }
 
     const DEEP_SECTIONS = ['comments', 'attachments', 'dependencies', 'time', 'activity'];
 
     const openedDeepTaskRef = useRef(null);
+    const fetchedDeepTaskRef = useRef(null);
     useEffect(() => {
         const deepKey = searchParams.get('task');
-        if (!project || tab !== 'tasks' || !deepKey || openedDeepTaskRef.current === deepKey) return;
+        const section = searchParams.get('section');
+        const commentId = searchParams.get('comment');
+        const deepStateKey = deepKey ? `${deepKey}:${section ?? ''}:${commentId ?? ''}` : null;
+
+        if (!project || tab !== 'tasks' || !deepKey || openedDeepTaskRef.current === deepStateKey) return;
         const pool = view === 'board'
-            ? board?.statuses.flatMap((s) => s.tasks) ?? []
+            ? ((board?.statuses ?? board?.swimlanes?.flatMap((lane) => lane.statuses)) ?? []).flatMap((s) => s.tasks)
             : listTasks;
         const found = pool.find((t) => t.key === deepKey);
         if (found) {
-            openedDeepTaskRef.current = deepKey;
-            const section = searchParams.get('section');
-            openTask(found, DEEP_SECTIONS.includes(section) ? section : null);
+            openedDeepTaskRef.current = deepStateKey;
+            openTask(found, DEEP_SECTIONS.includes(section) ? section : null, commentId);
+            return;
         }
+        // Not in this view's pool (subtasks never ride the board; filters
+        // can hide anything): resolve by key directly so the drawer opens
+        // in either view. One attempt per key — a 404 stays closed.
+        if (fetchedDeepTaskRef.current === deepStateKey) return;
+        fetchedDeepTaskRef.current = deepStateKey;
+        api.get(`/projects/${projectId}/tasks/key/${encodeURIComponent(deepKey)}`)
+            .then(({ data }) => {
+                openedDeepTaskRef.current = deepStateKey;
+                openTask(data.task, DEEP_SECTIONS.includes(section) ? section : null, commentId);
+            })
+            .catch((err) => {
+                if (err?.response?.status === 403) {
+                    toast.error('You do not have permission to view this task.');
+                } else if (err?.response?.status === 404) {
+                    toast.error('Task not found.');
+                }
+            });
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [project, tab, view, board, listTasks, searchParams]);
 
@@ -250,6 +316,7 @@ export default function ProjectDetail() {
         if (next !== 'tasks') {
             params.delete('task');
             params.delete('section');
+            params.delete('comment');
         }
         navigate(`?${params.toString()}`);
     }
@@ -257,15 +324,17 @@ export default function ProjectDetail() {
     function handleDragEnd({ active, over }) {
         if (!over || active.id === over.id || !board) return;
 
+        const columns = board.statuses ?? board.swimlanes.flatMap((lane) => lane.statuses);
+
         let statusId;
         let index;
         const colMatch = String(over.id).match(/^col-(\d+)$/);
         if (colMatch) {
             statusId = Number(colMatch[1]);
-            index = board.statuses.find((s) => s.id === statusId)?.tasks.length ?? 0;
+            index = columns.find((s) => s.id === statusId)?.tasks.length ?? 0;
         } else {
             let found = null;
-            board.statuses.forEach((s) => {
+            columns.forEach((s) => {
                 const i = s.tasks.findIndex((t) => t.id === over.id);
                 if (i >= 0 && !found) found = { status: s, index: i };
             });
@@ -274,10 +343,10 @@ export default function ProjectDetail() {
             index = found.index;
         }
 
-        const task = board.statuses.flatMap((s) => s.tasks).find((t) => t.id === active.id);
+        const task = columns.flatMap((s) => s.tasks).find((t) => t.id === active.id);
         if (!task) return;
 
-        const dest = board.statuses.find((s) => s.id === statusId);
+        const dest = columns.find((s) => s.id === statusId);
         if (task.status_id === statusId && (dest?.tasks.findIndex((t) => t.id === task.id) ?? -1) === index) {
             return;
         }
@@ -287,7 +356,14 @@ export default function ProjectDetail() {
                 toast.success(`${task.key} moved.`);
                 loadTasks();
             })
-            .catch((e) => toast.error(fieldErrors(e).form || 'Could not move task.'));
+            .catch((e) => {
+                const status = e?.response?.status;
+                const message = status === 403
+                    ? (e.response.data?.message || 'You do not have permission to move this task.')
+                    : (fieldErrors(e).form || 'Could not move task.');
+                toast.error(message);
+                loadTasks(); // snap the card back to where the server says it is
+            });
     }
 
     function createTask(data) {
@@ -323,7 +399,7 @@ export default function ProjectDetail() {
 
     async function deleteTask() {
         if (!selectedTask) return;
-        if (!window.confirm(`Delete ${selectedTask.key}? This cannot be undone.`)) return;
+        if (!(await confirm({ title: 'Delete task?', message: `Delete ${selectedTask.key}? This cannot be undone.`, variant: 'danger' }))) return;
         setSavingTask(true);
         try {
             await api.delete(`/projects/${projectId}/tasks/${selectedTask.id}`);
@@ -344,6 +420,7 @@ export default function ProjectDetail() {
         api.put(`/projects/${projectId}`, fields)
             .then(({ data }) => {
                 setProject(data.project);
+                setSettingsDates(null);
                 toast.success('Project updated.');
             })
             .catch((e) => setFormErrors(fieldErrors(e)))
@@ -371,7 +448,7 @@ export default function ProjectDetail() {
     }
 
     async function deleteProject() {
-        if (!window.confirm('Permanently delete this project? This cannot be undone.')) return;
+        if (!(await confirm({ title: 'Delete project?', message: 'Permanently delete this project? This cannot be undone.', variant: 'danger' }))) return;
         try {
             await api.delete(`/projects/${projectId}`);
             toast.success('Project deleted.');
@@ -420,7 +497,7 @@ export default function ProjectDetail() {
     }
 
     async function removeMember(member) {
-        if (!window.confirm(`Remove ${member.name} from this project?`)) return;
+        if (!(await confirm({ title: 'Remove member?', message: `Remove ${member.name} from this project?`, variant: 'danger' }))) return;
         try {
             await api.delete(`/projects/${projectId}/members/${member.id}`);
             await loadMemberCandidates();
@@ -463,7 +540,7 @@ export default function ProjectDetail() {
     }
 
     async function deleteStatus(status) {
-        if (!window.confirm(`Delete status "${status.name}"? Tasks in it must move first.`)) return;
+        if (!(await confirm({ title: 'Delete status?', message: `Delete status "${status.name}"? Tasks in it must move first.`, variant: 'danger' }))) return;
         try {
             await api.delete(`/projects/${projectId}/statuses/${status.id}`);
             const { data } = await api.get(`/projects/${projectId}/statuses`);
@@ -471,6 +548,53 @@ export default function ProjectDetail() {
             toast.success('Status deleted.');
         } catch (e) {
             toast.error(fieldErrors(e).form || 'Could not delete status.');
+        }
+    }
+
+    async function loadIssueTypes() {
+        try {
+            const { data } = await api.get('/issue-types');
+            setIssueTypes(data.issue_types);
+            setTaskOptions((opts) => ({ ...opts, issue_types: data.issue_types }));
+        } catch {
+            // ignore
+        }
+    }
+
+    async function addIssueType(e) {
+        e.preventDefault();
+        setSavingIssueType(true);
+        setIssueTypeErrors({});
+        try {
+            await api.post('/issue-types', issueTypeForm);
+            await loadIssueTypes();
+            setIssueTypeForm({ name: '', description: '', color: '#3b82f6', is_subtask: false });
+            toast.success('Issue type created.');
+        } catch (e) {
+            setIssueTypeErrors(fieldErrors(e));
+        } finally {
+            setSavingIssueType(false);
+        }
+    }
+
+    async function updateIssueType(type, fields) {
+        try {
+            await api.put(`/issue-types/${type.id}`, fields);
+            await loadIssueTypes();
+            toast.success('Issue type updated.');
+        } catch (e) {
+            toast.error(fieldErrors(e).name || fieldErrors(e).form || 'Could not update issue type.');
+        }
+    }
+
+    async function deleteIssueType(type) {
+        if (!(await confirm({ title: 'Delete issue type?', message: `Delete issue type "${type.name}"?`, variant: 'danger' }))) return;
+        try {
+            await api.delete(`/issue-types/${type.id}`);
+            await loadIssueTypes();
+            toast.success('Issue type deleted.');
+        } catch (e) {
+            toast.error(fieldErrors(e).form || 'Could not delete issue type.');
         }
     }
 
@@ -493,9 +617,12 @@ export default function ProjectDetail() {
     const tabs = [
         { key: 'overview', label: 'Overview' },
         { key: 'tasks', label: 'Tasks' },
+        { key: 'hierarchy', label: 'Hierarchy' },
         { key: 'members', label: `Members (${members.length})` },
         { key: 'workflow', label: 'Workflow' },
         ...(hasModule('time_tracking') ? [{ key: 'time', label: 'Time' }] : []),
+        ...(hasModule('sprints') ? [{ key: 'sprints', label: 'Sprints' }] : []),
+        ...(isProjectManager && hasModule('automation') ? [{ key: 'automation', label: 'Automation' }] : []),
         ...(isProjectManager ? [{ key: 'settings', label: 'Settings' }] : []),
     ];
 
@@ -514,10 +641,14 @@ export default function ProjectDetail() {
                     <div>
                         <div className="flex flex-wrap items-center gap-2">
                             <h2 className="text-2xl font-bold text-gray-900">{project.name}</h2>
-                            {project.my_role && <Badge>{ROLE_LABELS[project.my_role]?.toLowerCase() || project.my_role}</Badge>}
+                            {project.my_role && <Badge>{projectRoleLabel(project.my_role)}</Badge>}
                             {archived && <Badge>archived</Badge>}
                         </div>
-                        <p className="mt-1 text-sm text-gray-500">{project.description || 'No description'}</p>
+                        {project.description ? (
+                            <RichText value={project.description} className="mt-1 text-gray-500" />
+                        ) : (
+                            <p className="mt-1 text-sm text-gray-500">No description</p>
+                        )}
                         <p className="mt-0.5 text-xs text-gray-400">{project.key}</p>
                     </div>
                 </div>
@@ -608,21 +739,38 @@ export default function ProjectDetail() {
                             <div className="flex rounded-lg border border-gray-300 p-0.5">
                                 <button
                                     type="button"
-                                    onClick={() => setView('board')}
-                                    className={`rounded-md px-3 py-1.5 text-sm font-medium transition ${view === 'board' ? 'bg-indigo-600 text-white' : 'text-gray-600 hover:bg-gray-100'
+                                    onClick={() => {
+                                        setView('board');
+                                        setPage(1);
+                                    }}
+                                    className={`rounded-md px-3 py-1.5 text-sm font-medium transition ${view === 'board' ? 'bg-[var(--accent)] text-[var(--accent-contrast)]' : 'text-gray-600 hover:bg-gray-100'
                                         }`}
                                 >
                                     Board
                                 </button>
                                 <button
                                     type="button"
-                                    onClick={() => setView('list')}
-                                    className={`rounded-md px-3 py-1.5 text-sm font-medium transition ${view === 'list' ? 'bg-indigo-600 text-white' : 'text-gray-600 hover:bg-gray-100'
+                                    onClick={() => {
+                                        setView('list');
+                                        setPage(1);
+                                    }}
+                                    className={`rounded-md px-3 py-1.5 text-sm font-medium transition ${view === 'list' ? 'bg-[var(--accent)] text-[var(--accent-contrast)]' : 'text-gray-600 hover:bg-gray-100'
                                         }`}
                                 >
                                     List
                                 </button>
                             </div>
+                            {view === 'board' && (
+                                <select
+                                    value={swimlane}
+                                    onChange={(e) => setSwimlane(e.target.value)}
+                                    className="rounded-lg border border-gray-300 bg-white px-2 py-1.5 text-sm text-gray-600 shadow-sm focus:outline-none"
+                                    title="Group the board into swimlanes"
+                                >
+                                    <option value="none">No swimlanes</option>
+                                    <option value="assignee">Swimlanes by assignee</option>
+                                </select>
+                            )}
                             {loadingTasks && <Spinner className="h-5 w-5" />}
                         </div>
                         {canCreateTask && (
@@ -631,10 +779,19 @@ export default function ProjectDetail() {
                     </div>
 
                     <Card>
-                        <FiltersBar filters={filters} options={taskOptions} onChange={setFilters} />
+                        <FiltersBar
+                            filters={filters}
+                            options={{ ...taskOptions, sprints: hasModule('sprints') }}
+                            onChange={(next) => {
+                                setFilters(next);
+                                setPage(1);
+                            }}
+                        />
                     </Card>
 
-                    {view === 'board' && board ? (
+                    {tasksError ? (
+                        <Alert>{tasksError}</Alert>
+                    ) : view === 'board' && board ? (
                         <KanbanBoard
                             board={board}
                             canMove={canMoveTask}
@@ -646,10 +803,12 @@ export default function ProjectDetail() {
                         <div className="space-y-3">
                             <TaskTable tasks={listTasks} canEdit={canEditTask} onOpen={openTask} />
                             {pagination && (
-                                <p className="text-xs text-gray-500">
-                                    Page {pagination.current_page} of {pagination.last_page} · {pagination.total} task
-                                    {pagination.total === 1 ? '' : 's'}
-                                </p>
+                                <Pagination
+                                    page={pagination.current_page}
+                                    pages={pagination.last_page}
+                                    total={pagination.total}
+                                    onChange={setPage}
+                                />
                             )}
                         </div>
                     ) : null}
@@ -734,7 +893,7 @@ export default function ProjectDetail() {
                                                         ))}
                                                     </select>
                                                 ) : (
-                                                    <Badge>{ROLE_LABELS[member.role.slug]?.toLowerCase() || member.role.name.toLowerCase()}</Badge>
+                                                    <Badge>{projectRoleLabel(member.role.slug, member.role.name)}</Badge>
                                                 )
                                             ) : (
                                                 <Badge>member</Badge>
@@ -753,8 +912,23 @@ export default function ProjectDetail() {
                 </div>
             )}
 
+            {tab === 'hierarchy' && <HierarchyPanel projectId={projectId} />}
+
+            {tab === 'sprints' && hasModule('sprints') && <SprintsPanel projectId={projectId} canPlan={isProjectManager} />}
+
+            {tab === 'automation' && isProjectManager && hasModule('automation') && (
+                <AutomationPanel
+                    projectId={projectId}
+                    members={members}
+                    statuses={statuses}
+                    labels={taskOptions.labels || []}
+                    priorities={taskOptions.priorities || []}
+                />
+            )}
+
             {tab === 'workflow' && isProjectManager && (
                 <div className="space-y-5">
+                    <WorkflowRules projectId={projectId} />
                     <Card title="New status" subtitle="Ordered by position. 'Done' category finishes the flow.">
                         <form onSubmit={addStatus} className="flex flex-col gap-3 sm:flex-row sm:items-end">
                             <div className="flex-1">
@@ -787,6 +961,17 @@ export default function ProjectDetail() {
                                     className="h-[42px] w-16 rounded-lg border border-gray-300 bg-white p-1 shadow-sm focus:outline-none"
                                     value={statusForm.color}
                                     onChange={(e) => setStatusForm((f) => ({ ...f, color: e.target.value }))}
+                                />
+                            </div>
+                            <div>
+                                <Input
+                                    label="WIP limit (optional)"
+                                    name="status-wip"
+                                    type="number"
+                                    min="1"
+                                    placeholder="Unlimited"
+                                    value={statusForm.wip_limit ?? ''}
+                                    onChange={(e) => setStatusForm((f) => ({ ...f, wip_limit: e.target.value === '' ? null : Number(e.target.value) }))}
                                 />
                             </div>
                             <Button type="submit" loading={savingStatus}>
@@ -846,6 +1031,20 @@ export default function ProjectDetail() {
                                             <option value="in_progress">In progress</option>
                                             <option value="done">Done</option>
                                         </select>
+                                        <input
+                                            type="number"
+                                            min="1"
+                                            placeholder="WIP"
+                                            title="WIP limit (leave empty for unlimited)"
+                                            className="w-16 rounded-lg border border-gray-300 bg-white px-2 py-1 text-xs shadow-sm focus:border-indigo-300 focus:outline-none"
+                                            defaultValue={status.wip_limit ?? ''}
+                                            onBlur={(e) => {
+                                                const next = e.target.value === '' ? null : Number(e.target.value);
+                                                if ((next ?? '') !== (status.wip_limit ?? '')) {
+                                                    updateStatus(status, { wip_limit: next });
+                                                }
+                                            }}
+                                        />
                                         {status.is_default && <Badge>default</Badge>}
                                         <Button size="sm" variant="ghost" onClick={() => deleteStatus(status)}>
                                             Delete
@@ -854,6 +1053,106 @@ export default function ProjectDetail() {
                                 </li>
                             ))}
                         </ol>
+                    </Card>
+
+                    <Card title="Issue types" subtitle="Tenant-level issue types available across projects.">
+                        {can('workspaces.manage') && (
+                            <form onSubmit={addIssueType} className="mb-6 flex flex-col gap-3 rounded-lg border border-gray-100 bg-gray-50/50 p-4 sm:flex-row sm:items-end">
+                                <div className="flex-1">
+                                    <Input
+                                        label="Name"
+                                        placeholder="e.g. Incident, Improvement"
+                                        value={issueTypeForm.name}
+                                        onChange={(e) => setIssueTypeForm((f) => ({ ...f, name: e.target.value }))}
+                                        error={issueTypeErrors.name}
+                                        required
+                                    />
+                                </div>
+                                <div className="flex-1">
+                                    <Input
+                                        label="Description"
+                                        placeholder="Optional description"
+                                        value={issueTypeForm.description}
+                                        onChange={(e) => setIssueTypeForm((f) => ({ ...f, description: e.target.value }))}
+                                    />
+                                </div>
+                                <div>
+                                    <label className="mb-1.5 block text-sm font-medium text-gray-700">Color</label>
+                                    <input
+                                        type="color"
+                                        className="h-[42px] w-16 rounded-lg border border-gray-300 bg-white p-1 shadow-sm focus:outline-none"
+                                        value={issueTypeForm.color}
+                                        onChange={(e) => setIssueTypeForm((f) => ({ ...f, color: e.target.value }))}
+                                    />
+                                </div>
+                                <div className="flex items-center gap-2 pb-2">
+                                    <label className="flex items-center gap-1.5 text-xs text-gray-600 cursor-pointer">
+                                        <input
+                                            type="checkbox"
+                                            className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                                            checked={issueTypeForm.is_subtask}
+                                            onChange={(e) => setIssueTypeForm((f) => ({ ...f, is_subtask: e.target.checked }))}
+                                        />
+                                        Subtask
+                                    </label>
+                                </div>
+                                <Button type="submit" loading={savingIssueType}>
+                                    Add type
+                                </Button>
+                            </form>
+                        )}
+                        {issueTypeErrors.form && <Alert>{issueTypeErrors.form}</Alert>}
+                        <ul className="divide-y divide-gray-100">
+                            {issueTypes.map((type) => (
+                                <li key={type.id} className="flex items-center justify-between py-3">
+                                    <div className="flex items-center gap-3">
+                                        <span
+                                            className="h-3.5 w-3.5 rounded-full"
+                                            style={{ backgroundColor: type.color || '#6366f1' }}
+                                        />
+                                        <div>
+                                            <div className="flex items-center gap-2">
+                                                <span className="font-medium text-gray-900">{type.name}</span>
+                                                <span className="text-xs text-gray-400">({type.slug})</span>
+                                                {type.is_subtask && (
+                                                    <Badge color="purple">subtask</Badge>
+                                                )}
+                                                {type.tasks_count != null && (
+                                                    <span className="text-xs text-gray-400">· {type.tasks_count} tasks</span>
+                                                )}
+                                            </div>
+                                            {type.description && (
+                                                <p className="text-xs text-gray-500">{type.description}</p>
+                                            )}
+                                        </div>
+                                    </div>
+                                    {can('workspaces.manage') && (
+                                        <div className="flex items-center gap-2">
+                                            <input
+                                                type="color"
+                                                className="h-7 w-8 rounded border border-gray-200 bg-white p-0.5"
+                                                defaultValue={type.color || '#6366f1'}
+                                                onBlur={(e) => {
+                                                    if (e.target.value !== type.color) {
+                                                        updateIssueType(type, { color: e.target.value });
+                                                    }
+                                                }}
+                                                title="Change color"
+                                            />
+                                            <Button
+                                                size="sm"
+                                                variant="ghost"
+                                                onClick={() => deleteIssueType(type)}
+                                                disabled={type.tasks_count > 0}
+                                                title={type.tasks_count > 0 ? 'Cannot delete type in use' : 'Delete'}
+                                            >
+                                                Delete
+                                            </Button>
+                                        </div>
+                                    )}
+                                </li>
+                            ))}
+                        </ul>
                     </Card>
                 </div>
             )}
@@ -866,57 +1165,15 @@ export default function ProjectDetail() {
 
             {tab === 'settings' && isProjectManager && (
                 <Card title="Project settings" subtitle={`key: ${project.key}`}>
-                    <form
-                        className="space-y-4"
-                        onSubmit={(e) => {
-                            e.preventDefault();
-                            updateProject({
-                                name: e.currentTarget.name.value,
-                                description: e.currentTarget.description.value,
-                                start_date: e.currentTarget.start_date.value || null,
-                                due_date: e.currentTarget.due_date.value || null,
-                            });
-                        }}
-                    >
-                        {formErrors.form && <Alert>{formErrors.form}</Alert>}
-                        <Input label="Name" name="name" defaultValue={project.name} error={formErrors.name} required />
-                        <Input
-                            label="Description"
-                            name="description"
-                            defaultValue={project.description}
-                            error={formErrors.description}
-                        />
-                        <div className="grid gap-4 sm:grid-cols-2">
-                            <div>
-                                <label className="mb-1.5 block text-sm font-medium text-gray-700">Start date</label>
-                                <input
-                                    type="date"
-                                    name="start_date"
-                                    defaultValue={project.start_date}
-                                    className="block w-full rounded-lg border border-gray-300 bg-white px-3.5 py-2.5 text-sm shadow-sm focus:border-indigo-500 focus:outline-none"
-                                />
-                                {formErrors.start_date && <p className="mt-1.5 text-sm text-red-600">{formErrors.start_date}</p>}
-                            </div>
-                            <div>
-                                <label className="mb-1.5 block text-sm font-medium text-gray-700">Due date</label>
-                                <input
-                                    type="date"
-                                    name="due_date"
-                                    defaultValue={project.due_date}
-                                    className="block w-full rounded-lg border border-gray-300 bg-white px-3.5 py-2.5 text-sm shadow-sm focus:border-indigo-500 focus:outline-none"
-                                />
-                                {formErrors.due_date && <p className="mt-1.5 text-sm text-red-600">{formErrors.due_date}</p>}
-                            </div>
-                        </div>
-                        <div className="flex gap-2">
-                            <Button type="submit" loading={updating}>
-                                Save changes
-                            </Button>
-                            <Button type="button" variant="danger" onClick={deleteProject}>
-                                Delete project
-                            </Button>
-                        </div>
-                    </form>
+                    <SettingsForm
+                        project={project}
+                        settingsDates={settingsDates}
+                        onDatesChange={setSettingsDates}
+                        formErrors={formErrors}
+                        updating={updating}
+                        updateProject={updateProject}
+                        deleteProject={deleteProject}
+                    />
                 </Card>
             )}
 
@@ -939,6 +1196,7 @@ export default function ProjectDetail() {
                     options={taskOptions}
                     topLevelTasks={board?.statuses.flatMap((s) => s.tasks) ?? []}
                     initialSection={selectedTaskSection}
+                    initialCommentId={selectedCommentId}
                     canEdit={canEditTask}
                     canAssign={canAssignTask}
                     canDelete={canDeleteTask}
@@ -950,11 +1208,83 @@ export default function ProjectDetail() {
                     onClose={() => {
                         setSelectedTask(null);
                         setSelectedTaskSection(null);
+                        setSelectedCommentId(null);
+                        openedDeepTaskRef.current = null;
+                        fetchedDeepTaskRef.current = null;
+                        const params = new URLSearchParams(searchParams.toString());
+                        params.delete('task');
+                        params.delete('section');
+                        params.delete('comment');
+                        navigate(`?${params.toString()}`, { replace: true });
                     }}
                     onUpdate={(data) => updateTask(selectedTask.id, data)}
                     onDelete={deleteTask}
                 />
             )}
         </div>
+    );
+}
+/**
+ * Project settings form: name/description stay uncontrolled (read on
+ * submit, exactly as before) while the two dates are controlled through
+ * the shared calendar Input — which has no uncontrolled mode. Dates fall
+ * back to the loaded project until typed, and reset on project switch
+ * (settingsDates null) and after a successful save.
+ */
+function SettingsForm({ project, settingsDates, onDatesChange, formErrors, updating, updateProject, deleteProject }) {
+    const dates = settingsDates ?? { start_date: project.start_date ?? '', due_date: project.due_date ?? '' };
+    // Editor-controlled description (the form remounts per project, and a
+    // same-id refetch after save already matches what was typed).
+    const [description, setDescription] = useState(project.description ?? '');
+
+    return (
+        <form
+            className="space-y-4"
+            onSubmit={(e) => {
+                e.preventDefault();
+                updateProject({
+                    name: e.currentTarget.name.value,
+                    description: description || undefined,
+                    start_date: dates.start_date || null,
+                    due_date: dates.due_date || null,
+                });
+            }}
+        >
+            {formErrors.form && <Alert>{formErrors.form}</Alert>}
+            <Input label="Name" name="name" defaultValue={project.name} error={formErrors.name} required />
+            <div>
+                <label className="mb-1.5 block text-sm font-medium text-gray-700">Description</label>
+                <RichTextEditor
+                    value={description}
+                    onChange={setDescription}
+                    placeholder="What is this project about?"
+                    error={formErrors.description}
+                />
+            </div>
+            <div className="grid gap-4 sm:grid-cols-2">
+                <Input
+                    label="Start date"
+                    type="date"
+                    value={dates.start_date}
+                    onChange={(e) => onDatesChange({ ...dates, start_date: e.target.value })}
+                    error={formErrors.start_date}
+                />
+                <Input
+                    label="Due date"
+                    type="date"
+                    value={dates.due_date}
+                    onChange={(e) => onDatesChange({ ...dates, due_date: e.target.value })}
+                    error={formErrors.due_date}
+                />
+            </div>
+            <div className="flex gap-2">
+                <Button type="submit" loading={updating}>
+                    Save changes
+                </Button>
+                <Button type="button" variant="danger" onClick={deleteProject}>
+                    Delete project
+                </Button>
+            </div>
+        </form>
     );
 }

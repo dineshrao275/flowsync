@@ -2,6 +2,10 @@
 
 namespace App\Http\Controllers;
 
+use App\Billing\PaymentService;
+use App\Billing\Proration\ProrationCalculator;
+use App\Http\Controllers\Concerns\DetectsPlatformUsers;
+use App\Http\Controllers\Concerns\ResolvesCurrentTenant;
 use App\Models\SubscriptionPlan;
 use App\Models\Tenant;
 use App\Services\SubscriptionService;
@@ -20,21 +24,29 @@ use Illuminate\Http\Request;
  */
 class MySubscriptionController extends Controller
 {
+    use DetectsPlatformUsers;
+    use ResolvesCurrentTenant;
+
     public function __construct(
         private readonly SubscriptionService $subscriptions,
         private readonly TenantLimits $limits,
+        private readonly PaymentService $payments,
     ) {}
 
-    public function show(): JsonResponse
+    public function show(Request $request): JsonResponse
     {
+        $this->authorizeBillingView($request);
+
         return response()->json($this->payload($this->currentTenant()));
     }
 
     /**
      * Current usage against the effective plan limits (tenant DB counts).
      */
-    public function usage(): JsonResponse
+    public function usage(Request $request): JsonResponse
     {
+        $this->authorizeBillingView($request);
+
         $tenant = $this->currentTenant();
 
         $usage = [];
@@ -45,7 +57,7 @@ class MySubscriptionController extends Controller
         return response()->json([
             'usage' => $usage,
             'limits' => $this->limits->effective($tenant),
-            'modules' => $this->limits->limit($tenant, 'modules'),
+            'modules' => $this->limits->visibleModules($tenant),
             'modules_available' => config('subscriptions.modules', []),
         ]);
     }
@@ -62,7 +74,7 @@ class MySubscriptionController extends Controller
         $plan = SubscriptionPlan::find($data['plan_id']);
         abort_unless($plan, 422, 'Unknown plan.');
 
-        if ($tenant->subscription?->plan_id === $plan->id) {
+        if ($tenant->subscriptionFor($plan->product ?? 'suite')?->plan_id === $plan->id) {
             return response()->json([
                 'message' => 'Already subscribed to this plan.',
                 ...$this->payload($tenant),
@@ -73,9 +85,16 @@ class MySubscriptionController extends Controller
 
         $actor = $request->user();
 
+        // Moving off a paid plan mid-period leaves unused paid time; record its value on
+        // the event (P6.4) so support can honour it — nothing applies it automatically.
+        $credit = app(ProrationCalculator::class)->credit($tenant->subscriptionFor($plan->product ?? 'suite'), $plan);
+
         $this->subscriptions->switch($tenant, $plan, [
             'actor_id' => null,
-            'data' => ['actor' => ['id' => $actor->id, 'name' => $actor->name, 'email' => $actor->email]],
+            'data' => array_filter([
+                'actor' => ['id' => $actor->id, 'name' => $actor->name, 'email' => $actor->email],
+                'proration' => $credit,
+            ]),
         ]);
 
         return response()->json(['message' => 'Plan updated.', ...$this->payload($tenant)]);
@@ -89,7 +108,10 @@ class MySubscriptionController extends Controller
         // The tenant admin is not a central `users` row, so we cannot use their
         // id as subscription_events.actor_id (FK → system users). Omitting the
         // actor keeps the audit event write safe; the tenant is implicit.
-        $this->subscriptions->cancel($tenant);
+        // Stop the provider from billing the next period before we say so locally.
+        $product = $this->product($request);
+        $this->payments->setProviderCancelAtPeriodEnd($tenant, true, $product);
+        $this->subscriptions->cancel($tenant, null, $product);
 
         return response()->json(['message' => 'Subscription canceled.', ...$this->payload($tenant)]);
     }
@@ -99,27 +121,60 @@ class MySubscriptionController extends Controller
         $tenant = $this->currentTenant();
         $this->authorizeAdmin($request);
 
-        $this->subscriptions->renew($tenant);
+        $product = $this->product($request);
+        $this->payments->setProviderCancelAtPeriodEnd($tenant, false, $product);
+        $this->subscriptions->renew($tenant, null, $product);
 
         return response()->json(['message' => 'Subscription renewed.', ...$this->payload($tenant)]);
     }
 
-    private function authorizeAdmin(Request $request): void
+    /** Which product's subscription an action is about; none = the primary one (older clients). */
+    private function product(Request $request): ?string
     {
-        abort_unless($request->user()?->hasRole('admin'), 403, 'Only tenant admins can manage the subscription.');
+        return $request->validate(['product' => ['nullable', 'in:suite,tms,hrms']])['product'] ?? null;
     }
 
-    private function currentTenant(): Tenant
+    private function authorizeAdmin(Request $request): void
     {
-        $tenantId = app(TenantContext::class)->currentId();
-        abort_unless($tenantId, 404);
+        abort_unless(
+            $request->user()?->hasRole('admin') || $request->user()?->hasPermission('billing.manage'),
+            403,
+            'Only tenant admins can manage the subscription.',
+        );
+    }
 
-        return Tenant::findOrFail($tenantId);
+    /**
+     * Viewing subscription info is restricted to tenant admins (role: admin)
+     * or any user explicitly granted the `billing.view` permission by their
+     * tenant admin. The `billing.view` permission is included in the admin
+     * role via the `*` wildcard in `config/permissions.php`; other roles
+     * receive it only when a tenant admin explicitly grants it.
+     */
+    private function authorizeBillingView(Request $request): void
+    {
+        // Platform super admins live on the system DB, which holds no
+        // tenant roles table — skip the check; currentTenant() 404s
+        // downstream exactly as before.
+        if ($this->isPlatformSuperAdmin($request)) {
+            return;
+        }
+
+        $user = $request->user();
+
+        if ($user && ! $user->relationLoaded('roles')) {
+            $user->load(['roles', 'roles.permissions']);
+        }
+
+        abort_unless(
+            $user?->hasRole('admin') || $user?->hasPermission('billing.view'),
+            403,
+            'You do not have permission to view billing information.',
+        );
     }
 
     private function payload(Tenant $tenant): array
     {
-        $tenant->load('subscription.plan');
+        $tenant->load('subscription.plan', 'subscriptions.plan');
         $subscription = $tenant->subscription;
 
         $events = $tenant->subscriptionEvents()
@@ -137,6 +192,22 @@ class MySubscriptionController extends Controller
             ]);
 
         return [
+            // One entry per product the tenant pays for (a legacy bundle shows as `suite`).
+            'subscriptions' => $tenant->subscriptions->map(fn ($s) => [
+                'id' => $s->id,
+                'product' => $s->product,
+                'status' => $s->status,
+                'plan' => $s->plan?->only(['id', 'name', 'slug', 'description', 'billing_cycle', 'price_cents', 'currency', 'trial_duration_days', 'limits', 'product']),
+                'current_period_end' => $s->current_period_end?->toIso8601String(),
+                'trial_ends_at' => $s->trial_ends_at?->toIso8601String(),
+                'canceled_at' => $s->canceled_at?->toIso8601String(),
+                'auto_renew' => $s->auto_renew,
+                'billing_provider' => $s->billing_provider,
+            ])->values(),
+            'products' => [
+                'tms' => $this->limits->productEnabled($tenant, 'tms'),
+                'hrms' => $this->limits->productEnabled($tenant, 'hrms'),
+            ],
             'subscription' => $subscription ? [
                 'id' => $subscription->id,
                 'status' => $subscription->status,

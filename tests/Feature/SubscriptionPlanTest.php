@@ -29,8 +29,13 @@ class SubscriptionPlanTest extends TestCase
     {
         $plans = SubscriptionPlan::orderBy('sort_order')->get();
 
-        $this->assertCount(3, $plans);
-        $this->assertSame(['starter', 'pro', 'enterprise'], $plans->pluck('slug')->all());
+        $this->assertCount(count(config('subscriptions.plans')), $plans);
+        // The bundle plans first, then the per-product ladders (TMS, then HRMS).
+        $this->assertSame(
+            ['starter', 'pro', 'business', 'enterprise', 'tms-starter', 'tms-professional', 'tms-enterprise', 'hrms-starter', 'hrms-professional', 'hrms-enterprise'],
+            $plans->pluck('slug')->all(),
+        );
+        $this->assertSame(['suite'], $plans->take(4)->pluck('product')->unique()->values()->all());
 
         $starter = $plans->first();
         $this->assertTrue($starter->is_default);
@@ -41,7 +46,8 @@ class SubscriptionPlanTest extends TestCase
 
     public function test_super_admin_can_crud_plans(): void
     {
-        $this->getJson('/api/plans')->assertOk()->assertJsonCount(3, 'plans');
+        $this->getJson('/api/plans')->assertOk()
+            ->assertJsonCount(count(config('subscriptions.plans')), 'plans');
 
         $create = $this->postJson('/api/plans', [
             'name' => 'Teams',
@@ -67,7 +73,7 @@ class SubscriptionPlanTest extends TestCase
 
         // Seeder is idempotent (catalog updates refresh existing rows, not dupes).
         (new SubscriptionPlanSeeder)->run();
-        $this->assertCount(3, SubscriptionPlan::all());
+        $this->assertCount(count(config('subscriptions.plans')), SubscriptionPlan::all());
     }
 
     public function test_super_admin_cannot_delete_the_default_plan(): void
@@ -75,6 +81,38 @@ class SubscriptionPlanTest extends TestCase
         $default = SubscriptionPlan::where('is_default', true)->firstOrFail();
 
         $this->deleteJson("/api/plans/{$default->id}")->assertUnprocessable();
+    }
+
+    public function test_plan_creation_accepts_boolean_ish_strings(): void
+    {
+        // Unchecked boxes / hand-rolled payloads send "false" rather than false.
+        // The strict `boolean` rule used to 422 on it, and a raw "false" would
+        // have been cast to true by the model.
+        $this->postJson('/api/plans', [
+            'name' => 'Stringly Typed',
+            'slug' => 'stringly-typed',
+            'is_active' => 'false',
+            'is_default' => 'false',
+            'price_cents' => 0,
+        ])->assertCreated()
+            ->assertJsonPath('plan.is_active', false)
+            ->assertJsonPath('plan.is_default', false);
+
+        $this->assertFalse(SubscriptionPlan::where('slug', 'stringly-typed')->firstOrFail()->is_active);
+
+        $this->postJson('/api/plans', [
+            'name' => 'Truthy',
+            'slug' => 'truthy',
+            'is_active' => '1',
+        ])->assertCreated()
+            ->assertJsonPath('plan.is_active', true);
+
+        // Still strict about genuinely non-boolean values.
+        $this->postJson('/api/plans', [
+            'name' => 'Nope',
+            'slug' => 'nope',
+            'is_active' => 'maybe',
+        ])->assertStatus(422);
     }
 
     public function test_cannot_delete_a_plan_in_use(): void
@@ -99,7 +137,7 @@ class SubscriptionPlanTest extends TestCase
         // Tenant-facing read (subscription self-service): the active catalog.
         $this->getJson('/api/plans')
             ->assertOk()
-            ->assertJsonCount(3, 'plans');
+            ->assertJsonCount(count(config('subscriptions.plans')), 'plans');
 
         // Mutations remain super-admin-only.
         $this->postJson('/api/plans', [

@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\ProjectRole;
+use App\Support\UniqueSlug;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
@@ -89,14 +90,7 @@ class ProjectRoleController extends Controller
 
     private function uniqueSlug(string $base): string
     {
-        $candidate = $base;
-        $i = 1;
-
-        while (ProjectRole::where('slug', $candidate)->exists()) {
-            $candidate = $base.'-'.(++$i);
-        }
-
-        return $candidate;
+        return UniqueSlug::make($base, fn (string $candidate): bool => ProjectRole::where('slug', $candidate)->exists());
     }
 
     private function present(ProjectRole $role): array

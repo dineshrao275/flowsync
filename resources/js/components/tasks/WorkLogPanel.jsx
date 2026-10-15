@@ -5,7 +5,9 @@ import { useAuth } from '../../context/AuthContext';
 import Button from '../ui/Button';
 import Alert from '../ui/Alert';
 import Spinner from '../ui/Spinner';
+import Input from '../ui/Input';
 import { fieldClass } from '../ui/fieldStyles';
+import { useConfirm } from '../ui/ConfirmDialog';
 
 function toLocalInput(iso) {
     if (!iso) return '';
@@ -25,6 +27,7 @@ function formatRange(log) {
 
 export default function WorkLogPanel({ task, projectId, canLog, canManage }) {
     const { user } = useAuth();
+    const confirm = useConfirm();
     const [logs, setLogs] = useState([]);
     const [totals, setTotals] = useState({ total_minutes: 0, estimate_minutes: null, remaining_minutes: null, logs_count: 0 });
     const [loading, setLoading] = useState(true);
@@ -90,8 +93,8 @@ export default function WorkLogPanel({ task, projectId, canLog, canManage }) {
             .finally(() => setSaving(false));
     }
 
-    function remove(log) {
-        if (!window.confirm('Remove this work log? This cannot be undone.')) return;
+    async function remove(log) {
+        if (!(await confirm({ title: 'Remove work log?', message: 'Remove this work log? This cannot be undone.', variant: 'danger' }))) return;
         api.delete(`${base}/${log.id}`).then(() => load()).catch((e) => setErrors(fieldErrors(e)));
     }
 
@@ -113,27 +116,21 @@ export default function WorkLogPanel({ task, projectId, canLog, canManage }) {
                     </div>
                     {errors.form && <Alert>{errors.form}</Alert>}
                     <div className="grid gap-3 sm:grid-cols-2">
-                        <div>
-                            <label className="mb-1.5 block text-sm font-medium text-gray-700">Started at</label>
-                            <input
-                                type="datetime-local"
-                                className={fieldClass}
-                                value={form.started_at}
-                                onChange={(e) => setForm((f) => ({ ...f, started_at: e.target.value }))}
-                                required
-                            />
-                            {errors.started_at && <p className="mt-1.5 text-sm text-red-600">{errors.started_at}</p>}
-                        </div>
-                        <div>
-                            <label className="mb-1.5 block text-sm font-medium text-gray-700">Ended at</label>
-                            <input
-                                type="datetime-local"
-                                className={fieldClass}
-                                value={form.ended_at}
-                                onChange={(e) => setForm((f) => ({ ...f, ended_at: e.target.value }))}
-                            />
-                            {errors.ended_at && <p className="mt-1.5 text-sm text-red-600">{errors.ended_at}</p>}
-                        </div>
+                        <Input
+                            label="Started at"
+                            type="datetime-local"
+                            value={form.started_at}
+                            onChange={(e) => setForm((f) => ({ ...f, started_at: e.target.value }))}
+                            error={errors.started_at}
+                            required
+                        />
+                        <Input
+                            label="Ended at"
+                            type="datetime-local"
+                            value={form.ended_at}
+                            onChange={(e) => setForm((f) => ({ ...f, ended_at: e.target.value }))}
+                            error={errors.ended_at}
+                        />
                     </div>
                     <div>
                         <label className="mb-1.5 block text-sm font-medium text-gray-700">Description (optional)</label>

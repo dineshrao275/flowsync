@@ -10,10 +10,16 @@ export function NotificationProvider({ children }) {
     const { user } = useAuth();
     const toast = useToast();
     const [unreadCount, setUnreadCount] = useState(0);
+    const [inboxUnread, setInboxUnread] = useState(0);
+
+    // A non-impersonating super admin has no tenant database: personal
+    // notifications live in the tenant DB only, so there is nothing to poll.
+    const platformOnly = Boolean(user?.is_super_admin && !user?.impersonating);
 
     const refresh = useCallback(async () => {
-        if (!user) {
+        if (!user || platformOnly) {
             setUnreadCount(0);
+            setInboxUnread(0);
             return;
         }
         try {
@@ -22,16 +28,28 @@ export function NotificationProvider({ children }) {
         } catch {
             // keep current count on transient failures
         }
-    }, [user]);
+        // The HR queue rides the same 30s cadence: one timer, two counts,
+        // so the sidebar badge never drifts a full cycle behind the bell.
+        try {
+            const { data } = await api.get('/hrms/inbox', { params: { per_page: 1 } });
+            setInboxUnread(data.unread_count ?? 0);
+        } catch {
+            // keep current count on transient failures
+        }
+    }, [user, platformOnly]);
 
     useEffect(() => {
         refresh();
-        const timer = window.setInterval(refresh, 30000);
+        if (platformOnly) return undefined;
+        // Push-first: When Reverb/Echo is active, fallback polling runs on a slower
+        // 60s cadence to minimize server load; without websockets, it falls back to 30s.
+        const intervalMs = window.Echo ? 60000 : 30000;
+        const timer = window.setInterval(refresh, intervalMs);
         return () => window.clearInterval(timer);
-    }, [refresh]);
+    }, [refresh, platformOnly]);
 
     useEffect(() => {
-        if (!user || !window.Echo) return undefined;
+        if (!user || platformOnly || !window.Echo) return undefined;
         const channel = window.Echo.private(`user.${user.id}`);
         const handler = (event) => {
             setUnreadCount((count) => count + 1);
@@ -39,7 +57,7 @@ export function NotificationProvider({ children }) {
         };
         channel.listen('.notification.sent', handler);
         return () => channel.stopListening('.notification.sent');
-    }, [user, toast]);
+    }, [user, platformOnly, toast]);
 
     const markAllRead = useCallback(async () => {
         await api.post('/notifications/mark-all-read');
@@ -52,8 +70,8 @@ export function NotificationProvider({ children }) {
     }, []);
 
     const value = useMemo(
-        () => ({ unreadCount, refresh, markAllRead, markRead }),
-        [unreadCount, refresh, markAllRead, markRead],
+        () => ({ unreadCount, inboxUnread, refresh, markAllRead, markRead }),
+        [unreadCount, inboxUnread, refresh, markAllRead, markRead],
     );
 
     return <NotificationContext.Provider value={value}>{children}</NotificationContext.Provider>;

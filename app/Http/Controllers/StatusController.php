@@ -41,6 +41,7 @@ class StatusController extends Controller
     public function update(StatusUpdateRequest $request, Project $project, TaskStatus $status): JsonResponse
     {
         $this->authorize('manageWorkflow', $project);
+        abort_if((int) $status->project_id !== (int) $project->id, 404);
 
         $data = $request->validated();
 
@@ -53,6 +54,7 @@ class StatusController extends Controller
     public function destroy(Request $request, Project $project, TaskStatus $status): JsonResponse
     {
         $this->authorize('manageWorkflow', $project);
+        abort_if((int) $status->project_id !== (int) $project->id, 404);
 
         $this->service->deleteStatus($status);
 
@@ -71,6 +73,7 @@ class StatusController extends Controller
             'color' => $status->color,
             'is_default' => $status->is_default,
             'is_done' => $status->is_done,
+            'wip_limit' => $status->wip_limit,
         ];
     }
 }

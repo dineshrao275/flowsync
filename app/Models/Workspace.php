@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Enums\WorkspaceMemberRole;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
@@ -10,21 +11,32 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Workspace extends Model
 {
+    use HasFactory;
+
     protected $fillable = [
         'created_by',
         'name',
         'slug',
         'description',
         'icon',
+        'color',
         'timezone',
+        'default_assignee_id',
+        'settings',
         'archived_at',
     ];
 
     protected function casts(): array
     {
         return [
+            'settings' => 'array',
             'archived_at' => 'datetime',
         ];
+    }
+
+    public function defaultAssignee(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'default_assignee_id');
     }
 
     public function creator(): BelongsTo

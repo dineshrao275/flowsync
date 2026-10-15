@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import api, { fieldErrors } from '../services/api';
 import Card from '../components/ui/Card';
 import Badge from '../components/ui/Badge';
@@ -6,14 +7,114 @@ import Spinner from '../components/ui/Spinner';
 import Alert from '../components/ui/Alert';
 import Button from '../components/ui/Button';
 import Input from '../components/ui/Input';
+import { Table, Th, Td, TableEmpty } from '../components/ui/Table';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
+import { useConfirm } from '../components/ui/ConfirmDialog';
 import usePageTitle from '../hooks/usePageTitle';
+import { groupPermissionsByDomain, prettyDomain } from '../utils/permissions';
+
+const PRODUCT_BADGES = { tms: 'TMS', hrms: 'HRMS', shared: 'Shared' };
+
+function PermissionGrid({ permissions, isChecked, onToggle, disabled = false, dense = false }) {
+    const [query, setQuery] = useState('');
+    const [collapsed, setCollapsed] = useState({});
+    const needle = query.trim().toLowerCase();
+    const groups = groupPermissionsByDomain(permissions)
+        .map(({ domain, items }) => ({
+            domain,
+            all: items,
+            items: needle
+                ? items.filter((p) => `${p.name} ${p.slug} ${prettyDomain(domain)} ${PRODUCT_BADGES[p.product] ?? ''}`.toLowerCase().includes(needle))
+                : items,
+        }))
+        .filter((g) => g.items.length > 0);
+    const total = permissions.length;
+    const selected = permissions.filter(isChecked).length;
+
+    // Bulk change = one toggle per differing item; each toggle is a functional state update.
+    const setMany = (items, checked) => items.forEach((p) => isChecked(p) !== checked && onToggle(p));
+
+    return (
+        <div className="space-y-4">
+            <div className="flex flex-wrap items-center gap-3">
+                <input
+                    type="search"
+                    value={query}
+                    onChange={(e) => setQuery(e.target.value)}
+                    placeholder="Search permissions…"
+                    className="min-w-48 flex-1 rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200"
+                />
+                <span className="text-xs text-gray-500">{selected} of {total} selected</span>
+            </div>
+            {groups.length === 0 && <p className="text-sm text-gray-400">No permission matches “{query}”.</p>}
+            {groups.map(({ domain, items, all }) => {
+                const on = all.filter(isChecked).length;
+                const open = needle ? true : !collapsed[domain];
+
+                return (
+                    <div key={domain} className="rounded-lg border border-gray-100">
+                        <div className="flex items-center justify-between gap-2 bg-gray-50 px-3 py-1.5">
+                            <button
+                                type="button"
+                                onClick={() => setCollapsed((c) => ({ ...c, [domain]: !c[domain] }))}
+                                className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-gray-500"
+                            >
+                                <span>{open ? '▾' : '▸'}</span>
+                                {prettyDomain(domain)}
+                                <span className="rounded-full bg-white px-1.5 py-0.5 text-[10px] font-medium normal-case text-gray-500">
+                                    {on}/{all.length}
+                                </span>
+                            </button>
+                            {!disabled && (
+                                <span className="flex gap-3 text-xs">
+                                    <button type="button" className="text-[var(--accent)] hover:underline" onClick={() => setMany(items, true)}>All</button>
+                                    <button type="button" className="text-gray-500 hover:underline" onClick={() => setMany(items, false)}>None</button>
+                                </span>
+                            )}
+                        </div>
+                        {open && (
+                            <div className="grid grid-cols-1 gap-2 p-2 sm:grid-cols-2 lg:grid-cols-3">
+                                {items.map((permission) => (
+                                    <label
+                                        key={permission.id}
+                                        className={`flex cursor-pointer rounded-lg text-sm transition hover:bg-gray-50 ${
+                                            dense ? 'items-start gap-2 px-2 py-1.5' : 'items-center gap-2 border border-gray-200 px-3 py-2'
+                                        } ${disabled ? 'cursor-default hover:bg-transparent' : ''}`}
+                                    >
+                                        <input
+                                            type="checkbox"
+                                            checked={isChecked(permission)}
+                                            disabled={disabled}
+                                            onChange={() => onToggle(permission)}
+                                            className="mt-0.5 h-4 w-4 shrink-0 rounded border-gray-300 text-[var(--accent)] accent-[var(--accent)] transition-all duration-150 focus:ring-[var(--accent-ring)] disabled:cursor-not-allowed disabled:opacity-50"
+                                        />
+                                        <span className="text-gray-700">
+                                            <span className="flex flex-wrap items-center gap-1.5">
+                                                {permission.name}
+                                                <span className="rounded bg-gray-100 px-1 py-px text-[10px] font-medium uppercase tracking-wide text-gray-500">
+                                                    {PRODUCT_BADGES[permission.product] ?? 'Shared'}
+                                                </span>
+                                            </span>
+                                            <span className="block text-xs text-gray-400">{permission.slug}</span>
+                                        </span>
+                                    </label>
+                                ))}
+                            </div>
+                        )}
+                    </div>
+                );
+            })}
+        </div>
+    );
+}
 
 export default function Roles() {
     usePageTitle('Roles & Permissions');
+    const navigate = useNavigate();
     const { can } = useAuth();
     const toast = useToast();
+    const confirm = useConfirm();
     const [roles, setRoles] = useState([]);
     const [permissions, setPermissions] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -29,7 +130,11 @@ export default function Roles() {
             const { data } = await api.get('/roles');
             setRoles(data.roles);
             setPermissions(data.permissions);
-        } catch {
+        } catch (err) {
+            if (err?.response?.status === 403) {
+                navigate('/403', { replace: true });
+                return;
+            }
             setError('Unable to load roles.');
         } finally {
             setLoading(false);
@@ -98,6 +203,32 @@ export default function Roles() {
         }
     }
 
+    function duplicate(role) {
+        setCreating(true);
+        setCreateErrors({});
+        setCreateForm({
+            name: `${role.name} (copy)`,
+            slug: `${role.slug}-copy`,
+            permissions: (role.permissions || []).map((p) => p.id),
+        });
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    async function remove(role) {
+        if (!(await confirm({ title: 'Delete role?', message: `Delete the role "${role.name}"? This cannot be undone.`, variant: 'danger' }))) return;
+        setSavingId(role.id);
+        setError(null);
+        try {
+            await api.delete(`/roles/${role.id}`);
+            setRoles((current) => current.filter((r) => r.id !== role.id));
+            toast.success(`Role "${role.name}" deleted.`);
+        } catch (e) {
+            setError(fieldErrors(e).form || 'Failed to delete role.');
+        } finally {
+            setSavingId(null);
+        }
+    }
+
     if (loading) {
         return (
             <div className="flex justify-center py-20">
@@ -151,29 +282,18 @@ export default function Roles() {
                         </div>
                         <div>
                             <label className="mb-1.5 block text-sm font-medium text-gray-700">Permissions</label>
-                            <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3">
-                                {permissions.map((permission) => (
-                                    <label
-                                        key={permission.id}
-                                        className="flex cursor-pointer items-center gap-2 rounded-lg border border-gray-200 px-3 py-2 text-sm transition hover:bg-gray-50"
-                                    >
-                                        <input
-                                            type="checkbox"
-                                            checked={createForm.permissions.includes(permission.id)}
-                                            onChange={() =>
-                                                setCreateForm((f) => ({
-                                                    ...f,
-                                                    permissions: f.permissions.includes(permission.id)
-                                                        ? f.permissions.filter((id) => id !== permission.id)
-                                                        : [...f.permissions, permission.id],
-                                                }))
-                                            }
-                                            className="h-4 w-4 rounded border-gray-300 text-indigo-600 accent-indigo-600 focus:ring-indigo-500"
-                                        />
-                                        <span>{permission.name}</span>
-                                    </label>
-                                ))}
-                            </div>
+                            <PermissionGrid
+                                permissions={permissions}
+                                isChecked={(permission) => createForm.permissions.includes(permission.id)}
+                                onToggle={(permission) =>
+                                    setCreateForm((f) => ({
+                                        ...f,
+                                        permissions: f.permissions.includes(permission.id)
+                                            ? f.permissions.filter((id) => id !== permission.id)
+                                            : [...f.permissions, permission.id],
+                                    }))
+                                }
+                            />
                             {createErrors.permissions && (
                                 <p className="mt-1.5 text-sm text-red-600">{createErrors.permissions}</p>
                             )}
@@ -190,97 +310,130 @@ export default function Roles() {
                 </Card>
             )}
 
-            <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
-                {roles.map((role, index) => {
-                    const selectedIds = role.permissions?.map((p) => p.id) || [];
+            <Table>
+                <thead>
+                    <tr>
+                        <Th>Role</Th>
+                        <Th>Slug</Th>
+                        <Th>Permissions</Th>
+                        <Th align="right">Members</Th>
+                        <Th align="right">Actions</Th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {roles.length === 0 ? (
+                        <TableEmpty colSpan={5}>No roles yet.</TableEmpty>
+                    ) : (
+                        roles.map((role, index) => {
+                            const selectedIds = role.permissions?.map((p) => p.id) || [];
+                            const editing = manageable && editingId === role.id;
+                            const granted = permissions
+                                .filter((permission) => selectedIds.includes(permission.id))
+                                .map((permission) => `${permission.name} (${permission.slug})`);
 
-                    return (
-                        <Card key={role.id} className="h-full animate-fade-in-up" title={
-                            <span className="flex items-center gap-2 capitalize">
-                                {editingId === role.id ? (
-                                    <input
-                                        value={role.name}
-                                        onChange={(e) =>
-                                            setRoles((current) =>
-                                                current.map((r) =>
-                                                    r.id === role.id ? { ...r, name: e.target.value } : r,
-                                                ),
-                                            )
-                                        }
-                                        className="rounded border border-gray-300 px-2 py-1 text-sm capitalize"
-                                    />
-                                ) : (
-                                    role.name
-                                )}
-                                <Badge>{role.slug}</Badge>
-                            </span>
-                        }
-                            subtitle={`${role.users_count} member(s)`}
-                        >
-                            <ul className="space-y-2">
-                                {permissions.map((permission) => {
-                                    const checked = selectedIds.includes(permission.id);
-                                    return (
-                                        <li key={permission.id}>
-                                            <label
-                                                className={`flex cursor-pointer items-start gap-3 rounded-lg px-2 py-1.5 transition ${
-                                                    manageable ? 'hover:bg-gray-50' : 'cursor-default'
-                                                }`}
-                                            >
-                                                <input
-                                                    type="checkbox"
-                                                    checked={checked}
-                                                    disabled={!manageable}
-                                                    onChange={() => togglePermission(role.id, permission.id)}
-                                                    className="mt-0.5 h-4 w-4 rounded border-gray-300 text-indigo-600 accent-indigo-600 transition-all duration-150 focus:ring-indigo-500 disabled:cursor-not-allowed disabled:opacity-50"
-                                                />
-                                                <span className="text-sm text-gray-700">
-                                                    {permission.name}
-                                                    <span className="block text-xs text-gray-400">
-                                                        {permission.slug}
-                                                    </span>
-                                                </span>
-                                            </label>
-                                        </li>
-                                    );
-                                })}
-                            </ul>
-
-                            {manageable && editingId === role.id && (
-                                <div className="mt-4 flex gap-2">
-                                    <Button
-                                        variant="secondary"
-                                        size="sm"
-                                        className="flex-1"
-                                        onClick={() => setEditingId(null)}
-                                    >
-                                        Cancel
-                                    </Button>
-                                    <Button
-                                        size="sm"
-                                        className="flex-1"
-                                        loading={savingId === role.id}
-                                        onClick={() => save(role)}
-                                    >
-                                        Save role
-                                    </Button>
-                                </div>
-                            )}
-
-                            {manageable && editingId !== role.id && (
-                                <Button
-                                    variant="secondary"
-                                    size="sm"
-                                    className="mt-4 w-full"
-                                    onClick={() => setEditingId(role.id)}
+                            return (
+                                <tr
+                                    key={role.id}
+                                    className="animate-fade-in align-top transition-colors duration-150 hover:bg-gray-50"
+                                    style={{ animationDelay: `${index * 30}ms` }}
                                 >
-                                    Edit permissions
-                                </Button>
-                            )}
-                        </Card>
-                    );
-                })}
-            </div>
+                                    <Td>
+                                        <span className="block font-medium capitalize">
+                                            {editingId === role.id ? (
+                                                <input
+                                                    value={role.name}
+                                                    onChange={(e) =>
+                                                        setRoles((current) =>
+                                                            current.map((r) =>
+                                                                r.id === role.id ? { ...r, name: e.target.value } : r,
+                                                            ),
+                                                        )
+                                                    }
+                                                    className="rounded border border-gray-300 px-2 py-1 text-sm capitalize"
+                                                />
+                                            ) : (
+                                                role.name
+                                            )}
+                                        </span>
+                                    </Td>
+                                    <Td>
+                                        <Badge>{role.slug}</Badge>
+                                        {role.is_system && (
+                                            <span className="ml-2 text-xs text-gray-400">Built-in</span>
+                                        )}
+                                    </Td>
+                                    <Td>
+                                        {editing ? (
+                                            <PermissionGrid
+                                                permissions={permissions}
+                                                disabled={!manageable}
+                                                dense
+                                                isChecked={(permission) => selectedIds.includes(permission.id)}
+                                                onToggle={(permission) => togglePermission(role.id, permission.id)}
+                                            />
+                                        ) : (
+                                            <span className="text-sm text-gray-500">
+                                                {granted.length ? granted.join(', ') : 'No permissions'}
+                                            </span>
+                                        )}
+                                    </Td>
+                                    <Td align="right" className="tabular-nums">
+                                        {role.users_count}
+                                    </Td>
+                                    <Td align="right">
+                                        {manageable &&
+                                            (editingId === role.id ? (
+                                                <div className="flex justify-end gap-2">
+                                                    <Button
+                                                        variant="secondary"
+                                                        size="sm"
+                                                        onClick={() => setEditingId(null)}
+                                                    >
+                                                        Cancel
+                                                    </Button>
+                                                    <Button
+                                                        size="sm"
+                                                        loading={savingId === role.id}
+                                                        onClick={() => save(role)}
+                                                    >
+                                                        Save role
+                                                    </Button>
+                                                </div>
+                                            ) : (
+                                                <div className="flex justify-end gap-2">
+                                                    {!role.is_system && (
+                                                        <Button
+                                                            variant="secondary"
+                                                            size="sm"
+                                                            onClick={() => setEditingId(role.id)}
+                                                        >
+                                                            Edit permissions
+                                                        </Button>
+                                                    )}
+                                                    <Button variant="secondary" size="sm" onClick={() => duplicate(role)}>
+                                                        Duplicate
+                                                    </Button>
+                                                    {!role.is_system && (
+                                                        <Button
+                                                            variant="secondary"
+                                                            size="sm"
+                                                            loading={savingId === role.id}
+                                                            disabled={role.users_count > 0}
+                                                            title={role.users_count > 0 ? 'Move its members to another role first' : undefined}
+                                                            onClick={() => remove(role)}
+                                                        >
+                                                            Delete
+                                                        </Button>
+                                                    )}
+                                                </div>
+                                            ))}
+                                    </Td>
+                                </tr>
+                            );
+                        })
+                    )}
+                </tbody>
+            </Table>
         </div>
     );
 }

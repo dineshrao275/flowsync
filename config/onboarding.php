@@ -19,6 +19,10 @@ return [
 
     'trial_days' => (int) env('ONBOARDING_TRIAL_DAYS', 14),
 
+    // A trial needs a payment method on file. Off until the Stripe SetupIntent
+    // flow (roadmap FB-6) can actually capture one; flip it on with that work.
+    'require_card_for_trial' => (bool) env('ONBOARDING_REQUIRE_CARD', false),
+
     'steps' => [
         'business' => [
             'title' => 'Business details',
@@ -39,6 +43,12 @@ return [
             'title' => 'Workspace setup',
             'description' => 'Organize work into workspaces and projects.',
             'required' => false,
+        ],
+        'hrms' => [
+            'title' => 'People setup',
+            'description' => 'Tell us about your team size and file your first office location.',
+            'required' => false,
+            'module' => 'hrms.core',
         ],
         'verification' => [
             'title' => 'Verification',

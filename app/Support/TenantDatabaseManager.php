@@ -2,7 +2,12 @@
 
 namespace App\Support;
 
+use App\Models\SubscriptionPlan;
 use App\Models\Tenant;
+use App\Services\TenantLimits;
+use App\Support\Hrms\HrmsSchema;
+use App\Support\Integration\BridgeSchema;
+use App\Support\Tms\TmsSchema;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\DB;
@@ -109,16 +114,25 @@ class TenantDatabaseManager
     {
         $prefix = config('tenancy.tenant.db_prefix', 'flowsync_tenant_');
         $dbName = $tenant->db_name ?: $prefix.$tenant->id;
-        $role = $tenant->db_user ?: $dbName;
-        $password = $tenant->db_password ?: Str::random(32);
+
+        // Managed PostgreSQL (RDS, Cloud SQL, most local devboxes) hands the app a
+        // single login role and never grants CREATEROLE, so we cannot create a role
+        // per tenant. When `tenancy.tenant.pg_role` is set, every tenant database
+        // is owned by that existing shared role instead; the per-tenant role
+        // (created on demand) remains the default when it is not.
+        $sharedRole = config('tenancy.tenant.pg_role') ?: null;
+        $role = $tenant->db_user ?: ($sharedRole ?: $dbName);
+        $isSharedRole = $sharedRole !== null && $role === $sharedRole;
+        $password = $tenant->db_password
+            ?: ($isSharedRole ? (string) config('database.connections.system.password') : Str::random(32));
 
         $pdo = $this->postgresAdminConnection();
 
         // The tenant role must own its database to CREATE in the 'public' schema
         // (PostgreSQL 15+ revoked default CREATE/usage for non-owner roles).
-        if (! $this->postgresRoleExists($role)) {
+        if (! $isSharedRole && ! $this->postgresRoleExists($role)) {
             $pdo->exec(sprintf('CREATE ROLE "%s" LOGIN PASSWORD %s', $role, $pdo->quote($password)));
-        } elseif (! $tenant->db_password) {
+        } elseif (! $isSharedRole && ! $tenant->db_password) {
             // The role predates the tenant row's stored password — align it so the
             // connection credentials match the DB we generated.
             $pdo->exec(sprintf('ALTER ROLE "%s" WITH LOGIN PASSWORD %s', $role, $pdo->quote($password)));
@@ -141,18 +155,121 @@ class TenantDatabaseManager
     }
 
     /**
-     * Run the tenant migration set against the tenant's database.
+     * Drop the tenant's database (idempotent). SQLite: delete the database
+     * file(s). PostgreSQL: terminate backends and DROP DATABASE; the login
+     * role is dropped only when it is clearly per-tenant (name matches the
+     * generated database name) — the shared `pg_role`, the system login and
+     * anything else are never touched. Returns whether anything was dropped.
      */
-    public function migrateTenant(Tenant $tenant): void
+    public function dropDatabase(Tenant $tenant): bool
+    {
+        if ($this->tenantDriver() === 'sqlite') {
+            $dropped = false;
+
+            foreach ($this->tenantDatabaseFiles($tenant) as $path) {
+                if (is_file($path)) {
+                    unlink($path);
+                    $dropped = true;
+                }
+            }
+
+            DB::purge(self::TENANT_CONNECTION);
+
+            return $dropped;
+        }
+
+        return $this->dropPostgresDatabase($tenant);
+    }
+
+    /**
+     * @return list<string>
+     */
+    private function tenantDatabaseFiles(Tenant $tenant): array
+    {
+        $dir = (string) config('tenancy.tenant.db_path', database_path('tenants'));
+        $files = [$this->tenantDatabasePath($tenant)];
+
+        foreach ((array) glob(rtrim($dir, '/').'/'.$tenant->slug.'_*.sqlite') ?: [] as $match) {
+            if (! in_array($match, $files, true)) {
+                $files[] = $match;
+            }
+        }
+
+        return $files;
+    }
+
+    private function dropPostgresDatabase(Tenant $tenant): bool
+    {
+        $prefix = config('tenancy.tenant.db_prefix', 'flowsync_tenant_');
+        $dbName = $tenant->db_name ?: $prefix.$tenant->id;
+        $pdo = $this->postgresAdminConnection();
+
+        $pdo->exec('SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE datname = '.$pdo->quote($dbName).' AND pid <> pg_backend_pid()');
+
+        if (! $this->postgresDatabaseExists($dbName)) {
+            return false;
+        }
+
+        $pdo->exec(sprintf('DROP DATABASE "%s"', str_replace('"', '""', $dbName)));
+
+        $sharedRole = config('tenancy.tenant.pg_role') ?: null;
+        $role = $tenant->db_user;
+
+        if (is_string($role) && $role !== '' && $role !== $sharedRole && $role === $dbName && $this->postgresRoleExists($role)) {
+            $pdo->exec(sprintf('DROP ROLE "%s"', str_replace('"', '""', $role)));
+        }
+
+        DB::purge(self::TENANT_CONNECTION);
+
+        return true;
+    }
+
+    /**
+     * Run the tenant migration sets against the tenant's database.
+     *
+     * Tenant Core (`database/migrations/tenant`) always runs. The TMS set runs for a
+     * TMS tenant, the HRMS set for an HRMS tenant, and the cross-product integration
+     * set only when both are on (its tables FK across the two schemas). Which sets a
+     * tenant gets comes from its live subscriptions (`coveredProducts`) unless the
+     * caller names them explicitly (provisioning passes the plans being subscribed).
+     */
+    public function migrateTenant(Tenant $tenant, ?array $products = null): void
     {
         $connection = config('tenancy.tenant.connection', self::TENANT_CONNECTION);
+        $products ??= app(TenantLimits::class)->coveredProducts($tenant);
 
-        $this->using($tenant, function () use ($connection, $tenant): void {
-            Artisan::call('migrate', [
-                '--database' => $connection,
-                '--path' => 'database/migrations/tenant',
-                '--force' => true,
-            ]);
+        $withTms = in_array(SubscriptionPlan::PRODUCT_TMS, $products, true);
+        $withHrms = in_array(SubscriptionPlan::PRODUCT_HRMS, $products, true);
+
+        $paths = ['database/migrations/tenant'];
+
+        if ($withTms) {
+            $paths[] = 'database/migrations/tenant_tms';
+        }
+
+        if ($withHrms) {
+            $paths[] = 'database/migrations/tenant_hrms';
+        }
+
+        if ($withTms && $withHrms) {
+            $paths[] = 'database/migrations/tenant_integration';
+        }
+
+        $this->using($tenant, function () use ($connection, $tenant, $paths): void {
+            foreach ($paths as $path) {
+                Artisan::call('migrate', [
+                    '--database' => $connection,
+                    '--path' => $path,
+                    '--force' => true,
+                ]);
+            }
+
+            // A product just added (or removed) changes which schema probes are
+            // valid, so never let a remembered answer outlive the migration.
+            TmsSchema::flush();
+            HrmsSchema::flush();
+            BridgeSchema::flush();
+
             $tenant->update(['provisioning_status' => Tenant::PROVISIONING_MIGRATED]);
         });
     }
@@ -260,6 +377,10 @@ class TenantDatabaseManager
         if ($connection === config('tenancy.tenant.connection', self::TENANT_CONNECTION) && $tenantId) {
             $tenant = Tenant::find($tenantId);
             if ($tenant) {
+                // The block just ran against ANOTHER tenant on this same connection name, and
+                // the context was reset above — so connect() would see "same tenant, nothing
+                // to purge" and keep serving the other tenant's PDO. Drop it explicitly.
+                DB::purge($connection);
                 $this->connect($tenant);
 
                 return;

@@ -1,3 +1,9 @@
+const STORAGE_PREFIX = (typeof window !== 'undefined' && window.__FLOWSYNC_CONFIG__?.storagePrefix) || 'flowsync';
+
+export const THEME_STORAGE_KEY = `${STORAGE_PREFIX}.theme`;
+
+export const THEME_MODES = ['light', 'dark', 'system'];
+
 export const DEFAULT_THEME = {
     sidebar_bg: '#0f172a',
     sidebar_hover: '#1e293b',
@@ -8,6 +14,7 @@ export const DEFAULT_THEME = {
     header_text: '#0f172a',
     card_bg: '#ffffff',
     accent: '#6366f1',
+    mode: 'system',
 };
 
 export const THEME_FIELDS = [
@@ -30,6 +37,7 @@ export const THEME_PRESETS = [
     {
         name: 'Emerald Dark',
         theme: {
+            ...DEFAULT_THEME,
             sidebar_bg: '#022c22',
             sidebar_hover: '#064e3b',
             active_menu: '#10b981',
@@ -44,6 +52,7 @@ export const THEME_PRESETS = [
     {
         name: 'Rose Night',
         theme: {
+            ...DEFAULT_THEME,
             sidebar_bg: '#1c1917',
             sidebar_hover: '#292524',
             active_menu: '#f43f5e',
@@ -58,6 +67,7 @@ export const THEME_PRESETS = [
     {
         name: 'Blue Steel',
         theme: {
+            ...DEFAULT_THEME,
             sidebar_bg: '#0c4a6e',
             sidebar_hover: '#075985',
             active_menu: '#38bdf8',
@@ -71,17 +81,223 @@ export const THEME_PRESETS = [
     },
 ];
 
-const CSS_VARS = Object.keys(DEFAULT_THEME);
+/**
+ * Structural surfaces used when the dark scheme is active. The admin's own
+ * `accent` / `active_menu` colors are kept so branding survives the switch.
+ */
+const THEME_VARS_KEY = `${STORAGE_PREFIX}.theme.vars`;
+
+function hexToRgb(hex) {
+    const value = String(hex || '').replace('#', '').trim();
+    const full = value.length === 3 ? value.split('').map((c) => c + c).join('') : value;
+
+    if (!/^[0-9a-fA-F]{6}$/.test(full)) return { r: 99, g: 102, b: 241 };
+
+    return {
+        r: parseInt(full.slice(0, 2), 16),
+        g: parseInt(full.slice(2, 4), 16),
+        b: parseInt(full.slice(4, 6), 16),
+    };
+}
+
+function rgbToHex({ r, g, b }) {
+    const clamp = (n) => Math.max(0, Math.min(255, Math.round(n)));
+
+    return `#${[r, g, b].map((n) => clamp(n).toString(16).padStart(2, '0')).join('')}`;
+}
+
+function mix(from, to, amount) {
+    const a = hexToRgb(from);
+    const b = hexToRgb(to);
+
+    return rgbToHex({
+        r: a.r + (b.r - a.r) * amount,
+        g: a.g + (b.g - a.g) * amount,
+        b: a.b + (b.b - a.b) * amount,
+    });
+}
+
+function luminance(hex) {
+    const { r, g, b } = hexToRgb(hex);
+    const channel = (v) => {
+        const s = v / 255;
+
+        return s <= 0.03928 ? s / 12.92 : ((s + 0.055) / 1.055) ** 2.4;
+    };
+
+    return 0.2126 * channel(r) + 0.7152 * channel(g) + 0.0722 * channel(b);
+}
+
+export const DARK_SURFACES = {
+    sidebar_bg: '#0b0f1a',
+    sidebar_hover: '#1b2333',
+    sidebar_text: '#cbd5e1',
+    dashboard_bg: '#0f1420',
+    header_bg: '#151a26',
+    header_text: '#e8eaf0',
+    card_bg: '#171d2b',
+};
+
+/**
+ * Destructive controls follow the same token pattern as accents, but on a
+ * fixed red scale: in dark mode the base steps one shade brighter so the
+ * button stands out from dark surfaces (red-600 sinks into them). The
+ * white-text tradeoff on the brighter base (~3.5:1) is the standard
+ * dark-mode compromise — distinction from the page matters more than the
+ * AA body-text ratio for a semibold button label.
+ */
+export function dangerTokens(dark = false) {
+    return dark
+        ? {
+            '--danger': '#ef4444',
+            '--danger-hover': '#f87171',
+            '--danger-active': '#dc2626',
+            '--danger-contrast': '#ffffff',
+            '--danger-ring': '#fca5a5',
+        }
+        : {
+            '--danger': '#dc2626',
+            '--danger-hover': '#ef4444',
+            '--danger-active': '#b91c1c',
+            '--danger-contrast': '#ffffff',
+            '--danger-ring': '#fecaca',
+        };
+}
+
+/**
+ * Every accent-driven control (buttons, active toggles, chips, links, focus
+ * rings) reads these instead of a hardcoded indigo, so changing `accent` in
+ * the theme drawer re-skins the whole UI.
+ */
+export function accentTokens(accent, dark = false) {
+    const base = /^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/.test(String(accent || '').trim())
+        ? accent
+        : DEFAULT_THEME.accent;
+    const canvas = dark ? '#121826' : '#ffffff';
+
+    return {
+        '--accent': base,
+        '--accent-hover': dark ? mix(base, '#ffffff', 0.16) : mix(base, '#ffffff', 0.15),
+        '--accent-active': mix(base, '#000000', 0.14),
+        '--accent-contrast': luminance(base) > 0.55 ? '#0f172a' : '#ffffff',
+        '--accent-soft': mix(canvas, base, dark ? 0.22 : 0.1),
+        '--accent-soft-hover': mix(canvas, base, dark ? 0.3 : 0.16),
+        '--accent-soft-text': dark ? mix(base, '#ffffff', 0.35) : mix(base, '#000000', 0.22),
+        '--accent-ring': mix(canvas, base, dark ? 0.4 : 0.25),
+    };
+}
+
+const CSS_VARS = THEME_FIELDS.map((field) => field.key);
 
 function cssVar(key) {
     return `--${key.replace(/_/g, '-')}`;
 }
 
+export function prefersDark() {
+    return typeof window !== 'undefined'
+        && typeof window.matchMedia === 'function'
+        && window.matchMedia('(prefers-color-scheme: dark)').matches;
+}
+
+export function resolveMode(mode) {
+    const resolved = THEME_MODES.includes(mode) ? mode : 'system';
+
+    if (resolved === 'system') {
+        return prefersDark() ? 'dark' : 'light';
+    }
+
+    return resolved;
+}
+
+export function isDarkMode(theme) {
+    return resolveMode(theme?.mode) === 'dark';
+}
+
+function readStoredTheme() {
+    if (typeof window === 'undefined') return null;
+
+    try {
+        const raw = window.localStorage.getItem(THEME_STORAGE_KEY);
+
+        return raw ? JSON.parse(raw) : null;
+    } catch {
+        return null;
+    }
+}
+
+/**
+ * Applies a theme: toggles the `dark` class (which re-points the Tailwind gray
+ * scale + `bg-white` surfaces via app.css), sets `color-scheme` for native
+ * form controls, and writes the custom properties.
+ */
 export function applyTheme(theme) {
+    if (typeof document === 'undefined') return null;
+
     const merged = { ...DEFAULT_THEME, ...(theme || {}) };
+    const dark = resolveMode(merged.mode) === 'dark';
     const root = document.documentElement;
 
+    root.classList.toggle('dark', dark);
+    root.style.colorScheme = dark ? 'dark' : 'light';
+
     CSS_VARS.forEach((key) => {
-        root.style.setProperty(cssVar(key), merged[key]);
+        root.style.setProperty(cssVar(key), dark && key in DARK_SURFACES ? DARK_SURFACES[key] : merged[key]);
     });
+
+    const tokens = { ...accentTokens(merged.accent, dark), ...dangerTokens(dark) };
+    Object.entries(tokens).forEach(([name, value]) => root.style.setProperty(name, value));
+
+    try {
+        window.localStorage.setItem(THEME_STORAGE_KEY, JSON.stringify(merged));
+        // Cached so the pre-hydration boot script can paint accent-driven
+        // buttons without duplicating this color math inline.
+        window.localStorage.setItem(THEME_VARS_KEY, JSON.stringify(tokens));
+    } catch {
+        // Private mode / storage disabled — the theme still applies for this page.
+    }
+
+    return merged;
+}
+
+/**
+ * Re-applies the current theme when the OS scheme flips while in `system`
+ * mode. Returns an unsubscribe function.
+ */
+export function watchSystemScheme(callback) {
+    if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') {
+        return () => {};
+    }
+
+    const query = window.matchMedia('(prefers-color-scheme: dark)');
+    const handler = () => callback();
+
+    query.addEventListener('change', handler);
+
+    return () => query.removeEventListener('change', handler);
+}
+
+/**
+ * Runs before React mounts (inline script in app.blade.php) so the stored
+ * scheme is painted on the first frame instead of flashing light.
+ */
+export function bootStoredTheme() {
+    const stored = readStoredTheme();
+
+    if (!stored) return;
+
+    const dark = resolveMode(stored.mode) === 'dark';
+    const root = document.documentElement;
+
+    root.classList.toggle('dark', dark);
+    root.style.colorScheme = dark ? 'dark' : 'light';
+
+    try {
+        const cached = JSON.parse(window.localStorage.getItem(THEME_VARS_KEY) || 'null');
+
+        if (cached) {
+            Object.entries(cached).forEach(([name, value]) => root.style.setProperty(name, value));
+        }
+    } catch {
+        // React applies the real values on mount.
+    }
 }

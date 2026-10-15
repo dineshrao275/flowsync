@@ -4,8 +4,10 @@ import Badge from '../ui/Badge';
 import Alert from '../ui/Alert';
 import Spinner from '../ui/Spinner';
 import Button from '../ui/Button';
+import { useConfirm } from '../ui/ConfirmDialog';
 
 export default function DependencyPanel({ task, projectId, canManage, allTasks }) {
+    const confirm = useConfirm();
     const [data, setData] = useState(null);
     const [error, setError] = useState(null);
     const [selected, setSelected] = useState('');
@@ -43,7 +45,14 @@ export default function DependencyPanel({ task, projectId, canManage, allTasks }
             .finally(() => setBusy(false));
     }
 
-    function remove(id) {
+    async function remove(id) {
+        if (!(await confirm({
+            title: 'Remove dependency?',
+            message: 'Remove this dependency relationship?',
+            variant: 'danger',
+            confirmLabel: 'Remove',
+        }))) return;
+
         api.delete(`/projects/${projectId}/tasks/${task.id}/dependencies/${id}`)
             .then(fetchDependencies)
             .catch(() => { });

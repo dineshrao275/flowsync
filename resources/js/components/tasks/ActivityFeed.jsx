@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import api from '../../services/api';
 import Alert from '../ui/Alert';
 import Spinner from '../ui/Spinner';
+import Timestamp from '../ui/Timestamp';
 
 const ACTION_LABELS = {
     'task.created': 'created the task',
@@ -13,6 +14,10 @@ const ACTION_LABELS = {
     'task.attachment_deleted': 'deleted an attachment',
     'task.dependency_created': 'added a dependency',
     'task.dependency_deleted': 'removed a dependency',
+    'task.checklist_item_added': 'added a checklist item',
+    'task.checklist_item_checked': 'checked a checklist item',
+    'task.checklist_item_unchecked': 'unchecked a checklist item',
+    'task.checklist_item_removed': 'removed a checklist item',
 };
 
 function describe(action, data) {
@@ -24,6 +29,18 @@ function describe(action, data) {
     }
     if (action === 'task.dependency_created' || action === 'task.dependency_deleted') {
         return `a dependency on task #${data?.depends_on_task_id}`;
+    }
+    if (action === 'task.checklist_item_added') {
+        return `added checklist item "${data?.title ?? ''}"`;
+    }
+    if (action === 'task.checklist_item_checked') {
+        return `checked checklist item "${data?.title ?? ''}"`;
+    }
+    if (action === 'task.checklist_item_unchecked') {
+        return `unchecked checklist item "${data?.title ?? ''}"`;
+    }
+    if (action === 'task.checklist_item_removed') {
+        return `removed checklist item "${data?.title ?? ''}"`;
     }
     return ACTION_LABELS[action] ?? action;
 }
@@ -66,12 +83,12 @@ export default function ActivityFeed({ task, projectId }) {
         <ol className="space-y-1 border-l border-gray-200 pl-4">
             {activities.map((activity) => (
                 <li key={activity.id} className="relative py-1.5">
-                    <span className="absolute -left-[21px] top-3 h-2.5 w-2.5 rounded-full border-2 border-white bg-indigo-500 shadow" />
+                    <span className="absolute -left-[21px] top-3 h-2.5 w-2.5 rounded-full border-2 border-white bg-[var(--accent)] shadow" />
                     <p className="text-sm text-gray-700">
                         <span className="font-medium text-gray-900">{activity.actor?.name ?? 'Someone'}</span>{' '}
                         {describe(activity.action, activity.data)}
                     </p>
-                    <p className="text-xs text-gray-400">{new Date(activity.created_at).toLocaleString()}</p>
+                    <p className="text-xs text-gray-400"><Timestamp date={activity.created_at} /></p>
                 </li>
             ))}
         </ol>

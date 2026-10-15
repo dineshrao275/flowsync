@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Models\Concerns\CentralConnection;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
@@ -11,7 +12,11 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 class Tenant extends Model
 {
     use CentralConnection;
+    use HasFactory;
     use SoftDeletes;
+
+    /** Intake in progress: no database exists until every required field is in. */
+    public const STATUS_DRAFT = 'draft';
 
     public const STATUS_PENDING = 'pending';
 
@@ -61,6 +66,7 @@ class Tenant extends Model
         'db_password',
         'subscription_id',
         'billing_email',
+        'billing_customer_id',
         'contact_name',
         'contact_email',
         'trial_ends_at',
@@ -90,6 +96,11 @@ class Tenant extends Model
     ];
 
     protected $hidden = [
+        'billing_customer_id',
+        'db_name',
+        'db_host',
+        'db_port',
+        'db_user',
         'db_password',
     ];
 
@@ -117,9 +128,20 @@ class Tenant extends Model
         return $this->hasMany(TenantUserRouting::class);
     }
 
+    /**
+     * The primary subscription: the legacy bundle if there is one, else TMS, else
+     * HRMS. Code that predates per-product plans keeps reading this.
+     */
     public function subscription(): HasOne
     {
-        return $this->hasOne(Subscription::class);
+        return $this->hasOne(Subscription::class)
+            ->orderByRaw("case product when 'suite' then 0 when 'tms' then 1 else 2 end");
+    }
+
+    /** This tenant's subscription for one product ('suite', 'tms' or 'hrms'). */
+    public function subscriptionFor(string $product): ?Subscription
+    {
+        return $this->subscriptions()->where('product', $product)->first();
     }
 
     public function subscriptions(): HasMany

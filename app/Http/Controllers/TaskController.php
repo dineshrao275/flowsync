@@ -3,12 +3,14 @@
 namespace App\Http\Controllers;
 
 use App\Events\TaskSynced;
+use App\Models\IssueType;
 use App\Models\Priority;
 use App\Models\Project;
 use App\Models\Task;
 use App\Services\ActivityLogger;
-use App\Services\NotificationService;
+use App\Services\Tasks\TaskChangeLogger;
 use App\Services\TaskService;
+use App\Support\TaskScope;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -16,23 +18,39 @@ class TaskController extends Controller
 {
     public function __construct(
         private readonly TaskService $service,
+        private readonly TaskChangeLogger $changes,
         private readonly ActivityLogger $logger,
-        private readonly NotificationService $notifications,
     ) {}
 
     public function index(Request $request, Project $project): JsonResponse
     {
         $this->authorize('view', $project);
 
+        // Board/list rows carry the task-level read, not just project
+        // sight: a role that may see the project but not its tasks gets
+        // the same 403 here that show() answers per row. Scope-aware: a
+        // `tasks.view_own` grant passes the gate and the board/list then
+        // narrow to the caller's rows.
+        $user = $request->user();
+        TaskScope::assertCanRead($project, $user);
+
         $filters = $request->validate([
             'status_id' => ['nullable', 'integer'],
             'priority_id' => ['nullable', 'integer'],
             'assignee_id' => ['nullable', 'integer'],
             'label_id' => ['nullable', 'integer'],
+            'issue_type_id' => ['nullable', 'integer'],
+            'version_id' => ['nullable', 'integer'],
+            'epic_id' => ['nullable', 'integer'],
+            'component_id' => ['nullable', 'integer'],
+            'sprint' => ['nullable', 'regex:/^(active|none|\d+)$/'],
+            'swimlane' => ['nullable', 'in:none,assignee'],
             'q' => ['nullable', 'string', 'max:255'],
             'due_from' => ['nullable', 'date'],
             'due_to' => ['nullable', 'date'],
             'view' => ['nullable', 'in:board,list'],
+            'column_limit' => ['nullable', 'integer', 'min:1', 'max:500'],
+            'limit' => ['nullable', 'integer', 'min:1', 'max:500'],
             'sort_by' => ['nullable', 'in:position,created_at,due_date,title'],
             'sort_dir' => ['nullable', 'in:asc,desc'],
         ]);
@@ -41,18 +59,18 @@ class TaskController extends Controller
 
         if ($board) {
             return response()->json([
-                'board' => $this->service->board($project, $filters),
+                'board' => $this->service->board($project, $filters, $user),
                 'filters' => $this->filtersPayload($project),
-                'my_role' => $project->memberRole($request->user())?->slug,
+                'my_role' => $project->memberRole($user)?->slug,
             ]);
         }
 
-        $tasks = $this->service->list($project, $filters);
+        $tasks = $this->service->list($project, $filters, $user);
 
         return response()->json([
             'tasks' => collect($tasks->items())->map(fn (Task $task) => $this->service->present($task)),
             'filters' => $this->filtersPayload($project),
-            'my_role' => $project->memberRole($request->user())?->slug,
+            'my_role' => $project->memberRole($user)?->slug,
             'pagination' => [
                 'current_page' => $tasks->currentPage(),
                 'last_page' => $tasks->lastPage(),
@@ -73,26 +91,22 @@ class TaskController extends Controller
             'priority_id' => ['nullable', 'integer'],
             'assignee_id' => ['nullable', 'integer'],
             'parent_id' => ['nullable', 'integer'],
+            'epic_id' => ['nullable', 'integer'],
             'labels' => ['nullable', 'array'],
             'labels.*' => ['integer'],
+            'start_date' => ['nullable', 'date'],
             'due_date' => ['nullable', 'date'],
+            'story_points' => ['nullable', 'numeric', 'min:0', 'max:999.99'],
+            'issue_type_id' => ['nullable', 'integer'],
+            'version_id' => ['nullable', 'integer'],
+            'components' => ['nullable', 'array'],
+            'components.*' => ['integer'],
             'estimate_minutes' => ['nullable', 'integer', 'min:0'],
         ]);
 
         $task = $this->service->create($project, $data, $request->user());
 
-        $this->notifications->taskAssigned($request->user(), $task);
-
-        $this->logger->log(
-            subjectType: Task::class,
-            subjectId: $task->id,
-            action: 'task.created',
-            data: ['key' => $task->key, 'title' => $task->title],
-            actor: $request->user(),
-            ipAddress: $request->ip(),
-        );
-
-        broadcast(new TaskSynced($task, 'created'));
+        $this->changes->created($task, $request->user(), $request->ip());
 
         return response()->json([
             'message' => 'Task created.',
@@ -102,6 +116,24 @@ class TaskController extends Controller
 
     public function show(Request $request, Project $project, Task $task): JsonResponse
     {
+        $this->authorize('view', $task);
+
+        return response()->json([
+            'task' => $this->service->present($this->service->show($task)),
+        ]);
+    }
+
+    /**
+     * Resolve one task by its project-scoped key (`PRJ-123`), for deep
+     * links that land outside the current view's pool: the board only
+     * carries top-level tasks, so a subtask link (or a filtered-out task)
+     * would otherwise open the board with no drawer. Same policy and same
+     * shape as show — the key is just another address for the row.
+     */
+    public function showByKey(Request $request, Project $project, string $key): JsonResponse
+    {
+        $task = $project->tasks()->where('key', $key)->firstOrFail();
+
         $this->authorize('view', $task);
 
         return response()->json([
@@ -120,9 +152,16 @@ class TaskController extends Controller
             'priority_id' => ['nullable', 'integer'],
             'assignee_id' => ['nullable', 'integer'],
             'parent_id' => ['nullable', 'integer'],
+            'epic_id' => ['nullable', 'integer'],
             'labels' => ['nullable', 'array'],
             'labels.*' => ['integer'],
+            'start_date' => ['nullable', 'date'],
             'due_date' => ['nullable', 'date'],
+            'story_points' => ['nullable', 'numeric', 'min:0', 'max:999.99'],
+            'issue_type_id' => ['nullable', 'integer'],
+            'version_id' => ['nullable', 'integer'],
+            'components' => ['nullable', 'array'],
+            'components.*' => ['integer'],
             'estimate_minutes' => ['nullable', 'integer', 'min:0'],
         ]);
 
@@ -135,34 +174,7 @@ class TaskController extends Controller
         $oldStatus = $task->status;
         $updated = $this->service->update($task, $data);
 
-        if (array_key_exists('assignee_id', $data) && $updated->assignee_id !== $oldAssigneeId) {
-            $this->notifications->taskAssigned($request->user(), $updated);
-        }
-
-        if (array_key_exists('status_id', $data) && $updated->status_id !== $oldStatusId) {
-            $this->notifications->taskStatusChanged(
-                $request->user(),
-                $updated,
-                $oldStatus?->name ?? 'Unknown',
-                $updated->status?->name ?? 'Unknown',
-            );
-        }
-
-        $changed = array_intersect(
-            array_keys($data),
-            ['title', 'description', 'status_id', 'priority_id', 'assignee_id', 'parent_id', 'due_date', 'estimate_minutes', 'labels'],
-        );
-
-        $this->logger->log(
-            subjectType: Task::class,
-            subjectId: $task->id,
-            action: 'task.updated',
-            data: ['fields' => array_values($changed)],
-            actor: $request->user(),
-            ipAddress: $request->ip(),
-        );
-
-        broadcast(new TaskSynced($updated, 'updated'));
+        $this->changes->updated($updated, $data, $oldAssigneeId, $oldStatusId, $oldStatus, $request->user(), $request->ip());
 
         return response()->json([
             'message' => 'Task updated.',
@@ -192,8 +204,6 @@ class TaskController extends Controller
 
     private function filtersPayload(Project $project): array
     {
-        $priorityIds = $project->tasks()->whereNotNull('priority_id')->distinct()->pluck('priority_id');
-
         return [
             'statuses' => $project->statuses()->orderBy('position')->get()
                 ->map(fn ($s) => $this->service->presentStatus($s)),
@@ -209,6 +219,31 @@ class TaskController extends Controller
                 ->map(fn ($u) => ['id' => $u->id, 'name' => $u->name, 'email' => $u->email]),
             'labels' => $project->workspace?->labels()->orderBy('name')->get()
                 ->map(fn ($l) => ['id' => $l->id, 'name' => $l->name, 'color' => $l->color]),
+            'issue_types' => IssueType::orderBy('position')->get()
+                ->map(fn ($t) => [
+                    'id' => $t->id,
+                    'name' => $t->name,
+                    'slug' => $t->slug,
+                    'icon' => $t->icon,
+                    'color' => $t->color,
+                    'is_subtask' => $t->is_subtask,
+                    'hierarchy_level' => $t->level(),
+                ]),
+            'epics' => $project->tasks()->whereHas('issueType', fn ($q) => $q->where('hierarchy_level', 1))
+                ->orderByDesc('id')->limit(200)->get(['id', 'key', 'title'])
+                ->map(fn ($e) => ['id' => $e->id, 'key' => $e->key, 'title' => $e->title]),
+            'versions' => $project->versions()->orderBy('name')->get()
+                ->map(fn ($v) => [
+                    'id' => $v->id,
+                    'name' => $v->name,
+                    'released' => $v->released,
+                    'release_date' => $v->release_date?->toDateString(),
+                ]),
+            'components' => $project->components()->orderBy('name')->get()
+                ->map(fn ($c) => [
+                    'id' => $c->id,
+                    'name' => $c->name,
+                ]),
         ];
     }
 }

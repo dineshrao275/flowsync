@@ -12,7 +12,7 @@ use InvalidArgumentException;
  * Lifecycle:
  * - `start()`         marks a tenant as mid-wizard (self-registration).
  * - `markStep()`      completes one catalog step (business, admin, subscription,
- *                     configuration, verification).
+ *                     configuration, hrms, verification).
  * - `complete()`      stamps every step + the terminal `completed_at`.
  * - `isComplete()`    a tenant is complete when completed_at is set, OR the
  *                     wizard was never started (admin/seed-provisioned gate
@@ -28,8 +28,11 @@ class TenantOnboarding
         'admin',
         'subscription',
         'configuration',
+        'hrms',
         'verification',
     ];
+
+    public function __construct(private readonly TenantLimits $limits) {}
 
     public function catalog(): array
     {
@@ -48,24 +51,40 @@ class TenantOnboarding
     }
 
     /**
+     * Completable steps this tenant actually sees: a step naming a module
+     * the tenant's plan lacks is hidden, unmarkable, and never blocks.
+     *
+     * @return list<string>
+     */
+    public function visibleSteps(Tenant $tenant): array
+    {
+        return array_values(array_filter(
+            $this->completableSteps(),
+            fn (string $step): bool => $this->stepVisible($tenant, $step),
+        ));
+    }
+
+    /**
      * Full per-step + overall status for the wizard/UI.
      */
     public function status(Tenant $tenant): array
     {
         $meta = $tenant->onboarding_meta ?? [];
 
-        $steps = collect($this->catalog())->map(function (array $step, string $key) use ($meta): array {
-            $entry = $meta['steps'][$key] ?? [];
+        $steps = collect($this->catalog())
+            ->filter(fn (array $step, string $key): bool => $this->stepVisible($tenant, $key))
+            ->map(function (array $step, string $key) use ($meta): array {
+                $entry = $meta['steps'][$key] ?? [];
 
-            return [
-                'key' => $key,
-                'title' => $step['title'],
-                'description' => $step['description'] ?? null,
-                'required' => (bool) ($step['required'] ?? true),
-                'complete' => ! empty($entry['completed_at']),
-                'completed_at' => $entry['completed_at'] ?? null,
-            ];
-        })->values()->all();
+                return [
+                    'key' => $key,
+                    'title' => $step['title'],
+                    'description' => $step['description'] ?? null,
+                    'required' => (bool) ($step['required'] ?? true),
+                    'complete' => ! empty($entry['completed_at']),
+                    'completed_at' => $entry['completed_at'] ?? null,
+                ];
+            })->values()->all();
 
         $startedAt = $meta['started_at'] ?? null;
         $completedAt = $meta['completed_at'] ?? null;
@@ -155,12 +174,23 @@ class TenantOnboarding
         }
 
         foreach ($this->catalog() as $key => $step) {
-            if (($step['required'] ?? true) && empty($meta['steps'][$key]['completed_at'])) {
+            if (($step['required'] ?? true) && empty($meta['steps'][$key]['completed_at']) && $this->stepVisible($tenant, $key)) {
                 return false;
             }
         }
 
         return true;
+    }
+
+    private function stepVisible(Tenant $tenant, string $step): bool
+    {
+        $module = $this->catalog()[$step]['module'] ?? null;
+
+        if ($module === null) {
+            return true;
+        }
+
+        return $this->limits->hasModule($tenant, $module);
     }
 
     private function assertCompletableStep(string $step): void

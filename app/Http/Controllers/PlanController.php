@@ -2,6 +2,8 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Controllers\Concerns\NormalizesBooleanInput;
+use App\Http\Controllers\Concerns\ValidatesResourceLimits;
 use App\Models\SubscriptionPlan;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -14,6 +16,9 @@ use Illuminate\Validation\Rule;
  */
 class PlanController extends Controller
 {
+    use NormalizesBooleanInput;
+    use ValidatesResourceLimits;
+
     /**
      * Plan catalog. Super admins see every plan (admin page); any other
      * authenticated user sees the active plans only (tenant subscription page).
@@ -37,6 +42,7 @@ class PlanController extends Controller
 
         $plan = SubscriptionPlan::create([
             ...$data,
+            'limits' => $this->cleanResourceLimits($data['limits'] ?? null),
             'currency' => $data['currency'] ?? config('subscriptions.currency', 'USD'),
         ]);
 
@@ -49,7 +55,15 @@ class PlanController extends Controller
     {
         $data = $this->validateData($request, $plan);
 
-        $plan->update($data);
+        // The product is what subscriptions are keyed on; it cannot change under them.
+        if (isset($data['product']) && $data['product'] !== ($plan->product ?? 'suite') && $plan->subscriptions()->exists()) {
+            abort(422, 'A plan that tenants are subscribed to cannot change product.');
+        }
+
+        $plan->update([
+            ...$data,
+            'limits' => $this->cleanResourceLimits($data['limits'] ?? null),
+        ]);
 
         $this->ensureSingleDefault($plan);
 
@@ -73,12 +87,17 @@ class PlanController extends Controller
 
     private function validateData(Request $request, ?SubscriptionPlan $plan = null): array
     {
+        // Form payloads may carry "true"/"false" strings; a real boolean is
+        // required so the model's boolean cast can't turn "false" into true.
+        $this->normalizeRequestBooleans($request, ['is_active', 'is_default']);
+
         return $request->validate([
             'name' => ['required', 'string', 'max:255'],
             'slug' => [
                 'required', 'string', 'max:255', 'alpha_dash',
                 Rule::unique('subscription_plans', 'slug')->ignore($plan),
             ],
+            'product' => ['nullable', Rule::in(['suite', 'tms', 'hrms'])],
             'description' => ['nullable', 'string', 'max:1000'],
             'is_active' => ['nullable', 'boolean'],
             'is_default' => ['nullable', 'boolean'],
@@ -87,8 +106,8 @@ class PlanController extends Controller
             'currency' => ['nullable', 'string', 'size:3'],
             'trial_duration_days' => ['nullable', 'integer', 'min:0', 'max:3650'],
             'limits' => ['nullable', 'array'],
-            'limits.modules' => ['nullable', 'array'],
             'sort_order' => ['nullable', 'integer', 'min:0'],
+            ...$this->resourceLimitRules(),
         ]);
     }
 

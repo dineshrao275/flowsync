@@ -4,14 +4,22 @@ namespace App\Http\Controllers;
 
 use App\Http\Controllers\Concerns\ScopesVisibleTasks;
 use App\Http\Requests\GlobalSearchRequest;
+use App\Models\Hrms\Employee\Employee;
 use App\Models\Project;
 use App\Models\Tenant;
 use App\Models\User;
 use App\Models\Workspace;
+use App\Services\PlatformAudit;
+use App\Services\TenantLimits;
+use App\Support\Hrms\HrmsSchema;
+use App\Support\Like;
 use App\Support\TenantDatabaseManager;
+use App\Support\Tms\TmsSchema;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Str;
 
 class GlobalSearchController extends Controller
 {
@@ -30,51 +38,107 @@ class GlobalSearchController extends Controller
         $projects = [];
         $tasks = [];
         $users = [];
+        $employees = [];
+        $tenantsSearched = 0;
+
+        $defaultLimit = (int) $request->input('limit', 0);
+        $wsLimit = (int) $request->input('workspace_limit', $defaultLimit ?: 5);
+        $projLimit = (int) $request->input('project_limit', $defaultLimit ?: 5);
+        $taskLimit = (int) $request->input('task_limit', $defaultLimit ?: 8);
+        $userLimit = (int) $request->input('user_limit', $defaultLimit ?: 5);
+        $empLimit = (int) $request->input('employee_limit', $defaultLimit ?: 5);
 
         if ($isSuperAdmin) {
             $tenants = Tenant::query()->where('status', 'active')->orWhere('status', 'trial')->get()
                 ->filter(fn (Tenant $tenant) => $tenant->isProvisioned());
+            $tenantsSearched = $tenants->count();
 
             foreach ($tenants as $tenant) {
-                $dbm->using($tenant, function () use ($q, $user, $tenant, &$workspaces, &$projects, &$tasks, &$users): void {
-                    $workspaces = array_merge($workspaces, $this->searchWorkspaces($q, $user, $tenant->name));
-                    $projects = array_merge($projects, $this->searchProjects($q, $user, $tenant->name));
-                    $tasks = array_merge($tasks, $this->searchTasks($q, $user));
-                    $users = array_merge($users, $this->searchUsers($q, $user, $tenant->name));
+                $dbm->using($tenant, function () use ($q, $user, $tenant, $wsLimit, $projLimit, $taskLimit, $userLimit, $empLimit, &$workspaces, &$projects, &$tasks, &$users, &$employees): void {
+                    $workspaces = array_merge($workspaces, $this->searchWorkspaces($q, $user, $tenant->name, $wsLimit));
+                    $projects = array_merge($projects, $this->searchProjects($q, $user, $tenant->name, $projLimit));
+                    $tasks = array_merge($tasks, $this->searchTasks($q, $user, $taskLimit));
+                    $users = array_merge($users, $this->searchUsers($q, $user, $tenant->name, $userLimit));
+
+                    if ($this->maySeeEmployees($user, $tenant)) {
+                        $employees = array_merge($employees, $this->searchEmployees($q, $tenant->name, $empLimit));
+                    }
                 });
             }
         } else {
-            $workspaces = $this->searchWorkspaces($q, $user, $this->currentTenantName($request));
-            $projects = $this->searchProjects($q, $user, $this->currentTenantName($request));
-            $tasks = $this->searchTasks($q, $user);
-            $users = $this->searchUsers($q, $user, $this->currentTenantName($request));
+            $workspaces = $this->searchWorkspaces($q, $user, $this->currentTenantName($request), $wsLimit);
+            $projects = $this->searchProjects($q, $user, $this->currentTenantName($request), $projLimit);
+            $tasks = $this->searchTasks($q, $user, $taskLimit);
+            $users = $this->searchUsers($q, $user, $this->currentTenantName($request), $userLimit);
+
+            $tenant = $this->currentTenant($request);
+
+            if ($tenant !== null && $this->maySeeEmployees($user, $tenant)) {
+                $employees = $this->searchEmployees($q, $tenant->name, $empLimit);
+            }
         }
 
         $results = [
-            'workspaces' => array_slice($workspaces, 0, 5),
-            'projects' => array_slice($projects, 0, 5),
-            'tasks' => array_slice($tasks, 0, 8),
-            'users' => array_slice($users, 0, 5),
+            'workspaces' => array_slice($workspaces, 0, $wsLimit),
+            'projects' => array_slice($projects, 0, $projLimit),
+            'tasks' => array_slice($tasks, 0, $taskLimit),
+            'users' => array_slice($users, 0, $userLimit),
+            'employees' => array_slice($employees, 0, $empLimit),
         ];
+
+        $total = array_sum(array_map('count', $results));
+
+        if ($isSuperAdmin && $total > 0) {
+            $this->auditCrossTenantSearch($request, $q, $tenantsSearched, $results);
+        }
 
         return response()->json([
             'query' => $q,
             'results' => $results,
-            'total' => array_sum(array_map('count', $results)),
+            'total' => $total,
         ]);
     }
 
-    private function searchWorkspaces(string $q, User $user, ?string $tenantName = null): array
+    /**
+     * R13: a non-impersonating super admin reading tenant data through search has
+     * no impersonation log, so the search itself is the record. The palette fires
+     * on every pause in typing, hence one row per (admin, query) per five minutes
+     * and only when tenant data actually came back.
+     *
+     * @param  array<string, array<int, mixed>>  $results
+     */
+    private function auditCrossTenantSearch(Request $request, string $q, int $tenantsSearched, array $results): void
     {
+        $key = 'sa-search-audit:'.$request->user()->id.':'.sha1(Str::lower($q));
+
+        if (! Cache::add($key, 1, now()->addMinutes(5))) {
+            return;
+        }
+
+        app(PlatformAudit::class)->record($request, 'search.cross_tenant', null, null, [
+            'q' => Str::limit($q, 100, ''),
+            'tenants_searched' => $tenantsSearched,
+            'results' => array_map('count', $results),
+        ]);
+    }
+
+    private function searchWorkspaces(string $q, User $user, ?string $tenantName = null, int $limit = 5): array
+    {
+        // The cross-tenant fan-out visits single-product tenants too: without
+        // the TMS schema there is nothing to search, not a 500.
+        if (! TmsSchema::present()) {
+            return [];
+        }
+
         $query = Workspace::query()
-            ->where('name', 'like', "%{$q}%")
+            ->tap(fn ($b) => Like::any($b, ['name'], $q))
             ->withCount('projects');
 
         if (! $this->managesAllResources($user)) {
             $query->whereHas('members', fn (Builder $members) => $members->where('user_id', $user->id));
         }
 
-        return $query->orderBy('name')->limit(5)->get()->map(fn (Workspace $workspace) => [
+        return $query->orderBy('name')->limit($limit)->get()->map(fn (Workspace $workspace) => [
             'id' => $workspace->id,
             'name' => $workspace->name,
             'tenant' => $tenantName,
@@ -82,20 +146,22 @@ class GlobalSearchController extends Controller
         ])->values()->all();
     }
 
-    private function searchProjects(string $q, User $user, ?string $tenantName = null): array
+    private function searchProjects(string $q, User $user, ?string $tenantName = null, int $limit = 5): array
     {
+        if (! TmsSchema::present()) {
+            return [];
+        }
+
         $query = Project::query()
             ->with(['workspace'])
             ->withCount('tasks')
-            ->where(fn (Builder $builder) => $builder
-                ->where('name', 'like', "%{$q}%")
-                ->orWhere('key', 'like', "%{$q}%"));
+            ->tap(fn ($b) => Like::any($b, ['name', 'key'], $q));
 
         if (! $this->managesAllResources($user)) {
             $query->whereHas('members', fn (Builder $members) => $members->where('user_id', $user->id));
         }
 
-        return $query->orderBy('name')->limit(5)->get()->map(fn (Project $project) => [
+        return $query->orderBy('name')->limit($limit)->get()->map(fn (Project $project) => [
             'id' => $project->id,
             'name' => $project->name,
             'key' => $project->key,
@@ -105,22 +171,23 @@ class GlobalSearchController extends Controller
         ])->values()->all();
     }
 
-    private function searchTasks(string $q, User $user): array
+    private function searchTasks(string $q, User $user, int $limit = 8): array
     {
+        if (! TmsSchema::present()) {
+            return [];
+        }
+
         return $this->visibleTaskQuery($user)
-            ->where(fn (Builder $builder) => $builder
-                ->where('tasks.title', 'like', "%{$q}%")
-                ->orWhere('tasks.key', 'like', "%{$q}%")
-                ->orWhere('tasks.description', 'like', "%{$q}%"))
+            ->tap(fn ($b) => Like::any($b, ['tasks.title', 'tasks.key', 'tasks.description'], $q))
             ->orderByDesc('tasks.updated_at')
-            ->limit(8)
+            ->limit($limit)
             ->get()
             ->map(fn ($task) => $this->presentTask($task))
             ->values()
             ->all();
     }
 
-    private function searchUsers(string $q, User $user, ?string $tenantName = null): array
+    private function searchUsers(string $q, User $user, ?string $tenantName = null, int $limit = 5): array
     {
         // People search is only enabled for super admins and users holding
         // `users.view`; everyone else simply gets no user results.
@@ -129,11 +196,9 @@ class GlobalSearchController extends Controller
         }
 
         return User::query()
-            ->where(fn (Builder $builder) => $builder
-                ->where('name', 'like', "%{$q}%")
-                ->orWhere('email', 'like', "%{$q}%"))
+            ->tap(fn ($b) => Like::any($b, ['name', 'email'], $q))
             ->orderBy('name')
-            ->limit(5)
+            ->limit($limit)
             ->get()
             ->map(fn (User $user) => [
                 'id' => $user->id,
@@ -147,6 +212,11 @@ class GlobalSearchController extends Controller
 
     private function currentTenantName(Request $request): ?string
     {
+        return $this->currentTenant($request)?->name;
+    }
+
+    private function currentTenant(Request $request): ?Tenant
+    {
         $tenantId = $request->session()->get('impersonate.tenant_id')
             ?? $request->session()->get('login.tenant_id');
 
@@ -154,7 +224,49 @@ class GlobalSearchController extends Controller
             return null;
         }
 
-        return Tenant::whereKey($tenantId)->value('name');
+        return Tenant::whereKey($tenantId)->first();
+    }
+
+    /**
+     * People-directory search: the caller names the directory permission
+     * and the tenant holds the core module. Names and codes travel, never
+     * contact details — the palette links to the profile, it does not
+     * preview the person.
+     */
+    private function maySeeEmployees(User $user, Tenant $tenant): bool
+    {
+        // The platform super admin reads everything, but `hasPermission`
+        // would query the tenant `roles` table on the system connection —
+        // so the bypass comes first, like `managesAllResources` does.
+        if (! ($user->is_super_admin && ! request()->session()->has('impersonate'))
+            && ! $user->hasPermission('hrms.employees.view')) {
+            return false;
+        }
+
+        return app(TenantLimits::class)->hasModule($tenant, 'hrms.core');
+    }
+
+    private function searchEmployees(string $q, ?string $tenantName = null, int $limit = 5): array
+    {
+        // Same fan-out rule as the TMS searches: a TMS-only tenant holds no
+        // employees table, and the answer is an empty group, not a 500.
+        if (! HrmsSchema::present()) {
+            return [];
+        }
+
+        return Employee::query()
+            ->tap(fn ($b) => Like::any($b, ['name', 'employee_code'], $q))
+            ->orderBy('name')
+            ->limit($limit)
+            ->get()
+            ->map(fn (Employee $employee) => [
+                'id' => $employee->id,
+                'employee_code' => $employee->employee_code,
+                'name' => $employee->name,
+                'tenant' => $tenantName,
+            ])
+            ->values()
+            ->all();
     }
 
     private function managesAllResources(User $user): bool

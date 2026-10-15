@@ -2,14 +2,23 @@
 
 namespace App\Services;
 
-use App\Models\Label;
-use App\Models\Priority;
 use App\Models\Project;
 use App\Models\Task;
 use App\Models\TaskStatus;
+use App\Models\TaskStatusHistory;
 use App\Models\User;
+use App\Services\Hrms\PerformanceService;
+use App\Services\Tasks\TaskColumnOrder;
+use App\Services\Tasks\TaskHierarchy;
+use App\Services\Tasks\TaskInputResolver;
+use App\Services\Tasks\TaskPresenter;
+use App\Services\Tasks\TaskReader;
+use App\Services\Tasks\TaskWatchers;
+use App\Services\Workflow\WorkflowGuard;
+use App\Support\Hrms\HrmsSchema;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
-use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Validation\ValidationException;
 
 class TaskService
@@ -17,16 +26,24 @@ class TaskService
     public function __construct(
         private readonly KeyGenerator $keyGenerator,
         private readonly TenantLimits $limits,
+        private readonly PerformanceService $performance,
+        private readonly WorkflowGuard $workflow,
+        private readonly TaskInputResolver $inputs,
+        private readonly TaskPresenter $presenter,
+        private readonly TaskWatchers $taskWatchers,
+        private readonly TaskColumnOrder $columns,
+        private readonly TaskReader $reader,
+        private readonly TaskHierarchy $hierarchy,
     ) {}
 
     public function create(Project $project, array $data, User $creator): Task
     {
         $this->limits->assertQuota('tasks');
 
-        $status = $this->resolveStatus($project, $data['status_id'] ?? null);
-        $priority = $this->resolvePriority($project, $data['priority_id'] ?? null);
-        $assignee = $this->resolveAssignee($project, $data['assignee_id'] ?? null);
-        $parent = $this->resolveParent($project, $data['parent_id'] ?? null);
+        $status = $this->inputs->status($project, $data['status_id'] ?? null);
+        $priority = $this->inputs->priority($project, $data['priority_id'] ?? null);
+        $assignee = $this->inputs->assignee($project, $data['assignee_id'] ?? null);
+        $parent = $this->inputs->parent($project, $data['parent_id'] ?? null);
 
         if ($status->category->isDone() && $this->hasOpenBlockers($parent)) {
             throw ValidationException::withMessages([
@@ -34,7 +51,13 @@ class TaskService
             ]);
         }
 
+        $this->assertWip($status);
+
         $key = $this->keyGenerator->nextTaskKey($project);
+        $issueType = $this->inputs->issueType($data['issue_type_id'] ?? null);
+        $epic = $this->hierarchy->epic($project, $data['epic_id'] ?? null);
+        $this->hierarchy->assert(null, $issueType, $parent, $epic);
+        $version = $this->inputs->version($project, $data['version_id'] ?? null);
 
         $task = Task::create([
             'workspace_id' => $project->workspace_id,
@@ -43,29 +66,39 @@ class TaskService
             'reporter_id' => $creator->id,
             'assignee_id' => $assignee?->id,
             'parent_id' => $parent?->id,
+            'epic_id' => $epic?->id,
             'status_id' => $status->id,
             'priority_id' => $priority?->id,
+            'issue_type_id' => $issueType?->id,
+            'version_id' => $version?->id,
             'key' => $key[0],
             'sequence' => $key[1],
             'title' => $data['title'],
             'description' => $data['description'] ?? null,
+            'start_date' => $data['start_date'] ?? null,
             'due_date' => $data['due_date'] ?? null,
+            'story_points' => $data['story_points'] ?? null,
             'estimate_minutes' => $data['estimate_minutes'] ?? null,
-            'position' => $this->nextPosition($status),
+            'position' => $this->columns->nextPosition($status),
             'completed_at' => $status->is_done ? now() : null,
         ]);
 
-        $task->labels()->attach($this->resolveLabels($project, $data['labels'] ?? []));
+        $task->labels()->attach($this->inputs->labels($project, $data['labels'] ?? []));
+        $this->recordStatusChange($task, null, $status->id);
+
+        if (! empty($data['components'])) {
+            $task->components()->attach($this->inputs->components($project, $data['components']));
+        }
 
         return $task;
     }
 
     public function update(Task $task, array $data): Task
     {
-        $status = $this->resolveStatus($task->project, $data['status_id'] ?? $task->status_id);
-        $priority = $this->resolvePriority($task->project, $data['priority_id'] ?? $task->priority_id);
-        $assignee = $this->resolveAssignee($task->project, $data['assignee_id'] ?? $task->assignee_id);
-        $parent = $this->resolveParent($task->project, $data['parent_id'] ?? $task->parent_id);
+        $status = $this->inputs->status($task->project, $data['status_id'] ?? $task->status_id);
+        $priority = $this->inputs->priority($task->project, $data['priority_id'] ?? $task->priority_id);
+        $assignee = $this->inputs->assignee($task->project, array_key_exists('assignee_id', $data) ? $data['assignee_id'] : $task->assignee_id);
+        $parent = $this->inputs->parent($task->project, array_key_exists('parent_id', $data) ? $data['parent_id'] : $task->parent_id);
 
         $statusChanged = ($data['status_id'] ?? null) !== null && (int) $data['status_id'] !== $task->status_id;
 
@@ -75,7 +108,7 @@ class TaskService
             ]);
         }
 
-        $task->update([
+        $updateData = [
             'title' => $data['title'] ?? $task->title,
             'description' => array_key_exists('description', $data) ? $data['description'] : $task->description,
             'status_id' => $status->id,
@@ -85,13 +118,112 @@ class TaskService
             'due_date' => array_key_exists('due_date', $data) ? $data['due_date'] : $task->due_date,
             'estimate_minutes' => array_key_exists('estimate_minutes', $data) ? $data['estimate_minutes'] : $task->estimate_minutes,
             'completed_at' => $status->is_done ? ($task->completed_at ?? now()) : null,
-        ]);
+        ];
 
-        if (isset($data['labels'])) {
-            $task->labels()->sync($this->resolveLabels($task->project, $data['labels']));
+        if (array_key_exists('start_date', $data)) {
+            $updateData['start_date'] = $data['start_date'];
+        }
+        if (array_key_exists('story_points', $data)) {
+            $updateData['story_points'] = $data['story_points'];
+        }
+        $this->applyHierarchy($task, $data, $parent, $updateData);
+        if (array_key_exists('version_id', $data)) {
+            $updateData['version_id'] = $this->inputs->version($task->project, $data['version_id'])?->id;
         }
 
-        return $task->fresh();
+        $completing = $status->is_done && (int) $task->status_id !== (int) $status->id;
+        $fromStatusId = (int) $task->status_id;
+        $statusMoves = $fromStatusId !== (int) $status->id;
+        if ($statusMoves) {
+            $this->assertWip($status);
+            // Judge the task as it is about to be saved, so one edit can satisfy the entry rule it triggers.
+            $this->workflow->assertCanMove($task, $status, array_intersect_key($updateData, array_flip(['assignee_id', 'due_date', 'estimate_minutes', 'story_points'])));
+        }
+
+        $task->update($updateData);
+
+        if (array_key_exists('labels', $data)) {
+            $task->labels()->sync($this->inputs->labels($task->project, $data['labels'] ?? []));
+        }
+
+        if (array_key_exists('components', $data)) {
+            $task->components()->sync($this->inputs->components($task->project, $data['components'] ?? []));
+        }
+
+        $updated = $task->fresh();
+
+        if ($statusMoves) {
+            $this->recordStatusChange($updated, $fromStatusId, (int) $status->id);
+        }
+
+        if ($completing) {
+            $this->refreshGoalsOnCompletion($updated);
+        }
+
+        return $updated;
+    }
+
+    /** Validates the type/parent/epic a write ends with and adds the type and epic columns to the update. */
+    private function applyHierarchy(Task $task, array $data, ?Task $parent, array &$updateData): void
+    {
+        $type = array_key_exists('issue_type_id', $data) ? $this->inputs->issueType($data['issue_type_id']) : $task->issueType;
+        $epic = array_key_exists('epic_id', $data) ? $this->hierarchy->epic($task->project, $data['epic_id']) : $task->epic;
+
+        $touched = array_key_exists('issue_type_id', $data) || array_key_exists('epic_id', $data) || array_key_exists('parent_id', $data);
+        if ($touched) {
+            if (array_key_exists('issue_type_id', $data) && $type !== null) {
+                $this->hierarchy->assertRetypable($task, $type);
+            }
+            $this->hierarchy->assert($task, $type, $parent, $epic);
+        }
+
+        if (array_key_exists('issue_type_id', $data)) {
+            $updateData['issue_type_id'] = $type?->id;
+        }
+        if (array_key_exists('epic_id', $data)) {
+            $updateData['epic_id'] = $epic?->id;
+        }
+    }
+
+    /** A column's WIP limit caps the open cards it may hold; exceeding it is a 422. */
+    private function assertWip(TaskStatus $status, ?Task $exclude = null): void
+    {
+        if ($status->wip_limit === null) {
+            return;
+        }
+
+        $count = $status->tasks()
+            ->whereNull('parent_id')
+            ->whereNull('completed_at')
+            ->when($exclude !== null, fn ($q) => $q->whereKeyNot($exclude->id))
+            ->count();
+
+        if ($count >= $status->wip_limit) {
+            throw ValidationException::withMessages([
+                'form' => sprintf('"%s" is at its WIP limit (%d). Move a card out or raise the limit.', $status->name, $status->wip_limit),
+            ]);
+        }
+    }
+
+    /** One history row per status change — the basis for cycle and lead time. */
+    private function recordStatusChange(Task $task, ?int $from, int $to): void
+    {
+        TaskStatusHistory::create([
+            'task_id' => $task->id, 'from_status_id' => $from, 'to_status_id' => $to,
+            'user_id' => Auth::id(), 'changed_at' => now(),
+        ]);
+    }
+
+    /**
+     * A completion re-photographs every goal evidencing the task, so linked goals update on
+     * the event rather than waiting for the nightly sweep. Evidence only — it never writes a
+     * rating or a status. A tenant without the HRMS product has no goals to refresh.
+     */
+    private function refreshGoalsOnCompletion(Task $task): void
+    {
+        if (HrmsSchema::present()) {
+            $this->performance->refreshTaskGoals($task);
+        }
     }
 
     public function delete(Task $task): void
@@ -101,7 +233,7 @@ class TaskService
 
     public function move(Task $task, int $statusId, ?int $index): Task
     {
-        $status = $this->resolveStatus($task->project, $statusId);
+        $status = $this->inputs->status($task->project, $statusId);
         $oldStatusId = $task->status_id;
 
         if ($status->is_done && $this->hasOpenBlockers($task)) {
@@ -110,152 +242,53 @@ class TaskService
             ]);
         }
 
+        $this->workflow->assertCanMove($task, $status);
+
+        // WIP applies to arrivals into the column: a reorder inside the same
+        // column keeps its own occupancy, so the mover is not counted there.
+        $this->assertWip($status, $task->status_id === $status->id ? $task : null);
+
         $task->update([
             'status_id' => $status->id,
             'completed_at' => $status->is_done ? ($task->completed_at ?? now()) : null,
         ]);
 
-        $this->reorderColumn($task->project, $status, $task, $index);
+        $this->columns->reorderColumn($task->project, $status, $task, $index);
 
         if ($oldStatusId !== $status->id) {
             $oldStatus = $task->project->statuses()->find($oldStatusId);
 
             if ($oldStatus !== null) {
-                $this->reorderColumn($task->project, $oldStatus, $task, null);
+                $this->columns->reorderColumn($task->project, $oldStatus, $task, null);
             }
         }
 
-        return $task->fresh();
+        $moved = $task->fresh();
+
+        if ($oldStatusId !== $status->id) {
+            $this->recordStatusChange($moved, $oldStatusId, $status->id);
+        }
+
+        if ($status->is_done) {
+            $this->refreshGoalsOnCompletion($moved);
+        }
+
+        return $moved;
     }
 
-    public function board(Project $project, array $filters): array
+    public function board(Project $project, array $filters, User $user): array
     {
-        $topLevel = $this->filteredQuery($project, $filters)->whereNull('tasks.parent_id');
-        $taskQuery = (clone $topLevel)->get()->groupBy('status_id');
-
-        $statuses = $project->statuses()
-            ->orderBy('position')
-            ->get()
-            ->map(function (TaskStatus $status) use ($taskQuery) {
-                $tasks = $taskQuery->get($status->id, collect())
-                    ->sortBy(fn (Task $task) => [$task->position, $task->id])
-                    ->values();
-
-                return array_merge($this->presentStatus($status), [
-                    'tasks_count' => $tasks->count(),
-                    'tasks' => $tasks->map(fn (Task $task) => $this->present($task)),
-                ]);
-            });
-
-        return [
-            'statuses' => $statuses,
-            'totals' => [
-                'open' => (clone $topLevel)->whereNull('completed_at')->count(),
-                'done' => (clone $topLevel)->whereNotNull('completed_at')->count(),
-            ],
-        ];
+        return $this->reader->board($project, $filters, $user);
     }
 
-    public function list(Project $project, array $filters): LengthAwarePaginator
+    public function list(Project $project, array $filters, User $user): LengthAwarePaginator
     {
-        return $this->filteredQuery($project, $filters)
-            ->withCount(['subtasks', 'comments', 'attachments'])
-            ->orderBy($filters['sort_by'] ?? 'position', $filters['sort_dir'] ?? 'asc')
-            ->paginate(min($filters['per_page'] ?? 25, 100));
+        return $this->reader->list($project, $filters, $user);
     }
 
     public function show(Task $task): Task
     {
-        return $task->loadMissing([
-            'status',
-            'priority',
-            'assignee',
-            'reporter',
-            'creator',
-            'parent:id,key,title',
-            'labels',
-            'subtasks:id,key,title,status_id,completed_at,parent_id,position',
-            'subtasks.status',
-        ])->loadCount([
-            'subtasks',
-            'comments',
-            'attachments',
-            'openBlockers as open_blockers_count',
-        ]);
-    }
-
-    private function filteredQuery(Project $project, array $filters): Builder
-    {
-        $query = Task::query()
-            ->where('tasks.project_id', $project->id)
-            ->with(['status', 'priority', 'assignee', 'labels'])
-            ->withCount([
-                'subtasks',
-                'comments',
-                'attachments',
-                'openBlockers as open_blockers_count',
-            ]);
-
-        if (! empty($filters['status_id'])) {
-            $query->where('tasks.status_id', $filters['status_id']);
-        }
-
-        if (! empty($filters['priority_id'])) {
-            $query->where('tasks.priority_id', $filters['priority_id']);
-        }
-
-        if (! empty($filters['assignee_id'])) {
-            $query->where('tasks.assignee_id', $filters['assignee_id']);
-        }
-
-        if (! empty($filters['label_id'])) {
-            $query->whereHas('labels', fn (Builder $q) => $q->where('labels.id', $filters['label_id']));
-        }
-
-        if (! empty($filters['q'])) {
-            $query->where(function (Builder $q) use ($filters) {
-                $q->where('tasks.title', 'like', '%'.$filters['q'].'%')
-                    ->orWhere('tasks.key', 'like', '%'.$filters['q'].'%')
-                    ->orWhere('tasks.description', 'like', '%'.$filters['q'].'%');
-            });
-        }
-
-        if (! empty($filters['due_from'])) {
-            $query->whereDate('tasks.due_date', '>=', $filters['due_from']);
-        }
-
-        if (! empty($filters['due_to'])) {
-            $query->whereDate('tasks.due_date', '<=', $filters['due_to']);
-        }
-
-        return $query;
-    }
-
-    private function reorderColumn(Project $project, TaskStatus $status, Task $moved, ?int $index): void
-    {
-        $ids = $project->tasks()
-            ->where('status_id', $status->id)
-            ->whereKeyNot($moved->id)
-            ->orderBy('position')
-            ->orderBy('id')
-            ->pluck('id')
-            ->values();
-
-        $position = max(0, min($index ?? $ids->count(), $ids->count()));
-
-        $ids = $ids->slice(0, $position)
-            ->concat([$moved->id])
-            ->concat($ids->slice($position))
-            ->values();
-
-        $ids->each(function (int $id, int $position) {
-            Task::whereKey($id)->update(['position' => $position + 1]);
-        });
-    }
-
-    private function nextPosition(TaskStatus $status): int
-    {
-        return $status->tasks()->max('position') + 1;
+        return $this->reader->show($task);
     }
 
     private function hasOpenBlockers(?Task $task): bool
@@ -267,153 +300,31 @@ class TaskService
         return $task->openBlockers()->exists();
     }
 
-    private function resolveStatus(Project $project, $statusId): TaskStatus
-    {
-        if ($statusId === null || $statusId === '') {
-            return $project->statuses()
-                ->where('is_default', true)
-                ->first() ?? $project->statuses()->orderBy('position')->first();
-        }
-
-        $status = $project->statuses()->find($statusId);
-
-        if ($status === null) {
-            throw ValidationException::withMessages([
-                'status_id' => 'The selected status does not belong to this project.',
-            ]);
-        }
-
-        return $status;
-    }
-
-    private function resolvePriority(Project $project, $priorityId): ?Priority
-    {
-        if ($priorityId === null || $priorityId === '') {
-            return Priority::where('is_default', true)
-                ->first();
-        }
-
-        $priority = Priority::find($priorityId);
-
-        if ($priority === null) {
-            throw ValidationException::withMessages([
-                'priority_id' => 'The selected priority does not belong to this tenant.',
-            ]);
-        }
-
-        return $priority;
-    }
-
-    private function resolveAssignee(Project $project, $assigneeId): ?User
-    {
-        if ($assigneeId === null || $assigneeId === '') {
-            return null;
-        }
-
-        $assignee = User::find($assigneeId);
-
-        if ($assignee === null) {
-            throw ValidationException::withMessages([
-                'assignee_id' => 'The selected assignee does not belong to this tenant.',
-            ]);
-        }
-
-        if (! $project->isMember($assignee)) {
-            throw ValidationException::withMessages([
-                'assignee_id' => 'The selected assignee must be a member of the project.',
-            ]);
-        }
-
-        return $assignee;
-    }
-
-    private function resolveParent(Project $project, $parentId): ?Task
-    {
-        if ($parentId === null || $parentId === '') {
-            return null;
-        }
-
-        $parent = $project->tasks()->find($parentId);
-
-        if ($parent === null) {
-            throw ValidationException::withMessages([
-                'parent_id' => 'The selected parent task does not belong to this project.',
-            ]);
-        }
-
-        return $parent;
-    }
-
-    /**
-     * @return list<int>
-     */
-    private function resolveLabels(Project $project, array $labelIds): array
-    {
-        $ids = collect($labelIds)->filter()->map(fn ($id) => (int) $id)->values();
-
-        $valid = Label::where('workspace_id', $project->workspace_id)
-            ->whereIn('id', $ids)
-            ->pluck('id');
-
-        if ($valid->count() !== $ids->count()) {
-            throw ValidationException::withMessages([
-                'labels' => 'One or more selected labels do not belong to this workspace.',
-            ]);
-        }
-
-        return $valid->all();
-    }
-
     public function presentStatus(TaskStatus $status): array
     {
-        return [
-            'id' => $status->id,
-            'name' => $status->name,
-            'slug' => $status->slug,
-            'category' => $status->category->value,
-            'position' => $status->position,
-            'color' => $status->color,
-            'is_default' => $status->is_default,
-            'is_done' => $status->is_done,
-        ];
+        return $this->presenter->presentStatus($status);
     }
 
     public function present(Task $task): array
     {
-        return [
-            'id' => $task->id,
-            'key' => $task->key,
-            'sequence' => $task->sequence,
-            'title' => $task->title,
-            'description' => $task->description,
-            'parent_id' => $task->parent_id,
-            'status_id' => $task->status_id,
-            'status' => $task->status ? $this->presentStatus($task->status) : null,
-            'priority_id' => $task->priority_id,
-            'priority' => $task->priority ? [
-                'id' => $task->priority->id,
-                'name' => $task->priority->name,
-                'slug' => $task->priority->slug,
-                'color' => $task->priority->color,
-                'value' => $task->priority->value,
-            ] : null,
-            'assignee_id' => $task->assignee_id,
-            'assignee' => $task->assignee ? ['id' => $task->assignee->id, 'name' => $task->assignee->name, 'email' => $task->assignee->email] : null,
-            'labels' => $task->labels->map(fn (Label $label) => [
-                'id' => $label->id,
-                'name' => $label->name,
-                'color' => $label->color,
-            ])->values(),
-            'due_date' => $task->due_date?->toDateString(),
-            'estimate_minutes' => $task->estimate_minutes,
-            'position' => $task->position,
-            'completed_at' => $task->completed_at?->toISOString(),
-            'archived_at' => $task->archived_at?->toISOString(),
-            'created_at' => $task->created_at?->toISOString(),
-            'subtasks_count' => $task->subtasks_count ?? 0,
-            'comments_count' => $task->comments_count ?? 0,
-            'attachments_count' => $task->attachments_count ?? 0,
-            'open_blockers_count' => $task->open_blockers_count ?? 0,
-        ];
+        return $this->presenter->present($task);
+    }
+
+    public function addWatcher(Task $task, User $user): void
+    {
+        $this->taskWatchers->add($task, $user);
+    }
+
+    public function removeWatcher(Task $task, User $user): void
+    {
+        $this->taskWatchers->remove($task, $user);
+    }
+
+    /**
+     * @return Collection<int, User>
+     */
+    public function watchers(Task $task): Collection
+    {
+        return $this->taskWatchers->list($task);
     }
 }

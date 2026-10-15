@@ -4,23 +4,45 @@
     "type": "module",
     "scripts": {
         "build": "vite build",
-        "dev": "vite"
+        "dev": "vite",
+        "test": "vitest run",
+        "lint": "eslint resources/js",
+        "agent:workflow": "node .agents/orchestrator/orchestrator.mjs",
+        "agent:status": "node .agents/orchestrator/orchestrator.mjs --status"
     },
     "devDependencies": {
+        "@eslint/js": "^9.39.5",
         "@tailwindcss/vite": "^4.0.0",
+        "@testing-library/jest-dom": "^6.9.1",
+        "@testing-library/react": "^16.3.3",
         "@vitejs/plugin-react": "^5.2.0",
         "axios": "^1.11.0",
         "concurrently": "^9.0.1",
+        "eslint": "^9.39.5",
+        "eslint-plugin-react": "^7.37.5",
+        "eslint-plugin-react-hooks": "^7.1.1",
+        "globals": "^17.13.0",
+        "jsdom": "^29.1.1",
         "laravel-vite-plugin": "^2.0.0",
         "tailwindcss": "^4.0.0",
-        "vite": "^7.0.7"
+        "vite": "^7.0.7",
+        "vitest": "^3.2.7"
     },
     "dependencies": {
         "@dnd-kit/core": "^6.3.1",
         "@dnd-kit/sortable": "^10.0.0",
+        "@tiptap/extension-placeholder": "^3.32.0",
+        "@tiptap/extension-task-item": "^3.32.0",
+        "@tiptap/extension-task-list": "^3.32.0",
+        "@tiptap/extension-underline": "^3.32.0",
+        "@tiptap/react": "^3.32.0",
+        "@tiptap/starter-kit": "^3.32.0",
+        "date-fns": "^4.4.0",
+        "dompurify": "^3.4.17",
         "laravel-echo": "^2.5.0",
         "pusher-js": "^8.6.0",
         "react": "^19.3.0",
+        "react-datepicker": "^9.1.0",
         "react-dom": "^19.3.0",
         "react-router-dom": "^7.18.4",
         "recharts": "^3.10.1"

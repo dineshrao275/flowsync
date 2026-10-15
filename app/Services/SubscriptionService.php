@@ -6,12 +6,15 @@ use App\Models\Subscription;
 use App\Models\SubscriptionEvent;
 use App\Models\SubscriptionPlan;
 use App\Models\Tenant;
+use App\Services\Tenancy\TenantProductSync;
 use Illuminate\Support\Carbon;
+use Illuminate\Validation\ValidationException;
 
 /**
  * Central (system DB) subscription lifecycle.
  *
- * Every tenant owns exactly ONE `subscriptions` row (unique tenant_id) — plan
+ * A tenant owns one `subscriptions` row per product (unique tenant_id + product: the
+ * legacy `suite` bundle, or a `tms` and/or `hrms` plan) — plan
  * changes, trials, cancellation and renewal all re-stamp that row and append a
  * SubscriptionEvent for audit. Callers must run on the system connection
  * (CentralConnection pins the models regardless of the current default).
@@ -35,10 +38,12 @@ class SubscriptionService
         // overriding computed defaults (seats, auto_renew, billing fields).
         $options = array_filter($options, static fn ($value) => $value !== null);
 
-        $existing = $tenant->subscription;
+        $product = $plan->product ?? SubscriptionPlan::PRODUCT_SUITE;
+        $this->assertProductFits($tenant, $product);
+        $existing = $tenant->subscriptionFor($product);
 
         $subscription = Subscription::updateOrCreate(
-            ['tenant_id' => $tenant->id],
+            ['tenant_id' => $tenant->id, 'product' => $product],
             array_merge([
                 'plan_id' => $plan->id,
                 'status' => Subscription::STATUS_ACTIVE,
@@ -46,6 +51,7 @@ class SubscriptionService
                 'current_period_end' => $plan->periodEnd(),
                 'trial_ends_at' => null,
                 'canceled_at' => null,
+                'past_due_at' => null,
                 'auto_renew' => $options['auto_renew'] ?? true,
                 'seats' => $options['seats'] ?? $plan->limit('users') ?: $plan->limit('seats') ?: 0,
                 'billing_provider' => $options['billing_provider'] ?? null,
@@ -54,22 +60,39 @@ class SubscriptionService
         );
 
         $tenant->update([
-            'subscription_id' => $subscription->id,
+            'subscription_id' => $this->primary($tenant)?->id ?? $subscription->id,
             'trial_ends_at' => null,
         ]);
         $this->lifecycle->transition($tenant, Tenant::STATUS_ACTIVE);
 
+        // Seats that end up different from the stored ones are a seats_changed
+        // transition (an omitted `seats` option re-derives the plan default, so
+        // the comparison is against the stored row, not the input); plan changes
+        // already carry the seat move in their plan_changed event. `$existing`
+        // still holds the pre-write value.
+        $seatsChanged = $existing !== null
+            && (int) $existing->seats !== (int) $subscription->seats;
+
         $this->record(
             $tenant,
             $subscription,
-            $existing && $existing->plan_id !== $plan->id
-                ? Subscription::EVENT_PLAN_CHANGED
-                : Subscription::EVENT_SUBSCRIBED,
+            match (true) {
+                $existing && $existing->plan_id !== $plan->id => Subscription::EVENT_PLAN_CHANGED,
+                $seatsChanged => Subscription::EVENT_SEATS_CHANGED,
+                default => Subscription::EVENT_SUBSCRIBED,
+            },
             fromPlanId: $existing ? $existing->plan_id : null,
             toPlanId: $plan->id,
             actorId: $options['actor_id'] ?? null,
-            data: $options['data'] ?? [],
+            data: $seatsChanged
+                ? array_merge($options['data'] ?? [], [
+                    'seats_from' => $existing->seats,
+                    'seats_to' => $subscription->seats,
+                ])
+                : ($options['data'] ?? []),
         );
+
+        app(TenantProductSync::class)->ensure($tenant);
 
         return $subscription;
     }
@@ -87,8 +110,11 @@ class SubscriptionService
         $days ??= $plan->trial_duration_days ?? config('subscriptions.default_trial_days', 14);
         $trialEndsAt = Carbon::now()->addDays(max(1, $days));
 
+        $product = $plan->product ?? SubscriptionPlan::PRODUCT_SUITE;
+        $this->assertProductFits($tenant, $product);
+
         $subscription = Subscription::updateOrCreate(
-            ['tenant_id' => $tenant->id],
+            ['tenant_id' => $tenant->id, 'product' => $product],
             [
                 'plan_id' => $plan->id,
                 'status' => Subscription::STATUS_TRIALING,
@@ -96,12 +122,13 @@ class SubscriptionService
                 'current_period_end' => $trialEndsAt,
                 'trial_ends_at' => $trialEndsAt,
                 'canceled_at' => null,
+                'past_due_at' => null,
                 'seats' => $plan->limit('users') ?: $plan->limit('seats') ?: 0,
             ]
         );
 
         $tenant->update([
-            'subscription_id' => $subscription->id,
+            'subscription_id' => $this->primary($tenant)?->id ?? $subscription->id,
             'trial_ends_at' => $trialEndsAt,
         ]);
         $this->lifecycle->transition($tenant, Tenant::STATUS_TRIAL);
@@ -114,6 +141,8 @@ class SubscriptionService
             actorId: $actorId,
             data: ['days' => $days],
         );
+
+        app(TenantProductSync::class)->ensure($tenant);
 
         return $subscription;
     }
@@ -128,7 +157,7 @@ class SubscriptionService
         SubscriptionPlan $plan,
         array $options = [],
     ): Subscription {
-        $existing = $tenant->subscription;
+        $existing = $tenant->subscriptionFor($plan->product ?? SubscriptionPlan::PRODUCT_SUITE);
 
         if ($existing && $existing->plan_id === $plan->id) {
             return $existing;
@@ -140,9 +169,9 @@ class SubscriptionService
     /**
      * Cancel at period end: status=canceled, auto_renew off.
      */
-    public function cancel(Tenant $tenant, ?int $actorId = null): Subscription
+    public function cancel(Tenant $tenant, ?int $actorId = null, ?string $product = null): Subscription
     {
-        $subscription = $tenant->subscription;
+        $subscription = $this->subscriptionOf($tenant, $product);
 
         if (! $subscription) {
             abort(422, 'Tenant has no subscription.');
@@ -169,9 +198,9 @@ class SubscriptionService
     /**
      * Renew for another period (active) or resume a canceled/expired one (reactivated).
      */
-    public function renew(Tenant $tenant, ?int $actorId = null): Subscription
+    public function renew(Tenant $tenant, ?int $actorId = null, ?string $product = null): Subscription
     {
-        $subscription = $tenant->subscription;
+        $subscription = $this->subscriptionOf($tenant, $product);
 
         if (! $subscription) {
             abort(422, 'Tenant has no subscription.');
@@ -184,6 +213,7 @@ class SubscriptionService
             'status' => Subscription::STATUS_ACTIVE,
             'auto_renew' => true,
             'canceled_at' => null,
+            'past_due_at' => null,
             'current_period_start' => now(),
             'current_period_end' => $plan->periodEnd($subscription->current_period_end),
             'trial_ends_at' => null,
@@ -208,9 +238,9 @@ class SubscriptionService
      * Flag the subscription past due (payment trouble) — the tenant still lists as
      * serviceable until the platform decides to suspend; EVENT_PAUSED for audit.
      */
-    public function suspend(Tenant $tenant, array $options = [], ?int $actorId = null): Subscription
+    public function suspend(Tenant $tenant, array $options = [], ?int $actorId = null, ?string $product = null): Subscription
     {
-        $subscription = $tenant->subscription;
+        $subscription = $this->subscriptionOf($tenant, $product);
 
         if (! $subscription) {
             abort(422, 'Tenant has no subscription.');
@@ -219,6 +249,8 @@ class SubscriptionService
         $subscription->update([
             'status' => Subscription::STATUS_PAST_DUE,
             'auto_renew' => true,
+            // The day-count of the dunning cycle starts at the FIRST failure; repeats keep it.
+            'past_due_at' => $subscription->past_due_at ?? now(),
         ]);
 
         $this->record(
@@ -255,5 +287,56 @@ class SubscriptionService
             'data' => $data ?: null,
             'actor_id' => $actorId,
         ]);
+    }
+
+    /** The named product's subscription, or the primary one when no product is given. */
+    private function subscriptionOf(Tenant $tenant, ?string $product): ?Subscription
+    {
+        return $product ? $tenant->subscriptionFor($product) : $this->primary($tenant);
+    }
+
+    /** Bundle first, then TMS, then HRMS — what `Tenant::subscription()` means. */
+    private function primary(Tenant $tenant): ?Subscription
+    {
+        return $tenant->subscription()->first();
+    }
+
+    /**
+     * A tenant is on the legacy bundle OR on per-product plans, never both: a bundle
+     * already covers everything, so a second plan would be paid for and ignored.
+     */
+    private function assertProductFits(Tenant $tenant, string $product): void
+    {
+        $others = $tenant->subscriptions()->where('status', '!=', Subscription::STATUS_ENDED)->pluck('product')->all();
+
+        if ($product !== SubscriptionPlan::PRODUCT_SUITE && in_array(SubscriptionPlan::PRODUCT_SUITE, $others, true)) {
+            throw ValidationException::withMessages(['plan_id' => 'This tenant is on a bundle plan. Move it to per-product plans first.']);
+        }
+        if ($product === SubscriptionPlan::PRODUCT_SUITE && array_diff($others, [SubscriptionPlan::PRODUCT_SUITE]) !== []) {
+            throw ValidationException::withMessages(['plan_id' => 'This tenant is on per-product plans. End them before moving to a bundle plan.']);
+        }
+    }
+
+    /**
+     * Move a bundle tenant onto per-product plans in one step, so no product is ever
+     * left uncovered: the bundle ends, each given plan is assigned.
+     *
+     * @param  array<int, SubscriptionPlan>  $plans  at most one plan per product
+     */
+    public function splitBundle(Tenant $tenant, array $plans, ?int $actorId = null): void
+    {
+        $products = collect($plans)->map(fn (SubscriptionPlan $p) => $p->product)->all();
+        if (count($products) !== count(array_unique($products)) || in_array(SubscriptionPlan::PRODUCT_SUITE, $products, true) || $plans === []) {
+            throw ValidationException::withMessages(['plan_id' => 'Give one TMS and/or one HRMS plan.']);
+        }
+
+        $bundle = $tenant->subscriptionFor(SubscriptionPlan::PRODUCT_SUITE);
+        if ($bundle) {
+            $bundle->update(['status' => Subscription::STATUS_ENDED, 'auto_renew' => false, 'canceled_at' => now()]);
+            $this->record($tenant, $bundle, Subscription::EVENT_CANCELED, fromPlanId: $bundle->plan_id, actorId: $actorId, data: ['reason' => 'moved_to_product_plans']);
+        }
+        foreach ($plans as $plan) {
+            $this->assign($tenant->refresh(), $plan, ['actor_id' => $actorId]);
+        }
     }
 }

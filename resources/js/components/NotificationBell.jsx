@@ -4,8 +4,9 @@ import api from '../services/api';
 import Spinner from './ui/Spinner';
 import { useNotifications } from '../context/NotificationContext';
 import { useClickOutside } from '../hooks/useClickOutside';
-import { describeNotification, notificationHref, timeAgo } from '../utils/notifications';
+import { describeNotification, notificationHref } from '../utils/notifications';
 import Avatar from './ui/Avatar';
+import Timestamp from './ui/Timestamp';
 
 export default function NotificationBell() {
     const { unreadCount, markAllRead, markRead } = useNotifications();
@@ -79,7 +80,16 @@ export default function NotificationBell() {
                                             className="flex w-full items-start gap-3 px-4 py-3 text-left transition hover:bg-gray-50"
                                         >
                                             <span className="mt-1">
-                                                <Avatar name={notification.actor?.name} size="md" />
+                                                {notification.type?.startsWith('hrms.') ? (
+                                                    <span className="flex h-8 w-8 items-center justify-center rounded-full bg-indigo-100 text-indigo-700">
+                                                        <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                                                            <path d="M17 20h5v-2a4 4 0 00-3-3.87M9 20H4v-2a4 4 0 012-4h14a4 4 0 012 4v2" />
+                                                            <circle cx="12" cy="8" r="4" />
+                                                        </svg>
+                                                    </span>
+                                                ) : (
+                                                    <Avatar name={notification.actor?.name} size="md" />
+                                                )}
                                             </span>
                                             <span className="min-w-0 flex-1">
                                                 <span className="block text-sm text-gray-800">
@@ -89,9 +99,11 @@ export default function NotificationBell() {
                                                         notification.actor?.name ?? 'Someone',
                                                     )}
                                                 </span>
-                                                <span className="block text-xs text-gray-400">{timeAgo(notification.created_at)}</span>
+                                                <span className="block text-xs text-gray-400">
+                                                    <Timestamp date={notification.created_at} placement="bottom" />
+                                                </span>
                                             </span>
-                                            {!notification.read_at && <span className="mt-2 h-2 w-2 shrink-0 rounded-full bg-indigo-500" />}
+                                            {!notification.read_at && <span className="mt-2 h-2 w-2 shrink-0 rounded-full bg-[var(--accent)]" />}
                                         </button>
                                     </li>
                                 ))}

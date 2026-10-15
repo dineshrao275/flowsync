@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Models\Concerns\CentralConnection;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -16,6 +17,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 class Subscription extends Model
 {
     use CentralConnection;
+    use HasFactory;
 
     public const STATUS_TRIALING = 'trialing';
 
@@ -50,7 +52,10 @@ class Subscription extends Model
 
     public const EVENT_SEATS_CHANGED = 'seats_changed';
 
+    public const EVENT_EXPIRED = 'expired';
+
     protected $fillable = [
+        'product',
         'tenant_id',
         'plan_id',
         'status',
@@ -62,6 +67,8 @@ class Subscription extends Model
         'seats',
         'billing_provider',
         'billing_reference',
+        'provider_subscription_id',
+        'past_due_at',
     ];
 
     protected function casts(): array
@@ -71,6 +78,7 @@ class Subscription extends Model
             'current_period_end' => 'datetime',
             'trial_ends_at' => 'datetime',
             'canceled_at' => 'datetime',
+            'past_due_at' => 'datetime',
             'auto_renew' => 'boolean',
             'seats' => 'integer',
         ];

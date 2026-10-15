@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import api, { fieldErrors } from '../services/api';
 import Card from '../components/ui/Card';
 import Badge from '../components/ui/Badge';
@@ -6,19 +7,22 @@ import Spinner from '../components/ui/Spinner';
 import Alert from '../components/ui/Alert';
 import Button from '../components/ui/Button';
 import Input from '../components/ui/Input';
+import { Table, Th, Td, TableEmpty } from '../components/ui/Table';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
+import { useConfirm } from '../components/ui/ConfirmDialog';
 import usePageTitle from '../hooks/usePageTitle';
 
 export default function Users() {
     usePageTitle('Users');
-    const { can } = useAuth();
+    const navigate = useNavigate();
+    const { can, user: currentUser } = useAuth();
     const toast = useToast();
+    const confirm = useConfirm();
     const [users, setUsers] = useState([]);
     const [roles, setRoles] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
-    const [editing, setEditing] = useState(null);
     const [saving, setSaving] = useState(false);
     const [creating, setCreating] = useState(false);
     const [form, setForm] = useState({ name: '', email: '', password: '', password_confirmation: '', roles: [] });
@@ -33,7 +37,11 @@ export default function Users() {
             ]);
             setUsers(usersData.users);
             setRoles(rolesData.roles);
-        } catch {
+        } catch (err) {
+            if (err?.response?.status === 403) {
+                navigate('/403', { replace: true });
+                return;
+            }
             setError('Unable to load users.');
         } finally {
             setLoading(false);
@@ -45,19 +53,31 @@ export default function Users() {
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
-    async function saveRoles(user) {
+    async function makeDefault(user) {
         setSaving(true);
         try {
-            const { data } = await api.put(`/users/${user.id}/roles`, {
-                roles: user.roles,
-            });
+            const { data } = await api.put(`/users/${user.id}/default`);
             setUsers((current) =>
-                current.map((u) => (u.id === user.id ? { ...u, ...data.user } : u)),
+                current.map((u) => ({ ...u, is_default: u.id === user.id })),
             );
-            toast.success(`Roles updated for ${user.name}.`);
-            setEditing(null);
+            toast.success(data.message);
         } catch (e) {
-            setError(fieldErrors(e).form || 'Failed to update roles.');
+            setError(fieldErrors(e).form || 'Failed to shift the default user.');
+        } finally {
+            setSaving(false);
+        }
+    }
+
+    async function deleteUser(user) {
+        if (!(await confirm({ title: 'Delete user?', message: `Delete ${user.name}? This cannot be undone.`, variant: 'danger' }))) return;
+
+        setSaving(true);
+        try {
+            await api.delete(`/users/${user.id}`);
+            setUsers((current) => current.filter((u) => u.id !== user.id));
+            toast.success(`${user.name} was deleted.`);
+        } catch (e) {
+            setError(fieldErrors(e).form || 'Failed to delete the user.');
         } finally {
             setSaving(false);
         }
@@ -95,10 +115,15 @@ export default function Users() {
             <div className="flex flex-wrap items-center justify-between gap-3">
                 <div>
                     <h2 className="text-2xl font-bold text-gray-900">Users</h2>
-                    <p className="mt-1 text-sm text-gray-500">Accounts within your tenant.</p>
+                    <p className="mt-1 text-sm text-gray-500">
+                        Accounts within your tenant. The default user is protected from deletion.
+                    </p>
                 </div>
                 {manageable && (
-                    <Button onClick={() => setCreating((open) => !open)}>Add user</Button>
+                    <div className="flex gap-2">
+                        <Button variant="secondary" onClick={() => navigate('/users/import')}>Import CSV</Button>
+                        <Button onClick={() => setCreating((open) => !open)}>Add user</Button>
+                    </div>
                 )}
             </div>
 
@@ -182,97 +207,96 @@ export default function Users() {
                 </Card>
             )}
 
-            <Card>
-                <div className="overflow-x-auto">
-                    <table className="w-full text-left text-sm">
-                        <thead>
-                            <tr className="border-b border-gray-200 text-xs uppercase tracking-wide text-gray-400">
-                                <th className="py-3 pr-4 font-semibold">Name</th>
-                                <th className="py-3 pr-4 font-semibold">Email</th>
-                                <th className="py-3 pr-4 font-semibold">Roles</th>
-                                <th className="py-3 text-right font-semibold">Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody className="divide-y divide-gray-100">
-                            {users.map((user, index) => (
-                                <tr key={user.id} className="animate-fade-in transition-colors duration-150 hover:bg-gray-50" style={{ animationDelay: `${index * 30}ms` }}>
-                                    <td className="py-3.5 pr-4">
-                                        <div className="flex items-center gap-3">
-                                            <span
-                                                className="flex h-8 w-8 items-center justify-center rounded-full text-xs font-semibold text-white"
-                                                style={{ backgroundColor: 'var(--accent)' }}
-                                            >
-                                                {user.name.charAt(0).toUpperCase()}
-                                            </span>
-                                            <span className="font-medium text-gray-800">{user.name}</span>
-                                        </div>
-                                    </td>
-                                    <td className="py-3.5 pr-4 text-gray-500">{user.email}</td>
-                                    <td className="py-3.5 pr-4">
-                                        <div className="flex flex-wrap gap-1">
-                                            {editing === user.id ? (
-                                                <select
-                                                    multiple
-                                                    value={user.roles}
-                                                    onChange={(e) => {
-                                                        const selected = Array.from(
-                                                            e.target.selectedOptions,
-                                                            (o) => o.value,
-                                                        );
-                                                        setUsers((current) =>
-                                                            current.map((u) =>
-                                                                u.id === user.id ? { ...u, roles: selected } : u,
-                                                            ),
-                                                        );
-                                                    }}
-                                                    className="rounded border border-gray-300 text-xs"
+            <Table>
+                <thead>
+                    <tr>
+                        <Th>Name</Th>
+                        <Th>Email</Th>
+                        <Th>Roles</Th>
+                        <Th align="right">Actions</Th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {users.length === 0 ? (
+                        <TableEmpty colSpan={4}>No users yet.</TableEmpty>
+                    ) : (
+                        users.map((user, index) => (
+                            <tr
+                                key={user.id}
+                                className="animate-fade-in transition-colors duration-150 hover:bg-gray-50"
+                                style={{ animationDelay: `${index * 30}ms` }}
+                            >
+                                <Td>
+                                    <div className="flex items-center gap-3">
+                                        <span
+                                            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-xs font-semibold text-white"
+                                            style={{ backgroundColor: 'var(--accent)' }}
+                                        >
+                                            {user.name.charAt(0).toUpperCase()}
+                                        </span>
+                                        <span className="font-medium text-gray-800">{user.name}</span>
+                                        {user.is_default && (
+                                            <Badge tone="accent" title="Protected from deletion">
+                                                Default
+                                            </Badge>
+                                        )}
+                                    </div>
+                                </Td>
+                                <Td>
+                                    <span className="text-gray-500">{user.email}</span>
+                                </Td>
+                                <Td>
+                                    <div className="flex flex-wrap gap-1">
+                                        {user.roles.map((role) => <Badge key={role}>{role}</Badge>)}
+                                    </div>
+                                </Td>
+                                <Td align="right">
+                                    {manageable && (
+                                        <div className="flex items-center justify-end gap-2">
+                                            <Button size="sm" variant="secondary" onClick={() => navigate(`/users/${user.id}`)}>
+                                                Edit
+                                            </Button>
+                                            {!user.is_default && (
+                                                <Button
+                                                    size="sm"
+                                                    variant="subtle"
+                                                    loading={saving}
+                                                    // The default must be an admin; the server
+                                                    // rejects anyone else with 422.
+                                                    disabled={!user.roles?.includes('admin')}
+                                                    title={
+                                                        user.roles?.includes('admin')
+                                                            ? 'Make this user the tenant default'
+                                                            : 'Only an admin can be the default user'
+                                                    }
+                                                    onClick={() => makeDefault(user)}
                                                 >
-                                                    {roleOptions.map((r) => (
-                                                        <option key={r.value} value={r.value}>
-                                                            {r.label}
-                                                        </option>
-                                                    ))}
-                                                </select>
-                                            ) : (
-                                                user.roles.map((role) => <Badge key={role}>{role}</Badge>)
+                                                    Make default
+                                                </Button>
+                                            )}
+                                            {user.id !== currentUser?.id && (
+                                                <Button
+                                                    size="sm"
+                                                    variant="danger"
+                                                    disabled={user.is_default}
+                                                    title={
+                                                        user.is_default
+                                                            ? 'The default user cannot be deleted. Shift the default to another admin first.'
+                                                            : 'Delete user'
+                                                    }
+                                                    onClick={() => deleteUser(user)}
+                                                >
+                                                    Delete
+                                                </Button>
                                             )}
                                         </div>
-                                    </td>
-                                    <td className="py-3.5 text-right">
-                                        {manageable &&
-                                            (editing === user.id ? (
-                                                <div className="flex justify-end gap-2">
-                                                    <Button
-                                                        variant="secondary"
-                                                        size="sm"
-                                                        onClick={() => setEditing(null)}
-                                                    >
-                                                        Cancel
-                                                    </Button>
-                                                    <Button
-                                                        size="sm"
-                                                        loading={saving}
-                                                        onClick={() => saveRoles(user)}
-                                                    >
-                                                        Save
-                                                    </Button>
-                                                </div>
-                                            ) : (
-                                                <button
-                                                    onClick={() => setEditing(user.id)}
-                                                    className="rounded-lg px-3 py-1.5 text-xs font-medium text-white transition-all duration-150 hover:-translate-y-px hover:shadow-md active:scale-95"
-                                                    style={{ backgroundColor: 'var(--accent)' }}
-                                                >
-                                                    Edit roles
-                                                </button>
-                                            ))}
-                                    </td>
-                                </tr>
-                            ))}
-                        </tbody>
-                    </table>
-                </div>
-            </Card>
+                                    )}
+                                </Td>
+                            </tr>
+                        ))
+                    )}
+                </tbody>
+            </Table>
         </div>
     );
 }

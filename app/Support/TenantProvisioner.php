@@ -2,6 +2,7 @@
 
 namespace App\Support;
 
+use App\Models\IssueType;
 use App\Models\Permission;
 use App\Models\Priority;
 use App\Models\ProjectRole;
@@ -9,7 +10,11 @@ use App\Models\Role;
 use App\Models\Tenant;
 use App\Models\TenantUserRouting;
 use App\Models\User;
+use App\Services\Hrms\Defaults\HrmsDefaultsProvisioner;
 use App\Services\TenantLifecycle;
+use App\Support\Hrms\HrmsSchema;
+use App\Support\Integration\BridgeSchema;
+use App\Support\Tms\TmsSchema;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 
@@ -21,7 +26,8 @@ class TenantProvisioner
      * central tenant_users routing index → activate. Idempotent + resumable, so
      * `tenants:provision` can repair a partially-provisioned tenant.
      */
-    public function provisionIsolated(Tenant $tenant, TenantDatabaseManager $dbm, TenantLifecycle $lifecycle): void
+    /** @param list<string>|null $products products to build the schema for; null = whatever the tenant's plans cover */
+    public function provisionIsolated(Tenant $tenant, TenantDatabaseManager $dbm, TenantLifecycle $lifecycle, ?array $products = null): void
     {
         $dbm->connectSystem();
 
@@ -38,8 +44,11 @@ class TenantProvisioner
         $dbm->createDatabase($tenant);
         $tenant->refresh();
 
-        $dbm->using($tenant, function () use ($dbm, $tenant): void {
-            $dbm->migrateTenant($tenant);
+        $dbm->using($tenant, function () use ($dbm, $tenant, $products): void {
+            $dbm->migrateTenant($tenant, $products);
+            TmsSchema::flush();
+            HrmsSchema::flush();
+            BridgeSchema::flush();
             $this->seed($tenant);
             $tenant->update(['provisioning_status' => Tenant::PROVISIONING_SEEDED]);
         });
@@ -66,29 +75,61 @@ class TenantProvisioner
             );
         });
 
+        $slugsBySelector = app(PermissionSelector::class);
         $adminRole = null;
 
         foreach (config('permissions.roles') as $slug => $role) {
             $model = Role::firstOrCreate(
                 ['slug' => $slug],
-                ['name' => $role['name']]
+                ['name' => $role['name'], 'is_system' => true]
             );
 
-            if ($role['permissions'] === '*') {
-                $model->permissions()->sync($permissions->pluck('id'));
-            } else {
-                $ids = $permissions->whereIn('slug', $role['permissions'])->pluck('id');
-                $model->permissions()->sync($ids);
+            $allowed = $slugsBySelector->resolve($role['permissions'], $slugsBySelector->catalog());
+            $ids = $permissions->whereIn('slug', $allowed)->pluck('id');
+
+            // A role that predates the flag is a system role by slug.
+            if (! $model->is_system) {
+                $model->forceFill(['is_system' => true])->save();
             }
+
+            // A fresh role takes the config set outright. An existing one only
+            // ever GAINS permissions here: a repair must pick up what the
+            // product adds to a default role without ever revoking what the
+            // tenant already holds (the project-role rule, applied to tenant
+            // roles — a plain sync() reverted tenant edits on every repair).
+            $model->wasRecentlyCreated
+                ? $model->permissions()->sync($ids)
+                : $model->permissions()->syncWithoutDetaching($ids);
 
             if ($slug === 'admin') {
                 $adminRole = $model;
             }
         }
 
-        $this->provisionPriorities();
-        $this->provisionProjectRoles();
+        // TMS catalogs only exist where the TMS schema does: a TMS-only tenant
+        // has no priorities/project-roles tables, and an upgrade adds them via
+        // seedTmsCatalogs() (see TenantProductSync). The HRMS defaults gate the
+        // same way — the shared identity/permissions catalogs above always run.
+        if (TmsSchema::present()) {
+            $this->seedTmsCatalogs();
+        }
+        if (HrmsSchema::present()) {
+            app(HrmsDefaultsProvisioner::class)->provision();
+        }
         $this->createAdmin($tenant, $adminRole);
+        $this->ensureDefaultUser($adminRole);
+    }
+
+    /**
+     * Idempotent TMS starter catalogs (priorities, issue types, project roles).
+     * Called by seed() for TMS tenants, and by TenantProductSync when TMS is
+     * added to a tenant that never had it — existing data is never touched.
+     */
+    public function seedTmsCatalogs(): void
+    {
+        $this->provisionPriorities();
+        $this->provisionIssueTypes();
+        $this->provisionProjectRoles();
     }
 
     private function provisionPriorities(): void
@@ -109,19 +150,60 @@ class TenantProvisioner
         }
     }
 
+    private function provisionIssueTypes(): void
+    {
+        $types = config('issue_types.types', []);
+
+        foreach ($types as $item) {
+            IssueType::firstOrCreate(
+                ['slug' => $item['slug']],
+                [
+                    'name' => $item['name'],
+                    'description' => $item['description'] ?? null,
+                    'icon' => $item['icon'] ?? null,
+                    'color' => $item['color'] ?? null,
+                    'is_subtask' => $item['is_subtask'] ?? false,
+                    'hierarchy_level' => $item['hierarchy_level'] ?? 2,
+                    'position' => $item['position'] ?? 0,
+                ]
+            );
+        }
+    }
+
     private function provisionProjectRoles(): void
     {
         foreach (config('project_roles.roles') as $slug => $role) {
-            ProjectRole::firstOrCreate(
+            $configured = $role['permissions'] === '*'
+                ? ['*']
+                : $role['permissions'];
+
+            $model = ProjectRole::firstOrCreate(
                 ['slug' => $slug],
                 [
                     'name' => $role['name'],
                     'is_system' => true,
-                    'permissions' => $role['permissions'] === '*'
-                        ? ['*']
-                        : $role['permissions'],
+                    'permissions' => $configured,
                 ]
             );
+
+            // Additions only: a system role provisioned before a slug existed
+            // must pick it up on repair, but a config edit must never revoke
+            // what the tenant already holds. Custom roles are not in config,
+            // so this loop cannot touch them.
+            $stored = $model->permissions ?? [];
+
+            if ($configured === ['*']) {
+                $merged = ['*'];
+            } elseif ($stored === ['*']) {
+                $merged = ['*'];
+            } else {
+                $merged = array_values(array_unique(array_merge($stored, $configured)));
+            }
+
+            if ($merged !== $stored) {
+                $model->permissions = $merged;
+                $model->save();
+            }
         }
     }
 
@@ -137,6 +219,26 @@ class TenantProvisioner
         );
 
         $user->roles()->syncWithoutDetaching([$adminRole->id]);
+    }
+
+    /**
+     * Every tenant DB has exactly one undeletable default user. New tenants get
+     * the provisioned owner; existing ones are repaired here (idempotent, so
+     * `tenants:provision` backfills tenants created before the column existed).
+     */
+    private function ensureDefaultUser(?Role $adminRole): void
+    {
+        if (User::query()->default()->exists()) {
+            return;
+        }
+
+        $candidate = $adminRole
+            ? User::query()->whereHas('roles', fn ($query) => $query->whereKey($adminRole->getKey()))->orderBy('id')->first()
+            : null;
+
+        $candidate ??= User::query()->orderBy('id')->first();
+
+        $candidate?->update(['is_default' => true]);
     }
 
     /**

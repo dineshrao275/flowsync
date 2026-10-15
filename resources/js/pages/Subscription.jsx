@@ -1,14 +1,17 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import api, { fieldErrors } from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
+import { useConfirm } from '../components/ui/ConfirmDialog';
 import usePageTitle from '../hooks/usePageTitle';
-import Card from '../components/ui/Card';
 import Badge from '../components/ui/Badge';
 import Spinner from '../components/ui/Spinner';
 import Alert from '../components/ui/Alert';
 import Button from '../components/ui/Button';
+import { Table, Th, Td, TableEmpty } from '../components/ui/Table';
 import { formatDate, formatPrice } from '../utils/format';
+import Timestamp from '../components/ui/Timestamp';
 
 const RESOURCES = [
     { key: 'users', label: 'Users' },
@@ -22,9 +25,8 @@ const MODULE_LABELS = {
     time_tracking: 'Time tracking',
     reports: 'Reports & analytics',
     global_search: 'Global search',
-    api: 'API access',
     branding: 'Custom branding',
-    audit_export: 'Audit export',
+    'export.full': 'Data export (full)',
 };
 
 const STATUS_LABELS = {
@@ -41,26 +43,35 @@ function daysRemaining(iso) {
     return Math.max(0, Math.ceil((new Date(iso) - new Date()) / 86400000));
 }
 
-function UsageRow({ label, used, limit }) {
-    const unlimited = limit === null || limit === undefined;
-    const pct = unlimited ? (used > 0 ? 100 : 0) : Math.min(100, Math.round((used / Math.max(1, limit)) * 100));
-    const over = !unlimited && used > limit;
-
+function ModuleList({ title, modules, tone }) {
     return (
-        <div className="py-2">
-            <div className="flex items-center justify-between text-sm">
-                <span className="font-medium text-gray-700">{label}</span>
-                <span className={over ? 'font-semibold text-red-600' : 'text-gray-500'}>
-                    {used.toLocaleString()} / {unlimited ? '∞' : limit.toLocaleString()}
-                </span>
-            </div>
-            <div className="mt-1.5 h-2 w-full overflow-hidden rounded-full bg-gray-100">
-                <div
-                    className={`h-full rounded-full ${over ? 'bg-red-500' : 'bg-indigo-500'}`}
-                    style={{ width: `${Math.min(100, pct)}%` }}
-                />
-            </div>
-            {over && <p className="mt-1 text-xs text-red-600">Over the plan limit — you may not be able to create more.</p>}
+        <div>
+            <p className="text-xs font-semibold uppercase tracking-wide text-gray-400">{title}</p>
+            {modules.length === 0 ? (
+                <p className="mt-2 text-sm text-gray-500">None.</p>
+            ) : (
+                <ul className="mt-2 space-y-1.5">
+                    {modules.map((m) => (
+                        <li
+                            key={m}
+                            className={`flex items-center gap-2 text-sm ${
+                                tone === 'included' ? 'font-medium text-emerald-700' : 'text-gray-500'
+                            }`}
+                        >
+                            {tone === 'included' ? (
+                                <svg className="h-4 w-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                    <path d="M20 6L9 17l-5-5" />
+                                </svg>
+                            ) : (
+                                <svg className="h-4 w-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                    <path d="M18 6L6 18M6 6l12 12" />
+                                </svg>
+                            )}
+                            {MODULE_LABELS[m] || m}
+                        </li>
+                    ))}
+                </ul>
+            )}
         </div>
     );
 }
@@ -68,7 +79,8 @@ function UsageRow({ label, used, limit }) {
 export default function Subscription() {
     usePageTitle('Subscription');
     const toast = useToast();
-    const { user } = useAuth();
+    const confirm = useConfirm();
+    const { user, can } = useAuth();
     const [subscription, setSubscription] = useState(null);
     const [tenant, setTenant] = useState(null);
     const [events, setEvents] = useState([]);
@@ -77,22 +89,32 @@ export default function Subscription() {
     const [modules, setModules] = useState(null);
     const [modulesAvailable, setModulesAvailable] = useState([]);
     const [plans, setPlans] = useState([]);
+    const [subscriptions, setSubscriptions] = useState([]);
+    const [payments, setPayments] = useState([]);
+    const [invoices, setInvoices] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
     const [action, setAction] = useState(null);
 
-    const canManage = user?.roles?.includes('admin');
+    // Mirrors MySubscriptionController::authorizeAdmin exactly: the admin ROLE
+    // OR the `billing.manage` grant. Keying off the role alone hid every
+    // cancel/renew/switch control from a user an admin granted `billing.manage`
+    // — the server would have taken the write, the page said "ask an admin".
+    const canManage = user?.roles?.includes('admin') || can('billing.manage');
 
     const load = useCallback(async () => {
         setLoading(true);
         setError(null);
         try {
-            const [subRes, usageRes, plansRes] = await Promise.all([
+            const [subRes, usageRes, plansRes, historyRes, invoiceRes] = await Promise.all([
                 api.get('/my-subscription'),
                 api.get('/my-usage'),
                 api.get('/plans'),
+                api.get('/billing/history').catch(() => ({ data: { payments: [] } })),
+                api.get('/billing/invoices').catch(() => ({ data: { invoices: [] } })),
             ]);
             setSubscription(subRes.data.subscription);
+            setSubscriptions(subRes.data.subscriptions || []);
             setTenant(subRes.data.tenant);
             setEvents(subRes.data.events || []);
             setUsage(usageRes.data.usage || {});
@@ -100,6 +122,8 @@ export default function Subscription() {
             setModules(usageRes.data.modules ?? null);
             setModulesAvailable(usageRes.data.modules_available || []);
             setPlans(plansRes.data.plans || []);
+            setPayments(historyRes.data.payments || []);
+            setInvoices(invoiceRes.data.invoices || []);
         } catch (e) {
             setError(e.response?.status === 404 ? 'No tenant context for this page.' : 'Unable to load subscription details.');
         } finally {
@@ -110,6 +134,49 @@ export default function Subscription() {
     useEffect(() => {
         load();
     }, [load]);
+
+    // Stripe sends the customer back here with ?session_id=…&payment_id=…&status=…
+    // Nothing is paid until the server has checked that session with Stripe.
+    const [searchParams, setSearchParams] = useSearchParams();
+    const handledReturn = useRef(false);
+    useEffect(() => {
+        const status = searchParams.get('status');
+        if (!status || handledReturn.current) return;
+        handledReturn.current = true;
+
+        const sessionId = searchParams.get('session_id');
+        const paymentId = searchParams.get('payment_id');
+        const clean = () => setSearchParams({}, { replace: true });
+
+        if (status === 'canceled') {
+            toast.info('Checkout was canceled — your plan has not changed.');
+            clean();
+            return;
+        }
+        if (status === 'success' && sessionId && paymentId) {
+            api.post('/billing/verify', { payment_id: Number(paymentId), provider_payment_id: sessionId })
+                .then(() => {
+                    toast.success('Payment confirmed — your plan is active.');
+                    return load();
+                })
+                .catch((e) => toast.error(fieldErrors(e).form || e.response?.data?.message || 'We could not confirm the payment yet. It will update shortly.'))
+                .finally(clean);
+        } else {
+            clean();
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [searchParams]);
+
+    async function openPortal() {
+        setAction(true);
+        try {
+            const { data } = await api.post('/billing/portal');
+            window.location.href = data.url;
+        } catch (e) {
+            toast.error(fieldErrors(e).form || e.response?.data?.message || 'Billing portal is unavailable.');
+            setAction(false);
+        }
+    }
 
     async function run(fn, successMessage) {
         setAction(true);
@@ -125,16 +192,38 @@ export default function Subscription() {
     }
 
     async function switchPlan(plan) {
+        if (plan.price_cents > 0) {
+            setAction(true);
+            try {
+                const res = await api.post('/billing/checkout', { plan_id: plan.id });
+                if (res.data.changed) {
+                    toast.success(res.data.message);
+                    await load();
+                    return;
+                }
+                if (res.data.session?.redirect_url) {
+                    window.location.href = res.data.session.redirect_url;
+                    return;
+                }
+                toast.success('Checkout session created.');
+                await load();
+            } catch (e) {
+                toast.error(fieldErrors(e).form || fieldErrors(e).message || 'Unable to initiate checkout.');
+            } finally {
+                setAction(false);
+            }
+            return;
+        }
         await run(() => api.post('/my-subscription/switch', { plan_id: plan.id }), `Switched to ${plan.name}.`);
     }
 
-    async function cancel() {
-        if (!window.confirm('Cancel the subscription at the end of the current period?')) return;
-        await run(() => api.post('/my-subscription/cancel'), 'Subscription canceled.');
+    async function cancel(product) {
+        if (!(await confirm({ title: 'Cancel subscription?', message: 'Cancel the subscription at the end of the current period?', variant: 'danger' }))) return;
+        await run(() => api.post('/my-subscription/cancel', product ? { product } : {}), 'Subscription canceled.');
     }
 
-    async function renew() {
-        await run(() => api.post('/my-subscription/renew'), 'Subscription renewed.');
+    async function renew(product) {
+        await run(() => api.post('/my-subscription/renew', product ? { product } : {}), 'Subscription renewed.');
     }
 
     if (loading) {
@@ -154,9 +243,16 @@ export default function Subscription() {
     }
 
     const plan = subscription?.plan;
+    const onBundle = subscriptions.some((x) => x.product === 'suite' && x.status !== 'ended');
+    const perProduct = subscriptions.filter((x) => x.product !== 'suite' && x.status !== 'ended');
+    const currentPlanIds = subscriptions.map((x) => x.plan?.id);
+    // A bundle tenant compares bundles; everyone else compares the per-product ladders.
+    const visiblePlans = plans.filter((p) => (onBundle ? (p.product ?? 'suite') === 'suite' : (p.product ?? 'suite') !== 'suite' || subscriptions.length === 0));
+    const PRODUCT_NAMES = { tms: 'Task Management', hrms: 'HR Management', suite: 'Bundle' };
     const endDate = subscription?.trial_ends_at || subscription?.current_period_end;
     const includedModules = modules || plan?.limits?.modules || [];
     const excludedModules = modulesAvailable.filter((m) => !includedModules.includes(m));
+    const usageResources = RESOURCES.filter((r) => limits[r.key] !== undefined);
 
     return (
         <div className="space-y-6">
@@ -167,164 +263,325 @@ export default function Subscription() {
                 </p>
             </div>
 
-            <Card
-                title="Current plan"
-                subtitle={plan ? formatPrice(plan) : 'No active plan'}
-                actions={
-                    <span className="flex items-center gap-2">
-                        {subscription && <Badge>{STATUS_LABELS[subscription.status] || subscription.status}</Badge>}
-                        {plan && <Badge>{plan.billing_cycle}</Badge>}
-                    </span>
-                }
-            >
+            <section>
+                <h3 className="mb-2 text-sm font-semibold text-gray-900">Current plan</h3>
                 {!subscription ? (
                     <Alert>No subscription yet. Pick a plan below to get started.</Alert>
                 ) : (
-                    <div className="space-y-4">
-                        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-                            <div>
-                                <p className="text-xs font-semibold uppercase tracking-wide text-gray-400">Plan</p>
-                                <p className="mt-1 text-lg font-bold text-gray-900">{plan?.name || '—'}</p>
-                            </div>
-                            <div>
-                                <p className="text-xs font-semibold uppercase tracking-wide text-gray-400">
-                                    {subscription.trial_ends_at ? 'Trial ends' : 'Period ends'}
-                                </p>
-                                <p className="mt-1 text-lg font-bold text-gray-900">{formatDate(endDate)}</p>
-                            </div>
-                            <div>
-                                <p className="text-xs font-semibold uppercase tracking-wide text-gray-400">Days remaining</p>
-                                <p className="mt-1 text-lg font-bold text-gray-900">
-                                    {daysRemaining(endDate) === null ? '—' : `${daysRemaining(endDate)}d`}
-                                </p>
-                            </div>
-                            <div>
-                                <p className="text-xs font-semibold uppercase tracking-wide text-gray-400">Auto-renew</p>
-                                <p className="mt-1 text-lg font-bold text-gray-900">
-                                    {subscription.auto_renew ? 'On' : 'Off'}
-                                </p>
-                            </div>
-                        </div>
+                    <>
+                        <p className="flex flex-wrap items-center gap-2 text-sm text-gray-700">
+                            <span className="text-lg font-bold text-gray-900">{plan?.name || '—'}</span>
+                            <Badge>{STATUS_LABELS[subscription.status] || subscription.status}</Badge>
+                            {plan && <Badge>{plan.billing_cycle}</Badge>}
+                            <span className="text-gray-500">{plan ? formatPrice(plan) : 'No active plan'}</span>
+                        </p>
+                        <p className="mt-1 flex flex-wrap gap-x-6 gap-y-1 text-sm text-gray-500">
+                            <span>
+                                <span className="text-gray-400">{subscription.trial_ends_at ? 'Trial ends' : 'Period ends'}:</span>{' '}
+                                {formatDate(endDate)}
+                            </span>
+                            <span>
+                                <span className="text-gray-400">Days remaining:</span>{' '}
+                                {daysRemaining(endDate) === null ? '—' : `${daysRemaining(endDate)}d`}
+                            </span>
+                            <span>
+                                <span className="text-gray-400">Auto-renew:</span> {subscription.auto_renew ? 'On' : 'Off'}
+                            </span>
+                        </p>
                         {subscription.canceled_at && (
-                            <p className="text-sm text-amber-600">
-                                Canceled {formatDate(subscription.canceled_at)} — access continues until the period end.
+                            <p className="mt-1 text-sm text-amber-600">
+                                Canceled <Timestamp date={subscription.canceled_at} /> — access continues until the period end.
                             </p>
                         )}
-                    </div>
+                    </>
                 )}
-                {canManage && (
-                    <div className="mt-4 flex items-center gap-2 border-t border-gray-100 pt-4">
-                        {subscription?.status === 'canceled' || subscription?.status === 'expired' ? (
+                {canManage && subscription && (
+                    <div className="mt-4 flex items-center gap-2">
+                        {subscription.billing_provider === 'stripe' && (
+                            <Button size="md" variant="secondary" onClick={openPortal} loading={action}>
+                                Manage billing
+                            </Button>
+                        )}
+                        {subscription.status === 'canceled' || subscription.status === 'expired' ? (
                             <Button size="md" onClick={renew} loading={action}>
                                 Renew
                             </Button>
-                        ) : subscription && subscription.status !== 'past_due' ? (
+                        ) : subscription.status !== 'past_due' ? (
                             <Button size="md" variant="danger" onClick={cancel} loading={action}>
                                 Cancel subscription
                             </Button>
                         ) : null}
                     </div>
                 )}
-            </Card>
+            </section>
 
-            {subscription && (
-                <Card title="Usage" subtitle="Current counts against your plan limits">
-                    <div className="divide-y divide-gray-100">
-                        {RESOURCES.filter((r) => limits[r.key] !== undefined).map((r) => (
-                            <UsageRow key={r.key} label={r.label} used={usage[r.key] ?? 0} limit={limits[r.key]} />
-                        ))}
-                    </div>
-                </Card>
-            )}
-
-            <Card title="Included features" subtitle="Modules unlocked by your plan">
-                <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3">
-                    {includedModules.length === 0 && <p className="text-sm text-gray-500">No feature modules included.</p>}
-                    {includedModules.map((m) => (
-                        <div key={m} className="flex items-center gap-2 rounded-lg border border-emerald-100 bg-emerald-50 px-3 py-2 text-sm font-medium text-emerald-700">
-                            <svg className="h-4 w-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                <path d="M20 6L9 17l-5-5" />
-                            </svg>
-                            {MODULE_LABELS[m] || m}
-                        </div>
-                    ))}
-                    {excludedModules.map((m) => (
-                        <div key={m} className="flex items-center gap-2 rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-gray-500">
-                            <svg className="h-4 w-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                <path d="M18 6L6 18M6 6l12 12" />
-                            </svg>
-                            {MODULE_LABELS[m] || m}
-                        </div>
-                    ))}
-                </div>
-            </Card>
-
-            <div>
-                <h3 className="mb-3 text-lg font-bold text-gray-900">Compare plans</h3>
-                {plans.length === 0 && <Alert>No plans are currently available.</Alert>}
-                <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
-                    {plans.map((p, index) => {
-                        const isCurrent = plan?.id === p.id;
-                        return (
-                            <div key={p.id} className="animate-fade-in-up" style={{ animationDelay: `${index * 60}ms` }}>
-                                <Card
-                                    className={`h-full ${isCurrent ? 'ring-2 ring-indigo-500' : ''}`}
-                                    title={
-                                        <span className="flex items-center gap-2">
-                                            {p.name}
-                                            {p.is_default && <Badge>default</Badge>}
-                                            {isCurrent && (
-                                                <span className="inline-flex items-center rounded-full bg-indigo-600 px-2.5 py-0.5 text-xs font-medium text-white">
-                                                    current
-                                                </span>
+            {!onBundle && (
+                <section>
+                    <h3 className="mb-2 text-sm font-semibold text-gray-900">Your products</h3>
+                    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                        {['tms', 'hrms'].map((prod) => {
+                            const sub = perProduct.find((x) => x.product === prod);
+                            return (
+                                <div key={prod} className="rounded-xl border border-gray-200 bg-white p-4">
+                                    <div className="flex items-center justify-between">
+                                        <p className="font-semibold text-gray-900">{PRODUCT_NAMES[prod]}</p>
+                                        {sub ? <Badge>{sub.status.replace('_', ' ')}</Badge> : <Badge>not subscribed</Badge>}
+                                    </div>
+                                    {sub ? (
+                                        <>
+                                            <p className="mt-1 text-sm text-gray-700">{sub.plan?.name}</p>
+                                            <p className="text-xs text-gray-500">
+                                                {sub.trial_ends_at ? `Trial ends ${formatDate(sub.trial_ends_at)}` : sub.current_period_end ? `${sub.auto_renew ? 'Renews' : 'Ends'} ${formatDate(sub.current_period_end)}` : ''}
+                                            </p>
+                                            {canManage && (
+                                                <div className="mt-3 flex gap-2">
+                                                    {sub.status === 'canceled' || sub.status === 'expired'
+                                                        ? <Button size="sm" onClick={() => renew(prod)} loading={action}>Renew</Button>
+                                                        : sub.status !== 'past_due' && <Button size="sm" variant="danger" onClick={() => cancel(prod)} loading={action}>Cancel</Button>}
+                                                </div>
                                             )}
-                                        </span>
-                                    }
-                                    subtitle={p.description || 'No description'}
-                                >
-                                    <p className="text-sm font-semibold text-gray-900">{formatPrice(p)}</p>
-                                    {p.trial_duration_days && <p className="mt-0.5 text-xs text-gray-500">{p.trial_duration_days}-day trial</p>}
-                                    <div className="mt-4 space-y-1.5 text-sm text-gray-600">
-                                        <p><span className="font-medium text-gray-900">{p.limits?.users ?? '∞'}</span> users</p>
-                                        <p><span className="font-medium text-gray-900">{p.limits?.projects ?? '∞'}</span> projects</p>
-                                        <p><span className="font-medium text-gray-900">{p.limits?.tasks ?? '∞'}</span> tasks</p>
-                                        <p><span className="font-medium text-gray-900">{(p.limits?.modules || []).length}</span> modules</p>
-                                    </div>
-                                    <div className="mt-4 border-t border-gray-100 pt-3">
-                                        {canManage ? (
-                                            <Button size="md" variant={isCurrent ? 'secondary' : 'primary'} disabled={isCurrent} onClick={() => switchPlan(p)} loading={action}>
-                                                {isCurrent ? 'Current plan' : `Switch to ${p.name}`}
-                                            </Button>
-                                        ) : (
-                                            <p className="text-sm text-gray-400">{isCurrent ? 'Your current plan' : 'Ask an admin to switch plans.'}</p>
-                                        )}
-                                    </div>
-                                </Card>
-                            </div>
-                        );
-                    })}
-                </div>
-            </div>
-
-            {events.length > 0 && (
-                <Card title="Billing activity" subtitle="Recent subscription events">
-                    <ul className="divide-y divide-gray-100">
-                        {events.map((e) => (
-                            <li key={e.id} className="flex items-center justify-between py-2.5 text-sm">
-                                <div>
-                                    <span className="font-medium capitalize text-gray-900">{String(e.type).replace(/_/g, ' ')}</span>
-                                    {e.from_plan && e.to_plan && e.from_plan.id !== e.to_plan.id && (
-                                        <span className="ml-2 text-gray-500">
-                                            {e.from_plan.name} → {e.to_plan.name}
-                                        </span>
+                                        </>
+                                    ) : (
+                                        <p className="mt-1 text-sm text-gray-500">Not part of your subscription — pick a plan below to add it.</p>
                                     )}
                                 </div>
-                                <span className="text-xs text-gray-400">{formatDate(e.created_at)}</span>
-                            </li>
-                        ))}
-                    </ul>
-                </Card>
+                            );
+                        })}
+                    </div>
+                </section>
             )}
+
+            {subscription && (
+                <section>
+                    <h3 className="mb-2 text-sm font-semibold text-gray-900">Usage</h3>
+                    <p className="mb-2 text-xs text-gray-500">Current counts against your plan limits</p>
+                    <Table>
+                        <thead>
+                            <tr>
+                                <Th>Resource</Th>
+                                <Th align="right">Used</Th>
+                                <Th align="right">Limit</Th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {usageResources.length === 0 ? (
+                                <TableEmpty colSpan={3}>No limits apply to this plan.</TableEmpty>
+                            ) : (
+                                usageResources.map((r) => {
+                                    const used = usage[r.key] ?? 0;
+                                    const limit = limits[r.key];
+                                    const unlimited = limit === null || limit === undefined;
+                                    const over = !unlimited && used > limit;
+
+                                    return (
+                                        <tr key={r.key} className="transition-colors duration-150 hover:bg-gray-50/60">
+                                            <Td>
+                                                <span className="font-medium text-gray-800">{r.label}</span>
+                                                {over && (
+                                                    <span className="mt-0.5 block text-xs text-red-600">
+                                                        Over the plan limit — you may not be able to create more.
+                                                    </span>
+                                                )}
+                                            </Td>
+                                            <Td align="right" className={`tabular-nums ${over ? 'font-semibold text-red-600' : 'text-gray-700'}`}>
+                                                {used.toLocaleString()}
+                                            </Td>
+                                            <Td align="right" className="whitespace-nowrap tabular-nums text-gray-500">
+                                                {unlimited ? 'Unlimited' : limit.toLocaleString()}
+                                            </Td>
+                                        </tr>
+                                    );
+                                })
+                            )}
+                        </tbody>
+                    </Table>
+                </section>
+            )}
+
+            <section>
+                <h3 className="mb-2 text-sm font-semibold text-gray-900">Included features</h3>
+                <p className="mb-3 text-xs text-gray-500">Modules unlocked by your plan</p>
+                {includedModules.length === 0 && <p className="mb-3 text-sm text-gray-500">No feature modules included.</p>}
+                <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
+                    {includedModules.length > 0 && (
+                        <ModuleList title="Included modules" modules={includedModules} tone="included" />
+                    )}
+                    <ModuleList title="Not included" modules={excludedModules} />
+                </div>
+            </section>
+
+            <section>
+                <h3 className="mb-3 text-lg font-bold text-gray-900">Compare plans</h3>
+                {visiblePlans.length === 0 && <Alert>No plans are currently available.</Alert>}
+                {visiblePlans.length > 0 && (
+                    <Table>
+                        <thead>
+                            <tr>
+                                <Th>Plan</Th>
+                                <Th>Price</Th>
+                                <Th>Trial</Th>
+                                <Th align="right">Modules</Th>
+                                <Th>Current</Th>
+                                <Th align="right">Actions</Th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {visiblePlans.map((p) => {
+                                const isCurrent = currentPlanIds.includes(p.id);
+
+                                return (
+                                    <tr key={p.id} className="transition-colors duration-150 hover:bg-gray-50/60">
+                                        <Td>
+                                            <span className="font-medium text-gray-900">{p.name}</span>
+                                            {p.product && p.product !== 'suite' && <span className="ml-2"><Badge>{PRODUCT_NAMES[p.product]}</Badge></span>}
+                                            {p.is_default && <span className="ml-2"><Badge>default</Badge></span>}
+                                            <span className="mt-0.5 block text-xs text-gray-500">
+                                                {p.description || 'No description'}
+                                            </span>
+                                            <span className="mt-0.5 block text-xs text-gray-500">
+                                                <span className="tabular-nums font-semibold text-gray-800">{p.limits?.users ?? '∞'}</span> users ·{' '}
+                                                <span className="tabular-nums font-semibold text-gray-800">{p.limits?.projects ?? '∞'}</span> projects ·{' '}
+                                                <span className="tabular-nums font-semibold text-gray-800">{p.limits?.tasks ?? '∞'}</span> tasks
+                                            </span>
+                                        </Td>
+                                        <Td className="whitespace-nowrap font-medium text-gray-900">{formatPrice(p)}</Td>
+                                        <Td className="whitespace-nowrap text-gray-500">
+                                            {p.trial_duration_days ? `${p.trial_duration_days} days` : '—'}
+                                        </Td>
+                                        <Td align="right" className="tabular-nums">{(p.limits?.modules || []).length}</Td>
+                                        <Td>{isCurrent ? <Badge>current</Badge> : <span className="text-gray-400">—</span>}</Td>
+                                        <Td align="right" className="whitespace-nowrap">
+                                            {canManage ? (
+                                                <Button size="sm" variant={isCurrent ? 'secondary' : 'primary'} disabled={isCurrent} onClick={() => switchPlan(p)} loading={action}>
+                                                    {isCurrent ? 'Current plan' : `Switch to ${p.name}`}
+                                                </Button>
+                                            ) : (
+                                                <span className="text-sm text-gray-400">{isCurrent ? 'Your current plan' : 'Ask an admin to switch plans.'}</span>
+                                            )}
+                                        </Td>
+                                    </tr>
+                                );
+                            })}
+                        </tbody>
+                    </Table>
+                )}
+            </section>
+
+            {events.length > 0 && (
+                <section>
+                    <h3 className="mb-2 text-sm font-semibold text-gray-900">Billing activity</h3>
+                    <p className="mb-2 text-xs text-gray-500">Recent subscription events</p>
+                    <Table>
+                        <thead>
+                            <tr>
+                                <Th>Event</Th>
+                                <Th>Plan change</Th>
+                                <Th align="right">When</Th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {events.map((e) => (
+                                <tr key={e.id} className="transition-colors duration-150 hover:bg-gray-50/60">
+                                    <Td className="font-medium capitalize text-gray-900">{String(e.type).replace(/_/g, ' ')}</Td>
+                                    <Td className="text-gray-500">
+                                        {e.from_plan && e.to_plan && e.from_plan.id !== e.to_plan.id
+                                            ? `${e.from_plan.name} → ${e.to_plan.name}`
+                                            : '—'}
+                                    </Td>
+                                    <Td align="right" className="whitespace-nowrap text-xs text-gray-400">
+                                        <Timestamp date={e.created_at} />
+                                    </Td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </Table>
+                </section>
+            )}
+
+            {/* P6.1: invoices, each downloadable as a PDF */}
+            <section>
+                <h3 className="mb-2 text-sm font-semibold text-gray-900">Invoices</h3>
+                {invoices.length === 0 ? (
+                    <div className="rounded-lg border border-dashed border-gray-200 bg-gray-50/60 px-4 py-6 text-center text-xs text-gray-400">
+                        No invoices yet. One is issued for every payment.
+                    </div>
+                ) : (
+                    <Table>
+                        <thead>
+                            <tr>
+                                <Th>Invoice</Th>
+                                <Th>Amount</Th>
+                                <Th>Status</Th>
+                                <Th>Issued</Th>
+                                <Th align="right">PDF</Th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {invoices.map((inv) => (
+                                <tr key={inv.id} className="transition-colors duration-150 hover:bg-gray-50/60">
+                                    <Td className="font-mono text-xs text-gray-600">{inv.number}</Td>
+                                    <Td className="font-medium text-gray-900">{inv.formatted_total}</Td>
+                                    <Td>
+                                        <Badge>{inv.status}</Badge>
+                                    </Td>
+                                    <Td className="whitespace-nowrap text-xs text-gray-500"><Timestamp date={inv.issued_at} /></Td>
+                                    <Td align="right">
+                                        <a
+                                            href={`/api/billing/invoices/${inv.id}/pdf`}
+                                            className="text-xs font-medium text-indigo-600 hover:underline"
+                                        >
+                                            Download
+                                        </a>
+                                    </Td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </Table>
+                )}
+            </section>
+
+            {/* Phase 6: Real billing history table */}
+            <section>
+                <h3 className="mb-2 text-sm font-semibold text-gray-900">Billing history</h3>
+                <p className="mb-2 text-xs text-gray-500">Invoices and payment transactions</p>
+                {payments.length === 0 ? (
+                    <div className="rounded-lg border border-dashed border-gray-200 bg-gray-50/60 px-4 py-6 text-center text-xs text-gray-400">
+                        No billing transactions recorded yet.
+                    </div>
+                ) : (
+                    <Table>
+                        <thead>
+                            <tr>
+                                <Th>Transaction</Th>
+                                <Th>Plan</Th>
+                                <Th>Amount</Th>
+                                <Th>Provider</Th>
+                                <Th>Status</Th>
+                                <Th align="right">Date</Th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {payments.map((p) => (
+                                <tr key={p.id} className="transition-colors duration-150 hover:bg-gray-50/60">
+                                    <Td className="font-mono text-xs text-gray-600">#{p.id}</Td>
+                                    <Td className="font-medium text-gray-900">{p.plan_name || '—'}</Td>
+                                    <Td className="font-medium text-gray-900">{p.formatted_amount}</Td>
+                                    <Td>
+                                        <Badge>{p.provider}</Badge>
+                                    </Td>
+                                    <Td>
+                                        <Badge>{p.status}</Badge>
+                                    </Td>
+                                    <Td align="right" className="whitespace-nowrap text-xs text-gray-400">
+                                        <Timestamp date={p.created_at} />
+                                    </Td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </Table>
+                )}
+            </section>
         </div>
     );
 }
+

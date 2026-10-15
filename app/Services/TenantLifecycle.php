@@ -2,7 +2,6 @@
 
 namespace App\Services;
 
-use App\Models\AuditLog;
 use App\Models\Tenant;
 use App\Models\User;
 use Illuminate\Validation\ValidationException;
@@ -10,7 +9,7 @@ use Illuminate\Validation\ValidationException;
 /**
  * Tenant status/lifecycle state machine (Phase 11 foundation).
  *
- * Statuses: pending → provisioning → trial/active → suspended/expired/deactivated
+ * Statuses: draft → pending → provisioning → trial/active → suspended/expired/deactivated
  *           provisioning_failed (retryable back to provisioning)
  * Allowed transitions live in $transitions; every transition is recorded in
  * audit_logs. Subscription-aware transitions (expired, plan changes) arrive in
@@ -22,6 +21,7 @@ class TenantLifecycle
      * @var array<string, array<int, string>>
      */
     public const TRANSITIONS = [
+        'draft' => ['pending'],
         'pending' => ['provisioning'],
         'provisioning' => [Tenant::STATUS_TRIAL, Tenant::STATUS_ACTIVE, 'provisioning_failed'],
         'provisioning_failed' => ['provisioning', 'pending', 'deactivated'],
@@ -82,14 +82,14 @@ class TenantLifecycle
 
         $tenant->save();
 
-        AuditLog::create([
-            'subject_type' => Tenant::class,
-            'subject_id' => $tenant->id,
-            'action' => 'tenant.status_changed',
-            'data' => $data ? array_merge($audit, $data) : $audit,
-            'actor_id' => $actor?->id,
-            'ip_address' => request()->ip(),
-        ]);
+        app(PlatformAudit::class)->record(
+            null,
+            'tenant.status_changed',
+            Tenant::class,
+            $tenant->id,
+            $data ? array_merge($audit, $data) : $audit,
+            $actor?->id,
+        );
 
         return $tenant;
     }

@@ -31,6 +31,14 @@ export default function ImpersonationBanner() {
                         <span className="ml-2 hidden text-white/80 sm:inline">
                             ({user.email})
                         </span>
+                        <span className="ml-2 rounded bg-white/20 px-1.5 py-0.5 text-xs font-semibold">
+                            {user.impersonation_mode === 'write' ? 'Changes enabled' : 'Read-only'}
+                        </span>
+                        {user.impersonation_expires_at && (
+                            <span className="ml-2 hidden text-xs text-white/80 md:inline">
+                                ends {new Date(user.impersonation_expires_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                            </span>
+                        )}
                     </span>
                 </div>
                 <button

@@ -13,7 +13,7 @@ export default function NotFound() {
                 </p>
                 <Link
                     to="/dashboard"
-                    className="mt-6 inline-block rounded-lg bg-indigo-600 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-indigo-700"
+                    className="mt-6 inline-block rounded-lg bg-[var(--accent)] px-4 py-2.5 text-sm font-medium text-[var(--accent-contrast)] transition hover:bg-[var(--accent-hover)]"
                 >
                     Back to dashboard
                 </Link>

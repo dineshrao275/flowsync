@@ -3,12 +3,15 @@
 namespace App\Models;
 
 use App\Enums\TaskStatusCategory;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class TaskStatus extends Model
 {
+    use HasFactory;
+
     protected $fillable = [
         'project_id',
         'name',
@@ -18,6 +21,8 @@ class TaskStatus extends Model
         'color',
         'is_default',
         'is_done',
+        'entry_rules',
+        'wip_limit',
     ];
 
     protected function casts(): array
@@ -27,6 +32,8 @@ class TaskStatus extends Model
             'position' => 'integer',
             'is_default' => 'boolean',
             'is_done' => 'boolean',
+            'entry_rules' => 'array',
+            'wip_limit' => 'integer',
         ];
     }
 

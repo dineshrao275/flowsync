@@ -25,6 +25,35 @@ class ProjectMemberController extends Controller
         return response()->json(['members' => $members]);
     }
 
+    public function autocomplete(Request $request, Project $project): JsonResponse
+    {
+        $this->authorize('view', $project);
+
+        $data = $request->validate([
+            'q' => ['nullable', 'string', 'max:50'],
+        ]);
+
+        $q = mb_strtolower(trim($data['q'] ?? ''));
+
+        $members = $project->members()
+            ->when($q !== '', function ($query) use ($q) {
+                $query->where(function ($query) use ($q) {
+                    $query->whereRaw('LOWER(name) LIKE ?', [$q.'%'])
+                        ->orWhereRaw('LOWER(email) LIKE ?', [$q.'@%']);
+                });
+            })
+            ->orderBy('name')
+            ->limit(10)
+            ->get(['users.id', 'users.name', 'users.email'])
+            ->map(fn (User $user) => [
+                'id' => $user->id,
+                'name' => $user->name,
+                'email' => $user->email,
+            ]);
+
+        return response()->json(['members' => $members]);
+    }
+
     public function store(Request $request, Project $project): JsonResponse
     {
         $this->authorize('manageMembers', $project);

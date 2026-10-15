@@ -33,7 +33,16 @@ class EnsureOnboardingComplete
         $tenant = Tenant::find($tenantId);
 
         if ($tenant && ! $this->onboarding->isComplete($tenant)) {
-            abort(403, 'Complete onboarding before continuing.');
+            if (! $request->expectsJson()) {
+                return redirect()->to('/app/onboarding');
+            }
+
+            return response()->json([
+                'message' => 'Complete onboarding before continuing.',
+                'redirect' => '/onboarding',
+            ], Response::HTTP_FORBIDDEN, [
+                'X-Onboarding-Redirect' => '/onboarding',
+            ]);
         }
 
         return $next($request);

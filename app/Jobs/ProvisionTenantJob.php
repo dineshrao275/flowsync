@@ -2,10 +2,12 @@
 
 namespace App\Jobs;
 
+use App\Billing\PaymentService;
 use App\Models\ProvisioningRun;
 use App\Models\Subscription;
 use App\Models\SubscriptionPlan;
 use App\Models\Tenant;
+use App\Services\Tenancy\DefaultUserClaim;
 use App\Services\TenantLifecycle;
 use App\Support\TenantDatabaseManager;
 use App\Support\TenantProvisioner;
@@ -42,6 +44,12 @@ class ProvisionTenantJob implements ShouldQueue
         public Tenant $tenant,
         public ?int $planId = null,
         public ?int $trialDays = null,
+        /** @var array{name: string, email: string, password_hash: string}|null */
+        public ?array $defaultUser = null,
+        /** Card saved during sign-up; the trial then converts to a paid subscription at the provider. */
+        public ?string $paymentMethod = null,
+        /** @var list<int> per-product plans beyond $planId (one TMS and one HRMS plan at most in total) */
+        public array $additionalPlanIds = [],
     ) {}
 
     public function handle(
@@ -60,12 +68,28 @@ class ProvisionTenantJob implements ShouldQueue
 
         try {
             $dbm->connectSystem();
-            $provisioner->provisionIsolated($this->tenant, $dbm, $lifecycle);
+            $provisioner->provisionIsolated($this->tenant, $dbm, $lifecycle, $this->productsToBuild());
+
+            // Intake collected a real default user: it replaces the seeded owner.
+            if ($this->defaultUser) {
+                app(DefaultUserClaim::class)->claim(
+                    $this->tenant,
+                    $this->defaultUser['name'],
+                    $this->defaultUser['email'],
+                    $this->defaultUser['password_hash'],
+                );
+            }
 
             // Phase 14 step 6: create the initial subscription once the tenant DB
             // is provisioned. No-ops when no plan was requested at onboarding.
             if ($this->planId) {
-                $this->provisionSubscription();
+                foreach ([$this->planId, ...$this->additionalPlanIds] as $index => $planId) {
+                    $product = $this->provisionSubscription($planId, fallbackToDefault: $index === 0);
+                    $product && $this->startProviderTrial($product);
+                }
+                // Keep the denormalised pointer on the primary (bundle > TMS > HRMS) subscription.
+                $primary = $this->tenant->subscription()->first();
+                $primary && $this->tenant->update(['subscription_id' => $primary->id]);
             }
 
             $run->update([
@@ -99,19 +123,51 @@ class ProvisionTenantJob implements ShouldQueue
     }
 
     /**
+     * The products to build the schema for, from the plans being subscribed — the
+     * subscription rows do not exist yet when the database is created. Null when no
+     * plan was given (the tenant's current entitlement decides).
+     *
+     * @return list<string>|null
+     */
+    private function productsToBuild(): ?array
+    {
+        if (! $this->planId) {
+            return null;
+        }
+
+        return SubscriptionPlan::whereIn('id', [$this->planId, ...$this->additionalPlanIds])->get()
+            ->flatMap(fn (SubscriptionPlan $p) => $p->covers())->unique()->values()->all() ?: null;
+    }
+
+    /** Best effort: a provider hiccup must not undo a provisioned tenant — the tenant can add a card later. */
+    private function startProviderTrial(string $product): void
+    {
+        if (! $this->paymentMethod || ! $this->trialDays) {
+            return;
+        }
+
+        try {
+            app(PaymentService::class)->startProviderTrial($this->tenant->refresh(), $this->paymentMethod, $this->trialDays, $product);
+        } catch (Throwable $e) {
+            Log::warning('Could not start the provider trial subscription.', ['tenant_id' => $this->tenant->id, 'error' => $e->getMessage()]);
+        }
+    }
+
+    /**
      * Create the tenant's initial subscription on the system connection. Uses the
      * onboarding plan (planId) or falls back to the default catalog plan, enters a
      * trial when trialDays (or the plan's default trial) is present, and writes the
      * matching entry in subscription_events.
      */
-    private function provisionSubscription(): void
+    /** @return string|null the product the subscription was created for */
+    private function provisionSubscription(int $planId, bool $fallbackToDefault): ?string
     {
         $plan = SubscriptionPlan::query()
-            ->where('id', $this->planId)
+            ->where('id', $planId)
             ->where('is_active', true)
             ->first();
 
-        if (! $plan) {
+        if (! $plan && $fallbackToDefault) {
             $plan = SubscriptionPlan::query()
                 ->where('is_default', true)
                 ->where('is_active', true)
@@ -119,14 +175,14 @@ class ProvisionTenantJob implements ShouldQueue
         }
 
         if (! $plan) {
-            return;
+            return null;
         }
 
         $trialDays = $this->trialDays ?? $plan->trial_duration_days;
         $trialEndsAt = $trialDays ? now()->addDays($trialDays) : null;
 
         $subscription = Subscription::updateOrCreate(
-            ['tenant_id' => $this->tenant->id],
+            ['tenant_id' => $this->tenant->id, 'product' => $plan->product ?? 'suite'],
             [
                 'plan_id' => $plan->id,
                 'status' => $trialEndsAt ? Subscription::STATUS_TRIALING : Subscription::STATUS_ACTIVE,
@@ -137,8 +193,6 @@ class ProvisionTenantJob implements ShouldQueue
                 'seats' => $plan->limit('users') ?: 0,
             ]
         );
-
-        $this->tenant->update(['subscription_id' => $subscription->id]);
 
         $plan->events()->create([
             'tenant_id' => $this->tenant->id,
@@ -153,5 +207,7 @@ class ProvisionTenantJob implements ShouldQueue
             'plan_id' => $plan->id,
             'status' => $subscription->status,
         ]);
+
+        return $subscription->product;
     }
 }

@@ -2,12 +2,18 @@
 
 namespace Tests\Feature;
 
+use App\Enums\Hrms\EmployeeStatus;
+use App\Models\AuditLog;
+use App\Models\Hrms\Employee\Employee;
 use App\Models\Project;
 use App\Models\ProjectRole;
+use App\Models\SubscriptionPlan;
 use App\Models\Task;
 use App\Models\TaskStatus;
+use App\Models\Tenant;
 use App\Models\User;
 use App\Models\Workspace;
+use App\Services\SubscriptionService;
 use App\Support\TenantProvisioner;
 use Illuminate\Support\Facades\Hash;
 use Tests\IsolatesDatabase;
@@ -223,7 +229,7 @@ class GlobalSearchTest extends TestCase
         // target on Acme's tenant DB before impersonating.
         $this->connectTenant('acme');
 
-        $this->postJson('/api/impersonate', ['user_id' => $this->viewer()->id])->assertOk();
+        $this->postJson('/api/impersonate', ['user_id' => $this->viewer()->id, 'reason' => 'Automated impersonation test.'])->assertOk();
 
         $response = $this->search('login')->assertOk();
         $this->assertSame(1, count($response->json('results.tasks')));
@@ -235,5 +241,81 @@ class GlobalSearchTest extends TestCase
         $this->login('viewer@flowsync.test');
         $response = $this->search('flowsync')->assertOk();
         $this->assertSame([], $response->json('results.users'));
+    }
+
+    public function test_employees_search_needs_the_directory_permission_and_the_module(): void
+    {
+        $this->connectTenant('acme');
+        Employee::create([
+            'employee_code' => 'EMP-GLOB', 'name' => 'Global Searchable',
+            'status' => EmployeeStatus::Active,
+        ]);
+
+        // The viewer names no directory permission: no employees section.
+        $this->login('viewer@flowsync.test');
+        $this->assertSame([], $this->search('Searchable')->assertOk()->json('results.employees'));
+
+        // The admin names it and the tenant holds the module: one row,
+        // linking to the profile by id.
+        $this->login('admin@flowsync.test');
+        $employees = $this->search('Searchable')->assertOk()->json('results.employees');
+        $this->assertCount(1, $employees);
+        $this->assertSame('EMP-GLOB', $employees[0]['employee_code']);
+
+        // A plan with search but without hrms.core hides the section even
+        // from the admin (a plan without search 403s the whole route
+        // first, which proves nothing about this gate).
+        $tenant = Tenant::where('slug', 'acme')->firstOrFail();
+        $starter = SubscriptionPlan::where('slug', 'starter')->firstOrFail();
+        $starter->update(['limits' => [...$starter->limits, 'modules' => ['time_tracking', 'global_search']]]);
+        app(SubscriptionService::class)->assign($tenant, $starter);
+
+        $this->assertSame([], $this->search('Searchable')->assertOk()->json('results.employees'));
+    }
+
+    /** R13 — a super admin reading tenant data through search leaves a record. */
+    public function test_a_cross_tenant_super_admin_search_is_audited_once_per_query(): void
+    {
+        $workspace = Workspace::create([
+            'created_by' => $this->admin()->id,
+            'name' => 'Acme Cloud',
+            'slug' => 'acme-cloud',
+        ]);
+        $this->makeTask($workspace, 'Fix the login page', '100');
+
+        $this->login('superadmin@flowsync.test');
+
+        $this->search('login')->assertOk();
+        $this->search('login')->assertOk();   // the palette repeats itself; one row is enough
+        $this->search('LOGIN')->assertOk();   // same query, different case
+
+        $rows = AuditLog::where('action', 'search.cross_tenant')->get();
+        $this->assertCount(1, $rows);
+        $this->assertSame('login', $rows->first()->data['q']);
+        $this->assertGreaterThanOrEqual(1, $rows->first()->data['tenants_searched']);
+        $this->assertSame(1, $rows->first()->data['results']['tasks']);
+    }
+
+    public function test_a_tenant_users_search_writes_no_platform_audit_row(): void
+    {
+        $this->login('admin@flowsync.test');
+        $this->search('acme')->assertOk();
+
+        $this->assertFalse(AuditLog::where('action', 'search.cross_tenant')->exists());
+    }
+
+    /** P1.9 — a typed `%` or `_` is text, not a wildcard that matches every row. */
+    public function test_search_wildcards_are_literal(): void
+    {
+        $workspace = Workspace::create(['created_by' => $this->admin()->id, 'name' => 'Plain Workspace', 'slug' => 'plain-ws']);
+        $workspace->members()->attach($this->admin()->id, ['role' => 'owner', 'added_by' => $this->admin()->id]);
+        Workspace::create(['created_by' => $this->admin()->id, 'name' => '50% Sale', 'slug' => 'fifty-sale']);
+
+        $this->login('admin@flowsync.test');
+
+        $names = array_column($this->search('%25%25')->assertOk()->json('results.workspaces'), 'name');
+        $this->assertSame([], $names);                 // "%%" is not "everything"
+        $this->assertSame(['50% Sale'], array_column($this->search('50%25')->json('results.workspaces'), 'name'));
+        $this->assertSame([], $this->search('P_ain')->json('results.workspaces')); // "_" is not "any one character"
     }
 }

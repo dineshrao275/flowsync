@@ -324,7 +324,7 @@ class IsolatedProvisioningTest extends TestCase
             ->assertJsonPath('users.0.email', $this->ownerEmail($tenant));
 
         // Impersonate the tenant owner across the database boundary.
-        $this->postJson('/api/impersonate', ['user_id' => $ownerId])
+        $this->postJson('/api/impersonate', ['user_id' => $ownerId, 'reason' => 'Automated impersonation test.'])
             ->assertOk()
             ->assertJsonPath('user.email', $this->ownerEmail($tenant))
             ->assertJsonPath('user.impersonating', true);

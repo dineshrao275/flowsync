@@ -7,54 +7,28 @@ import Spinner from '../components/ui/Spinner';
 import Alert from '../components/ui/Alert';
 import Button from '../components/ui/Button';
 import Input from '../components/ui/Input';
+import Tabs from '../components/ui/Tabs';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
+import { useConfirm } from '../components/ui/ConfirmDialog';
 import { useSetCrumbs } from '../context/BreadcrumbContext';
 import TimeSummary from '../components/time/TimeSummary';
+import RichTextEditor from '../components/ui/RichTextEditor';
+import RichText, { stripRichText } from '../components/ui/RichText';
 import usePageTitle from '../hooks/usePageTitle';
-
-const ROLE_LABELS = {
-    owner: 'Owner',
-    admin: 'Admin',
-    member: 'Member',
-};
-
-const PROJECT_ROLE_LABELS = {
-    lead: 'Lead',
-    developer: 'Developer',
-    viewer: 'Viewer',
-};
+import { projectRoleLabel, workspaceRoleLabel } from '../utils/roles';
 
 const roleOptions = [
     { value: 'admin', label: 'Admin' },
     { value: 'member', label: 'Member' },
 ];
 
-function Tabs({ tabs, active, onChange }) {
-    return (
-        <div className="flex gap-1 border-b border-gray-200">
-            {tabs.map((tab) => (
-                <button
-                    key={tab.key}
-                    type="button"
-                    onClick={() => onChange(tab.key)}
-                    className={`-mb-px border-b-2 px-4 py-2.5 text-sm font-medium transition ${active === tab.key
-                            ? 'border-indigo-600 text-indigo-600'
-                            : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700'
-                        }`}
-                >
-                    {tab.label}
-                </button>
-            ))}
-        </div>
-    );
-}
-
 export default function WorkspaceDetail() {
     const { workspaceId } = useParams();
     const navigate = useNavigate();
     const { user, can, hasModule } = useAuth();
     const toast = useToast();
+    const confirm = useConfirm();
     const setCrumbs = useSetCrumbs();
     const [workspace, setWorkspace] = useState(null);
     usePageTitle(workspace?.name || 'Workspace');
@@ -70,6 +44,15 @@ export default function WorkspaceDetail() {
     const [memberForm, setMemberForm] = useState({ user_id: '', role: 'member' });
     const [labelForm, setLabelForm] = useState({ name: '', color: '#6366f1' });
     const [projectForm, setProjectForm] = useState({ name: '', key: '', description: '' });
+    // The settings description is editor-controlled; it follows the loaded
+    // workspace (the page remounts per workspace, and a same-id refetch
+    // after save already matches what was typed).
+    const [settingsDescription, setSettingsDescription] = useState('');
+
+    useEffect(() => {
+        if (workspace) setSettingsDescription(workspace.description || '');
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [workspace?.id]);
     const [formErrors, setFormErrors] = useState({});
     const [savingMember, setSavingMember] = useState(false);
     const [savingLabel, setSavingLabel] = useState(false);
@@ -143,7 +126,7 @@ export default function WorkspaceDetail() {
     }
 
     async function archiveWorkspace() {
-        if (!window.confirm('Archive this workspace? It will be hidden but not deleted.')) return;
+        if (!(await confirm({ title: 'Archive workspace?', message: 'Archive this workspace? It will be hidden but not deleted.' }))) return;
         try {
             const { data } = await api.post(`/workspaces/${workspaceId}/archive`);
             setWorkspace(data.workspace);
@@ -164,7 +147,7 @@ export default function WorkspaceDetail() {
     }
 
     async function deleteWorkspace() {
-        if (!window.confirm('Permanently delete this workspace? This cannot be undone.')) return;
+        if (!(await confirm({ title: 'Delete workspace?', message: 'Permanently delete this workspace? This cannot be undone.', variant: 'danger' }))) return;
         try {
             await api.delete(`/workspaces/${workspaceId}`);
             toast.success('Workspace deleted.');
@@ -213,7 +196,7 @@ export default function WorkspaceDetail() {
     }
 
     async function removeMember(member) {
-        if (!window.confirm(`Remove ${member.name} from this workspace?`)) return;
+        if (!(await confirm({ title: 'Remove member?', message: `Remove ${member.name} from this workspace?`, variant: 'danger' }))) return;
         try {
             await api.delete(`/workspaces/${workspaceId}/members/${member.id}`);
             await loadMembers();
@@ -240,7 +223,7 @@ export default function WorkspaceDetail() {
     }
 
     async function deleteLabel(label) {
-        if (!window.confirm(`Delete label "${label.name}"?`)) return;
+        if (!(await confirm({ title: 'Delete label?', message: `Delete label "${label.name}"?`, variant: 'danger' }))) return;
         try {
             await api.delete(`/labels/${label.id}`);
             setLabels((l) => l.filter((x) => x.id !== label.id));
@@ -320,10 +303,14 @@ export default function WorkspaceDetail() {
                     <div>
                         <div className="flex flex-wrap items-center gap-2">
                             <h2 className="text-2xl font-bold text-gray-900">{workspace.name}</h2>
-                            {workspace.my_role && <Badge>{ROLE_LABELS[workspace.my_role]?.toLowerCase()}</Badge>}
+                            {workspace.my_role && <Badge>{workspaceRoleLabel(workspace.my_role)}</Badge>}
                             {archived && <Badge>archived</Badge>}
                         </div>
-                        <p className="mt-1 text-sm text-gray-500">{workspace.description || 'No description'}</p>
+                        {workspace.description ? (
+                            <RichText value={workspace.description} className="mt-1 text-gray-500" />
+                        ) : (
+                            <p className="mt-1 text-sm text-gray-500">No description</p>
+                        )}
                         <p className="mt-0.5 text-xs text-gray-400">{workspace.slug}</p>
                     </div>
                 </div>
@@ -377,14 +364,15 @@ export default function WorkspaceDetail() {
                                         error={formErrors.key}
                                     />
                                 </div>
-                                <Input
-                                    label="Description"
-                                    name="project-description"
-                                    placeholder="What is this project about?"
-                                    value={projectForm.description}
-                                    onChange={(e) => setProjectForm((f) => ({ ...f, description: e.target.value }))}
-                                    error={formErrors.description}
-                                />
+                                <div>
+                                    <label className="mb-1.5 block text-sm font-medium text-gray-700">Description</label>
+                                    <RichTextEditor
+                                        value={projectForm.description}
+                                        onChange={(html) => setProjectForm((f) => ({ ...f, description: html }))}
+                                        placeholder="What is this project about?"
+                                        error={formErrors.description}
+                                    />
+                                </div>
                                 <div className="flex gap-2 pt-1">
                                     <Button type="button" variant="secondary" onClick={() => setCreatingProject(false)}>
                                         Cancel
@@ -421,13 +409,13 @@ export default function WorkspaceDetail() {
                                                     <p className="flex flex-wrap items-center gap-2 text-sm font-medium text-gray-900">
                                                         {project.name}
                                                         {project.my_role && (
-                                                            <Badge>{PROJECT_ROLE_LABELS[project.my_role]?.toLowerCase() || project.my_role}</Badge>
+                                                            <Badge>{projectRoleLabel(project.my_role)}</Badge>
                                                         )}
                                                         {project.archived_at && <Badge>archived</Badge>}
                                                     </p>
-                                                    <p className="mt-0.5 line-clamp-1 text-xs text-gray-400">
-                                                        {project.description || 'No description'}
-                                                    </p>
+                                                        <p className="mt-0.5 line-clamp-1 text-xs text-gray-400">
+                                                            {stripRichText(project.description) || 'No description'}
+                                                        </p>
                                                 </div>
                                             </div>
                                             <div className="flex items-center gap-4 text-xs text-gray-400">
@@ -611,7 +599,7 @@ export default function WorkspaceDetail() {
                             e.preventDefault();
                             updateWorkspace({
                                 name: e.currentTarget.name.value,
-                                description: e.currentTarget.description.value,
+                                description: settingsDescription || undefined,
                             });
                         }}
                     >
@@ -623,12 +611,15 @@ export default function WorkspaceDetail() {
                             error={formErrors.name}
                             required
                         />
-                        <Input
-                            label="Description"
-                            name="description"
-                            defaultValue={workspace.description}
-                            error={formErrors.description}
-                        />
+                        <div>
+                            <label className="mb-1.5 block text-sm font-medium text-gray-700">Description</label>
+                            <RichTextEditor
+                                value={settingsDescription}
+                                onChange={setSettingsDescription}
+                                placeholder="What is this workspace for?"
+                                error={formErrors.description}
+                            />
+                        </div>
                         <div className="flex gap-2">
                             <Button type="submit" loading={updating}>
                                 Save changes

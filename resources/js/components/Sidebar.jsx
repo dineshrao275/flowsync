@@ -1,59 +1,14 @@
+import { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { useNotifications } from '../context/NotificationContext';
+import { hrmsSections, superAdminSections, tmsSections } from '../utils/nav';
+import { productForPath } from '../utils/product';
 
-const sections = [
-    {
-        label: 'Main',
-        items: [
-            { to: '/dashboard', label: 'Dashboard', capabilities: ['dashboard.view'], icon: 'M3 12l9-9 9 9M5 10v10h14V10' },
-            { to: '/workspaces', label: 'Workspaces', capabilities: ['workspaces.view'], icon: 'M3 7a2 2 0 012-2h4l2 2h8a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2V7z' },
-            { to: '/projects', label: 'Projects', capabilities: ['workspaces.view'], icon: 'M2 4h20v16H2V4zm2 2v2h16V6H4zm0 6h16v-2H4v2zm0 4h16v-2H4v2z' },
-            { to: '/search', label: 'Search', capabilities: ['workspaces.view', 'module:global_search'], icon: 'M21 21l-4.35-4.35M17 11a6 6 0 11-12 0 6 6 0 0112 0z' },
-        ],
-    },
-    {
-        label: 'Insights',
-        items: [
-            { to: '/reports', label: 'Reports', capabilities: ['reports.view', 'module:reports'], icon: 'M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z' },
-        ],
-    },
-    {
-        label: 'Administration',
-        items: [
-            { to: '/users', label: 'Users', capabilities: ['users.view'], icon: 'M17 20h5v-2a4 4 0 00-3-3.87M9 20H4v-2a4 4 0 013-3.87m4-1.13a4 4 0 10-4-4 4 4 0 004 4zm6 2a3 3 0 10-3-3' },
-            { to: '/roles', label: 'Roles', capabilities: ['roles.view'], icon: 'M12 2l8 4v6c0 5-3.5 8-8 10-4.5-2-8-5-8-10V6l8-4zm-1 10l-2-2-1 1 3 3 5-5-1-1-4 4z' },
-            { to: '/settings', label: 'Settings', capabilities: ['settings.view'], icon: 'M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 001.065-2.572c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z M15 12a3 3 0 11-6 0 3 3 0 016 0z' },
-        ],
-    },
-{
-        label: 'Billing',
-        items: [
-            { to: '/subscription', label: 'Subscription', icon: 'M3 17l5-2 8 3 5-2v6H3v-5zm5-4l5-2 8 3 3-1v-3l-3-1-8-3-5 2-5-2 3 2v3l2 1z' },
-        ],
-    },
-];
-
-const superAdminSections = [
-    {
-        label: 'Administration',
-        items: [
-            { to: '/admin', label: 'Overview', capabilities: ['dashboard.view'], icon: 'M4 13h6V3H4v10zm0 8h6v-6H4v6zm10 0h6V11h-6v10zm0-18v6h6V3h-6z' },
-            { to: '/tenants', label: 'Tenants', capabilities: ['dashboard.view'], icon: 'M3 20h18M6 8V6a3 3 0 013-3h6a3 3 0 013 3v2m-12 0h12a3 3 0 013 3v5a3 3 0 01-3 3H9a3 3 0 01-3-3v-5a3 3 0 013-3z' },
-            { to: '/plans', label: 'Plans', capabilities: ['dashboard.view'], icon: 'M9 3h6l4 4v14H5V7l4-4zm0 5h6m-4 4h4m-4 4h4' },
-            { to: '/admin/features', label: 'Features', capabilities: ['dashboard.view'], icon: 'M12 3l8 4v13H4V7l8-4zm0 5a2.5 2.5 0 00-2.5 2.5c0 1.5 2.5 3 2.5 3s2.5-1.5 2.5-3A2.5 2.5 0 0012 8zm0 10a2 2 0 100-4 2 2 0 000 4z' },
-            { to: '/admin/pages', label: 'Website', capabilities: ['dashboard.view'], icon: 'M12 3l8 4v13H4V7l8-4zm2 6v6m-4-6v2' },
-        ],
-    },
-    {
-        label: 'Platform',
-        items: [
-            { to: '/admin/users', label: 'Users', capabilities: ['dashboard.view'], icon: 'M17 20h5v-2a4 4 0 00-3-3.87M9 20H4v-2a4 4 0 013-3.87m4-1.13a4 4 0 10-4-4 4 4 0 004 4zm6 2a3 3 0 10-3-3' },
-            { to: '/admin/analytics', label: 'Analytics', capabilities: ['dashboard.view'], icon: 'M3 3v18h18M8 17V9m4 8V5m4 12v-6' },
-            { to: '/admin/audit-logs', label: 'Audit Logs', capabilities: ['dashboard.view'], icon: 'M4 7V5a2 2 0 012-2h8l2 2h6v14a2 2 0 01-2 2H6a2 2 0 01-2-2v-2m0 0V7h18M8 12h8M8 16h8' },
-            { to: '/admin/settings', label: 'Settings', capabilities: ['dashboard.view'], icon: 'M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 001.065-2.572c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z M15 12a3 3 0 11-6 0 3 3 0 016 0z' },
-        ],
-    },
-];
+// Sidebar sections live in utils/nav.js: `tmsSections` for the task shell,
+// `hrmsSections` (derived from the HRMS_NAV hub catalog, never re-listed)
+// for the HR shell, `superAdminSections` for the platform. The component
+// below picks by the current path and filters by capability.
 
 function Icon({ path, className = '' }) {
     return (
@@ -65,6 +20,7 @@ function Icon({ path, className = '' }) {
 
 function SidebarLink({ item, collapsed, onClose }) {
     const location = useLocation();
+    const { inboxUnread } = useNotifications();
     const isActive = location.pathname === item.to;
     const labelClass = collapsed ? 'hidden lg:hidden' : 'block';
 
@@ -89,21 +45,45 @@ function SidebarLink({ item, collapsed, onClose }) {
                 />
             )}
             <Icon path={item.icon} className="h-5 w-5 shrink-0" />
-            <span className={`min-w-0 ${labelClass}`}>{item.label}</span>
+            <span className={`min-w-0 ${labelClass}`}>
+                <span className="flex items-center justify-between gap-2">
+                    <span className="truncate">{item.label}</span>
+                    {item.badge === 'inbox' && inboxUnread > 0 && (
+                        <span className="flex h-4 min-w-4 shrink-0 items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-bold normal-case tracking-normal text-white">
+                            {inboxUnread > 99 ? '99+' : inboxUnread}
+                        </span>
+                    )}
+                </span>
+            </span>
         </Link>
     );
 }
 
-function SidebarSection({ section, collapsed, onClose }) {
+function SidebarSection({ section, collapsed, onClose, canViewPlans }) {
     return (
         <div className="space-y-0.5">
             {!collapsed && (
                 <p
-                    className="px-3 pb-1.5 pt-4 text-[10px] font-bold uppercase tracking-wider"
+                    className="flex items-center justify-between px-3 pb-1.5 pt-4 text-[10px] font-bold uppercase tracking-wider"
                     style={{ color: 'var(--sidebar-text)', opacity: 0.55 }}
                 >
-                    {section.label}
+                    <span>{section.label}</span>
                 </p>
+            )}
+            {section.items.length === 0 && !collapsed && (
+                <div
+                    className="rounded-lg px-3 py-2 text-xs leading-relaxed"
+                    style={{ color: 'var(--sidebar-text)', opacity: 0.6 }}
+                >
+                    <span>Locked by your plan.</span>{' '}
+                    {canViewPlans ? (
+                        <Link to="/subscription" className="underline transition-colors hover:opacity-80">
+                            View plans
+                        </Link>
+                    ) : (
+                        'An admin can change it.'
+                    )}
+                </div>
             )}
             {section.items.map((item) => (
                 <SidebarLink key={item.to} item={item} collapsed={collapsed} onClose={onClose} />
@@ -112,16 +92,131 @@ function SidebarSection({ section, collapsed, onClose }) {
     );
 }
 
+/**
+ * Whether a sidebar item covers the current path. Detail pages (e.g.
+ * `/hrms/employees/7`) belong to their section's tab; `/hrms` itself matches
+ * exactly, or every HRMS page would light up the Overview group.
+ */
+function isItemActive(item, pathname) {
+    if (pathname === item.to) return true;
+    if (item.to === '/hrms' || item.to === '/my') return false;
+    return pathname.startsWith(`${item.to}/`);
+}
+
+/**
+ * One collapsible HR-shell group (Overview, Workforce, Time, …). Clicking the
+ * header expands its related pages inline; the group holding the current page
+ * opens on its own. When the sidebar is collapsed there is no room for a
+ * submenu, so the group icon navigates straight to its first reachable page.
+ */
+function CollapsibleSection({ section, collapsed, onClose, open, onToggle }) {
+    const { inboxUnread } = useNotifications();
+    const { pathname } = useLocation();
+    const [first] = section.items;
+    const activeInside = section.items.some((item) => isItemActive(item, pathname));
+    const showBadge = section.items.some((item) => item.badge === 'inbox') && inboxUnread > 0;
+    const badge = showBadge && (
+        <span className="flex h-4 min-w-4 shrink-0 items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-bold normal-case tracking-normal text-white">
+            {inboxUnread > 99 ? '99+' : inboxUnread}
+        </span>
+    );
+
+    if (collapsed) {
+        if (!first) return null;
+        const active = isItemActive(first, pathname) || activeInside;
+        return (
+            <Link
+                to={first.to}
+                onClick={onClose}
+                role="menuitem"
+                aria-current={active ? 'page' : undefined}
+                title={section.label}
+                aria-label={section.label}
+                className={`group relative flex items-center justify-center rounded-lg px-3 py-2.5 text-sm font-medium transition-colors duration-150 ${
+                    active ? 'bg-[var(--active-menu)]' : 'hover:bg-[var(--sidebar-hover)]'
+                }`}
+                style={{ color: active ? '#ffffff' : 'var(--sidebar-text)' }}
+            >
+                <Icon path={first.icon} className="h-5 w-5 shrink-0" />
+                {badge}
+            </Link>
+        );
+    }
+
+    return (
+        <div className="space-y-0.5">
+            <button
+                type="button"
+                onClick={onToggle}
+                aria-expanded={open}
+                title={open ? `Collapse ${section.label}` : `Expand ${section.label}`}
+                className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors duration-150 hover:bg-[var(--sidebar-hover)]"
+                style={{ color: 'var(--sidebar-text)' }}
+            >
+                <Icon path={first?.icon} className="h-5 w-5 shrink-0" />
+                <span className="min-w-0 flex-1 truncate text-left">{section.label}</span>
+                {badge}
+                <svg
+                    className={`h-4 w-4 shrink-0 transition-transform duration-150 ${open ? 'rotate-180' : ''}`}
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    aria-hidden="true"
+                >
+                    <path d="M6 9l6 6 6-6" />
+                </svg>
+            </button>
+            {open && (
+                <div className="ml-5 space-y-0.5 border-l pl-1.5" style={{ borderColor: 'var(--sidebar-hover)' }}>
+                    {section.items.map((item) => (
+                        <SidebarLink key={item.to} item={item} collapsed={collapsed} onClose={onClose} />
+                    ))}
+                </div>
+            )}
+        </div>
+    );
+}
+
 export default function Sidebar({ open, collapsed, onClose, onToggleCollapse }) {
     const { check, user } = useAuth();
+    const { pathname } = useLocation();
     const isSuperAdmin = user?.is_super_admin && !user?.impersonating;
 
-    const items = (isSuperAdmin ? superAdminSections : sections)
-        .map((section) => ({
-            ...section,
-            items: section.items.filter((item) => !item.capabilities?.length || item.capabilities.every((capability) => check(capability))),
-        }))
-        .filter((section) => section.items.length > 0);
+    // Explicit per-group open state; a group with no entry falls back to
+    // holding the current page open, so deep links and back/forward always
+    // land on a visible, highlighted item.
+    const [manualGroups, setManualGroups] = useState({});
+
+    // The product shell follows the URL: /hrms* and /my render the HR shell,
+    // everything else the task shell. Crossing shells is the topbar
+    // ProductSwitcher's job, not the sidebar's.
+    const shellSections = isSuperAdmin
+        ? superAdminSections
+        : productForPath(pathname) === 'hrms' ? hrmsSections : tmsSections;
+
+    // A section that filtered to zero because every item was module-gated
+    // (not permission-gated) survives with a "locked by your plan" note —
+    // otherwise it would just vanish and read as an admin artifact.
+    const items = shellSections
+        .map((section) => {
+            const filtered = section.items.filter(
+                (item) => !item.capabilities?.length || item.capabilities.every((capability) => check(capability)),
+            );
+
+            return {
+                ...section,
+                items: filtered,
+                lockedByModule:
+                    filtered.length === 0 &&
+                    section.items.some((item) =>
+                        item.capabilities?.some((capability) => capability.startsWith('module:') && !check(capability)),
+                    ),
+            };
+        })
+        .filter((section) => section.items.length > 0 || section.lockedByModule);
 
     return (
         <>
@@ -163,9 +258,28 @@ export default function Sidebar({ open, collapsed, onClose, onToggleCollapse }) 
                 </div>
 
                 <nav className="flex-1 space-y-4 overflow-y-auto px-3 py-2">
-                    {items.map((section) => (
-                        <SidebarSection key={section.label} section={section} collapsed={collapsed} onClose={onClose} />
-                    ))}
+                    {items.map((section) => {
+                        const open = manualGroups[section.label] ?? section.items.some((item) => isItemActive(item, pathname));
+
+                        return section.collapsible && section.items.length > 0 ? (
+                            <CollapsibleSection
+                                key={section.label}
+                                section={section}
+                                collapsed={collapsed}
+                                onClose={onClose}
+                                open={open}
+                                onToggle={() => setManualGroups((groups) => ({ ...groups, [section.label]: !open }))}
+                            />
+                        ) : (
+                            <SidebarSection
+                                key={section.label}
+                                section={section}
+                                collapsed={collapsed}
+                                onClose={onClose}
+                                canViewPlans={check('billing.view')}
+                            />
+                        );
+                    })}
                 </nav>
 
                 <div className="border-t px-3 py-3" style={{ borderColor: 'var(--sidebar-hover)' }}>

@@ -1,12 +1,22 @@
 <?php
 
+use App\Http\Middleware\AssignRequestId;
+use App\Http\Middleware\AuthenticateApiToken;
+use App\Http\Middleware\EnforceIdempotency;
+use App\Http\Middleware\EnsureFeatureFlag;
 use App\Http\Middleware\EnsureModule;
 use App\Http\Middleware\EnsureOnboardingComplete;
 use App\Http\Middleware\EnsurePermission;
+use App\Http\Middleware\EnsurePlatformPermission;
+use App\Http\Middleware\EnsureProduct;
 use App\Http\Middleware\EnsureSuperAdmin;
 use App\Http\Middleware\EnsureTenantContext;
+use App\Http\Middleware\EnsureTwoFactorEnrolled;
+use App\Http\Middleware\LogHttpRequests;
+use App\Http\Middleware\SecurityHeaders;
 use App\Http\Middleware\SetTenantContext;
 use App\Http\Middleware\SwitchTenant;
+use App\Http\Middleware\TokenCan;
 use Illuminate\Auth\AuthenticationException;
 use Illuminate\Auth\Middleware\Authenticate;
 use Illuminate\Auth\Middleware\Authorize;
@@ -30,10 +40,21 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
         web: __DIR__.'/../routes/web.php',
         commands: __DIR__.'/../routes/console.php',
-        channels: __DIR__.'/../routes/channels.php',
+        // NOTE: `channels` is intentionally NOT registered here. Laravel would
+        // then register /broadcasting/auth with the bare `web` group, so the
+        // session user would be resolved on the default (system) connection
+        // where tenant users don't exist -> channel auth always 403s. It is
+        // registered in routes/web.php with `switch_tenant` instead.
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
+        // First in the global stack so even a request rejected by a later
+        // middleware (CSRF, session, throttle) carries an id in its logs.
+        $middleware->prepend(LogHttpRequests::class);
+        $middleware->prepend(AssignRequestId::class);
+        $middleware->append(SecurityHeaders::class);
+        $middleware->appendToGroup('web', EnsureTwoFactorEnrolled::class);
+
         $middleware->alias([
             'permission' => EnsurePermission::class,
             'signed' => ValidateSignature::class,
@@ -43,6 +64,12 @@ return Application::configure(basePath: dirname(__DIR__))
             'super_admin' => EnsureSuperAdmin::class,
             'onboarding_complete' => EnsureOnboardingComplete::class,
             'ensure_module' => EnsureModule::class,
+            'ensure_product' => EnsureProduct::class,
+            'ensure_flag' => EnsureFeatureFlag::class,
+            'platform' => EnsurePlatformPermission::class,
+            'api_token' => AuthenticateApiToken::class,
+            'token_can' => TokenCan::class,
+            'idempotent' => EnforceIdempotency::class,
         ]);
 
         // Middleware priority (Laravel SortedMiddleware) — the framework sorts the
@@ -59,19 +86,28 @@ return Application::configure(basePath: dirname(__DIR__))
             ShareErrorsFromSession::class,
             ValidateCsrfToken::class,
             SwitchTenant::class,
+            AuthenticateApiToken::class,
             Authenticate::class,
             SetTenantContext::class,
             EnsureTenantContext::class,
             EnsureSuperAdmin::class,
+            EnsurePlatformPermission::class,
             EnsurePermission::class,
+            TokenCan::class,
             EnsureOnboardingComplete::class,
+            EnsureProduct::class,
             EnsureModule::class,
+            EnsureFeatureFlag::class,
             ThrottleRequests::class,
             ThrottleRequestsWithRedis::class,
+            EnforceIdempotency::class,
             AuthenticatesSessions::class,
             SubstituteBindings::class,
             Authorize::class,
         ]);
+
+        // Token routes and client log beacon routes are exempted from CSRF.
+        $middleware->validateCsrfTokens(except: ['api/v1/*', 'api/logs/client']);
 
         $middleware->redirectGuestsTo('/login');
     })

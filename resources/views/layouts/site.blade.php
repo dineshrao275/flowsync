@@ -1,64 +1,122 @@
+@php($site = $site ?? \App\Support\SiteConfig::all())
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>{{ $seoTitle ?? $title ?? $siteName }}</title>
-    <meta name="description" content="{{ $metaDescription ?? '' }}">
-    @if($ogImage)<meta property="og:image" content="{{ $ogImage }}">@endif
-    <style>
-        :root { --accent: #6366f1; --ink: #1f2937; --muted: #6b7280; --bg: #f8fafc; }
-        * { box-sizing: border-box; }
-        body { margin: 0; font-family: -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; color: var(--ink); background: var(--bg); line-height: 1.55; }
-        header.site { background: #fff; border-bottom: 1px solid #e5e7eb; }
-        header.site .wrap, footer.site .wrap, main .wrap { max-width: 1040px; margin: 0 auto; padding: 0 1.25rem; }
-        header.site .wrap { display: flex; align-items: center; justify-content: space-between; height: 64px; }
-        header.site a.brand { font-weight: 700; font-size: 1.05rem; color: var(--ink); text-decoration: none; }
-        header.site nav a { margin-left: 1.25rem; color: var(--muted); text-decoration: none; font-size: .9rem; }
-        header.site nav a:hover { color: var(--accent); }
-        main { min-height: calc(100vh - 240px); }
-        .block { margin: 2rem 0; }
-        .hero { text-align: center; padding: 3.5rem 0 2rem; }
-        .hero h1 { font-size: 2.4rem; line-height: 1.15; margin: 0 0 .75rem; }
-        .hero p.lead { color: var(--muted); font-size: 1.1rem; max-width: 560px; margin: 0 auto 1.5rem; }
-        .cta a, a.btn { display: inline-block; background: var(--accent); color: #fff; padding: .65rem 1.4rem; border-radius: .5rem; text-decoration: none; font-weight: 600; }
-        .features { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 1rem; }
-        .features .item { background: #fff; border: 1px solid #e5e7eb; border-radius: .75rem; padding: 1.25rem; }
-        .features .item h3 { margin: 0 0 .4rem; font-size: 1.05rem; }
-        .features .item p { margin: 0; color: var(--muted); }
-        .text-block { background: #fff; border: 1px solid #e5e7eb; border-radius: .75rem; padding: 1.5rem; }
-        .text-block h2 { margin-top: 0; }
-        .cta-band { text-align: center; background: #fff; border: 1px solid #e5e7eb; border-radius: .75rem; padding: 2.5rem 1.5rem; }
-        .cta-band p { color: var(--muted); margin-bottom: 1.25rem; }
-        footer.site { background: #111827; color: #9ca3af; }
-        footer.site .wrap { display: flex; align-items: center; justify-content: space-between; padding: 1.5rem 1.25rem; font-size: .85rem; }
-        footer.site a { color: #d1d5db; text-decoration: none; margin-left: 1rem; }
-        footer.site a:hover { color: #fff; }
-    </style>
+    <meta name="csrf-token" content="{{ csrf_token() }}">
+    <x-site.seo-head
+        :title="$seoTitle ?? $title ?? null"
+        :description="$metaDescription ?? null"
+        :ogImage="$ogImage ?? null"
+        :canonical="$canonicalOverride ?? null"
+        :robots="$forceRobots ?? 'index, follow'"
+        :ogTitle="$ogTitleOverride ?? null"
+        :ogDescription="$ogDescriptionOverride ?? null"
+    />
+    @if(!empty($site['gsc_verification']))<meta name="google-site-verification" content="{{ $site['gsc_verification'] }}">@endif
+    @if(!empty($site['ga_measurement_id']))
+        <script async src="https://www.googletagmanager.com/gtag/js?id={{ $site['ga_measurement_id'] }}"></script>
+        <script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','{{ $site['ga_measurement_id'] }}');</script>
+    @endif
+    @if(!empty($site['custom_head'])){!! $site['custom_head'] !!}@endif
+    <x-site.json-ld :crumbs="$crumbs ?? []" :faq="$faqSchema ?? []" :article="$article ?? null" />
+    @vite(['resources/css/site.css', 'resources/js/site.js'])
 </head>
-<body>
-    <header class="site">
-        <div class="wrap">
-            <a class="brand" href="/">{{ $siteName }}</a>
-            <nav>
-                <a href="/">Home</a>
-                <a href="/page/privacy">Privacy</a>
-                <a href="/page/terms">Terms</a>
-                <a href="/app/login">Log in</a>
-                <a href="/app/register">Start free</a>
+<body class="bg-white font-sans text-slate-600 antialiased">
+    <a href="#main-content" class="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-[100] focus:rounded-lg focus:bg-indigo-600 focus:px-4 focus:py-2 focus:text-sm focus:font-semibold focus:text-white">Skip to content</a>
+
+    @if(!empty($site['announcement']))
+        <div class="bg-indigo-600 px-4 py-2 text-center text-sm font-medium text-white">
+            @if(!empty($site['announcement_href']))
+                <a href="{{ $site['announcement_href'] }}" class="underline decoration-indigo-300 underline-offset-2 hover:text-indigo-100">{{ $site['announcement'] }}</a>
+            @else
+                {{ $site['announcement'] }}
+            @endif
+        </div>
+    @endif
+
+    <header class="sticky top-0 z-50 border-b border-slate-200/70 bg-white/80 backdrop-blur-xl">
+        <div class="mx-auto flex h-16 max-w-6xl items-center justify-between gap-4 px-4 sm:px-6">
+            <a href="/" class="flex items-center gap-2.5" aria-label="{{ $siteName ?? config('app.name', 'FlowSync') }} home">
+                @if(!empty($site['logo']))
+                    <img src="{{ $site['logo']->url() }}" alt="{{ $site['logo']->alt ?: ($siteName ?? config('app.name', 'FlowSync')) }}" class="h-9 w-auto rounded-lg" @if($site['logo']->width)width="{{ $site['logo']->width }}" @endif @if($site['logo']->height)height="{{ $site['logo']->height }}" @endif>
+                @else
+                    <span class="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-indigo-500 to-violet-600 text-lg font-extrabold text-white shadow-lg shadow-indigo-600/25" aria-hidden="true">S</span>
+                @endif
+                <span class="text-lg font-extrabold tracking-tight text-slate-900">{{ $siteName ?? config('app.name', 'FlowSync') }}</span>
+            </a>
+            <nav class="hidden items-center gap-1 lg:flex" aria-label="Primary">
+                @foreach($site['nav'] as $link)
+                    <a href="{{ $link['href'] }}" class="rounded-lg px-3.5 py-2 text-sm font-medium text-slate-600 transition hover:bg-slate-100 hover:text-slate-900">{{ $link['label'] }}</a>
+                @endforeach
+            </nav>
+            <div class="hidden items-center gap-2 lg:flex">
+                <x-site.button href="/app/login" variant="ghost">Log in</x-site.button>
+                <x-site.button href="/app/register">Start free</x-site.button>
+            </div>
+            <button id="site-menu-button" type="button" class="inline-flex h-10 w-10 items-center justify-center rounded-xl text-slate-700 ring-1 ring-inset ring-slate-200 transition hover:bg-slate-50 lg:hidden" aria-expanded="false" aria-controls="site-mobile-menu" aria-label="Toggle menu">
+                <svg class="h-5 w-5" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M3 5.5h14M3 10h14M3 14.5h14" /></svg>
+            </button>
+        </div>
+        <div id="site-mobile-menu" class="hidden border-t border-slate-200/70 bg-white lg:hidden">
+            <nav class="mx-auto flex max-w-6xl flex-col gap-1 px-4 py-4 sm:px-6" aria-label="Mobile">
+                @foreach($site['nav'] as $link)
+                    <a href="{{ $link['href'] }}" class="rounded-lg px-3 py-2.5 text-sm font-medium text-slate-700 transition hover:bg-slate-100">{{ $link['label'] }}</a>
+                @endforeach
+                <div class="mt-2 flex flex-col gap-2 border-t border-slate-100 pt-4">
+                    <x-site.button href="/app/login" variant="ghost">Log in</x-site.button>
+                    <x-site.button href="/app/register">Start free</x-site.button>
+                </div>
             </nav>
         </div>
     </header>
-    <main>
-        <div class="wrap">
-            @yield('content')
-        </div>
+
+    <main id="main-content">
+        @yield('content')
     </main>
-    <footer class="site">
-        <div class="wrap">
-            <span>&copy; {{ date('Y') }} {{ $siteName }}</span>
-            <span><a href="/page/privacy">Privacy</a><a href="/page/terms">Terms</a><a href="/sitemap.xml">Sitemap</a></span>
+
+    <footer class="bg-slate-950 text-slate-400">
+        <div class="mx-auto grid max-w-6xl gap-10 px-4 py-14 sm:px-6 md:[grid-template-columns:1.4fr_repeat(var(--cols),1fr)]" style="--cols: {{ count($site['footer_columns']) }}">
+            <div>
+                <a href="/" class="flex items-center gap-2.5" aria-label="{{ $siteName ?? config('app.name', 'FlowSync') }} home">
+                    @if(!empty($site['logo']))
+                        <img src="{{ $site['logo']->url() }}" alt="{{ $site['logo']->alt ?: ($siteName ?? config('app.name', 'FlowSync')) }}" class="h-9 w-auto rounded-lg">
+                    @else
+                        <span class="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-indigo-500 to-violet-600 text-lg font-extrabold text-white" aria-hidden="true">S</span>
+                    @endif
+                    <span class="text-lg font-extrabold tracking-tight text-white">{{ $siteName ?? config('app.name', 'FlowSync') }}</span>
+                </a>
+                <p class="mt-4 max-w-xs text-sm leading-relaxed">{{ $site['tagline'] }}</p>
+                @if(!empty($site['social']))
+                    <p class="mt-5 flex flex-wrap gap-4 text-sm">
+                        @foreach($site['social'] as $profile)
+                            <a href="{{ $profile['url'] }}" target="_blank" rel="noopener noreferrer" class="transition hover:text-white">{{ $profile['network'] }}</a>
+                        @endforeach
+                    </p>
+                @endif
+            </div>
+            @foreach($site['footer_columns'] as $column)
+                <nav aria-label="{{ $column['heading'] }}">
+                    <p class="mb-3 text-xs font-semibold uppercase tracking-widest text-slate-500">{{ $column['heading'] }}</p>
+                    <ul class="space-y-2.5 text-sm">
+                        @foreach($column['links'] as $link)
+                            <li><a href="{{ $link['href'] }}" class="transition hover:text-white">{{ $link['label'] }}</a></li>
+                        @endforeach
+                    </ul>
+                </nav>
+            @endforeach
+        </div>
+        <div class="border-t border-white/10">
+            <div class="mx-auto flex max-w-6xl flex-col items-center justify-between gap-2 px-4 py-5 text-xs sm:flex-row sm:px-6">
+                <p>&copy; {{ date('Y') }} {{ $siteName ?? config('app.name', 'FlowSync') }}. All rights reserved.</p>
+                <p class="flex gap-4">
+                    <a href="/privacy" class="transition hover:text-white">Privacy</a>
+                    <a href="/terms" class="transition hover:text-white">Terms</a>
+                </p>
+            </div>
         </div>
     </footer>
+    @if(!empty($site['custom_body'])){!! $site['custom_body'] !!}@endif
 </body>
 </html>

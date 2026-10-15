@@ -2,9 +2,11 @@
 
 namespace Tests\Feature;
 
+use App\Models\Hrms\Employee\Employee;
 use App\Models\PlatformSetting;
 use App\Models\Tenant;
 use App\Models\TenantUserRouting;
+use App\Models\User;
 use App\Support\TenantDatabaseManager;
 use Illuminate\Support\Facades\Config;
 use Tests\IsolatesDatabase;
@@ -30,6 +32,9 @@ class RegisterTest extends TestCase
             'password' => 'password123',
             'password_confirmation' => 'password123',
             'business_name' => 'Newco',
+            'industry' => 'Software',
+            'company_size' => '11-50',
+            'country' => 'US',
         ])->assertForbidden();
 
         $this->assertDatabaseMissing('tenants', ['slug' => 'newco'], 'iso_system');
@@ -45,6 +50,9 @@ class RegisterTest extends TestCase
             'password' => 'password123',
             'password_confirmation' => 'password123',
             'business_name' => 'Newco Inc',
+            'industry' => 'Software',
+            'company_size' => '11-50',
+            'country' => 'US',
         ])->assertOk();
 
         $response->assertJsonPath('user.name', 'Jane Doe');
@@ -69,6 +77,32 @@ class RegisterTest extends TestCase
         $this->assertSame(1, TenantUserRouting::where('tenant_id', $tenant->id)->count());
     }
 
+    public function test_claimed_owner_gets_a_linked_employee_record(): void
+    {
+        $this->enableRegistration();
+
+        $this->postJson('/api/register', [
+            'name' => 'Jane Doe',
+            'email' => 'jane@newco.test',
+            'password' => 'password123',
+            'password_confirmation' => 'password123',
+            'business_name' => 'Newco Inc',
+            'industry' => 'Software',
+            'company_size' => '11-50',
+            'country' => 'US',
+        ])->assertOk();
+
+        $tenant = Tenant::where('slug', 'newco-inc')->firstOrFail();
+        $dbm = app(TenantDatabaseManager::class);
+
+        $userId = $dbm->using($tenant, fn () => User::where('email', 'jane@newco.test')->value('id'));
+
+        $dbm->using($tenant, function () use ($userId): void {
+            $employee = Employee::where('user_id', $userId)->firstOrFail();
+            $this->assertSame('Jane Doe', $employee->name);
+        });
+    }
+
     public function test_registered_tenant_domain_routes_gated_until_onboarding_complete(): void
     {
         $this->enableRegistration();
@@ -79,6 +113,9 @@ class RegisterTest extends TestCase
             'password' => 'password123',
             'password_confirmation' => 'password123',
             'business_name' => 'Newco Inc',
+            'industry' => 'Software',
+            'company_size' => '11-50',
+            'country' => 'US',
         ])->assertOk();
 
         // Auto-logged in, but the domain is gated while onboarding is open.
@@ -112,6 +149,9 @@ class RegisterTest extends TestCase
             'password' => 'password123',
             'password_confirmation' => 'password123',
             'business_name' => 'Clone Co',
+            'industry' => 'Software',
+            'company_size' => '11-50',
+            'country' => 'US',
         ];
 
         // Super admin email (central system users).
@@ -137,6 +177,9 @@ class RegisterTest extends TestCase
             'password' => 'short',
             'password_confirmation' => 'short',
             'business_name' => 'Newco',
+            'industry' => 'Software',
+            'company_size' => '11-50',
+            'country' => 'US',
             'slug' => 'has spaces',
         ])->assertUnprocessable()
             ->assertJsonValidationErrors(['password', 'slug']);
@@ -152,6 +195,9 @@ class RegisterTest extends TestCase
             'password' => 'password123',
             'password_confirmation' => 'password123',
             'business_name' => 'Acme',
+            'industry' => 'Software',
+            'company_size' => '11-50',
+            'country' => 'US',
         ])->assertOk();
 
         $slug = Tenant::orderByDesc('id')->first()->slug;

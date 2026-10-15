@@ -156,4 +156,98 @@ class TenantProfileTest extends TestCase
         $this->assertNotEquals('globex', Tenant::find($tenantId)->slug);
         $this->assertEquals('globex', Tenant::find($globexId)->slug);
     }
+
+    public function test_tenant_user_can_save_the_onboarding_business_profile(): void
+    {
+        $this->loginTenantAdmin();
+
+        $tenantId = $this->acme()->id;
+
+        $this->putJson('/api/tenant/profile', [
+            'legal_name' => 'Acme Industries Ltd',
+            'industry' => 'Software',
+            'company_size' => '51-200',
+            'country' => 'IN',
+            'website' => 'https://acme.test',
+        ])->assertOk()
+            ->assertJsonPath('tenant.legal_name', 'Acme Industries Ltd')
+            ->assertJsonPath('tenant.industry', 'Software')
+            ->assertJsonPath('tenant.company_size', '51-200')
+            ->assertJsonPath('tenant.country', 'IN')
+            ->assertJsonPath('tenant.website', 'https://acme.test');
+
+        $this->assertDatabaseHas('tenants', [
+            'id' => $tenantId,
+            'legal_name' => 'Acme Industries Ltd',
+            'industry' => 'Software',
+        ], 'iso_system');
+    }
+
+    public function test_tenant_user_cannot_write_billing_or_entitlement_fields_via_self_profile(): void
+    {
+        $this->loginTenantAdmin();
+
+        $this->connectTenant('acme');
+        $tenantId = $this->acme()->id;
+        $before = Tenant::findOrFail($tenantId)->only(['billing_email', 'limits_override', 'features_override', 'slug']);
+
+        $this->putJson('/api/tenant/profile', [
+            'industry' => 'Software',
+            'billing_email' => 'attacker@evil.test',
+            'limits_override' => ['users' => 999999],
+            'features_override' => ['modules' => ['*']],
+            'slug' => 'hijacked',
+        ])->assertOk();
+
+        $after = Tenant::findOrFail($tenantId)->only(['billing_email', 'limits_override', 'features_override', 'slug']);
+
+        $this->assertSame($before, $after);
+        $this->assertSame('Software', Tenant::findOrFail($tenantId)->industry);
+    }
+
+    public function test_self_profile_validates_the_business_fields(): void
+    {
+        $this->loginTenantAdmin();
+
+        $this->putJson('/api/tenant/profile', [
+            'country' => 'United States',
+            'website' => 'not-a-url',
+        ])->assertUnprocessable()
+            ->assertJsonValidationErrors(['country', 'website']);
+    }
+
+    public function test_self_profile_is_scoped_to_the_callers_own_tenant(): void
+    {
+        $this->loginTenantAdmin();
+
+        $globexId = $this->globex()->id;
+
+        $this->putJson('/api/tenant/profile', ['industry' => 'Software'])->assertOk();
+
+        $this->assertNotSame('Software', Tenant::findOrFail($globexId)->industry);
+    }
+
+    public function test_self_profile_returns_a_partial_save_without_blanking_untouched_fields(): void
+    {
+        $this->loginTenantAdmin();
+
+        $tenantId = $this->acme()->id;
+        $this->putJson('/api/tenant/profile', [
+            'legal_name' => 'Acme Industries Ltd',
+            'industry' => 'Software',
+        ])->assertOk();
+
+        $this->putJson('/api/tenant/profile', ['industry' => 'Consulting'])->assertOk();
+
+        $tenant = Tenant::findOrFail($tenantId);
+        $this->assertSame('Consulting', $tenant->industry);
+        $this->assertSame('Acme Industries Ltd', $tenant->legal_name);
+    }
+
+    public function test_super_admin_without_tenant_context_cannot_write_self_profile(): void
+    {
+        $this->loginSuperAdmin();
+
+        $this->putJson('/api/tenant/profile', ['industry' => 'Software'])->assertNotFound();
+    }
 }

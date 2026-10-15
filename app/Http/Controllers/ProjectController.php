@@ -44,8 +44,10 @@ class ProjectController extends Controller
         $data = $request->validate([
             'name' => ['required', 'string', 'max:255'],
             'key' => ['nullable', 'string', 'max:16', 'alpha_num'],
-            'description' => ['nullable', 'string', 'max:2000'],
+            'description' => ['nullable', 'string', 'max:20000'],
             'icon' => ['nullable', 'string', 'max:64'],
+            'color' => ['nullable', 'string', 'max:16'],
+            'default_assignee_id' => ['nullable', 'integer'],
             'start_date' => ['nullable', 'date'],
             'due_date' => ['nullable', 'date', 'after_or_equal:start_date'],
         ]);
@@ -73,8 +75,10 @@ class ProjectController extends Controller
 
         $data = $request->validate([
             'name' => ['required', 'string', 'max:255'],
-            'description' => ['nullable', 'string', 'max:2000'],
+            'description' => ['nullable', 'string', 'max:20000'],
             'icon' => ['nullable', 'string', 'max:64'],
+            'color' => ['nullable', 'string', 'max:16'],
+            'default_assignee_id' => ['nullable', 'integer'],
             'start_date' => ['nullable', 'date'],
             'due_date' => ['nullable', 'date', 'after_or_equal:start_date'],
         ]);
@@ -124,6 +128,8 @@ class ProjectController extends Controller
             'key' => $project->key,
             'description' => $project->description,
             'icon' => $project->icon,
+            'color' => $project->color,
+            'default_assignee_id' => $project->default_assignee_id,
             'lead_user_id' => $project->lead_user_id,
             'start_date' => $project->start_date?->toDateString(),
             'due_date' => $project->due_date?->toDateString(),

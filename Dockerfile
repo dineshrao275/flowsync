@@ -76,7 +76,6 @@ WORKDIR /app
 # PHP deps layer-cached separately from app source
 COPY composer.json composer.lock ./
 RUN composer install \
-        --no-dev \
         --no-interaction \
         --no-progress \
         --no-scripts \
@@ -87,6 +86,11 @@ COPY . .
 
 # Built React SPA from Stage 1
 COPY --from=frontend /app/public/build /app/public/build
+
+# Build-time environment so package:discover satisfies production connection assertions
+ENV SESSION_CONNECTION=system \
+    DB_CACHE_CONNECTION=system \
+    DB_QUEUE_CONNECTION=system
 
 # Regenerate autoload + service-provider discovery
 RUN composer dump-autoload --optimize \

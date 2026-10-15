@@ -3,18 +3,29 @@
 namespace App\Http\Controllers;
 
 use App\Http\Requests\LoginRequest;
+use App\Models\Hrms\Employee\Employee;
 use App\Models\ImpersonationLog;
+use App\Models\PlatformSetting;
 use App\Models\Tenant;
 use App\Models\TenantUserRouting;
 use App\Models\User;
+use App\Services\FeatureFlags;
+use App\Services\PlatformAudit;
+use App\Services\Security\PlatformAccess;
+use App\Services\Security\TwoFactorLogin;
+use App\Services\Security\TwoFactorService;
 use App\Services\TenantLimits;
 use App\Services\TenantOnboarding;
+use App\Support\Hrms\HrmsSchema;
 use App\Support\TenantContext;
 use App\Support\TenantDatabaseManager;
+use App\Support\ThemeMode;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Arr;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 
@@ -29,9 +40,25 @@ class AuthController extends Controller
 
     public function logout(Request $request): JsonResponse
     {
+        $user = $request->user();
+        $tenantId = $request->session()->get('impersonate.tenant_id')
+            ?? $request->session()->get('login.tenant_id');
+
         $this->closeOpenImpersonation($request);
 
         app(TenantDatabaseManager::class)->connectSystem();
+
+        app(PlatformAudit::class)->auth($request, 'auth.logout', [
+            'email' => $user?->email,
+            'user_id' => $user?->id,
+            'tenant_id' => $tenantId,
+        ], $user !== null && $user->is_super_admin ? (int) $user->id : null);
+
+        Log::info("User logged out: {$user?->email}", [
+            'user_id' => $user?->id,
+            'tenant_id' => $tenantId,
+            'ip' => $request->ip(),
+        ]);
 
         Auth::logout();
 
@@ -52,11 +79,12 @@ class AuthController extends Controller
      * Authenticate a tenant user against their tenant DB and build the session
      * (used by self-registration auto-login). The whole payload build runs inside
      * `using($tenant)` so `$user->load('roles')` resolves against THAT tenant's
-     * database — after the block the default connection is restored.
+     * database — after the block the default connection is restored. `$via`
+     * labels the session's `auth.login` row (password vs registration).
      */
-    public function establishTenantSession(Request $request, User $user, Tenant $tenant): JsonResponse
+    public function establishTenantSession(Request $request, User $user, Tenant $tenant, string $via = 'password'): JsonResponse
     {
-        return app(TenantDatabaseManager::class)->using($tenant, function () use ($request, $user, $tenant): JsonResponse {
+        return app(TenantDatabaseManager::class)->using($tenant, function () use ($request, $user, $tenant, $via): JsonResponse {
             Auth::login($user);
 
             $request->session()->put('login.tenant_id', $tenant->id);
@@ -65,6 +93,13 @@ class AuthController extends Controller
             $this->applyTenantContext($request->user());
 
             $request->session()->regenerate();
+
+            app(PlatformAudit::class)->auth($request, 'auth.login', [
+                'email' => $user->email,
+                'user_id' => $user->id,
+                'tenant_id' => $tenant->id,
+                'via' => $via,
+            ]);
 
             return response()->json($this->payload($request));
         });
@@ -90,12 +125,36 @@ class AuthController extends Controller
         if ($routes->isEmpty()) {
             // Super admin (system users) or unknown email.
             if (Auth::attempt(Arr::except($credentials, ['tenant']), $request->boolean('remember'))) {
+                if ($challenge = app(TwoFactorLogin::class)->challengeIfNeeded($request, Auth::user(), null)) {
+                    return $challenge;
+                }
+
                 $request->session()->forget('login.tenant_id');
                 $request->session()->forget('impersonate');
                 $request->session()->regenerate();
 
+                app(PlatformAudit::class)->auth($request, 'auth.login', [
+                    'email' => $email,
+                    'user_id' => Auth::id(),
+                    'via' => 'password',
+                ]);
+
+                Log::info("Super Admin logged in: {$email}", [
+                    'user_id' => Auth::id(),
+                    'ip' => $request->ip(),
+                ]);
+
                 return response()->json($this->payload($request));
             }
+
+            app(PlatformAudit::class)->auth($request, 'auth.login_failed', [
+                'email' => $email,
+                'via' => 'password',
+            ]);
+
+            Log::warning("Failed login attempt for: {$email}", [
+                'ip' => $request->ip(),
+            ]);
 
             throw ValidationException::withMessages(['email' => __('auth.failed')]);
         }
@@ -109,12 +168,48 @@ class AuthController extends Controller
         $tenant = $routes->first()->tenant;
 
         if (! $tenant || ! $tenant->isServiceable()) {
+            app(PlatformAudit::class)->auth($request, 'auth.login_failed', [
+                'email' => $email,
+                'tenant_id' => $tenant?->id,
+                'reason' => 'tenant_unavailable',
+                'via' => 'password',
+            ]);
+
             throw ValidationException::withMessages(['email' => __('auth.failed')]);
         }
 
-        return $dbm->using($tenant, function () use ($request, $credentials, $tenant) {
+        return $dbm->using($tenant, function () use ($request, $credentials, $tenant, $email) {
             if (! Auth::attempt(Arr::except($credentials, ['tenant']), $request->boolean('remember'))) {
+                app(PlatformAudit::class)->auth($request, 'auth.login_failed', [
+                    'email' => $email,
+                    'tenant_id' => $tenant->id,
+                    'via' => 'password',
+                ]);
+
                 throw ValidationException::withMessages(['email' => __('auth.failed')]);
+            }
+
+            // H-3: valid credentials are not enough — the employment record
+            // decides. A leaver keeps a working password; only the offboarding
+            // statuses revoke the session. Suspended/on-notice staff are still
+            // employed and keep access.
+            $employee = HrmsSchema::present() ? Employee::where('user_id', Auth::id())->first() : null;
+
+            if ($employee?->status?->isOffboarding()) {
+                Auth::logout();
+
+                app(PlatformAudit::class)->auth($request, 'auth.login_failed', [
+                    'email' => $email,
+                    'tenant_id' => $tenant->id,
+                    'reason' => 'employee_exited',
+                    'via' => 'password',
+                ]);
+
+                throw ValidationException::withMessages(['email' => 'This account has been deactivated.']);
+            }
+
+            if ($challenge = app(TwoFactorLogin::class)->challengeIfNeeded($request, Auth::user(), $tenant)) {
+                return $challenge;
             }
 
             $request->session()->put('login.tenant_id', $tenant->id);
@@ -123,6 +218,19 @@ class AuthController extends Controller
             $this->applyTenantContext($request->user());
 
             $request->session()->regenerate();
+
+            app(PlatformAudit::class)->auth($request, 'auth.login', [
+                'email' => $email,
+                'user_id' => Auth::id(),
+                'tenant_id' => $tenant->id,
+                'via' => 'password',
+            ]);
+
+            Log::info("Tenant user logged in: {$email} [tenant: {$tenant->slug}#{$tenant->id}]", [
+                'user_id' => Auth::id(),
+                'tenant_id' => $tenant->id,
+                'ip' => $request->ip(),
+            ]);
 
             return response()->json($this->payload($request));
         });
@@ -179,20 +287,72 @@ class AuthController extends Controller
                 'id' => $user->id,
                 'name' => $user->name,
                 'email' => $user->email,
+                'timezone' => (! $isSuperAdmin ? ($user->settings?->settings['timezone'] ?? null) : null) ?? $tenant?->timezone ?? config('app.timezone', 'UTC'),
+                'locale' => (! $isSuperAdmin ? ($user->settings?->settings['locale'] ?? null) : null) ?? $tenant?->locale ?? config('app.locale', 'en'),
                 'is_super_admin' => $isSuperAdmin,
-                'tenant' => $tenant?->only(['id', 'name', 'slug']),
+                'tenant' => $tenant ? [
+                    'id' => $tenant->id,
+                    'name' => $tenant->name,
+                    'slug' => $tenant->slug,
+                    'timezone' => $tenant->timezone,
+                    'locale' => $tenant->locale,
+                    'branding' => [
+                        'primary_color' => $tenant->brand_primary_color,
+                        'logo_url' => $tenant->brand_logo_url,
+                    ],
+                ] : null,
                 'roles' => $isSuperAdmin ? [] : $user->roleSlugs(),
                 'permissions' => $isSuperAdmin ? [] : $user->permissionSlugs(),
                 'modules' => $tenant
-                    ? (app(TenantLimits::class)->limit($tenant, 'modules') ?? config('subscriptions.modules'))
+                    ? app(TenantLimits::class)->visibleModules($tenant)
                     : config('subscriptions.modules'),
+                // Whole products the tenant has (a Super Admin sees both): drives the sidebar and the landing page.
+                'products' => [
+                    'tms' => ! $tenant || app(TenantLimits::class)->productEnabled($tenant, 'tms'),
+                    'hrms' => ! $tenant || app(TenantLimits::class)->productEnabled($tenant, 'hrms'),
+                ],
                 'impersonating' => $impersonation !== null,
                 'impersonated_by' => $impersonation['original_user_id'] ?? null,
+                'impersonation_mode' => $impersonation['mode'] ?? null,
+                'impersonation_expires_at' => isset($impersonation['expires_at']) ? Carbon::createFromTimestamp($impersonation['expires_at'])->toIso8601String() : null,
                 'onboarding_complete' => ! $tenant || app(TenantOnboarding::class)->isComplete($tenant),
+                // Runtime feature flags resolved for this tenant (P8.7); the SPA only mirrors them.
+                // Platform personas (P8.3): null = unrestricted break-glass admin; otherwise the held slugs.
+                'platform' => $isSuperAdmin ? [
+                    'roles' => app(PlatformAccess::class)->roleSlugsOf($user),
+                    'permissions' => app(PlatformAccess::class)->permissionsOf($user),
+                ] : null,
+                'two_factor' => [
+                    'enabled' => app(TwoFactorService::class)->isEnabled($user),
+                    'enrollment_required' => (bool) $request->session()->get(TwoFactorLogin::ENROLL_KEY, false),
+                ],
+                'flags' => $tenant ? app(FeatureFlags::class)->allFor($tenant->id) : (object) [],
             ],
-            'theme' => $isSuperAdmin
-                ? config('theme.defaults')
-                : ($user->settings?->settings['theme'] ?? config('theme.defaults')),
+            // `mode` (light/dark/system) sits next to the colors but is not part
+            // of theme.defaults, so it is merged in explicitly. A platform super
+            // admin must never touch the tenant-only `settings` relation.
+            'theme' => array_merge(
+                $isSuperAdmin
+                    ? array_merge(config('theme.defaults'), $this->platformTheme($user))
+                    : ($user->settings?->settings['theme'] ?? config('theme.defaults')),
+                ['mode' => $isSuperAdmin
+                    ? ThemeMode::resolve($this->platformTheme($user)['mode'] ?? null)
+                    : ThemeMode::resolve($user->settings?->settings['theme']['mode'] ?? null)],
+            ),
         ];
+    }
+
+    /**
+     * A platform super admin's stored theme lives in the central key-value
+     * settings (see ThemeController), never in the tenant `settings` relation.
+     *
+     * @return array<string, mixed>
+     */
+    private function platformTheme(object $user): array
+    {
+        $raw = PlatformSetting::value('theme.user.'.$user->id);
+        $decoded = is_string($raw) ? json_decode($raw, true) : null;
+
+        return is_array($decoded) ? $decoded : [];
     }
 }

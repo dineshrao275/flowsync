@@ -2,18 +2,59 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Controllers\Concerns\DetectsPlatformUsers;
 use App\Models\UserNotification;
 use App\Services\NotificationService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
+/**
+ * Personal notifications. The `notifications` table only exists in tenant
+ * databases, so a platform super admin (no tenant context) gets empty payloads
+ * instead of a database error.
+ */
 class NotificationController extends Controller
 {
+    use DetectsPlatformUsers;
+
     public function __construct(private readonly NotificationService $service) {}
 
     public function index(Request $request): JsonResponse
     {
-        $notifications = $this->service->forUser($request->user());
+        if ($this->isPlatformSuperAdmin($request)) {
+            return response()->json([
+                'notifications' => [],
+                'unread_count' => 0,
+                'pagination' => [
+                    'current_page' => 1,
+                    'last_page' => 1,
+                    'per_page' => 20,
+                    'total' => 0,
+                ],
+            ]);
+        }
+
+        if ($request->has('after')) {
+            $afterId = (int) $request->input('after');
+            $limit = min((int) $request->input('per_page', 20), 100);
+            $newNotifications = UserNotification::query()
+                ->with('actor:id,name')
+                ->where('user_id', $request->user()->id)
+                ->where('id', '>', $afterId)
+                ->orderBy('id', 'asc')
+                ->limit($limit)
+                ->get();
+
+            return response()->json([
+                'notifications' => $newNotifications->map(fn (UserNotification $n) => $this->present($n))->values(),
+                'unread_count' => $this->service->unreadCount($request->user()),
+                'latest_id' => $newNotifications->last()?->id ?? $afterId,
+                'count' => $newNotifications->count(),
+            ]);
+        }
+
+        $perPage = min((int) $request->input('per_page', 20), 100);
+        $notifications = $this->service->forUser($request->user(), $perPage);
 
         return response()->json([
             'notifications' => collect($notifications->items())
@@ -31,25 +72,31 @@ class NotificationController extends Controller
 
     public function unread(Request $request): JsonResponse
     {
+        if ($this->isPlatformSuperAdmin($request)) {
+            return response()->json(['count' => 0]);
+        }
+
         return response()->json([
             'count' => $this->service->unreadCount($request->user()),
         ]);
     }
 
-    public function markRead(Request $request, UserNotification $notification): JsonResponse
+    public function markRead(Request $request, int $notification): JsonResponse
     {
-        if ($notification->user_id !== $request->user()->id) {
+        $model = $this->isPlatformSuperAdmin($request) ? null : UserNotification::find($notification);
+
+        if ($model === null || $model->user_id !== $request->user()->id) {
             abort(404);
         }
 
-        $notification->markAsRead();
+        $model->markAsRead();
 
         return response()->json(['message' => 'Notification marked as read.']);
     }
 
     public function markAllRead(Request $request): JsonResponse
     {
-        $count = $this->service->markAllRead($request->user());
+        $count = $this->isPlatformSuperAdmin($request) ? 0 : $this->service->markAllRead($request->user());
 
         return response()->json([
             'message' => 'All notifications marked as read.',

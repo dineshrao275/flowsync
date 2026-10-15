@@ -1,9 +1,10 @@
-import { BrowserRouter, Navigate, Route, Routes, useLocation } from 'react-router-dom';
+import { BrowserRouter, Navigate, Outlet, Route, Routes, useLocation } from 'react-router-dom';
 import { useEffect } from 'react';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { ThemeProvider } from './context/ThemeContext';
 import { ToastProvider } from './context/ToastContext';
 import { NotificationProvider } from './context/NotificationContext';
+import { ConfirmProvider } from './components/ui/ConfirmDialog';
 import GuestRoute from './components/GuestRoute';
 import ProtectedRoute from './components/ProtectedRoute';
 import AdminLayout from './components/AdminLayout';
@@ -11,6 +12,7 @@ import Spinner from './components/ui/Spinner';
 
 import Login from './pages/auth/Login';
 import Register from './pages/auth/Register';
+import RegisterComplete from './pages/auth/RegisterComplete';
 import ForgotPassword from './pages/auth/ForgotPassword';
 import ResetPassword from './pages/auth/ResetPassword';
 import Onboarding from './pages/Onboarding';
@@ -19,25 +21,79 @@ import Workspaces from './pages/Workspaces';
 import WorkspaceDetail from './pages/WorkspaceDetail';
 import ProjectDetail from './pages/ProjectDetail';
 import Projects from './pages/Projects';
+import Support from './pages/Support';
+import Webhooks from './pages/Webhooks';
+import AdminSupport from './pages/AdminSupport';
+import Leads from './pages/Leads';
 import Users from './pages/Users';
+import UserEdit from './pages/UserEdit';
+import UserImport from './pages/UserImport';
 import Roles from './pages/Roles';
 import Settings from './pages/Settings';
 import Reports from './pages/Reports';
+import HrmsErrorBoundary from './components/hrms/HrmsErrorBoundary';
+import ApprovalChains from './pages/hrms/ApprovalChains';
+import HrmsOverview from './pages/hrms/HrmsOverview';
+import Employees from './pages/hrms/Employees';
+import EmployeeDetail from './pages/hrms/EmployeeDetail';
+import Org from './pages/hrms/Org';
+import Documents from './pages/hrms/Documents';
+import MyDocuments from './pages/hrms/MyDocuments';
+import Inbox from './pages/hrms/Inbox';
+import OnboardingCases from './pages/hrms/OnboardingCases';
+import OnboardingCaseDetail from './pages/hrms/OnboardingCaseDetail';
+import OffboardingCases from './pages/hrms/OffboardingCases';
+import OffboardingCaseDetail from './pages/hrms/OffboardingCaseDetail';
+import Attendance from './pages/hrms/Attendance';
+import AttendanceApprovals from './pages/hrms/AttendanceApprovals';
+import Leave from './pages/hrms/Leave';
+import MyLeave from './pages/hrms/MyLeave';
+import CompOff from './pages/hrms/CompOff';
+import MyCompOff from './pages/hrms/MyCompOff';
+import Holidays from './pages/hrms/Holidays';
+import Shifts from './pages/hrms/Shifts';
+import Compensation from './pages/hrms/Compensation';
+import Payroll from './pages/hrms/Payroll';
+import PayrollRunDetail from './pages/hrms/PayrollRunDetail';
+import MyPayslips from './pages/hrms/MyPayslips';
+import Statutory from './pages/hrms/Statutory';
+import Expenses from './pages/hrms/Expenses';
+import MyExpenses from './pages/hrms/MyExpenses';
+import MyHr from './pages/MyHr';
+import MyTeam from './pages/hrms/MyTeam';
+import Performance from './pages/hrms/Performance';
+import PerformanceCycleDetail from './pages/hrms/PerformanceCycleDetail';
+import MyPerformance from './pages/hrms/MyPerformance';
+import Talent from './pages/hrms/Talent';
+import Assets from './pages/hrms/Assets';
+import MyAssets from './pages/hrms/MyAssets';
+import Engagement from './pages/hrms/Engagement';
+import MySurvey from './pages/hrms/MySurvey';
+import Analytics from './pages/hrms/Analytics';
+import AuditLog from './pages/hrms/AuditLog';
 import Search from './pages/Search';
 import Notifications from './pages/Notifications';
 import Tenants from './pages/Tenants';
 import TenantDetail from './pages/TenantDetail';
+import TenantIntake from './pages/TenantIntake';
 import Plans from './pages/Plans';
 import Subscription from './pages/Subscription';
+import DataExport from './pages/DataExport';
 import SystemDashboard from './pages/SystemDashboard';
-import SystemAnalytics from './pages/SystemAnalytics';
 import SystemUsers from './pages/SystemUsers';
 import SystemSettings from './pages/SystemSettings';
 import AuditLogs from './pages/AuditLogs';
 import FeatureManagement from './pages/FeatureManagement';
+import FeatureFlags from './pages/FeatureFlags';
+import Security from './pages/Security';
 import CmsPages from './pages/CmsPages';
+import MediaLibrary from './pages/MediaLibrary';
+import WebsiteSettings from './pages/WebsiteSettings';
+import BlogPosts from './pages/BlogPosts';
 import Forbidden from './pages/Forbidden';
+import ModuleDenied from './pages/ModuleDenied';
 import NotFound from './pages/NotFound';
+import { homeRouteFor } from './utils/deepLinks';
 
 function LoadingScreen() {
     return (
@@ -57,6 +113,23 @@ function ScrollToTop() {
     return null;
 }
 
+/**
+ * The HRMS hub's invisible shell: crash isolation only, no navigation UI.
+ * The hub rail (HrmsLayout) was removed once the HR product shell gained its
+ * own sidebar — every HRMS page is reached from there now, so a second nav
+ * column only stole content width. The error boundary stays: one broken tab
+ * must not take down the whole shell.
+ */
+function HrmsErrorScope() {
+    const location = useLocation();
+
+    return (
+        <HrmsErrorBoundary resetKey={location.pathname}>
+            <Outlet />
+        </HrmsErrorBoundary>
+    );
+}
+
 function AppRoutes() {
     const { loading, user } = useAuth();
     const userIsSuperAdmin = user?.is_super_admin && !user?.impersonating;
@@ -69,47 +142,393 @@ function AppRoutes() {
                 <Route element={<GuestRoute />}>
                     <Route path="/login" element={<Login />} />
                     <Route path="/register" element={<Register />} />
+                    <Route path="/register/complete" element={<RegisterComplete />} />
                     <Route path="/forgot-password" element={<ForgotPassword />} />
                     <Route path="/reset-password" element={<ResetPassword />} />
                 </Route>
 
                 <Route element={<ProtectedRoute />}>
                     <Route element={<AdminLayout />}>
-                        <Route path="/" element={<Navigate to={userIsSuperAdmin ? '/admin' : '/dashboard'} replace />} />
+                        <Route path="/" element={<Navigate to={homeRouteFor(user)} replace />} />
                         <Route path="/onboarding" element={<Onboarding />} />
                         {userIsSuperAdmin && (
                             <Route element={<ProtectedRoute permission="dashboard.view" />}>
                                 <Route path="/admin" element={<SystemDashboard />} />
-                                <Route path="/admin/analytics" element={<SystemAnalytics />} />
+                                {/* Merged into the overview (same payload, one page) — keep old bookmarks working. */}
+                                <Route path="/admin/analytics" element={<Navigate to="/admin" replace />} />
                                 <Route path="/admin/users" element={<SystemUsers />} />
                                 <Route path="/admin/settings" element={<SystemSettings />} />
                                 <Route path="/admin/audit-logs" element={<AuditLogs />} />
+                                <Route path="/admin/support" element={<AdminSupport />} />
+                                <Route path="/admin/support/:ticketId" element={<AdminSupport />} />
+                                <Route path="/admin/leads" element={<Leads />} />
                                 <Route path="/admin/features" element={<FeatureManagement />} />
+                                <Route path="/admin/feature-flags" element={<FeatureFlags />} />
                                 <Route path="/admin/pages" element={<CmsPages />} />
+                                <Route path="/admin/media" element={<MediaLibrary />} />
+                                <Route path="/admin/site-settings" element={<WebsiteSettings />} />
+                                <Route path="/admin/blog" element={<BlogPosts />} />
                                 <Route path="/tenants" element={<Tenants />} />
+                                <Route path="/tenants/new" element={<TenantIntake />} />
+                                <Route path="/tenants/:tenantId/setup" element={<TenantIntake />} />
                                 <Route path="/tenants/:tenantId" element={<TenantDetail />} />
                                 <Route path="/plans" element={<Plans />} />
                             </Route>
                         )}
                         <Route element={<ProtectedRoute permission="dashboard.view" />}>
-                            <Route path="/dashboard" element={<Dashboard />} />
+                            {/* A platform super admin has no tenant context, so the tenant
+                                dashboard endpoints 403 — send them to the platform overview. */}
+                            <Route
+                                path="/dashboard"
+                                element={homeRouteFor(user) !== '/dashboard' ? <Navigate to={homeRouteFor(user)} replace /> : <Dashboard />}
+                            />
                         </Route>
                         <Route path="/notifications" element={<Notifications />} />
-                        <Route path="/subscription" element={<Subscription />} />
-                        <Route element={<ProtectedRoute permission="workspaces.view" />}>
+                        <Route path="/security" element={<Security />} />
+                        <Route
+                            path="/subscription"
+                            element={
+                                <ProtectedRoute permission="billing.view">
+                                    <Subscription />
+                                </ProtectedRoute>
+                            }
+                        />
+                        {/* Phase 5: full data export, gated by export.full add-on module. */}
+                        <Route element={<ProtectedRoute permission="billing.view" module="export.full" />}>
+                            <Route path="/export" element={<DataExport />} />
+                        </Route>
+                        {/* My HR home (P17.5): the employee surface, module-gated
+                            like every self-service page. */}
+                        <Route element={<ProtectedRoute module="hrms.core" />}>
+                            <Route path="/my" element={<MyHr />} />
+                        </Route>
+                        <Route element={<ProtectedRoute permission="workspaces.view" product="tms" />}>
                             <Route path="/workspaces" element={<Workspaces />} />
                             <Route path="/workspaces/:workspaceId" element={<WorkspaceDetail />} />
                             <Route path="/projects" element={<Projects />} />
                             <Route path="/projects/:projectId" element={<ProjectDetail />} />
                         </Route>
-                        <Route element={<ProtectedRoute permission="workspaces.view" module="global_search" />}>
+                        <Route element={<ProtectedRoute permission="workspaces.view" product="tms" module="global_search" />}>
                             <Route path="/search" element={<Search />} />
                         </Route>
-                        <Route element={<ProtectedRoute permission="reports.view" module="reports" />}>
+                        <Route element={<ProtectedRoute permission="reports.view" product="tms" module="reports" />}>
                             <Route path="/reports" element={<Reports />} />
+                        </Route>
+                        <Route element={<ProtectedRoute module="hrms.core" />}>
+                            <Route path="/hrms" element={<HrmsErrorScope />}>
+                                <Route index element={<HrmsOverview />} />
+                                {/* The queue sits first: it is self-scoped, so it
+                                    needs the module and nothing else. */}
+                                <Route path="/hrms/inbox" element={<Inbox />} />
+                                {/* The manager telescope (P17.5): read-only by
+                                    construction, module-gated — managers may hold
+                                    no other permission and still see reports. */}
+                                <Route path="/hrms/team" element={<MyTeam />} />                            {/* Before the `:section` catch-all: a static segment
+                                    outranks a dynamic one, but relying on the router's
+                                    ranking to keep the directory reachable is a trap for
+                                    whoever adds the next HRMS page. */}
+                                <Route
+                                    path="/hrms/employees"
+                                    element={
+                                        <ProtectedRoute permission="hrms.employees.view">
+                                            <Employees />
+                                        </ProtectedRoute>
+                                    }
+                                />
+                                <Route
+                                    path="/hrms/employees/:employeeId"
+                                    element={
+                                        <ProtectedRoute permission="hrms.employees.view">
+                                            <EmployeeDetail />
+                                        </ProtectedRoute>
+                                    }
+                                />
+                                {/* Before the `:section` catch-all for the same
+                                    reason the directory is: a static segment has to
+                                    be declared, not left to the router's ranking. */}
+                                <Route
+                                    path="/hrms/org"
+                                    element={
+                                        <ProtectedRoute permission="hrms.org.view">
+                                            <Org />
+                                        </ProtectedRoute>
+                                    }
+                                />
+                                {/* The document store and the self-service files
+                                    page, declared before `:section` like every
+                                    other static HRMS segment. */}
+                                <Route
+                                    path="/hrms/documents"
+                                    element={
+                                        <ProtectedRoute permission="hrms.documents.view">
+                                            <Documents />
+                                        </ProtectedRoute>
+                                    }
+                                />
+                                <Route path="/hrms/documents/mine" element={<MyDocuments />} />
+                                {/* Lifecycle runs: the lists are HR screens, the
+                                    case pages are module-gated so a hire can open
+                                    their own run — the backend policy, not the
+                                    route, decides whose case it is. */}
+                                <Route
+                                    path="/hrms/onboarding"
+                                    element={
+                                        <ProtectedRoute permission="hrms.onboarding.view">
+                                            <OnboardingCases />
+                                        </ProtectedRoute>
+                                    }
+                                />
+                                <Route path="/hrms/onboarding/cases/:caseId" element={<OnboardingCaseDetail />} />
+                                <Route
+                                    path="/hrms/offboarding"
+                                    element={
+                                        <ProtectedRoute permission="hrms.offboarding.view">
+                                            <OffboardingCases />
+                                        </ProtectedRoute>
+                                    }
+                                />
+                                <Route path="/hrms/offboarding/cases/:caseId" element={<OffboardingCaseDetail />} />
+                                {/* Attendance: the month page is module-gated so
+                                    every employee reaches their own curve, while
+                                    the review queue needs the regularize
+                                    permission — the backend policy, not the
+                                    route, decides whose ask is whose. */}
+                                <Route element={<ProtectedRoute module="hrms.attendance" />}>
+                                    <Route path="/hrms/attendance" element={<Attendance />} />
+                                    <Route
+                                        path="/hrms/attendance/approvals"
+                                        element={
+                                            <ProtectedRoute permission="hrms.attendance.regularize">
+                                                <AttendanceApprovals />
+                                            </ProtectedRoute>
+                                        }
+                                    />
+                                </Route>
+                                {/* Leave: the admin hub needs the manage
+                                    permission, the self-service page rides the
+                                    module alone like My files. */}
+                                <Route element={<ProtectedRoute module="hrms.leave" />}>
+                                    <Route
+                                        path="/hrms/leave"
+                                        element={
+                                            <ProtectedRoute permission="hrms.leave.manage">
+                                                <Leave />
+                                            </ProtectedRoute>
+                                        }
+                                    />
+                                    <Route path="/hrms/leave/mine" element={<MyLeave />} />
+                                </Route>
+                                {/* Comp-off: same split — the hub needs the manage
+                                    permission, the self-service page rides the
+                                    module alone. */}
+                                <Route element={<ProtectedRoute module="hrms.comp_off" />}>
+                                    <Route
+                                        path="/hrms/comp-off"
+                                        element={
+                                            <ProtectedRoute permission="hrms.comp_off.manage">
+                                                <CompOff />
+                                            </ProtectedRoute>
+                                        }
+                                    />
+                                    <Route path="/hrms/comp-off/mine" element={<MyCompOff />} />
+                                </Route>
+                                {/* Holidays: shared reference data with internal
+                                    gating — the route needs the module, reads
+                                    ride it, mutations hide without manage. */}
+                                <Route
+                                    path="/hrms/holidays"
+                                    element={
+                                        <ProtectedRoute module="hrms.holidays">
+                                            <Holidays />
+                                        </ProtectedRoute>
+                                    }
+                                />
+                                {/* Shifts & rosters: module-gated; reads ride the
+                                    module, mutations hide without manage. */}
+                                <Route
+                                    path="/hrms/shifts"
+                                    element={
+                                        <ProtectedRoute module="hrms.shifts">
+                                            <Shifts />
+                                        </ProtectedRoute>
+                                    }
+                                />
+                                {/* Compensation: heads and templates need the
+                                    view permission, the salary picker degrades
+                                    without the directory. Payroll: the hub and
+                                    the run detail are runner tools; my-payslips
+                                    rides the module alone like My files. */}
+                                {/* Compensation: the page rides the compensation
+                                    module on top of core, matching the API
+                                    gate — a core-only plan loses the sidebar
+                                    entry and the route together. */}
+                                <Route element={<ProtectedRoute module="hrms.compensation" />}>
+                                    <Route
+                                        path="/hrms/compensation"
+                                        element={
+                                            <ProtectedRoute permission="hrms.compensation.view">
+                                                <Compensation />
+                                            </ProtectedRoute>
+                                        }
+                                    />
+                                </Route>
+                                {/* Payroll: runs, run detail and my-payslips
+                                    all ride the payroll module, matching the
+                                    API gate. */}
+                                <Route element={<ProtectedRoute module="hrms.payroll" />}>
+                                    <Route
+                                        path="/hrms/payroll"
+                                        element={
+                                            <ProtectedRoute permission="hrms.payroll.run">
+                                                <Payroll />
+                                            </ProtectedRoute>
+                                        }
+                                    />
+                                    <Route
+                                        path="/hrms/payroll/runs/:runId"
+                                        element={
+                                            <ProtectedRoute permission="hrms.payroll.run">
+                                                <PayrollRunDetail />
+                                            </ProtectedRoute>
+                                        }
+                                    />
+                                    <Route path="/hrms/payroll/mine" element={<MyPayslips />} />
+                                </Route>
+                                {/* Statutory: the whole page rides the statutory
+                                    module; internal gating splits rulebooks and
+                                    decisions (manage) from claims filing and
+                                    masked reads. */}
+                                <Route element={<ProtectedRoute module="hrms.payroll.statutory" />}>
+                                    <Route path="/hrms/statutory" element={<Statutory />} />
+                                </Route>
+                                {/* Expenses: the queue needs the view permission,
+                                    the self-service page rides the module alone
+                                    like My files. */}
+                                <Route element={<ProtectedRoute module="hrms.expenses" />}>
+                                    <Route
+                                        path="/hrms/expenses"
+                                        element={
+                                            <ProtectedRoute permission="hrms.expenses.view">
+                                                <Expenses />
+                                            </ProtectedRoute>
+                                        }
+                                    />
+                                    <Route path="/hrms/expenses/mine" element={<MyExpenses />} />
+                                </Route>
+                                {/* Performance: the hub and the cycle detail need
+                                    the view permission, the self-service page
+                                    rides the module alone like My files. */}
+                                <Route element={<ProtectedRoute module="hrms.performance" />}>
+                                    <Route
+                                        path="/hrms/performance"
+                                        element={
+                                            <ProtectedRoute permission="hrms.performance.view">
+                                                <Performance />
+                                            </ProtectedRoute>
+                                        }
+                                    />
+                                    <Route
+                                        path="/hrms/performance/cycles/:cycleId"
+                                        element={
+                                            <ProtectedRoute permission="hrms.performance.view">
+                                                <PerformanceCycleDetail />
+                                            </ProtectedRoute>
+                                        }
+                                    />
+                                    <Route path="/hrms/performance/mine" element={<MyPerformance />} />
+                                </Route>
+                                {/* Talent: the calibration room is manage-only
+                                    end to end — the grid names reviewees and
+                                    their ratings, so there is no viewer tier. */}
+                                <Route element={<ProtectedRoute module="hrms.talent" />}>
+                                    <Route
+                                        path="/hrms/talent"
+                                        element={
+                                            <ProtectedRoute permission="hrms.talent.manage">
+                                                <Talent />
+                                            </ProtectedRoute>
+                                        }
+                                    />
+                                </Route>
+                                {/* Assets: the register needs the view permission,
+                                    the self-service page rides the module alone
+                                    like My files. */}
+                                <Route element={<ProtectedRoute module="hrms.assets" />}>
+                                    <Route
+                                        path="/hrms/assets"
+                                        element={
+                                            <ProtectedRoute permission="hrms.assets.view">
+                                                <Assets />
+                                            </ProtectedRoute>
+                                        }
+                                    />
+                                    <Route path="/hrms/assets/mine" element={<MyAssets />} />
+                                </Route>
+                                {/* Engagement: the hub needs the view permission,
+                                    answering rides the module alone like My files. */}
+                                <Route element={<ProtectedRoute module="hrms.engagement" />}>
+                                    <Route
+                                        path="/hrms/engagement"
+                                        element={
+                                            <ProtectedRoute permission="hrms.engagement.view">
+                                                <Engagement />
+                                            </ProtectedRoute>
+                                        }
+                                    />
+                                    <Route path="/hrms/engagement/mine" element={<MySurvey />} />
+                                    <Route path="/hrms/engagement/mine/:campaignId" element={<MySurvey />} />
+                                </Route>
+                                {/* Analytics: the workforce dashboards need the
+                                    analytics view permission; each tab gates
+                                    itself against its own domain permission. */}
+                                <Route element={<ProtectedRoute module="hrms.analytics" />}>
+                                    <Route
+                                        path="/hrms/analytics"
+                                        element={
+                                            <ProtectedRoute permission="hrms.analytics.view">
+                                                <Analytics />
+                                            </ProtectedRoute>
+                                        }
+                                    />
+                                </Route>
+                                {/* Audit: the append-only trail needs the audit
+                                    permission; the record view hangs off it. */}
+                                <Route
+                                    path="/hrms/audit"
+                                    element={
+                                        <ProtectedRoute permission="hrms.audit.view">
+                                            <AuditLog />
+                                        </ProtectedRoute>
+                                    }
+                                />
+                                {/* Approval chains (Phase 23): the tenant's
+                                    editable chains live here, not scattered
+                                    across the domain hubs. Manage-only, like
+                                    the API policy — the page 403s otherwise. */}
+                                <Route
+                                    path="/hrms/approvals/chains"
+                                    element={
+                                        <ProtectedRoute permission="hrms.approvals.manage">
+                                            <ApprovalChains />
+                                        </ProtectedRoute>
+                                    }
+                                />
+                                <Route path="/hrms/:section" element={<HrmsOverview />} />
+                            </Route>
                         </Route>
                         <Route element={<ProtectedRoute permission="users.view" />}>
                             <Route path="/users" element={<Users />} />
+                            <Route path="/users/:userId" element={<UserEdit />} />
+                        </Route>
+                        <Route element={<ProtectedRoute permission="users.manage" />}>
+                            <Route path="/users/import" element={<UserImport />} />
+                        </Route>
+                        <Route element={<ProtectedRoute permission="webhooks.manage" module="webhooks" />}>
+                            <Route path="/webhooks" element={<Webhooks />} />
+                        </Route>
+                        <Route element={<ProtectedRoute permission="support.manage" />}>
+                            <Route path="/support" element={<Support />} />
+                            <Route path="/support/:ticketId" element={<Support />} />
                         </Route>
                         <Route element={<ProtectedRoute permission="roles.view" />}>
                             <Route path="/roles" element={<Roles />} />
@@ -121,6 +540,7 @@ function AppRoutes() {
                 </Route>
 
                 <Route path="/403" element={<Forbidden />} />
+                <Route path="/module-denied" element={<ModuleDenied />} />
                 <Route path="*" element={<NotFound />} />
             </Routes>
         </ThemeProvider>
@@ -134,7 +554,9 @@ export default function App() {
             <AuthProvider>
                 <ToastProvider>
                     <NotificationProvider>
-                        <AppRoutes />
+                        <ConfirmProvider>
+                            <AppRoutes />
+                        </ConfirmProvider>
                     </NotificationProvider>
                 </ToastProvider>
             </AuthProvider>

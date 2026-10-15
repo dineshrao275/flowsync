@@ -5,12 +5,14 @@ import Topbar from './Topbar';
 import ThemeSettingsDrawer from './ThemeSettingsDrawer';
 import ImpersonationBanner from './ImpersonationBanner';
 import Breadcrumbs from './Breadcrumbs';
+import ErrorBoundary from './ErrorBoundary';
 import CommandPalette from './search/CommandPalette';
 import { BreadcrumbProvider } from '../context/BreadcrumbContext';
 import { PageTitleProvider } from '../context/PageTitleContext';
 import { useAuth } from '../context/AuthContext';
 
-const COLLAPSE_KEY = 'flowsync.sidebar.collapsed';
+const STORAGE_PREFIX = (typeof window !== 'undefined' && window.__FLOWSYNC_CONFIG__?.storagePrefix) || 'flowsync';
+const COLLAPSE_KEY = `${STORAGE_PREFIX}.sidebar.collapsed`;
 
 export default function AdminLayout() {
     const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -20,7 +22,12 @@ export default function AdminLayout() {
     const location = useLocation();
     const navigate = useNavigate();
     const showSearch = check('workspaces.view') && check('module:global_search');
-    const showTheme = check('module:branding');
+    // Both halves of the route: the drawer's SAVE is `PUT /theme`, which takes
+    // `permission:settings.theme` on top of `ensure_module:branding` (only the
+    // read is module-only). Gating on the module alone drew a palette for e.g.
+    // the manager role — which holds `settings.theme` in no default selector —
+    // whose every save answered 403.
+    const showTheme = check('module:branding') && check('permission:settings.theme');
 
     // Route tenants with an unfinished onboarding wizard to the wizard. Tenants
     // that never started onboarding (admin/seed provisioned) and super admins are
@@ -79,7 +86,9 @@ export default function AdminLayout() {
                     <BreadcrumbProvider>
                         <div key={location.pathname} className="animate-fade-in-up">
                             <Breadcrumbs />
-                            <Outlet />
+                            <ErrorBoundary resetKey={location.pathname}>
+                                <Outlet />
+                            </ErrorBoundary>
                         </div>
                     </BreadcrumbProvider>
                 </main>

@@ -103,6 +103,20 @@ class WorkspaceTest extends TestCase
         ]);
     }
 
+    public function test_workspace_description_accepts_rich_text_beyond_plain_limits(): void
+    {
+        $this->login('admin@flowsync.test');
+        $this->connectTenant('acme');
+
+        // Editor HTML dwarfs the old 2000-char plain-text budget with tags
+        // alone; the limit now covers formatted prose.
+        $html = '<h2>About</h2><p>'.str_repeat('Product delivery. ', 200).'</p>';
+
+        $this->postJson('/api/workspaces', ['name' => 'Rich', 'description' => $html])
+            ->assertCreated()
+            ->assertJsonPath('workspace.description', $html);
+    }
+
     public function test_editor_can_create_workspace(): void
     {
         $this->login('editor@flowsync.test');
@@ -243,7 +257,7 @@ class WorkspaceTest extends TestCase
         $this->login('superadmin@flowsync.test');
         $this->connectTenant('acme');
 
-        $this->postJson('/api/impersonate', ['user_id' => $this->admin()->id])->assertOk();
+        $this->postJson('/api/impersonate', ['user_id' => $this->admin()->id, 'reason' => 'Automated impersonation test.'])->assertOk();
 
         $this->getJson('/api/workspaces')
             ->assertOk()

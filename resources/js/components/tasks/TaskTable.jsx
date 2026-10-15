@@ -13,9 +13,11 @@ export default function TaskTable({ tasks, canEdit, onOpen }) {
                 <thead className="border-b border-gray-100 bg-gray-50/80 text-xs uppercase tracking-wide text-gray-500">
                     <tr>
                         <th className="px-4 py-3 font-medium">Key</th>
+                        <th className="px-4 py-3 font-medium">Type</th>
                         <th className="px-4 py-3 font-medium">Task</th>
                         <th className="px-4 py-3 font-medium">Status</th>
                         <th className="px-4 py-3 font-medium">Priority</th>
+                        <th className="px-4 py-3 font-medium">Points</th>
                         <th className="px-4 py-3 font-medium">Assignee</th>
                         <th className="px-4 py-3 font-medium">Due</th>
                     </tr>
@@ -29,6 +31,21 @@ export default function TaskTable({ tasks, canEdit, onOpen }) {
                         >
                             <td className="px-4 py-3 font-semibold text-gray-500">{task.key}</td>
                             <td className="px-4 py-3">
+                                {task.issue_type ? (
+                                    <span
+                                        className="inline-flex items-center rounded px-2 py-0.5 text-[11px] font-semibold"
+                                        style={{
+                                            backgroundColor: `${task.issue_type.color || '#6366f1'}18`,
+                                            color: task.issue_type.color || '#6366f1',
+                                        }}
+                                    >
+                                        {task.issue_type.name}
+                                    </span>
+                                ) : (
+                                    <span className="text-xs text-gray-400">—</span>
+                                )}
+                            </td>
+                            <td className="px-4 py-3">
                                 <div className="flex flex-wrap items-center gap-2">
                                     <span className={`font-medium text-gray-900 ${task.completed_at ? 'line-through opacity-60' : ''}`}>
                                         {task.title}
@@ -37,9 +54,19 @@ export default function TaskTable({ tasks, canEdit, onOpen }) {
                                         <span className="text-[11px] text-gray-400">{task.subtasks_count} sub</span>
                                     )}
                                 </div>
-                                {task.labels?.length > 0 && (
+                                {(task.version || task.components?.length > 0 || task.labels?.length > 0) && (
                                     <div className="mt-1 flex flex-wrap gap-1">
-                                        {task.labels.map((label) => (
+                                        {task.version && (
+                                            <span className="rounded bg-purple-50 px-1.5 py-0.5 text-[10px] font-medium text-purple-700">
+                                                {task.version.name}
+                                            </span>
+                                        )}
+                                        {task.components?.map((c) => (
+                                            <span key={c.id} className="rounded bg-blue-50 px-1.5 py-0.5 text-[10px] font-medium text-blue-700">
+                                                {c.name}
+                                            </span>
+                                        ))}
+                                        {task.labels?.map((label) => (
                                             <span
                                                 key={label.id}
                                                 className="rounded-full px-2 py-0.5 text-[10px] font-medium"
@@ -61,6 +88,9 @@ export default function TaskTable({ tasks, canEdit, onOpen }) {
                                 </span>
                             </td>
                             <td className="px-4 py-3 text-xs text-gray-600">{task.priority?.name ?? '—'}</td>
+                            <td className="px-4 py-3 text-xs font-semibold text-gray-600">
+                                {task.story_points != null ? `${task.story_points}` : '—'}
+                            </td>
                             <td className="px-4 py-3 text-xs text-gray-600">{task.assignee?.name ?? '—'}</td>
                             <td className="px-4 py-3 text-xs text-gray-500">{task.due_date ?? '—'}</td>
                         </tr>

@@ -135,4 +135,83 @@ class TenantLimitsTest extends TestCase
             'roles' => ['viewer'],
         ])->assertUnprocessable()->assertJsonValidationErrors('form');
     }
+
+    public function test_super_admin_can_edit_plan_limits_and_tenants_inherit_them(): void
+    {
+        $this->postJson('/api/auth/login', [
+            'email' => 'superadmin@flowsync.test',
+            'password' => 'password',
+        ])->assertOk();
+
+        $plan = SubscriptionPlan::where('slug', 'starter')->firstOrFail();
+
+        $this->putJson("/api/plans/{$plan->id}", [
+            'name' => $plan->name,
+            'slug' => $plan->slug,
+            'limits' => [
+                'users' => 7,
+                'seats' => null,
+                'workspaces' => 3,
+                'projects' => 12,
+                'tasks' => 900,
+                'storage_bytes' => 10 * 1024 * 1024 * 1024,
+                'attachments_per_task' => 9,
+                'modules' => ['time_tracking', 'reports'],
+            ],
+        ])->assertOk();
+
+        $plan->refresh();
+        $this->assertSame(7, $plan->limits['users']);
+        $this->assertSame(3, $plan->limits['workspaces']);
+        $this->assertSame(10 * 1024 * 1024 * 1024, $plan->limits['storage_bytes']);
+        $this->assertSame(['time_tracking', 'reports'], $plan->limits['modules']);
+        // Blank caps are dropped, not persisted as "" or 0.
+        $this->assertArrayNotHasKey('seats', $plan->limits);
+
+        // Non-numeric caps are rejected instead of being written through.
+        $this->putJson("/api/plans/{$plan->id}", [
+            'name' => $plan->name,
+            'slug' => $plan->slug,
+            'limits' => ['users' => 'many'],
+        ])->assertStatus(422)->assertJsonValidationErrors('limits.users');
+
+        // Subscribing the tenant makes those caps effective.
+        $this->postJson("/api/tenants/{$this->acme()->id}/subscription", [
+            'plan_id' => $plan->id,
+        ])->assertOk();
+
+        $this->assertSame(7, $this->limits->limit($this->acme(), 'users'));
+        $this->assertTrue($this->limits->hasModule($this->acme(), 'reports'));
+    }
+
+    public function test_super_admin_can_set_a_per_tenant_override_from_the_admin_api(): void
+    {
+        $this->postJson('/api/auth/login', [
+            'email' => 'superadmin@flowsync.test',
+            'password' => 'password',
+        ])->assertOk();
+
+        $tenant = $this->acme();
+
+        $this->putJson("/api/tenants/{$tenant->id}", [
+            'name' => $tenant->name,
+            'slug' => $tenant->slug,
+            'description' => $tenant->description,
+            'limits_override' => ['workspaces' => 0, 'users' => 2],
+        ])->assertOk();
+
+        $override = $tenant->fresh()->limits_override;
+        $this->assertEquals(['workspaces' => 0, 'users' => 2], $override);
+
+        // The override is what TenantLimits reads back.
+        app(TenantContext::class)->setTenantId($tenant->id);
+        $this->assertSame(0, $this->limits->limit($tenant->fresh(), 'workspaces'));
+
+        // Invalid caps are rejected.
+        $this->putJson("/api/tenants/{$tenant->id}", [
+            'name' => $tenant->name,
+            'slug' => $tenant->slug,
+            'limits_override' => ['workspaces' => -1],
+        ])->assertStatus(422)->assertJsonValidationErrors('limits_override.workspaces');
+    }
 }

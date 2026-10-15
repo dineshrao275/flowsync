@@ -2,6 +2,8 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Controllers\Concerns\RequiresTenantAdmin;
+use App\Http\Controllers\Concerns\ResolvesCurrentTenant;
 use App\Models\Tenant;
 use App\Services\TenantOnboarding;
 use App\Support\TenantContext;
@@ -11,6 +13,9 @@ use Illuminate\Validation\Rule;
 
 class OnboardingController extends Controller
 {
+    use RequiresTenantAdmin;
+    use ResolvesCurrentTenant;
+
     public function __construct(
         private readonly TenantOnboarding $onboarding,
     ) {}
@@ -26,14 +31,16 @@ class OnboardingController extends Controller
     }
 
     /**
-     * Tenant-facing: complete a wizard step.
+     * Tenant-facing: complete a wizard step. Only steps this tenant sees
+     * are markable — a plan without the module cannot drive its step.
      */
     public function updateStep(Request $request): JsonResponse
     {
         $tenant = $this->currentTenant();
+        $this->requireTenantAdmin($request, 'Only tenant admins can complete onboarding steps.');
 
         $data = $request->validate([
-            'step' => ['required', 'string', Rule::in($this->onboarding->completableSteps())],
+            'step' => ['required', 'string', Rule::in($this->onboarding->visibleSteps($tenant))],
             'data' => ['nullable', 'array'],
         ]);
 
@@ -48,6 +55,7 @@ class OnboardingController extends Controller
     public function complete(Request $request): JsonResponse
     {
         $tenant = $this->currentTenant();
+        $this->requireTenantAdmin($request, 'Only tenant admins can finish onboarding.');
 
         $this->onboarding->complete($tenant);
 
@@ -82,13 +90,5 @@ class OnboardingController extends Controller
         }
 
         return response()->json(['onboarding' => $this->onboarding->status($tenant)]);
-    }
-
-    private function currentTenant(): Tenant
-    {
-        $tenantId = app(TenantContext::class)->currentId();
-        abort_unless($tenantId, 404);
-
-        return Tenant::findOrFail($tenantId);
     }
 }
