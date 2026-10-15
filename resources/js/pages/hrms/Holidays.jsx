@@ -12,9 +12,11 @@ import Spinner from '../../components/ui/Spinner';
 import { Table, Th, Td, TableEmpty } from '../../components/ui/Table';
 import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
+import { useConfirm } from '../../components/ui/ConfirmDialog';
 import { useSetCrumbs } from '../../context/BreadcrumbContext';
 import usePageTitle from '../../hooks/usePageTitle';
 import HolidayGrid from '../../components/hrms/HolidayGrid';
+import HolidayImportModal from '../../components/hrms/HolidayImportModal';
 
 const HOLIDAY_TYPES = [
     { value: 'public', label: 'Public' },
@@ -48,6 +50,7 @@ export default function Holidays() {
     const navigate = useNavigate();
     const { can } = useAuth();
     const toast = useToast();
+    const confirm = useConfirm();
 
     const canManage = can('permission:hrms.holidays.manage');
 
@@ -75,6 +78,7 @@ export default function Holidays() {
     const [declareForm, setDeclareForm] = useState({ holiday_id: '', status: 'taken', taken_date: '', note: '' });
     const [declareErrors, setDeclareErrors] = useState({});
     const [seeding, setSeeding] = useState(false);
+    const [importing, setImporting] = useState(false);
 
     useEffect(() => {
         setCrumbs([{ label: 'HRMS', to: '/hrms' }, { label: 'Holidays' }]);
@@ -168,7 +172,7 @@ export default function Holidays() {
     }
 
     async function deleteCalendar(id) {
-        if (!window.confirm('Delete this calendar? Calendars in use refuse deletion.')) return;
+        if (!(await confirm({ title: 'Delete calendar?', message: 'Delete this calendar? Calendars in use refuse deletion.', variant: 'danger' }))) return;
 
         try {
             await api.delete(`/hrms/holidays/calendars/${id}`);
@@ -201,7 +205,7 @@ export default function Holidays() {
     }
 
     async function deleteHoliday(id) {
-        if (!window.confirm('Delete this holiday? Answered holidays refuse deletion.')) return;
+        if (!(await confirm({ title: 'Delete holiday?', message: 'Delete this holiday? Answered holidays refuse deletion.', variant: 'danger' }))) return;
 
         try {
             await api.delete(`/hrms/holidays/${id}`);
@@ -243,7 +247,7 @@ export default function Holidays() {
     }
 
     async function unassign(id) {
-        if (!window.confirm('Remove this assignment?')) return;
+        if (!(await confirm({ title: 'Remove assignment?', message: 'Remove this assignment?', variant: 'danger' }))) return;
 
         try {
             await api.delete(`/hrms/holidays/assignments/${id}`);
@@ -276,7 +280,7 @@ export default function Holidays() {
     }
 
     async function seedYear() {
-        if (!window.confirm(`Expand ${year} from the catalogue? Reruns add nothing new.`)) return;
+        if (!(await confirm({ title: 'Expand year?', message: `Expand ${year} from the catalogue? Reruns add nothing new.` }))) return;
 
         setSeeding(true);
 
@@ -403,7 +407,12 @@ export default function Holidays() {
                             <div className="mt-4">
                                 <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
                                     <h4 className="text-sm font-semibold text-gray-900">Holidays ({holidays.length})</h4>
-                                    {canManage && <Button onClick={() => openHolidayEditor(null)}>Add holiday</Button>}
+                                    {canManage && (
+                                        <div className="flex gap-2">
+                                            <Button variant="secondary" onClick={() => setImporting(true)}>Import</Button>
+                                            <Button onClick={() => openHolidayEditor(null)}>Add holiday</Button>
+                                        </div>
+                                    )}
                                 </div>
 
                                 {canManage && (
@@ -545,8 +554,20 @@ export default function Holidays() {
                 </Card>
             </div>
 
+            {importing && selectedCalendar && (
+                <HolidayImportModal
+                    calendar={selectedCalendar}
+                    onClose={() => setImporting(false)}
+                    onDone={() => {
+                        setImporting(false);
+                        loadCalendars();
+                        loadHolidays();
+                    }}
+                />
+            )}
+
             <Modal open={calendarModal} onClose={closeCalendarModal} title={editingCalendar ? 'Edit calendar' : 'New calendar'}>
-                <form onSubmit={saveCalendar} className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                <form onSubmit={saveCalendar} className="grid grid-cols-1 gap-3 px-6 py-5 sm:grid-cols-2">
                     <Input label="Name" value={calendarForm.name} onChange={(e) => setCalendarForm({ ...calendarForm, name: e.target.value })} error={calendarErrors.name} />
                     <Input label="Country (2-letter, optional)" value={calendarForm.country} onChange={(e) => setCalendarForm({ ...calendarForm, country: e.target.value })} error={calendarErrors.country} />
                     <Input label="Description" value={calendarForm.description} onChange={(e) => setCalendarForm({ ...calendarForm, description: e.target.value })} error={calendarErrors.description} className="sm:col-span-2" />
@@ -567,7 +588,7 @@ export default function Holidays() {
             </Modal>
 
             <Modal open={holidayModal} onClose={closeHolidayModal} title={editingHoliday ? 'Edit holiday' : 'New holiday'}>
-                <form onSubmit={saveHoliday} className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                <form onSubmit={saveHoliday} className="grid grid-cols-1 gap-3 px-6 py-5 sm:grid-cols-2">
                     <Input label="Name" value={holidayForm.name} onChange={(e) => setHolidayForm({ ...holidayForm, name: e.target.value })} error={holidayErrors.name} />
                     <Input type="date" label="Date" value={holidayForm.date} onChange={(e) => setHolidayForm({ ...holidayForm, date: e.target.value })} error={holidayErrors.date} />
                     <Select label="Type" value={holidayForm.type} onChange={(e) => setHolidayForm({ ...holidayForm, type: e.target.value })} error={holidayErrors.type}>

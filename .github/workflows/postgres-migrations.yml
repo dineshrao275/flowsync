@@ -1,0 +1,89 @@
+name: PostgreSQL migration lane
+
+# The test suite runs on sqlite files, which tolerate SQL that PostgreSQL
+# rejects (boolean = integer, forward FK references, raw backtick quoting).
+# This lane provisions the real thing: system DB migrations, then every
+# seeded tenant database (core + HRMS migration sets) on PostgreSQL.
+
+on:
+  push:
+    branches: [master, development, 'Improve/**', 'track/**', 'new/**']
+    paths:
+      - 'database/**'
+      - 'app/Support/Tenant*.php'
+      - 'app/Services/Tenancy/**'
+      - 'config/database.php'
+      - 'config/tenancy.php'
+      - '.github/workflows/postgres-migrations.yml'
+  pull_request:
+    paths:
+      - 'database/**'
+      - 'app/Support/Tenant*.php'
+      - 'app/Services/Tenancy/**'
+      - 'config/database.php'
+      - 'config/tenancy.php'
+      - '.github/workflows/postgres-migrations.yml'
+  schedule:
+    - cron: '17 3 * * *'
+
+jobs:
+  postgres:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: flowsync
+          POSTGRES_PASSWORD: secret
+          POSTGRES_DB: flowsync_system
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U flowsync"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      DB_CONNECTION: system
+      DB_HOST: 127.0.0.1
+      DB_PORT: 5432
+      DB_USERNAME: flowsync
+      DB_PASSWORD: secret
+      DB_SYSTEM_DATABASE: flowsync_system
+      TENANCY_DRIVER: isolated
+      TENANT_DB_DRIVER: pgsql
+      QUEUE_CONNECTION: sync
+      BROADCAST_CONNECTION: log
+      SESSION_DRIVER: array
+      CACHE_STORE: array
+    steps:
+      - uses: actions/checkout@v4
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          extensions: pdo_pgsql, pgsql, mbstring, bcmath, zip, gd
+          coverage: none
+      - uses: actions/cache@v4
+        with:
+          path: vendor
+          key: composer-${{ hashFiles('composer.lock') }}
+      - run: composer install --no-interaction --no-progress --prefer-dist
+      - run: cp .env.example .env && php artisan key:generate
+
+      - name: System database migrations
+        run: php artisan migrate --database=system --path=database/migrations/system --force
+
+      - name: Seed (provisions the demo tenants on PostgreSQL)
+        run: php artisan db:seed --database=system --class='Database\Seeders\DatabaseSeeder' --force
+
+      - name: Re-provision is idempotent
+        run: php artisan tenants:provision
+
+      - name: Tenant databases exist and carry both migration sets
+        run: |
+          PGPASSWORD=secret psql -h 127.0.0.1 -U flowsync -d flowsync_system -Atc "select datname from pg_database where datname like 'flowsync_tenant_%'" | tee tenants.txt
+          test -s tenants.txt
+          for db in $(cat tenants.txt); do
+            PGPASSWORD=secret psql -h 127.0.0.1 -U flowsync -d "$db" -Atc "select count(*) from migrations" | xargs echo "$db migrations:"
+            PGPASSWORD=secret psql -h 127.0.0.1 -U flowsync -d "$db" -Atc "select to_regclass('public.tasks') is not null"
+          done

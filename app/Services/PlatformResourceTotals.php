@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Jobs\RefreshPlatformAnalyticsJob;
 use App\Models\Tenant;
 use App\Support\TenantDatabaseManager;
+use App\Support\Tms\TmsSchema;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
@@ -74,9 +75,11 @@ class PlatformResourceTotals
                     'status' => $tenant->status,
                 ],
                 'users' => DB::table('users')->count(),
-                'workspaces' => DB::table('workspaces')->count(),
-                'projects' => DB::table('projects')->count(),
-                'tasks' => DB::table('tasks')->whereNull('deleted_at')->count(),
+                // Single-product tenants hold no TMS tables: their counts are
+                // zero, not a missing-table failure that kills the whole fan-out.
+                'workspaces' => TmsSchema::present() ? DB::table('workspaces')->count() : 0,
+                'projects' => TmsSchema::present() ? DB::table('projects')->count() : 0,
+                'tasks' => TmsSchema::present() ? DB::table('tasks')->whereNull('deleted_at')->count() : 0,
             ]);
         });
 

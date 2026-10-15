@@ -8,7 +8,7 @@ import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
 import { useSetCrumbs } from '../context/BreadcrumbContext';
 import usePageTitle from '../hooks/usePageTitle';
-import { formatDateTime } from '../utils/format';
+import Timestamp from '../components/ui/Timestamp';
 
 /** Super Admin support inbox: /admin/support (queue) and /admin/support/:ticketId (work a ticket). */
 export default function AdminSupport() {
@@ -75,7 +75,7 @@ function Inbox() {
                                 <span className={`text-xs capitalize ${PRIORITY_STYLES[t.priority]}`}>{t.priority}</span>
                                 <StatusPill status={t.status} />
                                 <span className="w-24 truncate text-xs text-gray-500">{t.assignee || 'Unassigned'}</span>
-                                <span className="text-xs text-gray-400">{formatDateTime(t.last_activity_at)}</span>
+                                <span className="text-xs text-gray-400"><Timestamp date={t.last_activity_at} /></span>
                             </Link>
                         </li>
                     ))}
@@ -96,6 +96,45 @@ function Detail({ id }) {
 
     useEffect(() => { setCrumbs([{ label: 'Support inbox', to: '/admin/support' }, { label: ticket?.reference || 'Ticket' }]); }, [setCrumbs, ticket?.reference]);
     useEffect(() => { api.get(`/system/support/tickets/${id}`).then(({ data }) => setTicket(data.ticket)).catch(() => setTicket(false)); }, [id]);
+
+    useEffect(() => {
+        if (!window.Echo || !id) return undefined;
+        const channel = window.Echo.private(`support.ticket.${id}.staff`);
+        channel.listen('.support.message.sent', (data) => {
+            if (data?.message) {
+                setTicket((prev) => {
+                    if (!prev || typeof prev !== 'object') return prev;
+                    if (prev.messages?.some((m) => m.id === data.message.id)) return prev;
+                    return {
+                        ...prev,
+                        status: data.ticket_status ?? prev.status,
+                        last_activity_at: data.last_activity_at ?? prev.last_activity_at,
+                        messages: [...(prev.messages || []), data.message],
+                    };
+                });
+            }
+        });
+        channel.listen('.support.ticket.updated', (data) => {
+            if (data) {
+                setTicket((prev) => {
+                    if (!prev || typeof prev !== 'object') return prev;
+                    return {
+                        ...prev,
+                        status: data.status ?? prev.status,
+                        priority: data.priority ?? prev.priority,
+                        assigned_to: data.assigned_to !== undefined ? data.assigned_to : prev.assigned_to,
+                        assignee: data.assignee !== undefined ? data.assignee : prev.assignee,
+                        last_activity_at: data.last_activity_at ?? prev.last_activity_at,
+                    };
+                });
+            }
+        });
+        return () => {
+            channel.stopListening('.support.message.sent');
+            channel.stopListening('.support.ticket.updated');
+            window.Echo.leaveChannel(channel.name);
+        };
+    }, [id]);
 
     async function patch(body) {
         try {

@@ -6,6 +6,8 @@ use App\Http\Requests\ImpersonationStartRequest;
 use App\Models\ImpersonationLog;
 use App\Models\TenantUserRouting;
 use App\Models\User;
+use App\Services\PlatformAudit;
+use App\Services\Security\SupportAccessGrants;
 use App\Support\TenantDatabaseManager;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -86,7 +88,14 @@ class ImpersonationController extends Controller
         $mode = $data['mode'] ?? 'read_only';
         $expiresAt = now()->addMinutes((int) config('tenancy.impersonation.ttl_minutes', 30));
 
-        return app(TenantDatabaseManager::class)->using($tenant, function () use ($request, $data, $superAdmin, $tenant, $mode, $expiresAt) {
+        // P8.4: tenant consent is a precondition when the platform requires it, and always a ceiling.
+        $grants = app(SupportAccessGrants::class);
+        $grant = $grants->resolveForStart(isset($data['grant_id']) ? (int) $data['grant_id'] : null, $tenant, $mode);
+        if ($grant) {
+            $expiresAt = $grants->sessionExpiry($grant, $expiresAt);
+        }
+
+        return app(TenantDatabaseManager::class)->using($tenant, function () use ($request, $data, $superAdmin, $tenant, $mode, $expiresAt, $grant, $grants) {
             $target = User::find($data['user_id']);
 
             if (! $target) {
@@ -104,7 +113,15 @@ class ImpersonationController extends Controller
                 'reason' => $data['reason'],
                 'mode' => $mode,
                 'expires_at' => $expiresAt,
+                'support_access_grant_id' => $grant?->id,
             ]);
+
+            if ($grant) {
+                $grants->markUsed($grant);
+                app(PlatformAudit::class)->record($request, 'support_access.used', 'support_access_grants', $grant->id, [
+                    'tenant_id' => $tenant->id, 'impersonated_user_id' => $target->id, 'mode' => $mode,
+                ]);
+            }
 
             $request->session()->put('impersonate', [
                 'log_id' => $log->id,
@@ -113,6 +130,7 @@ class ImpersonationController extends Controller
                 'original_user_name' => $superAdmin->name,
                 'mode' => $mode,
                 'expires_at' => $expiresAt->timestamp,
+                'grant_id' => $grant?->id,
             ]);
 
             Auth::login($target);

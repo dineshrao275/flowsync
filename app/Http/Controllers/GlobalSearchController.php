@@ -11,8 +11,10 @@ use App\Models\User;
 use App\Models\Workspace;
 use App\Services\PlatformAudit;
 use App\Services\TenantLimits;
+use App\Support\Hrms\HrmsSchema;
 use App\Support\Like;
 use App\Support\TenantDatabaseManager;
+use App\Support\Tms\TmsSchema;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -122,6 +124,12 @@ class GlobalSearchController extends Controller
 
     private function searchWorkspaces(string $q, User $user, ?string $tenantName = null, int $limit = 5): array
     {
+        // The cross-tenant fan-out visits single-product tenants too: without
+        // the TMS schema there is nothing to search, not a 500.
+        if (! TmsSchema::present()) {
+            return [];
+        }
+
         $query = Workspace::query()
             ->tap(fn ($b) => Like::any($b, ['name'], $q))
             ->withCount('projects');
@@ -140,6 +148,10 @@ class GlobalSearchController extends Controller
 
     private function searchProjects(string $q, User $user, ?string $tenantName = null, int $limit = 5): array
     {
+        if (! TmsSchema::present()) {
+            return [];
+        }
+
         $query = Project::query()
             ->with(['workspace'])
             ->withCount('tasks')
@@ -161,6 +173,10 @@ class GlobalSearchController extends Controller
 
     private function searchTasks(string $q, User $user, int $limit = 8): array
     {
+        if (! TmsSchema::present()) {
+            return [];
+        }
+
         return $this->visibleTaskQuery($user)
             ->tap(fn ($b) => Like::any($b, ['tasks.title', 'tasks.key', 'tasks.description'], $q))
             ->orderByDesc('tasks.updated_at')
@@ -232,6 +248,12 @@ class GlobalSearchController extends Controller
 
     private function searchEmployees(string $q, ?string $tenantName = null, int $limit = 5): array
     {
+        // Same fan-out rule as the TMS searches: a TMS-only tenant holds no
+        // employees table, and the answer is an empty group, not a 500.
+        if (! HrmsSchema::present()) {
+            return [];
+        }
+
         return Employee::query()
             ->tap(fn ($b) => Like::any($b, ['name', 'employee_code'], $q))
             ->orderBy('name')

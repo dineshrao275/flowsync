@@ -2,13 +2,13 @@
 
 namespace App\Http\Controllers\Hrms\Performance;
 
+use App\Http\Controllers\Concerns\ChecksPerformanceScope;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Hrms\PerformanceGoalRequest;
 use App\Models\Hrms\Employee\Employee;
 use App\Models\Hrms\Performance\PerformanceCycle;
 use App\Models\Hrms\Performance\PerformanceGoal;
 use App\Models\Task;
-use App\Models\User;
 use App\Services\Hrms\HrmsScope;
 use App\Services\Hrms\PerformanceService;
 use Illuminate\Http\JsonResponse;
@@ -27,6 +27,8 @@ use Symfony\Component\HttpKernel\Exception\HttpException;
  */
 class PerformanceGoalController extends Controller
 {
+    use ChecksPerformanceScope;
+
     public function __construct(private readonly PerformanceService $performance) {}
 
     public function index(Request $request, PerformanceCycle $cycle): JsonResponse
@@ -46,12 +48,6 @@ class PerformanceGoalController extends Controller
         return response()->json([
             'goals' => $query->get()->map(fn (PerformanceGoal $goal): array => $this->present($goal))->all(),
         ]);
-    }
-
-    private function seesAll(User $user): bool
-    {
-        return HrmsScope::seesAll($user, 'hrms.performance')
-            || $user->hasPermission('hrms.talent.manage');
     }
 
     public function show(PerformanceGoal $goal): JsonResponse

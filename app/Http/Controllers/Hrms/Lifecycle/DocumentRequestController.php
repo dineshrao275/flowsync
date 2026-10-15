@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Hrms\Lifecycle;
 
 use App\Enums\Hrms\DocumentRequestSource;
 use App\Enums\Hrms\DocumentRequestStatus;
+use App\Http\Controllers\Concerns\NormalizesFilters;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Hrms\Lifecycle\DocumentRequestReviewRequest;
 use App\Http\Requests\Hrms\Lifecycle\DocumentRequestStoreRequest;
@@ -29,6 +30,8 @@ use Illuminate\Validation\Rule;
  */
 class DocumentRequestController extends Controller
 {
+    use NormalizesFilters;
+
     public function __construct(
         private readonly DocumentRequestService $requests,
         private readonly LifecyclePresenter $presenter,
@@ -44,7 +47,7 @@ class DocumentRequestController extends Controller
             'source' => ['sometimes', 'nullable', 'in:onboarding,offboarding,hr'],
         ]);
 
-        $rows = $this->requests->indexFor($request->user(), $this->clean($filters));
+        $rows = $this->requests->indexFor($request->user(), $this->cleanBlank($filters));
 
         return response()->json([
             'requests' => $rows->map(fn (DocumentRequest $row): array => $this->presenter->request($row))->all(),
@@ -151,14 +154,5 @@ class DocumentRequestController extends Controller
         abort_unless($validated['case_type'] === 'onboarding', 422, 'Free asks attach to onboarding cases.');
 
         return OnboardingCase::findOrFail((int) $validated['case_id']);
-    }
-
-    /**
-     * @param  array<string, mixed>  $filters
-     * @return array<string, mixed>
-     */
-    private function clean(array $filters): array
-    {
-        return array_filter($filters, fn (mixed $value) => $value !== null && $value !== '');
     }
 }

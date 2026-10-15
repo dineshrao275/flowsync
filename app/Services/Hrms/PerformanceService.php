@@ -13,6 +13,7 @@ use App\Models\Task;
 use App\Models\User;
 use App\Models\WorkLog;
 use App\Services\HrmsAuditLogger;
+use App\Support\Tms\TmsSchema;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
@@ -38,7 +39,9 @@ class PerformanceService
     /**
      * Re-photograph one goal's evidence. `manual` (and `none`) goals are
      * returned untouched — HR sets those percentages by hand, and a refresh
-     * that zeroed them would destroy human input on a schedule.
+     * that zeroed them would destroy human input on a schedule. TMS-backed
+     * metrics are likewise untouched when the tenant has no TMS schema: the
+     * work tables do not exist, so there is no evidence to photograph.
      */
     public function refreshGoalEvidence(PerformanceGoal $goal): PerformanceGoal
     {
@@ -47,6 +50,11 @@ class PerformanceService
         $userId = $goal->employee?->user_id;
 
         if ($userId === null) {
+            return $goal;
+        }
+
+        if (in_array($goal->metric_type, [GoalMetricType::TaskCompletion, GoalMetricType::WorklogHours], true)
+            && ! TmsSchema::present()) {
             return $goal;
         }
 

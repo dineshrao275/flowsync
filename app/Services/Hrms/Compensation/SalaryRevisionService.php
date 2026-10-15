@@ -2,7 +2,6 @@
 
 namespace App\Services\Hrms\Compensation;
 
-use App\Enums\Hrms\ApproverType;
 use App\Enums\Hrms\DocumentSource;
 use App\Enums\Hrms\DocumentStatus;
 use App\Enums\Hrms\DocumentVisibility;
@@ -14,9 +13,8 @@ use App\Models\Hrms\Payroll\EmployeeSalaryStructure;
 use App\Models\Hrms\Payroll\SalaryRevision;
 use App\Models\Hrms\Shared\HrmsSetting;
 use App\Models\User;
-use App\Services\Hrms\Employee\ReportingLine;
+use App\Services\Hrms\Approval\ChainBuilder;
 use App\Services\Hrms\Shared\ApprovalService;
-use App\Services\Hrms\Shared\ValueObjects\ApproverSpec;
 use App\Services\HrmsAuditLogger;
 use App\Support\Hrms\Money;
 use App\Support\TenantContext;
@@ -42,7 +40,7 @@ class SalaryRevisionService
     public function __construct(
         private readonly CompensationService $compensation,
         private readonly ApprovalService $approvals,
-        private readonly ReportingLine $reporting,
+        private readonly ChainBuilder $chains,
         private readonly TenantContext $context,
         private readonly HrmsAuditLogger $audit,
     ) {}
@@ -95,16 +93,15 @@ class SalaryRevisionService
             ]);
 
             if ($needsApproval) {
-                $manager = $this->reporting->managerOf($employee);
-
                 $approval = $this->approvals->request(
-                    new ApproverSpec(ApproverType::Manager, userId: $manager?->user_id, employeeId: $manager?->id),
+                    $this->chains->stepsFor('salary_revision', $employee, ['percent' => $change]),
                     $revision,
                     'compensation.revise',
                     'Salary revision',
                     ['from_ctc' => $from->toDecimal(), 'to_ctc' => $to->toDecimal()],
                     $actor,
                     $employee->id,
+                    'salary_revision',
                 );
 
                 $revision->update(['approval_id' => $approval->id]);

@@ -55,8 +55,6 @@ class CommentController extends Controller
             ipAddress: $request->ip(),
         );
 
-        $result = $this->notifications->taskCommented($request->user(), $task, $comment);
-
         broadcast(new CommentSynced($comment, 'created'));
 
         // `truncated` is true when the fan-out dropped mentions beyond the
@@ -65,7 +63,7 @@ class CommentController extends Controller
         return response()->json([
             'message' => 'Comment added.',
             'comment' => $this->present($comment->load('user', 'task:id,project_id')),
-            'truncated_mentions' => $result['truncated'],
+            'truncated_mentions' => $this->notifications->mentionsTruncated($comment->comment),
         ], 201);
     }
 

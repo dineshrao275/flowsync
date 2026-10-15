@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Controllers\Concerns\ResolvesDateRange;
 use App\Http\Controllers\Concerns\ScopesVisibleTasks;
 use App\Models\Priority;
 use App\Models\Project;
@@ -11,10 +12,10 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Carbon;
 
 class ReportsController extends Controller
 {
+    use ResolvesDateRange;
     use ScopesVisibleTasks;
 
     public function overview(Request $request): JsonResponse
@@ -110,26 +111,6 @@ class ReportsController extends Controller
      */
     private function range(Request $request): ?array
     {
-        $data = $request->validate([
-            'from' => ['sometimes', 'nullable', 'date_format:Y-m-d'],
-            'to' => ['sometimes', 'nullable', 'date_format:Y-m-d', 'after_or_equal:from'],
-        ]);
-
-        if (! isset($data['from']) && ! isset($data['to'])) {
-            return null;
-        }
-
-        $to = isset($data['to']) ? Carbon::parse($data['to']) : Carbon::today();
-        $from = isset($data['from']) ? Carbon::parse($data['from']) : $to->copy()->subDays(13);
-
-        if ($from->diffInDays($to) > 365) {
-            abort(422, 'Range covers at most 366 days.');
-        }
-
-        return [
-            'from' => $from->toDateString(),
-            'to' => $to->toDateString(),
-            'days' => $from->diffInDays($to) + 1,
-        ];
+        return $this->resolveDateRange($request, true);
     }
 }

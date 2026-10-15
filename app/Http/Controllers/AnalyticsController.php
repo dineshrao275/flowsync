@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Controllers\Concerns\ResolvesDateRange;
 use App\Http\Controllers\Concerns\ScopesVisibleTasks;
 use App\Models\Project;
 use App\Models\WorkLog;
@@ -14,6 +15,7 @@ use Illuminate\Support\Facades\DB;
 
 class AnalyticsController extends Controller
 {
+    use ResolvesDateRange;
     use ScopesVisibleTasks;
 
     public function __invoke(Request $request): JsonResponse
@@ -83,23 +85,7 @@ class AnalyticsController extends Controller
      */
     private function range(Request $request): array
     {
-        $data = $request->validate([
-            'from' => ['sometimes', 'nullable', 'date_format:Y-m-d'],
-            'to' => ['sometimes', 'nullable', 'date_format:Y-m-d', 'after_or_equal:from'],
-        ]);
-
-        $to = isset($data['to']) ? Carbon::parse($data['to']) : Carbon::today();
-        $from = isset($data['from']) ? Carbon::parse($data['from']) : $to->copy()->subDays(13);
-
-        if ($from->diffInDays($to) > 365) {
-            abort(422, 'Range covers at most 366 days.');
-        }
-
-        return [
-            'from' => $from->toDateString(),
-            'to' => $to->toDateString(),
-            'days' => $from->diffInDays($to) + 1,
-        ];
+        return $this->resolveDateRange($request);
     }
 
     private function scopeWorkspaces($user, bool $canManage): Builder

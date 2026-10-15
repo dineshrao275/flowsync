@@ -76,6 +76,9 @@ class EmployeeDocument extends Model
         'confidential',
         'source',
         'created_by',
+        'version',
+        'is_current',
+        'supersedes_id',
     ];
 
     protected function casts(): array
@@ -93,6 +96,9 @@ class EmployeeDocument extends Model
             'confidential' => 'boolean',
             'source' => DocumentSource::class,
             'created_by' => 'integer',
+            'version' => 'integer',
+            'is_current' => 'boolean',
+            'supersedes_id' => 'integer',
         ];
     }
 
@@ -117,6 +123,22 @@ class EmployeeDocument extends Model
     }
 
     /**
+     * Only the newest version of each document: a replaced file has no
+     * expiry worth warning about and does not belong in the store list.
+     *
+     * @param  Builder<EmployeeDocument>  $query
+     */
+    public function scopeCurrent(Builder $query): void
+    {
+        $query->where('is_current', true);
+    }
+
+    public function supersedes(): BelongsTo
+    {
+        return $this->belongsTo(self::class, 'supersedes_id');
+    }
+
+    /**
      * The rows expiry still applies to. A rejected document is already closed,
      * and an expired or rejected row has no future expiry to warn about — so
      * both the warning query and the expiry command read this scope rather than
@@ -136,7 +158,8 @@ class EmployeeDocument extends Model
      */
     public function scopeExpiringBy(Builder $query, Carbon $date): void
     {
-        $query->awaitingAction()
+        $query->current()
+            ->awaitingAction()
             ->whereNotNull('expires_at')
             ->whereDate('expires_at', '<=', $date->toDateString());
     }

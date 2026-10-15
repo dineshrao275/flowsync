@@ -14,10 +14,12 @@ use Tests\TestCase;
  * P12.1 — the performance management tables.
  *
  * The isolation trait migrates every tenant, so this asserts the
- * migration's own contract: the eight tables with no `tenant_id`, the
- * cycle slug and pair uniques (goal links, review summaries, feedback
- * responses), the FK actions (owned rows cascade, author links null), the
- * absence of any score column, and that a second run is a no-op.
+ * migration's own contract: the seven HRMS tables with no `tenant_id`, the
+ * cycle slug and pair uniques (review summaries, feedback responses), the
+ * FK actions (owned rows cascade, author links null), the absence of any
+ * score column, and that a second run is a no-op. `goal_task_links` is
+ * asserted too, but it arrives via the cross-product integration set (its
+ * `task_id` FKs the TMS schema), not this migration.
  */
 class HrmsPerformanceTablesTest extends TestCase
 {

@@ -13,6 +13,7 @@ use App\Models\TaskDependency;
 use App\Models\TaskStatus;
 use App\Models\User;
 use App\Models\Workspace;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Event;
 use Tests\IsolatesDatabase;
 use Tests\TestCase;
@@ -478,6 +479,59 @@ class TaskTest extends TestCase
 
         $order = $project->tasks()->where('status_id', $todo->id)->orderBy('position')->get()->pluck('key')->all();
         $this->assertSame(['WEB-3', 'WEB-1', 'WEB-2'], $order);
+    }
+
+    public function test_description_accepts_and_returns_rich_text_html(): void
+    {
+        // The description editor stores HTML: the backend must accept and
+        // return it verbatim (a future max/strip_tags refactor would
+        // silently corrupt every formatted description).
+        $ws = $this->makeWorkspace();
+        $project = $this->createProject($ws);
+        $this->login('admin@flowsync.test');
+
+        $html = '<h2>Done when</h2><ul><li>ships</li></ul>';
+
+        $task = $this->postJson("/api/projects/{$project->id}/tasks", ['title' => 'Rich', 'description' => $html])
+            ->assertCreated()
+            ->json('task');
+
+        $this->assertSame($html, $task['description']);
+
+        $this->putJson("/api/projects/{$project->id}/tasks/{$task['id']}", ['description' => '<p>edited</p>'])
+            ->assertOk()
+            ->assertJsonPath('task.description', '<p>edited</p>');
+    }
+
+    public function test_move_writes_positions_with_no_bound_parameters(): void
+    {
+        // PDO binds every parameter as text and PostgreSQL refuses to store
+        // text into the numeric `position` column (42804) — SQLite coerces,
+        // so only the statement shape is pinnable here. A `when ? then ?`
+        // rewrite passes this suite and 500s in production.
+        $ws = $this->makeWorkspace();
+        $project = $this->createProject($ws);
+        $todo = $project->statuses()->where('is_default', true)->first();
+        $a = $this->makeTask($project, 'A', ['status_id' => $todo->id]);
+        $b = $this->makeTask($project, 'B', ['status_id' => $todo->id]);
+
+        $this->login('admin@flowsync.test');
+
+        $statements = [];
+        DB::listen(function ($query) use (&$statements): void {
+            if (str_starts_with(ltrim($query->sql), 'update tasks set position')) {
+                $statements[] = $query;
+            }
+        });
+
+        $this->postJson("/api/projects/{$project->id}/tasks/{$b->id}/move", ['status_id' => $todo->id, 'index' => 0])
+            ->assertOk();
+
+        $this->assertNotEmpty($statements, 'The move issued no position rewrite.');
+        foreach ($statements as $statement) {
+            $this->assertSame([], $statement->bindings, 'Position rewrites must inline cast ints, never bind.');
+            $this->assertMatchesRegularExpression('/when \d+ then \d+/', $statement->sql);
+        }
     }
 
     public function test_move_across_columns_recomputes_and_sets_done_when_finished(): void

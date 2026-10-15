@@ -2,11 +2,11 @@
 
 namespace App\Http\Controllers\Hrms\Performance;
 
+use App\Http\Controllers\Concerns\ChecksPerformanceScope;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Hrms\FeedbackRespondRequest;
 use App\Models\Hrms\Performance\FeedbackRequest;
 use App\Models\Hrms\Performance\PerformanceCycle;
-use App\Models\User;
 use App\Services\Hrms\HrmsScope;
 use App\Services\Hrms\Performance\FeedbackService;
 use Illuminate\Http\JsonResponse;
@@ -22,6 +22,8 @@ use Illuminate\Http\Request;
  */
 class FeedbackRequestController extends Controller
 {
+    use ChecksPerformanceScope;
+
     public function __construct(private readonly FeedbackService $feedback) {}
 
     public function index(Request $request, PerformanceCycle $cycle): JsonResponse
@@ -76,11 +78,5 @@ class FeedbackRequestController extends Controller
                 ? $this->feedback->presentRequest($answered, $request->user())
                 : $this->feedback->presentRequest($feedbackRequest->refresh(), $request->user()),
         ]);
-    }
-
-    private function seesAll(User $user): bool
-    {
-        return HrmsScope::seesAll($user, 'hrms.performance')
-            || $user->hasPermission('hrms.talent.manage');
     }
 }

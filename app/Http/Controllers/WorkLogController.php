@@ -7,7 +7,6 @@ use App\Models\Task;
 use App\Models\WorkLog;
 use App\Models\Workspace;
 use App\Services\ActivityLogger;
-use App\Services\NotificationService;
 use App\Services\WorkLogService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -17,7 +16,6 @@ class WorkLogController extends Controller
     public function __construct(
         private readonly WorkLogService $service,
         private readonly ActivityLogger $logger,
-        private readonly NotificationService $notifications,
     ) {}
 
     public function index(Request $request, Project $project, Task $task): JsonResponse
@@ -61,8 +59,6 @@ class WorkLogController extends Controller
             actor: $request->user(),
             ipAddress: $request->ip(),
         );
-
-        $this->notifications->workLogAdded($request->user(), $task, $log);
 
         return response()->json([
             'message' => 'Work log added.',

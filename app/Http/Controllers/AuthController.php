@@ -9,7 +9,11 @@ use App\Models\PlatformSetting;
 use App\Models\Tenant;
 use App\Models\TenantUserRouting;
 use App\Models\User;
+use App\Services\FeatureFlags;
 use App\Services\PlatformAudit;
+use App\Services\Security\PlatformAccess;
+use App\Services\Security\TwoFactorLogin;
+use App\Services\Security\TwoFactorService;
 use App\Services\TenantLimits;
 use App\Services\TenantOnboarding;
 use App\Support\Hrms\HrmsSchema;
@@ -21,6 +25,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 
@@ -48,6 +53,12 @@ class AuthController extends Controller
             'user_id' => $user?->id,
             'tenant_id' => $tenantId,
         ], $user !== null && $user->is_super_admin ? (int) $user->id : null);
+
+        Log::info("User logged out: {$user?->email}", [
+            'user_id' => $user?->id,
+            'tenant_id' => $tenantId,
+            'ip' => $request->ip(),
+        ]);
 
         Auth::logout();
 
@@ -114,6 +125,10 @@ class AuthController extends Controller
         if ($routes->isEmpty()) {
             // Super admin (system users) or unknown email.
             if (Auth::attempt(Arr::except($credentials, ['tenant']), $request->boolean('remember'))) {
+                if ($challenge = app(TwoFactorLogin::class)->challengeIfNeeded($request, Auth::user(), null)) {
+                    return $challenge;
+                }
+
                 $request->session()->forget('login.tenant_id');
                 $request->session()->forget('impersonate');
                 $request->session()->regenerate();
@@ -124,12 +139,21 @@ class AuthController extends Controller
                     'via' => 'password',
                 ]);
 
+                Log::info("Super Admin logged in: {$email}", [
+                    'user_id' => Auth::id(),
+                    'ip' => $request->ip(),
+                ]);
+
                 return response()->json($this->payload($request));
             }
 
             app(PlatformAudit::class)->auth($request, 'auth.login_failed', [
                 'email' => $email,
                 'via' => 'password',
+            ]);
+
+            Log::warning("Failed login attempt for: {$email}", [
+                'ip' => $request->ip(),
             ]);
 
             throw ValidationException::withMessages(['email' => __('auth.failed')]);
@@ -184,6 +208,10 @@ class AuthController extends Controller
                 throw ValidationException::withMessages(['email' => 'This account has been deactivated.']);
             }
 
+            if ($challenge = app(TwoFactorLogin::class)->challengeIfNeeded($request, Auth::user(), $tenant)) {
+                return $challenge;
+            }
+
             $request->session()->put('login.tenant_id', $tenant->id);
             $request->session()->forget('impersonate');
 
@@ -196,6 +224,12 @@ class AuthController extends Controller
                 'user_id' => Auth::id(),
                 'tenant_id' => $tenant->id,
                 'via' => 'password',
+            ]);
+
+            Log::info("Tenant user logged in: {$email} [tenant: {$tenant->slug}#{$tenant->id}]", [
+                'user_id' => Auth::id(),
+                'tenant_id' => $tenant->id,
+                'ip' => $request->ip(),
             ]);
 
             return response()->json($this->payload($request));
@@ -282,6 +316,17 @@ class AuthController extends Controller
                 'impersonation_mode' => $impersonation['mode'] ?? null,
                 'impersonation_expires_at' => isset($impersonation['expires_at']) ? Carbon::createFromTimestamp($impersonation['expires_at'])->toIso8601String() : null,
                 'onboarding_complete' => ! $tenant || app(TenantOnboarding::class)->isComplete($tenant),
+                // Runtime feature flags resolved for this tenant (P8.7); the SPA only mirrors them.
+                // Platform personas (P8.3): null = unrestricted break-glass admin; otherwise the held slugs.
+                'platform' => $isSuperAdmin ? [
+                    'roles' => app(PlatformAccess::class)->roleSlugsOf($user),
+                    'permissions' => app(PlatformAccess::class)->permissionsOf($user),
+                ] : null,
+                'two_factor' => [
+                    'enabled' => app(TwoFactorService::class)->isEnabled($user),
+                    'enrollment_required' => (bool) $request->session()->get(TwoFactorLogin::ENROLL_KEY, false),
+                ],
+                'flags' => $tenant ? app(FeatureFlags::class)->allFor($tenant->id) : (object) [],
             ],
             // `mode` (light/dark/system) sits next to the colors but is not part
             // of theme.defaults, so it is merged in explicitly. A platform super

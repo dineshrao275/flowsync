@@ -12,6 +12,7 @@ use App\Services\ActivityLogger;
 use App\Services\TenantLimits;
 use App\Support\TenantContext;
 use App\Support\TenantDatabaseManager;
+use App\Support\Tms\TmsSchema;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
@@ -128,6 +129,10 @@ class AttachmentController extends Controller
         $actor = $request->query('actor');
 
         return app(TenantDatabaseManager::class)->using($tenant, function () use ($task, $attachment, $actor) {
+            // A signed link outlives a product change: a TMS-only tenant holds
+            // no attachments table, and the answer is 404, not a missing-table 500.
+            abort_unless(TmsSchema::present(), 404);
+
             $record = Attachment::query()
                 ->where('task_id', $task)
                 ->where('id', $attachment)

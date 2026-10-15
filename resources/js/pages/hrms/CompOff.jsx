@@ -11,6 +11,7 @@ import Select from '../../components/ui/Select';
 import Spinner from '../../components/ui/Spinner';
 import { Table, Th, Td } from '../../components/ui/Table';
 import { useToast } from '../../context/ToastContext';
+import { useConfirm } from '../../components/ui/ConfirmDialog';
 import { useSetCrumbs } from '../../context/BreadcrumbContext';
 import usePageTitle from '../../hooks/usePageTitle';
 import { formatMinutes } from '../../utils/time';
@@ -44,6 +45,7 @@ export default function CompOff() {
     const setCrumbs = useSetCrumbs();
     const navigate = useNavigate();
     const toast = useToast();
+    const confirm = useConfirm();
 
     const [employees, setEmployees] = useState([]);
     const [employeeId, setEmployeeId] = useState('');
@@ -162,7 +164,7 @@ export default function CompOff() {
     async function runAccrual() {
         const { from, to } = previousMonth();
 
-        if (!window.confirm(`Credit comp-off for ${from} → ${to}? Reruns credit nothing new.`)) return;
+        if (!(await confirm({ title: 'Credit comp-off?', message: `Credit comp-off for ${from} → ${to}? Reruns credit nothing new.` }))) return;
 
         setAccruing(true);
 
@@ -301,7 +303,7 @@ export default function CompOff() {
             </Card>
 
             <Modal open={!!deciding} onClose={() => setDeciding(null)} title={deciding?.verdict === 'approve' ? 'Approve comp-off' : 'Reject comp-off'}>
-                <div className="space-y-3">
+                <div className="space-y-3 px-6 py-5">
                     <p className="text-sm text-gray-500">
                         {deciding?.verdict === 'approve'
                             ? 'Approval spends the banked minutes immediately.'
@@ -319,7 +321,7 @@ export default function CompOff() {
             </Modal>
 
             <Modal open={granting} onClose={() => setGranting(false)} title="Grant comp-off">
-                <form onSubmit={submitGrant} className="space-y-3">
+                <form onSubmit={submitGrant} className="space-y-3 px-6 py-5">
                     <Select label="Employee" value={grant.employee_id} onChange={(e) => setGrant({ ...grant, employee_id: e.target.value })} error={grantErrors.employee_id}>
                         <option value="">Select…</option>
                         {employees.map((employee) => (

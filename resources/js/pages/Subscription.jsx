@@ -3,6 +3,7 @@ import { useSearchParams } from 'react-router-dom';
 import api, { fieldErrors } from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
+import { useConfirm } from '../components/ui/ConfirmDialog';
 import usePageTitle from '../hooks/usePageTitle';
 import Badge from '../components/ui/Badge';
 import Spinner from '../components/ui/Spinner';
@@ -10,6 +11,7 @@ import Alert from '../components/ui/Alert';
 import Button from '../components/ui/Button';
 import { Table, Th, Td, TableEmpty } from '../components/ui/Table';
 import { formatDate, formatPrice } from '../utils/format';
+import Timestamp from '../components/ui/Timestamp';
 
 const RESOURCES = [
     { key: 'users', label: 'Users' },
@@ -77,6 +79,7 @@ function ModuleList({ title, modules, tone }) {
 export default function Subscription() {
     usePageTitle('Subscription');
     const toast = useToast();
+    const confirm = useConfirm();
     const { user, can } = useAuth();
     const [subscription, setSubscription] = useState(null);
     const [tenant, setTenant] = useState(null);
@@ -88,6 +91,7 @@ export default function Subscription() {
     const [plans, setPlans] = useState([]);
     const [subscriptions, setSubscriptions] = useState([]);
     const [payments, setPayments] = useState([]);
+    const [invoices, setInvoices] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
     const [action, setAction] = useState(null);
@@ -102,11 +106,12 @@ export default function Subscription() {
         setLoading(true);
         setError(null);
         try {
-            const [subRes, usageRes, plansRes, historyRes] = await Promise.all([
+            const [subRes, usageRes, plansRes, historyRes, invoiceRes] = await Promise.all([
                 api.get('/my-subscription'),
                 api.get('/my-usage'),
                 api.get('/plans'),
                 api.get('/billing/history').catch(() => ({ data: { payments: [] } })),
+                api.get('/billing/invoices').catch(() => ({ data: { invoices: [] } })),
             ]);
             setSubscription(subRes.data.subscription);
             setSubscriptions(subRes.data.subscriptions || []);
@@ -118,6 +123,7 @@ export default function Subscription() {
             setModulesAvailable(usageRes.data.modules_available || []);
             setPlans(plansRes.data.plans || []);
             setPayments(historyRes.data.payments || []);
+            setInvoices(invoiceRes.data.invoices || []);
         } catch (e) {
             setError(e.response?.status === 404 ? 'No tenant context for this page.' : 'Unable to load subscription details.');
         } finally {
@@ -212,7 +218,7 @@ export default function Subscription() {
     }
 
     async function cancel(product) {
-        if (!window.confirm('Cancel the subscription at the end of the current period?')) return;
+        if (!(await confirm({ title: 'Cancel subscription?', message: 'Cancel the subscription at the end of the current period?', variant: 'danger' }))) return;
         await run(() => api.post('/my-subscription/cancel', product ? { product } : {}), 'Subscription canceled.');
     }
 
@@ -284,7 +290,7 @@ export default function Subscription() {
                         </p>
                         {subscription.canceled_at && (
                             <p className="mt-1 text-sm text-amber-600">
-                                Canceled {formatDate(subscription.canceled_at)} — access continues until the period end.
+                                Canceled <Timestamp date={subscription.canceled_at} /> — access continues until the period end.
                             </p>
                         )}
                     </>
@@ -483,7 +489,7 @@ export default function Subscription() {
                                             : '—'}
                                     </Td>
                                     <Td align="right" className="whitespace-nowrap text-xs text-gray-400">
-                                        {formatDate(e.created_at)}
+                                        <Timestamp date={e.created_at} />
                                     </Td>
                                 </tr>
                             ))}
@@ -491,6 +497,48 @@ export default function Subscription() {
                     </Table>
                 </section>
             )}
+
+            {/* P6.1: invoices, each downloadable as a PDF */}
+            <section>
+                <h3 className="mb-2 text-sm font-semibold text-gray-900">Invoices</h3>
+                {invoices.length === 0 ? (
+                    <div className="rounded-lg border border-dashed border-gray-200 bg-gray-50/60 px-4 py-6 text-center text-xs text-gray-400">
+                        No invoices yet. One is issued for every payment.
+                    </div>
+                ) : (
+                    <Table>
+                        <thead>
+                            <tr>
+                                <Th>Invoice</Th>
+                                <Th>Amount</Th>
+                                <Th>Status</Th>
+                                <Th>Issued</Th>
+                                <Th align="right">PDF</Th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {invoices.map((inv) => (
+                                <tr key={inv.id} className="transition-colors duration-150 hover:bg-gray-50/60">
+                                    <Td className="font-mono text-xs text-gray-600">{inv.number}</Td>
+                                    <Td className="font-medium text-gray-900">{inv.formatted_total}</Td>
+                                    <Td>
+                                        <Badge>{inv.status}</Badge>
+                                    </Td>
+                                    <Td className="whitespace-nowrap text-xs text-gray-500"><Timestamp date={inv.issued_at} /></Td>
+                                    <Td align="right">
+                                        <a
+                                            href={`/api/billing/invoices/${inv.id}/pdf`}
+                                            className="text-xs font-medium text-indigo-600 hover:underline"
+                                        >
+                                            Download
+                                        </a>
+                                    </Td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </Table>
+                )}
+            </section>
 
             {/* Phase 6: Real billing history table */}
             <section>
@@ -525,7 +573,7 @@ export default function Subscription() {
                                         <Badge>{p.status}</Badge>
                                     </Td>
                                     <Td align="right" className="whitespace-nowrap text-xs text-gray-400">
-                                        {formatDate(p.created_at)}
+                                        <Timestamp date={p.created_at} />
                                     </Td>
                                 </tr>
                             ))}

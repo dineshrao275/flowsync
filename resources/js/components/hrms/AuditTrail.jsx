@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import Timestamp from '../ui/Timestamp';
 
 /** Shortens a stored morph class (`App\Models\…\Employee`) to its basename. */
 export function shortSubjectType(subjectType) {
@@ -75,7 +76,14 @@ export default function AuditTrail({ rows }) {
                         </span>
                         <span className="ml-auto text-xs text-gray-400">
                             {row.actor?.name ?? 'System'}
-                            {row.created_at ? ` · ${new Date(row.created_at).toLocaleString()}` : ''}
+                            {row.created_at ? (
+                                <>
+                                    {' · '}
+                                    <Timestamp date={row.created_at} />
+                                </>
+                            ) : (
+                                ''
+                            )}
                         </span>
                     </button>
                     {openId === row.id && (

@@ -33,6 +33,12 @@ return [
         'ttl_minutes' => (int) env('IMPERSONATION_TTL_MINUTES', 30),
     ],
 
+    // Tenant-granted support access windows (P8.4): ceilings a tenant admin cannot exceed.
+    'support_access' => [
+        'max_hours' => (int) env('SUPPORT_ACCESS_MAX_HOURS', 72),
+        'max_session_minutes' => (int) env('SUPPORT_ACCESS_MAX_SESSION_MINUTES', 120),
+    ],
+
     'tenant' => [
         'connection' => 'tenant',
         'db_prefix' => env('TENANT_DB_PREFIX', 'flowsync_tenant_'),

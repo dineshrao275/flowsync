@@ -10,6 +10,7 @@ import Input from '../components/ui/Input';
 import AccessExplainer from '../components/AccessExplainer';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
+import { useConfirm } from '../components/ui/ConfirmDialog';
 import { useSetCrumbs } from '../context/BreadcrumbContext';
 import usePageTitle from '../hooks/usePageTitle';
 
@@ -18,6 +19,7 @@ export default function UserEdit() {
     const { userId } = useParams();
     const navigate = useNavigate();
     const toast = useToast();
+    const confirm = useConfirm();
     const setCrumbs = useSetCrumbs();
     const { can, user: me } = useAuth();
     const manageable = can('users.manage');
@@ -91,7 +93,7 @@ export default function UserEdit() {
     }
 
     async function remove() {
-        if (!window.confirm(`Delete ${user.name}? This cannot be undone.`)) return;
+        if (!(await confirm({ title: 'Delete user?', message: `Delete ${user.name}? This cannot be undone.`, variant: 'danger' }))) return;
         try {
             await api.delete(`/users/${userId}`);
             toast.success(`${user.name} was deleted.`);

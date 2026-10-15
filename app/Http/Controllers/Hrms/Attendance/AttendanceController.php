@@ -2,9 +2,12 @@
 
 namespace App\Http\Controllers\Hrms\Attendance;
 
+use App\Enums\Hrms\PunchDirection;
+use App\Enums\Hrms\PunchKind;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Hrms\Attendance\AttendancePunchRequest;
 use App\Http\Requests\Hrms\Attendance\AttendanceSettingsRequest;
+use App\Models\Hrms\Attendance\AttendancePunch;
 use App\Models\Hrms\Employee\Employee;
 use App\Models\Hrms\Shared\HrmsSetting;
 use App\Services\Hrms\Attendance\DayPresenter;
@@ -88,6 +91,9 @@ class AttendanceController extends Controller
 
         abort_if($employee === null, 404, 'There is no employment record for this login to punch with.');
 
+        // The tenant can switch remote clock-in off; the toggle is meaningless otherwise.
+        abort_if(HrmsSetting::current()->setting('remote_clock_in.enabled') === false, 403, 'Remote clock-in is switched off for this workspace.');
+
         $validated = $request->validated();
 
         $punch = $this->attendance->punch(
@@ -96,6 +102,7 @@ class AttendanceController extends Controller
             $validated['source'] ?? 'web',
             [
                 'punch_at' => $validated['punch_at'] ?? null,
+                'kind' => $validated['kind'] ?? 'work',
                 'lat' => isset($validated['lat']) ? (float) $validated['lat'] : null,
                 'lng' => isset($validated['lng']) ? (float) $validated['lng'] : null,
                 'ip' => $request->ip(),
@@ -109,9 +116,18 @@ class AttendanceController extends Controller
         $day = $this->attendance->dayForPunch($employee, $punch);
 
         return response()->json([
-            'message' => $punch->direction->value === 'in' ? 'Clocked in.' : 'Clocked out.',
+            'message' => $this->punchMessage($punch),
             'punch' => $this->presenter->punch($punch),
             'day' => $this->presenter->day($day),
         ], Response::HTTP_CREATED);
+    }
+
+    private function punchMessage(AttendancePunch $punch): string
+    {
+        if ($punch->kind === PunchKind::Break) {
+            return $punch->direction === PunchDirection::Out ? 'Break started.' : 'Break ended.';
+        }
+
+        return $punch->direction === PunchDirection::In ? 'Clocked in.' : 'Clocked out.';
     }
 }

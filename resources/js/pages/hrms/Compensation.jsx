@@ -12,6 +12,7 @@ import Spinner from '../../components/ui/Spinner';
 import { Table, Th, Td } from '../../components/ui/Table';
 import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
+import { useConfirm } from '../../components/ui/ConfirmDialog';
 import { useSetCrumbs } from '../../context/BreadcrumbContext';
 import usePageTitle from '../../hooks/usePageTitle';
 
@@ -47,6 +48,7 @@ export default function Compensation() {
     const navigate = useNavigate();
     const { can } = useAuth();
     const toast = useToast();
+    const confirm = useConfirm();
 
     const canManage = can('hrms.compensation.manage');
 
@@ -176,7 +178,7 @@ export default function Compensation() {
     }
 
     async function deleteHead(head) {
-        if (!window.confirm(`Delete “${head.name}”? Starter and in-use heads refuse.`)) return;
+        if (!(await confirm({ title: 'Delete head?', message: `Delete “${head.name}”? Starter and in-use heads refuse.`, variant: 'danger' }))) return;
 
         try {
             await api.delete(`/hrms/payroll/components/${head.id}`);
@@ -233,7 +235,7 @@ export default function Compensation() {
     }
 
     async function deleteTemplate(template) {
-        if (!window.confirm(`Delete “${template.name}”? Priced templates refuse — deactivate instead.`)) return;
+        if (!(await confirm({ title: 'Delete template?', message: `Delete “${template.name}”? Priced templates refuse — deactivate instead.`, variant: 'danger' }))) return;
 
         try {
             await api.delete(`/hrms/payroll/structures/${template.id}`);
@@ -430,7 +432,7 @@ export default function Compensation() {
             </Card>
 
             <Modal open={headModal} onClose={() => setHeadModal(false)} title={editingHead ? 'Edit pay head' : 'New pay head'}>
-                <form onSubmit={saveHead} className="grid gap-3">
+                <form onSubmit={saveHead} className="grid gap-3 px-6 py-5">
                     <Input label="Name" value={headForm.name} error={headErrors.name} onChange={(e) => setHeadForm({ ...headForm, name: e.target.value })} required />
                     <Input label="Code" value={headForm.code} error={headErrors.code} onChange={(e) => setHeadForm({ ...headForm, code: e.target.value })} />
                     <div className="grid grid-cols-2 gap-3">
@@ -452,7 +454,7 @@ export default function Compensation() {
             </Modal>
 
             <Modal open={templateModal} onClose={() => setTemplateModal(false)} title="New salary template">
-                <form onSubmit={saveTemplate} className="grid gap-3">
+                <form onSubmit={saveTemplate} className="grid gap-3 px-6 py-5">
                     <Input label="Name" value={templateForm.name} error={templateErrors.name} onChange={(e) => setTemplateForm({ ...templateForm, name: e.target.value })} required />
                     <div className="grid grid-cols-2 gap-3">
                         <Input label="Currency" value={templateForm.currency} error={templateErrors.currency} onChange={(e) => setTemplateForm({ ...templateForm, currency: e.target.value })} maxLength={3} />
@@ -464,7 +466,7 @@ export default function Compensation() {
             </Modal>
 
             <Modal open={!!openTemplate} onClose={() => setOpenTemplate(null)} title={`Heads — ${openTemplate?.name ?? ''}`} subtitle="The whole set, replaced in one save.">
-                <div className="grid gap-2">
+                <div className="grid gap-2 px-6 py-5">
                     {(heads ?? []).map((head) => {
                         const row = linkForm.find((r) => r.component_id === head.id);
                         return (

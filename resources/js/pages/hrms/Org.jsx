@@ -7,6 +7,7 @@ import Card from '../../components/ui/Card';
 import EmptyState from '../../components/ui/EmptyState';
 import Spinner from '../../components/ui/Spinner';
 import DepartmentTreeColumn from '../../components/hrms/DepartmentTreeColumn';
+import RichText from '../../components/ui/RichText';
 import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
 import { useSetCrumbs } from '../../context/BreadcrumbContext';
@@ -15,6 +16,7 @@ import DepartmentFormModal from './DepartmentFormModal';
 import DepartmentMembersPanel from './DepartmentMembersPanel';
 import DesignationFormModal from './DesignationFormModal';
 import LocationFormModal from './LocationFormModal';
+import { useConfirm } from '../../components/ui/ConfirmDialog';
 
 /**
  * The org page: a department tree on the left, whatever the selection is on the
@@ -307,8 +309,16 @@ function DepartmentPanel({
     onChanged,
 }) {
     const toast = useToast();
+    const confirm = useConfirm();
 
     async function retire() {
+        if (!(await confirm({
+            title: 'Deactivate department?',
+            message: `Deactivate ${department.name}? Inactive departments cannot receive new members.`,
+            variant: 'danger',
+            confirmLabel: 'Deactivate',
+        }))) return;
+
         try {
             await api.post(`/hrms/departments/${department.id}/deactivate`);
             toast.success(`${department.name} deactivated.`);
@@ -337,7 +347,7 @@ function DepartmentPanel({
                             {department.employees_count} here · {department.children_count} sub-departments
                         </p>
                         {department.description && (
-                            <p className="mt-2 text-sm text-gray-600">{department.description}</p>
+                            <RichText value={department.description} className="mt-2 text-gray-600" />
                         )}
                     </div>
 

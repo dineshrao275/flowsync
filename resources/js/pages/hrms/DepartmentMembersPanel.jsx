@@ -8,6 +8,7 @@ import Input from '../../components/ui/Input';
 import Spinner from '../../components/ui/Spinner';
 import { useToast } from '../../context/ToastContext';
 import { employeeUrl } from '../../utils/deepLinks';
+import { useConfirm } from '../../components/ui/ConfirmDialog';
 
 /**
  * The people sitting in one department, and the control that moves them in or
@@ -28,6 +29,7 @@ import { employeeUrl } from '../../utils/deepLinks';
  */
 export default function DepartmentMembersPanel({ department, canManage, onChanged }) {
     const toast = useToast();
+    const confirm = useConfirm();
 
     const [data, setData] = useState(null);
     const [error, setError] = useState(null);
@@ -109,6 +111,13 @@ export default function DepartmentMembersPanel({ department, canManage, onChange
     }
 
     async function remove(employee) {
+        if (!(await confirm({
+            title: 'Remove member?',
+            message: `Remove ${employee.display_name} from ${department.name}?`,
+            variant: 'danger',
+            confirmLabel: 'Remove',
+        }))) return;
+
         setBusy(true);
 
         try {

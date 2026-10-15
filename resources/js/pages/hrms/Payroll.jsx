@@ -176,7 +176,7 @@ export default function Payroll() {
             )}
 
             <Modal open={modal} onClose={() => setModal(false)} title="Open a pay run" subtitle="One run prices one calendar month.">
-                <form onSubmit={openRun} className="grid gap-3 sm:grid-cols-2">
+                <form onSubmit={openRun} className="grid gap-3 px-6 py-5 sm:grid-cols-2">
                     <Input label="Year" value={form.period_year} error={formErrors.period_year} onChange={(e) => setForm({ ...form, period_year: e.target.value })} required />
                     <Input label="Month (1–12)" value={form.period_month} error={formErrors.period_month} onChange={(e) => setForm({ ...form, period_month: e.target.value })} required />
                     <Input label="Period start" type="date" value={form.pay_period_start} error={formErrors.pay_period_start} onChange={(e) => setForm({ ...form, pay_period_start: e.target.value })} required />

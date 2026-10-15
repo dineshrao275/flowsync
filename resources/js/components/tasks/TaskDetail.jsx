@@ -13,7 +13,9 @@ import ActivityFeed from './ActivityFeed';
 import WorkLogPanel from './WorkLogPanel';
 import TaskLinkPanel from '../hrms/TaskLinkPanel';
 import { useAuth } from '../../context/AuthContext';
-import { fieldClass } from '../ui/fieldStyles';
+import RichTextEditor from '../ui/RichTextEditor';
+import RichText from '../ui/RichText';
+import Timestamp from '../ui/Timestamp';
 
 export default function TaskDetail({
     task,
@@ -22,6 +24,7 @@ export default function TaskDetail({
     options,
     topLevelTasks,
     initialSection,
+    initialCommentId = null,
     canEdit,
     canAssign,
     canDelete,
@@ -51,6 +54,7 @@ export default function TaskDetail({
                       description: task.description || '',
                       issue_type_id: task.issue_type_id ?? task.issue_type?.id ?? '',
                       version_id: task.version_id ?? task.version?.id ?? '',
+                      epic_id: task.epic_id ?? '',
                       components: task.components?.map((c) => c.id) || [],
                       status_id: task.status_id,
                       priority_id: task.priority_id ?? '',
@@ -146,6 +150,7 @@ export default function TaskDetail({
             ...form,
             issue_type_id: form.issue_type_id || null,
             version_id: form.version_id || null,
+            epic_id: form.epic_id || null,
             components: form.components,
             assignee_id: form.assignee_id || null,
             parent_id: form.parent_id || null,
@@ -239,14 +244,18 @@ export default function TaskDetail({
                                 <div className="space-y-4 sm:col-span-2">
                                     <div>
                                         <label className="mb-1.5 block text-sm font-medium text-gray-700">Description</label>
-                                        <textarea
-                                            rows="5"
-                                            className={`${fieldClass} min-h-32`}
-                                            value={form.description}
-                                            placeholder="Context, acceptance criteria…"
-                                            onChange={(e) => set('description', e.target.value)}
-                                            disabled={!canEdit}
-                                        />
+                                        {canEdit ? (
+                                            <RichTextEditor
+                                                value={form.description}
+                                                onChange={(html) => set('description', html)}
+                                                placeholder="Context, acceptance criteria…"
+                                                error={errors.description}
+                                            />
+                                        ) : form.description ? (
+                                            <RichText value={form.description} />
+                                        ) : (
+                                            <p className="text-sm text-gray-400">No description</p>
+                                        )}
                                     </div>
 
                                     {options.components?.length > 0 && (
@@ -348,6 +357,21 @@ export default function TaskDetail({
                                                 <option key={v.id} value={v.id}>
                                                     {v.name}
                                                 </option>
+                                            ))}
+                                        </Select>
+                                    )}
+
+                                    {options.epics?.length > 0 && (
+                                        <Select
+                                            label="Epic"
+                                            value={form.epic_id}
+                                            onChange={(e) => set('epic_id', e.target.value)}
+                                            disabled={!canEdit}
+                                            error={errors.epic_id}
+                                        >
+                                            <option value="">No epic</option>
+                                            {options.epics.filter((e) => e.id !== task.id).map((e) => (
+                                                <option key={e.id} value={e.id}>{e.key} · {e.title}</option>
                                             ))}
                                         </Select>
                                     )}
@@ -499,7 +523,7 @@ export default function TaskDetail({
                                         <div className="flex items-center justify-between gap-2">
                                             <dt className="text-xs uppercase tracking-wide text-gray-400">Created</dt>
                                             <dd className="font-medium text-gray-700">
-                                                {task.created_at ? new Date(task.created_at).toLocaleDateString() : '—'}
+                                                <Timestamp date={task.created_at} />
                                             </dd>
                                         </div>
                                     </dl>
@@ -509,7 +533,12 @@ export default function TaskDetail({
                     ) : (
                         <div className="px-6 py-5">
                             {tab === 'comments' && (
-                                <CommentThread task={task} projectId={projectId} isManager={isCollabManager} />
+                                <CommentThread
+                                    task={task}
+                                    projectId={projectId}
+                                    isManager={isCollabManager}
+                                    targetCommentId={initialCommentId}
+                                />
                             )}
                             {tab === 'attachments' && (
                                 <AttachmentList

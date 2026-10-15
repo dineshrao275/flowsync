@@ -1,7 +1,9 @@
 import { useState } from 'react';
 import Button from '../ui/Button';
 import Alert from '../ui/Alert';
-import { formatDateTime } from '../../utils/format';
+import Timestamp from '../ui/Timestamp';
+import RichTextEditor from '../ui/RichTextEditor';
+import RichText, { stripRichText } from '../ui/RichText';
 
 export const STATUS_LABELS = {
     open: 'Open', in_progress: 'In progress', waiting_on_customer: 'Waiting on customer', resolved: 'Resolved', closed: 'Closed',
@@ -24,7 +26,7 @@ export default function TicketThread({ messages, onSend, disabled = false, allow
 
     async function submit(e) {
         e.preventDefault();
-        if (!body.trim()) return;
+        if (!stripRichText(body).trim()) return;
         setSending(true);
         try {
             const ok = await onSend(body, internal);
@@ -46,9 +48,9 @@ export default function TicketThread({ messages, onSend, disabled = false, allow
                             <span className="font-semibold text-gray-800">{m.author_name}</span>
                             <span>{m.author_type === 'staff' ? 'Support' : 'Customer'}</span>
                             {m.is_internal && <span className="rounded bg-amber-200 px-1.5 py-0.5 font-medium text-amber-900">Internal note</span>}
-                            <span className="ml-auto">{formatDateTime(m.created_at)}</span>
+                            <span className="ml-auto"><Timestamp date={m.created_at} /></span>
                         </div>
-                        <p className="whitespace-pre-wrap text-gray-800">{m.body}</p>
+                        <RichText value={m.body} className="whitespace-pre-wrap text-gray-800" />
                     </li>
                 ))}
             </ol>
@@ -56,14 +58,15 @@ export default function TicketThread({ messages, onSend, disabled = false, allow
                 <Alert type="info">This ticket is closed.</Alert>
             ) : (
                 <form onSubmit={submit} className="space-y-2">
-                    <textarea
-                        value={body} onChange={(e) => setBody(e.target.value)} rows={4} placeholder={internal ? 'Internal note (the customer never sees this)…' : 'Write a reply…'}
-                        className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200"
+                    <RichTextEditor
+                        value={body}
+                        onChange={setBody}
+                        placeholder={internal ? 'Internal note (the customer never sees this)…' : 'Write a reply…'}
+                        error={errors.body}
                     />
-                    {errors.body && <p className="text-sm text-red-600">{errors.body}</p>}
                     <Alert>{errors.form}</Alert>
                     <div className="flex flex-wrap items-center gap-3">
-                        <Button type="submit" loading={sending} disabled={!body.trim()}>{internal ? 'Add note' : 'Send reply'}</Button>
+                        <Button type="submit" loading={sending} disabled={!stripRichText(body).trim()}>{internal ? 'Add note' : 'Send reply'}</Button>
                         {allowInternal && (
                             <label className="flex items-center gap-2 text-sm text-gray-600">
                                 <input type="checkbox" checked={internal} onChange={(e) => setInternal(e.target.checked)} /> Internal note

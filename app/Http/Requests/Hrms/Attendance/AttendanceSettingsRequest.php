@@ -36,6 +36,7 @@ class AttendanceSettingsRequest extends FormRequest
             'remote_clock_in.allowed_ips' => ['sometimes', 'array'],
             'remote_clock_in.allowed_ips.*' => ['string', 'max:64'],
             'remote_clock_in.require_geofence' => ['sometimes', 'boolean'],
+            'remote_clock_in.out_of_range_action' => ['sometimes', 'string', 'in:flag,block'],
             'remote_clock_in.max_distance_meters' => ['sometimes', 'nullable', 'integer', 'min:0', 'max:100000'],
         ];
     }

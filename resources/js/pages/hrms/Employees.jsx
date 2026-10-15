@@ -15,6 +15,7 @@ import { useSetCrumbs } from '../../context/BreadcrumbContext';
 import usePageTitle from '../../hooks/usePageTitle';
 import { employeeUrl } from '../../utils/deepLinks';
 import EmployeeFormModal from './EmployeeFormModal';
+import EmployeeBulkModal from '../../components/hrms/EmployeeBulkModal';
 
 /**
  * The employee directory.
@@ -60,6 +61,7 @@ export default function Employees() {
     const [error, setError] = useState(null);
     const [creating, setCreating] = useState(false);
     const [saving, setSaving] = useState(false);
+    const [bulk, setBulk] = useState(null);
 
     useEffect(() => {
         setCrumbs([{ label: 'HRMS', to: '/hrms' }, { label: 'Employees' }]);
@@ -151,7 +153,11 @@ export default function Employees() {
                 </div>
 
                 {canCreate && (
-                    <Button onClick={() => setCreating(true)}>New employee</Button>
+                    <div className="flex flex-wrap gap-2">
+                        <Button variant="secondary" onClick={() => setBulk('import')}>Import CSV</Button>
+                        <Button variant="secondary" onClick={() => setBulk('status')}>Bulk status</Button>
+                        <Button onClick={() => setCreating(true)}>New employee</Button>
+                    </div>
                 )}
             </div>
 
@@ -335,6 +341,17 @@ export default function Employees() {
                     pages={data.pagination.last_page}
                     total={data.pagination.total}
                     onChange={setPage}
+                />
+            )}
+
+            {bulk && (
+                <EmployeeBulkModal
+                    mode={bulk}
+                    onClose={() => setBulk(null)}
+                    onDone={() => {
+                        setBulk(null);
+                        load(page, filters);
+                    }}
                 />
             )}
 

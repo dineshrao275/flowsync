@@ -5,7 +5,7 @@ import Input from '../ui/Input';
 import Select from '../ui/Select';
 import Modal from '../ui/Modal';
 import Alert from '../ui/Alert';
-import { fieldClass } from '../ui/fieldStyles';
+import RichTextEditor from '../ui/RichTextEditor';
 
 export default function CreateTaskModal({ options, topLevelTasks, projectKey, saving, onClose, onCreate }) {
     const [form, setForm] = useState({
@@ -13,6 +13,7 @@ export default function CreateTaskModal({ options, topLevelTasks, projectKey, sa
         description: '',
         issue_type_id: options.issue_types?.find((t) => !t.is_subtask)?.id ?? options.issue_types?.[0]?.id ?? '',
         version_id: '',
+        epic_id: '',
         components: [],
         status_id: options.statuses.find((s) => s.is_default)?.id ?? options.statuses[0]?.id ?? '',
         priority_id: options.priorities.find((p) => p.is_default)?.id ?? '',
@@ -51,6 +52,7 @@ export default function CreateTaskModal({ options, topLevelTasks, projectKey, sa
             ...form,
             issue_type_id: form.issue_type_id || null,
             version_id: form.version_id || null,
+            epic_id: form.epic_id || null,
             components: form.components,
             assignee_id: form.assignee_id || null,
             parent_id: form.parent_id || null,
@@ -109,6 +111,14 @@ export default function CreateTaskModal({ options, topLevelTasks, projectKey, sa
                         <div />
                     )}
                 </div>
+                {options.epics?.length > 0 && (
+                    <Select label="Epic" value={form.epic_id} onChange={(e) => set('epic_id', e.target.value)} error={errors.epic_id}>
+                        <option value="">No epic</option>
+                        {options.epics.map((e) => (
+                            <option key={e.id} value={e.id}>{e.key} · {e.title}</option>
+                        ))}
+                    </Select>
+                )}
                 <div className="grid gap-4 sm:grid-cols-2">
                     <Select
                         label="Status"
@@ -166,12 +176,11 @@ export default function CreateTaskModal({ options, topLevelTasks, projectKey, sa
                 </div>
                 <div>
                     <label className="mb-1.5 block text-sm font-medium text-gray-700">Description</label>
-                    <textarea
-                        className={`${fieldClass} min-h-20`}
-                        rows="3"
+                    <RichTextEditor
                         value={form.description}
-                        onChange={(e) => set('description', e.target.value)}
+                        onChange={(html) => set('description', html)}
                         placeholder="Context, acceptance criteria…"
+                        error={errors.description}
                     />
                 </div>
                 {options.components?.length > 0 && (

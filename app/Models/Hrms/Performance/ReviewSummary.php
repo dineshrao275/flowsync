@@ -5,6 +5,7 @@ namespace App\Models\Hrms\Performance;
 use App\Enums\Hrms\ReviewStatus;
 use App\Enums\Hrms\ReviewVisibility;
 use App\Models\Hrms\Employee\Employee;
+use App\Models\User;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
@@ -35,6 +36,9 @@ class ReviewSummary extends Model
         'submitted_at',
         'acknowledged_at',
         'manager_employee_id',
+        'calibrated_rating',
+        'calibrated_by',
+        'calibrated_at',
     ];
 
     protected function casts(): array
@@ -50,7 +54,15 @@ class ReviewSummary extends Model
             'submitted_at' => 'datetime',
             'acknowledged_at' => 'datetime',
             'manager_employee_id' => 'integer',
+            'calibrated_rating' => 'integer',
+            'calibrated_by' => 'integer',
+            'calibrated_at' => 'datetime',
         ];
+    }
+
+    public function calibratedBy(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'calibrated_by');
     }
 
     public function cycle(): BelongsTo

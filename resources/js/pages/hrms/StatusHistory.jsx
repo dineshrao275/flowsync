@@ -1,5 +1,6 @@
 import Avatar from '../../components/ui/Avatar';
 import Card from '../../components/ui/Card';
+import Timestamp from '../../components/ui/Timestamp';
 
 /**
  * The status ledger: every transition this record has been through, newest
@@ -29,7 +30,7 @@ export default function StatusHistory({ history }) {
                                     {entry.to_status_label}
                                 </span>
                                 <span className="whitespace-nowrap text-xs text-gray-400">
-                                    {formatWhen(entry.effective_date ?? entry.created_at)}
+                                    <Timestamp date={entry.effective_date ?? entry.created_at} />
                                 </span>
                             </div>
 
@@ -49,26 +50,4 @@ export default function StatusHistory({ history }) {
             )}
         </Card>
     );
-}
-
-/**
- * A date, or a date and time when the value carries one.
- *
- * A history row is an audit record, so it is never reduced to "x days ago" — the
- * exact day is the part someone reads when they ask who moved a person and when.
- */
-function formatWhen(value) {
-    if (!value) return '—';
-
-    const date = new Date(value);
-
-    if (Number.isNaN(date.getTime())) return value;
-
-    return date.toLocaleString(undefined, {
-        year: 'numeric',
-        month: 'short',
-        day: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit',
-    });
 }

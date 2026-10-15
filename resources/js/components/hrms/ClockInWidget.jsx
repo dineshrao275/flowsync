@@ -37,6 +37,7 @@ export default function ClockInWidget({ today, punching, onPunch, allowPunch = t
 
     const punches = today.punches ?? [];
     const last = punches[punches.length - 1] ?? null;
+    const onBreak = last?.kind === 'break' && last?.direction === 'out';
     const next = last?.direction === 'in' ? 'out' : 'in';
     const flagged = punches.filter((punch) => punch.is_out_of_range);
 
@@ -52,9 +53,24 @@ export default function ClockInWidget({ today, punching, onPunch, allowPunch = t
                                 : 'No day record yet'}
                         </p>
                     </div>
-                    <Button onClick={() => onPunch(next)} disabled={punching || !allowPunch} title={allowPunch ? null : 'You can only clock yourself in'}>
-                        {punching ? 'Punching…' : next === 'in' ? 'Clock in' : 'Clock out'}
-                    </Button>
+                    <div className="flex gap-2">
+                        {onBreak ? (
+                            <Button onClick={() => onPunch('in', 'break')} disabled={punching || !allowPunch}>
+                                {punching ? 'Punching…' : 'End break'}
+                            </Button>
+                        ) : (
+                            <>
+                                {next === 'out' && (
+                                    <Button variant="secondary" onClick={() => onPunch('out', 'break')} disabled={punching || !allowPunch}>
+                                        Start break
+                                    </Button>
+                                )}
+                                <Button onClick={() => onPunch(next)} disabled={punching || !allowPunch} title={allowPunch ? null : 'You can only clock yourself in'}>
+                                    {punching ? 'Punching…' : next === 'in' ? 'Clock in' : 'Clock out'}
+                                </Button>
+                            </>
+                        )}
+                    </div>
                 </div>
 
                 {flagged.length > 0 && (
@@ -69,7 +85,9 @@ export default function ClockInWidget({ today, punching, onPunch, allowPunch = t
                     <ul className="divide-y divide-gray-100">
                         {punches.map((punch) => (
                             <li key={punch.id} className="flex items-center justify-between py-1.5 text-sm">
-                                <span className="font-medium capitalize text-gray-700">{punch.direction}</span>
+                                <span className="font-medium capitalize text-gray-700">
+                                    {punch.kind === 'break' ? (punch.direction === 'out' ? 'break start' : 'break end') : punch.direction}
+                                </span>
                                 <span className="text-gray-500">
                                     {clockTime(punch.punch_at)}
                                     {punch.is_out_of_range && <span className="ml-1 text-amber-600">· flagged</span>}

@@ -5,10 +5,14 @@ import Alert from '../ui/Alert';
 import Spinner from '../ui/Spinner';
 import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
+import { useConfirm, usePrompt } from '../ui/ConfirmDialog';
+import Timestamp from '../ui/Timestamp';
 
-export default function CommentThread({ task, projectId, isManager }) {
+export default function CommentThread({ task, projectId, isManager, targetCommentId = null }) {
     const { user } = useAuth();
     const toast = useToast();
+    const confirm = useConfirm();
+    const prompt = usePrompt();
     const [comments, setComments] = useState(null);
     const [error, setError] = useState(null);
     const [newComment, setNewComment] = useState('');
@@ -48,6 +52,26 @@ export default function CommentThread({ task, projectId, isManager }) {
     }, [fetchComments, projectId]);
 
     useEffect(() => () => clearTimeout(debounceRef.current), []);
+
+    const lastScrolledCommentRef = useRef(null);
+
+    useEffect(() => {
+        if (!comments || !targetCommentId || lastScrolledCommentRef.current === targetCommentId) return;
+
+        const timer = setTimeout(() => {
+            const el = document.getElementById(`comment-${targetCommentId}`);
+            if (el) {
+                lastScrolledCommentRef.current = targetCommentId;
+                el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                el.classList.add('ring-2', 'ring-indigo-500', 'bg-indigo-50/70', 'transition-all', 'duration-500');
+                setTimeout(() => {
+                    el.classList.remove('ring-2', 'ring-indigo-500', 'bg-indigo-50/70');
+                }, 3000);
+            }
+        }, 120);
+
+        return () => clearTimeout(timer);
+    }, [comments, targetCommentId]);
 
     function closeSuggestions() {
         setSugField(null);
@@ -162,16 +186,24 @@ export default function CommentThread({ task, projectId, isManager }) {
             .finally(() => setBusy(false));
     }
 
-    function editComment(id) {
-        const next = window.prompt('Edit comment:');
-        if (!next) return;
+    async function editComment(id, currentComment = '') {
+        const next = await prompt({
+            title: 'Edit comment',
+            message: 'Update your comment below:',
+            defaultValue: currentComment,
+            placeholder: 'Write comment…',
+            multiline: true,
+            required: true,
+            confirmLabel: 'Save',
+        });
+        if (!next || !next.trim()) return;
         api.put(`/projects/${projectId}/tasks/${task.id}/comments/${id}`, { comment: next.trim() })
             .then(fetchComments)
             .catch(() => {});
     }
 
-    function deleteComment(id) {
-        if (!window.confirm('Delete this comment?')) return;
+    async function deleteComment(id) {
+        if (!(await confirm({ title: 'Delete comment?', message: 'Delete this comment?', variant: 'danger' }))) return;
         api.delete(`/projects/${projectId}/tasks/${task.id}/comments/${id}`)
             .then(fetchComments)
             .catch(() => {});
@@ -213,12 +245,12 @@ export default function CommentThread({ task, projectId, isManager }) {
                         const own = comment.user?.id && comment.user.id === user?.id;
                         const canEdit = own || isManager;
                         return (
-                            <li key={comment.id} className="rounded-lg border border-gray-100 px-3 py-2.5">
+                            <li key={comment.id} id={`comment-${comment.id}`} className="rounded-lg border border-gray-100 px-3 py-2.5 transition-all">
                                 <div className="flex items-start justify-between gap-2">
                                     <div className="min-w-0">
                                         <p className="text-xs text-gray-400">
                                             <span className="font-semibold text-gray-700">{comment.user?.name ?? 'Unknown'}</span>
-                                            {comment.edited_at ? ' · edited' : ''} · {new Date(comment.created_at).toLocaleString()}
+                                            {comment.edited_at ? ' · edited' : ''} · <Timestamp date={comment.created_at} />
                                         </p>
                                         <p className="mt-1 whitespace-pre-wrap text-sm text-gray-800">{comment.comment}</p>
                                     </div>
@@ -228,7 +260,7 @@ export default function CommentThread({ task, projectId, isManager }) {
                                                 <button
                                                     type="button"
                                                     className="text-xs text-gray-400 transition hover:text-indigo-600"
-                                                    onClick={() => editComment(comment.id)}
+                                                    onClick={() => editComment(comment.id, comment.comment)}
                                                 >
                                                     Edit
                                                 </button>
@@ -254,10 +286,10 @@ export default function CommentThread({ task, projectId, isManager }) {
                                 {comment.replies?.length > 0 && (
                                     <ul className="mt-3 space-y-2 border-l-2 border-gray-100 pl-3">
                                         {comment.replies.map((reply) => (
-                                            <li key={reply.id}>
+                                            <li key={reply.id} id={`comment-${reply.id}`} className="rounded-md p-1.5 transition-all">
                                                 <p className="text-xs text-gray-400">
                                                     <span className="font-semibold text-gray-700">{reply.user?.name ?? 'Unknown'}</span>
-                                                    {reply.edited_at ? ' · edited' : ''} · {new Date(reply.created_at).toLocaleString()}
+                                                    {reply.edited_at ? ' · edited' : ''} · <Timestamp date={reply.created_at} />
                                                 </p>
                                                 <p className="mt-0.5 whitespace-pre-wrap text-sm text-gray-700">{reply.comment}</p>
                                                 {(reply.user?.id && reply.user.id === user?.id) || isManager ? (
@@ -265,7 +297,7 @@ export default function CommentThread({ task, projectId, isManager }) {
                                                         <button
                                                             type="button"
                                                             className="text-xs text-gray-400 transition hover:text-indigo-600"
-                                                            onClick={() => editComment(reply.id)}
+                                                            onClick={() => editComment(reply.id, reply.comment)}
                                                         >
                                                             Edit
                                                         </button>

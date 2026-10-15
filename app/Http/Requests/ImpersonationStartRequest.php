@@ -22,6 +22,8 @@ class ImpersonationStartRequest extends FormRequest
             'reason' => ['required', 'string', 'min:8', 'max:500'],
             // Read-only unless the operator explicitly asks to make changes.
             'mode' => ['sometimes', 'string', Rule::in(['read_only', 'write'])],
+            // Tenant consent (P8.4): the support access grant this session is bound to.
+            'grant_id' => ['nullable', 'integer'],
         ];
     }
 }

@@ -23,6 +23,7 @@ class Task extends Model
         'reporter_id',
         'assignee_id',
         'parent_id',
+        'epic_id',
         'status_id',
         'priority_id',
         'key',
@@ -50,6 +51,7 @@ class Task extends Model
             'story_points' => 'float',
             'sprint_id' => 'integer',
             'issue_type_id' => 'integer',
+            'epic_id' => 'integer',
             'version_id' => 'integer',
             'estimate_minutes' => 'integer',
             'position' => 'float',
@@ -132,6 +134,17 @@ class Task extends Model
     public function parent(): BelongsTo
     {
         return $this->belongsTo(Task::class, 'parent_id');
+    }
+
+    public function epic(): BelongsTo
+    {
+        return $this->belongsTo(Task::class, 'epic_id');
+    }
+
+    /** Issues linked to this one as their epic (or initiative). */
+    public function epicChildren(): HasMany
+    {
+        return $this->hasMany(Task::class, 'epic_id');
     }
 
     public function sprint(): BelongsTo

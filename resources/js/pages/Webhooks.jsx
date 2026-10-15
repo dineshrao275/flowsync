@@ -7,9 +7,10 @@ import Input from '../components/ui/Input';
 import Alert from '../components/ui/Alert';
 import Spinner from '../components/ui/Spinner';
 import { useToast } from '../context/ToastContext';
+import { useConfirm } from '../components/ui/ConfirmDialog';
 import { useSetCrumbs } from '../context/BreadcrumbContext';
 import usePageTitle from '../hooks/usePageTitle';
-import { formatDateTime } from '../utils/format';
+import Timestamp from '../components/ui/Timestamp';
 
 const STATUS_TONE = { delivered: 'text-emerald-700', retrying: 'text-amber-700', failed: 'text-red-700', pending: 'text-gray-500' };
 
@@ -17,6 +18,7 @@ const STATUS_TONE = { delivered: 'text-emerald-700', retrying: 'text-amber-700',
 export default function Webhooks() {
     usePageTitle('Webhooks');
     const toast = useToast();
+    const confirm = useConfirm();
     const setCrumbs = useSetCrumbs();
     const [data, setData] = useState(null);
     const [form, setForm] = useState({ url: '', description: '', events: ['*'] });
@@ -130,7 +132,7 @@ export default function Webhooks() {
                                 <Button size="sm" variant="secondary" onClick={() => showDeliveries(e.id)}>{open === e.id ? 'Hide log' : 'Delivery log'}</Button>
                                 <Button size="sm" variant="secondary" onClick={() => act(() => api.put(`/webhooks/${e.id}`, { url: e.url, description: e.description, events: e.events, is_active: !e.is_active }), e.is_active ? 'Endpoint switched off.' : 'Endpoint switched on.')}>{e.is_active ? 'Switch off' : 'Switch on'}</Button>
                                 <Button size="sm" variant="secondary" onClick={async () => { const r = await act(() => api.post(`/webhooks/${e.id}/rotate-secret`)); if (r) setSecret({ id: e.id, value: r.data.secret }); }}>Rotate secret</Button>
-                                <Button size="sm" variant="danger" onClick={() => window.confirm('Delete this endpoint and its delivery log?') && act(() => api.delete(`/webhooks/${e.id}`), 'Endpoint deleted.')}>Delete</Button>
+                                <Button size="sm" variant="danger" onClick={async () => { if (await confirm({ title: 'Delete endpoint?', message: 'Delete this endpoint and its delivery log?', variant: 'danger' })) act(() => api.delete(`/webhooks/${e.id}`), 'Endpoint deleted.'); }}>Delete</Button>
                             </div>
                             {open === e.id && (
                                 <div className="mt-3 overflow-x-auto rounded-lg border border-gray-100">
@@ -144,7 +146,7 @@ export default function Webhooks() {
                                                     <td className={`px-3 py-2 font-medium ${STATUS_TONE[d.status]}`}>{d.status}{d.error ? ` — ${d.error}` : ''}</td>
                                                     <td className="px-3 py-2">{d.attempts}</td>
                                                     <td className="px-3 py-2">{d.response_status ?? '—'}</td>
-                                                    <td className="px-3 py-2">{formatDateTime(d.created_at)}</td>
+                                                    <td className="px-3 py-2"><Timestamp date={d.created_at} /></td>
                                                     <td className="px-3 py-2 text-right"><button className="text-indigo-600 hover:underline" onClick={() => act(() => api.post(`/webhook-deliveries/${d.id}/redeliver`), 'Queued.')}>Redeliver</button></td>
                                                 </tr>
                                             ))}

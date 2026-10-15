@@ -20,6 +20,7 @@ class ImpersonationLog extends Model
         'reason',
         'mode',
         'expires_at',
+        'support_access_grant_id',
     ];
 
     protected function casts(): array

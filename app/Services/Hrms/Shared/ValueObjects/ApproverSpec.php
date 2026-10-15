@@ -2,6 +2,7 @@
 
 namespace App\Services\Hrms\Shared\ValueObjects;
 
+use App\Enums\Hrms\ApprovalStepMode;
 use App\Enums\Hrms\ApproverType;
 
 /**
@@ -15,6 +16,10 @@ use App\Enums\Hrms\ApproverType;
  * `employeeId` for the record). This engine never queries `employees` itself;
  * that keeps the Shared context free of a dependency on a table owned by
  * another context (D2.4).
+ *
+ * v2 additions, all optional so existing callers are unchanged: `stage` groups
+ * steps decided together (null = a stage of its own), `mode` says how the
+ * group settles, `slaHours` is the time allowed for the stage.
  */
 final readonly class ApproverSpec
 {
@@ -23,6 +28,9 @@ final readonly class ApproverSpec
         public ?int $roleId = null,
         public ?int $userId = null,
         public ?int $employeeId = null,
+        public ?int $stage = null,
+        public ApprovalStepMode $mode = ApprovalStepMode::Sequential,
+        public ?int $slaHours = null,
     ) {}
 
     /** @param array{type: string, role_id?: int|null, user_id?: int|null, employee_id?: int|null} $data */
@@ -48,6 +56,12 @@ final readonly class ApproverSpec
     public static function user(int $userId, ?int $employeeId = null): self
     {
         return new self(type: ApproverType::User, userId: $userId, employeeId: $employeeId);
+    }
+
+    /** A copy placed in a stage with a mode and SLA (used by the chain builder). */
+    public function inStage(int $stage, ApprovalStepMode $mode, ?int $slaHours): self
+    {
+        return new self($this->type, $this->roleId, $this->userId, $this->employeeId, $stage, $mode, $slaHours);
     }
 
     public function hasCandidate(): bool

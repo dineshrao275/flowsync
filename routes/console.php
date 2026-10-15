@@ -25,6 +25,13 @@ Schedule::command('tenants:close-impersonations')->everyTenMinutes()->withoutOve
 
 // Platform: trials end at `trial_ends_at` exactly — no grace period (yet).
 Schedule::command('tenants:expire-trials')->dailyAt('00:05')->withoutOverlapping();
+// Platform audit rows older than the tenant's plan retention are removed (hash-chain tombstones keep it verifiable).
+Schedule::command('audit:prune')->dailyAt('03:50')->withoutOverlapping();
+
+// Billing: failed-payment dunning (reminders, final notice, suspension after the grace period).
+// Billing: lapsed paid periods are expired / renewed / sent to dunning first (08:00), then dunning runs.
+Schedule::command('billing:period-ends')->dailyAt('08:00')->withoutOverlapping();
+Schedule::command('billing:dunning')->dailyAt('09:00')->withoutOverlapping();
 
 // HRMS fleet sweeps. Every command here takes exactly one of --tenant=ID or
 // --all and is idempotent, so the worst a re-run does is nothing. Cadences
@@ -38,9 +45,12 @@ Schedule::command('tenants:expire-trials')->dailyAt('00:05')->withoutOverlapping
 Schedule::command('hrms:surveys-open-close --all')->dailyAt('00:15')->withoutOverlapping();
 Schedule::command('hrms:documents-expiry --all')->dailyAt('04:30')->withoutOverlapping();
 Schedule::command('hrms:comp-off-accrue --all')->monthlyOn(1, '04:45')->withoutOverlapping();
+Schedule::command('hrms:leave-rollover --all')->dailyAt('04:50')->withoutOverlapping();
 // Retention's bare run reports only; `--apply` (the deleting run) stays manual.
 Schedule::command('hrms:retention --all')->weeklyOn(0, '05:00')->withoutOverlapping();
 Schedule::command('hrms:onboarding-reminders --all')->dailyAt('08:30')->withoutOverlapping();
+// Approval SLA: reminder before a stage is due, one escalation once overdue (each once per stage).
+Schedule::command('hrms:approvals-sla --all')->hourly()->withoutOverlapping();
 Schedule::command('hrms:assets-overdue --all')->dailyAt('10:30')->withoutOverlapping();
 Schedule::command('hrms:report-digests --all')->dailyAt('18:00')->withoutOverlapping();
 Schedule::command('hrms:performance-evidence --all')->dailyAt('21:30')->withoutOverlapping();

@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Models\Project;
 use App\Models\ProjectRole;
+use App\Models\SupportTicket;
 use App\Models\Tenant;
 use App\Models\User;
 use App\Models\Workspace;
@@ -156,6 +157,33 @@ class BroadcastingChannelAuthTest extends TestCase
             'socket_id' => '1234.5678',
             'channel_name' => 'private-user.'.$this->member->id,
         ])->assertForbidden();
+    }
+
+    public function test_support_ticket_channel_authorizes_super_admin_and_tenant_owner(): void
+    {
+        $ticket = SupportTicket::create([
+            'tenant_id' => $this->acme()->id,
+            'created_by_user_id' => $this->member->id,
+            'created_by_name' => $this->member->name,
+            'created_by_email' => $this->member->email,
+            'subject' => 'Help with billing',
+            'category' => 'billing',
+            'priority' => 'high',
+            'status' => 'open',
+        ]);
+
+        $callback = $this->channels['support.ticket.{id}'];
+        $staffCallback = $this->channels['support.ticket.{id}.staff'];
+
+        $superAdmin = $this->systemUser('superadmin@flowsync.test');
+
+        // Super Admin can authorize both channels
+        $this->assertNotFalse($callback($superAdmin, $ticket->id));
+        $this->assertNotFalse($staffCallback($superAdmin, $ticket->id));
+
+        // Tenant member can authorize the ticket channel but NOT staff channel
+        $this->assertNotFalse($callback($this->member, $ticket->id));
+        $this->assertFalse($staffCallback($this->member, $ticket->id));
     }
 
     /**

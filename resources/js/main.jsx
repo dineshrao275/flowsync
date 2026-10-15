@@ -2,6 +2,27 @@ import './bootstrap';
 import React from 'react';
 import { createRoot } from 'react-dom/client';
 import App from './App';
+import logger from './utils/logger';
+
+// Catch and log uncaught exceptions across the SPA
+if (typeof window !== 'undefined') {
+    window.addEventListener('error', (event) => {
+        logger.error('GlobalError', event.message || 'Uncaught window error', {
+            filename: event.filename,
+            lineno: event.lineno,
+            colno: event.colno,
+            error: event.error?.stack || event.error,
+        });
+    });
+
+    window.addEventListener('unhandledrejection', (event) => {
+        const reason = event.reason;
+        logger.error('UnhandledPromise', reason?.message || 'Unhandled promise rejection', {
+            stack: reason?.stack,
+            reason,
+        });
+    });
+}
 
 createRoot(document.getElementById('root')).render(
     <React.StrictMode>

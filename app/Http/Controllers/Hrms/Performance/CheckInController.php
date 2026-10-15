@@ -2,12 +2,12 @@
 
 namespace App\Http\Controllers\Hrms\Performance;
 
+use App\Http\Controllers\Concerns\ChecksPerformanceScope;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Hrms\CheckInRequest;
 use App\Models\Hrms\Employee\Employee;
 use App\Models\Hrms\Performance\CheckIn;
 use App\Models\Hrms\Performance\PerformanceCycle;
-use App\Models\User;
 use App\Services\Hrms\HrmsScope;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -23,6 +23,8 @@ use Illuminate\Http\Response;
  */
 class CheckInController extends Controller
 {
+    use ChecksPerformanceScope;
+
     public function index(Request $request, PerformanceCycle $cycle): JsonResponse
     {
         $this->authorize('viewAny', CheckIn::class);
@@ -40,12 +42,6 @@ class CheckInController extends Controller
         return response()->json([
             'check_ins' => $query->get()->map(fn (CheckIn $checkIn): array => $this->present($checkIn))->all(),
         ]);
-    }
-
-    private function seesAll(User $user): bool
-    {
-        return HrmsScope::seesAll($user, 'hrms.performance')
-            || $user->hasPermission('hrms.talent.manage');
     }
 
     public function store(CheckInRequest $request, PerformanceCycle $cycle): JsonResponse

@@ -2,16 +2,15 @@
 
 namespace App\Services\Hrms\CompOff;
 
-use App\Enums\Hrms\ApproverType;
 use App\Enums\Hrms\CompOffRequestStatus;
 use App\Models\Hrms\CompOff\CompOffRequest;
 use App\Models\Hrms\Employee\Employee;
 use App\Models\User;
-use App\Services\Hrms\Employee\ReportingLine;
+use App\Services\Hrms\Approval\ChainBuilder;
 use App\Services\Hrms\Shared\ApprovalService;
-use App\Services\Hrms\Shared\ValueObjects\ApproverSpec;
 use App\Services\HrmsAuditLogger;
 use App\Services\NotificationService;
+use App\Support\Hrms\Auditable;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
@@ -31,7 +30,7 @@ class CompOffService
     public function __construct(
         private readonly CompOffCredits $credits,
         private readonly ApprovalService $approvals,
-        private readonly ReportingLine $reporting,
+        private readonly ChainBuilder $chains,
         private readonly NotificationService $notifications,
         private readonly HrmsAuditLogger $audit,
     ) {}
@@ -81,16 +80,15 @@ class CompOffService
                 $ask->days()->create(['date' => $date, 'minutes' => CompOffCredits::DAY_MINUTES]);
             }
 
-            $manager = $this->reporting->managerOf($employee);
-
             $approval = $this->approvals->request(
-                new ApproverSpec(ApproverType::Manager, userId: $manager?->user_id, employeeId: $manager?->id),
+                $this->chains->stepsFor('comp_off', $employee, ['days' => count($split)]),
                 $ask,
                 'comp_off.request',
                 'Comp-off request',
                 ['work_dates' => $from->toDateString().' to '.$to->toDateString(), 'total_minutes' => $total],
                 $actor,
                 $employee->id,
+                'comp_off',
             );
 
             $ask->update(['approval_id' => $approval->id]);
@@ -248,11 +246,6 @@ class CompOffService
     /** @return array<string, mixed> */
     private function snapshot(CompOffRequest $request): array
     {
-        return [
-            'employee_id' => $request->employee_id,
-            'total_minutes' => $request->total_minutes,
-            'status' => $request->status->value,
-            'approval_id' => $request->approval_id,
-        ];
+        return Auditable::snapshot($request, ['employee_id', 'total_minutes', 'status', 'approval_id']);
     }
 }

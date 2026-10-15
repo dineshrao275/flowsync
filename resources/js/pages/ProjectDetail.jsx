@@ -7,25 +7,25 @@ import Spinner from '../components/ui/Spinner';
 import Alert from '../components/ui/Alert';
 import Button from '../components/ui/Button';
 import Input from '../components/ui/Input';
+import Tabs from '../components/ui/Tabs';
 import { useAuth } from '../context/AuthContext';
 import AutomationPanel from '../components/automation/AutomationPanel';
 import SprintsPanel from '../components/sprints/SprintsPanel';
+import HierarchyPanel from '../components/hierarchy/HierarchyPanel';
 import WorkflowRules from '../components/tasks/WorkflowRules';
 import { useToast } from '../context/ToastContext';
+import { useConfirm } from '../components/ui/ConfirmDialog';
 import { useSetCrumbs } from '../context/BreadcrumbContext';
 import KanbanBoard from '../components/tasks/KanbanBoard';
 import TaskTable from '../components/tasks/TaskTable';
+import RichTextEditor from '../components/ui/RichTextEditor';
+import RichText from '../components/ui/RichText';
 import FiltersBar from '../components/tasks/FiltersBar';
 import CreateTaskModal from '../components/tasks/CreateTaskModal';
 import TaskDetail from '../components/tasks/TaskDetail';
 import TimeSummary from '../components/time/TimeSummary';
 import usePageTitle from '../hooks/usePageTitle';
-
-const ROLE_LABELS = {
-    lead: 'Lead',
-    developer: 'Developer',
-    viewer: 'Viewer',
-};
+import { projectRoleLabel } from '../utils/roles';
 
 const CATEGORY_LABELS = {
     todo: 'To do',
@@ -35,31 +35,12 @@ const CATEGORY_LABELS = {
 
 const DEFAULT_COLORS = ['#6366f1', '#0ea5e9', '#f59e0b', '#10b981', '#ef4444', '#8b5cf6'];
 
-function Tabs({ tabs, active, onChange }) {
-    return (
-        <div className="flex gap-1 border-b border-gray-200">
-            {tabs.map((tab) => (
-                <button
-                    key={tab.key}
-                    type="button"
-                    onClick={() => onChange(tab.key)}
-                    className={`-mb-px border-b-2 px-4 py-2.5 text-sm font-medium transition ${active === tab.key
-                            ? 'border-indigo-600 text-indigo-600'
-                            : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700'
-                        }`}
-                >
-                    {tab.label}
-                </button>
-            ))}
-        </div>
-    );
-}
-
 export default function ProjectDetail() {
     const { projectId } = useParams();
     const navigate = useNavigate();
     const { user, can, hasModule } = useAuth();
     const toast = useToast();
+    const confirm = useConfirm();
     const setCrumbs = useSetCrumbs();
     const [project, setProject] = useState(null);
     usePageTitle(project?.name || 'Project');
@@ -83,7 +64,7 @@ export default function ProjectDetail() {
     const [updating, setUpdating] = useState(false);
 
     const [memberForm, setMemberForm] = useState({ user_id: '', role_id: '' });
-    const [statusForm, setStatusForm] = useState({ name: '', category: 'todo', color: DEFAULT_COLORS[0] });
+    const [statusForm, setStatusForm] = useState({ name: '', category: 'todo', color: DEFAULT_COLORS[0], wip_limit: null });
     const [issueTypes, setIssueTypes] = useState([]);
     const [issueTypeForm, setIssueTypeForm] = useState({ name: '', description: '', color: '#3b82f6', is_subtask: false });
     const [savingIssueType, setSavingIssueType] = useState(false);
@@ -94,13 +75,16 @@ export default function ProjectDetail() {
     const [settingsDates, setSettingsDates] = useState(null);
 
     const [view, setView] = useState('board');
+    const [swimlane, setSwimlane] = useState('none');
     const [filters, setFilters] = useState({});
     const [board, setBoard] = useState(null);
     const [listTasks, setListTasks] = useState([]);
     const [pagination, setPagination] = useState(null);
+    const [page, setPage] = useState(1);
     const [taskOptions, setTaskOptions] = useState({ statuses: [], priorities: [], assignees: [], labels: [] });
     const [selectedTask, setSelectedTask] = useState(null);
     const [selectedTaskSection, setSelectedTaskSection] = useState(null);
+    const [selectedCommentId, setSelectedCommentId] = useState(null);
     const [showCreate, setShowCreate] = useState(false);
     const [savingTask, setSavingTask] = useState(false);
     const [loadingTasks, setLoadingTasks] = useState(false);
@@ -189,7 +173,11 @@ export default function ProjectDetail() {
         const seq = ++loadSeqRef.current;
         const requestedView = view;
         const params = {};
-        if (view === 'list') params.view = 'list';
+        if (view === 'list') {
+            params.view = 'list';
+            params.page = page;
+        }
+        if (view === 'board' && swimlane === 'assignee') params.swimlane = 'assignee';
         Object.entries(filters).forEach(([key, value]) => {
             if (value !== '' && value != null) params[key] = value;
         });
@@ -226,26 +214,58 @@ export default function ProjectDetail() {
         if (!project || (tab !== 'tasks' && tab !== 'automation')) return;
         loadTasks();
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [projectId, tab, view, filters]);
+    }, [projectId, tab, view, swimlane, filters, page]);
+
+    // A filter change or a deletion can strand the list past its last page —
+    // fall back instead of showing an empty table.
+    useEffect(() => {
+        if (pagination && view === 'list' && page > pagination.last_page) {
+            setPage(pagination.last_page);
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [pagination]);
+
+    const tabRef = useRef(tab);
+    tabRef.current = tab;
+    const selectedTaskRef = useRef(selectedTask);
+    selectedTaskRef.current = selectedTask;
+    const loadTasksRef = useRef(loadTasks);
+    loadTasksRef.current = loadTasks;
 
     useEffect(() => {
         if (!project || !window.Echo) return undefined;
         const channel = window.Echo.private(`project.${projectId}`);
-        channel.listen('.task.synced', () => {
-            if (tab === 'tasks') loadTasks();
+        channel.listen('.task.synced', (event) => {
+            if (tabRef.current === 'tasks') {
+                loadTasksRef.current();
+            }
+            if (selectedTaskRef.current && (!event?.task_id || event.task_id === selectedTaskRef.current.id)) {
+                api.get(`/projects/${projectId}/tasks/${selectedTaskRef.current.id}`)
+                    .then(({ data }) => setSelectedTask(data.task))
+                    .catch(() => {});
+            }
         });
         return () => {
             channel.stopListening('.task.synced');
             window.Echo.leaveChannel(channel.name);
         };
-        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [projectId, project]);
 
-    function openTask(task, section = null) {
+    function openTask(task, section = null, commentId = null) {
         setSelectedTaskSection(section);
+        setSelectedCommentId(commentId);
         api.get(`/projects/${projectId}/tasks/${task.id}`)
             .then(({ data }) => setSelectedTask(data.task))
-            .catch(() => setSelectedTask(task));
+            .catch((err) => {
+                if (err?.response?.status === 403) {
+                    toast.error('You do not have permission to view this task.');
+                    setSelectedTask(null);
+                    setSelectedTaskSection(null);
+                    setSelectedCommentId(null);
+                } else {
+                    setSelectedTask(task);
+                }
+            });
     }
 
     const DEEP_SECTIONS = ['comments', 'attachments', 'dependencies', 'time', 'activity'];
@@ -254,29 +274,37 @@ export default function ProjectDetail() {
     const fetchedDeepTaskRef = useRef(null);
     useEffect(() => {
         const deepKey = searchParams.get('task');
-        if (!project || tab !== 'tasks' || !deepKey || openedDeepTaskRef.current === deepKey) return;
+        const section = searchParams.get('section');
+        const commentId = searchParams.get('comment');
+        const deepStateKey = deepKey ? `${deepKey}:${section ?? ''}:${commentId ?? ''}` : null;
+
+        if (!project || tab !== 'tasks' || !deepKey || openedDeepTaskRef.current === deepStateKey) return;
         const pool = view === 'board'
-            ? board?.statuses.flatMap((s) => s.tasks) ?? []
+            ? ((board?.statuses ?? board?.swimlanes?.flatMap((lane) => lane.statuses)) ?? []).flatMap((s) => s.tasks)
             : listTasks;
         const found = pool.find((t) => t.key === deepKey);
         if (found) {
-            openedDeepTaskRef.current = deepKey;
-            const section = searchParams.get('section');
-            openTask(found, DEEP_SECTIONS.includes(section) ? section : null);
+            openedDeepTaskRef.current = deepStateKey;
+            openTask(found, DEEP_SECTIONS.includes(section) ? section : null, commentId);
             return;
         }
         // Not in this view's pool (subtasks never ride the board; filters
         // can hide anything): resolve by key directly so the drawer opens
         // in either view. One attempt per key — a 404 stays closed.
-        if (fetchedDeepTaskRef.current === deepKey) return;
-        fetchedDeepTaskRef.current = deepKey;
+        if (fetchedDeepTaskRef.current === deepStateKey) return;
+        fetchedDeepTaskRef.current = deepStateKey;
         api.get(`/projects/${projectId}/tasks/key/${encodeURIComponent(deepKey)}`)
             .then(({ data }) => {
-                openedDeepTaskRef.current = deepKey;
-                const section = searchParams.get('section');
-                openTask(data.task, DEEP_SECTIONS.includes(section) ? section : null);
+                openedDeepTaskRef.current = deepStateKey;
+                openTask(data.task, DEEP_SECTIONS.includes(section) ? section : null, commentId);
             })
-            .catch(() => {});
+            .catch((err) => {
+                if (err?.response?.status === 403) {
+                    toast.error('You do not have permission to view this task.');
+                } else if (err?.response?.status === 404) {
+                    toast.error('Task not found.');
+                }
+            });
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [project, tab, view, board, listTasks, searchParams]);
 
@@ -288,6 +316,7 @@ export default function ProjectDetail() {
         if (next !== 'tasks') {
             params.delete('task');
             params.delete('section');
+            params.delete('comment');
         }
         navigate(`?${params.toString()}`);
     }
@@ -295,15 +324,17 @@ export default function ProjectDetail() {
     function handleDragEnd({ active, over }) {
         if (!over || active.id === over.id || !board) return;
 
+        const columns = board.statuses ?? board.swimlanes.flatMap((lane) => lane.statuses);
+
         let statusId;
         let index;
         const colMatch = String(over.id).match(/^col-(\d+)$/);
         if (colMatch) {
             statusId = Number(colMatch[1]);
-            index = board.statuses.find((s) => s.id === statusId)?.tasks.length ?? 0;
+            index = columns.find((s) => s.id === statusId)?.tasks.length ?? 0;
         } else {
             let found = null;
-            board.statuses.forEach((s) => {
+            columns.forEach((s) => {
                 const i = s.tasks.findIndex((t) => t.id === over.id);
                 if (i >= 0 && !found) found = { status: s, index: i };
             });
@@ -312,10 +343,10 @@ export default function ProjectDetail() {
             index = found.index;
         }
 
-        const task = board.statuses.flatMap((s) => s.tasks).find((t) => t.id === active.id);
+        const task = columns.flatMap((s) => s.tasks).find((t) => t.id === active.id);
         if (!task) return;
 
-        const dest = board.statuses.find((s) => s.id === statusId);
+        const dest = columns.find((s) => s.id === statusId);
         if (task.status_id === statusId && (dest?.tasks.findIndex((t) => t.id === task.id) ?? -1) === index) {
             return;
         }
@@ -368,7 +399,7 @@ export default function ProjectDetail() {
 
     async function deleteTask() {
         if (!selectedTask) return;
-        if (!window.confirm(`Delete ${selectedTask.key}? This cannot be undone.`)) return;
+        if (!(await confirm({ title: 'Delete task?', message: `Delete ${selectedTask.key}? This cannot be undone.`, variant: 'danger' }))) return;
         setSavingTask(true);
         try {
             await api.delete(`/projects/${projectId}/tasks/${selectedTask.id}`);
@@ -417,7 +448,7 @@ export default function ProjectDetail() {
     }
 
     async function deleteProject() {
-        if (!window.confirm('Permanently delete this project? This cannot be undone.')) return;
+        if (!(await confirm({ title: 'Delete project?', message: 'Permanently delete this project? This cannot be undone.', variant: 'danger' }))) return;
         try {
             await api.delete(`/projects/${projectId}`);
             toast.success('Project deleted.');
@@ -466,7 +497,7 @@ export default function ProjectDetail() {
     }
 
     async function removeMember(member) {
-        if (!window.confirm(`Remove ${member.name} from this project?`)) return;
+        if (!(await confirm({ title: 'Remove member?', message: `Remove ${member.name} from this project?`, variant: 'danger' }))) return;
         try {
             await api.delete(`/projects/${projectId}/members/${member.id}`);
             await loadMemberCandidates();
@@ -509,7 +540,7 @@ export default function ProjectDetail() {
     }
 
     async function deleteStatus(status) {
-        if (!window.confirm(`Delete status "${status.name}"? Tasks in it must move first.`)) return;
+        if (!(await confirm({ title: 'Delete status?', message: `Delete status "${status.name}"? Tasks in it must move first.`, variant: 'danger' }))) return;
         try {
             await api.delete(`/projects/${projectId}/statuses/${status.id}`);
             const { data } = await api.get(`/projects/${projectId}/statuses`);
@@ -557,7 +588,7 @@ export default function ProjectDetail() {
     }
 
     async function deleteIssueType(type) {
-        if (!window.confirm(`Delete issue type "${type.name}"?`)) return;
+        if (!(await confirm({ title: 'Delete issue type?', message: `Delete issue type "${type.name}"?`, variant: 'danger' }))) return;
         try {
             await api.delete(`/issue-types/${type.id}`);
             await loadIssueTypes();
@@ -586,6 +617,7 @@ export default function ProjectDetail() {
     const tabs = [
         { key: 'overview', label: 'Overview' },
         { key: 'tasks', label: 'Tasks' },
+        { key: 'hierarchy', label: 'Hierarchy' },
         { key: 'members', label: `Members (${members.length})` },
         { key: 'workflow', label: 'Workflow' },
         ...(hasModule('time_tracking') ? [{ key: 'time', label: 'Time' }] : []),
@@ -609,10 +641,14 @@ export default function ProjectDetail() {
                     <div>
                         <div className="flex flex-wrap items-center gap-2">
                             <h2 className="text-2xl font-bold text-gray-900">{project.name}</h2>
-                            {project.my_role && <Badge>{ROLE_LABELS[project.my_role]?.toLowerCase() || project.my_role}</Badge>}
+                            {project.my_role && <Badge>{projectRoleLabel(project.my_role)}</Badge>}
                             {archived && <Badge>archived</Badge>}
                         </div>
-                        <p className="mt-1 text-sm text-gray-500">{project.description || 'No description'}</p>
+                        {project.description ? (
+                            <RichText value={project.description} className="mt-1 text-gray-500" />
+                        ) : (
+                            <p className="mt-1 text-sm text-gray-500">No description</p>
+                        )}
                         <p className="mt-0.5 text-xs text-gray-400">{project.key}</p>
                     </div>
                 </div>
@@ -703,7 +739,10 @@ export default function ProjectDetail() {
                             <div className="flex rounded-lg border border-gray-300 p-0.5">
                                 <button
                                     type="button"
-                                    onClick={() => setView('board')}
+                                    onClick={() => {
+                                        setView('board');
+                                        setPage(1);
+                                    }}
                                     className={`rounded-md px-3 py-1.5 text-sm font-medium transition ${view === 'board' ? 'bg-[var(--accent)] text-[var(--accent-contrast)]' : 'text-gray-600 hover:bg-gray-100'
                                         }`}
                                 >
@@ -711,13 +750,27 @@ export default function ProjectDetail() {
                                 </button>
                                 <button
                                     type="button"
-                                    onClick={() => setView('list')}
+                                    onClick={() => {
+                                        setView('list');
+                                        setPage(1);
+                                    }}
                                     className={`rounded-md px-3 py-1.5 text-sm font-medium transition ${view === 'list' ? 'bg-[var(--accent)] text-[var(--accent-contrast)]' : 'text-gray-600 hover:bg-gray-100'
                                         }`}
                                 >
                                     List
                                 </button>
                             </div>
+                            {view === 'board' && (
+                                <select
+                                    value={swimlane}
+                                    onChange={(e) => setSwimlane(e.target.value)}
+                                    className="rounded-lg border border-gray-300 bg-white px-2 py-1.5 text-sm text-gray-600 shadow-sm focus:outline-none"
+                                    title="Group the board into swimlanes"
+                                >
+                                    <option value="none">No swimlanes</option>
+                                    <option value="assignee">Swimlanes by assignee</option>
+                                </select>
+                            )}
                             {loadingTasks && <Spinner className="h-5 w-5" />}
                         </div>
                         {canCreateTask && (
@@ -726,7 +779,14 @@ export default function ProjectDetail() {
                     </div>
 
                     <Card>
-                        <FiltersBar filters={filters} options={{ ...taskOptions, sprints: hasModule('sprints') }} onChange={setFilters} />
+                        <FiltersBar
+                            filters={filters}
+                            options={{ ...taskOptions, sprints: hasModule('sprints') }}
+                            onChange={(next) => {
+                                setFilters(next);
+                                setPage(1);
+                            }}
+                        />
                     </Card>
 
                     {tasksError ? (
@@ -743,10 +803,12 @@ export default function ProjectDetail() {
                         <div className="space-y-3">
                             <TaskTable tasks={listTasks} canEdit={canEditTask} onOpen={openTask} />
                             {pagination && (
-                                <p className="text-xs text-gray-500">
-                                    Page {pagination.current_page} of {pagination.last_page} · {pagination.total} task
-                                    {pagination.total === 1 ? '' : 's'}
-                                </p>
+                                <Pagination
+                                    page={pagination.current_page}
+                                    pages={pagination.last_page}
+                                    total={pagination.total}
+                                    onChange={setPage}
+                                />
                             )}
                         </div>
                     ) : null}
@@ -831,7 +893,7 @@ export default function ProjectDetail() {
                                                         ))}
                                                     </select>
                                                 ) : (
-                                                    <Badge>{ROLE_LABELS[member.role.slug]?.toLowerCase() || member.role.name.toLowerCase()}</Badge>
+                                                    <Badge>{projectRoleLabel(member.role.slug, member.role.name)}</Badge>
                                                 )
                                             ) : (
                                                 <Badge>member</Badge>
@@ -849,6 +911,8 @@ export default function ProjectDetail() {
                     </Card>
                 </div>
             )}
+
+            {tab === 'hierarchy' && <HierarchyPanel projectId={projectId} />}
 
             {tab === 'sprints' && hasModule('sprints') && <SprintsPanel projectId={projectId} canPlan={isProjectManager} />}
 
@@ -897,6 +961,17 @@ export default function ProjectDetail() {
                                     className="h-[42px] w-16 rounded-lg border border-gray-300 bg-white p-1 shadow-sm focus:outline-none"
                                     value={statusForm.color}
                                     onChange={(e) => setStatusForm((f) => ({ ...f, color: e.target.value }))}
+                                />
+                            </div>
+                            <div>
+                                <Input
+                                    label="WIP limit (optional)"
+                                    name="status-wip"
+                                    type="number"
+                                    min="1"
+                                    placeholder="Unlimited"
+                                    value={statusForm.wip_limit ?? ''}
+                                    onChange={(e) => setStatusForm((f) => ({ ...f, wip_limit: e.target.value === '' ? null : Number(e.target.value) }))}
                                 />
                             </div>
                             <Button type="submit" loading={savingStatus}>
@@ -956,6 +1031,20 @@ export default function ProjectDetail() {
                                             <option value="in_progress">In progress</option>
                                             <option value="done">Done</option>
                                         </select>
+                                        <input
+                                            type="number"
+                                            min="1"
+                                            placeholder="WIP"
+                                            title="WIP limit (leave empty for unlimited)"
+                                            className="w-16 rounded-lg border border-gray-300 bg-white px-2 py-1 text-xs shadow-sm focus:border-indigo-300 focus:outline-none"
+                                            defaultValue={status.wip_limit ?? ''}
+                                            onBlur={(e) => {
+                                                const next = e.target.value === '' ? null : Number(e.target.value);
+                                                if ((next ?? '') !== (status.wip_limit ?? '')) {
+                                                    updateStatus(status, { wip_limit: next });
+                                                }
+                                            }}
+                                        />
                                         {status.is_default && <Badge>default</Badge>}
                                         <Button size="sm" variant="ghost" onClick={() => deleteStatus(status)}>
                                             Delete
@@ -1107,6 +1196,7 @@ export default function ProjectDetail() {
                     options={taskOptions}
                     topLevelTasks={board?.statuses.flatMap((s) => s.tasks) ?? []}
                     initialSection={selectedTaskSection}
+                    initialCommentId={selectedCommentId}
                     canEdit={canEditTask}
                     canAssign={canAssignTask}
                     canDelete={canDeleteTask}
@@ -1118,6 +1208,14 @@ export default function ProjectDetail() {
                     onClose={() => {
                         setSelectedTask(null);
                         setSelectedTaskSection(null);
+                        setSelectedCommentId(null);
+                        openedDeepTaskRef.current = null;
+                        fetchedDeepTaskRef.current = null;
+                        const params = new URLSearchParams(searchParams.toString());
+                        params.delete('task');
+                        params.delete('section');
+                        params.delete('comment');
+                        navigate(`?${params.toString()}`, { replace: true });
                     }}
                     onUpdate={(data) => updateTask(selectedTask.id, data)}
                     onDelete={deleteTask}
@@ -1135,6 +1233,9 @@ export default function ProjectDetail() {
  */
 function SettingsForm({ project, settingsDates, onDatesChange, formErrors, updating, updateProject, deleteProject }) {
     const dates = settingsDates ?? { start_date: project.start_date ?? '', due_date: project.due_date ?? '' };
+    // Editor-controlled description (the form remounts per project, and a
+    // same-id refetch after save already matches what was typed).
+    const [description, setDescription] = useState(project.description ?? '');
 
     return (
         <form
@@ -1143,7 +1244,7 @@ function SettingsForm({ project, settingsDates, onDatesChange, formErrors, updat
                 e.preventDefault();
                 updateProject({
                     name: e.currentTarget.name.value,
-                    description: e.currentTarget.description.value,
+                    description: description || undefined,
                     start_date: dates.start_date || null,
                     due_date: dates.due_date || null,
                 });
@@ -1151,12 +1252,15 @@ function SettingsForm({ project, settingsDates, onDatesChange, formErrors, updat
         >
             {formErrors.form && <Alert>{formErrors.form}</Alert>}
             <Input label="Name" name="name" defaultValue={project.name} error={formErrors.name} required />
-            <Input
-                label="Description"
-                name="description"
-                defaultValue={project.description}
-                error={formErrors.description}
-            />
+            <div>
+                <label className="mb-1.5 block text-sm font-medium text-gray-700">Description</label>
+                <RichTextEditor
+                    value={description}
+                    onChange={setDescription}
+                    placeholder="What is this project about?"
+                    error={formErrors.description}
+                />
+            </div>
             <div className="grid gap-4 sm:grid-cols-2">
                 <Input
                     label="Start date"

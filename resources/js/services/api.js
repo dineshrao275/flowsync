@@ -1,4 +1,5 @@
 import axios from 'axios';
+import logger from '../utils/logger';
 
 const api = axios.create({
     baseURL: '/api',
@@ -10,9 +11,37 @@ const api = axios.create({
     withXSRFToken: true,
 });
 
+api.interceptors.request.use((config) => {
+    config.metadata = { startTime: Date.now() };
+    logger.debug('API', `${config.method?.toUpperCase()} ${config.url}`, {
+        params: config.params,
+    });
+    return config;
+});
+
 api.interceptors.response.use(
-    (response) => response,
+    (response) => {
+        const duration = response.config?.metadata?.startTime
+            ? Date.now() - response.config.metadata.startTime
+            : null;
+        logger.debug('API', `${response.status} ${response.config?.method?.toUpperCase()} ${response.config?.url} (${duration}ms)`);
+        return response;
+    },
     (error) => {
+        const duration = error.config?.metadata?.startTime
+            ? Date.now() - error.config.metadata.startTime
+            : null;
+        const status = error.response?.status;
+        const method = error.config?.method?.toUpperCase();
+        const url = error.config?.url;
+
+        logger.error('API', `${status || 'NETWORK_ERR'} ${method} ${url} (${duration}ms)`, {
+            status,
+            message: error.response?.data?.message || error.message,
+            errors: error.response?.data?.errors,
+            requestId: error.response?.headers?.['x-request-id'],
+        });
+
         if (error.response?.status === 401 && !error.config?.url?.includes('/auth/')) {
             if (!window.location.pathname.startsWith('/app/login')) {
                 window.location.href = '/app/login';

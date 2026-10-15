@@ -13,6 +13,7 @@ use App\Services\TenantLifecycle;
 use App\Support\Like;
 use App\Support\TenantContext;
 use App\Support\TenantDatabaseManager;
+use App\Support\Tms\TmsSchema;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
@@ -342,9 +343,10 @@ class TenantController extends Controller
 
                 return [
                     'users' => $db->table('users')->count(),
-                    'workspaces' => $db->table('workspaces')->count(),
-                    'projects' => $db->table('projects')->count(),
-                    'tasks' => $db->table('tasks')->whereNull('deleted_at')->count(),
+                    // Single-product tenants hold no TMS tables: zero, not a 500.
+                    'workspaces' => TmsSchema::present() ? $db->table('workspaces')->count() : 0,
+                    'projects' => TmsSchema::present() ? $db->table('projects')->count() : 0,
+                    'tasks' => TmsSchema::present() ? $db->table('tasks')->whereNull('deleted_at')->count() : 0,
                 ];
             });
         });

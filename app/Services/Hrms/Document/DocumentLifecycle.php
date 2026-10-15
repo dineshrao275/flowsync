@@ -161,6 +161,12 @@ class DocumentLifecycle
 
         $document->delete();
         $this->audit->log($document, 'document.deleted', null, $snapshot, $actor);
+
+        // Deleting the newest version promotes the one it replaced, so a
+        // person is never left with a document history and no current file.
+        if ($document->is_current && $document->supersedes_id !== null) {
+            EmployeeDocument::query()->whereKey($document->supersedes_id)->update(['is_current' => true]);
+        }
     }
 
     private function requireTransition(EmployeeDocument $document, DocumentStatus $to): void

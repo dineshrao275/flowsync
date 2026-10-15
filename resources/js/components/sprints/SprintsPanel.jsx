@@ -7,7 +7,9 @@ import Button from '../ui/Button';
 import Input from '../ui/Input';
 import Spinner from '../ui/Spinner';
 import { useToast } from '../../context/ToastContext';
+import { useConfirm } from '../ui/ConfirmDialog';
 import { formatDate } from '../../utils/format';
+import Timestamp from '../ui/Timestamp';
 
 const sel = 'rounded-lg border border-gray-300 px-2 py-1.5 text-sm';
 
@@ -32,6 +34,7 @@ function TaskRow({ task, sprints, onMove, canPlan }) {
 /** Sprints & backlog planning, and the agile reports computed from the tracker's own history. */
 export default function SprintsPanel({ projectId, canPlan }) {
     const toast = useToast();
+    const confirm = useConfirm();
     const [view, setView] = useState('plan');
     const [data, setData] = useState(null);
     const [sprintTasks, setSprintTasks] = useState({});
@@ -104,7 +107,7 @@ export default function SprintsPanel({ projectId, canPlan }) {
                                     <p className="text-xs text-gray-500">{s.start_date ? `${formatDate(s.start_date)} → ${formatDate(s.end_date)}` : 'No dates yet'} · {s.tasks_count} tasks · {s.points || 0} pts{s.goal ? ` · ${s.goal}` : ''}</p>
                                 </div>
                                 {canPlan && s.status === 'planned' && <Button size="sm" onClick={() => act(() => api.post(`/projects/${projectId}/sprints/${s.id}/start`), 'Sprint started.')}>Start sprint</Button>}
-                                {canPlan && s.status === 'planned' && <Button size="sm" variant="danger" onClick={() => window.confirm('Delete this sprint? Its tasks return to the backlog.') && act(() => api.delete(`/projects/${projectId}/sprints/${s.id}`), 'Sprint deleted.')}>Delete</Button>}
+                                {canPlan && s.status === 'planned' && <Button size="sm" variant="danger" onClick={async () => { if (await confirm({ title: 'Delete sprint?', message: 'Delete this sprint? Its tasks return to the backlog.', variant: 'danger' })) act(() => api.delete(`/projects/${projectId}/sprints/${s.id}`), 'Sprint deleted.'); }}>Delete</Button>}
                                 {canPlan && s.status === 'active' && <Button size="sm" variant="secondary" onClick={() => { setCompleting(s); setLeftover({ mode: 'backlog', target: '' }); }}>Complete sprint</Button>}
                             </div>
                             {completing?.id === s.id && (
@@ -138,7 +141,7 @@ export default function SprintsPanel({ projectId, canPlan }) {
                     {closed.length > 0 && (
                         <Card title="Completed sprints">
                             <ul className="divide-y divide-gray-100 text-sm">
-                                {closed.map((s) => <li key={s.id} className="flex flex-wrap justify-between gap-2 py-2"><span className="font-medium">{s.name}</span><span className="text-gray-500">{s.completed_points ?? 0} of {s.committed_points ?? 0} pts · {formatDate(s.completed_at)}</span></li>)}
+                                {closed.map((s) => <li key={s.id} className="flex flex-wrap justify-between gap-2 py-2"><span className="font-medium">{s.name}</span><span className="text-gray-500">{s.completed_points ?? 0} of {s.committed_points ?? 0} pts · <Timestamp date={s.completed_at} /></span></li>)}
                             </ul>
                         </Card>
                     )}

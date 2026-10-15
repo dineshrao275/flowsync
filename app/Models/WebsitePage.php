@@ -26,6 +26,10 @@ class WebsitePage extends Model
         'seo_title',
         'meta_description',
         'og_image',
+        'canonical_url',
+        'noindex',
+        'og_title',
+        'og_description',
         'sitemap_include',
         'sort_order',
         'published_at',
@@ -36,6 +40,7 @@ class WebsitePage extends Model
         return [
             'content' => 'array',
             'sitemap_include' => 'boolean',
+            'noindex' => 'boolean',
             'sort_order' => 'integer',
             'published_at' => 'datetime',
         ];

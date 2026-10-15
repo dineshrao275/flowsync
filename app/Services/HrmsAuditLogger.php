@@ -2,11 +2,13 @@
 
 namespace App\Services;
 
+use App\Contracts\AuditWriter;
 use App\Enums\Hrms\DataAccessAction;
 use App\Models\Hrms\Shared\HrmsAuditLog;
 use App\Models\Hrms\Shared\HrmsDataAccessLog;
 use App\Models\User;
 use App\Support\AuditMask;
+use App\Support\RequestId;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Log;
@@ -25,7 +27,7 @@ use Illuminate\Support\Facades\Log;
  * rather than allow-listed because a new salary column must not silently start
  * logging its value.
  */
-class HrmsAuditLogger
+class HrmsAuditLogger implements AuditWriter
 {
     /**
      * Record a change to a business record.
@@ -58,13 +60,53 @@ class HrmsAuditLogger
                 'after' => $after,
             ]),
             'ip_address' => $ipAddress,
-        ]);
+        ] + RequestId::columnFor(new HrmsAuditLog));
 
         // Operational line: identifiers only. The values live in the ledger.
         Log::channel('hrms')->info($action, [
             'entity' => $subject->getMorphClass(),
             'entity_id' => $subject->getKey(),
             'actor_id' => $actor?->id,
+            'fields' => $this->changedFields($before, $after),
+        ]);
+
+        return $log;
+    }
+
+    /**
+     * {@see AuditWriter}: a change row addressed by morph class and id rather
+     * than a model instance. `$context` is merged beside the masked
+     * before/after pair; `$actorId` is a tenant user id.
+     *
+     * @param  array<string, mixed>|null  $before
+     * @param  array<string, mixed>|null  $after
+     * @param  array<string, mixed>  $context
+     */
+    public function recordChange(
+        string $action,
+        ?string $subjectType,
+        int|string|null $subjectId,
+        ?array $before,
+        ?array $after,
+        array $context = [],
+        ?int $actorId = null,
+        ?string $ipAddress = null,
+    ): Model {
+        $actor = $actorId ?? auth()->id();
+
+        $log = HrmsAuditLog::create([
+            'actor_user_id' => $actor,
+            'subject_type' => (string) $subjectType,
+            'subject_id' => (int) $subjectId,
+            'action' => $action,
+            'data' => AuditMask::mask($context + ['before' => $before, 'after' => $after]),
+            'ip_address' => $ipAddress ?? request()->ip(),
+        ] + RequestId::columnFor(new HrmsAuditLog));
+
+        Log::channel('hrms')->info($action, [
+            'entity' => $subjectType,
+            'entity_id' => $subjectId,
+            'actor_id' => $actor,
             'fields' => $this->changedFields($before, $after),
         ]);
 
@@ -96,7 +138,7 @@ class HrmsAuditLogger
             // `['gross' => 95000]`.
             'fields' => $this->fieldNames($fields),
             'ip_address' => $ipAddress,
-        ]);
+        ] + RequestId::columnFor(new HrmsDataAccessLog));
 
         Log::channel('hrms')->notice('data.'.$action->value, [
             'entity' => $model,

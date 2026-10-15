@@ -7,12 +7,7 @@ import Alert from '../components/ui/Alert';
 import { Table, Th, Td, TableEmpty } from '../components/ui/Table';
 import { useSetCrumbs } from '../context/BreadcrumbContext';
 import usePageTitle from '../hooks/usePageTitle';
-
-const ROLE_LABELS = {
-    lead: 'Lead',
-    developer: 'Developer',
-    viewer: 'Viewer',
-};
+import { projectRoleLabel } from '../utils/roles';
 
 export default function Projects() {
     usePageTitle('Projects');
@@ -126,7 +121,7 @@ export default function Projects() {
                                         <Td>
                                             {project.my_role ? (
                                                 <Badge>
-                                                    {ROLE_LABELS[project.my_role]?.toLowerCase() || project.my_role}
+                                                    {projectRoleLabel(project.my_role)}
                                                 </Badge>
                                             ) : (
                                                 <span className="text-gray-400">—</span>

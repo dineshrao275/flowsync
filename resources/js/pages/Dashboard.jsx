@@ -22,6 +22,7 @@ import { resolveRange, rangeLabel } from '../utils/dateRange';
 import { useAuth } from '../context/AuthContext';
 import { useSetCrumbs } from '../context/BreadcrumbContext';
 import usePageTitle from '../hooks/usePageTitle';
+import Timestamp from '../components/ui/Timestamp';
 
 function chartDate(iso) {
     const d = new Date(`${iso}T00:00:00`);
@@ -156,7 +157,11 @@ function TaskList({ tasks, title, subtitle, emptyText, dateLabel }) {
 
 const dueSoonLabel = (task) => `Due ${task.due_date} · ${task.project.name}`;
 const overdueLabel = (task) => `Overdue · was due ${task.due_date}`;
-const recentLabel = (task) => `${task.project.name} · updated ${new Date(task.updated_at).toLocaleDateString()}`;
+const recentLabel = (task) => (
+    <>
+        {task.project.name} · updated <Timestamp date={task.updated_at} />
+    </>
+);
 
 export default function Dashboard() {
     usePageTitle('Dashboard');

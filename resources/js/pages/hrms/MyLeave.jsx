@@ -12,6 +12,7 @@ import { useSetCrumbs } from '../../context/BreadcrumbContext';
 import usePageTitle from '../../hooks/usePageTitle';
 import LeaveBalanceTable from '../../components/hrms/LeaveBalanceTable';
 import LeaveRequestModal from '../../components/hrms/LeaveRequestModal';
+import { useConfirm } from '../../components/ui/ConfirmDialog';
 
 /**
  * The caller's own leave: balances, history, filing, withdrawing.
@@ -27,6 +28,7 @@ export default function MyLeave() {
     const setCrumbs = useSetCrumbs();
     const navigate = useNavigate();
     const toast = useToast();
+    const confirm = useConfirm();
 
     const [balances, setBalances] = useState(null);
     const [requests, setRequests] = useState(null);
@@ -64,11 +66,18 @@ export default function MyLeave() {
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
-    async function withdraw(id) {
-        setWithdrawing(id);
+    async function withdraw(request) {
+        if (!(await confirm({
+            title: 'Withdraw leave request?',
+            message: `Withdraw your leave request for ${request.from_date} → ${request.to_date}?`,
+            variant: 'danger',
+            confirmLabel: 'Withdraw',
+        }))) return;
+
+        setWithdrawing(request.id);
 
         try {
-            await api.delete(`/hrms/leave/requests/${id}`);
+            await api.delete(`/hrms/leave/requests/${request.id}`);
 
             toast.success('Leave request withdrawn.');
             load();
@@ -139,7 +148,7 @@ export default function MyLeave() {
                                                 <Button
                                                     variant="secondary"
                                                     disabled={withdrawing === request.id}
-                                                    onClick={() => withdraw(request.id)}
+                                                    onClick={() => withdraw(request)}
                                                 >
                                                     {withdrawing === request.id ? 'Withdrawing…' : 'Withdraw'}
                                                 </Button>

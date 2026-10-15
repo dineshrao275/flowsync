@@ -1,6 +1,7 @@
 import Button from '../ui/Button';
 import StatusPill from '../ui/StatusPill';
 import { Table, Th, Td, TableEmpty } from '../ui/Table';
+import { usePrompt } from '../ui/ConfirmDialog';
 
 const STATUS_COLORS = {
     pending: '#f59e0b',
@@ -38,6 +39,8 @@ function formatDate(value) {
  * ceremony for ceremony’s sake.
  */
 export default function Checklist({ tasks, canAct, canWaive, onComplete, onWaive, canConvert, onConvert, onSync }) {
+    const prompt = usePrompt();
+
     if (!tasks || tasks.length === 0) {
         return <TableEmpty>No checklist items.</TableEmpty>;
     }
@@ -120,17 +123,21 @@ export default function Checklist({ tasks, canAct, canWaive, onComplete, onWaive
                                                             <Button
                                                                 size="sm"
                                                                 variant="ghost"
-                                                                onClick={() => {
-                                                                const reason = window.prompt(
-                                                                    `Why is “${task.title}” being waived?`,
-                                                                    '',
-                                                                );
+                                                                onClick={async () => {
+                                                                    const reason = await prompt({
+                                                                        title: 'Waive Task',
+                                                                        message: `Why is “${task.title}” being waived? (recorded for audit)`,
+                                                                        placeholder: 'Reason for waiving…',
+                                                                        required: true,
+                                                                        confirmLabel: 'Waive',
+                                                                        variant: 'warning',
+                                                                    });
 
-                                                                if (reason !== null) onWaive?.(task, reason);
-                                                            }}
-                                                        >
-                                                            Waive
-                                                        </Button>
+                                                                    if (reason !== null) onWaive?.(task, reason);
+                                                                }}
+                                                            >
+                                                                Waive
+                                                            </Button>
                                                         )}
                                                     </div>
                                                 )}

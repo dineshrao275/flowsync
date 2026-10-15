@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Hrms\Lifecycle;
 
 use App\Enums\Hrms\OffboardingCaseStatus;
+use App\Http\Controllers\Concerns\NormalizesFilters;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Hrms\Lifecycle\CompleteTaskRequest;
 use App\Http\Requests\Hrms\Lifecycle\ConvertCaseTaskRequest;
@@ -16,6 +17,8 @@ use App\Services\Hrms\Lifecycle\DocumentRequestService;
 use App\Services\Hrms\Lifecycle\LifecyclePresenter;
 use App\Services\Hrms\OffboardingService;
 use App\Services\Hrms\TaskLinkPresenter;
+use App\Support\Integration\BridgeSchema;
+use App\Support\Tms\TmsSchema;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
@@ -32,6 +35,8 @@ use Illuminate\Validation\Rule;
  */
 class OffboardingCaseController extends Controller
 {
+    use NormalizesFilters;
+
     public function __construct(
         private readonly OffboardingService $offboarding,
         private readonly DocumentRequestService $requests,
@@ -49,7 +54,7 @@ class OffboardingCaseController extends Controller
             'employee_id' => ['sometimes', 'nullable', 'integer', 'exists:employees,id'],
         ]);
 
-        $cases = $this->offboarding->casesFor($request->user(), $this->clean($filters));
+        $cases = $this->offboarding->casesFor($request->user(), $this->cleanBlank($filters));
 
         return response()->json([
             'cases' => $cases->map(fn (OffboardingCase $case): array => $this->present($case))->all(),
@@ -101,6 +106,11 @@ class OffboardingCaseController extends Controller
     {
         $this->authorize('completeTask', $task);
         $this->belonging($case, $task);
+
+        // Conversion files a real project task and a bridge link row — both
+        // products must be on, otherwise the answer is 422, not a 500 from a
+        // missing table.
+        abort_unless(TmsSchema::present() && BridgeSchema::present(), 422, 'Converting checklist items needs both products.');
 
         $project = Project::findOrFail((int) $request->validated()['project_id']);
         $this->authorize('createTask', $project);
@@ -188,14 +198,5 @@ class OffboardingCaseController extends Controller
     private function belonging(OffboardingCase $case, OffboardingCaseTask $task): void
     {
         abort_if((int) $task->case_id !== (int) $case->id, 404);
-    }
-
-    /**
-     * @param  array<string, mixed>  $filters
-     * @return array<string, mixed>
-     */
-    private function clean(array $filters): array
-    {
-        return array_filter($filters, fn (mixed $value) => $value !== null && $value !== '');
     }
 }

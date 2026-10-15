@@ -7,7 +7,8 @@ import Input from '../ui/Input';
 import Alert from '../ui/Alert';
 import Spinner from '../ui/Spinner';
 import { useToast } from '../../context/ToastContext';
-import { formatDateTime } from '../../utils/format';
+import { useConfirm } from '../ui/ConfirmDialog';
+import Timestamp from '../ui/Timestamp';
 
 const blankRule = { name: '', trigger: 'task.completed', is_active: true, conditions: [], actions: [{ type: 'add_comment', text: '' }] };
 const sel = 'rounded-lg border border-gray-300 px-2 py-1.5 text-sm';
@@ -15,6 +16,7 @@ const sel = 'rounded-lg border border-gray-300 px-2 py-1.5 text-sm';
 /** Project automation: list, build and review rules ("when … and … then …"). */
 export default function AutomationPanel({ projectId, members, statuses, labels, priorities }) {
     const toast = useToast();
+    const confirm = useConfirm();
     const [catalog, setCatalog] = useState(null);
     const [rules, setRules] = useState(null);
     const [editing, setEditing] = useState(null); // null | {id?, ...rule}
@@ -141,7 +143,7 @@ export default function AutomationPanel({ projectId, members, statuses, labels, 
                                 <div>
                                     <p className="font-semibold text-gray-900">{r.name}</p>
                                     <p className="text-xs text-gray-500">When {catalog.triggers[r.trigger]?.toLowerCase()} · {r.conditions.length} condition(s) · {r.actions.map((a) => catalog.actions[a.type]).join(', ')}</p>
-                                    <p className="text-xs text-gray-400">{r.run_count} run(s){r.last_run_at ? ` · last ${formatDateTime(r.last_run_at)}` : ''}</p>
+                                    <p className="text-xs text-gray-400">{r.run_count} run(s){r.last_run_at ? <> · last <Timestamp date={r.last_run_at} /></> : ''}</p>
                                 </div>
                                 <Badge>{r.is_active ? 'on' : 'off'}</Badge>
                             </div>
@@ -149,7 +151,7 @@ export default function AutomationPanel({ projectId, members, statuses, labels, 
                                 <Button size="sm" variant="secondary" onClick={() => { setErrors({}); setEditing({ ...r }); }}>Edit</Button>
                                 <Button size="sm" variant="secondary" onClick={() => api.put(`/projects/${projectId}/automations/${r.id}`, { name: r.name, trigger: r.trigger, conditions: r.conditions, actions: r.actions, is_active: !r.is_active }).then(load)}>{r.is_active ? 'Turn off' : 'Turn on'}</Button>
                                 <Button size="sm" variant="secondary" onClick={() => showRuns(r.id)}>{runs.id === r.id ? 'Hide runs' : 'Run log'}</Button>
-                                <Button size="sm" variant="danger" onClick={() => window.confirm('Delete this rule?') && api.delete(`/projects/${projectId}/automations/${r.id}`).then(load)}>Delete</Button>
+                                <Button size="sm" variant="danger" onClick={async () => { if (await confirm({ title: 'Delete rule?', message: 'Delete this rule?', variant: 'danger' })) api.delete(`/projects/${projectId}/automations/${r.id}`).then(load); }}>Delete</Button>
                             </div>
                             {runs.id === r.id && (
                                 <ul className="mt-3 divide-y divide-gray-100 rounded-lg border border-gray-100 text-xs">
@@ -158,7 +160,7 @@ export default function AutomationPanel({ projectId, members, statuses, labels, 
                                         <li key={x.id} className="flex flex-wrap gap-2 px-3 py-2">
                                             <span className={x.status === 'success' ? 'text-emerald-700' : x.status === 'failed' ? 'text-red-700' : 'text-gray-500'}>{x.status}</span>
                                             <span className="text-gray-600">{x.summary}</span>
-                                            <span className="ml-auto text-gray-400">{formatDateTime(x.created_at)}</span>
+                                            <span className="ml-auto text-gray-400"><Timestamp date={x.created_at} /></span>
                                         </li>
                                     ))}
                                 </ul>

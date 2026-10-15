@@ -7,6 +7,8 @@ import Spinner from '../components/ui/Spinner';
 import Alert from '../components/ui/Alert';
 import Button from '../components/ui/Button';
 import Input from '../components/ui/Input';
+import RichTextEditor from '../components/ui/RichTextEditor';
+import { stripRichText } from '../components/ui/RichText';
 import { Table, Th, Td, TableEmpty } from '../components/ui/Table';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
@@ -110,14 +112,15 @@ export default function Workspaces() {
                             error={formErrors.name}
                             required
                         />
-                        <Input
-                            label="Description"
-                            name="description"
-                            placeholder="What is this workspace for?"
-                            value={form.description}
-                            onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))}
-                            error={formErrors.description}
-                        />
+                        <div>
+                            <label className="mb-1.5 block text-sm font-medium text-gray-700">Description</label>
+                            <RichTextEditor
+                                value={form.description}
+                                onChange={(html) => setForm((f) => ({ ...f, description: html }))}
+                                placeholder="What is this workspace for?"
+                                error={formErrors.description}
+                            />
+                        </div>
                         <div className="flex gap-2 pt-1">
                             <Button type="button" variant="secondary" onClick={() => setCreating(false)}>
                                 Cancel
@@ -170,9 +173,9 @@ export default function Workspaces() {
                                     </Link>
                                 </Td>
                                 <Td>
-                                    <span className="block max-w-md truncate text-gray-500">
-                                        {workspace.description || 'No description'}
-                                    </span>
+                                        <span className="block max-w-md truncate text-gray-500">
+                                            {stripRichText(workspace.description) || 'No description'}
+                                        </span>
                                 </Td>
                                 <Td>
                                     <span

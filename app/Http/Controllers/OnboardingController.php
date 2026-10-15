@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Http\Controllers\Concerns\RequiresTenantAdmin;
+use App\Http\Controllers\Concerns\ResolvesCurrentTenant;
 use App\Models\Tenant;
 use App\Services\TenantOnboarding;
 use App\Support\TenantContext;
@@ -13,6 +14,7 @@ use Illuminate\Validation\Rule;
 class OnboardingController extends Controller
 {
     use RequiresTenantAdmin;
+    use ResolvesCurrentTenant;
 
     public function __construct(
         private readonly TenantOnboarding $onboarding,
@@ -88,13 +90,5 @@ class OnboardingController extends Controller
         }
 
         return response()->json(['onboarding' => $this->onboarding->status($tenant)]);
-    }
-
-    private function currentTenant(): Tenant
-    {
-        $tenantId = app(TenantContext::class)->currentId();
-        abort_unless($tenantId, 404);
-
-        return Tenant::findOrFail($tenantId);
     }
 }

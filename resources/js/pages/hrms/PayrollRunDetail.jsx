@@ -11,6 +11,7 @@ import Select from '../../components/ui/Select';
 import Spinner from '../../components/ui/Spinner';
 import { Table, Th, Td } from '../../components/ui/Table';
 import { useToast } from '../../context/ToastContext';
+import { useConfirm } from '../../components/ui/ConfirmDialog';
 import { useSetCrumbs } from '../../context/BreadcrumbContext';
 import usePageTitle from '../../hooks/usePageTitle';
 import { monthLabel, PAYSLIP_STATUS_LABELS } from '../../utils/payroll';
@@ -28,6 +29,7 @@ export default function PayrollRunDetail() {
     const setCrumbs = useSetCrumbs();
     const navigate = useNavigate();
     const toast = useToast();
+    const confirm = useConfirm();
     const { runId } = useParams();
 
     const [run, setRun] = useState(null);
@@ -86,7 +88,7 @@ export default function PayrollRunDetail() {
     }
 
     async function removeAdjustment(adjustment) {
-        if (!window.confirm(`Remove “${adjustment.label}”? Totals recompute without it.`)) return;
+        if (!(await confirm({ title: 'Remove adjustment?', message: `Remove “${adjustment.label}”? Totals recompute without it.`, variant: 'danger' }))) return;
 
         try {
             const { data } = await api.delete(`/hrms/payroll/payslips/${selected.id}/adjustments/${adjustment.id}`);
@@ -164,7 +166,7 @@ export default function PayrollRunDetail() {
 
             <Modal open={!!selected} onClose={() => setSelected(null)} title={selected?.employee?.name ?? 'Payslip'} size="lg">
                 {selected && (
-                    <div className="text-sm">
+                    <div className="px-6 py-5 text-sm">
                         <p className="text-gray-500">
                             {selected.employee?.employee_code} · paid {selected.paid_days} of {selected.working_days} · LOP {selected.lop_days} · overtime {selected.ot_minutes} min
                         </p>
@@ -204,7 +206,7 @@ export default function PayrollRunDetail() {
             </Modal>
 
             <Modal open={adjustModal} onClose={() => setAdjustModal(false)} title="Add adjustment" subtitle="Review runs only — past review the backend refuses.">
-                <form onSubmit={saveAdjustment} className="grid gap-3">
+                <form onSubmit={saveAdjustment} className="grid gap-3 px-6 py-5">
                     <Select label="Kind" value={adjustForm.kind} error={adjustErrors.kind} onChange={(e) => setAdjustForm({ ...adjustForm, kind: e.target.value })}>
                         <option value="earning">Earning (adds to net)</option>
                         <option value="deduction">Deduction (takes from net)</option>

@@ -36,7 +36,12 @@ class ApprovalService
     /** Permission that lets someone act on a step they were not assigned (audited). */
     public const OVERRIDE_PERMISSION = 'hrms.approvals.override';
 
-    public function __construct(private readonly HrmsAuditLogger $audit) {}
+    public function __construct(
+        private readonly HrmsAuditLogger $audit,
+        private readonly ApprovalActors $actors,
+        private readonly ApprovalStages $stages,
+        private readonly ApprovalDelegations $delegations,
+    ) {}
 
     /**
      * Open an approval chain for a subject.
@@ -58,6 +63,8 @@ class ApprovalService
         ?array $meta = null,
         ?User $requester = null,
         ?int $requesterEmployeeId = null,
+        ?string $domain = null,
+        ?int $resubmissionOfId = null,
     ): Approval {
         $steps = $approverSpec instanceof ApproverSpec
             ? [$approverSpec]
@@ -69,7 +76,7 @@ class ApprovalService
             ]);
         }
 
-        $approval = DB::transaction(function () use ($steps, $subject, $action, $subjectLabel, $meta, $requester, $requesterEmployeeId): Approval {
+        $approval = DB::transaction(function () use ($steps, $subject, $action, $subjectLabel, $meta, $requester, $requesterEmployeeId, $domain, $resubmissionOfId): Approval {
             $approval = Approval::create([
                 'approvable_type' => $subject->getMorphClass(),
                 'approvable_id' => $subject->getKey(),
@@ -80,6 +87,8 @@ class ApprovalService
                 'requested_by_employee_id' => $requesterEmployeeId,
                 'current_step' => 1,
                 'meta' => $meta,
+                'domain' => $domain,
+                'resubmission_of_id' => $resubmissionOfId,
             ]);
 
             $order = 1;
@@ -92,6 +101,9 @@ class ApprovalService
                     'approver_role_id' => $spec->roleId,
                     'approver_user_id' => $spec->userId,
                     'approver_employee_id' => $spec->employeeId,
+                    'stage' => $spec->stage ?? $order,
+                    'mode' => $spec->mode,
+                    'sla_hours' => $spec->slaHours,
                     // A step nobody can act on is skipped up front rather than
                     // stalling the chain when it is reached.
                     'status' => $spec->hasCandidate()
@@ -102,18 +114,10 @@ class ApprovalService
                 $order++;
             }
 
-            // Point the persisted cursor at the first *actionable* step, so it
-            // never disagrees with `currentStepRecord()` when leading steps
-            // were skipped.
-            $firstPending = ApprovalStep::query()
-                ->where('approval_id', $approval->id)
-                ->where('status', ApprovalStepStatus::Pending)
-                ->orderBy('step_order')
-                ->value('step_order');
-
-            if ($firstPending !== null) {
-                $approval->update(['current_step' => $firstPending]);
-            }
+            // Point the persisted cursor at the first *actionable* step (and
+            // start its SLA), so it never disagrees with `currentStepRecord()`
+            // when leading steps were skipped.
+            $this->stages->open($approval);
 
             return $approval->fresh(['steps']);
         });
@@ -128,22 +132,66 @@ class ApprovalService
 
         // A chain whose only steps were all skipped is dead on arrival; resolve
         // it so it does not sit in a pending queue forever.
-        return $this->settleIfNoActionableStep($approval, $requester);
+        return $this->stages->settleIfDeadOnArrival($approval, $requester);
     }
 
     /**
-     * Approve the current step and advance.
+     * Resubmit a rejected approval: a NEW approval for the same subject
+     * (a resolved flow is closed, never reopened), linked back through
+     * `resubmission_of_id`. Only the requester may, and only for the latest
+     * rejected approval of that subject.
+     *
+     * @param  ApproverSpec|iterable<ApproverSpec>  $approverSpec
+     *
+     * @throws ValidationException
+     */
+    public function resubmit(Approval $previous, ApproverSpec|iterable $approverSpec, User $actor, ?array $meta = null): Approval
+    {
+        if (! $this->actors->isRequester($previous, $actor)) {
+            throw ValidationException::withMessages(['approval' => 'Only the requester can resubmit this approval.']);
+        }
+
+        if ($previous->status !== ApprovalStatus::Rejected) {
+            throw ValidationException::withMessages(['approval' => 'Only a rejected approval can be resubmitted.']);
+        }
+
+        $superseded = Approval::query()
+            ->where('approvable_type', $previous->approvable_type)
+            ->where('approvable_id', $previous->approvable_id)
+            ->where('id', '>', $previous->id)
+            ->exists();
+
+        if ($superseded) {
+            throw ValidationException::withMessages(['approval' => 'This approval has already been resubmitted.']);
+        }
+
+        return $this->request(
+            $approverSpec,
+            $previous->approvable,
+            $previous->action,
+            $previous->subject,
+            $meta ?? $previous->meta,
+            $actor,
+            $previous->requested_by_employee_id,
+            $previous->domain,
+            $previous->id,
+        );
+    }
+
+    /**
+     * Approve the user's step of the current stage and advance.
      *
      * @throws ValidationException when the user cannot act on this step
      */
     public function approve(Approval $approval, User $actor, ?string $note = null): Approval
     {
-        $step = $this->assertCanAct($approval, $actor);
-        $override = $this->requireOverrideNote($step, $actor, $note);
+        $pick = $this->assertCanAct($approval, $actor);
+        $step = $pick['step'];
+        $this->requireOverrideNote($pick['via'], $note);
 
         $this->audit->log(
             subject: $approval,
-            action: $override ? 'approval.override_approved' : 'approval.approved',
+            action: $this->auditAction($pick['via'], 'approved'),
             before: ['step' => $step->step_order, 'status' => $step->status->value],
             after: ['step' => $step->step_order, 'status' => ApprovalStepStatus::Approved->value],
             actor: $actor,
@@ -153,25 +201,27 @@ class ApprovalService
             'status' => ApprovalStepStatus::Approved,
             'acted_at' => now(),
             'acted_by_user_id' => $actor->id,
+            'acted_for_user_id' => $pick['for'],
             'note' => $note,
         ]);
 
-        return $this->advance($approval, $actor);
+        return $this->stages->afterApproval($approval, $step, $actor);
     }
 
     /**
-     * Reject the current step. The flow stops here.
+     * Reject the user's step. The whole flow stops here, whatever the stage mode.
      *
      * @throws ValidationException when the user cannot act on this step
      */
     public function reject(Approval $approval, User $actor, ?string $note = null): Approval
     {
-        $step = $this->assertCanAct($approval, $actor);
-        $override = $this->requireOverrideNote($step, $actor, $note);
+        $pick = $this->assertCanAct($approval, $actor);
+        $step = $pick['step'];
+        $this->requireOverrideNote($pick['via'], $note);
 
         $this->audit->log(
             subject: $approval,
-            action: $override ? 'approval.override_rejected' : 'approval.rejected',
+            action: $this->auditAction($pick['via'], 'rejected'),
             before: ['status' => $step->status->value],
             after: ['status' => ApprovalStepStatus::Rejected->value, 'step' => $step->step_order],
             actor: $actor,
@@ -181,6 +231,7 @@ class ApprovalService
             'status' => ApprovalStepStatus::Rejected,
             'acted_at' => now(),
             'acted_by_user_id' => $actor->id,
+            'acted_for_user_id' => $pick['for'],
             'note' => $note,
         ]);
 
@@ -189,6 +240,7 @@ class ApprovalService
             'resolved_at' => now(),
             'resolved_by_user_id' => $actor->id,
             'decision_note' => $note,
+            'due_at' => null,
         ]);
 
         return $approval->fresh(['steps']);
@@ -199,7 +251,7 @@ class ApprovalService
      */
     public function cancel(Approval $approval, User $actor, ?string $note = null): Approval
     {
-        if (! $this->isRequester($approval, $actor)) {
+        if (! $this->actors->isRequester($approval, $actor)) {
             throw ValidationException::withMessages([
                 'approval' => 'Only the requester can cancel this approval.',
             ]);
@@ -224,32 +276,53 @@ class ApprovalService
             'resolved_at' => now(),
             'resolved_by_user_id' => $actor->id,
             'decision_note' => $note,
+            'due_at' => null,
         ]);
 
         return $approval->fresh(['steps']);
     }
 
     /**
-     * Steps waiting on the given user.
+     * Steps waiting on the given user — their own, plus those of anyone who
+     * delegated to them in an active window (restricted to the delegation's
+     * domains).
      *
-     * This is the "my approvals" inbox. Role steps are matched in SQL by
-     * joining the user's roles, so an approver holding a role sees the step
-     * without the query loading every candidate step and filtering in PHP.
+     * Role steps are matched in SQL by joining the roles, so an approver
+     * holding a role sees the step without the query loading every candidate
+     * step and filtering in PHP.
      *
      * @return Collection<int, ApprovalStep>
      */
     public function pendingFor(User $user): Collection
     {
-        $roleIds = $user->roles()->pluck('roles.id');
+        $seats = [[$user, null]];
+
+        foreach ($this->delegations->activeTo($user)->load('from') as $delegation) {
+            if ($delegation->from !== null) {
+                $seats[] = [$delegation->from, $delegation->domains];
+            }
+        }
 
         return ApprovalStep::query()
             ->where('status', ApprovalStepStatus::Pending)
             ->whereHas('approval', fn ($query) => $query->where('status', ApprovalStatus::Pending))
-            ->where(function ($query) use ($user, $roleIds) {
-                $query->where('approver_user_id', $user->id);
+            ->where(function ($query) use ($seats) {
+                foreach ($seats as [$seat, $domains]) {
+                    $query->orWhere(function ($seatQuery) use ($seat, $domains) {
+                        $roleIds = $seat->roles()->pluck('roles.id');
 
-                if ($roleIds->isNotEmpty()) {
-                    $query->orWhereIn('approver_role_id', $roleIds);
+                        $seatQuery->where(function ($who) use ($seat, $roleIds) {
+                            $who->where('approver_user_id', $seat->id);
+
+                            if ($roleIds->isNotEmpty()) {
+                                $who->orWhereIn('approver_role_id', $roleIds);
+                            }
+                        });
+
+                        if ($domains !== null && $domains !== []) {
+                            $seatQuery->whereHas('approval', fn ($a) => $a->whereIn('domain', $domains));
+                        }
+                    });
                 }
             })
             ->with(['approval.requester', 'approverRole'])
@@ -258,133 +331,53 @@ class ApprovalService
     }
 
     /**
-     * Whether the user may act on the approval's current step.
-     *
-     * The step's own approver — a resolved user, or any holder of the step's
-     * role — or a holder of the explicit override permission (see mayOverride()).
-     * There is deliberately **no** administrator bypass: a tenant admin approving
-     * their own payroll revision is exactly the case a review trail must make
-     * visible, so the override has its own permission and its own audit action
-     * rather than a silent `|| true`.
+     * Whether the user may act on a step of the approval's current stage:
+     * as its own approver, as a delegate of that approver, or through the
+     * explicit override permission (see ApprovalActors). There is deliberately
+     * **no** administrator bypass: a tenant admin approving their own payroll
+     * revision is exactly the case a review trail must make visible.
      */
     public function canAct(Approval $approval, User $user): bool
     {
-        $step = $approval->currentStepRecord();
-
-        if ($step === null) {
-            return false;
-        }
-
-        return $step->canBeActedBy($user) || $this->mayOverride($approval, $user);
+        return $this->actors->resolve($approval, $user) !== null;
     }
 
-    /**
-     * Whether the user may act on a pending step they were NOT assigned (R11).
-     *
-     * Needs its own permission, is never available on a request the user made
-     * themselves (an override must not become a self-approval path), and is
-     * recorded as a distinct audit action with a mandatory reason — so it shows
-     * up in the trail as an override, not as an ordinary approval.
-     */
+    /** Whether the user holds the R11 override for this approval (see ApprovalActors). */
     public function mayOverride(Approval $approval, User $user): bool
     {
-        return $approval->isOpen()
-            && ! $this->isRequester($approval, $user)
-            && $user->hasPermission(self::OVERRIDE_PERMISSION);
+        return $this->actors->mayOverride($approval, $user);
     }
 
     /**
-     * True when the actor is acting through the override rather than as the
-     * step's own approver; an override without a reason is refused.
+     * An override (acting for the assigned approver without being their
+     * delegate) needs a reason of at least 5 characters.
      *
      * @throws ValidationException
      */
-    private function requireOverrideNote(ApprovalStep $step, User $actor, ?string $note): bool
+    private function requireOverrideNote(string $via, ?string $note): void
     {
-        if ($step->canBeActedBy($actor)) {
-            return false;
-        }
-
-        if (mb_strlen(trim((string) $note)) < 5) {
+        if ($via === ApprovalActors::OVERRIDE && mb_strlen(trim((string) $note)) < 5) {
             throw ValidationException::withMessages([
                 'note' => 'Acting on behalf of the assigned approver needs a reason (at least 5 characters).',
             ]);
         }
-
-        return true;
     }
 
-    /**
-     * Advance to the next actionable step, or resolve the approval.
-     *
-     * Skips over already-terminal steps (approved, rejected, skipped) so a
-     * chain with gaps still lands on the right step.
-     */
-    private function advance(Approval $approval, User $actor): Approval
+    private function auditAction(string $via, string $verb): string
     {
-        $next = $approval->steps()
-            ->where('step_order', '>', $approval->current_step)
-            ->where('status', ApprovalStepStatus::Pending)
-            ->orderBy('step_order')
-            ->first();
-
-        if ($next !== null) {
-            $approval->update(['current_step' => $next->step_order]);
-
-            return $approval->fresh(['steps']);
-        }
-
-        $approval->update([
-            'status' => ApprovalStatus::Approved,
-            'resolved_at' => now(),
-            'resolved_by_user_id' => $actor->id,
-        ]);
-
-        return $approval->fresh(['steps']);
+        return match ($via) {
+            ApprovalActors::OVERRIDE => 'approval.override_'.$verb,
+            ApprovalActors::DELEGATE => 'approval.delegated_'.$verb,
+            default => 'approval.'.$verb,
+        };
     }
 
     /**
-     * Resolve an approval that has no actionable step left.
+     * @return array{step: ApprovalStep, via: string, for: int|null}
      *
-     * Reached when every step was skipped at request time. Without this the
-     * flow would be `pending` with nobody able to act on it.
-     */
-    private function settleIfNoActionableStep(Approval $approval, ?User $actor): Approval
-    {
-        if (! $approval->isOpen()) {
-            return $approval;
-        }
-
-        $hasActionable = $approval->steps()
-            ->where('status', ApprovalStepStatus::Pending)
-            ->exists();
-
-        if ($hasActionable) {
-            return $approval;
-        }
-
-        $approval->update([
-            'status' => ApprovalStatus::Approved,
-            'resolved_at' => now(),
-            'resolved_by_user_id' => $actor?->id,
-            'decision_note' => 'No approver was resolvable; auto-approved.',
-        ]);
-
-        $this->audit->log(
-            subject: $approval,
-            action: 'approval.auto_approved',
-            before: ['status' => ApprovalStatus::Pending->value],
-            after: ['status' => ApprovalStatus::Approved->value],
-            actor: $actor,
-        );
-
-        return $approval->fresh(['steps']);
-    }
-
-    /**
      * @throws ValidationException
      */
-    private function assertCanAct(Approval $approval, User $actor): ApprovalStep
+    private function assertCanAct(Approval $approval, User $actor): array
     {
         if (! $approval->isOpen()) {
             throw ValidationException::withMessages([
@@ -392,27 +385,23 @@ class ApprovalService
             ]);
         }
 
-        $step = $approval->currentStepRecord();
-
-        if ($step === null) {
+        if ($approval->currentStageSteps()->isEmpty()) {
             throw ValidationException::withMessages([
                 'approval' => 'This approval has no actionable step.',
             ]);
         }
 
-        if (! $this->canAct($approval, $actor)) {
+        $pick = $this->actors->resolve($approval, $actor);
+
+        if ($pick === null) {
             throw ValidationException::withMessages([
                 'approval' => 'You are not an approver for this step.',
             ]);
         }
 
         // Eager-load the role the canAct() check depends on.
-        return $step->load('approverRole');
-    }
+        $pick['step']->load('approverRole');
 
-    private function isRequester(Approval $approval, User $actor): bool
-    {
-        return $approval->requested_by_user_id !== null
-            && $approval->requested_by_user_id === $actor->id;
+        return $pick;
     }
 }

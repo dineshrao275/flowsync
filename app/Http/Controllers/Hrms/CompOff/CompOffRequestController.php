@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Hrms\CompOff;
 
 use App\Enums\Hrms\CompOffRequestStatus;
+use App\Http\Controllers\Concerns\NormalizesFilters;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Hrms\CompOff\CompOffDecisionRequest;
 use App\Http\Requests\Hrms\CompOff\CompOffRequestRequest;
@@ -27,6 +28,8 @@ use Illuminate\Validation\Rule;
  */
 class CompOffRequestController extends Controller
 {
+    use NormalizesFilters;
+
     public function __construct(
         private readonly CompOffService $compOff,
         private readonly CompOffRequestDirectory $directory,
@@ -134,14 +137,5 @@ class CompOffRequestController extends Controller
         abort_if($employee === null, 404, 'There is no employment record to file comp-off for.');
 
         return $employee;
-    }
-
-    /**
-     * @param  array<string, mixed>  $filters
-     * @return array<string, mixed>
-     */
-    private function clean(array $filters): array
-    {
-        return array_filter($filters, fn (mixed $value): bool => $value !== null);
     }
 }

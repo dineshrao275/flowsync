@@ -3,7 +3,9 @@
 namespace App\Http\Controllers;
 
 use App\Billing\PaymentService;
+use App\Billing\Proration\ProrationCalculator;
 use App\Http\Controllers\Concerns\DetectsPlatformUsers;
+use App\Http\Controllers\Concerns\ResolvesCurrentTenant;
 use App\Models\SubscriptionPlan;
 use App\Models\Tenant;
 use App\Services\SubscriptionService;
@@ -23,6 +25,7 @@ use Illuminate\Http\Request;
 class MySubscriptionController extends Controller
 {
     use DetectsPlatformUsers;
+    use ResolvesCurrentTenant;
 
     public function __construct(
         private readonly SubscriptionService $subscriptions,
@@ -82,9 +85,16 @@ class MySubscriptionController extends Controller
 
         $actor = $request->user();
 
+        // Moving off a paid plan mid-period leaves unused paid time; record its value on
+        // the event (P6.4) so support can honour it — nothing applies it automatically.
+        $credit = app(ProrationCalculator::class)->credit($tenant->subscriptionFor($plan->product ?? 'suite'), $plan);
+
         $this->subscriptions->switch($tenant, $plan, [
             'actor_id' => null,
-            'data' => ['actor' => ['id' => $actor->id, 'name' => $actor->name, 'email' => $actor->email]],
+            'data' => array_filter([
+                'actor' => ['id' => $actor->id, 'name' => $actor->name, 'email' => $actor->email],
+                'proration' => $credit,
+            ]),
         ]);
 
         return response()->json(['message' => 'Plan updated.', ...$this->payload($tenant)]);
@@ -160,14 +170,6 @@ class MySubscriptionController extends Controller
             403,
             'You do not have permission to view billing information.',
         );
-    }
-
-    private function currentTenant(): Tenant
-    {
-        $tenantId = app(TenantContext::class)->currentId();
-        abort_unless($tenantId, 404);
-
-        return Tenant::findOrFail($tenantId);
     }
 
     private function payload(Tenant $tenant): array

@@ -3,6 +3,7 @@
 namespace App\Http\Requests\Hrms\Attendance;
 
 use App\Enums\Hrms\PunchDirection;
+use App\Enums\Hrms\PunchKind;
 use App\Enums\Hrms\PunchSource;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
@@ -25,6 +26,7 @@ class AttendancePunchRequest extends FormRequest
     {
         return [
             'direction' => ['required', Rule::enum(PunchDirection::class)],
+            'kind' => ['sometimes', Rule::enum(PunchKind::class)],
             'source' => ['sometimes', Rule::enum(PunchSource::class)],
             'punch_at' => ['sometimes', 'nullable', 'date'],
             'lat' => ['sometimes', 'nullable', 'numeric', 'between:-90,90'],

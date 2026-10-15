@@ -10,8 +10,10 @@ import Pagination from '../components/ui/Pagination';
 import { useAuth } from '../context/AuthContext';
 import ImpersonateModal from '../components/ImpersonateModal';
 import { useToast } from '../context/ToastContext';
+import { useConfirm } from '../components/ui/ConfirmDialog';
 import { useClickOutside } from '../hooks/useClickOutside';
 import usePageTitle from '../hooks/usePageTitle';
+import Timestamp from '../components/ui/Timestamp';
 
 const STATUS_OPTIONS = [
     { value: 'pending', label: 'Pending' },
@@ -95,6 +97,7 @@ function TenantActions({ tenant, onChanged, onImpersonate }) {
 
     useClickOutside(ref, () => setOpen(false));
 
+    const confirm = useConfirm();
     const trashed = Boolean(tenant.deleted_at);
 
     function toggle() {
@@ -131,7 +134,7 @@ function TenantActions({ tenant, onChanged, onImpersonate }) {
     }
 
     async function remove() {
-        if (!window.confirm(`Delete tenant "${tenant.name}"? It can be restored later.`)) return;
+        if (!(await confirm({ title: 'Delete tenant?', message: `Delete tenant "${tenant.name}"? It can be restored later.`, variant: 'danger' }))) return;
         setBusy(true);
         try {
             await api.delete(`/tenants/${tenant.id}`);
@@ -337,17 +340,17 @@ export default function Tenants() {
         setPage(1);
     }
 
-    async function impersonate({ reason, mode }) {
+    async function impersonate({ reason, mode, grant_id }) {
         const { tenant, user } = impersonateTarget;
         try {
-            await api.post('/impersonate', { user_id: user.id, tenant_id: tenant.id, reason, mode });
+            await api.post('/impersonate', { user_id: user.id, tenant_id: tenant.id, reason, mode, grant_id });
             await refresh();
             setImpersonateTarget(null);
             toast.success(`Viewing panel as ${user.name}${mode === 'write' ? ' (changes enabled)' : ' (read-only)'}.`);
             navigate('/dashboard', { replace: true });
         } catch (e) {
             const errors = fieldErrors(e);
-            toast.error(errors.reason || errors.form || errors.user_id || 'Failed to impersonate.');
+            toast.error(errors.reason || errors.form || errors.user_id || errors.grant_id || errors.mode || 'Failed to impersonate.');
         }
     }
 
@@ -523,7 +526,7 @@ export default function Tenants() {
                                         </td>
                                         <td className="px-4 py-3 text-sm text-gray-600">{tenant.users_count}</td>
                                         <td className="px-4 py-3 text-sm text-gray-500">
-                                            {new Date(tenant.created_at).toLocaleDateString()}
+                                            <Timestamp date={tenant.created_at} />
                                         </td>
                                         <td className="px-4 py-3 text-right">
                                             <TenantActions

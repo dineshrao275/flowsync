@@ -143,6 +143,7 @@ return [
         ['name' => 'View Billing', 'slug' => 'billing.view', 'description' => 'View subscription plan and billing information'],
         ['name' => 'Manage Billing', 'slug' => 'billing.manage', 'description' => 'Change plans and manage the subscription'],
         ['name' => 'Manage Webhooks', 'slug' => 'webhooks.manage', 'description' => 'Create and manage outbound webhook endpoints'],
+        ['name' => 'Manage API Tokens', 'slug' => 'api.manage', 'description' => 'Create and revoke personal API access tokens'],
         ['name' => 'Support Tickets', 'slug' => 'support.manage', 'description' => 'Raise and follow support tickets with the platform team'],
         ['name' => 'Manage Organization', 'slug' => 'tenant.manage', 'description' => 'Edit the company profile and complete onboarding'],
         ['name' => 'View Workspaces', 'slug' => 'workspaces.view', 'description' => 'View workspaces and projects'],
@@ -214,6 +215,7 @@ return [
         ['name' => 'View HR Analytics', 'slug' => 'hrms.analytics.view', 'description' => 'View HR analytics dashboards'],
         ['name' => 'View HRMS Audit Log', 'slug' => 'hrms.audit.view', 'description' => 'View the HRMS audit log'],
         ['name' => 'Override Approvals', 'slug' => 'hrms.approvals.override', 'description' => 'Approve or reject a step on behalf of its assigned approver (reason required, audited)'],
+        ['name' => 'Manage Approval Chains', 'slug' => 'hrms.approvals.manage', 'description' => 'Edit who approves each kind of request, step modes, conditions and deadlines'],
     ]),
 
     /*

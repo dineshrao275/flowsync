@@ -230,7 +230,7 @@ class MyHrService
      */
     private function documents(Employee $employee): array
     {
-        $expiring = EmployeeDocument::query()->where('employee_id', $employee->id)
+        $expiring = EmployeeDocument::query()->current()->where('employee_id', $employee->id)
             ->whereNotNull('expires_at')
             ->whereDate('expires_at', '<=', today()->addDays(30)->toDateString())
             ->orderBy('expires_at')

@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import api from '../../services/api';
 import Alert from '../ui/Alert';
 import Spinner from '../ui/Spinner';
+import Timestamp from '../ui/Timestamp';
 
 const ACTION_LABELS = {
     'task.created': 'created the task',
@@ -87,7 +88,7 @@ export default function ActivityFeed({ task, projectId }) {
                         <span className="font-medium text-gray-900">{activity.actor?.name ?? 'Someone'}</span>{' '}
                         {describe(activity.action, activity.data)}
                     </p>
-                    <p className="text-xs text-gray-400">{new Date(activity.created_at).toLocaleString()}</p>
+                    <p className="text-xs text-gray-400"><Timestamp date={activity.created_at} /></p>
                 </li>
             ))}
         </ol>

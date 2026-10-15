@@ -15,6 +15,7 @@ use App\Models\Hrms\Shared\Approval;
 use App\Models\Task;
 use App\Models\User;
 use App\Services\Hrms\Leave\LeaveCalendar;
+use App\Support\Tms\TmsSchema;
 use Illuminate\Support\Carbon;
 
 /**
@@ -77,12 +78,14 @@ class MyTeamService
             ->whereDate('to_date', '>=', $today)
             ->exists();
 
-        $overdue = Task::query()->where('assignee_id', $report->user_id)
-            ->whereNull('completed_at')
-            ->whereDate('due_date', '<', $today)
-            ->orderBy('due_date')
-            ->limit(5)
-            ->get(['id', 'key', 'title', 'due_date', 'project_id']);
+        $overdue = TmsSchema::present()
+            ? Task::query()->where('assignee_id', $report->user_id)
+                ->whereNull('completed_at')
+                ->whereDate('due_date', '<', $today)
+                ->orderBy('due_date')
+                ->limit(5)
+                ->get(['id', 'key', 'title', 'due_date', 'project_id'])
+            : collect();
 
         $approvals = Approval::query()->where('requested_by_employee_id', $report->id)
             ->where('status', 'pending')

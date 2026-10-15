@@ -8,8 +8,9 @@ use App\Models\Priority;
 use App\Models\Project;
 use App\Models\Task;
 use App\Services\ActivityLogger;
-use App\Services\NotificationService;
+use App\Services\Tasks\TaskChangeLogger;
 use App\Services\TaskService;
+use App\Support\TaskScope;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -17,8 +18,8 @@ class TaskController extends Controller
 {
     public function __construct(
         private readonly TaskService $service,
+        private readonly TaskChangeLogger $changes,
         private readonly ActivityLogger $logger,
-        private readonly NotificationService $notifications,
     ) {}
 
     public function index(Request $request, Project $project): JsonResponse
@@ -31,12 +32,7 @@ class TaskController extends Controller
         // `tasks.view_own` grant passes the gate and the board/list then
         // narrow to the caller's rows.
         $user = $request->user();
-        $role = $project->memberRole($user);
-        abort_unless(
-            $user->hasPermission('workspaces.manage') || ($role !== null && $role->grants('tasks.view_own')),
-            403,
-            'Reading this project\'s tasks needs a "tasks.view*" grant on your project role (or "workspaces.manage").',
-        );
+        TaskScope::assertCanRead($project, $user);
 
         $filters = $request->validate([
             'status_id' => ['nullable', 'integer'],
@@ -45,8 +41,10 @@ class TaskController extends Controller
             'label_id' => ['nullable', 'integer'],
             'issue_type_id' => ['nullable', 'integer'],
             'version_id' => ['nullable', 'integer'],
+            'epic_id' => ['nullable', 'integer'],
             'component_id' => ['nullable', 'integer'],
             'sprint' => ['nullable', 'regex:/^(active|none|\d+)$/'],
+            'swimlane' => ['nullable', 'in:none,assignee'],
             'q' => ['nullable', 'string', 'max:255'],
             'due_from' => ['nullable', 'date'],
             'due_to' => ['nullable', 'date'],
@@ -93,6 +91,7 @@ class TaskController extends Controller
             'priority_id' => ['nullable', 'integer'],
             'assignee_id' => ['nullable', 'integer'],
             'parent_id' => ['nullable', 'integer'],
+            'epic_id' => ['nullable', 'integer'],
             'labels' => ['nullable', 'array'],
             'labels.*' => ['integer'],
             'start_date' => ['nullable', 'date'],
@@ -107,18 +106,7 @@ class TaskController extends Controller
 
         $task = $this->service->create($project, $data, $request->user());
 
-        $this->notifications->taskAssigned($request->user(), $task);
-
-        $this->logger->log(
-            subjectType: Task::class,
-            subjectId: $task->id,
-            action: 'task.created',
-            data: ['key' => $task->key, 'title' => $task->title],
-            actor: $request->user(),
-            ipAddress: $request->ip(),
-        );
-
-        broadcast(new TaskSynced($task, 'created'));
+        $this->changes->created($task, $request->user(), $request->ip());
 
         return response()->json([
             'message' => 'Task created.',
@@ -164,6 +152,7 @@ class TaskController extends Controller
             'priority_id' => ['nullable', 'integer'],
             'assignee_id' => ['nullable', 'integer'],
             'parent_id' => ['nullable', 'integer'],
+            'epic_id' => ['nullable', 'integer'],
             'labels' => ['nullable', 'array'],
             'labels.*' => ['integer'],
             'start_date' => ['nullable', 'date'],
@@ -185,38 +174,7 @@ class TaskController extends Controller
         $oldStatus = $task->status;
         $updated = $this->service->update($task, $data);
 
-        if (array_key_exists('assignee_id', $data) && $updated->assignee_id !== $oldAssigneeId) {
-            $this->notifications->taskAssigned($request->user(), $updated);
-        }
-
-        if (array_key_exists('status_id', $data) && $updated->status_id !== $oldStatusId) {
-            $this->notifications->taskStatusChanged(
-                $request->user(),
-                $updated,
-                $oldStatus?->name ?? 'Unknown',
-                $updated->status?->name ?? 'Unknown',
-            );
-        }
-
-        $changed = array_intersect(
-            array_keys($data),
-            ['title', 'description', 'status_id', 'priority_id', 'assignee_id', 'parent_id', 'due_date', 'estimate_minutes', 'labels', 'start_date', 'story_points', 'issue_type_id', 'version_id', 'components'],
-        );
-
-        $this->logger->log(
-            subjectType: Task::class,
-            subjectId: $task->id,
-            action: 'task.updated',
-            data: [
-                'fields' => array_values($changed),
-                'key' => $updated->key,
-                'to_is_done' => $updated->status_id !== $oldStatusId && (bool) $updated->status?->is_done,
-            ],
-            actor: $request->user(),
-            ipAddress: $request->ip(),
-        );
-
-        broadcast(new TaskSynced($updated, 'updated'));
+        $this->changes->updated($updated, $data, $oldAssigneeId, $oldStatusId, $oldStatus, $request->user(), $request->ip());
 
         return response()->json([
             'message' => 'Task updated.',
@@ -269,7 +227,11 @@ class TaskController extends Controller
                     'icon' => $t->icon,
                     'color' => $t->color,
                     'is_subtask' => $t->is_subtask,
+                    'hierarchy_level' => $t->level(),
                 ]),
+            'epics' => $project->tasks()->whereHas('issueType', fn ($q) => $q->where('hierarchy_level', 1))
+                ->orderByDesc('id')->limit(200)->get(['id', 'key', 'title'])
+                ->map(fn ($e) => ['id' => $e->id, 'key' => $e->key, 'title' => $e->title]),
             'versions' => $project->versions()->orderBy('name')->get()
                 ->map(fn ($v) => [
                     'id' => $v->id,

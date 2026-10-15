@@ -13,6 +13,7 @@ import { useToast } from '../../context/ToastContext';
 import { useSetCrumbs } from '../../context/BreadcrumbContext';
 import usePageTitle from '../../hooks/usePageTitle';
 import { formatMinutes } from '../../utils/time';
+import { useConfirm } from '../../components/ui/ConfirmDialog';
 
 /**
  * The caller's own comp-off bank: what was credited, what is free, what is
@@ -28,6 +29,7 @@ export default function MyCompOff() {
     const setCrumbs = useSetCrumbs();
     const navigate = useNavigate();
     const toast = useToast();
+    const confirm = useConfirm();
 
     const [bank, setBank] = useState(null);
     const [requests, setRequests] = useState(null);
@@ -78,11 +80,18 @@ export default function MyCompOff() {
         }
     }
 
-    async function withdraw(id) {
-        setWithdrawing(id);
+    async function withdraw(request) {
+        if (!(await confirm({
+            title: 'Withdraw comp-off request?',
+            message: `Withdraw your comp-off request for ${request.worked_date}?`,
+            variant: 'danger',
+            confirmLabel: 'Withdraw',
+        }))) return;
+
+        setWithdrawing(request.id);
 
         try {
-            await api.delete(`/hrms/comp-off/requests/${id}`);
+            await api.delete(`/hrms/comp-off/requests/${request.id}`);
 
             toast.success('Comp-off request withdrawn.');
             load();
@@ -190,7 +199,7 @@ export default function MyCompOff() {
                                                 <Button
                                                     variant="secondary"
                                                     disabled={withdrawing === request.id}
-                                                    onClick={() => withdraw(request.id)}
+                                                    onClick={() => withdraw(request)}
                                                 >
                                                     {withdrawing === request.id ? 'Withdrawing…' : 'Withdraw'}
                                                 </Button>
@@ -205,7 +214,7 @@ export default function MyCompOff() {
             </Card>
 
             <Modal open={filing} onClose={() => setFiling(false)} title="Redeem comp-off">
-                <form onSubmit={submit} className="space-y-3">
+                <form onSubmit={submit} className="space-y-3 px-6 py-5">
                     <div className="grid grid-cols-2 gap-3">
                         <Input type="date" label="From" value={form.from_date} onChange={(e) => setForm({ ...form, from_date: e.target.value })} error={formErrors.from_date} />
                         <Input type="date" label="To" value={form.to_date} onChange={(e) => setForm({ ...form, to_date: e.target.value })} error={formErrors.to_date} />

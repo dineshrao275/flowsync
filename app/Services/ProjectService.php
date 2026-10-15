@@ -228,6 +228,7 @@ class ProjectService
             'color' => $data['color'] ?? null,
             'is_default' => $data['is_default'] ?? false,
             'is_done' => $data['category'] === 'done',
+            'wip_limit' => $data['wip_limit'] ?? null,
         ]);
 
         $this->normalizePositions($project);
@@ -242,6 +243,8 @@ class ProjectService
             'category' => TaskStatusCategory::from($data['category'] ?? $status->category->value),
             'color' => $data['color'] ?? $status->color,
             'is_done' => $data['is_done'] ?? ($data['category'] ?? $status->category->value) === 'done',
+            // `wip_limit: null` clears the limit, so null must reach the model.
+            'wip_limit' => array_key_exists('wip_limit', $data) ? $data['wip_limit'] : $status->wip_limit,
         ]);
 
         if (isset($data['position'])) {

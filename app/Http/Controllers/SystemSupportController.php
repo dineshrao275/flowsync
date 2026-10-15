@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Events\SupportTicketUpdated;
 use App\Models\SupportTicket;
 use App\Services\Support\SupportDesk;
 use Illuminate\Http\JsonResponse;
@@ -52,7 +53,7 @@ class SystemSupportController extends Controller
 
     public function reply(Request $request, SupportTicket $ticket): JsonResponse
     {
-        $data = $request->validate(['body' => ['required', 'string', 'max:10000'], 'internal' => ['sometimes', 'boolean']]);
+        $data = $request->validate(['body' => ['required', 'string', SupportTicketController::bodyLength(null, 10000)], 'internal' => ['sometimes', 'boolean']]);
 
         $this->desk->replyAsStaff($ticket, $request->user(), $data['body'], (bool) ($data['internal'] ?? false));
 
@@ -69,6 +70,9 @@ class SystemSupportController extends Controller
 
         if (isset($data['priority']) || array_key_exists('assigned_to', $data)) {
             $ticket->update(array_intersect_key($data, array_flip(['priority', 'assigned_to'])) + ['last_activity_at' => now()]);
+            if (! isset($data['status'])) {
+                broadcast(new SupportTicketUpdated($ticket->fresh(), 'updated'));
+            }
         }
         if (isset($data['status'])) {
             $this->desk->setStatus($ticket, $data['status'], $request->user());

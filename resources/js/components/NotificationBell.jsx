@@ -4,8 +4,9 @@ import api from '../services/api';
 import Spinner from './ui/Spinner';
 import { useNotifications } from '../context/NotificationContext';
 import { useClickOutside } from '../hooks/useClickOutside';
-import { describeNotification, notificationHref, timeAgo } from '../utils/notifications';
+import { describeNotification, notificationHref } from '../utils/notifications';
 import Avatar from './ui/Avatar';
+import Timestamp from './ui/Timestamp';
 
 export default function NotificationBell() {
     const { unreadCount, markAllRead, markRead } = useNotifications();
@@ -98,7 +99,9 @@ export default function NotificationBell() {
                                                         notification.actor?.name ?? 'Someone',
                                                     )}
                                                 </span>
-                                                <span className="block text-xs text-gray-400">{timeAgo(notification.created_at)}</span>
+                                                <span className="block text-xs text-gray-400">
+                                                    <Timestamp date={notification.created_at} placement="bottom" />
+                                                </span>
                                             </span>
                                             {!notification.read_at && <span className="mt-2 h-2 w-2 shrink-0 rounded-full bg-[var(--accent)]" />}
                                         </button>

@@ -2,8 +2,11 @@
 
 namespace App\Services;
 
+use App\Contracts\AuditWriter;
 use App\Models\AuditLog;
 use App\Support\AuditMask;
+use App\Support\RequestId;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\Request;
 use Illuminate\Support\Arr;
 
@@ -24,7 +27,7 @@ use Illuminate\Support\Arr;
  * may fill it; a tenant user (or an impersonated one) is never a central row
  * and lands `null`, with the identity kept in `data`.
  */
-class PlatformAudit
+class PlatformAudit implements AuditWriter
 {
     /**
      * Write a flat event row.
@@ -49,7 +52,7 @@ class PlatformAudit
             'data' => AuditMask::mask($data),
             'actor_id' => $actorId ?? $this->actorFrom($request),
             'ip_address' => $ipAddress ?? $request?->ip() ?? request()->ip(),
-        ]);
+        ] + RequestId::columnFor(new AuditLog));
     }
 
     /**
@@ -84,6 +87,35 @@ class PlatformAudit
     }
 
     /**
+     * {@see AuditWriter}: the before/after row, written through `record()` so
+     * masking, actor and correlation id behave exactly as for `diff()`.
+     *
+     * @param  array<string, mixed>|null  $before
+     * @param  array<string, mixed>|null  $after
+     * @param  array<string, mixed>  $context
+     */
+    public function recordChange(
+        string $action,
+        ?string $subjectType,
+        int|string|null $subjectId,
+        ?array $before,
+        ?array $after,
+        array $context = [],
+        ?int $actorId = null,
+        ?string $ipAddress = null,
+    ): Model {
+        $data = $context;
+        $changed = $this->changedKeys($before, $after);
+
+        if ($changed !== []) {
+            $data['before'] = $before === null ? null : Arr::only($before, $changed);
+            $data['after'] = $after === null ? null : Arr::only($after, $changed);
+        }
+
+        return $this->record(request(), $action, $subjectType, $subjectId === null ? null : (int) $subjectId, $data, $actorId, $ipAddress);
+    }
+
+    /**
      * Write an identity row (login/logout): secrets masked, account kept.
      *
      * `user_id` in the payload is also lifted onto the row's `subject_*`
@@ -102,7 +134,7 @@ class PlatformAudit
             'data' => AuditMask::maskSecrets($data),
             'actor_id' => $actorId ?? $this->actorFrom($request),
             'ip_address' => $request?->ip() ?? request()->ip(),
-        ]);
+        ] + RequestId::columnFor(new AuditLog));
     }
 
     /**

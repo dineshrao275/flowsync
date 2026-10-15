@@ -4,15 +4,25 @@ namespace App\Providers;
 
 use App\Billing\PaymentResolver;
 use App\Billing\PaymentService;
+use App\Contracts\Notifications\NotificationSender;
 use App\Http\Middleware\EnsurePermission;
 use App\Listeners\SwitchesTenantConnectionForQueuedJobs;
+use App\Models\ApiToken;
 use App\Models\User;
+use App\Services\FeatureFlags;
+use App\Services\Notifications\NotificationDispatcher;
 use App\Services\ReportsTo;
+use App\Services\Security\PlatformAccess;
 use App\Services\TenantLimits;
+use App\Support\Hrms\HrmsSchema;
+use App\Support\Integration\BridgeSchema;
 use App\Support\TenantContext;
 use App\Support\TenantDatabaseManager;
+use App\Support\Tms\TmsSchema;
 use Illuminate\Auth\Access\Response;
+use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Foundation\Http\Events\RequestHandled;
+use Illuminate\Http\Request;
 use Illuminate\Queue\Events\JobExceptionOccurred;
 use Illuminate\Queue\Events\JobFailed;
 use Illuminate\Queue\Events\JobProcessed;
@@ -20,6 +30,7 @@ use Illuminate\Queue\Events\JobProcessing;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Queue;
+use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\ServiceProvider;
 use RuntimeException;
 
@@ -36,6 +47,10 @@ class AppServiceProvider extends ServiceProvider
             return new PaymentResolver(config('payments', []));
         });
         $this->app->singleton(PaymentService::class);
+        $this->app->bind(NotificationSender::class, NotificationDispatcher::class);
+        // Per request / queued job: flag state must not outlive an admin edit (P8.7).
+        $this->app->scoped(FeatureFlags::class);
+        $this->app->scoped(PlatformAccess::class);
     }
 
     /**
@@ -57,6 +72,16 @@ class AppServiceProvider extends ServiceProvider
                 : Response::deny(EnsurePermission::denial($permission));
         });
 
+        // Per-token throttle for /api/v1: the token's own limit, else the configured default.
+        RateLimiter::for('api-token', function (Request $request) {
+            $token = $request->attributes->get('api_token');
+            $limit = $token instanceof ApiToken
+                ? min((int) ($token->rate_limit ?: config('api.default_rate_limit')), (int) config('api.max_rate_limit'))
+                : (int) config('api.default_rate_limit');
+
+            return Limit::perMinute($limit)->by('api-token:'.($token?->id ?? $request->ip()));
+        });
+
         $this->registerQueuedJobTenantContext();
         $this->registerTenantLimitsMemoBoundaries();
         $this->assertInfrastructureConnectionsPinned();
@@ -69,16 +94,24 @@ class AppServiceProvider extends ServiceProvider
      * `limits_override` edit would stay invisible until the process recycled.
      * A plan edit must take effect on the very next read; `ModuleGateTest`
      * (grants a module, expects the next request to allow it) is the guard.
+     * The schema probes (TMS/HRMS/bridge) ride the same boundary: enabling a
+     * product must flip the next `present()` answer, not the next recycle.
      */
     private function registerTenantLimitsMemoBoundaries(): void
     {
         Event::listen(RequestHandled::class, function (): void {
             TenantLimits::resetMemo();
             ReportsTo::resetMemo();
+            TmsSchema::flush();
+            HrmsSchema::flush();
+            BridgeSchema::flush();
         });
         Event::listen(JobProcessing::class, function (): void {
             TenantLimits::resetMemo();
             ReportsTo::resetMemo();
+            TmsSchema::flush();
+            HrmsSchema::flush();
+            BridgeSchema::flush();
         });
     }
 

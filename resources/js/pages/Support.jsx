@@ -7,10 +7,12 @@ import Button from '../components/ui/Button';
 import Input from '../components/ui/Input';
 import Alert from '../components/ui/Alert';
 import TicketThread, { PRIORITY_STYLES, StatusPill } from '../components/support/TicketThread';
+import RichTextEditor from '../components/ui/RichTextEditor';
 import { useToast } from '../context/ToastContext';
+import { useConfirm } from '../components/ui/ConfirmDialog';
 import { useSetCrumbs } from '../context/BreadcrumbContext';
 import usePageTitle from '../hooks/usePageTitle';
-import { formatDateTime } from '../utils/format';
+import Timestamp from '../components/ui/Timestamp';
 
 const CATEGORIES = [['technical', 'Technical problem'], ['billing', 'Billing'], ['access', 'Access & accounts'], ['feature_request', 'Feature request'], ['other', 'Other']];
 const PRIORITIES = [['low', 'Low'], ['normal', 'Normal'], ['high', 'High'], ['urgent', 'Urgent']];
@@ -77,10 +79,17 @@ function TicketList() {
                                 </select>
                             </label>
                         </div>
-                        <label className="block text-sm font-medium text-gray-700">Details
-                            <textarea rows={6} value={form.body} onChange={(e) => setForm((f) => ({ ...f, body: e.target.value }))} className="mt-1.5 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm" />
-                            {errors.body && <span className="mt-1 block text-sm text-red-600">{errors.body}</span>}
-                        </label>
+                        <div>
+                            <span className="block text-sm font-medium text-gray-700">Details</span>
+                            <div className="mt-1.5">
+                                <RichTextEditor
+                                    value={form.body}
+                                    onChange={(html) => setForm((f) => ({ ...f, body: html }))}
+                                    placeholder="Steps to reproduce, what you expected…"
+                                    error={errors.body}
+                                />
+                            </div>
+                        </div>
                         <div className="flex gap-2">
                             <Button type="button" variant="secondary" onClick={() => setCreating(false)}>Cancel</Button>
                             <Button type="submit" loading={saving}>Submit ticket</Button>
@@ -106,7 +115,7 @@ function TicketList() {
                                 <span className="min-w-0 flex-1 truncate font-medium text-gray-800">{t.subject}</span>
                                 <span className={`text-xs capitalize ${PRIORITY_STYLES[t.priority]}`}>{t.priority}</span>
                                 <StatusPill status={t.status} />
-                                <span className="text-xs text-gray-400">{formatDateTime(t.last_activity_at)}</span>
+                                <span className="text-xs text-gray-400"><Timestamp date={t.last_activity_at} /></span>
                             </Link>
                         </li>
                     ))}
@@ -118,6 +127,7 @@ function TicketList() {
 
 function TicketDetail({ id }) {
     const toast = useToast();
+    const confirm = useConfirm();
     const setCrumbs = useSetCrumbs();
     const [ticket, setTicket] = useState(null);
     const [errors, setErrors] = useState({});
@@ -125,6 +135,43 @@ function TicketDetail({ id }) {
 
     useEffect(() => { setCrumbs([{ label: 'Support', to: '/support' }, { label: ticket?.reference || 'Ticket' }]); }, [setCrumbs, ticket?.reference]);
     useEffect(() => { api.get(`/support/tickets/${id}`).then(({ data }) => setTicket(data.ticket)).catch(() => setTicket(false)); }, [id]);
+
+    useEffect(() => {
+        if (!window.Echo || !id) return undefined;
+        const channel = window.Echo.private(`support.ticket.${id}`);
+        channel.listen('.support.message.sent', (data) => {
+            if (data?.message) {
+                setTicket((prev) => {
+                    if (!prev || typeof prev !== 'object') return prev;
+                    if (prev.messages?.some((m) => m.id === data.message.id)) return prev;
+                    return {
+                        ...prev,
+                        status: data.ticket_status ?? prev.status,
+                        last_activity_at: data.last_activity_at ?? prev.last_activity_at,
+                        messages: [...(prev.messages || []), data.message],
+                    };
+                });
+            }
+        });
+        channel.listen('.support.ticket.updated', (data) => {
+            if (data) {
+                setTicket((prev) => {
+                    if (!prev || typeof prev !== 'object') return prev;
+                    return {
+                        ...prev,
+                        status: data.status ?? prev.status,
+                        priority: data.priority ?? prev.priority,
+                        last_activity_at: data.last_activity_at ?? prev.last_activity_at,
+                    };
+                });
+            }
+        });
+        return () => {
+            channel.stopListening('.support.message.sent');
+            channel.stopListening('.support.ticket.updated');
+            window.Echo.leaveChannel(channel.name);
+        };
+    }, [id]);
 
     async function send(body) {
         setErrors({});
@@ -136,7 +183,7 @@ function TicketDetail({ id }) {
     }
 
     async function close() {
-        if (!window.confirm('Close this ticket? You can open a new one if the problem continues.')) return;
+        if (!(await confirm({ title: 'Close ticket?', message: 'Close this ticket? You can open a new one if the problem continues.' }))) return;
         const { data } = await api.post(`/support/tickets/${id}/close`);
         setTicket(data.ticket);
         toast.success(data.message);
@@ -152,7 +199,7 @@ function TicketDetail({ id }) {
                     <p className="font-mono text-xs text-gray-400">{ticket.reference}</p>
                     <h2 className="text-2xl font-bold text-gray-900">{ticket.subject}</h2>
                     <p className="mt-1 text-sm text-gray-500">
-                        <span className="capitalize">{ticket.category.replace('_', ' ')}</span> · <span className="capitalize">{ticket.priority}</span> priority · opened {formatDateTime(ticket.created_at)} by {ticket.created_by_name}
+                        <span className="capitalize">{ticket.category.replace('_', ' ')}</span> · <span className="capitalize">{ticket.priority}</span> priority · opened <Timestamp date={ticket.created_at} /> by {ticket.created_by_name}
                     </p>
                 </div>
                 <div className="flex items-center gap-2">

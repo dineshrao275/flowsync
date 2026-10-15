@@ -5,7 +5,11 @@ namespace App\Http\Controllers;
 use App\Http\Controllers\Concerns\AuditsTenantAdminActions;
 use App\Models\Permission;
 use App\Models\Role;
+use App\Models\Tenant;
+use App\Services\TenantLimits;
 use App\Support\GrantCeiling;
+use App\Support\ProductCatalog;
+use App\Support\TenantContext;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
@@ -17,12 +21,32 @@ class RoleController extends Controller
 
     public function index(Request $request): JsonResponse
     {
+        $permissions = Permission::orderBy('name')->get(['id', 'name', 'slug', 'description']);
+
+        // A tenant only sees the permissions of its subscribed products (plus
+        // the shared identity/administration prefixes): an HRMS-only tenant
+        // must not view TMS permissions, and vice versa. A platform super
+        // admin without a tenant context manages the whole catalog.
+        if (($allowed = $this->allowedPermissionSlugs()) !== null) {
+            $set = array_flip($allowed);
+            $permissions = $permissions->filter(fn (Permission $p) => isset($set[$p->slug]))->values();
+        }
+
         return response()->json([
             'roles' => Role::with('permissions:id,slug,name')
                 ->withCount('users')
                 ->orderBy('name')
                 ->get(),
-            'permissions' => Permission::orderBy('name')->get(['id', 'name', 'slug', 'description']),
+            // Each catalog row names its product ('tms', 'hrms', 'shared') so
+            // the Roles page can badge it; the list itself is already scoped
+            // to the tenant's subscribed products above.
+            'permissions' => $permissions->map(fn (Permission $p) => [
+                'id' => $p->id,
+                'name' => $p->name,
+                'slug' => $p->slug,
+                'description' => $p->description,
+                'product' => ProductCatalog::ofPermission($p->slug) ?? 'shared',
+            ])->values(),
         ]);
     }
 
@@ -36,6 +60,7 @@ class RoleController extends Controller
         ]);
 
         $permissionIds = $this->resolvePermissionIds($data['permissions']);
+        $this->assertPermissionsInProducts($permissionIds);
         GrantCeiling::assertCanGrantPermissions($request->user(), $permissionIds);
 
         $role = Role::create([
@@ -64,6 +89,7 @@ class RoleController extends Controller
         GrantCeiling::assertCanEditRole($request->user(), $role);
 
         $permissionIds = $this->resolvePermissionIds($data['permissions']);
+        $this->assertPermissionsInProducts($permissionIds);
         GrantCeiling::assertCanGrantPermissions(
             $request->user(),
             $permissionIds,
@@ -99,6 +125,7 @@ class RoleController extends Controller
         ]);
 
         $permissionIds = $role->permissions()->pluck('permissions.id');
+        $this->assertPermissionsInProducts($permissionIds->all());
         GrantCeiling::assertCanGrantPermissions($request->user(), $permissionIds);
 
         $copy = Role::create(['name' => $data['name'], 'slug' => $data['slug']]);
@@ -159,5 +186,57 @@ class RoleController extends Controller
     private function resolvePermissionIds(array $ids): array
     {
         return Permission::whereIn('id', $ids)->pluck('id')->all();
+    }
+
+    /**
+     * Permission slugs this caller may see/grant: the shared prefixes plus the
+     * tenant's subscribed products. Null = unscoped (a platform super admin
+     * with no tenant context manages the whole catalog).
+     *
+     * @return list<string>|null
+     */
+    private function allowedPermissionSlugs(): ?array
+    {
+        $tenantId = app(TenantContext::class)->currentId();
+
+        if ($tenantId === null) {
+            return null;
+        }
+
+        $tenant = Tenant::find($tenantId);
+
+        if (! $tenant) {
+            return null;
+        }
+
+        $enabled = app(TenantLimits::class)->coveredProducts($tenant);
+
+        return collect(config('permissions.permissions', []))
+            ->pluck('slug')
+            ->filter(fn (string $slug) => ProductCatalog::isAllowedFor($slug, $enabled))
+            ->values()
+            ->all();
+    }
+
+    /** Refuse permission ids outside the tenant's subscribed products (422 `permissions`). */
+    private function assertPermissionsInProducts(array $permissionIds): void
+    {
+        $allowed = $this->allowedPermissionSlugs();
+
+        if ($allowed === null) {
+            return;
+        }
+
+        $set = array_flip($allowed);
+        $offending = Permission::whereIn('id', $permissionIds)->pluck('slug')
+            ->reject(fn (string $slug) => isset($set[$slug]))
+            ->values()
+            ->all();
+
+        if ($offending !== []) {
+            throw ValidationException::withMessages([
+                'permissions' => 'These permissions are not part of your subscription: '.implode(', ', $offending).'.',
+            ]);
+        }
     }
 }

@@ -6,6 +6,7 @@ use App\Http\Requests\SystemUserIndexRequest;
 use App\Http\Requests\SystemUserStoreRequest;
 use App\Models\SystemUser;
 use App\Services\PlatformAudit;
+use App\Services\Security\PlatformAccess;
 use App\Support\Like;
 use Illuminate\Http\JsonResponse;
 
@@ -27,7 +28,8 @@ class SystemUsersController extends Controller
 
         $users = $query->latest()->paginate($data['per_page'] ?? 15)
             ->withQueryString()
-            ->through(fn (SystemUser $user) => $user->only(['id', 'name', 'email', 'is_super_admin', 'created_at']));
+            ->through(fn (SystemUser $user) => $user->only(['id', 'name', 'email', 'is_super_admin', 'created_at'])
+                + ['platform_roles' => app(PlatformAccess::class)->roleSlugsOf($user)]);
 
         return response()->json([
             'users' => $users->items(),

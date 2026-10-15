@@ -7,6 +7,7 @@ use App\Models\Hrms\Attendance\AttendanceDay;
 use App\Models\Hrms\Employee\Employee;
 use App\Models\Hrms\Shared\HrmsSetting;
 use App\Models\WorkLog;
+use App\Support\Tms\TmsSchema;
 use Illuminate\Support\Carbon;
 
 /**
@@ -32,7 +33,9 @@ class WorkLogDerivation
      */
     public function derive(Carbon $date, bool $persist = true): array
     {
-        if (! $this->enabled()) {
+        // The setting can outlive the product: without the TMS work-log
+        // tables there is nothing to derive from, so derivation stays off.
+        if (! $this->enabled() || ! TmsSchema::present()) {
             return ['disabled' => true, 'derived' => 0, 'skipped' => 0];
         }
 

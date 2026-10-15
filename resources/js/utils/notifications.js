@@ -1,4 +1,5 @@
 import { projectUrl, taskUrl, workspaceUrl } from './deepLinks';
+import { formatRelativeTime } from './format';
 
 export function describeNotification(type, data = {}, actorName = 'Someone') {
     const key = data.key || 'task';
@@ -53,6 +54,8 @@ export function describeNotification(type, data = {}, actorName = 'Someone') {
             return `The ${data.cycle_name ?? 'review'} cycle opened`;
         case 'hrms.performance.review_shared':
             return 'Your review was shared';
+        case 'talent.review_finalized':
+            return 'Your review was finalized';
         case 'hrms.asset.assigned':
             return `${actorName} assigned ${data.asset_code ?? 'an asset'} to you — acknowledge the receipt`;
         case 'hrms.asset.acknowledged':
@@ -75,6 +78,12 @@ export function describeNotification(type, data = {}, actorName = 'Someone') {
             return `Support marked ${data.reference ?? 'your ticket'} resolved`;
         case 'support.closed':
             return `Support closed ${data.reference ?? 'your ticket'}`;
+        case 'billing.payment_failed':
+            return 'Your last subscription payment failed — update your payment method';
+        case 'billing.final_notice':
+            return 'Final notice: your account will be suspended soon unless payment is received';
+        case 'billing.suspended':
+            return 'Your account was suspended because the subscription payment is overdue';
         default:
             return 'You have a new notification';
     }
@@ -102,6 +111,7 @@ function describeTaskDue(data = {}) {
 const SECTION_BY_TYPE = {
     'task.commented': 'comments',
     'task.work_logged': 'time',
+    'task.unblocked': 'dependencies',
 };
 
 /**
@@ -114,6 +124,10 @@ const SECTION_BY_TYPE = {
  */
 export function notificationHref(data = {}, type = '') {
     const { project_id, workspace_id, key, onboarding_case_id } = data || {};
+
+    if (type.startsWith('billing.')) {
+        return '/subscription';
+    }
 
     if (type.startsWith('support.') && data?.ticket_id) {
         return `/support/${data.ticket_id}`;
@@ -176,6 +190,12 @@ export function notificationHref(data = {}, type = '') {
         return '/hrms/performance/mine';
     }
 
+    // A finalized review lands on the self-service page beside the
+    // acknowledgement receipt — each where the reader can see what sealed.
+    if (type === 'talent.review_finalized') {
+        return '/hrms/performance/mine';
+    }
+
     // Clearance nudges land on the exit run; file decisions on the self-service
     // files page; a cycle opening on its detail; a shared review on mine.
     if (type === 'hrms.offboarding.clearance_pending' && data.offboarding_case_id) {
@@ -218,7 +238,12 @@ export function notificationHref(data = {}, type = '') {
     }
 
     if (project_id && key) {
-        return taskUrl(project_id, key, SECTION_BY_TYPE[type] ?? null);
+        const section = SECTION_BY_TYPE[type] ?? null;
+        const extra = {};
+        if (type === 'task.commented' && data?.comment_id) {
+            extra.comment = data.comment_id;
+        }
+        return taskUrl(project_id, key, section, extra);
     }
 
     if (project_id) return projectUrl(project_id);
@@ -228,13 +253,5 @@ export function notificationHref(data = {}, type = '') {
 
 export function timeAgo(value) {
     if (!value) return '';
-    const seconds = Math.floor((Date.now() - new Date(value).getTime()) / 1000);
-    if (seconds < 45) return 'just now';
-    const minutes = Math.floor(seconds / 60);
-    if (minutes < 60) return `${minutes}m ago`;
-    const hours = Math.floor(minutes / 60);
-    if (hours < 24) return `${hours}h ago`;
-    const days = Math.floor(hours / 24);
-    if (days < 7) return `${days}d ago`;
-    return new Date(value).toLocaleDateString();
+    return formatRelativeTime(value, { fallback: '' });
 }

@@ -2,10 +2,10 @@
 
 namespace App\Http\Controllers\Hrms\Performance;
 
+use App\Http\Controllers\Concerns\ChecksPerformanceScope;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Hrms\OneOnOneRequest;
 use App\Models\Hrms\Performance\OneOnOne;
-use App\Models\User;
 use App\Services\Hrms\HrmsScope;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -21,6 +21,8 @@ use Illuminate\Http\Response;
  */
 class OneOnOneController extends Controller
 {
+    use ChecksPerformanceScope;
+
     public function index(Request $request): JsonResponse
     {
         $this->authorize('viewAny', OneOnOne::class);
@@ -46,12 +48,6 @@ class OneOnOneController extends Controller
         return response()->json([
             'one_on_ones' => $query->get()->map(fn (OneOnOne $row): array => $this->present($row))->all(),
         ]);
-    }
-
-    private function seesAll(User $user): bool
-    {
-        return HrmsScope::seesAll($user, 'hrms.performance')
-            || $user->hasPermission('hrms.talent.manage');
     }
 
     public function show(OneOnOne $oneOnOne): JsonResponse

@@ -11,10 +11,13 @@ import Select from '../../components/ui/Select';
 import Spinner from '../../components/ui/Spinner';
 import { Table, Th, Td, TableEmpty } from '../../components/ui/Table';
 import { useToast } from '../../context/ToastContext';
+import { useConfirm, usePrompt } from '../../components/ui/ConfirmDialog';
 import { useAuth } from '../../context/AuthContext';
 import { useSetCrumbs } from '../../context/BreadcrumbContext';
 import usePageTitle from '../../hooks/usePageTitle';
 import LeaveBalanceTable from '../../components/hrms/LeaveBalanceTable';
+import LeaveAdjustPanel from '../../components/hrms/LeaveAdjustPanel';
+import LeaveBlackoutPanel from '../../components/hrms/LeaveBlackoutPanel';
 import LeaveRequestModal from '../../components/hrms/LeaveRequestModal';
 
 const TABS = [
@@ -22,6 +25,8 @@ const TABS = [
     { key: 'types', label: 'Types' },
     { key: 'policies', label: 'Policies' },
     { key: 'balances', label: 'Balances' },
+    { key: 'adjustments', label: 'Adjustments' },
+    { key: 'blackouts', label: 'Blackouts' },
     { key: 'exemptions', label: 'Exemptions' },
 ];
 
@@ -72,6 +77,8 @@ export default function Leave() {
     const setCrumbs = useSetCrumbs();
     const navigate = useNavigate();
     const toast = useToast();
+    const confirm = useConfirm();
+    const prompt = usePrompt();
     const { hasModule } = useAuth();
 
     // The exemption queue rides its own module (`hrms.leave.exemption`),
@@ -229,7 +236,7 @@ export default function Leave() {
     }
 
     async function deleteType(id) {
-        if (!window.confirm('Delete this leave type? Types in use refuse deletion.')) return;
+        if (!(await confirm({ title: 'Delete leave type?', message: 'Delete this leave type? Types in use refuse deletion.', variant: 'danger' }))) return;
 
         try {
             await api.delete(`/hrms/leave/types/${id}`);
@@ -264,7 +271,7 @@ export default function Leave() {
     }
 
     async function deletePolicy(id) {
-        if (!window.confirm('Delete this leave policy?')) return;
+        if (!(await confirm({ title: 'Delete leave policy?', message: 'Delete this leave policy?', variant: 'danger' }))) return;
 
         try {
             await api.delete(`/hrms/leave/policies/${id}`);
@@ -277,7 +284,15 @@ export default function Leave() {
     }
 
     async function decideExemption(id, decision) {
-        const note = window.prompt(decision === 'approve' ? 'Approval note (optional):' : 'Rejection reason (required):');
+        const isApprove = decision === 'approve';
+        const note = await prompt({
+            title: isApprove ? 'Approve Exemption' : 'Reject Exemption',
+            message: isApprove ? 'Approval note (optional):' : 'Rejection reason (required):',
+            placeholder: isApprove ? 'Optional note…' : 'Reason for rejection…',
+            required: !isApprove,
+            confirmLabel: isApprove ? 'Approve' : 'Reject',
+            variant: isApprove ? 'primary' : 'danger',
+        });
 
         if (note === null) return;
 
@@ -524,6 +539,9 @@ export default function Leave() {
                 </Card>
             )}
 
+            {tab === 'adjustments' && <LeaveAdjustPanel employees={employees} types={types ?? []} />}
+            {tab === 'blackouts' && <LeaveBlackoutPanel types={types ?? []} />}
+
             {tab === 'exemptions' && (
                 <>
                     <div className="flex justify-end">
@@ -578,7 +596,7 @@ export default function Leave() {
             )}
 
             <Modal open={!!deciding} onClose={() => setDeciding(null)} title={deciding?.verdict === 'approve' ? 'Approve leave' : 'Reject leave'}>
-                <div className="space-y-3">
+                <div className="space-y-3 px-6 py-5">
                     <p className="text-sm text-gray-500">
                         {deciding?.verdict === 'approve'
                             ? 'Approval advances the chain; the posting lands when it resolves.'
@@ -598,7 +616,7 @@ export default function Leave() {
             <Modal open={!!editingType} onClose={() => setEditingType(null)} title={editingType ? 'Edit leave type' : 'New leave type'}>
                 <form
                     onSubmit={saveType}
-                    className="grid grid-cols-1 gap-3 sm:grid-cols-2"
+                    className="grid grid-cols-1 gap-3 px-6 py-5 sm:grid-cols-2"
                 >
                     <Input label="Name" value={typeForm.name} onChange={(e) => setTypeForm({ ...typeForm, name: e.target.value })} error={typeErrors.name} />
                     <Input label="Code" value={typeForm.code} onChange={(e) => setTypeForm({ ...typeForm, code: e.target.value })} error={typeErrors.code} />
@@ -624,7 +642,7 @@ export default function Leave() {
             <Modal open={!!editingPolicy} onClose={() => setEditingPolicy(null)} title={editingPolicy ? 'Edit leave policy' : 'New leave policy'}>
                 <form
                     onSubmit={savePolicy}
-                    className="grid grid-cols-1 gap-3 sm:grid-cols-2"
+                    className="grid grid-cols-1 gap-3 px-6 py-5 sm:grid-cols-2"
                 >
                     <Input label="Name" value={policyForm.name} onChange={(e) => setPolicyForm({ ...policyForm, name: e.target.value })} error={policyErrors.name} />
                     <Select label="Accrual period" value={policyForm.accrual_period} onChange={(e) => setPolicyForm({ ...policyForm, accrual_period: e.target.value })} error={policyErrors.accrual_period}>
@@ -654,7 +672,7 @@ export default function Leave() {
             />
 
             <Modal open={filingExemption} onClose={() => setFilingExemption(false)} title="File a statutory exemption">
-                <form onSubmit={saveExemption} className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                <form onSubmit={saveExemption} className="grid grid-cols-1 gap-3 px-6 py-5 sm:grid-cols-2">
                     <Select label="Employee" value={exemptionForm.employee_id} onChange={(e) => setExemptionForm({ ...exemptionForm, employee_id: e.target.value })} error={exemptionErrors.employee_id}>
                         <option value="">Select a person…</option>
                         {employees.map((employee) => (

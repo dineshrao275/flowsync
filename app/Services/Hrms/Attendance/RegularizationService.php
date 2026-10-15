@@ -2,17 +2,17 @@
 
 namespace App\Services\Hrms\Attendance;
 
-use App\Enums\Hrms\ApproverType;
 use App\Enums\Hrms\RegularizationStatus;
 use App\Models\Hrms\Attendance\AttendanceRegularizationRequest;
 use App\Models\Hrms\Employee\Employee;
 use App\Models\Hrms\Shared\HrmsSetting;
 use App\Models\User;
+use App\Services\Hrms\Approval\ChainBuilder;
 use App\Services\Hrms\AttendanceService;
 use App\Services\Hrms\Employee\ReportingLine;
 use App\Services\Hrms\Shared\ApprovalService;
-use App\Services\Hrms\Shared\ValueObjects\ApproverSpec;
 use App\Services\HrmsAuditLogger;
+use App\Support\Hrms\Auditable;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
@@ -42,6 +42,7 @@ class RegularizationService
         private readonly AttendanceService $attendance,
         private readonly ApprovalService $approvals,
         private readonly ReportingLine $reporting,
+        private readonly ChainBuilder $chains,
         private readonly RegularizationNotifier $notifier,
         private readonly HrmsAuditLogger $audit,
     ) {}
@@ -93,13 +94,14 @@ class RegularizationService
         $manager = $this->reporting->managerOf($employee);
 
         $approval = $this->approvals->request(
-            new ApproverSpec(ApproverType::Manager, userId: $manager?->user_id, employeeId: $manager?->id),
+            $this->chains->stepsFor('regularization', $employee),
             $request,
             'regularize',
             'Regularization request',
             ['work_date' => $input->workDate->toDateString(), 'employee_id' => $employee->id],
             $actor,
             $employee->id,
+            'regularization',
         );
 
         $request->update(['approval_id' => $approval->id]);
@@ -276,11 +278,6 @@ class RegularizationService
     /** @return array<string, mixed> */
     private function snapshot(AttendanceRegularizationRequest $request): array
     {
-        return [
-            'employee_id' => $request->employee_id,
-            'work_date' => $request->work_date->toDateString(),
-            'status' => $request->status->value,
-            'approval_id' => $request->approval_id,
-        ];
+        return Auditable::snapshot($request, ['employee_id', 'work_date', 'status', 'approval_id'], ['work_date' => 'date']);
     }
 }

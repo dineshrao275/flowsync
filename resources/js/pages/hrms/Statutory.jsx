@@ -12,6 +12,7 @@ import Spinner from '../../components/ui/Spinner';
 import { Table, Th, Td } from '../../components/ui/Table';
 import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
+import { useConfirm } from '../../components/ui/ConfirmDialog';
 import { useSetCrumbs } from '../../context/BreadcrumbContext';
 import usePageTitle from '../../hooks/usePageTitle';
 
@@ -35,6 +36,7 @@ export default function Statutory() {
     const navigate = useNavigate();
     const { can } = useAuth();
     const toast = useToast();
+    const confirm = useConfirm();
 
     const canManage = can('hrms.payroll.statutory.manage');
 
@@ -215,7 +217,7 @@ export default function Statutory() {
     }
 
     async function deleteConfig(config) {
-        if (!window.confirm(`Delete “${config.name}”? Locked payslips price from snapshots, so history is safe.`)) return;
+        if (!(await confirm({ title: 'Delete configuration?', message: `Delete “${config.name}”? Locked payslips price from snapshots, so history is safe.`, variant: 'danger' }))) return;
 
         try {
             await api.delete(`/hrms/payroll/statutory/configurations/${config.id}`);
@@ -527,7 +529,7 @@ export default function Statutory() {
             )}
 
             <Modal open={configModal} onClose={() => setConfigModal(false)} title={editingConfig ? 'Edit rulebook' : 'New rulebook'} size="lg">
-                <form onSubmit={saveConfig} className="grid gap-3 sm:grid-cols-2">
+                <form onSubmit={saveConfig} className="grid gap-3 px-6 py-5 sm:grid-cols-2">
                     {!editingConfig && (
                         <>
                             <Input label="Country (2-letter)" value={configForm.country} error={configErrors.country} onChange={(e) => setConfigForm({ ...configForm, country: e.target.value })} maxLength={2} required />
@@ -557,7 +559,7 @@ export default function Statutory() {
             </Modal>
 
             <Modal open={declModal} onClose={() => setDeclModal(false)} title="File an exemption claim">
-                <form onSubmit={saveDeclaration} className="grid gap-3">
+                <form onSubmit={saveDeclaration} className="grid gap-3 px-6 py-5">
                     <Select label="Employee" value={declForm.employee_id} error={declErrors.employee_id} onChange={(e) => setDeclForm({ ...declForm, employee_id: e.target.value })} required>
                         <option value="">Select a person…</option>
                         {employees.map((e) => <option key={e.id} value={e.id}>{e.name}</option>)}
@@ -572,7 +574,7 @@ export default function Statutory() {
             </Modal>
 
             <Modal open={!!surrendering} onClose={() => setSurrendering(null)} title={`Surrender Q${surrendering?.quarter ?? ''} shortfall`}>
-                <form onSubmit={surrender} className="grid gap-3">
+                <form onSubmit={surrender} className="grid gap-3 px-6 py-5">
                     <Input label="Challan reference" value={challan} error={challanErrors.challan_ref} onChange={(e) => setChallan(e.target.value)} required />
                     <div><Button type="submit">Record deposit</Button></div>
                 </form>

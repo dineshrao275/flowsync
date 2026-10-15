@@ -7,7 +7,6 @@ use App\Models\Project;
 use App\Models\Task;
 use App\Models\TaskDependency;
 use App\Services\ActivityLogger;
-use App\Services\NotificationService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\ValidationException;
@@ -16,7 +15,6 @@ class DependencyController extends Controller
 {
     public function __construct(
         private readonly ActivityLogger $logger,
-        private readonly NotificationService $notifications,
     ) {}
 
     public function index(Request $request, Project $project, Task $task): JsonResponse
@@ -106,19 +104,15 @@ class DependencyController extends Controller
         $this->authorize('edit', $task);
 
         $wasBlocked = $task->openBlockers()->exists();
-        $blocker = $dependency->dependsOn;
-
         $dependency->delete();
 
-        if ($wasBlocked && ! $task->openBlockers()->exists()) {
-            $this->notifications->taskUnblocked($request->user(), $task, $blocker);
-        }
+        $unblocked = $wasBlocked && ! $task->openBlockers()->exists();
 
         $this->logger->log(
             subjectType: Task::class,
             subjectId: $task->id,
             action: 'task.dependency_deleted',
-            data: ['depends_on_task_id' => $dependency->depends_on_task_id],
+            data: ['depends_on_task_id' => $dependency->depends_on_task_id, 'unblocked' => $unblocked],
             actor: $request->user(),
             ipAddress: $request->ip(),
         );

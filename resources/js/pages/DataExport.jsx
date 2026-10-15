@@ -7,6 +7,7 @@ import Button from '../components/ui/Button';
 import Spinner from '../components/ui/Spinner';
 import Alert from '../components/ui/Alert';
 import Badge from '../components/ui/Badge';
+import Timestamp from '../components/ui/Timestamp';
 
 const ALL_CATEGORIES = [
     { key: 'workspaces', label: 'Workspaces', description: 'All workspaces and their metadata.' },
@@ -32,11 +33,6 @@ function formatBytes(bytes) {
     if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
     if (bytes < 1024 * 1024 * 1024) return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
     return `${(bytes / (1024 * 1024 * 1024)).toFixed(2)} GB`;
-}
-
-function formatIso(iso) {
-    if (!iso) return '—';
-    return new Date(iso).toLocaleString();
 }
 
 /**
@@ -198,12 +194,12 @@ export default function DataExport() {
                                         </span>
                                     </div>
                                     <div className="mt-1 flex flex-wrap gap-3 text-xs text-gray-400">
-                                        <span>Requested {formatIso(run.created_at)}</span>
+                                        <span>Requested <Timestamp date={run.created_at} /></span>
                                         {run.file_size && (
                                             <span>Size: {formatBytes(run.file_size)}</span>
                                         )}
                                         {run.expires_at && run.status === 'ready' && (
-                                            <span>Expires {formatIso(run.expires_at)}</span>
+                                            <span>Expires <Timestamp date={run.expires_at} /></span>
                                         )}
                                     </div>
                                     {run.error && (

@@ -3,7 +3,6 @@
 namespace App\Services\Hrms\Attendance;
 
 use App\Enums\Hrms\AttendanceDayStatus;
-use App\Enums\Hrms\PunchDirection;
 use App\Models\Hrms\Attendance\AttendanceDay;
 use App\Models\Hrms\Attendance\AttendancePunch;
 use App\Models\Hrms\Attendance\AttendanceRoster;
@@ -31,6 +30,8 @@ use Illuminate\Support\Facades\DB;
  */
 class DayComputation
 {
+    public function __construct(private readonly PunchPairing $pairing) {}
+
     /**
      * Recompute one person’s day from their punches, idempotently.
      *
@@ -96,11 +97,13 @@ class DayComputation
     private function photograph(Employee $employee, Carbon $day, ?AttendanceShift $shift, ?AttendanceRoster $roster): array
     {
         $punches = $this->punchesFor($employee, $day, $shift);
-        [$firstIn, $lastOut, $worked] = $this->pair($punches);
+        [$firstIn, $lastOut, $worked, $actualBreak, $hasBreak] = $this->pairing->pair($punches);
 
         $settings = $this->thresholds();
-        $break = $shift === null ? 0 : min($shift->break_minutes, $worked);
-        $net = $worked - $break;
+        // Recorded break punches measure the break; without them the shift's
+        // standard break is deducted from the span as before.
+        $break = $hasBreak ? $actualBreak : ($shift === null ? 0 : min($shift->break_minutes, $worked));
+        $net = $hasBreak ? $worked : $worked - $break;
 
         $late = 0;
         $early = 0;
@@ -197,44 +200,6 @@ class DayComputation
         }
 
         return $local->copy()->startOfDay();
-    }
-
-    /**
-     * Pair in→out in order. Stray outs (no open in) are ignored, consecutive
-     * ins keep the earliest open one, and a trailing open in contributes no
-     * minutes — an unclosed session is time nobody can verify, and crediting
-     * it would pay for hours that may never have happened.
-     *
-     * @return array{Carbon|null, Carbon|null, int}
-     */
-    private function pair(Collection $punches): array
-    {
-        $firstIn = null;
-        $lastOut = null;
-        $worked = 0;
-        $open = null;
-
-        foreach ($punches as $punch) {
-            if ($punch->direction === PunchDirection::In) {
-                $firstIn ??= $punch->punch_at;
-                $open ??= $punch->punch_at;
-
-                continue;
-            }
-
-            $lastOut = $punch->punch_at;
-
-            if ($open !== null) {
-                // abs() and int: Carbon 3 diffs are signed floats, and an
-                // out-minus-in read backwards is a negative workday — the
-                // same trap the work-log duration and the tenure math both
-                // learned to bound.
-                $worked += (int) abs($punch->punch_at->diffInMinutes($open));
-                $open = null;
-            }
-        }
-
-        return [$firstIn, $lastOut, $worked];
     }
 
     private function statusFor(?Carbon $firstIn, ?Carbon $lastOut, int $net, int $late, array $settings): AttendanceDayStatus

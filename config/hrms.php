@@ -51,6 +51,7 @@ return [
             'require_ip' => false,
             'allowed_ips' => [],               // empty = no IP restriction
             'require_geofence' => false,
+            'out_of_range_action' => 'flag',   // 'flag' records for review; 'block' refuses (P5.15)
             'max_distance_meters' => 200,
         ],
         'comp_off' => [

@@ -98,7 +98,9 @@ class HrmsPayslipAccessTest extends TestCase
         $this->flushSession();
         \DB::setDefaultConnection(config('tenancy.system.connection'));
 
-        $response = $this->get($url)->assertOk();
+        $response = $this->get($url)->assertOk()->assertHeader('Content-Type', 'application/pdf');
+        $this->assertStringStartsWith('%PDF-1.4', $response->streamedContent());
+        $this->assertStringContainsString('.pdf', (string) $response->headers->get('Content-Disposition'));
         $this->assertStringContainsString('37300.00', $response->streamedContent() ?? $response->getContent());
         $this->assertStringContainsString($first->employee->displayName(), $response->streamedContent() ?? $response->getContent());
 
