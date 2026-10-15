@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import api from '../services/api';
 import Button from '../components/ui/Button';
 import Input from '../components/ui/Input';
@@ -13,7 +14,8 @@ import usePageTitle from '../hooks/usePageTitle';
 import { projectUrl } from '../utils/deepLinks';
 
 export default function Search() {
-    usePageTitle('Search');
+    const { t } = useTranslation();
+    usePageTitle(t('dashboard.search.pageTitle'));
     const setCrumbs = useSetCrumbs();
     const [filters, setFilters] = useState({});
     const [params, setParams] = useState({});
@@ -31,8 +33,8 @@ export default function Search() {
     const [page, setPage] = useState(1);
 
     useEffect(() => {
-        setCrumbs([{ label: 'Search' }]);
-    }, [setCrumbs]);
+        setCrumbs([{ label: t('dashboard.search.pageTitle') }]);
+    }, [setCrumbs, t]);
 
     const load = useCallback((targetPage, queryParams) => {
         setLoading(true);
@@ -42,9 +44,9 @@ export default function Search() {
                 setData(response);
                 if (response.filters) setOptions(response.filters);
             })
-            .catch(() => setError('Unable to run the search.'))
+            .catch(() => setError(t('dashboard.search.loadFailed')))
             .finally(() => setLoading(false));
-    }, []);
+    }, [t]);
 
     useEffect(() => {
         load(1, {});
@@ -75,9 +77,9 @@ export default function Search() {
     return (
         <div className="space-y-4">
             <div>
-                <h2 className="text-2xl font-bold text-gray-900">Search tasks</h2>
+                <h2 className="text-2xl font-bold text-gray-900">{t('dashboard.search.title')}</h2>
                 <p className="mt-1 text-sm text-gray-500">
-                    Find tasks across every project you belong to.
+                    {t('dashboard.search.subtitle')}
                 </p>
             </div>
 
@@ -85,18 +87,18 @@ export default function Search() {
 
             <form onSubmit={submit} className="flex flex-wrap items-end gap-3">
                 <div className="min-w-56 flex-1">
-                    <label className="mb-1.5 block text-sm font-medium text-gray-700">Query</label>
+                    <label className="mb-1.5 block text-sm font-medium text-gray-700">{t('dashboard.search.query')}</label>
                     <input
                         className={fieldClass}
-                        placeholder="Title, key or description…"
+                        placeholder={t('dashboard.search.queryPlaceholder')}
                         value={filters.q ?? ''}
                         onChange={(e) => setFilters((f) => ({ ...f, q: e.target.value }))}
                     />
                 </div>
                 <div>
-                    <label className="mb-1.5 block text-sm font-medium text-gray-700">Workspace</label>
+                    <label className="mb-1.5 block text-sm font-medium text-gray-700">{t('dashboard.search.workspace')}</label>
                     <select className={fieldClass} value={filters.workspace_id ?? ''} onChange={(e) => setFilters((f) => ({ ...f, workspace_id: e.target.value }))}>
-                        <option value="">Any</option>
+                        <option value="">{t('dashboard.search.any')}</option>
                         {options.workspaces.map((workspace) => (
                             <option key={workspace.id} value={workspace.id}>
                                 {workspace.name}
@@ -105,9 +107,9 @@ export default function Search() {
                     </select>
                 </div>
                 <div>
-                    <label className="mb-1.5 block text-sm font-medium text-gray-700">Project</label>
+                    <label className="mb-1.5 block text-sm font-medium text-gray-700">{t('dashboard.search.project')}</label>
                     <select className={fieldClass} value={filters.project_id ?? ''} onChange={(e) => setFilters((f) => ({ ...f, project_id: e.target.value }))}>
-                        <option value="">Any</option>
+                        <option value="">{t('dashboard.search.any')}</option>
                         {options.projects.map((project) => (
                             <option key={project.id} value={project.id}>
                                 {project.name}
@@ -116,9 +118,9 @@ export default function Search() {
                     </select>
                 </div>
                 <div>
-                    <label className="mb-1.5 block text-sm font-medium text-gray-700">Status</label>
+                    <label className="mb-1.5 block text-sm font-medium text-gray-700">{t('dashboard.search.status')}</label>
                     <select className={fieldClass} value={filters.status_id ?? ''} onChange={(e) => setFilters((f) => ({ ...f, status_id: e.target.value }))}>
-                        <option value="">Any</option>
+                        <option value="">{t('dashboard.search.any')}</option>
                         {options.statuses.map((status) => (
                             <option key={status.id} value={status.id}>
                                 {status.name}
@@ -127,9 +129,9 @@ export default function Search() {
                     </select>
                 </div>
                 <div>
-                    <label className="mb-1.5 block text-sm font-medium text-gray-700">Priority</label>
+                    <label className="mb-1.5 block text-sm font-medium text-gray-700">{t('dashboard.search.priority')}</label>
                     <select className={fieldClass} value={filters.priority_id ?? ''} onChange={(e) => setFilters((f) => ({ ...f, priority_id: e.target.value }))}>
-                        <option value="">Any</option>
+                        <option value="">{t('dashboard.search.any')}</option>
                         {options.priorities.map((priority) => (
                             <option key={priority.id} value={priority.id}>
                                 {priority.name}
@@ -138,9 +140,9 @@ export default function Search() {
                     </select>
                 </div>
                 <div>
-                    <label className="mb-1.5 block text-sm font-medium text-gray-700">Assignee</label>
+                    <label className="mb-1.5 block text-sm font-medium text-gray-700">{t('dashboard.search.assignee')}</label>
                     <select className={fieldClass} value={filters.assignee_id ?? ''} onChange={(e) => setFilters((f) => ({ ...f, assignee_id: e.target.value }))}>
-                        <option value="">Anyone</option>
+                        <option value="">{t('dashboard.search.anyone')}</option>
                         {options.assignees.map((assignee) => (
                             <option key={assignee.id} value={assignee.id}>
                                 {assignee.name}
@@ -156,7 +158,7 @@ export default function Search() {
                             checked={filters.label_id !== undefined && filters.label_id !== ''}
                             onChange={(e) => setFilters((f) => ({ ...f, label_id: e.target.checked ? options.labels[0]?.id ?? '' : '' }))}
                         />
-                        Has label
+                        {t('dashboard.search.hasLabel')}
                     </label>
                     <select
                         className={fieldClass}
@@ -164,7 +166,7 @@ export default function Search() {
                         disabled={!options.labels.length}
                         onChange={(e) => setFilters((f) => ({ ...f, label_id: e.target.value }))}
                     >
-                        <option value="">Any label</option>
+                        <option value="">{t('dashboard.search.anyLabel')}</option>
                         {options.labels.map((label) => (
                             <option key={label.id} value={label.id}>
                                 {label.name}
@@ -172,24 +174,24 @@ export default function Search() {
                         ))}
                     </select>
                 </div>
-                <Input label="Due from" type="date" value={filters.due_from ?? ''} onChange={(e) => setFilters((f) => ({ ...f, due_from: e.target.value }))} />
-                <Input label="Due to" type="date" value={filters.due_to ?? ''} onChange={(e) => setFilters((f) => ({ ...f, due_to: e.target.value }))} />
-                <Button type="submit">Search</Button>
+                <Input label={t('dashboard.search.dueFrom')} type="date" value={filters.due_from ?? ''} onChange={(e) => setFilters((f) => ({ ...f, due_from: e.target.value }))} />
+                <Input label={t('dashboard.search.dueTo')} type="date" value={filters.due_to ?? ''} onChange={(e) => setFilters((f) => ({ ...f, due_to: e.target.value }))} />
+                <Button type="submit">{t('dashboard.search.search')}</Button>
                 <Button type="button" variant="secondary" onClick={reset}>
-                    Reset
+                    {t('dashboard.search.reset')}
                 </Button>
             </form>
 
             <Table>
                 <thead>
                     <tr>
-                        <Th>Task</Th>
-                        <Th>Project</Th>
-                        <Th>Workspace</Th>
-                        <Th>Labels</Th>
-                        <Th>Status</Th>
-                        <Th>Assignee</Th>
-                        <Th align="right">Due</Th>
+                        <Th>{t('dashboard.search.thTask')}</Th>
+                        <Th>{t('dashboard.search.thProject')}</Th>
+                        <Th>{t('dashboard.search.thWorkspace')}</Th>
+                        <Th>{t('dashboard.search.thLabels')}</Th>
+                        <Th>{t('dashboard.search.thStatus')}</Th>
+                        <Th>{t('dashboard.search.thAssignee')}</Th>
+                        <Th align="right">{t('dashboard.search.thDue')}</Th>
                     </tr>
                 </thead>
                 <tbody>
@@ -201,7 +203,7 @@ export default function Search() {
                         </tr>
                     ) : tasks.length === 0 ? (
                         <TableEmpty colSpan={7}>
-                            No tasks match{Object.keys(params).length ? ' these filters' : ''}.
+                            {Object.keys(params).length ? t('dashboard.search.emptyFiltered') : t('dashboard.search.empty')}
                         </TableEmpty>
                     ) : (
                         tasks.map((task, index) => (
@@ -242,7 +244,7 @@ export default function Search() {
                                     {task.status?.name}
                                 </Td>
                                 <Td className="whitespace-nowrap">
-                                    {task.assignee?.name ?? <span className="text-gray-400">Unassigned</span>}
+                                    {task.assignee?.name ?? <span className="text-gray-400">{t('dashboard.search.unassigned')}</span>}
                                 </Td>
                                 <Td align="right" className="whitespace-nowrap">
                                     {task.due_date ? (

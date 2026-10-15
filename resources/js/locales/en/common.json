@@ -1,4 +1,9 @@
 {
+    "units": {
+        "minutes": "{{count}}m",
+        "hours": "{{count}}h",
+        "hoursMinutes": "{{hours}}h {{minutes}}m"
+    },
     "topbar": {
         "toggleSidebar": "Toggle sidebar",
         "searchPlaceholder": "Search…",

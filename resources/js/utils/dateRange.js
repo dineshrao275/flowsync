@@ -1,3 +1,5 @@
+import i18n from '../i18n';
+
 function iso(date) {
     const pad = (n) => String(n).padStart(2, '0');
     return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
@@ -18,16 +20,21 @@ function startOfWeek(date) {
  * correct for any span without client-side bucketing.
  */
 export const RANGE_PRESETS = [
-    { key: 'today', label: 'Today' },
-    { key: 'week', label: 'This week' },
-    { key: 'month', label: 'This month' },
-    { key: 'last_month', label: 'Last month' },
-    { key: 'months_3', label: 'Last 3 months' },
-    { key: 'months_6', label: 'Last 6 months' },
-    { key: 'year', label: 'This year' },
-    { key: 'last_year', label: 'Last year' },
-    { key: 'custom', label: 'Custom' },
+    'today',
+    'week',
+    'month',
+    'last_month',
+    'months_3',
+    'months_6',
+    'year',
+    'last_year',
+    'custom',
 ];
+
+/** Display label for a preset key (translated; falls back to the key). */
+export function presetLabel(key) {
+    return i18n.t(`dashboard.range.${key}`);
+}
 
 export function resolveRange(key, custom = {}) {
     const now = new Date();
@@ -70,5 +77,5 @@ export function resolveRange(key, custom = {}) {
 
 export function rangeLabel(key, range) {
     if (key === 'custom' || !key) return `${range.from} → ${range.to}`;
-    return RANGE_PRESETS.find((p) => p.key === key)?.label ?? '';
+    return presetLabel(key);
 }

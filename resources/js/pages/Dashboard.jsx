@@ -1,5 +1,6 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { gsap } from 'gsap';
 import {
     CalendarBlank,
@@ -42,50 +43,13 @@ function chartDate(iso) {
     return d.toLocaleDateString(intlTag(i18n.language), { month: 'short', day: 'numeric' });
 }
 
-function formatHours(value) {
-    return `${Number(value).toFixed(1)}h`;
+function formatHours(value, t) {
+    return t('dashboard.hoursValue', { value: Number(value).toFixed(1) });
 }
 
 // The admin's accent lives on a CSS token, so charts read it back instead
 // of hardcoding a brand hex — a re-themed tenant re-skins its analytics.
-function accentHex() {
-    if (typeof document === 'undefined') return '#2563eb';
-
-    return getComputedStyle(document.documentElement).getPropertyValue('--accent').trim() || '#2563eb';
-}
-
-function chartPalette(mode) {
-    const dark = mode === 'dark';
-
-    return {
-        dark,
-        accent: accentHex(),
-        secondary: '#94a3b8',
-        tick: dark ? '#a7afbe' : '#64748b',
-        grid: dark ? '#28303f' : '#e2e8f0',
-        tooltip: {
-            backgroundColor: 'var(--card-bg)',
-            border: `1px solid ${dark ? '#28303f' : '#e5e7eb'}`,
-            borderRadius: '8px',
-            fontSize: '12px',
-            color: dark ? '#e8eaef' : '#1f2937',
-            boxShadow: '0 4px 12px rgba(0,0,0,0.08)',
-        },
-    };
-}
-
-function axisProps(mode) {
-    return { tick: { fontSize: 11, fill: chartPalette(mode).tick }, tickMargin: 8 };
-}
-
-function tooltipProps(mode) {
-    const palette = chartPalette(mode);
-
-    return {
-        contentStyle: palette.tooltip,
-        cursor: { fill: palette.dark ? 'rgba(167,175,190,0.12)' : 'rgba(37,99,235,0.06)' },
-    };
-}
+import { chartAxisProps as axisProps, chartPalette, chartTooltipProps as tooltipProps } from '../utils/charts';
 
 function ChartEmpty({ title, actionLabel, onAction }) {
     return (
@@ -97,12 +61,15 @@ function ChartEmpty({ title, actionLabel, onAction }) {
 }
 
 function ProjectProgressChart({ projects, mode, onBrowse }) {
+    const { t } = useTranslation();
     const palette = chartPalette(mode);
+    const openLabel = t('dashboard.charts.open');
+    const doneLabel = t('dashboard.charts.done');
 
     if (projects.length === 0) {
-        return <ChartEmpty title="No projects to report on yet." actionLabel="Browse projects" onAction={onBrowse} />;
+        return <ChartEmpty title={t('dashboard.charts.emptyProjects')} actionLabel={t('dashboard.charts.browseProjects')} onAction={onBrowse} />;
     }
-    const data = projects.map((p) => ({ name: p.name, Open: p.open, Done: p.done }));
+    const data = projects.map((p) => ({ name: p.name, [openLabel]: p.open, [doneLabel]: p.done }));
 
     return (
         <ResponsiveContainer width="100%" height={Math.max(160, data.length * 44)}>
@@ -112,19 +79,20 @@ function ProjectProgressChart({ projects, mode, onBrowse }) {
                 <YAxis type="category" dataKey="name" width={90} {...axisProps(mode)} />
                 <Tooltip {...tooltipProps(mode)} />
                 <Legend wrapperStyle={{ fontSize: 12 }} />
-                <BarShape dataKey="Open" stackId="a" fill={palette.secondary} radius={[0, 0, 0, 0]} />
-                <BarShape dataKey="Done" stackId="a" fill={palette.accent} radius={[0, 4, 4, 0]} />
+                <BarShape dataKey={openLabel} stackId="a" fill={palette.secondary} radius={[0, 0, 0, 0]} />
+                <BarShape dataKey={doneLabel} stackId="a" fill={palette.accent} radius={[0, 4, 4, 0]} />
             </BarChart>
         </ResponsiveContainer>
     );
 }
 
 function HoursLoggedChart({ daily, mode, onBrowse }) {
+    const { t } = useTranslation();
     const palette = chartPalette(mode);
     const data = daily.map((d) => ({ date: chartDate(d.date), hours: Math.round((d.minutes / 60) * 10) / 10 }));
 
     if (data.every((d) => d.hours === 0)) {
-        return <ChartEmpty title="No work logged in this range." actionLabel="Browse projects" onAction={onBrowse} />;
+        return <ChartEmpty title={t('dashboard.charts.emptyHours')} actionLabel={t('dashboard.charts.browseProjects')} onAction={onBrowse} />;
     }
 
     return (
@@ -133,7 +101,7 @@ function HoursLoggedChart({ daily, mode, onBrowse }) {
                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={palette.grid} />
                 <XAxis dataKey="date" interval={Math.max(0, Math.ceil(data.length / 8) - 1)} {...axisProps(mode)} />
                 <YAxis allowDecimals={false} {...axisProps(mode)} />
-                <Tooltip {...tooltipProps(mode)} formatter={(value) => [formatHours(value), 'Logged']} />
+                <Tooltip {...tooltipProps(mode)} formatter={(value) => [formatHours(value, t), t('dashboard.charts.logged')]} />
                 <BarShape dataKey="hours" fill={palette.accent} radius={[4, 4, 0, 0]} maxBarSize={28} />
             </BarChart>
         </ResponsiveContainer>
@@ -141,11 +109,12 @@ function HoursLoggedChart({ daily, mode, onBrowse }) {
 }
 
 function TasksCreatedChart({ daily, mode, onBrowse }) {
+    const { t } = useTranslation();
     const palette = chartPalette(mode);
     const data = daily.map((d) => ({ date: chartDate(d.date), created: d.count }));
 
     if (data.every((d) => d.created === 0)) {
-        return <ChartEmpty title="No tasks created in this range." actionLabel="Browse projects" onAction={onBrowse} />;
+        return <ChartEmpty title={t('dashboard.charts.emptyTasks')} actionLabel={t('dashboard.charts.browseProjects')} onAction={onBrowse} />;
     }
 
     return (
@@ -206,8 +175,6 @@ function TaskList({ tasks, title, subtitle, emptyText, dateLabel }) {
     );
 }
 
-const dueSoonLabel = (task) => `Due ${task.due_date} · ${task.project.name}`;
-const overdueLabel = (task) => `Overdue · was due ${task.due_date}`;
 const recentLabel = (task) => (
     <>
         {task.project.name} · updated <Timestamp date={task.updated_at} />
@@ -215,7 +182,8 @@ const recentLabel = (task) => (
 );
 
 export default function Dashboard() {
-    usePageTitle('Dashboard');
+    const { t } = useTranslation();
+    usePageTitle(t('dashboard.pageTitle'));
     const [data, setData] = useState(null);
     const [analytics, setAnalytics] = useState(null);
     const [error, setError] = useState(null);
@@ -230,14 +198,14 @@ export default function Dashboard() {
     const loaded = data !== null;
 
     useEffect(() => {
-        setCrumbs([{ label: 'Dashboard' }]);
-    }, [setCrumbs]);
+        setCrumbs([{ label: t('dashboard.pageTitle') }]);
+    }, [setCrumbs, t]);
 
     useEffect(() => {
         api.get('/dashboard')
             .then(({ data: response }) => setData(response))
-            .catch(() => setError('Unable to load the dashboard.'));
-    }, []);
+            .catch(() => setError(t('dashboard.loadFailed')));
+    }, [t]);
 
     useEffect(() => {
         api.get('/analytics/overview', { params: { from: range.from, to: range.to } })
@@ -260,7 +228,7 @@ export default function Dashboard() {
     }, [loaded]);
 
     const hour = new Date().getHours();
-    const greeting = hour < 12 ? 'Good morning' : hour < 18 ? 'Good afternoon' : 'Good evening';
+    const greeting = t(`dashboard.greeting.${hour < 12 ? 'morning' : hour < 18 ? 'afternoon' : 'evening'}`);
 
     if (error) {
         return <Alert>{error}</Alert>;
@@ -268,7 +236,7 @@ export default function Dashboard() {
 
     if (!data) {
         return (
-            <div className="space-y-6" aria-busy="true" aria-label="Loading dashboard">
+            <div className="space-y-6" aria-busy="true" aria-label={t('dashboard.loading')}>
                 <div>
                     <Skeleton variant="text" className="h-8 w-64" />
                     <Skeleton variant="text" className="mt-2 w-96 max-w-full" />
@@ -289,24 +257,24 @@ export default function Dashboard() {
 
     const heroes = [
         {
-            label: 'My open tasks',
+            label: t('dashboard.heroes.myOpen.label'),
             value: data.counts.my_open,
-            hint: data.scope === 'all' ? 'Every task in the tenant' : 'Tasks in your projects',
+            hint: data.scope === 'all' ? t('dashboard.heroes.myOpen.hintAll') : t('dashboard.heroes.myOpen.hintMine'),
             icon: ClipboardText,
         },
         {
-            label: 'Overdue',
+            label: t('dashboard.heroes.overdue.label'),
             value: data.counts.my_overdue,
-            hint: 'Open tasks past their due date',
+            hint: t('dashboard.heroes.overdue.hint'),
             icon: ClockCountdown,
             danger: true,
         },
     ];
     const stats = [
-        { label: 'Due soon', value: data.counts.my_due_soon, hint: 'Next 7 days', icon: CalendarBlank },
-        { label: 'In progress', value: data.counts.in_progress, hint: 'Being worked on', icon: Lightning },
-        { label: 'All open', value: data.counts.open, hint: 'Across the tenant', icon: Stack },
-        { label: 'Completed', value: data.counts.done, hint: 'All done', icon: CheckCircle },
+        { label: t('dashboard.stats.dueSoon.label'), value: data.counts.my_due_soon, hint: t('dashboard.stats.dueSoon.hint'), icon: CalendarBlank },
+        { label: t('dashboard.stats.inProgress.label'), value: data.counts.in_progress, hint: t('dashboard.stats.inProgress.hint'), icon: Lightning },
+        { label: t('dashboard.stats.allOpen.label'), value: data.counts.open, hint: t('dashboard.stats.allOpen.hint'), icon: Stack },
+        { label: t('dashboard.stats.completed.label'), value: data.counts.done, hint: t('dashboard.stats.completed.hint'), icon: CheckCircle },
     ];
 
     return (
@@ -316,7 +284,7 @@ export default function Dashboard() {
                     {greeting}, {user?.name?.split(' ')[0]}
                 </h2>
                 <p data-hero-reveal className="mt-1 text-sm text-gray-600">
-                    Your tasks across {data.counts.open} open and {data.counts.done} completed.
+                    {t('dashboard.subtitle', { open: data.counts.open, done: data.counts.done })}
                 </p>
             </div>
 
@@ -382,25 +350,25 @@ export default function Dashboard() {
             {analytics && (
                 <>
                     <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
-                        <Card title="Project progress" subtitle="Open vs completed tasks by project">
+                        <Card title={t('dashboard.charts.projectProgress.title')} subtitle={t('dashboard.charts.projectProgress.subtitle')}>
                             <ProjectProgressChart projects={analytics.projects_progress || []} mode={resolvedMode} onBrowse={() => navigate('/projects')} />
                         </Card>
                         <Card
-                            title="Hours logged"
-                            subtitle={`${rangeLabel(preset, range)} · ${formatHours((analytics.work_logs?.total_minutes || 0) / 60)} total`}
+                            title={t('dashboard.charts.hours.title')}
+                            subtitle={t('dashboard.charts.hours.subtitle', { range: rangeLabel(preset, range), total: formatHours((analytics.work_logs?.total_minutes || 0) / 60, t) })}
                         >
                             <HoursLoggedChart daily={analytics.work_logs?.daily || []} mode={resolvedMode} onBrowse={() => navigate('/projects')} />
                         </Card>
                         <Card
-                            title="Tasks created"
-                            subtitle={`${rangeLabel(preset, range)} · ${analytics.counts?.created_in_range ?? 0} created`}
+                            title={t('dashboard.charts.created.title')}
+                            subtitle={t('dashboard.charts.created.subtitle', { range: rangeLabel(preset, range), count: analytics.counts?.created_in_range ?? 0 })}
                         >
                             <TasksCreatedChart daily={analytics.tasks_created?.daily || []} mode={resolvedMode} onBrowse={() => navigate('/projects')} />
                         </Card>
                     </div>
 
                     {analytics.top_contributors?.length > 0 && (
-                        <Card title="Top contributors" subtitle="Most time logged in the last 30 days">
+                        <Card title={t('dashboard.contributors.title')} subtitle={t('dashboard.contributors.subtitle')}>
                             <ul className="divide-y divide-gray-100">
                                 {analytics.top_contributors.map((c) => (
                                     <li key={c.user?.id} className="flex items-center justify-between py-2.5">
@@ -411,10 +379,10 @@ export default function Dashboard() {
                                             >
                                                 {(c.user?.name || '?').charAt(0)}
                                             </span>
-                                            <span className="text-sm font-medium text-gray-800">{c.user?.name || 'Unknown'}</span>
+                                            <span className="text-sm font-medium text-gray-800">{c.user?.name || t('dashboard.contributors.unknown')}</span>
                                         </span>
                                         <span className="text-sm text-gray-500">
-                                            {formatHours(c.minutes / 60)} · {c.logs_count} logs
+                                            {formatHours(c.minutes / 60, t)} · {t('dashboard.contributors.logs', { count: c.logs_count })}
                                         </span>
                                     </li>
                                 ))}
@@ -425,11 +393,11 @@ export default function Dashboard() {
             )}
 
             <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-                <TaskList tasks={data.my_overdue} title="Overdue" subtitle="Open tasks past their due date" emptyText="Nothing overdue." dateLabel={overdueLabel} />
-                <TaskList tasks={data.my_due_soon} title="Due soon" subtitle="Next seven days, assigned to you" emptyText="Nothing due in the next week." dateLabel={dueSoonLabel} />
+                <TaskList tasks={data.my_overdue} title={t('dashboard.lists.overdue.title')} subtitle={t('dashboard.lists.overdue.subtitle')} emptyText={t('dashboard.lists.overdue.empty')} dateLabel={(task) => t('dashboard.dueLabels.overdue', { date: task.due_date })} />
+                <TaskList tasks={data.my_due_soon} title={t('dashboard.lists.dueSoon.title')} subtitle={t('dashboard.lists.dueSoon.subtitle')} emptyText={t('dashboard.lists.dueSoon.empty')} dateLabel={(task) => t('dashboard.dueLabels.due', { date: task.due_date, project: task.project.name })} />
 
-                <TaskList tasks={data.in_progress} title="In progress" subtitle="Currently being worked on" emptyText="No tasks in progress." dateLabel={recentLabel} />
-                <TaskList tasks={data.my_open} title="Recently updated" subtitle="Your open tasks, newest activity first" emptyText="No recent changes." dateLabel={() => 'Assigned to you'} />
+                <TaskList tasks={data.in_progress} title={t('dashboard.lists.inProgress.title')} subtitle={t('dashboard.lists.inProgress.subtitle')} emptyText={t('dashboard.lists.inProgress.empty')} dateLabel={recentLabel} />
+                <TaskList tasks={data.my_open} title={t('dashboard.lists.recent.title')} subtitle={t('dashboard.lists.recent.subtitle')} emptyText={t('dashboard.lists.recent.empty')} dateLabel={() => t('dashboard.dueLabels.assigned')} />
             </div>
         </div>
     );
