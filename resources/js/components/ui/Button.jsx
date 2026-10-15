@@ -4,6 +4,9 @@
  * indigo, so the whole control set follows the theme. Destructive actions
  * read the parallel `--danger*` tokens, which step brighter in dark mode so
  * red buttons stay distinct on dark surfaces.
+ *
+ * Focus converges on the global `:focus-visible` outline (app.css) tinted
+ * per variant — no box-shadow ring, so keyboard focus is one indicator.
  */
 export default function Button({
     variant = 'primary',
@@ -15,17 +18,17 @@ export default function Button({
 }) {
     const variants = {
         primary:
-            'bg-[var(--accent)] text-[var(--accent-contrast)] shadow-sm hover:bg-[var(--accent-hover)] active:bg-[var(--accent-active)] focus:ring-[var(--accent-ring)]',
+            'bg-[var(--accent)] text-[var(--accent-contrast)] shadow-sm hover:bg-[var(--accent-hover)] active:bg-[var(--accent-active)] focus-visible:outline-[var(--accent)]',
         secondary:
-            'bg-white text-gray-700 border border-gray-300 shadow-sm hover:bg-gray-50 hover:text-gray-900 focus:ring-gray-200',
+            'bg-white text-gray-700 border border-gray-300 shadow-sm hover:bg-gray-50 hover:text-gray-900 focus-visible:outline-gray-400',
         danger:
-            'bg-[var(--danger)] text-[var(--danger-contrast)] shadow-sm hover:bg-[var(--danger-hover)] active:bg-[var(--danger-active)] focus:ring-[var(--danger-ring)]',
+            'bg-[var(--danger)] text-[var(--danger-contrast)] shadow-sm hover:bg-[var(--danger-hover)] active:bg-[var(--danger-active)] focus-visible:outline-[var(--danger)]',
         warning:
-            'bg-amber-500 text-white shadow-sm hover:bg-amber-400 active:bg-amber-600 focus:ring-amber-200',
+            'bg-amber-500 text-white shadow-sm hover:bg-amber-400 active:bg-amber-600 focus-visible:outline-amber-400',
         ghost:
-            'bg-transparent text-gray-600 hover:bg-gray-100 hover:text-gray-900 focus:ring-gray-200',
+            'bg-transparent text-gray-600 hover:bg-gray-100 hover:text-gray-900 focus-visible:outline-gray-400',
         subtle:
-            'bg-[var(--accent-soft)] text-[var(--accent-soft-text)] hover:bg-[var(--accent-soft-hover)] focus:ring-[var(--accent-ring)]',
+            'bg-[var(--accent-soft)] text-[var(--accent-soft-text)] hover:bg-[var(--accent-soft-hover)] focus-visible:outline-[var(--accent)]',
     };
 
     const sizes = {
@@ -36,12 +39,13 @@ export default function Button({
 
     return (
         <button
-            className={`inline-flex items-center justify-center gap-2 rounded-lg font-medium transition-all duration-150 focus:outline-none focus:ring-2 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60 disabled:active:scale-100 ${variants[variant] ?? variants.primary} ${sizes[size] ?? sizes.md} ${className}`}
+            className={`inline-flex items-center justify-center gap-2 rounded-lg font-medium transition-all duration-150 focus:outline-none focus-visible:outline-2 focus-visible:outline-offset-2 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60 disabled:active:scale-100 ${variants[variant] ?? variants.primary} ${sizes[size] ?? sizes.md} ${className}`}
             disabled={loading || props.disabled}
+            aria-busy={loading || undefined}
             {...props}
         >
             {loading && (
-                <span className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
+                <span className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" aria-hidden="true" />
             )}
             {children}
         </button>
