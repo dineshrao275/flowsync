@@ -26,8 +26,11 @@ jobs:
       # .env first: composer scripts boot the app (package:discover), and a
       # fresh checkout has no .env — without one APP_ENV defaults to
       # production and the infrastructure-pin guard fails the install.
-      - run: cp .env.example .env && php artisan key:generate --no-interaction
+      # Split in two: key:generate needs vendor/, which only exists after
+      # install, but the .env copy needs no vendor at all.
+      - run: cp .env.example .env
       - run: composer install --no-interaction --no-progress --prefer-dist
+      - run: php artisan key:generate --no-interaction
       - run: ./vendor/bin/pint --test
 
   js:
@@ -79,9 +82,11 @@ jobs:
           path: vendor
           key: composer-${{ hashFiles('composer.lock') }}
       # Same ordering reason as the pint job: the env file must exist before
-      # any composer script boots the app.
-      - run: cp .env.example .env && php artisan key:generate
+      # any composer script boots the app (key:generate waits until vendor/
+      # exists, like above).
+      - run: cp .env.example .env
       - run: composer install --no-interaction --no-progress --prefer-dist
+      - run: php artisan key:generate
       # View-rendering tests hit @vite() Blade directives, and public/build
       # is gitignored — build the real manifest first so tests exercise the
       # production asset path instead of 500ing on a missing manifest.
