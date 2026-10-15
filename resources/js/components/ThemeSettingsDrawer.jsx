@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useTheme } from '../context/ThemeContext';
 import { useToast } from '../context/ToastContext';
 import { THEME_FIELDS, THEME_PRESETS } from '../theme';
@@ -7,25 +8,21 @@ import Button from './ui/Button';
 const SCHEMES = [
     {
         value: 'light',
-        label: 'Light',
-        hint: 'Bright surfaces',
         swatch: 'bg-white border-gray-300',
     },
     {
         value: 'dark',
-        label: 'Dark',
-        hint: 'Easy on the eyes',
         swatch: 'bg-gray-900 border-gray-700',
     },
     {
         value: 'system',
-        label: 'System',
-        hint: 'Follow this device',
         swatch: 'bg-gradient-to-br from-white to-gray-900',
     },
 ];
 
 function SchemeField({ value, onChange }) {
+    const { t } = useTranslation();
+
     return (
         <div className="grid grid-cols-3 gap-2">
             {SCHEMES.map((scheme) => {
@@ -44,8 +41,8 @@ function SchemeField({ value, onChange }) {
                         }`}
                     >
                         <span className={`h-5 w-9 rounded border ${scheme.swatch}`} />
-                        <span className="text-xs font-semibold">{scheme.label}</span>
-                        <span className="text-[10px] text-gray-500">{scheme.hint}</span>
+                        <span className="text-xs font-semibold">{t(`shell.theme.modes.${scheme.value}`)}</span>
+                        <span className="text-[10px] text-gray-500">{t(`shell.theme.hints.${scheme.value}`)}</span>
                     </button>
                 );
             })}
@@ -54,9 +51,12 @@ function SchemeField({ value, onChange }) {
 }
 
 function ColorField({ field, value, onChange }) {
+    const { t } = useTranslation();
+    const label = t(`shell.theme.fields.${field.key}`, { defaultValue: field.label });
+
     return (
         <div className="flex items-center justify-between gap-3 rounded-lg border border-gray-200 px-3 py-2.5 transition-all duration-150 hover:border-gray-300 hover:shadow-sm">
-            <label className="text-sm font-medium text-gray-700">{field.label}</label>
+            <label className="text-sm font-medium text-gray-700">{label}</label>
             <div className="flex items-center gap-2">
                 <span className="text-xs uppercase text-gray-400">{value}</span>
                 <label
@@ -68,7 +68,7 @@ function ColorField({ field, value, onChange }) {
                         value={value}
                         onChange={(e) => onChange(field.key, e.target.value)}
                         className="absolute inset-0 h-full w-full cursor-pointer opacity-0"
-                        aria-label={field.label}
+                        aria-label={label}
                     />
                 </label>
             </div>
@@ -77,6 +77,7 @@ function ColorField({ field, value, onChange }) {
 }
 
 export default function ThemeSettingsDrawer({ open, onClose }) {
+    const { t } = useTranslation();
     const { draft, preview, previewFull, save, reset } = useTheme();
     const toast = useToast();
     const [saving, setSaving] = useState(false);
@@ -87,7 +88,7 @@ export default function ThemeSettingsDrawer({ open, onClose }) {
         setSaving(false);
 
         if (result.ok) {
-            toast.success('Theme updated successfully.');
+            toast.success(t('shell.theme.updated'));
             onClose();
         } else {
             toast.error(result.message);
@@ -105,17 +106,17 @@ export default function ThemeSettingsDrawer({ open, onClose }) {
                     open ? 'translate-x-0' : 'translate-x-full'
                 }`}
                 role="dialog"
-                aria-label="Theme settings"
+                aria-label={t('shell.theme.ariaLabel')}
             >
                 <div className="flex animate-fade-in-up items-center justify-between border-b border-gray-200 px-6 py-4">
                     <div>
-                        <h2 className="text-base font-semibold text-gray-900">Theme Settings</h2>
-                        <p className="text-sm text-gray-500">Switch to dark, or personalize your own colors</p>
+                        <h2 className="text-base font-semibold text-gray-900">{t('shell.theme.settings')}</h2>
+                        <p className="text-sm text-gray-500">{t('shell.theme.subtitle')}</p>
                     </div>
                     <button
                         onClick={onClose}
                         className="rounded-lg p-2 text-gray-400 transition-all duration-150 hover:rotate-90 hover:bg-gray-100 hover:text-gray-600 active:scale-90"
-                        aria-label="Close"
+                        aria-label={t('shell.theme.close')}
                     >
                         <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
                             <path d="M6 6l12 12M18 6L6 18" />
@@ -125,7 +126,7 @@ export default function ThemeSettingsDrawer({ open, onClose }) {
 
                 <div className="flex-1 space-y-6 animate-fade-in-up overflow-y-auto px-6 py-5" style={{ animationDelay: '40ms' }}>
                     <section>
-                        <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-gray-500">Appearance</h3>
+                        <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-gray-500">{t('shell.theme.appearance')}</h3>
                         <SchemeField
                             value={draft.mode ?? 'system'}
                             onChange={preview}
@@ -133,7 +134,7 @@ export default function ThemeSettingsDrawer({ open, onClose }) {
                     </section>
 
                     <section>
-                        <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-gray-500">Presets</h3>
+                        <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-gray-500">{t('shell.theme.presets')}</h3>
                         <div className="grid grid-cols-2 gap-2">
                             {THEME_PRESETS.map((preset) => {
                                 const active = THEME_FIELDS.every(
@@ -157,7 +158,7 @@ export default function ThemeSettingsDrawer({ open, onClose }) {
                     </section>
 
                     <section>
-                        <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-gray-500">Colors</h3>
+                        <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-gray-500">{t('shell.theme.colors')}</h3>
                         <div className="space-y-2">
                             {THEME_FIELDS.map((field) => (
                                 <ColorField
@@ -174,17 +175,17 @@ export default function ThemeSettingsDrawer({ open, onClose }) {
                         onClick={reset}
                         className="text-sm font-medium text-gray-500 underline-offset-2 transition hover:text-gray-800 hover:underline"
                     >
-                        Reset to default theme
+                        {t('shell.theme.reset')}
                     </button>
                 </div>
 
                 <div className="border-t border-gray-200 px-6 py-4">
                     <div className="flex gap-3">
                         <Button variant="secondary" className="flex-1" onClick={onClose}>
-                            Cancel
+                            {t('admin.common.cancel')}
                         </Button>
                         <Button className="flex-1" loading={saving} onClick={handleSave}>
-                            Save theme
+                            {t('shell.theme.save')}
                         </Button>
                     </div>
                 </div>

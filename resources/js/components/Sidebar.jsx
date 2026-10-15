@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Link, useLocation } from 'react-router-dom';
 import { CaretDoubleLeft, CaretDoubleRight, CaretDown } from '@phosphor-icons/react';
 import { useAuth } from '../context/AuthContext';
@@ -63,6 +64,8 @@ function SidebarLink({ item, collapsed, onClose }) {
 }
 
 function SidebarSection({ section, collapsed, onClose, canViewPlans }) {
+    const { t } = useTranslation();
+
     return (
         <div className="space-y-0.5">
             {!collapsed && (
@@ -78,13 +81,13 @@ function SidebarSection({ section, collapsed, onClose, canViewPlans }) {
                     className="rounded-lg px-3 py-2 text-xs leading-relaxed"
                     style={{ color: 'var(--sidebar-text)', opacity: 0.6 }}
                 >
-                    <span>Locked by your plan.</span>{' '}
+                    <span>{t('shell.sidebar.lockedByPlan')}</span>{' '}
                     {canViewPlans ? (
                         <Link to="/subscription" className="underline transition-colors hover:opacity-80">
-                            View plans
+                            {t('shell.sidebar.viewPlans')}
                         </Link>
                     ) : (
-                        'An admin can change it.'
+                        t('shell.sidebar.adminCanChange')
                     )}
                 </div>
             )}
@@ -113,6 +116,7 @@ function isItemActive(item, pathname) {
  * submenu, so the group icon navigates straight to its first reachable page.
  */
 function CollapsibleSection({ section, collapsed, onClose, open, onToggle }) {
+    const { t } = useTranslation();
     const { inboxUnread } = useNotifications();
     const { pathname } = useLocation();
     const [first] = section.items;
@@ -152,7 +156,7 @@ function CollapsibleSection({ section, collapsed, onClose, open, onToggle }) {
                 type="button"
                 onClick={onToggle}
                 aria-expanded={open}
-                title={open ? `Collapse ${section.label}` : `Expand ${section.label}`}
+                title={open ? t('shell.sidebar.collapseGroup', { label: section.label }) : t('shell.sidebar.expandGroup', { label: section.label })}
                 className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors duration-150 hover:bg-[var(--sidebar-hover)]"
                 style={{ color: 'var(--sidebar-text)' }}
             >
@@ -173,6 +177,7 @@ function CollapsibleSection({ section, collapsed, onClose, open, onToggle }) {
 }
 
 export default function Sidebar({ open, collapsed, onClose, onToggleCollapse }) {
+    const { t } = useTranslation();
     const { check, user } = useAuth();
     const { pathname } = useLocation();
     const isSuperAdmin = user?.is_super_admin && !user?.impersonating;
@@ -243,7 +248,7 @@ export default function Sidebar({ open, collapsed, onClose, onToggleCollapse }) 
                                 FlowSync
                             </p>
                             <p className="truncate text-xs" style={{ color: 'var(--sidebar-text)' }}>
-                                {isSuperAdmin ? 'Super Admin Panel' : user?.tenant?.name || 'Admin Panel'}
+                                {isSuperAdmin ? t('shell.sidebar.superAdminPanel') : user?.tenant?.name || t('shell.sidebar.adminPanel')}
                             </p>
                         </div>
                     )}
@@ -278,7 +283,7 @@ export default function Sidebar({ open, collapsed, onClose, onToggleCollapse }) 
                     <button
                         type="button"
                         onClick={onToggleCollapse}
-                        title={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+                        title={collapsed ? t('shell.sidebar.expandSidebar') : t('shell.sidebar.collapseSidebar')}
                         className={`hidden w-full items-center rounded-lg py-2 text-sm font-medium transition-colors hover:bg-[var(--sidebar-hover)] lg:flex ${
                             collapsed ? 'justify-center' : 'gap-2 px-3'
                         }`}
@@ -289,7 +294,7 @@ export default function Sidebar({ open, collapsed, onClose, onToggleCollapse }) 
                         ) : (
                             <CaretDoubleLeft size={16} weight="bold" aria-hidden="true" className="shrink-0" />
                         )}
-                        {!collapsed && <span>Collapse</span>}
+                        {!collapsed && <span>{t('shell.sidebar.collapse')}</span>}
                     </button>
                 </div>
             </aside>

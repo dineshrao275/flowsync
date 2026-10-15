@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Outlet, useLocation, useNavigate } from 'react-router-dom';
 import Sidebar from './Sidebar';
 import Topbar from './Topbar';
@@ -15,6 +16,7 @@ const STORAGE_PREFIX = (typeof window !== 'undefined' && window.__FLOWSYNC_CONFI
 const COLLAPSE_KEY = `${STORAGE_PREFIX}.sidebar.collapsed`;
 
 export default function AdminLayout() {
+    const { t } = useTranslation();
     const [sidebarOpen, setSidebarOpen] = useState(false);
     const [searchOpen, setSearchOpen] = useState(false);
     const [themeOpen, setThemeOpen] = useState(false);
@@ -97,7 +99,7 @@ export default function AdminLayout() {
                     className="border-t px-6 py-4 text-center text-xs text-gray-400"
                     style={{ backgroundColor: 'var(--header-bg)' }}
                 >
-                    FlowSync Admin &middot; Laravel + React
+                    {t('shell.footer')}
                 </footer>
             </div>
 

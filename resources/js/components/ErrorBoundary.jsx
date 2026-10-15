@@ -1,5 +1,6 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
+import { withTranslation } from 'react-i18next';
 import Button from './ui/Button';
 import logger from '../utils/logger';
 
@@ -10,7 +11,7 @@ import logger from '../utils/logger';
  * HRMS keeps its own narrower boundary (`hrms/HrmsErrorBoundary`) so a broken
  * tab does not take the module rail down with it.
  */
-export default class ErrorBoundary extends React.Component {
+class ErrorBoundary extends React.Component {
     state = { hasError: false, error: null };
 
     static getDerivedStateFromError(error) {
@@ -40,6 +41,8 @@ export default class ErrorBoundary extends React.Component {
             return this.props.children;
         }
 
+        const { t } = this.props;
+
         return (
             <div
                 role="alert"
@@ -47,23 +50,25 @@ export default class ErrorBoundary extends React.Component {
                 style={{ backgroundColor: 'var(--card-bg, #ffffff)' }}
             >
                 <h2 className="text-base font-semibold text-gray-900 dark:text-gray-100">
-                    This page hit an unexpected error
+                    {t('shell.errorBoundary.title')}
                 </h2>
                 <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">
-                    The rest of FlowSync is still working. Try again, or head back to your dashboard.
+                    {t('shell.errorBoundary.desc')}
                 </p>
                 <div className="mt-3 overflow-x-auto rounded-md bg-gray-50 p-3 font-mono text-xs text-gray-700 dark:bg-gray-800/80 dark:text-gray-300">
-                    {this.state.error?.message || 'Unknown error'}
+                    {this.state.error?.message || t('shell.errorBoundary.fallback')}
                 </div>
                 <div className="mt-4 flex flex-wrap items-center gap-3">
                     <Button variant="secondary" onClick={this.reset}>
-                        Try again
+                        {t('shell.errorBoundary.retry')}
                     </Button>
                     <Link to="/">
-                        <Button variant="secondary">Go to dashboard</Button>
+                        <Button variant="secondary">{t('shell.errorBoundary.dashboard')}</Button>
                     </Link>
                 </div>
             </div>
         );
     }
 }
+
+export default withTranslation()(ErrorBoundary);

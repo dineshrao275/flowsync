@@ -92,5 +92,87 @@
         "markAllReadShort": "Mark all read",
         "caughtUp": "You're all caught up.",
         "viewAll": "View all notifications"
+    },
+    "shell": {
+        "breadcrumb": "Breadcrumb",
+        "superAdmin": "Super Admin",
+        "admin": "Admin",
+        "footer": "FlowSync Admin · Laravel + React",
+        "dismiss": "Dismiss notification",
+        "sidebar": {
+            "superAdminPanel": "Super Admin Panel",
+            "adminPanel": "Admin Panel",
+            "lockedByPlan": "Locked by your plan.",
+            "adminCanChange": "An admin can change it.",
+            "viewPlans": "View plans",
+            "collapse": "Collapse",
+            "collapseSidebar": "Collapse sidebar",
+            "expandSidebar": "Expand sidebar",
+            "collapseGroup": "Collapse {{label}}",
+            "expandGroup": "Expand {{label}}"
+        },
+        "impersonation": {
+            "viewingAs": "You are currently viewing the panel as <0>{{name}}</0>",
+            "changesEnabled": "Changes enabled",
+            "readOnly": "Read-only",
+            "ends": "ends {{time}}",
+            "stop": "Stop impersonating",
+            "returned": "Returned to super admin console.",
+            "stopFailed": "Failed to stop impersonation."
+        },
+        "impersonate": {
+            "title": "View as user",
+            "reason": "Reason",
+            "reasonPlaceholder": "e.g. Ticket #1234 — customer cannot see their payroll run",
+            "reasonHint": "Recorded in the audit log. At least {{min}} characters.",
+            "tenantConsent": "Tenant consent",
+            "withoutGrant": "Without a grant",
+            "grantOptionWrite": "{{name}}: changes allowed, until {{date}}",
+            "grantOptionRead": "{{name}}: read-only, until {{date}}",
+            "noGrant": "This tenant has not granted support access.",
+            "allowChanges": "Allow making changes",
+            "allowChangesHint": "Off by default: the session can only look. Even with this on, roles, users, billing, exports and the company profile stay locked. The session ends automatically after a fixed time.",
+            "startSession": "Start session"
+        },
+        "theme": {
+            "settings": "Theme Settings",
+            "subtitle": "Switch to dark, or personalize your own colors",
+            "appearance": "Appearance",
+            "presets": "Presets",
+            "colors": "Colors",
+            "reset": "Reset to default theme",
+            "save": "Save theme",
+            "ariaLabel": "Theme settings",
+            "close": "Close",
+            "updated": "Theme updated successfully.",
+            "modes": {
+                "light": "Light",
+                "dark": "Dark",
+                "system": "System"
+            },
+            "hints": {
+                "light": "Bright surfaces",
+                "dark": "Easy on the eyes",
+                "system": "Follow this device"
+            },
+            "fields": {
+                "sidebar_bg": "Sidebar background",
+                "sidebar_hover": "Sidebar hover color",
+                "active_menu": "Active menu color",
+                "sidebar_text": "Sidebar text color",
+                "dashboard_bg": "Dashboard background",
+                "header_bg": "Header background",
+                "header_text": "Header text color",
+                "card_bg": "Card background",
+                "accent": "Accent color"
+            }
+        },
+        "errorBoundary": {
+            "title": "This page hit an unexpected error",
+            "desc": "The rest of FlowSync is still working. Try again, or head back to your dashboard.",
+            "fallback": "Unknown error",
+            "retry": "Try again",
+            "dashboard": "Go to dashboard"
+        }
     }
 }

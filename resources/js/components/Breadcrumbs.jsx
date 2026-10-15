@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { useAuth } from '../context/AuthContext';
 import { useCrumbs } from '../context/BreadcrumbContext';
 
@@ -11,15 +12,16 @@ function Chevron() {
 }
 
 export default function Breadcrumbs() {
+    const { t } = useTranslation();
     const { user } = useAuth();
     const { crumbs } = useCrumbs();
 
     const isSuperAdmin = user?.is_super_admin && !user?.impersonating;
-    const accountLabel = isSuperAdmin ? 'Super Admin' : user?.tenant?.name || 'Admin';
+    const accountLabel = isSuperAdmin ? t('shell.superAdmin') : user?.tenant?.name || t('shell.admin');
     const trail = [{ label: accountLabel, to: isSuperAdmin ? '/tenants' : '/workspaces' }, ...crumbs];
 
     return (
-        <nav aria-label="Breadcrumb" className="mb-4">
+        <nav aria-label={t('shell.breadcrumb')} className="mb-4">
             <ol className="flex flex-wrap items-center gap-1.5 text-xs text-gray-500">
                 {trail.map((crumb, index) => {
                     const last = index === trail.length - 1;

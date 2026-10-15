@@ -1,4 +1,5 @@
 import { createContext, useCallback, useContext, useMemo, useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 
 const ToastContext = createContext(null);
 
@@ -30,6 +31,7 @@ const styles = {
 };
 
 function ToastItem({ toast, onClose }) {
+    const { t } = useTranslation();
     const config = styles[toast.type] || styles.info;
 
     return (
@@ -57,7 +59,7 @@ function ToastItem({ toast, onClose }) {
             <button
                 onClick={onClose}
                 className="-mr-1 -mt-0.5 shrink-0 rounded-md p-1 text-gray-400 transition-colors hover:bg-black/5 hover:text-gray-600"
-                aria-label="Dismiss notification"
+                aria-label={t('shell.dismiss')}
             >
                 <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
                     <path d="M6 6l12 12M18 6L6 18" />
