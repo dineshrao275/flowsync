@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
+import { CaretDoubleLeft, CaretDoubleRight, CaretDown } from '@phosphor-icons/react';
 import { useAuth } from '../context/AuthContext';
 import { useNotifications } from '../context/NotificationContext';
 import { hrmsSections, superAdminSections, tmsSections } from '../utils/nav';
@@ -10,12 +11,14 @@ import { productForPath } from '../utils/product';
 // for the HR shell, `superAdminSections` for the platform. The component
 // below picks by the current path and filters by capability.
 
-function Icon({ path, className = '' }) {
-    return (
-        <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-            <path d={path} />
-        </svg>
-    );
+// Glyphs are Phosphor components from the nav catalog (regular weight,
+// currentColor) — one icon family at one optical size across the shell.
+function ItemIcon({ icon }) {
+    const Glyph = icon;
+
+    if (!Glyph) return null;
+
+    return <Glyph size={20} weight="regular" className="shrink-0" aria-hidden="true" />;
 }
 
 function SidebarLink({ item, collapsed, onClose }) {
@@ -44,7 +47,7 @@ function SidebarLink({ item, collapsed, onClose }) {
                     aria-hidden="true"
                 />
             )}
-            <Icon path={item.icon} className="h-5 w-5 shrink-0" />
+            <ItemIcon icon={item.icon} />
             <span className={`min-w-0 ${labelClass}`}>
                 <span className="flex items-center justify-between gap-2">
                     <span className="truncate">{item.label}</span>
@@ -64,7 +67,7 @@ function SidebarSection({ section, collapsed, onClose, canViewPlans }) {
         <div className="space-y-0.5">
             {!collapsed && (
                 <p
-                    className="flex items-center justify-between px-3 pb-1.5 pt-4 text-[10px] font-bold uppercase tracking-wider"
+                    className="flex items-center justify-between px-3 pb-1.5 pt-4 text-xs font-semibold normal-case tracking-normal"
                     style={{ color: 'var(--sidebar-text)', opacity: 0.55 }}
                 >
                     <span>{section.label}</span>
@@ -137,7 +140,7 @@ function CollapsibleSection({ section, collapsed, onClose, open, onToggle }) {
                 }`}
                 style={{ color: active ? '#ffffff' : 'var(--sidebar-text)' }}
             >
-                <Icon path={first.icon} className="h-5 w-5 shrink-0" />
+                <ItemIcon icon={first.icon} />
                 {badge}
             </Link>
         );
@@ -153,21 +156,10 @@ function CollapsibleSection({ section, collapsed, onClose, open, onToggle }) {
                 className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors duration-150 hover:bg-[var(--sidebar-hover)]"
                 style={{ color: 'var(--sidebar-text)' }}
             >
-                <Icon path={first?.icon} className="h-5 w-5 shrink-0" />
+                <ItemIcon icon={first?.icon} />
                 <span className="min-w-0 flex-1 truncate text-left">{section.label}</span>
                 {badge}
-                <svg
-                    className={`h-4 w-4 shrink-0 transition-transform duration-150 ${open ? 'rotate-180' : ''}`}
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    aria-hidden="true"
-                >
-                    <path d="M6 9l6 6 6-6" />
-                </svg>
+                <CaretDown size={16} weight="bold" aria-hidden="true" className={`shrink-0 transition-transform duration-150 ${open ? 'rotate-180' : ''}`} />
             </button>
             {open && (
                 <div className="ml-5 space-y-0.5 border-l pl-1.5" style={{ borderColor: 'var(--sidebar-hover)' }}>
@@ -292,13 +284,11 @@ export default function Sidebar({ open, collapsed, onClose, onToggleCollapse }) 
                         }`}
                         style={{ color: 'var(--sidebar-text)' }}
                     >
-                        <svg className="h-4 w-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                            {collapsed ? (
-                                <path d="M13 5l7 7-7 7M5 5l7 7-7 7" />
-                            ) : (
-                                <path d="M11 5l-7 7 7 7M19 5l-7 7 7 7" />
-                            )}
-                        </svg>
+                        {collapsed ? (
+                            <CaretDoubleRight size={16} weight="bold" aria-hidden="true" className="shrink-0" />
+                        ) : (
+                            <CaretDoubleLeft size={16} weight="bold" aria-hidden="true" className="shrink-0" />
+                        )}
                         {!collapsed && <span>Collapse</span>}
                     </button>
                 </div>

@@ -24,15 +24,14 @@ export default function Breadcrumbs() {
                 {trail.map((crumb, index) => {
                     const last = index === trail.length - 1;
                     return (
-                        <li key={crumb.label} className="flex items-center gap-1.5">
+                        <li key={`${index}-${crumb.label}`} className="flex items-center gap-1.5">
                             {index > 0 && <Chevron />}
                             {last || !crumb.to ? (
-                                <span className="font-semibold text-gray-700">{crumb.label}</span>
+                                <span className="font-semibold text-gray-800" aria-current={last ? 'page' : undefined}>{crumb.label}</span>
                             ) : (
                                 <Link
                                     to={crumb.to}
-                                    className="transition hover:text-indigo-600"
-                                    style={{ color: 'var(--sidebar-text)' }}
+                                    className="text-gray-500 transition hover:text-gray-900"
                                 >
                                     {crumb.label}
                                 </Link>

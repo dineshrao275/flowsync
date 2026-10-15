@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { CheckCircle, Folders, IdentificationBadge, Kanban, Users } from '@phosphor-icons/react';
 import api from '../../services/api';
 import Spinner from '../ui/Spinner';
 import { useAuth } from '../../context/AuthContext';
@@ -10,27 +11,27 @@ const groupDefs = [
     {
         key: 'tasks',
         label: 'Tasks',
-        icon: 'M9 11l3 3L22 4M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11',
+        icon: CheckCircle,
     },
     {
         key: 'projects',
         label: 'Projects',
-        icon: 'M3 7a2 2 0 012-2h4l2 2h8a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2V7z',
+        icon: Kanban,
     },
     {
         key: 'workspaces',
         label: 'Workspaces',
-        icon: 'M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z',
+        icon: Folders,
     },
     {
         key: 'users',
         label: 'People',
-        icon: 'M17 20h5v-2a4 4 0 00-3-3.87M9 20H4v-2a4 4 0 013-3.87m4-1.13a4 4 0 10-4-4 4 4 0 004 4zm6 2a3 3 0 10-3-3',
+        icon: Users,
     },
     {
         key: 'hrms',
         label: 'HR',
-        icon: 'M17 20h5v-2a4 4 0 00-3-3.87M9 20H4v-2a4 4 0 013-3.87m4-1.13a4 4 0 10-4-4 4 4 0 004 4zm6 2a3 3 0 10-3-3',
+        icon: IdentificationBadge,
     },
 ];
 
@@ -216,6 +217,7 @@ export default function CommandPalette({ open, onClose }) {
                                 const rows = group.items.map((item, index) => {
                                     const flatIndex = running + index;
                                     const isActive = flatIndex === active;
+                                    const GroupIcon = group.icon;
                                     return (
                                         <button
                                             key={item.id}
@@ -223,22 +225,16 @@ export default function CommandPalette({ open, onClose }) {
                                             onMouseEnter={() => setActive(flatIndex)}
                                             onClick={() => openIndex(flatIndex)}
                                             className={`flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left transition ${
-                                                isActive ? 'bg-indigo-50' : 'hover:bg-gray-50'
+                                                isActive ? 'bg-[var(--accent-soft)]' : 'hover:bg-gray-50'
                                             }`}
                                         >
-                                            <svg
-                                                className={`h-4 w-4 shrink-0 ${
-                                                    isActive ? 'text-indigo-600' : 'text-gray-400'
+                                            <GroupIcon
+                                                size={16}
+                                                aria-hidden="true"
+                                                className={`shrink-0 ${
+                                                    isActive ? 'text-[var(--accent-soft-text)]' : 'text-gray-400'
                                                 }`}
-                                                viewBox="0 0 24 24"
-                                                fill="none"
-                                                stroke="currentColor"
-                                                strokeWidth="1.8"
-                                                strokeLinecap="round"
-                                                strokeLinejoin="round"
-                                            >
-                                                <path d={group.icon} />
-                                            </svg>
+                                            />
                                             <span className="min-w-0 flex-1">
                                                 <span className="block truncate text-sm font-medium text-gray-800">
                                                     {group.key === 'tasks' || group.key === 'projects'
@@ -256,7 +252,7 @@ export default function CommandPalette({ open, onClose }) {
 
                                 return (
                                     <div key={group.key} className="mb-1 last:mb-0">
-                                        <p className="px-3 pb-1 pt-2 text-[10px] font-bold uppercase tracking-wider text-gray-400">
+                                        <p className="px-3 pb-1 pt-2 text-xs font-semibold text-gray-500">
                                             {group.label}
                                         </p>
                                         {rows}
