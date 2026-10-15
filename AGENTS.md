@@ -398,7 +398,7 @@ Hierarchy: **Tenant → Workspace → Project → Task** (subtask `tasks.parent_
 - `app/Services/KeyGenerator.php` — atomic per-project task key allocation.
 - `app/Services/WorkspaceService.php` — workspace CRUD + members (see Workspaces section).
 - `app/Services/ProjectService.php` — project CRUD + members + statuses/workflow (see Projects section).
-- `app/Services/TaskService.php` — task CRUD + board/list/move + filters (see Tasks section); board/list/`show` payloads include `open_blockers_count` (`withCount('openBlockers')`), and `show` lazy-loads comments/attachments/subtasks counts.
+- `app/Services/TaskService.php` — task CRUD + board/list/move + filters (see Tasks section); board/list/`show` payloads include `open_blockers_count` (`withCount('openBlockers')`), and `show` lazy-loads comments/attachments/subtasks counts. The service stays a thin orchestrator under the 300-line ceiling (`TaskServiceSplitTest`): writes share `Services/Tasks/TaskLifecycle.php` (WIP/blocker guards, status history, goal refresh) and updates run through `Services/Tasks/TaskUpdater.php` — all 12 public methods stay on the service.
 - `app/Services/WorkLogService.php` — work-log CRUD + overlap/duration rules + task/project/workspace time summaries (see Time Tracking section).
 
 ## Impersonation (super admin → tenant user)
@@ -1346,6 +1346,7 @@ Phase 13
   sqlite-tolerated statement (`WHERE is_default = 1` on a boolean column) only fails once a tenant DB is
   actually Postgres. When touching a tenant migration, either stay on the schema builder or exercise the PG
   path (`TENANT_DB_PG_ROLE=... TENANT_DB_DRIVER=pgsql php artisan tenants:provision`).
+- **`assertDatabaseHas` resolves the default connection, not the model's.** After tenant-scoped requests the default sits on the tenant DB, so asserting a central table (`audit_logs`, tombstones) 500s with "no such table" — pin `DB::setDefaultConnection(config('tenancy.system.connection'))` first (the Collaboration/AuditChain/SupportAccess precedent), or read through the central model like PlatformAccessTest does.
 - **Never put a backslash-quote sequence in raw SQL text.** PDO's placeholder parser treats `\'` as an
   escaped quote, so a second `escape '\'` clause swallows the `?` between them as string content and
   PostgreSQL answers HY093 (SQLite tolerates it — `Like::any` 500d every multi-column search in prod
