@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import api, { fieldErrors } from '../../services/api';
 import Alert from '../../components/ui/Alert';
 import Button from '../../components/ui/Button';
@@ -16,10 +17,10 @@ import usePageTitle from '../../hooks/usePageTitle';
 import TemplateEditor from './TemplateEditor';
 
 const STATUSES = [
-    { value: 'not_started', label: 'Not started' },
-    { value: 'in_progress', label: 'In progress' },
-    { value: 'completed', label: 'Completed' },
-    { value: 'cancelled', label: 'Cancelled' },
+    { value: 'not_started', key: 'stNotStarted' },
+    { value: 'in_progress', key: 'stInProgress' },
+    { value: 'completed', key: 'stCompleted' },
+    { value: 'cancelled', key: 'stCancelled' },
 ];
 
 function ProgressBar({ value }) {
@@ -43,7 +44,8 @@ function ProgressBar({ value }) {
  * row to learn that would make the scan unusable.
  */
 export default function OnboardingCases() {
-    usePageTitle('Onboarding');
+    const { t } = useTranslation();
+    usePageTitle(t('hrms.onboarding.pageTitle'));
     const setCrumbs = useSetCrumbs();
     const navigate = useNavigate();
     const { can } = useAuth();
@@ -65,8 +67,8 @@ export default function OnboardingCases() {
     const canPickEmployee = can('permission:hrms.employees.view');
 
     useEffect(() => {
-        setCrumbs([{ label: 'HRMS', to: '/hrms' }, { label: 'Onboarding' }]);
-    }, [setCrumbs]);
+        setCrumbs([{ label: t('hrms.overview.pageTitle'), to: '/hrms' }, { label: t('hrms.onboarding.pageTitle') }]);
+    }, [setCrumbs, t]);
 
     const load = useCallback(() => {
         setError(null);
@@ -82,9 +84,9 @@ export default function OnboardingCases() {
                     return;
                 }
 
-                setError('Unable to load onboarding cases.');
+                setError(t('hrms.onboarding.loadFailed'));
             });
-    }, [status, navigate]);
+    }, [status, navigate, t]);
 
     const loadTemplates = useCallback(() => {
         api.get('/hrms/onboarding/templates')
@@ -121,7 +123,7 @@ export default function OnboardingCases() {
                 template_id: Number(form.template_id),
             });
 
-            toast.success('Onboarding case started.');
+            toast.success(t('hrms.onboarding.started'));
             setForm({ employee_id: '', template_id: '' });
             navigate(`/hrms/onboarding/cases/${data.case.id}`);
         } catch (err) {
@@ -142,9 +144,9 @@ export default function OnboardingCases() {
             setNewTemplateName('');
             setEditingTemplateId(data.template.id);
             loadTemplates();
-            toast.success('Template created. Add its checklist items below.');
+            toast.success(t('hrms.onboarding.templateCreated'));
         } catch (err) {
-            toast.error(fieldErrors(err).form ?? 'Unable to create this template.');
+            toast.error(fieldErrors(err).form ?? t('hrms.onboarding.templateFailed'));
         }
     }
 
@@ -152,15 +154,15 @@ export default function OnboardingCases() {
         <div className="space-y-4">
             <div className="flex flex-wrap items-center justify-between gap-3">
                 <div>
-                    <h2 className="text-xl font-semibold text-gray-900">Onboarding</h2>
+                    <h2 className="text-xl font-semibold text-gray-900">{t('hrms.onboarding.pageTitle')}</h2>
                     <p className="mt-0.5 text-sm text-gray-500">
-                        {cases ? `${cases.length} case${cases.length === 1 ? '' : 's'}` : '—'}
+                        {cases ? (cases.length === 1 ? t('hrms.onboarding.casesOne') : t('hrms.onboarding.cases', { count: cases.length })) : '—'}
                     </p>
                 </div>
 
                 {canManage && (
                     <Button variant="secondary" onClick={() => setManagingTemplates(true)}>
-                        Manage templates
+                        {t('hrms.onboarding.manageTemplates')}
                     </Button>
                 )}
             </div>
@@ -169,16 +171,16 @@ export default function OnboardingCases() {
 
             {canManage && canPickEmployee && (
                 <form onSubmit={start} className="flex flex-wrap items-end gap-3 rounded-xl border border-gray-200/70 bg-white p-3">
-                    <Select label="Employee" value={form.employee_id} onChange={(e) => setForm((f) => ({ ...f, employee_id: e.target.value }))} className="min-w-52 flex-1">
-                        <option value="">Select an employee</option>
+                    <Select label={t('hrms.onboarding.employee')} value={form.employee_id} onChange={(e) => setForm((f) => ({ ...f, employee_id: e.target.value }))} className="min-w-52 flex-1">
+                        <option value="">{t('hrms.onboarding.selectEmployee')}</option>
                         {(employees ?? []).map((employee) => (
                             <option key={employee.id} value={employee.id}>
                                 {employee.name}
                             </option>
                         ))}
                     </Select>
-                    <Select label="Template" value={form.template_id} onChange={(e) => setForm((f) => ({ ...f, template_id: e.target.value }))} className="min-w-52 flex-1">
-                        <option value="">Select a template</option>
+                    <Select label={t('hrms.onboarding.template')} value={form.template_id} onChange={(e) => setForm((f) => ({ ...f, template_id: e.target.value }))} className="min-w-52 flex-1">
+                        <option value="">{t('hrms.onboarding.selectTemplate')}</option>
                         {templates.filter((t) => t.is_active).map((template) => (
                             <option key={template.id} value={template.id}>
                                 {template.name}
@@ -186,18 +188,18 @@ export default function OnboardingCases() {
                         ))}
                     </Select>
                     <Button type="submit" loading={starting} disabled={!form.employee_id || !form.template_id}>
-                        Start case
+                        {t('hrms.onboarding.startCase')}
                     </Button>
                     {formErrors.form && <Alert>{formErrors.form}</Alert>}
                 </form>
             )}
 
             <div className="grid gap-3 rounded-xl border border-gray-200/70 bg-white p-3 sm:grid-cols-2 lg:grid-cols-4">
-                <Select label="Status" value={status} onChange={(e) => setStatus(e.target.value)}>
-                    <option value="">Any status</option>
+                <Select label={t('hrms.onboarding.status')} value={status} onChange={(e) => setStatus(e.target.value)}>
+                    <option value="">{t('hrms.onboarding.anyStatus')}</option>
                     {STATUSES.map((s) => (
                         <option key={s.value} value={s.value}>
-                            {s.label}
+                            {t(`hrms.onboarding.${s.key}`)}
                         </option>
                     ))}
                 </Select>
@@ -208,15 +210,15 @@ export default function OnboardingCases() {
                     <Spinner />
                 </div>
             ) : cases.length === 0 ? (
-                <EmptyState title="No onboarding cases" description="No runs in flight right now." />
+                <EmptyState title={t('hrms.onboarding.emptyTitle')} description={t('hrms.onboarding.emptyHint')} />
             ) : (
                 <Table>
                     <thead>
                         <tr>
-                            <Th>Employee</Th>
-                            <Th>Template</Th>
-                            <Th>Status</Th>
-                            <Th>Progress</Th>
+                            <Th>{t('hrms.onboarding.thEmployee')}</Th>
+                            <Th>{t('hrms.onboarding.thTemplate')}</Th>
+                            <Th>{t('hrms.onboarding.thStatus')}</Th>
+                            <Th>{t('hrms.onboarding.thProgress')}</Th>
                         </tr>
                     </thead>
                     <tbody>
@@ -238,20 +240,20 @@ export default function OnboardingCases() {
                 </Table>
             )}
 
-            <Modal open={managingTemplates} onClose={() => setManagingTemplates(false)} title="Onboarding templates" size="lg">
+            <Modal open={managingTemplates} onClose={() => setManagingTemplates(false)} title={t('hrms.onboarding.templatesTitle')} size="lg">
                 <div className="space-y-4 px-6 py-5">
                 <form onSubmit={createTemplate} className="flex items-end gap-2">
-                    <Input label="New template" placeholder="Standard hire" value={newTemplateName} onChange={(e) => setNewTemplateName(e.target.value)} />
+                    <Input label={t('hrms.onboarding.newTemplate')} placeholder={t('hrms.onboarding.newTemplatePlaceholder')} value={newTemplateName} onChange={(e) => setNewTemplateName(e.target.value)} />
                     <Button type="submit" disabled={!newTemplateName.trim()}>
-                        Create
+                        {t('hrms.onboarding.create')}
                     </Button>
                 </form>
                 {templates.length > 0 && (
-                    <Select label="Editing" value={editingTemplateId} onChange={(e) => setEditingTemplateId(e.target.value)} className="mb-3">
+                    <Select label={t('hrms.onboarding.editing')} value={editingTemplateId} onChange={(e) => setEditingTemplateId(e.target.value)} className="mb-3">
                         {templates.map((template) => (
                             <option key={template.id} value={template.id}>
                                 {template.name}
-                                {template.is_active ? '' : ' (retired)'}
+                                {template.is_active ? '' : t('hrms.onboarding.retired')}
                             </option>
                         ))}
                     </Select>
@@ -259,7 +261,7 @@ export default function OnboardingCases() {
                 {editingTemplateId ? (
                     <TemplateEditor key={editingTemplateId} templateId={Number(editingTemplateId)} onSaved={loadTemplates} />
                 ) : (
-                    <p className="py-6 text-center text-sm text-gray-400">No templates yet — create the first one above.</p>
+                    <p className="py-6 text-center text-sm text-gray-400">{t('hrms.onboarding.noTemplates')}</p>
                 )}
                 </div>
             </Modal>

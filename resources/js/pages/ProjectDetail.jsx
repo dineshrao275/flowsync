@@ -1228,6 +1228,7 @@ export default function ProjectDetail() {
  * (settingsDates null) and after a successful save.
  */
 function SettingsForm({ project, settingsDates, onDatesChange, formErrors, updating, updateProject, deleteProject }) {
+    const { t } = useTranslation();
     const dates = settingsDates ?? { start_date: project.start_date ?? '', due_date: project.due_date ?? '' };
     // Editor-controlled description (the form remounts per project, and a
     // same-id refetch after save already matches what was typed).

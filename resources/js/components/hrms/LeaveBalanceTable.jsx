@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { Table, Th, Td } from '../ui/Table';
 
 /**
@@ -8,16 +9,17 @@ import { Table, Th, Td } from '../ui/Table';
  * without a second lookup.
  */
 export default function LeaveBalanceTable({ balances = [] }) {
+    const { t } = useTranslation();
     return (
         <Table compact>
             <thead>
                 <tr>
-                    <Th>Type</Th>
-                    <Th>Accrued</Th>
-                    <Th>Availed</Th>
-                    <Th>Encashed</Th>
-                    <Th>Adjusted</Th>
-                    <Th>Balance</Th>
+                    <Th>{t('hrms.leaveBalance.thType')}</Th>
+                    <Th>{t('hrms.leaveBalance.thAccrued')}</Th>
+                    <Th>{t('hrms.leaveBalance.thAvailed')}</Th>
+                    <Th>{t('hrms.leaveBalance.thEncashed')}</Th>
+                    <Th>{t('hrms.leaveBalance.thAdjusted')}</Th>
+                    <Th>{t('hrms.leaveBalance.thBalance')}</Th>
                 </tr>
             </thead>
             <tbody>
@@ -26,7 +28,7 @@ export default function LeaveBalanceTable({ balances = [] }) {
                         <Td>
                             <span className="font-medium text-gray-900">{row.type?.name ?? '—'}</span>
                             {!row.type?.is_paid && (
-                                <span className="ml-2 text-xs text-gray-400">unpaid</span>
+                                <span className="ml-2 text-xs text-gray-400">{t('hrms.leaveBalance.unpaid')}</span>
                             )}
                         </Td>
                         <Td>{row.accrued}</Td>

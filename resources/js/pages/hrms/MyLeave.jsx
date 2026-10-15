@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import api from '../../services/api';
 import Alert from '../../components/ui/Alert';
 import Button from '../../components/ui/Button';
@@ -24,7 +25,8 @@ import { useConfirm } from '../../components/ui/ConfirmDialog';
  * way.
  */
 export default function MyLeave() {
-    usePageTitle('My leave');
+    const { t } = useTranslation();
+    usePageTitle(t('hrms.myLeave.pageTitle'));
     const setCrumbs = useSetCrumbs();
     const navigate = useNavigate();
     const toast = useToast();
@@ -38,8 +40,8 @@ export default function MyLeave() {
     const [withdrawing, setWithdrawing] = useState(null);
 
     useEffect(() => {
-        setCrumbs([{ label: 'HRMS', to: '/hrms' }, { label: 'My leave' }]);
-    }, [setCrumbs]);
+        setCrumbs([{ label: t('hrms.overview.pageTitle'), to: '/hrms' }, { label: t('hrms.myLeave.pageTitle') }]);
+    }, [setCrumbs, t]);
 
     const load = useCallback(() => {
         setError(null);
@@ -53,9 +55,9 @@ export default function MyLeave() {
                 return;
             }
 
-            setError('Unable to load your leave.');
+            setError(t('hrms.myLeave.loadFailed'));
         });
-    }, [navigate]);
+    }, [navigate, t]);
 
     useEffect(() => {
         load();
@@ -68,10 +70,10 @@ export default function MyLeave() {
 
     async function withdraw(request) {
         if (!(await confirm({
-            title: 'Withdraw leave request?',
-            message: `Withdraw your leave request for ${request.from_date} → ${request.to_date}?`,
+            title: t('hrms.myLeave.withdrawTitle'),
+            message: t('hrms.myLeave.withdrawMessage', { from: request.from_date, to: request.to_date }),
             variant: 'danger',
-            confirmLabel: 'Withdraw',
+            confirmLabel: t('hrms.myLeave.withdrawConfirm'),
         }))) return;
 
         setWithdrawing(request.id);
@@ -79,10 +81,10 @@ export default function MyLeave() {
         try {
             await api.delete(`/hrms/leave/requests/${request.id}`);
 
-            toast.success('Leave request withdrawn.');
+            toast.success(t('hrms.myLeave.withdrawn'));
             load();
         } catch (err) {
-            toast.error(err.response?.data?.message ?? 'Unable to withdraw the request.');
+            toast.error(err.response?.data?.message ?? t('hrms.myLeave.withdrawFailed'));
         } finally {
             setWithdrawing(null);
         }
@@ -94,45 +96,45 @@ export default function MyLeave() {
         <div className="space-y-4">
             <div className="flex flex-wrap items-center justify-between gap-3">
                 <div>
-                    <h2 className="text-xl font-semibold text-gray-900">My leave</h2>
+                    <h2 className="text-xl font-semibold text-gray-900">{t('hrms.myLeave.pageTitle')}</h2>
                     <p className="mt-0.5 text-sm text-gray-500">
-                        {requests ? `${requests.length} request${requests.length === 1 ? '' : 's'}` : '—'}
+                        {requests ? (requests.length === 1 ? t('hrms.myLeave.requestsOne') : t('hrms.myLeave.requests', { count: requests.length })) : '—'}
                     </p>
                 </div>
 
-                <Button onClick={() => setFiling(true)}>Request leave</Button>
+                <Button onClick={() => setFiling(true)}>{t('hrms.myLeave.requestLeave')}</Button>
             </div>
 
             {error && <Alert>{error}</Alert>}
 
-            <Card title="Balances" dense>
+            <Card title={t('hrms.myLeave.balances')} dense>
                 {!balances ? (
                     <div className="flex justify-center py-6">
                         <Spinner />
                     </div>
                 ) : balances.length === 0 ? (
-                    <EmptyState title="No balances yet" description="Balances appear once leave is granted or accrued." />
+                    <EmptyState title={t('hrms.myLeave.balancesEmpty')} description={t('hrms.myLeave.balancesHint')} />
                 ) : (
                     <LeaveBalanceTable balances={balances} />
                 )}
             </Card>
 
-            <Card title="History" dense>
+            <Card title={t('hrms.myLeave.history')} dense>
                 {!requests ? (
                     <div className="flex justify-center py-6">
                         <Spinner />
                     </div>
                 ) : requests.length === 0 ? (
-                    <EmptyState title="No requests yet" description="File your first leave request above." />
+                    <EmptyState title={t('hrms.myLeave.historyEmpty')} description={t('hrms.myLeave.historyHint')} />
                 ) : (
                     <Table>
                         <thead>
                             <tr>
-                                <Th>Dates</Th>
-                                <Th>Type</Th>
-                                <Th>Days</Th>
-                                <Th>Status</Th>
-                                <Th><span className="sr-only">Actions</span></Th>
+                                <Th>{t('hrms.myLeave.thDates')}</Th>
+                                <Th>{t('hrms.myLeave.thType')}</Th>
+                                <Th>{t('hrms.myLeave.thDays')}</Th>
+                                <Th>{t('hrms.myLeave.thStatus')}</Th>
+                                <Th><span className="sr-only">{t('hrms.myLeave.thActions')}</span></Th>
                             </tr>
                         </thead>
                         <tbody>
@@ -150,7 +152,7 @@ export default function MyLeave() {
                                                     disabled={withdrawing === request.id}
                                                     onClick={() => withdraw(request)}
                                                 >
-                                                    {withdrawing === request.id ? 'Withdrawing…' : 'Withdraw'}
+                                                    {withdrawing === request.id ? t('hrms.myLeave.withdrawing') : t('hrms.myLeave.withdrawConfirm')}
                                                 </Button>
                                             </div>
                                         )}

@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useAuth } from '../../context/AuthContext';
 import { useSetCrumbs } from '../../context/BreadcrumbContext';
 import usePageTitle from '../../hooks/usePageTitle';
@@ -7,9 +8,9 @@ import RosterPanel from '../../components/hrms/RosterPanel';
 import RotationPanel from '../../components/hrms/RotationPanel';
 
 const TABS = [
-    { key: 'roster', label: 'Roster' },
-    { key: 'catalogue', label: 'Shifts', needsView: true },
-    { key: 'rotations', label: 'Rotations', needsView: true },
+    { key: 'roster', labelKey: 'hrms.shifts.tabRoster' },
+    { key: 'catalogue', labelKey: 'hrms.shifts.tabCatalogue', needsView: true },
+    { key: 'rotations', labelKey: 'hrms.shifts.tabRotations', needsView: true },
 ];
 
 /**
@@ -18,7 +19,8 @@ const TABS = [
  * roster rows), and every mutation hides without `hrms.shifts.manage`.
  */
 export default function Shifts() {
-    usePageTitle('Shifts');
+    const { t } = useTranslation();
+    usePageTitle(t('hrms.shifts.pageTitle'));
     const setCrumbs = useSetCrumbs();
     const { can } = useAuth();
     const [tab, setTab] = useState('roster');
@@ -29,25 +31,25 @@ export default function Shifts() {
     const tabs = TABS.filter((t) => !t.needsView || canView);
 
     useEffect(() => {
-        setCrumbs([{ label: 'HRMS', to: '/hrms' }, { label: 'Shifts' }]);
-    }, [setCrumbs]);
+        setCrumbs([{ label: t('hrms.overview.pageTitle'), to: '/hrms' }, { label: t('hrms.shifts.pageTitle') }]);
+    }, [setCrumbs, t]);
 
     return (
         <div className="space-y-4">
             <div>
-                <h2 className="text-xl font-semibold text-gray-900">Shifts &amp; rosters</h2>
-                <p className="mt-0.5 text-sm text-gray-500">Working-hours patterns, who works them, and rotating cycles.</p>
+                <h2 className="text-xl font-semibold text-gray-900">{t('hrms.shifts.heading')}</h2>
+                <p className="mt-0.5 text-sm text-gray-500">{t('hrms.shifts.subtitle')}</p>
             </div>
 
             <div className="flex gap-1 border-b border-gray-200">
-                {tabs.map((t) => (
+                {tabs.map((item) => (
                     <button
-                        key={t.key}
+                        key={item.key}
                         type="button"
-                        onClick={() => setTab(t.key)}
-                        className={`px-3 py-2 text-sm font-medium ${tab === t.key ? 'border-b-2 border-[var(--accent)] text-[var(--accent-soft-text)]' : 'text-gray-500 hover:text-gray-700'}`}
+                        onClick={() => setTab(item.key)}
+                        className={`px-3 py-2 text-sm font-medium ${tab === item.key ? 'border-b-2 border-[var(--accent)] text-[var(--accent-soft-text)]' : 'text-gray-500 hover:text-gray-700'}`}
                     >
-                        {t.label}
+                        {t(item.labelKey)}
                     </button>
                 ))}
             </div>
