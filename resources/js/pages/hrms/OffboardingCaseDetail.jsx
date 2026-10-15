@@ -187,7 +187,7 @@ export default function OffboardingCaseDetail() {
                             {t('hrms.offboarding.complete')}
                         </Button>
                         <Button variant="ghost" loading={acting} onClick={cancel}>
-                            {t('common.cancel')}
+                            {t('hrms.common.cancel')}
                         </Button>
                     </div>
                 )}

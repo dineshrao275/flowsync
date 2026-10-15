@@ -1,9 +1,11 @@
 import { Link, useLocation } from 'react-router-dom';
+import { Trans, useTranslation } from 'react-i18next';
 import { useAuth } from '../context/AuthContext';
 import usePageTitle from '../hooks/usePageTitle';
 
 export default function ModuleDenied() {
-    usePageTitle('Not in your plan');
+    const { t } = useTranslation();
+    usePageTitle(t('admin.moduleDenied.pageTitle'));
     const { user, can } = useAuth();
     const location = useLocation();
     const module = location.state?.module;
@@ -14,15 +16,19 @@ export default function ModuleDenied() {
                 <p className="text-7xl font-black" style={{ color: 'var(--active-menu)' }}>
                     403
                 </p>
-                <h1 className="mt-4 text-2xl font-bold text-gray-900">Not included in your plan</h1>
+                <h1 className="mt-4 text-2xl font-bold text-gray-900">{t('admin.moduleDenied.heading')}</h1>
                 <p className="mt-2 text-sm text-gray-500">
                     {module ? (
-                        <>The <code className="rounded bg-gray-200 px-1.5 py-0.5 text-xs text-gray-800">{module}</code> feature is not included in your current plan.</>
+                        <Trans
+                            i18nKey="admin.moduleDenied.withModule"
+                            values={{ module }}
+                            components={[<code key="0" className="rounded bg-gray-200 px-1.5 py-0.5 text-xs text-gray-800" />]}
+                        />
                     ) : (
-                        <>This feature is not included in your current plan.</>
+                        t('admin.moduleDenied.generic')
                     )}
                     {user && !can('billing.view') && (
-                        <> You can still use it once an account administrator upgrades your subscription.</>
+                        <> {t('admin.moduleDenied.adminHint')}</>
                     )}
                 </p>
                 <div className="mt-6 flex items-center justify-center gap-3">
@@ -30,14 +36,14 @@ export default function ModuleDenied() {
                         to="/dashboard"
                         className="inline-block rounded-lg bg-[var(--accent)] px-4 py-2.5 text-sm font-medium text-[var(--accent-contrast)] transition hover:bg-[var(--accent-hover)]"
                     >
-                        Back to dashboard
+                        {t('admin.common.backToDashboard')}
                     </Link>
                     {can('billing.view') && (
                         <Link
                             to="/subscription"
                             className="inline-block rounded-lg border border-gray-300 px-4 py-2.5 text-sm font-medium text-gray-700 transition hover:bg-gray-50"
                         >
-                            View plans
+                            {t('admin.common.viewPlans')}
                         </Link>
                     )}
                 </div>

@@ -234,7 +234,7 @@ export default function OnboardingCaseDetail() {
                             {t('hrms.onboarding.completeCase')}
                         </Button>
                         <Button variant="ghost" loading={acting} onClick={cancel}>
-                            {t('common.cancel')}
+                            {t('hrms.common.cancel')}
                         </Button>
                     </div>
                 )}

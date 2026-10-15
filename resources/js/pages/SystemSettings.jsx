@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import api, { fieldErrors } from '../services/api';
 import Card from '../components/ui/Card';
 import Spinner from '../components/ui/Spinner';
@@ -27,8 +28,9 @@ function Toggle({ label, hint, checked, onChange, disabled }) {
 }
 
 export default function SystemSettings() {
-    usePageTitle('System Settings');
-    useSetCrumbs([{ label: 'Platform', to: '/admin' }, { label: 'Settings' }]);
+    const { t } = useTranslation();
+    usePageTitle(t('admin.systemSettings.pageTitle'));
+    useSetCrumbs([{ label: t('admin.platform.breadcrumb'), to: '/admin' }, { label: t('admin.systemSettings.pageTitle') }]);
     const toast = useToast();
     const [settings, setSettings] = useState(null);
     const [plans, setPlans] = useState([]);
@@ -54,7 +56,7 @@ export default function SystemSettings() {
             const { data } = await api.put('/system/settings', settings);
             setSettings(data.settings);
             setSaved(true);
-            toast.success('Settings saved.');
+            toast.success(t('admin.systemSettings.saved'));
         } catch (e) {
             setErrors(fieldErrors(e));
         } finally {
@@ -67,14 +69,14 @@ export default function SystemSettings() {
     return (
         <div className="max-w-2xl space-y-6">
             <div>
-                <h1 className="text-2xl font-bold text-gray-800">System Settings</h1>
-                <p className="text-sm text-gray-500">Platform-wide configuration (central system database).</p>
+                <h1 className="text-2xl font-bold text-gray-800">{t('admin.systemSettings.heading')}</h1>
+                <p className="text-sm text-gray-500">{t('admin.systemSettings.subtitle')}</p>
             </div>
 
             <Card>
                 <form onSubmit={submit} className="space-y-6">
                     <Input
-                        label="App name"
+                        label={t('admin.systemSettings.appName')}
                         name="app_name"
                         value={settings.app_name}
                         onChange={(e) => set('app_name', e.target.value)}
@@ -83,27 +85,27 @@ export default function SystemSettings() {
 
                     <div className="space-y-4">
                         <Toggle
-                            label="Public registration"
-                            hint="Allow anyone to self-register a workspace at /register."
+                            label={t('admin.systemSettings.publicRegistration')}
+                            hint={t('admin.systemSettings.publicRegistrationHint')}
                             checked={!!settings.public_registration}
                             onChange={(v) => set('public_registration', v)}
                         />
                         <Toggle
-                            label="Maintenance mode"
-                            hint="Platform-wide maintenance flag (stored; consumers read it as needed)."
+                            label={t('admin.systemSettings.maintenanceMode')}
+                            hint={t('admin.systemSettings.maintenanceModeHint')}
                             checked={!!settings.maintenance_mode}
                             onChange={(v) => set('maintenance_mode', v)}
                         />
                     </div>
 
                     <div>
-                        <label className="mb-1.5 block text-sm font-medium text-gray-700">Default plan for new tenants</label>
+                        <label className="mb-1.5 block text-sm font-medium text-gray-700">{t('admin.systemSettings.defaultPlan')}</label>
                         <select
                             value={settings.default_plan_id || ''}
                             onChange={(e) => set('default_plan_id', e.target.value ? Number(e.target.value) : null)}
                             className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm outline-none focus:border-[var(--accent)]"
                         >
-                            <option value="">None (first-come uses the plan’s own default)</option>
+                            <option value="">{t('admin.systemSettings.defaultPlanNone')}</option>
                             {plans.map((p) => (
                                 <option key={p.id} value={p.id}>
                                     {p.name} ({p.slug})
@@ -113,10 +115,10 @@ export default function SystemSettings() {
                         {errors.default_plan_id && <p className="mt-1 text-xs text-red-600">{errors.default_plan_id}</p>}
                     </div>
 
-                    {saved && <p className="text-sm font-medium text-green-600">Saved.</p>}
+                    {saved && <p className="text-sm font-medium text-green-600">{t('admin.systemSettings.savedInline')}</p>}
 
                     <div className="flex justify-end">
-                        <Button type="submit" disabled={saving}>{saving ? 'Saving…' : 'Save settings'}</Button>
+                        <Button type="submit" disabled={saving}>{saving ? t('admin.systemSettings.saving') : t('admin.systemSettings.saveSettings')}</Button>
                     </div>
                 </form>
             </Card>
