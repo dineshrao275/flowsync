@@ -314,7 +314,7 @@ export default function Dashboard() {
                 <h2 data-hero-reveal className="text-2xl font-bold text-gray-900">
                     {greeting}, {user?.name?.split(' ')[0]}
                 </h2>
-                <p data-hero-reveal className="mt-1 text-sm text-gray-500">
+                <p data-hero-reveal className="mt-1 text-sm text-gray-600">
                     Your tasks across {data.counts.open} open and {data.counts.done} completed.
                 </p>
             </div>
@@ -342,7 +342,7 @@ export default function Dashboard() {
                                     {stat.value}
                                 </span>
                                 <span className="block truncate text-sm font-medium text-gray-700">{stat.label}</span>
-                                <span className="block truncate text-xs text-gray-400">{stat.hint}</span>
+                                <span className="block truncate text-xs text-gray-500">{stat.hint}</span>
                             </span>
                         </div>
                     );

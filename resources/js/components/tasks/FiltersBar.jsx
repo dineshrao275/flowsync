@@ -14,7 +14,7 @@ export default function FiltersBar({ filters, options, onChange }) {
     return (
         <div className="flex flex-wrap items-end gap-3">
             <div className="w-56">
-                <label htmlFor="filter-q" className="mb-1 block text-xs font-medium text-gray-500">Search</label>
+                <label htmlFor="filter-q" className="mb-1 block text-xs font-medium text-gray-600">Search</label>
                 <input
                     id="filter-q"
                     type="text"
@@ -25,7 +25,7 @@ export default function FiltersBar({ filters, options, onChange }) {
                 />
             </div>
             <div>
-                <label htmlFor="filter-status" className="mb-1 block text-xs font-medium text-gray-500">Status</label>
+                <label htmlFor="filter-status" className="mb-1 block text-xs font-medium text-gray-600">Status</label>
                 <select id="filter-status" className={fieldClassCompact} value={filters.status_id || ''} onChange={(e) => set('status_id', e.target.value)}>
                     <option value="">All statuses</option>
                     {options.statuses.map((s) => (
@@ -36,7 +36,7 @@ export default function FiltersBar({ filters, options, onChange }) {
                 </select>
             </div>
             <div>
-                <label htmlFor="filter-priority" className="mb-1 block text-xs font-medium text-gray-500">Priority</label>
+                <label htmlFor="filter-priority" className="mb-1 block text-xs font-medium text-gray-600">Priority</label>
                 <select id="filter-priority" className={fieldClassCompact} value={filters.priority_id || ''} onChange={(e) => set('priority_id', e.target.value)}>
                     <option value="">All priorities</option>
                     {options.priorities.map((p) => (
@@ -47,7 +47,7 @@ export default function FiltersBar({ filters, options, onChange }) {
                 </select>
             </div>
             <div>
-                <label htmlFor="filter-assignee" className="mb-1 block text-xs font-medium text-gray-500">Assignee</label>
+                <label htmlFor="filter-assignee" className="mb-1 block text-xs font-medium text-gray-600">Assignee</label>
                 <select id="filter-assignee" className={fieldClassCompact} value={filters.assignee_id || ''} onChange={(e) => set('assignee_id', e.target.value)}>
                     <option value="">Everyone</option>
                     {options.assignees.map((u) => (
@@ -59,7 +59,7 @@ export default function FiltersBar({ filters, options, onChange }) {
             </div>
             {options.sprints && (
                 <div>
-                    <label htmlFor="filter-sprint" className="mb-1 block text-xs font-medium text-gray-500">Sprint</label>
+                    <label htmlFor="filter-sprint" className="mb-1 block text-xs font-medium text-gray-600">Sprint</label>
                     <select id="filter-sprint" className={fieldClassCompact} value={filters.sprint || ''} onChange={(e) => set('sprint', e.target.value)}>
                         <option value="">All work</option>
                         <option value="active">Active sprint</option>
@@ -69,7 +69,7 @@ export default function FiltersBar({ filters, options, onChange }) {
             )}
             {options.labels?.length > 0 && (
                 <div>
-                    <label htmlFor="filter-label" className="mb-1 block text-xs font-medium text-gray-500">Label</label>
+                    <label htmlFor="filter-label" className="mb-1 block text-xs font-medium text-gray-600">Label</label>
                     <select id="filter-label" className={fieldClassCompact} value={filters.label_id || ''} onChange={(e) => set('label_id', e.target.value)}>
                         <option value="">Any label</option>
                         {options.labels.map((l) => (
@@ -82,7 +82,7 @@ export default function FiltersBar({ filters, options, onChange }) {
             )}
             {options.issue_types?.length > 0 && (
                 <div>
-                    <label htmlFor="filter-type" className="mb-1 block text-xs font-medium text-gray-500">Type</label>
+                    <label htmlFor="filter-type" className="mb-1 block text-xs font-medium text-gray-600">Type</label>
                     <select id="filter-type" className={fieldClassCompact} value={filters.issue_type_id || ''} onChange={(e) => set('issue_type_id', e.target.value)}>
                         <option value="">All types</option>
                         {options.issue_types.map((t) => (
@@ -95,7 +95,7 @@ export default function FiltersBar({ filters, options, onChange }) {
             )}
             {options.versions?.length > 0 && (
                 <div>
-                    <label htmlFor="filter-version" className="mb-1 block text-xs font-medium text-gray-500">Version</label>
+                    <label htmlFor="filter-version" className="mb-1 block text-xs font-medium text-gray-600">Version</label>
                     <select id="filter-version" className={fieldClassCompact} value={filters.version_id || ''} onChange={(e) => set('version_id', e.target.value)}>
                         <option value="">All versions</option>
                         {options.versions.map((v) => (
@@ -108,7 +108,7 @@ export default function FiltersBar({ filters, options, onChange }) {
             )}
             {options.components?.length > 0 && (
                 <div>
-                    <label htmlFor="filter-component" className="mb-1 block text-xs font-medium text-gray-500">Component</label>
+                    <label htmlFor="filter-component" className="mb-1 block text-xs font-medium text-gray-600">Component</label>
                     <select id="filter-component" className={fieldClassCompact} value={filters.component_id || ''} onChange={(e) => set('component_id', e.target.value)}>
                         <option value="">All components</option>
                         {options.components.map((c) => (
@@ -121,7 +121,7 @@ export default function FiltersBar({ filters, options, onChange }) {
             )}
             <Input
                 label="Due from"
-                labelClassName="mb-1 block text-xs font-medium text-gray-500"
+                labelClassName="mb-1 block text-xs font-medium text-gray-600"
                 type="date"
                 compact
                 value={filters.due_from || ''}
@@ -129,7 +129,7 @@ export default function FiltersBar({ filters, options, onChange }) {
             />
             <Input
                 label="Due to"
-                labelClassName="mb-1 block text-xs font-medium text-gray-500"
+                labelClassName="mb-1 block text-xs font-medium text-gray-600"
                 type="date"
                 compact
                 value={filters.due_to || ''}
