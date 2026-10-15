@@ -21,6 +21,7 @@ use App\Http\Controllers\Hrms\Payroll\PayslipDownloadController;
 use App\Http\Controllers\ImpersonationController;
 use App\Http\Controllers\InvoiceController;
 use App\Http\Controllers\IssueTypeController;
+use App\Http\Controllers\LanguageController;
 use App\Http\Controllers\MySubscriptionController;
 use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\NotificationPreferenceController;
@@ -50,24 +51,35 @@ use Illuminate\Support\Facades\Route;
 
 Route::prefix('api')->group(function () {
     Route::get('health', [PlatformHealthController::class, 'ping']);
-    Route::post('auth/login', [AuthController::class, 'login'])->middleware('throttle:10,1');
-    Route::post('auth/forgot-password', [ForgotPasswordController::class, 'create'])->middleware('throttle:6,1');
-    Route::post('auth/reset-password', [ResetPasswordController::class, 'update'])->middleware('throttle:6,1');
+    Route::get('locales', [LanguageController::class, 'index']);
+    // Guest auth endpoints resolve locale from ?locale=/session/
+    // Accept-Language (no tenant is known before sign-in), so sign-in
+    // failures and registration errors already speak the caller's language.
+    Route::middleware('locale')->group(function () {
+        Route::post('auth/login', [AuthController::class, 'login'])->middleware('throttle:10,1');
+        Route::post('auth/forgot-password', [ForgotPasswordController::class, 'create'])->middleware('throttle:6,1');
+        Route::post('auth/reset-password', [ResetPasswordController::class, 'update'])->middleware('throttle:6,1');
 
-    // Phase 4 (onboarding): public self-registration — 403 unless
-    // onboarding.enabled (config ONBOARDING_ENABLED, default off).
-    Route::post('register', [RegisterController::class, 'store'])->middleware('throttle:10,1');
-    Route::post('register/card', [RegisterCardController::class, 'card'])->middleware('throttle:10,1');
-    Route::post('register/complete', [RegisterCardController::class, 'complete'])->middleware('throttle:10,1');
-    Route::get('register/options', [RegisterController::class, 'options'])->middleware('throttle:30,1');
+        // Phase 4 (onboarding): public self-registration — 403 unless
+        // onboarding.enabled (config ONBOARDING_ENABLED, default off).
+        Route::post('register', [RegisterController::class, 'store'])->middleware('throttle:10,1');
+        Route::post('register/card', [RegisterCardController::class, 'card'])->middleware('throttle:10,1');
+        Route::post('register/complete', [RegisterCardController::class, 'complete'])->middleware('throttle:10,1');
+        Route::get('register/options', [RegisterController::class, 'options'])->middleware('throttle:30,1');
+    });
     Route::post('logs/client', [ClientLogController::class, 'store'])->middleware('throttle:60,1');
 
-    Route::middleware(['switch_tenant', 'auth', 'tenant'])->group(function () {
+    Route::middleware(['switch_tenant', 'auth', 'tenant', 'locale'])->group(function () {
         Route::post('auth/logout', [AuthController::class, 'logout']);
         Route::get('auth/me', [AuthController::class, 'me']);
 
         Route::get('theme', [ThemeController::class, 'show'])->middleware('ensure_module:branding');
         Route::put('theme', [ThemeController::class, 'update'])->middleware(['permission:settings.theme', 'ensure_module:branding']);
+
+        // Own language preference (self-scoped like notifications: no
+        // permission gate, no module gate — every account may read the
+        // product in their language).
+        Route::put('language', [LanguageController::class, 'update']);
 
         // Personal notifications (self-scoped by user_id; no tenant_context needed).
         // A platform super admin has no tenant database, so the controller

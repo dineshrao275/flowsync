@@ -15,7 +15,7 @@ use Illuminate\Support\Facades\Route;
 // policy/row scope the session route applies (the controllers are the session controllers).
 
 Route::prefix('api/v1')
-    ->middleware(['api_token', 'tenant_context', 'onboarding_complete', 'ensure_module:api', 'throttle:api-token'])
+    ->middleware(['api_token', 'tenant_context', 'locale', 'onboarding_complete', 'ensure_module:api', 'throttle:api-token'])
     ->group(function () {
         Route::get('me', [ApiV1Controller::class, 'me']);
 
