@@ -13,6 +13,7 @@ import { useToast } from '../context/ToastContext';
 import { useConfirm } from '../components/ui/ConfirmDialog';
 import { useClickOutside } from '../hooks/useClickOutside';
 import usePageTitle from '../hooks/usePageTitle';
+import i18n, { intlTag } from '../i18n';
 import Timestamp from '../components/ui/Timestamp';
 
 const STATUS_OPTIONS = [
@@ -376,7 +377,7 @@ export default function Tenants() {
                         <SummaryCard label="Tenants" value={summary.tenants.total} hint={`${summary.tenants.enabled} enabled · ${summary.tenants.disabled} disabled`} />
                         <SummaryCard label="On trial" value={summary.tenants.by_status.trial || 0} hint={`${summary.subscriptions.trials_ending_7d} ending within 7 days`} />
                         <SummaryCard label="Paying" value={summary.subscriptions.by_status.active || 0} hint={`${summary.subscriptions.by_status.past_due || 0} past due`} />
-                        <SummaryCard label="Est. MRR" value={new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(summary.mrr_cents / 100)} hint="active, auto-renewing" />
+                        <SummaryCard label="Est. MRR" value={new Intl.NumberFormat(intlTag(i18n.language), { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(summary.mrr_cents / 100)} hint="active, auto-renewing" />
                         <SummaryCard label="Drafts" value={summary.tenants.by_status.draft || 0} hint="setup incomplete" />
                     </div>
                     {summary.attention.length > 0 && (

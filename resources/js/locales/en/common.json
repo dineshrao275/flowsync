@@ -1,0 +1,13 @@
+{
+    "topbar": {
+        "toggleSidebar": "Toggle sidebar",
+        "searchPlaceholder": "Search…",
+        "searchLabel": "Global search",
+        "themeSettings": "Theme settings",
+        "language": "Language",
+        "accountMenu": "Account menu",
+        "accountSettings": "Account settings",
+        "signOut": "Sign out",
+        "signedOut": "You have been signed out."
+    }
+}

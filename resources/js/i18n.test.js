@@ -11,6 +11,11 @@ describe('i18n framework', () => {
         expect(i18n.t('common:auth.login.title')).toBe('auth.login.title');
     });
 
+    it('serves the migrated shell chrome from dictionaries', () => {
+        expect(i18n.t('topbar.signOut')).toBe('Sign out');
+        expect(i18n.t('topbar.searchPlaceholder')).toBe('Search…');
+    });
+
     it('maps known locales to Intl tags and passes the rest through', () => {
         expect(intlTag('en')).toBe('en-US');
         expect(intlTag('es')).toBe('es-ES');

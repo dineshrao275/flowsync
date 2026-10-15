@@ -22,6 +22,7 @@ import {
     YAxis,
 } from 'recharts';
 import { projectUrl } from '../utils/deepLinks';
+import i18n, { intlTag } from '../i18n';
 import api from '../services/api';
 import Button from '../components/ui/Button';
 import Card from '../components/ui/Card';
@@ -38,7 +39,7 @@ import Timestamp from '../components/ui/Timestamp';
 
 function chartDate(iso) {
     const d = new Date(`${iso}T00:00:00`);
-    return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    return d.toLocaleDateString(intlTag(i18n.language), { month: 'short', day: 'numeric' });
 }
 
 function formatHours(value) {
