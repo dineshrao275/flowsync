@@ -1,8 +1,9 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import Button from '../ui/Button';
 import Input from '../ui/Input';
 import Alert from '../ui/Alert';
 import Card from '../ui/Card';
+import useErrorFocus from '../../hooks/useErrorFocus';
 import { formatPrice } from '../../utils/format';
 
 /**
@@ -50,6 +51,15 @@ export default function IntakeWizard({
     const step = steps[index];
     const isRegister = mode === 'register';
     const err = (key) => localErrors[key] || errors[key];
+    const wizardRef = useRef(null);
+    // Server errors arrive after submit; local ones on step validation — the
+    // hook answers both, since it watches the merged identity each render.
+    useErrorFocus(useMemo(() => {
+        const merged = {};
+        for (const key of Object.keys(localErrors)) merged[key] = localErrors[key];
+        for (const key of Object.keys(errors)) merged[key] = errors[key];
+        return merged;
+    }, [localErrors, errors]), wizardRef);
 
     const set = (key, value) => onChange({ ...values, [key]: value });
 
@@ -100,7 +110,7 @@ export default function IntakeWizard({
     };
 
     return (
-        <div className="space-y-6">
+        <div ref={wizardRef} className="space-y-6">
             <ol className="flex flex-wrap items-center gap-2 text-sm">
                 {steps.map((key, i) => (
                     <li

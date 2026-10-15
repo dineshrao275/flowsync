@@ -7,8 +7,8 @@
 @section('content')
     <section class="relative overflow-hidden">
         <div class="pointer-events-none absolute inset-0 -z-10" aria-hidden="true">
-            <div class="absolute inset-0 bg-gradient-to-b from-indigo-50 via-white to-white"></div>
-            <div class="absolute -top-32 left-1/2 h-96 w-[52rem] -translate-x-1/2 rounded-full bg-indigo-200/40 blur-3xl"></div>
+            <div class="absolute inset-0 bg-gradient-to-b from-blue-50 via-white to-white"></div>
+            <div class="absolute -top-32 left-1/2 h-96 w-[52rem] -translate-x-1/2 rounded-full bg-blue-200/40 blur-3xl"></div>
         </div>
         <div class="mx-auto max-w-6xl px-4 pb-10 pt-14 text-center sm:px-6 sm:pt-20">
             @if(!empty($category))
@@ -29,22 +29,22 @@
         @else
             <div class="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
                 @foreach ($posts as $post)
-                    <article class="group flex flex-col overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-sm transition hover:-translate-y-1 hover:shadow-xl hover:shadow-indigo-600/5">
+                    <article class="group flex flex-col overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-sm transition hover:-translate-y-1 hover:shadow-xl hover:shadow-blue-600/5">
                         <a href="/blog/{{ $post->slug }}" class="block" tabindex="-1" aria-hidden="true">
                             @if($post->cover)
                                 <x-site.img :media="$post->cover" class="aspect-[16/9] w-full object-cover" />
                             @else
-                                <div class="flex aspect-[16/9] w-full items-center justify-center bg-gradient-to-br from-indigo-100 via-violet-50 to-white text-2xl font-extrabold text-indigo-300" aria-hidden="true">{{ mb_substr($post->title, 0, 1) }}</div>
+                                <div class="flex aspect-[16/9] w-full items-center justify-center bg-gradient-to-br from-blue-100 via-violet-50 to-white text-2xl font-extrabold text-blue-300" aria-hidden="true">{{ mb_substr($post->title, 0, 1) }}</div>
                             @endif
                         </a>
                         <div class="flex flex-1 flex-col p-5">
                             <p class="mb-2 flex flex-wrap items-center gap-2 text-xs text-slate-400">
-                                @if($post->category)<a href="/blog/category/{{ $post->category->slug }}" class="rounded-full bg-indigo-50 px-2.5 py-0.5 font-semibold text-indigo-700">{{ $post->category->name }}</a>@endif
+                                @if($post->category)<a href="/blog/category/{{ $post->category->slug }}" class="rounded-full bg-blue-50 px-2.5 py-0.5 font-semibold text-blue-700">{{ $post->category->name }}</a>@endif
                                 @if($post->published_at)<time datetime="{{ $post->published_at->toDateString() }}">{{ $post->published_at->format('M j, Y') }}</time>@endif
                                 @if($post->reading_minutes)<span aria-hidden="true">·</span><span>{{ $post->reading_minutes }} min read</span>@endif
                             </p>
                             <h2 class="text-lg font-extrabold tracking-tight text-slate-900">
-                                <a href="/blog/{{ $post->slug }}" class="transition group-hover:text-indigo-700">{{ $post->title }}</a>
+                                <a href="/blog/{{ $post->slug }}" class="transition group-hover:text-blue-700">{{ $post->title }}</a>
                             </h2>
                             @if($post->excerpt)<p class="mt-1.5 flex-1 text-sm leading-relaxed text-slate-600">{{ $post->excerpt }}</p>@endif
                         </div>

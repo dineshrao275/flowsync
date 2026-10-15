@@ -69,6 +69,7 @@ function DateField({ label, labelClassName = '', error, id, className = '', lead
                     required={props.required}
                     autoComplete="off"
                     aria-label={props['aria-label']}
+                    aria-invalid={error ? true : undefined}
                     aria-describedby={error && inputId ? `${inputId}-error` : undefined}
                     isClearable={!props.required && !props.disabled && !!props.value}
                     showPopperArrow={false}
@@ -121,6 +122,7 @@ export default function Input({ label, labelClassName = '', error, id, className
                             : 'border-gray-300 focus:border-[var(--accent)]'
                     } ${props.disabled ? 'cursor-not-allowed bg-gray-50 text-gray-500' : 'bg-white text-gray-900'}`}
                     aria-describedby={error && inputId ? `${inputId}-error` : undefined}
+                    aria-invalid={error ? true : undefined}
                     {...props}
                 />
             </div>
