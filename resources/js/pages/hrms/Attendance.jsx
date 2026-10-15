@@ -386,7 +386,7 @@ export default function Attendance() {
                                 <ul className="divide-y divide-gray-100">
                                     {matching.map((day) => (
                                         <li key={day.date}>
-                                            <button type="button" onClick={() => setSelected(day)} className="flex w-full items-center justify-between py-1.5 text-left text-sm hover:text-indigo-600">
+                                            <button type="button" onClick={() => setSelected(day)} className="flex w-full items-center justify-between py-1.5 text-left text-sm hover:text-[var(--accent-soft-text)]">
                                                 <span className="font-medium">{day.date}</span>
                                                 <span className="text-gray-500">{formatMinutes(day.worked_minutes)}</span>
                                             </button>
@@ -501,7 +501,7 @@ export default function Attendance() {
                                             auto_derive_from_work_logs: e.target.checked,
                                         }))
                                     }
-                                    className="mt-1 h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                                    className="mt-1 h-4 w-4 rounded border-gray-300 accent-[var(--accent)]"
                                 />
                                 <div>
                                     <span className="text-sm font-semibold text-gray-900 dark:text-gray-100">
@@ -550,7 +550,7 @@ export default function Attendance() {
                                             allow_negative_ot: e.target.checked,
                                         }))
                                     }
-                                    className="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                                    className="h-4 w-4 rounded border-gray-300 accent-[var(--accent)]"
                                 />
                                 <span className="text-sm text-gray-700 dark:text-gray-300">
                                     Allow negative overtime (undertime deficit)
@@ -567,7 +567,7 @@ export default function Attendance() {
                                             remote_clock_in_enabled: e.target.checked,
                                         }))
                                     }
-                                    className="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                                    className="h-4 w-4 rounded border-gray-300 accent-[var(--accent)]"
                                 />
                                 <span className="text-sm text-gray-700 dark:text-gray-300">
                                     Enable remote clock-in

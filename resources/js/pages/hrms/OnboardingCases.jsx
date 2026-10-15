@@ -26,7 +26,7 @@ function ProgressBar({ value }) {
     return (
         <div className="flex items-center gap-2">
             <div className="h-2 w-24 overflow-hidden rounded-full bg-gray-100">
-                <div className="h-full rounded-full bg-indigo-500" style={{ width: `${value}%` }} />
+                <div className="h-full rounded-full bg-[var(--accent-soft)]0" style={{ width: `${value}%` }} />
             </div>
             <span className="text-xs text-gray-500">{value}%</span>
         </div>
@@ -223,7 +223,7 @@ export default function OnboardingCases() {
                         {cases.map((row) => (
                             <tr key={row.id}>
                                 <Td>
-                                    <Link to={`/hrms/onboarding/cases/${row.id}`} className="font-medium text-indigo-600 hover:underline">
+                                    <Link to={`/hrms/onboarding/cases/${row.id}`} className="font-medium text-[var(--accent-soft-text)] hover:underline">
                                         {row.employee?.name ?? '—'}
                                     </Link>
                                 </Td>

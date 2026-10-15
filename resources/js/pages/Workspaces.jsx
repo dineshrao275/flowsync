@@ -158,7 +158,7 @@ export default function Workspaces() {
                                 <Td>
                                     <Link
                                         to={`/workspaces/${workspace.id}`}
-                                        className="flex items-center gap-3 font-medium text-gray-900 hover:text-indigo-600"
+                                        className="flex items-center gap-3 font-medium text-gray-900 hover:text-[var(--accent-soft-text)]"
                                     >
                                         <span
                                             className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-xs font-semibold text-white"

@@ -27,7 +27,7 @@ export default function TaskTable({ tasks, canEdit, onOpen }) {
                         <tr
                             key={task.id}
                             onClick={() => canEdit && onOpen(task)}
-                            className={`bg-white align-middle transition ${canEdit ? 'cursor-pointer hover:bg-indigo-50/50' : ''}`}
+                            className={`bg-white align-middle transition ${canEdit ? 'cursor-pointer hover:bg-[var(--accent-soft)]' : ''}`}
                         >
                             <td className="px-4 py-3 font-semibold text-gray-500">{task.key}</td>
                             <td className="px-4 py-3">
@@ -35,8 +35,8 @@ export default function TaskTable({ tasks, canEdit, onOpen }) {
                                     <span
                                         className="inline-flex items-center rounded px-2 py-0.5 text-[11px] font-semibold"
                                         style={{
-                                            backgroundColor: `${task.issue_type.color || '#6366f1'}18`,
-                                            color: task.issue_type.color || '#6366f1',
+                                            backgroundColor: `${task.issue_type.color || '#2563eb'}18`,
+                                            color: task.issue_type.color || '#2563eb',
                                         }}
                                     >
                                         {task.issue_type.name}

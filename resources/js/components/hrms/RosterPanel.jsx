@@ -103,7 +103,7 @@ export default function RosterPanel({ shifts, canManage, canView }) {
                 {!rosters ? (
                     <div className="flex justify-center py-6"><Spinner /></div>
                 ) : (
-                    <Table>
+                    <Table compact>
                         <thead>
                             <tr>
                                 <Th>Person</Th>

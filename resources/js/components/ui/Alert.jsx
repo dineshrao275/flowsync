@@ -8,7 +8,7 @@ export default function Alert({ type = 'error', children }) {
     if (!children) return null;
 
     return (
-        <div className={`animate-fade-in-up rounded-lg border px-4 py-3 text-sm ${styles[type]}`} role="alert">
+        <div className={`animate-fade-in-up rounded-lg border px-4 py-3 text-sm ${styles[type]}`} role="alert" tabIndex={-1}>
             {children}
         </div>
     );

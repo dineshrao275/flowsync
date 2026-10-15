@@ -21,15 +21,21 @@
     @endif
     @if(!empty($site['custom_head'])){!! $site['custom_head'] !!}@endif
     <x-site.json-ld :crumbs="$crumbs ?? []" :faq="$faqSchema ?? []" :article="$article ?? null" />
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap"
+        rel="stylesheet"
+    >
     @vite(['resources/css/site.css', 'resources/js/site.js'])
 </head>
 <body class="bg-white font-sans text-slate-600 antialiased">
-    <a href="#main-content" class="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-[100] focus:rounded-lg focus:bg-indigo-600 focus:px-4 focus:py-2 focus:text-sm focus:font-semibold focus:text-white">Skip to content</a>
+    <a href="#main-content" class="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-[100] focus:rounded-lg focus:bg-blue-600 focus:px-4 focus:py-2 focus:text-sm focus:font-semibold focus:text-white">Skip to content</a>
 
     @if(!empty($site['announcement']))
-        <div class="bg-indigo-600 px-4 py-2 text-center text-sm font-medium text-white">
+        <div class="bg-blue-600 px-4 py-2 text-center text-sm font-medium text-white">
             @if(!empty($site['announcement_href']))
-                <a href="{{ $site['announcement_href'] }}" class="underline decoration-indigo-300 underline-offset-2 hover:text-indigo-100">{{ $site['announcement'] }}</a>
+                <a href="{{ $site['announcement_href'] }}" class="underline decoration-blue-300 underline-offset-2 hover:text-blue-100">{{ $site['announcement'] }}</a>
             @else
                 {{ $site['announcement'] }}
             @endif
@@ -42,7 +48,7 @@
                 @if(!empty($site['logo']))
                     <img src="{{ $site['logo']->url() }}" alt="{{ $site['logo']->alt ?: ($siteName ?? config('app.name', 'FlowSync')) }}" class="h-9 w-auto rounded-lg" @if($site['logo']->width)width="{{ $site['logo']->width }}" @endif @if($site['logo']->height)height="{{ $site['logo']->height }}" @endif>
                 @else
-                    <span class="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-indigo-500 to-violet-600 text-lg font-extrabold text-white shadow-lg shadow-indigo-600/25" aria-hidden="true">S</span>
+                    <span class="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-blue-500 to-violet-600 text-lg font-extrabold text-white shadow-lg shadow-blue-600/25" aria-hidden="true">S</span>
                 @endif
                 <span class="text-lg font-extrabold tracking-tight text-slate-900">{{ $siteName ?? config('app.name', 'FlowSync') }}</span>
             </a>
@@ -83,7 +89,7 @@
                     @if(!empty($site['logo']))
                         <img src="{{ $site['logo']->url() }}" alt="{{ $site['logo']->alt ?: ($siteName ?? config('app.name', 'FlowSync')) }}" class="h-9 w-auto rounded-lg">
                     @else
-                        <span class="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-indigo-500 to-violet-600 text-lg font-extrabold text-white" aria-hidden="true">S</span>
+                        <span class="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-blue-500 to-violet-600 text-lg font-extrabold text-white" aria-hidden="true">S</span>
                     @endif
                     <span class="text-lg font-extrabold tracking-tight text-white">{{ $siteName ?? config('app.name', 'FlowSync') }}</span>
                 </a>

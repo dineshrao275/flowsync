@@ -75,7 +75,7 @@ function NotificationPreferences() {
                         onClick={() => toggle(event)}
                         disabled={saving}
                         className={`relative h-6 w-11 shrink-0 rounded-full transition-colors ${
-                            prefs[event] ? 'bg-indigo-600' : 'bg-gray-300'
+                            prefs[event] ? 'bg-[var(--accent)]' : 'bg-gray-300'
                         } disabled:opacity-60`}
                     >
                         <span

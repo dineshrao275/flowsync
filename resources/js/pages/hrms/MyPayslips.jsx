@@ -93,7 +93,7 @@ export default function MyPayslips() {
                         {rows.map((payslip) => (
                             <li key={payslip.id} className="flex flex-wrap items-center justify-between gap-3 py-3">
                                 <div>
-                                    <button type="button" className="font-medium text-indigo-600 hover:underline" onClick={() => setSelected(payslip)}>
+                                    <button type="button" className="font-medium text-[var(--accent-soft-text)] hover:underline" onClick={() => setSelected(payslip)}>
                                         {payslip.run ? monthLabel(payslip.run.period_year, payslip.run.period_month) : `Payslip #${payslip.id}`}
                                     </button>
                                     <span className="ml-2 text-xs text-gray-400">{PAYSLIP_STATUS_LABELS[payslip.status] ?? payslip.status}</span>

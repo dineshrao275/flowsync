@@ -168,7 +168,7 @@ function Detail({ id }) {
             </div>
             <aside className="space-y-4 rounded-xl border border-gray-200 bg-white p-4 text-sm">
                 <div><span className="text-xs font-semibold uppercase text-gray-400">Tenant</span>
-                    <p><Link className="font-medium text-indigo-600 hover:underline" to={`/tenants/${ticket.tenant?.id}`}>{ticket.tenant?.name}</Link></p></div>
+                    <p><Link className="font-medium text-[var(--accent-soft-text)] hover:underline" to={`/tenants/${ticket.tenant?.id}`}>{ticket.tenant?.name}</Link></p></div>
                 <div><span className="text-xs font-semibold uppercase text-gray-400">Requester</span>
                     <p className="font-medium text-gray-800">{ticket.created_by_name}</p><p className="text-gray-500">{ticket.created_by_email}</p></div>
                 <div><span className="text-xs font-semibold uppercase text-gray-400">Category</span><p className="capitalize">{ticket.category.replace('_', ' ')}</p></div>
@@ -182,7 +182,7 @@ function Detail({ id }) {
                     </select></label>
                 <div><span className="text-xs font-semibold uppercase text-gray-400">Assignee</span>
                     <p>{ticket.assignee || 'Unassigned'}</p>
-                    {ticket.assigned_to !== user?.id && <button className="mt-1 text-indigo-600 hover:underline" onClick={() => patch({ assigned_to: user.id })}>Assign to me</button>}
+                    {ticket.assigned_to !== user?.id && <button className="mt-1 text-[var(--accent-soft-text)] hover:underline" onClick={() => patch({ assigned_to: user.id })}>Assign to me</button>}
                     {ticket.assigned_to && <button className="ml-3 mt-1 text-gray-500 hover:underline" onClick={() => patch({ assigned_to: null })}>Unassign</button>}</div>
                 <button className="text-gray-500 hover:underline" onClick={() => navigate('/admin/support')}>← Back to inbox</button>
             </aside>

@@ -9,7 +9,7 @@ import { Table, Th, Td } from '../ui/Table';
  */
 export default function LeaveBalanceTable({ balances = [] }) {
     return (
-        <Table>
+        <Table compact>
             <thead>
                 <tr>
                     <Th>Type</Th>

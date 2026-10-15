@@ -152,7 +152,7 @@ export default function Search() {
                     <label className="mb-1.5 flex items-center gap-2 text-sm font-medium text-gray-700">
                         <input
                             type="checkbox"
-                            className="rounded border-gray-300 text-[var(--accent)] focus:ring-[var(--accent-ring)]"
+                            className="rounded border-gray-300 accent-[var(--accent)]"
                             checked={filters.label_id !== undefined && filters.label_id !== ''}
                             onChange={(e) => setFilters((f) => ({ ...f, label_id: e.target.checked ? options.labels[0]?.id ?? '' : '' }))}
                         />

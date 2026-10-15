@@ -17,13 +17,13 @@ function LinkRow({ link, onChange, onRemove }) {
                 value={link.label || ''}
                 onChange={(e) => onChange({ ...link, label: e.target.value })}
                 placeholder="Label"
-                className="w-1/3 rounded-lg border border-gray-200 px-3 py-2 text-sm outline-none focus:border-indigo-400"
+                className="w-1/3 rounded-lg border border-gray-200 px-3 py-2 text-sm outline-none focus:border-[var(--accent)]"
             />
             <input
                 value={link.href || ''}
                 onChange={(e) => onChange({ ...link, href: e.target.value })}
                 placeholder="Link (/path or https://…)"
-                className="flex-1 rounded-lg border border-gray-200 px-3 py-2 text-sm outline-none focus:border-indigo-400"
+                className="flex-1 rounded-lg border border-gray-200 px-3 py-2 text-sm outline-none focus:border-[var(--accent)]"
             />
             <button type="button" onClick={onRemove} className="px-1 text-red-400 hover:text-red-500">✕</button>
         </div>
@@ -126,7 +126,7 @@ export default function WebsiteSettings() {
                                     value={col.heading || ''}
                                     onChange={(e) => set('footer_columns', form.footer_columns.map((c, idx) => (idx === i ? { ...c, heading: e.target.value } : c)))}
                                     placeholder="Column heading"
-                                    className="flex-1 rounded-lg border border-gray-200 px-3 py-2 text-sm font-medium outline-none focus:border-indigo-400"
+                                    className="flex-1 rounded-lg border border-gray-200 px-3 py-2 text-sm font-medium outline-none focus:border-[var(--accent)]"
                                 />
                                 <button type="button" onClick={() => set('footer_columns', form.footer_columns.filter((_, idx) => idx !== i))} className="px-1 text-red-400 hover:text-red-500">✕</button>
                             </div>
@@ -171,13 +171,13 @@ export default function WebsiteSettings() {
                                 value={profile.network || ''}
                                 onChange={(e) => set('social', form.social.map((p, idx) => (idx === i ? { ...p, network: e.target.value } : p)))}
                                 placeholder="Network (e.g. X, LinkedIn)"
-                                className="w-1/3 rounded-lg border border-gray-200 px-3 py-2 text-sm outline-none focus:border-indigo-400"
+                                className="w-1/3 rounded-lg border border-gray-200 px-3 py-2 text-sm outline-none focus:border-[var(--accent)]"
                             />
                             <input
                                 value={profile.url || ''}
                                 onChange={(e) => set('social', form.social.map((p, idx) => (idx === i ? { ...p, url: e.target.value } : p)))}
                                 placeholder="https://…"
-                                className="flex-1 rounded-lg border border-gray-200 px-3 py-2 text-sm outline-none focus:border-indigo-400"
+                                className="flex-1 rounded-lg border border-gray-200 px-3 py-2 text-sm outline-none focus:border-[var(--accent)]"
                             />
                             <button type="button" onClick={() => set('social', form.social.filter((_, idx) => idx !== i))} className="px-1 text-red-400 hover:text-red-500">✕</button>
                         </div>
@@ -210,11 +210,11 @@ export default function WebsiteSettings() {
                 <div className="grid gap-4">
                     <div>
                         <label className="mb-1.5 block text-sm font-medium text-gray-700">Inside &lt;head&gt;</label>
-                        <textarea value={form.custom_head || ''} onChange={(e) => set('custom_head', e.target.value)} rows={3} spellCheck={false} className="w-full rounded-lg border border-gray-200 px-3 py-2 font-mono text-xs outline-none focus:border-indigo-400" />
+                        <textarea value={form.custom_head || ''} onChange={(e) => set('custom_head', e.target.value)} rows={3} spellCheck={false} className="w-full rounded-lg border border-gray-200 px-3 py-2 font-mono text-xs outline-none focus:border-[var(--accent)]" />
                     </div>
                     <div>
                         <label className="mb-1.5 block text-sm font-medium text-gray-700">Before &lt;/body&gt;</label>
-                        <textarea value={form.custom_body || ''} onChange={(e) => set('custom_body', e.target.value)} rows={3} spellCheck={false} className="w-full rounded-lg border border-gray-200 px-3 py-2 font-mono text-xs outline-none focus:border-indigo-400" />
+                        <textarea value={form.custom_body || ''} onChange={(e) => set('custom_body', e.target.value)} rows={3} spellCheck={false} className="w-full rounded-lg border border-gray-200 px-3 py-2 font-mono text-xs outline-none focus:border-[var(--accent)]" />
                     </div>
                 </div>
             </Card>

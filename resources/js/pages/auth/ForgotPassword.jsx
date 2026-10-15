@@ -1,10 +1,11 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import api, { fieldErrors } from '../../services/api';
 import Button from '../../components/ui/Button';
 import Input from '../../components/ui/Input';
 import Alert from '../../components/ui/Alert';
 import AuthShell from '../../components/ui/AuthShell';
+import useErrorFocus from '../../hooks/useErrorFocus';
 import usePageTitle from '../../hooks/usePageTitle';
 
 export default function ForgotPassword() {
@@ -13,6 +14,8 @@ export default function ForgotPassword() {
     const [errors, setErrors] = useState({});
     const [sent, setSent] = useState(false);
     const [submitting, setSubmitting] = useState(false);
+    const formRef = useRef(null);
+    useErrorFocus(errors, formRef);
 
     async function handleSubmit(e) {
         e.preventDefault();
@@ -34,7 +37,7 @@ export default function ForgotPassword() {
             title="Reset your password"
             subtitle="We'll email you a link to reset your password"
             footer={
-                <Link to="/login" className="font-medium text-indigo-600 hover:text-indigo-500">
+                <Link to="/login" className="font-medium text-[var(--accent-soft-text)] hover:text-[var(--accent)]">
                     Back to sign in
                 </Link>
             }
@@ -52,7 +55,7 @@ export default function ForgotPassword() {
                     </Link>
                 </div>
             ) : (
-                <form onSubmit={handleSubmit} className="space-y-4" noValidate>
+                <form ref={formRef} onSubmit={handleSubmit} className="space-y-4" noValidate>
                     <Alert>{errors.form}</Alert>
                     <Input
                         label="Email address"

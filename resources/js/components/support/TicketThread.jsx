@@ -9,7 +9,7 @@ export const STATUS_LABELS = {
     open: 'Open', in_progress: 'In progress', waiting_on_customer: 'Waiting on customer', resolved: 'Resolved', closed: 'Closed',
 };
 export const STATUS_STYLES = {
-    open: 'bg-sky-100 text-sky-700', in_progress: 'bg-indigo-100 text-indigo-700', waiting_on_customer: 'bg-amber-100 text-amber-700',
+    open: 'bg-sky-100 text-sky-700', in_progress: 'bg-[var(--accent-soft)] text-[var(--accent-soft-text)]', waiting_on_customer: 'bg-amber-100 text-amber-700',
     resolved: 'bg-emerald-100 text-emerald-700', closed: 'bg-gray-200 text-gray-600',
 };
 export const PRIORITY_STYLES = { low: 'text-gray-500', normal: 'text-gray-700', high: 'text-amber-700', urgent: 'text-red-700 font-semibold' };
@@ -41,7 +41,7 @@ export default function TicketThread({ messages, onSend, disabled = false, allow
                     <li
                         key={m.id}
                         className={`rounded-xl border p-3 text-sm ${
-                            m.is_internal ? 'border-amber-200 bg-amber-50' : m.author_type === 'staff' ? 'border-indigo-100 bg-indigo-50/50' : 'border-gray-200 bg-white'
+                            m.is_internal ? 'border-amber-200 bg-amber-50' : m.author_type === 'staff' ? 'border-[var(--accent-ring)] bg-[var(--accent-soft)]' : 'border-gray-200 bg-white'
                         }`}
                     >
                         <div className="mb-1 flex flex-wrap items-center gap-2 text-xs text-gray-500">

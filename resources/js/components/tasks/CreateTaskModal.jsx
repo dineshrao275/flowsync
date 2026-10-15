@@ -194,7 +194,7 @@ export default function CreateTaskModal({ options, topLevelTasks, projectKey, sa
                                     onClick={() => toggleComponent(comp.id)}
                                     className={`rounded-md px-2.5 py-1 text-xs font-medium transition ${
                                         form.components.includes(comp.id)
-                                            ? 'bg-indigo-600 text-white'
+                                            ? 'bg-[var(--accent)] text-[var(--accent-contrast)]'
                                             : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                                     }`}
                                 >

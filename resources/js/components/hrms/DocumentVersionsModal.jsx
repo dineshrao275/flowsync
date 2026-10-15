@@ -68,7 +68,7 @@ export default function DocumentVersionsModal({ document, canReplace, onClose, o
                                     <Td>{v.original_name}</Td>
                                     <Td className="capitalize">{v.status}</Td>
                                     <Td>{v.expires_at ?? '—'}</Td>
-                                    <Td><a className="text-indigo-600 hover:underline" href={v.download_url} target="_blank" rel="noopener noreferrer">Download</a></Td>
+                                    <Td><a className="text-[var(--accent-soft-text)] hover:underline" href={v.download_url} target="_blank" rel="noopener noreferrer">Download</a></Td>
                                 </tr>
                             ))}
                         </tbody>

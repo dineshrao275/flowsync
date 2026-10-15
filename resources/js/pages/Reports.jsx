@@ -47,7 +47,7 @@ function TotalsDonut({ open, done }) {
             <PieChart>
                 <Pie data={[{ name: 'Open', value: open }, { name: 'Done', value: done }]} dataKey="value" nameKey="name" innerRadius={52} outerRadius={80} paddingAngle={2}>
                     <Cell fill="#94a3b8" />
-                    <Cell fill="#6366f1" />
+                    <Cell fill="#2563eb" />
                 </Pie>
                 <Tooltip {...tooltipProps} />
                 <Legend wrapperStyle={{ fontSize: 12 }} />
@@ -72,7 +72,7 @@ function StatusBars({ items }) {
                 <Tooltip {...tooltipProps} />
                 <Legend wrapperStyle={{ fontSize: 12 }} />
                 <BarShape dataKey="Open" stackId="a" fill="#94a3b8" />
-                <BarShape dataKey="Done" stackId="a" fill="#6366f1" radius={[0, 4, 4, 0]} />
+                <BarShape dataKey="Done" stackId="a" fill="#2563eb" radius={[0, 4, 4, 0]} />
             </BarChart>
         </ResponsiveContainer>
     );
@@ -228,7 +228,7 @@ export default function Reports() {
                     Distribution and time overview across the tasks you can see.
                     <span
                         className="rounded-full px-2 py-0.5 text-[11px] font-medium text-gray-600"
-                        style={{ backgroundColor: '#6366f122' }}
+                        style={{ backgroundColor: 'var(--accent-soft)' }}
                         title="The distributions below are scoped to what your role can see"
                     >
                         {data.scope === 'all' ? 'Showing: every task in the tenant' : 'Showing: tasks in your projects'}
@@ -277,7 +277,7 @@ export default function Reports() {
                 <section className="rounded-xl border border-gray-200/70 p-4 shadow-sm lg:col-span-2" style={{ backgroundColor: 'var(--card-bg)' }}>
                     <h3 className="text-sm font-semibold text-gray-900">By assignee</h3>
                     <p className="mb-2 text-xs text-gray-500">Where the work sits (top 10)</p>
-                    <TotalsBars items={data.by_assignee} emptyText="No assignees in this range." color="#6366f1" />
+                    <TotalsBars items={data.by_assignee} emptyText="No assignees in this range." color="#2563eb" />
                 </section>
             </div>
 

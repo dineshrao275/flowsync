@@ -1,8 +1,9 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import Button from '../ui/Button';
 import Input from '../ui/Input';
 import Alert from '../ui/Alert';
 import Card from '../ui/Card';
+import useErrorFocus from '../../hooks/useErrorFocus';
 import { formatPrice } from '../../utils/format';
 
 /**
@@ -50,6 +51,15 @@ export default function IntakeWizard({
     const step = steps[index];
     const isRegister = mode === 'register';
     const err = (key) => localErrors[key] || errors[key];
+    const wizardRef = useRef(null);
+    // Server errors arrive after submit; local ones on step validation — the
+    // hook answers both, since it watches the merged identity each render.
+    useErrorFocus(useMemo(() => {
+        const merged = {};
+        for (const key of Object.keys(localErrors)) merged[key] = localErrors[key];
+        for (const key of Object.keys(errors)) merged[key] = errors[key];
+        return merged;
+    }, [localErrors, errors]), wizardRef);
 
     const set = (key, value) => onChange({ ...values, [key]: value });
 
@@ -100,13 +110,13 @@ export default function IntakeWizard({
     };
 
     return (
-        <div className="space-y-6">
+        <div ref={wizardRef} className="space-y-6">
             <ol className="flex flex-wrap items-center gap-2 text-sm">
                 {steps.map((key, i) => (
                     <li
                         key={key}
                         className={`flex items-center gap-2 rounded-full px-3 py-1 ${
-                            i === index ? 'bg-indigo-600 text-white' : i < index ? 'bg-indigo-50 text-indigo-700' : 'bg-gray-100 text-gray-500'
+                            i === index ? 'bg-[var(--accent)] text-[var(--accent-contrast)]' : i < index ? 'bg-[var(--accent-soft)] text-[var(--accent-soft-text)]' : 'bg-gray-100 text-gray-500'
                         }`}
                     >
                         <span className="font-semibold">{i + 1}</span>
@@ -138,7 +148,7 @@ export default function IntakeWizard({
                             Company size
                             <select
                                 name="company_size" value={values.company_size || ''} onChange={(e) => set('company_size', e.target.value)}
-                                className="mt-1.5 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200"
+                                className="mt-1.5 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-[var(--accent)]"
                             >
                                 <option value="">Select…</option>
                                 {COMPANY_SIZES.map((s) => <option key={s} value={s}>{s} people</option>)}
@@ -276,7 +286,7 @@ function PlanChoice({ selected, onClick, title, body }) {
         <button
             type="button"
             onClick={onClick}
-            className={`rounded-xl border p-3 text-left transition ${selected ? 'border-indigo-500 ring-2 ring-indigo-200' : 'border-gray-200 hover:border-gray-300'}`}
+            className={`rounded-xl border p-3 text-left transition ${selected ? 'border-[var(--accent)] ring-2 ring-[var(--accent-ring)]' : 'border-gray-200 hover:border-gray-300'}`}
         >
             <p className="font-semibold text-gray-900">{title}</p>
             <p className="text-sm text-gray-500">{body}</p>

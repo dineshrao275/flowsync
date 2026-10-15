@@ -33,7 +33,7 @@ const CATEGORY_LABELS = {
     done: 'Done',
 };
 
-const DEFAULT_COLORS = ['#6366f1', '#0ea5e9', '#f59e0b', '#10b981', '#ef4444', '#8b5cf6'];
+const DEFAULT_COLORS = ['#2563eb', '#0ea5e9', '#f59e0b', '#10b981', '#ef4444', '#8b5cf6'];
 
 export default function ProjectDetail() {
     const { projectId } = useParams();
@@ -822,7 +822,7 @@ export default function ProjectDetail() {
                             <form onSubmit={addMember} className="flex flex-col gap-3 sm:flex-row sm:items-end">
                                 <div className="flex-1">
                                     <select
-                                        className="block w-full rounded-lg border border-gray-300 bg-white px-3.5 py-2.5 text-sm shadow-sm focus:border-indigo-500 focus:outline-none"
+                                        className="block w-full rounded-lg border border-gray-300 bg-white px-3.5 py-2.5 text-sm shadow-sm focus:border-[var(--accent)] focus:outline-none"
                                         value={memberForm.user_id}
                                         onChange={(e) => setMemberForm((f) => ({ ...f, user_id: e.target.value }))}
                                     >
@@ -838,7 +838,7 @@ export default function ProjectDetail() {
                                 </div>
                                 <div>
                                     <select
-                                        className="block w-full rounded-lg border border-gray-300 bg-white px-3.5 py-2.5 text-sm shadow-sm focus:border-indigo-500 focus:outline-none"
+                                        className="block w-full rounded-lg border border-gray-300 bg-white px-3.5 py-2.5 text-sm shadow-sm focus:border-[var(--accent)] focus:outline-none"
                                         value={memberForm.role_id}
                                         onChange={(e) => setMemberForm((f) => ({ ...f, role_id: Number(e.target.value) }))}
                                     >
@@ -945,7 +945,7 @@ export default function ProjectDetail() {
                             <div>
                                 <label className="mb-1.5 block text-sm font-medium text-gray-700">Category</label>
                                 <select
-                                    className="block w-full rounded-lg border border-gray-300 bg-white px-3.5 py-2.5 text-sm shadow-sm focus:border-indigo-500 focus:outline-none"
+                                    className="block w-full rounded-lg border border-gray-300 bg-white px-3.5 py-2.5 text-sm shadow-sm focus:border-[var(--accent)] focus:outline-none"
                                     value={statusForm.category}
                                     onChange={(e) => setStatusForm((f) => ({ ...f, category: e.target.value }))}
                                 >
@@ -1011,7 +1011,7 @@ export default function ProjectDetail() {
                                         </div>
                                         <input
                                             type="text"
-                                            className="w-40 rounded-lg border border-transparent bg-transparent px-2 py-1 text-sm font-semibold text-gray-800 focus:border-indigo-300 focus:bg-white"
+                                            className="w-40 rounded-lg border border-transparent bg-transparent px-2 py-1 text-sm font-semibold text-gray-800 focus:border-[var(--accent-ring)] focus:bg-white"
                                             defaultValue={status.name}
                                             onBlur={(e) => {
                                                 if (e.target.value !== status.name && e.target.value.trim()) {
@@ -1036,7 +1036,7 @@ export default function ProjectDetail() {
                                             min="1"
                                             placeholder="WIP"
                                             title="WIP limit (leave empty for unlimited)"
-                                            className="w-16 rounded-lg border border-gray-300 bg-white px-2 py-1 text-xs shadow-sm focus:border-indigo-300 focus:outline-none"
+                                            className="w-16 rounded-lg border border-gray-300 bg-white px-2 py-1 text-xs shadow-sm focus:border-[var(--accent-ring)] focus:outline-none"
                                             defaultValue={status.wip_limit ?? ''}
                                             onBlur={(e) => {
                                                 const next = e.target.value === '' ? null : Number(e.target.value);
@@ -1089,7 +1089,7 @@ export default function ProjectDetail() {
                                     <label className="flex items-center gap-1.5 text-xs text-gray-600 cursor-pointer">
                                         <input
                                             type="checkbox"
-                                            className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                                            className="rounded border-gray-300 accent-[var(--accent)]"
                                             checked={issueTypeForm.is_subtask}
                                             onChange={(e) => setIssueTypeForm((f) => ({ ...f, is_subtask: e.target.checked }))}
                                         />
@@ -1108,7 +1108,7 @@ export default function ProjectDetail() {
                                     <div className="flex items-center gap-3">
                                         <span
                                             className="h-3.5 w-3.5 rounded-full"
-                                            style={{ backgroundColor: type.color || '#6366f1' }}
+                                            style={{ backgroundColor: type.color || '#2563eb' }}
                                         />
                                         <div>
                                             <div className="flex items-center gap-2">
@@ -1131,7 +1131,7 @@ export default function ProjectDetail() {
                                             <input
                                                 type="color"
                                                 className="h-7 w-8 rounded border border-gray-200 bg-white p-0.5"
-                                                defaultValue={type.color || '#6366f1'}
+                                                defaultValue={type.color || '#2563eb'}
                                                 onBlur={(e) => {
                                                     if (e.target.value !== type.color) {
                                                         updateIssueType(type, { color: e.target.value });

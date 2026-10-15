@@ -144,7 +144,7 @@ export default function SystemDashboard() {
                         {data.top_tenants.map((t) => (
                             <tr key={t.id} className="border-t border-gray-100">
                                 <td className="py-2">
-                                    <Link to={`/tenants/${t.id}`} className="font-medium text-indigo-600 hover:text-indigo-500">
+                                    <Link to={`/tenants/${t.id}`} className="font-medium text-[var(--accent-soft-text)] hover:text-[var(--accent)]">
                                         {t.tenant.name}
                                     </Link>
                                     <span className="ml-2 text-xs text-gray-400">{t.tenant.slug}</span>

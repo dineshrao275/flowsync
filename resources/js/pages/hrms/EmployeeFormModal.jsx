@@ -294,11 +294,11 @@ export default function EmployeeFormModal({ options, saving, onClose, onCreate }
                                         {roles.map((role) => (
                                             <label
                                                 key={role.slug}
-                                                className="inline-flex cursor-pointer items-center gap-1.5 rounded-full border border-gray-300 bg-white px-2.5 py-1 text-xs font-medium text-gray-700 has-[:checked]:border-indigo-400 has-[:checked]:bg-indigo-50 has-[:checked]:text-indigo-700"
+                                                className="inline-flex cursor-pointer items-center gap-1.5 rounded-full border border-gray-300 bg-white px-2.5 py-1 text-xs font-medium text-gray-700 has-[:checked]:border-[var(--accent-ring)] has-[:checked]:bg-[var(--accent-soft)] has-[:checked]:text-[var(--accent-soft-text)]"
                                             >
                                                 <input
                                                     type="checkbox"
-                                                    className="h-3.5 w-3.5 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                                                    className="h-3.5 w-3.5 rounded border-gray-300 accent-[var(--accent)]"
                                                     checked={form.roles.includes(role.slug)}
                                                     onChange={() => toggleRole(role.slug)}
                                                 />

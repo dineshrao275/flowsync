@@ -239,7 +239,7 @@ export default function OnboardingCaseDetail() {
             </div>
 
             <div className="h-2 overflow-hidden rounded-full bg-gray-100">
-                <div className="h-full rounded-full bg-indigo-500" style={{ width: `${progress.percent ?? 0}%` }} />
+                <div className="h-full rounded-full bg-[var(--accent-soft)]0" style={{ width: `${progress.percent ?? 0}%` }} />
             </div>
 
             <Card title="Checklist" dense>
@@ -283,7 +283,7 @@ export default function OnboardingCaseDetail() {
                                 <span className="flex items-center gap-2">
                                     <RequestPill status={ask.status} />
                                     {ask.status === 'pending' && canSubmit && (
-                                        <label className="cursor-pointer text-sm font-medium text-indigo-600 hover:underline">
+                                        <label className="cursor-pointer text-sm font-medium text-[var(--accent-soft-text)] hover:underline">
                                             Upload
                                             <input
                                                 type="file"
@@ -330,7 +330,7 @@ export default function OnboardingCaseDetail() {
             )}
 
             <div className="pt-2 text-sm">
-                <Link to={hrmsUrl('onboarding')} className="text-indigo-600 hover:text-indigo-800">
+                <Link to={hrmsUrl('onboarding')} className="text-[var(--accent-soft-text)] hover:text-[var(--accent)]">
                     ← Back to onboarding
                 </Link>
             </div>

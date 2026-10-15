@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
@@ -7,6 +7,7 @@ import Button from '../../components/ui/Button';
 import Input from '../../components/ui/Input';
 import Alert from '../../components/ui/Alert';
 import AuthShell from '../../components/ui/AuthShell';
+import useErrorFocus from '../../hooks/useErrorFocus';
 import usePageTitle from '../../hooks/usePageTitle';
 import { homeRouteFor } from '../../utils/deepLinks';
 
@@ -21,6 +22,8 @@ export default function Login() {
     const [submitting, setSubmitting] = useState(false);
     const [needsCode, setNeedsCode] = useState(false);
     const [code, setCode] = useState('');
+    const formRef = useRef(null);
+    useErrorFocus(errors, formRef);
 
     function update(field, value) {
         setForm((current) => ({ ...current, [field]: value }));
@@ -60,13 +63,13 @@ export default function Login() {
             footer={
                 <span className="text-sm text-slate-500">
                     Access is managed by your tenant administrator.{' '}
-                    <Link to="/register" className="font-medium text-[var(--accent)] hover:text-indigo-500">
+                    <Link to="/register" className="font-medium text-[var(--accent)] hover:text-[var(--accent)]">
                         New here? Create a workspace
                     </Link>
                 </span>
             }
         >
-            <form onSubmit={handleSubmit} className="space-y-4" noValidate>
+            <form ref={formRef} onSubmit={handleSubmit} className="space-y-4" noValidate>
                 <Alert>{errors.form}</Alert>
                 {needsCode ? (
                     <Input
@@ -115,7 +118,7 @@ export default function Login() {
                     </label>
                     <Link
                         to="/forgot-password"
-                        className="text-sm font-medium text-[var(--accent)] hover:text-indigo-500"
+                        className="text-sm font-medium text-[var(--accent)] hover:text-[var(--accent)]"
                     >
                         Forgot password?
                     </Link>

@@ -36,7 +36,7 @@ export default function EmployeeTasks({ employeeId }) {
                 <li key={`${task.id}-${task.link?.id ?? 'none'}`} className="flex flex-wrap items-center gap-x-3 gap-y-1 py-2.5">
                     <Link
                         to={taskUrl(task.project?.id, task.key)}
-                        className="text-sm font-medium text-indigo-600 hover:text-indigo-800"
+                        className="text-sm font-medium text-[var(--accent-soft-text)] hover:text-[var(--accent)]"
                     >
                         {task.key} · {task.title}
                     </Link>
@@ -49,7 +49,7 @@ export default function EmployeeTasks({ employeeId }) {
                         </span>
                     )}
                     {task.link && (
-                        <span className="rounded-full bg-indigo-50 px-2 py-0.5 text-xs text-indigo-700">
+                        <span className="rounded-full bg-[var(--accent-soft)] px-2 py-0.5 text-xs text-[var(--accent-soft-text)]">
                             {task.link.kind_label ?? task.link.kind}
                         </span>
                     )}

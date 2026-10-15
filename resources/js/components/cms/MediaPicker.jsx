@@ -79,7 +79,7 @@ function MediaBrowser({ value, onPick }) {
                             key={item.id}
                             type="button"
                             onClick={() => onPick(item)}
-                            className={`group overflow-hidden rounded-lg border-2 transition ${value?.id === item.id ? 'border-indigo-500' : 'border-transparent hover:border-indigo-300'}`}
+                            className={`group overflow-hidden rounded-lg border-2 transition ${value?.id === item.id ? 'border-[var(--accent)]' : 'border-transparent hover:border-[var(--accent-ring)]'}`}
                             title={item.original_name}
                         >
                             <img src={item.url} alt={item.alt || item.original_name} className="aspect-[4/3] w-full object-cover" loading="lazy" />

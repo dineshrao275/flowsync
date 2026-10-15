@@ -94,7 +94,7 @@ export default function LeaveAdjustPanel({ employees, types }) {
                 {!form.employee_id ? (
                     <p className="text-sm text-gray-500">Pick an employee above to see their ledger for the year.</p>
                 ) : (
-                    <Table>
+                    <Table compact>
                         <thead>
                             <tr><Th>When</Th><Th>Type</Th><Th>Kind</Th><Th align="right">Days</Th><Th>Note</Th><Th>By</Th></tr>
                         </thead>

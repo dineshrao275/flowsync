@@ -78,7 +78,7 @@ export default function HolidayImportModal({ calendar, onClose, onDone }) {
                     </>
                 )}
                 <div className="flex items-center justify-between gap-2">
-                    <a className="text-sm text-indigo-600 underline" href="/api/hrms/holidays/import/sample">Sample CSV</a>
+                    <a className="text-sm text-[var(--accent-soft-text)] underline" href="/api/hrms/holidays/import/sample">Sample CSV</a>
                     <div className="flex gap-2">
                         <Button variant="secondary" onClick={validate} disabled={!file || busy}>Validate</Button>
                         <Button onClick={commit} disabled={!report || report.new === 0 || busy}>Import {report?.new ?? 0}</Button>

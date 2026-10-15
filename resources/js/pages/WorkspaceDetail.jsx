@@ -42,7 +42,7 @@ export default function WorkspaceDetail() {
     const [updating, setUpdating] = useState(false);
 
     const [memberForm, setMemberForm] = useState({ user_id: '', role: 'member' });
-    const [labelForm, setLabelForm] = useState({ name: '', color: '#6366f1' });
+    const [labelForm, setLabelForm] = useState({ name: '', color: '#2563eb' });
     const [projectForm, setProjectForm] = useState({ name: '', key: '', description: '' });
     // The settings description is editor-controlled; it follows the loaded
     // workspace (the page remounts per workspace, and a same-id refetch
@@ -438,7 +438,7 @@ export default function WorkspaceDetail() {
                             <form onSubmit={addMember} className="flex flex-col gap-3 sm:flex-row sm:items-end">
                                 <div className="flex-1">
                                     <select
-                                        className="block w-full rounded-lg border border-gray-300 bg-white px-3.5 py-2.5 text-sm shadow-sm focus:border-indigo-500 focus:outline-none"
+                                        className="block w-full rounded-lg border border-gray-300 bg-white px-3.5 py-2.5 text-sm shadow-sm focus:border-[var(--accent)] focus:outline-none"
                                         value={memberForm.user_id}
                                         onChange={(e) => setMemberForm((f) => ({ ...f, user_id: e.target.value }))}
                                     >
@@ -453,7 +453,7 @@ export default function WorkspaceDetail() {
                                 </div>
                                 <div>
                                     <select
-                                        className="block w-full rounded-lg border border-gray-300 bg-white px-3.5 py-2.5 text-sm shadow-sm focus:border-indigo-500 focus:outline-none"
+                                        className="block w-full rounded-lg border border-gray-300 bg-white px-3.5 py-2.5 text-sm shadow-sm focus:border-[var(--accent)] focus:outline-none"
                                         value={memberForm.role}
                                         onChange={(e) => setMemberForm((f) => ({ ...f, role: e.target.value }))}
                                     >

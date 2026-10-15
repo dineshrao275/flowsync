@@ -128,14 +128,14 @@ export default function DataExport() {
                             key={cat.key}
                             className={`flex cursor-pointer items-start gap-3 rounded-lg border p-3 transition-colors ${
                                 selected.includes(cat.key)
-                                    ? 'border-indigo-300 bg-indigo-50'
+                                    ? 'border-[var(--accent-ring)] bg-[var(--accent-soft)]'
                                     : 'border-gray-200 hover:border-gray-300'
                             }`}
                         >
                             <input
                                 id={`cat-${cat.key}`}
                                 type="checkbox"
-                                className="mt-0.5 h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                                className="mt-0.5 h-4 w-4 rounded border-gray-300 accent-[var(--accent)]"
                                 checked={selected.includes(cat.key)}
                                 onChange={() => toggle(cat.key)}
                             />
@@ -218,7 +218,7 @@ export default function DataExport() {
                                             href={run.download_url}
                                             target="_blank"
                                             rel="noopener noreferrer"
-                                            className="inline-flex items-center gap-1.5 rounded-lg bg-indigo-600 px-3 py-1.5 text-xs font-medium text-white shadow-sm transition hover:bg-indigo-700"
+                                            className="inline-flex items-center gap-1.5 rounded-lg bg-[var(--accent)] px-3 py-1.5 text-xs font-medium text-white shadow-sm transition hover:bg-[var(--accent-hover)]"
                                         >
                                             <svg
                                                 className="h-3.5 w-3.5"

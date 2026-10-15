@@ -208,7 +208,7 @@ export default function EmployeeDetail() {
                             onClick={() => changeTab(tab.key)}
                             className={`-mb-px border-b-2 px-3 py-2 text-sm font-medium transition-colors ${
                                 activeTab === tab.key
-                                    ? 'border-indigo-600 text-indigo-700'
+                                    ? 'border-[var(--accent)] text-[var(--accent-soft-text)]'
                                     : 'border-transparent text-gray-500 hover:text-gray-800'
                             }`}
                         >
@@ -274,7 +274,7 @@ export default function EmployeeDetail() {
             {activeTab === 'tasks' && <EmployeeTasks employeeId={employeeId} />}
 
             <div className="pt-2 text-sm">
-                <Link to={hrmsUrl('employees')} className="text-indigo-600 hover:text-indigo-800">
+                <Link to={hrmsUrl('employees')} className="text-[var(--accent-soft-text)] hover:text-[var(--accent)]">
                     ← Back to employees
                 </Link>
             </div>

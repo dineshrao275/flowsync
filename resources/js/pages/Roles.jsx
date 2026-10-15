@@ -43,7 +43,7 @@ function PermissionGrid({ permissions, isChecked, onToggle, disabled = false, de
                     value={query}
                     onChange={(e) => setQuery(e.target.value)}
                     placeholder="Search permissions…"
-                    className="min-w-48 flex-1 rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200"
+                    className="min-w-48 flex-1 rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-[var(--accent)]"
                 />
                 <span className="text-xs text-gray-500">{selected} of {total} selected</span>
             </div>

@@ -20,7 +20,7 @@ function ToolButton({ title, active = false, disabled = false, onClick, label, l
             disabled={disabled}
             onClick={onClick}
             className={`flex h-7 min-w-7 items-center justify-center rounded px-1.5 text-sm transition disabled:cursor-not-allowed disabled:opacity-30 ${
-                active ? 'bg-indigo-100 font-semibold text-indigo-700' : 'text-gray-600 hover:bg-gray-100'
+                active ? 'bg-[var(--accent-soft)] font-semibold text-[var(--accent-soft-text)]' : 'text-gray-600 hover:bg-gray-100'
             } ${labelClassName}`}
         >
             {label}
@@ -82,7 +82,7 @@ export default function RichTextEditor({ value = '', onChange, disabled = false,
         <div>
             <div
                 className={`overflow-hidden rounded-lg border bg-white transition ${
-                    error ? 'border-red-400' : 'border-gray-300 focus-within:border-indigo-500 focus-within:ring-1 focus-within:ring-indigo-500'
+                    error ? 'border-red-400' : 'border-gray-300 focus-within:border-[var(--accent)]'
                 } ${disabled ? 'bg-gray-50 opacity-75' : ''}`}
             >
                 {!disabled && (

@@ -51,7 +51,7 @@ export default function GoalCard({ goal, onRefresh, refreshing = false, actions 
                             type="button"
                             onClick={() => onRefresh(goal)}
                             disabled={refreshing}
-                            className="text-xs font-medium text-indigo-600 hover:underline disabled:opacity-50"
+                            className="text-xs font-medium text-[var(--accent-soft-text)] hover:underline disabled:opacity-50"
                         >
                             Refresh evidence
                         </button>
@@ -62,7 +62,7 @@ export default function GoalCard({ goal, onRefresh, refreshing = false, actions 
 
             <div className="mt-3 h-2 overflow-hidden rounded-full bg-gray-100">
                 <div
-                    className="h-full rounded-full bg-indigo-500 transition-all"
+                    className="h-full rounded-full bg-[var(--accent-soft)]0 transition-all"
                     style={{ width: `${Math.min(100, Math.max(0, percent))}%` }}
                 />
             </div>
@@ -123,7 +123,7 @@ export default function GoalCard({ goal, onRefresh, refreshing = false, actions 
                             <button
                                 type="submit"
                                 disabled={linking || !key.trim()}
-                                className="shrink-0 text-xs font-medium text-indigo-600 hover:underline disabled:opacity-50"
+                                className="shrink-0 text-xs font-medium text-[var(--accent-soft-text)] hover:underline disabled:opacity-50"
                             >
                                 Link
                             </button>

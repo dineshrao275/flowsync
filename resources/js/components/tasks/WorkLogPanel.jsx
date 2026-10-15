@@ -183,7 +183,7 @@ export default function WorkLogPanel({ task, projectId, canLog, canManage }) {
                                 {log.description && <p className="mt-0.5 text-sm text-gray-600">{log.description}</p>}
                             </div>
                             <div className="flex items-center gap-2">
-                                <span className="rounded-full bg-indigo-50 px-2.5 py-1 text-xs font-semibold text-indigo-700">
+                                <span className="rounded-full bg-[var(--accent-soft)] px-2.5 py-1 text-xs font-semibold text-[var(--accent-soft-text)]">
                                     {formatMinutes(log.effective_minutes ?? log.duration_minutes)}
                                 </span>
                                 {canEditLog(log) && (

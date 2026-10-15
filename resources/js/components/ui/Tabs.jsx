@@ -15,7 +15,7 @@ export default function Tabs({ tabs, active, onChange }) {
                     type="button"
                     onClick={() => onChange(tab.key)}
                     className={`-mb-px border-b-2 px-4 py-2.5 text-sm font-medium transition ${active === tab.key
-                            ? 'border-indigo-600 text-indigo-600'
+                            ? 'border-[var(--accent)] text-[var(--accent-soft-text)]'
                             : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700'
                         }`}
                 >

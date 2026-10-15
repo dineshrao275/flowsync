@@ -216,7 +216,7 @@ export default function TaskDetail({
                                 onClick={() => setTab(t.key)}
                                 className={`-mb-px border-b-2 px-2 py-2 text-xs font-medium transition ${
                                     tab === t.key
-                                        ? 'border-indigo-600 text-indigo-600'
+                                        ? 'border-[var(--accent)] text-[var(--accent-soft-text)]'
                                         : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700'
                                 }`}
                             >
@@ -269,7 +269,7 @@ export default function TaskDetail({
                                                         onClick={() => canEdit && toggleComponent(comp.id)}
                                                         className={`rounded-md px-2.5 py-1 text-xs font-medium transition disabled:cursor-not-allowed ${
                                                             form.components?.includes(comp.id)
-                                                                ? 'bg-indigo-600 text-white'
+                                                                ? 'bg-[var(--accent)] text-[var(--accent-contrast)]'
                                                                 : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                                                         }`}
                                                         disabled={!canEdit}
@@ -467,7 +467,7 @@ export default function TaskDetail({
                                                 disabled={togglingWatch}
                                                 className={`rounded px-2 py-0.5 text-xs font-semibold transition ${
                                                     isWatching
-                                                        ? 'bg-indigo-100 text-indigo-700 hover:bg-indigo-200'
+                                                        ? 'bg-[var(--accent-soft)] text-[var(--accent-soft-text)] hover:bg-[var(--accent-soft-hover)]'
                                                         : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                                                 }`}
                                             >
@@ -499,7 +499,7 @@ export default function TaskDetail({
                                         )}
                                         {canEdit && options.assignees?.some((u) => !watchers.some((w) => w.id === u.id)) && (
                                             <select
-                                                className="mt-2 block w-full rounded-md border border-gray-200 bg-white px-2 py-1 text-xs text-gray-600 shadow-sm focus:border-indigo-500 focus:outline-none"
+                                                className="mt-2 block w-full rounded-md border border-gray-200 bg-white px-2 py-1 text-xs text-gray-600 shadow-sm focus:border-[var(--accent)] focus:outline-none"
                                                 value=""
                                                 onChange={(e) => addWatcherUser(e.target.value)}
                                             >

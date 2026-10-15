@@ -57,9 +57,9 @@ export default function BulkBar({ projectId, ids, options, canEdit, onClear, onD
     }[action];
 
     return (
-        <div className="space-y-2 rounded-xl border border-indigo-200 bg-indigo-50/60 p-3">
+        <div className="space-y-2 rounded-xl border border-[var(--accent-ring)] bg-[var(--accent-soft)] p-3">
             <div className="flex flex-wrap items-center gap-2 text-sm">
-                <span className="font-medium text-indigo-900">{ids.length} selected</span>
+                <span className="font-medium text-[var(--accent-soft-text)]">{ids.length} selected</span>
                 <select className={fieldClassCompact} value={action} onChange={(e) => { setAction(e.target.value); setValue(''); }}>
                     {ACTIONS.filter((a) => canEdit || a.key === 'transition').map((a) => <option key={a.key} value={a.key}>{a.label}</option>)}
                 </select>

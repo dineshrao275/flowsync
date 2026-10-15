@@ -114,11 +114,11 @@ export default function TaskLinkPanel({ task, canManage }) {
                         <li key={link.id} className="flex flex-wrap items-center gap-x-3 gap-y-1 py-2.5">
                             <Link
                                 to={`/hrms/employees/${link.employee?.id}`}
-                                className="text-sm font-medium text-indigo-600 hover:text-indigo-800"
+                                className="text-sm font-medium text-[var(--accent-soft-text)] hover:text-[var(--accent-soft-text)] hover:underline"
                             >
                                 {link.employee?.name ?? 'Someone'}
                             </Link>
-                            <span className="rounded-full bg-indigo-50 px-2 py-0.5 text-xs text-indigo-700">
+                            <span className="rounded-full bg-[var(--accent-soft)] px-2 py-0.5 text-xs text-[var(--accent-soft-text)]">
                                 {link.kind_label ?? link.kind}
                             </span>
                             {link.note && <span className="text-xs italic text-gray-500">“{link.note}”</span>}

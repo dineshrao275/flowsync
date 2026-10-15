@@ -49,9 +49,9 @@ export default function ResultsChart({ result }) {
                     <XAxis type="number" allowDecimals={false} />
                     <YAxis type="category" dataKey="name" width={110} tick={{ fontSize: 12 }} />
                     <Tooltip />
-                    <Bar dataKey="value" fill="#4f46e5">
+                    <Bar dataKey="value" fill="#2563eb">
                         {rows.map((row) => (
-                            <Cell key={row.name} fill={NPS_COLORS[row.name] ?? '#4f46e5'} />
+                            <Cell key={row.name} fill={NPS_COLORS[row.name] ?? '#2563eb'} />
                         ))}
                     </Bar>
                 </BarChart>

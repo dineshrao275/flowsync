@@ -206,7 +206,7 @@ export default function Onboarding() {
                             <div className="flex items-start gap-3">
                                 <span
                                     className={`mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-xs font-bold ${
-                                        step.complete ? 'bg-emerald-100 text-emerald-700' : 'bg-indigo-100 text-indigo-700'
+                                        step.complete ? 'bg-emerald-100 text-emerald-700' : 'bg-[var(--accent-soft)] text-[var(--accent-soft-text)]'
                                     }`}
                                 >
                                     {step.complete ? '✓' : index + 1}

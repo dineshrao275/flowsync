@@ -270,7 +270,7 @@ export default function PerformanceCycleDetail() {
                         key={name}
                         type="button"
                         onClick={() => setTab(name)}
-                        className={`rounded-lg px-3 py-1.5 text-sm font-medium ${tab === name ? 'bg-indigo-100 text-indigo-800' : 'text-gray-500 hover:bg-gray-100'}`}
+                        className={`rounded-lg px-3 py-1.5 text-sm font-medium ${tab === name ? 'bg-[var(--accent-soft)] text-[var(--accent-soft-text)]' : 'text-gray-500 hover:bg-gray-100'}`}
                     >
                         {name}
                     </button>

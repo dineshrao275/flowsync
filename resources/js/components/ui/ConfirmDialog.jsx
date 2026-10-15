@@ -42,7 +42,7 @@ function VariantIcon({ variant }) {
         );
     }
     return (
-        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-indigo-50 text-indigo-600 ring-8 ring-indigo-50/50">
+        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[var(--accent-soft)] text-[var(--accent-soft-text)] ring-8 ring-[var(--accent-soft)]/50">
             <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                 <circle cx="12" cy="12" r="10" />
                 <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3" />
@@ -148,7 +148,7 @@ export function PromptDialog({
                                     value={val}
                                     placeholder={placeholder}
                                     onChange={(e) => setVal(e.target.value)}
-                                    className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                                    className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 shadow-sm focus:border-[var(--accent)] focus:outline-none"
                                 />
                             ) : (
                                 <input
@@ -157,7 +157,7 @@ export function PromptDialog({
                                     value={val}
                                     placeholder={placeholder}
                                     onChange={(e) => setVal(e.target.value)}
-                                    className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                                    className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 shadow-sm focus:border-[var(--accent)] focus:outline-none"
                                 />
                             )}
                             {touched && isInvalid && (

@@ -271,7 +271,7 @@ export default function OffboardingCaseDetail() {
             )}
 
             <div className="pt-2 text-sm">
-                <Link to={hrmsUrl('offboarding')} className="text-indigo-600 hover:text-indigo-800">
+                <Link to={hrmsUrl('offboarding')} className="text-[var(--accent-soft-text)] hover:text-[var(--accent)]">
                     ← Back to offboarding
                 </Link>
             </div>

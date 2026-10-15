@@ -175,7 +175,7 @@ export default function Analytics() {
                             onClick={() => changeTab(tab.key)}
                             className={`border-b-2 px-3 py-2 text-sm font-medium ${
                                 activeTab === tab.key
-                                    ? 'border-indigo-600 text-indigo-700'
+                                    ? 'border-[var(--accent)] text-[var(--accent-soft-text)]'
                                     : 'border-transparent text-gray-500 hover:text-gray-800'
                             }`}
                         >
@@ -274,7 +274,7 @@ function AttendanceTab({ payload }) {
                 <Card title="Most overtime" subtitle="Top 5 by overtime minutes">
                     <HBar
                         data={(payload.top_overtime ?? []).map((row) => ({ name: row.name, value: Number(row.minutes) || 0 }))}
-                        color="#4f46e5"
+                        color="#2563eb"
                         format={(value) => formatMinutes(value)}
                         emptyHint="No overtime in this window."
                     />

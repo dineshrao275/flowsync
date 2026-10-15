@@ -222,7 +222,7 @@ export default function Documents() {
                                 </span>
                                 <Link
                                     to={document.employee?.id ? employeeUrl(document.employee.id, 'documents') : '/hrms/documents'}
-                                    className="shrink-0 text-sm font-medium text-indigo-600 hover:underline"
+                                    className="shrink-0 text-sm font-medium text-[var(--accent-soft-text)] hover:underline"
                                 >
                                     Review
                                 </Link>

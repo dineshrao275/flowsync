@@ -528,7 +528,7 @@ export default function Subscription() {
                                     <Td align="right">
                                         <a
                                             href={`/api/billing/invoices/${inv.id}/pdf`}
-                                            className="text-xs font-medium text-indigo-600 hover:underline"
+                                            className="text-xs font-medium text-[var(--accent-soft-text)] hover:underline"
                                         >
                                             Download
                                         </a>

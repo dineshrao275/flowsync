@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../services/api';
 import Spinner from './ui/Spinner';
+import { Bell, Users } from '@phosphor-icons/react';
 import { useNotifications } from '../context/NotificationContext';
 import { useClickOutside } from '../hooks/useClickOutside';
 import { describeNotification, notificationHref } from '../utils/notifications';
@@ -39,10 +40,7 @@ export default function NotificationBell() {
                 aria-label="Notifications"
                 style={{ color: 'var(--header-text)' }}
             >
-                <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M18 8a6 6 0 10-12 0c0 7-3 9-3 9h18s-3-2-3-9" />
-                    <path d="M13.7 21a2 2 0 01-3.4 0" />
-                </svg>
+                <Bell size={20} aria-hidden="true" />
                 {unreadCount > 0 && (
                     <span className="absolute -right-0.5 -top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-bold text-white">
                         {unreadCount > 99 ? '99+' : unreadCount}
@@ -57,7 +55,7 @@ export default function NotificationBell() {
                         {unreadCount > 0 && (
                             <button
                                 onClick={markAllRead}
-                                className="text-xs font-medium text-indigo-600 transition hover:text-indigo-800"
+                                className="text-xs font-medium text-[var(--accent-soft-text)] transition hover:opacity-80"
                             >
                                 Mark all read
                             </button>
@@ -81,11 +79,8 @@ export default function NotificationBell() {
                                         >
                                             <span className="mt-1">
                                                 {notification.type?.startsWith('hrms.') ? (
-                                                    <span className="flex h-8 w-8 items-center justify-center rounded-full bg-indigo-100 text-indigo-700">
-                                                        <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-                                                            <path d="M17 20h5v-2a4 4 0 00-3-3.87M9 20H4v-2a4 4 0 012-4h14a4 4 0 012 4v2" />
-                                                            <circle cx="12" cy="8" r="4" />
-                                                        </svg>
+                                                    <span className="flex h-8 w-8 items-center justify-center rounded-full bg-[var(--accent-soft)] text-[var(--accent-soft-text)]">
+                                                        <Users size={16} aria-hidden="true" />
                                                     </span>
                                                 ) : (
                                                     <Avatar name={notification.actor?.name} size="md" />
@@ -116,7 +111,7 @@ export default function NotificationBell() {
                             setOpen(false);
                             navigate('/notifications');
                         }}
-                        className="w-full border-t border-gray-100 px-4 py-2.5 text-center text-sm font-medium text-indigo-600 transition hover:bg-indigo-50"
+                        className="w-full border-t border-gray-100 px-4 py-2.5 text-center text-sm font-medium text-[var(--accent-soft-text)] transition hover:bg-[var(--accent-soft)]"
                     >
                         View all notifications
                     </button>

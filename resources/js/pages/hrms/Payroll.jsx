@@ -158,7 +158,7 @@ export default function Payroll() {
                             {runs.map((run) => (
                                 <tr key={run.id}>
                                     <Td>
-                                        <Link to={`/hrms/payroll/runs/${run.id}`} className="font-medium text-indigo-600 hover:underline">
+                                        <Link to={`/hrms/payroll/runs/${run.id}`} className="font-medium text-[var(--accent-soft-text)] hover:underline">
                                             {monthLabel(run.period_year, run.period_month)}
                                         </Link>
                                         <span className="ml-2 text-xs text-gray-400">{RUN_STATUS_STEPS[run.status] ?? run.status}</span>

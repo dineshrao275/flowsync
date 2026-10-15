@@ -42,7 +42,7 @@ export function Tiles({ items }) {
  * One horizontal bar chart over `{ name, value }` rows. Zero rows render a
  * sentence, never an empty frame that reads as broken (the Dashboard rule).
  */
-export function HBar({ data, color = '#4f46e5', format = (value) => value, emptyHint = 'Nothing to chart yet.' }) {
+export function HBar({ data, color = '#2563eb', format = (value) => value, emptyHint = 'Nothing to chart yet.' }) {
     if (!data || data.length === 0) {
         return <p className="py-8 text-center text-sm text-gray-400">{emptyHint}</p>;
     }

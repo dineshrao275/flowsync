@@ -41,7 +41,7 @@ export default function TaskCard({ task, onClick, disabled }) {
             {...attributes}
             {...listeners}
             onClick={onClick}
-            className="group cursor-pointer rounded-lg border border-gray-200 bg-white px-3 py-2.5 shadow-sm transition hover:border-indigo-300 hover:shadow-md active:z-10"
+            className="group cursor-pointer rounded-lg border border-gray-200 bg-white px-3 py-2.5 shadow-sm transition hover:border-[var(--accent-ring)] hover:shadow-md active:z-10"
         >
             <div className="flex items-start justify-between gap-2">
                 <div className="flex items-center gap-1.5 flex-wrap">
@@ -49,8 +49,8 @@ export default function TaskCard({ task, onClick, disabled }) {
                         <span
                             className="inline-flex items-center rounded px-1.5 py-0.5 text-[10px] font-semibold"
                             style={{
-                                backgroundColor: `${task.issue_type.color || '#6366f1'}18`,
-                                color: task.issue_type.color || '#6366f1',
+                                backgroundColor: `${task.issue_type.color || '#2563eb'}18`,
+                                color: task.issue_type.color || '#2563eb',
                             }}
                             title={task.issue_type.name}
                         >
@@ -62,7 +62,7 @@ export default function TaskCard({ task, onClick, disabled }) {
                 <div className="flex items-center gap-2">
                     {task.story_points != null && (
                         <span
-                            className="rounded bg-indigo-50 px-1.5 py-0.5 text-[10px] font-semibold text-indigo-700"
+                            className="rounded bg-[var(--accent-soft)] px-1.5 py-0.5 text-[10px] font-semibold text-[var(--accent-soft-text)]"
                             title={`${task.story_points} story points`}
                         >
                             {task.story_points} pts

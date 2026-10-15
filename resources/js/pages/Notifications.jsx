@@ -111,14 +111,14 @@ export default function Notifications() {
                                         {payload.project_id && payload.key ? (
                                             <Link
                                                 to={notificationHref(notification.data ?? {}, notification.type)}
-                                                className="font-medium text-indigo-600 hover:text-indigo-800"
+                                                className="font-medium text-[var(--accent-soft-text)] hover:text-[var(--accent)]"
                                             >
                                                 {payload.key} · {payload.project_name ?? payload.title}
                                             </Link>
                                         ) : payload.project_id ? (
                                             <Link
                                                 to={projectUrl(payload.project_id)}
-                                                className="font-medium text-indigo-600 hover:text-indigo-800"
+                                                className="font-medium text-[var(--accent-soft-text)] hover:text-[var(--accent)]"
                                             >
                                                 {payload.project_name ?? payload.title}
                                             </Link>
@@ -133,7 +133,7 @@ export default function Notifications() {
                                         {notification.read_at ? (
                                             <span className="text-xs text-gray-400">Read</span>
                                         ) : (
-                                            <span className="inline-flex items-center gap-1.5 text-xs font-medium text-indigo-600">
+                                            <span className="inline-flex items-center gap-1.5 text-xs font-medium text-[var(--accent-soft-text)]">
                                                 <span className="h-2 w-2 rounded-full bg-[var(--accent)]" />
                                                 Unread
                                             </span>

@@ -145,7 +145,7 @@ export default function PayrollRunDetail() {
                             {payslips.map((payslip) => (
                                 <tr key={payslip.id}>
                                     <Td>
-                                        <button type="button" className="font-medium text-indigo-600 hover:underline" onClick={() => setSelected(payslip)}>
+                                        <button type="button" className="font-medium text-[var(--accent-soft-text)] hover:underline" onClick={() => setSelected(payslip)}>
                                             {payslip.employee?.name ?? `#${payslip.id}`}
                                         </button>
                                         <span className="ml-2 text-xs text-gray-400">{payslip.employee?.employee_code}</span>

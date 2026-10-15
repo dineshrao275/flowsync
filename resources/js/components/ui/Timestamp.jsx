@@ -45,7 +45,7 @@ export default function Timestamp({
         >
             <time
                 dateTime={isoString}
-                className="underline decoration-dotted decoration-gray-400/60 dark:decoration-gray-500 underline-offset-2 transition group-hover:decoration-indigo-500 group-hover:text-indigo-600 dark:group-hover:text-indigo-400"
+                className="underline decoration-dotted decoration-gray-400/60 dark:decoration-gray-500 underline-offset-2 transition group-hover:decoration-[var(--accent)] group-hover:text-[var(--accent-soft-text)]"
             >
                 {prefix}{relativeText}{suffix}
             </time>
