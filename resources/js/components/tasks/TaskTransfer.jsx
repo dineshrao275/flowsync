@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import api, { fieldErrors } from '../../services/api';
 import { useToast } from '../../context/ToastContext';
 import Alert from '../ui/Alert';
@@ -12,11 +13,12 @@ import Select from '../ui/Select';
  * move; the response's `dropped` counts are surfaced so nothing disappears silently.
  */
 export default function TaskTransfer({ projectId, task, canClone, canMoveProject, onDone }) {
+    const { t } = useTranslation();
     const toast = useToast();
     const [mode, setMode] = useState(null); // 'clone' | 'move'
     const [projects, setProjects] = useState([]);
     const [targetId, setTargetId] = useState(String(projectId));
-    const [title, setTitle] = useState(`Clone of ${task.title}`);
+    const [title, setTitle] = useState(t('tms.transfer.cloneOf', { title: task.title }));
     const [withSubtasks, setWithSubtasks] = useState(false);
     const [targetStatuses, setTargetStatuses] = useState([]);
     const [statusMap, setStatusMap] = useState({});
@@ -49,7 +51,7 @@ export default function TaskTransfer({ projectId, task, canClone, canMoveProject
                     target_project_id: Number(targetId),
                     include_subtasks: withSubtasks,
                 });
-                toast.success(`Cloned as ${data.task.key}.`);
+                toast.success(t('tms.transfer.cloned', { key: data.task.key }));
             } else {
                 const map = Object.fromEntries(Object.entries(statusMap).filter(([, v]) => v));
                 const { data } = await api.post(`/projects/${projectId}/tasks/${task.id}/move-project`, {
@@ -57,7 +59,7 @@ export default function TaskTransfer({ projectId, task, canClone, canMoveProject
                     status_map: map,
                 });
                 const dropped = Object.entries(data.dropped || {}).map(([k, v]) => `${v} ${k.replace('_', ' ')}`).join(', ');
-                toast.success(`Moved as ${data.task.key}.${dropped ? ` Dropped: ${dropped}.` : ''}`);
+                toast.success(dropped ? t('tms.transfer.movedDropped', { key: data.task.key, dropped }) : t('tms.transfer.moved', { key: data.task.key }));
             }
             close();
             onDone?.();
@@ -72,36 +74,36 @@ export default function TaskTransfer({ projectId, task, canClone, canMoveProject
 
     return (
         <>
-            {canClone && <Button type="button" variant="secondary" onClick={() => { setTargetId(String(projectId)); setMode('clone'); }}>Clone</Button>}
-            {canMoveProject && <Button type="button" variant="secondary" onClick={() => { setTargetId(''); setMode('move'); }}>Move…</Button>}
+            {canClone && <Button type="button" variant="secondary" onClick={() => { setTargetId(String(projectId)); setMode('clone'); }}>{t('tms.transfer.clone')}</Button>}
+            {canMoveProject && <Button type="button" variant="secondary" onClick={() => { setTargetId(''); setMode('move'); }}>{t('tms.transfer.move')}</Button>}
             {mode && (
-                <Modal open title={mode === 'clone' ? `Clone ${task.key}` : `Move ${task.key}`} subtitle={mode === 'move' ? 'Gets a new key in the target project.' : ''} onClose={close}>
+                <Modal open title={mode === 'clone' ? t('tms.transfer.cloneTitle', { key: task.key }) : t('tms.transfer.moveTitle', { key: task.key })} subtitle={mode === 'move' ? t('tms.transfer.moveSubtitle') : ''} onClose={close}>
                     <form onSubmit={submit} className="space-y-4 px-6 py-5">
                         {(errors.form || errors.target_project_id) && <Alert>{errors.form || errors.target_project_id}</Alert>}
-                        {mode === 'clone' && <Input label="Title" value={title} onChange={(e) => setTitle(e.target.value)} error={errors.title} />}
-                        <Select label="Project" value={targetId} onChange={(e) => setTargetId(e.target.value)}>
-                            {mode === 'move' && <option value="">Choose a project…</option>}
+                        {mode === 'clone' && <Input label={t('tms.transfer.title')} value={title} onChange={(e) => setTitle(e.target.value)} error={errors.title} />}
+                        <Select label={t('tms.transfer.project')} value={targetId} onChange={(e) => setTargetId(e.target.value)}>
+                            {mode === 'move' && <option value="">{t('tms.transfer.chooseProject')}</option>}
                             {(mode === 'clone' ? projects : others).map((p) => <option key={p.id} value={p.id}>{p.key} · {p.name}</option>)}
                         </Select>
                         {mode === 'clone' && (
                             <label className="flex items-center gap-2 text-sm text-gray-700">
-                                <input type="checkbox" checked={withSubtasks} onChange={(e) => setWithSubtasks(e.target.checked)} /> Clone sub-tasks too
+                                <input type="checkbox" checked={withSubtasks} onChange={(e) => setWithSubtasks(e.target.checked)} /> {t('tms.transfer.cloneSubtasks')}
                             </label>
                         )}
                         {mode === 'move' && task.status && targetStatuses.length > 0 && (
                             <Select
-                                label={`Status "${task.status.name}" becomes`}
+                                label={t('tms.transfer.statusBecomes', { name: task.status.name })}
                                 value={statusMap[task.status_id] ?? ''}
                                 onChange={(e) => setStatusMap({ [task.status_id]: e.target.value })}
                                 error={errors.status_map}
                             >
-                                <option value="">Match automatically</option>
+                                <option value="">{t('tms.transfer.matchAuto')}</option>
                                 {targetStatuses.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
                             </Select>
                         )}
                         <div className="flex justify-end gap-2 pt-2">
-                            <Button type="button" variant="secondary" onClick={close}>Cancel</Button>
-                            <Button type="submit" loading={busy} disabled={!targetId}>{mode === 'clone' ? 'Clone' : 'Move'}</Button>
+                            <Button type="button" variant="secondary" onClick={close}>{t('tms.transfer.cancel')}</Button>
+                            <Button type="submit" loading={busy} disabled={!targetId}>{mode === 'clone' ? t('tms.transfer.clone') : t('tms.transfer.moveShort')}</Button>
                         </div>
                     </form>
                 </Modal>

@@ -1,8 +1,10 @@
 import { DndContext, KeyboardSensor, PointerSensor, closestCorners, useSensor, useSensors, useDroppable } from '@dnd-kit/core';
 import { SortableContext, sortableKeyboardCoordinates } from '@dnd-kit/sortable';
+import { useTranslation } from 'react-i18next';
 import TaskCard from './TaskCard';
 
 function WipBadge({ status }) {
+    const { t } = useTranslation();
     if (status.wip_limit == null) {
         return (
             <span className="ml-2 shrink-0 rounded-full bg-white px-2 py-0.5 text-[11px] font-semibold text-gray-500 shadow-sm">
@@ -16,7 +18,7 @@ function WipBadge({ status }) {
             className={`ml-2 shrink-0 rounded-full px-2 py-0.5 text-[11px] font-semibold shadow-sm ${
                 over ? 'bg-red-100 text-red-600' : 'bg-white text-gray-500'
             }`}
-            title={`${status.open_count} open of ${status.wip_limit} WIP limit`}
+            title={t('tms.board.wipTitle', { open: status.open_count, limit: status.wip_limit })}
         >
             {status.tasks_count}
             <span className={`${over ? 'text-red-400' : 'text-gray-300'}`}> / </span>
@@ -26,6 +28,7 @@ function WipBadge({ status }) {
 }
 
 function Column({ status, canMove, canEdit, onOpen }) {
+    const { t } = useTranslation();
     const { setNodeRef, isOver } = useDroppable({ id: `col-${status.id}` });
 
     return (
@@ -54,7 +57,7 @@ function Column({ status, canMove, canEdit, onOpen }) {
                     ))}
                     {status.tasks.length === 0 && (
                         <div className="rounded-lg border border-dashed border-gray-200 px-3 py-6 text-center text-xs text-gray-400">
-                            Drop tasks here
+                            {t('tms.board.dropHere')}
                         </div>
                     )}
                 </div>
@@ -90,6 +93,7 @@ function BoardRow({ statuses, canMove, canEdit, onOpen, onDragEnd }) {
 }
 
 export default function KanbanBoard({ board, canMove, canEdit, onOpen, onDragEnd }) {
+    const { t } = useTranslation();
     const swimmers = board.swimlanes;
 
     return (
@@ -106,10 +110,10 @@ export default function KanbanBoard({ board, canMove, canEdit, onOpen, onDragEnd
                                     >
                                         {(lane.assignee?.name ?? 'U').charAt(0).toUpperCase()}
                                     </span>
-                                    {lane.assignee ? lane.assignee.name : 'Unassigned'}
+                                    {lane.assignee ? lane.assignee.name : t('tms.board.unassigned')}
                                 </div>
                                 <span className="text-xs text-gray-400">
-                                    {lane.totals.open} open · {lane.totals.done} done
+                                    {t('tms.board.laneTotals', { open: lane.totals.open, done: lane.totals.done })}
                                 </span>
                             </div>
                             <BoardRow

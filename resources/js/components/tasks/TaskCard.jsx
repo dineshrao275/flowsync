@@ -1,5 +1,6 @@
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
+import { useTranslation } from 'react-i18next';
 import { formatMinutes } from '../../utils/time';
 
 const PRIORITY_DOT = {
@@ -10,25 +11,26 @@ const PRIORITY_DOT = {
     lowest: '#94a3b8',
 };
 
-function formatDue(date) {
+function formatDue(date, t) {
     if (!date) return null;
     const d = new Date(`${date}T00:00:00`);
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     const diff = (d - today) / 86400000;
-    if (d < today) return { label: `Overdue ${date}`, className: 'text-red-600' };
-    if (diff === 0) return { label: `Today ${date}`, className: 'text-red-600' };
-    if (diff === 1) return { label: `Tomorrow ${date}`, className: 'text-amber-600' };
+    if (d < today) return { label: t('tms.card.dueOverdue', { date }), className: 'text-red-600' };
+    if (diff === 0) return { label: t('tms.card.dueToday', { date }), className: 'text-red-600' };
+    if (diff === 1) return { label: t('tms.card.dueTomorrow', { date }), className: 'text-amber-600' };
     return { label: date, className: 'text-gray-500' };
 }
 
 export default function TaskCard({ task, onClick, disabled }) {
+    const { t } = useTranslation();
     const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
         id: task.id,
         disabled: Boolean(disabled),
     });
 
-    const due = formatDue(task.due_date);
+    const due = formatDue(task.due_date, t);
 
     return (
         <div
@@ -63,9 +65,9 @@ export default function TaskCard({ task, onClick, disabled }) {
                     {task.story_points != null && (
                         <span
                             className="rounded bg-[var(--accent-soft)] px-1.5 py-0.5 text-[10px] font-semibold text-[var(--accent-soft-text)]"
-                            title={`${task.story_points} story points`}
+                            title={t('tms.card.storyPointsTitle', { count: task.story_points })}
                         >
-                            {task.story_points} pts
+                            {t('tms.card.storyPoints', { count: task.story_points })}
                         </span>
                     )}
                     {task.priority && (
@@ -112,13 +114,13 @@ export default function TaskCard({ task, onClick, disabled }) {
             <div className="mt-2 flex items-center justify-between">
                 <div className="flex items-center gap-2 text-[11px] text-gray-400">
                     {task.subtasks_count > 0 && (
-                        <span className="flex items-center gap-0.5" title="Subtasks">
-                            {task.subtasks_count} sub
+                        <span className="flex items-center gap-0.5" title={t('tms.card.subtasks')}>
+                            {t('tms.card.subtasksShort', { count: task.subtasks_count })}
                         </span>
                     )}
-                    {task.comments_count > 0 && <span title="Comments">{task.comments_count} comments</span>}
+                    {task.comments_count > 0 && <span title={t('tms.card.comments')}>{t('tms.card.commentsCount', { count: task.comments_count })}</span>}
                     {task.estimate_minutes != null && task.estimate_minutes > 0 && (
-                        <span title="Estimate">est {formatMinutes(task.estimate_minutes)}</span>
+                        <span title={t('tms.card.estimate')}>{t('tms.card.estimateShort', { value: formatMinutes(task.estimate_minutes) })}</span>
                     )}
                     {due && <span className={due.className}>{due.label}</span>}
                 </div>

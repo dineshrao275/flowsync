@@ -1,8 +1,11 @@
+import { useTranslation } from 'react-i18next';
+
 export default function TaskTable({ tasks, canEdit, onOpen }) {
+    const { t } = useTranslation();
     if (tasks.length === 0) {
         return (
             <div className="rounded-xl border border-dashed border-gray-200 py-12 text-center text-sm text-gray-400">
-                No tasks match the current filters.
+                {t('tms.table.empty')}
             </div>
         );
     }
@@ -12,14 +15,14 @@ export default function TaskTable({ tasks, canEdit, onOpen }) {
             <table className="w-full text-left text-sm">
                 <thead className="border-b border-gray-100 bg-gray-50/80 text-xs uppercase tracking-wide text-gray-500">
                     <tr>
-                        <th className="px-4 py-3 font-medium">Key</th>
-                        <th className="px-4 py-3 font-medium">Type</th>
-                        <th className="px-4 py-3 font-medium">Task</th>
-                        <th className="px-4 py-3 font-medium">Status</th>
-                        <th className="px-4 py-3 font-medium">Priority</th>
-                        <th className="px-4 py-3 font-medium">Points</th>
-                        <th className="px-4 py-3 font-medium">Assignee</th>
-                        <th className="px-4 py-3 font-medium">Due</th>
+                        <th className="px-4 py-3 font-medium">{t('tms.table.thKey')}</th>
+                        <th className="px-4 py-3 font-medium">{t('tms.table.thType')}</th>
+                        <th className="px-4 py-3 font-medium">{t('tms.table.thTask')}</th>
+                        <th className="px-4 py-3 font-medium">{t('tms.table.thStatus')}</th>
+                        <th className="px-4 py-3 font-medium">{t('tms.table.thPriority')}</th>
+                        <th className="px-4 py-3 font-medium">{t('tms.table.thPoints')}</th>
+                        <th className="px-4 py-3 font-medium">{t('tms.table.thAssignee')}</th>
+                        <th className="px-4 py-3 font-medium">{t('tms.table.thDue')}</th>
                     </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-50">
@@ -51,7 +54,7 @@ export default function TaskTable({ tasks, canEdit, onOpen }) {
                                         {task.title}
                                     </span>
                                     {task.subtasks_count > 0 && (
-                                        <span className="text-[11px] text-gray-400">{task.subtasks_count} sub</span>
+                                        <span className="text-[11px] text-gray-400">{t('tms.card.subtasksShort', { count: task.subtasks_count })}</span>
                                     )}
                                 </div>
                                 {(task.version || task.components?.length > 0 || task.labels?.length > 0) && (

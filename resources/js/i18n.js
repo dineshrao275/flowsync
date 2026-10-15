@@ -3,6 +3,7 @@ import { initReactI18next } from 'react-i18next';
 import enCommon from './locales/en/common.json';
 import enAuth from './locales/en/auth.json';
 import enDashboard from './locales/en/dashboard.json';
+import enTms from './locales/en/tms.json';
 
 const STORAGE_PREFIX = (typeof window !== 'undefined' && window.__FLOWSYNC_CONFIG__?.storagePrefix) || 'flowsync';
 
@@ -69,7 +70,7 @@ i18n.use(initReactI18next).init({
     // chunk. Until a screen migrates, `t()` returns the key, so
     // partially-migrated screens degrade to visible keys, never blanks.
     resources: {
-        en: { common: { ...enCommon, auth: enAuth, dashboard: enDashboard } },
+        en: { common: { ...enCommon, auth: enAuth, dashboard: enDashboard, tms: enTms } },
     },
     lng: storedLocale() || DEFAULT_LOCALE,
     fallbackLng: DEFAULT_LOCALE,

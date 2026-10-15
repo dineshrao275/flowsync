@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import api, { fieldErrors } from '../services/api';
 import Card from '../components/ui/Card';
 import Badge from '../components/ui/Badge';
@@ -30,7 +31,8 @@ function MemberIcon({ role }) {
 }
 
 export default function Workspaces() {
-    usePageTitle('Workspaces');
+    const { t } = useTranslation();
+    usePageTitle(t('tms.workspaces.pageTitle'));
     const { can } = useAuth();
     const toast = useToast();
     const setCrumbs = useSetCrumbs();
@@ -48,7 +50,7 @@ export default function Workspaces() {
             const { data } = await api.get('/workspaces');
             setWorkspaces(data.workspaces);
         } catch {
-            setError('Unable to load workspaces.');
+            setError(t('tms.workspaces.loadFailed'));
         } finally {
             setLoading(false);
         }
@@ -56,7 +58,7 @@ export default function Workspaces() {
 
     useEffect(() => {
         load();
-        setCrumbs([{ label: 'Workspaces' }]);
+        setCrumbs([{ label: t('tms.workspaces.pageTitle') }]);
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
@@ -69,7 +71,7 @@ export default function Workspaces() {
             setWorkspaces((current) => [...current, data.workspace]);
             setCreating(false);
             setForm({ name: '', description: '' });
-            toast.success(`${data.workspace.name} created.`);
+            toast.success(t('tms.workspaces.created', { name: data.workspace.name }));
         } catch (e) {
             setFormErrors(fieldErrors(e));
         } finally {
@@ -89,44 +91,44 @@ export default function Workspaces() {
         <div className="space-y-6">
             <div className="flex flex-wrap items-center justify-between gap-3">
                 <div>
-                    <h2 className="text-2xl font-bold text-gray-900">Workspaces</h2>
-                    <p className="mt-1 text-sm text-gray-500">Workspaces group projects, tasks and members.</p>
+                    <h2 className="text-2xl font-bold text-gray-900">{t('tms.workspaces.pageTitle')}</h2>
+                    <p className="mt-1 text-sm text-gray-500">{t('tms.workspaces.subtitle')}</p>
                 </div>
                 {canCreate && (
-                    <Button onClick={() => setCreating((open) => !open)}>New workspace</Button>
+                    <Button onClick={() => setCreating((open) => !open)}>{t('tms.workspaces.new')}</Button>
                 )}
             </div>
 
             {error && <Alert>{error}</Alert>}
 
             {creating && (
-                <Card title="New workspace" subtitle="You will be added as its owner.">
+                <Card title={t('tms.workspaces.createTitle')} subtitle={t('tms.workspaces.createSubtitle')}>
                     <form onSubmit={createWorkspace} className="space-y-4">
                         {formErrors.form && <Alert>{formErrors.form}</Alert>}
                         <Input
-                            label="Name"
+                            label={t('tms.workspaces.name')}
                             name="name"
-                            placeholder="Product Design"
+                            placeholder={t('tms.workspaces.namePlaceholder')}
                             value={form.name}
                             onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
                             error={formErrors.name}
                             required
                         />
                         <div>
-                            <label className="mb-1.5 block text-sm font-medium text-gray-700">Description</label>
+                            <label className="mb-1.5 block text-sm font-medium text-gray-700">{t('tms.workspaces.description')}</label>
                             <RichTextEditor
                                 value={form.description}
                                 onChange={(html) => setForm((f) => ({ ...f, description: html }))}
-                                placeholder="What is this workspace for?"
+                                placeholder={t('tms.workspaces.descriptionPlaceholder')}
                                 error={formErrors.description}
                             />
                         </div>
                         <div className="flex gap-2 pt-1">
                             <Button type="button" variant="secondary" onClick={() => setCreating(false)}>
-                                Cancel
+                                {t('tms.workspaces.cancel')}
                             </Button>
                             <Button type="submit" loading={saving}>
-                                Create workspace
+                                {t('tms.workspaces.create')}
                             </Button>
                         </div>
                     </form>
@@ -136,18 +138,18 @@ export default function Workspaces() {
             <Table>
                 <thead>
                     <tr>
-                        <Th>Workspace</Th>
-                        <Th>Description</Th>
-                        <Th>Your role</Th>
-                        <Th align="right">Members</Th>
-                        <Th align="right">Projects</Th>
-                        <Th align="right">Labels</Th>
-                        <Th align="right">Status</Th>
+                        <Th>{t('tms.workspaces.thWorkspace')}</Th>
+                        <Th>{t('tms.workspaces.thDescription')}</Th>
+                        <Th>{t('tms.workspaces.thRole')}</Th>
+                        <Th align="right">{t('tms.workspaces.thMembers')}</Th>
+                        <Th align="right">{t('tms.workspaces.thProjects')}</Th>
+                        <Th align="right">{t('tms.workspaces.thLabels')}</Th>
+                        <Th align="right">{t('tms.workspaces.thStatus')}</Th>
                     </tr>
                 </thead>
                 <tbody>
                     {workspaces.length === 0 ? (
-                        <TableEmpty colSpan={7}>No workspaces yet.</TableEmpty>
+                        <TableEmpty colSpan={7}>{t('tms.workspaces.empty')}</TableEmpty>
                     ) : (
                         workspaces.map((workspace, index) => (
                             <tr
@@ -174,16 +176,16 @@ export default function Workspaces() {
                                 </Td>
                                 <Td>
                                         <span className="block max-w-md truncate text-gray-500">
-                                            {stripRichText(workspace.description) || 'No description'}
+                                            {stripRichText(workspace.description) || t('tms.workspaces.noDescription')}
                                         </span>
                                 </Td>
                                 <Td>
                                     <span
                                         className="inline-flex items-center gap-2 text-gray-500"
-                                        title={`Your role: ${workspace.my_role || 'none'}`}
+                                        title={t('tms.workspaces.roleTitle', { role: workspace.my_role || t('tms.workspaces.roleNone') })}
                                     >
                                         <MemberIcon role={workspace.my_role} />
-                                        <span className="capitalize">{workspace.my_role || 'none'}</span>
+                                        <span className="capitalize">{workspace.my_role || t('tms.workspaces.roleNone')}</span>
                                     </span>
                                 </Td>
                                 <Td align="right" className="tabular-nums">
@@ -197,9 +199,9 @@ export default function Workspaces() {
                                 </Td>
                                 <Td align="right">
                                     {workspace.archived_at ? (
-                                        <Badge>archived</Badge>
+                                        <Badge>{t('tms.workspaces.archived')}</Badge>
                                     ) : (
-                                        <span className="text-xs text-gray-400">active</span>
+                                        <span className="text-xs text-gray-400">{t('tms.workspaces.active')}</span>
                                     )}
                                 </Td>
                             </tr>
@@ -210,8 +212,8 @@ export default function Workspaces() {
 
             {workspaces.length === 0 && !creating && canCreate && (
                 <div className="flex flex-col items-center gap-3 py-2 text-center">
-                    <p className="text-sm text-gray-600">Create one to start organizing projects and tasks.</p>
-                    <Button onClick={() => setCreating(true)}>Create your first workspace</Button>
+                    <p className="text-sm text-gray-600">{t('tms.workspaces.emptyHint')}</p>
+                    <Button onClick={() => setCreating(true)}>{t('tms.workspaces.emptyCta')}</Button>
                 </div>
             )}
         </div>

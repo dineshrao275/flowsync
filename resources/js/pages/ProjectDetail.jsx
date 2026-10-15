@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import api, { fieldErrors } from '../services/api';
 import Card from '../components/ui/Card';
 import Badge from '../components/ui/Badge';
@@ -27,15 +28,10 @@ import TimeSummary from '../components/time/TimeSummary';
 import usePageTitle from '../hooks/usePageTitle';
 import { projectRoleLabel } from '../utils/roles';
 
-const CATEGORY_LABELS = {
-    todo: 'To do',
-    in_progress: 'In progress',
-    done: 'Done',
-};
-
 const DEFAULT_COLORS = ['#2563eb', '#0ea5e9', '#f59e0b', '#10b981', '#ef4444', '#8b5cf6'];
 
 export default function ProjectDetail() {
+    const { t } = useTranslation();
     const { projectId } = useParams();
     const navigate = useNavigate();
     const { user, can, hasModule } = useAuth();
@@ -43,7 +39,7 @@ export default function ProjectDetail() {
     const confirm = useConfirm();
     const setCrumbs = useSetCrumbs();
     const [project, setProject] = useState(null);
-    usePageTitle(project?.name || 'Project');
+    usePageTitle(project?.name || t('tms.project.fallbackTitle'));
     const [members, setMembers] = useState([]);
     const [roles, setRoles] = useState([]);
     const [statuses, setStatuses] = useState([]);
@@ -137,7 +133,7 @@ export default function ProjectDetail() {
                     navigate('/403', { replace: true });
                     return;
                 }
-                if (active) setError('Unable to load project.');
+                if (active) setError(t('tms.project.loadFailed'));
             })
             .finally(() => {
                 if (active) setLoading(false);
@@ -157,13 +153,13 @@ export default function ProjectDetail() {
         setCrumbs(
             project
                 ? [
-                    { label: 'Workspaces', to: '/workspaces' },
-                    { label: project.workspace?.name || `Workspace ${project.workspace_id}`, to: `/workspaces/${project.workspace_id}` },
+                    { label: t('tms.project.crumbWorkspaces'), to: '/workspaces' },
+                    { label: project.workspace?.name || t('tms.projectsList.workspaceFallback', { id: project.workspace_id }), to: `/workspaces/${project.workspace_id}` },
                     { label: project.name },
                 ]
-                : [{ label: 'Workspaces', to: '/workspaces' }],
+                : [{ label: t('tms.project.crumbWorkspaces'), to: '/workspaces' }],
         );
-    }, [project, setCrumbs]);
+    }, [project, setCrumbs, t]);
 
     // Latest request wins: a slow earlier fetch (view toggle, filter change, a
     // realtime refetch) must never overwrite a newer board with stale data.
@@ -202,7 +198,7 @@ export default function ProjectDetail() {
                     navigate('/403', { replace: true });
                     return;
                 }
-                setTasksError('Unable to load tasks.');
+                setTasksError(t('tms.project.tasksFailed'));
             })
             .finally(() => {
                 if (seq === loadSeqRef.current) setLoadingTasks(false);
@@ -258,7 +254,7 @@ export default function ProjectDetail() {
             .then(({ data }) => setSelectedTask(data.task))
             .catch((err) => {
                 if (err?.response?.status === 403) {
-                    toast.error('You do not have permission to view this task.');
+                    toast.error(t('tms.project.noViewPermission'));
                     setSelectedTask(null);
                     setSelectedTaskSection(null);
                     setSelectedCommentId(null);
@@ -300,9 +296,9 @@ export default function ProjectDetail() {
             })
             .catch((err) => {
                 if (err?.response?.status === 403) {
-                    toast.error('You do not have permission to view this task.');
+                    toast.error(t('tms.project.noViewPermission'));
                 } else if (err?.response?.status === 404) {
-                    toast.error('Task not found.');
+                    toast.error(t('tms.project.taskNotFound'));
                 }
             });
         // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -353,14 +349,14 @@ export default function ProjectDetail() {
 
         api.post(`/projects/${projectId}/tasks/${task.id}/move`, { status_id: statusId, index })
             .then(() => {
-                toast.success(`${task.key} moved.`);
+                toast.success(t('tms.project.moved', { key: task.key }));
                 loadTasks();
             })
             .catch((e) => {
                 const status = e?.response?.status;
                 const message = status === 403
-                    ? (e.response.data?.message || 'You do not have permission to move this task.')
-                    : (fieldErrors(e).form || 'Could not move task.');
+                    ? (e.response.data?.message || t('tms.project.moveDenied'))
+                    : (fieldErrors(e).form || t('tms.project.moveFailed'));
                 toast.error(message);
                 loadTasks(); // snap the card back to where the server says it is
             });
@@ -372,7 +368,7 @@ export default function ProjectDetail() {
             .post(`/projects/${projectId}/tasks`, data)
             .then(() => {
                 setShowCreate(false);
-                toast.success('Task created.');
+                toast.success(t('tms.project.taskCreated'));
                 return loadTasks();
             })
             .catch((e) => {
@@ -388,7 +384,7 @@ export default function ProjectDetail() {
             .then(() => {
                 setSelectedTask(null);
                 setSelectedTaskSection(null);
-                toast.success('Task updated.');
+                toast.success(t('tms.project.taskUpdated'));
                 return loadTasks();
             })
             .catch((e) => {
@@ -399,16 +395,16 @@ export default function ProjectDetail() {
 
     async function deleteTask() {
         if (!selectedTask) return;
-        if (!(await confirm({ title: 'Delete task?', message: `Delete ${selectedTask.key}? This cannot be undone.`, variant: 'danger' }))) return;
+        if (!(await confirm({ title: t('tms.project.deleteTaskTitle'), message: t('tms.project.deleteTaskMessage', { key: selectedTask.key }), variant: 'danger' }))) return;
         setSavingTask(true);
         try {
             await api.delete(`/projects/${projectId}/tasks/${selectedTask.id}`);
             setSelectedTask(null);
             setSelectedTaskSection(null);
-            toast.success('Task deleted.');
+            toast.success(t('tms.project.taskDeleted'));
             await loadTasks();
         } catch (e) {
-            toast.error(fieldErrors(e).form || 'Could not delete task.');
+            toast.error(fieldErrors(e).form || t('tms.project.taskDeleteFailed'));
         } finally {
             setSavingTask(false);
         }
@@ -421,7 +417,7 @@ export default function ProjectDetail() {
             .then(({ data }) => {
                 setProject(data.project);
                 setSettingsDates(null);
-                toast.success('Project updated.');
+                toast.success(t('tms.project.updated'));
             })
             .catch((e) => setFormErrors(fieldErrors(e)))
             .finally(() => setUpdating(false));
@@ -431,9 +427,9 @@ export default function ProjectDetail() {
         try {
             const { data } = await api.post(`/projects/${projectId}/archive`);
             setProject(data.project);
-            toast.success('Project archived.');
+            toast.success(t('tms.project.archived'));
         } catch (e) {
-            toast.error(fieldErrors(e).form || 'Could not archive project.');
+            toast.error(fieldErrors(e).form || t('tms.project.archiveFailed'));
         }
     }
 
@@ -441,20 +437,20 @@ export default function ProjectDetail() {
         try {
             const { data } = await api.post(`/projects/${projectId}/restore`);
             setProject(data.project);
-            toast.success('Project restored.');
+            toast.success(t('tms.project.restored'));
         } catch (e) {
-            toast.error(fieldErrors(e).form || 'Could not restore project.');
+            toast.error(fieldErrors(e).form || t('tms.project.restoreFailed'));
         }
     }
 
     async function deleteProject() {
-        if (!(await confirm({ title: 'Delete project?', message: 'Permanently delete this project? This cannot be undone.', variant: 'danger' }))) return;
+        if (!(await confirm({ title: t('tms.project.deleteTitle'), message: t('tms.project.deleteMessage'), variant: 'danger' }))) return;
         try {
             await api.delete(`/projects/${projectId}`);
-            toast.success('Project deleted.');
+            toast.success(t('tms.project.deleted'));
             navigate(-1);
         } catch (e) {
-            toast.error(fieldErrors(e).form || 'Could not delete project.');
+            toast.error(fieldErrors(e).form || t('tms.project.deleteFailed'));
         }
     }
 
@@ -478,7 +474,7 @@ export default function ProjectDetail() {
             await api.post(`/projects/${projectId}/members`, memberForm);
             await loadMemberCandidates();
             setMemberForm((f) => ({ ...f, user_id: '' }));
-            toast.success('Member added.');
+            toast.success(t('tms.project.memberAdded'));
         } catch (e) {
             setFormErrors(fieldErrors(e));
         } finally {
@@ -490,20 +486,20 @@ export default function ProjectDetail() {
         try {
             await api.put(`/projects/${projectId}/members/${member.id}`, { role_id: roleId });
             await loadMemberCandidates();
-            toast.success('Role updated.');
+            toast.success(t('tms.project.roleUpdated'));
         } catch (e) {
-            toast.error(fieldErrors(e).form || 'Could not change role.');
+            toast.error(fieldErrors(e).form || t('tms.project.roleFailed'));
         }
     }
 
     async function removeMember(member) {
-        if (!(await confirm({ title: 'Remove member?', message: `Remove ${member.name} from this project?`, variant: 'danger' }))) return;
+        if (!(await confirm({ title: t('tms.project.removeMemberTitle'), message: t('tms.project.removeMemberMessage', { name: member.name }), variant: 'danger' }))) return;
         try {
             await api.delete(`/projects/${projectId}/members/${member.id}`);
             await loadMemberCandidates();
-            toast.success(`${member.name} removed.`);
+            toast.success(t('tms.project.memberRemoved', { name: member.name }));
         } catch (e) {
-            toast.error(fieldErrors(e).form || 'Could not remove member.');
+            toast.error(fieldErrors(e).form || t('tms.project.memberRemoveFailed'));
         }
     }
 
@@ -516,7 +512,7 @@ export default function ProjectDetail() {
             const { data } = await api.get(`/projects/${projectId}/statuses`);
             setStatuses(data.statuses);
             setStatusForm((f) => ({ ...f, name: '' }));
-            toast.success('Status created.');
+            toast.success(t('tms.project.statusCreated'));
         } catch (e) {
             setFormErrors(fieldErrors(e));
         } finally {
@@ -529,9 +525,9 @@ export default function ProjectDetail() {
             await api.put(`/projects/${projectId}/statuses/${status.id}`, fields);
             const { data } = await api.get(`/projects/${projectId}/statuses`);
             setStatuses(data.statuses);
-            toast.success('Status updated.');
+            toast.success(t('tms.project.statusUpdated'));
         } catch (e) {
-            toast.error(fieldErrors(e).form || 'Could not update status.');
+            toast.error(fieldErrors(e).form || t('tms.project.statusUpdateFailed'));
         }
     }
 
@@ -540,14 +536,14 @@ export default function ProjectDetail() {
     }
 
     async function deleteStatus(status) {
-        if (!(await confirm({ title: 'Delete status?', message: `Delete status "${status.name}"? Tasks in it must move first.`, variant: 'danger' }))) return;
+        if (!(await confirm({ title: t('tms.project.deleteStatusTitle'), message: t('tms.project.deleteStatusMessage', { name: status.name }), variant: 'danger' }))) return;
         try {
             await api.delete(`/projects/${projectId}/statuses/${status.id}`);
             const { data } = await api.get(`/projects/${projectId}/statuses`);
             setStatuses(data.statuses);
-            toast.success('Status deleted.');
+            toast.success(t('tms.project.statusDeleted'));
         } catch (e) {
-            toast.error(fieldErrors(e).form || 'Could not delete status.');
+            toast.error(fieldErrors(e).form || t('tms.project.statusDeleteFailed'));
         }
     }
 
@@ -569,7 +565,7 @@ export default function ProjectDetail() {
             await api.post('/issue-types', issueTypeForm);
             await loadIssueTypes();
             setIssueTypeForm({ name: '', description: '', color: '#3b82f6', is_subtask: false });
-            toast.success('Issue type created.');
+            toast.success(t('tms.project.typeCreated'));
         } catch (e) {
             setIssueTypeErrors(fieldErrors(e));
         } finally {
@@ -581,20 +577,20 @@ export default function ProjectDetail() {
         try {
             await api.put(`/issue-types/${type.id}`, fields);
             await loadIssueTypes();
-            toast.success('Issue type updated.');
+            toast.success(t('tms.project.typeUpdated'));
         } catch (e) {
-            toast.error(fieldErrors(e).name || fieldErrors(e).form || 'Could not update issue type.');
+            toast.error(fieldErrors(e).name || fieldErrors(e).form || t('tms.project.typeUpdateFailed'));
         }
     }
 
     async function deleteIssueType(type) {
-        if (!(await confirm({ title: 'Delete issue type?', message: `Delete issue type "${type.name}"?`, variant: 'danger' }))) return;
+        if (!(await confirm({ title: t('tms.project.deleteTypeTitle'), message: t('tms.project.deleteTypeMessage', { name: type.name }), variant: 'danger' }))) return;
         try {
             await api.delete(`/issue-types/${type.id}`);
             await loadIssueTypes();
-            toast.success('Issue type deleted.');
+            toast.success(t('tms.project.typeDeleted'));
         } catch (e) {
-            toast.error(fieldErrors(e).form || 'Could not delete issue type.');
+            toast.error(fieldErrors(e).form || t('tms.project.typeDeleteFailed'));
         }
     }
 
@@ -609,21 +605,21 @@ export default function ProjectDetail() {
     if (error || !project) {
         return (
             <div className="max-w-md">
-                <Alert>{error || 'Project not found.'}</Alert>
+                <Alert>{error || t('tms.project.notFound')}</Alert>
             </div>
         );
     }
 
     const tabs = [
-        { key: 'overview', label: 'Overview' },
-        { key: 'tasks', label: 'Tasks' },
-        { key: 'hierarchy', label: 'Hierarchy' },
-        { key: 'members', label: `Members (${members.length})` },
-        { key: 'workflow', label: 'Workflow' },
-        ...(hasModule('time_tracking') ? [{ key: 'time', label: 'Time' }] : []),
-        ...(hasModule('sprints') ? [{ key: 'sprints', label: 'Sprints' }] : []),
-        ...(isProjectManager && hasModule('automation') ? [{ key: 'automation', label: 'Automation' }] : []),
-        ...(isProjectManager ? [{ key: 'settings', label: 'Settings' }] : []),
+        { key: 'overview', label: t('tms.project.tabs.overview') },
+        { key: 'tasks', label: t('tms.project.tabs.tasks') },
+        { key: 'hierarchy', label: t('tms.project.tabs.hierarchy') },
+        { key: 'members', label: t('tms.project.tabs.members', { count: members.length }) },
+        { key: 'workflow', label: t('tms.project.tabs.workflow') },
+        ...(hasModule('time_tracking') ? [{ key: 'time', label: t('tms.project.tabs.time') }] : []),
+        ...(hasModule('sprints') ? [{ key: 'sprints', label: t('tms.project.tabs.sprints') }] : []),
+        ...(isProjectManager && hasModule('automation') ? [{ key: 'automation', label: t('tms.project.tabs.automation') }] : []),
+        ...(isProjectManager ? [{ key: 'settings', label: t('tms.project.tabs.settings') }] : []),
     ];
 
     const lead = members.find((m) => m.role?.slug === 'lead') || members[0];
@@ -642,12 +638,12 @@ export default function ProjectDetail() {
                         <div className="flex flex-wrap items-center gap-2">
                             <h2 className="text-2xl font-bold text-gray-900">{project.name}</h2>
                             {project.my_role && <Badge>{projectRoleLabel(project.my_role)}</Badge>}
-                            {archived && <Badge>archived</Badge>}
+                            {archived && <Badge>{t('tms.project.archivedBadge')}</Badge>}
                         </div>
                         {project.description ? (
                             <RichText value={project.description} className="mt-1 text-gray-500" />
                         ) : (
-                            <p className="mt-1 text-sm text-gray-500">No description</p>
+                            <p className="mt-1 text-sm text-gray-500">{t('tms.project.noDescription')}</p>
                         )}
                         <p className="mt-0.5 text-xs text-gray-400">{project.key}</p>
                     </div>
@@ -655,12 +651,12 @@ export default function ProjectDetail() {
                 <div className="flex items-center gap-2">
                     {archived && isProjectManager ? (
                         <Button variant="secondary" onClick={restoreProject}>
-                            Restore
+                            {t('tms.project.restore')}
                         </Button>
                     ) : (
                         isProjectManager && (
                             <Button variant="secondary" onClick={archiveProject}>
-                                Archive
+                                {t('tms.project.archive')}
                             </Button>
                         )
                     )}
@@ -672,31 +668,31 @@ export default function ProjectDetail() {
             {tab === 'overview' && (
                 <div className="grid grid-cols-1 gap-5 lg:grid-cols-3">
                     <div className="space-y-5 lg:col-span-2">
-                        <Card title="Details" subtitle={`Workspace · ${project.workspace_id}`}>
+                        <Card title={t('tms.project.detailsTitle')} subtitle={t('tms.project.detailsSubtitle', { id: project.workspace_id })}>
                             <dl className="grid grid-cols-2 gap-4 text-sm">
                                 <div>
-                                    <dt className="text-xs font-medium uppercase tracking-wide text-gray-400">Key</dt>
+                                    <dt className="text-xs font-medium uppercase tracking-wide text-gray-400">{t('tms.project.key')}</dt>
                                     <dd className="mt-1 font-semibold text-gray-900">{project.key}</dd>
                                 </div>
                                 <div>
-                                    <dt className="text-xs font-medium uppercase tracking-wide text-gray-400">Lead</dt>
+                                    <dt className="text-xs font-medium uppercase tracking-wide text-gray-400">{t('tms.project.lead')}</dt>
                                     <dd className="mt-1 text-gray-700">{lead?.name ?? '—'}</dd>
                                 </div>
                                 <div>
-                                    <dt className="text-xs font-medium uppercase tracking-wide text-gray-400">Start date</dt>
+                                    <dt className="text-xs font-medium uppercase tracking-wide text-gray-400">{t('tms.project.startDate')}</dt>
                                     <dd className="mt-1 text-gray-700">{project.start_date ?? '—'}</dd>
                                 </div>
                                 <div>
-                                    <dt className="text-xs font-medium uppercase tracking-wide text-gray-400">Due date</dt>
+                                    <dt className="text-xs font-medium uppercase tracking-wide text-gray-400">{t('tms.project.dueDate')}</dt>
                                     <dd className="mt-1 text-gray-700">{project.due_date ?? '—'}</dd>
                                 </div>
                             </dl>
                         </Card>
                     </div>
                     <div className="space-y-5">
-                        <Card title="Workflow">
+                        <Card title={t('tms.project.workflowTitle')}>
                             {statuses.length === 0 ? (
-                                <p className="text-sm text-gray-500">No statuses.</p>
+                                <p className="text-sm text-gray-500">{t('tms.project.noStatuses')}</p>
                             ) : (
                                 <ol className="space-y-2">
                                     {statuses.map((s) => (
@@ -708,7 +704,7 @@ export default function ProjectDetail() {
                                                 <span className="h-3 w-3 rounded-full" style={{ backgroundColor: s.color || '#cbd5e1' }} />
                                                 {s.name}
                                             </span>
-                                            <span className="text-xs text-gray-400">{CATEGORY_LABELS[s.category] ?? s.category}</span>
+                                            <span className="text-xs text-gray-400">{t(`tms.project.categories.${s.category}`)}</span>
                                         </li>
                                     ))}
                                 </ol>
@@ -716,15 +712,15 @@ export default function ProjectDetail() {
                             <div className="mt-4 grid grid-cols-3 gap-3 text-center">
                                 <div className="rounded-lg border border-gray-100 px-3 py-2">
                                     <p className="text-xl font-bold text-gray-900">{members.length}</p>
-                                    <p className="text-xs text-gray-500">Members</p>
+                                    <p className="text-xs text-gray-500">{t('tms.project.statMembers')}</p>
                                 </div>
                                 <div className="rounded-lg border border-gray-100 px-3 py-2">
                                     <p className="text-xl font-bold text-gray-900">{project.tasks_count ?? 0}</p>
-                                    <p className="text-xs text-gray-500">Tasks</p>
+                                    <p className="text-xs text-gray-500">{t('tms.project.statTasks')}</p>
                                 </div>
                                 <div className="rounded-lg border border-gray-100 px-3 py-2">
                                     <p className="text-xl font-bold text-gray-900">{statuses.length}</p>
-                                    <p className="text-xs text-gray-500">Statuses</p>
+                                    <p className="text-xs text-gray-500">{t('tms.project.statStatuses')}</p>
                                 </div>
                             </div>
                         </Card>
@@ -746,7 +742,7 @@ export default function ProjectDetail() {
                                     className={`rounded-md px-3 py-1.5 text-sm font-medium transition ${view === 'board' ? 'bg-[var(--accent)] text-[var(--accent-contrast)]' : 'text-gray-600 hover:bg-gray-100'
                                         }`}
                                 >
-                                    Board
+                                    {t('tms.project.board')}
                                 </button>
                                 <button
                                     type="button"
@@ -757,7 +753,7 @@ export default function ProjectDetail() {
                                     className={`rounded-md px-3 py-1.5 text-sm font-medium transition ${view === 'list' ? 'bg-[var(--accent)] text-[var(--accent-contrast)]' : 'text-gray-600 hover:bg-gray-100'
                                         }`}
                                 >
-                                    List
+                                    {t('tms.project.list')}
                                 </button>
                             </div>
                             {view === 'board' && (
@@ -765,16 +761,16 @@ export default function ProjectDetail() {
                                     value={swimlane}
                                     onChange={(e) => setSwimlane(e.target.value)}
                                     className="rounded-lg border border-gray-300 bg-white px-2 py-1.5 text-sm text-gray-600 shadow-sm focus:outline-none"
-                                    title="Group the board into swimlanes"
+                                    title={t('tms.project.swimlaneTitle')}
                                 >
-                                    <option value="none">No swimlanes</option>
-                                    <option value="assignee">Swimlanes by assignee</option>
+                                    <option value="none">{t('tms.project.noSwimlanes')}</option>
+                                    <option value="assignee">{t('tms.project.swimlanesByAssignee')}</option>
                                 </select>
                             )}
                             {loadingTasks && <Spinner className="h-5 w-5" />}
                         </div>
                         {canCreateTask && (
-                            <Button onClick={() => setShowCreate(true)}>New task</Button>
+                            <Button onClick={() => setShowCreate(true)}>{t('tms.project.newTask')}</Button>
                         )}
                     </div>
 
@@ -818,7 +814,7 @@ export default function ProjectDetail() {
             {tab === 'members' && (
                 <div className="space-y-5">
                     {isProjectManager && (
-                        <Card title="Add member" subtitle="Only users from your tenant can be added.">
+                        <Card title={t('tms.project.addMemberTitle')} subtitle={t('tms.project.addMemberSubtitle')}>
                             <form onSubmit={addMember} className="flex flex-col gap-3 sm:flex-row sm:items-end">
                                 <div className="flex-1">
                                     <select
@@ -826,13 +822,13 @@ export default function ProjectDetail() {
                                         value={memberForm.user_id}
                                         onChange={(e) => setMemberForm((f) => ({ ...f, user_id: e.target.value }))}
                                     >
-                                        <option value="">Select a user…</option>
+                                        <option value="">{t('tms.project.selectUser')}</option>
                                         {candidateUsers.map((u) => (
                                             <option key={u.id} value={u.id}>
                                                 {u.name} ({u.email})
                                             </option>
                                         ))}
-                                        {candidateUsers.length === 0 && <option value="">No eligible users</option>}
+                                        {candidateUsers.length === 0 && <option value="">{t('tms.project.noEligible')}</option>}
                                     </select>
                                     {formErrors.user_id && <p className="mt-1.5 text-sm text-red-600">{formErrors.user_id}</p>}
                                 </div>
@@ -851,13 +847,13 @@ export default function ProjectDetail() {
                                     {formErrors.role_id && <p className="mt-1.5 text-sm text-red-600">{formErrors.role_id}</p>}
                                 </div>
                                 <Button type="submit" loading={savingMember}>
-                                    Add
+                                    {t('tms.project.add')}
                                 </Button>
                             </form>
                         </Card>
                     )}
 
-                    <Card title="Members">
+                    <Card title={t('tms.project.membersTitle')}>
                         <ul className="divide-y divide-gray-100">
                             {members.map((member) => {
                                 const self = member.id === user?.id;
@@ -873,7 +869,7 @@ export default function ProjectDetail() {
                                             </span>
                                             <div>
                                                 <p className="text-sm font-medium text-gray-900">
-                                                    {member.name} {self && <span className="text-gray-400">(you)</span>}
+                                                    {member.name} {self && <span className="text-gray-400">{t('tms.project.you')}</span>}
                                                 </p>
                                                 <p className="text-xs text-gray-400">{member.email}</p>
                                             </div>
@@ -896,11 +892,11 @@ export default function ProjectDetail() {
                                                     <Badge>{projectRoleLabel(member.role.slug, member.role.name)}</Badge>
                                                 )
                                             ) : (
-                                                <Badge>member</Badge>
+                                                <Badge>{t('tms.project.memberFallback')}</Badge>
                                             )}
                                             {canManage && (
                                                 <Button size="sm" variant="ghost" onClick={() => removeMember(member)}>
-                                                    Remove
+                                                    {t('tms.project.remove')}
                                                 </Button>
                                             )}
                                         </div>
@@ -929,13 +925,13 @@ export default function ProjectDetail() {
             {tab === 'workflow' && isProjectManager && (
                 <div className="space-y-5">
                     <WorkflowRules projectId={projectId} />
-                    <Card title="New status" subtitle="Ordered by position. 'Done' category finishes the flow.">
+                    <Card title={t('tms.project.newStatusTitle')} subtitle={t('tms.project.newStatusSubtitle')}>
                         <form onSubmit={addStatus} className="flex flex-col gap-3 sm:flex-row sm:items-end">
                             <div className="flex-1">
                                 <Input
-                                    label="Name"
+                                    label={t('tms.project.statusName')}
                                     name="status-name"
-                                    placeholder="Blocked"
+                                    placeholder={t('tms.project.statusNamePlaceholder')}
                                     value={statusForm.name}
                                     onChange={(e) => setStatusForm((f) => ({ ...f, name: e.target.value }))}
                                     error={formErrors.name}
@@ -943,19 +939,19 @@ export default function ProjectDetail() {
                                 />
                             </div>
                             <div>
-                                <label className="mb-1.5 block text-sm font-medium text-gray-700">Category</label>
+                                <label className="mb-1.5 block text-sm font-medium text-gray-700">{t('tms.project.category')}</label>
                                 <select
                                     className="block w-full rounded-lg border border-gray-300 bg-white px-3.5 py-2.5 text-sm shadow-sm focus:border-[var(--accent)] focus:outline-none"
                                     value={statusForm.category}
                                     onChange={(e) => setStatusForm((f) => ({ ...f, category: e.target.value }))}
                                 >
-                                    <option value="todo">To do</option>
-                                    <option value="in_progress">In progress</option>
-                                    <option value="done">Done</option>
+                                    <option value="todo">{t('tms.project.categories.todo')}</option>
+                                    <option value="in_progress">{t('tms.project.categories.in_progress')}</option>
+                                    <option value="done">{t('tms.project.categories.done')}</option>
                                 </select>
                             </div>
                             <div>
-                                <label className="mb-1.5 block text-sm font-medium text-gray-700">Color</label>
+                                <label className="mb-1.5 block text-sm font-medium text-gray-700">{t('tms.project.color')}</label>
                                 <input
                                     type="color"
                                     className="h-[42px] w-16 rounded-lg border border-gray-300 bg-white p-1 shadow-sm focus:outline-none"
@@ -965,22 +961,22 @@ export default function ProjectDetail() {
                             </div>
                             <div>
                                 <Input
-                                    label="WIP limit (optional)"
+                                    label={t('tms.project.wip')}
                                     name="status-wip"
                                     type="number"
                                     min="1"
-                                    placeholder="Unlimited"
+                                    placeholder={t('tms.project.wipPlaceholder')}
                                     value={statusForm.wip_limit ?? ''}
                                     onChange={(e) => setStatusForm((f) => ({ ...f, wip_limit: e.target.value === '' ? null : Number(e.target.value) }))}
                                 />
                             </div>
                             <Button type="submit" loading={savingStatus}>
-                                Add status
+                                {t('tms.project.addStatus')}
                             </Button>
                         </form>
                     </Card>
 
-                    <Card title="Workflow" subtitle="Reorder with the arrows; renamed/recategorized inline.">
+                    <Card title={t('tms.project.workflowCardTitle')} subtitle={t('tms.project.workflowCardSubtitle')}>
                         {formErrors.form && <Alert>{formErrors.form}</Alert>}
                         <ol className="space-y-2">
                             {statuses.map((status, index) => (
@@ -995,7 +991,7 @@ export default function ProjectDetail() {
                                                 className="text-gray-400 transition hover:text-gray-700 disabled:opacity-30"
                                                 disabled={index === 0}
                                                 onClick={() => moveStatus(status, status.position - 1)}
-                                                aria-label={`Move ${status.name} up`}
+                                                aria-label={t('tms.project.moveUp', { name: status.name })}
                                             >
                                                 ↑
                                             </button>
@@ -1004,7 +1000,7 @@ export default function ProjectDetail() {
                                                 className="text-gray-400 transition hover:text-gray-700 disabled:opacity-30"
                                                 disabled={index === statuses.length - 1}
                                                 onClick={() => moveStatus(status, status.position + 1)}
-                                                aria-label={`Move ${status.name} down`}
+                                                aria-label={t('tms.project.moveDown', { name: status.name })}
                                             >
                                                 ↓
                                             </button>
@@ -1027,15 +1023,15 @@ export default function ProjectDetail() {
                                             value={status.category}
                                             onChange={(e) => updateStatus(status, { category: e.target.value })}
                                         >
-                                            <option value="todo">To do</option>
-                                            <option value="in_progress">In progress</option>
-                                            <option value="done">Done</option>
+                                            <option value="todo">{t('tms.project.categories.todo')}</option>
+                                            <option value="in_progress">{t('tms.project.categories.in_progress')}</option>
+                                            <option value="done">{t('tms.project.categories.done')}</option>
                                         </select>
                                         <input
                                             type="number"
                                             min="1"
-                                            placeholder="WIP"
-                                            title="WIP limit (leave empty for unlimited)"
+                                            placeholder={t('tms.project.wipShort')}
+                                            title={t('tms.project.wipTitle')}
                                             className="w-16 rounded-lg border border-gray-300 bg-white px-2 py-1 text-xs shadow-sm focus:border-[var(--accent-ring)] focus:outline-none"
                                             defaultValue={status.wip_limit ?? ''}
                                             onBlur={(e) => {
@@ -1045,9 +1041,9 @@ export default function ProjectDetail() {
                                                 }
                                             }}
                                         />
-                                        {status.is_default && <Badge>default</Badge>}
+                                        {status.is_default && <Badge>{t('tms.project.defaultBadge')}</Badge>}
                                         <Button size="sm" variant="ghost" onClick={() => deleteStatus(status)}>
-                                            Delete
+                                            {t('tms.project.delete')}
                                         </Button>
                                     </div>
                                 </li>
@@ -1055,13 +1051,13 @@ export default function ProjectDetail() {
                         </ol>
                     </Card>
 
-                    <Card title="Issue types" subtitle="Tenant-level issue types available across projects.">
+                    <Card title={t('tms.project.typesTitle')} subtitle={t('tms.project.typesSubtitle')}>
                         {can('workspaces.manage') && (
                             <form onSubmit={addIssueType} className="mb-6 flex flex-col gap-3 rounded-lg border border-gray-100 bg-gray-50/50 p-4 sm:flex-row sm:items-end">
                                 <div className="flex-1">
                                     <Input
-                                        label="Name"
-                                        placeholder="e.g. Incident, Improvement"
+                                        label={t('tms.project.typeName')}
+                                        placeholder={t('tms.project.typeNamePlaceholder')}
                                         value={issueTypeForm.name}
                                         onChange={(e) => setIssueTypeForm((f) => ({ ...f, name: e.target.value }))}
                                         error={issueTypeErrors.name}
@@ -1070,14 +1066,14 @@ export default function ProjectDetail() {
                                 </div>
                                 <div className="flex-1">
                                     <Input
-                                        label="Description"
-                                        placeholder="Optional description"
+                                        label={t('tms.project.typeDesc')}
+                                        placeholder={t('tms.project.typeDescPlaceholder')}
                                         value={issueTypeForm.description}
                                         onChange={(e) => setIssueTypeForm((f) => ({ ...f, description: e.target.value }))}
                                     />
                                 </div>
                                 <div>
-                                    <label className="mb-1.5 block text-sm font-medium text-gray-700">Color</label>
+                                    <label className="mb-1.5 block text-sm font-medium text-gray-700">{t('tms.project.color')}</label>
                                     <input
                                         type="color"
                                         className="h-[42px] w-16 rounded-lg border border-gray-300 bg-white p-1 shadow-sm focus:outline-none"
@@ -1093,11 +1089,11 @@ export default function ProjectDetail() {
                                             checked={issueTypeForm.is_subtask}
                                             onChange={(e) => setIssueTypeForm((f) => ({ ...f, is_subtask: e.target.checked }))}
                                         />
-                                        Subtask
+                                        {t('tms.project.subtask')}
                                     </label>
                                 </div>
                                 <Button type="submit" loading={savingIssueType}>
-                                    Add type
+                                    {t('tms.project.addType')}
                                 </Button>
                             </form>
                         )}
@@ -1115,10 +1111,10 @@ export default function ProjectDetail() {
                                                 <span className="font-medium text-gray-900">{type.name}</span>
                                                 <span className="text-xs text-gray-400">({type.slug})</span>
                                                 {type.is_subtask && (
-                                                    <Badge color="purple">subtask</Badge>
+                                                    <Badge color="purple">{t('tms.project.subtaskBadge')}</Badge>
                                                 )}
                                                 {type.tasks_count != null && (
-                                                    <span className="text-xs text-gray-400">· {type.tasks_count} tasks</span>
+                                                    <span className="text-xs text-gray-400">{t('tms.project.tasksCount', { count: type.tasks_count })}</span>
                                                 )}
                                             </div>
                                             {type.description && (
@@ -1137,16 +1133,16 @@ export default function ProjectDetail() {
                                                         updateIssueType(type, { color: e.target.value });
                                                     }
                                                 }}
-                                                title="Change color"
+                                                title={t('tms.project.changeColor')}
                                             />
                                             <Button
                                                 size="sm"
                                                 variant="ghost"
                                                 onClick={() => deleteIssueType(type)}
                                                 disabled={type.tasks_count > 0}
-                                                title={type.tasks_count > 0 ? 'Cannot delete type in use' : 'Delete'}
+                                                title={type.tasks_count > 0 ? t('tms.project.cannotDelete') : t('tms.project.delete')}
                                             >
-                                                Delete
+                                                {t('tms.project.delete')}
                                             </Button>
                                         </div>
                                     )}
@@ -1158,13 +1154,13 @@ export default function ProjectDetail() {
             )}
 
             {tab === 'time' && (
-                <Card title="Time logged" subtitle="Filters apply to all work logs across this project.">
+                <Card title={t('tms.project.timeTitle')} subtitle={t('tms.project.timeSubtitle')}>
                     <TimeSummary url={`/projects/${projectId}/time-summary`} />
                 </Card>
             )}
 
             {tab === 'settings' && isProjectManager && (
-                <Card title="Project settings" subtitle={`key: ${project.key}`}>
+                <Card title={t('tms.project.settingsTitle')} subtitle={t('tms.project.settingsSubtitle', { key: project.key })}>
                     <SettingsForm
                         project={project}
                         settingsDates={settingsDates}
@@ -1251,26 +1247,26 @@ function SettingsForm({ project, settingsDates, onDatesChange, formErrors, updat
             }}
         >
             {formErrors.form && <Alert>{formErrors.form}</Alert>}
-            <Input label="Name" name="name" defaultValue={project.name} error={formErrors.name} required />
+            <Input label={t('tms.project.settingsName')} name="name" defaultValue={project.name} error={formErrors.name} required />
             <div>
-                <label className="mb-1.5 block text-sm font-medium text-gray-700">Description</label>
+                <label className="mb-1.5 block text-sm font-medium text-gray-700">{t('tms.project.settingsDesc')}</label>
                 <RichTextEditor
                     value={description}
                     onChange={setDescription}
-                    placeholder="What is this project about?"
+                    placeholder={t('tms.project.settingsDescPlaceholder')}
                     error={formErrors.description}
                 />
             </div>
             <div className="grid gap-4 sm:grid-cols-2">
                 <Input
-                    label="Start date"
+                    label={t('tms.project.settingsStart')}
                     type="date"
                     value={dates.start_date}
                     onChange={(e) => onDatesChange({ ...dates, start_date: e.target.value })}
                     error={formErrors.start_date}
                 />
                 <Input
-                    label="Due date"
+                    label={t('tms.project.settingsEnd')}
                     type="date"
                     value={dates.due_date}
                     onChange={(e) => onDatesChange({ ...dates, due_date: e.target.value })}
@@ -1279,10 +1275,10 @@ function SettingsForm({ project, settingsDates, onDatesChange, formErrors, updat
             </div>
             <div className="flex gap-2">
                 <Button type="submit" loading={updating}>
-                    Save changes
+                    {t('tms.project.save')}
                 </Button>
                 <Button type="button" variant="danger" onClick={deleteProject}>
-                    Delete project
+                    {t('tms.project.deleteProject')}
                 </Button>
             </div>
         </form>

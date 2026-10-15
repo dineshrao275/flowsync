@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import api from '../../services/api';
 import Alert from '../ui/Alert';
 import Card from '../ui/Card';
@@ -7,6 +8,7 @@ import Spinner from '../ui/Spinner';
 import { taskUrl } from '../../utils/deepLinks';
 
 function Node({ node, projectId, depth }) {
+    const { t } = useTranslation();
     const [open, setOpen] = useState(depth < 1);
     const hasChildren = node.children?.length > 0;
     const pct = node.progress?.total ? Math.round((node.progress.done / node.progress.total) * 100) : null;
@@ -16,7 +18,7 @@ function Node({ node, projectId, depth }) {
             <div className="flex items-center gap-2 rounded-lg px-2 py-1.5 text-sm hover:bg-gray-50" style={{ paddingLeft: `${depth * 20 + 8}px` }}>
                 <button
                     type="button"
-                    aria-label={open ? 'Collapse' : 'Expand'}
+                    aria-label={open ? t('tms.hierarchy.collapse') : t('tms.hierarchy.expand')}
                     disabled={!hasChildren}
                     onClick={() => setOpen((o) => !o)}
                     className="w-4 text-xs text-gray-400"
@@ -41,6 +43,7 @@ function Node({ node, projectId, depth }) {
 
 /** Initiative -> epic -> issue -> sub-task tree of one project (P4.1). */
 export default function HierarchyPanel({ projectId }) {
+    const { t } = useTranslation();
     const [data, setData] = useState(null);
     const [error, setError] = useState(null);
 
@@ -48,21 +51,21 @@ export default function HierarchyPanel({ projectId }) {
         let active = true;
         api.get(`/projects/${projectId}/hierarchy`)
             .then(({ data: d }) => active && setData(d))
-            .catch((e) => active && setError(e.response?.data?.message || 'Could not load the hierarchy.'));
+            .catch((e) => active && setError(e.response?.data?.message || t('tms.hierarchy.loadFailed')));
         return () => { active = false; };
-    }, [projectId]);
+    }, [projectId, t]);
 
     if (error) return <Alert>{error}</Alert>;
     if (!data) return <div className="flex justify-center py-10"><Spinner /></div>;
 
     return (
-        <Card title="Hierarchy" subtitle="Initiatives, epics, issues and sub-tasks. Link an issue to its epic from the task editor.">
+        <Card title={t('tms.hierarchy.title')} subtitle={t('tms.hierarchy.subtitle')}>
             {data.tree.length === 0 ? (
-                <p className="text-sm text-gray-500">No tasks yet.</p>
+                <p className="text-sm text-gray-500">{t('tms.hierarchy.empty')}</p>
             ) : (
                 <ul className="space-y-0.5">{data.tree.map((n, i) => <Node key={n.id ?? `v${i}`} node={n} projectId={projectId} depth={0} />)}</ul>
             )}
-            {data.truncated && <p className="mt-3 text-xs text-gray-500">Showing the first 2000 tasks.</p>}
+            {data.truncated && <p className="mt-3 text-xs text-gray-500">{t('tms.hierarchy.truncated', { count: 2000 })}</p>}
         </Card>
     );
 }
