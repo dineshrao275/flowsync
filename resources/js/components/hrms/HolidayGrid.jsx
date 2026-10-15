@@ -79,7 +79,7 @@ export default function HolidayGrid({ holidays = [], year }) {
                         type="button"
                         onClick={() => setMonth(i + 1)}
                         className={`rounded-full px-2.5 py-1 text-xs font-medium ${
-                            month === i + 1 ? 'bg-indigo-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                            month === i + 1 ? 'bg-[var(--accent)] text-[var(--accent-contrast)]' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                         }`}
                     >
                         {name.slice(0, 3)}

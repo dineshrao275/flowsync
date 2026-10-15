@@ -147,7 +147,7 @@ export default function Webhooks() {
                                                     <td className="px-3 py-2">{d.attempts}</td>
                                                     <td className="px-3 py-2">{d.response_status ?? '—'}</td>
                                                     <td className="px-3 py-2"><Timestamp date={d.created_at} /></td>
-                                                    <td className="px-3 py-2 text-right"><button className="text-indigo-600 hover:underline" onClick={() => act(() => api.post(`/webhook-deliveries/${d.id}/redeliver`), 'Queued.')}>Redeliver</button></td>
+                                                    <td className="px-3 py-2 text-right"><button className="text-[var(--accent-soft-text)] hover:underline" onClick={() => act(() => api.post(`/webhook-deliveries/${d.id}/redeliver`), 'Queued.')}>Redeliver</button></td>
                                                 </tr>
                                             ))}
                                         </tbody>

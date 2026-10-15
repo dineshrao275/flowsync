@@ -20,7 +20,7 @@ function Toggle({ label, hint, checked, onChange, disabled }) {
                 checked={checked}
                 disabled={disabled}
                 onChange={(e) => onChange(e.target.checked)}
-                className="h-5 w-5 rounded border-gray-300 text-[var(--accent)] focus:ring-[var(--accent-ring)]"
+                className="h-5 w-5 rounded border-gray-300 accent-[var(--accent)]"
             />
         </label>
     );
@@ -101,7 +101,7 @@ export default function SystemSettings() {
                         <select
                             value={settings.default_plan_id || ''}
                             onChange={(e) => set('default_plan_id', e.target.value ? Number(e.target.value) : null)}
-                            className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100"
+                            className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm outline-none focus:border-[var(--accent)]"
                         >
                             <option value="">None (first-come uses the plan’s own default)</option>
                             {plans.map((p) => (

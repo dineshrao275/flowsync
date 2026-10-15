@@ -161,7 +161,7 @@ export default function MySurvey() {
                                     key={n}
                                     type="button"
                                     onClick={() => setAnswer(question.id, n)}
-                                    className={`h-10 w-10 rounded-lg border text-sm font-medium ${Number(value) === n ? 'border-indigo-600 bg-indigo-100 text-indigo-800' : 'border-gray-300 text-gray-600 hover:border-gray-400'}`}
+                                    className={`h-10 w-10 rounded-lg border text-sm font-medium ${Number(value) === n ? 'border-[var(--accent)] bg-[var(--accent-soft)] text-[var(--accent-soft-text)]' : 'border-gray-300 text-gray-600 hover:border-gray-400'}`}
                                 >
                                     {n}
                                 </button>
@@ -214,7 +214,7 @@ export default function MySurvey() {
                 {error && <Alert>{error}</Alert>}
 
                 <div className="h-2 overflow-hidden rounded-full bg-gray-100">
-                    <div className="h-full rounded-full bg-indigo-500 transition-all" style={{ width: `${questions.length === 0 ? 0 : ((step + 1) / questions.length) * 100}%` }} />
+                    <div className="h-full rounded-full bg-[var(--accent-soft)]0 transition-all" style={{ width: `${questions.length === 0 ? 0 : ((step + 1) / questions.length) * 100}%` }} />
                 </div>
 
                 {question ? (

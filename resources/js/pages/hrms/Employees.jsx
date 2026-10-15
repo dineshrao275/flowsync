@@ -293,7 +293,7 @@ export default function Employees() {
                                         <span className="min-w-0">
                                             <Link
                                                 to={employeeUrl(employee.id)}
-                                                className="block truncate font-medium text-gray-800 hover:text-indigo-700"
+                                                className="block truncate font-medium text-gray-800 hover:text-[var(--accent)]"
                                             >
                                                 {employee.display_name}
                                             </Link>

@@ -35,7 +35,7 @@ const STATUS_STYLES = {
     deactivated: 'bg-gray-200 text-gray-600',
     pending: 'bg-gray-100 text-gray-600',
     draft: 'bg-yellow-100 text-yellow-800',
-    provisioning: 'bg-indigo-100 text-[var(--accent)]',
+    provisioning: 'bg-[var(--accent-soft)] text-[var(--accent)]',
     provisioning_failed: 'bg-rose-100 text-rose-700',
 };
 
@@ -402,12 +402,12 @@ export default function Tenants() {
                         placeholder="Search name, slug, description…"
                         value={q}
                         onChange={(e) => applyFilter({ q: e.target.value })}
-                        className="min-w-48 flex-1 rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200"
+                        className="min-w-48 flex-1 rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-[var(--accent)]"
                     />
                     <select
                         value={status}
                         onChange={(e) => applyFilter({ status: e.target.value })}
-                        className="rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200"
+                        className="rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-[var(--accent)]"
                     >
                         <option value="">All statuses</option>
                         {STATUS_OPTIONS.map((option) => (
@@ -419,7 +419,7 @@ export default function Tenants() {
                     <select
                         value={plan_id}
                         onChange={(e) => applyFilter({ plan_id: e.target.value })}
-                        className="rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200"
+                        className="rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-[var(--accent)]"
                     >
                         <option value="">All plans</option>
                         {plans.map((plan) => (
@@ -431,7 +431,7 @@ export default function Tenants() {
                     <select
                         value={filters.subscription_status}
                         onChange={(e) => applyFilter({ subscription_status: e.target.value })}
-                        className="rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200"
+                        className="rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-[var(--accent)]"
                     >
                         <option value="">Any subscription</option>
                         <option value="trialing">Trialing</option>
@@ -444,7 +444,7 @@ export default function Tenants() {
                     <select
                         value={sort}
                         onChange={(e) => applyFilter({ sort: e.target.value })}
-                        className="rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200"
+                        className="rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-[var(--accent)]"
                     >
                         {SORT_OPTIONS.map((option) => (
                             <option key={option.value} value={option.value}>
@@ -457,7 +457,7 @@ export default function Tenants() {
                             type="checkbox"
                             checked={trashed}
                             onChange={(e) => applyFilter({ trashed: e.target.checked })}
-                            className="h-4 w-4 rounded border-gray-300 text-[var(--accent)] focus:ring-[var(--accent-ring)]"
+                            className="h-4 w-4 rounded border-gray-300 accent-[var(--accent)]"
                         />
                         Include deleted
                     </label>

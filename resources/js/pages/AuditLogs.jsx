@@ -106,7 +106,7 @@ export default function AuditLogs() {
                         value={q}
                         onChange={(e) => setQ(e.target.value)}
                         placeholder="Filter action, actor…"
-                        className="w-56 rounded-lg border border-gray-200 px-3 py-2 text-sm outline-none focus:border-indigo-400"
+                        className="w-56 rounded-lg border border-gray-200 px-3 py-2 text-sm outline-none focus:border-[var(--accent)]"
                     />
                     <Button type="submit">Filter</Button>
                 </form>

@@ -140,7 +140,7 @@ export default function Performance() {
                 {STAGES.map((step, i) => (
                     <li key={step} className="flex items-center gap-1">
                         <span
-                            className={`rounded-full px-2 py-0.5 text-xs font-medium ${i < at ? 'bg-green-100 text-green-800' : i === at ? 'bg-indigo-100 text-indigo-800' : 'bg-gray-100 text-gray-400'}`}
+                            className={`rounded-full px-2 py-0.5 text-xs font-medium ${i < at ? 'bg-green-100 text-green-800' : i === at ? 'bg-[var(--accent-soft)] text-[var(--accent-soft-text)]' : 'bg-gray-100 text-gray-400'}`}
                         >
                             {STAGE_LABELS[step]}
                         </span>
@@ -178,7 +178,7 @@ export default function Performance() {
                             <Card key={cycle.id} dense>
                                 <div className="flex flex-wrap items-start justify-between gap-3">
                                     <div className="min-w-0">
-                                        <Link to={`/hrms/performance/cycles/${cycle.id}`} className="font-medium text-indigo-600 hover:underline">
+                                        <Link to={`/hrms/performance/cycles/${cycle.id}`} className="font-medium text-[var(--accent-soft-text)] hover:underline">
                                             {cycle.name}
                                         </Link>
                                         <p className="text-xs text-gray-400">

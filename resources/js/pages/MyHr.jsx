@@ -132,7 +132,7 @@ export default function MyHr() {
                     <Link
                         key={action.key}
                         to={action.href}
-                        className="rounded-lg border border-gray-200 bg-white px-3 py-2.5 text-sm font-medium text-gray-800 transition hover:border-indigo-300 hover:bg-indigo-50"
+                        className="rounded-lg border border-gray-200 bg-white px-3 py-2.5 text-sm font-medium text-gray-800 transition hover:border-[var(--accent-ring)] hover:bg-[var(--accent-soft)]"
                     >
                         {action.label}
                     </Link>
@@ -167,7 +167,7 @@ export default function MyHr() {
                 <Card
                     title={`Inbox · ${sections.inbox_count ?? 0} unread`}
                     dense
-                    actions={<Link to="/hrms/inbox" className="text-sm font-medium text-indigo-600 hover:underline">Open inbox</Link>}
+                    actions={<Link to="/hrms/inbox" className="text-sm font-medium text-[var(--accent-soft-text)] hover:underline">Open inbox</Link>}
                 >
                     {(requests.leave ?? []).length + (requests.expenses ?? []).length === 0 ? (
                         <p className="text-sm text-gray-500">Nothing waiting on you.</p>
@@ -186,7 +186,7 @@ export default function MyHr() {
                 <Card
                     title="Pay"
                     dense
-                    actions={<Link to="/hrms/payroll/mine" className="text-sm font-medium text-indigo-600 hover:underline">My payslips</Link>}
+                    actions={<Link to="/hrms/payroll/mine" className="text-sm font-medium text-[var(--accent-soft-text)] hover:underline">My payslips</Link>}
                 >
                     {payroll.latest ? (
                         <p className="text-sm text-gray-600">

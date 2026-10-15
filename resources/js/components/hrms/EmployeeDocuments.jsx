@@ -116,7 +116,7 @@ export default function EmployeeDocuments({ employee }) {
                     <button
                         type="button"
                         onClick={() => setUploading((v) => !v)}
-                        className="text-sm font-medium text-indigo-600 hover:underline"
+                        className="text-sm font-medium text-[var(--accent-soft-text)] hover:underline"
                     >
                         {uploading ? 'Hide upload form' : 'Upload a document'}
                     </button>

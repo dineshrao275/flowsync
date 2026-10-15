@@ -186,7 +186,7 @@ export default function OffboardingCases() {
                         {cases.map((row) => (
                             <tr key={row.id}>
                                 <Td>
-                                    <Link to={`/hrms/offboarding/cases/${row.id}`} className="font-medium text-indigo-600 hover:underline">
+                                    <Link to={`/hrms/offboarding/cases/${row.id}`} className="font-medium text-[var(--accent-soft-text)] hover:underline">
                                         {row.employee?.name ?? '—'}
                                     </Link>
                                 </Td>

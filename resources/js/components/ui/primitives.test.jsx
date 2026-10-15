@@ -5,6 +5,7 @@ import Button from './Button';
 import Card from './Card';
 import EmptyState from './EmptyState';
 import Skeleton from './Skeleton';
+import { Table, Td, Th } from './Table';
 
 describe('Button', () => {
     it('marks a loading button busy and disabled with a hidden spinner', () => {
@@ -74,5 +75,41 @@ describe('Alert', () => {
         render(<Alert>Unable to load.</Alert>);
 
         expect(screen.getByRole('alert')).toHaveTextContent('Unable to load.');
+    });
+});
+
+describe('Table', () => {
+    function Grid(props) {
+        return (
+            <Table {...props}>
+                <thead>
+                    <tr>
+                        <Th>Name</Th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <Td>Ava</Td>
+                    </tr>
+                </tbody>
+            </Table>
+        );
+    }
+
+    it('pins the header row by default', () => {
+        const { container } = render(<Grid />);
+        const th = container.querySelector('th');
+
+        expect(th.className).toContain('sticky');
+        expect(th.getAttribute('scope')).toBe('col');
+    });
+
+    it('tightens cell padding for compact tables', () => {
+        const { container } = render(<Grid compact />);
+        const th = container.querySelector('th');
+        const td = container.querySelector('td');
+
+        expect(th.className).toContain('px-3 py-1.5');
+        expect(td.className).toContain('px-3 py-1.5');
     });
 });

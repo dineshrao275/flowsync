@@ -68,7 +68,7 @@ export default class HrmsErrorBoundary extends React.Component {
                                 This HRMS section encountered an unexpected error
                             </h3>
                             <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">
-                                An isolated problem occurred loading this tab. The rest of FlowSync and your navigation rail remain fully functional.
+                                An isolated problem occurred loading this tab. The rest of FlowSync and the sidebar stay fully functional.
                             </p>
                             <div className="mt-3 rounded-md bg-gray-50 p-3 text-xs font-mono text-gray-700 dark:bg-gray-800/80 dark:text-gray-300 overflow-x-auto">
                                 {message}
@@ -86,7 +86,7 @@ export default class HrmsErrorBoundary extends React.Component {
                                     href={`mailto:support@flowsync.test?subject=${encodeURIComponent('HRMS UI Error Report')}&body=${encodeURIComponent(
                                         `Error: ${message}\nURL: ${typeof window !== 'undefined' ? window.location.href : ''}`,
                                     )}`}
-                                    className="text-xs text-indigo-600 hover:text-indigo-700 dark:text-indigo-400 hover:underline"
+                                    className="text-xs text-[var(--accent-soft-text)] hover:text-[var(--accent)] dark:text-[var(--accent-soft-text)] hover:underline"
                                 >
                                     Report issue
                                 </a>

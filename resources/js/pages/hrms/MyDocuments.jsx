@@ -117,7 +117,7 @@ export default function MyDocuments() {
                                     href={document.download_url}
                                     target="_blank"
                                     rel="noopener noreferrer"
-                                    className="shrink-0 text-sm font-medium text-indigo-600 hover:underline"
+                                    className="shrink-0 text-sm font-medium text-[var(--accent-soft-text)] hover:underline"
                                 >
                                     Download
                                 </a>

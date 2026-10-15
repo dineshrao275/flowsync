@@ -96,7 +96,7 @@ export default function SystemUsers() {
                     value={q}
                     onChange={(e) => setQ(e.target.value)}
                     placeholder="Search name or email…"
-                    className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100"
+                    className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm outline-none focus:border-[var(--accent)]"
                 />
                 <Button type="submit">Search</Button>
             </form>

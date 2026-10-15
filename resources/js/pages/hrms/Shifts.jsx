@@ -45,7 +45,7 @@ export default function Shifts() {
                         key={t.key}
                         type="button"
                         onClick={() => setTab(t.key)}
-                        className={`px-3 py-2 text-sm font-medium ${tab === t.key ? 'border-b-2 border-indigo-600 text-indigo-600' : 'text-gray-500 hover:text-gray-700'}`}
+                        className={`px-3 py-2 text-sm font-medium ${tab === t.key ? 'border-b-2 border-[var(--accent)] text-[var(--accent-soft-text)]' : 'text-gray-500 hover:text-gray-700'}`}
                     >
                         {t.label}
                     </button>

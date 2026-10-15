@@ -151,7 +151,7 @@ export default function EmployeeBulkModal({ mode, onClose, onDone }) {
                             </>
                         )}
                         <div className="flex justify-between gap-2">
-                            <a className="text-sm text-indigo-600 underline" href="/api/hrms/employees/import/sample">Download sample</a>
+                            <a className="text-sm text-[var(--accent-soft-text)] underline" href="/api/hrms/employees/import/sample">Download sample</a>
                             <div className="flex gap-2">
                                 <Button variant="secondary" onClick={runPreview} disabled={!file || busy}>Validate</Button>
                                 <Button onClick={commit} disabled={!report || report.valid === 0 || busy}>

@@ -160,7 +160,7 @@ export default function ShiftCatalog({ canManage, onChanged }) {
                                     <Td>
                                         <span className="font-medium">{shift.name}</span>
                                         <span className="ml-2 font-mono text-xs text-gray-400">{shift.code}</span>
-                                        {shift.is_night && <span className="ml-2 rounded bg-indigo-50 px-1.5 text-xs text-indigo-600">night</span>}
+                                        {shift.is_night && <span className="ml-2 rounded bg-[var(--accent-soft)] px-1.5 text-xs text-[var(--accent-soft-text)]">night</span>}
                                         {shift.is_split && <span className="ml-2 rounded bg-amber-50 px-1.5 text-xs text-amber-600">split</span>}
                                     </Td>
                                     <Td>
@@ -225,7 +225,7 @@ export default function ShiftCatalog({ canManage, onChanged }) {
                                     key={day}
                                     type="button"
                                     onClick={() => toggleDay(day)}
-                                    className={`rounded-full px-2.5 py-1 text-xs ${form.working_days.includes(day) ? 'bg-indigo-600 text-white' : 'bg-gray-100 text-gray-600'}`}
+                                    className={`rounded-full px-2.5 py-1 text-xs ${form.working_days.includes(day) ? 'bg-[var(--accent)] text-[var(--accent-contrast)]' : 'bg-gray-100 text-gray-600'}`}
                                 >
                                     {day}
                                 </button>

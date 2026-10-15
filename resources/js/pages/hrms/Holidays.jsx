@@ -373,7 +373,7 @@ export default function Holidays() {
                             {calendars.map((calendar) => (
                                 <tr key={calendar.id}>
                                     <Td>
-                                        <button type="button" onClick={() => setCalendarId(String(calendar.id))} className="font-medium hover:text-indigo-600">
+                                        <button type="button" onClick={() => setCalendarId(String(calendar.id))} className="font-medium hover:text-[var(--accent-soft-text)]">
                                             {calendar.name}
                                         </button>
                                         {calendar.slug && <span className="ml-2 font-mono text-xs text-gray-400">{calendar.slug}</span>}

@@ -148,7 +148,7 @@ export default function MyPerformance() {
                                 key={cycle.id}
                                 type="button"
                                 onClick={() => setCycleId(String(cycle.id))}
-                                className={`rounded-lg px-3 py-1.5 text-sm font-medium ${String(cycle.id) === cycleId ? 'bg-indigo-100 text-indigo-800' : 'bg-gray-100 text-gray-500 hover:bg-gray-200'}`}
+                                className={`rounded-lg px-3 py-1.5 text-sm font-medium ${String(cycle.id) === cycleId ? 'bg-[var(--accent-soft)] text-[var(--accent-soft-text)]' : 'bg-gray-100 text-gray-500 hover:bg-gray-200'}`}
                             >
                                 {cycle.name}
                             </button>

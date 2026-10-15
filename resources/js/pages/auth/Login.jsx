@@ -60,7 +60,7 @@ export default function Login() {
             footer={
                 <span className="text-sm text-slate-500">
                     Access is managed by your tenant administrator.{' '}
-                    <Link to="/register" className="font-medium text-[var(--accent)] hover:text-indigo-500">
+                    <Link to="/register" className="font-medium text-[var(--accent)] hover:text-[var(--accent)]">
                         New here? Create a workspace
                     </Link>
                 </span>
@@ -115,7 +115,7 @@ export default function Login() {
                     </label>
                     <Link
                         to="/forgot-password"
-                        className="text-sm font-medium text-[var(--accent)] hover:text-indigo-500"
+                        className="text-sm font-medium text-[var(--accent)] hover:text-[var(--accent)]"
                     >
                         Forgot password?
                     </Link>

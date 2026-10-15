@@ -92,7 +92,7 @@ export default function MyTeam() {
                             {reports.map((report) => (
                                 <tr key={report.id}>
                                     <Td>
-                                        <Link to={employeeUrl(report.id)} className="font-medium text-indigo-600 hover:underline">
+                                        <Link to={employeeUrl(report.id)} className="font-medium text-[var(--accent-soft-text)] hover:underline">
                                             {report.name}
                                         </Link>
                                         <span className="block text-xs text-gray-400">{report.department ?? report.status}</span>

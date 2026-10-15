@@ -95,7 +95,7 @@ export default function RotationPanel({ shifts, canManage }) {
                 {!rotations ? (
                     <div className="flex justify-center py-6"><Spinner /></div>
                 ) : (
-                    <Table>
+                    <Table compact>
                         <thead>
                             <tr>
                                 <Th>Name</Th>

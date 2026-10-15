@@ -96,7 +96,7 @@ export default function Register() {
             footer={
                 <span className="text-sm text-slate-500">
                     Already have an account?{' '}
-                    <Link to="/login" className="font-medium text-indigo-600 hover:text-indigo-500">
+                    <Link to="/login" className="font-medium text-[var(--accent-soft-text)] hover:text-[var(--accent)]">
                         Sign in
                     </Link>
                 </span>

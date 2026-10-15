@@ -185,7 +185,7 @@ export default function Users() {
                                         roles: Array.from(e.target.selectedOptions, (o) => o.value),
                                     }))
                                 }
-                                className="block w-full rounded-lg border border-gray-300 bg-white px-3.5 py-2.5 text-sm shadow-sm transition focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-100"
+                                className="block w-full rounded-lg border border-gray-300 bg-white px-3.5 py-2.5 text-sm shadow-sm transition focus:border-[var(--accent)] focus:outline-none"
                             >
                                 {roleOptions.map((r) => (
                                     <option key={r.value} value={r.value}>

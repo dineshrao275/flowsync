@@ -308,7 +308,7 @@ export default function Plans() {
                                 <Badge>{plan.is_active ? 'active' : 'inactive'}</Badge>
                             </Td>
                             <Td align="right" className="whitespace-nowrap">
-                                <button type="button" className="text-sm font-medium text-indigo-600 hover:text-indigo-800" onClick={() => setEditing(plan)}>
+                                <button type="button" className="text-sm font-medium text-[var(--accent-soft-text)] hover:text-[var(--accent)]" onClick={() => setEditing(plan)}>
                                     Edit
                                 </button>
                                 <button type="button" className="ml-3 text-sm font-medium text-red-500 hover:text-red-700" onClick={() => remove(plan)}>

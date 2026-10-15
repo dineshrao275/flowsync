@@ -127,7 +127,7 @@ export default function MediaLibrary() {
                                         placeholder="Describe the image"
                                     />
                                     <div className="flex justify-end gap-3 text-xs">
-                                        <button type="button" onClick={() => saveAlt(item)} className="font-medium text-indigo-600 hover:text-indigo-500">save alt</button>
+                                        <button type="button" onClick={() => saveAlt(item)} className="font-medium text-[var(--accent-soft-text)] hover:text-[var(--accent)]">save alt</button>
                                         <button type="button" onClick={() => remove(item)} className="font-medium text-red-500 hover:text-red-400">delete</button>
                                     </div>
                                 </div>

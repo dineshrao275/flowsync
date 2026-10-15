@@ -227,7 +227,7 @@ export default function Assets() {
                             {assets.map((asset) => (
                                 <tr key={asset.id}>
                                     <Td>
-                                        <button type="button" className="font-medium text-indigo-600 hover:underline" onClick={() => openDetail(asset)}>
+                                        <button type="button" className="font-medium text-[var(--accent-soft-text)] hover:underline" onClick={() => openDetail(asset)}>
                                             {asset.asset_code}
                                         </button>
                                         <span className="block text-xs text-gray-400">{asset.name} · {asset.category?.name ?? ''}</span>

@@ -156,7 +156,7 @@ export default function SprintsPanel({ projectId, canPlan }) {
                                 <ResponsiveContainer>
                                     <LineChart data={reports.burndown.days}>
                                         <CartesianGrid strokeDasharray="3 3" /><XAxis dataKey="date" tick={{ fontSize: 11 }} /><YAxis tick={{ fontSize: 11 }} /><Tooltip /><Legend />
-                                        <Line type="monotone" dataKey="remaining" stroke="#4f46e5" name="Remaining" dot={false} />
+                                        <Line type="monotone" dataKey="remaining" stroke="#2563eb" name="Remaining" dot={false} />
                                         <Line type="monotone" dataKey="ideal" stroke="#9ca3af" strokeDasharray="5 5" name="Ideal" dot={false} />
                                     </LineChart>
                                 </ResponsiveContainer>
@@ -166,7 +166,7 @@ export default function SprintsPanel({ projectId, canPlan }) {
                     <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
                         <Card title="Velocity" subtitle="Committed vs completed points, last sprints.">
                             {reports.velocity.length ? (
-                                <div style={{ height: 220 }}><ResponsiveContainer><BarChart data={reports.velocity}><CartesianGrid strokeDasharray="3 3" /><XAxis dataKey="sprint" tick={{ fontSize: 11 }} /><YAxis tick={{ fontSize: 11 }} /><Tooltip /><Legend /><Bar dataKey="committed" fill="#c7d2fe" name="Committed" /><Bar dataKey="completed" fill="#4f46e5" name="Completed" /></BarChart></ResponsiveContainer></div>
+                                <div style={{ height: 220 }}><ResponsiveContainer><BarChart data={reports.velocity}><CartesianGrid strokeDasharray="3 3" /><XAxis dataKey="sprint" tick={{ fontSize: 11 }} /><YAxis tick={{ fontSize: 11 }} /><Tooltip /><Legend /><Bar dataKey="committed" fill="#c8d8fa" name="Committed" /><Bar dataKey="completed" fill="#2563eb" name="Completed" /></BarChart></ResponsiveContainer></div>
                             ) : <p className="text-sm text-gray-400">Complete a sprint to see velocity.</p>}
                         </Card>
                         <Card title="Throughput" subtitle="Tasks completed per week.">

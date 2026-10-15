@@ -56,7 +56,7 @@ export default function AttendanceCalendar({ year, month, days = [], selectedDat
                 title={entry ? `${entry.status_label} · ${formatMinutes(entry.worked_minutes)}` : 'Upcoming'}
                 className={`flex min-h-14 flex-col items-start justify-between rounded-lg border p-1.5 text-left transition-colors ${
                     selected
-                        ? 'border-indigo-500 ring-1 ring-indigo-200'
+                        ? 'border-[var(--accent)] ring-1 ring-[var(--accent-ring)]'
                         : 'border-gray-100 hover:border-gray-300'
                 } ${entry ? '' : 'bg-gray-50/50'} ${!entry || !onSelectDay ? 'cursor-default' : 'cursor-pointer'}`}
             >

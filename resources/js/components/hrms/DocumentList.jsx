@@ -73,7 +73,7 @@ export default function DocumentList({ documents, canVerify, canDelete, canRepla
                                 href={document.download_url}
                                 target="_blank"
                                 rel="noopener noreferrer"
-                                className="text-sm font-medium text-indigo-600 hover:underline"
+                                className="text-sm font-medium text-[var(--accent-soft-text)] hover:underline"
                             >
                                 Download
                             </a>

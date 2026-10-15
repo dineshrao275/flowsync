@@ -58,7 +58,7 @@ function textInput(value, onChange, placeholder) {
             value={value || ''}
             onChange={(e) => onChange(e.target.value)}
             placeholder={placeholder}
-            className="w-full rounded border border-gray-200 px-2 py-1.5 text-sm outline-none focus:border-indigo-400"
+            className="w-full rounded border border-gray-200 px-2 py-1.5 text-sm outline-none focus:border-[var(--accent)]"
         />
     );
 }
@@ -92,7 +92,7 @@ function BlockEditor({ blocks, onChange }) {
             {blocks.map((b, i) => (
                 <div key={i} className="rounded-lg border border-gray-200 p-3">
                     <div className="mb-2 flex items-center justify-between">
-                        <span className="font-mono text-xs font-semibold uppercase text-indigo-600">{b.type}</span>
+                        <span className="font-mono text-xs font-semibold uppercase text-[var(--accent-soft-text)]">{b.type}</span>
                         <span className="flex gap-1">
                             <button type="button" onClick={() => move(i, -1)} className="rounded px-1.5 text-gray-400 hover:bg-gray-100">↑</button>
                             <button type="button" onClick={() => move(i, 1)} className="rounded px-1.5 text-gray-400 hover:bg-gray-100">↓</button>
@@ -103,14 +103,14 @@ function BlockEditor({ blocks, onChange }) {
                         value={b.heading || ''}
                         onChange={(e) => update(i, { heading: e.target.value })}
                         placeholder="Heading"
-                        className="mb-2 w-full rounded border border-gray-200 px-2 py-1.5 text-sm outline-none focus:border-indigo-400"
+                        className="mb-2 w-full rounded border border-gray-200 px-2 py-1.5 text-sm outline-none focus:border-[var(--accent)]"
                     />
                     {b.type === 'hero' && (
                         <input
                             value={b.subtext || ''}
                             onChange={(e) => update(i, { subtext: e.target.value })}
                             placeholder="Subtext"
-                            className="mb-2 w-full rounded border border-gray-200 px-2 py-1.5 text-sm outline-none focus:border-indigo-400"
+                            className="mb-2 w-full rounded border border-gray-200 px-2 py-1.5 text-sm outline-none focus:border-[var(--accent)]"
                         />
                     )}
                     {b.type === 'text' && (
@@ -119,7 +119,7 @@ function BlockEditor({ blocks, onChange }) {
                             onChange={(e) => update(i, { body: e.target.value })}
                             placeholder="Body (paragraphs separated by blank lines)"
                             rows={3}
-                            className="w-full rounded border border-gray-200 px-2 py-1.5 text-sm outline-none focus:border-indigo-400"
+                            className="w-full rounded border border-gray-200 px-2 py-1.5 text-sm outline-none focus:border-[var(--accent)]"
                         />
                     )}
                     {b.type === 'richtext' && (
@@ -134,7 +134,7 @@ function BlockEditor({ blocks, onChange }) {
                             value={b.text || ''}
                             onChange={(e) => update(i, { text: e.target.value })}
                             placeholder="Supporting text"
-                            className="mb-2 w-full rounded border border-gray-200 px-2 py-1.5 text-sm outline-none focus:border-indigo-400"
+                            className="mb-2 w-full rounded border border-gray-200 px-2 py-1.5 text-sm outline-none focus:border-[var(--accent)]"
                         />
                     )}
                     {['steps', 'split', 'testimonials', 'team', 'pricing', 'faq', 'contact_form'].includes(b.type) && (
@@ -143,14 +143,14 @@ function BlockEditor({ blocks, onChange }) {
                                 value={b.eyebrow || ''}
                                 onChange={(e) => update(i, { eyebrow: e.target.value })}
                                 placeholder="Eyebrow (small pill label)"
-                                className="rounded border border-gray-200 px-2 py-1.5 text-sm outline-none focus:border-indigo-400"
+                                className="rounded border border-gray-200 px-2 py-1.5 text-sm outline-none focus:border-[var(--accent)]"
                             />
                             {b.type !== 'split' && (
                                 <input
                                     value={b.lead || ''}
                                     onChange={(e) => update(i, { lead: e.target.value })}
                                     placeholder="Lead paragraph"
-                                    className="rounded border border-gray-200 px-2 py-1.5 text-sm outline-none focus:border-indigo-400"
+                                    className="rounded border border-gray-200 px-2 py-1.5 text-sm outline-none focus:border-[var(--accent)]"
                                 />
                             )}
                         </div>
@@ -243,11 +243,11 @@ function BlockEditor({ blocks, onChange }) {
                                 onChange={(e) => update(i, { body: e.target.value })}
                                 placeholder="Supporting paragraph"
                                 rows={3}
-                                className="w-full rounded border border-gray-200 px-2 py-1.5 text-sm outline-none focus:border-indigo-400"
+                                className="w-full rounded border border-gray-200 px-2 py-1.5 text-sm outline-none focus:border-[var(--accent)]"
                             />
                             <ImageField mediaId={b.media_id} onChange={(media_id) => update(i, { media_id })} />
                             <label className="flex items-center gap-2 text-sm text-gray-700">
-                                <input type="checkbox" checked={!!b.flip} onChange={(e) => update(i, { flip: e.target.checked })} className="h-4 w-4 rounded border-gray-300 text-indigo-600" />
+                                <input type="checkbox" checked={!!b.flip} onChange={(e) => update(i, { flip: e.target.checked })} className="h-4 w-4 rounded border-gray-300 accent-[var(--accent)]" />
                                 Image on the left
                             </label>
                         </div>
@@ -341,7 +341,7 @@ function BlockEditor({ blocks, onChange }) {
                             <select
                                 value={b.product || ''}
                                 onChange={(e) => update(i, { product: e.target.value || null })}
-                                className="rounded border border-gray-200 px-2 py-1.5 text-sm outline-none focus:border-indigo-400"
+                                className="rounded border border-gray-200 px-2 py-1.5 text-sm outline-none focus:border-[var(--accent)]"
                             >
                                 <option value="">All active plans</option>
                                 <option value="suite">Suite plans</option>
@@ -387,7 +387,7 @@ function BlockEditor({ blocks, onChange }) {
                             <select
                                 value={b.source || 'contact'}
                                 onChange={(e) => update(i, { source: e.target.value })}
-                                className="rounded border border-gray-200 px-2 py-1.5 text-sm outline-none focus:border-indigo-400"
+                                className="rounded border border-gray-200 px-2 py-1.5 text-sm outline-none focus:border-[var(--accent)]"
                             >
                                 <option value="contact">Contact request</option>
                                 <option value="demo">Demo request</option>
@@ -451,13 +451,13 @@ function BlockEditor({ blocks, onChange }) {
                                 value={b.cta?.label || ''}
                                 onChange={(e) => update(i, { cta: { ...b.cta, label: e.target.value } })}
                                 placeholder="Call to action label"
-                                className="w-1/2 rounded border border-gray-200 px-2 py-1.5 text-sm outline-none focus:border-indigo-400"
+                                className="w-1/2 rounded border border-gray-200 px-2 py-1.5 text-sm outline-none focus:border-[var(--accent)]"
                             />
                             <input
                                 value={b.cta?.href || ''}
                                 onChange={(e) => update(i, { cta: { ...b.cta, href: e.target.value } })}
                                 placeholder="Link (e.g. /app/register)"
-                                className="w-1/2 rounded border border-gray-200 px-2 py-1.5 text-sm outline-none focus:border-indigo-400"
+                                className="w-1/2 rounded border border-gray-200 px-2 py-1.5 text-sm outline-none focus:border-[var(--accent)]"
                             />
                         </div>
                     )}
@@ -538,7 +538,7 @@ function PageFormModal({ initial, onClose, onSave }) {
                         </select>
                     </div>
                     <label className="flex items-center gap-2 self-end pb-2 text-sm text-gray-700">
-                        <input type="checkbox" checked={!!form.sitemap_include} onChange={(e) => set('sitemap_include', e.target.checked)} className="h-4 w-4 rounded border-gray-300 text-indigo-600" />
+                        <input type="checkbox" checked={!!form.sitemap_include} onChange={(e) => set('sitemap_include', e.target.checked)} className="h-4 w-4 rounded border-gray-300 accent-[var(--accent)]" />
                         Include in sitemap
                     </label>
                 </div>
@@ -557,7 +557,7 @@ function PageFormModal({ initial, onClose, onSave }) {
                         <Input label="OG description (defaults to meta description)" name="og_description" value={form.og_description || ''} onChange={(e) => set('og_description', e.target.value)} />
                     </div>
                     <label className="mt-3 flex items-center gap-2 text-sm text-gray-700">
-                        <input type="checkbox" checked={!!form.noindex} onChange={(e) => set('noindex', e.target.checked)} className="h-4 w-4 rounded border-gray-300 text-indigo-600" />
+                        <input type="checkbox" checked={!!form.noindex} onChange={(e) => set('noindex', e.target.checked)} className="h-4 w-4 rounded border-gray-300 accent-[var(--accent)]" />
                         Hide from search engines (noindex, excluded from sitemap)
                     </label>
                 </div>
@@ -687,8 +687,8 @@ export default function CmsPages() {
                                     </td>
                                     <td className="py-2.5">
                                         <div className="flex justify-end gap-2">
-                                            <a href={page.slug === 'home' ? '/' : `/${page.slug}`} target="_blank" rel="noreferrer" className="text-indigo-600 hover:text-indigo-500">view</a>
-                                            <button type="button" onClick={() => openPreview(page)} className="text-indigo-600 hover:text-indigo-500">preview</button>
+                                            <a href={page.slug === 'home' ? '/' : `/${page.slug}`} target="_blank" rel="noreferrer" className="text-[var(--accent-soft-text)] hover:text-[var(--accent)]">view</a>
+                                            <button type="button" onClick={() => openPreview(page)} className="text-[var(--accent-soft-text)] hover:text-[var(--accent)]">preview</button>
                                             <button type="button" onClick={() => openEditor(page)} className="text-gray-500 hover:text-gray-700">edit</button>
                                             <button type="button" onClick={() => duplicate(page)} className="text-gray-500 hover:text-gray-700">duplicate</button>
                                             {page.status === 'published' ? (

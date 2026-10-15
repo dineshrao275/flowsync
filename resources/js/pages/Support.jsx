@@ -100,7 +100,7 @@ function TicketList() {
 
             <div className="flex gap-2 text-sm">
                 {[['open', 'Open'], ['closed', 'Resolved & closed'], ['', 'All']].map(([v, l]) => (
-                    <button key={l} onClick={() => setFilter(v)} className={`rounded-full px-3 py-1 ${filter === v ? 'bg-indigo-600 text-white' : 'bg-gray-100 text-gray-600'}`}>{l}</button>
+                    <button key={l} onClick={() => setFilter(v)} className={`rounded-full px-3 py-1 ${filter === v ? 'bg-[var(--accent)] text-[var(--accent-contrast)]' : 'bg-gray-100 text-gray-600'}`}>{l}</button>
                 ))}
             </div>
 

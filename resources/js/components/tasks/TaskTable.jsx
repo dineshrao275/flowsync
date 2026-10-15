@@ -35,8 +35,8 @@ export default function TaskTable({ tasks, canEdit, onOpen }) {
                                     <span
                                         className="inline-flex items-center rounded px-2 py-0.5 text-[11px] font-semibold"
                                         style={{
-                                            backgroundColor: `${task.issue_type.color || '#6366f1'}18`,
-                                            color: task.issue_type.color || '#6366f1',
+                                            backgroundColor: `${task.issue_type.color || '#2563eb'}18`,
+                                            color: task.issue_type.color || '#2563eb',
                                         }}
                                     >
                                         {task.issue_type.name}

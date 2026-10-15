@@ -47,7 +47,7 @@ export default function ResetPassword() {
             title="Choose a new password"
             subtitle="Enter your new password below"
             footer={
-                <Link to="/login" className="font-medium text-indigo-600 hover:text-indigo-500">
+                <Link to="/login" className="font-medium text-[var(--accent-soft-text)] hover:text-[var(--accent)]">
                     Back to sign in
                 </Link>
             }

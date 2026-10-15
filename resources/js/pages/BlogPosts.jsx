@@ -112,7 +112,7 @@ function PostFormModal({ initial, categories, onClose, onSave }) {
                         <Input label="Meta description" name="meta_description" value={form.meta_description || ''} onChange={(e) => set('meta_description', e.target.value)} />
                     </div>
                     <label className="mt-3 flex items-center gap-2 text-sm text-gray-700">
-                        <input type="checkbox" checked={!!form.noindex} onChange={(e) => set('noindex', e.target.checked)} className="h-4 w-4 rounded border-gray-300 text-indigo-600" />
+                        <input type="checkbox" checked={!!form.noindex} onChange={(e) => set('noindex', e.target.checked)} className="h-4 w-4 rounded border-gray-300 accent-[var(--accent)]" />
                         Hide from search engines (noindex, excluded from sitemap)
                     </label>
                 </div>
@@ -166,8 +166,8 @@ function CategoryManager({ categories, onChanged }) {
                 {(categories || []).length === 0 && <p className="text-xs text-gray-400">No categories yet.</p>}
             </div>
             <form onSubmit={add} className="flex gap-2">
-                <input value={name} onChange={(e) => setName(e.target.value)} placeholder="Name" required className="w-1/2 rounded-lg border border-gray-200 px-3 py-2 text-sm outline-none focus:border-indigo-400" />
-                <input value={slug} onChange={(e) => setSlug(e.target.value)} placeholder="slug" required className="w-1/2 rounded-lg border border-gray-200 px-3 py-2 text-sm outline-none focus:border-indigo-400" />
+                <input value={name} onChange={(e) => setName(e.target.value)} placeholder="Name" required className="w-1/2 rounded-lg border border-gray-200 px-3 py-2 text-sm outline-none focus:border-[var(--accent)]" />
+                <input value={slug} onChange={(e) => setSlug(e.target.value)} placeholder="slug" required className="w-1/2 rounded-lg border border-gray-200 px-3 py-2 text-sm outline-none focus:border-[var(--accent)]" />
                 <Button type="submit">Add</Button>
             </form>
         </Card>
@@ -290,7 +290,7 @@ export default function BlogPosts() {
                                     <td className="py-2.5"><Badge>{post.status}</Badge></td>
                                     <td className="py-2.5">
                                         <div className="flex justify-end gap-2">
-                                            <button type="button" onClick={() => openPreview(post)} className="text-indigo-600 hover:text-indigo-500">preview</button>
+                                            <button type="button" onClick={() => openPreview(post)} className="text-[var(--accent-soft-text)] hover:text-[var(--accent)]">preview</button>
                                             <button type="button" onClick={() => openEditor(post)} className="text-gray-500 hover:text-gray-700">edit</button>
                                             {post.status === 'published' ? (
                                                 <button type="button" onClick={() => unpublish(post)} className="text-amber-600 hover:text-amber-500">unpublish</button>

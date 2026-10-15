@@ -201,7 +201,7 @@ export default function TemplateEditor({ templateId, onSaved }) {
                     {items.map((item, i) => (
                         <div key={item.id ?? `new-${i}`} className="rounded-lg border border-gray-200 p-3">
                             <div className="mb-2 flex items-center justify-between">
-                                <span className="font-mono text-xs font-semibold uppercase text-indigo-600">
+                                <span className="font-mono text-xs font-semibold uppercase text-[var(--accent-soft-text)]">
                                     {item.category}
                                     {item.is_mandatory ? ' · mandatory' : ''}
                                 </span>
