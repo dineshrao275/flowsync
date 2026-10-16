@@ -71,6 +71,7 @@ Route::group(['middleware' => ['ensure_module:hrms.core', 'ensure_module:hrms.pa
     Route::post('hrms/payroll/runs/{run}/publish', [PayrollRunController::class, 'publish']);
     Route::post('hrms/payroll/runs/{run}/mark-paid', [PayrollRunController::class, 'markPaid']);
     Route::post('hrms/payroll/runs/{run}/lock', [PayrollRunController::class, 'lock']);
+    Route::post('hrms/payroll/runs/{run}/reopen', [PayrollRunController::class, 'reopen']);
 
     Route::post('hrms/payroll/payslips/{payslip}/adjustments', [PayslipAdjustmentController::class, 'store']);
     Route::delete('hrms/payroll/payslips/{payslip}/adjustments/{adjustment}', [PayslipAdjustmentController::class, 'destroy']);

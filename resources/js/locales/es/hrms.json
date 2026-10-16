@@ -1764,7 +1764,13 @@
             "published": "Publicada",
             "disputed": "Impugnada",
             "paid": "Pagada"
-        }
+        },
+        "reopen": "Reabrir",
+        "reopenTitle": "¿Reabrir esta nómina?",
+        "reopenMessage": "Las nóminas publicadas vuelven a borrador y el proceso regresa a revisión. El motivo queda registrado en la auditoría.",
+        "reopenPlaceholder": "¿Por qué se reabre? (al menos 10 caracteres)",
+        "reopenConfirm": "Reabrir nómina",
+        "reopened": "Nómina reabierta para revisión."
     },
     "payrollRun": {
         "pageTitle": "Ejecución de nómina",

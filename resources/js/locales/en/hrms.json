@@ -1764,7 +1764,13 @@
             "published": "Published",
             "disputed": "Disputed",
             "paid": "Paid"
-        }
+        },
+        "reopen": "Reopen",
+        "reopenTitle": "Reopen this payroll run?",
+        "reopenMessage": "Payslips that were released go back to draft and the run returns to review. The reason is recorded in the audit trail.",
+        "reopenPlaceholder": "Why is it being reopened? (at least 10 characters)",
+        "reopenConfirm": "Reopen run",
+        "reopened": "Run reopened for review."
     },
     "payrollRun": {
         "pageTitle": "Pay run",

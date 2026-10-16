@@ -7,6 +7,7 @@ import Button from '../../components/ui/Button';
 import Card from '../../components/ui/Card';
 import EmptyState from '../../components/ui/EmptyState';
 import Input from '../../components/ui/Input';
+import { usePrompt } from '../../components/ui/ConfirmDialog';
 import Modal from '../../components/ui/Modal';
 import Spinner from '../../components/ui/Spinner';
 import { Table, Th, Td } from '../../components/ui/Table';
@@ -31,6 +32,7 @@ export default function Payroll() {
     const setCrumbs = useSetCrumbs();
     const navigate = useNavigate();
     const toast = useToast();
+    const prompt = usePrompt();
 
     const [runs, setRuns] = useState(null);
     const [error, setError] = useState(null);
@@ -88,11 +90,11 @@ export default function Payroll() {
         }
     }
 
-    async function transition(run, action, done) {
+    async function transition(run, action, done, payload = {}) {
         setActing(`${run.id}:${action}`);
 
         try {
-            await api.post(`/hrms/payroll/runs/${run.id}/${action}`, {});
+            await api.post(`/hrms/payroll/runs/${run.id}/${action}`, payload);
             toast.success(done);
             load();
         } catch {
@@ -100,6 +102,21 @@ export default function Payroll() {
         } finally {
             setActing(null);
         }
+    }
+
+    async function reopen(run) {
+        const reason = await prompt({
+            title: t('hrms.payroll.reopenTitle'),
+            message: t('hrms.payroll.reopenMessage'),
+            placeholder: t('hrms.payroll.reopenPlaceholder'),
+            required: true,
+            confirmLabel: t('hrms.payroll.reopenConfirm'),
+            variant: 'danger',
+        });
+
+        if (reason === null) return;
+
+        transition(run, 'reopen', t('hrms.payroll.reopened'), { reason });
     }
 
     function actionsFor(run) {
@@ -117,16 +134,22 @@ export default function Payroll() {
             </Button>
         );
 
+        const reopenButton = (
+            <Button key="reopen" size="sm" variant="ghost" disabled={busy} onClick={() => reopen(run)}>
+                {t('hrms.payroll.reopen')}
+            </Button>
+        );
+
         switch (run.status) {
             case 'draft':
             case 'review':
                 return [button('calculate', t('hrms.payroll.calculate'), t('hrms.payroll.calculated'), 'primary'), run.status === 'review' && button('approve', t('hrms.payroll.approve'), t('hrms.payroll.approved'))];
             case 'approved':
-                return [button('publish', t('hrms.payroll.publish'), t('hrms.payroll.published'), 'primary')];
+                return [button('publish', t('hrms.payroll.publish'), t('hrms.payroll.published'), 'primary'), reopenButton];
             case 'processing':
-                return [button('mark-paid', t('hrms.payroll.markPaid'), t('hrms.payroll.markedPaid'), 'primary')];
+                return [button('mark-paid', t('hrms.payroll.markPaid'), t('hrms.payroll.markedPaid'), 'primary'), reopenButton];
             case 'paid':
-                return [button('lock', t('hrms.payroll.lock'), t('hrms.payroll.locked'), 'warning')];
+                return [button('lock', t('hrms.payroll.lock'), t('hrms.payroll.locked'), 'warning'), reopenButton];
             default:
                 return [];
         }

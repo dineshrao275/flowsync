@@ -761,5 +761,9 @@
     "approved": "aprobado",
     "rejected": "rechazado",
     "open": "abierto",
-    "Choose a range of at most :days days.": "Elige un rango de como máximo :days días."
+    "Choose a range of at most :days days.": "Elige un rango de como máximo :days días.",
+    "Locked runs are sealed history.": "Las nóminas bloqueadas son historia sellada.",
+    "A run can be reopened only after approval and before it is locked.": "Una nómina solo se puede reabrir tras su aprobación y antes de bloquearla.",
+    "Say why the run is being reopened (at least 10 characters).": "Indica por qué se reabre la nómina (al menos 10 caracteres).",
+    "Payroll run reopened.": "Nómina reabierta."
 }
