@@ -225,3 +225,26 @@ phase is a written decision per item; a build phase is added only for items answ
 ## Suggested sequencing for a single team
 `F0 → F1 ‖ F2 ‖ F9 → F3 → F4 ‖ F6 → F5 ‖ F7 → F8 → F10 ‖ F11 → F12`, with F11.4/F11.5 started right after F0.
 First deliverable to hand to a coding agent: **F0 (tasks F0.1 to F0.8)**.
+
+
+---
+
+## Implementation status (updated 2026-10-17, branch `feat/f0-baseline`)
+Legend: ✅ shipped with tests · 🟡 partly · ⏳ not started · ⏸️ decision needed. Details and commits: `missing-functionality.md` progress log.
+
+| Phase | Status | Notes |
+|---|---|---|
+| F0 | ✅ | All eight tasks. F0.5 ships the CSP collector; flipping to `enforce` is left to an operator after a clean report window. F0.1 baseline done (see `f0-baseline-report.md`); a final re-run is the end gate. |
+| F1 | 🟡 | Engine, modes, conditions, templates, delegation, SLA scheduler and editor were already in the repo; F1.5 notification controls shipped. Remaining: conditional-step type beyond `when`, migrating any consumer still on hard-coded chains (document requests have no approval chain). |
+| F2 | 🟡 | F2.1–F2.3 + UI shipped (employees, tasks, projects, assets, expenses); F2.4 covered by multi-select fields. Not done: documents entity, F2.5 FTS/trigram search, F2.6 shared comments/files, F2.7 unified audit view. |
+| F3 | 🟡 | F3.1 saved filters, F3.2 JQL, F3.3 timer/timesheets, F3.5 burnup shipped. F3.4 deferred (enum CHECK constraint). |
+| F4 | 🟡 | F4.2 timeline, F4.3 calendar, F4.4 workload/capacity, F4.6 templates shipped. Not done: F4.1 approval-gated transitions, F4.5 dashboards, F4.7 task SLA, F4.8 board types. |
+| F5 | ⏳ | Not started (HR↔TMS automation packs, auto-membership). |
+| F6 | ⏳ | Not started (lifecycle engine, letters, F&F, e-signature) — large; needs the e-signature decision. |
+| F7 | 🟡 | F7.3 payroll reopen shipped; PDF payslips already existed. Not done: shift swap, hourly leave, bank file, loans, expense limits, org extras. |
+| F8 | 🟡 | Skills catalogue/levels/matrix shipped. Not done: competencies, OKRs, IDP, careers/succession, PIP/360. |
+| F9 | 🟡 | Invoices/PDF/dunning already existed; F9.4 usage metering shipped. Not done: proration/seat true-up, restore/clone/purge, retention table (legal decisions). |
+| F10 | 🟡 | OpenAPI + contract test, Slack/Teams webhook format shipped. Not done: SSO, extra scopes, role templates, calendar/GitHub integrations. |
+| F11 | 🟡 | Queue console, route auth audit shipped. Not done: metrics/traces, E2E/k6, full permission matrix test, upload scanning, report builder. |
+| F12 | ⏳ | Not started (navigation regroup, PWA, push). |
+| F13 | ⏸️ | Decisions pending. |

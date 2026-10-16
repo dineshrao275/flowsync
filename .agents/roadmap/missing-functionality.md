@@ -38,6 +38,13 @@ Each row was implemented with its tests; the full-suite gate is still pending (s
 | M-E5 | Workload vs capacity (weekday capacity − approved leave) | 66c2fb6e |
 | M-I1, M-M3 (slice) | OpenAPI spec for `/api/v1` with a route-contract test; API route auth audit | 7d942d2f |
 | M-B3 | Payroll reopen with mandatory reason (never from locked) | 89d3effe |
+| M-A7 UI | Custom-field management page (`/custom-fields`) + inputs on employee and task forms + employee profile section | 8d7076e5 |
+| M-F2 (assets, expenses) | Custom fields on assets and expense claims | (F2.3 assets/expenses commit) |
+| M-E8 | Project templates (workflow, transitions, components, starter tasks; module `project_templates`) | f87e8c62 |
+| M-J1 (queue) | Platform queue console: depth, oldest job, failed jobs retry/discard (`queue.manage`) | fa028554 |
+| M-I5 | Webhook endpoints can post Slack/Mattermost or Teams messages | 1e596f59 |
+| M-C1 | Skills catalogue, self-declared + assessed levels, scoped matrix, Skills page | 86004662, c0bae4ef |
+| M-H4 | Monthly API-call and automation-run limits (plan limits, 429 `usage_limit`, Subscription page) | eb0c1eb9 |
 | infra | Test DB template per process (a 24-test run: 12 min → ~1.5 min) | 1d5d24d9 |
 
 **Corrections found while building (rows marked missing that already existed):** invoices + PDF (`InvoiceService`, `InvoicePdf`, `InvoiceController`, `InvoiceTest`) → M-H1 ✅; dunning and period-end expiry (`DunningTest`, `PeriodEndTest`) → M-H2 ✅; PDF payslips (`PayslipRenderer` + `SimplePdf`) → M-B8 ✅; export ZIP cleanup (`PruneTenantExports`) → part of M-H6 ✅; approvals v2 modes/conditions/delegation/SLA/editor (`ApprovalStepMode`, `ChainBuilder`, `ApprovalChains.jsx`) → M-F1 only needs the remaining consumers.
