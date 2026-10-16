@@ -9,6 +9,7 @@ import Alert from '../components/ui/Alert';
 import Button from '../components/ui/Button';
 import Input from '../components/ui/Input';
 import Tabs from '../components/ui/Tabs';
+import Pagination from '../components/ui/Pagination';
 import { useAuth } from '../context/AuthContext';
 import AutomationPanel from '../components/automation/AutomationPanel';
 import SprintsPanel from '../components/sprints/SprintsPanel';
