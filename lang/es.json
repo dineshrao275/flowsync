@@ -876,5 +876,11 @@
     "Move rejected.": "Movimiento rechazado.",
     "Request withdrawn.": "Solicitud retirada.",
     "This move needs a workflow manager's approval — it has been requested.": "Este movimiento necesita la aprobación de un gestor del flujo; ya se ha solicitado.",
-    "Moving to :status needs a workflow manager's approval — drag the card or use the move action to request it.": "Mover a :status necesita la aprobación de un gestor del flujo: arrastra la tarjeta o usa la acción de mover para solicitarla."
+    "Moving to :status needs a workflow manager's approval — drag the card or use the move action to request it.": "Mover a :status necesita la aprobación de un gestor del flujo: arrastra la tarjeta o usa la acción de mover para solicitarla.",
+    "The upload could not be read.": "No se pudo leer el archivo subido.",
+    "That file looks like a program, which cannot be uploaded.": "Ese archivo parece un programa y no se puede subir.",
+    "The file content does not match its :ext extension.": "El contenido del archivo no coincide con su extensión :ext.",
+    "That SVG contains active content and cannot be uploaded.": "Ese SVG contiene contenido activo y no se puede subir.",
+    "Uploads are paused while the virus scanner is unavailable.": "Las subidas están en pausa mientras el antivirus no está disponible.",
+    "That file was rejected by the virus scanner.": "El antivirus rechazó ese archivo."
 }

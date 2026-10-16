@@ -27,6 +27,15 @@ return [
         ],
     ],
 
+    // Upload content checks (F11.8). Magic-byte sniffing is always on; set `command` to wire an antivirus
+    // (e.g. "clamscan --no-summary {file}": exit 0 clean, 1 infected). `fail_closed` refuses uploads when
+    // the scanner itself errors; the default lets them through and logs `upload_scan.unavailable`.
+    'upload_scan' => [
+        'command' => env('SECURITY_UPLOAD_SCAN_COMMAND'),
+        'timeout' => (int) env('SECURITY_UPLOAD_SCAN_TIMEOUT', 20),
+        'fail_closed' => (bool) env('SECURITY_UPLOAD_SCAN_FAIL_CLOSED', false),
+    ],
+
     // Where a broken audit hash chain is reported (in addition to a critical log line).
     // Comma-separated emails; empty = log only.
     'audit_alert_emails' => array_filter(array_map('trim', explode(',', (string) env('SECURITY_AUDIT_ALERT_EMAILS', '')))),

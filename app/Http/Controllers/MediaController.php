@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Http\Requests\MediaUploadRequest;
 use App\Models\Media;
 use App\Services\PlatformAudit;
+use App\Support\UploadScanner;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
@@ -55,6 +56,7 @@ class MediaController extends Controller
     public function store(MediaUploadRequest $request): JsonResponse
     {
         $file = $request->file('file');
+        app(UploadScanner::class)->assertSafe($file);
         $path = $file->storeAs('media', Str::uuid().'.'.$file->getClientOriginalExtension(), 'public');
 
         $dimensions = @getimagesize($file->getRealPath());
