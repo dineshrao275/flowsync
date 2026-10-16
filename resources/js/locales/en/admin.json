@@ -290,7 +290,14 @@
         "thHttp": "HTTP",
         "thWhen": "When",
         "noDeliveries": "No deliveries yet.",
-        "requestFailed": "Request failed."
+        "requestFailed": "Request failed.",
+        "format": "Message format",
+        "formatHint": "Choose Slack or Teams to post a readable message into a channel; JSON sends the signed event for your own systems.",
+        "formats": {
+            "json": "Signed JSON (for your systems)",
+            "slack": "Slack / Mattermost message",
+            "teams": "Microsoft Teams message"
+        }
     },
     "featureFlags": {
         "pageTitle": "Feature Flags",

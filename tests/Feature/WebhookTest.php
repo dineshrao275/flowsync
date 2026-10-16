@@ -89,6 +89,43 @@ class WebhookTest extends TestCase
         $this->assertSame(200, $delivery->response_status);
     }
 
+    public function test_a_slack_or_teams_endpoint_gets_a_chat_message_not_the_envelope(): void
+    {
+        Http::fake(['*' => Http::response('ok', 200)]);
+        $this->login();
+        $this->create(['url' => 'https://hooks.slack.com/services/T0/B0/xyz', 'format' => 'slack']);
+        $this->create(['url' => 'https://outlook.office.com/webhook/abc', 'format' => 'teams']);
+
+        app(DomainEvents::class)->record('task.completed', 'App\\Models\\Task', 7, ['key' => 'PP-7', 'title' => "Ship it\nnow", 'email' => 'private@example.com'], 1);
+
+        $bodies = [];
+        Http::assertSent(function (HttpRequest $r) use (&$bodies) {
+            $bodies[$r->url()] = json_decode($r->body(), true);
+
+            return true;
+        });
+
+        $slack = $bodies['https://hooks.slack.com/services/T0/B0/xyz'];
+        $this->assertSame(['text'], array_keys($slack));
+        $this->assertStringContainsString('Task completed: PP-7 Ship it now', $slack['text']);
+
+        $teams = $bodies['https://outlook.office.com/webhook/abc'];
+        $this->assertSame('MessageCard', $teams['@type']);
+        $this->assertStringContainsString('PP-7', $teams['text']);
+
+        // Nothing but the sentence travels: no emails or ids from the event data.
+        $this->assertStringNotContainsString('private@example.com', json_encode($bodies));
+    }
+
+    public function test_the_format_is_validated_and_defaults_to_json(): void
+    {
+        $this->login();
+
+        $this->postJson('/api/webhooks', ['url' => 'https://hooks.example.com/x', 'events' => ['*'], 'format' => 'carrier-pigeon'])
+            ->assertUnprocessable()->assertJsonValidationErrors('format');
+        $this->assertSame('json', $this->create()['endpoint']['format']);
+    }
+
     public function test_a_failing_receiver_is_retried_with_backoff_then_given_up_on(): void
     {
         Http::fake(['hooks.example.com/*' => Http::response('nope', 500)]);

@@ -290,7 +290,14 @@
         "thHttp": "HTTP",
         "thWhen": "Cuándo",
         "noDeliveries": "Aún no hay entregas.",
-        "requestFailed": "La solicitud falló."
+        "requestFailed": "La solicitud falló.",
+        "format": "Formato del mensaje",
+        "formatHint": "Elige Slack o Teams para publicar un mensaje legible en un canal; JSON envía el evento firmado para tus propios sistemas.",
+        "formats": {
+            "json": "JSON firmado (para tus sistemas)",
+            "slack": "Mensaje de Slack / Mattermost",
+            "teams": "Mensaje de Microsoft Teams"
+        }
     },
     "featureFlags": {
         "pageTitle": "Indicadores de funcionalidad",
