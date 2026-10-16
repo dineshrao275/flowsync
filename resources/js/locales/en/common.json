@@ -13,7 +13,18 @@
         "accountMenu": "Account menu",
         "accountSettings": "Account settings",
         "signOut": "Sign out",
-        "signedOut": "You have been signed out."
+        "signedOut": "You have been signed out.",
+        "productSwitcher": {
+            "toHrms": "Switch to HR Management",
+            "toTms": "Switch to Task Management"
+        }
+    },
+    "ui": {
+        "selectDate": "Select date…",
+        "selectDateTime": "Select date & time…"
+    },
+    "errors": {
+        "generic": "Something went wrong. Please try again."
     },
     "notifications": {
         "pageTitle": "Notifications",

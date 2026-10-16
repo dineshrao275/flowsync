@@ -13,6 +13,7 @@ import Spinner from '../../components/ui/Spinner';
 import { useToast } from '../../context/ToastContext';
 import { useSetCrumbs } from '../../context/BreadcrumbContext';
 import usePageTitle from '../../hooks/usePageTitle';
+import { assetConditionLabel } from '../../utils/hrmsAssets';
 
 /**
  * The caller's open handovers: acknowledge the receipt, and report damage
@@ -122,7 +123,7 @@ export default function MyAssets() {
                                             {assignment.asset?.asset_code} · {assignment.asset?.name}
                                         </span>
                                         <p className="text-sm text-gray-500">
-                                            {t('hrms.myAssets.out', { condition: assignment.condition_out })}
+                                            {t('hrms.myAssets.out', { condition: assetConditionLabel(t, assignment.condition_out) })}
                                             {assignment.acknowledged_at ? '' : ` · ${t('hrms.myAssets.awaitingSignature')}`}
                                         </p>
                                     </div>
@@ -144,7 +145,7 @@ export default function MyAssets() {
             <Modal open={!!damaging} onClose={() => setDamaging(null)} title={t('hrms.myAssets.damageTitle', { code: damaging?.asset?.asset_code ?? '' })}>
                 <form onSubmit={reportDamage} className="grid gap-3 px-6 py-5">
                     <Select label={t('hrms.myAssets.conditionIn')} value="damaged" disabled>
-                        <option value="damaged">damaged</option>
+                        <option value="damaged">{assetConditionLabel(t, 'damaged')}</option>
                     </Select>
                     <Input label={t('hrms.myAssets.whatHappened')} value={damageNote} error={damageErrors.return_note} onChange={(e) => setDamageNote(e.target.value)} />
                     <div><Button type="submit" variant="danger">{t('hrms.myAssets.sendToTriage')}</Button></div>

@@ -16,8 +16,8 @@ import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
 import { useSetCrumbs } from '../../context/BreadcrumbContext';
 import usePageTitle from '../../hooks/usePageTitle';
+import { ASSET_CONDITIONS, assetConditionLabel } from '../../utils/hrmsAssets';
 
-const CONDITIONS = ['new', 'good', 'fair', 'poor', 'damaged'];
 const STATUSES = ['', 'available', 'assigned', 'maintenance', 'retired', 'lost'];
 
 /**
@@ -234,7 +234,7 @@ export default function Assets() {
                                         </button>
                                         <span className="block text-xs text-gray-400">{asset.name} · {asset.category?.name ?? ''}</span>
                                     </Td>
-                                    <Td>{asset.condition}</Td>
+                                    <Td>{assetConditionLabel(t, asset.condition)}</Td>
                                     <Td>{asset.status}</Td>
                                     <Td>{asset.assignee?.name ?? '—'}</Td>
                                     {canManage && (
@@ -265,7 +265,7 @@ export default function Assets() {
                     <Input label={t('hrms.assets.model')} value={registerForm.model} error={registerErrors.model} onChange={(e) => setRegisterForm({ ...registerForm, model: e.target.value })} />
                     <Input label={t('hrms.assets.serialNumber')} value={registerForm.serial_number} error={registerErrors.serial_number} onChange={(e) => setRegisterForm({ ...registerForm, serial_number: e.target.value })} />
                     <Select label={t('hrms.assets.condition')} value={registerForm.condition} error={registerErrors.condition} onChange={(e) => setRegisterForm({ ...registerForm, condition: e.target.value })}>
-                        {CONDITIONS.filter((c) => c !== 'damaged').map((c) => <option key={c} value={c}>{c}</option>)}
+                        {ASSET_CONDITIONS.filter((c) => c !== 'damaged').map((c) => <option key={c} value={c}>{assetConditionLabel(t, c)}</option>)}
                     </Select>
                     <div className="sm:col-span-2"><Button type="submit">{t('hrms.assets.registerSubmit')}</Button></div>
                 </form>
@@ -278,7 +278,7 @@ export default function Assets() {
                         {employees.map((e) => <option key={e.id} value={e.id}>{e.name}</option>)}
                     </Select>
                     <Select label={t('hrms.assets.conditionOut')} value={assignForm.condition_out} error={assignErrors.condition_out} onChange={(e) => setAssignForm({ ...assignForm, condition_out: e.target.value })}>
-                        {CONDITIONS.map((c) => <option key={c} value={c}>{c}</option>)}
+                        {ASSET_CONDITIONS.map((c) => <option key={c} value={c}>{assetConditionLabel(t, c)}</option>)}
                     </Select>
                     <div><Button type="submit">{t('hrms.assets.handOver')}</Button></div>
                 </form>
@@ -287,7 +287,7 @@ export default function Assets() {
             <Modal open={!!returning} onClose={() => setReturning(null)} title={t('hrms.assets.returnTitle', { code: returning?.asset_code ?? '' })}>
                 <form onSubmit={returnAsset} className="grid gap-3 px-6 py-5">
                     <Select label={t('hrms.assets.conditionIn')} value={returnForm.condition_in} error={returnErrors.condition_in} onChange={(e) => setReturnForm({ ...returnForm, condition_in: e.target.value })}>
-                        {CONDITIONS.map((c) => <option key={c} value={c}>{c}</option>)}
+                        {ASSET_CONDITIONS.map((c) => <option key={c} value={c}>{assetConditionLabel(t, c)}</option>)}
                     </Select>
                     <Input label={t('hrms.assets.returnNote')} value={returnForm.return_note} error={returnErrors.return_note} onChange={(e) => setReturnForm({ ...returnForm, return_note: e.target.value })} />
                     <div><Button type="submit">{t('hrms.assets.takeBack')}</Button></div>
@@ -312,7 +312,7 @@ export default function Assets() {
                 {detail && (
                     <div className="space-y-4 px-6 py-5 text-sm">
                         <p className="text-gray-500">
-                            {detail.brand ?? ''} {detail.model ?? ''} · {detail.serial_number ?? t('hrms.assets.noSerial')} · {detail.condition} · {detail.status}
+                            {detail.brand ?? ''} {detail.model ?? ''} · {detail.serial_number ?? t('hrms.assets.noSerial')} · {assetConditionLabel(t, detail.condition)} · {detail.status}
                         </p>
                         <div>
                             <h4 className="mb-1 font-semibold text-gray-900">{t('hrms.assets.handoverLedger')}</h4>
@@ -322,9 +322,9 @@ export default function Assets() {
                                 <ul className="divide-y divide-gray-100">
                                     {detail.assignments.map((row) => (
                                         <li key={row.id} className="py-1.5">
-                                            {row.employee?.name ?? '—'} · {t('hrms.assets.conditionOut')} {row.condition_out}
+                                            {row.employee?.name ?? '—'} · {t('hrms.assets.conditionOut')} {assetConditionLabel(t, row.condition_out)}
                                             {row.acknowledged_at ? '' : ` · ${t('hrms.assets.awaitingSignature')}`}
-                                            {row.returned_at ? ` · ${t('hrms.assets.back')} ${row.condition_in ?? ''}` : ''}
+                                            {row.returned_at ? ` · ${t('hrms.assets.back')} ${assetConditionLabel(t, row.condition_in)}` : ''}
                                             <span className="ml-2 text-xs text-gray-400">{row.status}</span>
                                         </li>
                                     ))}

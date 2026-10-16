@@ -2053,7 +2053,14 @@
         "assign": "Assign",
         "return": "Return",
         "repair": "Repair",
-        "replace": "Replace"
+        "replace": "Replace",
+        "conditions": {
+            "new": "New",
+            "good": "Good",
+            "fair": "Fair",
+            "poor": "Poor",
+            "damaged": "Damaged"
+        }
     },
     "myAssets": {
         "pageTitle": "My assets",
