@@ -637,7 +637,11 @@
         "cycleAvg": "Cycle time (avg)",
         "cycleMedian": "Cycle time (median)",
         "daysSuffix": "d",
-        "flowFootnote": "Lead time = created → completed. Cycle time = first moved to an in-progress status → completed."
+        "flowFootnote": "Lead time = created → completed. Cycle time = first moved to an in-progress status → completed.",
+        "burnup": "Burnup",
+        "burnupSubtitle": "Work completed against total scope — scope changes show as steps.",
+        "scope": "Scope",
+        "done": "Done"
     },
     "columns": {
         "title": "Board settings",

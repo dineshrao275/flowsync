@@ -166,6 +166,19 @@ export default function SprintsPanel({ projectId, canPlan }) {
                             </div>
                         ) : <p className="text-sm text-gray-400">{t('tms.sprints.burndownEmpty')}</p>}
                     </Card>
+                    <Card title={t('tms.sprints.burnup')} subtitle={t('tms.sprints.burnupSubtitle')}>
+                        {reports.burndown?.days?.length ? (
+                            <div style={{ height: 240 }}>
+                                <ResponsiveContainer>
+                                    <LineChart data={reports.burndown.days}>
+                                        <CartesianGrid strokeDasharray="3 3" /><XAxis dataKey="date" tick={{ fontSize: 11 }} /><YAxis tick={{ fontSize: 11 }} /><Tooltip /><Legend />
+                                        <Line type="stepAfter" dataKey="scope" stroke="#9ca3af" name={t('tms.sprints.scope')} dot={false} />
+                                        <Line type="monotone" dataKey="done" stroke="#10b981" name={t('tms.sprints.done')} dot={false} />
+                                    </LineChart>
+                                </ResponsiveContainer>
+                            </div>
+                        ) : <p className="text-sm text-gray-400">{t('tms.sprints.burndownEmpty')}</p>}
+                    </Card>
                     <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
                         <Card title={t('tms.sprints.velocity')} subtitle={t('tms.sprints.velocitySubtitle')}>
                             {reports.velocity.length ? (

@@ -637,7 +637,11 @@
         "cycleAvg": "Tiempo de ciclo (media)",
         "cycleMedian": "Tiempo de ciclo (mediana)",
         "daysSuffix": "d",
-        "flowFootnote": "Tiempo de entrega = creada → completada. Tiempo de ciclo = primer paso a un estado en curso → completada."
+        "flowFootnote": "Tiempo de entrega = creada → completada. Tiempo de ciclo = primer paso a un estado en curso → completada.",
+        "burnup": "Burnup",
+        "burnupSubtitle": "Trabajo completado frente al alcance total: los cambios de alcance se ven como escalones.",
+        "scope": "Alcance",
+        "done": "Hecho"
     },
     "columns": {
         "title": "Ajustes del tablero",
