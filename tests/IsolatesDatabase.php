@@ -66,15 +66,49 @@ trait IsolatesDatabase
         TenantLimits::resetMemo();
         ReportsTo::resetMemo();
 
+        // Provisioning acme + globex (every migration set, catalogs, demo data) costs about a
+        // minute on sqlite files, so it is done ONCE per test process into a template directory and
+        // every test starts from a file copy of it. The result is identical to migrating fresh:
+        // paths are derived from `tenancy.tenant.db_path` + slug/id, nothing absolute is stored.
+        $template = $this->isolationTemplate();
+
         $this->isoTenantDir = sys_get_temp_dir().'/flowsync-test-'.Str::random(8);
         $this->isoSystemDb = $this->isoTenantDir.'/system.sqlite';
-        File::makeDirectory($this->isoTenantDir, 0775, true);
+        File::copyDirectory($template, $this->isoTenantDir);
 
+        $this->configureIsolation($this->isoTenantDir);
+
+        $this->dbm = app(TenantDatabaseManager::class);
+        $this->connectTenant('acme');
+    }
+
+    /** Point the app at an isolated tenancy layout rooted at $dir. */
+    private function configureIsolation(string $dir): void
+    {
         Config::set('tenancy.driver', 'isolated');
         Config::set('tenancy.system.connection', 'iso_system');
         Config::set('tenancy.tenant.driver', 'sqlite');
-        Config::set('tenancy.tenant.db_path', $this->isoTenantDir);
-        Config::set('database.connections.iso_system', $this->sqliteConfig($this->isoSystemDb));
+        Config::set('tenancy.tenant.db_path', $dir);
+        Config::set('database.connections.iso_system', $this->sqliteConfig($dir.'/system.sqlite'));
+    }
+
+    /**
+     * The migrated + seeded template, built on first use in this process (each ParaTest worker
+     * builds its own) and deleted when the process exits.
+     */
+    private function isolationTemplate(): string
+    {
+        static $template = null;
+
+        if ($template !== null) {
+            return $template;
+        }
+
+        $template = sys_get_temp_dir().'/flowsync-template-'.getmypid().'-'.Str::random(6);
+        File::makeDirectory($template, 0775, true);
+        register_shutdown_function(static fn () => File::deleteDirectory($template));
+
+        $this->configureIsolation($template);
 
         Artisan::call('migrate', [
             '--database' => 'iso_system',
@@ -84,8 +118,13 @@ trait IsolatesDatabase
 
         Artisan::call('db:seed', ['--class' => TenantSeeder::class, '--no-interaction' => true]);
 
-        $this->dbm = app(TenantDatabaseManager::class);
-        $this->connectTenant('acme');
+        // Close every handle on the template and drop the container that cached its paths, so the
+        // test that built it continues exactly like the ones that copy it.
+        DB::purge('iso_system');
+        DB::purge('tenant');
+        $this->refreshApplication();
+
+        return $template;
     }
 
     protected function tearDown(): void
