@@ -25,4 +25,8 @@ return [
             'img-src' => array_filter(explode(',', (string) env('SECURITY_CSP_IMG_SRC', ''))),
         ],
     ],
+
+    // Where a broken audit hash chain is reported (in addition to a critical log line).
+    // Comma-separated emails; empty = log only.
+    'audit_alert_emails' => array_filter(array_map('trim', explode(',', (string) env('SECURITY_AUDIT_ALERT_EMAILS', '')))),
 ];

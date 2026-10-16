@@ -27,6 +27,8 @@ Schedule::command('tenants:close-impersonations')->everyTenMinutes()->withoutOve
 Schedule::command('tenants:expire-trials')->dailyAt('00:05')->withoutOverlapping();
 // Platform audit rows older than the tenant's plan retention are removed (hash-chain tombstones keep it verifiable).
 Schedule::command('audit:prune')->dailyAt('03:50')->withoutOverlapping();
+// Tamper check of the audit hash chain; a break is logged critical and emailed (SECURITY_AUDIT_ALERT_EMAILS).
+Schedule::command('audit:verify')->dailyAt('04:10')->withoutOverlapping();
 
 // Billing: failed-payment dunning (reminders, final notice, suspension after the grace period).
 // Billing: lapsed paid periods are expired / renewed / sent to dunning first (08:00), then dunning runs.

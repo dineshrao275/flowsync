@@ -8,6 +8,7 @@ use Illuminate\Console\Scheduling\Schedule;
 use Illuminate\Contracts\Console\Kernel;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Tests\IsolatesDatabase;
 use Tests\TestCase;
 
@@ -141,5 +142,29 @@ class AuditChainTest extends TestCase
             ->map(fn ($e) => (string) $e->command)->implode("\n");
 
         $this->assertStringContainsString('audit:prune', $commands);
+    }
+
+    public function test_a_broken_chain_raises_a_critical_alert(): void
+    {
+        $this->write('chain.one');
+        $victim = $this->write('chain.two');
+        $this->central()->table('audit_logs')->where('id', $victim->id)->update(['action' => 'chain.forged']);
+
+        Log::spy();
+
+        $this->artisan('audit:verify')->assertExitCode(1);
+
+        Log::shouldHaveReceived('critical')
+            ->withArgs(fn ($message, $context) => $message === 'audit.chain_broken' && $context['row_id'] === $victim->id)
+            ->once();
+    }
+
+    public function test_the_chain_verification_is_scheduled(): void
+    {
+        $this->app->make(Kernel::class)->bootstrap();
+        $commands = collect($this->app->make(Schedule::class)->events())
+            ->map(fn ($e) => (string) $e->command)->implode("\n");
+
+        $this->assertStringContainsString('audit:verify', $commands);
     }
 }
