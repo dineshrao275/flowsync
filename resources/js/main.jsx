@@ -30,3 +30,10 @@ createRoot(document.getElementById('root')).render(
         <App />
     </React.StrictMode>,
 );
+
+// F12: offline app shell. Production only — a worker in dev would serve stale Vite modules.
+if (import.meta.env.PROD && 'serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+        navigator.serviceWorker.register('/sw.js', { scope: '/app/' }).catch(() => {});
+    });
+}

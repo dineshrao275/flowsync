@@ -5,6 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>FlowSync Admin</title>
+    <link rel="manifest" href="/manifest.webmanifest">
+    <meta name="theme-color" content="#2563eb">
     {{-- Paint the stored color scheme before React mounts (no light flash). Mirrors resources/js/theme.js. --}}
     <script>
         window.__FLOWSYNC_CONFIG__ = {
