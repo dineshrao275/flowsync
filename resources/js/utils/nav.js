@@ -113,6 +113,7 @@ const SHARED_ADMIN = [
     { to: '/custom-fields', label: 'nav.admin.customFields', capabilities: ['custom_fields.manage', 'module:custom_fields'], icon: SlidersHorizontal },
     { to: '/settings', label: 'nav.admin.settings', capabilities: ['settings.view'], icon: ICONS.settings },
     { to: '/security', label: 'nav.admin.security', icon: ICONS.security },
+    { to: '/audit', label: 'nav.admin.audit', capabilities: ['tenant.manage'], icon: ICONS.security },
 ];
 
 const SHARED_BILLING = [

@@ -260,7 +260,8 @@
             "subscription": "Suscripción",
             "support": "Soporte",
             "dataExport": "Exportación de datos",
-            "customFields": "Campos personalizados"
+            "customFields": "Campos personalizados",
+            "audit": "Cronología de auditoría"
         },
         "hrms": {
             "myHr": "Mi RR. HH.",

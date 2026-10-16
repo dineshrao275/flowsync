@@ -23,6 +23,7 @@ import ProjectDetail from './pages/ProjectDetail';
 import Projects from './pages/Projects';
 import Support from './pages/Support';
 import Webhooks from './pages/Webhooks';
+import AuditTimeline from './pages/AuditTimeline';
 import CustomFields from './pages/CustomFields';
 import AdminSupport from './pages/AdminSupport';
 import Leads from './pages/Leads';
@@ -552,6 +553,9 @@ function AppRoutes() {
                         </Route>
                         <Route element={<ProtectedRoute permission="custom_fields.manage" module="custom_fields" />}>
                             <Route path="/custom-fields" element={<CustomFields />} />
+                        </Route>
+                        <Route element={<ProtectedRoute permission="tenant.manage" />}>
+                            <Route path="/audit" element={<AuditTimeline />} />
                         </Route>
                         <Route element={<ProtectedRoute permission="webhooks.manage" module="webhooks" />}>
                             <Route path="/webhooks" element={<Webhooks />} />

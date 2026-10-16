@@ -1376,5 +1376,21 @@
             "email": "Email",
             "user": "Person"
         }
+    },
+    "auditTimeline": {
+        "title": "Audit timeline",
+        "subtitle": "Everything that changed in this workspace — task activity and HR decisions — in one place.",
+        "export": "Export CSV",
+        "source": "Source",
+        "all": "All",
+        "activity": "Activity",
+        "hrms": "HR",
+        "action": "Action contains",
+        "from": "From",
+        "to": "To",
+        "actor": "Actor",
+        "system": "System",
+        "empty": "No entries match.",
+        "loadFailed": "Could not load the audit timeline."
     }
 }

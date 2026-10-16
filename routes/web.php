@@ -41,6 +41,7 @@ use App\Http\Controllers\SearchController;
 use App\Http\Controllers\SupportTicketController;
 use App\Http\Controllers\TenantController;
 use App\Http\Controllers\ThemeController;
+use App\Http\Controllers\UnifiedAuditController;
 use App\Http\Controllers\UserAccessController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\UserImportController;
@@ -100,6 +101,10 @@ Route::prefix('api')->group(function () {
         // Tenant-wide switches for emailable events (admins: tenant.manage).
         Route::get('notification-policies', [NotificationPolicyController::class, 'show'])->middleware('permission:tenant.manage');
         Route::put('notification-policies', [NotificationPolicyController::class, 'update'])->middleware('permission:tenant.manage');
+
+        // Unified tenant audit timeline (activities + HR ledger), admins only.
+        Route::get('audit/timeline', [UnifiedAuditController::class, 'index'])->middleware('permission:tenant.manage');
+        Route::get('audit/timeline/export', [UnifiedAuditController::class, 'export'])->middleware(['permission:tenant.manage', 'throttle:30,1']);
 
         // HR inbox (self-scoped by login like notifications; the service
         // short-circuits platform super admins to empty payloads).

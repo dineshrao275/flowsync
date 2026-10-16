@@ -260,7 +260,8 @@
             "subscription": "Subscription",
             "support": "Support",
             "dataExport": "Data Export",
-            "customFields": "Custom fields"
+            "customFields": "Custom fields",
+            "audit": "Audit timeline"
         },
         "hrms": {
             "myHr": "My HR",

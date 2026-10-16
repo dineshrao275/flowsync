@@ -1376,5 +1376,21 @@
             "email": "Correo",
             "user": "Persona"
         }
+    },
+    "auditTimeline": {
+        "title": "Cronología de auditoría",
+        "subtitle": "Todo lo que cambió en este espacio — actividad de tareas y decisiones de RR. HH. — en un solo lugar.",
+        "export": "Exportar CSV",
+        "source": "Origen",
+        "all": "Todos",
+        "activity": "Actividad",
+        "hrms": "RR. HH.",
+        "action": "La acción contiene",
+        "from": "Desde",
+        "to": "Hasta",
+        "actor": "Autor",
+        "system": "Sistema",
+        "empty": "Ninguna entrada coincide.",
+        "loadFailed": "No se pudo cargar la cronología de auditoría."
     }
 }
