@@ -56,6 +56,7 @@ export const HRMS_NAV = [
     { to: '/hrms/talent', label: 'nav.hrms.talent', group: 'nav.groups.performance', capabilities: ['module:hrms.core', 'module:hrms.talent', 'permission:hrms.talent.manage'] },
 
     { to: '/hrms/assets', label: 'nav.hrms.assets', group: 'nav.groups.records', capabilities: ['module:hrms.core', 'module:hrms.assets', 'permission:hrms.assets.view'] },
+    { to: '/hrms/resignation', label: 'nav.hrms.resignation', group: 'nav.groups.records', capabilities: ['module:hrms.core', 'module:hrms.offboarding'] },
     { to: '/hrms/assets/mine', label: 'nav.hrms.myAssets', group: 'nav.groups.records', capabilities: ['module:hrms.core', 'module:hrms.assets'] },
     { to: '/hrms/approvals/chains', label: 'nav.hrms.approvalChains', group: 'nav.groups.records', capabilities: ['module:hrms.core', 'permission:hrms.approvals.manage'] },
 

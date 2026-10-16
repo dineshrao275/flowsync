@@ -297,7 +297,8 @@
             "approvalChains": "Cadenas de aprobación",
             "analytics": "Analítica",
             "audit": "Registro de auditoría",
-            "skills": "Habilidades"
+            "skills": "Habilidades",
+            "resignation": "Renuncia"
         },
         "platform": {
             "overview": "Resumen",

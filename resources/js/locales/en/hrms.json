@@ -2442,5 +2442,41 @@
         "delete": "Delete",
         "deleteTitle": "Delete this skill?",
         "deleteMessage": "“{{name}}” will be removed from the catalogue."
+    },
+    "resignation": {
+        "pageTitle": "Resignation",
+        "subtitle": "Resign, track the decision, or decide the ones sent to you.",
+        "intro": "Your manager and HR will be asked to approve. Once approved, your exit checklist starts automatically.",
+        "lastDay": "Requested last working day",
+        "notice": "Notice period (days)",
+        "reason": "Reason",
+        "submit": "Submit resignation",
+        "filed": "Resignation submitted.",
+        "mineTitle": "My resignation",
+        "lastDayIs": "Last working day {{date}}",
+        "note": "Note: {{note}}",
+        "openCase": "Open the exit case",
+        "withdraw": "Withdraw",
+        "withdrawTitle": "Withdraw your resignation?",
+        "withdrawMessage": "The request is cancelled and nothing else happens.",
+        "decideTitle": "Waiting for your decision",
+        "decideSubtitle": "Approving moves it on to the next approver; the last approval opens the exit case.",
+        "noteLabel": "Note (needed to reject)",
+        "approve": "Approve",
+        "reject": "Reject",
+        "allTitle": "All resignations",
+        "loadFailed": "Could not load resignations.",
+        "actionFailed": "That did not work.",
+        "status": {
+            "pending": "Pending",
+            "approved": "Approved",
+            "rejected": "Rejected",
+            "withdrawn": "Withdrawn"
+        },
+        "done": {
+            "approve": "Decision recorded.",
+            "reject": "Resignation rejected.",
+            "withdraw": "Resignation withdrawn."
+        }
     }
 }

@@ -10,6 +10,7 @@ use App\Http\Controllers\Hrms\Lifecycle\DocumentRequestController;
 use App\Http\Controllers\Hrms\Lifecycle\OffboardingCaseController;
 use App\Http\Controllers\Hrms\Lifecycle\OnboardingCaseController;
 use App\Http\Controllers\Hrms\Lifecycle\OnboardingTemplateController;
+use App\Http\Controllers\Hrms\Lifecycle\ResignationController;
 use App\Http\Controllers\Hrms\MyTeamController;
 use App\Http\Controllers\Hrms\Org\DepartmentController;
 use App\Http\Controllers\Hrms\Org\DesignationController;
@@ -125,6 +126,13 @@ Route::group(['middleware' => ['ensure_module:hrms.core', 'ensure_module:hrms.on
 });
 
 Route::group(['middleware' => ['ensure_module:hrms.core', 'ensure_module:hrms.offboarding', 'permission:hrms.view']], function () {
+    // Resignations (F6.4): self-service filing, approval through the shared engine, then the exit case opens itself.
+    Route::get('hrms/resignations', [ResignationController::class, 'index']);
+    Route::post('hrms/resignations', [ResignationController::class, 'store'])->middleware('throttle:10,1');
+    Route::post('hrms/resignations/{resignation}/approve', [ResignationController::class, 'approve']);
+    Route::post('hrms/resignations/{resignation}/reject', [ResignationController::class, 'reject']);
+    Route::post('hrms/resignations/{resignation}/withdraw', [ResignationController::class, 'withdraw']);
+
     Route::get('hrms/offboarding/cases', [OffboardingCaseController::class, 'index']);
     Route::post('hrms/offboarding/cases', [OffboardingCaseController::class, 'store']);
     Route::get('hrms/offboarding/cases/{case}', [OffboardingCaseController::class, 'show']);

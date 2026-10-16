@@ -2442,5 +2442,41 @@
         "delete": "Eliminar",
         "deleteTitle": "¿Eliminar esta habilidad?",
         "deleteMessage": "«{{name}}» se eliminará del catálogo."
+    },
+    "resignation": {
+        "pageTitle": "Renuncia",
+        "subtitle": "Presenta tu renuncia, sigue la decisión o resuelve las que te llegan.",
+        "intro": "Tu responsable y RR. HH. deberán aprobarla. Una vez aprobada, tu lista de salida empieza automáticamente.",
+        "lastDay": "Último día de trabajo solicitado",
+        "notice": "Preaviso (días)",
+        "reason": "Motivo",
+        "submit": "Enviar renuncia",
+        "filed": "Renuncia enviada.",
+        "mineTitle": "Mi renuncia",
+        "lastDayIs": "Último día de trabajo: {{date}}",
+        "note": "Nota: {{note}}",
+        "openCase": "Abrir el caso de salida",
+        "withdraw": "Retirar",
+        "withdrawTitle": "¿Retirar tu renuncia?",
+        "withdrawMessage": "La solicitud se cancela y no ocurre nada más.",
+        "decideTitle": "Pendientes de tu decisión",
+        "decideSubtitle": "Aprobar la pasa al siguiente aprobador; la última aprobación abre el caso de salida.",
+        "noteLabel": "Nota (obligatoria para rechazar)",
+        "approve": "Aprobar",
+        "reject": "Rechazar",
+        "allTitle": "Todas las renuncias",
+        "loadFailed": "No se pudieron cargar las renuncias.",
+        "actionFailed": "No funcionó.",
+        "status": {
+            "pending": "Pendiente",
+            "approved": "Aprobada",
+            "rejected": "Rechazada",
+            "withdrawn": "Retirada"
+        },
+        "done": {
+            "approve": "Decisión registrada.",
+            "reject": "Renuncia rechazada.",
+            "withdraw": "Renuncia retirada."
+        }
     }
 }

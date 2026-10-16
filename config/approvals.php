@@ -67,6 +67,15 @@ return [
             'fields' => ['days', 'department_id'],
             'steps' => [['type' => 'manager']],
         ],
+        'resignation' => [
+            'label' => 'Resignations',
+            'action' => 'resignation.request',
+            'fields' => ['department_id'],
+            'steps' => [
+                ['type' => 'manager'],
+                ['type' => 'role', 'role_slug' => 'hr_manager', 'omit_if_requester_holds' => true],
+            ],
+        ],
         'salary_revision' => [
             'label' => 'Salary revisions',
             'action' => 'compensation.revise',

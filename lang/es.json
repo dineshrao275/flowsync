@@ -783,5 +783,17 @@
     "You cannot view the skills matrix.": "No puedes ver la matriz de habilidades.",
     "You cannot manage skills.": "No puedes gestionar habilidades.",
     "You have no employment record.": "No tienes un registro de empleo.",
-    "Your plan's monthly API call limit has been reached.": "Se alcanzó el límite mensual de llamadas a la API de tu plan."
+    "Your plan's monthly API call limit has been reached.": "Se alcanzó el límite mensual de llamadas a la API de tu plan.",
+    "The last working day cannot be in the past.": "El último día de trabajo no puede ser pasado.",
+    "Say why you are resigning.": "Indica el motivo de tu renuncia.",
+    "You already have a resignation waiting for a decision.": "Ya tienes una renuncia pendiente de decisión.",
+    "An exit is already in progress for this employee.": "Ya hay una salida en curso para este empleado.",
+    "This resignation has already been decided.": "Esta renuncia ya fue resuelta.",
+    "This resignation has no approval chain.": "Esta renuncia no tiene cadena de aprobación.",
+    "You have no employment record to resign from.": "No tienes un registro de empleo del que renunciar.",
+    "Resignation submitted.": "Renuncia enviada.",
+    "Resignation decided.": "Renuncia resuelta.",
+    "Resignation rejected.": "Renuncia rechazada.",
+    "Resignation withdrawn.": "Renuncia retirada.",
+    "Only the employee can withdraw a resignation.": "Solo el empleado puede retirar una renuncia."
 }

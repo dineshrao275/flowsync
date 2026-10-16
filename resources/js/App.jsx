@@ -45,6 +45,7 @@ import Inbox from './pages/hrms/Inbox';
 import OnboardingCases from './pages/hrms/OnboardingCases';
 import OnboardingCaseDetail from './pages/hrms/OnboardingCaseDetail';
 import OffboardingCases from './pages/hrms/OffboardingCases';
+import Resignation from './pages/hrms/Resignation';
 import OffboardingCaseDetail from './pages/hrms/OffboardingCaseDetail';
 import Attendance from './pages/hrms/Attendance';
 import AttendanceApprovals from './pages/hrms/AttendanceApprovals';
@@ -287,6 +288,9 @@ function AppRoutes() {
                                     }
                                 />
                                 <Route path="/hrms/onboarding/cases/:caseId" element={<OnboardingCaseDetail />} />
+                                <Route path="/hrms/resignation" element={<ProtectedRoute module="hrms.offboarding" />}>
+                                    <Route index element={<Resignation />} />
+                                </Route>
                                 <Route
                                     path="/hrms/offboarding"
                                     element={
