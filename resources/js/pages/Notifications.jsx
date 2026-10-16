@@ -1,12 +1,13 @@
 import { useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import api from '../services/api';
 import Avatar from '../components/ui/Avatar';
 import Badge from '../components/ui/Badge';
 import Button from '../components/ui/Button';
 import Pagination from '../components/ui/Pagination';
 import Spinner from '../components/ui/Spinner';
-import Alert from '../components/ui/Alert';
+import ErrorState from '../components/ui/ErrorState';
 import { Table, Th, Td, TableEmpty } from '../components/ui/Table';
 import { useNotifications } from '../context/NotificationContext';
 import { useSetCrumbs } from '../context/BreadcrumbContext';
@@ -17,17 +18,18 @@ import { usePaginated } from '../hooks/useResource';
 import Timestamp from '../components/ui/Timestamp';
 
 export default function Notifications() {
-    usePageTitle('Notifications');
+    const { t } = useTranslation();
+    usePageTitle(t('notifications.pageTitle'));
     const { markAllRead, markRead } = useNotifications();
     const setCrumbs = useSetCrumbs();
     const navigate = useNavigate();
-    const { data, error, page, setPage } = usePaginated((p, signal) =>
+    const { data, error, reload, page, setPage } = usePaginated((p, signal) =>
         api.get('/notifications', { params: { page: p, per_page: 20 }, signal }).then(({ data: response }) => response),
     );
 
     useEffect(() => {
-        setCrumbs([{ label: 'Notifications' }]);
-    }, [setCrumbs]);
+        setCrumbs([{ label: t('notifications.pageTitle') }]);
+    }, [setCrumbs, t]);
 
     function openNotification(notification) {
         markRead(notification.id);
@@ -40,24 +42,24 @@ export default function Notifications() {
     return (
         <div className="mx-auto max-w-5xl space-y-4">
             <div className="flex items-center justify-between">
-                <h2 className="text-xl font-semibold text-gray-900">Notifications</h2>
+                <h2 className="text-xl font-semibold text-gray-900">{t('notifications.pageTitle')}</h2>
                 {data?.unread_count > 0 && (
                     <Button variant="secondary" onClick={markAllRead}>
-                        Mark all as read
+                        {t('notifications.markAllRead')}
                     </Button>
                 )}
             </div>
 
-            {error && <Alert>Unable to load notifications.</Alert>}
+            {error && data == null && <ErrorState title={t('notifications.loadFailed')} onRetry={reload} />}
 
             <Table>
                 <thead>
                     <tr>
-                        <Th>Notification</Th>
-                        <Th>Actor</Th>
-                        <Th>Task / project</Th>
-                        <Th align="right">Time</Th>
-                        <Th align="right">Read</Th>
+                        <Th>{t('notifications.thNotification')}</Th>
+                        <Th>{t('notifications.thActor')}</Th>
+                        <Th>{t('notifications.thTaskProject')}</Th>
+                        <Th align="right">{t('notifications.thTime')}</Th>
+                        <Th align="right">{t('notifications.thRead')}</Th>
                     </tr>
                 </thead>
                 <tbody>
@@ -68,7 +70,7 @@ export default function Notifications() {
                             </Td>
                         </tr>
                     ) : notifications.length === 0 ? (
-                        <TableEmpty colSpan={5}>No notifications yet.</TableEmpty>
+                        <TableEmpty colSpan={5}>{t('notifications.empty')}</TableEmpty>
                     ) : (
                         notifications.map((notification, index) => {
                             const payload = notification.data ?? {};
@@ -90,9 +92,10 @@ export default function Notifications() {
                                         <Badge>{notification.type}</Badge>
                                         <span className="mt-1 block font-medium text-gray-800">
                                             {describeNotification(
+                                                t,
                                                 notification.type,
                                                 payload,
-                                                notification.actor?.name ?? 'Someone',
+                                                notification.actor?.name ?? null,
                                             )}
                                         </span>
                                     </Td>
@@ -100,7 +103,7 @@ export default function Notifications() {
                                         <span className="flex items-center gap-2">
                                             <Avatar name={notification.actor?.name} size="sm" />
                                             <span className="truncate">
-                                                {notification.actor?.name ?? 'Someone'}
+                                                {notification.actor?.name ?? t('notifications.someone')}
                                                 {notification.actor?.email && (
                                                     <span className="block truncate text-xs text-gray-400">{notification.actor.email}</span>
                                                 )}
@@ -131,11 +134,11 @@ export default function Notifications() {
                                     </Td>
                                     <Td align="right" className="whitespace-nowrap">
                                         {notification.read_at ? (
-                                            <span className="text-xs text-gray-400">Read</span>
+                                            <span className="text-xs text-gray-400">{t('notifications.read')}</span>
                                         ) : (
                                             <span className="inline-flex items-center gap-1.5 text-xs font-medium text-[var(--accent-soft-text)]">
                                                 <span className="h-2 w-2 rounded-full bg-[var(--accent)]" />
-                                                Unread
+                                                {t('notifications.unread')}
                                             </span>
                                         )}
                                     </Td>

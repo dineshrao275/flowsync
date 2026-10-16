@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import api from '../services/api';
 import Card from '../components/ui/Card';
 import Spinner from '../components/ui/Spinner';
@@ -7,15 +8,13 @@ import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
 import usePageTitle from '../hooks/usePageTitle';
 
-const EVENT_LABELS = {
-    'task.assigned': 'Task assigned to you',
-    'task.status_changed': 'A task you work on changes status',
-    'task.commented': 'Someone comments on or mentions your task',
-    'task.unblocked': 'A blocker on your task is removed',
-    'task.work_logged': 'Time is logged against your task',
-};
+function eventLabel(t, event) {
+    const [scope, name] = event.split('.');
+    return t(`admin.settings.events.${scope}.${name}`, { defaultValue: event });
+}
 
 function NotificationPreferences() {
+    const { t } = useTranslation();
     const toast = useToast();
     const [prefs, setPrefs] = useState(undefined);
     const [saving, setSaving] = useState(false);
@@ -33,10 +32,10 @@ function NotificationPreferences() {
         setPrefs({ ...prefs, [event]: !last });
         setSaving(true);
         api.put('/notification-preferences', { preferences: { ...prefs, [event]: !last } })
-            .then(() => toast.success('Notification preferences saved.'))
+            .then(() => toast.success(t('admin.settings.prefsSaved')))
             .catch(() => {
                 setPrefs({ ...prefs, [event]: last });
-                toast.error('Could not save your preferences.');
+                toast.error(t('admin.settings.prefsSaveFailed'));
             })
             .finally(() => setSaving(false));
     }
@@ -52,7 +51,7 @@ function NotificationPreferences() {
     if (prefs === null) {
         return (
             <p className="py-8 text-sm text-gray-500">
-                Notification preferences are unavailable right now.
+                {t('admin.settings.prefsUnavailable')}
             </p>
         );
     }
@@ -63,15 +62,15 @@ function NotificationPreferences() {
                 <li key={event} className="flex items-center justify-between gap-4 py-3">
                     <div>
                         <p className="text-sm font-medium text-gray-800">
-                            {EVENT_LABELS[event] ?? event}
+                            {eventLabel(t, event)}
                         </p>
-                        <p className="text-xs text-gray-400">Email me when this happens</p>
+                        <p className="text-xs text-gray-400">{t('admin.settings.emailMeWhen')}</p>
                     </div>
                     <button
                         type="button"
                         role="switch"
                         aria-checked={prefs[event]}
-                        aria-label={EVENT_LABELS[event] ?? event}
+                        aria-label={eventLabel(t, event)}
                         onClick={() => toggle(event)}
                         disabled={saving}
                         className={`relative h-6 w-11 shrink-0 rounded-full transition-colors ${
@@ -91,30 +90,31 @@ function NotificationPreferences() {
 }
 
 export default function Settings() {
-    usePageTitle('Settings');
+    const { t } = useTranslation();
+    usePageTitle(t('admin.settings.pageTitle'));
     const { user, can, hasModule } = useAuth();
 
     return (
         <div className="space-y-6">
             <div>
-                <h2 className="text-2xl font-bold text-gray-900">Settings</h2>
-                <p className="mt-1 text-sm text-gray-500">Manage your account and preferences.</p>
+                <h2 className="text-2xl font-bold text-gray-900">{t('admin.settings.pageTitle')}</h2>
+                <p className="mt-1 text-sm text-gray-500">{t('admin.settings.subtitle')}</p>
             </div>
 
             <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
                 <div className="animate-fade-in-up">
-                    <Card title="Profile" subtitle="Your account details">
+                    <Card title={t('admin.settings.profileTitle')} subtitle={t('admin.settings.profileSubtitle')}>
                     <dl className="space-y-4">
                         <div>
-                            <dt className="text-xs font-semibold uppercase tracking-wide text-gray-400">Name</dt>
+                            <dt className="text-xs font-semibold uppercase tracking-wide text-gray-400">{t('admin.common.name')}</dt>
                             <dd className="mt-1 text-sm font-medium text-gray-800">{user?.name}</dd>
                         </div>
                         <div>
-                            <dt className="text-xs font-semibold uppercase tracking-wide text-gray-400">Email</dt>
+                            <dt className="text-xs font-semibold uppercase tracking-wide text-gray-400">{t('admin.common.email')}</dt>
                             <dd className="mt-1 text-sm font-medium text-gray-800">{user?.email}</dd>
                         </div>
                         <div>
-                            <dt className="text-xs font-semibold uppercase tracking-wide text-gray-400">Roles</dt>
+                            <dt className="text-xs font-semibold uppercase tracking-wide text-gray-400">{t('admin.users.roles')}</dt>
                             <dd className="mt-1 flex flex-wrap gap-1">
                                 {(user?.roles || []).map((role) => (
                                     <span
@@ -127,12 +127,12 @@ export default function Settings() {
                             </dd>
                         </div>
                         <div>
-                            <dt className="text-xs font-semibold uppercase tracking-wide text-gray-400">Permissions</dt>
+                            <dt className="text-xs font-semibold uppercase tracking-wide text-gray-400">{t('admin.roles.permissions')}</dt>
                             <dd className="mt-1 flex flex-wrap gap-1">
                                 {(user?.permissions || []).map((permission) => (
                                     <span
                                         key={permission}
-                                        className="rounded bg-gray-100 px-2 py-0.5 text-[11px] text-gray-600"
+                                        className="rounded bg-gray-100 px-2 py-0.5 text-xs text-gray-600"
                                     >
                                         {permission}
                                     </span>
@@ -144,28 +144,26 @@ export default function Settings() {
                 </div>
 
                 <div className="animate-fade-in-up" style={{ animationDelay: '100ms' }}>
-                <Card title="Appearance" subtitle="Theme customization is per-account">
+                <Card title={t('admin.settings.appearanceTitle')} subtitle={t('admin.settings.appearanceSubtitle')}>
                     <p className="text-sm text-gray-600">
-                        Your saved theme is stored against your account and reapplied automatically on
-                        every sign-in. Other admins each keep their own theme, so changes you make here
-                        never affect anyone else.
+                        {t('admin.settings.appearanceBody')}
                     </p>
                     <div className="mt-4 rounded-lg border border-dashed border-gray-300 bg-gray-50 p-4 text-sm text-gray-500">
-                        Click the palette icon in the top bar to open the theme settings panel.
+                        {t('admin.settings.appearanceHint')}
                     </div>
                 </Card>
                 </div>
             </div>
 
             <div className="animate-fade-in-up" style={{ animationDelay: '200ms' }}>
-                <Card title="Notifications" subtitle="Choose which task emails are delivered to you. In-app notifications are always shown.">
+                <Card title={t('admin.settings.notificationsTitle')} subtitle={t('admin.settings.notificationsSubtitle')}>
                     <NotificationPreferences />
                 </Card>
             </div>
 
             {can('api.manage') && hasModule('api') && (
                 <div className="animate-fade-in-up" style={{ animationDelay: '300ms' }}>
-                    <Card title="API tokens" subtitle="Personal access tokens for scripts and integrations.">
+                    <Card title={t('admin.settings.apiTokensTitle')} subtitle={t('admin.settings.apiTokensSubtitle')}>
                         <ApiTokens />
                     </Card>
                 </div>

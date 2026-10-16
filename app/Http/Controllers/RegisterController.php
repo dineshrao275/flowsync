@@ -38,7 +38,7 @@ class RegisterController extends Controller
     /** Public: what the registration wizard needs to render its plan step. */
     public function options(): JsonResponse
     {
-        abort_unless(PlatformSetting::bool('public_registration', config('onboarding.enabled') ? '1' : '0'), 403, 'Self-registration is currently disabled.');
+        abort_unless(PlatformSetting::bool('public_registration', config('onboarding.enabled') ? '1' : '0'), 403, __('Self-registration is currently disabled.'));
 
         return response()->json([
             'plans' => SubscriptionPlan::where('is_active', true)->orderBy('sort_order')->orderBy('id')
@@ -51,14 +51,14 @@ class RegisterController extends Controller
     public function store(RegisterRequest $request, AuthController $auth): JsonResponse
     {
         if (! PlatformSetting::bool('public_registration', config('onboarding.enabled') ? '1' : '0')) {
-            abort(403, 'Self-registration is currently disabled.');
+            abort(403, __('Self-registration is currently disabled.'));
         }
 
         $data = $request->validated();
 
         // A trial that needs a card cannot skip the hosted card step.
         if (($data['start_trial'] ?? true) && config('onboarding.require_card_for_trial')) {
-            throw ValidationException::withMessages(['form' => 'A card is required to start a trial. Please use the card step.']);
+            throw ValidationException::withMessages(['form' => __('A card is required to start a trial. Please use the card step.')]);
         }
 
         $email = Str::lower($data['email']);
@@ -122,7 +122,7 @@ class RegisterController extends Controller
         if (TenantUserRouting::where('email', $email)->exists()
             || SystemUser::where('email', $email)->exists()) {
             throw ValidationException::withMessages([
-                'email' => 'An account with this email already exists.',
+                'email' => __('An account with this email already exists.'),
             ]);
         }
     }

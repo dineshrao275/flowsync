@@ -33,7 +33,7 @@ class StatusController extends Controller
         $status = $this->service->addStatus($project, $data);
 
         return response()->json([
-            'message' => 'Status created.',
+            'message' => __('Status created.'),
             'status' => $this->present($status->fresh()),
         ], 201);
     }
@@ -46,7 +46,7 @@ class StatusController extends Controller
         $data = $request->validated();
 
         return response()->json([
-            'message' => 'Status updated.',
+            'message' => __('Status updated.'),
             'status' => $this->present($this->service->updateStatus($status, $data)),
         ]);
     }
@@ -58,7 +58,7 @@ class StatusController extends Controller
 
         $this->service->deleteStatus($status);
 
-        return response()->json(['message' => 'Status deleted.']);
+        return response()->json(['message' => __('Status deleted.')]);
     }
 
     private function present(TaskStatus $status): array

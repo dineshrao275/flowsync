@@ -102,7 +102,7 @@ class TdsProjectController extends Controller
         );
 
         return response()->json([
-            'message' => 'TDS projected.',
+            'message' => __('TDS projected.'),
             'projects' => collect($result['projects'])->map(fn (TdsProject $project): array => $this->present($project))->all(),
             'warnings' => $result['warnings'],
         ]);
@@ -115,7 +115,7 @@ class TdsProjectController extends Controller
         $updated = $this->statutory->surrender($project, (string) $request->validated()['challan_ref'], $request->user());
 
         return response()->json([
-            'message' => 'Shortfall surrendered.',
+            'message' => __('Shortfall surrendered.'),
             'project' => $this->present($updated),
         ]);
     }
@@ -134,7 +134,7 @@ class TdsProjectController extends Controller
         $summary = $this->runs->recomputeStatutory($run, $request->user(), (bool) ($validated['force'] ?? false));
 
         return response()->json([
-            'message' => 'Statutory lines recomputed.',
+            'message' => __('Statutory lines recomputed.'),
             'summary' => $summary,
         ]);
     }

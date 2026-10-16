@@ -56,7 +56,7 @@ class ExpenseService
         $lines = $this->validatedItems($employee, $items);
 
         if ($lines === []) {
-            throw ValidationException::withMessages(['items' => 'A claim names at least one line.']);
+            throw ValidationException::withMessages(['items' => __('A claim names at least one line.')]);
         }
 
         return DB::transaction(function () use ($employee, $data, $lines, $actor): ExpenseClaim {
@@ -98,7 +98,7 @@ class ExpenseService
         $lines = $this->validatedItems($claim->employee, $items);
 
         if ($lines === []) {
-            throw ValidationException::withMessages(['items' => 'A claim names at least one line.']);
+            throw ValidationException::withMessages(['items' => __('A claim names at least one line.')]);
         }
 
         return DB::transaction(function () use ($claim, $lines, $actor): ExpenseClaim {
@@ -159,18 +159,18 @@ class ExpenseService
         $this->requireDecider($claim, $actor);
 
         if ($claim->approval === null || $claim->approval->fresh()->status->value !== 'approved') {
-            throw ValidationException::withMessages(['form' => 'Resolve the approval chain before approving.']);
+            throw ValidationException::withMessages(['form' => __('Resolve the approval chain before approving.')]);
         }
 
         $total = Money::fromDecimal((string) $claim->total_amount);
         $approved = $approvedAmount === null ? $total : Money::fromDecimal($approvedAmount);
 
         if ($approved->isNegative() || $approved->minor > $total->minor) {
-            throw ValidationException::withMessages(['approved_amount' => 'An approval prices between nothing and the filed total.']);
+            throw ValidationException::withMessages(['approved_amount' => __('An approval prices between nothing and the filed total.')]);
         }
 
         if ($approved->minor < $total->minor && ($reason === null || trim($reason) === '')) {
-            throw ValidationException::withMessages(['reason' => 'A reduced approval says why, so the employee can act on it.']);
+            throw ValidationException::withMessages(['reason' => __('A reduced approval says why, so the employee can act on it.')]);
         }
 
         return DB::transaction(function () use ($claim, $actor, $approved): ExpenseClaim {
@@ -200,7 +200,7 @@ class ExpenseService
         $this->requireDecider($claim, $actor);
 
         if ($reason === null || trim($reason) === '') {
-            throw ValidationException::withMessages(['reason' => 'A rejection says why, so the employee can act on it.']);
+            throw ValidationException::withMessages(['reason' => __('A rejection says why, so the employee can act on it.')]);
         }
 
         return DB::transaction(function () use ($claim, $actor): ExpenseClaim {
@@ -288,7 +288,7 @@ class ExpenseService
         $ownerId = $claim->employee?->user_id;
 
         if ($ownerId !== null && (int) $ownerId === (int) $actor->id) {
-            throw ValidationException::withMessages(['form' => 'A claim is never decided by its own owner.']);
+            throw ValidationException::withMessages(['form' => __('A claim is never decided by its own owner.')]);
         }
     }
 
@@ -323,17 +323,17 @@ class ExpenseService
                 : null;
 
             if (! empty($item['category_id']) && $category === null) {
-                throw ValidationException::withMessages(["items.{$index}.category_id" => 'That category does not exist.']);
+                throw ValidationException::withMessages(["items.{$index}.category_id" => __('That category does not exist.')]);
             }
 
             if ($category !== null && ! $category->is_active) {
-                throw ValidationException::withMessages(["items.{$index}.category_id" => 'That category is retired.']);
+                throw ValidationException::withMessages(["items.{$index}.category_id" => __('That category is retired.')]);
             }
 
             $amount = Money::fromDecimal((string) ($item['amount'] ?? '0'));
 
             if ($amount->isNegative() || $amount->isZero()) {
-                throw ValidationException::withMessages(["items.{$index}.amount" => 'A line prices positive money.']);
+                throw ValidationException::withMessages(["items.{$index}.amount" => __('A line prices positive money.')]);
             }
 
             $receiptId = $item['receipt_document_id'] ?? null;
@@ -342,14 +342,14 @@ class ExpenseService
                 $receipt = EmployeeDocument::find($receiptId);
 
                 if ($receipt === null || (int) $receipt->employee_id !== (int) $employee->id) {
-                    throw ValidationException::withMessages(["items.{$index}.receipt_document_id" => 'That file does not belong to this employee.']);
+                    throw ValidationException::withMessages(["items.{$index}.receipt_document_id" => __('That file does not belong to this employee.')]);
                 }
             }
 
             $threshold = $category?->requires_receipt_above;
 
             if ($threshold !== null && $amount->minor > Money::fromDecimal((string) $threshold)->minor && $receiptId === null) {
-                throw ValidationException::withMessages(["items.{$index}.receipt_document_id" => "Lines over {$threshold} need a receipt."]);
+                throw ValidationException::withMessages(["items.{$index}.receipt_document_id" => __('Lines over :threshold need a receipt.', ['threshold' => $threshold])]);
             }
 
             $lines[] = [

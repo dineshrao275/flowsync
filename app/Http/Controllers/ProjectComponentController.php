@@ -36,7 +36,7 @@ class ProjectComponentController extends Controller
         $component = $this->service->create($project, $data);
 
         return response()->json([
-            'message' => 'Component created.',
+            'message' => __('Component created.'),
             'component' => $component,
         ], 201);
     }
@@ -56,7 +56,7 @@ class ProjectComponentController extends Controller
         $updated = $this->service->update($component, $data);
 
         return response()->json([
-            'message' => 'Component updated.',
+            'message' => __('Component updated.'),
             'component' => $updated,
         ]);
     }
@@ -69,6 +69,6 @@ class ProjectComponentController extends Controller
 
         $this->service->delete($component);
 
-        return response()->json(['message' => 'Component deleted.']);
+        return response()->json(['message' => __('Component deleted.')]);
     }
 }

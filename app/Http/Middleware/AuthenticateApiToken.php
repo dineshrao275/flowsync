@@ -63,7 +63,7 @@ class AuthenticateApiToken
 
         $response = $request->isMethodSafe() || $token->can_write
             ? $next($request)
-            : response()->json(['message' => 'This API token is read-only.', 'code' => 'token_read_only'], 403);
+            : response()->json(['message' => __('This API token is read-only.'), 'code' => 'token_read_only'], 403);
 
         $this->record($request, $token, $response, $started);
 
@@ -72,7 +72,7 @@ class AuthenticateApiToken
 
     private function unauthenticated(): Response
     {
-        return response()->json(['message' => 'Invalid or expired API token.'], 401, ['WWW-Authenticate' => 'Bearer']);
+        return response()->json(['message' => __('Invalid or expired API token.')], 401, ['WWW-Authenticate' => 'Bearer']);
     }
 
     private function record(Request $request, ApiToken $token, Response $response, float $started): void

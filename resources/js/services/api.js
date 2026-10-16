@@ -1,4 +1,5 @@
 import axios from 'axios';
+import i18n from '../i18n';
 import logger from '../utils/logger';
 
 const api = axios.create({
@@ -86,7 +87,7 @@ export function fieldErrors(error) {
     } else if (payload?.message) {
         errors.form = payload.message;
     } else {
-        errors.form = 'Something went wrong. Please try again.';
+        errors.form = i18n.t('errors.generic');
     }
 
     return errors;

@@ -72,7 +72,7 @@ class LocationService
     {
         if ($location->employees()->exists()) {
             throw ValidationException::withMessages([
-                'form' => 'Employees are still assigned to this location. Move them, or deactivate the location instead.',
+                'form' => __('Employees are still assigned to this location. Move them, or deactivate the location instead.'),
             ]);
         }
 
@@ -144,7 +144,7 @@ class LocationService
 
         if ($wantsFence && ! $location->hasFenceGeometry()) {
             throw ValidationException::withMessages([
-                'form' => 'A geofence needs a latitude, a longitude and a radius greater than zero. Clear the geofence box to save the location without one.',
+                'form' => __('A geofence needs a latitude, a longitude and a radius greater than zero. Clear the geofence box to save the location without one.'),
             ]);
         }
 

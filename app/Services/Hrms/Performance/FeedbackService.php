@@ -37,7 +37,7 @@ class FeedbackService
     public function respond(FeedbackRequest $request, array $data, User $actor): FeedbackResponse|FeedbackRequest
     {
         if ($request->status !== FeedbackRequestStatus::Pending) {
-            throw ValidationException::withMessages(['form' => 'That ask is already answered.']);
+            throw ValidationException::withMessages(['form' => __('That ask is already answered.')]);
         }
 
         if (($data['action'] ?? null) === 'decline') {
@@ -53,7 +53,7 @@ class FeedbackService
         }
 
         if (! isset($data['rating']) || (int) $data['rating'] < 1 || (int) $data['rating'] > 5) {
-            throw ValidationException::withMessages(['rating' => 'A submitted perspective rates 1 to 5.']);
+            throw ValidationException::withMessages(['rating' => __('A submitted perspective rates 1 to 5.')]);
         }
 
         return DB::transaction(function () use ($request, $data, $actor): FeedbackResponse {

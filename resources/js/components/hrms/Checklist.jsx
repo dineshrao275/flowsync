@@ -1,7 +1,9 @@
+import { useTranslation } from 'react-i18next';
 import Button from '../ui/Button';
 import StatusPill from '../ui/StatusPill';
 import { Table, Th, Td, TableEmpty } from '../ui/Table';
 import { usePrompt } from '../ui/ConfirmDialog';
+import { formatDateOnly } from '../../utils/format';
 
 const STATUS_COLORS = {
     pending: '#f59e0b',
@@ -11,11 +13,11 @@ const STATUS_COLORS = {
     waived: '#8b5cf6',
 };
 
-const SCOPE_LABELS = {
-    hr: 'HR',
-    manager: 'Manager',
-    employee: 'Employee',
-    it: 'IT',
+const SCOPE_KEYS = {
+    hr: 'scopeHr',
+    manager: 'scopeManager',
+    employee: 'scopeEmployee',
+    it: 'scopeIt',
 };
 
 function isOverdue(task) {
@@ -23,10 +25,7 @@ function isOverdue(task) {
     return task.due_date < new Date().toISOString().slice(0, 10);
 }
 
-function formatDate(value) {
-    if (!value) return '—';
-    return new Date(`${value}T00:00:00`).toLocaleDateString();
-}
+const formatDate = (value) => formatDateOnly(value);
 
 /**
  * One checklist for both lifecycle phases: onboarding tasks and offboarding
@@ -39,10 +38,11 @@ function formatDate(value) {
  * ceremony for ceremony’s sake.
  */
 export default function Checklist({ tasks, canAct, canWaive, onComplete, onWaive, canConvert, onConvert, onSync }) {
+    const { t } = useTranslation();
     const prompt = usePrompt();
 
     if (!tasks || tasks.length === 0) {
-        return <TableEmpty>No checklist items.</TableEmpty>;
+        return <TableEmpty>{t('hrms.checklist.empty')}</TableEmpty>;
     }
 
     const groups = [];
@@ -62,17 +62,17 @@ export default function Checklist({ tasks, canAct, canWaive, onComplete, onWaive
             {groups.map((scope) => (
                 <div key={scope}>
                     <h4 className="mb-1 text-xs font-semibold uppercase tracking-wider text-gray-400">
-                        {SCOPE_LABELS[scope] ?? scope}
+                        {SCOPE_KEYS[scope] ? t(`hrms.checklist.${SCOPE_KEYS[scope]}`) : scope}
                     </h4>
                     <Table>
                         <thead>
                             <tr>
-                                <Th>Item</Th>
-                                <Th>Due</Th>
-                                <Th>Status</Th>
+                                <Th>{t('hrms.checklist.thItem')}</Th>
+                                <Th>{t('hrms.checklist.thDue')}</Th>
+                                <Th>{t('hrms.checklist.thStatus')}</Th>
                                 {canAct && (
                                     <Th>
-                                        <span className="sr-only">Actions</span>
+                                        <span className="sr-only">{t('hrms.checklist.actionsSr')}</span>
                                     </Th>
                                 )}
                             </tr>
@@ -96,7 +96,7 @@ export default function Checklist({ tasks, canAct, canWaive, onComplete, onWaive
                                         <Td>
                                             <span className={overdue ? 'font-semibold text-red-600' : ''}>
                                                 {formatDate(task.due_date)}
-                                                {overdue && ' · overdue'}
+                                                {overdue && t('hrms.checklist.overdue')}
                                             </span>
                                         </Td>
                                         <Td>
@@ -107,15 +107,15 @@ export default function Checklist({ tasks, canAct, canWaive, onComplete, onWaive
                                                 {open && (
                                                     <div className="flex justify-end gap-2">
                                                         <Button size="sm" variant="secondary" onClick={() => onComplete?.(task)}>
-                                                            Done
+                                                            {t('hrms.checklist.done')}
                                                         </Button>
                                                         {canConvert && task.category === 'task' && (
                                                             <>
                                                                 <Button size="sm" variant="secondary" onClick={() => onConvert?.(task)}>
-                                                                    Convert
+                                                                    {t('hrms.checklist.convert')}
                                                                 </Button>
                                                                 <Button size="sm" variant="ghost" onClick={() => onSync?.(task)}>
-                                                                    Sync
+                                                                    {t('hrms.checklist.sync')}
                                                                 </Button>
                                                             </>
                                                         )}
@@ -125,18 +125,18 @@ export default function Checklist({ tasks, canAct, canWaive, onComplete, onWaive
                                                                 variant="ghost"
                                                                 onClick={async () => {
                                                                     const reason = await prompt({
-                                                                        title: 'Waive Task',
-                                                                        message: `Why is “${task.title}” being waived? (recorded for audit)`,
-                                                                        placeholder: 'Reason for waiving…',
+                                                                        title: t('hrms.checklist.waiveTitle'),
+                                                                        message: t('hrms.checklist.waiveMessage', { title: task.title }),
+                                                                        placeholder: t('hrms.checklist.waivePlaceholder'),
                                                                         required: true,
-                                                                        confirmLabel: 'Waive',
+                                                                        confirmLabel: t('hrms.checklist.waiveConfirm'),
                                                                         variant: 'warning',
                                                                     });
 
                                                                     if (reason !== null) onWaive?.(task, reason);
                                                                 }}
                                                             >
-                                                                Waive
+                                                                {t('hrms.checklist.waive')}
                                                             </Button>
                                                         )}
                                                     </div>

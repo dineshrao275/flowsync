@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import api from '../../services/api';
 import Spinner from '../ui/Spinner';
 import AuditTrail from './AuditTrail';
@@ -9,6 +10,7 @@ import AuditTrail from './AuditTrail';
  * FQCN that rots the day a morph map lands.
  */
 export default function EmployeeAudit({ employeeId, subjectType }) {
+    const { t } = useTranslation();
     const [rows, setRows] = useState(null);
     const [error, setError] = useState(null);
 
@@ -23,13 +25,13 @@ export default function EmployeeAudit({ employeeId, subjectType }) {
                 if (!cancelled) setRows(data.audit_logs ?? []);
             })
             .catch(() => {
-                if (!cancelled) setError('Unable to load the audit trail.');
+                if (!cancelled) setError(t('hrms.empAudit.loadFailed'));
             });
 
         return () => {
             cancelled = true;
         };
-    }, [employeeId, subjectType]);
+    }, [employeeId, subjectType, t]);
 
     if (error) return <p className="py-8 text-center text-sm text-red-600">{error}</p>;
     if (!rows) return <Spinner />;

@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { fieldErrors } from '../../services/api';
 import Alert from '../../components/ui/Alert';
 import Button from '../../components/ui/Button';
@@ -18,6 +19,7 @@ import Select from '../../components/ui/Select';
  * the whole department list is passed in rather than just the selected node.
  */
 export default function DesignationFormModal({ designation, departments, saving, onClose, onSubmit }) {
+    const { t } = useTranslation();
     const editing = Boolean(designation);
 
     const [form, setForm] = useState(() => ({
@@ -49,8 +51,8 @@ export default function DesignationFormModal({ designation, departments, saving,
     return (
         <Modal
             open
-            title={editing ? 'Edit designation' : 'New designation'}
-            subtitle={editing ? designation.name : 'A job title in the tenant’s own catalogue'}
+            title={editing ? t('hrms.orgModals.editDesignation') : t('hrms.orgModals.newDesignation')}
+            subtitle={editing ? designation.name : t('hrms.orgModals.desigSubtitle')}
             onClose={onClose}
             size="md"
         >
@@ -58,7 +60,7 @@ export default function DesignationFormModal({ designation, departments, saving,
                 {errors.form && <Alert>{errors.form}</Alert>}
 
                 <Input
-                    label="Name"
+                    label={t('hrms.orgModals.name')}
                     value={form.name}
                     onChange={(e) => set('name', e.target.value)}
                     error={errors.name}
@@ -68,30 +70,30 @@ export default function DesignationFormModal({ designation, departments, saving,
 
                 <div className="grid gap-4 sm:grid-cols-2">
                     <Input
-                        label="Code"
+                        label={t('hrms.orgModals.code')}
                         value={form.code}
                         onChange={(e) => set('code', e.target.value)}
                         error={errors.code}
-                        placeholder="Optional — e.g. ENG"
+                        placeholder={t('hrms.orgModals.codeShortPlaceholder')}
                     />
                     <Input
-                        label="Level"
+                        label={t('hrms.orgModals.level')}
                         type="number"
                         min="1"
                         value={form.level}
                         onChange={(e) => set('level', e.target.value)}
                         error={errors.level}
-                        placeholder="Optional band number"
+                        placeholder={t('hrms.orgModals.levelPlaceholder')}
                     />
                 </div>
 
                 <Select
-                    label="Department"
+                    label={t('hrms.orgModals.department')}
                     value={form.department_id}
                     onChange={(e) => set('department_id', e.target.value)}
                     error={errors.department_id}
                 >
-                    <option value="">Applies tenant-wide</option>
+                    <option value="">{t('hrms.orgModals.tenantWide')}</option>
                     {departments.map((d) => (
                         <option key={d.id} value={d.id}>
                             {d.name}
@@ -101,10 +103,10 @@ export default function DesignationFormModal({ designation, departments, saving,
 
                 <div className="flex justify-end gap-2 border-t border-gray-100 pt-4">
                     <Button variant="secondary" type="button" onClick={onClose}>
-                        Cancel
+                        {t('hrms.orgModals.cancel')}
                     </Button>
                     <Button type="submit" loading={saving}>
-                        {editing ? 'Save changes' : 'Create designation'}
+                        {editing ? t('hrms.orgModals.save') : t('hrms.orgModals.createDesignation')}
                     </Button>
                 </div>
             </form>

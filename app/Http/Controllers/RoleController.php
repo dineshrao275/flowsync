@@ -72,7 +72,7 @@ class RoleController extends Controller
         $this->auditTenantAdmin($request, 'role.created', 'roles', $role->id, null, $this->snapshot($role), ['role' => $role->slug]);
 
         return response()->json([
-            'message' => 'Role created.',
+            'message' => __('Role created.'),
             'role' => $role->load('permissions:id,slug,name'),
         ], 201);
     }
@@ -85,7 +85,7 @@ class RoleController extends Controller
             'permissions.*' => ['integer'],
         ]);
 
-        $this->refuseSystemRole($role, 'edited');
+        $this->refuseSystemRole($role, __('edited'));
         GrantCeiling::assertCanEditRole($request->user(), $role);
 
         $permissionIds = $this->resolvePermissionIds($data['permissions']);
@@ -107,7 +107,7 @@ class RoleController extends Controller
         }
 
         return response()->json([
-            'message' => 'Role updated.',
+            'message' => __('Role updated.'),
             'role' => $role->load('permissions:id,slug,name'),
         ]);
     }
@@ -137,14 +137,14 @@ class RoleController extends Controller
         ]);
 
         return response()->json([
-            'message' => 'Role duplicated.',
+            'message' => __('Role duplicated.'),
             'role' => $copy->load('permissions:id,slug,name')->loadCount('users'),
         ], 201);
     }
 
     public function destroy(Request $request, Role $role): JsonResponse
     {
-        $this->refuseSystemRole($role, 'deleted');
+        $this->refuseSystemRole($role, __('deleted'));
 
         $members = $role->users()->count();
         if ($members > 0) {
@@ -162,14 +162,14 @@ class RoleController extends Controller
 
         $this->auditTenantAdmin($request, 'role.deleted', 'roles', $id, $before, null, ['role' => $slug]);
 
-        return response()->json(['message' => 'Role deleted.']);
+        return response()->json(['message' => __('Role deleted.')]);
     }
 
     private function refuseSystemRole(Role $role, string $verb): void
     {
         if ($role->is_system) {
             throw ValidationException::withMessages([
-                'form' => "{$role->name} is a built-in role and cannot be {$verb}. Duplicate it to make a customised copy.",
+                'form' => __(':role is a built-in role and cannot be :verb. Duplicate it to make a customised copy.', ['role' => $role->name, 'verb' => $verb]),
             ]);
         }
     }

@@ -1,8 +1,38 @@
 /**
  * Public marketing site behaviour. Vanilla JS on purpose — the public site is
  * server-rendered for SEO and Core Web Vitals, so it ships no framework here.
+ * Copy comes from the `lang/en/site.php` catalog, rendered into the page as a
+ * JSON island (`#site-i18n`) so a locale switch needs no client framework.
  */
+function readSiteI18n() {
+    const node = document.getElementById('site-i18n');
+    if (!node) return {};
+    try {
+        return JSON.parse(node.textContent) || {};
+    } catch {
+        return {};
+    }
+}
+
+function thanksState(i18n) {
+    const wrapper = document.createElement('div');
+    wrapper.className = 'rounded-2xl bg-emerald-50 px-6 py-10 text-center';
+
+    const heading = document.createElement('p');
+    heading.className = 'text-lg font-bold text-emerald-900';
+    heading.textContent = i18n.contactThanks || '';
+
+    const body = document.createElement('p');
+    body.className = 'mt-1 text-sm text-emerald-700';
+    body.textContent = i18n.contactThanksBody || '';
+
+    wrapper.append(heading, body);
+    return wrapper;
+}
+
 document.addEventListener('DOMContentLoaded', () => {
+    const i18n = readSiteI18n();
+
     const button = document.getElementById('site-menu-button');
     const menu = document.getElementById('site-mobile-menu');
 
@@ -78,14 +108,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (!response.ok) {
                     const data = await response.json().catch(() => ({}));
                     const first = data.errors ? Object.values(data.errors)[0]?.[0] : null;
-                    throw new Error(first || 'Something went wrong — please try again.');
+                    throw new Error(first || i18n.contactError);
                 }
 
-                form.innerHTML =
-                    '<div class="rounded-2xl bg-emerald-50 px-6 py-10 text-center">' +
-                    '<p class="text-lg font-bold text-emerald-900">Thanks — we will be in touch.</p>' +
-                    '<p class="mt-1 text-sm text-emerald-700">We usually reply within one business day.</p>' +
-                    '</div>';
+                form.replaceChildren(thanksState(i18n));
             } catch (err) {
                 if (error) {
                     error.textContent = err.message;

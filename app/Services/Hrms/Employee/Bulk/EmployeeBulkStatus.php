@@ -42,7 +42,7 @@ class EmployeeBulkStatus
     public function run(array $ids, EmployeeStatus $to, array $options, bool $dryRun, User $actor): array
     {
         if (! in_array($to, self::ALLOWED, true)) {
-            throw ValidationException::withMessages(['to' => 'Ending an employment is done per person through offboarding, not in bulk.']);
+            throw ValidationException::withMessages(['to' => __('Ending an employment is done per person through offboarding, not in bulk.')]);
         }
         if (count($ids) > self::MAX_EMPLOYEES) {
             throw ValidationException::withMessages(['employee_ids' => 'Change at most '.self::MAX_EMPLOYEES.' people at a time.']);

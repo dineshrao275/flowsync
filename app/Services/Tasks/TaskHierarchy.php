@@ -35,7 +35,7 @@ class TaskHierarchy
         $epic = $project->tasks()->with('issueType')->find($epicId);
 
         if ($epic === null) {
-            throw ValidationException::withMessages(['epic_id' => 'The selected epic does not belong to this project.']);
+            throw ValidationException::withMessages(['epic_id' => __('The selected epic does not belong to this project.')]);
         }
 
         return $epic;
@@ -47,17 +47,17 @@ class TaskHierarchy
         $level = $type?->level() ?? 2;
 
         if ($task !== null && ($parent?->id === $task->id || $epic?->id === $task->id)) {
-            throw ValidationException::withMessages(['parent_id' => 'A task cannot be its own parent or epic.']);
+            throw ValidationException::withMessages(['parent_id' => __('A task cannot be its own parent or epic.')]);
         }
 
         if ($parent !== null) {
             $parent->loadMissing('issueType');
             $parentLevel = $this->levelOf($parent);
             if ($level < 2) {
-                throw ValidationException::withMessages(['parent_id' => 'Initiatives and epics cannot be sub-tasks; link an epic with epic_id.']);
+                throw ValidationException::withMessages(['parent_id' => __('Initiatives and epics cannot be sub-tasks; link an epic with epic_id.')]);
             }
             if ($parentLevel !== 2) {
-                throw ValidationException::withMessages(['parent_id' => 'A parent must be a task, story or bug.']);
+                throw ValidationException::withMessages(['parent_id' => __('A parent must be a task, story or bug.')]);
             }
         }
 
@@ -82,13 +82,13 @@ class TaskHierarchy
         $level = $type->level();
 
         if ($task->subtasks()->exists() && $level !== 2) {
-            throw ValidationException::withMessages(['issue_type_id' => 'This issue has sub-tasks and must stay a task, story or bug.']);
+            throw ValidationException::withMessages(['issue_type_id' => __('This issue has sub-tasks and must stay a task, story or bug.')]);
         }
 
         $linked = Task::query()->where('epic_id', $task->id)->with('issueType')->get();
         foreach ($linked as $child) {
             if ($this->levelOf($child) - 1 !== $level) {
-                throw ValidationException::withMessages(['issue_type_id' => 'Issues are linked to this one as their epic; unlink them before changing its type.']);
+                throw ValidationException::withMessages(['issue_type_id' => __('Issues are linked to this one as their epic; unlink them before changing its type.')]);
             }
         }
     }

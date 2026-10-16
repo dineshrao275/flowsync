@@ -45,7 +45,7 @@ class LeaveManualAdjustment
                 ->value('balance') ?? 0.0);
 
             if ($quantity < 0 && ! $type->allow_negative_balance && $current + $quantity < 0) {
-                throw ValidationException::withMessages(['quantity' => "That would take {$type->name} below zero (balance {$current})."]);
+                throw ValidationException::withMessages(['quantity' => __('That would take :type below zero (balance :current).', ['type' => $type->name, 'current' => $current])]);
             }
 
             $row = LeaveAdjustment::create([

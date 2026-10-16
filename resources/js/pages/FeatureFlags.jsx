@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import api, { fieldErrors } from '../services/api';
 import Card from '../components/ui/Card';
 import Badge from '../components/ui/Badge';
@@ -13,8 +14,9 @@ import { useConfirm } from '../components/ui/ConfirmDialog';
 const emptyForm = { key: '', description: '' };
 
 export default function FeatureFlags() {
-    usePageTitle('Feature Flags');
-    useSetCrumbs([{ label: 'Platform', to: '/admin' }, { label: 'Feature flags' }]);
+    const { t } = useTranslation();
+    usePageTitle(t('admin.featureFlags.pageTitle'));
+    useSetCrumbs([{ label: t('admin.platform.breadcrumb'), to: '/admin' }, { label: t('admin.featureFlags.crumb') }]);
     const toast = useToast();
     const confirm = useConfirm();
     const [flags, setFlags] = useState(null);
@@ -43,7 +45,7 @@ export default function FeatureFlags() {
             if (after) after(data);
             toast.success(data.message);
         } catch (e) {
-            toast.error(fieldErrors(e).form || 'Request failed.');
+            toast.error(fieldErrors(e).form || t('admin.featureFlags.requestFailed'));
         }
     }
 
@@ -64,39 +66,39 @@ export default function FeatureFlags() {
     return (
         <div className="space-y-6">
             <div>
-                <h1 className="text-2xl font-bold text-gray-800">Feature flags</h1>
+                <h1 className="text-2xl font-bold text-gray-800">{t('admin.featureFlags.title')}</h1>
                 <p className="text-sm text-gray-500">
-                    Runtime switches with percentage rollout. A tenant override always beats the global switch; unknown flags are off.
+                    {t('admin.featureFlags.subtitle')}
                 </p>
             </div>
 
             <Card>
                 <form onSubmit={create} className="grid gap-3 md:grid-cols-3">
-                    <Input label="Key" value={form.key} error={errors.key} placeholder="new_board"
+                    <Input label={t('admin.featureFlags.key')} value={form.key} error={errors.key} placeholder="new_board"
                         onChange={(e) => setForm({ ...form, key: e.target.value })} />
-                    <Input label="Description" value={form.description} error={errors.description}
+                    <Input label={t('admin.featureFlags.description')} value={form.description} error={errors.description}
                         onChange={(e) => setForm({ ...form, description: e.target.value })} />
-                    <div className="flex items-end"><Button type="submit">Add flag</Button></div>
+                    <div className="flex items-end"><Button type="submit">{t('admin.featureFlags.addFlag')}</Button></div>
                 </form>
             </Card>
 
-            {flags.length === 0 && <p className="text-sm text-gray-400">No flags yet.</p>}
+            {flags.length === 0 && <p className="text-sm text-gray-400">{t('admin.featureFlags.empty')}</p>}
 
             {flags.map((flag) => (
                 <Card key={flag.id}>
                     <div className="flex flex-wrap items-center justify-between gap-3">
                         <div>
                             <p className="font-mono text-sm font-semibold text-gray-800">{flag.key}</p>
-                            <p className="text-xs text-gray-500">{flag.description || 'No description'}</p>
+                            <p className="text-xs text-gray-500">{flag.description || t('admin.featureFlags.noDescription')}</p>
                         </div>
                         <div className="flex items-center gap-3">
                             <label className="flex items-center gap-2 text-sm text-gray-600">
                                 <input type="checkbox" checked={flag.enabled}
                                     onChange={(e) => run(api.put(`/system/feature-flags/${flag.id}`, { enabled: e.target.checked }))} />
-                                Enabled
+                                {t('admin.featureFlags.enabled')}
                             </label>
                             <label className="flex items-center gap-2 text-sm text-gray-600">
-                                Rollout
+                                {t('admin.featureFlags.rollout')}
                                 <input type="number" min="0" max="100" defaultValue={flag.rollout_percent}
                                     className="w-16 rounded-lg border border-gray-200 px-2 py-1 text-sm"
                                     onBlur={(e) => Number(e.target.value) !== flag.rollout_percent
@@ -107,32 +109,32 @@ export default function FeatureFlags() {
                                 variant="danger"
                                 onClick={async () => {
                                     if (!(await confirm({
-                                        title: 'Delete feature flag?',
-                                        message: `Delete flag "${flag.key}"? Any tenant overrides will also be removed.`,
+                                        title: t('admin.featureFlags.deleteTitle'),
+                                        message: t('admin.featureFlags.deleteMessage', { key: flag.key }),
                                         variant: 'danger',
                                     }))) return;
                                     run(api.delete(`/system/feature-flags/${flag.id}`), load);
                                 }}
                             >
-                                Delete
+                                {t('admin.common.delete')}
                             </Button>
                         </div>
                     </div>
 
                     <div className="mt-4 border-t border-gray-100 pt-3">
-                        <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-gray-400">Tenant overrides</p>
+                        <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-gray-400">{t('admin.featureFlags.tenantOverrides')}</p>
                         <div className="flex flex-wrap gap-2">
                             {flag.overrides.map((o) => (
                                 <Badge key={o.tenant_id}>
-                                    {o.tenant?.name || o.tenant_id}: {o.enabled ? 'on' : 'off'}
+                                    {o.tenant?.name || o.tenant_id}: {o.enabled ? t('admin.featureFlags.on') : t('admin.featureFlags.off')}
                                     <button
                                         type="button"
                                         className="ml-2 text-gray-400 hover:text-red-600"
-                                        aria-label="Remove override"
+                                        aria-label={t('admin.featureFlags.removeOverrideAria')}
                                         onClick={async () => {
                                             if (!(await confirm({
-                                                title: 'Remove tenant override?',
-                                                message: `Remove override for ${o.tenant?.name || `tenant ${o.tenant_id}`}?`,
+                                                title: t('admin.featureFlags.removeOverrideTitle'),
+                                                message: t('admin.featureFlags.removeOverrideMessage', { tenant: o.tenant?.name || t('admin.featureFlags.tenantFallback', { id: o.tenant_id }) }),
                                                 variant: 'danger',
                                             }))) return;
                                             run(api.delete(`/system/feature-flags/${flag.id}/overrides/${o.tenant_id}`));
@@ -147,13 +149,13 @@ export default function FeatureFlags() {
                             <select className="rounded-lg border border-gray-200 px-2 py-1 text-sm"
                                 value={overrideTenant[flag.id] || ''}
                                 onChange={(e) => setOverrideTenant({ ...overrideTenant, [flag.id]: e.target.value })}>
-                                <option value="">Select tenant...</option>
-                                {tenants.map((t) => <option key={t.id} value={t.id}>{t.name}</option>)}
+                                <option value="">{t('admin.featureFlags.selectTenant')}</option>
+                                {tenants.map((tenant) => <option key={tenant.id} value={tenant.id}>{tenant.name}</option>)}
                             </select>
                             {[true, false].map((on) => (
                                 <Button key={String(on)} variant="secondary" disabled={!overrideTenant[flag.id]}
                                     onClick={() => run(api.put(`/system/feature-flags/${flag.id}/overrides/${overrideTenant[flag.id]}`, { enabled: on }))}>
-                                    Force {on ? 'on' : 'off'}
+                                    {on ? t('admin.featureFlags.forceOn') : t('admin.featureFlags.forceOff')}
                                 </Button>
                             ))}
                         </div>

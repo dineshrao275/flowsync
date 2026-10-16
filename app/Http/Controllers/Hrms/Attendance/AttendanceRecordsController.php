@@ -91,7 +91,7 @@ class AttendanceRecordsController extends Controller
         $to = Carbon::parse($filters['to'])->startOfDay();
 
         if ($from->diffInDays($to) > 93) {
-            throw ValidationException::withMessages(['to' => 'Exports cover at most 93 days. Narrow the range.']);
+            throw ValidationException::withMessages(['to' => __('Exports cover at most 93 days. Narrow the range.')]);
         }
 
         $rows = AttendanceDay::where('employee_id', $employee->id)
@@ -150,7 +150,7 @@ class AttendanceRecordsController extends Controller
             ? Employee::where('user_id', $request->user()->id)->first()
             : Employee::find($employeeId);
 
-        abort_if($employee === null, 404, 'There is no employment record to read attendance for.');
+        abort_if($employee === null, 404, __('There is no employment record to read attendance for.'));
 
         if ($authorize) {
             $this->authorize('view', [AttendanceDay::class, $employee]);

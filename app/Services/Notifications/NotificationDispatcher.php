@@ -8,6 +8,8 @@ use App\Mail\TaskNotificationMail;
 use App\Models\NotificationPreference;
 use App\Models\User;
 use App\Models\UserNotification;
+use App\Support\Locales;
+use App\Support\Realtime;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\Mail;
 
@@ -44,7 +46,7 @@ class NotificationDispatcher implements NotificationSender
         ]);
         $notification->save();
 
-        broadcast(new NotificationSent($notification));
+        Realtime::send(new NotificationSent($notification));
 
         $this->maybeQueueMail($recipient, $type, $data, $actor);
 
@@ -93,8 +95,21 @@ class NotificationDispatcher implements NotificationSender
         }
 
         Mail::to($recipient->email, $recipient->name)->queue(
-            TaskNotificationMail::fromData($type, $actor?->name ?? 'Someone', $data, $this->taskDeepLink($type, $data)),
+            TaskNotificationMail::fromData($type, $actor?->name ?? '', $data, $this->taskDeepLink($type, $data), $this->localeFor($recipient)),
         );
+    }
+
+    /**
+     * The language the recipient reads their mail in: their own
+     * `user_settings.locale` when set and supported, otherwise the locale the
+     * request/tenant already resolved (the actor and recipient share a tenant,
+     * so that is the tenant default). The mailable snapshots the composed copy
+     * at construction, so this decision never rides the queue.
+     */
+    private function localeFor(User $recipient): string
+    {
+        return Locales::normalize($recipient->settings?->settings['locale'] ?? null)
+            ?? app()->getLocale();
     }
 
     /**

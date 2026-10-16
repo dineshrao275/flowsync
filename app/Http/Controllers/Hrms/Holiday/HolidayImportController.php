@@ -45,6 +45,6 @@ class HolidayImportController extends Controller
         $evaluated = $this->importer->evaluate($calendar, $this->importer->parse($request->file('file')));
         $result = $this->importer->commit($calendar, $evaluated['rows'], $request->boolean('skip_invalid'), $request->user());
 
-        return response()->json(['message' => "{$result['created']} holiday(s) imported.", ...$result], Response::HTTP_CREATED);
+        return response()->json(['message' => __(':created holiday(s) imported.', ['created' => $result['created']]), ...$result], Response::HTTP_CREATED);
     }
 }

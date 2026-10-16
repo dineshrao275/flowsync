@@ -20,7 +20,7 @@ class EnsureSuperAdmin
         $user = $request->user();
 
         if (! $user || ! $user->is_super_admin) {
-            abort(403, 'Super administrator access is required for this action.');
+            abort(403, __('Super administrator access is required for this action.'));
         }
 
         $access = app(PlatformAccess::class);
@@ -30,7 +30,7 @@ class EnsureSuperAdmin
 
             if ($slug === null || ! $access->allows($user, $slug)) {
                 return response()->json([
-                    'message' => 'Your platform role does not allow this action.',
+                    'message' => __('Your platform role does not allow this action.'),
                     'code' => 'platform_permission_denied',
                     'permission' => $slug,
                 ], 403);

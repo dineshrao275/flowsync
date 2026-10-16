@@ -14,6 +14,7 @@ use App\Http\Middleware\EnsureTenantContext;
 use App\Http\Middleware\EnsureTwoFactorEnrolled;
 use App\Http\Middleware\LogHttpRequests;
 use App\Http\Middleware\SecurityHeaders;
+use App\Http\Middleware\SetRequestLocale;
 use App\Http\Middleware\SetTenantContext;
 use App\Http\Middleware\SwitchTenant;
 use App\Http\Middleware\TokenCan;
@@ -60,6 +61,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'signed' => ValidateSignature::class,
             'switch_tenant' => SwitchTenant::class,
             'tenant' => SetTenantContext::class,
+            'locale' => SetRequestLocale::class,
             'tenant_context' => EnsureTenantContext::class,
             'super_admin' => EnsureSuperAdmin::class,
             'onboarding_complete' => EnsureOnboardingComplete::class,
@@ -89,6 +91,9 @@ return Application::configure(basePath: dirname(__DIR__))
             AuthenticateApiToken::class,
             Authenticate::class,
             SetTenantContext::class,
+            // After auth/session/tenant-context: needs $request->user(),
+            // the session store, and TenantContext pinned.
+            SetRequestLocale::class,
             EnsureTenantContext::class,
             EnsureSuperAdmin::class,
             EnsurePlatformPermission::class,

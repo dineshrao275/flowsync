@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import api, { fieldErrors } from '../../services/api';
 import Alert from '../ui/Alert';
 import Button from '../ui/Button';
@@ -7,11 +8,11 @@ import Select from '../ui/Select';
 import { useToast } from '../../context/ToastContext';
 
 const MOODS = [
-    { value: '', label: 'No mood' },
-    { value: 'great', label: 'Great' },
-    { value: 'good', label: 'Good' },
-    { value: 'ok', label: 'Ok' },
-    { value: 'low', label: 'Low' },
+    { value: '', key: 'noMood' },
+    { value: 'great', key: 'great' },
+    { value: 'good', key: 'good' },
+    { value: 'ok', key: 'ok' },
+    { value: 'low', key: 'low' },
 ];
 
 /**
@@ -20,6 +21,7 @@ const MOODS = [
  * history the moment it is written.
  */
 export default function CheckInComposer({ cycleId, employeeId, onFiled }) {
+    const { t } = useTranslation();
     const toast = useToast();
     const [form, setForm] = useState({ body: '', mood: '', blockers: '', needs_support: false });
     const [errors, setErrors] = useState({});
@@ -38,7 +40,7 @@ export default function CheckInComposer({ cycleId, employeeId, onFiled }) {
                 blockers: form.blockers || null,
                 needs_support: form.needs_support,
             });
-            toast.success('Check-in filed.');
+            toast.success(t('hrms.checkIn.filed'));
             setForm({ body: '', mood: '', blockers: '', needs_support: false });
             onFiled?.();
         } catch (err) {
@@ -49,30 +51,30 @@ export default function CheckInComposer({ cycleId, employeeId, onFiled }) {
     }
 
     if (!employeeId) {
-        return <p className="text-sm text-gray-500">Select a person to file a check-in for.</p>;
+        return <p className="text-sm text-gray-500">{t('hrms.checkIn.selectPerson')}</p>;
     }
 
     return (
         <form onSubmit={save} className="grid gap-3">
             {errors.form && <Alert>{errors.form}</Alert>}
             <Input
-                label="How is it going?"
+                label={t('hrms.checkIn.howGoing')}
                 value={form.body}
                 error={errors.body}
                 onChange={(e) => setForm({ ...form, body: e.target.value })}
                 required
             />
             <div className="grid grid-cols-2 gap-3">
-                <Select label="Mood" value={form.mood} error={errors.mood} onChange={(e) => setForm({ ...form, mood: e.target.value })}>
-                    {MOODS.map((m) => <option key={m.value} value={m.value}>{m.label}</option>)}
+                <Select label={t('hrms.checkIn.mood')} value={form.mood} error={errors.mood} onChange={(e) => setForm({ ...form, mood: e.target.value })}>
+                    {MOODS.map((m) => <option key={m.value} value={m.value}>{t(`hrms.checkIn.${m.key}`)}</option>)}
                 </Select>
-                <Input label="Blockers" value={form.blockers} error={errors.blockers} onChange={(e) => setForm({ ...form, blockers: e.target.value })} />
+                <Input label={t('hrms.checkIn.blockers')} value={form.blockers} error={errors.blockers} onChange={(e) => setForm({ ...form, blockers: e.target.value })} />
             </div>
             <label className="flex items-center gap-2 text-sm">
                 <input type="checkbox" checked={form.needs_support} onChange={(e) => setForm({ ...form, needs_support: e.target.checked })} />
-                Needs support
+                {t('hrms.checkIn.needsSupport')}
             </label>
-            <div><Button type="submit" loading={saving}>File check-in</Button></div>
+            <div><Button type="submit" loading={saving}>{t('hrms.checkIn.file')}</Button></div>
         </form>
     );
 }

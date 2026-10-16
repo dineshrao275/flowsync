@@ -98,7 +98,7 @@ class EmployeeUserProvisioner
         }
 
         throw ValidationException::withMessages([
-            'email' => 'That email address is already used by another account.',
+            'email' => __('That email address is already used by another account.'),
         ]);
     }
 
@@ -119,7 +119,7 @@ class EmployeeUserProvisioner
 
         if (count($ids) !== count($wanted)) {
             throw ValidationException::withMessages([
-                'roles' => 'One or more of the selected roles does not exist.',
+                'roles' => __('One or more of the selected roles does not exist.'),
             ]);
         }
 

@@ -30,7 +30,7 @@ class SystemSettingsController extends Controller
                 abort(422, 'default_plan_id');
             }
             if (! $plan->is_active) {
-                abort(422, 'That plan is not active, choose another.');
+                abort(422, __('That plan is not active, choose another.'));
             }
         }
 
@@ -62,7 +62,7 @@ class SystemSettingsController extends Controller
             );
         }
 
-        return response()->json(['settings' => $after, 'message' => 'Settings saved.']);
+        return response()->json(['settings' => $after, 'message' => __('Settings saved.')]);
     }
 
     private function all(): array

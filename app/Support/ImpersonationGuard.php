@@ -63,7 +63,7 @@ final class ImpersonationGuard
             $this->end($request, $impersonation);
 
             throw new HttpResponseException(response()->json([
-                'message' => 'Your impersonation session has expired. Sign in again to continue.',
+                'message' => __('Your impersonation session has expired. Sign in again to continue.'),
                 'code' => 'impersonation_expired',
             ], 401));
         }
@@ -73,7 +73,7 @@ final class ImpersonationGuard
             $this->end($request, $impersonation);
 
             throw new HttpResponseException(response()->json([
-                'message' => 'The tenant withdrew support access. Your session has ended.',
+                'message' => __('The tenant withdrew support access. Your session has ended.'),
                 'code' => 'support_access_revoked',
             ], 401));
         }
@@ -84,14 +84,14 @@ final class ImpersonationGuard
 
         if (($impersonation['mode'] ?? 'read_only') !== 'write') {
             throw new HttpResponseException(response()->json([
-                'message' => 'This impersonation session is read-only. Start a new session with changes enabled to do this.',
+                'message' => __('This impersonation session is read-only. Start a new session with changes enabled to do this.'),
                 'code' => 'impersonation_read_only',
             ], 403));
         }
 
         if ($request->is(...self::BLOCKED_WHEN_WRITING)) {
             throw new HttpResponseException(response()->json([
-                'message' => 'This action cannot be performed while impersonating a user.',
+                'message' => __('This action cannot be performed while impersonating a user.'),
                 'code' => 'impersonation_blocked',
             ], 403));
         }

@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import { CheckCircle, Folders, IdentificationBadge, Kanban, Users } from '@phosphor-icons/react';
 import api from '../../services/api';
@@ -10,37 +11,35 @@ import { employeeUrl, projectUrl, taskUrl, workspaceUrl } from '../../utils/deep
 const groupDefs = [
     {
         key: 'tasks',
-        label: 'Tasks',
         icon: CheckCircle,
     },
     {
         key: 'projects',
-        label: 'Projects',
         icon: Kanban,
     },
     {
         key: 'workspaces',
-        label: 'Workspaces',
         icon: Folders,
     },
     {
         key: 'users',
-        label: 'People',
         icon: Users,
     },
     {
         key: 'hrms',
-        label: 'HR',
         icon: IdentificationBadge,
     },
 ];
 
-function subtitleFor(group, item) {
+function subtitleFor(t, group, item) {
     if (group === 'tasks') return `${item.project?.key ?? ''} · ${item.project?.name ?? ''}`;
     if (group === 'projects') return `${item.key ?? ''} · ${item.workspace ?? ''}`;
-    if (group === 'workspaces') return `${item.tenant ?? ''} · ${item.projects_count ?? 0} projects`;
+    if (group === 'workspaces') {
+        const count = item.projects_count ?? 0;
+        return `${item.tenant ?? ''} · ${count === 1 ? t('shell.commandPalette.projectsCountOne') : t('shell.commandPalette.projectsCount', { count })}`;
+    }
     if (group === 'users') return `${item.email ?? ''} ${item.tenant ? `· ${item.tenant}` : ''}`;
-    if (group === 'hrms') return item.to ? 'Go to section' : `${item.employee_code ?? ''}`;
+    if (group === 'hrms') return item.to ? t('shell.commandPalette.goToSection') : `${item.employee_code ?? ''}`;
     return '';
 }
 
@@ -58,7 +57,7 @@ function hrefFor(group, item) {
  * query. Only routed modules qualify — a shortcut to a page the router
  * does not own is the dead-tile failure the shell test guards.
  */
-function shortcutRows(query, modules = []) {
+function shortcutRows(t, query, modules = []) {
     const q = query.trim().toLowerCase();
     const enabled = new Set(modules);
 
@@ -66,10 +65,11 @@ function shortcutRows(query, modules = []) {
         .filter(([key]) => enabled.has(key))
         .filter(([key]) => (HRMS_MODULE_META[key]?.label ?? '').toLowerCase().includes(q))
         .slice(0, 5)
-        .map(([key]) => ({ id: `shortcut-${key}`, name: `Go to ${HRMS_MODULE_META[key].label}`, to: HRMS_MODULE_ROUTES[key] }));
+        .map(([key]) => ({ id: `shortcut-${key}`, name: t('shell.commandPalette.goTo', { label: HRMS_MODULE_META[key].label }), to: HRMS_MODULE_ROUTES[key] }));
 }
 
 export default function CommandPalette({ open, onClose }) {
+    const { t } = useTranslation();
     const [query, setQuery] = useState('');
     const [results, setResults] = useState(null);
     const [loading, setLoading] = useState(false);
@@ -120,13 +120,13 @@ export default function CommandPalette({ open, onClose }) {
 
         const combined = {
             ...results,
-            hrms: [...(results.employees ?? []), ...shortcutRows(query, user?.modules ?? [])],
+            hrms: [...(results.employees ?? []), ...shortcutRows(t, query, user?.modules ?? [])],
         };
 
         return groupDefs
             .map((def) => ({ ...def, items: combined[def.key] ?? [] }))
             .filter((group) => group.items.length > 0);
-    }, [results, query, user]);
+    }, [results, query, user, t]);
 
     const flatLength = useMemo(
         () => groups.reduce((sum, group) => sum + group.items.length, 0),
@@ -190,19 +190,19 @@ export default function CommandPalette({ open, onClose }) {
                             value={query}
                             onChange={(e) => setQuery(e.target.value)}
                             onKeyDown={onKeyDown}
-                            placeholder="Search workspaces, projects, tasks, people…"
+                            placeholder={t('shell.commandPalette.placeholder')}
                             className="h-12 flex-1 bg-transparent text-sm text-gray-900 outline-none placeholder:text-gray-400"
-                            aria-label="Global search"
+                            aria-label={t('shell.commandPalette.ariaLabel')}
                         />
-                        <kbd className="shrink-0 rounded border border-gray-200 bg-gray-50 px-1.5 py-0.5 text-[10px] font-medium text-gray-400">
-                            ESC
+                        <kbd className="shrink-0 rounded border border-gray-200 bg-gray-50 px-1.5 py-0.5 text-xs font-medium text-gray-400">
+                            {t('shell.commandPalette.escLabel')}
                         </kbd>
                     </div>
 
                     <div className="max-h-[55vh] overflow-y-auto p-2">
                         {query.trim().length < 2 ? (
                             <p className="px-3 py-10 text-center text-sm text-gray-400">
-                                Type at least 2 characters to search.
+                                {t('shell.commandPalette.hint')}
                             </p>
                         ) : loading ? (
                             <div className="flex justify-center py-10">
@@ -210,7 +210,7 @@ export default function CommandPalette({ open, onClose }) {
                             </div>
                         ) : groups.length === 0 ? (
                             <p className="px-3 py-10 text-center text-sm text-gray-400">
-                                No results for &ldquo;{query.trim()}&rdquo;.
+                                {t('shell.commandPalette.noResults', { query: query.trim() })}
                             </p>
                         ) : (
                             groups.map((group) => {
@@ -242,7 +242,7 @@ export default function CommandPalette({ open, onClose }) {
                                                         : item.name}
                                                 </span>
                                                 <span className="block truncate text-xs text-gray-400">
-                                                    {subtitleFor(group.key, item)}
+                                                    {subtitleFor(t, group.key, item)}
                                                 </span>
                                             </span>
                                         </button>
@@ -253,7 +253,7 @@ export default function CommandPalette({ open, onClose }) {
                                 return (
                                     <div key={group.key} className="mb-1 last:mb-0">
                                         <p className="px-3 pb-1 pt-2 text-xs font-semibold text-gray-500">
-                                            {group.label}
+                                            {t(`shell.commandPalette.groups.${group.key}`)}
                                         </p>
                                         {rows}
                                     </div>
@@ -262,8 +262,8 @@ export default function CommandPalette({ open, onClose }) {
                         )}
                     </div>
 
-                    <div className="border-t border-gray-100 px-4 py-2 text-[11px] text-gray-400">
-                        ↑↓ navigate &middot; ↵ select &middot; esc close
+                    <div className="border-t border-gray-100 px-4 py-2 text-xs text-gray-400">
+                        {t('shell.commandPalette.footer')}
                     </div>
                 </div>
             </div>

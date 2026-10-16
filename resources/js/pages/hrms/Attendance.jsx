@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import api, { fieldErrors } from '../../services/api';
 import Alert from '../../components/ui/Alert';
 import Button from '../../components/ui/Button';
@@ -14,22 +15,24 @@ import { useToast } from '../../context/ToastContext';
 import { useSetCrumbs } from '../../context/BreadcrumbContext';
 import usePageTitle from '../../hooks/usePageTitle';
 import { formatMinutes } from '../../utils/time';
+import { formatTime } from '../../utils/format';
+import i18n, { intlTag } from '../../i18n';
 import AttendanceCalendar from '../../components/hrms/AttendanceCalendar';
 import ClockInWidget from '../../components/hrms/ClockInWidget';
 
 const STATUS_OPTIONS = [
-    { value: '', label: 'All statuses' },
-    { value: 'present', label: 'Present' },
-    { value: 'absent', label: 'Absent' },
-    { value: 'half_day', label: 'Half day' },
-    { value: 'late', label: 'Late' },
-    { value: 'leave', label: 'Leave' },
-    { value: 'holiday', label: 'Holiday' },
-    { value: 'week_off', label: 'Week off' },
+    { value: '', key: 'statusAll' },
+    { value: 'present', key: 'statusPresent' },
+    { value: 'absent', key: 'statusAbsent' },
+    { value: 'half_day', key: 'statusHalf' },
+    { value: 'late', key: 'statusLate' },
+    { value: 'leave', key: 'statusLeave' },
+    { value: 'holiday', key: 'statusHoliday' },
+    { value: 'week_off', key: 'statusWeekOff' },
 ];
 
 function monthLabel(year, month) {
-    return new Date(year, month - 1, 1).toLocaleDateString([], { month: 'long', year: 'numeric' });
+    return new Date(year, month - 1, 1).toLocaleDateString(intlTag(i18n.language), { month: 'long', year: 'numeric' });
 }
 
 function shiftMonth(year, month, delta) {
@@ -47,7 +50,8 @@ function shiftMonth(year, month, delta) {
  * punch or correction, so the grid never lags the day it photographs.
  */
 export default function Attendance() {
-    usePageTitle('Attendance');
+    const { t } = useTranslation();
+    usePageTitle(t('hrms.attendance.pageTitle'));
     const setCrumbs = useSetCrumbs();
     const navigate = useNavigate();
     const { can, user } = useAuth();
@@ -103,7 +107,7 @@ export default function Attendance() {
                 out_of_range_action: rci.out_of_range_action ?? 'flag',
             });
         } catch (err) {
-            toast.error('Unable to load attendance settings.');
+            toast.error(t('hrms.attendance.settingsFailed'));
         } finally {
             setSettingsLoading(false);
         }
@@ -127,7 +131,7 @@ export default function Attendance() {
                     out_of_range_action: settingsForm.out_of_range_action,
                 },
             });
-            toast.success('Attendance settings saved.');
+            toast.success(t('hrms.attendance.settingsSaved'));
             setSettingsOpen(false);
         } catch (err) {
             setSettingsErrors(fieldErrors(err));
@@ -137,8 +141,8 @@ export default function Attendance() {
     }
 
     useEffect(() => {
-        setCrumbs([{ label: 'HRMS', to: '/hrms' }, { label: 'Attendance' }]);
-    }, [setCrumbs]);
+        setCrumbs([{ label: t('hrms.overview.pageTitle'), to: '/hrms' }, { label: t('hrms.attendance.pageTitle') }]);
+    }, [setCrumbs, t]);
 
     const params = useMemo(
         () => ({ ...(employeeId ? { employee_id: employeeId } : {}), year, month }),
@@ -168,9 +172,9 @@ export default function Attendance() {
                 return;
             }
 
-            setError('Unable to load attendance.');
+            setError(t('hrms.attendance.loadFailed'));
         });
-    }, [params, employeeId, navigate]);
+    }, [params, employeeId, navigate, t]);
 
     useEffect(() => {
         load();
@@ -229,7 +233,7 @@ export default function Attendance() {
             load();
         } catch (err) {
             const errors = err.response?.data?.errors;
-            toast.error(errors?.location?.[0] ?? err.response?.data?.message ?? 'Unable to record the punch.');
+            toast.error(errors?.location?.[0] ?? err.response?.data?.message ?? t('hrms.home.punchFailed'));
         } finally {
             setPunching(false);
         }
@@ -260,7 +264,7 @@ export default function Attendance() {
             link.remove();
             window.URL.revokeObjectURL(url);
         } catch (err) {
-            toast.error('Unable to export attendance.');
+            toast.error(t('hrms.attendance.exportFailed'));
         } finally {
             setExporting(false);
         }
@@ -287,7 +291,7 @@ export default function Attendance() {
         try {
             await api.post('/hrms/attendance/regularizations', payload);
 
-            toast.success('Correction requested. Your manager will review it.');
+            toast.success(t('hrms.attendance.correctionSent'));
             setCorrecting(false);
             load();
         } catch (err) {
@@ -303,7 +307,7 @@ export default function Attendance() {
         <div className="space-y-4">
             <div className="flex flex-wrap items-center justify-between gap-3">
                 <div>
-                    <h2 className="text-xl font-semibold text-gray-900">Attendance</h2>
+                    <h2 className="text-xl font-semibold text-gray-900">{t('hrms.attendance.pageTitle')}</h2>
                     <p className="mt-0.5 text-sm text-gray-500">
                         {monthData ? `${monthData.employee?.name} · ${monthLabel(year, month)}` : '—'}
                     </p>
@@ -312,17 +316,17 @@ export default function Attendance() {
                 <div className="flex flex-wrap items-center gap-2">
                     {canRegularize && (
                         <Link to="/hrms/attendance/approvals">
-                            <Button variant="secondary">Review queue</Button>
+                            <Button variant="secondary">{t('hrms.attendance.reviewQueue')}</Button>
                         </Link>
                     )}
                     {canExport && (
                         <Button variant="secondary" onClick={exportCsv} disabled={exporting || !monthData}>
-                            {exporting ? 'Exporting…' : 'Export CSV'}
+                            {exporting ? t('hrms.attendance.exporting') : t('hrms.attendance.exportCsv')}
                         </Button>
                     )}
                     {canSettings && (
                         <Button variant="secondary" onClick={openSettings}>
-                            Settings
+                            {t('hrms.attendance.settings')}
                         </Button>
                     )}
                 </div>
@@ -333,12 +337,12 @@ export default function Attendance() {
             <div className="flex flex-wrap items-center gap-2">
                 {canViewOthers && (
                     <Select
-                        aria-label="Employee"
+                        aria-label={t('hrms.attendance.employee')}
                         value={employeeId}
                         onChange={(e) => { setEmployeeId(e.target.value); setSelected(null); }}
                         className="w-56"
                     >
-                        <option value="">Myself</option>
+                        <option value="">{t('hrms.attendance.myself')}</option>
                         {(employees ?? []).map((employee) => (
                             <option key={employee.id} value={employee.id}>
                                 {employee.name}
@@ -346,18 +350,18 @@ export default function Attendance() {
                         ))}
                     </Select>
                 )}
-                <Button variant="secondary" onClick={() => moveMonth(-1)}>‹ Prev</Button>
+                <Button variant="secondary" onClick={() => moveMonth(-1)}>{t('hrms.attendance.prev')}</Button>
                 <Button
                     variant="secondary"
                     onClick={() => { const current = new Date(); setYear(current.getFullYear()); setMonth(current.getMonth() + 1); setSelected(null); }}
                 >
-                    This month
+                    {t('hrms.attendance.thisMonth')}
                 </Button>
-                <Button variant="secondary" onClick={() => moveMonth(1)}>Next ›</Button>
-                <Select aria-label="Status filter" value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} className="w-44">
+                <Button variant="secondary" onClick={() => moveMonth(1)}>{t('hrms.attendance.next')}</Button>
+                <Select aria-label={t('hrms.attendance.statusFilter')} value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} className="w-44">
                     {STATUS_OPTIONS.map((option) => (
                         <option key={option.value} value={option.value}>
-                            {option.label}
+                            {t(`hrms.attendance.${option.key}`)}
                         </option>
                     ))}
                 </Select>
@@ -370,7 +374,7 @@ export default function Attendance() {
                             <Spinner />
                         </div>
                     ) : days.length === 0 ? (
-                        <EmptyState title="No days yet" description="This month has no lived days to show." />
+                        <EmptyState title={t('hrms.attendance.emptyTitle')} description={t('hrms.attendance.emptyHint')} />
                     ) : (
                         <AttendanceCalendar year={year} month={month} days={days} selectedDate={selected?.date ?? null} onSelectDay={setSelected} />
                     )}
@@ -378,10 +382,10 @@ export default function Attendance() {
                     {statusFilter && (
                         <div className="mt-3 border-t border-gray-100 pt-3">
                             <p className="mb-2 text-xs font-medium uppercase tracking-wide text-gray-400">
-                                {matching.length} day{matching.length === 1 ? '' : 's'} · {STATUS_OPTIONS.find((o) => o.value === statusFilter)?.label}
+                                {t('hrms.attendance.days', { count: matching.length })} · {t(`hrms.attendance.${STATUS_OPTIONS.find((o) => o.value === statusFilter)?.key}`)}
                             </p>
                             {matching.length === 0 ? (
-                                <p className="text-sm text-gray-500">Nothing with this status this month.</p>
+                                <p className="text-sm text-gray-500">{t('hrms.attendance.nothingStatus')}</p>
                             ) : (
                                 <ul className="divide-y divide-gray-100">
                                     {matching.map((day) => (
@@ -401,19 +405,19 @@ export default function Attendance() {
                 <div className="space-y-4">
                     <ClockInWidget today={todayData} punching={punching} onPunch={punch} allowPunch={!employeeId} />
 
-                    <Card title="Month totals" dense>
+                    <Card title={t('hrms.attendance.totals')} dense>
                         {!summary ? (
                             <div className="flex justify-center py-6">
                                 <Spinner />
                             </div>
                         ) : (
                             <dl className="grid grid-cols-2 gap-2 text-sm">
-                                <div><dt className="text-gray-500">Present</dt><dd className="text-lg font-semibold text-gray-900">{summary.present}</dd></div>
-                                <div><dt className="text-gray-500">Absent</dt><dd className="text-lg font-semibold text-gray-900">{summary.absent}</dd></div>
-                                <div><dt className="text-gray-500">Late</dt><dd className="text-lg font-semibold text-gray-900">{summary.late}</dd></div>
-                                <div><dt className="text-gray-500">Half day</dt><dd className="text-lg font-semibold text-gray-900">{summary.half_day}</dd></div>
-                                <div><dt className="text-gray-500">Worked</dt><dd className="text-lg font-semibold text-gray-900">{formatMinutes(summary.worked_minutes)}</dd></div>
-                                <div><dt className="text-gray-500">Overtime</dt><dd className="text-lg font-semibold text-gray-900">{formatMinutes(summary.overtime_minutes)}</dd></div>
+                                <div><dt className="text-gray-500">{t('hrms.attendance.present')}</dt><dd className="text-lg font-semibold text-gray-900">{summary.present}</dd></div>
+                                <div><dt className="text-gray-500">{t('hrms.attendance.absent')}</dt><dd className="text-lg font-semibold text-gray-900">{summary.absent}</dd></div>
+                                <div><dt className="text-gray-500">{t('hrms.attendance.late')}</dt><dd className="text-lg font-semibold text-gray-900">{summary.late}</dd></div>
+                                <div><dt className="text-gray-500">{t('hrms.attendance.halfDay')}</dt><dd className="text-lg font-semibold text-gray-900">{summary.half_day}</dd></div>
+                                <div><dt className="text-gray-500">{t('hrms.attendance.worked')}</dt><dd className="text-lg font-semibold text-gray-900">{formatMinutes(summary.worked_minutes)}</dd></div>
+                                <div><dt className="text-gray-500">{t('hrms.attendance.overtime')}</dt><dd className="text-lg font-semibold text-gray-900">{formatMinutes(summary.overtime_minutes)}</dd></div>
                             </dl>
                         )}
                     </Card>
@@ -421,20 +425,20 @@ export default function Attendance() {
                     {selected && (
                         <Card title={selected.date} dense>
                             <dl className="space-y-1.5 text-sm">
-                                <div className="flex justify-between"><dt className="text-gray-500">Status</dt><dd className="font-medium text-gray-900">{selected.status_label}</dd></div>
-                                <div className="flex justify-between"><dt className="text-gray-500">First in</dt><dd className="text-gray-900">{selected.first_in_at ? new Date(selected.first_in_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '—'}</dd></div>
-                                <div className="flex justify-between"><dt className="text-gray-500">Last out</dt><dd className="text-gray-900">{selected.last_out_at ? new Date(selected.last_out_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '—'}</dd></div>
-                                <div className="flex justify-between"><dt className="text-gray-500">Worked</dt><dd className="text-gray-900">{formatMinutes(selected.worked_minutes)}</dd></div>
-                                <div className="flex justify-between"><dt className="text-gray-500">Late by</dt><dd className="text-gray-900">{formatMinutes(selected.late_by_minutes)}</dd></div>
-                                <div className="flex justify-between"><dt className="text-gray-500">Overtime</dt><dd className="text-gray-900">{formatMinutes(selected.overtime_minutes)}</dd></div>
-                                {selected.is_regularized && <p className="pt-1 text-xs text-gray-500">Corrected through regularization.</p>}
+                                <div className="flex justify-between"><dt className="text-gray-500">{t('hrms.attendance.dayStatus')}</dt><dd className="font-medium text-gray-900">{selected.status_label}</dd></div>
+                                <div className="flex justify-between"><dt className="text-gray-500">{t('hrms.attendance.dayIn')}</dt><dd className="text-gray-900">{selected.first_in_at ? formatTime(selected.first_in_at) : '—'}</dd></div>
+                                <div className="flex justify-between"><dt className="text-gray-500">{t('hrms.attendance.dayOut')}</dt><dd className="text-gray-900">{selected.last_out_at ? formatTime(selected.last_out_at) : '—'}</dd></div>
+                                <div className="flex justify-between"><dt className="text-gray-500">{t('hrms.attendance.dayWorked')}</dt><dd className="text-gray-900">{formatMinutes(selected.worked_minutes)}</dd></div>
+                                <div className="flex justify-between"><dt className="text-gray-500">{t('hrms.attendance.lateBy')}</dt><dd className="text-gray-900">{formatMinutes(selected.late_by_minutes)}</dd></div>
+                                <div className="flex justify-between"><dt className="text-gray-500">{t('hrms.attendance.dayOt')}</dt><dd className="text-gray-900">{formatMinutes(selected.overtime_minutes)}</dd></div>
+                                {selected.is_regularized && <p className="pt-1 text-xs text-gray-500">{t('hrms.attendance.regularized')}</p>}
                             </dl>
                             <div className="mt-3">
                                 {viewingSelf ? (
-                                    <Button variant="secondary" onClick={() => openCorrection(selected)}>Request correction</Button>
+                                    <Button variant="secondary" onClick={() => openCorrection(selected)}>{t('hrms.attendance.requestCorrection')}</Button>
                                 ) : (
                                     <p className="text-xs text-gray-400">
-                                        Corrections are filed against your own record; ask HR to amend this day.
+                                        {t('hrms.attendance.correctionOthers')}
                                     </p>
                                 )}
                             </div>
@@ -443,38 +447,38 @@ export default function Attendance() {
                 </div>
             </div>
 
-            <Modal open={correcting} onClose={() => setCorrecting(false)} title={`Correct ${selected?.date ?? ''}`}>
+            <Modal open={correcting} onClose={() => setCorrecting(false)} title={t('hrms.attendance.correctTitle', { date: selected?.date ?? '' })}>
                 <form onSubmit={submitCorrection} className="space-y-3 px-6 py-5">
                     <p className="text-sm text-gray-500">
-                        Ask your manager to correct this day. At least one corrected time is required.
+                        {t('hrms.attendance.correctIntro')}
                     </p>
                     <div className="grid grid-cols-2 gap-3">
                         <Input
                             type="time"
-                            label="Corrected clock-in"
+                            label={t('hrms.attendance.correctIn')}
                             value={correction.firstIn}
                             onChange={(e) => setCorrection((c) => ({ ...c, firstIn: e.target.value }))}
                             error={correctionErrors.requested_first_in_at}
                         />
                         <Input
                             type="time"
-                            label="Corrected clock-out"
+                            label={t('hrms.attendance.correctOut')}
                             value={correction.lastOut}
                             onChange={(e) => setCorrection((c) => ({ ...c, lastOut: e.target.value }))}
                             error={correctionErrors.requested_punch_at}
                         />
                     </div>
                     <Input
-                        label="Reason"
+                        label={t('hrms.attendance.reason')}
                         value={correction.reason}
                         onChange={(e) => setCorrection((c) => ({ ...c, reason: e.target.value }))}
                         error={correctionErrors.reason}
-                        placeholder="Forgot to clock in at the gate…"
+                        placeholder={t('hrms.attendance.reasonPlaceholder')}
                     />
                     {correctionErrors.form && <Alert>{correctionErrors.form}</Alert>}
                     <div className="flex justify-end gap-2">
-                        <Button type="button" variant="secondary" onClick={() => setCorrecting(false)}>Cancel</Button>
-                        <Button type="submit">Send request</Button>
+                        <Button type="button" variant="secondary" onClick={() => setCorrecting(false)}>{t('hrms.attendance.cancel')}</Button>
+                        <Button type="submit">{t('hrms.attendance.sendRequest')}</Button>
                     </div>
                 </form>
             </Modal>
@@ -482,7 +486,7 @@ export default function Attendance() {
             <Modal
                 open={settingsOpen}
                 onClose={() => setSettingsOpen(false)}
-                title="Attendance Settings"
+                title={t('hrms.attendance.settingsTitle')}
             >
                 {settingsLoading ? (
                     <div className="flex justify-center px-6 py-8">
@@ -505,10 +509,10 @@ export default function Attendance() {
                                 />
                                 <div>
                                     <span className="text-sm font-semibold text-gray-900 dark:text-gray-100">
-                                        Auto-derive attendance from work logs
+                                        {t('hrms.attendance.derive')}
                                     </span>
                                     <p className="mt-0.5 text-xs text-gray-500 dark:text-gray-400">
-                                        Automatically compute and mark attendance days from work logged against TMS tasks.
+                                        {t('hrms.attendance.deriveHint')}
                                     </p>
                                 </div>
                             </label>
@@ -517,7 +521,7 @@ export default function Attendance() {
                         <div className="grid grid-cols-2 gap-4">
                             <Input
                                 type="number"
-                                label="Rounding step (minutes)"
+                                label={t('hrms.attendance.rounding')}
                                 min={1}
                                 max={60}
                                 value={settingsForm.rounding_minutes}
@@ -528,7 +532,7 @@ export default function Attendance() {
                             />
                             <Input
                                 type="number"
-                                label="Overtime threshold (minutes)"
+                                label={t('hrms.attendance.otThreshold')}
                                 min={0}
                                 max={1440}
                                 value={settingsForm.ot_after_minutes}
@@ -553,7 +557,7 @@ export default function Attendance() {
                                     className="h-4 w-4 rounded border-gray-300 accent-[var(--accent)]"
                                 />
                                 <span className="text-sm text-gray-700 dark:text-gray-300">
-                                    Allow negative overtime (undertime deficit)
+                                    {t('hrms.attendance.allowNegative')}
                                 </span>
                             </label>
 
@@ -570,18 +574,18 @@ export default function Attendance() {
                                     className="h-4 w-4 rounded border-gray-300 accent-[var(--accent)]"
                                 />
                                 <span className="text-sm text-gray-700 dark:text-gray-300">
-                                    Enable remote clock-in
+                                    {t('hrms.attendance.remoteEnabled')}
                                 </span>
                             </label>
 
                             <Select
-                                label="Punch outside the allowed network or area"
+                                label={t('hrms.attendance.rangeAction')}
                                 value={settingsForm.out_of_range_action}
                                 onChange={(e) => setSettingsForm((current) => ({ ...current, out_of_range_action: e.target.value }))}
                                 error={settingsErrors['remote_clock_in.out_of_range_action']}
                             >
-                                <option value="flag">Record it and flag it for review</option>
-                                <option value="block">Refuse it</option>
+                                <option value="flag">{t('hrms.attendance.rangeFlag')}</option>
+                                <option value="block">{t('hrms.attendance.rangeBlock')}</option>
                             </Select>
                         </div>
 
@@ -594,10 +598,10 @@ export default function Attendance() {
                                 onClick={() => setSettingsOpen(false)}
                                 disabled={savingSettings}
                             >
-                                Cancel
+                                {t('hrms.attendance.cancel')}
                             </Button>
                             <Button type="submit" disabled={savingSettings}>
-                                {savingSettings ? 'Saving…' : 'Save settings'}
+                                {savingSettings ? t('hrms.attendance.saving') : t('hrms.attendance.saveSettings')}
                             </Button>
                         </div>
                     </form>

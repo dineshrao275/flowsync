@@ -55,20 +55,20 @@ class StatutoryService
     public function projectTds(Employee $employee, int $fiscalYear, ?User $actor = null): array
     {
         if ($fiscalYear < 1900 || $fiscalYear > 2100) {
-            throw ValidationException::withMessages(['fiscal_year' => 'A projection prices one real fiscal year.']);
+            throw ValidationException::withMessages(['fiscal_year' => __('A projection prices one real fiscal year.')]);
         }
 
         $tenant = $this->tenant();
 
         if ($tenant === null || ! $this->limits->hasModule($tenant, 'hrms.payroll.statutory')) {
-            throw ValidationException::withMessages(['form' => 'Statutory is not enabled for this tenant.']);
+            throw ValidationException::withMessages(['form' => __('Statutory is not enabled for this tenant.')]);
         }
 
         $configuration = $this->resolver->configurationFor($employee);
         $slabs = $configuration?->config['tds']['slabs'] ?? [];
 
         if ($configuration === null || ($configuration->config['tds']['enabled'] ?? false) !== true || $slabs === []) {
-            throw ValidationException::withMessages(['form' => 'There is no TDS rulebook for this employee’s jurisdiction.']);
+            throw ValidationException::withMessages(['form' => __('There is no TDS rulebook for this employee’s jurisdiction.')]);
         }
 
         $settings = HrmsSetting::current();
@@ -77,7 +77,7 @@ class StatutoryService
         $payslips = $this->yearPayslips($employee, $fiscalYear, $yearStartMonth);
 
         if ($payslips->isEmpty()) {
-            throw ValidationException::withMessages(['form' => 'There is no payslip in that fiscal year to annualise from.']);
+            throw ValidationException::withMessages(['form' => __('There is no payslip in that fiscal year to annualise from.')]);
         }
 
         $projected = $this->annualise($payslips);
@@ -149,7 +149,7 @@ class StatutoryService
         $challanRef = trim($challanRef);
 
         if ($challanRef === '') {
-            throw ValidationException::withMessages(['challan_ref' => 'A surrender names its challan.']);
+            throw ValidationException::withMessages(['challan_ref' => __('A surrender names its challan.')]);
         }
 
         return DB::transaction(function () use ($project, $challanRef, $actor): TdsProject {

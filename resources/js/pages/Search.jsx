@@ -1,73 +1,70 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import api from '../services/api';
 import Button from '../components/ui/Button';
 import Input from '../components/ui/Input';
 import Pagination from '../components/ui/Pagination';
 import Spinner from '../components/ui/Spinner';
-import Alert from '../components/ui/Alert';
 import { Table, Th, Td, TableEmpty } from '../components/ui/Table';
 import { useSetCrumbs } from '../context/BreadcrumbContext';
 import { fieldClass } from '../components/ui/fieldStyles';
 import usePageTitle from '../hooks/usePageTitle';
+import useUrlState from '../hooks/useUrlState';
+import { useResource } from '../hooks/useResource';
+import ErrorState from '../components/ui/ErrorState';
 import { projectUrl } from '../utils/deepLinks';
 
+const FILTER_KEYS = ['q', 'workspace_id', 'project_id', 'status_id', 'priority_id', 'assignee_id', 'label_id', 'due_from', 'due_to'];
+const URL_DEFAULTS = { ...Object.fromEntries(FILTER_KEYS.map((key) => [key, ''])), page: '1' };
+const EMPTY_OPTIONS = { statuses: [], priorities: [], assignees: [], projects: [], workspaces: [], labels: [] };
+
 export default function Search() {
-    usePageTitle('Search');
+    const { t } = useTranslation();
+    usePageTitle(t('dashboard.search.pageTitle'));
     const setCrumbs = useSetCrumbs();
-    const [filters, setFilters] = useState({});
-    const [params, setParams] = useState({});
-    const [options, setOptions] = useState({
-        statuses: [],
-        priorities: [],
-        assignees: [],
-        projects: [],
-        workspaces: [],
-        labels: [],
-    });
-    const [data, setData] = useState(null);
-    const [loading, setLoading] = useState(true);
-    const [error, setError] = useState(null);
-    const [page, setPage] = useState(1);
+
+    // The applied filters + page live in the URL (shareable, refresh-safe,
+    // back/forward aware); `filters` is only the draft being typed.
+    const [url, updateUrl, resetUrl] = useUrlState(URL_DEFAULTS);
+    const applied = Object.fromEntries(FILTER_KEYS.filter((key) => url[key] !== '').map((key) => [key, url[key]]));
+    const page = Number(url.page) || 1;
+    const [filters, setFilters] = useState(applied);
+    const [options, setOptions] = useState(EMPTY_OPTIONS);
+
+    const { data, loading, error, reload } = useResource(
+        (signal) => api.get('/search/tasks', { params: { ...applied, page, per_page: 25 }, signal }).then(({ data: response }) => response),
+        [JSON.stringify(applied), page],
+    );
 
     useEffect(() => {
-        setCrumbs([{ label: 'Search' }]);
-    }, [setCrumbs]);
+        setCrumbs([{ label: t('dashboard.search.pageTitle') }]);
+    }, [setCrumbs, t]);
 
-    const load = useCallback((targetPage, queryParams) => {
-        setLoading(true);
-        setError(null);
-        api.get('/search/tasks', { params: { ...queryParams, page: targetPage, per_page: 25 } })
-            .then(({ data: response }) => {
-                setData(response);
-                if (response.filters) setOptions(response.filters);
-            })
-            .catch(() => setError('Unable to run the search.'))
-            .finally(() => setLoading(false));
-    }, []);
-
+    // Filter option lists come back with each response; keep the last set so the
+    // selects don't empty while the next page loads.
     useEffect(() => {
-        load(1, {});
+        if (data?.filters) setOptions(data.filters);
+    }, [data]);
+
+    // Back/forward (or a pasted link) changes the URL under the form.
+    useEffect(() => {
+        setFilters(applied);
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, []);
+    }, [JSON.stringify(applied)]);
 
     function submit(e) {
         e.preventDefault();
-        const clean = {};
-        Object.entries(filters).forEach(([key, value]) => {
-            if (value !== '' && value !== undefined && value !== null) clean[key] = value;
-        });
-        setParams(clean);
-        setPage(1);
-        load(1, clean);
+        const clean = Object.fromEntries(FILTER_KEYS.map((key) => [key, filters[key] ?? '']));
+        updateUrl(clean);
     }
 
     function reset() {
         setFilters({});
-        setParams({});
-        setPage(1);
-        load(1, {});
+        resetUrl();
     }
+
+    const params = applied;
 
     const tasks = data?.tasks ?? [];
     const pagination = data?.pagination ?? null;
@@ -75,28 +72,28 @@ export default function Search() {
     return (
         <div className="space-y-4">
             <div>
-                <h2 className="text-2xl font-bold text-gray-900">Search tasks</h2>
+                <h2 className="text-2xl font-bold text-gray-900">{t('dashboard.search.title')}</h2>
                 <p className="mt-1 text-sm text-gray-500">
-                    Find tasks across every project you belong to.
+                    {t('dashboard.search.subtitle')}
                 </p>
             </div>
 
-            {error && <Alert>{error}</Alert>}
+            {error && data == null && <ErrorState title={t('dashboard.search.loadFailed')} onRetry={reload} />}
 
             <form onSubmit={submit} className="flex flex-wrap items-end gap-3">
                 <div className="min-w-56 flex-1">
-                    <label className="mb-1.5 block text-sm font-medium text-gray-700">Query</label>
+                    <label className="mb-1.5 block text-sm font-medium text-gray-700">{t('dashboard.search.query')}</label>
                     <input
                         className={fieldClass}
-                        placeholder="Title, key or description…"
+                        placeholder={t('dashboard.search.queryPlaceholder')}
                         value={filters.q ?? ''}
                         onChange={(e) => setFilters((f) => ({ ...f, q: e.target.value }))}
                     />
                 </div>
                 <div>
-                    <label className="mb-1.5 block text-sm font-medium text-gray-700">Workspace</label>
+                    <label className="mb-1.5 block text-sm font-medium text-gray-700">{t('dashboard.search.workspace')}</label>
                     <select className={fieldClass} value={filters.workspace_id ?? ''} onChange={(e) => setFilters((f) => ({ ...f, workspace_id: e.target.value }))}>
-                        <option value="">Any</option>
+                        <option value="">{t('dashboard.search.any')}</option>
                         {options.workspaces.map((workspace) => (
                             <option key={workspace.id} value={workspace.id}>
                                 {workspace.name}
@@ -105,9 +102,9 @@ export default function Search() {
                     </select>
                 </div>
                 <div>
-                    <label className="mb-1.5 block text-sm font-medium text-gray-700">Project</label>
+                    <label className="mb-1.5 block text-sm font-medium text-gray-700">{t('dashboard.search.project')}</label>
                     <select className={fieldClass} value={filters.project_id ?? ''} onChange={(e) => setFilters((f) => ({ ...f, project_id: e.target.value }))}>
-                        <option value="">Any</option>
+                        <option value="">{t('dashboard.search.any')}</option>
                         {options.projects.map((project) => (
                             <option key={project.id} value={project.id}>
                                 {project.name}
@@ -116,9 +113,9 @@ export default function Search() {
                     </select>
                 </div>
                 <div>
-                    <label className="mb-1.5 block text-sm font-medium text-gray-700">Status</label>
+                    <label className="mb-1.5 block text-sm font-medium text-gray-700">{t('dashboard.search.status')}</label>
                     <select className={fieldClass} value={filters.status_id ?? ''} onChange={(e) => setFilters((f) => ({ ...f, status_id: e.target.value }))}>
-                        <option value="">Any</option>
+                        <option value="">{t('dashboard.search.any')}</option>
                         {options.statuses.map((status) => (
                             <option key={status.id} value={status.id}>
                                 {status.name}
@@ -127,9 +124,9 @@ export default function Search() {
                     </select>
                 </div>
                 <div>
-                    <label className="mb-1.5 block text-sm font-medium text-gray-700">Priority</label>
+                    <label className="mb-1.5 block text-sm font-medium text-gray-700">{t('dashboard.search.priority')}</label>
                     <select className={fieldClass} value={filters.priority_id ?? ''} onChange={(e) => setFilters((f) => ({ ...f, priority_id: e.target.value }))}>
-                        <option value="">Any</option>
+                        <option value="">{t('dashboard.search.any')}</option>
                         {options.priorities.map((priority) => (
                             <option key={priority.id} value={priority.id}>
                                 {priority.name}
@@ -138,9 +135,9 @@ export default function Search() {
                     </select>
                 </div>
                 <div>
-                    <label className="mb-1.5 block text-sm font-medium text-gray-700">Assignee</label>
+                    <label className="mb-1.5 block text-sm font-medium text-gray-700">{t('dashboard.search.assignee')}</label>
                     <select className={fieldClass} value={filters.assignee_id ?? ''} onChange={(e) => setFilters((f) => ({ ...f, assignee_id: e.target.value }))}>
-                        <option value="">Anyone</option>
+                        <option value="">{t('dashboard.search.anyone')}</option>
                         {options.assignees.map((assignee) => (
                             <option key={assignee.id} value={assignee.id}>
                                 {assignee.name}
@@ -156,7 +153,7 @@ export default function Search() {
                             checked={filters.label_id !== undefined && filters.label_id !== ''}
                             onChange={(e) => setFilters((f) => ({ ...f, label_id: e.target.checked ? options.labels[0]?.id ?? '' : '' }))}
                         />
-                        Has label
+                        {t('dashboard.search.hasLabel')}
                     </label>
                     <select
                         className={fieldClass}
@@ -164,7 +161,7 @@ export default function Search() {
                         disabled={!options.labels.length}
                         onChange={(e) => setFilters((f) => ({ ...f, label_id: e.target.value }))}
                     >
-                        <option value="">Any label</option>
+                        <option value="">{t('dashboard.search.anyLabel')}</option>
                         {options.labels.map((label) => (
                             <option key={label.id} value={label.id}>
                                 {label.name}
@@ -172,28 +169,28 @@ export default function Search() {
                         ))}
                     </select>
                 </div>
-                <Input label="Due from" type="date" value={filters.due_from ?? ''} onChange={(e) => setFilters((f) => ({ ...f, due_from: e.target.value }))} />
-                <Input label="Due to" type="date" value={filters.due_to ?? ''} onChange={(e) => setFilters((f) => ({ ...f, due_to: e.target.value }))} />
-                <Button type="submit">Search</Button>
+                <Input label={t('dashboard.search.dueFrom')} type="date" value={filters.due_from ?? ''} onChange={(e) => setFilters((f) => ({ ...f, due_from: e.target.value }))} />
+                <Input label={t('dashboard.search.dueTo')} type="date" value={filters.due_to ?? ''} onChange={(e) => setFilters((f) => ({ ...f, due_to: e.target.value }))} />
+                <Button type="submit">{t('dashboard.search.search')}</Button>
                 <Button type="button" variant="secondary" onClick={reset}>
-                    Reset
+                    {t('dashboard.search.reset')}
                 </Button>
             </form>
 
             <Table>
                 <thead>
                     <tr>
-                        <Th>Task</Th>
-                        <Th>Project</Th>
-                        <Th>Workspace</Th>
-                        <Th>Labels</Th>
-                        <Th>Status</Th>
-                        <Th>Assignee</Th>
-                        <Th align="right">Due</Th>
+                        <Th>{t('dashboard.search.thTask')}</Th>
+                        <Th>{t('dashboard.search.thProject')}</Th>
+                        <Th>{t('dashboard.search.thWorkspace')}</Th>
+                        <Th>{t('dashboard.search.thLabels')}</Th>
+                        <Th>{t('dashboard.search.thStatus')}</Th>
+                        <Th>{t('dashboard.search.thAssignee')}</Th>
+                        <Th align="right">{t('dashboard.search.thDue')}</Th>
                     </tr>
                 </thead>
                 <tbody>
-                    {loading ? (
+                    {loading && data == null ? (
                         <tr>
                             <Td colSpan={7} className="py-12 text-center">
                                 <Spinner />
@@ -201,7 +198,7 @@ export default function Search() {
                         </tr>
                     ) : tasks.length === 0 ? (
                         <TableEmpty colSpan={7}>
-                            No tasks match{Object.keys(params).length ? ' these filters' : ''}.
+                            {Object.keys(params).length ? t('dashboard.search.emptyFiltered') : t('dashboard.search.empty')}
                         </TableEmpty>
                     ) : (
                         tasks.map((task, index) => (
@@ -242,7 +239,7 @@ export default function Search() {
                                     {task.status?.name}
                                 </Td>
                                 <Td className="whitespace-nowrap">
-                                    {task.assignee?.name ?? <span className="text-gray-400">Unassigned</span>}
+                                    {task.assignee?.name ?? <span className="text-gray-400">{t('dashboard.search.unassigned')}</span>}
                                 </Td>
                                 <Td align="right" className="whitespace-nowrap">
                                     {task.due_date ? (
@@ -270,10 +267,7 @@ export default function Search() {
                     page={page}
                     pages={pagination.last_page}
                     total={pagination.total}
-                    onChange={(p) => {
-                        setPage(p);
-                        load(p, params);
-                    }}
+                    onChange={(p) => updateUrl({ page: String(p) })}
                 />
             )}
         </div>

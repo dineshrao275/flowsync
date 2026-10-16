@@ -162,7 +162,7 @@ class EngagementService
         $fingerprint = $anonymous ? $this->fingerprint($campaign, $meta) : null;
 
         if ($employee !== null && $this->answered($campaign, $employee, $fingerprint)) {
-            throw ValidationException::withMessages(['form' => 'That has already been answered — one submission per campaign.']);
+            throw ValidationException::withMessages(['form' => __('That has already been answered — one submission per campaign.')]);
         }
 
         $rows = $this->validatedAnswers($campaign, $answers);
@@ -192,7 +192,7 @@ class EngagementService
                 return $response->refresh();
             });
         } catch (QueryException $exception) {
-            throw ValidationException::withMessages(['form' => 'That has already been answered — one submission per campaign.']);
+            throw ValidationException::withMessages(['form' => __('That has already been answered — one submission per campaign.')]);
         }
     }
 
@@ -344,7 +344,7 @@ class EngagementService
 
         foreach ($answers as $answer) {
             if (! in_array((int) ($answer['question_id'] ?? 0), $templateIds, true)) {
-                throw ValidationException::withMessages(['answers' => 'An answer names a question outside this campaign.']);
+                throw ValidationException::withMessages(['answers' => __('An answer names a question outside this campaign.')]);
             }
         }
 
@@ -360,7 +360,7 @@ class EngagementService
             $value = $byQuestion[$question->id] ?? null;
 
             if ($question->is_required && ($value === null || $value === '' || $value === [])) {
-                throw ValidationException::withMessages(["questions.{$question->id}" => 'That question needs an answer.']);
+                throw ValidationException::withMessages(["questions.{$question->id}" => __('That question needs an answer.')]);
             }
 
             if ($value === null || $value === '' || $value === []) {
@@ -393,12 +393,12 @@ class EngagementService
     private function boundedNumber(SurveyQuestion $question, mixed $value): string
     {
         if (! is_numeric($value)) {
-            throw ValidationException::withMessages(["questions.{$question->id}" => 'That answer must be a number.']);
+            throw ValidationException::withMessages(["questions.{$question->id}" => __('That answer must be a number.')]);
         }
 
         foreach (['min' => $question->min, 'max' => $question->max] as $bound => $limit) {
             if ($limit !== null && ($bound === 'min' ? (float) $value < (float) $limit : (float) $value > (float) $limit)) {
-                throw ValidationException::withMessages(["questions.{$question->id}" => "That answer falls outside {$question->min}–{$question->max}."]);
+                throw ValidationException::withMessages(["questions.{$question->id}" => __('That answer falls outside :min–:max.', ['min' => $question->min, 'max' => $question->max])]);
             }
         }
 

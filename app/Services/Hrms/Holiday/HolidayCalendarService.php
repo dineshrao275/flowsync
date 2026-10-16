@@ -86,15 +86,15 @@ class HolidayCalendarService
     public function deleteCalendar(HolidayCalendar $calendar, ?User $actor = null): void
     {
         if ($calendar->holidays()->exists()) {
-            throw ValidationException::withMessages(['form' => 'This calendar still holds holidays. Move or delete them first.']);
+            throw ValidationException::withMessages(['form' => __('This calendar still holds holidays. Move or delete them first.')]);
         }
 
         if (EmployeeHolidayCalendar::query()->where('calendar_id', $calendar->id)->exists()) {
-            throw ValidationException::withMessages(['form' => 'Employees still follow this calendar. Unassign them first.']);
+            throw ValidationException::withMessages(['form' => __('Employees still follow this calendar. Unassign them first.')]);
         }
 
         if ($calendar->is_default) {
-            throw ValidationException::withMessages(['form' => 'The default calendar cannot be deleted. Make another calendar default first.']);
+            throw ValidationException::withMessages(['form' => __('The default calendar cannot be deleted. Make another calendar default first.')]);
         }
 
         $snapshot = ['slug' => $calendar->slug, 'name' => $calendar->name];
@@ -143,7 +143,7 @@ class HolidayCalendarService
     public function deleteHoliday(Holiday $holiday, ?User $actor = null): void
     {
         if (HolidayOptionalHoliday::query()->where('holiday_id', $holiday->id)->exists()) {
-            throw ValidationException::withMessages(['form' => 'Employees have answered this holiday. It cannot be deleted.']);
+            throw ValidationException::withMessages(['form' => __('Employees have answered this holiday. It cannot be deleted.')]);
         }
 
         $snapshot = ['calendar_id' => $holiday->calendar_id, 'name' => $holiday->name];

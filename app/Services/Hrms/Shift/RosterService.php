@@ -108,13 +108,13 @@ class RosterService
     {
         $this->assertRange($from, $to);
         if ($to->diffInDays($from, true) > self::MAX_WINDOW_DAYS) {
-            throw ValidationException::withMessages(['to' => 'A rotation can be applied for at most a year at a time.']);
+            throw ValidationException::withMessages(['to' => __('A rotation can be applied for at most a year at a time.')]);
         }
         if (count($employeeIds) > self::MAX_EMPLOYEES) {
             throw ValidationException::withMessages(['employee_ids' => 'Apply a rotation to at most '.self::MAX_EMPLOYEES.' people at a time.']);
         }
         if (! $rotation->is_active) {
-            throw ValidationException::withMessages(['form' => 'This rotation is inactive.']);
+            throw ValidationException::withMessages(['form' => __('This rotation is inactive.')]);
         }
 
         $cycle = array_values($rotation->cycle);
@@ -219,14 +219,14 @@ class RosterService
     private function assertShift(?int $shiftId): void
     {
         if ($shiftId !== null && ! AttendanceShift::query()->whereKey($shiftId)->where('is_active', true)->exists()) {
-            throw ValidationException::withMessages(['shift_id' => 'Pick an active shift.']);
+            throw ValidationException::withMessages(['shift_id' => __('Pick an active shift.')]);
         }
     }
 
     private function assertRange(Carbon $from, ?Carbon $to): void
     {
         if ($to !== null && $to->lt($from)) {
-            throw ValidationException::withMessages(['effective_to' => 'The end date cannot be before the start date.']);
+            throw ValidationException::withMessages(['effective_to' => __('The end date cannot be before the start date.')]);
         }
     }
 }

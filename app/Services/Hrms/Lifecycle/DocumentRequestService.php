@@ -45,7 +45,7 @@ class DocumentRequestService
         $title = trim((string) ($attributes['title'] ?? ''));
 
         if ($title === '' || mb_strlen($title) > 255) {
-            throw ValidationException::withMessages(['title' => 'A request needs a short title the employee recognises.']);
+            throw ValidationException::withMessages(['title' => __('A request needs a short title the employee recognises.')]);
         }
 
         return DB::transaction(function () use ($employee, $attributes, $title, $source, $case, $actor): DocumentRequest {
@@ -79,7 +79,7 @@ class DocumentRequestService
         $this->requireTransition($request, DocumentRequestStatus::Submitted);
 
         if ((int) $document->employee_id !== (int) $request->employee_id) {
-            throw ValidationException::withMessages(['document_id' => 'That file belongs to someone else.']);
+            throw ValidationException::withMessages(['document_id' => __('That file belongs to someone else.')]);
         }
 
         $before = ['status' => $request->status->value];
@@ -105,7 +105,7 @@ class DocumentRequestService
         $this->requireTransition($request, DocumentRequestStatus::Accepted);
 
         if ($request->document_id === null) {
-            throw ValidationException::withMessages(['form' => 'There is no file to accept yet.']);
+            throw ValidationException::withMessages(['form' => __('There is no file to accept yet.')]);
         }
 
         $before = ['status' => $request->status->value];
@@ -128,7 +128,7 @@ class DocumentRequestService
         $reason = trim($reason);
 
         if ($reason === '') {
-            throw ValidationException::withMessages(['note' => 'A rejection needs a reason the employee can act on.']);
+            throw ValidationException::withMessages(['note' => __('A rejection needs a reason the employee can act on.')]);
         }
 
         $this->requireTransition($request, DocumentRequestStatus::Rejected);
@@ -155,7 +155,7 @@ class DocumentRequestService
         $reason = trim($reason);
 
         if ($reason === '') {
-            throw ValidationException::withMessages(['note' => 'A waived ask still needs its reason on record.']);
+            throw ValidationException::withMessages(['note' => __('A waived ask still needs its reason on record.')]);
         }
 
         $this->requireTransition($request, DocumentRequestStatus::Waived);
@@ -224,7 +224,7 @@ class DocumentRequestService
     private function requireTransition(DocumentRequest $request, DocumentRequestStatus $to): void
     {
         if (! $request->status->canTransitionTo($to)) {
-            throw ValidationException::withMessages(['form' => "A {$request->status->value} request cannot become {$to->value}."]);
+            throw ValidationException::withMessages(['form' => __('A :status request cannot become :to.', ['status' => $request->status->value, 'to' => $to->value])]);
         }
     }
 

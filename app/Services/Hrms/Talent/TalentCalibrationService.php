@@ -35,7 +35,7 @@ class TalentCalibrationService
     {
         if ($rating < 1 || $rating > 5) {
             throw ValidationException::withMessages([
-                'rating' => 'A calibrated rating is 1–5, entered by a human — never computed.',
+                'rating' => __('A calibrated rating is 1–5, entered by a human — never computed.'),
             ]);
         }
 
@@ -91,7 +91,7 @@ class TalentCalibrationService
 
         if ($stage !== PerformanceCycleStage::Calibration) {
             throw ValidationException::withMessages([
-                'stage' => "That cycle is {$stage->value}, not calibration — reviews calibrate from calibration.",
+                'stage' => __('That cycle is :stage, not calibration — reviews calibrate from calibration.', ['stage' => $stage->value]),
             ]);
         }
     }
@@ -106,7 +106,7 @@ class TalentCalibrationService
     {
         if (in_array($review->status, [ReviewStatus::Final, ReviewStatus::Acknowledged], true)) {
             throw ValidationException::withMessages([
-                'form' => 'That review is already final — final is a seal, not a toggle.',
+                'form' => __('That review is already final — final is a seal, not a toggle.'),
             ]);
         }
     }

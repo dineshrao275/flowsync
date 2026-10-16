@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import api, { fieldErrors } from '../../services/api';
 import { formatMinutes } from '../../utils/time';
+import i18n, { intlTag } from '../../i18n';
 import { useAuth } from '../../context/AuthContext';
 import Button from '../ui/Button';
 import Alert from '../ui/Alert';
@@ -16,16 +18,18 @@ function toLocalInput(iso) {
     return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
 }
 
-function formatRange(log) {
+function formatRange(log, t) {
     const start = new Date(log.started_at);
     const end = log.ended_at ? new Date(log.ended_at) : null;
-    const date = start.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+    const tag = intlTag(i18n.language);
+    const date = start.toLocaleDateString(tag, { month: 'short', day: 'numeric' });
     const time = (d) =>
-        d.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
-    return `${date} · ${time(start)}${end ? ` – ${time(end)}` : ' – now'}`;
+        d.toLocaleTimeString(tag, { hour: 'numeric', minute: '2-digit' });
+    return `${date} · ${time(start)}${end ? ` – ${time(end)}` : ` – ${t('tms.worklogs.now')}`}`;
 }
 
 export default function WorkLogPanel({ task, projectId, canLog, canManage }) {
+    const { t } = useTranslation();
     const { user } = useAuth();
     const confirm = useConfirm();
     const [logs, setLogs] = useState([]);
@@ -94,7 +98,7 @@ export default function WorkLogPanel({ task, projectId, canLog, canManage }) {
     }
 
     async function remove(log) {
-        if (!(await confirm({ title: 'Remove work log?', message: 'Remove this work log? This cannot be undone.', variant: 'danger' }))) return;
+        if (!(await confirm({ title: t('tms.worklogs.removeTitle'), message: t('tms.worklogs.removeMessage'), variant: 'danger' }))) return;
         api.delete(`${base}/${log.id}`).then(() => load()).catch((e) => setErrors(fieldErrors(e)));
     }
 
@@ -106,18 +110,18 @@ export default function WorkLogPanel({ task, projectId, canLog, canManage }) {
                 <form onSubmit={submit} className="space-y-3 rounded-lg border border-gray-200 p-4">
                     <div className="flex items-center justify-between">
                         <p className="text-sm font-semibold text-gray-900">
-                            {editingId ? 'Edit work log' : 'Log time'}
+                            {editingId ? t('tms.worklogs.editTitle') : t('tms.worklogs.createTitle')}
                         </p>
                         {editingId && (
                             <Button type="button" size="sm" variant="ghost" onClick={reset}>
-                                Cancel
+                                {t('tms.worklogs.cancel')}
                             </Button>
                         )}
                     </div>
                     {errors.form && <Alert>{errors.form}</Alert>}
                     <div className="grid gap-3 sm:grid-cols-2">
                         <Input
-                            label="Started at"
+                            label={t('tms.worklogs.startedAt')}
                             type="datetime-local"
                             value={form.started_at}
                             onChange={(e) => setForm((f) => ({ ...f, started_at: e.target.value }))}
@@ -125,7 +129,7 @@ export default function WorkLogPanel({ task, projectId, canLog, canManage }) {
                             required
                         />
                         <Input
-                            label="Ended at"
+                            label={t('tms.worklogs.endedAt')}
                             type="datetime-local"
                             value={form.ended_at}
                             onChange={(e) => setForm((f) => ({ ...f, ended_at: e.target.value }))}
@@ -133,18 +137,18 @@ export default function WorkLogPanel({ task, projectId, canLog, canManage }) {
                         />
                     </div>
                     <div>
-                        <label className="mb-1.5 block text-sm font-medium text-gray-700">Description (optional)</label>
+                        <label className="mb-1.5 block text-sm font-medium text-gray-700">{t('tms.worklogs.description')}</label>
                         <input
                             type="text"
                             className={fieldClass}
-                            placeholder="What did you work on?"
+                            placeholder={t('tms.worklogs.descriptionPlaceholder')}
                             value={form.description}
                             onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))}
                         />
                         {errors.description && <p className="mt-1.5 text-sm text-red-600">{errors.description}</p>}
                     </div>
                     <Button type="submit" loading={saving}>
-                        {editingId ? 'Save changes' : 'Add work log'}
+                        {editingId ? t('tms.worklogs.save') : t('tms.worklogs.add')}
                     </Button>
                 </form>
             ) : null}
@@ -152,15 +156,15 @@ export default function WorkLogPanel({ task, projectId, canLog, canManage }) {
             <div className="grid grid-cols-3 gap-3 text-center">
                 <div className="rounded-lg border border-gray-100 px-3 py-2">
                     <p className="text-lg font-bold text-gray-900">{formatMinutes(totals.total_minutes)}</p>
-                    <p className="text-xs text-gray-500">Logged</p>
+                    <p className="text-xs text-gray-500">{t('tms.worklogs.totalLogged')}</p>
                 </div>
                 <div className="rounded-lg border border-gray-100 px-3 py-2">
                     <p className="text-lg font-bold text-gray-900">{formatMinutes(totals.estimate_minutes)}</p>
-                    <p className="text-xs text-gray-500">Estimate</p>
+                    <p className="text-xs text-gray-500">{t('tms.worklogs.estimate')}</p>
                 </div>
                 <div className="rounded-lg border border-gray-100 px-3 py-2">
                     <p className="text-lg font-bold text-gray-900">{formatMinutes(totals.remaining_minutes)}</p>
-                    <p className="text-xs text-gray-500">Remaining</p>
+                    <p className="text-xs text-gray-500">{t('tms.worklogs.remaining')}</p>
                 </div>
             </div>
 
@@ -169,17 +173,17 @@ export default function WorkLogPanel({ task, projectId, canLog, canManage }) {
                     <Spinner />
                 </div>
             ) : logs.length === 0 ? (
-                <p className="py-6 text-center text-sm text-gray-500">No work logged yet.</p>
+                <p className="py-6 text-center text-sm text-gray-500">{t('tms.worklogs.empty')}</p>
             ) : (
                 <ul className="divide-y divide-gray-100">
                     {logs.map((log) => (
                         <li key={log.id} className="flex flex-wrap items-center justify-between gap-3 py-3">
                             <div className="min-w-0">
                                 <p className="text-sm font-medium text-gray-900">
-                                    {log.user?.name || 'Unknown'}{' '}
-                                    {log.user?.id === user?.id && <span className="text-gray-400">(you)</span>}
+                                    {log.user?.name || t('tms.worklogs.unknown')}{' '}
+                                    {log.user?.id === user?.id && <span className="text-gray-400">{t('tms.worklogs.you')}</span>}
                                 </p>
-                                <p className="text-xs text-gray-500">{formatRange(log)}</p>
+                                <p className="text-xs text-gray-500">{formatRange(log, t)}</p>
                                 {log.description && <p className="mt-0.5 text-sm text-gray-600">{log.description}</p>}
                             </div>
                             <div className="flex items-center gap-2">
@@ -189,10 +193,10 @@ export default function WorkLogPanel({ task, projectId, canLog, canManage }) {
                                 {canEditLog(log) && (
                                     <div className="flex gap-1">
                                         <Button size="sm" variant="ghost" onClick={() => startEdit(log)}>
-                                            Edit
+                                            {t('tms.worklogs.edit')}
                                         </Button>
                                         <Button size="sm" variant="ghost" onClick={() => remove(log)}>
-                                            Delete
+                                            {t('tms.worklogs.delete')}
                                         </Button>
                                     </div>
                                 )}

@@ -10,6 +10,7 @@ use App\Models\Task;
 use App\Services\ActivityLogger;
 use App\Services\Tasks\TaskChangeLogger;
 use App\Services\TaskService;
+use App\Support\Realtime;
 use App\Support\TaskScope;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -109,7 +110,7 @@ class TaskController extends Controller
         $this->changes->created($task, $request->user(), $request->ip());
 
         return response()->json([
-            'message' => 'Task created.',
+            'message' => __('Task created.'),
             'task' => $this->service->present($this->service->show($task)),
         ], 201);
     }
@@ -177,7 +178,7 @@ class TaskController extends Controller
         $this->changes->updated($updated, $data, $oldAssigneeId, $oldStatusId, $oldStatus, $request->user(), $request->ip());
 
         return response()->json([
-            'message' => 'Task updated.',
+            'message' => __('Task updated.'),
             'task' => $this->service->present($this->service->show($updated)),
         ]);
     }
@@ -197,9 +198,9 @@ class TaskController extends Controller
             ipAddress: $request->ip(),
         );
 
-        broadcast(new TaskSynced($task, 'deleted'));
+        Realtime::send(new TaskSynced($task, 'deleted'));
 
-        return response()->json(['message' => 'Task deleted.']);
+        return response()->json(['message' => __('Task deleted.')]);
     }
 
     private function filtersPayload(Project $project): array

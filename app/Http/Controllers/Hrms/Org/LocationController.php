@@ -56,7 +56,7 @@ class LocationController extends Controller
         $location = $this->locations->create($request->validated());
 
         return response()->json([
-            'message' => 'Location created.',
+            'message' => __('Location created.'),
             'location' => $this->presenter->location($location),
         ], Response::HTTP_CREATED);
     }
@@ -68,7 +68,7 @@ class LocationController extends Controller
         $updated = $this->locations->update($location, $request->validated());
 
         return response()->json([
-            'message' => 'Location updated.',
+            'message' => __('Location updated.'),
             'location' => $this->presenter->location($updated),
         ]);
     }
@@ -79,7 +79,7 @@ class LocationController extends Controller
 
         $this->locations->delete($location);
 
-        return response()->json(['message' => 'Location deleted.']);
+        return response()->json(['message' => __('Location deleted.')]);
     }
 
     /**
@@ -96,7 +96,7 @@ class LocationController extends Controller
         $deactivated = $this->locations->deactivate($location);
 
         return response()->json([
-            'message' => 'Location deactivated.',
+            'message' => __('Location deactivated.'),
             'location' => $this->presenter->location($deactivated),
         ]);
     }
@@ -107,6 +107,6 @@ class LocationController extends Controller
 
         $this->locations->reorder($request->ids());
 
-        return response()->json(['message' => 'locations reordered.']);
+        return response()->json(['message' => __('locations reordered.')]);
     }
 }

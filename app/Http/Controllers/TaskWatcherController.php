@@ -47,21 +47,21 @@ class TaskWatcherController extends Controller
 
             if ($targetUser === null) {
                 throw ValidationException::withMessages([
-                    'user_id' => 'The selected user does not exist in this tenant.',
+                    'user_id' => __('The selected user does not exist in this tenant.'),
                 ]);
             }
         }
 
         if (! $project->isMember($targetUser)) {
             throw ValidationException::withMessages([
-                'user_id' => 'The selected user is not a member of this project.',
+                'user_id' => __('The selected user is not a member of this project.'),
             ]);
         }
 
         $this->service->addWatcher($task, $targetUser);
 
         return response()->json([
-            'message' => 'Watcher added.',
+            'message' => __('Watcher added.'),
             'watchers' => $this->service->watchers($task),
         ]);
     }
@@ -83,7 +83,7 @@ class TaskWatcherController extends Controller
         $this->service->removeWatcher($task, $targetUser);
 
         return response()->json([
-            'message' => 'Watcher removed.',
+            'message' => __('Watcher removed.'),
         ]);
     }
 }

@@ -37,16 +37,16 @@ class DottedLineService
     public function add(array $data, ?User $actor = null): DottedLine
     {
         if ((int) $data['employee_id'] === (int) $data['manager_id']) {
-            throw ValidationException::withMessages(['manager_id' => 'Nobody can have a dotted line to themselves.']);
+            throw ValidationException::withMessages(['manager_id' => __('Nobody can have a dotted line to themselves.')]);
         }
 
         $manager = Employee::query()->findOrFail($data['manager_id']);
         if (! $manager->status->isEmployed()) {
-            throw ValidationException::withMessages(['manager_id' => 'That person has left the company.']);
+            throw ValidationException::withMessages(['manager_id' => __('That person has left the company.')]);
         }
 
         if (DottedLine::query()->where($data['kind'] ? ['employee_id' => $data['employee_id'], 'manager_id' => $data['manager_id'], 'kind' => $data['kind']] : [])->exists()) {
-            throw ValidationException::withMessages(['form' => 'That reporting line already exists.']);
+            throw ValidationException::withMessages(['form' => __('That reporting line already exists.')]);
         }
 
         $line = DottedLine::create($data + ['created_by' => $actor?->id]);

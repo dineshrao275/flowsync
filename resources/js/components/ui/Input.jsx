@@ -1,6 +1,7 @@
 import DatePicker from 'react-datepicker';
 import 'react-datepicker/dist/react-datepicker.css';
 import { format } from 'date-fns';
+import { useTranslation } from 'react-i18next';
 
 function parseDate(value) {
     if (!value || typeof value !== 'string') return null;
@@ -28,6 +29,7 @@ function parseDateTime(value) {
  * unchanged. Native `time`/`month` inputs are left alone.
  */
 function DateField({ label, labelClassName = '', error, id, className = '', leadingIcon, compact = false, placeholder, ...props }) {
+    const { t } = useTranslation();
     const inputId = id || props.name;
     const withTime = props.type === 'datetime-local';
     const selected = withTime ? parseDateTime(props.value) : parseDate(props.value);
@@ -64,7 +66,7 @@ function DateField({ label, labelClassName = '', error, id, className = '', lead
                     timeIntervals={15}
                     minDate={props.min ? parseDate(props.min) ?? undefined : undefined}
                     maxDate={props.max ? parseDate(props.max) ?? undefined : undefined}
-                    placeholderText={placeholder ?? (withTime ? 'Select date & time…' : 'Select date…')}
+                    placeholderText={placeholder ?? (withTime ? t('ui.selectDateTime') : t('ui.selectDate'))}
                     disabled={props.disabled}
                     required={props.required}
                     autoComplete="off"

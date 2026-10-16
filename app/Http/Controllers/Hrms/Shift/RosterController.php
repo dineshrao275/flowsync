@@ -64,7 +64,7 @@ class RosterController extends Controller
             $request->user(),
         );
 
-        return response()->json(['message' => 'Roster saved.', 'roster' => $this->presenter->roster($roster)], Response::HTTP_CREATED);
+        return response()->json(['message' => __('Roster saved.'), 'roster' => $this->presenter->roster($roster)], Response::HTTP_CREATED);
     }
 
     public function destroy(Request $request, AttendanceRoster $roster): JsonResponse
@@ -73,7 +73,7 @@ class RosterController extends Controller
 
         $this->rosters->remove($roster, $request->user());
 
-        return response()->json(['message' => 'Roster row removed.']);
+        return response()->json(['message' => __('Roster row removed.')]);
     }
 
     /** @return array{0: Carbon, 1: Carbon} */

@@ -56,13 +56,13 @@ class ApprovalDelegationController extends Controller
         $to = User::query()->find($data['to_user_id']);
 
         if ($from === null || $to === null) {
-            throw ValidationException::withMessages(['to_user_id' => 'Choose a person from this workspace.']);
+            throw ValidationException::withMessages(['to_user_id' => __('Choose a person from this workspace.')]);
         }
 
         $unknown = array_diff($data['domains'] ?? [], array_keys($this->templates->domains()));
 
         if ($unknown !== []) {
-            throw ValidationException::withMessages(['domains' => 'Unknown approval domain.']);
+            throw ValidationException::withMessages(['domains' => __('Unknown approval domain.')]);
         }
 
         $delegation = $this->delegations->create(
@@ -75,7 +75,7 @@ class ApprovalDelegationController extends Controller
             $request->user(),
         );
 
-        return response()->json(['message' => 'Delegation saved.', 'delegation' => $this->present($delegation->load(['from:id,name', 'to:id,name']), $request->user())], 201);
+        return response()->json(['message' => __('Delegation saved.'), 'delegation' => $this->present($delegation->load(['from:id,name', 'to:id,name']), $request->user())], 201);
     }
 
     public function destroy(Request $request, ApprovalDelegation $delegation): JsonResponse
@@ -84,14 +84,14 @@ class ApprovalDelegationController extends Controller
 
         $this->delegations->revoke($delegation, $request->user());
 
-        return response()->json(['message' => 'Delegation revoked.']);
+        return response()->json(['message' => __('Delegation revoked.')]);
     }
 
     /** People a delegation may hand approvals to — a prefix search, never the whole directory. */
     public function targets(Request $request): JsonResponse
     {
         $q = trim((string) $request->query('q', ''));
-        abort_if(mb_strlen($q) < 2, 422, 'Type at least 2 characters.');
+        abort_if(mb_strlen($q) < 2, 422, __('Type at least 2 characters.'));
 
         $users = Like::any(User::query()->where('id', '!=', $request->user()->id), ['name', 'email'], $q)
             ->orderBy('name')

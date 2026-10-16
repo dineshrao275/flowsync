@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import api from '../services/api';
 import Badge from '../components/ui/Badge';
 import Spinner from '../components/ui/Spinner';
@@ -10,40 +11,43 @@ import { useSetCrumbs } from '../context/BreadcrumbContext';
 import { useToast } from '../context/ToastContext';
 import Timestamp from '../components/ui/Timestamp';
 
-const TYPE_LABEL = { all: 'All activity', audit: 'System events', impersonation: 'Impersonations' };
+const TYPE_LABEL = { all: 'typeAll', audit: 'typeAudit', impersonation: 'typeImpersonation' };
 
-function describe(action, data) {
+function describe(t, action, data) {
     switch (action) {
         case 'impersonation.started':
+            return t('admin.auditLogs.impStarted');
         case 'impersonation.ended':
-            return action === 'impersonation.started' ? 'Started impersonating tenant user' : 'Stopped impersonating tenant user';
+            return t('admin.auditLogs.impEnded');
         case 'platform.settings_updated':
-            return `Updated platform settings (${(data?.keys || []).join(', ')})`;
+            return t('admin.auditLogs.settingsUpdated', { keys: (data?.keys || []).join(', ') });
         case 'system.user_created':
-            return `Created platform admin ${data?.after?.name}`;
+            return t('admin.auditLogs.userCreated', { name: data?.after?.name });
         case 'plan.module_toggled':
-            return `${data?.enabled ? 'Enabled' : 'Disabled'} module ${data?.module}`;
+            return data?.enabled ? t('admin.auditLogs.moduleEnabled', { module: data?.module }) : t('admin.auditLogs.moduleDisabled', { module: data?.module });
         case 'tenant.status_changed':
-            return `Tenant → ${data?.to}`;
+            return t('admin.auditLogs.tenantStatusChanged', { to: data?.to });
         case 'tenant.deleted':
+            return t('admin.auditLogs.tenantDeleted');
         case 'tenant.restored':
-            return action.split('.').map((w) => w[0].toUpperCase() + w.slice(1)).join(' ');
+            return t('admin.auditLogs.tenantRestored');
         case 'auth.login':
-            return data?.via === 'registration' ? 'Signed in (registration)' : 'Signed in';
+            return data?.via === 'registration' ? t('admin.auditLogs.signedInRegistration') : t('admin.auditLogs.signedIn');
         case 'auth.login_failed':
-            return 'Failed sign-in';
+            return t('admin.auditLogs.loginFailed');
         case 'auth.logout':
-            return 'Signed out';
+            return t('admin.auditLogs.signedOut');
         case 'audit.exported':
-            return `Exported ${data?.rows ?? 0} audit rows`;
+            return t('admin.auditLogs.exported', { rows: data?.rows ?? 0 });
         default:
             return action;
     }
 }
 
 export default function AuditLogs() {
-    usePageTitle('Audit Logs');
-    useSetCrumbs([{ label: 'Platform', to: '/admin' }, { label: 'Audit Logs' }]);
+    const { t } = useTranslation();
+    usePageTitle(t('admin.auditLogs.pageTitle'));
+    useSetCrumbs([{ label: t('admin.platform.breadcrumb'), to: '/admin' }, { label: t('admin.auditLogs.crumb') }]);
     const [items, setItems] = useState([]);
     const [pagination, setPagination] = useState(null);
     const [type, setType] = useState('all');
@@ -54,10 +58,10 @@ export default function AuditLogs() {
     async function verifyChain() {
         try {
             const { data } = await api.get('/system/audit-logs/verify');
-            if (data.ok) toast.success(`Audit chain intact: ${data.checked} sealed rows, ${data.tombstones} retention tombstones.`);
-            else toast.error(`Audit chain broken at row ${data.break.id}: ${data.break.reason}`);
+            if (data.ok) toast.success(t('admin.auditLogs.verifyOk', { checked: data.checked, tombstones: data.tombstones }));
+            else toast.error(t('admin.auditLogs.verifyBroken', { id: data.break.id, reason: data.break.reason }));
         } catch (e) {
-            toast.error('Could not verify the audit chain.');
+            toast.error(t('admin.auditLogs.verifyFailed'));
         }
     }
 
@@ -81,8 +85,8 @@ export default function AuditLogs() {
     return (
         <div className="space-y-6">
             <div>
-                <h1 className="text-2xl font-bold text-gray-800">Audit Logs</h1>
-                <p className="text-sm text-gray-500">Platform events + impersonations across the full trail (paginated, exportable).</p>
+                <h1 className="text-2xl font-bold text-gray-800">{t('admin.auditLogs.title')}</h1>
+                <p className="text-sm text-gray-500">{t('admin.auditLogs.subtitle')}</p>
             </div>
 
             <div className="flex flex-wrap items-center gap-2">
@@ -96,7 +100,7 @@ export default function AuditLogs() {
                                 type === key ? 'bg-[var(--accent)] text-[var(--accent-contrast)]' : 'bg-white text-gray-600 hover:bg-gray-50'
                             }`}
                         >
-                            {label}
+                            {t(`admin.auditLogs.${label}`)}
                         </button>
                     ))}
                 </div>
@@ -105,12 +109,12 @@ export default function AuditLogs() {
                         type="search"
                         value={q}
                         onChange={(e) => setQ(e.target.value)}
-                        placeholder="Filter action, actor…"
+                        placeholder={t('admin.auditLogs.filterPlaceholder')}
                         className="w-56 rounded-lg border border-gray-200 px-3 py-2 text-sm outline-none focus:border-[var(--accent)]"
                     />
-                    <Button type="submit">Filter</Button>
+                    <Button type="submit">{t('admin.auditLogs.filter')}</Button>
                 </form>
-                <Button type="button" variant="secondary" className="ml-auto" onClick={verifyChain}>Verify chain</Button>
+                <Button type="button" variant="secondary" className="ml-auto" onClick={verifyChain}>{t('admin.auditLogs.verifyChain')}</Button>
                 <a
                     href={`/api/system/audit-logs/export?${new URLSearchParams({
                         type,
@@ -118,7 +122,7 @@ export default function AuditLogs() {
                     }).toString()}`}
                     className="inline-flex items-center gap-1.5 rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm font-medium text-gray-600 hover:bg-gray-50"
                 >
-                    Export CSV
+                    {t('admin.auditLogs.exportCsv')}
                 </a>
             </div>
 
@@ -130,17 +134,17 @@ export default function AuditLogs() {
                 <Table>
                     <thead>
                         <tr>
-                            <Th align="right">When</Th>
-                            <Th>Actor</Th>
-                            <Th>Action</Th>
-                            <Th>Target</Th>
-                            <Th>Tenant</Th>
-                            <Th align="right">IP</Th>
+                            <Th align="right">{t('admin.auditLogs.thWhen')}</Th>
+                            <Th>{t('admin.auditLogs.thActor')}</Th>
+                            <Th>{t('admin.auditLogs.thAction')}</Th>
+                            <Th>{t('admin.auditLogs.thTarget')}</Th>
+                            <Th>{t('admin.auditLogs.thTenant')}</Th>
+                            <Th align="right">{t('admin.auditLogs.thIp')}</Th>
                         </tr>
                     </thead>
                     <tbody>
                         {items.length === 0 ? (
-                            <TableEmpty colSpan={6}>Nothing logged yet.</TableEmpty>
+                            <TableEmpty colSpan={6}>{t('admin.auditLogs.empty')}</TableEmpty>
                         ) : (
                             items.map((item, index) => {
                                 const targetId = item.subject_id ?? item.data?.impersonated_user_id ?? null;
@@ -156,16 +160,16 @@ export default function AuditLogs() {
                                         </Td>
                                         <Td>
                                             <span className="block truncate font-medium text-gray-800">
-                                                {item.actor?.name || 'System'}
+                                                {item.actor?.name || t('admin.auditLogs.system')}
                                             </span>
                                             {item.actor?.email && (
                                                 <span className="block truncate text-xs text-gray-400">{item.actor.email}</span>
                                             )}
                                         </Td>
                                         <Td>
-                                            <Badge>{item.type === 'impersonation' ? 'impersonation' : 'event'}</Badge>
+                                            <Badge>{item.type === 'impersonation' ? t('admin.auditLogs.impersonationBadge') : t('admin.auditLogs.eventBadge')}</Badge>
                                             <span className="mt-0.5 block truncate font-medium text-gray-800">
-                                                {describe(item.action, item.data)}
+                                                {describe(t, item.action, item.data)}
                                             </span>
                                         </Td>
                                         <Td className="whitespace-nowrap text-gray-600">

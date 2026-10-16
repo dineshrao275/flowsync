@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Link, useLocation } from 'react-router-dom';
 import { CaretDoubleLeft, CaretDoubleRight, CaretDown } from '@phosphor-icons/react';
 import { useAuth } from '../context/AuthContext';
@@ -22,6 +23,7 @@ function ItemIcon({ icon }) {
 }
 
 function SidebarLink({ item, collapsed, onClose }) {
+    const { t } = useTranslation();
     const location = useLocation();
     const { inboxUnread } = useNotifications();
     const isActive = location.pathname === item.to;
@@ -31,9 +33,9 @@ function SidebarLink({ item, collapsed, onClose }) {
         <Link
             to={item.to}
             onClick={onClose}
-            role="menuitem"
             aria-current={isActive ? 'page' : undefined}
-            title={collapsed ? item.label : undefined}
+            title={collapsed ? t(item.label) : undefined}
+            aria-label={collapsed ? t(item.label) : undefined}
             className={`group relative flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors duration-150 ${
                 isActive ? 'bg-[var(--active-menu)]' : 'hover:bg-[var(--sidebar-hover)]'
             } ${collapsed ? 'justify-center lg:justify-center' : ''}`}
@@ -50,9 +52,9 @@ function SidebarLink({ item, collapsed, onClose }) {
             <ItemIcon icon={item.icon} />
             <span className={`min-w-0 ${labelClass}`}>
                 <span className="flex items-center justify-between gap-2">
-                    <span className="truncate">{item.label}</span>
+                    <span className="truncate">{t(item.label)}</span>
                     {item.badge === 'inbox' && inboxUnread > 0 && (
-                        <span className="flex h-4 min-w-4 shrink-0 items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-bold normal-case tracking-normal text-white">
+                        <span className="flex h-5 min-w-5 shrink-0 items-center justify-center rounded-full bg-red-600 px-1 text-caption font-bold normal-case tracking-normal text-white">
                             {inboxUnread > 99 ? '99+' : inboxUnread}
                         </span>
                     )}
@@ -63,6 +65,8 @@ function SidebarLink({ item, collapsed, onClose }) {
 }
 
 function SidebarSection({ section, collapsed, onClose, canViewPlans }) {
+    const { t } = useTranslation();
+
     return (
         <div className="space-y-0.5">
             {!collapsed && (
@@ -70,7 +74,7 @@ function SidebarSection({ section, collapsed, onClose, canViewPlans }) {
                     className="flex items-center justify-between px-3 pb-1.5 pt-4 text-xs font-semibold normal-case tracking-normal"
                     style={{ color: 'var(--sidebar-text)', opacity: 0.55 }}
                 >
-                    <span>{section.label}</span>
+                    <span>{t(section.label)}</span>
                 </p>
             )}
             {section.items.length === 0 && !collapsed && (
@@ -78,13 +82,13 @@ function SidebarSection({ section, collapsed, onClose, canViewPlans }) {
                     className="rounded-lg px-3 py-2 text-xs leading-relaxed"
                     style={{ color: 'var(--sidebar-text)', opacity: 0.6 }}
                 >
-                    <span>Locked by your plan.</span>{' '}
+                    <span>{t('shell.sidebar.lockedByPlan')}</span>{' '}
                     {canViewPlans ? (
                         <Link to="/subscription" className="underline transition-colors hover:opacity-80">
-                            View plans
+                            {t('shell.sidebar.viewPlans')}
                         </Link>
                     ) : (
-                        'An admin can change it.'
+                        t('shell.sidebar.adminCanChange')
                     )}
                 </div>
             )}
@@ -113,13 +117,14 @@ function isItemActive(item, pathname) {
  * submenu, so the group icon navigates straight to its first reachable page.
  */
 function CollapsibleSection({ section, collapsed, onClose, open, onToggle }) {
+    const { t } = useTranslation();
     const { inboxUnread } = useNotifications();
     const { pathname } = useLocation();
     const [first] = section.items;
     const activeInside = section.items.some((item) => isItemActive(item, pathname));
     const showBadge = section.items.some((item) => item.badge === 'inbox') && inboxUnread > 0;
     const badge = showBadge && (
-        <span className="flex h-4 min-w-4 shrink-0 items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-bold normal-case tracking-normal text-white">
+        <span className="flex h-5 min-w-5 shrink-0 items-center justify-center rounded-full bg-red-600 px-1 text-caption font-bold normal-case tracking-normal text-white">
             {inboxUnread > 99 ? '99+' : inboxUnread}
         </span>
     );
@@ -131,10 +136,9 @@ function CollapsibleSection({ section, collapsed, onClose, open, onToggle }) {
             <Link
                 to={first.to}
                 onClick={onClose}
-                role="menuitem"
-                aria-current={active ? 'page' : undefined}
-                title={section.label}
-                aria-label={section.label}
+                    aria-current={active ? 'page' : undefined}
+                title={t(section.label)}
+                aria-label={t(section.label)}
                 className={`group relative flex items-center justify-center rounded-lg px-3 py-2.5 text-sm font-medium transition-colors duration-150 ${
                     active ? 'bg-[var(--active-menu)]' : 'hover:bg-[var(--sidebar-hover)]'
                 }`}
@@ -152,12 +156,12 @@ function CollapsibleSection({ section, collapsed, onClose, open, onToggle }) {
                 type="button"
                 onClick={onToggle}
                 aria-expanded={open}
-                title={open ? `Collapse ${section.label}` : `Expand ${section.label}`}
+                title={open ? t('shell.sidebar.collapseGroup', { label: t(section.label) }) : t('shell.sidebar.expandGroup', { label: t(section.label) })}
                 className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors duration-150 hover:bg-[var(--sidebar-hover)]"
                 style={{ color: 'var(--sidebar-text)' }}
             >
                 <ItemIcon icon={first?.icon} />
-                <span className="min-w-0 flex-1 truncate text-left">{section.label}</span>
+                <span className="min-w-0 flex-1 truncate text-left">{t(section.label)}</span>
                 {badge}
                 <CaretDown size={16} weight="bold" aria-hidden="true" className={`shrink-0 transition-transform duration-150 ${open ? 'rotate-180' : ''}`} />
             </button>
@@ -173,6 +177,28 @@ function CollapsibleSection({ section, collapsed, onClose, open, onToggle }) {
 }
 
 export default function Sidebar({ open, collapsed, onClose, onToggleCollapse }) {
+    const { t } = useTranslation();
+    const asideRef = useRef(null);
+
+    // Mobile drawer focus management: Escape closes it, focus moves into it on
+    // open and returns to whatever opened it (the hamburger) on close.
+    useEffect(() => {
+        if (!open) return undefined;
+
+        const opener = document.activeElement;
+        asideRef.current?.querySelector('a, button')?.focus();
+
+        function onKeyDown(event) {
+            if (event.key === 'Escape') onClose();
+        }
+        document.addEventListener('keydown', onKeyDown);
+
+        return () => {
+            document.removeEventListener('keydown', onKeyDown);
+            if (opener instanceof HTMLElement) opener.focus();
+        };
+    }, [open, onClose]);
+
     const { check, user } = useAuth();
     const { pathname } = useLocation();
     const isSuperAdmin = user?.is_super_admin && !user?.impersonating;
@@ -221,8 +247,11 @@ export default function Sidebar({ open, collapsed, onClose, onToggleCollapse }) 
             )}
 
             <aside
-                className={`fixed inset-y-0 left-0 z-40 flex flex-col transition-all duration-300 lg:translate-x-0 ${
-                    open ? 'translate-x-0' : '-translate-x-full'
+                ref={asideRef}
+                // Off-canvas on phones: `invisible` takes the closed drawer's links out
+                // of the tab order; on desktop it is always on screen.
+                className={`fixed inset-y-0 left-0 z-40 flex flex-col transition-all duration-300 lg:visible lg:translate-x-0 ${
+                    open ? 'visible translate-x-0' : 'invisible -translate-x-full'
                 } ${collapsed ? 'w-16 lg:w-16' : 'w-64'}`}
                 style={
                     user?.impersonating
@@ -243,13 +272,13 @@ export default function Sidebar({ open, collapsed, onClose, onToggleCollapse }) 
                                 FlowSync
                             </p>
                             <p className="truncate text-xs" style={{ color: 'var(--sidebar-text)' }}>
-                                {isSuperAdmin ? 'Super Admin Panel' : user?.tenant?.name || 'Admin Panel'}
+                                {isSuperAdmin ? t('shell.sidebar.superAdminPanel') : user?.tenant?.name || t('shell.sidebar.adminPanel')}
                             </p>
                         </div>
                     )}
                 </div>
 
-                <nav className="flex-1 space-y-4 overflow-y-auto px-3 py-2">
+                <nav aria-label={t('shell.sidebar.nav')} className="flex-1 space-y-4 overflow-y-auto px-3 py-2">
                     {items.map((section) => {
                         const open = manualGroups[section.label] ?? section.items.some((item) => isItemActive(item, pathname));
 
@@ -278,7 +307,8 @@ export default function Sidebar({ open, collapsed, onClose, onToggleCollapse }) 
                     <button
                         type="button"
                         onClick={onToggleCollapse}
-                        title={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+                        title={collapsed ? t('shell.sidebar.expandSidebar') : t('shell.sidebar.collapseSidebar')}
+                        aria-label={collapsed ? t('shell.sidebar.expandSidebar') : t('shell.sidebar.collapseSidebar')}
                         className={`hidden w-full items-center rounded-lg py-2 text-sm font-medium transition-colors hover:bg-[var(--sidebar-hover)] lg:flex ${
                             collapsed ? 'justify-center' : 'gap-2 px-3'
                         }`}
@@ -289,7 +319,7 @@ export default function Sidebar({ open, collapsed, onClose, onToggleCollapse }) 
                         ) : (
                             <CaretDoubleLeft size={16} weight="bold" aria-hidden="true" className="shrink-0" />
                         )}
-                        {!collapsed && <span>Collapse</span>}
+                        {!collapsed && <span>{t('shell.sidebar.collapse')}</span>}
                     </button>
                 </div>
             </aside>

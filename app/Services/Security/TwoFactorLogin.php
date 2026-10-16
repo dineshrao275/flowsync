@@ -76,7 +76,7 @@ class TwoFactorLogin
         if (! $pending || $pending['expires_at'] <= now()->timestamp) {
             $session->forget(self::PENDING_KEY);
 
-            return response()->json(['message' => 'Your sign-in has expired. Enter your password again.', 'code' => 'two_factor_expired'], 401);
+            return response()->json(['message' => __('Your sign-in has expired. Enter your password again.'), 'code' => 'two_factor_expired'], 401);
         }
 
         $this->dbm->connectSystem();
@@ -84,7 +84,7 @@ class TwoFactorLogin
         if ($pending['tenant_id'] && (! $tenant || ! $tenant->isServiceable())) {
             $session->forget(self::PENDING_KEY);
 
-            return response()->json(['message' => 'Sign-in is not available for this account.', 'code' => 'two_factor_expired'], 401);
+            return response()->json(['message' => __('Sign-in is not available for this account.'), 'code' => 'two_factor_expired'], 401);
         }
 
         [$user, $method] = $tenant
@@ -132,11 +132,11 @@ class TwoFactorLogin
         if ($exhausted) {
             $request->session()->forget(self::PENDING_KEY);
 
-            return response()->json(['message' => 'Too many incorrect codes. Enter your password again.', 'code' => 'two_factor_expired'], 401);
+            return response()->json(['message' => __('Too many incorrect codes. Enter your password again.'), 'code' => 'two_factor_expired'], 401);
         }
 
         $request->session()->put(self::PENDING_KEY, $pending);
 
-        throw ValidationException::withMessages(['code' => 'That code is not valid.']);
+        throw ValidationException::withMessages(['code' => __('That code is not valid.')]);
     }
 }

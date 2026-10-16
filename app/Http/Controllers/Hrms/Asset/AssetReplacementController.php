@@ -31,7 +31,7 @@ class AssetReplacementController extends Controller
         );
 
         return response()->json([
-            'message' => 'Asset replaced.',
+            'message' => __('Asset replaced.'),
             'asset' => ['id' => $old->id, 'status' => $old->status->value, 'replaced_by_asset_id' => $old->replaced_by_asset_id],
         ]);
     }

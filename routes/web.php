@@ -21,6 +21,7 @@ use App\Http\Controllers\Hrms\Payroll\PayslipDownloadController;
 use App\Http\Controllers\ImpersonationController;
 use App\Http\Controllers\InvoiceController;
 use App\Http\Controllers\IssueTypeController;
+use App\Http\Controllers\LanguageController;
 use App\Http\Controllers\MySubscriptionController;
 use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\NotificationPreferenceController;
@@ -50,24 +51,35 @@ use Illuminate\Support\Facades\Route;
 
 Route::prefix('api')->group(function () {
     Route::get('health', [PlatformHealthController::class, 'ping']);
-    Route::post('auth/login', [AuthController::class, 'login'])->middleware('throttle:10,1');
-    Route::post('auth/forgot-password', [ForgotPasswordController::class, 'create'])->middleware('throttle:6,1');
-    Route::post('auth/reset-password', [ResetPasswordController::class, 'update'])->middleware('throttle:6,1');
+    Route::get('locales', [LanguageController::class, 'index']);
+    // Guest auth endpoints resolve locale from ?locale=/session/
+    // Accept-Language (no tenant is known before sign-in), so sign-in
+    // failures and registration errors already speak the caller's language.
+    Route::middleware('locale')->group(function () {
+        Route::post('auth/login', [AuthController::class, 'login'])->middleware('throttle:10,1');
+        Route::post('auth/forgot-password', [ForgotPasswordController::class, 'create'])->middleware('throttle:6,1');
+        Route::post('auth/reset-password', [ResetPasswordController::class, 'update'])->middleware('throttle:6,1');
 
-    // Phase 4 (onboarding): public self-registration — 403 unless
-    // onboarding.enabled (config ONBOARDING_ENABLED, default off).
-    Route::post('register', [RegisterController::class, 'store'])->middleware('throttle:10,1');
-    Route::post('register/card', [RegisterCardController::class, 'card'])->middleware('throttle:10,1');
-    Route::post('register/complete', [RegisterCardController::class, 'complete'])->middleware('throttle:10,1');
-    Route::get('register/options', [RegisterController::class, 'options'])->middleware('throttle:30,1');
+        // Phase 4 (onboarding): public self-registration — 403 unless
+        // onboarding.enabled (config ONBOARDING_ENABLED, default off).
+        Route::post('register', [RegisterController::class, 'store'])->middleware('throttle:10,1');
+        Route::post('register/card', [RegisterCardController::class, 'card'])->middleware('throttle:10,1');
+        Route::post('register/complete', [RegisterCardController::class, 'complete'])->middleware('throttle:10,1');
+        Route::get('register/options', [RegisterController::class, 'options'])->middleware('throttle:30,1');
+    });
     Route::post('logs/client', [ClientLogController::class, 'store'])->middleware('throttle:60,1');
 
-    Route::middleware(['switch_tenant', 'auth', 'tenant'])->group(function () {
+    Route::middleware(['switch_tenant', 'auth', 'tenant', 'locale'])->group(function () {
         Route::post('auth/logout', [AuthController::class, 'logout']);
         Route::get('auth/me', [AuthController::class, 'me']);
 
         Route::get('theme', [ThemeController::class, 'show'])->middleware('ensure_module:branding');
         Route::put('theme', [ThemeController::class, 'update'])->middleware(['permission:settings.theme', 'ensure_module:branding']);
+
+        // Own language preference (self-scoped like notifications: no
+        // permission gate, no module gate — every account may read the
+        // product in their language).
+        Route::put('language', [LanguageController::class, 'update']);
 
         // Personal notifications (self-scoped by user_id; no tenant_context needed).
         // A platform super admin has no tenant database, so the controller
@@ -307,20 +319,24 @@ Route::post('api/contact', [ContactController::class, 'store'])->middleware('thr
 Route::post('api/webhooks/stripe', [WebhookController::class, 'handleStripe'])->middleware('throttle:60,1');
 Route::post('api/webhooks/razorpay', [WebhookController::class, 'handleRazorpay'])->middleware('throttle:60,1');
 
-// Public marketing site (server-rendered from the DB-backed CMS pages).
-Route::get('/', [PublicSiteController::class, 'home']);
-Route::get('page/{slug}', [PublicSiteController::class, 'page']);
+// Public marketing site (server-rendered from the DB-backed CMS pages). The
+// `locale` middleware honours `?locale=` / Accept-Language for the template
+// chrome (page/block bodies are CMS data and are never translated by code).
+Route::middleware('locale')->group(function () {
+    Route::get('/', [PublicSiteController::class, 'home']);
+    Route::get('page/{slug}', [PublicSiteController::class, 'page']);
 
-// Signed draft preview for the CMS (never indexed — see controller).
-Route::get('preview/{websitePage}', [PublicSiteController::class, 'preview'])->name('site.preview')->middleware('signed');
+    // Signed draft preview for the CMS (never indexed — see controller).
+    Route::get('preview/{websitePage}', [PublicSiteController::class, 'preview'])->name('site.preview')->middleware('signed');
 
-// Public blog. Specific routes first: `blog/{post}` would otherwise claim
-// the feed and category paths as post slugs.
-Route::get('blog', [BlogController::class, 'index'])->name('site.blog');
-Route::get('blog/rss.xml', [BlogController::class, 'feed'])->name('site.blog_feed');
-Route::get('blog/category/{slug}', [BlogController::class, 'category'])->name('site.blog_category');
-Route::get('blog/{post}', [BlogController::class, 'show'])->name('site.blog_post');
-Route::get('blog-preview/{blogPost}', [BlogController::class, 'preview'])->name('site.blog_preview')->middleware('signed');
+    // Public blog. Specific routes first: `blog/{post}` would otherwise claim
+    // the feed and category paths as post slugs.
+    Route::get('blog', [BlogController::class, 'index'])->name('site.blog');
+    Route::get('blog/rss.xml', [BlogController::class, 'feed'])->name('site.blog_feed');
+    Route::get('blog/category/{slug}', [BlogController::class, 'category'])->name('site.blog_category');
+    Route::get('blog/{post}', [BlogController::class, 'show'])->name('site.blog_post');
+    Route::get('blog-preview/{blogPost}', [BlogController::class, 'preview'])->name('site.blog_preview')->middleware('signed');
+});
 
 // Named reset landing for the framework's ResetPassword mail: the notification
 // builds its URL via `route('password.reset', token + email)`, and without this
@@ -349,8 +365,9 @@ Route::view('/app/{any}', 'app')->where('any', '.*');
 // false (HTTP 403). `auth` keeps unauthenticated socket clients from hitting
 // the callbacks at all.
 Broadcast::routes(['middleware' => ['switch_tenant', 'auth', 'tenant']]);
-
-require __DIR__.'/../routes/channels.php';
+// NOTE: channel callbacks (routes/channels.php) are registered by AppServiceProvider,
+// NOT here — `route:cache` (run by docker/entrypoint.sh) skips this file entirely, which
+// left zero channels registered and made every /broadcasting/auth answer 403.
 
 // Security track (P8.x) routes live in their own file.
 require __DIR__.'/security.php';
@@ -359,9 +376,9 @@ require __DIR__.'/security.php';
 // last on purpose: `/{slug}` and the fallback only see requests no other
 // route claimed, and reserved slugs 404 in the controller regardless, so a
 // page can never shadow a real route (notably POST broadcasting/auth above).
-Route::get('{slug}', [PublicSiteController::class, 'topPage'])->name('site.page');
+Route::get('{slug}', [PublicSiteController::class, 'topPage'])->name('site.page')->middleware('locale');
 
 // Legacy `/page/{slug}` prefix 301s to the canonical URL (see controller).
 // Unknown paths resolve `website_redirects` before the designed 404; the
 // handler lets framework prefixes keep their own 404 shape.
-Route::fallback([PublicSiteController::class, 'fallback']);
+Route::fallback([PublicSiteController::class, 'fallback'])->middleware('locale');

@@ -91,7 +91,7 @@ class AssetController extends Controller
         $asset = $this->assets->create($request->validated(), $request->user());
 
         return response()->json([
-            'message' => 'Asset registered.',
+            'message' => __('Asset registered.'),
             'asset' => $this->present($asset),
         ], Response::HTTP_CREATED);
     }
@@ -106,7 +106,7 @@ class AssetController extends Controller
         $assignment = $this->handovers->assign($asset, $employee, (string) ($data['condition_out'] ?? 'good'), $request->user());
 
         return response()->json([
-            'message' => 'Asset assigned.',
+            'message' => __('Asset assigned.'),
             'assignment' => $this->presentAssignment($assignment),
             'asset' => $this->present($asset->refresh()),
         ]);
@@ -119,7 +119,7 @@ class AssetController extends Controller
         $acknowledged = $this->handovers->acknowledge($assignment, $request->user());
 
         return response()->json([
-            'message' => 'Handover acknowledged.',
+            'message' => __('Handover acknowledged.'),
             'assignment' => $this->presentAssignment($acknowledged),
         ]);
     }
@@ -140,7 +140,7 @@ class AssetController extends Controller
         );
 
         return response()->json([
-            'message' => 'Asset returned.',
+            'message' => __('Asset returned.'),
             'assignment' => $this->presentAssignment($returned),
             'asset' => $this->present($asset->refresh()),
         ]);
@@ -153,7 +153,7 @@ class AssetController extends Controller
         $record = $this->assets->maintenance($asset, $request->validated(), $request->user());
 
         return response()->json([
-            'message' => 'Maintenance opened.',
+            'message' => __('Maintenance opened.'),
             'maintenance' => $this->presentMaintenance($record),
             'asset' => $this->present($asset->refresh()),
         ], Response::HTTP_CREATED);

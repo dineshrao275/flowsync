@@ -65,7 +65,7 @@ class AuthController extends Controller
         $request->session()->invalidate();
         $request->session()->regenerateToken();
 
-        return response()->json(['message' => 'Logged out.']);
+        return response()->json(['message' => __('Logged out.')]);
     }
 
     public function me(Request $request): JsonResponse
@@ -161,7 +161,7 @@ class AuthController extends Controller
 
         if ($routes->count() > 1) {
             throw ValidationException::withMessages([
-                'tenant' => 'This email belongs to more than one tenant. Provide your tenant slug.',
+                'tenant' => __('This email belongs to more than one tenant. Provide your tenant slug.'),
             ]);
         }
 
@@ -205,7 +205,7 @@ class AuthController extends Controller
                     'via' => 'password',
                 ]);
 
-                throw ValidationException::withMessages(['email' => 'This account has been deactivated.']);
+                throw ValidationException::withMessages(['email' => __('This account has been deactivated.')]);
             }
 
             if ($challenge = app(TwoFactorLogin::class)->challengeIfNeeded($request, Auth::user(), $tenant)) {

@@ -10,6 +10,7 @@ use App\Models\Tenant;
 use App\Models\User;
 use App\Services\NotificationService;
 use App\Services\PlatformAudit;
+use App\Support\Realtime;
 use App\Support\TenantDatabaseManager;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -64,7 +65,7 @@ class SupportDesk
     public function replyAsTenant(SupportTicket $ticket, User $author, string $body): SupportTicketMessage
     {
         if ($ticket->status === SupportTicket::STATUS_CLOSED) {
-            throw ValidationException::withMessages(['form' => 'This ticket is closed. Open a new ticket if the problem continues.']);
+            throw ValidationException::withMessages(['form' => __('This ticket is closed. Open a new ticket if the problem continues.')]);
         }
 
         $message = $ticket->messages()->create([
@@ -76,7 +77,7 @@ class SupportDesk
             'status' => SupportTicket::STATUS_OPEN, 'resolved_at' => null, 'last_activity_at' => now(),
         ])->save();
 
-        broadcast(new SupportMessageSent($ticket->fresh(), $message));
+        Realtime::send(new SupportMessageSent($ticket->fresh(), $message));
 
         return $message;
     }
@@ -84,7 +85,7 @@ class SupportDesk
     public function replyAsStaff(SupportTicket $ticket, User $staff, string $body, bool $internal): SupportTicketMessage
     {
         if ($ticket->status === SupportTicket::STATUS_CLOSED && ! $internal) {
-            throw ValidationException::withMessages(['form' => 'This ticket is closed.']);
+            throw ValidationException::withMessages(['form' => __('This ticket is closed.')]);
         }
 
         $message = $ticket->messages()->create([
@@ -93,7 +94,7 @@ class SupportDesk
         ]);
 
         if ($internal) {
-            broadcast(new SupportMessageSent($ticket->fresh(), $message));
+            Realtime::send(new SupportMessageSent($ticket->fresh(), $message));
 
             return $message; // a note changes nothing the customer can see
         }
@@ -106,7 +107,7 @@ class SupportDesk
 
         $this->notifyRequester($ticket, 'support.reply', ['snippet' => str($body)->limit(120)->toString()]);
 
-        broadcast(new SupportMessageSent($ticket->fresh(), $message));
+        Realtime::send(new SupportMessageSent($ticket->fresh(), $message));
 
         return $message;
     }
@@ -134,7 +135,7 @@ class SupportDesk
             $this->notifyRequester($ticket, 'support.'.$status);
         }
 
-        broadcast(new SupportTicketUpdated($ticket->fresh(), 'status_changed'));
+        Realtime::send(new SupportTicketUpdated($ticket->fresh(), 'status_changed'));
 
         return $ticket;
     }

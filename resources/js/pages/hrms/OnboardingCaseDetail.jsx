@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import api, { fieldErrors } from '../../services/api';
 import Alert from '../../components/ui/Alert';
 import Button from '../../components/ui/Button';
@@ -34,6 +35,7 @@ const REQUEST_COLORS = {
  * when the first fails.
  */
 export default function OnboardingCaseDetail() {
+    const { t } = useTranslation();
     const { caseId } = useParams();
     const navigate = useNavigate();
     const setCrumbs = useSetCrumbs();
@@ -49,7 +51,7 @@ export default function OnboardingCaseDetail() {
 
     const canManage = can('permission:hrms.onboarding.manage');
 
-    usePageTitle(detail ? `Onboarding · ${detail.employee?.name ?? ''}` : 'Onboarding case');
+    usePageTitle(detail ? t('hrms.onboarding.detailPerson', { name: detail.employee?.name ?? '' }) : t('hrms.onboarding.detailTitle'));
 
     const load = useCallback(() => {
         setError(null);
@@ -63,9 +65,9 @@ export default function OnboardingCaseDetail() {
                     return;
                 }
 
-                setError('Unable to load this case.');
+                setError(t('hrms.onboarding.loadDetailFailed'));
             });
-    }, [caseId, navigate]);
+    }, [caseId, navigate, t]);
 
     useEffect(() => {
         load();
@@ -75,11 +77,11 @@ export default function OnboardingCaseDetail() {
         if (!detail) return;
 
         setCrumbs([
-            { label: 'HRMS', to: '/hrms' },
-            { label: 'Onboarding', to: hrmsUrl('onboarding') },
-            { label: detail.employee?.name ?? `Case ${detail.id}` },
+            { label: t('hrms.overview.pageTitle'), to: '/hrms' },
+            { label: t('hrms.onboarding.pageTitle'), to: hrmsUrl('onboarding') },
+            { label: detail.employee?.name ?? t('hrms.onboarding.crumbCase', { id: detail.id }) },
         ]);
-    }, [detail, setCrumbs]);
+    }, [detail, setCrumbs, t]);
 
     async function completeTask(task) {
         setActing(true);
@@ -88,7 +90,7 @@ export default function OnboardingCaseDetail() {
             await api.post(`/hrms/onboarding/cases/${caseId}/tasks/${task.id}/complete`, {});
             await load();
         } catch {
-            toast.error('Unable to complete this item.');
+            toast.error(t('hrms.caseDetail.completeItemFailed'));
         } finally {
             setActing(false);
         }
@@ -99,10 +101,10 @@ export default function OnboardingCaseDetail() {
 
         try {
             await api.post(`/hrms/onboarding/cases/${caseId}/tasks/${task.id}/waive`, { reason });
-            toast.success('Item waived.');
+            toast.success(t('hrms.onboarding.itemWaived'));
             await load();
         } catch (err) {
-            toast.error(err.response?.data?.message ?? 'Unable to waive this item.');
+            toast.error(err.response?.data?.message ?? t('hrms.onboarding.waiveFailed'));
         } finally {
             setActing(false);
         }
@@ -113,10 +115,10 @@ export default function OnboardingCaseDetail() {
 
         try {
             const { data } = await api.post(`/hrms/onboarding/cases/${caseId}/tasks/${task.id}/sync`, {});
-            toast.success(data.message ?? 'Synced.');
+            toast.success(data.message ?? t('hrms.caseDetail.synced'));
             await load();
         } catch (err) {
-            toast.error(err.response?.data?.message ?? 'Unable to sync this item.');
+            toast.error(err.response?.data?.message ?? t('hrms.caseDetail.syncFailed'));
         } finally {
             setActing(false);
         }
@@ -127,26 +129,26 @@ export default function OnboardingCaseDetail() {
 
         try {
             await api.post(`/hrms/onboarding/cases/${caseId}/complete`, {});
-            toast.success('Onboarding completed.');
+            toast.success(t('hrms.onboarding.completed'));
             await load();
         } catch (err) {
-            toast.error(fieldErrors(err).form ?? 'Unable to complete this case.');
+            toast.error(fieldErrors(err).form ?? t('hrms.onboarding.completeFailed'));
         } finally {
             setActing(false);
         }
     }
 
     async function cancel() {
-        if (!(await confirm({ title: 'Cancel onboarding case?', message: 'Cancel this onboarding case? The rows stay for the audit trail.', variant: 'danger' }))) return;
+        if (!(await confirm({ title: t('hrms.onboarding.cancelTitle'), message: t('hrms.onboarding.cancelMessage'), variant: 'danger' }))) return;
 
         setActing(true);
 
         try {
             await api.post(`/hrms/onboarding/cases/${caseId}/cancel`, {});
-            toast.success('Case cancelled.');
+            toast.success(t('hrms.onboarding.cancelDone'));
             await load();
         } catch {
-            toast.error('Unable to cancel this case.');
+            toast.error(t('hrms.onboarding.cancelFailed'));
         } finally {
             setActing(false);
         }
@@ -169,10 +171,10 @@ export default function OnboardingCaseDetail() {
             });
 
             await api.post(`/hrms/document-requests/${ask.id}/submit`, { document_id: data.document.id });
-            toast.success('File submitted for review.');
+            toast.success(t('hrms.onboarding.fileSubmitted'));
             await load();
         } catch (err) {
-            toast.error(fieldErrors(err).file ?? fieldErrors(err).form ?? 'Unable to submit this file.');
+            toast.error(fieldErrors(err).file ?? fieldErrors(err).form ?? t('hrms.onboarding.fileFailed'));
         } finally {
             setActing(false);
         }
@@ -185,14 +187,14 @@ export default function OnboardingCaseDetail() {
             await api.post(`/hrms/document-requests/${ask.id}/${action}`, reason ? { reason } : {});
             await load();
         } catch (err) {
-            toast.error(fieldErrors(err).form ?? fieldErrors(err).reason ?? 'Unable to answer this ask.');
+            toast.error(fieldErrors(err).form ?? fieldErrors(err).reason ?? t('hrms.onboarding.answerFailed'));
         } finally {
             setActing(false);
         }
     }
 
     if (error || (detail === null && error !== null)) {
-        return <Alert>{error ?? 'This case could not be found.'}</Alert>;
+        return <Alert>{error ?? t('hrms.onboarding.notFound')}</Alert>;
     }
 
     if (!detail) {
@@ -220,19 +222,19 @@ export default function OnboardingCaseDetail() {
                 <div>
                     <h2 className="text-xl font-semibold text-gray-900">{detail.employee?.name}</h2>
                     <p className="mt-0.5 text-sm text-gray-500">
-                        {detail.template?.name ?? 'No template'} · {detail.status_label ?? detail.status} ·{' '}
-                        {progress.percent ?? 0}% complete
-                        {progress.mandatory_open > 0 && ` · ${progress.mandatory_open} mandatory open`}
+                        {detail.template?.name ?? t('hrms.onboarding.noTemplate')} · {detail.status_label ?? detail.status} ·{' '}
+                        {t('hrms.onboarding.pctComplete', { percent: progress.percent ?? 0 })}
+                        {progress.mandatory_open > 0 && ` · ${t('hrms.onboarding.mandatoryOpen', { count: progress.mandatory_open })}`}
                     </p>
                 </div>
 
                 {canManage && open && (
                     <div className="flex gap-2">
                         <Button variant="secondary" loading={acting} onClick={complete}>
-                            Complete case
+                            {t('hrms.onboarding.completeCase')}
                         </Button>
                         <Button variant="ghost" loading={acting} onClick={cancel}>
-                            Cancel
+                            {t('hrms.common.cancel')}
                         </Button>
                     </div>
                 )}
@@ -242,7 +244,7 @@ export default function OnboardingCaseDetail() {
                 <div className="h-full rounded-full bg-[var(--accent-soft)]0" style={{ width: `${progress.percent ?? 0}%` }} />
             </div>
 
-            <Card title="Checklist" dense>
+            <Card title={t('hrms.caseDetail.checklist')} dense>
                 <Checklist
                     tasks={detail.tasks ?? []}
                     canAct={open && canWork}
@@ -269,22 +271,22 @@ export default function OnboardingCaseDetail() {
             )}
 
             {(detail.requests ?? []).length > 0 && (
-                <Card title="Document asks" dense>
+                <Card title={t('hrms.caseDetail.docAsks')} dense>
                     <ul className="divide-y divide-gray-100">
                         {(detail.requests ?? []).map((ask) => (
                             <li key={ask.id} className="flex flex-wrap items-center justify-between gap-3 py-2.5">
                                 <div className="min-w-0">
                                     <span className="block text-sm font-medium text-gray-900">{ask.title}</span>
                                     <span className="text-xs text-gray-400">
-                                        {ask.type?.name ?? 'Any file'}
-                                        {ask.due_date ? ` · due ${ask.due_date}` : ''}
+                                        {ask.type?.name ?? t('hrms.caseDetail.anyFile')}
+                                        {ask.due_date ? t('hrms.caseDetail.due', { date: ask.due_date }) : ''}
                                     </span>
                                 </div>
                                 <span className="flex items-center gap-2">
                                     <RequestPill status={ask.status} />
                                     {ask.status === 'pending' && canSubmit && (
                                         <label className="cursor-pointer text-sm font-medium text-[var(--accent-soft-text)] hover:underline">
-                                            Upload
+                                            {t('hrms.onboarding.upload')}
                                             <input
                                                 type="file"
                                                 className="hidden"
@@ -299,7 +301,7 @@ export default function OnboardingCaseDetail() {
                                     {ask.status === 'submitted' && canManage && (
                                         <>
                                             <Button size="sm" variant="secondary" disabled={acting} onClick={() => answerAsk(ask, 'accept')}>
-                                                Accept
+                                                {t('hrms.onboarding.accept')}
                                             </Button>
                                             <Button
                                                 size="sm"
@@ -307,18 +309,18 @@ export default function OnboardingCaseDetail() {
                                                 disabled={acting}
                                                 onClick={async () => {
                                                     const reason = await prompt({
-                                                        title: 'Reject Document',
-                                                        message: `Why is “${ask.title}” being rejected?`,
-                                                        placeholder: 'Reason for rejection…',
+                                                        title: t('hrms.onboarding.rejectTitle'),
+                                                        message: t('hrms.onboarding.rejectMessage', { title: ask.title }),
+                                                        placeholder: t('hrms.onboarding.rejectPlaceholder'),
                                                         required: true,
-                                                        confirmLabel: 'Reject',
+                                                        confirmLabel: t('hrms.onboarding.reject'),
                                                         variant: 'danger',
                                                     });
 
                                                     if (reason !== null) answerAsk(ask, 'reject', reason);
                                                 }}
                                             >
-                                                Reject
+                                                {t('hrms.onboarding.reject')}
                                             </Button>
                                         </>
                                     )}
@@ -331,7 +333,7 @@ export default function OnboardingCaseDetail() {
 
             <div className="pt-2 text-sm">
                 <Link to={hrmsUrl('onboarding')} className="text-[var(--accent-soft-text)] hover:text-[var(--accent)]">
-                    ← Back to onboarding
+                    {t('hrms.onboarding.backLink')}
                 </Link>
             </div>
         </div>

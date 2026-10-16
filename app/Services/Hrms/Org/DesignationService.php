@@ -86,7 +86,7 @@ class DesignationService
     {
         if ($designation->employees()->exists()) {
             throw ValidationException::withMessages([
-                'form' => 'Employees still hold this designation. Move them to another one, or deactivate the designation instead.',
+                'form' => __('Employees still hold this designation. Move them to another one, or deactivate the designation instead.'),
             ]);
         }
 

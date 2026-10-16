@@ -94,7 +94,7 @@ class PayslipDownload
         $tenantId = $this->context->currentId();
 
         if ($tenantId === null) {
-            throw ValidationException::withMessages(['form' => 'Payslips need an active tenant before a link can be minted.']);
+            throw ValidationException::withMessages(['form' => __('Payslips need an active tenant before a link can be minted.')]);
         }
 
         return $tenantId;
@@ -108,7 +108,7 @@ class PayslipDownload
     private function requireDownloadReader(Payslip $payslip, ?User $reader): void
     {
         if ($reader === null) {
-            abort(403, 'This download needs a signed reader.');
+            abort(403, __('This download needs a signed reader.'));
         }
 
         $reader->loadMissing('roles.permissions');
@@ -123,7 +123,7 @@ class PayslipDownload
             && (int) $employee->user_id === (int) $reader->id;
 
         if (! $isSelf || ! $reader->hasPermission('hrms.payroll.view')) {
-            abort(403, 'This payslip is not yours to download.');
+            abort(403, __('This payslip is not yours to download.'));
         }
     }
 }

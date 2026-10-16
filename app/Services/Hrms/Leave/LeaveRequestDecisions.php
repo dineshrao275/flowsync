@@ -99,7 +99,7 @@ class LeaveRequestDecisions
         $this->requireDecidable($request);
 
         if (trim($note) === '') {
-            throw ValidationException::withMessages(['decision_note' => 'A rejection needs a reason the requester can act on.']);
+            throw ValidationException::withMessages(['decision_note' => __('A rejection needs a reason the requester can act on.')]);
         }
 
         $from = $request->status->value;
@@ -132,7 +132,7 @@ class LeaveRequestDecisions
         // already-cancelled ask refuse — `isTerminal()` would wrongly refuse
         // approved asks, whose whole point here is to be undone.
         if (! in_array($request->status, [LeaveRequestStatus::Draft, LeaveRequestStatus::Submitted, LeaveRequestStatus::Pending, LeaveRequestStatus::Approved], true)) {
-            throw ValidationException::withMessages(['form' => 'This ask can no longer be cancelled.']);
+            throw ValidationException::withMessages(['form' => __('This ask can no longer be cancelled.')]);
         }
 
         $wasApproved = $request->status === LeaveRequestStatus::Approved;
@@ -142,7 +142,7 @@ class LeaveRequestDecisions
             // there is nobody to check, and HR stops someone else's ask by
             // rejecting it, not by cancelling it.
             if ($actor === null) {
-                throw ValidationException::withMessages(['form' => 'Cancelling an open ask needs a login.']);
+                throw ValidationException::withMessages(['form' => __('Cancelling an open ask needs a login.')]);
             }
 
             $this->approvals->cancel($request->approval, $actor);
@@ -176,11 +176,11 @@ class LeaveRequestDecisions
     public function encash(LeaveRequest $request, ?User $actor = null): LeaveRequest
     {
         if ($request->status !== LeaveRequestStatus::Approved) {
-            throw ValidationException::withMessages(['form' => 'Only approved leave can be encashed.']);
+            throw ValidationException::withMessages(['form' => __('Only approved leave can be encashed.')]);
         }
 
         if (! $request->type->encashable) {
-            throw ValidationException::withMessages(['form' => 'This leave type cannot be encashed.']);
+            throw ValidationException::withMessages(['form' => __('This leave type cannot be encashed.')]);
         }
 
         return DB::transaction(function () use ($request, $actor): LeaveRequest {
@@ -207,11 +207,11 @@ class LeaveRequestDecisions
     private function requireDecidable(LeaveRequest $request): void
     {
         if ($request->status !== LeaveRequestStatus::Submitted && $request->status !== LeaveRequestStatus::Pending) {
-            throw ValidationException::withMessages(['form' => 'This ask has already been decided.']);
+            throw ValidationException::withMessages(['form' => __('This ask has already been decided.')]);
         }
 
         if ($request->approval === null) {
-            throw ValidationException::withMessages(['form' => 'This ask has no approval chain.']);
+            throw ValidationException::withMessages(['form' => __('This ask has no approval chain.')]);
         }
     }
 

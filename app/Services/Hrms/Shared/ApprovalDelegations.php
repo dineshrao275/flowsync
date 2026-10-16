@@ -30,11 +30,11 @@ class ApprovalDelegations
     public function create(User $from, User $to, Carbon $startsAt, Carbon $endsAt, ?array $domains, ?string $reason, ?User $actor): ApprovalDelegation
     {
         if ((int) $from->id === (int) $to->id) {
-            throw ValidationException::withMessages(['to_user_id' => 'You cannot delegate to yourself.']);
+            throw ValidationException::withMessages(['to_user_id' => __('You cannot delegate to yourself.')]);
         }
 
         if ($endsAt->lessThanOrEqualTo($startsAt)) {
-            throw ValidationException::withMessages(['ends_at' => 'The window must end after it starts.']);
+            throw ValidationException::withMessages(['ends_at' => __('The window must end after it starts.')]);
         }
 
         $delegation = ApprovalDelegation::create([

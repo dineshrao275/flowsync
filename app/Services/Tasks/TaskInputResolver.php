@@ -29,7 +29,7 @@ class TaskInputResolver
 
         if ($status === null) {
             throw ValidationException::withMessages([
-                'status_id' => 'The selected status does not belong to this project.',
+                'status_id' => __('The selected status does not belong to this project.'),
             ]);
         }
 
@@ -47,7 +47,7 @@ class TaskInputResolver
 
         if ($priority === null) {
             throw ValidationException::withMessages([
-                'priority_id' => 'The selected priority does not belong to this tenant.',
+                'priority_id' => __('The selected priority does not belong to this tenant.'),
             ]);
         }
 
@@ -64,13 +64,13 @@ class TaskInputResolver
 
         if ($assignee === null) {
             throw ValidationException::withMessages([
-                'assignee_id' => 'The selected assignee does not belong to this tenant.',
+                'assignee_id' => __('The selected assignee does not belong to this tenant.'),
             ]);
         }
 
         if (! $project->isMember($assignee)) {
             throw ValidationException::withMessages([
-                'assignee_id' => 'The selected assignee must be a member of the project.',
+                'assignee_id' => __('The selected assignee must be a member of the project.'),
             ]);
         }
 
@@ -87,7 +87,7 @@ class TaskInputResolver
 
         if ($parent === null) {
             throw ValidationException::withMessages([
-                'parent_id' => 'The selected parent task does not belong to this project.',
+                'parent_id' => __('The selected parent task does not belong to this project.'),
             ]);
         }
 
@@ -107,7 +107,7 @@ class TaskInputResolver
 
         if ($valid->count() !== $ids->count()) {
             throw ValidationException::withMessages([
-                'labels' => 'One or more selected labels do not belong to this workspace.',
+                'labels' => __('One or more selected labels do not belong to this workspace.'),
             ]);
         }
 
@@ -126,7 +126,7 @@ class TaskInputResolver
 
         if ($valid->count() !== $ids->count()) {
             throw ValidationException::withMessages([
-                'components' => 'One or more selected components do not belong to this project.',
+                'components' => __('One or more selected components do not belong to this project.'),
             ]);
         }
 
@@ -143,7 +143,7 @@ class TaskInputResolver
 
         if ($version === null) {
             throw ValidationException::withMessages([
-                'version_id' => 'The selected version does not belong to this project.',
+                'version_id' => __('The selected version does not belong to this project.'),
             ]);
         }
 
@@ -160,7 +160,7 @@ class TaskInputResolver
 
         if ($type === null) {
             throw ValidationException::withMessages([
-                'issue_type_id' => 'The selected issue type does not exist.',
+                'issue_type_id' => __('The selected issue type does not exist.'),
             ]);
         }
 

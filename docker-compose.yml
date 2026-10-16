@@ -79,6 +79,7 @@ services:
   # ---------------------------------------------------------------------------
   queue:
     image: flowsync:latest
+    pull_policy: never
     container_name: flowsync-queue
     restart: unless-stopped
     env_file: .env.docker
@@ -103,6 +104,7 @@ services:
   # ---------------------------------------------------------------------------
   reverb:
     image: flowsync:latest
+    pull_policy: never
     container_name: flowsync-reverb
     restart: unless-stopped
     env_file: .env.docker

@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import {
     Bar as BarShape,
     BarChart,
@@ -20,36 +21,33 @@ import TimeSummary from '../components/time/TimeSummary';
 import RangeFilter from '../components/reports/RangeFilter';
 import { resolveRange } from '../utils/dateRange';
 import { Table, Th, Td, TableEmpty } from '../components/ui/Table';
+import EmptyState from '../components/ui/EmptyState';
 import { useAuth } from '../context/AuthContext';
+import { useTheme } from '../context/ThemeContext';
 import { useSetCrumbs } from '../context/BreadcrumbContext';
 import { fieldClass } from '../components/ui/fieldStyles';
 import usePageTitle from '../hooks/usePageTitle';
-
-const axisProps = { tick: { fontSize: 11, fill: '#9aa3b2' }, tickMargin: 8 };
-const tooltipProps = {
-    contentStyle: {
-        backgroundColor: '#ffffff',
-        border: '1px solid #e5e7eb',
-        borderRadius: '8px',
-        fontSize: '12px',
-        boxShadow: '0 4px 12px rgba(0,0,0,0.08)',
-    },
-    cursor: { fill: 'rgba(99,102,241,0.06)' },
-};
+import { chartAxisProps, chartPalette, chartTooltipProps } from '../utils/charts';
 
 function TotalsDonut({ open, done }) {
+    const { t } = useTranslation();
+    const mode = useTheme().resolvedMode;
+    const palette = chartPalette(mode);
+    const openLabel = t('dashboard.charts.open');
+    const doneLabel = t('dashboard.charts.done');
+
     if (open + done === 0) {
-        return <p className="py-8 text-center text-sm text-gray-400">No tasks in this range.</p>;
+        return <EmptyState description={t('dashboard.reports.emptyTasks')} />;
     }
 
     return (
         <ResponsiveContainer width="100%" height={200}>
             <PieChart>
-                <Pie data={[{ name: 'Open', value: open }, { name: 'Done', value: done }]} dataKey="value" nameKey="name" innerRadius={52} outerRadius={80} paddingAngle={2}>
-                    <Cell fill="#94a3b8" />
-                    <Cell fill="#2563eb" />
+                <Pie data={[{ name: openLabel, value: open }, { name: doneLabel, value: done }]} dataKey="value" nameKey="name" innerRadius={52} outerRadius={80} paddingAngle={2}>
+                    <Cell fill={palette.secondary} />
+                    <Cell fill={palette.accent} />
                 </Pie>
-                <Tooltip {...tooltipProps} />
+                <Tooltip {...chartTooltipProps(mode)} />
                 <Legend wrapperStyle={{ fontSize: 12 }} />
             </PieChart>
         </ResponsiveContainer>
@@ -57,32 +55,39 @@ function TotalsDonut({ open, done }) {
 }
 
 function StatusBars({ items }) {
-    const data = items.map((item) => ({ name: item.label, Open: item.open, Done: item.done }));
+    const { t } = useTranslation();
+    const mode = useTheme().resolvedMode;
+    const palette = chartPalette(mode);
+    const openLabel = t('dashboard.charts.open');
+    const doneLabel = t('dashboard.charts.done');
+    const data = items.map((item) => ({ name: item.label, [openLabel]: item.open, [doneLabel]: item.done }));
 
     if (data.length === 0) {
-        return <p className="py-8 text-center text-sm text-gray-400">No statuses in this range.</p>;
+        return <EmptyState description={t('dashboard.reports.emptyStatuses')} />;
     }
 
     return (
         <ResponsiveContainer width="100%" height={Math.max(160, data.length * 44)}>
             <BarChart data={data} layout="vertical" margin={{ top: 4, right: 8, left: 0, bottom: 0 }}>
-                <CartesianGrid strokeDasharray="3 3" horizontal={false} />
-                <XAxis type="number" allowDecimals={false} {...axisProps} />
-                <YAxis type="category" dataKey="name" width={110} {...axisProps} />
-                <Tooltip {...tooltipProps} />
+                <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke={palette.grid} />
+                <XAxis type="number" allowDecimals={false} {...chartAxisProps(mode)} />
+                <YAxis type="category" dataKey="name" width={110} {...chartAxisProps(mode)} />
+                <Tooltip {...chartTooltipProps(mode)} />
                 <Legend wrapperStyle={{ fontSize: 12 }} />
-                <BarShape dataKey="Open" stackId="a" fill="#94a3b8" />
-                <BarShape dataKey="Done" stackId="a" fill="#2563eb" radius={[0, 4, 4, 0]} />
+                <BarShape dataKey={openLabel} stackId="a" fill={palette.secondary} />
+                <BarShape dataKey={doneLabel} stackId="a" fill={palette.accent} radius={[0, 4, 4, 0]} />
             </BarChart>
         </ResponsiveContainer>
     );
 }
 
 function SharePie({ items, emptyText }) {
-    const data = items.map((item) => ({ name: item.label, value: item.count, color: item.color || '#94a3b8' }));
+    const mode = useTheme().resolvedMode;
+    const palette = chartPalette(mode);
+    const data = items.map((item) => ({ name: item.label, value: item.count, color: item.color || palette.secondary }));
 
     if (data.every((d) => d.value === 0) || data.length === 0) {
-        return <p className="py-8 text-center text-sm text-gray-400">{emptyText}</p>;
+        return <EmptyState description={emptyText} />;
     }
 
     return (
@@ -93,34 +98,38 @@ function SharePie({ items, emptyText }) {
                         <Cell key={row.name} fill={row.color} />
                     ))}
                 </Pie>
-                <Tooltip {...tooltipProps} />
+                <Tooltip {...chartTooltipProps(mode)} />
                 <Legend wrapperStyle={{ fontSize: 12 }} />
             </PieChart>
         </ResponsiveContainer>
     );
 }
 
-function TotalsBars({ items, emptyText, color = '#0ea5e9' }) {
+function TotalsBars({ items, emptyText, color }) {
+    const mode = useTheme().resolvedMode;
+    const palette = chartPalette(mode);
+    const fill = color || palette.accent;
     const data = items.slice(0, 10).map((item) => ({ name: item.label, Total: item.count }));
 
     if (data.length === 0) {
-        return <p className="py-8 text-center text-sm text-gray-400">{emptyText}</p>;
+        return <EmptyState description={emptyText} />;
     }
 
     return (
         <ResponsiveContainer width="100%" height={Math.max(160, data.length * 40)}>
             <BarChart data={data} layout="vertical" margin={{ top: 4, right: 8, left: 0, bottom: 0 }}>
-                <CartesianGrid strokeDasharray="3 3" horizontal={false} />
-                <XAxis type="number" allowDecimals={false} {...axisProps} />
-                <YAxis type="category" dataKey="name" width={110} {...axisProps} />
-                <Tooltip {...tooltipProps} />
-                <BarShape dataKey="Total" fill={color} radius={[0, 4, 4, 0]} barSize={18} />
+                <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke={palette.grid} />
+                <XAxis type="number" allowDecimals={false} {...chartAxisProps(mode)} />
+                <YAxis type="category" dataKey="name" width={110} {...chartAxisProps(mode)} />
+                <Tooltip {...chartTooltipProps(mode)} />
+                <BarShape dataKey="Total" fill={fill} radius={[0, 4, 4, 0]} barSize={18} />
             </BarChart>
         </ResponsiveContainer>
     );
 }
 
 function Distribution({ title, subtitle, items }) {
+    const { t } = useTranslation();
     return (
         <section>
             <div className="mb-2">
@@ -130,15 +139,15 @@ function Distribution({ title, subtitle, items }) {
             <Table>
                 <thead>
                     <tr>
-                        <Th>Label</Th>
-                        <Th align="right">Open</Th>
-                        <Th align="right">Done</Th>
-                        <Th align="right">Total</Th>
+                        <Th>{t('dashboard.reports.thLabel')}</Th>
+                        <Th align="right">{t('dashboard.reports.thOpen')}</Th>
+                        <Th align="right">{t('dashboard.reports.thDone')}</Th>
+                        <Th align="right">{t('dashboard.reports.thTotal')}</Th>
                     </tr>
                 </thead>
                 <tbody>
                     {items.length === 0 ? (
-                        <TableEmpty colSpan={4}>No data.</TableEmpty>
+                        <TableEmpty colSpan={4}>{t('dashboard.reports.noData')}</TableEmpty>
                     ) : (
                         items.map((item) => (
                             <tr key={item.key} className="transition-colors duration-150 hover:bg-gray-50/60">
@@ -161,7 +170,8 @@ function Distribution({ title, subtitle, items }) {
 }
 
 export default function Reports() {
-    usePageTitle('Reports');
+    const { t } = useTranslation();
+    usePageTitle(t('dashboard.reports.pageTitle'));
     const { hasModule } = useAuth();
     const setCrumbs = useSetCrumbs();
     const [data, setData] = useState(null);
@@ -174,15 +184,15 @@ export default function Reports() {
     const range = resolveRange(preset, custom ?? {});
 
     useEffect(() => {
-        setCrumbs([{ label: 'Reports' }]);
-    }, [setCrumbs]);
+        setCrumbs([{ label: t('dashboard.reports.pageTitle') }]);
+    }, [setCrumbs, t]);
 
     useEffect(() => {
         setData(null);
         setError(null);
         api.get('/reports/overview', { params: { from: range.from, to: range.to } })
             .then(({ data: response }) => setData(response))
-            .catch(() => setError('Unable to load reports.'));
+            .catch(() => setError(t('dashboard.reports.loadFailed')));
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [range.from, range.to]);
 
@@ -223,25 +233,25 @@ export default function Reports() {
     return (
         <div className="space-y-6">
             <div>
-                <h2 className="text-2xl font-bold text-gray-900">Reports</h2>
+                <h2 className="text-2xl font-bold text-gray-900">{t('dashboard.reports.pageTitle')}</h2>
                 <p className="mt-1 flex flex-wrap items-center gap-2 text-sm text-gray-500">
-                    Distribution and time overview across the tasks you can see.
+                    {t('dashboard.reports.subtitle')}
                     <span
-                        className="rounded-full px-2 py-0.5 text-[11px] font-medium text-gray-600"
+                        className="rounded-full px-2 py-0.5 text-xs font-medium text-gray-600"
                         style={{ backgroundColor: 'var(--accent-soft)' }}
-                        title="The distributions below are scoped to what your role can see"
+                        title={t('dashboard.scope.title')}
                     >
-                        {data.scope === 'all' ? 'Showing: every task in the tenant' : 'Showing: tasks in your projects'}
+                        {data.scope === 'all' ? t('dashboard.scope.all') : t('dashboard.scope.mine')}
                     </span>
                 </p>
             </div>
 
             <StatRow
                 stats={[
-                    { label: 'Total tasks', value: data.totals.total },
-                    { label: 'Open', value: data.totals.open },
-                    { label: 'Done', value: data.totals.done },
-                    { label: 'Overdue', value: data.totals.overdue, tone: data.totals.overdue > 0 ? 'danger' : undefined },
+                    { label: t('dashboard.reports.stats.total'), value: data.totals.total },
+                    { label: t('dashboard.reports.stats.open'), value: data.totals.open },
+                    { label: t('dashboard.reports.stats.done'), value: data.totals.done },
+                    { label: t('dashboard.reports.stats.overdue'), value: data.totals.overdue, tone: data.totals.overdue > 0 ? 'danger' : undefined },
                 ]}
             />
 
@@ -255,54 +265,54 @@ export default function Reports() {
 
             <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
                 <section className="rounded-xl border border-gray-200/70 p-4 shadow-sm" style={{ backgroundColor: 'var(--card-bg)' }}>
-                    <h3 className="text-sm font-semibold text-gray-900">Open vs done</h3>
-                    <p className="mb-2 text-xs text-gray-500">Tasks created or completed {range.from} → {range.to}</p>
+                    <h3 className="text-sm font-semibold text-gray-900">{t('dashboard.reports.openVsDone')}</h3>
+                    <p className="mb-2 text-xs text-gray-500">{t('dashboard.reports.rangeSubtitle', { range: `${range.from} → ${range.to}` })}</p>
                     <TotalsDonut open={data.totals.open} done={data.totals.done} />
                 </section>
                 <section className="rounded-xl border border-gray-200/70 p-4 shadow-sm" style={{ backgroundColor: 'var(--card-bg)' }}>
-                    <h3 className="text-sm font-semibold text-gray-900">By priority</h3>
-                    <p className="mb-2 text-xs text-gray-500">Share of tasks per priority</p>
-                    <SharePie items={data.by_priority} emptyText="No priorities in this range." />
+                    <h3 className="text-sm font-semibold text-gray-900">{t('dashboard.reports.byPriority')}</h3>
+                    <p className="mb-2 text-xs text-gray-500">{t('dashboard.reports.prioritySubtitle')}</p>
+                    <SharePie items={data.by_priority} emptyText={t('dashboard.reports.emptyPriorities')} />
                 </section>
                 <section className="rounded-xl border border-gray-200/70 p-4 shadow-sm" style={{ backgroundColor: 'var(--card-bg)' }}>
-                    <h3 className="text-sm font-semibold text-gray-900">By status</h3>
-                    <p className="mb-2 text-xs text-gray-500">Open vs done per status</p>
+                    <h3 className="text-sm font-semibold text-gray-900">{t('dashboard.reports.byStatus')}</h3>
+                    <p className="mb-2 text-xs text-gray-500">{t('dashboard.reports.statusSubtitle')}</p>
                     <StatusBars items={data.by_status} />
                 </section>
                 <section className="rounded-xl border border-gray-200/70 p-4 shadow-sm" style={{ backgroundColor: 'var(--card-bg)' }}>
-                    <h3 className="text-sm font-semibold text-gray-900">By project</h3>
-                    <p className="mb-2 text-xs text-gray-500">Task volume per project (top 10)</p>
-                    <TotalsBars items={data.by_project} emptyText="No projects in this range." color="#0ea5e9" />
+                    <h3 className="text-sm font-semibold text-gray-900">{t('dashboard.reports.byProject')}</h3>
+                    <p className="mb-2 text-xs text-gray-500">{t('dashboard.reports.projectSubtitle')}</p>
+                    <TotalsBars items={data.by_project} emptyText={t('dashboard.reports.emptyProjects')} color="#0ea5e9" />
                 </section>
                 <section className="rounded-xl border border-gray-200/70 p-4 shadow-sm lg:col-span-2" style={{ backgroundColor: 'var(--card-bg)' }}>
-                    <h3 className="text-sm font-semibold text-gray-900">By assignee</h3>
-                    <p className="mb-2 text-xs text-gray-500">Where the work sits (top 10)</p>
-                    <TotalsBars items={data.by_assignee} emptyText="No assignees in this range." color="#2563eb" />
+                    <h3 className="text-sm font-semibold text-gray-900">{t('dashboard.reports.byAssignee')}</h3>
+                    <p className="mb-2 text-xs text-gray-500">{t('dashboard.reports.assigneeSubtitle')}</p>
+                    <TotalsBars items={data.by_assignee} emptyText={t('dashboard.reports.emptyAssignees')} />
                 </section>
             </div>
 
             <div className="space-y-6">
-                <Distribution title="By status" subtitle="Open vs done per status" items={data.by_status} />
-                <Distribution title="By priority" subtitle="Open vs done per priority" items={data.by_priority} />
-                <Distribution title="By assignee" subtitle="Where the work sits" items={data.by_assignee} />
-                <Distribution title="By project" subtitle="Task volume per project" items={data.by_project} />
+                <Distribution title={t('dashboard.reports.byStatus')} subtitle={t('dashboard.reports.statusSubtitle')} items={data.by_status} />
+                <Distribution title={t('dashboard.reports.byPriority')} subtitle={t('dashboard.reports.prioritySubtitle')} items={data.by_priority} />
+                <Distribution title={t('dashboard.reports.byAssignee')} subtitle={t('dashboard.reports.assigneeDistribution')} items={data.by_assignee} />
+                <Distribution title={t('dashboard.reports.byProject')} subtitle={t('dashboard.reports.projectDistribution')} items={data.by_project} />
             </div>
 
             {hasModule('time_tracking') && (
                 <section>
                     <div className="mb-3">
-                        <h3 className="text-sm font-semibold text-gray-900">Time logged</h3>
-                        <p className="text-xs text-gray-500">Work logs for a workspace or project of your choice</p>
+                        <h3 className="text-sm font-semibold text-gray-900">{t('dashboard.reports.timeTitle')}</h3>
+                        <p className="text-xs text-gray-500">{t('dashboard.reports.timeSubtitle')}</p>
                     </div>
                     <div className="mb-4 flex flex-wrap items-end gap-3">
                         <div>
-                            <label className="mb-1.5 block text-sm font-medium text-gray-700">Workspace</label>
+                            <label className="mb-1.5 block text-sm font-medium text-gray-700">{t('dashboard.reports.workspace')}</label>
                             <select
                                 className={fieldClass}
                                 value={scope.workspace_id}
                                 onChange={(e) => setScope({ workspace_id: e.target.value, project_id: '' })}
                             >
-                                <option value="">Choose a workspace…</option>
+                                <option value="">{t('dashboard.reports.chooseWorkspace')}</option>
                                 {workspaces.map((workspace) => (
                                     <option key={workspace.id} value={workspace.id}>
                                         {workspace.name}
@@ -311,14 +321,14 @@ export default function Reports() {
                             </select>
                         </div>
                         <div>
-                            <label className="mb-1.5 block text-sm font-medium text-gray-700">Project</label>
+                            <label className="mb-1.5 block text-sm font-medium text-gray-700">{t('dashboard.reports.project')}</label>
                             <select
                                 className={fieldClass}
                                 value={scope.project_id}
                                 disabled={!scope.workspace_id}
                                 onChange={(e) => setScope((s) => ({ ...s, project_id: e.target.value }))}
                             >
-                                <option value="">Whole workspace</option>
+                                <option value="">{t('dashboard.reports.wholeWorkspace')}</option>
                                 {projects.map((project) => (
                                     <option key={project.id} value={project.id}>
                                         {project.name} ({project.key})
@@ -327,7 +337,7 @@ export default function Reports() {
                             </select>
                         </div>
                     </div>
-                    {timeUrl ? <TimeSummary key={timeUrl} url={timeUrl} /> : <p className="py-8 text-center text-sm text-gray-400">Pick a workspace or project above.</p>}
+                    {timeUrl ? <TimeSummary key={timeUrl} url={timeUrl} /> : <p className="py-8 text-center text-sm text-gray-400">{t('dashboard.reports.pickScope')}</p>}
                 </section>
             )}
         </div>

@@ -107,11 +107,11 @@ class CompOffCredits
         $day = $date instanceof Carbon ? $date->toDateString() : (string) $date;
 
         if ($minutes <= 0) {
-            throw ValidationException::withMessages(['minutes' => 'A credit banks positive minutes.']);
+            throw ValidationException::withMessages(['minutes' => __('A credit banks positive minutes.')]);
         }
 
         if ($day > today()->toDateString()) {
-            throw ValidationException::withMessages(['work_date' => 'Rest time cannot be banked before it is worked.']);
+            throw ValidationException::withMessages(['work_date' => __('Rest time cannot be banked before it is worked.')]);
         }
 
         $exists = CompOffCredit::query()
@@ -121,7 +121,7 @@ class CompOffCredits
             ->exists();
 
         if ($exists) {
-            throw ValidationException::withMessages(['form' => 'This date already holds a credit from this source.']);
+            throw ValidationException::withMessages(['form' => __('This date already holds a credit from this source.')]);
         }
 
         $credit = $this->firstCredit($employee, $day, $source, $minutes, $actor, $note);

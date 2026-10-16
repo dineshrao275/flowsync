@@ -24,7 +24,7 @@ export default function Button({
         danger:
             'bg-[var(--danger)] text-[var(--danger-contrast)] shadow-sm hover:bg-[var(--danger-hover)] active:bg-[var(--danger-active)] focus-visible:outline-[var(--danger)]',
         warning:
-            'bg-amber-500 text-white shadow-sm hover:bg-amber-400 active:bg-amber-600 focus-visible:outline-amber-400',
+            'bg-amber-400 text-[#1c1100] shadow-sm hover:bg-amber-300 active:bg-amber-500 focus-visible:outline-amber-500',
         ghost:
             'bg-transparent text-gray-600 hover:bg-gray-100 hover:text-gray-900 focus-visible:outline-gray-400',
         subtle:
@@ -35,6 +35,8 @@ export default function Button({
         sm: 'px-3 py-1.5 text-xs',
         md: 'px-4 py-2.5 text-sm',
         lg: 'px-5 py-3 text-sm',
+        // Square, icon-only control; always pass an accessible name via aria-label.
+        icon: 'h-10 w-10 p-0 text-sm',
     };
 
     return (
@@ -42,6 +44,7 @@ export default function Button({
             className={`inline-flex items-center justify-center gap-2 rounded-lg font-medium transition-all duration-150 focus:outline-none focus-visible:outline-2 focus-visible:outline-offset-2 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60 disabled:active:scale-100 ${variants[variant] ?? variants.primary} ${sizes[size] ?? sizes.md} ${className}`}
             disabled={loading || props.disabled}
             aria-busy={loading || undefined}
+            data-loading={loading || undefined}
             {...props}
         >
             {loading && (

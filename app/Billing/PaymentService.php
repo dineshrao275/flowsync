@@ -206,7 +206,7 @@ class PaymentService
         $gateway = $this->resolver->resolve($providerName);
 
         if (! $gateway->verifyWebhookSignature($request)) {
-            abort(403, 'Invalid webhook signature.');
+            abort(403, __('Invalid webhook signature.'));
         }
 
         $result = $gateway->handleWebhook($request);

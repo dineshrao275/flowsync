@@ -38,7 +38,7 @@ class ProjectVersionController extends Controller
         $version = $this->service->create($project, $data);
 
         return response()->json([
-            'message' => 'Version created.',
+            'message' => __('Version created.'),
             'version' => $version,
         ], 201);
     }
@@ -60,7 +60,7 @@ class ProjectVersionController extends Controller
         $updated = $this->service->update($version, $data);
 
         return response()->json([
-            'message' => 'Version updated.',
+            'message' => __('Version updated.'),
             'version' => $updated,
         ]);
     }
@@ -73,6 +73,6 @@ class ProjectVersionController extends Controller
 
         $this->service->delete($version);
 
-        return response()->json(['message' => 'Version deleted.']);
+        return response()->json(['message' => __('Version deleted.')]);
     }
 }

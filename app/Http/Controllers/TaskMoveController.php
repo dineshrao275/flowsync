@@ -32,7 +32,7 @@ class TaskMoveController extends Controller
         $this->changes->moved($moved, $oldStatusId, $oldStatus, $request->user(), $request->ip());
 
         return response()->json([
-            'message' => 'Task moved.',
+            'message' => __('Task moved.'),
             'task' => $this->service->present($this->service->show($moved)),
         ]);
     }

@@ -50,7 +50,7 @@ class UserImporter
 
         foreach (['name', 'email', 'roles'] as $required) {
             if (! in_array($required, $header, true)) {
-                throw ValidationException::withMessages(['file' => "The CSV needs a '{$required}' column. Download the sample for the expected format."]);
+                throw ValidationException::withMessages(['file' => __('The CSV needs a \':required\' column. Download the sample for the expected format.', ['required' => $required])]);
             }
         }
 
@@ -76,7 +76,7 @@ class UserImporter
         fclose($handle);
 
         if ($rows === []) {
-            throw ValidationException::withMessages(['file' => 'The CSV has no user rows.']);
+            throw ValidationException::withMessages(['file' => __('The CSV has no user rows.')]);
         }
 
         return $rows;

@@ -216,7 +216,7 @@ class LeaveBalanceService
     {
         if ($this->calendar->leaveYearFor($asOf) !== $year) {
             throw ValidationException::withMessages([
-                'year' => "The date falls in leave year {$this->calendar->leaveYearFor($asOf)}, not {$year}.",
+                'year' => __('The date falls in leave year :asof, not :year.', ['asof' => $this->calendar->leaveYearFor($asOf), 'year' => $year]),
             ]);
         }
     }

@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Events\SupportTicketUpdated;
 use App\Models\SupportTicket;
 use App\Services\Support\SupportDesk;
+use App\Support\Realtime;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
@@ -57,7 +58,7 @@ class SystemSupportController extends Controller
 
         $this->desk->replyAsStaff($ticket, $request->user(), $data['body'], (bool) ($data['internal'] ?? false));
 
-        return response()->json(['message' => 'Sent.', 'ticket' => $this->present($ticket->refresh()->load(['tenant:id,name,slug', 'assignee:id,name']), true)], 201);
+        return response()->json(['message' => __('Sent.'), 'ticket' => $this->present($ticket->refresh()->load(['tenant:id,name,slug', 'assignee:id,name']), true)], 201);
     }
 
     public function update(Request $request, SupportTicket $ticket): JsonResponse
@@ -71,14 +72,14 @@ class SystemSupportController extends Controller
         if (isset($data['priority']) || array_key_exists('assigned_to', $data)) {
             $ticket->update(array_intersect_key($data, array_flip(['priority', 'assigned_to'])) + ['last_activity_at' => now()]);
             if (! isset($data['status'])) {
-                broadcast(new SupportTicketUpdated($ticket->fresh(), 'updated'));
+                Realtime::send(new SupportTicketUpdated($ticket->fresh(), 'updated'));
             }
         }
         if (isset($data['status'])) {
             $this->desk->setStatus($ticket, $data['status'], $request->user());
         }
 
-        return response()->json(['message' => 'Ticket updated.', 'ticket' => $this->present($ticket->refresh()->load(['tenant:id,name,slug', 'assignee:id,name']))]);
+        return response()->json(['message' => __('Ticket updated.'), 'ticket' => $this->present($ticket->refresh()->load(['tenant:id,name,slug', 'assignee:id,name']))]);
     }
 
     /** @return array<string, mixed> */

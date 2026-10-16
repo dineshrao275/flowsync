@@ -28,7 +28,7 @@ class EnforceIdempotency
         }
 
         if (strlen($key) < 8 || strlen($key) > 120) {
-            return response()->json(['message' => 'The Idempotency-Key header must be 8 to 120 characters.'], 422);
+            return response()->json(['message' => __('The Idempotency-Key header must be 8 to 120 characters.')], 422);
         }
 
         $fingerprint = hash('sha256', $request->method().'|'.$request->path().'|'.$request->getContent());
@@ -53,11 +53,11 @@ class EnforceIdempotency
     private function replay(?ApiIdempotencyKey $record, string $fingerprint): Response
     {
         if (! $record || $record->fingerprint !== $fingerprint) {
-            return response()->json(['message' => 'This Idempotency-Key was already used for a different request.'], 422);
+            return response()->json(['message' => __('This Idempotency-Key was already used for a different request.')], 422);
         }
 
         if ($record->response_status === null) {
-            return response()->json(['message' => 'A request with this Idempotency-Key is still being processed.'], 409);
+            return response()->json(['message' => __('A request with this Idempotency-Key is still being processed.')], 409);
         }
 
         return response($record->response_body, $record->response_status, ['Content-Type' => 'application/json', 'Idempotent-Replayed' => 'true']);

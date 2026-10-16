@@ -41,7 +41,7 @@ class ChainTemplates
     public function for(string $domain): array
     {
         $default = $this->domains()[$domain] ?? null;
-        abort_if($default === null, 404, 'Unknown approval domain.');
+        abort_if($default === null, 404, __('Unknown approval domain.'));
 
         $row = ApprovalTemplate::query()->where('domain', $domain)->where('is_active', true)->first();
 
@@ -77,13 +77,13 @@ class ChainTemplates
      */
     public function save(string $domain, array $data, ?User $actor): ApprovalTemplate
     {
-        abort_unless($this->knows($domain), 404, 'Unknown approval domain.');
+        abort_unless($this->knows($domain), 404, __('Unknown approval domain.'));
 
         $steps = $this->normalize($domain, $data['steps'] ?? []);
         $slug = $data['escalation_role_slug'] ?? null;
 
         if ($slug !== null && ! Role::query()->where('slug', $slug)->exists()) {
-            throw ValidationException::withMessages(['escalation_role_slug' => 'That role does not exist.']);
+            throw ValidationException::withMessages(['escalation_role_slug' => __('That role does not exist.')]);
         }
 
         $row = ApprovalTemplate::query()->firstOrNew(['domain' => $domain]);
@@ -107,7 +107,7 @@ class ChainTemplates
     /** Write the shipped default chain back for a domain. */
     public function reset(string $domain, ?User $actor): ApprovalTemplate
     {
-        abort_unless($this->knows($domain), 404, 'Unknown approval domain.');
+        abort_unless($this->knows($domain), 404, __('Unknown approval domain.'));
 
         return $this->save($domain, ['steps' => $this->domains()[$domain]['steps']], $actor);
     }
@@ -124,7 +124,7 @@ class ChainTemplates
     public function normalize(string $domain, array $steps): array
     {
         if ($steps === []) {
-            throw ValidationException::withMessages(['steps' => 'A chain needs at least one step.']);
+            throw ValidationException::withMessages(['steps' => __('A chain needs at least one step.')]);
         }
 
         $fields = $this->domains()[$domain]['fields'] ?? [];
@@ -136,7 +136,7 @@ class ChainTemplates
             $type = ApproverType::tryFrom((string) ($raw['type'] ?? ''));
 
             if ($type === null) {
-                throw ValidationException::withMessages(["$key.type" => 'Choose who approves this step.']);
+                throw ValidationException::withMessages(["$key.type" => __('Choose who approves this step.')]);
             }
 
             $step = ['type' => $type->value];
@@ -169,7 +169,7 @@ class ChainTemplates
             } elseif ($permission !== null && Permission::query()->where('slug', $permission)->exists()) {
                 $step['permission'] = $permission;
             } else {
-                throw ValidationException::withMessages(["$key.role_slug" => 'Choose an existing role for this step.']);
+                throw ValidationException::withMessages(["$key.role_slug" => __('Choose an existing role for this step.')]);
             }
 
             $step['omit_if_requester_holds'] = (bool) ($raw['omit_if_requester_holds'] ?? false);
@@ -179,7 +179,7 @@ class ChainTemplates
             $userId = (int) ($raw['user_id'] ?? 0);
 
             if (! User::query()->whereKey($userId)->exists()) {
-                throw ValidationException::withMessages(["$key.user_id" => 'Choose a person for this step.']);
+                throw ValidationException::withMessages(["$key.user_id" => __('Choose a person for this step.')]);
             }
 
             $step['user_id'] = $userId;
@@ -192,14 +192,14 @@ class ChainTemplates
         $mode = ApprovalStepMode::tryFrom((string) ($raw['mode'] ?? 'sequential'));
 
         if ($mode === null) {
-            throw ValidationException::withMessages(["$key.mode" => 'Unknown step mode.']);
+            throw ValidationException::withMessages(["$key.mode" => __('Unknown step mode.')]);
         }
 
         if (isset($raw['stage'])) {
             $stage = (int) $raw['stage'];
 
             if ($lastStage !== null && $stage < $lastStage) {
-                throw ValidationException::withMessages(["$key.stage" => 'Stages must not go backwards.']);
+                throw ValidationException::withMessages(["$key.stage" => __('Stages must not go backwards.')]);
             }
 
             $step['stage'] = $lastStage = $stage;
@@ -221,11 +221,11 @@ class ChainTemplates
         $op = (string) ($when['op'] ?? '');
 
         if (! in_array($field, $fields, true)) {
-            throw ValidationException::withMessages(["$key.when.field" => 'That field is not available for this domain.']);
+            throw ValidationException::withMessages(["$key.when.field" => __('That field is not available for this domain.')]);
         }
 
         if (! in_array($op, config('approvals.operators', []), true) || ! is_numeric($when['value'] ?? null)) {
-            throw ValidationException::withMessages(["$key.when.op" => 'Use a comparison and a number.']);
+            throw ValidationException::withMessages(["$key.when.op" => __('Use a comparison and a number.')]);
         }
 
         return ['field' => $field, 'op' => $op, 'value' => $when['value'] + 0];

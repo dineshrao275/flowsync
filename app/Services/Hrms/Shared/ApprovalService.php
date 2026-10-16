@@ -72,7 +72,7 @@ class ApprovalService
 
         if ($steps === []) {
             throw ValidationException::withMessages([
-                'approver_spec' => 'An approval needs at least one step.',
+                'approver_spec' => __('An approval needs at least one step.'),
             ]);
         }
 
@@ -148,11 +148,11 @@ class ApprovalService
     public function resubmit(Approval $previous, ApproverSpec|iterable $approverSpec, User $actor, ?array $meta = null): Approval
     {
         if (! $this->actors->isRequester($previous, $actor)) {
-            throw ValidationException::withMessages(['approval' => 'Only the requester can resubmit this approval.']);
+            throw ValidationException::withMessages(['approval' => __('Only the requester can resubmit this approval.')]);
         }
 
         if ($previous->status !== ApprovalStatus::Rejected) {
-            throw ValidationException::withMessages(['approval' => 'Only a rejected approval can be resubmitted.']);
+            throw ValidationException::withMessages(['approval' => __('Only a rejected approval can be resubmitted.')]);
         }
 
         $superseded = Approval::query()
@@ -162,7 +162,7 @@ class ApprovalService
             ->exists();
 
         if ($superseded) {
-            throw ValidationException::withMessages(['approval' => 'This approval has already been resubmitted.']);
+            throw ValidationException::withMessages(['approval' => __('This approval has already been resubmitted.')]);
         }
 
         return $this->request(
@@ -253,13 +253,13 @@ class ApprovalService
     {
         if (! $this->actors->isRequester($approval, $actor)) {
             throw ValidationException::withMessages([
-                'approval' => 'Only the requester can cancel this approval.',
+                'approval' => __('Only the requester can cancel this approval.'),
             ]);
         }
 
         if (! $approval->isOpen()) {
             throw ValidationException::withMessages([
-                'approval' => 'This approval is already resolved.',
+                'approval' => __('This approval is already resolved.'),
             ]);
         }
 
@@ -358,7 +358,7 @@ class ApprovalService
     {
         if ($via === ApprovalActors::OVERRIDE && mb_strlen(trim((string) $note)) < 5) {
             throw ValidationException::withMessages([
-                'note' => 'Acting on behalf of the assigned approver needs a reason (at least 5 characters).',
+                'note' => __('Acting on behalf of the assigned approver needs a reason (at least 5 characters).'),
             ]);
         }
     }
@@ -381,13 +381,13 @@ class ApprovalService
     {
         if (! $approval->isOpen()) {
             throw ValidationException::withMessages([
-                'approval' => 'This approval is already resolved.',
+                'approval' => __('This approval is already resolved.'),
             ]);
         }
 
         if ($approval->currentStageSteps()->isEmpty()) {
             throw ValidationException::withMessages([
-                'approval' => 'This approval has no actionable step.',
+                'approval' => __('This approval has no actionable step.'),
             ]);
         }
 
@@ -395,7 +395,7 @@ class ApprovalService
 
         if ($pick === null) {
             throw ValidationException::withMessages([
-                'approval' => 'You are not an approver for this step.',
+                'approval' => __('You are not an approver for this step.'),
             ]);
         }
 

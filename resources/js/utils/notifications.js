@@ -1,91 +1,100 @@
 import { projectUrl, taskUrl, workspaceUrl } from './deepLinks';
 import { formatRelativeTime } from './format';
 
-export function describeNotification(type, data = {}, actorName = 'Someone') {
-    const key = data.key || 'task';
+export function describeNotification(t, type, data = {}, actorName = null) {
+    const actor = actorName ?? t('notifications.someone');
+    const key = data.key || t('notifications.taskKeyFallback');
     switch (type) {
         case 'task.assigned':
-            return `${actorName} assigned ${key} to you`;
+            return t('notifications.taskAssigned', { actor, key });
         case 'task.commented':
-            return `${actorName} commented on ${key}`;
+            return t('notifications.taskCommented', { actor, key });
         case 'task.work_logged':
-            return `${actorName} logged ${data.duration_minutes ?? ''}m on ${key}`;
+            return t('notifications.taskWorkLogged', { actor, duration: data.duration_minutes ?? '', key });
         case 'task.status_changed':
-            return `${actorName} moved ${key} to ${data.to_status}`;
+            return t('notifications.taskStatusChanged', { actor, key, status: data.to_status });
         case 'task.unblocked':
-            return `${actorName} unblocked ${key}`;
+            return t('notifications.taskUnblocked', { actor, key });
         case 'hrms.onboarding.task_due':
-            return describeTaskDue(data);
+            return describeTaskDue(t, data);
         case 'hrms.attendance.regularization.requested':
-            return `${actorName} requested an attendance correction for ${data.work_date ?? 'a past date'}`;
+            return t('notifications.regularizationRequested', { actor, date: data.work_date ?? t('notifications.fallbackPastDate') });
         case 'hrms.attendance.regularization.decided':
-            return `Your attendance correction for ${data.work_date ?? 'a past date'} was ${data.status ?? 'decided'}`;
+            return t('notifications.regularizationDecided', { date: data.work_date ?? t('notifications.fallbackPastDate'), status: data.status ?? t('notifications.fallbackDecided') });
         case 'hrms.leave.requested':
-            return `${actorName} requested ${data.total_days ?? ''} day${data.total_days === 1 ? '' : 's'} of ${data.leave_type_name ?? 'leave'} (${data.from_date ?? ''} → ${data.to_date ?? ''})`;
+            return t('notifications.leaveRequested', {
+                actor,
+                days: data.total_days ?? '',
+                type: data.leave_type_name ?? t('notifications.fallbackLeave'),
+                from: data.from_date ?? '',
+                to: data.to_date ?? '',
+            });
         case 'hrms.leave.approved':
-            return `Your leave for ${data.from_date ?? 'those dates'} was approved`;
+            return t('notifications.leaveApproved', { from: data.from_date ?? t('notifications.fallbackThoseDates') });
         case 'hrms.leave.rejected':
-            return `Your leave for ${data.from_date ?? 'those dates'} was rejected`;
+            return t('notifications.leaveRejected', { from: data.from_date ?? t('notifications.fallbackThoseDates') });
         case 'hrms.comp_off.requested':
-            return `${actorName} requested ${data.total_minutes ?? ''} minutes of comp-off (${data.from_date ?? ''} → ${data.to_date ?? ''})`;
+            return t('notifications.compOffRequested', { actor, minutes: data.total_minutes ?? '', from: data.from_date ?? '', to: data.to_date ?? '' });
         case 'hrms.comp_off.approved':
-            return `Your comp-off for ${data.from_date ?? 'those dates'} was approved`;
+            return t('notifications.compOffApproved', { from: data.from_date ?? t('notifications.fallbackThoseDates') });
         case 'hrms.comp_off.rejected':
-            return `Your comp-off for ${data.from_date ?? 'those dates'} was rejected`;
+            return t('notifications.compOffRejected', { from: data.from_date ?? t('notifications.fallbackThoseDates') });
         case 'hrms.expense.submitted':
-            return `${actorName} filed claim ${data.claim_number ?? ''} for approval`;
+            return t('notifications.expenseSubmitted', { actor, claim: data.claim_number ?? '' });
         case 'hrms.expense.approved':
-            return `Your claim ${data.claim_number ?? ''} was approved`;
+            return t('notifications.expenseApproved', { claim: data.claim_number ?? '' });
         case 'hrms.expense.rejected':
-            return `Your claim ${data.claim_number ?? ''} was rejected`;
+            return t('notifications.expenseRejected', { claim: data.claim_number ?? '' });
         case 'hrms.expense.paid':
-            return `Your claim ${data.claim_number ?? ''} was reimbursed through payroll`;
+            return t('notifications.expensePaid', { claim: data.claim_number ?? '' });
         case 'hrms.performance.cycle_completed':
-            return `The ${data.cycle_name ?? 'review'} cycle completed`;
+            return t('notifications.performanceCycleCompleted', { cycle: data.cycle_name ?? t('notifications.fallbackReview') });
         case 'hrms.performance.review_acknowledged':
-            return 'Your review was acknowledged';
+            return t('notifications.performanceReviewAcknowledged');
         case 'hrms.offboarding.clearance_pending':
-            return `Exit clearance pending for ${data.employee_name ?? 'someone'}`;
+            return t('notifications.offboardingClearancePending', { employee: data.employee_name ?? t('notifications.fallbackSomeone') });
         case 'hrms.document.verified':
-            return `Your file “${data.title ?? 'document'}” was verified`;
+            return t('notifications.documentVerified', { title: data.title ?? t('notifications.fallbackDocument') });
         case 'hrms.document.rejected':
-            return `Your file “${data.title ?? 'document'}” was rejected`;
+            return t('notifications.documentRejected', { title: data.title ?? t('notifications.fallbackDocument') });
         case 'hrms.performance.cycle_opened':
-            return `The ${data.cycle_name ?? 'review'} cycle opened`;
+            return t('notifications.performanceCycleOpened', { cycle: data.cycle_name ?? t('notifications.fallbackReview') });
         case 'hrms.performance.review_shared':
-            return 'Your review was shared';
+            return t('notifications.performanceReviewShared');
         case 'talent.review_finalized':
-            return 'Your review was finalized';
+            return t('notifications.talentReviewFinalized');
         case 'hrms.asset.assigned':
-            return `${actorName} assigned ${data.asset_code ?? 'an asset'} to you — acknowledge the receipt`;
+            return t('notifications.assetAssigned', { actor, asset: data.asset_code ?? t('notifications.fallbackAnAsset') });
         case 'hrms.asset.acknowledged':
-            return `${data.employee_name ?? 'Someone'} acknowledged ${data.asset_code ?? 'their asset'}`;
+            return t('notifications.assetAcknowledged', { employee: data.employee_name ?? t('notifications.someone'), asset: data.asset_code ?? t('notifications.fallbackTheirAsset') });
         case 'hrms.asset.returned':
-            return `${data.asset_code ?? 'An asset'} came back`;
+            return t('notifications.assetReturned', { asset: data.asset_code ?? t('notifications.fallbackAnAsset') });
         case 'hrms.asset.return_overdue':
-            return `${data.asset_code ?? 'An asset'} still needs your signature`;
+            return t('notifications.assetReturnOverdue', { asset: data.asset_code ?? t('notifications.fallbackAnAsset') });
         case 'hrms.survey.invited':
-            return `You are invited: ${data.campaign_name ?? 'a survey'}`;
+            return t('notifications.surveyInvited', { campaign: data.campaign_name ?? t('notifications.fallbackASurvey') });
         case 'hrms.survey.closing_soon':
-            return `${data.campaign_name ?? 'A survey'} closes soon — answer if you have not`;
+            return t('notifications.surveyClosingSoon', { campaign: data.campaign_name ?? t('notifications.fallbackASurvey') });
         case 'hrms.inbox.digest':
-            return `Scheduled report ready: ${data.schedule_name ?? 'your digest'}`;
+            return t('notifications.inboxDigest', { schedule: data.schedule_name ?? t('notifications.fallbackYourDigest') });
         case 'automation.notice':
-            return data.message || `Automation update on ${key}`;
+            return data.message || t('notifications.automationNotice', { key });
         case 'support.reply':
-            return `Support replied on ${data.reference ?? 'your ticket'}${data.subject ? `: ${data.subject}` : ''}`;
+            return data.subject
+                ? t('notifications.supportReplySubject', { reference: data.reference ?? t('notifications.fallbackYourTicket'), subject: data.subject })
+                : t('notifications.supportReply', { reference: data.reference ?? t('notifications.fallbackYourTicket') });
         case 'support.resolved':
-            return `Support marked ${data.reference ?? 'your ticket'} resolved`;
+            return t('notifications.supportResolved', { reference: data.reference ?? t('notifications.fallbackYourTicket') });
         case 'support.closed':
-            return `Support closed ${data.reference ?? 'your ticket'}`;
+            return t('notifications.supportClosed', { reference: data.reference ?? t('notifications.fallbackYourTicket') });
         case 'billing.payment_failed':
-            return 'Your last subscription payment failed — update your payment method';
+            return t('notifications.billingPaymentFailed');
         case 'billing.final_notice':
-            return 'Final notice: your account will be suspended soon unless payment is received';
+            return t('notifications.billingFinalNotice');
         case 'billing.suspended':
-            return 'Your account was suspended because the subscription payment is overdue';
+            return t('notifications.billingSuspended');
         default:
-            return 'You have a new notification';
+            return t('notifications.new');
     }
 }
 
@@ -94,18 +103,18 @@ export function describeNotification(type, data = {}, actorName = 'Someone') {
  * actor, because the sender is a command, not a person, and “Someone wants
  * you to …” would be a lie about who asked.
  */
-function describeTaskDue(data = {}) {
-    const what = data.title ? `“${data.title}”` : 'An onboarding item';
-    const who = data.employee_name ? ` for ${data.employee_name}` : '';
+function describeTaskDue(t, data = {}) {
+    const what = data.title ? t('notifications.onboardingWhat', { title: data.title }) : t('notifications.onboardingWhatFallback');
+    const who = data.employee_name ? t('notifications.onboardingWho', { employee: data.employee_name }) : '';
 
-    if (!data.due_date) return `${what}${who} needs attention`;
+    if (!data.due_date) return t('notifications.onboardingNeedsAttention', { what, who });
 
     const today = new Date().toISOString().slice(0, 10);
 
-    if (data.due_date < today) return `${what}${who} is overdue since ${data.due_date}`;
-    if (data.due_date === today) return `${what}${who} is due today`;
+    if (data.due_date < today) return t('notifications.onboardingOverdue', { what, who, date: data.due_date });
+    if (data.due_date === today) return t('notifications.onboardingDueToday', { what, who });
 
-    return `${what}${who} is due ${data.due_date}`;
+    return t('notifications.onboardingDueOn', { what, who, date: data.due_date });
 }
 
 const SECTION_BY_TYPE = {

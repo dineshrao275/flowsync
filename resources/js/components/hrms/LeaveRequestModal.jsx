@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import api, { fieldErrors } from '../../services/api';
 import Alert from '../ui/Alert';
 import Button from '../ui/Button';
@@ -6,14 +7,25 @@ import Input from '../ui/Input';
 import Modal from '../ui/Modal';
 import Select from '../ui/Select';
 import { useToast } from '../../context/ToastContext';
+import i18n, { intlTag } from '../../i18n';
 
 const HALVES = [
-    { value: 'full', label: 'Full day' },
-    { value: 'first_half', label: 'First half' },
-    { value: 'second_half', label: 'Second half' },
+    { value: 'full', key: 'halfFull' },
+    { value: 'first_half', key: 'halfFirst' },
+    { value: 'second_half', key: 'halfSecond' },
 ];
 
-const WEEKDAYS = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
+/**
+ * Single-letter Monday-first weekday initials in the interface language.
+ */
+function weekdayInitials() {
+    const tag = intlTag(i18n.language);
+
+    return Array.from(
+        { length: 7 },
+        (_, i) => new Date(2024, 0, 1 + i).toLocaleDateString(tag, { weekday: 'narrow' }),
+    );
+}
 
 /**
  * A mini month grid showing who else is away on each date.
@@ -53,8 +65,8 @@ function TeamMiniCalendar({ year, month, days }) {
     return (
         <div>
             <div className="mb-1 grid grid-cols-7 gap-0.5">
-                {WEEKDAYS.map((day, i) => (
-                    <span key={i} className="text-center text-[11px] font-medium text-gray-400">
+                {weekdayInitials().map((day, i) => (
+                    <span key={i} className="text-center text-xs font-medium text-gray-400">
                         {day}
                     </span>
                 ))}
@@ -75,6 +87,7 @@ function TeamMiniCalendar({ year, month, days }) {
  * without it the ask files for the caller.
  */
 export default function LeaveRequestModal({ open, onClose, onSaved, employeeId = null, employees = null, types = [] }) {
+    const { t } = useTranslation();
     const toast = useToast();
 
     const [form, setForm] = useState({ employee_id: '', leave_type_id: '', from_date: '', to_date: '', from_half: 'full', to_half: 'full', reason: '', contact_during_leave: '' });
@@ -169,7 +182,7 @@ export default function LeaveRequestModal({ open, onClose, onSaved, employeeId =
         try {
             await api.post('/hrms/leave/requests', payload);
 
-            toast.success('Leave requested. Your manager will review it.');
+            toast.success(t('hrms.leaveModal.requested'));
             onSaved();
         } catch (err) {
             setFormErrors(fieldErrors(err));
@@ -182,12 +195,12 @@ export default function LeaveRequestModal({ open, onClose, onSaved, employeeId =
     const calendarMonth = form.from_date ? Number(form.from_date.split('-')[1]) : new Date().getMonth() + 1;
 
     return (
-        <Modal open={open} onClose={onClose} title="Request leave" size="lg">
+        <Modal open={open} onClose={onClose} title={t('hrms.leaveModal.title')} size="lg">
             <form onSubmit={submit} className="space-y-3 px-6 py-5">
                 <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                     {employees && (
-                        <Select label="Employee" value={form.employee_id} onChange={set('employee_id')} error={formErrors.employee_id}>
-                            <option value="">Myself</option>
+                        <Select label={t('hrms.leaveModal.employee')} value={form.employee_id} onChange={set('employee_id')} error={formErrors.employee_id}>
+                            <option value="">{t('hrms.leaveModal.myself')}</option>
                             {employees.map((employee) => (
                                 <option key={employee.id} value={employee.id}>
                                     {employee.name}
@@ -195,44 +208,44 @@ export default function LeaveRequestModal({ open, onClose, onSaved, employeeId =
                             ))}
                         </Select>
                     )}
-                    <Select label="Leave type" value={form.leave_type_id} onChange={set('leave_type_id')} error={formErrors.leave_type_id}>
-                        <option value="">Select a type…</option>
+                    <Select label={t('hrms.leaveModal.leaveType')} value={form.leave_type_id} onChange={set('leave_type_id')} error={formErrors.leave_type_id}>
+                        <option value="">{t('hrms.leaveModal.selectType')}</option>
                         {types.map((type) => (
                             <option key={type.id} value={type.id}>
                                 {type.name}
                             </option>
                         ))}
                     </Select>
-                    <Input type="date" label="From" value={form.from_date} onChange={set('from_date')} error={formErrors.from_date} />
-                    <Input type="date" label="To" value={form.to_date} onChange={set('to_date')} error={formErrors.to_date} />
-                    <Select label="First day" value={form.from_half} onChange={set('from_half')} error={formErrors.from_half}>
+                    <Input type="date" label={t('hrms.leaveModal.from')} value={form.from_date} onChange={set('from_date')} error={formErrors.from_date} />
+                    <Input type="date" label={t('hrms.leaveModal.to')} value={form.to_date} onChange={set('to_date')} error={formErrors.to_date} />
+                    <Select label={t('hrms.leaveModal.firstDay')} value={form.from_half} onChange={set('from_half')} error={formErrors.from_half}>
                         {HALVES.map((half) => (
                             <option key={half.value} value={half.value}>
-                                {half.label}
+                                {t(`hrms.leaveModal.${half.key}`)}
                             </option>
                         ))}
                     </Select>
-                    <Select label="Last day" value={form.to_half} onChange={set('to_half')} error={formErrors.to_half}>
+                    <Select label={t('hrms.leaveModal.lastDay')} value={form.to_half} onChange={set('to_half')} error={formErrors.to_half}>
                         {HALVES.map((half) => (
                             <option key={half.value} value={half.value}>
-                                {half.label}
+                                {t(`hrms.leaveModal.${half.key}`)}
                             </option>
                         ))}
                     </Select>
                 </div>
 
-                <Input label="Reason" value={form.reason} onChange={set('reason')} error={formErrors.reason} placeholder="A short break…" />
-                <Input label="Contact while away (optional)" value={form.contact_during_leave} onChange={set('contact_during_leave')} error={formErrors.contact_during_leave} />
+                <Input label={t('hrms.leaveModal.reason')} value={form.reason} onChange={set('reason')} error={formErrors.reason} placeholder={t('hrms.leaveModal.reasonPlaceholder')} />
+                <Input label={t('hrms.leaveModal.contact')} value={form.contact_during_leave} onChange={set('contact_during_leave')} error={formErrors.contact_during_leave} />
 
                 {quote && (
                     <div className={`rounded-lg border px-3 py-2 text-sm ${shortfall ? 'border-amber-200 bg-amber-50 text-amber-800' : 'border-gray-200 bg-gray-50 text-gray-600'}`}>
-                        {quote.total_days} day{quote.total_days === 1 ? '' : 's'} requested · {quote.available_days} free
-                        {shortfall && ` · short by ${quote.shortfall_days} — filing will be refused until the balance covers it`}
+                        {t('hrms.leaveModal.quote', { total: quote.total_days, free: quote.available_days })}
+                        {shortfall && ` ${t('hrms.leaveModal.quoteShort', { short: quote.shortfall_days })}`}
                     </div>
                 )}
 
                 <div>
-                    <p className="mb-1.5 text-sm font-medium text-gray-700">Team cover that month</p>
+                    <p className="mb-1.5 text-sm font-medium text-gray-700">{t('hrms.leaveModal.teamCover')}</p>
                     <TeamMiniCalendar year={calendarYear} month={calendarMonth} days={teamDays} />
                 </div>
 
@@ -240,10 +253,10 @@ export default function LeaveRequestModal({ open, onClose, onSaved, employeeId =
 
                 <div className="flex justify-end gap-2">
                     <Button type="button" variant="secondary" onClick={onClose}>
-                        Cancel
+                        {t('hrms.leaveModal.cancel')}
                     </Button>
                     <Button type="submit" disabled={saving}>
-                        {saving ? 'Sending…' : 'Send request'}
+                        {saving ? t('hrms.leaveModal.sending') : t('hrms.leaveModal.send')}
                     </Button>
                 </div>
             </form>

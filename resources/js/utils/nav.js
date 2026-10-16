@@ -69,13 +69,13 @@ const ICONS = {
 // One icon per HRMS hub group: the rail lists ~30 tabs, and per-tab artwork
 // would be a second icon catalog to keep in step with hrmsNav.js.
 const GROUP_ICONS = {
-    Overview: ICONS.grid,
-    Workforce: ICONS.users,
-    Time: ICONS.clock,
-    'Pay & benefits': ICONS.subscription,
-    Performance: ICONS.chart,
-    Records: ICONS.archive,
-    Insight: ICONS.search,
+    'nav.groups.overview': ICONS.grid,
+    'nav.groups.workforce': ICONS.users,
+    'nav.groups.time': ICONS.clock,
+    'nav.groups.pay': ICONS.subscription,
+    'nav.groups.performance': ICONS.chart,
+    'nav.groups.records': ICONS.archive,
+    'nav.groups.insight': ICONS.search,
 };
 
 /** HRMS hub tabs as collapsible sidebar sections, in HRMS_NAV order. */
@@ -97,9 +97,9 @@ function hrmsGroups() {
 
     // My HR is self-service HR, not a hub tab — but it belongs to this shell,
     // not the task shell, so it leads the Overview group.
-    sections.find((section) => section.label === 'Overview')?.items.unshift({
+    sections.find((section) => section.label === 'nav.groups.overview')?.items.unshift({
         to: '/my',
-        label: 'My HR',
+        label: 'nav.hrms.myHr',
         capabilities: ['module:hrms.core'],
         icon: ICONS.myHr,
     });
@@ -108,44 +108,44 @@ function hrmsGroups() {
 }
 
 const SHARED_ADMIN = [
-    { to: '/users', label: 'Users', capabilities: ['users.view'], icon: ICONS.users },
-    { to: '/roles', label: 'Roles', capabilities: ['roles.view'], icon: ICONS.roles },
-    { to: '/settings', label: 'Settings', capabilities: ['settings.view'], icon: ICONS.settings },
-    { to: '/security', label: 'Security', icon: ICONS.security },
+    { to: '/users', label: 'nav.admin.users', capabilities: ['users.view'], icon: ICONS.users },
+    { to: '/roles', label: 'nav.admin.roles', capabilities: ['roles.view'], icon: ICONS.roles },
+    { to: '/settings', label: 'nav.admin.settings', capabilities: ['settings.view'], icon: ICONS.settings },
+    { to: '/security', label: 'nav.admin.security', icon: ICONS.security },
 ];
 
 const SHARED_BILLING = [
-    { to: '/subscription', label: 'Subscription', capabilities: ['billing.view'], icon: ICONS.subscription },
-    { to: '/support', label: 'Support', capabilities: ['support.manage'], icon: ICONS.support },
-    { to: '/export', label: 'Data Export', capabilities: ['module:export.full', 'billing.view'], icon: ICONS.dataExport },
+    { to: '/subscription', label: 'nav.admin.subscription', capabilities: ['billing.view'], icon: ICONS.subscription },
+    { to: '/support', label: 'nav.admin.support', capabilities: ['support.manage'], icon: ICONS.support },
+    { to: '/export', label: 'nav.admin.dataExport', capabilities: ['module:export.full', 'billing.view'], icon: ICONS.dataExport },
 ];
 
 export const tmsSections = [
     {
-        label: 'Main',
+        label: 'nav.groups.main',
         items: [
-            { to: '/dashboard', label: 'Dashboard', capabilities: ['dashboard.view', 'product:tms'], icon: ICONS.dashboard },
-            { to: '/workspaces', label: 'Workspaces', capabilities: ['workspaces.view', 'product:tms'], icon: ICONS.workspaces },
-            { to: '/projects', label: 'Projects', capabilities: ['workspaces.view', 'product:tms'], icon: ICONS.projects },
-            { to: '/search', label: 'Search', capabilities: ['workspaces.view', 'product:tms', 'module:global_search'], icon: ICONS.search },
+            { to: '/dashboard', label: 'nav.tms.dashboard', capabilities: ['dashboard.view', 'product:tms'], icon: ICONS.dashboard },
+            { to: '/workspaces', label: 'nav.tms.workspaces', capabilities: ['workspaces.view', 'product:tms'], icon: ICONS.workspaces },
+            { to: '/projects', label: 'nav.tms.projects', capabilities: ['workspaces.view', 'product:tms'], icon: ICONS.projects },
+            { to: '/search', label: 'nav.tms.search', capabilities: ['workspaces.view', 'product:tms', 'module:global_search'], icon: ICONS.search },
         ],
     },
     {
-        label: 'Insights',
+        label: 'nav.groups.insights',
         items: [
-            { to: '/reports', label: 'Reports', capabilities: ['reports.view', 'product:tms', 'module:reports'], icon: ICONS.reports },
+            { to: '/reports', label: 'nav.tms.reports', capabilities: ['reports.view', 'product:tms', 'module:reports'], icon: ICONS.reports },
         ],
     },
     {
-        label: 'Administration',
+        label: 'nav.groups.administration',
         items: [
             ...SHARED_ADMIN.slice(0, 2),
-            { to: '/webhooks', label: 'Webhooks', capabilities: ['webhooks.manage', 'module:webhooks'], icon: ICONS.webhooks },
+            { to: '/webhooks', label: 'nav.tms.webhooks', capabilities: ['webhooks.manage', 'module:webhooks'], icon: ICONS.webhooks },
             ...SHARED_ADMIN.slice(2),
         ],
     },
     {
-        label: 'Billing',
+        label: 'nav.groups.billing',
         items: SHARED_BILLING,
     },
 ];
@@ -153,39 +153,39 @@ export const tmsSections = [
 export const hrmsSections = [
     ...hrmsGroups(),
     {
-        label: 'Administration',
+        label: 'nav.groups.administration',
         items: SHARED_ADMIN,
     },
     {
-        label: 'Billing',
+        label: 'nav.groups.billing',
         items: SHARED_BILLING,
     },
 ];
 
 export const superAdminSections = [
     {
-        label: 'Administration',
+        label: 'nav.groups.administration',
         items: [
-            { to: '/admin', label: 'Overview', capabilities: ['tenants.view'], icon: ICONS.grid },
-            { to: '/tenants', label: 'Tenants', capabilities: ['tenants.view'], icon: Buildings },
-            { to: '/plans', label: 'Plans', capabilities: ['billing.view'], icon: FileText },
-            { to: '/admin/features', label: 'Features', capabilities: ['billing.view'], icon: Gift },
-            { to: '/admin/feature-flags', label: 'Feature flags', capabilities: ['flags.view'], icon: Flag },
-            { to: '/admin/pages', label: 'Website', capabilities: ['content.view'], icon: Globe },
-            { to: '/admin/media', label: 'Media', capabilities: ['content.view'], icon: Image },
-            { to: '/admin/site-settings', label: 'Site settings', capabilities: ['content.view'], icon: SlidersHorizontal },
-            { to: '/admin/blog', label: 'Blog', capabilities: ['content.view'], icon: Newspaper },
+            { to: '/admin', label: 'nav.platform.overview', capabilities: ['tenants.view'], icon: ICONS.grid },
+            { to: '/tenants', label: 'nav.platform.tenants', capabilities: ['tenants.view'], icon: Buildings },
+            { to: '/plans', label: 'nav.platform.plans', capabilities: ['billing.view'], icon: FileText },
+            { to: '/admin/features', label: 'nav.platform.features', capabilities: ['billing.view'], icon: Gift },
+            { to: '/admin/feature-flags', label: 'nav.platform.featureFlags', capabilities: ['flags.view'], icon: Flag },
+            { to: '/admin/pages', label: 'nav.platform.website', capabilities: ['content.view'], icon: Globe },
+            { to: '/admin/media', label: 'nav.platform.media', capabilities: ['content.view'], icon: Image },
+            { to: '/admin/site-settings', label: 'nav.platform.siteSettings', capabilities: ['content.view'], icon: SlidersHorizontal },
+            { to: '/admin/blog', label: 'nav.platform.blog', capabilities: ['content.view'], icon: Newspaper },
         ],
     },
     {
-        label: 'Platform',
+        label: 'nav.groups.platform',
         items: [
-            { to: '/admin/users', label: 'Users', capabilities: ['platform_users.view'], icon: ICONS.users },
-            { to: '/admin/support', label: 'Support', capabilities: ['support.view'], icon: ICONS.support },
-            { to: '/admin/leads', label: 'Leads', capabilities: ['leads.view'], icon: Envelope },
-            { to: '/admin/audit-logs', label: 'Audit Logs', capabilities: ['audit.view'], icon: ICONS.archive },
-            { to: '/admin/settings', label: 'Settings', capabilities: ['settings.view'], icon: ICONS.settings },
-            { to: '/security', label: 'Security', icon: ICONS.security },
+            { to: '/admin/users', label: 'nav.admin.users', capabilities: ['platform_users.view'], icon: ICONS.users },
+            { to: '/admin/support', label: 'nav.admin.support', capabilities: ['support.view'], icon: ICONS.support },
+            { to: '/admin/leads', label: 'nav.platform.leads', capabilities: ['leads.view'], icon: Envelope },
+            { to: '/admin/audit-logs', label: 'nav.platform.auditLogs', capabilities: ['audit.view'], icon: ICONS.archive },
+            { to: '/admin/settings', label: 'nav.admin.settings', capabilities: ['settings.view'], icon: ICONS.settings },
+            { to: '/security', label: 'nav.admin.security', icon: ICONS.security },
         ],
     },
 ];

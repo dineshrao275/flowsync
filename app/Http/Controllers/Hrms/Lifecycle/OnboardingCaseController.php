@@ -78,7 +78,7 @@ class OnboardingCaseController extends Controller
         );
 
         return response()->json([
-            'message' => 'Onboarding case started.',
+            'message' => __('Onboarding case started.'),
             'case' => $this->presenter->onboardingCase(
                 $case,
                 $this->onboarding->progress($case),
@@ -108,7 +108,7 @@ class OnboardingCaseController extends Controller
         $task = $this->onboarding->completeTask($task, $request->user(), $request->validated()['note'] ?? null);
 
         return response()->json([
-            'message' => 'Checklist item completed.',
+            'message' => __('Checklist item completed.'),
             'task' => $this->presenter->caseTask($task),
         ]);
     }
@@ -121,7 +121,7 @@ class OnboardingCaseController extends Controller
         $task = $this->onboarding->waiveTask($task, $request->validated()['reason'], $request->user());
 
         return response()->json([
-            'message' => 'Checklist item waived.',
+            'message' => __('Checklist item waived.'),
             'task' => $this->presenter->caseTask($task),
         ]);
     }
@@ -141,7 +141,7 @@ class OnboardingCaseController extends Controller
         // Conversion files a real project task and a bridge link row — both
         // products must be on, otherwise the answer is 422, not a 500 from a
         // missing table.
-        abort_unless(TmsSchema::present() && BridgeSchema::present(), 422, 'Converting checklist items needs both products.');
+        abort_unless(TmsSchema::present() && BridgeSchema::present(), 422, __('Converting checklist items needs both products.'));
 
         $project = Project::findOrFail((int) $request->validated()['project_id']);
         $this->authorize('createTask', $project);
@@ -149,7 +149,7 @@ class OnboardingCaseController extends Controller
         ['task' => $projectTask, 'link' => $link] = $this->conversion->convert($task, $project, $request->user(), $request->ip());
 
         return response()->json([
-            'message' => 'Checklist item converted to a project task.',
+            'message' => __('Checklist item converted to a project task.'),
             'task' => $this->presenter->caseTask($task->refresh()),
             'project_task' => ['id' => $projectTask->id, 'key' => $projectTask->key, 'title' => $projectTask->title],
             'task_link' => $this->links->present($link),
@@ -181,7 +181,7 @@ class OnboardingCaseController extends Controller
         $case = $this->onboarding->complete($case, $request->user());
 
         return response()->json([
-            'message' => 'Onboarding case completed.',
+            'message' => __('Onboarding case completed.'),
             'case' => $this->presenter->onboardingCase(
                 $case,
                 $this->onboarding->progress($case),
@@ -197,7 +197,7 @@ class OnboardingCaseController extends Controller
         $case = $this->onboarding->cancel($case, $request->user());
 
         return response()->json([
-            'message' => 'Onboarding case cancelled.',
+            'message' => __('Onboarding case cancelled.'),
             'case' => $this->presenter->onboardingCase(
                 $case,
                 $this->onboarding->progress($case),

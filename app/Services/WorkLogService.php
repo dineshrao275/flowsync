@@ -28,7 +28,7 @@ class WorkLogService
 
         if ($this->overlaps($task, $startedAt, $endedAt)) {
             throw ValidationException::withMessages([
-                'form' => 'This work log overlaps another log on the same task.',
+                'form' => __('This work log overlaps another log on the same task.'),
             ]);
         }
 
@@ -48,7 +48,7 @@ class WorkLogService
 
         if ($this->overlaps($log->task, $startedAt, $endedAt, $log->id)) {
             throw ValidationException::withMessages([
-                'form' => 'This work log overlaps another log on the same task.',
+                'form' => __('This work log overlaps another log on the same task.'),
             ]);
         }
 

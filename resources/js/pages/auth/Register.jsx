@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
 import api, { fieldErrors } from '../../services/api';
@@ -17,7 +18,8 @@ const ERROR_ALIASES = { business_name: 'name', name: 'admin_name', email: 'admin
  * Nothing is created until the final step.
  */
 export default function Register() {
-    usePageTitle('Create your workspace');
+    const { t } = useTranslation();
+    usePageTitle(t('auth.pageTitles.register'));
     const { register } = useAuth();
     const toast = useToast();
     const navigate = useNavigate();
@@ -79,7 +81,7 @@ export default function Register() {
                 start_trial: Boolean(values.start_trial),
                 payment_method: values.payment_method || undefined,
             });
-            toast.success('Workspace created. Let’s finish setup!');
+            toast.success(t('auth.register.created'));
             navigate('/onboarding', { replace: true });
         } catch (error) {
             const raw = fieldErrors(error);
@@ -91,24 +93,24 @@ export default function Register() {
 
     return (
         <AuthShell
-            title="Create your workspace"
-            subtitle="Start a free trial for your team"
+            title={t('auth.register.title')}
+            subtitle={t('auth.register.subtitle')}
             footer={
                 <span className="text-sm text-slate-500">
-                    Already have an account?{' '}
+                    {t('auth.register.haveAccount')}{' '}
                     <Link to="/login" className="font-medium text-[var(--accent-soft-text)] hover:text-[var(--accent)]">
-                        Sign in
+                        {t('auth.register.signIn')}
                     </Link>
                 </span>
             }
         >
             {closed ? (
-                <p className="text-sm text-slate-600">Self-registration is currently unavailable. Please contact us for access.</p>
+                <p className="text-sm text-slate-600">{t('auth.register.closed')}</p>
             ) : !options ? (
                 <div className="flex justify-center py-10"><Spinner /></div>
             ) : (
                 <>
-                {canceledCard && <p className="mb-3 text-sm text-amber-700">Card setup was canceled — nothing was created. You can try again.</p>}
+                {canceledCard && <p className="mb-3 text-sm text-amber-700">{t('auth.register.cardCanceled')}</p>}
                 <IntakeWizard
                     mode="register"
                     values={values}
@@ -119,7 +121,7 @@ export default function Register() {
                     errors={errors}
                     saving={submitting}
                     onSubmit={handleSubmit}
-                    submitLabel={options.require_card_for_trial && values.start_trial ? 'Continue to add a card' : 'Create workspace'}
+                    submitLabel={options.require_card_for_trial && values.start_trial ? t('auth.register.continueToCard') : t('auth.register.createWorkspace')}
                 />
                 </>
             )}

@@ -13,6 +13,7 @@ use App\Models\TaskStatusHistory;
 use App\Models\User;
 use App\Services\ActivityLogger;
 use App\Services\KeyGenerator;
+use App\Support\Realtime;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
@@ -39,10 +40,10 @@ class TaskMover
     {
         $source = $task->project;
         if ($source->id === $target->id) {
-            throw ValidationException::withMessages(['target_project_id' => 'The task is already in that project.']);
+            throw ValidationException::withMessages(['target_project_id' => __('The task is already in that project.')]);
         }
         if ($target->archived_at !== null) {
-            throw ValidationException::withMessages(['target_project_id' => 'Archived projects cannot receive tasks.']);
+            throw ValidationException::withMessages(['target_project_id' => __('Archived projects cannot receive tasks.')]);
         }
 
         $map = $this->validatedMap($target, $statusMap);
@@ -107,7 +108,7 @@ class TaskMover
 
         TaskStatusHistory::create(['task_id' => $task->id, 'from_status_id' => $oldStatusId, 'to_status_id' => $status->id, 'user_id' => $actor->id, 'changed_at' => now()]);
         $this->activity->log(Task::class, $task->id, 'task.project_changed', ['key' => $key, 'old_key' => $oldKey, 'from_project_id' => $source->id, 'to_project_id' => $target->id], $actor, $ip);
-        broadcast(new TaskSynced($task->fresh(), 'created'));
+        Realtime::send(new TaskSynced($task->fresh(), 'created'));
     }
 
     /** Same workspace keeps its labels; otherwise labels with a same-named twin in the target workspace carry over. */
@@ -166,7 +167,7 @@ class TaskMover
         $map = [];
         foreach ($statusMap as $from => $to) {
             if (! in_array((int) $to, $valid, true)) {
-                throw ValidationException::withMessages(['status_map' => 'Every mapped status must belong to the target project.']);
+                throw ValidationException::withMessages(['status_map' => __('Every mapped status must belong to the target project.')]);
             }
             $map[(int) $from] = (int) $to;
         }

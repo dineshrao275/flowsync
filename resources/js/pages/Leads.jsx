@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import api from '../services/api';
 import Card from '../components/ui/Card';
 import Badge from '../components/ui/Badge';
@@ -12,10 +13,12 @@ import { useConfirm } from '../components/ui/ConfirmDialog';
 import usePageTitle from '../hooks/usePageTitle';
 import { usePaginated } from '../hooks/useResource';
 import { useSetCrumbs } from '../context/BreadcrumbContext';
+import { formatFullDateTime, formatDate } from '../utils/format';
 
 const STATUSES = ['new', 'contacted', 'qualified', 'won', 'lost'];
 
 function LeadDetail({ lead, onClose, onChanged }) {
+    const { t } = useTranslation();
     const toast = useToast();
     const confirm = useConfirm();
     const [status, setStatus] = useState(lead.status);
@@ -25,20 +28,20 @@ function LeadDetail({ lead, onClose, onChanged }) {
         setSaving(true);
         try {
             await api.put(`/system/leads/${lead.id}`, { status });
-            toast.success('Lead updated.');
+            toast.success(t('admin.leads.updated'));
             onChanged();
             onClose();
         } catch {
-            toast.error('Could not update the lead.');
+            toast.error(t('admin.leads.updateFailed'));
         } finally {
             setSaving(false);
         }
     }
 
     async function remove() {
-        if (!(await confirm({ title: 'Delete lead?', message: `Delete the request from ${lead.name}? This cannot be undone.`, variant: 'danger' }))) return;
+        if (!(await confirm({ title: t('admin.leads.deleteTitle'), message: t('admin.leads.deleteMessage', { name: lead.name }), variant: 'danger' }))) return;
         await api.delete(`/system/leads/${lead.id}`);
-        toast.success('Lead deleted.');
+        toast.success(t('admin.leads.deleted'));
         onChanged();
         onClose();
     }
@@ -49,21 +52,21 @@ function LeadDetail({ lead, onClose, onChanged }) {
                 <p className="text-gray-500">{lead.email}{lead.company ? ` · ${lead.company}` : ''}{lead.phone ? ` · ${lead.phone}` : ''}</p>
                 <p>
                     <Badge>{lead.source}</Badge>{' '}
-                    <span className="text-xs text-gray-400">{new Date(lead.created_at).toLocaleString()}</span>
+                    <span className="text-xs text-gray-400">{formatFullDateTime(lead.created_at)}</span>
                 </p>
-                {lead.plan_interest && <p className="text-gray-600">Interested in: <span className="font-medium">{lead.plan_interest}</span></p>}
+                {lead.plan_interest && <p className="text-gray-600">{t('admin.leads.interestedIn')} <span className="font-medium">{lead.plan_interest}</span></p>}
                 <div className="rounded-lg bg-gray-50 p-3 whitespace-pre-wrap text-gray-700">{lead.message}</div>
                 <div className="flex items-center gap-2">
-                    <label className="text-sm font-medium text-gray-700">Status</label>
+                    <label className="text-sm font-medium text-gray-700">{t('admin.leads.status')}</label>
                     <select value={status} onChange={(e) => setStatus(e.target.value)} className="rounded-lg border border-gray-200 px-3 py-2 text-sm">
                         {STATUSES.map((s) => (
-                            <option key={s} value={s}>{s}</option>
+                            <option key={s} value={s}>{t(`admin.leads.statuses.${s}`)}</option>
                         ))}
                     </select>
-                    <Button onClick={save} disabled={saving || status === lead.status}>{saving ? 'Saving…' : 'Save'}</Button>
+                    <Button onClick={save} disabled={saving || status === lead.status}>{saving ? t('admin.leads.saving') : t('admin.leads.save')}</Button>
                 </div>
                 <div className="flex justify-end">
-                    <button type="button" onClick={remove} className="text-xs font-medium text-red-500 hover:text-red-400">delete lead</button>
+                    <button type="button" onClick={remove} className="text-xs font-medium text-red-500 hover:text-red-400">{t('admin.leads.deleteLead')}</button>
                 </div>
             </div>
         </Modal>
@@ -71,8 +74,9 @@ function LeadDetail({ lead, onClose, onChanged }) {
 }
 
 export default function Leads() {
-    usePageTitle('Leads');
-    useSetCrumbs([{ label: 'Platform', to: '/admin' }, { label: 'Leads' }]);
+    const { t } = useTranslation();
+    usePageTitle(t('admin.leads.pageTitle'));
+    useSetCrumbs([{ label: t('admin.platform.breadcrumb'), to: '/admin' }, { label: t('admin.leads.crumb') }]);
     const [status, setStatus] = useState('');
     const [q, setQ] = useState('');
     const [detail, setDetail] = useState(null);
@@ -86,21 +90,21 @@ export default function Leads() {
     return (
         <div className="space-y-6">
             <div>
-                <h1 className="text-2xl font-bold text-gray-800">Leads</h1>
-                <p className="text-sm text-gray-500">Contact and demo requests from the marketing site.</p>
+                <h1 className="text-2xl font-bold text-gray-800">{t('admin.leads.pageTitle')}</h1>
+                <p className="text-sm text-gray-500">{t('admin.leads.subtitle')}</p>
             </div>
 
             <Card>
                 <div className="mb-4 flex max-w-xl items-end gap-3">
                     <div className="flex-1">
-                        <Input label="Search" name="q" value={q} onChange={(e) => { setQ(e.target.value); setPage(1); }} placeholder="Name, email, company" />
+                        <Input label={t('admin.leads.searchLabel')} name="q" value={q} onChange={(e) => { setQ(e.target.value); setPage(1); }} placeholder={t('admin.leads.searchPlaceholder')} />
                     </div>
                     <div>
-                        <label className="mb-1.5 block text-sm font-medium text-gray-700">Status</label>
+                        <label className="mb-1.5 block text-sm font-medium text-gray-700">{t('admin.leads.status')}</label>
                         <select value={status} onChange={(e) => { setStatus(e.target.value); setPage(1); }} className="rounded-lg border border-gray-200 px-3 py-2 text-sm">
-                            <option value="">All</option>
+                            <option value="">{t('admin.leads.all')}</option>
                             {STATUSES.map((s) => (
-                                <option key={s} value={s}>{s}</option>
+                                <option key={s} value={s}>{t(`admin.leads.statuses.${s}`)}</option>
                             ))}
                         </select>
                     </div>
@@ -108,13 +112,13 @@ export default function Leads() {
                 {loading ? (
                     <Spinner />
                 ) : (
-                    <table className="w-full text-left text-sm">
+                    <div className="overflow-x-auto"><table className="w-full text-left text-sm">
                         <thead className="text-xs uppercase tracking-wide text-gray-400">
                             <tr>
-                                <th className="pb-2 font-semibold">Lead</th>
-                                <th className="pb-2 font-semibold">Source</th>
-                                <th className="pb-2 font-semibold">Status</th>
-                                <th className="pb-2 font-semibold">Received</th>
+                                <th scope="col" className="pb-2 font-semibold">{t('admin.leads.thLead')}</th>
+                                <th scope="col" className="pb-2 font-semibold">{t('admin.leads.thSource')}</th>
+                                <th scope="col" className="pb-2 font-semibold">{t('admin.leads.thStatus')}</th>
+                                <th scope="col" className="pb-2 font-semibold">{t('admin.leads.thReceived')}</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -125,15 +129,15 @@ export default function Leads() {
                                         <p className="text-xs text-gray-400">{lead.email}{lead.company ? ` · ${lead.company}` : ''}</p>
                                     </td>
                                     <td className="py-2.5"><Badge>{lead.source}</Badge></td>
-                                    <td className="py-2.5"><Badge>{lead.status}</Badge></td>
-                                    <td className="py-2.5 text-gray-500">{new Date(lead.created_at).toLocaleDateString()}</td>
+                                    <td className="py-2.5"><Badge>{t(`admin.leads.statuses.${lead.status}`, { defaultValue: lead.status })}</Badge></td>
+                                    <td className="py-2.5 text-gray-500">{formatDate(lead.created_at)}</td>
                                 </tr>
                             ))}
                             {leads.length === 0 && (
-                                <tr><td colSpan={4} className="py-6 text-center text-gray-400">No leads yet.</td></tr>
+                                <tr><td colSpan={4} className="py-6 text-center text-gray-400">{t('admin.leads.empty')}</td></tr>
                             )}
                         </tbody>
-                    </table>
+                    </table></div>
                 )}
                 {pagination && (
                     <div className="mt-4">

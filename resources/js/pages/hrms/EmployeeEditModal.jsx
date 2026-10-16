@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { fieldErrors } from '../../services/api';
 import Alert from '../../components/ui/Alert';
 import Button from '../../components/ui/Button';
@@ -22,6 +23,7 @@ import Select from '../../components/ui/Select';
  * value back would store `p***@***` as somebody's real address.
  */
 export default function EmployeeEditModal({ employee, options, saving, onClose, onSave }) {
+    const { t } = useTranslation();
     const [form, setForm] = useState(() => initial(employee));
     const [errors, setErrors] = useState({});
 
@@ -39,15 +41,15 @@ export default function EmployeeEditModal({ employee, options, saving, onClose, 
     const typeOptions = options?.employment_types ?? [];
 
     return (
-        <Modal open title="Edit employee" subtitle={employee.display_name} onClose={onClose} size="lg">
+        <Modal open title={t('hrms.form.editTitle')} subtitle={employee.display_name} onClose={onClose} size="lg">
             <form onSubmit={submit} className="space-y-5 px-6 py-5">
                 {errors.form && <Alert>{errors.form}</Alert>}
 
                 <fieldset className="space-y-3">
-                    <legend className="text-sm font-semibold text-gray-700">Identity</legend>
+                    <legend className="text-sm font-semibold text-gray-700">{t('hrms.form.identity')}</legend>
                     <div className="grid gap-4 sm:grid-cols-2">
                         <Input
-                            label="Full name"
+                            label={t('hrms.form.fullName')}
                             value={form.name}
                             onChange={(e) => set('name', e.target.value)}
                             error={errors.name}
@@ -55,24 +57,24 @@ export default function EmployeeEditModal({ employee, options, saving, onClose, 
                             autoFocus
                         />
                         <Input
-                            label="Preferred name"
+                            label={t('hrms.form.preferredName')}
                             value={form.preferred_name}
                             onChange={(e) => set('preferred_name', e.target.value)}
                             error={errors.preferred_name}
                         />
                         <Input
-                            label="Designation"
+                            label={t('hrms.form.designation')}
                             value={form.designation}
                             onChange={(e) => set('designation', e.target.value)}
                             error={errors.designation}
                         />
                         <Select
-                            label="Employment type"
+                            label={t('hrms.form.employmentType')}
                             value={form.employment_type_id}
                             onChange={(e) => set('employment_type_id', e.target.value)}
                             error={errors.employment_type_id}
                         >
-                            <option value="">Not set</option>
+                            <option value="">{t('hrms.form.notSet')}</option>
                             {typeOptions.map((type) => (
                                 <option key={type.id} value={type.id}>
                                     {type.name}
@@ -83,31 +85,31 @@ export default function EmployeeEditModal({ employee, options, saving, onClose, 
                 </fieldset>
 
                 <fieldset className="space-y-3">
-                    <legend className="text-sm font-semibold text-gray-700">Employment</legend>
+                    <legend className="text-sm font-semibold text-gray-700">{t('hrms.form.employment')}</legend>
                     <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
                         <Input
-                            label="Joining date"
+                            label={t('hrms.form.joiningDate')}
                             type="date"
                             value={form.joining_date}
                             onChange={(e) => set('joining_date', e.target.value)}
                             error={errors.joining_date}
                         />
                         <Input
-                            label="Probation ends"
+                            label={t('hrms.form.probationEnds')}
                             type="date"
                             value={form.probation_end_date}
                             onChange={(e) => set('probation_end_date', e.target.value)}
                             error={errors.probation_end_date}
                         />
                         <Input
-                            label="Confirmed on"
+                            label={t('hrms.form.confirmedOn')}
                             type="date"
                             value={form.confirmation_date}
                             onChange={(e) => set('confirmation_date', e.target.value)}
                             error={errors.confirmation_date}
                         />
                         <Select
-                            label="Work mode"
+                            label={t('hrms.form.workMode')}
                             value={form.work_mode}
                             onChange={(e) => set('work_mode', e.target.value)}
                             error={errors.work_mode}
@@ -122,38 +124,37 @@ export default function EmployeeEditModal({ employee, options, saving, onClose, 
                 </fieldset>
 
                 <fieldset className="space-y-3">
-                    <legend className="text-sm font-semibold text-gray-700">Personal</legend>
+                    <legend className="text-sm font-semibold text-gray-700">{t('hrms.form.personal')}</legend>
 
                     {employee.restricted && (
                         <p className="rounded-lg bg-amber-50 px-3 py-2 text-xs text-amber-800">
-                            You cannot see this record&rsquo;s personal fields, so they are left out of this form
-                            rather than sent back as whatever the server masked them to.
+                            {t('hrms.form.restrictedNote')}
                         </p>
                     )}
 
                     <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
                         <Input
-                            label="Personal email"
+                            label={t('hrms.form.personalEmail')}
                             type="email"
                             value={form.personal_email}
                             onChange={(e) => set('personal_email', e.target.value)}
                             error={errors.personal_email}
                         />
                         <Input
-                            label="Phone"
+                            label={t('hrms.form.phone')}
                             value={form.phone}
                             onChange={(e) => set('phone', e.target.value)}
                             error={errors.phone}
                         />
                         <Input
-                            label="Date of birth"
+                            label={t('hrms.form.dob')}
                             type="date"
                             value={form.date_of_birth}
                             onChange={(e) => set('date_of_birth', e.target.value)}
                             error={errors.date_of_birth}
                         />
                         <Input
-                            label="Nationality"
+                            label={t('hrms.form.nationality')}
                             value={form.nationality}
                             onChange={(e) => set('nationality', e.target.value)}
                             error={errors.nationality}
@@ -162,22 +163,22 @@ export default function EmployeeEditModal({ employee, options, saving, onClose, 
                 </fieldset>
 
                 <fieldset className="space-y-3">
-                    <legend className="text-sm font-semibold text-gray-700">Emergency contact</legend>
+                    <legend className="text-sm font-semibold text-gray-700">{t('hrms.form.emergency')}</legend>
                     <div className="grid gap-4 sm:grid-cols-3">
                         <Input
-                            label="Name"
+                            label={t('hrms.form.emergencyName')}
                             value={form.emergency_contact_name}
                             onChange={(e) => set('emergency_contact_name', e.target.value)}
                             error={errors.emergency_contact_name}
                         />
                         <Input
-                            label="Phone"
+                            label={t('hrms.form.emergencyPhone')}
                             value={form.emergency_contact_phone}
                             onChange={(e) => set('emergency_contact_phone', e.target.value)}
                             error={errors.emergency_contact_phone}
                         />
                         <Input
-                            label="Relation"
+                            label={t('hrms.form.emergencyRelation')}
                             value={form.emergency_contact_relation}
                             onChange={(e) => set('emergency_contact_relation', e.target.value)}
                             error={errors.emergency_contact_relation}
@@ -187,10 +188,10 @@ export default function EmployeeEditModal({ employee, options, saving, onClose, 
 
                 <div className="flex justify-end gap-2 border-t border-gray-200 pt-4">
                     <Button type="button" variant="secondary" onClick={onClose}>
-                        Cancel
+                        {t('hrms.form.cancel')}
                     </Button>
                     <Button type="submit" disabled={saving}>
-                        {saving ? 'Saving…' : 'Save changes'}
+                        {saving ? t('hrms.form.saving') : t('hrms.form.saveChanges')}
                     </Button>
                 </div>
             </form>

@@ -1,5 +1,6 @@
 import { useRef, useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import api, { fieldErrors } from '../../services/api';
 import Button from '../../components/ui/Button';
 import Input from '../../components/ui/Input';
@@ -9,7 +10,8 @@ import useErrorFocus from '../../hooks/useErrorFocus';
 import usePageTitle from '../../hooks/usePageTitle';
 
 export default function ResetPassword() {
-    usePageTitle('Reset password');
+    const { t } = useTranslation();
+    usePageTitle(t('auth.pageTitles.reset'));
     const [searchParams] = useSearchParams();
     const emailParam = searchParams.get('email') || '';
     const token = searchParams.get('token') || '';
@@ -47,18 +49,18 @@ export default function ResetPassword() {
 
     return (
         <AuthShell
-            title="Choose a new password"
-            subtitle="Enter your new password below"
+            title={t('auth.reset.title')}
+            subtitle={t('auth.reset.subtitle')}
             footer={
                 <Link to="/login" className="font-medium text-[var(--accent-soft-text)] hover:text-[var(--accent)]">
-                    Back to sign in
+                    {t('auth.reset.backToSignIn')}
                 </Link>
             }
         >
             <form ref={formRef} onSubmit={handleSubmit} className="space-y-4" noValidate>
                 <Alert>{errors.form}</Alert>
                 <Input
-                    label="Email address"
+                    label={t('auth.reset.email')}
                     name="email"
                     type="email"
                     autoComplete="email"
@@ -68,29 +70,29 @@ export default function ResetPassword() {
                     error={errors.email}
                 />
                 <Input
-                    label="New password"
+                    label={t('auth.reset.newPassword')}
                     name="password"
                     type="password"
                     autoComplete="new-password"
                     required
-                    placeholder="At least 8 characters"
+                    placeholder={t('auth.reset.newPasswordPlaceholder')}
                     value={form.password}
                     onChange={(e) => update('password', e.target.value)}
                     error={errors.password}
                 />
                 <Input
-                    label="Confirm password"
+                    label={t('auth.reset.confirmPassword')}
                     name="password_confirmation"
                     type="password"
                     autoComplete="new-password"
                     required
-                    placeholder="Repeat password"
+                    placeholder={t('auth.reset.confirmPlaceholder')}
                     value={form.password_confirmation}
                     onChange={(e) => update('password_confirmation', e.target.value)}
                     error={errors.password_confirmation}
                 />
                 <Button type="submit" className="w-full" loading={submitting}>
-                    Reset password
+                    {t('auth.reset.resetPassword')}
                 </Button>
             </form>
         </AuthShell>

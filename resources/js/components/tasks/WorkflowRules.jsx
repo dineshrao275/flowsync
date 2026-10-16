@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import api, { fieldErrors } from '../../services/api';
 import Card from '../ui/Card';
 import Button from '../ui/Button';
@@ -10,6 +11,7 @@ const key = (from, to) => `${from ?? 'any'}>${to}`;
 
 /** Allowed status transitions (an optional allow-list) and what a task needs to enter each status. */
 export default function WorkflowRules({ projectId, onSaved }) {
+    const { t } = useTranslation();
     const toast = useToast();
     const [data, setData] = useState(null);
     const [enforce, setEnforce] = useState(false);
@@ -26,7 +28,7 @@ export default function WorkflowRules({ projectId, onSaved }) {
     }), [projectId]);
     useEffect(() => { load(); }, [load]);
 
-    if (!data) return <Card title="Workflow rules"><Spinner /></Card>;
+    if (!data) return <Card title={t('tms.workflow.title')}><Spinner /></Card>;
 
     const toggle = (from, to) => setAllowed((cur) => { const next = new Set(cur); const k = key(from, to); next.has(k) ? next.delete(k) : next.add(k); return next; });
     const toggleRule = (statusId, rule) => setRules((cur) => ({ ...cur, [statusId]: cur[statusId].includes(rule) ? cur[statusId].filter((r) => r !== rule) : [...cur[statusId], rule] }));
@@ -39,29 +41,29 @@ export default function WorkflowRules({ projectId, onSaved }) {
                 transitions: [...allowed].map((k) => { const [f, t] = k.split('>'); return { from_status_id: f === 'any' ? null : Number(f), to_status_id: Number(t) }; }),
                 entry_rules: rules,
             });
-            toast.success('Workflow saved.');
+            toast.success(t('tms.workflow.saved'));
             onSaved?.();
             load();
-        } catch (e) { setError(fieldErrors(e).transitions || fieldErrors(e).form || 'Could not save the workflow.'); } finally { setSaving(false); }
+        } catch (e) { setError(fieldErrors(e).transitions || fieldErrors(e).form || t('tms.workflow.saveFailed')); } finally { setSaving(false); }
     }
 
     return (
-        <Card title="Workflow rules" subtitle="Optionally restrict which status a task can move to, and what it needs before entering one.">
+        <Card title={t('tms.workflow.title')} subtitle={t('tms.workflow.subtitle')}>
             <label className="mb-4 flex items-center gap-2 text-sm font-medium text-gray-800">
                 <input type="checkbox" checked={enforce} onChange={(e) => setEnforce(e.target.checked)} />
-                Enforce this workflow (when off, any status can move to any status)
+                {t('tms.workflow.enforce')}
             </label>
 
             <div className="overflow-x-auto">
                 <table className="min-w-full text-sm">
                     <thead>
                         <tr className="text-left text-xs uppercase tracking-wide text-gray-500">
-                            <th className="px-2 py-1.5">From ↓ / To →</th>
-                            {data.statuses.map((s) => <th key={s.id} className="px-2 py-1.5">{s.name}</th>)}
+                            <th scope="col" className="px-2 py-1.5">{t('tms.workflow.matrixCorner')}</th>
+                            {data.statuses.map((s) => <th scope="col" key={s.id} className="px-2 py-1.5">{s.name}</th>)}
                         </tr>
                     </thead>
                     <tbody>
-                        {[{ id: null, name: 'Any status' }, ...data.statuses].map((from) => (
+                        {[{ id: null, name: t('tms.workflow.anyStatus') }, ...data.statuses].map((from) => (
                             <tr key={from.id ?? 'any'} className="border-t border-gray-100">
                                 <td className="px-2 py-1.5 font-medium text-gray-800">{from.name}</td>
                                 {data.statuses.map((to) => (
@@ -77,14 +79,14 @@ export default function WorkflowRules({ projectId, onSaved }) {
                 </table>
             </div>
 
-            <h4 className="mb-2 mt-5 text-sm font-semibold text-gray-900">Entry requirements</h4>
+            <h4 className="mb-2 mt-5 text-sm font-semibold text-gray-900">{t('tms.workflow.entryTitle')}</h4>
             <div className="space-y-2">
                 {data.statuses.map((s) => (
                     <div key={s.id} className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm">
                         <span className="w-32 font-medium text-gray-800">{s.name}</span>
                         {Object.entries(data.entry_rule_catalog).map(([rule, label]) => (
                             <label key={rule} className="flex items-center gap-1.5 text-gray-600">
-                                <input type="checkbox" checked={(rules[s.id] || []).includes(rule)} onChange={() => toggleRule(s.id, rule)} /> needs {label}
+                                <input type="checkbox" checked={(rules[s.id] || []).includes(rule)} onChange={() => toggleRule(s.id, rule)} /> {t('tms.workflow.needs', { label })}
                             </label>
                         ))}
                     </div>
@@ -92,7 +94,7 @@ export default function WorkflowRules({ projectId, onSaved }) {
             </div>
 
             <Alert>{error}</Alert>
-            <div className="mt-4"><Button onClick={save} loading={saving}>Save workflow</Button></div>
+            <div className="mt-4"><Button onClick={save} loading={saving}>{t('tms.workflow.save')}</Button></div>
         </Card>
     );
 }

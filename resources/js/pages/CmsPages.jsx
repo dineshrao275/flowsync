@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import api, { fieldErrors } from '../services/api';
 import Card from '../components/ui/Card';
 import Badge from '../components/ui/Badge';
@@ -35,6 +36,7 @@ const BLOCK_TYPES = ['hero', 'logo_cloud', 'features', 'split', 'steps', 'stats'
 // Media id ↔ picker object bridge: blocks store the id, the picker needs the
 // row. Hydrated once per id; a deleted image resolves to null (unpicked).
 function ImageField({ mediaId, onChange }) {
+    const { t } = useTranslation();
     const [media, setMedia] = useState(null);
 
     useEffect(() => {
@@ -49,7 +51,7 @@ function ImageField({ mediaId, onChange }) {
         return () => { live = false; };
     }, [mediaId]);
 
-    return <MediaPicker label="Image" value={media} onSelect={(m) => onChange(m?.id ?? null)} />;
+    return <MediaPicker label={t('admin.cmsPages.image')} value={media} onSelect={(m) => onChange(m?.id ?? null)} />;
 }
 
 function textInput(value, onChange, placeholder) {
@@ -64,6 +66,7 @@ function textInput(value, onChange, placeholder) {
 }
 
 function BlockEditor({ blocks, onChange }) {
+    const { t } = useTranslation();
 
     function update(i, patch) {
         const next = blocks.map((b, idx) => (idx === i ? { ...b, ...patch } : b));
@@ -102,14 +105,14 @@ function BlockEditor({ blocks, onChange }) {
                     <input
                         value={b.heading || ''}
                         onChange={(e) => update(i, { heading: e.target.value })}
-                        placeholder="Heading"
+                        placeholder={t('admin.cmsPages.headingPlaceholder')}
                         className="mb-2 w-full rounded border border-gray-200 px-2 py-1.5 text-sm outline-none focus:border-[var(--accent)]"
                     />
                     {b.type === 'hero' && (
                         <input
                             value={b.subtext || ''}
                             onChange={(e) => update(i, { subtext: e.target.value })}
-                            placeholder="Subtext"
+                            placeholder={t('admin.cmsPages.subtextPlaceholder')}
                             className="mb-2 w-full rounded border border-gray-200 px-2 py-1.5 text-sm outline-none focus:border-[var(--accent)]"
                         />
                     )}
@@ -117,7 +120,7 @@ function BlockEditor({ blocks, onChange }) {
                         <textarea
                             value={b.body || ''}
                             onChange={(e) => update(i, { body: e.target.value })}
-                            placeholder="Body (paragraphs separated by blank lines)"
+                            placeholder={t('admin.cmsPages.bodyPlaceholder')}
                             rows={3}
                             className="w-full rounded border border-gray-200 px-2 py-1.5 text-sm outline-none focus:border-[var(--accent)]"
                         />
@@ -126,14 +129,14 @@ function BlockEditor({ blocks, onChange }) {
                         <RichTextEditor
                             value={b.html || ''}
                             onChange={(html) => update(i, { html })}
-                            placeholder="Formatted body (headings, lists, links…)"
+                            placeholder={t('admin.cmsPages.richtextPlaceholder')}
                         />
                     )}
                     {b.type === 'cta' && (
                         <input
                             value={b.text || ''}
                             onChange={(e) => update(i, { text: e.target.value })}
-                            placeholder="Supporting text"
+                            placeholder={t('admin.cmsPages.supportingTextPlaceholder')}
                             className="mb-2 w-full rounded border border-gray-200 px-2 py-1.5 text-sm outline-none focus:border-[var(--accent)]"
                         />
                     )}
@@ -142,14 +145,14 @@ function BlockEditor({ blocks, onChange }) {
                             <input
                                 value={b.eyebrow || ''}
                                 onChange={(e) => update(i, { eyebrow: e.target.value })}
-                                placeholder="Eyebrow (small pill label)"
+                                placeholder={t('admin.cmsPages.eyebrowPlaceholder')}
                                 className="rounded border border-gray-200 px-2 py-1.5 text-sm outline-none focus:border-[var(--accent)]"
                             />
                             {b.type !== 'split' && (
                                 <input
                                     value={b.lead || ''}
                                     onChange={(e) => update(i, { lead: e.target.value })}
-                                    placeholder="Lead paragraph"
+                                    placeholder={t('admin.cmsPages.leadPlaceholder')}
                                     className="rounded border border-gray-200 px-2 py-1.5 text-sm outline-none focus:border-[var(--accent)]"
                                 />
                             )}
@@ -171,13 +174,13 @@ function BlockEditor({ blocks, onChange }) {
                                             const logos = b.logos.map((it, idx) => (idx === j ? { ...it, name: e.target.value } : it));
                                             update(i, { logos });
                                         }}
-                                        placeholder="Company name (when no logo image)"
+                                        placeholder={t('admin.cmsPages.companyNamePlaceholder')}
                                         className="flex-1 rounded border border-gray-200 px-2 py-1.5 text-sm"
                                     />
                                     <button type="button" onClick={() => update(i, { logos: b.logos.filter((_, idx) => idx !== j) })} className="text-red-400">✕</button>
                                 </div>
                             ))}
-                            <Button type="button" variant="ghost" onClick={() => update(i, { logos: [...(b.logos || []), { name: '', media_id: null }] })}>+ logo</Button>
+                            <Button type="button" variant="ghost" onClick={() => update(i, { logos: [...(b.logos || []), { name: '', media_id: null }] })}>{t('admin.cmsPages.addLogo')}</Button>
                         </div>
                     )}
                     {b.type === 'stats' && (
@@ -190,7 +193,7 @@ function BlockEditor({ blocks, onChange }) {
                                             const items = b.items.map((it, idx) => (idx === j ? { ...it, value: e.target.value } : it));
                                             update(i, { items });
                                         }}
-                                        placeholder="Value (e.g. 99.99%)"
+                                        placeholder={t('admin.cmsPages.statValuePlaceholder')}
                                         className="w-1/3 rounded border border-gray-200 px-2 py-1.5 text-sm"
                                     />
                                     <input
@@ -199,13 +202,13 @@ function BlockEditor({ blocks, onChange }) {
                                             const items = b.items.map((it, idx) => (idx === j ? { ...it, label: e.target.value } : it));
                                             update(i, { items });
                                         }}
-                                        placeholder="Label"
+                                        placeholder={t('admin.cmsPages.labelPlaceholder')}
                                         className="flex-1 rounded border border-gray-200 px-2 py-1.5 text-sm"
                                     />
                                     <button type="button" onClick={() => update(i, { items: b.items.filter((_, idx) => idx !== j) })} className="text-red-400">✕</button>
                                 </div>
                             ))}
-                            <Button type="button" variant="ghost" onClick={() => update(i, { items: [...(b.items || []), { value: '', label: '' }] })}>+ stat</Button>
+                            <Button type="button" variant="ghost" onClick={() => update(i, { items: [...(b.items || []), { value: '', label: '' }] })}>{t('admin.cmsPages.addStat')}</Button>
                         </div>
                     )}
                     {b.type === 'steps' && (
@@ -218,7 +221,7 @@ function BlockEditor({ blocks, onChange }) {
                                             const items = b.items.map((it, idx) => (idx === j ? { ...it, title: e.target.value } : it));
                                             update(i, { items });
                                         }}
-                                        placeholder="Step title"
+                                        placeholder={t('admin.cmsPages.stepTitlePlaceholder')}
                                         className="w-1/3 rounded border border-gray-200 px-2 py-1.5 text-sm"
                                     />
                                     <input
@@ -227,13 +230,13 @@ function BlockEditor({ blocks, onChange }) {
                                             const items = b.items.map((it, idx) => (idx === j ? { ...it, text: e.target.value } : it));
                                             update(i, { items });
                                         }}
-                                        placeholder="What happens"
+                                        placeholder={t('admin.cmsPages.whatHappensPlaceholder')}
                                         className="flex-1 rounded border border-gray-200 px-2 py-1.5 text-sm"
                                     />
                                     <button type="button" onClick={() => update(i, { items: b.items.filter((_, idx) => idx !== j) })} className="text-red-400">✕</button>
                                 </div>
                             ))}
-                            <Button type="button" variant="ghost" onClick={() => update(i, { items: [...(b.items || []), { title: '', text: '' }] })}>+ step</Button>
+                            <Button type="button" variant="ghost" onClick={() => update(i, { items: [...(b.items || []), { title: '', text: '' }] })}>{t('admin.cmsPages.addStep')}</Button>
                         </div>
                     )}
                     {b.type === 'split' && (
@@ -241,14 +244,14 @@ function BlockEditor({ blocks, onChange }) {
                             <textarea
                                 value={b.body || ''}
                                 onChange={(e) => update(i, { body: e.target.value })}
-                                placeholder="Supporting paragraph"
+                                placeholder={t('admin.cmsPages.supportingParagraphPlaceholder')}
                                 rows={3}
                                 className="w-full rounded border border-gray-200 px-2 py-1.5 text-sm outline-none focus:border-[var(--accent)]"
                             />
                             <ImageField mediaId={b.media_id} onChange={(media_id) => update(i, { media_id })} />
                             <label className="flex items-center gap-2 text-sm text-gray-700">
                                 <input type="checkbox" checked={!!b.flip} onChange={(e) => update(i, { flip: e.target.checked })} className="h-4 w-4 rounded border-gray-300 accent-[var(--accent)]" />
-                                Image on the left
+                                {t('admin.cmsPages.imageOnLeft')}
                             </label>
                         </div>
                     )}
@@ -262,7 +265,7 @@ function BlockEditor({ blocks, onChange }) {
                                             const items = b.items.map((it, idx) => (idx === j ? { ...it, quote: e.target.value } : it));
                                             update(i, { items });
                                         }}
-                                        placeholder="Quote"
+                                        placeholder={t('admin.cmsPages.quotePlaceholder')}
                                         rows={2}
                                         className="w-full rounded border border-gray-200 px-2 py-1.5 text-sm"
                                     />
@@ -273,7 +276,7 @@ function BlockEditor({ blocks, onChange }) {
                                                 const items = b.items.map((it, idx) => (idx === j ? { ...it, name: e.target.value } : it));
                                                 update(i, { items });
                                             }}
-                                            placeholder="Name"
+                                            placeholder={t('admin.common.name')}
                                             className="w-1/3 rounded border border-gray-200 px-2 py-1.5 text-sm"
                                         />
                                         <input
@@ -282,7 +285,7 @@ function BlockEditor({ blocks, onChange }) {
                                                 const items = b.items.map((it, idx) => (idx === j ? { ...it, role: e.target.value } : it));
                                                 update(i, { items });
                                             }}
-                                            placeholder="Role, company"
+                                            placeholder={t('admin.cmsPages.roleCompanyPlaceholder')}
                                             className="flex-1 rounded border border-gray-200 px-2 py-1.5 text-sm"
                                         />
                                         <button type="button" onClick={() => update(i, { items: b.items.filter((_, idx) => idx !== j) })} className="text-red-400">✕</button>
@@ -293,7 +296,7 @@ function BlockEditor({ blocks, onChange }) {
                                     }} />
                                 </div>
                             ))}
-                            <Button type="button" variant="ghost" onClick={() => update(i, { items: [...(b.items || []), { quote: '', name: '', role: '', media_id: null }] })}>+ testimonial</Button>
+                            <Button type="button" variant="ghost" onClick={() => update(i, { items: [...(b.items || []), { quote: '', name: '', role: '', media_id: null }] })}>{t('admin.cmsPages.addTestimonial')}</Button>
                         </div>
                     )}
                     {b.type === 'team' && (
@@ -307,7 +310,7 @@ function BlockEditor({ blocks, onChange }) {
                                                 const members = b.members.map((it, idx) => (idx === j ? { ...it, name: e.target.value } : it));
                                                 update(i, { members });
                                             }}
-                                            placeholder="Name"
+                                            placeholder={t('admin.common.name')}
                                             className="w-1/3 rounded border border-gray-200 px-2 py-1.5 text-sm"
                                         />
                                         <input
@@ -316,7 +319,7 @@ function BlockEditor({ blocks, onChange }) {
                                                 const members = b.members.map((it, idx) => (idx === j ? { ...it, role: e.target.value } : it));
                                                 update(i, { members });
                                             }}
-                                            placeholder="Role"
+                                            placeholder={t('admin.cmsPages.rolePlaceholder')}
                                             className="flex-1 rounded border border-gray-200 px-2 py-1.5 text-sm"
                                         />
                                         <button type="button" onClick={() => update(i, { members: b.members.filter((_, idx) => idx !== j) })} className="text-red-400">✕</button>
@@ -327,13 +330,13 @@ function BlockEditor({ blocks, onChange }) {
                                     }} />
                                 </div>
                             ))}
-                            <Button type="button" variant="ghost" onClick={() => update(i, { members: [...(b.members || []), { name: '', role: '', media_id: null }] })}>+ member</Button>
+                            <Button type="button" variant="ghost" onClick={() => update(i, { members: [...(b.members || []), { name: '', role: '', media_id: null }] })}>{t('admin.cmsPages.addMember')}</Button>
                         </div>
                     )}
                     {b.type === 'video' && (
                         <div className="mb-2">
-                            {textInput(b.embed_url, (embed_url) => update(i, { embed_url }), 'YouTube or Vimeo URL')}
-                            <p className="mt-1 text-xs text-gray-400">Only YouTube/Vimeo embed; anything else renders as a link.</p>
+                            {textInput(b.embed_url, (embed_url) => update(i, { embed_url }), t('admin.cmsPages.embedUrlPlaceholder'))}
+                            <p className="mt-1 text-xs text-gray-400">{t('admin.cmsPages.embedNote')}</p>
                         </div>
                     )}
                     {b.type === 'pricing' && (
@@ -343,12 +346,12 @@ function BlockEditor({ blocks, onChange }) {
                                 onChange={(e) => update(i, { product: e.target.value || null })}
                                 className="rounded border border-gray-200 px-2 py-1.5 text-sm outline-none focus:border-[var(--accent)]"
                             >
-                                <option value="">All active plans</option>
-                                <option value="suite">Suite plans</option>
-                                <option value="tms">TMS plans</option>
-                                <option value="hrms">HRMS plans</option>
+                                <option value="">{t('admin.cmsPages.allActivePlans')}</option>
+                                <option value="suite">{t('admin.cmsPages.suitePlans')}</option>
+                                <option value="tms">{t('admin.cmsPages.tmsPlans')}</option>
+                                <option value="hrms">{t('admin.cmsPages.hrmsPlans')}</option>
                             </select>
-                            <p className="self-center text-xs text-gray-400">Cards, prices, and features pull live from subscription plans.</p>
+                            <p className="self-center text-xs text-gray-400">{t('admin.cmsPages.pricingNote')}</p>
                         </div>
                     )}
                     {b.type === 'faq' && (
@@ -361,7 +364,7 @@ function BlockEditor({ blocks, onChange }) {
                                             const items = b.items.map((it, idx) => (idx === j ? { ...it, q: e.target.value } : it));
                                             update(i, { items });
                                         }}
-                                        placeholder="Question"
+                                        placeholder={t('admin.cmsPages.questionPlaceholder')}
                                         className="w-full rounded border border-gray-200 px-2 py-1.5 text-sm font-medium"
                                     />
                                     <textarea
@@ -370,16 +373,16 @@ function BlockEditor({ blocks, onChange }) {
                                             const items = b.items.map((it, idx) => (idx === j ? { ...it, a: e.target.value } : it));
                                             update(i, { items });
                                         }}
-                                        placeholder="Answer (also feeds Google's FAQ rich result)"
+                                        placeholder={t('admin.cmsPages.answerPlaceholder')}
                                         rows={2}
                                         className="w-full rounded border border-gray-200 px-2 py-1.5 text-sm"
                                     />
                                     <div className="text-right">
-                                        <button type="button" onClick={() => update(i, { items: b.items.filter((_, idx) => idx !== j) })} className="text-xs text-red-400">remove</button>
+                                        <button type="button" onClick={() => update(i, { items: b.items.filter((_, idx) => idx !== j) })} className="text-xs text-red-400">{t('admin.cmsPages.remove')}</button>
                                     </div>
                                 </div>
                             ))}
-                            <Button type="button" variant="ghost" onClick={() => update(i, { items: [...(b.items || []), { q: '', a: '' }] })}>+ question</Button>
+                            <Button type="button" variant="ghost" onClick={() => update(i, { items: [...(b.items || []), { q: '', a: '' }] })}>{t('admin.cmsPages.addQuestion')}</Button>
                         </div>
                     )}
                     {b.type === 'contact_form' && (
@@ -389,10 +392,10 @@ function BlockEditor({ blocks, onChange }) {
                                 onChange={(e) => update(i, { source: e.target.value })}
                                 className="rounded border border-gray-200 px-2 py-1.5 text-sm outline-none focus:border-[var(--accent)]"
                             >
-                                <option value="contact">Contact request</option>
-                                <option value="demo">Demo request</option>
+                                <option value="contact">{t('admin.cmsPages.contactRequest')}</option>
+                                <option value="demo">{t('admin.cmsPages.demoRequest')}</option>
                             </select>
-                            <p className="self-center text-xs text-gray-400">Submissions land in Platform → Leads.</p>
+                            <p className="self-center text-xs text-gray-400">{t('admin.cmsPages.contactFormNote')}</p>
                         </div>
                     )}
                     {b.type === 'comparison' && (
@@ -406,13 +409,13 @@ function BlockEditor({ blocks, onChange }) {
                                                 const columns = b.columns.map((c, idx) => (idx === j ? { ...c, heading: e.target.value } : c));
                                                 update(i, { columns });
                                             }}
-                                            placeholder={`Column ${j + 1}`}
+                                            placeholder={t('admin.cmsPages.columnLabel', { n: j + 1 })}
                                             className="w-full rounded border border-gray-200 px-2 py-1.5 text-sm"
                                         />
                                         <button type="button" onClick={() => update(i, { columns: b.columns.filter((_, idx) => idx !== j) })} className="text-red-400">✕</button>
                                     </div>
                                 ))}
-                                <Button type="button" variant="ghost" onClick={() => update(i, { columns: [...(b.columns || []), { heading: '' }] })}>+ column</Button>
+                                <Button type="button" variant="ghost" onClick={() => update(i, { columns: [...(b.columns || []), { heading: '' }] })}>{t('admin.cmsPages.addColumn')}</Button>
                             </div>
                             {(b.rows || []).map((row, j) => (
                                 <div key={j} className="flex gap-2">
@@ -422,7 +425,7 @@ function BlockEditor({ blocks, onChange }) {
                                             const rows = b.rows.map((r, idx) => (idx === j ? { ...r, label: e.target.value } : r));
                                             update(i, { rows });
                                         }}
-                                        placeholder="Row label"
+                                        placeholder={t('admin.cmsPages.rowLabelPlaceholder')}
                                         className="w-1/3 rounded border border-gray-200 px-2 py-1.5 text-sm"
                                     />
                                     {(b.columns || []).map((col, k) => (
@@ -435,14 +438,14 @@ function BlockEditor({ blocks, onChange }) {
                                                 const rows = b.rows.map((r, idx) => (idx === j ? { ...r, values } : r));
                                                 update(i, { rows });
                                             }}
-                                            placeholder="yes / no / text"
+                                            placeholder={t('admin.cmsPages.yesNoTextPlaceholder')}
                                             className="flex-1 rounded border border-gray-200 px-2 py-1.5 text-sm"
                                         />
                                     ))}
                                     <button type="button" onClick={() => update(i, { rows: b.rows.filter((_, idx) => idx !== j) })} className="text-red-400">✕</button>
                                 </div>
                             ))}
-                            <Button type="button" variant="ghost" onClick={() => update(i, { rows: [...(b.rows || []), { label: '', values: [] }] })}>+ row</Button>
+                            <Button type="button" variant="ghost" onClick={() => update(i, { rows: [...(b.rows || []), { label: '', values: [] }] })}>{t('admin.cmsPages.addRow')}</Button>
                         </div>
                     )}
                     {b.cta && (
@@ -450,13 +453,13 @@ function BlockEditor({ blocks, onChange }) {
                             <input
                                 value={b.cta?.label || ''}
                                 onChange={(e) => update(i, { cta: { ...b.cta, label: e.target.value } })}
-                                placeholder="Call to action label"
+                                placeholder={t('admin.cmsPages.ctaLabelPlaceholder')}
                                 className="w-1/2 rounded border border-gray-200 px-2 py-1.5 text-sm outline-none focus:border-[var(--accent)]"
                             />
                             <input
                                 value={b.cta?.href || ''}
                                 onChange={(e) => update(i, { cta: { ...b.cta, href: e.target.value } })}
-                                placeholder="Link (e.g. /app/register)"
+                                placeholder={t('admin.cmsPages.ctaLinkPlaceholder')}
                                 className="w-1/2 rounded border border-gray-200 px-2 py-1.5 text-sm outline-none focus:border-[var(--accent)]"
                             />
                         </div>
@@ -471,7 +474,7 @@ function BlockEditor({ blocks, onChange }) {
                                             const items = b.items.map((it, idx) => (idx === j ? { ...it, title: e.target.value } : it));
                                             update(i, { items });
                                         }}
-                                        placeholder="Feature title"
+                                        placeholder={t('admin.cmsPages.featureTitlePlaceholder')}
                                         className="w-1/3 rounded border border-gray-200 px-2 py-1.5 text-sm"
                                     />
                                     <input
@@ -480,20 +483,20 @@ function BlockEditor({ blocks, onChange }) {
                                             const items = b.items.map((it, idx) => (idx === j ? { ...it, text: e.target.value } : it));
                                             update(i, { items });
                                         }}
-                                        placeholder="Description"
+                                        placeholder={t('admin.cmsPages.descriptionPlaceholder')}
                                         className="flex-1 rounded border border-gray-200 px-2 py-1.5 text-sm"
                                     />
                                     <button type="button" onClick={() => update(i, { items: b.items.filter((_, idx) => idx !== j) })} className="text-red-400">✕</button>
                                 </div>
                             ))}
-                            <Button type="button" variant="ghost" onClick={() => update(i, { items: [...b.items, { title: '', text: '' }] })}>+ feature</Button>
+                            <Button type="button" variant="ghost" onClick={() => update(i, { items: [...b.items, { title: '', text: '' }] })}>{t('admin.cmsPages.addFeature')}</Button>
                         </div>
                     )}
                 </div>
             ))}
             <div className="flex flex-wrap gap-2">
-                {BLOCK_TYPES.map((t) => (
-                    <Button key={t} type="button" variant="ghost" onClick={() => add(t)}>+ {t}</Button>
+                {BLOCK_TYPES.map((type) => (
+                    <Button key={type} type="button" variant="ghost" onClick={() => add(type)}>+ {type}</Button>
                 ))}
             </div>
         </div>
@@ -501,6 +504,7 @@ function BlockEditor({ blocks, onChange }) {
 }
 
 function PageFormModal({ initial, onClose, onSave }) {
+    const { t } = useTranslation();
     const [form, setForm] = useState(initial);
     const [errors, setErrors] = useState({});
     const [saving, setSaving] = useState(false);
@@ -523,51 +527,51 @@ function PageFormModal({ initial, onClose, onSave }) {
     }
 
     return (
-        <Modal open title={initial.id ? `Edit ${initial.title}` : 'New page'} onClose={onClose} size="lg">
+        <Modal open title={initial.id ? t('admin.cmsPages.editTitle', { title: initial.title }) : t('admin.cmsPages.newPage')} onClose={onClose} size="lg">
             <form onSubmit={submit} className="space-y-4 px-6 pb-6 pt-4">
                 <div className="grid gap-4 sm:grid-cols-2">
-                    <Input label="Title" name="title" value={form.title} onChange={(e) => set('title', e.target.value)} error={errors.title?.[0]} required />
-                    <Input label="Slug" name="slug" value={form.slug} onChange={(e) => set('slug', e.target.value)} error={errors.slug?.[0]} required disabled={form.slug === 'home'} />
+                    <Input label={t('admin.cmsPages.title')} name="title" value={form.title} onChange={(e) => set('title', e.target.value)} error={errors.title?.[0]} required />
+                    <Input label={t('admin.cmsPages.slug')} name="slug" value={form.slug} onChange={(e) => set('slug', e.target.value)} error={errors.slug?.[0]} required disabled={form.slug === 'home'} />
                 </div>
                 <div className="grid gap-4 sm:grid-cols-2">
                     <div>
-                        <label className="mb-1.5 block text-sm font-medium text-gray-700">Status</label>
+                        <label className="mb-1.5 block text-sm font-medium text-gray-700">{t('admin.common.status')}</label>
                         <select value={form.status} onChange={(e) => set('status', e.target.value)} className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm">
-                            <option value="draft">Draft</option>
-                            <option value="published">Published</option>
+                            <option value="draft">{t('admin.cmsPages.draft')}</option>
+                            <option value="published">{t('admin.cmsPages.published')}</option>
                         </select>
                     </div>
                     <label className="flex items-center gap-2 self-end pb-2 text-sm text-gray-700">
                         <input type="checkbox" checked={!!form.sitemap_include} onChange={(e) => set('sitemap_include', e.target.checked)} className="h-4 w-4 rounded border-gray-300 accent-[var(--accent)]" />
-                        Include in sitemap
+                        {t('admin.cmsPages.includeInSitemap')}
                     </label>
                 </div>
                 <div className="grid gap-4 sm:grid-cols-2">
-                    <Input label="SEO title" name="seo_title" value={form.seo_title || ''} onChange={(e) => set('seo_title', e.target.value)} />
-                    <Input label="OG image URL" name="og_image" value={form.og_image || ''} onChange={(e) => set('og_image', e.target.value)} />
+                    <Input label={t('admin.cmsPages.seoTitle')} name="seo_title" value={form.seo_title || ''} onChange={(e) => set('seo_title', e.target.value)} />
+                    <Input label={t('admin.cmsPages.ogImageUrl')} name="og_image" value={form.og_image || ''} onChange={(e) => set('og_image', e.target.value)} />
                 </div>
-                <Input label="Meta description" name="meta_description" value={form.meta_description || ''} onChange={(e) => set('meta_description', e.target.value)} error={errors.meta_description?.[0]} />
+                <Input label={t('admin.cmsPages.metaDescription')} name="meta_description" value={form.meta_description || ''} onChange={(e) => set('meta_description', e.target.value)} error={errors.meta_description?.[0]} />
                 <div className="rounded-lg bg-gray-50 p-3">
-                    <p className="mb-3 text-sm font-semibold text-gray-700">SEO</p>
+                    <p className="mb-3 text-sm font-semibold text-gray-700">{t('admin.cmsPages.seo')}</p>
                     <div className="grid gap-4 sm:grid-cols-2">
-                        <Input label="OG title (defaults to SEO title)" name="og_title" value={form.og_title || ''} onChange={(e) => set('og_title', e.target.value)} />
-                        <Input label="Canonical URL (defaults to this page)" name="canonical_url" value={form.canonical_url || ''} onChange={(e) => set('canonical_url', e.target.value)} error={errors.canonical_url?.[0]} />
+                        <Input label={t('admin.cmsPages.ogTitle')} name="og_title" value={form.og_title || ''} onChange={(e) => set('og_title', e.target.value)} />
+                        <Input label={t('admin.cmsPages.canonicalUrl')} name="canonical_url" value={form.canonical_url || ''} onChange={(e) => set('canonical_url', e.target.value)} error={errors.canonical_url?.[0]} />
                     </div>
                     <div className="mt-4">
-                        <Input label="OG description (defaults to meta description)" name="og_description" value={form.og_description || ''} onChange={(e) => set('og_description', e.target.value)} />
+                        <Input label={t('admin.cmsPages.ogDescription')} name="og_description" value={form.og_description || ''} onChange={(e) => set('og_description', e.target.value)} />
                     </div>
                     <label className="mt-3 flex items-center gap-2 text-sm text-gray-700">
                         <input type="checkbox" checked={!!form.noindex} onChange={(e) => set('noindex', e.target.checked)} className="h-4 w-4 rounded border-gray-300 accent-[var(--accent)]" />
-                        Hide from search engines (noindex, excluded from sitemap)
+                        {t('admin.cmsPages.noindex')}
                     </label>
                 </div>
                 <div>
-                    <p className="mb-1.5 text-sm font-medium text-gray-700">Content blocks</p>
+                    <p className="mb-1.5 text-sm font-medium text-gray-700">{t('admin.cmsPages.contentBlocks')}</p>
                     <BlockEditor blocks={form.content || []} onChange={(content) => set('content', content)} />
                 </div>
                 <div className="flex justify-end gap-2 pt-2">
-                    <Button type="button" variant="ghost" onClick={onClose} disabled={saving}>Cancel</Button>
-                    <Button type="submit" disabled={saving}>{saving ? 'Saving…' : 'Save page'}</Button>
+                    <Button type="button" variant="ghost" onClick={onClose} disabled={saving}>{t('admin.common.cancel')}</Button>
+                    <Button type="submit" disabled={saving}>{saving ? t('admin.common.saving') : t('admin.cmsPages.savePage')}</Button>
                 </div>
             </form>
         </Modal>
@@ -575,8 +579,9 @@ function PageFormModal({ initial, onClose, onSave }) {
 }
 
 export default function CmsPages() {
-    usePageTitle('Website Pages');
-    useSetCrumbs([{ label: 'Platform', to: '/admin' }, { label: 'Website' }]);
+    const { t } = useTranslation();
+    usePageTitle(t('admin.cmsPages.pageTitle'));
+    useSetCrumbs([{ label: t('admin.platform.breadcrumb'), to: '/admin' }, { label: t('admin.cmsPages.crumbWebsite') }]);
     const toast = useToast();
     const confirm = useConfirm();
     const { data: pages = [], loading, reload: fetchPages } = useResource((signal) =>
@@ -592,7 +597,7 @@ export default function CmsPages() {
             const { data } = await api.get(`/system/pages/${page.id}`);
             setEditor({ ...emptyForm, ...data.page });
         } catch {
-            toast.error('Could not load the page.');
+            toast.error(t('admin.cmsPages.loadFailed'));
         }
     }
 
@@ -601,17 +606,17 @@ export default function CmsPages() {
             const { data } = await api.get(`/system/pages/${page.id}`);
             window.open(data.page.preview_url, '_blank', 'noopener');
         } catch {
-            toast.error('Could not build the preview link.');
+            toast.error(t('admin.cmsPages.previewFailed'));
         }
     }
 
     async function duplicate(page) {
         try {
             const { data } = await api.post(`/system/pages/${page.id}/duplicate`);
-            toast.success(`Duplicated as ${data.page.slug}.`);
+            toast.success(t('admin.cmsPages.duplicated', { slug: data.page.slug }));
             fetchPages();
         } catch (e) {
-            toast.error(fieldErrors(e).form || 'Could not duplicate the page.');
+            toast.error(fieldErrors(e).form || t('admin.cmsPages.duplicateFailed'));
         }
     }
 
@@ -619,11 +624,11 @@ export default function CmsPages() {
         const payload = { ...form };
         if (form.id) {
             await api.put(`/system/pages/${form.id}`, payload);
-            toast.success('Page updated.');
+            toast.success(t('admin.cmsPages.updated'));
             setEditor(null);
         } else {
             const { data } = await api.post('/system/pages', payload);
-            toast.success(`Created ${data.page.title}.`);
+            toast.success(t('admin.cmsPages.created', { title: data.page.title }));
             setEditor(null);
         }
         fetchPages();
@@ -631,24 +636,24 @@ export default function CmsPages() {
 
     async function publish(page) {
         await api.post(`/system/pages/${page.id}/publish`);
-        toast.success('Page published.');
+        toast.success(t('admin.cmsPages.publishedToast'));
         fetchPages();
     }
 
     async function unpublish(page) {
         await api.post(`/system/pages/${page.id}/unpublish`);
-        toast.success('Page taken down.');
+        toast.success(t('admin.cmsPages.takenDown'));
         fetchPages();
     }
 
     async function remove(page) {
-        if (!(await confirm({ title: 'Delete page?', message: `Delete "${page.title}"? This cannot be undone.`, variant: 'danger' }))) return;
+        if (!(await confirm({ title: t('admin.cmsPages.deleteTitle'), message: t('admin.cmsPages.deleteMessage', { title: page.title }), variant: 'danger' }))) return;
         try {
             await api.delete(`/system/pages/${page.id}`);
-            toast.success('Page deleted.');
+            toast.success(t('admin.cmsPages.deleted'));
             fetchPages();
         } catch (e) {
-            toast.error(fieldErrors(e).form || 'Cannot delete this page.');
+            toast.error(fieldErrors(e).form || t('admin.cmsPages.deleteFailed'));
         }
     }
 
@@ -656,23 +661,23 @@ export default function CmsPages() {
         <div className="space-y-6">
             <div className="flex items-center justify-between">
                 <div>
-                    <h1 className="text-2xl font-bold text-gray-800">Website Pages</h1>
-                    <p className="text-sm text-gray-500">Server-rendered marketing pages for the public site at <span className="font-mono">/</span>.</p>
+                    <h1 className="text-2xl font-bold text-gray-800">{t('admin.cmsPages.pageTitle')}</h1>
+                    <p className="text-sm text-gray-500">{t('admin.cmsPages.subtitlePrefix')} <span className="font-mono">/</span>{t('admin.cmsPages.subtitleSuffix')}</p>
                 </div>
-                <Button onClick={() => setEditor(emptyForm)}>New page</Button>
+                <Button onClick={() => setEditor(emptyForm)}>{t('admin.cmsPages.newPage')}</Button>
             </div>
 
             <Card>
                 {loading ? (
                     <Spinner />
                 ) : (
-                    <table className="w-full text-left text-sm">
+                    <div className="overflow-x-auto"><table className="w-full text-left text-sm">
                         <thead className="text-xs uppercase tracking-wide text-gray-400">
                             <tr>
-                                <th className="pb-2 font-semibold">Page</th>
-                                <th className="pb-2 font-semibold">Status</th>
-                                <th className="pb-2 font-semibold">Slug</th>
-                                <th className="pb-2 text-right font-semibold">Actions</th>
+                                <th scope="col" className="pb-2 font-semibold">{t('admin.cmsPages.thPage')}</th>
+                                <th scope="col" className="pb-2 font-semibold">{t('admin.common.status')}</th>
+                                <th scope="col" className="pb-2 font-semibold">{t('admin.cmsPages.thSlug')}</th>
+                                <th scope="col" className="pb-2 text-right font-semibold">{t('admin.common.actions')}</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -687,25 +692,25 @@ export default function CmsPages() {
                                     </td>
                                     <td className="py-2.5">
                                         <div className="flex justify-end gap-2">
-                                            <a href={page.slug === 'home' ? '/' : `/${page.slug}`} target="_blank" rel="noreferrer" className="text-[var(--accent-soft-text)] hover:text-[var(--accent)]">view</a>
-                                            <button type="button" onClick={() => openPreview(page)} className="text-[var(--accent-soft-text)] hover:text-[var(--accent)]">preview</button>
-                                            <button type="button" onClick={() => openEditor(page)} className="text-gray-500 hover:text-gray-700">edit</button>
-                                            <button type="button" onClick={() => duplicate(page)} className="text-gray-500 hover:text-gray-700">duplicate</button>
+                                            <a href={page.slug === 'home' ? '/' : `/${page.slug}`} target="_blank" rel="noreferrer" className="text-[var(--accent-soft-text)] hover:text-[var(--accent)]">{t('admin.cmsPages.view')}</a>
+                                            <button type="button" onClick={() => openPreview(page)} className="text-[var(--accent-soft-text)] hover:text-[var(--accent)]">{t('admin.cmsPages.preview')}</button>
+                                            <button type="button" onClick={() => openEditor(page)} className="text-gray-500 hover:text-gray-700">{t('admin.cmsPages.edit')}</button>
+                                            <button type="button" onClick={() => duplicate(page)} className="text-gray-500 hover:text-gray-700">{t('admin.cmsPages.duplicate')}</button>
                                             {page.status === 'published' ? (
-                                                <button type="button" onClick={() => unpublish(page)} className="text-amber-600 hover:text-amber-500">unpublish</button>
+                                                <button type="button" onClick={() => unpublish(page)} className="text-amber-600 hover:text-amber-500">{t('admin.cmsPages.unpublish')}</button>
                                             ) : (
-                                                <button type="button" onClick={() => publish(page)} className="text-green-600 hover:text-green-500">publish</button>
+                                                <button type="button" onClick={() => publish(page)} className="text-green-600 hover:text-green-500">{t('admin.cmsPages.publish')}</button>
                                             )}
-                                            <button type="button" onClick={() => remove(page)} className="text-red-500 hover:text-red-400">delete</button>
+                                            <button type="button" onClick={() => remove(page)} className="text-red-500 hover:text-red-400">{t('admin.cmsPages.delete')}</button>
                                         </div>
                                     </td>
                                 </tr>
                             ))}
                             {pages.length === 0 && (
-                                <tr><td colSpan={4} className="py-6 text-center text-gray-400">No pages yet.</td></tr>
+                                <tr><td colSpan={4} className="py-6 text-center text-gray-400">{t('admin.cmsPages.noPages')}</td></tr>
                             )}
                         </tbody>
-                    </table>
+                    </table></div>
                 )}
             </Card>
 

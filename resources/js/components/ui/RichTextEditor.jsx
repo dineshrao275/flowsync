@@ -1,4 +1,5 @@
 import { useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useEditor, EditorContent } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import TaskList from '@tiptap/extension-task-list';
@@ -43,6 +44,7 @@ function Divider() {
  * round-tripping through the parent.
  */
 export default function RichTextEditor({ value = '', onChange, disabled = false, placeholder = '', error = null }) {
+    const { t } = useTranslation();
     const editor = useEditor({
         extensions: [
             StarterKit.configure({ heading: { levels: [1, 2, 3] } }),
@@ -86,28 +88,28 @@ export default function RichTextEditor({ value = '', onChange, disabled = false,
                 } ${disabled ? 'bg-gray-50 opacity-75' : ''}`}
             >
                 {!disabled && (
-                    <div className="flex flex-wrap items-center gap-0.5 border-b border-gray-200 bg-gray-50/80 px-2 py-1.5" role="toolbar" aria-label="Formatting">
-                        <ToolButton title="Bold" active={editor.isActive('bold')} onClick={run(() => editor.chain().focus().toggleBold().run())} label="B" labelClassName="font-bold" />
-                        <ToolButton title="Italic" active={editor.isActive('italic')} onClick={run(() => editor.chain().focus().toggleItalic().run())} label="I" labelClassName="italic" />
-                        <ToolButton title="Strikethrough" active={editor.isActive('strike')} onClick={run(() => editor.chain().focus().toggleStrike().run())} label="S" labelClassName="line-through" />
-                        <ToolButton title="Underline" active={editor.isActive('underline')} onClick={run(() => editor.chain().focus().toggleUnderline().run())} label="U" labelClassName="underline" />
+                    <div className="flex flex-wrap items-center gap-0.5 border-b border-gray-200 bg-gray-50/80 px-2 py-1.5" role="toolbar" aria-label={t('admin.editor.toolbar')}>
+                        <ToolButton title={t('admin.editor.bold')} active={editor.isActive('bold')} onClick={run(() => editor.chain().focus().toggleBold().run())} label="B" labelClassName="font-bold" />
+                        <ToolButton title={t('admin.editor.italic')} active={editor.isActive('italic')} onClick={run(() => editor.chain().focus().toggleItalic().run())} label="I" labelClassName="italic" />
+                        <ToolButton title={t('admin.editor.strikethrough')} active={editor.isActive('strike')} onClick={run(() => editor.chain().focus().toggleStrike().run())} label="S" labelClassName="line-through" />
+                        <ToolButton title={t('admin.editor.underline')} active={editor.isActive('underline')} onClick={run(() => editor.chain().focus().toggleUnderline().run())} label="U" labelClassName="underline" />
                         <Divider />
-                        <ToolButton title="Heading 1" active={editor.isActive('heading', { level: 1 })} onClick={run(() => editor.chain().focus().toggleHeading({ level: 1 }).run())} label="H1" labelClassName="text-xs font-bold" />
-                        <ToolButton title="Heading 2" active={editor.isActive('heading', { level: 2 })} onClick={run(() => editor.chain().focus().toggleHeading({ level: 2 }).run())} label="H2" labelClassName="text-xs font-bold" />
-                        <ToolButton title="Heading 3" active={editor.isActive('heading', { level: 3 })} onClick={run(() => editor.chain().focus().toggleHeading({ level: 3 }).run())} label="H3" labelClassName="text-xs font-bold" />
-                        <ToolButton title="Paragraph" active={editor.isActive('paragraph')} onClick={run(() => editor.chain().focus().setParagraph().run())} label="¶" />
+                        <ToolButton title={t('admin.editor.heading1')} active={editor.isActive('heading', { level: 1 })} onClick={run(() => editor.chain().focus().toggleHeading({ level: 1 }).run())} label="H1" labelClassName="text-xs font-bold" />
+                        <ToolButton title={t('admin.editor.heading2')} active={editor.isActive('heading', { level: 2 })} onClick={run(() => editor.chain().focus().toggleHeading({ level: 2 }).run())} label="H2" labelClassName="text-xs font-bold" />
+                        <ToolButton title={t('admin.editor.heading3')} active={editor.isActive('heading', { level: 3 })} onClick={run(() => editor.chain().focus().toggleHeading({ level: 3 }).run())} label="H3" labelClassName="text-xs font-bold" />
+                        <ToolButton title={t('admin.editor.paragraph')} active={editor.isActive('paragraph')} onClick={run(() => editor.chain().focus().setParagraph().run())} label="¶" />
                         <Divider />
-                        <ToolButton title="Bullet list" active={editor.isActive('bulletList')} onClick={run(() => editor.chain().focus().toggleBulletList().run())} label="≡" />
-                        <ToolButton title="Numbered list" active={editor.isActive('orderedList')} onClick={run(() => editor.chain().focus().toggleOrderedList().run())} label="1≡" labelClassName="text-xs" />
-                        <ToolButton title="Checklist" active={editor.isActive('taskList')} onClick={run(() => editor.chain().focus().toggleTaskList().run())} label="☑" />
+                        <ToolButton title={t('admin.editor.bulletList')} active={editor.isActive('bulletList')} onClick={run(() => editor.chain().focus().toggleBulletList().run())} label="≡" />
+                        <ToolButton title={t('admin.editor.numberedList')} active={editor.isActive('orderedList')} onClick={run(() => editor.chain().focus().toggleOrderedList().run())} label="1≡" labelClassName="text-xs" />
+                        <ToolButton title={t('admin.editor.checklist')} active={editor.isActive('taskList')} onClick={run(() => editor.chain().focus().toggleTaskList().run())} label="☑" />
                         <Divider />
-                        <ToolButton title="Quote" active={editor.isActive('blockquote')} onClick={run(() => editor.chain().focus().toggleBlockquote().run())} label="❝" />
-                        <ToolButton title="Code block" active={editor.isActive('codeBlock')} onClick={run(() => editor.chain().focus().toggleCodeBlock().run())} label="</>" labelClassName="font-mono text-xs" />
-                        <ToolButton title="Horizontal line" onClick={run(() => editor.chain().focus().setHorizontalRule().run())} label="―" />
+                        <ToolButton title={t('admin.editor.quote')} active={editor.isActive('blockquote')} onClick={run(() => editor.chain().focus().toggleBlockquote().run())} label="❝" />
+                        <ToolButton title={t('admin.editor.codeBlock')} active={editor.isActive('codeBlock')} onClick={run(() => editor.chain().focus().toggleCodeBlock().run())} label="</>" labelClassName="font-mono text-xs" />
+                        <ToolButton title={t('admin.editor.horizontalLine')} onClick={run(() => editor.chain().focus().setHorizontalRule().run())} label="―" />
                         <Divider />
-                        <ToolButton title="Undo" disabled={!editor.can().undo()} onClick={run(() => editor.chain().focus().undo().run())} label="↶" />
-                        <ToolButton title="Redo" disabled={!editor.can().redo()} onClick={run(() => editor.chain().focus().redo().run())} label="↷" />
-                        <ToolButton title="Clear formatting" onClick={run(() => editor.chain().focus().clearNodes().unsetAllMarks().run())} label="✕" labelClassName="text-xs" />
+                        <ToolButton title={t('admin.editor.undo')} disabled={!editor.can().undo()} onClick={run(() => editor.chain().focus().undo().run())} label="↶" />
+                        <ToolButton title={t('admin.editor.redo')} disabled={!editor.can().redo()} onClick={run(() => editor.chain().focus().redo().run())} label="↷" />
+                        <ToolButton title={t('admin.editor.clearFormatting')} onClick={run(() => editor.chain().focus().clearNodes().unsetAllMarks().run())} label="✕" labelClassName="text-xs" />
                     </div>
                 )}
                 <EditorContent editor={editor} />

@@ -56,7 +56,7 @@ class EmployeeBulkController extends Controller
         $report = $this->importer->validate($this->importer->parse($request->file('file')));
         $result = $this->importer->commit($report['rows'], $request->boolean('skip_invalid'), $request->user());
 
-        return response()->json(['message' => "{$result['created']} employee(s) imported.", ...$result], Response::HTTP_CREATED);
+        return response()->json(['message' => __(':created employee(s) imported.', ['created' => $result['created']]), ...$result], Response::HTTP_CREATED);
     }
 
     public function status(EmployeeBulkStatusRequest $request): JsonResponse

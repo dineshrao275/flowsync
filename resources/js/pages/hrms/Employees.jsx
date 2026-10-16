@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import api from '../../services/api';
 import Alert from '../../components/ui/Alert';
 import Avatar from '../../components/ui/Avatar';
@@ -40,16 +41,17 @@ const FILTER_DEFAULTS = {
 };
 
 const COLUMNS = [
-    { key: 'name', label: 'Employee', sortable: true },
-    { key: 'code', label: 'Code', sortable: true },
-    { key: 'designation', label: 'Designation', sortable: true },
-    { key: 'status', label: 'Status', sortable: true },
-    { key: 'manager', label: 'Manager', sortable: false },
-    { key: 'joining_date', label: 'Joined', sortable: true },
+    { key: 'name', labelKey: 'hrms.employees.colEmployee', sortable: true },
+    { key: 'code', labelKey: 'hrms.employees.colCode', sortable: true },
+    { key: 'designation', labelKey: 'hrms.employees.colDesignation', sortable: true },
+    { key: 'status', labelKey: 'hrms.employees.colStatus', sortable: true },
+    { key: 'manager', labelKey: 'hrms.employees.colManager', sortable: false },
+    { key: 'joining_date', labelKey: 'hrms.employees.colJoined', sortable: true },
 ];
 
 export default function Employees() {
-    usePageTitle('Employees');
+    const { t } = useTranslation();
+    usePageTitle(t('hrms.employees.pageTitle'));
     const setCrumbs = useSetCrumbs();
     const navigate = useNavigate();
     const { can } = useAuth();
@@ -64,8 +66,8 @@ export default function Employees() {
     const [bulk, setBulk] = useState(null);
 
     useEffect(() => {
-        setCrumbs([{ label: 'HRMS', to: '/hrms' }, { label: 'Employees' }]);
-    }, [setCrumbs]);
+        setCrumbs([{ label: t('hrms.overview.pageTitle'), to: '/hrms' }, { label: t('hrms.employees.pageTitle') }]);
+    }, [setCrumbs, t]);
 
     const load = useCallback(
         (targetPage, activeFilters) => {
@@ -86,10 +88,10 @@ export default function Employees() {
                         return;
                     }
 
-                    setError('Unable to load the employee directory.');
+                    setError(t('hrms.employees.loadFailed'));
                 });
         },
-        [navigate],
+        [navigate, t],
     );
 
     // `page` is read for its side effect of re-running on change; the value it
@@ -128,7 +130,7 @@ export default function Employees() {
             const { data: response } = await api.post('/hrms/employees', payload);
 
             setCreating(false);
-            toast.success(`${response.employee.display_name} added.`);
+            toast.success(t('hrms.employees.added', { name: response.employee.display_name }));
             // The write endpoint returns the record, not a message, but the list
             // has to come back from the server regardless: filters, counts and
             // the new code all come from the query, not from our own guess.
@@ -146,42 +148,42 @@ export default function Employees() {
         <div className="space-y-4">
             <div className="flex flex-wrap items-center justify-between gap-3">
                 <div>
-                    <h2 className="text-xl font-semibold text-gray-900">Employees</h2>
+                    <h2 className="text-xl font-semibold text-gray-900">{t('hrms.employees.pageTitle')}</h2>
                     <p className="mt-0.5 text-sm text-gray-500">
-                        {data ? `${data.pagination.total} record${data.pagination.total === 1 ? '' : 's'}` : '—'}
+                        {data ? (data.pagination.total === 1 ? t('hrms.employees.recordsOne') : t('hrms.employees.records', { count: data.pagination.total })) : '—'}
                     </p>
                 </div>
 
                 {canCreate && (
                     <div className="flex flex-wrap gap-2">
-                        <Button variant="secondary" onClick={() => setBulk('import')}>Import CSV</Button>
-                        <Button variant="secondary" onClick={() => setBulk('status')}>Bulk status</Button>
-                        <Button onClick={() => setCreating(true)}>New employee</Button>
+                        <Button variant="secondary" onClick={() => setBulk('import')}>{t('hrms.employees.importCsv')}</Button>
+                        <Button variant="secondary" onClick={() => setBulk('status')}>{t('hrms.employees.bulkStatus')}</Button>
+                        <Button onClick={() => setCreating(true)}>{t('hrms.employees.new')}</Button>
                     </div>
                 )}
             </div>
 
             <div className="grid gap-3 rounded-xl border border-gray-200/70 bg-white p-3 sm:grid-cols-2 lg:grid-cols-4">
                 <Input
-                    label="Search"
-                    placeholder="Name or code"
+                    label={t('hrms.employees.search')}
+                    placeholder={t('hrms.employees.searchPlaceholder')}
                     value={filters.q}
                     onChange={(e) => setFilter('q', e.target.value)}
                 />
                 <Select
-                    label="Status"
+                    label={t('hrms.employees.status')}
                     value={filters.status}
                     onChange={(e) => setFilter('status', e.target.value)}
                 >
-                    <option value="">Any status</option>
+                    <option value="">{t('hrms.employees.anyStatus')}</option>
                     {(filterOptions.statuses ?? []).map((status) => (
                         <option key={status.value} value={status.value}>
                             {status.label}
                         </option>
                     ))}
                 </Select>
-                <Select label="Work mode" value={filters.work_mode} onChange={(e) => setFilter('work_mode', e.target.value)}>
-                    <option value="">Any mode</option>
+                <Select label={t('hrms.employees.workMode')} value={filters.work_mode} onChange={(e) => setFilter('work_mode', e.target.value)}>
+                    <option value="">{t('hrms.employees.anyMode')}</option>
                     {(filterOptions.work_modes ?? []).map((mode) => (
                         <option key={mode.value} value={mode.value}>
                             {mode.label}
@@ -189,11 +191,11 @@ export default function Employees() {
                     ))}
                 </Select>
                 <Select
-                    label="Employment type"
+                    label={t('hrms.employees.employmentType')}
                     value={filters.employment_type_id}
                     onChange={(e) => setFilter('employment_type_id', e.target.value)}
                 >
-                    <option value="">Any type</option>
+                    <option value="">{t('hrms.employees.anyType')}</option>
                     {(filterOptions.employment_types ?? []).map((type) => (
                         <option key={type.id} value={type.id}>
                             {type.name}
@@ -201,11 +203,11 @@ export default function Employees() {
                     ))}
                 </Select>
                 <Select
-                    label="Manager"
+                    label={t('hrms.employees.manager')}
                     value={filters.manager_id}
                     onChange={(e) => setFilter('manager_id', e.target.value)}
                 >
-                    <option value="">Anyone</option>
+                    <option value="">{t('hrms.employees.anyone')}</option>
                     {(filterOptions.managers ?? []).map((manager) => (
                         <option key={manager.id} value={manager.id}>
                             {manager.name}
@@ -213,11 +215,11 @@ export default function Employees() {
                     ))}
                 </Select>
                 <Select
-                    label="Department"
+                    label={t('hrms.employees.department')}
                     value={filters.department_id}
                     onChange={(e) => setFilter('department_id', e.target.value)}
                 >
-                    <option value="">Any department</option>
+                    <option value="">{t('hrms.employees.anyDepartment')}</option>
                     {(filterOptions.departments ?? []).map((department) => (
                         <option key={department.id} value={department.id}>
                             {department.name}
@@ -225,13 +227,13 @@ export default function Employees() {
                     ))}
                 </Select>
                 <Input
-                    label="Joined from"
+                    label={t('hrms.employees.joinedFrom')}
                     type="date"
                     value={filters.joined_from}
                     onChange={(e) => setFilter('joined_from', e.target.value)}
                 />
                 <Input
-                    label="Joined to"
+                    label={t('hrms.employees.joinedTo')}
                     type="date"
                     value={filters.joined_to}
                     onChange={(e) => setFilter('joined_to', e.target.value)}
@@ -255,13 +257,13 @@ export default function Employees() {
                                         onClick={() => sortBy(column.key)}
                                         className="inline-flex items-center gap-1 font-semibold uppercase tracking-wide text-gray-500 hover:text-gray-800"
                                     >
-                                        {column.label}
+                                        {t(column.labelKey)}
                                         {filters.sort === column.key && (
                                             <span aria-hidden="true">{filters.dir === 'asc' ? '↑' : '↓'}</span>
                                         )}
                                     </button>
                                 ) : (
-                                    column.label
+                                    t(column.labelKey)
                                 )}
                             </Th>
                         ))}
@@ -277,8 +279,8 @@ export default function Employees() {
                     ) : rows.length === 0 ? (
                         <TableEmpty colSpan={COLUMNS.length}>
                             {filters.q || filters.status || filters.work_mode || filters.employment_type_id || filters.manager_id || filters.department_id
-                                ? 'No employees match these filters.'
-                                : 'No employees yet.'}
+                                ? t('hrms.employees.emptyFiltered')
+                                : t('hrms.employees.empty')}
                         </TableEmpty>
                     ) : (
                         rows.map((employee, index) => (

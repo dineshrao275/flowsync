@@ -48,7 +48,7 @@ class ReportingLine
 
         if ($manager->id === $employee->id) {
             throw ValidationException::withMessages([
-                'manager_id' => 'An employee cannot report to themselves.',
+                'manager_id' => __('An employee cannot report to themselves.'),
             ]);
         }
 

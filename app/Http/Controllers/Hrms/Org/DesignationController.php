@@ -56,7 +56,7 @@ class DesignationController extends Controller
         $designation = $this->designations->create($request->validated());
 
         return response()->json([
-            'message' => 'Designation created.',
+            'message' => __('Designation created.'),
             'designation' => $this->presenter->designation($designation),
         ], Response::HTTP_CREATED);
     }
@@ -68,7 +68,7 @@ class DesignationController extends Controller
         $updated = $this->designations->update($designation, $request->validated());
 
         return response()->json([
-            'message' => 'Designation updated.',
+            'message' => __('Designation updated.'),
             'designation' => $this->presenter->designation($updated),
         ]);
     }
@@ -79,7 +79,7 @@ class DesignationController extends Controller
 
         $this->designations->delete($designation);
 
-        return response()->json(['message' => 'Designation deleted.']);
+        return response()->json(['message' => __('Designation deleted.')]);
     }
 
     /**
@@ -96,7 +96,7 @@ class DesignationController extends Controller
         $deactivated = $this->designations->deactivate($designation);
 
         return response()->json([
-            'message' => 'Designation deactivated.',
+            'message' => __('Designation deactivated.'),
             'designation' => $this->presenter->designation($deactivated),
         ]);
     }
@@ -107,6 +107,6 @@ class DesignationController extends Controller
 
         $this->designations->reorder($request->ids());
 
-        return response()->json(['message' => 'designations reordered.']);
+        return response()->json(['message' => __('designations reordered.')]);
     }
 }

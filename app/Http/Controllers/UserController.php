@@ -99,7 +99,7 @@ class UserController extends Controller
         $this->backfill->linkFor($user);
 
         return response()->json([
-            'message' => 'User created.',
+            'message' => __('User created.'),
             'user' => $this->present($user->load('roles')),
         ], 201);
     }
@@ -126,7 +126,7 @@ class UserController extends Controller
             $taken = TenantUserRouting::where('email', $data['email'])->exists()
                 || SystemUser::where('email', $data['email'])->exists();
             if ($taken) {
-                throw ValidationException::withMessages(['email' => 'An account with this email already exists.']);
+                throw ValidationException::withMessages(['email' => __('An account with this email already exists.')]);
             }
         }
 
@@ -141,7 +141,7 @@ class UserController extends Controller
             $this->auditTenantAdmin($request, 'user.updated', 'users', $user->id, $before, ['name' => $user->name, 'email' => $user->email]);
         }
 
-        return response()->json(['message' => 'User updated.', 'user' => $this->present($user->load('roles'))]);
+        return response()->json(['message' => __('User updated.'), 'user' => $this->present($user->load('roles'))]);
     }
 
     public function updateRoles(Request $request, User $user): JsonResponse
@@ -173,7 +173,7 @@ class UserController extends Controller
         }
 
         return response()->json([
-            'message' => 'Roles updated.',
+            'message' => __('Roles updated.'),
             'user' => $this->present($user->load('roles')),
         ]);
     }
@@ -182,7 +182,7 @@ class UserController extends Controller
     {
         if ($user->id === $request->user()->id) {
             throw ValidationException::withMessages([
-                'form' => 'You cannot delete your own account.',
+                'form' => __('You cannot delete your own account.'),
             ]);
         }
 
@@ -204,7 +204,7 @@ class UserController extends Controller
             ->where('email', $email)
             ->delete();
 
-        return response()->json(['message' => 'User deleted.']);
+        return response()->json(['message' => __('User deleted.')]);
     }
 
     /**

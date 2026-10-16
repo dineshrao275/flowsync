@@ -36,7 +36,7 @@ class AutomationRuleController extends Controller
 
         $rule = $project->automationRules()->create($data + ['created_by' => $request->user()->id]);
 
-        return response()->json(['message' => 'Rule created.', 'rule' => $this->present($rule)], 201);
+        return response()->json(['message' => __('Rule created.'), 'rule' => $this->present($rule)], 201);
     }
 
     public function update(Request $request, Project $project, AutomationRule $rule): JsonResponse
@@ -46,7 +46,7 @@ class AutomationRuleController extends Controller
 
         $rule->update($this->validated($request, $project));
 
-        return response()->json(['message' => 'Rule saved.', 'rule' => $this->present($rule->refresh())]);
+        return response()->json(['message' => __('Rule saved.'), 'rule' => $this->present($rule->refresh())]);
     }
 
     public function destroy(Project $project, AutomationRule $rule): JsonResponse
@@ -55,7 +55,7 @@ class AutomationRuleController extends Controller
         abort_unless($rule->project_id === $project->id, 404);
         $rule->delete();
 
-        return response()->json(['message' => 'Rule deleted.']);
+        return response()->json(['message' => __('Rule deleted.')]);
     }
 
     public function runs(Project $project, AutomationRule $rule): JsonResponse

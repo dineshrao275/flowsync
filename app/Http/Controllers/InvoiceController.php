@@ -58,7 +58,7 @@ class InvoiceController extends Controller
     private function tenantId(): int
     {
         $id = $this->tenantContext->currentId();
-        abort_unless($id, 404, 'No active tenant context.');
+        abort_unless($id, 404, __('No active tenant context.'));
 
         return $id;
     }

@@ -33,7 +33,7 @@ class ThemeController extends Controller
             PlatformSetting::set($this->platformKey($request), json_encode($theme));
 
             return response()->json([
-                'message' => 'Theme saved.',
+                'message' => __('Theme saved.'),
                 'theme' => $theme,
             ]);
         }
@@ -47,7 +47,7 @@ class ThemeController extends Controller
         ]);
 
         return response()->json([
-            'message' => 'Theme saved.',
+            'message' => __('Theme saved.'),
             'theme' => $theme,
         ]);
     }

@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import api from '../services/api';
 import Card from '../components/ui/Card';
 import Spinner from '../components/ui/Spinner';
@@ -7,8 +8,9 @@ import usePageTitle from '../hooks/usePageTitle';
 import { useSetCrumbs } from '../context/BreadcrumbContext';
 
 export default function FeatureManagement() {
-    usePageTitle('Feature Management');
-    useSetCrumbs([{ label: 'Platform', to: '/admin' }, { label: 'Features' }]);
+    const { t } = useTranslation();
+    usePageTitle(t('admin.featureManagement.pageTitle'));
+    useSetCrumbs([{ label: t('admin.platform.breadcrumb'), to: '/admin' }, { label: t('admin.featureManagement.pageTitle') }]);
     const toast = useToast();
     const [data, setData] = useState(null);
     const [busy, setBusy] = useState(null);
@@ -32,7 +34,7 @@ export default function FeatureManagement() {
                 plans: d.plans.map((p) => (p.id === plan.id ? { ...p, modules: res.plan.modules } : p)),
             }));
         } catch (e) {
-            toast.error('Failed to update the feature.');
+            toast.error(t('admin.featureManagement.updateFailed'));
         } finally {
             setBusy(null);
         }
@@ -46,7 +48,11 @@ export default function FeatureManagement() {
                 type="button"
                 disabled={busy === key}
                 onClick={() => toggle(plan, module, !on)}
-                aria-label={`${on ? 'Disable' : 'Enable'} ${label} for ${plan.name}`}
+                aria-label={t('admin.featureManagement.toggleLabel', {
+                    action: on ? t('admin.featureManagement.disable') : t('admin.featureManagement.enable'),
+                    module: label,
+                    plan: plan.name,
+                })}
                 className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors ${
                     on ? 'bg-[var(--accent)]' : 'bg-gray-200'
                 }`}
@@ -65,11 +71,9 @@ export default function FeatureManagement() {
     return (
         <div className="space-y-6">
             <div>
-                <h1 className="text-2xl font-bold text-gray-800">Feature Management</h1>
+                <h1 className="text-2xl font-bold text-gray-800">{t('admin.featureManagement.heading')}</h1>
                 <p className="text-sm text-gray-500">
-                    Toggle modules per plan. Modules drive the Phase 15 feature gates — a tenant on a plan
-                    without a module gets 403 on those routes. A super admin can also grant a single tenant
-                    an extra module from its detail page.
+                    {t('admin.featureManagement.subtitle')}
                 </p>
             </div>
 
@@ -78,15 +82,15 @@ export default function FeatureManagement() {
                     <h2 className="mb-3 text-xs font-semibold uppercase tracking-wide text-gray-400">
                         {group.label}
                     </h2>
-                    <table className="w-full text-left text-sm">
+                    <div className="overflow-x-auto"><table className="w-full text-left text-sm">
                         <thead>
                             <tr>
-                                <th className="pb-2 font-semibold" />
+                                <th scope="col" className="pb-2 font-semibold" />
                                 {data.plans.map((plan) => (
-                                    <th key={plan.id} className="pb-2 text-center font-semibold">
+                                    <th scope="col" key={plan.id} className="pb-2 text-center font-semibold">
                                         {plan.name}
                                         {!plan.is_active && (
-                                            <span className="block text-[10px] text-gray-300">inactive</span>
+                                            <span className="block text-xs text-gray-300">{t('admin.featureManagement.inactive')}</span>
                                         )}
                                     </th>
                                 ))}
@@ -116,7 +120,7 @@ export default function FeatureManagement() {
                                 </tr>
                             ))}
                         </tbody>
-                    </table>
+                    </table></div>
                 </Card>
             ))}
         </div>

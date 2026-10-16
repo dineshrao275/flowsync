@@ -38,7 +38,7 @@ class ShiftController extends Controller
 
         $shift = $this->shifts->create($request->validated(), $request->user());
 
-        return response()->json(['message' => 'Shift created.', 'shift' => $this->presenter->shift($shift)], Response::HTTP_CREATED);
+        return response()->json(['message' => __('Shift created.'), 'shift' => $this->presenter->shift($shift)], Response::HTTP_CREATED);
     }
 
     public function update(ShiftRequest $request, AttendanceShift $shift): JsonResponse
@@ -47,7 +47,7 @@ class ShiftController extends Controller
 
         $updated = $this->shifts->update($shift, $request->validated(), $request->user());
 
-        return response()->json(['message' => 'Shift updated.', 'shift' => $this->presenter->shift($updated)]);
+        return response()->json(['message' => __('Shift updated.'), 'shift' => $this->presenter->shift($updated)]);
     }
 
     public function destroy(Request $request, AttendanceShift $shift): JsonResponse
@@ -56,7 +56,7 @@ class ShiftController extends Controller
 
         $this->shifts->delete($shift, $request->user());
 
-        return response()->json(['message' => 'Shift deleted.']);
+        return response()->json(['message' => __('Shift deleted.')]);
     }
 
     public function assign(ShiftAssignRequest $request, AttendanceShift $shift): JsonResponse
@@ -65,7 +65,7 @@ class ShiftController extends Controller
 
         $count = $this->shifts->assignDefault($shift, $request->validated()['employee_ids'], $request->user());
 
-        return response()->json(['message' => "Default shift set for {$count} employee(s).", 'count' => $count]);
+        return response()->json(['message' => __('Default shift set for :count employee(s).', ['count' => $count]), 'count' => $count]);
     }
 
     public function clear(ShiftAssignRequest $request): JsonResponse
@@ -74,6 +74,6 @@ class ShiftController extends Controller
 
         $count = $this->shifts->assignDefault(null, $request->validated()['employee_ids'], $request->user());
 
-        return response()->json(['message' => "Default shift cleared for {$count} employee(s).", 'count' => $count]);
+        return response()->json(['message' => __('Default shift cleared for :count employee(s).', ['count' => $count]), 'count' => $count]);
     }
 }

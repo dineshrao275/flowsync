@@ -61,7 +61,7 @@ class ReviewSummaryController extends Controller
         $employee = Employee::findOrFail((int) $data['employee_id']);
 
         $this->authorize('file', [ReviewSummary::class, $employee]);
-        abort_if($cycle->stage->value === 'completed', 422, 'That cycle is sealed — history gains no new reviews.');
+        abort_if($cycle->stage->value === 'completed', 422, __('That cycle is sealed — history gains no new reviews.'));
 
         $review = $cycle->reviewSummaries()->create($request->validated());
 
@@ -70,7 +70,7 @@ class ReviewSummaryController extends Controller
         ], $request->user());
 
         return response()->json([
-            'message' => 'Review filed.',
+            'message' => __('Review filed.'),
             'review' => $this->present($review->refresh(), $request->user()),
         ], Response::HTTP_CREATED);
     }
@@ -99,7 +99,7 @@ class ReviewSummaryController extends Controller
         ], $request->user());
 
         return response()->json([
-            'message' => 'Review updated.',
+            'message' => __('Review updated.'),
             'review' => $this->present($review->refresh(), $request->user()),
         ]);
     }
@@ -119,7 +119,7 @@ class ReviewSummaryController extends Controller
             ], $request->user());
 
             return response()->json([
-                'message' => 'Review acknowledged.',
+                'message' => __('Review acknowledged.'),
                 'review' => $this->present($review->refresh(), $request->user()),
             ]);
         });

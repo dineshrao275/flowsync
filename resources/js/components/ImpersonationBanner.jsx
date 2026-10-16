@@ -1,8 +1,11 @@
 import { useNavigate } from 'react-router-dom';
+import { Trans, useTranslation } from 'react-i18next';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
+import { formatTime } from '../utils/format';
 
 export default function ImpersonationBanner() {
+    const { t } = useTranslation();
     const { user, stopImpersonation } = useAuth();
     const toast = useToast();
     const navigate = useNavigate();
@@ -12,10 +15,10 @@ export default function ImpersonationBanner() {
     async function handleStop() {
         try {
             await stopImpersonation();
-            toast.success('Returned to super admin console.');
+            toast.success(t('shell.impersonation.returned'));
             navigate('/tenants', { replace: true });
         } catch {
-            toast.error('Failed to stop impersonation.');
+            toast.error(t('shell.impersonation.stopFailed'));
         }
     }
 
@@ -27,16 +30,20 @@ export default function ImpersonationBanner() {
                         <path d="M12 9v4m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
                     </svg>
                     <span className="truncate font-medium">
-                        You are currently viewing the panel as <strong>{user.name}</strong>
+                        <Trans
+                            i18nKey="shell.impersonation.viewingAs"
+                            values={{ name: user.name }}
+                            components={[<strong key="0" />]}
+                        />
                         <span className="ml-2 hidden text-white/80 sm:inline">
                             ({user.email})
                         </span>
                         <span className="ml-2 rounded bg-white/20 px-1.5 py-0.5 text-xs font-semibold">
-                            {user.impersonation_mode === 'write' ? 'Changes enabled' : 'Read-only'}
+                            {user.impersonation_mode === 'write' ? t('shell.impersonation.changesEnabled') : t('shell.impersonation.readOnly')}
                         </span>
                         {user.impersonation_expires_at && (
                             <span className="ml-2 hidden text-xs text-white/80 md:inline">
-                                ends {new Date(user.impersonation_expires_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                {t('shell.impersonation.ends', { time: formatTime(user.impersonation_expires_at) })}
                             </span>
                         )}
                     </span>
@@ -45,7 +52,7 @@ export default function ImpersonationBanner() {
                     onClick={handleStop}
                     className="shrink-0 rounded-lg bg-white/20 px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-white/30 active:scale-95"
                 >
-                    Stop impersonating
+                    {t('shell.impersonation.stop')}
                 </button>
             </div>
         </div>

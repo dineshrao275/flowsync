@@ -30,7 +30,7 @@ trait ResolvesDateRange
         $from = isset($data['from']) ? Carbon::parse($data['from']) : $to->copy()->subDays(13);
 
         if ($from->diffInDays($to) > 365) {
-            abort(422, 'Range covers at most 366 days.');
+            abort(422, __('Range covers at most 366 days.'));
         }
 
         return [

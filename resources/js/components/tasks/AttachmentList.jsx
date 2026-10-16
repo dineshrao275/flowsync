@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import api, { fieldErrors } from '../../services/api';
 import Button from '../ui/Button';
 import Alert from '../ui/Alert';
@@ -14,6 +15,7 @@ function formatSize(bytes) {
 }
 
 export default function AttachmentList({ task, projectId, canUpload, canManage }) {
+    const { t } = useTranslation();
     const { user } = useAuth();
     const confirm = useConfirm();
     const [attachments, setAttachments] = useState(null);
@@ -28,7 +30,7 @@ export default function AttachmentList({ task, projectId, canUpload, canManage }
                 setAttachments(data.attachments);
                 setError(null);
             })
-            .catch(() => setError('Could not load attachments.'));
+            .catch(() => setError(t('tms.attachments.loadFailed')));
     }
 
     useEffect(() => {
@@ -55,7 +57,7 @@ export default function AttachmentList({ task, projectId, canUpload, canManage }
     }
 
     async function remove(attachment) {
-        if (!(await confirm({ title: 'Delete attachment?', message: `Delete ${attachment.original_name}?`, variant: 'danger' }))) return;
+        if (!(await confirm({ title: t('tms.attachments.deleteTitle'), message: t('tms.attachments.deleteMessage', { name: attachment.original_name }), variant: 'danger' }))) return;
         api.delete(`/projects/${projectId}/tasks/${task.id}/attachments/${attachment.id}`)
             .then(fetchAttachments)
             .catch(() => {});
@@ -83,7 +85,7 @@ export default function AttachmentList({ task, projectId, canUpload, canManage }
                         onChange={(e) => setFile(e.target.files?.[0] ?? null)}
                     />
                     <Button type="submit" loading={uploading} disabled={!file}>
-                        Upload
+                        {t('tms.attachments.upload')}
                     </Button>
                 </form>
             )}
@@ -91,7 +93,7 @@ export default function AttachmentList({ task, projectId, canUpload, canManage }
             {uploadErrors.form && <Alert>{uploadErrors.form}</Alert>}
 
             {attachments.length === 0 ? (
-                <p className="py-6 text-center text-sm text-gray-400">No attachments.</p>
+                <p className="py-6 text-center text-sm text-gray-400">{t('tms.attachments.empty')}</p>
             ) : (
                 <ul className="divide-y divide-gray-100 rounded-lg border border-gray-100">
                     {attachments.map((attachment) => {
@@ -108,13 +110,13 @@ export default function AttachmentList({ task, projectId, canUpload, canManage }
                                         {attachment.original_name}
                                     </a>
                                     <p className="text-xs text-gray-400">
-                                        {attachment.user?.name ?? 'Unknown'} · {formatSize(attachment.size)} ·{' '}
+                                        {attachment.user?.name ?? t('tms.attachments.unknown')} · {formatSize(attachment.size)} ·{' '}
                                         <Timestamp date={attachment.created_at} />
                                     </p>
                                 </div>
                                 {(canManage || own) && (
                                     <Button size="sm" variant="ghost" onClick={() => remove(attachment)}>
-                                        Delete
+                                        {t('tms.attachments.delete')}
                                     </Button>
                                 )}
                             </li>

@@ -41,7 +41,7 @@ class WorkflowController extends Controller
 
         // Turning enforcement on with an empty allow-list would freeze every card.
         if ($data['enforce_workflow'] && $data['transitions'] === []) {
-            throw ValidationException::withMessages(['transitions' => 'Allow at least one transition before enforcing the workflow.']);
+            throw ValidationException::withMessages(['transitions' => __('Allow at least one transition before enforcing the workflow.')]);
         }
 
         DB::transaction(function () use ($project, $data, $statusIds): void {
@@ -59,7 +59,7 @@ class WorkflowController extends Controller
             }
         });
 
-        return response()->json(['message' => 'Workflow saved.', ...$this->payload($project->refresh())]);
+        return response()->json(['message' => __('Workflow saved.'), ...$this->payload($project->refresh())]);
     }
 
     /** Where this task may go from here, and why a status is closed to it. */

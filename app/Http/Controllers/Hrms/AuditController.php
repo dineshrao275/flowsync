@@ -48,7 +48,7 @@ class AuditController extends Controller
     {
         $subjectType = trim($subjectType);
 
-        abort_if($subjectType === '' || strlen($subjectType) > 255, 422, 'Unknown subject.');
+        abort_if($subjectType === '' || strlen($subjectType) > 255, 422, __('Unknown subject.'));
 
         $rows = $this->query->trail($subjectType, $subjectId);
 

@@ -33,7 +33,7 @@ class FeatureFlagController extends Controller
         $flag = FeatureFlag::create($data);
         $this->audit($request, 'feature_flag.created', $flag, null, $flag->only(['key', 'enabled', 'rollout_percent']));
 
-        return response()->json(['message' => 'Flag created.', 'flag' => $this->present($flag->load('overrides.tenant:id,name,slug'))], 201);
+        return response()->json(['message' => __('Flag created.'), 'flag' => $this->present($flag->load('overrides.tenant:id,name,slug'))], 201);
     }
 
     public function update(Request $request, FeatureFlag $flag): JsonResponse
@@ -49,7 +49,7 @@ class FeatureFlagController extends Controller
         app(FeatureFlags::class)->forget();
         $this->audit($request, 'feature_flag.updated', $flag, $before, $flag->only(['description', 'enabled', 'rollout_percent']));
 
-        return response()->json(['message' => 'Flag updated.', 'flag' => $this->present($flag->load('overrides.tenant:id,name,slug'))]);
+        return response()->json(['message' => __('Flag updated.'), 'flag' => $this->present($flag->load('overrides.tenant:id,name,slug'))]);
     }
 
     public function destroy(Request $request, FeatureFlag $flag): JsonResponse
@@ -58,7 +58,7 @@ class FeatureFlagController extends Controller
         $flag->delete();
         app(FeatureFlags::class)->forget();
 
-        return response()->json(['message' => 'Flag deleted.']);
+        return response()->json(['message' => __('Flag deleted.')]);
     }
 
     public function setOverride(Request $request, FeatureFlag $flag, Tenant $tenant): JsonResponse
@@ -73,7 +73,7 @@ class FeatureFlagController extends Controller
         app(FeatureFlags::class)->forget();
         $this->audit($request, 'feature_flag.override_set', $flag, ['enabled' => $existing?->enabled], ['enabled' => (bool) $data['enabled']], ['tenant_id' => $tenant->id]);
 
-        return response()->json(['message' => 'Override saved.', 'flag' => $this->present($flag->load('overrides.tenant:id,name,slug'))]);
+        return response()->json(['message' => __('Override saved.'), 'flag' => $this->present($flag->load('overrides.tenant:id,name,slug'))]);
     }
 
     public function clearOverride(Request $request, FeatureFlag $flag, Tenant $tenant): JsonResponse
@@ -83,7 +83,7 @@ class FeatureFlagController extends Controller
         app(FeatureFlags::class)->forget();
         $this->audit($request, 'feature_flag.override_cleared', $flag, ['enabled' => $existing?->enabled], null, ['tenant_id' => $tenant->id]);
 
-        return response()->json(['message' => 'Override removed.', 'flag' => $this->present($flag->load('overrides.tenant:id,name,slug'))]);
+        return response()->json(['message' => __('Override removed.'), 'flag' => $this->present($flag->load('overrides.tenant:id,name,slug'))]);
     }
 
     /** @return array<string, mixed> */

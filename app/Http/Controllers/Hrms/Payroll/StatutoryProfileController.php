@@ -42,7 +42,7 @@ class StatutoryProfileController extends Controller
         $profile = $this->profiles->upsert($employee, $request->validated(), $request->user());
 
         return response()->json([
-            'message' => 'Statutory profile saved.',
+            'message' => __('Statutory profile saved.'),
             'profile' => $this->profiles->present($profile),
         ]);
     }

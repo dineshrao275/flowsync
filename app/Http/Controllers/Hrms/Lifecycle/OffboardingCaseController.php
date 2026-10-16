@@ -75,7 +75,7 @@ class OffboardingCaseController extends Controller
         );
 
         return response()->json([
-            'message' => 'Exit run opened.',
+            'message' => __('Exit run opened.'),
             'case' => $this->present($case),
         ], Response::HTTP_CREATED);
     }
@@ -97,7 +97,7 @@ class OffboardingCaseController extends Controller
         $task = $this->offboarding->completeTask($task, $request->user(), $request->validated()['note'] ?? null);
 
         return response()->json([
-            'message' => 'Checklist item completed.',
+            'message' => __('Checklist item completed.'),
             'task' => $this->presenter->caseTask($task),
         ]);
     }
@@ -110,7 +110,7 @@ class OffboardingCaseController extends Controller
         // Conversion files a real project task and a bridge link row — both
         // products must be on, otherwise the answer is 422, not a 500 from a
         // missing table.
-        abort_unless(TmsSchema::present() && BridgeSchema::present(), 422, 'Converting checklist items needs both products.');
+        abort_unless(TmsSchema::present() && BridgeSchema::present(), 422, __('Converting checklist items needs both products.'));
 
         $project = Project::findOrFail((int) $request->validated()['project_id']);
         $this->authorize('createTask', $project);
@@ -118,7 +118,7 @@ class OffboardingCaseController extends Controller
         ['task' => $projectTask, 'link' => $link] = $this->conversion->convert($task, $project, $request->user(), $request->ip());
 
         return response()->json([
-            'message' => 'Checklist item converted to a project task.',
+            'message' => __('Checklist item converted to a project task.'),
             'task' => $this->presenter->caseTask($task->refresh()),
             'project_task' => ['id' => $projectTask->id, 'key' => $projectTask->key, 'title' => $projectTask->title],
             'task_link' => $this->links->present($link),
@@ -150,7 +150,7 @@ class OffboardingCaseController extends Controller
         $clearance = $this->offboarding->clear($case, $request->user());
 
         return response()->json([
-            'message' => 'Exit cleared.',
+            'message' => __('Exit cleared.'),
             'clearance' => $this->presenter->clearance($clearance),
         ]);
     }
@@ -162,7 +162,7 @@ class OffboardingCaseController extends Controller
         $case = $this->offboarding->complete($case, $request->user());
 
         return response()->json([
-            'message' => 'Exit run completed.',
+            'message' => __('Exit run completed.'),
             'case' => $this->present($case),
         ]);
     }
@@ -174,7 +174,7 @@ class OffboardingCaseController extends Controller
         $case = $this->offboarding->cancel($case, $request->user());
 
         return response()->json([
-            'message' => 'Exit run cancelled.',
+            'message' => __('Exit run cancelled.'),
             'case' => $this->present($case),
         ]);
     }

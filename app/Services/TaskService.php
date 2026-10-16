@@ -46,7 +46,7 @@ class TaskService
 
         if ($status->category->isDone() && $this->lifecycle->hasOpenBlockers($parent)) {
             throw ValidationException::withMessages([
-                'form' => 'Cannot complete a task that has open blockers.',
+                'form' => __('Cannot complete a task that has open blockers.'),
             ]);
         }
 
@@ -109,7 +109,7 @@ class TaskService
 
         if ($status->is_done && $this->lifecycle->hasOpenBlockers($task)) {
             throw ValidationException::withMessages([
-                'form' => 'Cannot move to Done while this task has open blockers.',
+                'form' => __('Cannot move to Done while this task has open blockers.'),
             ]);
         }
 

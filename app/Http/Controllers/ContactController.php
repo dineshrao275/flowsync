@@ -31,7 +31,7 @@ class ContactController extends Controller
 
         // Honeypot: a filled `website` field means a bot — succeed silently.
         if (! empty($data['website'])) {
-            return response()->json(['message' => 'Thanks — we will be in touch.']);
+            return response()->json(['message' => __('Thanks — we will be in touch.')]);
         }
 
         $lead = MarketingLead::create([
@@ -55,6 +55,6 @@ class ContactController extends Controller
             ));
         }
 
-        return response()->json(['message' => 'Thanks — we will be in touch.']);
+        return response()->json(['message' => __('Thanks — we will be in touch.')]);
     }
 }
