@@ -379,7 +379,10 @@
         "allComponents": "All components",
         "dueFrom": "Due from",
         "dueTo": "Due to",
-        "clear": "Clear"
+        "clear": "Clear",
+        "jql": "Advanced search",
+        "jqlPlaceholder": "status = \"In Progress\" AND assignee = currentUser() ORDER BY due",
+        "jqlHelp": "Press Enter to run. Fields: status, assignee, priority, type, label, due, created, title, text, cf.<field> …"
     },
     "projectsList": {
         "pageTitle": "Projects",

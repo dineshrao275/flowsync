@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Funnel, X } from '@phosphor-icons/react';
 import Icon from '../ui/Icon';
@@ -7,7 +7,37 @@ import Button from '../ui/Button';
 import Input from '../ui/Input';
 import SavedFilters from './SavedFilters';
 
-export default function FiltersBar({ filters, options, onChange, projectId = null, canShareFilters = false }) {
+function JqlBox({ value, error, onCommit }) {
+    const { t } = useTranslation();
+    const [text, setText] = useState(value || '');
+
+    // Follow outside changes (a saved filter applied, Clear pressed).
+    useEffect(() => setText(value || ''), [value]);
+
+    return (
+        <div className="w-full">
+            <label htmlFor="filter-jql" className="mb-1 block text-xs font-medium text-gray-600">{t('tms.filters.jql')}</label>
+            <input
+                id="filter-jql"
+                type="text"
+                spellCheck={false}
+                value={text}
+                placeholder={t('tms.filters.jqlPlaceholder')}
+                aria-invalid={error ? 'true' : undefined}
+                aria-describedby="filter-jql-help"
+                onChange={(e) => setText(e.target.value)}
+                onKeyDown={(e) => { if (e.key === 'Enter') onCommit(text.trim()); }}
+                onBlur={() => { if (text.trim() !== (value || '')) onCommit(text.trim()); }}
+                className={`${fieldClassCompact} font-mono ${error ? 'border-red-400' : ''}`}
+            />
+            <p id="filter-jql-help" className={`mt-1 text-xs ${error ? 'text-red-600' : 'text-gray-500'}`} role={error ? 'alert' : undefined}>
+                {error || t('tms.filters.jqlHelp')}
+            </p>
+        </div>
+    );
+}
+
+export default function FiltersBar({ filters, options, onChange, projectId = null, canShareFilters = false, jqlError = null }) {
     const { t } = useTranslation();
     function set(key, value) {
         onChange({ ...filters, [key]: value || null });
@@ -64,6 +94,7 @@ export default function FiltersBar({ filters, options, onChange, projectId = nul
         </div>
         {open && (
         <div id="task-filter-panel" className="flex flex-wrap items-end gap-3 rounded-lg border border-line bg-surface p-3">
+            {options.jql && <JqlBox value={filters.jql} error={jqlError} onCommit={(v) => set('jql', v)} />}
             <div>
                 <label htmlFor="filter-status" className="mb-1 block text-xs font-medium text-gray-600">{t('tms.filters.status')}</label>
                 <select id="filter-status" className={fieldClassCompact} value={filters.status_id || ''} onChange={(e) => set('status_id', e.target.value)}>

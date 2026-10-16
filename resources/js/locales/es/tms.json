@@ -379,7 +379,10 @@
         "allComponents": "Todos los componentes",
         "dueFrom": "Vence desde",
         "dueTo": "Vence hasta",
-        "clear": "Borrar"
+        "clear": "Borrar",
+        "jql": "Búsqueda avanzada",
+        "jqlPlaceholder": "status = \"In Progress\" AND assignee = currentUser() ORDER BY due",
+        "jqlHelp": "Pulsa Intro para ejecutar. Campos: status, assignee, priority, type, label, due, created, title, text, cf.<campo> …"
     },
     "projectsList": {
         "pageTitle": "Proyectos",

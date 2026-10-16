@@ -99,6 +99,7 @@ export default function ProjectDetail() {
     const [savingTask, setSavingTask] = useState(false);
     const [loadingTasks, setLoadingTasks] = useState(false);
     const [tasksError, setTasksError] = useState(null);
+    const [jqlError, setJqlError] = useState(null);
 
     const isProjectManager = can('workspaces.manage') || project?.my_role === 'lead';
     const archived = Boolean(project?.archived_at);
@@ -194,6 +195,7 @@ export default function ProjectDetail() {
 
         setLoadingTasks(true);
         setTasksError(null);
+        setJqlError(null);
         return api
             .get(`/projects/${projectId}/tasks`, { params })
             .then(({ data }) => {
@@ -210,6 +212,12 @@ export default function ProjectDetail() {
                 if (seq !== loadSeqRef.current) return;
                 if (err?.response?.status === 403) {
                     navigate('/403', { replace: true });
+                    return;
+                }
+                const jqlMessage = err?.response?.status === 422 ? err.response.data?.errors?.jql?.[0] : null;
+                if (jqlMessage) {
+                    // A bad query is the user's to fix: show it by the box and keep what was on screen.
+                    setJqlError(jqlMessage);
                     return;
                 }
                 setTasksError(t('tms.project.tasksFailed'));
@@ -806,7 +814,8 @@ export default function ProjectDetail() {
                     <Card>
                         <FiltersBar
                             filters={filters}
-                            options={{ ...taskOptions, sprints: hasModule('sprints'), savedFilters: hasModule('saved_filters') }}
+                            options={{ ...taskOptions, sprints: hasModule('sprints'), savedFilters: hasModule('saved_filters'), jql: hasModule('jql') }}
+                            jqlError={jqlError}
                             projectId={projectId}
                             canShareFilters={isProjectManager}
                             onChange={(next) => {

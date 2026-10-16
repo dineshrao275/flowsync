@@ -7,6 +7,7 @@ use App\Models\Task;
 use App\Models\TaskStatus;
 use App\Models\User;
 use App\Services\CustomFields\CustomFieldService;
+use App\Services\Jql\JqlSearch;
 use App\Support\Like;
 use App\Support\TaskScope;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
@@ -214,6 +215,10 @@ class TaskReader
 
         if (! empty($filters['q'])) {
             Like::any($query, ['tasks.title', 'tasks.key', 'tasks.description'], $filters['q']);
+        }
+
+        if (! empty($filters['jql']) && is_string($filters['jql'])) {
+            JqlSearch::apply($query, $filters['jql'], $user);
         }
 
         if (! empty($filters['cf']) && is_array($filters['cf']) && app(CustomFieldService::class)->enabled()) {

@@ -50,6 +50,7 @@ class TaskController extends Controller
             'sprint' => ['nullable', 'regex:/^(active|none|\d+)$/'],
             'swimlane' => ['nullable', 'in:none,assignee'],
             'cf' => ['nullable', 'array', 'max:20'],
+            'jql' => ['nullable', 'string', 'max:1000'],
             'q' => ['nullable', 'string', 'max:255'],
             'due_from' => ['nullable', 'date'],
             'due_to' => ['nullable', 'date'],
