@@ -229,6 +229,34 @@ class AutomationTest extends TestCase
         $this->postJson("/api/projects/{$this->project->id}/tasks", ['title' => 'Bug', 'issue_type_id' => IssueType::where('slug', 'bug')->value('id')])->assertCreated();
     }
 
+    public function test_a_move_into_an_approval_gated_status_waits_for_a_workflow_manager(): void
+    {
+        $this->setUpProject();
+        $done = TaskStatus::where('project_id', $this->project->id)->where('slug', 'done')->firstOrFail();
+        $done->update(['entry_rules' => ['approval']]);
+        $id = $this->createTask(['title' => 'Ship it']);
+
+        // A developer's drag is held as a request, and the card has not moved.
+        $this->postJson('/api/auth/logout');
+        $this->postJson('/api/auth/login', ['email' => 'editor@flowsync.test', 'password' => 'password'])->assertOk();
+        $res = $this->postJson("/api/projects/{$this->project->id}/tasks/$id/move", ['status_id' => $done->id])->assertStatus(202);
+        $this->assertTrue($res->json('pending_approval'));
+        $this->connectTenant('acme');
+        $this->assertNotEquals($done->id, Task::find($id)->status_id);
+
+        // The lead sees it and approves; now the card moves.
+        $this->postJson('/api/auth/logout');
+        $this->postJson('/api/auth/login', ['email' => 'admin@flowsync.test', 'password' => 'password'])->assertOk();
+        $requestId = $this->getJson("/api/projects/{$this->project->id}/move-requests")->assertOk()->json('requests.0.id');
+        $this->postJson("/api/projects/{$this->project->id}/move-requests/$requestId/approve")->assertOk();
+        $this->connectTenant('acme');
+        $this->assertEquals($done->id, Task::find($id)->status_id);
+
+        // A lead moving straight into the gated status needs no request.
+        $other = $this->createTask(['title' => 'Direct']);
+        $this->postJson("/api/projects/{$this->project->id}/tasks/$other/move", ['status_id' => $done->id])->assertOk();
+    }
+
     public function test_the_module_gate_applies(): void
     {
         $this->setUpProject();

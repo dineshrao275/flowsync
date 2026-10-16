@@ -60,7 +60,17 @@
         "needs": "needs {{label}}",
         "save": "Save workflow",
         "saved": "Workflow saved.",
-        "saveFailed": "Could not save the workflow."
+        "saveFailed": "Could not save the workflow.",
+        "pendingTitle": "Moves waiting for approval",
+        "pendingLine": "{{key}}: {{from}} → {{to}} (asked by {{who}})",
+        "reject": "Reject",
+        "approve": "Approve",
+        "rejectReason": "Why is this move rejected?",
+        "moveFailed": "That did not work.",
+        "moveDone": {
+            "approve": "Move approved.",
+            "reject": "Move rejected."
+        }
     },
     "transfer": {
         "clone": "Clone",

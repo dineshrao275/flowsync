@@ -869,5 +869,12 @@
     "Loan decided.": "Préstamo resuelto.",
     "Loan rejected.": "Préstamo rechazado.",
     "Loan withdrawn.": "Préstamo retirado.",
-    "Loan stopped.": "Préstamo detenido."
+    "Loan stopped.": "Préstamo detenido.",
+    "This move is already waiting for approval.": "Este movimiento ya está esperando aprobación.",
+    "This request has already been decided.": "Esta solicitud ya fue resuelta.",
+    "Move approved.": "Movimiento aprobado.",
+    "Move rejected.": "Movimiento rechazado.",
+    "Request withdrawn.": "Solicitud retirada.",
+    "This move needs a workflow manager's approval — it has been requested.": "Este movimiento necesita la aprobación de un gestor del flujo; ya se ha solicitado.",
+    "Moving to :status needs a workflow manager's approval — drag the card or use the move action to request it.": "Mover a :status necesita la aprobación de un gestor del flujo: arrastra la tarjeta o usa la acción de mover para solicitarla."
 }

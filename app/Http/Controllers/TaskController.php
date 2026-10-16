@@ -11,10 +11,12 @@ use App\Models\Task;
 use App\Services\ActivityLogger;
 use App\Services\Tasks\TaskChangeLogger;
 use App\Services\TaskService;
+use App\Services\Workflow\MoveApprovals;
 use App\Support\Realtime;
 use App\Support\TaskScope;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Validation\ValidationException;
 
 class TaskController extends Controller
 {
@@ -182,6 +184,13 @@ class TaskController extends Controller
 
         if (array_key_exists('assignee_id', $data)) {
             $this->authorize('assign', $task);
+        }
+
+        if (! empty($data['status_id']) && (int) $data['status_id'] !== (int) $task->status_id) {
+            $target = $project->statuses()->whereKey($data['status_id'])->first();
+            if ($target !== null && app(MoveApprovals::class)->required($task, $target, $request->user())) {
+                throw ValidationException::withMessages(['status_id' => __('Moving to :status needs a workflow manager\'s approval — drag the card or use the move action to request it.', ['status' => $target->name])]);
+            }
         }
 
         $custom = $this->validatedCustomFields($request, 'task', partial: true);

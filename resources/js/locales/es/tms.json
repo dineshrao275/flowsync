@@ -60,7 +60,17 @@
         "needs": "requiere {{label}}",
         "save": "Guardar flujo de trabajo",
         "saved": "Flujo de trabajo guardado.",
-        "saveFailed": "No se pudo guardar el flujo de trabajo."
+        "saveFailed": "No se pudo guardar el flujo de trabajo.",
+        "pendingTitle": "Movimientos pendientes de aprobación",
+        "pendingLine": "{{key}}: {{from}} → {{to}} (solicitado por {{who}})",
+        "reject": "Rechazar",
+        "approve": "Aprobar",
+        "rejectReason": "¿Por qué se rechaza este movimiento?",
+        "moveFailed": "No se pudo completar la acción.",
+        "moveDone": {
+            "approve": "Movimiento aprobado.",
+            "reject": "Movimiento rechazado."
+        }
     },
     "transfer": {
         "clone": "Clonar",

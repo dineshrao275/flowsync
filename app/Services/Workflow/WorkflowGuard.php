@@ -21,6 +21,7 @@ class WorkflowGuard
         'estimate' => 'a time estimate',
         'story_points' => 'story points',
         'subtasks_done' => 'all subtasks to be done',
+        'approval' => 'a workflow manager\'s approval',
     ];
 
     /**

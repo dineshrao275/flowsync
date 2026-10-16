@@ -25,6 +25,7 @@ use App\Http\Controllers\TaskBulkController;
 use App\Http\Controllers\TaskChecklistController;
 use App\Http\Controllers\TaskController;
 use App\Http\Controllers\TaskMoveController;
+use App\Http\Controllers\TaskMoveRequestController;
 use App\Http\Controllers\TaskWatcherController;
 use App\Http\Controllers\TimerController;
 use App\Http\Controllers\TimesheetController;
@@ -73,6 +74,10 @@ Route::middleware(['permission:workspaces.view', 'ensure_product:tms'])->group(f
     Route::get('projects/{project}/workflow', [WorkflowController::class, 'show']);
     Route::put('projects/{project}/workflow', [WorkflowController::class, 'update']);
     Route::get('projects/{project}/tasks/{task}/transitions', [WorkflowController::class, 'transitions']);
+    Route::get('projects/{project}/move-requests', [TaskMoveRequestController::class, 'index']);
+    Route::post('projects/{project}/move-requests/{moveRequest}/approve', [TaskMoveRequestController::class, 'approve']);
+    Route::post('projects/{project}/move-requests/{moveRequest}/reject', [TaskMoveRequestController::class, 'reject']);
+    Route::post('projects/{project}/move-requests/{moveRequest}/withdraw', [TaskMoveRequestController::class, 'withdraw']);
     Route::get('workspaces', [WorkspaceController::class, 'index']);
     Route::get('workspaces/{workspace}', [WorkspaceController::class, 'show']);
     Route::put('workspaces/{workspace}', [WorkspaceController::class, 'update']);

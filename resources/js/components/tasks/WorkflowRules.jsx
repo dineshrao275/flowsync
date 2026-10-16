@@ -19,6 +19,7 @@ export default function WorkflowRules({ projectId, onSaved }) {
     const [rules, setRules] = useState({});
     const [error, setError] = useState(null);
     const [saving, setSaving] = useState(false);
+    const [pending, setPending] = useState({ requests: [], can_decide: false });
 
     const load = useCallback(() => api.get(`/projects/${projectId}/workflow`).then(({ data: d }) => {
         setData(d);
@@ -26,7 +27,19 @@ export default function WorkflowRules({ projectId, onSaved }) {
         setAllowed(new Set(d.transitions.map((t) => key(t.from_status_id, t.to_status_id))));
         setRules(Object.fromEntries(d.statuses.map((s) => [s.id, s.entry_rules || []])));
     }), [projectId]);
-    useEffect(() => { load(); }, [load]);
+    const loadPending = useCallback(() => api.get(`/projects/${projectId}/move-requests`).then(({ data: d }) => setPending(d)).catch(() => {}), [projectId]);
+    useEffect(() => { load(); loadPending(); }, [load, loadPending]);
+
+    async function decide(id, action) {
+        try {
+            await api.post(`/projects/${projectId}/move-requests/${id}/${action}`, action === 'reject' ? { note: window.prompt(t('tms.workflow.rejectReason')) || '' } : {});
+            toast.success(t(`tms.workflow.moveDone.${action}`));
+            loadPending();
+            onSaved?.();
+        } catch (err) {
+            setError(fieldErrors(err).note || fieldErrors(err).form || t('tms.workflow.moveFailed'));
+        }
+    }
 
     if (!data) return <Card title={t('tms.workflow.title')}><Spinner /></Card>;
 
@@ -95,6 +108,25 @@ export default function WorkflowRules({ projectId, onSaved }) {
 
             <Alert>{error}</Alert>
             <div className="mt-4"><Button onClick={save} loading={saving}>{t('tms.workflow.save')}</Button></div>
+
+            {pending.requests.length > 0 && (
+                <div className="mt-6">
+                    <h4 className="mb-2 text-sm font-semibold text-gray-900">{t('tms.workflow.pendingTitle')}</h4>
+                    <ul className="divide-y divide-gray-100 text-sm">
+                        {pending.requests.map((r) => (
+                            <li key={r.id} className="flex flex-wrap items-center justify-between gap-2 py-2">
+                                <span>{t('tms.workflow.pendingLine', { key: r.task.key, from: r.from, to: r.to, who: r.requested_by })}</span>
+                                {pending.can_decide && (
+                                    <span className="flex gap-2">
+                                        <Button size="sm" variant="secondary" onClick={() => decide(r.id, 'reject')}>{t('tms.workflow.reject')}</Button>
+                                        <Button size="sm" onClick={() => decide(r.id, 'approve')}>{t('tms.workflow.approve')}</Button>
+                                    </span>
+                                )}
+                            </li>
+                        ))}
+                    </ul>
+                </div>
+            )}
         </Card>
     );
 }
