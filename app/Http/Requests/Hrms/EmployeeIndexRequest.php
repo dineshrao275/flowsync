@@ -38,6 +38,8 @@ class EmployeeIndexRequest extends FormRequest
             'location_id' => ['sometimes', 'nullable', 'integer', 'exists:locations,id'],
             'joined_from' => ['sometimes', 'nullable', 'date'],
             'joined_to' => ['sometimes', 'nullable', 'date', 'after_or_equal:joined_from'],
+            // Custom-field filters: cf[key]=value, or cf[key][from]=&cf[key][to]= for numbers and dates.
+            'cf' => ['sometimes', 'nullable', 'array', 'max:20'],
             'sort' => ['sometimes', 'nullable', 'string', 'max:32'],
             'dir' => ['sometimes', 'nullable', 'in:asc,desc'],
             'per_page' => ['sometimes', 'nullable', 'integer', 'min:1', 'max:100'],
