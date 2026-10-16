@@ -355,6 +355,8 @@
         "created": "Creada"
     },
     "filters": {
+        "title": "Filtros",
+        "activeCount": "{{count}} activos",
         "search": "Buscar",
         "searchPlaceholder": "Título, clave, descripción…",
         "status": "Estado",

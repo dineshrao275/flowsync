@@ -11,9 +11,10 @@ const options = {
 describe('FiltersBar', () => {
     it('pairs every visible label with its control', () => {
         render(<FiltersBar filters={{}} options={options} onChange={() => {}} />);
+        fireEvent.click(screen.getByRole('button', { name: /Filters/ }));
 
         for (const name of ['Search', 'Status', 'Priority', 'Assignee']) {
-            const label = screen.getByText(name);
+            const label = screen.getAllByText(name).find((el) => el.tagName === 'LABEL');
             const control = label.htmlFor
                 ? document.getElementById(label.htmlFor)
                 : screen.getByLabelText(name);

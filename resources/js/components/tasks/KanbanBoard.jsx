@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { createPortal } from 'react-dom';
 import { DndContext, DragOverlay, KeyboardSensor, PointerSensor, closestCorners, useSensor, useSensors, useDroppable } from '@dnd-kit/core';
 import { SortableContext, sortableKeyboardCoordinates } from '@dnd-kit/sortable';
 import { useTranslation } from 'react-i18next';
@@ -200,13 +201,18 @@ function BoardRow({ statuses, canMove, canEdit, canCreate, collapsed, onToggle, 
                     />
                 ))}
             </div>
-            <DragOverlay>
-                {activeTask ? (
-                    <div className={`${CARD_CLASS} rotate-2 cursor-grabbing shadow-xl`}>
-                        <TaskCardBody task={activeTask} />
-                    </div>
-                ) : null}
-            </DragOverlay>
+            {/* Portalled: the page wrapper is a transformed ancestor, which would make the
+                overlay's fixed positioning relative to it and offset the card from the cursor. */}
+            {createPortal(
+                <DragOverlay>
+                    {activeTask ? (
+                        <div className={`${CARD_CLASS} rotate-2 cursor-grabbing shadow-xl`}>
+                            <TaskCardBody task={activeTask} />
+                        </div>
+                    ) : null}
+                </DragOverlay>,
+                document.body,
+            )}
         </DndContext>
     );
 }

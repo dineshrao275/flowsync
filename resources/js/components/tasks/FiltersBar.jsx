@@ -1,4 +1,7 @@
+import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { Funnel, X } from '@phosphor-icons/react';
+import Icon from '../ui/Icon';
 import { fieldClassCompact } from '../ui/fieldStyles';
 import Button from '../ui/Button';
 import Input from '../ui/Input';
@@ -13,10 +16,15 @@ export default function FiltersBar({ filters, options, onChange }) {
         onChange({});
     }
 
+    const [open, setOpen] = useState(false);
+    const activeCount = Object.entries(filters).filter(([key, value]) => key !== 'q' && value !== '' && value != null).length;
+    const hasAny = activeCount > 0 || Boolean(filters.q);
+
     return (
-        <div className="flex flex-wrap items-end gap-3">
-            <div className="w-56">
-                <label htmlFor="filter-q" className="mb-1 block text-xs font-medium text-gray-600">{t('tms.filters.search')}</label>
+        <div className="space-y-3">
+        <div className="flex flex-wrap items-center gap-2">
+            <div className="w-full sm:w-72">
+                <label htmlFor="filter-q" className="sr-only">{t('tms.filters.search')}</label>
                 <input
                     id="filter-q"
                     type="text"
@@ -26,6 +34,32 @@ export default function FiltersBar({ filters, options, onChange }) {
                     className={fieldClassCompact}
                 />
             </div>
+            <Button
+                type="button"
+                size="sm"
+                variant="secondary"
+                aria-expanded={open}
+                aria-controls="task-filter-panel"
+                onClick={() => setOpen((v) => !v)}
+            >
+                <Icon as={Funnel} size="sm" weight={activeCount ? 'fill' : 'regular'} className="mr-1.5" />
+                {t('tms.filters.title')}
+                {activeCount > 0 && (
+                    <span className="ml-1.5 rounded-full bg-[var(--accent)] px-1.5 text-xs font-semibold text-[var(--accent-contrast)]">
+                        <span className="sr-only">{t('tms.filters.activeCount', { count: activeCount })}</span>
+                        <span aria-hidden="true">{activeCount}</span>
+                    </span>
+                )}
+            </Button>
+            {hasAny && (
+                <Button type="button" size="sm" variant="ghost" onClick={clear}>
+                    <Icon as={X} size="sm" className="mr-1" />
+                    {t('tms.filters.clear')}
+                </Button>
+            )}
+        </div>
+        {open && (
+        <div id="task-filter-panel" className="flex flex-wrap items-end gap-3 rounded-lg border border-line bg-surface p-3">
             <div>
                 <label htmlFor="filter-status" className="mb-1 block text-xs font-medium text-gray-600">{t('tms.filters.status')}</label>
                 <select id="filter-status" className={fieldClassCompact} value={filters.status_id || ''} onChange={(e) => set('status_id', e.target.value)}>
@@ -137,9 +171,8 @@ export default function FiltersBar({ filters, options, onChange }) {
                 value={filters.due_to || ''}
                 onChange={(e) => set('due_to', e.target.value)}
             />
-            <Button type="button" size="sm" variant="secondary" onClick={clear}>
-                {t('tms.filters.clear')}
-            </Button>
+        </div>
+        )}
         </div>
     );
 }
