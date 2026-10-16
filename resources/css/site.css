@@ -51,3 +51,20 @@ html {
         transition-duration: 0.01ms !important;
     }
 }
+
+
+/*
+ * Visible keyboard focus for every interactive element on the public site
+ * (nav and footer links and FAQ summaries only had hover styles). Buttons keep
+ * their own offset ring from the button component; this is the baseline.
+ */
+a:focus-visible,
+button:focus-visible,
+summary:focus-visible,
+input:focus-visible,
+textarea:focus-visible,
+select:focus-visible {
+    outline: 2px solid #2563eb;
+    outline-offset: 2px;
+    border-radius: 0.375rem;
+}

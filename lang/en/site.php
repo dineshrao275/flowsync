@@ -23,6 +23,7 @@ return [
     'actions' => [
         'logIn' => 'Log in',
         'startFree' => 'Start free',
+        'bookDemo' => 'Book a demo',
     ],
 
     'footer' => [

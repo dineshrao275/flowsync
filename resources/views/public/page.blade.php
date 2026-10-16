@@ -78,7 +78,7 @@
             @case('logo_cloud')
                 <section class="mx-auto max-w-6xl px-4 py-12 text-center sm:px-6">
                     @if(!empty($block['heading']))
-                        <p class="mb-7 text-xs font-semibold uppercase tracking-widest text-slate-400">{{ $block['heading'] }}</p>
+                        <p class="mb-7 text-xs font-semibold uppercase tracking-widest text-slate-500">{{ $block['heading'] }}</p>
                     @endif
                     <div class="flex flex-wrap items-center justify-center gap-x-10 gap-y-5">
                         @foreach ($block['logos'] ?? [] as $logo)
@@ -86,7 +86,7 @@
                             @if($logoMedia)
                                 <x-site.img :media="$logoMedia" class="h-8 w-auto opacity-60 grayscale transition hover:opacity-100 hover:grayscale-0" />
                             @elseif(!empty($logo['name']))
-                                <span class="text-lg font-extrabold tracking-tight text-slate-400 transition hover:text-slate-600">{{ $logo['name'] }}</span>
+                                <span class="text-lg font-extrabold tracking-tight text-slate-500 transition hover:text-slate-700">{{ $logo['name'] }}</span>
                             @endif
                         @endforeach
                     </div>
@@ -128,7 +128,7 @@
                     <div class="grid items-center gap-10 lg:grid-cols-2">
                         <div class="{{ !empty($block['flip']) ? 'lg:order-2' : '' }}">
                             @if($splitMedia)
-                                <x-site.img :media="$splitMedia" class="w-full rounded-3xl shadow-2xl shadow-slate-900/10 ring-1 ring-slate-900/5" />
+                                <x-site.img :media="$splitMedia" :eager="$loop->first" class="w-full rounded-3xl shadow-2xl shadow-slate-900/10 ring-1 ring-slate-900/5" />
                             @else
                                 <div class="relative aspect-[4/3] w-full overflow-hidden rounded-3xl bg-slate-950 shadow-2xl shadow-slate-900/10 ring-1 ring-slate-900/5" aria-hidden="true">
                                     <div class="absolute -left-16 -top-16 h-64 w-64 rounded-full bg-blue-600/40 blur-3xl"></div>
