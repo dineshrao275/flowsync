@@ -8,6 +8,7 @@ import { usePageTitleContext } from '../context/PageTitleContext';
 import { useClickOutside } from '../hooks/useClickOutside';
 import useLocale from '../hooks/useLocale';
 import useLocales from '../hooks/useLocales';
+import useMenuNavigation from '../hooks/useMenuNavigation';
 import NotificationBell from './NotificationBell';
 import ProductSwitcher from './ProductSwitcher';
 import Avatar from './ui/Avatar';
@@ -21,6 +22,7 @@ function LanguageMenu() {
     const buttonRef = useRef(null);
 
     useClickOutside(containerRef, () => setOpen(false));
+    useMenuNavigation(open, containerRef, () => setOpen(false));
 
     useEffect(() => {
         if (!open) return undefined;
@@ -91,6 +93,7 @@ export default function Topbar({ onOpenTheme, onToggleSidebar, onOpenSearch, sho
     const menuButtonRef = useRef(null);
 
     useClickOutside(menuRef, () => setMenuOpen(false));
+    useMenuNavigation(menuOpen, menuRef, () => setMenuOpen(false));
 
     // Escape closes the account menu and returns focus to its trigger, so
     // keyboard users don't lose their place in the topbar.
@@ -151,12 +154,12 @@ export default function Topbar({ onOpenTheme, onToggleSidebar, onOpenSearch, sho
                 {showSearch && (
                     <button
                         onClick={onOpenSearch}
-                        className="hidden items-center gap-2 rounded-lg border border-gray-300 bg-white py-2 pl-3 pr-2 text-sm text-gray-500 shadow-sm transition hover:bg-gray-50 hover:text-gray-700 sm:flex sm:w-56"
+                        className="hidden items-center gap-2 rounded-lg border border-line-input bg-white py-2 pl-3 pr-2 text-sm text-fg-muted shadow-sm transition hover:bg-gray-50 hover:text-fg sm:flex sm:w-56"
                         aria-label={t('topbar.searchLabel')}
                     >
                         <MagnifyingGlass size={16} weight="bold" aria-hidden="true" className="shrink-0" />
                         <span className="flex-1 text-left">{t('topbar.searchPlaceholder')}</span>
-                        <kbd className="rounded border border-gray-200 bg-gray-50 px-1.5 py-0.5 text-[10px] font-medium text-gray-400">
+                        <kbd className="rounded border border-line bg-surface-sunken px-1.5 py-0.5 text-caption font-medium text-fg-subtle">
                             ⌘K
                         </kbd>
                     </button>
@@ -203,7 +206,7 @@ export default function Topbar({ onOpenTheme, onToggleSidebar, onOpenSearch, sho
                                 <p className="truncate text-xs text-gray-500">{user?.email}</p>
                                 <div className="mt-2 flex flex-wrap gap-1">
                                     {(user?.roles || []).map((role) => (
-                                        <span key={role} className="rounded bg-gray-100 px-1.5 py-0.5 text-[10px] uppercase tracking-wide text-gray-600">
+                                        <span key={role} className="rounded bg-gray-100 px-1.5 py-0.5 text-caption uppercase tracking-wide text-gray-600">
                                             {role}
                                         </span>
                                     ))}

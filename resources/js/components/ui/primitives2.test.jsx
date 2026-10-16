@@ -161,9 +161,9 @@ describe('Tooltip', () => {
 });
 
 describe('PageHeader / ErrorState / TableSkeleton', () => {
-    it('renders one h1 with actions', () => {
+    it('renders a page heading (h2 under the Topbar h1) with actions', () => {
         render(<PageHeader title="Users" description="People" actions={<button type="button">Add</button>} />);
-        expect(screen.getByRole('heading', { level: 1, name: 'Users' })).toBeInTheDocument();
+        expect(screen.getByRole('heading', { level: 2, name: 'Users' })).toBeInTheDocument();
         expect(screen.getByRole('button', { name: 'Add' })).toBeInTheDocument();
     });
 

@@ -123,7 +123,8 @@
             "collapseSidebar": "Contraer la barra lateral",
             "expandSidebar": "Expandir la barra lateral",
             "collapseGroup": "Contraer {{label}}",
-            "expandGroup": "Expandir {{label}}"
+            "expandGroup": "Expandir {{label}}",
+            "nav": "Navegación principal"
         },
         "impersonation": {
             "viewingAs": "Estás viendo el panel como <0>{{name}}</0>",
@@ -213,6 +214,18 @@
             "hint": "Escribe al menos 2 caracteres para buscar.",
             "noResults": "Sin resultados para «{{query}}».",
             "footer": "↑↓ navegar · ↵ seleccionar · esc cerrar"
+        },
+        "skipToContent": "Saltar al contenido principal",
+        "shortcuts": {
+            "title": "Atajos de teclado",
+            "then": "luego",
+            "search": "Buscar",
+            "searchPalette": "Abrir la paleta de búsqueda",
+            "goDashboard": "Ir al panel",
+            "goProjects": "Ir a proyectos",
+            "goWorkspaces": "Ir a espacios de trabajo",
+            "goNotifications": "Ir a notificaciones",
+            "help": "Mostrar esta lista"
         }
     },
     "nav": {

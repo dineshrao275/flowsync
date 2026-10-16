@@ -123,7 +123,8 @@
             "collapseSidebar": "Collapse sidebar",
             "expandSidebar": "Expand sidebar",
             "collapseGroup": "Collapse {{label}}",
-            "expandGroup": "Expand {{label}}"
+            "expandGroup": "Expand {{label}}",
+            "nav": "Main navigation"
         },
         "impersonation": {
             "viewingAs": "You are currently viewing the panel as <0>{{name}}</0>",
@@ -213,6 +214,18 @@
             "hint": "Type at least 2 characters to search.",
             "noResults": "No results for “{{query}}”.",
             "footer": "↑↓ navigate · ↵ select · esc close"
+        },
+        "skipToContent": "Skip to main content",
+        "shortcuts": {
+            "title": "Keyboard shortcuts",
+            "then": "then",
+            "search": "Search",
+            "searchPalette": "Open search palette",
+            "goDashboard": "Go to dashboard",
+            "goProjects": "Go to projects",
+            "goWorkspaces": "Go to workspaces",
+            "goNotifications": "Go to notifications",
+            "help": "Show this list"
         }
     },
     "nav": {
