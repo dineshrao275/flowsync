@@ -759,5 +759,12 @@
         "more": "+{{count}} more",
         "empty": "No tasks have a due date in this period.",
         "rescheduleFailed": "Could not move the task to that day."
+    },
+    "timeline": {
+        "view": "Timeline",
+        "previous": "Earlier",
+        "next": "Later",
+        "empty": "No dated tasks in this window.",
+        "noVersion": "No version"
     }
 }

@@ -31,6 +31,7 @@ import RichTextEditor from '../components/ui/RichTextEditor';
 import RichText from '../components/ui/RichText';
 import FiltersBar from '../components/tasks/FiltersBar';
 import CalendarView from '../components/tasks/CalendarView';
+import TimelineView from '../components/tasks/TimelineView';
 import CreateTaskModal from '../components/tasks/CreateTaskModal';
 import TaskDetail from '../components/tasks/TaskDetail';
 import TimeSummary from '../components/time/TimeSummary';
@@ -184,7 +185,7 @@ export default function ProjectDetail() {
     function loadTasks() {
         const seq = ++loadSeqRef.current;
         // The calendar loads its own month; the board payload still supplies the filter options.
-        const requestedView = view === 'calendar' ? 'board' : view;
+        const requestedView = view === 'calendar' || view === 'timeline' ? 'board' : view;
         const params = {};
         if (view === 'list') {
             params.view = 'list';
@@ -794,6 +795,17 @@ export default function ProjectDetail() {
                                 >
                                     {t('tms.calendar.view')}
                                 </button>
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        setView('timeline');
+                                        setPage(1);
+                                    }}
+                                    className={`rounded-md px-3 py-1.5 text-sm font-medium transition ${view === 'timeline' ? 'bg-[var(--accent)] text-[var(--accent-contrast)]' : 'text-gray-600 hover:bg-gray-100'
+                                        }`}
+                                >
+                                    {t('tms.timeline.view')}
+                                </button>
                             </div>
                             {view === 'board' && (
                                 <select
@@ -852,6 +864,8 @@ export default function ProjectDetail() {
                             prefs={{ ...boardPrefs, save: updateBoardPrefs }}
                             manage={isProjectManager && !archived ? { onEdit: setEditingColumn, onMove: moveColumn, onDelete: removeColumn, order: statuses.map((s) => s.id) } : null}
                         />
+                    ) : view === 'timeline' ? (
+                        <TimelineView projectId={projectId} filters={filters} onOpen={openTask} />
                     ) : view === 'calendar' ? (
                         <CalendarView projectId={projectId} filters={filters} canEdit={canEditTask} onOpen={openTask} />
                     ) : view === 'list' ? (

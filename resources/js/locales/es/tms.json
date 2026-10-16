@@ -759,5 +759,12 @@
         "more": "+{{count}} más",
         "empty": "Ninguna tarea vence en este periodo.",
         "rescheduleFailed": "No se pudo mover la tarea a ese día."
+    },
+    "timeline": {
+        "view": "Cronograma",
+        "previous": "Antes",
+        "next": "Después",
+        "empty": "No hay tareas con fecha en este periodo.",
+        "noVersion": "Sin versión"
     }
 }
