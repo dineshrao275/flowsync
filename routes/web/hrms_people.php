@@ -5,6 +5,7 @@ use App\Http\Controllers\Hrms\Attendance\AttendanceRecordsController;
 use App\Http\Controllers\Hrms\Attendance\RegularizationController;
 use App\Http\Controllers\Hrms\DocumentController;
 use App\Http\Controllers\Hrms\DocumentTypeController;
+use App\Http\Controllers\Hrms\Employee\EmployeeChangeController;
 use App\Http\Controllers\Hrms\EmployeeController;
 use App\Http\Controllers\Hrms\HrAutomationRuleController;
 use App\Http\Controllers\Hrms\Lifecycle\DocumentRequestController;
@@ -209,4 +210,13 @@ Route::group(['middleware' => ['ensure_module:hrms.core', 'ensure_module:automat
     Route::post('hrms/automation-rules', [HrAutomationRuleController::class, 'store']);
     Route::put('hrms/automation-rules/{rule}', [HrAutomationRuleController::class, 'update']);
     Route::delete('hrms/automation-rules/{rule}', [HrAutomationRuleController::class, 'destroy']);
+});
+
+// Transfers, promotions, confirmations (F6.3): effective-dated changes through the approval engine.
+Route::group(['middleware' => ['ensure_module:hrms.core', 'permission:hrms.view']], function () {
+    Route::get('hrms/employee-changes', [EmployeeChangeController::class, 'index']);
+    Route::post('hrms/employees/{employee}/changes', [EmployeeChangeController::class, 'store']);
+    Route::post('hrms/employee-changes/{change}/approve', [EmployeeChangeController::class, 'approve']);
+    Route::post('hrms/employee-changes/{change}/reject', [EmployeeChangeController::class, 'reject']);
+    Route::post('hrms/employee-changes/{change}/withdraw', [EmployeeChangeController::class, 'withdraw']);
 });

@@ -56,6 +56,8 @@ Schedule::command('hrms:approvals-sla --all')->hourly()->withoutOverlapping();
 Schedule::command('hrms:assets-overdue --all')->dailyAt('10:30')->withoutOverlapping();
 // Notification digests: one email per person for held notifications (digest mode / throttle overflow).
 Schedule::command('notifications:send-digests --all')->dailyAt('07:30')->withoutOverlapping();
+// Approved transfers/promotions/confirmations take effect on their date.
+Schedule::command('hrms:apply-employee-changes --all')->dailyAt('00:40')->withoutOverlapping();
 Schedule::command('hrms:report-digests --all')->dailyAt('18:00')->withoutOverlapping();
 Schedule::command('hrms:performance-evidence --all')->dailyAt('21:30')->withoutOverlapping();
 Schedule::command('hrms:attendance-rollup --all')->dailyAt('23:45')->withoutOverlapping();

@@ -59,6 +59,7 @@ export const HRMS_NAV = [
     { to: '/hrms/resignation', label: 'nav.hrms.resignation', group: 'nav.groups.records', capabilities: ['module:hrms.core', 'module:hrms.offboarding'] },
     { to: '/hrms/exit-interview', label: 'nav.hrms.exitInterview', group: 'nav.groups.records', capabilities: ['module:hrms.core', 'module:hrms.offboarding'] },
     { to: '/hrms/automation', label: 'nav.hrms.hrAutomation', group: 'nav.groups.records', capabilities: ['module:hrms.core', 'module:automation', 'permission:hrms.onboarding.manage'] },
+    { to: '/hrms/changes', label: 'nav.hrms.changes', group: 'nav.groups.records', capabilities: ['module:hrms.core'] },
     { to: '/hrms/assets/mine', label: 'nav.hrms.myAssets', group: 'nav.groups.records', capabilities: ['module:hrms.core', 'module:hrms.assets'] },
     { to: '/hrms/approvals/chains', label: 'nav.hrms.approvalChains', group: 'nav.groups.records', capabilities: ['module:hrms.core', 'permission:hrms.approvals.manage'] },
 

@@ -2544,5 +2544,51 @@
             "offboarding_case_initiated": "Empieza una salida",
             "resignation_approved": "Se aprueba una renuncia"
         }
+    },
+    "changes": {
+        "pageTitle": "Traslados y ascensos",
+        "subtitle": "Solicita un traslado, ascenso o confirmación con fecha de efecto. Una vez aprobado, se aplica solo en esa fecha.",
+        "request": "Solicitar un cambio",
+        "modalHint": "Rellena solo lo que cambia. Deja un campo en — para mantenerlo como está.",
+        "empty": "Aún no hay cambios.",
+        "loadFailed": "No se pudieron cargar los cambios.",
+        "actionFailed": "No funcionó.",
+        "requested": "Cambio solicitado.",
+        "employee": "Empleado",
+        "type": "Tipo",
+        "effectiveDate": "Fecha de efecto",
+        "reason": "Motivo (opcional)",
+        "send": "Enviar para aprobación",
+        "effective": "Efectivo el {{date}}",
+        "confirmation": "confirmación",
+        "note": "Nota: {{note}}",
+        "withdraw": "Retirar",
+        "noteLabel": "Nota (obligatoria para rechazar)",
+        "approve": "Aprobar",
+        "reject": "Rechazar",
+        "types": {
+            "transfer": "Traslado",
+            "promotion": "Ascenso",
+            "confirmation": "Confirmación"
+        },
+        "status": {
+            "pending": "Pendiente",
+            "approved": "Aprobado — programado",
+            "applied": "Aplicado",
+            "rejected": "Rechazado",
+            "withdrawn": "Retirado"
+        },
+        "fields": {
+            "department_id": "Departamento",
+            "designation_id": "Puesto",
+            "location_id": "Ubicación",
+            "manager_id": "Depende de",
+            "employment_type_id": "Tipo de empleo"
+        },
+        "done": {
+            "approve": "Decisión registrada.",
+            "reject": "Cambio rechazado.",
+            "withdraw": "Cambio retirado."
+        }
     }
 }

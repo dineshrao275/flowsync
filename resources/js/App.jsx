@@ -48,6 +48,7 @@ import OffboardingCases from './pages/hrms/OffboardingCases';
 import Resignation from './pages/hrms/Resignation';
 import ExitInterview from './pages/hrms/ExitInterview';
 import HrAutomation from './pages/hrms/HrAutomation';
+import EmployeeChanges from './pages/hrms/EmployeeChanges';
 import OffboardingCaseDetail from './pages/hrms/OffboardingCaseDetail';
 import Attendance from './pages/hrms/Attendance';
 import AttendanceApprovals from './pages/hrms/AttendanceApprovals';
@@ -293,6 +294,7 @@ function AppRoutes() {
                                 <Route path="/hrms/resignation" element={<ProtectedRoute module="hrms.offboarding" />}>
                                     <Route index element={<Resignation />} />
                                 </Route>
+                                <Route path="/hrms/changes" element={<EmployeeChanges />} />
                                 <Route path="/hrms/automation" element={<ProtectedRoute module="automation" permission="hrms.onboarding.manage" />}>
                                     <Route index element={<HrAutomation />} />
                                 </Route>

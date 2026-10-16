@@ -809,5 +809,18 @@
     "Dashboard saved.": "Panel guardado.",
     "Dashboard reset.": "Panel restablecido.",
     "None": "Ninguno",
-    "Unassigned": "Sin asignar"
+    "Unassigned": "Sin asignar",
+    "This person already has a change waiting for a decision.": "Esta persona ya tiene un cambio pendiente de decisión.",
+    "Choose transfer, promotion or confirmation.": "Elige traslado, ascenso o confirmación.",
+    "That choice no longer exists.": "Esa opción ya no existe.",
+    "Someone cannot report to themself.": "Nadie puede reportarse a sí mismo.",
+    "Choose at least one thing to change.": "Elige al menos algo que cambiar.",
+    "This change has already been decided.": "Este cambio ya fue resuelto.",
+    "This change has no approval chain.": "Este cambio no tiene cadena de aprobación.",
+    "You cannot request a change for this person.": "No puedes solicitar un cambio para esta persona.",
+    "Change requested.": "Cambio solicitado.",
+    "Change decided.": "Cambio resuelto.",
+    "Change rejected.": "Cambio rechazado.",
+    "Change withdrawn.": "Cambio retirado.",
+    "Only the requester or HR can withdraw a change.": "Solo quien lo solicitó o RR. HH. puede retirar un cambio."
 }

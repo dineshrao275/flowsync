@@ -2544,5 +2544,51 @@
             "offboarding_case_initiated": "An exit starts",
             "resignation_approved": "A resignation is approved"
         }
+    },
+    "changes": {
+        "pageTitle": "Transfers & promotions",
+        "subtitle": "Request a transfer, promotion or confirmation with an effective date. Once approved it applies itself on that date.",
+        "request": "Request a change",
+        "modalHint": "Only fill in what changes. Leave a field on — to keep it as it is.",
+        "empty": "No changes yet.",
+        "loadFailed": "Could not load changes.",
+        "actionFailed": "That did not work.",
+        "requested": "Change requested.",
+        "employee": "Employee",
+        "type": "Type",
+        "effectiveDate": "Effective date",
+        "reason": "Reason (optional)",
+        "send": "Send for approval",
+        "effective": "Effective {{date}}",
+        "confirmation": "confirmation",
+        "note": "Note: {{note}}",
+        "withdraw": "Withdraw",
+        "noteLabel": "Note (needed to reject)",
+        "approve": "Approve",
+        "reject": "Reject",
+        "types": {
+            "transfer": "Transfer",
+            "promotion": "Promotion",
+            "confirmation": "Confirmation"
+        },
+        "status": {
+            "pending": "Pending",
+            "approved": "Approved — scheduled",
+            "applied": "Applied",
+            "rejected": "Rejected",
+            "withdrawn": "Withdrawn"
+        },
+        "fields": {
+            "department_id": "Department",
+            "designation_id": "Designation",
+            "location_id": "Location",
+            "manager_id": "Reports to",
+            "employment_type_id": "Employment type"
+        },
+        "done": {
+            "approve": "Decision recorded.",
+            "reject": "Change rejected.",
+            "withdraw": "Change withdrawn."
+        }
     }
 }
