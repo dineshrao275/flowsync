@@ -23,13 +23,14 @@ P4 future. **Size:** S ≤ 1 day · M 2-4 days · L 1-2 weeks · XL > 2 weeks (s
 ### 0.1 Items the master roadmap still lists as open but the repo shows are (at least partly) done — verify, then close
 | Item | Evidence | Action |
 |---|---|---|
-| P2.4 Approvals v2 (templates, delegation, SLA) | `app/Services/Hrms/Approval/{ChainBuilder,ChainTemplates,ApprovalSla,ApprovalTemplateSeeder}.php`, `ApprovalChains.jsx`, commit `72f24789` (merged as preserved WIP) | ❓ VERIFY modes (parallel / any-one / all / conditional) and the UI; then close or list the remainder under M-F1 |
-| P2.9 Notification digest/throttle/locale | `app/Services/Notifications/{NotificationDispatcher,RecipientResolver}`, commit `a0618941` (WIP) | ❓ VERIFY digest scheduler + tenant channel policy |
-| P4.6 clone / move / bulk edit | commit `7ca9c4ed` (WIP preserved) | ❓ VERIFY routes + UI + tests |
+| P2.4 Approvals v2 (templates, delegation, SLA) | `ApprovalStepMode` = sequential / parallel_any / parallel_all; `approval_delegations` + templates in `2026_11_05_000060_create_approvals_v2`; `ChainBuilder`, `ApprovalSla`; `HrmsApprovalTest`; **verified F0.2: engine modes ✅, no "conditional" step type yet** | 🟡 close modes; keep M-F1 for conditional steps + consumer migration + editor polish |
+| P2.9 Notification digest/throttle/locale | Only `hrms:report-digests` (HR *report* digest, scheduled 18:00) and migration `2026_11_03_000051_add_notification_delivery_controls`; **verified F0.2: no notification digest scheduler** | 🔴 stays open as M-F4 |
+| P4.6 clone / move / bulk edit | Routes `tasks/bulk`, `tasks/{task}/clone`, `tasks/{task}/move-project` exist (`TaskBulkController`); **verified F0.2: no test references them** | 🟡 shipped without tests → add `TaskBulkTest` (F0.2 follow-up) |
 | P3.1-3.5 workflow rules, transitions, automation core | `app/Services/Workflow`, `app/Services/Automation`, AGENTS.md "Workflow rules" / "Automation" | ✅ close (only P3.3 editor UI + P3.6 packs remain) |
 | P4.2 / P4.5 sprints, backlog, agile reports | `app/Services/Sprints`, AGENTS.md "Sprints" | ✅ close |
 | P6.6 packaging option B (TMS and HRMS sold separately) | AGENTS.md "Products" | ✅ close |
-| P2.2 / P2.3 correlation id, notification consumers | `AssignRequestId`, domain events | ✅ close |
+| P2.2 / P2.3 correlation id, notification consumers | `AssignRequestId`; request id already on platform + HRMS audit tables | ✅ close; F0.4 adds `activities` + queued jobs |
+| P6.2 / M-H2 dunning, period-end expiry | `billing:dunning`, `billing:period-ends` scheduled in `routes/console.php`; `DunningTest`, `PeriodEndTest` | ✅ mostly shipped → M-H2 shrinks to configurable cadence + UI |
 
 ### 0.2 The blocker that sits under everything
 **A full PHP test run has not completed in a long time.** AGENTS.md quotes 1720 tests / 8815 assertions (2026-10-09) and

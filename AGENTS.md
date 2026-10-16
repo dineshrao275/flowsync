@@ -8,7 +8,8 @@ Laravel 12 + React 19 SPA. Session-based auth **without** Breeze/Fortify/Sanctum
 
 ## Commands
 - **Local run script:** `./scripts/dev.sh docker|local …` (see README "Run locally"). The Docker compose file is a **dev setup**: the repo is bind-mounted into `app`/`queue`/`reverb`/`vite` (`vendor/` and `node_modules/` in named volumes, host `.env` hidden with `/dev/null`, `artisan serve --no-reload` because it otherwise strips the container env), Vite HMR on :5173 via `public/hot`, `DEV_MODE=true` skips config/route caching in `docker/entrypoint.sh`. A `perms` one-shot chowns the named volumes to `DOCKER_UID/GID`.
-- **Native host (current dev setup, no Docker):** Apache `mod_php` vhost `flowsync.conf` serves
+- **Canonical way to run locally: `./scripts/dev.sh docker up` or `./scripts/dev.sh local setup && ./scripts/dev.sh local start` (see README "Run locally").** The bullets below describe the older host-Apache/systemd setup, still valid on the original dev host.
+- **Native host (original dev host, no Docker):** Apache `mod_php` vhost `flowsync.conf` serves
   `public/` on `http://localhost` (`http://localhost/app` = SPA, `/` = public marketing site); PHP 8.3 CLI
   + PostgreSQL 16 (`flowsync`/`secret` @ `flowsync_system`) on the host. Long-running services are
   **systemd user units**: `systemctl --user status flowsync-reverb flowsync-queue` plus the
