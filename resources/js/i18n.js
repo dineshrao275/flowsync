@@ -58,7 +58,42 @@ export function applyServerLocale(locale) {
     if (!locale || locale === i18n.language) return;
 
     persistLocale(locale);
-    i18n.changeLanguage(locale);
+    changeLocale(locale);
+}
+
+// Non-English dictionaries are lazy: one chunk per file, fetched only when
+// that language is first used. English stays statically bundled (it is the
+// fallback and the test default), so an English user never downloads `es`.
+const lazyBundles = import.meta.glob('./locales/*/*.json');
+
+/** Same shape as the static `en` tree: `common.json` at the root, every other file nested under its basename. */
+async function loadLocale(locale) {
+    if (locale === DEFAULT_LOCALE || i18n.hasResourceBundle(locale, 'common')) return;
+
+    const files = Object.entries(lazyBundles).filter(([path]) => path.startsWith(`./locales/${locale}/`));
+    if (files.length === 0) return;
+
+    const tree = {};
+    await Promise.all(
+        files.map(async ([path, load]) => {
+            const name = path.split('/').pop().replace('.json', '');
+            const dictionary = (await load()).default;
+            if (name === 'common') Object.assign(tree, dictionary);
+            else tree[name] = dictionary;
+        }),
+    );
+    i18n.addResourceBundle(locale, 'common', tree, true, true);
+}
+
+/** Fetch the dictionary, then switch — the screen never renders a half-loaded language. */
+export async function changeLocale(locale) {
+    try {
+        await loadLocale(locale);
+    } catch {
+        // Offline / chunk failure: stay on the current language rather than render keys.
+        return;
+    }
+    await i18n.changeLanguage(locale);
 }
 
 i18n.use(initReactI18next).init({
@@ -74,7 +109,7 @@ i18n.use(initReactI18next).init({
     resources: {
         en: { common: { ...enCommon, auth: enAuth, dashboard: enDashboard, tms: enTms, hrms: enHrms, admin: enAdmin } },
     },
-    lng: storedLocale() || DEFAULT_LOCALE,
+    lng: DEFAULT_LOCALE,
     fallbackLng: DEFAULT_LOCALE,
     ns: ['common'],
     defaultNS: 'common',
@@ -89,6 +124,11 @@ i18n.use(initReactI18next).init({
         console.warn(`[i18n] missing key "${namespace}:${key}" for [${languages.join(', ')}]`);
     },
 });
+
+// A remembered non-English choice loads its dictionary, then switches; English
+// paints immediately meanwhile (same fallback chain the missing-key path uses).
+const remembered = storedLocale();
+if (remembered && remembered !== DEFAULT_LOCALE) changeLocale(remembered);
 
 if (typeof document !== 'undefined') {
     document.documentElement.lang = i18n.language;

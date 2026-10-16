@@ -2,7 +2,7 @@ import { useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import api from '../services/api';
 import { useAuth } from '../context/AuthContext';
-import { DEFAULT_LOCALE, intlTag, persistLocale } from '../i18n';
+import { DEFAULT_LOCALE, changeLocale, intlTag, persistLocale } from '../i18n';
 
 /**
  * The SPA leg of language selection (i18n Phase 0). `locale` is the active
@@ -22,7 +22,7 @@ export default function useLocale() {
             if (!next || next === i18n.language) return;
 
             persistLocale(next);
-            await i18n.changeLanguage(next);
+            await changeLocale(next);
 
             if (user) {
                 try {
