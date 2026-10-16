@@ -6,6 +6,7 @@ use App\Models\Activity;
 use App\Models\AutomationRule;
 use App\Models\AutomationRun;
 use App\Models\Comment;
+use App\Models\IssueType;
 use App\Models\Label;
 use App\Models\Priority;
 use App\Models\Project;
@@ -209,6 +210,23 @@ class AutomationTest extends TestCase
         $this->assertSame(1, DB::table('sla_breaches')->where('sla_policy_id', $policy['id'])->where('task_id', $old)->count());
         $this->assertSame(0, DB::table('sla_breaches')->where('task_id', $new)->count());
         $this->assertTrue(Activity::where('action', 'task.sla_breached')->where('subject_id', $old)->exists());
+    }
+
+    public function test_board_types_seed_statuses_and_an_issue_scheme_that_tasks_must_respect(): void
+    {
+        $this->setUpProject();
+        $this->postJson('/api/auth/login', ['email' => 'admin@flowsync.test', 'password' => 'password'])->assertOk();
+
+        $basic = $this->postJson("/api/workspaces/{$this->project->workspace_id}/projects", ['name' => 'Simple', 'key' => 'SMP', 'board_type' => 'basic'])->assertCreated()->json('project');
+        $this->assertSame('basic', $basic['board_type']);
+        $this->assertSame(3, $basic['statuses_count'] ?? TaskStatus::where('project_id', $basic['id'])->count());
+
+        $this->postJson("/api/projects/{$basic['id']}/tasks", ['title' => 'Bug?', 'issue_type_id' => IssueType::where('slug', 'bug')->value('id')])
+            ->assertStatus(422)->assertJsonValidationErrors('issue_type_id');
+        $this->postJson("/api/projects/{$basic['id']}/tasks", ['title' => 'Task', 'issue_type_id' => IssueType::where('slug', 'task')->value('id')])->assertCreated();
+
+        // A project with no scheme (the kanban default) allows every type.
+        $this->postJson("/api/projects/{$this->project->id}/tasks", ['title' => 'Bug', 'issue_type_id' => IssueType::where('slug', 'bug')->value('id')])->assertCreated();
     }
 
     public function test_the_module_gate_applies(): void

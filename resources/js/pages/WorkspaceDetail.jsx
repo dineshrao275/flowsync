@@ -46,7 +46,7 @@ export default function WorkspaceDetail() {
 
     const [memberForm, setMemberForm] = useState({ user_id: '', role: 'member' });
     const [labelForm, setLabelForm] = useState({ name: '', color: '#2563eb' });
-    const [projectForm, setProjectForm] = useState({ name: '', key: '', description: '', template_id: '' });
+    const [projectForm, setProjectForm] = useState({ name: '', key: '', description: '', template_id: '', board_type: 'kanban' });
     const [templates, setTemplates] = useState([]);
 
     useEffect(() => {
@@ -253,6 +253,7 @@ export default function WorkspaceDetail() {
                 name: projectForm.name,
                 key: projectForm.key || undefined,
                 description: projectForm.description || undefined,
+                board_type: projectForm.template_id ? undefined : projectForm.board_type,
             };
             const { data } = projectForm.template_id
                 ? await api.post(`/workspaces/${workspaceId}/projects/from-template`, { ...payload, template_id: Number(projectForm.template_id) })
@@ -264,7 +265,7 @@ export default function WorkspaceDetail() {
             } else {
                 setProjects((current) => [...current, data.project]);
             }
-            setProjectForm({ name: '', key: '', description: '', template_id: '' });
+            setProjectForm({ name: '', key: '', description: '', template_id: '', board_type: 'kanban' });
             toast.success(t('tms.workspaceDetail.projectCreated', { key: data.project.key }));
         } catch (e) {
             setCreatingProject(true);
@@ -383,6 +384,15 @@ export default function WorkspaceDetail() {
                                         error={formErrors.key}
                                     />
                                 </div>
+                                {!projectForm.template_id && (
+                                    <div>
+                                        <label htmlFor="project-board-type" className="mb-1.5 block text-sm font-medium text-gray-700">{t('tms.workspaceDetail.boardType')}</label>
+                                        <select id="project-board-type" className={fieldClass} value={projectForm.board_type} onChange={(e) => setProjectForm((f) => ({ ...f, board_type: e.target.value }))}>
+                                            {['kanban', 'scrum', 'basic'].map((bt) => <option key={bt} value={bt}>{t(`tms.workspaceDetail.boardTypes.${bt}`)}</option>)}
+                                        </select>
+                                        <p className="mt-1 text-xs text-gray-500">{t(`tms.workspaceDetail.boardTypeHint.${projectForm.board_type}`)}</p>
+                                    </div>
+                                )}
                                 {templates.length > 0 && (
                                     <div>
                                         <label htmlFor="project-template" className="mb-1.5 block text-sm font-medium text-gray-700">{t('tms.templates.startFrom')}</label>

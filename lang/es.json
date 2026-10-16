@@ -838,5 +838,7 @@
     "Swap withdrawn.": "Cambio retirado.",
     "Only the requester or HR can withdraw a swap.": "Solo quien lo solicita o RR. HH. puede retirar un cambio.",
     "SLA saved.": "SLA guardado.",
-    "SLA removed.": "SLA eliminado."
+    "SLA removed.": "SLA eliminado.",
+    "This project does not use the :type issue type.": "Este proyecto no usa el tipo de incidencia :type.",
+    "Issue types saved.": "Tipos de incidencia guardados."
 }

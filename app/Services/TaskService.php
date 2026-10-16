@@ -6,6 +6,7 @@ use App\Models\Project;
 use App\Models\Task;
 use App\Models\TaskStatus;
 use App\Models\User;
+use App\Services\Projects\ProjectIssueScheme;
 use App\Services\Tasks\TaskColumnOrder;
 use App\Services\Tasks\TaskHierarchy;
 use App\Services\Tasks\TaskInputResolver;
@@ -54,6 +55,9 @@ class TaskService
 
         $key = $this->keyGenerator->nextTaskKey($project);
         $issueType = $this->inputs->issueType($data['issue_type_id'] ?? null);
+        if (! empty($data['issue_type_id'])) {
+            ProjectIssueScheme::assertAllowed($project, $issueType);
+        }
         $epic = $this->hierarchy->epic($project, $data['epic_id'] ?? null);
         $this->hierarchy->assert(null, $issueType, $parent, $epic);
         $version = $this->inputs->version($project, $data['version_id'] ?? null);

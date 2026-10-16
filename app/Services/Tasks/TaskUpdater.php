@@ -3,6 +3,7 @@
 namespace App\Services\Tasks;
 
 use App\Models\Task;
+use App\Services\Projects\ProjectIssueScheme;
 use App\Services\Workflow\WorkflowGuard;
 use Illuminate\Validation\ValidationException;
 
@@ -94,6 +95,9 @@ class TaskUpdater
     private function applyHierarchy(Task $task, array $data, ?Task $parent, array &$updateData): void
     {
         $type = array_key_exists('issue_type_id', $data) ? $this->inputs->issueType($data['issue_type_id']) : $task->issueType;
+        if (! empty($data['issue_type_id'])) {
+            ProjectIssueScheme::assertAllowed($task->project, $type);
+        }
         $epic = array_key_exists('epic_id', $data) ? $this->hierarchy->epic($task->project, $data['epic_id']) : $task->epic;
 
         $touched = array_key_exists('issue_type_id', $data) || array_key_exists('epic_id', $data) || array_key_exists('parent_id', $data);

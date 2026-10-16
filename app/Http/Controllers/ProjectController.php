@@ -53,6 +53,7 @@ class ProjectController extends Controller
             'default_assignee_id' => ['nullable', 'integer'],
             'start_date' => ['nullable', 'date'],
             'due_date' => ['nullable', 'date', 'after_or_equal:start_date'],
+            'board_type' => ['nullable', 'in:'.implode(',', array_keys(config('board_types.types')))],
         ]);
 
         $custom = $this->validatedCustomFields($request, 'project', partial: false);
@@ -144,6 +145,7 @@ class ProjectController extends Controller
             'lead_user_id' => $project->lead_user_id,
             'start_date' => $project->start_date?->toDateString(),
             'due_date' => $project->due_date?->toDateString(),
+            'board_type' => $project->board_type ?? 'kanban',
             'archived_at' => $project->archived_at?->toISOString(),
             'members_count' => $project->members_count ?? $project->members()->count(),
             'tasks_count' => $project->tasks_count ?? $project->tasks()->count(),

@@ -307,7 +307,18 @@
         "settingsDesc": "Description",
         "settingsDescPlaceholder": "What is this workspace for?",
         "save": "Save changes",
-        "deleteWorkspace": "Delete workspace"
+        "deleteWorkspace": "Delete workspace",
+        "boardType": "Board type",
+        "boardTypes": {
+            "kanban": "Kanban",
+            "scrum": "Scrum",
+            "basic": "Basic"
+        },
+        "boardTypeHint": {
+            "kanban": "Continuous flow with WIP limits; every issue type.",
+            "scrum": "Backlog and sprints; epics, stories, tasks and bugs.",
+            "basic": "A simple to-do board: three columns, tasks and sub-tasks."
+        }
     },
     "detail": {
         "fallbackTitle": "Task",

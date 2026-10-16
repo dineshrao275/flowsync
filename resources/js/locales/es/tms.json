@@ -307,7 +307,18 @@
         "settingsDesc": "Descripción",
         "settingsDescPlaceholder": "¿Para qué sirve este espacio de trabajo?",
         "save": "Guardar cambios",
-        "deleteWorkspace": "Eliminar espacio de trabajo"
+        "deleteWorkspace": "Eliminar espacio de trabajo",
+        "boardType": "Tipo de tablero",
+        "boardTypes": {
+            "kanban": "Kanban",
+            "scrum": "Scrum",
+            "basic": "Básico"
+        },
+        "boardTypeHint": {
+            "kanban": "Flujo continuo con límites WIP; todos los tipos de incidencia.",
+            "scrum": "Backlog y sprints; épicas, historias, tareas y errores.",
+            "basic": "Un tablero simple: tres columnas, tareas y subtareas."
+        }
     },
     "detail": {
         "fallbackTitle": "Tarea",

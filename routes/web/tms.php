@@ -12,6 +12,7 @@ use App\Http\Controllers\ProjectComponentController;
 use App\Http\Controllers\ProjectController;
 use App\Http\Controllers\ProjectDashboardController;
 use App\Http\Controllers\ProjectHierarchyController;
+use App\Http\Controllers\ProjectIssueSchemeController;
 use App\Http\Controllers\ProjectMemberController;
 use App\Http\Controllers\ProjectRoleController;
 use App\Http\Controllers\ProjectTemplateController;
@@ -98,6 +99,8 @@ Route::middleware(['permission:workspaces.view', 'ensure_product:tms'])->group(f
     Route::get('projects', [ProjectController::class, 'indexAll']);
 
     Route::get('projects/{project}', [ProjectController::class, 'show']);
+    Route::get('projects/{project}/issue-scheme', [ProjectIssueSchemeController::class, 'show']);
+    Route::put('projects/{project}/issue-scheme', [ProjectIssueSchemeController::class, 'update']);
     Route::put('projects/{project}', [ProjectController::class, 'update']);
     Route::delete('projects/{project}', [ProjectController::class, 'destroy']);
     Route::post('projects/{project}/archive', [ProjectController::class, 'archive']);
