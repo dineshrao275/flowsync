@@ -2477,6 +2477,32 @@
             "approve": "Decision recorded.",
             "reject": "Resignation rejected.",
             "withdraw": "Resignation withdrawn."
+        },
+        "exitInterview": "Complete your exit interview"
+    },
+    "exitInterview": {
+        "pageTitle": "Exit interview",
+        "subtitle": "A few honest questions to help us improve. Your individual answers are visible only to HR; reports combine many people and never show one person's words.",
+        "none": "There is no exit in progress, so there is no exit interview to complete.",
+        "waived": "HR waived your exit interview — nothing to do here.",
+        "completed": "Thank you — your answers are saved. You can still change them until your last day.",
+        "submit": "Submit exit interview",
+        "update": "Update my answers",
+        "saved": "Exit interview saved.",
+        "scaleHint": "1 = strongly disagree · 5 = strongly agree",
+        "privacy": "Individual answers are visible to HR only.",
+        "options": {
+            "better_pay": "Better pay",
+            "career_growth": "Career growth",
+            "manager": "My manager",
+            "culture": "Culture",
+            "workload": "Workload",
+            "relocation": "Relocation",
+            "personal": "Personal reasons",
+            "other": "Other",
+            "yes": "Yes",
+            "maybe": "Maybe",
+            "no": "No"
         }
     }
 }

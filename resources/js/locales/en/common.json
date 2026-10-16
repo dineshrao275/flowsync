@@ -298,7 +298,8 @@
             "analytics": "Analytics",
             "audit": "Audit log",
             "skills": "Skills",
-            "resignation": "Resignation"
+            "resignation": "Resignation",
+            "exitInterview": "Exit interview"
         },
         "platform": {
             "overview": "Overview",

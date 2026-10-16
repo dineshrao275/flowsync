@@ -795,5 +795,14 @@
     "Resignation decided.": "Renuncia resuelta.",
     "Resignation rejected.": "Renuncia rechazada.",
     "Resignation withdrawn.": "Renuncia retirada.",
-    "Only the employee can withdraw a resignation.": "Solo el empleado puede retirar una renuncia."
+    "Only the employee can withdraw a resignation.": "Solo el empleado puede retirar una renuncia.",
+    "This exit interview was waived.": "Esta entrevista de salida fue dispensada.",
+    "A completed exit interview cannot be waived.": "Una entrevista de salida completada no se puede dispensar.",
+    "This question needs an answer.": "Esta pregunta necesita una respuesta.",
+    "That is not a valid answer.": "Esa no es una respuesta válida.",
+    "You have no exit in progress.": "No tienes ninguna salida en curso.",
+    "Thank you — your exit interview was saved.": "Gracias: tu entrevista de salida se guardó.",
+    "Exit interview recorded.": "Entrevista de salida registrada.",
+    "Exit interview waived.": "Entrevista de salida dispensada.",
+    "You cannot access exit interviews.": "No puedes acceder a las entrevistas de salida."
 }

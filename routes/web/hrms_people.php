@@ -7,6 +7,7 @@ use App\Http\Controllers\Hrms\DocumentController;
 use App\Http\Controllers\Hrms\DocumentTypeController;
 use App\Http\Controllers\Hrms\EmployeeController;
 use App\Http\Controllers\Hrms\Lifecycle\DocumentRequestController;
+use App\Http\Controllers\Hrms\Lifecycle\ExitInterviewController;
 use App\Http\Controllers\Hrms\Lifecycle\OffboardingCaseController;
 use App\Http\Controllers\Hrms\Lifecycle\OnboardingCaseController;
 use App\Http\Controllers\Hrms\Lifecycle\OnboardingTemplateController;
@@ -132,6 +133,14 @@ Route::group(['middleware' => ['ensure_module:hrms.core', 'ensure_module:hrms.of
     Route::post('hrms/resignations/{resignation}/approve', [ResignationController::class, 'approve']);
     Route::post('hrms/resignations/{resignation}/reject', [ResignationController::class, 'reject']);
     Route::post('hrms/resignations/{resignation}/withdraw', [ResignationController::class, 'withdraw']);
+
+    // Exit interview (F6.6): the leaver's own, HR's view/record/waive, and anonymity-guarded insights.
+    Route::get('hrms/exit-interview', [ExitInterviewController::class, 'mine']);
+    Route::put('hrms/exit-interview', [ExitInterviewController::class, 'submitMine']);
+    Route::get('hrms/offboarding/exit-insights', [ExitInterviewController::class, 'insights']);
+    Route::get('hrms/offboarding/cases/{case}/exit-interview', [ExitInterviewController::class, 'show']);
+    Route::put('hrms/offboarding/cases/{case}/exit-interview', [ExitInterviewController::class, 'record']);
+    Route::post('hrms/offboarding/cases/{case}/exit-interview/waive', [ExitInterviewController::class, 'waive']);
 
     Route::get('hrms/offboarding/cases', [OffboardingCaseController::class, 'index']);
     Route::post('hrms/offboarding/cases', [OffboardingCaseController::class, 'store']);

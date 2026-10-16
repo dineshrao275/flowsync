@@ -117,6 +117,9 @@ export default function Resignation() {
                                     <p className="text-sm font-medium text-gray-900">{t('hrms.resignation.lastDayIs', { date: formatDateOnly(r.requested_last_day) })} <StatusBadge r={r} /></p>
                                     <p className="mt-0.5 text-sm text-gray-600">{r.reason}</p>
                                     {r.decision_note && <p className="mt-0.5 text-xs text-gray-500">{t('hrms.resignation.note', { note: r.decision_note })}</p>}
+                                    {r.status === 'approved' && (
+                                        <Link className="mr-3 text-xs text-[var(--accent-soft-text)] hover:underline" to="/hrms/exit-interview">{t('hrms.resignation.exitInterview')}</Link>
+                                    )}
                                     {r.status === 'approved' && can('hrms.offboarding.view') && r.offboarding_case_id && (
                                         <Link className="text-xs text-[var(--accent-soft-text)] hover:underline" to={`/hrms/offboarding/cases/${r.offboarding_case_id}`}>{t('hrms.resignation.openCase')}</Link>
                                     )}

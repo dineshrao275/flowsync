@@ -2477,6 +2477,32 @@
             "approve": "Decisión registrada.",
             "reject": "Renuncia rechazada.",
             "withdraw": "Renuncia retirada."
+        },
+        "exitInterview": "Completa tu entrevista de salida"
+    },
+    "exitInterview": {
+        "pageTitle": "Entrevista de salida",
+        "subtitle": "Unas preguntas sinceras para ayudarnos a mejorar. Tus respuestas individuales solo las ve RR. HH.; los informes combinan a muchas personas y nunca muestran las palabras de una sola.",
+        "none": "No hay ninguna salida en curso, así que no hay entrevista de salida que completar.",
+        "waived": "RR. HH. dispensó tu entrevista de salida: no tienes nada que hacer aquí.",
+        "completed": "Gracias: tus respuestas se guardaron. Puedes cambiarlas hasta tu último día.",
+        "submit": "Enviar entrevista de salida",
+        "update": "Actualizar mis respuestas",
+        "saved": "Entrevista de salida guardada.",
+        "scaleHint": "1 = muy en desacuerdo · 5 = muy de acuerdo",
+        "privacy": "Las respuestas individuales solo las ve RR. HH.",
+        "options": {
+            "better_pay": "Mejor salario",
+            "career_growth": "Crecimiento profesional",
+            "manager": "Mi responsable",
+            "culture": "Cultura",
+            "workload": "Carga de trabajo",
+            "relocation": "Cambio de residencia",
+            "personal": "Motivos personales",
+            "other": "Otro",
+            "yes": "Sí",
+            "maybe": "Quizás",
+            "no": "No"
         }
     }
 }

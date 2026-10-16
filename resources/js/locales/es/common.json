@@ -298,7 +298,8 @@
             "analytics": "Analítica",
             "audit": "Registro de auditoría",
             "skills": "Habilidades",
-            "resignation": "Renuncia"
+            "resignation": "Renuncia",
+            "exitInterview": "Entrevista de salida"
         },
         "platform": {
             "overview": "Resumen",
