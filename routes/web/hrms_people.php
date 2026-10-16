@@ -6,6 +6,7 @@ use App\Http\Controllers\Hrms\Attendance\RegularizationController;
 use App\Http\Controllers\Hrms\DocumentController;
 use App\Http\Controllers\Hrms\DocumentTypeController;
 use App\Http\Controllers\Hrms\EmployeeController;
+use App\Http\Controllers\Hrms\HrAutomationRuleController;
 use App\Http\Controllers\Hrms\Lifecycle\DocumentRequestController;
 use App\Http\Controllers\Hrms\Lifecycle\ExitInterviewController;
 use App\Http\Controllers\Hrms\Lifecycle\OffboardingCaseController;
@@ -199,4 +200,13 @@ Route::group(['middleware' => ['ensure_module:hrms.attendance']], function () {
     // the month grid and widget stay unthrottled — and unlike those
     // self-service reads, exports answer to tenant admins only.
     Route::get('hrms/attendance/export', [AttendanceRecordsController::class, 'export'])->middleware(['throttle:30,1', 'permission:workspaces.manage']);
+});
+
+// HR event -> tasks rules (F5). The tasks land in a TMS project, so the rule needs the HRMS core, the
+// automation module and the TMS product; managing one needs onboarding-manage plus project settings.
+Route::group(['middleware' => ['ensure_module:hrms.core', 'ensure_module:automation', 'ensure_product:tms', 'permission:hrms.view', 'permission:hrms.onboarding.manage']], function () {
+    Route::get('hrms/automation-rules', [HrAutomationRuleController::class, 'index']);
+    Route::post('hrms/automation-rules', [HrAutomationRuleController::class, 'store']);
+    Route::put('hrms/automation-rules/{rule}', [HrAutomationRuleController::class, 'update']);
+    Route::delete('hrms/automation-rules/{rule}', [HrAutomationRuleController::class, 'destroy']);
 });

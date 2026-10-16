@@ -10,6 +10,7 @@ use App\Models\SubscriptionPlan;
 use App\Models\Tenant;
 use App\Services\SubscriptionService;
 use App\Services\TenantLimits;
+use App\Services\UsageMeter;
 use App\Support\TenantContext;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -56,7 +57,7 @@ class MySubscriptionController extends Controller
 
         return response()->json([
             'usage' => $usage,
-            'monthly' => app(\App\Services\UsageMeter::class)->summary(),
+            'monthly' => app(UsageMeter::class)->summary(),
             'limits' => $this->limits->effective($tenant),
             'modules' => $this->limits->visibleModules($tenant),
             'modules_available' => config('subscriptions.modules', []),

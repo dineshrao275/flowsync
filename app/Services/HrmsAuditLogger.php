@@ -7,6 +7,7 @@ use App\Enums\Hrms\DataAccessAction;
 use App\Models\Hrms\Shared\HrmsAuditLog;
 use App\Models\Hrms\Shared\HrmsDataAccessLog;
 use App\Models\User;
+use App\Services\Events\DomainEvents;
 use App\Support\AuditMask;
 use App\Support\AuditTrace;
 use Illuminate\Database\Eloquent\Builder;
@@ -61,6 +62,8 @@ class HrmsAuditLogger implements AuditWriter
             ]),
             'ip_address' => $ipAddress,
         ] + AuditTrace::columnsFor(new HrmsAuditLog));
+
+        $this->publish($action, $subject->getMorphClass(), $subject->getKey(), $actor);
 
         // Operational line: identifiers only. The values live in the ledger.
         Log::channel('hrms')->info($action, [
@@ -148,6 +151,23 @@ class HrmsAuditLogger implements AuditWriter
         ]);
 
         return $log;
+    }
+
+    /**
+     * Curated lifecycle moments also go out on the event bus (webhooks, HR automation). The payload is
+     * the subject's identity only — personal data stays in the ledger behind its own access rules.
+     */
+    private function publish(string $action, string $subjectType, int|string|null $subjectId, ?User $actor): void
+    {
+        if (! in_array($action, (array) config('domain_events.hr_bridge', []), true) || ! is_numeric($subjectId)) {
+            return;
+        }
+
+        try {
+            app(DomainEvents::class)->record($action, $subjectType, (int) $subjectId, [], $actor?->id);
+        } catch (\Throwable) {
+            // The bus is best-effort: it must never break the audited write.
+        }
     }
 
     /** @return Builder<HrmsAuditLog> */
