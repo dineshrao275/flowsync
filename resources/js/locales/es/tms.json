@@ -683,5 +683,20 @@
         "categoryHint": "Determina si las tareas de esta columna cuentan como abiertas o hechas.",
         "customColor": "Color personalizado",
         "wipHint": "Máximo de tareas abiertas en esta columna. Déjalo vacío para no tener límite."
+    },
+    "savedFilters": {
+        "title": "Guardados",
+        "menu": "Filtros guardados",
+        "saveCurrent": "Guardar filtros actuales…",
+        "name": "Nombre del filtro",
+        "shareLabel": "Compartir con el proyecto",
+        "shareHint": "Todos los miembros del proyecto podrán usarlo.",
+        "shared": "compartido",
+        "saved": "Filtro guardado.",
+        "saveFailed": "No se pudo guardar el filtro.",
+        "delete": "Eliminar «{{name}}»",
+        "deleteTitle": "¿Eliminar este filtro?",
+        "deleteMessage": "«{{name}}» se eliminará para todos los que puedan verlo.",
+        "deleteFailed": "No se pudo eliminar el filtro."
     }
 }

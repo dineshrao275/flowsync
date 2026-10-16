@@ -806,7 +806,9 @@ export default function ProjectDetail() {
                     <Card>
                         <FiltersBar
                             filters={filters}
-                            options={{ ...taskOptions, sprints: hasModule('sprints') }}
+                            options={{ ...taskOptions, sprints: hasModule('sprints'), savedFilters: hasModule('saved_filters') }}
+                            projectId={projectId}
+                            canShareFilters={isProjectManager}
                             onChange={(next) => {
                                 setFilters(next);
                                 setPage(1);

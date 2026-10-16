@@ -15,6 +15,7 @@ use App\Http\Controllers\ProjectRoleController;
 use App\Http\Controllers\ProjectVersionController;
 use App\Http\Controllers\SprintController;
 use App\Http\Controllers\BoardPreferenceController;
+use App\Http\Controllers\SavedFilterController;
 use App\Http\Controllers\StatusController;
 use App\Http\Controllers\TaskBulkController;
 use App\Http\Controllers\TaskChecklistController;
@@ -98,6 +99,12 @@ Route::middleware(['permission:workspaces.view', 'ensure_product:tms'])->group(f
     Route::put('projects/{project}/members/{user}', [ProjectMemberController::class, 'update']);
     Route::delete('projects/{project}/members/{user}', [ProjectMemberController::class, 'destroy']);
 
+    Route::middleware('ensure_module:saved_filters')->group(function () {
+        Route::get('projects/{project}/saved-filters', [SavedFilterController::class, 'index']);
+        Route::post('projects/{project}/saved-filters', [SavedFilterController::class, 'store'])->middleware('throttle:60,1');
+        Route::put('projects/{project}/saved-filters/{filter}', [SavedFilterController::class, 'update']);
+        Route::delete('projects/{project}/saved-filters/{filter}', [SavedFilterController::class, 'destroy']);
+    });
     Route::get('projects/{project}/board-preferences', [BoardPreferenceController::class, 'show']);
     Route::put('projects/{project}/board-preferences', [BoardPreferenceController::class, 'update']);
     Route::get('projects/{project}/statuses', [StatusController::class, 'index']);

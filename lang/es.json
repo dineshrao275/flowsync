@@ -716,5 +716,9 @@
     "Unknown field type.": "Tipo de campo desconocido.",
     "Custom field created.": "Campo personalizado creado.",
     "Custom field updated.": "Campo personalizado actualizado.",
-    "Custom field deleted.": "Campo personalizado eliminado."
+    "Custom field deleted.": "Campo personalizado eliminado.",
+    "You can save up to 50 filters per project.": "Puedes guardar hasta 50 filtros por proyecto.",
+    "Filter saved.": "Filtro guardado.",
+    "Filter updated.": "Filtro actualizado.",
+    "Filter deleted.": "Filtro eliminado."
 }

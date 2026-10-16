@@ -683,5 +683,20 @@
         "categoryHint": "Decides whether tasks here count as open or done.",
         "customColor": "Custom colour",
         "wipHint": "Maximum open tasks in this column. Leave empty for no limit."
+    },
+    "savedFilters": {
+        "title": "Saved",
+        "menu": "Saved filters",
+        "saveCurrent": "Save current filters…",
+        "name": "Filter name",
+        "shareLabel": "Share with the project",
+        "shareHint": "Everyone on this project can use it.",
+        "shared": "shared",
+        "saved": "Filter saved.",
+        "saveFailed": "Could not save the filter.",
+        "delete": "Delete “{{name}}”",
+        "deleteTitle": "Delete this filter?",
+        "deleteMessage": "“{{name}}” will be removed for everyone who can see it.",
+        "deleteFailed": "Could not delete the filter."
     }
 }

@@ -5,8 +5,9 @@ import Icon from '../ui/Icon';
 import { fieldClassCompact } from '../ui/fieldStyles';
 import Button from '../ui/Button';
 import Input from '../ui/Input';
+import SavedFilters from './SavedFilters';
 
-export default function FiltersBar({ filters, options, onChange }) {
+export default function FiltersBar({ filters, options, onChange, projectId = null, canShareFilters = false }) {
     const { t } = useTranslation();
     function set(key, value) {
         onChange({ ...filters, [key]: value || null });
@@ -51,6 +52,9 @@ export default function FiltersBar({ filters, options, onChange }) {
                     </span>
                 )}
             </Button>
+            {projectId && options.savedFilters && (
+                <SavedFilters projectId={projectId} filters={filters} onApply={(next) => onChange(next)} canShare={canShareFilters} />
+            )}
             {hasAny && (
                 <Button type="button" size="sm" variant="ghost" onClick={clear}>
                     <Icon as={X} size="sm" className="mr-1" />
