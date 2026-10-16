@@ -58,6 +58,10 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        // Private/presence channel authorization callbacks. Must be registered on every
+        // boot, independent of the route cache (see the note above Broadcast::routes()).
+        require base_path('routes/channels.php');
+
         // A denied gate answers with the SAME sentence the route middleware
         // uses, so `Gate::authorize('permission', …)` and a `permission:…`
         // route gate can never word a refusal differently. `Gate::inspect`

@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Events\SupportTicketUpdated;
 use App\Models\SupportTicket;
 use App\Services\Support\SupportDesk;
+use App\Support\Realtime;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
@@ -71,7 +72,7 @@ class SystemSupportController extends Controller
         if (isset($data['priority']) || array_key_exists('assigned_to', $data)) {
             $ticket->update(array_intersect_key($data, array_flip(['priority', 'assigned_to'])) + ['last_activity_at' => now()]);
             if (! isset($data['status'])) {
-                broadcast(new SupportTicketUpdated($ticket->fresh(), 'updated'));
+                Realtime::send(new SupportTicketUpdated($ticket->fresh(), 'updated'));
             }
         }
         if (isset($data['status'])) {

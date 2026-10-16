@@ -8,6 +8,7 @@ import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
 import { useConfirm, usePrompt } from '../ui/ConfirmDialog';
 import Timestamp from '../ui/Timestamp';
+import { onRealtimeReconnect } from '../../utils/realtimeAuth';
 
 export default function CommentThread({ task, projectId, isManager, targetCommentId = null }) {
     const { t } = useTranslation();
@@ -48,8 +49,13 @@ export default function CommentThread({ task, projectId, isManager, targetCommen
         if (!window.Echo) return undefined;
         const channel = window.Echo.private(`project.${projectId}`);
         channel.listen('.comment.synced', fetchComments);
+        const stopReconnect = onRealtimeReconnect(fetchComments);
+
         return () => {
-            channel.stopListening('.comment.synced');
+            // Pass the handler: the channel is shared with the board, and a bare
+            // stopListening would also drop other listeners of this event.
+            channel.stopListening('.comment.synced', fetchComments);
+            stopReconnect();
         };
     }, [fetchComments, projectId]);
 

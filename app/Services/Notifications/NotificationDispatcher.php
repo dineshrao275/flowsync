@@ -9,6 +9,7 @@ use App\Models\NotificationPreference;
 use App\Models\User;
 use App\Models\UserNotification;
 use App\Support\Locales;
+use App\Support\Realtime;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\Mail;
 
@@ -45,7 +46,7 @@ class NotificationDispatcher implements NotificationSender
         ]);
         $notification->save();
 
-        broadcast(new NotificationSent($notification));
+        Realtime::send(new NotificationSent($notification));
 
         $this->maybeQueueMail($recipient, $type, $data, $actor);
 

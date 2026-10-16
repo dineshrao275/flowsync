@@ -4,6 +4,7 @@ import api from '../services/api';
 import { useAuth } from './AuthContext';
 import { useToast } from './ToastContext';
 import { describeNotification } from '../utils/notifications';
+import { onRealtimeReconnect } from '../utils/realtimeAuth';
 
 const NotificationContext = createContext(null);
 
@@ -56,10 +57,22 @@ export function NotificationProvider({ children }) {
         const handler = (event) => {
             setUnreadCount((count) => count + 1);
             toast.info(describeNotification(t, event.type, event.data ?? {}, event.actor?.name ?? null));
+            // The bell is bumped optimistically above; re-read so the HR inbox
+            // badge (and any count drift) settles immediately instead of at the next poll.
+            refresh();
         };
         channel.listen('.notification.sent', handler);
-        return () => channel.stopListening('.notification.sent');
-    }, [user, platformOnly, toast, t]);
+        // Pushes sent while the socket was down are gone: re-read on reconnect.
+        const stopReconnect = onRealtimeReconnect(refresh);
+
+        return () => {
+            channel.stopListening('.notification.sent', handler);
+            stopReconnect();
+            // Leave on sign-out / user switch / impersonation so a previous
+            // account's channel never keeps delivering into this session.
+            window.Echo.leave(`user.${user.id}`);
+        };
+    }, [user, platformOnly, toast, t, refresh]);
 
     const markAllRead = useCallback(async () => {
         await api.post('/notifications/mark-all-read');

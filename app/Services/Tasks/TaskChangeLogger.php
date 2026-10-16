@@ -7,6 +7,7 @@ use App\Models\Task;
 use App\Models\TaskStatus;
 use App\Models\User;
 use App\Services\ActivityLogger;
+use App\Support\Realtime;
 
 /**
  * The activity row + realtime broadcast that follow a task write. The controllers (edit, move)
@@ -31,7 +32,7 @@ class TaskChangeLogger
             ipAddress: $ip,
         );
 
-        broadcast(new TaskSynced($task, 'created'));
+        Realtime::send(new TaskSynced($task, 'created'));
     }
 
     /** @param array<string, mixed> $data the validated fields the edit carried */
@@ -57,7 +58,7 @@ class TaskChangeLogger
             ipAddress: $ip,
         );
 
-        broadcast(new TaskSynced($updated, 'updated'));
+        Realtime::send(new TaskSynced($updated, 'updated'));
     }
 
     public function moved(Task $moved, ?int $oldStatusId, ?TaskStatus $oldStatus, User $actor, ?string $ip): void
@@ -78,6 +79,6 @@ class TaskChangeLogger
             ipAddress: $ip,
         );
 
-        broadcast(new TaskSynced($moved, 'moved'));
+        Realtime::send(new TaskSynced($moved, 'moved'));
     }
 }

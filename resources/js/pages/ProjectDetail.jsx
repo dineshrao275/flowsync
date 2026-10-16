@@ -19,6 +19,7 @@ import { useSetCrumbs } from '../context/BreadcrumbContext';
 import KanbanBoard from '../components/tasks/KanbanBoard';
 import { moveCardInBoard } from '../utils/board';
 import { optimistic } from '../utils/optimistic';
+import { onRealtimeReconnect } from '../utils/realtimeAuth';
 import TaskTable from '../components/tasks/TaskTable';
 import RichTextEditor from '../components/ui/RichTextEditor';
 import RichText from '../components/ui/RichText';
@@ -235,7 +236,7 @@ export default function ProjectDetail() {
     useEffect(() => {
         if (!project || !window.Echo) return undefined;
         const channel = window.Echo.private(`project.${projectId}`);
-        channel.listen('.task.synced', (event) => {
+        const onTaskSynced = (event) => {
             if (tabRef.current === 'tasks') {
                 loadTasksRef.current();
             }
@@ -244,9 +245,14 @@ export default function ProjectDetail() {
                     .then(({ data }) => setSelectedTask(data.task))
                     .catch(() => {});
             }
-        });
+        };
+        channel.listen('.task.synced', onTaskSynced);
+        // A task changed while the socket was down is not replayed: re-sync.
+        const stopReconnect = onRealtimeReconnect(() => onTaskSynced(null));
+
         return () => {
-            channel.stopListening('.task.synced');
+            channel.stopListening('.task.synced', onTaskSynced);
+            stopReconnect();
             window.Echo.leaveChannel(channel.name);
         };
     }, [projectId, project]);
