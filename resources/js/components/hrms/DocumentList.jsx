@@ -5,6 +5,7 @@ import DocumentVersionsModal from './DocumentVersionsModal';
 import EmptyState from '../ui/EmptyState';
 import StatusPill from '../ui/StatusPill';
 import { Table, Th, Td } from '../ui/Table';
+import { formatDateOnly } from '../../utils/format';
 
 const STATUS_COLORS = {
     pending: '#f59e0b',
@@ -20,10 +21,7 @@ const STATUS_KEYS = {
     expired: 'stExpired',
 };
 
-function formatDate(value) {
-    if (!value) return '—';
-    return new Date(`${value}T00:00:00`).toLocaleDateString();
-}
+const formatDate = (value) => formatDateOnly(value);
 
 /**
  * The document rows every document surface shares: the store, “My files”,

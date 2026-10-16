@@ -15,6 +15,8 @@ import { useToast } from '../../context/ToastContext';
 import { useSetCrumbs } from '../../context/BreadcrumbContext';
 import usePageTitle from '../../hooks/usePageTitle';
 import { formatMinutes } from '../../utils/time';
+import { formatTime } from '../../utils/format';
+import i18n, { intlTag } from '../../i18n';
 import AttendanceCalendar from '../../components/hrms/AttendanceCalendar';
 import ClockInWidget from '../../components/hrms/ClockInWidget';
 
@@ -30,7 +32,7 @@ const STATUS_OPTIONS = [
 ];
 
 function monthLabel(year, month) {
-    return new Date(year, month - 1, 1).toLocaleDateString([], { month: 'long', year: 'numeric' });
+    return new Date(year, month - 1, 1).toLocaleDateString(intlTag(i18n.language), { month: 'long', year: 'numeric' });
 }
 
 function shiftMonth(year, month, delta) {
@@ -424,8 +426,8 @@ export default function Attendance() {
                         <Card title={selected.date} dense>
                             <dl className="space-y-1.5 text-sm">
                                 <div className="flex justify-between"><dt className="text-gray-500">{t('hrms.attendance.dayStatus')}</dt><dd className="font-medium text-gray-900">{selected.status_label}</dd></div>
-                                <div className="flex justify-between"><dt className="text-gray-500">{t('hrms.attendance.dayIn')}</dt><dd className="text-gray-900">{selected.first_in_at ? new Date(selected.first_in_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '—'}</dd></div>
-                                <div className="flex justify-between"><dt className="text-gray-500">{t('hrms.attendance.dayOut')}</dt><dd className="text-gray-900">{selected.last_out_at ? new Date(selected.last_out_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '—'}</dd></div>
+                                <div className="flex justify-between"><dt className="text-gray-500">{t('hrms.attendance.dayIn')}</dt><dd className="text-gray-900">{selected.first_in_at ? formatTime(selected.first_in_at) : '—'}</dd></div>
+                                <div className="flex justify-between"><dt className="text-gray-500">{t('hrms.attendance.dayOut')}</dt><dd className="text-gray-900">{selected.last_out_at ? formatTime(selected.last_out_at) : '—'}</dd></div>
                                 <div className="flex justify-between"><dt className="text-gray-500">{t('hrms.attendance.dayWorked')}</dt><dd className="text-gray-900">{formatMinutes(selected.worked_minutes)}</dd></div>
                                 <div className="flex justify-between"><dt className="text-gray-500">{t('hrms.attendance.lateBy')}</dt><dd className="text-gray-900">{formatMinutes(selected.late_by_minutes)}</dd></div>
                                 <div className="flex justify-between"><dt className="text-gray-500">{t('hrms.attendance.dayOt')}</dt><dd className="text-gray-900">{formatMinutes(selected.overtime_minutes)}</dd></div>

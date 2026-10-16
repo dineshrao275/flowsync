@@ -2,6 +2,7 @@ import { useNavigate } from 'react-router-dom';
 import { Trans, useTranslation } from 'react-i18next';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
+import { formatTime } from '../utils/format';
 
 export default function ImpersonationBanner() {
     const { t } = useTranslation();
@@ -42,7 +43,7 @@ export default function ImpersonationBanner() {
                         </span>
                         {user.impersonation_expires_at && (
                             <span className="ml-2 hidden text-xs text-white/80 md:inline">
-                                {t('shell.impersonation.ends', { time: new Date(user.impersonation_expires_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) })}
+                                {t('shell.impersonation.ends', { time: formatTime(user.impersonation_expires_at) })}
                             </span>
                         )}
                     </span>

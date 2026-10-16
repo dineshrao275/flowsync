@@ -13,6 +13,7 @@ import { useConfirm } from '../components/ui/ConfirmDialog';
 import usePageTitle from '../hooks/usePageTitle';
 import { usePaginated } from '../hooks/useResource';
 import { useSetCrumbs } from '../context/BreadcrumbContext';
+import { formatFullDateTime, formatDate } from '../utils/format';
 
 const STATUSES = ['new', 'contacted', 'qualified', 'won', 'lost'];
 
@@ -51,7 +52,7 @@ function LeadDetail({ lead, onClose, onChanged }) {
                 <p className="text-gray-500">{lead.email}{lead.company ? ` · ${lead.company}` : ''}{lead.phone ? ` · ${lead.phone}` : ''}</p>
                 <p>
                     <Badge>{lead.source}</Badge>{' '}
-                    <span className="text-xs text-gray-400">{new Date(lead.created_at).toLocaleString()}</span>
+                    <span className="text-xs text-gray-400">{formatFullDateTime(lead.created_at)}</span>
                 </p>
                 {lead.plan_interest && <p className="text-gray-600">{t('admin.leads.interestedIn')} <span className="font-medium">{lead.plan_interest}</span></p>}
                 <div className="rounded-lg bg-gray-50 p-3 whitespace-pre-wrap text-gray-700">{lead.message}</div>
@@ -129,7 +130,7 @@ export default function Leads() {
                                     </td>
                                     <td className="py-2.5"><Badge>{lead.source}</Badge></td>
                                     <td className="py-2.5"><Badge>{t(`admin.leads.statuses.${lead.status}`, { defaultValue: lead.status })}</Badge></td>
-                                    <td className="py-2.5 text-gray-500">{new Date(lead.created_at).toLocaleDateString()}</td>
+                                    <td className="py-2.5 text-gray-500">{formatDate(lead.created_at)}</td>
                                 </tr>
                             ))}
                             {leads.length === 0 && (

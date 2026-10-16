@@ -21,7 +21,10 @@
     },
     "ui": {
         "selectDate": "Select date…",
-        "selectDateTime": "Select date & time…"
+        "selectDateTime": "Select date & time…",
+        "justNow": "just now",
+        "pricePerMonth": "{{value}}/mo",
+        "pricePerMonthAnnual": "{{value}}/mo billed annually"
     },
     "errors": {
         "generic": "Something went wrong. Please try again."

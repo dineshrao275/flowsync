@@ -11,7 +11,7 @@ import Spinner from '../components/ui/Spinner';
 import Alert from '../components/ui/Alert';
 import Button from '../components/ui/Button';
 import { Table, Th, Td, TableEmpty } from '../components/ui/Table';
-import { formatDate, formatPrice } from '../utils/format';
+import { formatDate, formatPrice, formatNumber } from '../utils/format';
 import Timestamp from '../components/ui/Timestamp';
 
 const RESOURCES = ['users', 'seats', 'workspaces', 'projects', 'tasks'];
@@ -377,10 +377,10 @@ export default function Subscription() {
                                                 )}
                                             </Td>
                                             <Td align="right" className={`tabular-nums ${over ? 'font-semibold text-red-600' : 'text-gray-700'}`}>
-                                                {used.toLocaleString()}
+                                                {formatNumber(used)}
                                             </Td>
                                             <Td align="right" className="whitespace-nowrap tabular-nums text-gray-500">
-                                                {unlimited ? t('admin.subscription.unlimited') : limit.toLocaleString()}
+                                                {unlimited ? t('admin.subscription.unlimited') : formatNumber(limit)}
                                             </Td>
                                         </tr>
                                     );

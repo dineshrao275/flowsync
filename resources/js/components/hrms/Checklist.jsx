@@ -3,6 +3,7 @@ import Button from '../ui/Button';
 import StatusPill from '../ui/StatusPill';
 import { Table, Th, Td, TableEmpty } from '../ui/Table';
 import { usePrompt } from '../ui/ConfirmDialog';
+import { formatDateOnly } from '../../utils/format';
 
 const STATUS_COLORS = {
     pending: '#f59e0b',
@@ -24,10 +25,7 @@ function isOverdue(task) {
     return task.due_date < new Date().toISOString().slice(0, 10);
 }
 
-function formatDate(value) {
-    if (!value) return '—';
-    return new Date(`${value}T00:00:00`).toLocaleDateString();
-}
+const formatDate = (value) => formatDateOnly(value);
 
 /**
  * One checklist for both lifecycle phases: onboarding tasks and offboarding
