@@ -28,3 +28,6 @@
 - **24 of the 29 red tests were an artefact of the copy** (the snapshot excluded `public/build`, so every page that renders the Vite manifest — public site, 404 pages, SPA shell — returned 500). The same 119 tests (CmsTest, BlogTest, PublicSiteLocaleTest, CollaborationTest, ExampleTest, HrmsEmployeeApiTest, InvoiceTest, SiteSettingsTest, TenantExportTest, BrandSweepTest, HrmsDocumentServiceTest) all pass in the real checkout.
 - **5 real failures, all fixed:** `RouteAuthorizationAuditTest` (two public routes, `api/csp-report` and `api/locales`, needed explicit entries), `ScopePermissionTest` (permission count 105 → 106 for `custom_fields.manage`), `BroadcastingChannelAuthTest::test_workspace_channel_allows_workspace_member` (the test still asserted the pre-fix behaviour that a tenant admin is refused a workspace channel; admins are allowed since `9958af8c`).
 - Lesson: to snapshot for a background full run, copy `public/build` too (`rsync` without `--exclude public/build`).
+
+## End-gate run (2026-10-17, commit eb0c1eb9 + docs)
+`php artisan test --parallel --processes=8` on the real checkout: **2143 tests, 12785 assertions, 0 failures, 0 errors** (2 PHPUnit deprecations). Wall time about 1 h 15 min uncontended.
