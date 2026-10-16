@@ -30,7 +30,7 @@ class HolidayController extends Controller
         $updated = $this->calendars->updateHoliday($holiday, $request->validated(), $request->user());
 
         return response()->json([
-            'message' => 'Holiday updated.',
+            'message' => __('Holiday updated.'),
             'holiday' => $this->presenter->holiday($updated),
         ]);
     }
@@ -41,6 +41,6 @@ class HolidayController extends Controller
 
         $this->calendars->deleteHoliday($holiday, $request->user());
 
-        return response()->json(['message' => 'Holiday deleted.']);
+        return response()->json(['message' => __('Holiday deleted.')]);
     }
 }

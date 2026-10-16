@@ -33,13 +33,13 @@ class EnsureModule
                 return $next($request);
             }
 
-            abort(403, 'A valid tenant context is required.');
+            abort(403, __('A valid tenant context is required.'));
         }
 
         $tenant = Tenant::find($tenantId);
 
         if (! $tenant) {
-            abort(403, 'A valid tenant context is required.');
+            abort(403, __('A valid tenant context is required.'));
         }
 
         if (app(TenantLimits::class)->hasModule($tenant, $module)) {

@@ -31,7 +31,7 @@ class ImpersonationController extends Controller
 
         if (! $impersonation) {
             throw ValidationException::withMessages([
-                'impersonate' => 'You are not impersonating any user.',
+                'impersonate' => __('You are not impersonating any user.'),
             ]);
         }
 
@@ -79,7 +79,7 @@ class ImpersonationController extends Controller
 
         if (! $route || ! $route->tenant || ! $route->tenant->isServiceable()) {
             throw ValidationException::withMessages([
-                'user_id' => 'You cannot impersonate this user.',
+                'user_id' => __('You cannot impersonate this user.'),
             ]);
         }
 
@@ -100,7 +100,7 @@ class ImpersonationController extends Controller
 
             if (! $target) {
                 throw ValidationException::withMessages([
-                    'user_id' => 'You cannot impersonate this user.',
+                    'user_id' => __('You cannot impersonate this user.'),
                 ]);
             }
 

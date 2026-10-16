@@ -78,7 +78,7 @@ class TaskLinkController extends Controller
 
         $this->links->unlink($link, $request->user(), $request->ip());
 
-        return response()->json(['message' => 'Task link removed.']);
+        return response()->json(['message' => __('Task link removed.')]);
     }
 
     public function employeeTasks(Request $request, Employee $employee): JsonResponse

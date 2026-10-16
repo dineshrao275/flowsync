@@ -50,7 +50,7 @@ class BlogCategoryController extends Controller
     public function destroy(Request $request, BlogCategory $blogCategory): JsonResponse
     {
         if ($blogCategory->posts()->exists()) {
-            abort(422, 'Move or delete the category posts first.');
+            abort(422, __('Move or delete the category posts first.'));
         }
 
         app(PlatformAudit::class)->diff(
@@ -60,6 +60,6 @@ class BlogCategoryController extends Controller
 
         $blogCategory->delete();
 
-        return response()->json(['message' => 'Category deleted.']);
+        return response()->json(['message' => __('Category deleted.')]);
     }
 }

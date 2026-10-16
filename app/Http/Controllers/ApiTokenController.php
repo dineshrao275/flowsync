@@ -43,7 +43,7 @@ class ApiTokenController extends Controller
         ]);
 
         // The one and only time the plaintext token is shown.
-        return response()->json(['message' => 'Token created.', 'token' => $this->present($token), 'plaintext' => $issued['plaintext']], 201);
+        return response()->json(['message' => __('Token created.'), 'token' => $this->present($token), 'plaintext' => $issued['plaintext']], 201);
     }
 
     public function destroy(Request $request, ApiToken $apiToken): JsonResponse
@@ -52,7 +52,7 @@ class ApiTokenController extends Controller
         $this->tokens->revoke($apiToken);
         $this->auditTenantAdmin($request, 'api_token.revoked', 'api_tokens', $apiToken->id, ['name' => $apiToken->name], null);
 
-        return response()->json(['message' => 'Token revoked.']);
+        return response()->json(['message' => __('Token revoked.')]);
     }
 
     public function logs(Request $request, ApiToken $apiToken): JsonResponse

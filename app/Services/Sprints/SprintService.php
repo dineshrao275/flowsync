@@ -23,7 +23,7 @@ class SprintService
         $this->assertStatus($sprint, Sprint::PLANNED, 'Only a planned sprint can be started.');
 
         if ($sprint->project->sprints()->where('status', Sprint::ACTIVE)->exists()) {
-            throw ValidationException::withMessages(['form' => 'This project already has an active sprint. Complete it first.']);
+            throw ValidationException::withMessages(['form' => __('This project already has an active sprint. Complete it first.')]);
         }
 
         $start = $sprint->start_date ?? now()->toDateString();
@@ -49,7 +49,7 @@ class SprintService
         $target = null;
         if ($leftover === 'sprint') {
             $target = $sprint->project->sprints()->where('status', Sprint::PLANNED)->find($targetSprintId)
-                ?? throw ValidationException::withMessages(['target_sprint_id' => 'Choose a planned sprint to carry the unfinished work into.']);
+                ?? throw ValidationException::withMessages(['target_sprint_id' => __('Choose a planned sprint to carry the unfinished work into.')]);
         }
 
         return DB::transaction(function () use ($sprint, $target) {
@@ -80,12 +80,12 @@ class SprintService
     public function addTasks(Sprint $sprint, array $taskIds): int
     {
         if ($sprint->status === Sprint::COMPLETED) {
-            throw ValidationException::withMessages(['form' => 'A completed sprint cannot take new work.']);
+            throw ValidationException::withMessages(['form' => __('A completed sprint cannot take new work.')]);
         }
 
         $tasks = Task::where('project_id', $sprint->project_id)->whereIn('id', $taskIds)->whereNull('parent_id')->get();
         if ($tasks->count() !== count(array_unique($taskIds))) {
-            throw ValidationException::withMessages(['task_ids' => 'Only top-level tasks of this project can be planned into a sprint.']);
+            throw ValidationException::withMessages(['task_ids' => __('Only top-level tasks of this project can be planned into a sprint.')]);
         }
 
         DB::transaction(function () use ($tasks, $sprint): void {
@@ -106,10 +106,10 @@ class SprintService
     public function removeTask(Sprint $sprint, Task $task): void
     {
         if ((int) $task->sprint_id !== $sprint->id) {
-            throw ValidationException::withMessages(['form' => 'That task is not in this sprint.']);
+            throw ValidationException::withMessages(['form' => __('That task is not in this sprint.')]);
         }
         if ($sprint->status === Sprint::COMPLETED) {
-            throw ValidationException::withMessages(['form' => 'A completed sprint is a record; it cannot be changed.']);
+            throw ValidationException::withMessages(['form' => __('A completed sprint is a record; it cannot be changed.')]);
         }
 
         $this->detach($task, $sprint);

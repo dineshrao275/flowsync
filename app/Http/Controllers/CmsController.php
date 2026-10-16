@@ -106,14 +106,14 @@ class CmsController extends Controller
     public function destroy(Request $request, WebsitePage $websitePage): JsonResponse
     {
         if ($websitePage->slug === 'home') {
-            abort(422, 'Cannot delete the home page.');
+            abort(422, __('Cannot delete the home page.'));
         }
 
         $this->audit($request, 'cms.page_deleted', $websitePage, $this->snapshot($websitePage), null);
 
         $websitePage->delete();
 
-        return response()->json(['message' => 'Page deleted.']);
+        return response()->json(['message' => __('Page deleted.')]);
     }
 
     public function publish(Request $request, WebsitePage $websitePage): JsonResponse
@@ -124,7 +124,7 @@ class CmsController extends Controller
 
         $this->audit($request, 'cms.page_published', $websitePage, $before, $this->snapshot($websitePage));
 
-        return response()->json(['page' => $websitePage->fresh(), 'message' => 'Page published.']);
+        return response()->json(['page' => $websitePage->fresh(), 'message' => __('Page published.')]);
     }
 
     public function unpublish(Request $request, WebsitePage $websitePage): JsonResponse
@@ -135,7 +135,7 @@ class CmsController extends Controller
 
         $this->audit($request, 'cms.page_unpublished', $websitePage, $before, $this->snapshot($websitePage));
 
-        return response()->json(['page' => $websitePage->fresh(), 'message' => 'Page taken down.']);
+        return response()->json(['page' => $websitePage->fresh(), 'message' => __('Page taken down.')]);
     }
 
     private function audit(Request $request, string $action, WebsitePage $page, ?array $before, ?array $after): void

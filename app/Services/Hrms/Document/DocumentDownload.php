@@ -82,7 +82,7 @@ class DocumentDownload
             }
 
             if (! Storage::disk($document->file_disk)->exists($document->file_path)) {
-                abort(404, 'File no longer exists.');
+                abort(404, __('File no longer exists.'));
             }
 
             return Storage::disk($document->file_disk)->download($document->file_path, $document->original_name);
@@ -94,7 +94,7 @@ class DocumentDownload
         $tenantId = $this->context->currentId();
 
         if ($tenantId === null) {
-            throw ValidationException::withMessages(['form' => 'Documents need an active tenant before a link can be minted.']);
+            throw ValidationException::withMessages(['form' => __('Documents need an active tenant before a link can be minted.')]);
         }
 
         return $tenantId;
@@ -111,7 +111,7 @@ class DocumentDownload
     private function requireDownloadReader(EmployeeDocument $document, ?User $reader): void
     {
         if ($reader === null) {
-            abort(403, 'This download needs a signed reader.');
+            abort(403, __('This download needs a signed reader.'));
         }
 
         $reader->loadMissing('roles.permissions');

@@ -174,7 +174,7 @@ class SubscriptionService
         $subscription = $this->subscriptionOf($tenant, $product);
 
         if (! $subscription) {
-            abort(422, 'Tenant has no subscription.');
+            abort(422, __('Tenant has no subscription.'));
         }
 
         $subscription->update([
@@ -203,7 +203,7 @@ class SubscriptionService
         $subscription = $this->subscriptionOf($tenant, $product);
 
         if (! $subscription) {
-            abort(422, 'Tenant has no subscription.');
+            abort(422, __('Tenant has no subscription.'));
         }
 
         $wasCanceled = $subscription->isCanceled();
@@ -243,7 +243,7 @@ class SubscriptionService
         $subscription = $this->subscriptionOf($tenant, $product);
 
         if (! $subscription) {
-            abort(422, 'Tenant has no subscription.');
+            abort(422, __('Tenant has no subscription.'));
         }
 
         $subscription->update([
@@ -310,10 +310,10 @@ class SubscriptionService
         $others = $tenant->subscriptions()->where('status', '!=', Subscription::STATUS_ENDED)->pluck('product')->all();
 
         if ($product !== SubscriptionPlan::PRODUCT_SUITE && in_array(SubscriptionPlan::PRODUCT_SUITE, $others, true)) {
-            throw ValidationException::withMessages(['plan_id' => 'This tenant is on a bundle plan. Move it to per-product plans first.']);
+            throw ValidationException::withMessages(['plan_id' => __('This tenant is on a bundle plan. Move it to per-product plans first.')]);
         }
         if ($product === SubscriptionPlan::PRODUCT_SUITE && array_diff($others, [SubscriptionPlan::PRODUCT_SUITE]) !== []) {
-            throw ValidationException::withMessages(['plan_id' => 'This tenant is on per-product plans. End them before moving to a bundle plan.']);
+            throw ValidationException::withMessages(['plan_id' => __('This tenant is on per-product plans. End them before moving to a bundle plan.')]);
         }
     }
 
@@ -327,7 +327,7 @@ class SubscriptionService
     {
         $products = collect($plans)->map(fn (SubscriptionPlan $p) => $p->product)->all();
         if (count($products) !== count(array_unique($products)) || in_array(SubscriptionPlan::PRODUCT_SUITE, $products, true) || $plans === []) {
-            throw ValidationException::withMessages(['plan_id' => 'Give one TMS and/or one HRMS plan.']);
+            throw ValidationException::withMessages(['plan_id' => __('Give one TMS and/or one HRMS plan.')]);
         }
 
         $bundle = $tenant->subscriptionFor(SubscriptionPlan::PRODUCT_SUITE);

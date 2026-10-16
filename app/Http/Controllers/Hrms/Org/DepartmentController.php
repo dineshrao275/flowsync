@@ -76,7 +76,7 @@ class DepartmentController extends Controller
         $department = $this->departments->create($request->validated());
 
         return response()->json([
-            'message' => 'Department created.',
+            'message' => __('Department created.'),
             'department' => $this->presenter->department($department),
         ], Response::HTTP_CREATED);
     }
@@ -88,7 +88,7 @@ class DepartmentController extends Controller
         $updated = $this->departments->update($department, $request->validated());
 
         return response()->json([
-            'message' => 'Department updated.',
+            'message' => __('Department updated.'),
             'department' => $this->presenter->department($updated),
         ]);
     }
@@ -99,7 +99,7 @@ class DepartmentController extends Controller
 
         $this->departments->delete($department);
 
-        return response()->json(['message' => 'Department deleted.']);
+        return response()->json(['message' => __('Department deleted.')]);
     }
 
     /**
@@ -119,7 +119,7 @@ class DepartmentController extends Controller
         $deactivated = $this->departments->deactivate($department);
 
         return response()->json([
-            'message' => 'Department deactivated.',
+            'message' => __('Department deactivated.'),
             'department' => $this->presenter->department($deactivated),
         ]);
     }
@@ -142,6 +142,6 @@ class DepartmentController extends Controller
 
         $this->departments->reorder($parent, $request->ids());
 
-        return response()->json(['message' => 'Departments reordered.']);
+        return response()->json(['message' => __('Departments reordered.')]);
     }
 }

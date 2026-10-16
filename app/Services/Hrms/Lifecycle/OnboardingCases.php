@@ -41,11 +41,11 @@ class OnboardingCases
     public function createCase(Employee $employee, OnboardingTemplate $template, ?User $actor = null): OnboardingCase
     {
         if (OnboardingCase::where('employee_id', $employee->id)->exists()) {
-            throw ValidationException::withMessages(['form' => 'This employee already has an onboarding case. Reopen that one instead of starting a parallel run.']);
+            throw ValidationException::withMessages(['form' => __('This employee already has an onboarding case. Reopen that one instead of starting a parallel run.')]);
         }
 
         if (! $template->is_active) {
-            throw ValidationException::withMessages(['template_id' => 'That template has been retired. Pick a current one.']);
+            throw ValidationException::withMessages(['template_id' => __('That template has been retired. Pick a current one.')]);
         }
 
         return DB::transaction(function () use ($employee, $template, $actor): OnboardingCase {
@@ -141,13 +141,13 @@ class OnboardingCases
         $reason = trim($reason);
 
         if ($reason === '') {
-            throw ValidationException::withMessages(['reason' => 'A waived item still needs its reason on record.']);
+            throw ValidationException::withMessages(['reason' => __('A waived item still needs its reason on record.')]);
         }
 
         $this->requireOpen($task);
 
         if ($this->progress->isMandatory($task) && ! $this->canManage($actor)) {
-            throw ValidationException::withMessages(['form' => 'Only someone with the onboarding-manage permission can waive a mandatory item.']);
+            throw ValidationException::withMessages(['form' => __('Only someone with the onboarding-manage permission can waive a mandatory item.')]);
         }
 
         $this->requireParticipant($task, $actor);
@@ -184,7 +184,7 @@ class OnboardingCases
     public function complete(OnboardingCase $case, ?User $actor = null): OnboardingCase
     {
         if (! $case->status->isOpen()) {
-            throw ValidationException::withMessages(['form' => "A {$case->status->value} case cannot be completed."]);
+            throw ValidationException::withMessages(['form' => __('A :status case cannot be completed.', ['status' => $case->status->value])]);
         }
 
         $progress = $this->progress($case);
@@ -216,7 +216,7 @@ class OnboardingCases
     public function cancel(OnboardingCase $case, ?User $actor = null): OnboardingCase
     {
         if (! $case->status->isOpen()) {
-            throw ValidationException::withMessages(['form' => "A {$case->status->value} case cannot be cancelled."]);
+            throw ValidationException::withMessages(['form' => __('A :status case cannot be cancelled.', ['status' => $case->status->value])]);
         }
 
         return DB::transaction(function () use ($case, $actor): OnboardingCase {
@@ -247,11 +247,11 @@ class OnboardingCases
     private function requireOpen(OnboardingCaseTask $task): void
     {
         if ($task->status->isResolved()) {
-            throw ValidationException::withMessages(['form' => "This item is already {$task->status->value}."]);
+            throw ValidationException::withMessages(['form' => __('This item is already :status.', ['status' => $task->status->value])]);
         }
 
         if (! $task->case->status->isOpen()) {
-            throw ValidationException::withMessages(['form' => 'This case is closed.']);
+            throw ValidationException::withMessages(['form' => __('This case is closed.')]);
         }
     }
 
@@ -267,7 +267,7 @@ class OnboardingCases
             && $actor->employee?->id === (int) $task->owner_employee_id;
 
         if (! $isOwner && ! $this->canManage($actor)) {
-            throw ValidationException::withMessages(['form' => 'Only the item’s owner or someone with the onboarding-manage permission can do this.']);
+            throw ValidationException::withMessages(['form' => __('Only the item’s owner or someone with the onboarding-manage permission can do this.')]);
         }
     }
 

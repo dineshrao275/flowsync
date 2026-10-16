@@ -65,7 +65,7 @@ class RegularizationService
         );
 
         if ($input->firstIn === null && $input->lastOut === null) {
-            throw ValidationException::withMessages(['form' => 'A correction needs at least one corrected time.']);
+            throw ValidationException::withMessages(['form' => __('A correction needs at least one corrected time.')]);
         }
 
         $this->requireNoOpenAsk($employee, $workDate);
@@ -151,7 +151,7 @@ class RegularizationService
         $this->requireOpen($request);
 
         if (trim($note) === '') {
-            throw ValidationException::withMessages(['decision_note' => 'A rejection needs a reason the employee can act on.']);
+            throw ValidationException::withMessages(['decision_note' => __('A rejection needs a reason the employee can act on.')]);
         }
 
         $this->approvals->reject($request->approval, $actor, $note);
@@ -218,11 +218,11 @@ class RegularizationService
         $maxDays = (int) HrmsSetting::current()->setting('attendance.regularization_window_days', 7);
 
         if ($workDate->greaterThan($today)) {
-            throw ValidationException::withMessages(['work_date' => 'A correction cannot be requested for a future date.']);
+            throw ValidationException::withMessages(['work_date' => __('A correction cannot be requested for a future date.')]);
         }
 
         if ($workDate->lessThan($today->copy()->subDays(max(1, $maxDays)))) {
-            throw ValidationException::withMessages(['work_date' => "Corrections are accepted up to {$maxDays} days back."]);
+            throw ValidationException::withMessages(['work_date' => __('Corrections are accepted up to :maxdays days back.', ['maxdays' => $maxDays])]);
         }
     }
 
@@ -236,7 +236,7 @@ class RegularizationService
             ->exists();
 
         if ($open) {
-            throw ValidationException::withMessages(['form' => 'There is already a pending correction for this date.']);
+            throw ValidationException::withMessages(['form' => __('There is already a pending correction for this date.')]);
         }
     }
 
@@ -244,11 +244,11 @@ class RegularizationService
     private function requireOpen(AttendanceRegularizationRequest $request): void
     {
         if (! $request->isOpen()) {
-            throw ValidationException::withMessages(['form' => 'This correction has already been decided.']);
+            throw ValidationException::withMessages(['form' => __('This correction has already been decided.')]);
         }
 
         if ($request->approval === null) {
-            throw ValidationException::withMessages(['form' => 'This correction has no approval chain.']);
+            throw ValidationException::withMessages(['form' => __('This correction has no approval chain.')]);
         }
     }
 
@@ -269,7 +269,7 @@ class RegularizationService
         // Tuesday must not land on Monday's row, and a date-only string
         // parses to midnight — still that date, still valid.
         if ($at->toDateString() !== $workDate->toDateString()) {
-            throw ValidationException::withMessages([$field => 'The corrected time must fall on the date being corrected.']);
+            throw ValidationException::withMessages([$field => __('The corrected time must fall on the date being corrected.')]);
         }
 
         return $at;

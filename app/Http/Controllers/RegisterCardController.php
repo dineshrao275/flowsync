@@ -48,7 +48,7 @@ class RegisterCardController extends Controller
         $email = Str::lower($data['email']);
 
         if (TenantUserRouting::where('email', $email)->exists() || SystemUser::where('email', $email)->exists()) {
-            throw ValidationException::withMessages(['email' => 'An account with this email already exists.']);
+            throw ValidationException::withMessages(['email' => __('An account with this email already exists.')]);
         }
 
         $productPlans = array_filter(['tms_plan_id' => $data['tms_plan_id'] ?? null, 'hrms_plan_id' => $data['hrms_plan_id'] ?? null]);
@@ -98,21 +98,21 @@ class RegisterCardController extends Controller
 
         $tenant = Tenant::where('status', Tenant::STATUS_DRAFT)
             ->where('onboarding_meta->intake->card_token', $data['t'])->first();
-        abort_unless($tenant, 404, 'This sign-up link is no longer valid.');
+        abort_unless($tenant, 404, __('This sign-up link is no longer valid.'));
 
         $intake = $tenant->onboarding_meta['intake'];
         // The session must be the one created for this very draft.
-        abort_unless(hash_equals((string) ($intake['card_session'] ?? ''), $data['session_id']), 422, 'This card session does not belong to the sign-up.');
+        abort_unless(hash_equals((string) ($intake['card_session'] ?? ''), $data['session_id']), 422, __('This card session does not belong to the sign-up.'));
 
         $card = $this->payments->retrieveCardSession($tenant, $data['session_id']);
         if (! $card['complete'] || ! $card['payment_method'] || (string) $card['reference'] !== (string) $tenant->id) {
-            throw ValidationException::withMessages(['form' => 'We could not confirm your card. Please try again.']);
+            throw ValidationException::withMessages(['form' => __('We could not confirm your card. Please try again.')]);
         }
 
         $this->intake->save($tenant, ['payment_method' => $card['payment_method']]);
         $tenant->refresh();
         if (! $this->intake->state($tenant)['complete']) {
-            throw ValidationException::withMessages(['form' => 'Your sign-up is incomplete. Please start again.']);
+            throw ValidationException::withMessages(['form' => __('Your sign-up is incomplete. Please start again.')]);
         }
 
         $this->onboarding->start($tenant);
@@ -138,7 +138,7 @@ class RegisterCardController extends Controller
 
     private function assertOpen(): void
     {
-        abort_unless(PlatformSetting::bool('public_registration', config('onboarding.enabled') ? '1' : '0'), 403, 'Self-registration is currently disabled.');
+        abort_unless(PlatformSetting::bool('public_registration', config('onboarding.enabled') ? '1' : '0'), 403, __('Self-registration is currently disabled.'));
     }
 
     private function uniqueSlug(string $slug): string

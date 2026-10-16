@@ -41,7 +41,7 @@ class LeaveExemptionService
         $to = Carbon::parse((string) $data['to_date'])->startOfDay();
 
         if ($from->greaterThan($to)) {
-            throw ValidationException::withMessages(['to_date' => 'The range ends before it starts.']);
+            throw ValidationException::withMessages(['to_date' => __('The range ends before it starts.')]);
         }
 
         return DB::transaction(function () use ($employee, $data, $actor, $from, $to): LeaveExemptionRequest {
@@ -83,15 +83,15 @@ class LeaveExemptionService
     public function decide(LeaveExemptionRequest $request, User $actor, string $verdict, ?string $note = null): LeaveExemptionRequest
     {
         if ($request->status->isTerminal() || $request->approval === null) {
-            throw ValidationException::withMessages(['form' => 'This ask has already been decided.']);
+            throw ValidationException::withMessages(['form' => __('This ask has already been decided.')]);
         }
 
         if (! in_array($verdict, ['approve', 'reject'], true)) {
-            throw ValidationException::withMessages(['decision' => 'A verdict is approve or reject.']);
+            throw ValidationException::withMessages(['decision' => __('A verdict is approve or reject.')]);
         }
 
         if ($verdict === 'reject' && trim((string) $note) === '') {
-            throw ValidationException::withMessages(['decision_note' => 'A rejection needs a reason the requester can act on.']);
+            throw ValidationException::withMessages(['decision_note' => __('A rejection needs a reason the requester can act on.')]);
         }
 
         if ($verdict === 'approve') {

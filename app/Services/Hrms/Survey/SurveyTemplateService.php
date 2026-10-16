@@ -86,7 +86,7 @@ class SurveyTemplateService
     public function deleteTemplate(SurveyTemplate $template, ?User $actor = null): void
     {
         if ($template->campaigns()->exists()) {
-            throw ValidationException::withMessages(['form' => 'That template has campaigns behind it — deactivate it instead of deleting history.']);
+            throw ValidationException::withMessages(['form' => __('That template has campaigns behind it — deactivate it instead of deleting history.')]);
         }
 
         $this->audit->log($template, 'survey.template_deleted', [

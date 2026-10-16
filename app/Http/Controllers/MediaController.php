@@ -98,7 +98,7 @@ class MediaController extends Controller
         Storage::disk($medium->disk)->delete($medium->path);
         $medium->delete();
 
-        return response()->json(['message' => 'Media deleted.']);
+        return response()->json(['message' => __('Media deleted.')]);
     }
 
     /**

@@ -63,11 +63,11 @@ class PunchClock
         $source = $source instanceof PunchSource ? $source : PunchSource::tryFrom((string) $source);
 
         if ($direction === null) {
-            throw ValidationException::withMessages(['direction' => 'A punch goes in or out.']);
+            throw ValidationException::withMessages(['direction' => __('A punch goes in or out.')]);
         }
 
         if ($source === null) {
-            throw ValidationException::withMessages(['source' => 'That is not a way a punch arrives.']);
+            throw ValidationException::withMessages(['source' => __('That is not a way a punch arrives.')]);
         }
 
         $at = isset($meta['punch_at']) && $meta['punch_at'] !== null
@@ -77,7 +77,7 @@ class PunchClock
         $kind = PunchKind::tryFrom((string) ($meta['kind'] ?? 'work'));
 
         if ($kind === null) {
-            throw ValidationException::withMessages(['kind' => 'A punch is work or a break.']);
+            throw ValidationException::withMessages(['kind' => __('A punch is work or a break.')]);
         }
 
         [$shift] = $this->days->resolveShift($employee, $at->copy()->startOfDay());
@@ -161,7 +161,7 @@ class PunchClock
                 : $minutes >= $start);
 
         if (! $inside) {
-            throw ValidationException::withMessages(['punch_at' => "This {$direction->value} falls outside {$shift->name}’s hours, even with grace."]);
+            throw ValidationException::withMessages(['punch_at' => __('This :direction falls outside :shift’s hours, even with grace.', ['direction' => $direction->value, 'shift' => $shift->name])]);
         }
     }
 
@@ -195,7 +195,7 @@ class PunchClock
             ->exists();
 
         if ($tooClose) {
-            throw ValidationException::withMessages(['punch_at' => 'This looks like the same press recorded twice.']);
+            throw ValidationException::withMessages(['punch_at' => __('This looks like the same press recorded twice.')]);
         }
     }
 }

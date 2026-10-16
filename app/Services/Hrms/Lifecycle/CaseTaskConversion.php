@@ -89,7 +89,7 @@ class CaseTaskConversion
         $task = $this->linkedTask($item);
 
         if ($task === null) {
-            throw ValidationException::withMessages(['form' => 'This item was never converted to a task.']);
+            throw ValidationException::withMessages(['form' => __('This item was never converted to a task.')]);
         }
 
         if ($task->completed_at === null) {
@@ -137,15 +137,15 @@ class CaseTaskConversion
     private function requireConvertible(OnboardingCaseTask|OffboardingCaseTask $item): void
     {
         if ($item->category !== TemplateTaskCategory::Task->value) {
-            throw ValidationException::withMessages(['form' => 'Only task-category items convert to project tasks.']);
+            throw ValidationException::withMessages(['form' => __('Only task-category items convert to project tasks.')]);
         }
 
         if (! $item->case->status->isOpen()) {
-            throw ValidationException::withMessages(['form' => 'This case is closed.']);
+            throw ValidationException::withMessages(['form' => __('This case is closed.')]);
         }
 
         if ($this->isConverted($item)) {
-            throw ValidationException::withMessages(['form' => 'This item already has a project task.']);
+            throw ValidationException::withMessages(['form' => __('This item already has a project task.')]);
         }
     }
 
@@ -154,7 +154,7 @@ class CaseTaskConversion
         $employee = Employee::find($item->owner_employee_id ?? $item->case->employee_id);
 
         if ($employee === null) {
-            throw ValidationException::withMessages(['form' => 'This item names no employee to link the task to.']);
+            throw ValidationException::withMessages(['form' => __('This item names no employee to link the task to.')]);
         }
 
         return $employee;

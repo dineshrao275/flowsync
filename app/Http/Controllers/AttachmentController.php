@@ -82,7 +82,7 @@ class AttachmentController extends Controller
         );
 
         return response()->json([
-            'message' => 'File uploaded.',
+            'message' => __('File uploaded.'),
             'attachment' => $this->present($attachment->load('user'), $request->user()),
         ], 201);
     }
@@ -109,7 +109,7 @@ class AttachmentController extends Controller
             ipAddress: $request->ip(),
         );
 
-        return response()->json(['message' => 'Attachment deleted.']);
+        return response()->json(['message' => __('Attachment deleted.')]);
     }
 
     /**
@@ -145,12 +145,12 @@ class AttachmentController extends Controller
             // because the route has no session; nobody anonymous, even with a
             // valid signature: a forwarded link is a bearer token.
             $reader = $actor === null ? null : User::find((int) $actor);
-            abort_if($reader === null, 403, 'This download needs a signed reader.');
+            abort_if($reader === null, 403, __('This download needs a signed reader.'));
             $reader->loadMissing('roles.permissions');
             Gate::forUser($reader)->authorize('view', $record->task);
 
             if (! Storage::disk($record->disk)->exists($record->path)) {
-                abort(404, 'File no longer exists.');
+                abort(404, __('File no longer exists.'));
             }
 
             return Storage::disk($record->disk)->download($record->path, $record->original_name);
@@ -221,8 +221,7 @@ class AttachmentController extends Controller
             $limitGb = round($limitBytes / (1024 ** 3), 2);
 
             throw ValidationException::withMessages([
-                'file' => "Storage quota exceeded. Your plan allows {$limitGb} GB; {$usedGb} GB is already in use. "
-                    .'Delete unused attachments or upgrade your plan.',
+                'file' => __('Storage quota exceeded. Your plan allows :limitgb GB; :usedgb GB is already in use. Delete unused attachments or upgrade your plan.', ['limitgb' => $limitGb, 'usedgb' => $usedGb]),
             ]);
         }
     }

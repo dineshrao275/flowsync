@@ -92,7 +92,7 @@ class LeaveCatalogService
     public function deleteType(LeaveType $type, ?User $actor = null): void
     {
         if ($type->is_system) {
-            throw ValidationException::withMessages(['form' => 'System leave types cannot be deleted. Deactivate one instead.']);
+            throw ValidationException::withMessages(['form' => __('System leave types cannot be deleted. Deactivate one instead.')]);
         }
 
         $references = [
@@ -102,12 +102,12 @@ class LeaveCatalogService
         ];
 
         if ($type->policies()->exists()) {
-            throw ValidationException::withMessages(['form' => 'This type is linked to a policy. Unlink it first.']);
+            throw ValidationException::withMessages(['form' => __('This type is linked to a policy. Unlink it first.')]);
         }
 
         foreach ($references as $relation => $count) {
             if ($count > 0) {
-                throw ValidationException::withMessages(['form' => "This type has {$count} {$relation} behind it and cannot be deleted."]);
+                throw ValidationException::withMessages(['form' => __('This type has :count :relation behind it and cannot be deleted.', ['count' => $count, 'relation' => $relation])]);
             }
         }
 
@@ -174,11 +174,11 @@ class LeaveCatalogService
     public function deletePolicy(LeavePolicy $policy, ?User $actor = null): void
     {
         if ($policy->is_default) {
-            throw ValidationException::withMessages(['form' => 'The default policy cannot be deleted. Make another policy default first.']);
+            throw ValidationException::withMessages(['form' => __('The default policy cannot be deleted. Make another policy default first.')]);
         }
 
         if ($policy->types()->exists()) {
-            throw ValidationException::withMessages(['form' => 'This policy still covers leave types. Unlink them first.']);
+            throw ValidationException::withMessages(['form' => __('This policy still covers leave types. Unlink them first.')]);
         }
 
         $snapshot = ['slug' => $policy->slug, 'name' => $policy->name];
@@ -203,7 +203,7 @@ class LeaveCatalogService
             // a resubmitted form for a type-coerced twin would cry wolf.
             if ($data[$field] != $type->getAttribute($field)) {
                 throw ValidationException::withMessages([
-                    'form' => "System leave types keep their {$field}; rename or deactivate instead.",
+                    'form' => __('System leave types keep their :field; rename or deactivate instead.', ['field' => $field]),
                 ]);
             }
         }

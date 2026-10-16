@@ -174,7 +174,7 @@ class TenantController extends Controller
         ]);
 
         return response()->json([
-            'message' => 'Tenant updated.',
+            'message' => __('Tenant updated.'),
             'tenant' => $this->counts($tenant),
         ]);
     }
@@ -214,7 +214,7 @@ class TenantController extends Controller
         $tenant->update($data);
 
         return response()->json([
-            'message' => 'Tenant profile updated.',
+            'message' => __('Tenant profile updated.'),
             'tenant' => $tenant,
         ]);
     }
@@ -261,7 +261,7 @@ class TenantController extends Controller
         $tenant->update(array_filter($data, fn ($value) => $value !== null));
 
         return response()->json([
-            'message' => 'Business profile saved.',
+            'message' => __('Business profile saved.'),
             'tenant' => $tenant->fresh(),
         ]);
     }
@@ -278,7 +278,7 @@ class TenantController extends Controller
             ['name' => $tenant->name, 'slug' => $tenant->slug],
         );
 
-        return response()->json(['message' => 'Tenant deleted.']);
+        return response()->json(['message' => __('Tenant deleted.')]);
     }
 
     public function restore(Request $request, Tenant $tenant): JsonResponse
@@ -293,7 +293,7 @@ class TenantController extends Controller
             ['name' => $tenant->name, 'slug' => $tenant->slug],
         );
 
-        return response()->json(['message' => 'Tenant restored.', 'tenant' => $this->counts($tenant)]);
+        return response()->json(['message' => __('Tenant restored.'), 'tenant' => $this->counts($tenant)]);
     }
 
     public function suspend(Tenant $tenant): JsonResponse
@@ -301,7 +301,7 @@ class TenantController extends Controller
         app(TenantLifecycle::class)->transition($tenant, Tenant::STATUS_SUSPENDED, auth()->user());
 
         return response()->json([
-            'message' => 'Tenant suspended.',
+            'message' => __('Tenant suspended.'),
             'tenant' => $this->counts($tenant),
         ]);
     }
@@ -311,7 +311,7 @@ class TenantController extends Controller
         app(TenantLifecycle::class)->transition($tenant, Tenant::STATUS_ACTIVE, auth()->user());
 
         return response()->json([
-            'message' => 'Tenant activated.',
+            'message' => __('Tenant activated.'),
             'tenant' => $this->counts($tenant),
         ]);
     }

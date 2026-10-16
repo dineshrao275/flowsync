@@ -52,7 +52,7 @@ class StatutoryConfigurationController extends Controller
         ], $request->user());
 
         return response()->json([
-            'message' => 'Configuration created.',
+            'message' => __('Configuration created.'),
             'configuration' => $this->present($configuration),
         ], Response::HTTP_CREATED);
     }
@@ -70,7 +70,7 @@ class StatutoryConfigurationController extends Controller
         ], $request->user());
 
         return response()->json([
-            'message' => 'Configuration updated.',
+            'message' => __('Configuration updated.'),
             'configuration' => $this->present($configuration->refresh()),
         ]);
     }
@@ -85,7 +85,7 @@ class StatutoryConfigurationController extends Controller
 
         $configuration->delete();
 
-        return response()->json(['message' => 'Configuration deleted.']);
+        return response()->json(['message' => __('Configuration deleted.')]);
     }
 
     /**

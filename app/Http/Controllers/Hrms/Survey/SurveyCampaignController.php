@@ -55,7 +55,7 @@ class SurveyCampaignController extends Controller
         $campaign = $this->engagement->schedule($template, $data, $request->user());
 
         return response()->json([
-            'message' => 'Campaign scheduled.',
+            'message' => __('Campaign scheduled.'),
             'campaign' => $this->present($campaign),
         ], Response::HTTP_CREATED);
     }
@@ -65,7 +65,7 @@ class SurveyCampaignController extends Controller
         $this->authorize('transition', $campaign);
 
         return response()->json([
-            'message' => 'Campaign opened.',
+            'message' => __('Campaign opened.'),
             'campaign' => $this->present($this->engagement->open($campaign, $request->user())),
         ]);
     }
@@ -75,7 +75,7 @@ class SurveyCampaignController extends Controller
         $this->authorize('transition', $campaign);
 
         return response()->json([
-            'message' => 'Campaign closed.',
+            'message' => __('Campaign closed.'),
             'campaign' => $this->present($this->engagement->close($campaign, $request->user())),
         ]);
     }
@@ -85,7 +85,7 @@ class SurveyCampaignController extends Controller
         $this->authorize('transition', $campaign);
 
         return response()->json([
-            'message' => 'Audience invited.',
+            'message' => __('Audience invited.'),
             'invited' => $this->engagement->invite($campaign, $request->user()),
         ]);
     }
@@ -112,7 +112,7 @@ class SurveyCampaignController extends Controller
         );
 
         return response()->json([
-            'message' => 'Answer recorded.',
+            'message' => __('Answer recorded.'),
             'response' => ['id' => $response->id],
         ], Response::HTTP_CREATED);
     }

@@ -75,7 +75,7 @@ class EmployeeCodeGenerator
         }
 
         throw ValidationException::withMessages([
-            'form' => 'Could not allocate a unique employee code. Please try again.',
+            'form' => __('Could not allocate a unique employee code. Please try again.'),
         ]);
     }
 

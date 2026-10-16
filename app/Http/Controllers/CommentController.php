@@ -61,7 +61,7 @@ class CommentController extends Controller
         // per-comment cap (20); the UI warns the author instead of silently
         // never-notifying the dropped people.
         return response()->json([
-            'message' => 'Comment added.',
+            'message' => __('Comment added.'),
             'comment' => $this->present($comment->load('user', 'task:id,project_id')),
             'truncated_mentions' => $this->notifications->mentionsTruncated($comment->comment),
         ], 201);
@@ -87,7 +87,7 @@ class CommentController extends Controller
         broadcast(new CommentSynced($comment->fresh(), 'updated'));
 
         return response()->json([
-            'message' => 'Comment updated.',
+            'message' => __('Comment updated.'),
             'comment' => $this->present($comment->fresh()->load('user', 'task:id,project_id')),
         ]);
     }
@@ -104,7 +104,7 @@ class CommentController extends Controller
 
         broadcast(new CommentSynced($comment, 'deleted'));
 
-        return response()->json(['message' => 'Comment deleted.']);
+        return response()->json(['message' => __('Comment deleted.')]);
     }
 
     private function resolveParent(Task $task, $parentId): ?Comment
@@ -118,7 +118,7 @@ class CommentController extends Controller
         }
 
         throw ValidationException::withMessages([
-            'parent_id' => 'The selected comment is not a valid reply target on this task.',
+            'parent_id' => __('The selected comment is not a valid reply target on this task.'),
         ]);
     }
 

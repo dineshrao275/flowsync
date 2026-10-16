@@ -21,7 +21,7 @@ class EnsureTwoFactorEnrolled
     {
         if ($request->hasSession() && $request->session()->get(TwoFactorLogin::ENROLL_KEY) && ! $request->is(...self::ALLOWED)) {
             return response()->json([
-                'message' => 'Set up two-factor authentication to continue.',
+                'message' => __('Set up two-factor authentication to continue.'),
                 'code' => 'two_factor_enrollment_required',
             ], 403);
         }

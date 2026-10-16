@@ -80,7 +80,7 @@ class EmployeeSalaryController extends Controller
         );
 
         return response()->json([
-            'message' => 'Salary assigned.',
+            'message' => __('Salary assigned.'),
             'assignment' => $this->presentAssignment($assignment),
         ], Response::HTTP_CREATED);
     }
@@ -124,7 +124,7 @@ class EmployeeSalaryController extends Controller
         );
 
         return response()->json([
-            'message' => 'Revision raised.',
+            'message' => __('Revision raised.'),
             'revision' => $this->presentRevision($revision),
         ], Response::HTTP_CREATED);
     }
@@ -137,7 +137,7 @@ class EmployeeSalaryController extends Controller
         $applied = $this->revisions->apply($revision, $request->user());
 
         return response()->json([
-            'message' => 'Revision applied.',
+            'message' => __('Revision applied.'),
             'revision' => $this->presentRevision($applied),
         ]);
     }

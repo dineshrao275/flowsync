@@ -72,7 +72,7 @@ class PerformanceGoalController extends Controller
         $goal = $cycle->goals()->create([...$data, 'created_by' => $request->user()->id]);
 
         return response()->json([
-            'message' => 'Goal created.',
+            'message' => __('Goal created.'),
             'goal' => $this->present($goal->refresh()),
         ], Response::HTTP_CREATED);
     }
@@ -85,7 +85,7 @@ class PerformanceGoalController extends Controller
         $goal->update($request->validated());
 
         return response()->json([
-            'message' => 'Goal updated.',
+            'message' => __('Goal updated.'),
             'goal' => $this->present($goal->refresh()),
         ]);
     }
@@ -99,7 +99,7 @@ class PerformanceGoalController extends Controller
         $this->authorize('refresh', $goal);
 
         return response()->json([
-            'message' => 'Evidence refreshed.',
+            'message' => __('Evidence refreshed.'),
             'goal' => $this->present($this->performance->refreshGoalEvidence($goal)),
         ]);
     }
@@ -126,7 +126,7 @@ class PerformanceGoalController extends Controller
         $this->performance->linkTask($goal, $task, $request->user());
 
         return response()->json([
-            'message' => 'Task linked.',
+            'message' => __('Task linked.'),
             'goal' => $this->present($goal->refresh()),
         ], Response::HTTP_CREATED);
     }
@@ -143,7 +143,7 @@ class PerformanceGoalController extends Controller
         $this->performance->unlinkTask($goal, $task, $request->user());
 
         return response()->json([
-            'message' => 'Task unlinked.',
+            'message' => __('Task unlinked.'),
             'goal' => $this->present($goal->refresh()),
         ]);
     }
@@ -153,7 +153,7 @@ class PerformanceGoalController extends Controller
      */
     private function requireOpen(PerformanceCycle $cycle): void
     {
-        abort_if($cycle->stage->value === 'completed', 422, 'That cycle is sealed — history gains no new goals.');
+        abort_if($cycle->stage->value === 'completed', 422, __('That cycle is sealed — history gains no new goals.'));
     }
 
     /**

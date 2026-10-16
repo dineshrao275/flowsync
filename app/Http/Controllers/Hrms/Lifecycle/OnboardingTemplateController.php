@@ -51,7 +51,7 @@ class OnboardingTemplateController extends Controller
         );
 
         return response()->json([
-            'message' => 'Template created.',
+            'message' => __('Template created.'),
             'template' => $this->presenter->template($template),
         ], Response::HTTP_CREATED);
     }
@@ -78,7 +78,7 @@ class OnboardingTemplateController extends Controller
         );
 
         return response()->json([
-            'message' => 'Template updated.',
+            'message' => __('Template updated.'),
             'template' => $this->presenter->template($template),
         ]);
     }
@@ -89,7 +89,7 @@ class OnboardingTemplateController extends Controller
 
         $this->onboarding->deleteTemplate($template);
 
-        return response()->json(['message' => 'Template deleted.']);
+        return response()->json(['message' => __('Template deleted.')]);
     }
 
     public function storeTask(OnboardingTemplateTaskRequest $request, OnboardingTemplate $template): JsonResponse
@@ -99,7 +99,7 @@ class OnboardingTemplateController extends Controller
         $task = $this->onboarding->addTemplateTask($template, $request->validated(), $request->user());
 
         return response()->json([
-            'message' => 'Checklist item added.',
+            'message' => __('Checklist item added.'),
             'task' => $this->presenter->templateTask($task),
         ], Response::HTTP_CREATED);
     }
@@ -115,7 +115,7 @@ class OnboardingTemplateController extends Controller
         $task = $this->onboarding->updateTemplateTask($task, $request->validated(), $request->user());
 
         return response()->json([
-            'message' => 'Checklist item updated.',
+            'message' => __('Checklist item updated.'),
             'task' => $this->presenter->templateTask($task),
         ]);
     }
@@ -127,7 +127,7 @@ class OnboardingTemplateController extends Controller
 
         $this->onboarding->removeTemplateTask($task);
 
-        return response()->json(['message' => 'Checklist item removed.']);
+        return response()->json(['message' => __('Checklist item removed.')]);
     }
 
     public function reorderTasks(ReorderChecklistRequest $request, OnboardingTemplate $template): JsonResponse
@@ -136,7 +136,7 @@ class OnboardingTemplateController extends Controller
 
         $this->onboarding->reorderTemplateTasks($template, $request->validated()['ordered_ids']);
 
-        return response()->json(['message' => 'Checklist reordered.']);
+        return response()->json(['message' => __('Checklist reordered.')]);
     }
 
     /**

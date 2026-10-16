@@ -89,12 +89,12 @@ class EmployeePhotoService
             // reader rides inside the signature because the route has no
             // session; nobody anonymous, even with a valid signature.
             $reader = $this->resolveActor($actorUserId);
-            abort_if($reader === null, 403, 'This download needs a signed reader.');
+            abort_if($reader === null, 403, __('This download needs a signed reader.'));
             $reader->loadMissing('roles.permissions');
             Gate::forUser($reader)->authorize('view', $record);
 
             if (! Storage::disk('local')->exists($record->photo_path)) {
-                abort(404, 'File no longer exists.');
+                abort(404, __('File no longer exists.'));
             }
 
             $this->audit->accessed(

@@ -49,7 +49,7 @@ class NotificationPreferenceController extends Controller
         $prefs->save();
 
         return response()->json([
-            'message' => 'Notification preferences updated.',
+            'message' => __('Notification preferences updated.'),
             'preferences' => $prefs->preferences,
         ]);
     }

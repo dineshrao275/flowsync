@@ -45,7 +45,7 @@ class SalaryComponentController extends Controller
         $component = $this->catalog->createComponent($request->validated(), $request->user());
 
         return response()->json([
-            'message' => 'Component created.',
+            'message' => __('Component created.'),
             'component' => $this->present($component),
         ], Response::HTTP_CREATED);
     }
@@ -57,7 +57,7 @@ class SalaryComponentController extends Controller
         $updated = $this->catalog->updateComponent($component, $request->validated(), $request->user());
 
         return response()->json([
-            'message' => 'Component updated.',
+            'message' => __('Component updated.'),
             'component' => $this->present($updated),
         ]);
     }
@@ -68,7 +68,7 @@ class SalaryComponentController extends Controller
 
         $this->catalog->deleteComponent($component, $request->user());
 
-        return response()->json(['message' => 'Component deleted.']);
+        return response()->json(['message' => __('Component deleted.')]);
     }
 
     /**

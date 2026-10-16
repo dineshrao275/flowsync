@@ -44,7 +44,7 @@ class LeaveTypeController extends Controller
         $type = $this->catalog->createType($request->validated(), $request->user());
 
         return response()->json([
-            'message' => 'Leave type created.',
+            'message' => __('Leave type created.'),
             'leave_type' => $this->presenter->type($type),
         ], Response::HTTP_CREATED);
     }
@@ -56,7 +56,7 @@ class LeaveTypeController extends Controller
         $type = $this->catalog->updateType($leaveType, $request->validated(), $request->user());
 
         return response()->json([
-            'message' => 'Leave type updated.',
+            'message' => __('Leave type updated.'),
             'leave_type' => $this->presenter->type($type),
         ]);
     }
@@ -67,6 +67,6 @@ class LeaveTypeController extends Controller
 
         $this->catalog->deleteType($leaveType, $request->user());
 
-        return response()->json(['message' => 'Leave type deleted.']);
+        return response()->json(['message' => __('Leave type deleted.')]);
     }
 }

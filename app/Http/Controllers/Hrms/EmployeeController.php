@@ -116,7 +116,7 @@ class EmployeeController extends Controller
         $employee = $this->employees->create($request->validated(), $request->user());
 
         return response()->json([
-            'message' => 'Employee created.',
+            'message' => __('Employee created.'),
             'employee' => $this->present($employee->load(['manager', 'employmentType', 'user']), $this->maySeeSensitive($request, $employee), $request),
         ], Response::HTTP_CREATED);
     }
@@ -131,7 +131,7 @@ class EmployeeController extends Controller
         $employee = $this->employees->update($employee, $request->validated(), $request->user());
 
         return response()->json([
-            'message' => 'Employee updated.',
+            'message' => __('Employee updated.'),
             'employee' => $this->present($employee->load(['manager', 'employmentType', 'user']), $this->maySeeSensitive($request, $employee), $request),
         ]);
     }
@@ -149,7 +149,7 @@ class EmployeeController extends Controller
 
         $this->employees->delete($employee, $request->user());
 
-        return response()->json(['message' => 'Employee deleted.']);
+        return response()->json(['message' => __('Employee deleted.')]);
     }
 
     /**
@@ -169,7 +169,7 @@ class EmployeeController extends Controller
         );
 
         return response()->json([
-            'message' => 'Employment status updated.',
+            'message' => __('Employment status updated.'),
             'employee' => $this->present($employee->load(['manager', 'employmentType', 'user']), $this->maySeeSensitive($request, $employee), $request),
         ]);
     }
@@ -192,7 +192,7 @@ class EmployeeController extends Controller
         );
 
         return response()->json([
-            'message' => 'Reporting line updated.',
+            'message' => __('Reporting line updated.'),
             'employee' => $this->present($employee->load(['manager', 'employmentType', 'user']), $this->maySeeSensitive($request, $employee), $request),
         ]);
     }
@@ -214,7 +214,7 @@ class EmployeeController extends Controller
         );
 
         return response()->json([
-            'message' => 'Employment ended.',
+            'message' => __('Employment ended.'),
             'employee' => $this->present($employee->load(['manager', 'employmentType', 'user']), $this->maySeeSensitive($request, $employee), $request),
         ]);
     }

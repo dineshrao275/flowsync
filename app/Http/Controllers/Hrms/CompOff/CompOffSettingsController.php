@@ -45,7 +45,7 @@ class CompOffSettingsController extends Controller
         $settings->save();
 
         return response()->json([
-            'message' => 'Comp-off settings saved.',
+            'message' => __('Comp-off settings saved.'),
             'comp_off' => $settings->comp_off,
         ]);
     }
@@ -72,7 +72,7 @@ class CompOffSettingsController extends Controller
         }
 
         return response()->json([
-            'message' => "Accrual run finished: {$credited} credited, {$skipped} skipped.",
+            'message' => __('Accrual run finished: :credited credited, :skipped skipped.', ['credited' => $credited, 'skipped' => $skipped]),
             'employees' => $employees->count(),
             'credited' => $credited,
             'skipped' => $skipped,

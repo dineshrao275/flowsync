@@ -55,7 +55,7 @@ class LanguageController extends Controller
         }
 
         return response()->json([
-            'message' => 'Language saved.',
+            'message' => __('Language saved.'),
             'locale' => $locale,
         ]);
     }

@@ -76,7 +76,7 @@ class ExpenseClaimController extends Controller
         $claim = $this->expenses->create($employee, $data, $items, $request->user());
 
         return response()->json([
-            'message' => 'Claim filed.',
+            'message' => __('Claim filed.'),
             'claim' => $this->present($claim),
         ], Response::HTTP_CREATED);
     }
@@ -88,7 +88,7 @@ class ExpenseClaimController extends Controller
         $updated = $this->expenses->setItems($claim, $request->validated()['items'], $request->user());
 
         return response()->json([
-            'message' => 'Claim lines updated.',
+            'message' => __('Claim lines updated.'),
             'claim' => $this->present($updated),
         ]);
     }
@@ -100,7 +100,7 @@ class ExpenseClaimController extends Controller
         $submitted = $this->expenses->submit($claim, $request->user());
 
         return response()->json([
-            'message' => 'Claim submitted.',
+            'message' => __('Claim submitted.'),
             'claim' => $this->present($submitted),
         ]);
     }

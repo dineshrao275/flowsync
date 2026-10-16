@@ -62,11 +62,11 @@ class RotationService
         $ids = array_values(array_unique(array_filter($cycle, fn ($slot) => $slot !== null)));
 
         if ($ids === []) {
-            throw ValidationException::withMessages(['cycle' => 'A rotation needs at least one working day.']);
+            throw ValidationException::withMessages(['cycle' => __('A rotation needs at least one working day.')]);
         }
 
         if (AttendanceShift::query()->whereIn('id', $ids)->where('is_active', true)->count() !== count($ids)) {
-            throw ValidationException::withMessages(['cycle' => 'Every slot must be an active shift or a day off.']);
+            throw ValidationException::withMessages(['cycle' => __('Every slot must be an active shift or a day off.')]);
         }
     }
 }

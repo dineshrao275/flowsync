@@ -26,7 +26,7 @@ class ProjectVersionService
         $existing = $project->versions()->where('name', $data['name'])->exists();
         if ($existing) {
             throw ValidationException::withMessages([
-                'name' => 'A version with this name already exists in this project.',
+                'name' => __('A version with this name already exists in this project.'),
             ]);
         }
 
@@ -49,7 +49,7 @@ class ProjectVersionService
 
             if ($existing) {
                 throw ValidationException::withMessages([
-                    'name' => 'A version with this name already exists in this project.',
+                    'name' => __('A version with this name already exists in this project.'),
                 ]);
             }
         }

@@ -87,7 +87,7 @@ class StatutoryDeclarationController extends Controller
         $declaration = $this->declarations->file($employee, $data, $request->user());
 
         return response()->json([
-            'message' => 'Declaration filed.',
+            'message' => __('Declaration filed.'),
             'declaration' => $this->present($declaration),
         ], Response::HTTP_CREATED);
     }
@@ -97,7 +97,7 @@ class StatutoryDeclarationController extends Controller
         $this->authorize('submit', $declaration);
 
         return response()->json([
-            'message' => 'Declaration submitted.',
+            'message' => __('Declaration submitted.'),
             'declaration' => $this->present($this->declarations->submit($declaration, $request->user())),
         ]);
     }
@@ -107,7 +107,7 @@ class StatutoryDeclarationController extends Controller
         $this->authorize('decide', $declaration);
 
         return response()->json([
-            'message' => 'Declaration verified.',
+            'message' => __('Declaration verified.'),
             'declaration' => $this->present($this->declarations->verify($declaration, $request->user())),
         ]);
     }
@@ -117,7 +117,7 @@ class StatutoryDeclarationController extends Controller
         $this->authorize('decide', $declaration);
 
         return response()->json([
-            'message' => 'Declaration rejected.',
+            'message' => __('Declaration rejected.'),
             'declaration' => $this->present($this->declarations->reject($declaration, $request->user())),
         ]);
     }

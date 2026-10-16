@@ -57,7 +57,7 @@ class PlanController extends Controller
 
         // The product is what subscriptions are keyed on; it cannot change under them.
         if (isset($data['product']) && $data['product'] !== ($plan->product ?? 'suite') && $plan->subscriptions()->exists()) {
-            abort(422, 'A plan that tenants are subscribed to cannot change product.');
+            abort(422, __('A plan that tenants are subscribed to cannot change product.'));
         }
 
         $plan->update([
@@ -73,16 +73,16 @@ class PlanController extends Controller
     public function destroy(SubscriptionPlan $plan): JsonResponse
     {
         if ($plan->subscriptions()->exists()) {
-            abort(422, 'Cannot delete a plan that tenants are subscribed to.');
+            abort(422, __('Cannot delete a plan that tenants are subscribed to.'));
         }
 
         if ($plan->is_default) {
-            abort(422, 'Cannot delete the default plan.');
+            abort(422, __('Cannot delete the default plan.'));
         }
 
         $plan->delete();
 
-        return response()->json(['message' => 'Plan deleted.']);
+        return response()->json(['message' => __('Plan deleted.')]);
     }
 
     private function validateData(Request $request, ?SubscriptionPlan $plan = null): array

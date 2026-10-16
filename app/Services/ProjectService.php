@@ -112,7 +112,7 @@ class ProjectService
     {
         if ($project->tasks()->exists()) {
             throw ValidationException::withMessages([
-                'form' => 'Cannot delete a project that still contains tasks. Archive it instead.',
+                'form' => __('Cannot delete a project that still contains tasks. Archive it instead.'),
             ]);
         }
 
@@ -126,19 +126,19 @@ class ProjectService
 
         if ($user === null) {
             throw ValidationException::withMessages([
-                'user_id' => 'The selected user does not belong to this tenant.',
+                'user_id' => __('The selected user does not belong to this tenant.'),
             ]);
         }
 
         if (! $project->workspace->isMember($user)) {
             throw ValidationException::withMessages([
-                'user_id' => 'The selected user must be a member of the workspace first.',
+                'user_id' => __('The selected user must be a member of the workspace first.'),
             ]);
         }
 
         if ($project->isMember($user)) {
             throw ValidationException::withMessages([
-                'user_id' => 'This user is already a member of the project.',
+                'user_id' => __('This user is already a member of the project.'),
             ]);
         }
 
@@ -152,7 +152,7 @@ class ProjectService
     {
         if (! $project->isMember($member)) {
             throw ValidationException::withMessages([
-                'form' => 'This user is not a member of the project.',
+                'form' => __('This user is not a member of the project.'),
             ]);
         }
 
@@ -168,13 +168,13 @@ class ProjectService
     {
         if (! $project->isMember($member)) {
             throw ValidationException::withMessages([
-                'form' => 'This user is not a member of the project.',
+                'form' => __('This user is not a member of the project.'),
             ]);
         }
 
         if ($project->members()->count() <= 1) {
             throw ValidationException::withMessages([
-                'form' => 'A project must keep at least one member.',
+                'form' => __('A project must keep at least one member.'),
             ]);
         }
 
@@ -187,7 +187,7 @@ class ProjectService
 
         if ($role === null) {
             throw ValidationException::withMessages([
-                'role_id' => 'The selected project role is invalid.',
+                'role_id' => __('The selected project role is invalid.'),
             ]);
         }
 
@@ -260,13 +260,13 @@ class ProjectService
 
         if ($project->statuses()->count() <= 1) {
             throw ValidationException::withMessages([
-                'form' => 'A project must keep at least one status.',
+                'form' => __('A project must keep at least one status.'),
             ]);
         }
 
         if ($status->tasks()->exists()) {
             throw ValidationException::withMessages([
-                'form' => 'Cannot delete a status that still has tasks. Move or delete them first.',
+                'form' => __('Cannot delete a status that still has tasks. Move or delete them first.'),
             ]);
         }
 

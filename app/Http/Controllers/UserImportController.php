@@ -48,12 +48,12 @@ class UserImportController extends Controller
 
         if (count($ok) !== count($rows) && ! $skip) {
             return response()->json([
-                'message' => 'Some rows have errors. Fix the file, or import only the valid rows.',
+                'message' => __('Some rows have errors. Fix the file, or import only the valid rows.'),
                 ...$this->report($rows),
             ], 422);
         }
         if ($ok === []) {
-            return response()->json(['message' => 'There are no valid rows to import.', ...$this->report($rows)], 422);
+            return response()->json(['message' => __('There are no valid rows to import.'), ...$this->report($rows)], 422);
         }
 
         $created = DB::transaction(fn () => $this->importer->import($ok));

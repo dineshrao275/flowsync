@@ -61,7 +61,7 @@ class LeaveExemptionController extends Controller
         $row = $this->exemptions->requestFor($employee, $request->validated(), $request->user());
 
         return response()->json([
-            'message' => 'Exemption requested.',
+            'message' => __('Exemption requested.'),
             'exemption' => $this->presenter->exemption($row),
         ], Response::HTTP_CREATED);
     }
@@ -85,7 +85,7 @@ class LeaveExemptionController extends Controller
         // approve/reject endpoints do not send one); this endpoint does not
         // decide without it.
         if (! isset($validated['decision'])) {
-            throw ValidationException::withMessages(['decision' => 'A verdict is approve or reject.']);
+            throw ValidationException::withMessages(['decision' => __('A verdict is approve or reject.')]);
         }
 
         $row = $this->exemptions->decide(
@@ -124,7 +124,7 @@ class LeaveExemptionController extends Controller
             ? Employee::where('user_id', $request->user()->id)->first()
             : Employee::find($employeeId);
 
-        abort_if($employee === null, 404, 'There is no employment record to file an exemption for.');
+        abort_if($employee === null, 404, __('There is no employment record to file an exemption for.'));
 
         return $employee;
     }

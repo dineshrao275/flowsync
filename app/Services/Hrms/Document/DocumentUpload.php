@@ -82,7 +82,7 @@ class DocumentUpload
     private function requireActiveType(DocumentType $type): void
     {
         if (! $type->is_active) {
-            throw ValidationException::withMessages(['document_type_id' => 'That document type has been retired. Pick a current one.']);
+            throw ValidationException::withMessages(['document_type_id' => __('That document type has been retired. Pick a current one.')]);
         }
     }
 
@@ -120,7 +120,7 @@ class DocumentUpload
         $tenantId = $this->context->currentId();
 
         if ($tenantId === null) {
-            throw ValidationException::withMessages(['form' => 'Documents need an active tenant before anything can be stored.']);
+            throw ValidationException::withMessages(['form' => __('Documents need an active tenant before anything can be stored.')]);
         }
 
         return $tenantId;
@@ -140,25 +140,25 @@ class DocumentUpload
         $title = trim((string) ($meta['title'] ?? ''));
 
         if ($title === '' || mb_strlen($title) > 255) {
-            throw ValidationException::withMessages(['title' => 'A document needs a short title the employee recognises.']);
+            throw ValidationException::withMessages(['title' => __('A document needs a short title the employee recognises.')]);
         }
 
         $source = DocumentSource::tryFrom((string) ($meta['source'] ?? DocumentSource::Hr->value));
         $visibility = DocumentVisibility::tryFrom((string) ($meta['visibility'] ?? DocumentVisibility::Hr->value));
 
         if ($source === null) {
-            throw ValidationException::withMessages(['source' => 'That source is not a way a document can arrive.']);
+            throw ValidationException::withMessages(['source' => __('That source is not a way a document can arrive.')]);
         }
 
         if ($visibility === null) {
-            throw ValidationException::withMessages(['visibility' => 'That visibility does not name a real audience.']);
+            throw ValidationException::withMessages(['visibility' => __('That visibility does not name a real audience.')]);
         }
 
         $issuedAt = $this->optionalDate($meta['issued_at'] ?? null, 'issued_at');
         $expiresAt = $this->optionalDate($meta['expires_at'] ?? null, 'expires_at');
 
         if ($issuedAt !== null && $expiresAt !== null && $expiresAt->lt($issuedAt)) {
-            throw ValidationException::withMessages(['expires_at' => 'Expiry cannot come before the issue date.']);
+            throw ValidationException::withMessages(['expires_at' => __('Expiry cannot come before the issue date.')]);
         }
 
         return [
@@ -184,7 +184,7 @@ class DocumentUpload
         $extension = strtolower($file->getClientOriginalExtension() ?: pathinfo($file->getClientOriginalName(), PATHINFO_EXTENSION));
 
         if ($extension === '') {
-            throw ValidationException::withMessages(['file' => 'The file needs an extension the allow-list can recognise.']);
+            throw ValidationException::withMessages(['file' => __('The file needs an extension the allow-list can recognise.')]);
         }
 
         // A UUID name, never the uploaded one: two “passport.pdf” uploads are
@@ -197,7 +197,7 @@ class DocumentUpload
         );
 
         if (! is_string($path)) {
-            throw ValidationException::withMessages(['file' => 'The file could not be stored.']);
+            throw ValidationException::withMessages(['file' => __('The file could not be stored.')]);
         }
 
         return $path;
@@ -212,7 +212,7 @@ class DocumentUpload
         try {
             return $value instanceof Carbon ? $value : Carbon::parse((string) $value)->startOfDay();
         } catch (Throwable) {
-            throw ValidationException::withMessages([$field => 'That is not a date this row can carry.']);
+            throw ValidationException::withMessages([$field => __('That is not a date this row can carry.')]);
         }
     }
 }

@@ -52,7 +52,7 @@ class PerformanceCycleController extends Controller
         $cycle = $this->cycles->createCycle($request->validated(), $request->user());
 
         return response()->json([
-            'message' => 'Cycle created.',
+            'message' => __('Cycle created.'),
             'cycle' => $this->present($cycle),
         ], Response::HTTP_CREATED);
     }
@@ -62,7 +62,7 @@ class PerformanceCycleController extends Controller
         $this->authorize('transition', $cycle);
 
         return response()->json([
-            'message' => 'Check-ins opened.',
+            'message' => __('Check-ins opened.'),
             'cycle' => $this->present($this->cycles->openCheckIn($cycle, $request->user())),
         ]);
     }
@@ -72,7 +72,7 @@ class PerformanceCycleController extends Controller
         $this->authorize('transition', $cycle);
 
         return response()->json([
-            'message' => 'Self review opened.',
+            'message' => __('Self review opened.'),
             'cycle' => $this->present($this->cycles->openSelfReview($cycle, $request->user())),
         ]);
     }
@@ -82,7 +82,7 @@ class PerformanceCycleController extends Controller
         $this->authorize('transition', $cycle);
 
         return response()->json([
-            'message' => 'Manager review opened.',
+            'message' => __('Manager review opened.'),
             'cycle' => $this->present($this->cycles->openManagerReview($cycle, $request->user())),
         ]);
     }
@@ -92,7 +92,7 @@ class PerformanceCycleController extends Controller
         $this->authorize('transition', $cycle);
 
         return response()->json([
-            'message' => 'Calibration opened.',
+            'message' => __('Calibration opened.'),
             'cycle' => $this->present($this->cycles->openCalibration($cycle, $request->user())),
         ]);
     }
@@ -102,7 +102,7 @@ class PerformanceCycleController extends Controller
         $this->authorize('transition', $cycle);
 
         return response()->json([
-            'message' => 'Cycle completed.',
+            'message' => __('Cycle completed.'),
             'cycle' => $this->present($this->cycles->complete($cycle, $request->user())),
         ]);
     }
@@ -146,7 +146,7 @@ class PerformanceCycleController extends Controller
         $this->authorize('transition', $cycle);
 
         return response()->json([
-            'message' => 'Evidence refreshed.',
+            'message' => __('Evidence refreshed.'),
             'summary' => $this->performance->refreshCycleEvidence($cycle),
         ]);
     }

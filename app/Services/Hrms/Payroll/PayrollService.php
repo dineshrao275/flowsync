@@ -45,7 +45,7 @@ class PayrollService
         $month = (int) ($data['period_month'] ?? 0);
 
         if ($year < 1900 || $year > 2100 || $month < 1 || $month > 12) {
-            throw ValidationException::withMessages(['period' => 'A run prices one real calendar month.']);
+            throw ValidationException::withMessages(['period' => __('A run prices one real calendar month.')]);
         }
 
         $start = Carbon::parse((string) ($data['pay_period_start'] ?? ''))->startOfDay();
@@ -53,11 +53,11 @@ class PayrollService
         $payDate = Carbon::parse((string) ($data['pay_date'] ?? ''))->startOfDay();
 
         if ($end->lessThan($start)) {
-            throw ValidationException::withMessages(['pay_period_end' => 'A period cannot end before it starts.']);
+            throw ValidationException::withMessages(['pay_period_end' => __('A period cannot end before it starts.')]);
         }
 
         if (PayrollRun::query()->where('period_year', $year)->where('period_month', $month)->exists()) {
-            throw ValidationException::withMessages(['period' => 'That month already has a run.']);
+            throw ValidationException::withMessages(['period' => __('That month already has a run.')]);
         }
 
         $run = PayrollRun::create([
@@ -147,7 +147,7 @@ class PayrollService
     public function recalculateEmployee(PayrollRun $run, Employee $employee, ?User $actor = null): Payslip
     {
         if ($run->status !== PayrollRunStatus::Review) {
-            throw ValidationException::withMessages(['run' => 'Only a run in review accepts corrections.']);
+            throw ValidationException::withMessages(['run' => __('Only a run in review accepts corrections.')]);
         }
 
         return DB::transaction(function () use ($run, $employee, $actor): Payslip {
@@ -159,7 +159,7 @@ class PayrollService
             $payload = $this->calculator->build($employee, $run, $preserved);
 
             if ($payload === null) {
-                throw ValidationException::withMessages(['employee' => 'That employee has no pay basis for this run.']);
+                throw ValidationException::withMessages(['employee' => __('That employee has no pay basis for this run.')]);
             }
 
             $payslip = $this->storePayslip($run, $employee, $payload);
@@ -194,7 +194,7 @@ class PayrollService
         $amount = Money::fromDecimal((string) ($data['amount'] ?? '0'));
 
         if ($amount->isNegative() || $amount->isZero()) {
-            throw ValidationException::withMessages(['amount' => 'An adjustment moves positive money — pick the kind for the direction.']);
+            throw ValidationException::withMessages(['amount' => __('An adjustment moves positive money — pick the kind for the direction.')]);
         }
 
         return DB::transaction(function () use ($payslip, $data, $actor): Payslip {
@@ -249,7 +249,7 @@ class PayrollService
     public function recomputeStatutory(PayrollRun $run, ?User $actor = null, bool $full = false): array
     {
         if ($run->status !== PayrollRunStatus::Review) {
-            throw ValidationException::withMessages(['run' => 'Only a run in review accepts a statutory recompute.']);
+            throw ValidationException::withMessages(['run' => __('Only a run in review accepts a statutory recompute.')]);
         }
 
         if ($full) {
@@ -426,7 +426,7 @@ class PayrollService
     private function requireReview(PayrollRun $run): void
     {
         if ($run->status !== PayrollRunStatus::Review) {
-            throw ValidationException::withMessages(['run' => 'Only a run in review accepts adjustments.']);
+            throw ValidationException::withMessages(['run' => __('Only a run in review accepts adjustments.')]);
         }
     }
 
@@ -436,7 +436,7 @@ class PayrollService
     private function requireCalculable(PayrollRun $run): void
     {
         if (! $run->status->isCalculable()) {
-            throw ValidationException::withMessages(['run' => 'Only a draft or review run can be calculated.']);
+            throw ValidationException::withMessages(['run' => __('Only a draft or review run can be calculated.')]);
         }
     }
 }

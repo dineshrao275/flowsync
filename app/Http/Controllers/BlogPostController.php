@@ -109,7 +109,7 @@ class BlogPostController extends Controller
 
         $blogPost->delete();
 
-        return response()->json(['message' => 'Post deleted.']);
+        return response()->json(['message' => __('Post deleted.')]);
     }
 
     public function publish(Request $request, BlogPost $blogPost): JsonResponse
@@ -120,7 +120,7 @@ class BlogPostController extends Controller
 
         $this->audit($request, 'cms.post_published', $blogPost, $before, $this->snapshot($blogPost));
 
-        return response()->json(['post' => $this->present($blogPost->fresh()), 'message' => 'Post published.']);
+        return response()->json(['post' => $this->present($blogPost->fresh()), 'message' => __('Post published.')]);
     }
 
     public function unpublish(Request $request, BlogPost $blogPost): JsonResponse
@@ -131,7 +131,7 @@ class BlogPostController extends Controller
 
         $this->audit($request, 'cms.post_unpublished', $blogPost, $before, $this->snapshot($blogPost));
 
-        return response()->json(['post' => $this->present($blogPost->fresh()), 'message' => 'Post taken down.']);
+        return response()->json(['post' => $this->present($blogPost->fresh()), 'message' => __('Post taken down.')]);
     }
 
     private function readingMinutes(?string $html): ?int

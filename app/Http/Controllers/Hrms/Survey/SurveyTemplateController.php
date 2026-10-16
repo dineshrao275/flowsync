@@ -52,7 +52,7 @@ class SurveyTemplateController extends Controller
         $template = $this->templates->createTemplate($data, $questions, $request->user());
 
         return response()->json([
-            'message' => 'Template created.',
+            'message' => __('Template created.'),
             'template' => $this->present($template->load('questions')),
         ], Response::HTTP_CREATED);
     }
@@ -67,7 +67,7 @@ class SurveyTemplateController extends Controller
         $updated = $this->templates->updateTemplate($template, $data, $request->user());
 
         return response()->json([
-            'message' => 'Template updated.',
+            'message' => __('Template updated.'),
             'template' => $this->present($updated->load('questions')),
         ]);
     }
@@ -78,7 +78,7 @@ class SurveyTemplateController extends Controller
 
         $this->templates->deleteTemplate($template, $request->user());
 
-        return response()->json(['message' => 'Template deleted.']);
+        return response()->json(['message' => __('Template deleted.')]);
     }
 
     public function setQuestions(SurveyQuestionsRequest $request, SurveyTemplate $template): JsonResponse
@@ -88,7 +88,7 @@ class SurveyTemplateController extends Controller
         $updated = $this->templates->setQuestions($template, $request->validated()['questions'], $request->user());
 
         return response()->json([
-            'message' => 'Questions updated.',
+            'message' => __('Questions updated.'),
             'template' => $this->present($updated->load('questions')),
         ]);
     }

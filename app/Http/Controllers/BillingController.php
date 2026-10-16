@@ -32,7 +32,7 @@ class BillingController extends Controller
         ]);
 
         $plan = SubscriptionPlan::findOrFail($data['plan_id']);
-        abort_unless($plan->is_active, 422, 'This plan is not available.');
+        abort_unless($plan->is_active, 422, __('This plan is not available.'));
 
         $result = $this->paymentService->initiateCheckout(
             tenant: $tenant,
@@ -47,13 +47,13 @@ class BillingController extends Controller
 
         if (! empty($result['changed'])) {
             return response()->json([
-                'message' => 'Plan changed. The difference is prorated on your next invoice.',
+                'message' => __('Plan changed. The difference is prorated on your next invoice.'),
                 'changed' => true,
             ]);
         }
 
         return response()->json([
-            'message' => 'Checkout session created.',
+            'message' => __('Checkout session created.'),
             'payment' => $this->presentPayment($result['payment']),
             'session' => $result['session'],
         ], 201);
@@ -86,7 +86,7 @@ class BillingController extends Controller
         }
 
         return response()->json([
-            'message' => 'Payment verified and plan activated.',
+            'message' => __('Payment verified and plan activated.'),
             'payment' => $this->presentPayment($updated),
         ]);
     }
@@ -113,7 +113,7 @@ class BillingController extends Controller
         abort_unless(
             $user?->hasRole('admin') || $user?->hasPermission('billing.view') || $user?->hasPermission('billing.manage'),
             403,
-            'You do not have permission to view billing information.'
+            __('You do not have permission to view billing information.')
         );
 
         $payments = Payment::where('tenant_id', $tenant->id)
@@ -132,7 +132,7 @@ class BillingController extends Controller
         abort_unless(
             $request->user()?->is_super_admin || $request->user()?->hasRole('admin') || $request->user()?->hasPermission('billing.manage'),
             403,
-            'Unauthorized to issue refund.'
+            __('Unauthorized to issue refund.')
         );
 
         $tenant = $this->currentTenant();
@@ -150,7 +150,7 @@ class BillingController extends Controller
         );
 
         return response()->json([
-            'message' => 'Refund processed.',
+            'message' => __('Refund processed.'),
             'payment' => $this->presentPayment($refunded),
         ]);
     }
@@ -160,7 +160,7 @@ class BillingController extends Controller
         abort_unless(
             $request->user()?->is_super_admin || $request->user()?->hasRole('admin') || $request->user()?->hasPermission('billing.manage'),
             403,
-            'Only tenant admins can manage billing.'
+            __('Only tenant admins can manage billing.')
         );
     }
 

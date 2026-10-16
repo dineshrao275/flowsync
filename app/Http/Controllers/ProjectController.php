@@ -55,7 +55,7 @@ class ProjectController extends Controller
         $project = $this->service->create($workspace, $data, $request->user());
 
         return response()->json([
-            'message' => 'Project created.',
+            'message' => __('Project created.'),
             'project' => [...$this->present($project, $request->user()), 'my_role' => $request->user()->id === $project->lead_user_id ? 'lead' : null],
         ], 201);
     }
@@ -84,7 +84,7 @@ class ProjectController extends Controller
         ]);
 
         return response()->json([
-            'message' => 'Project updated.',
+            'message' => __('Project updated.'),
             'project' => $this->present($this->service->update($project, $data), $request->user()),
         ]);
     }
@@ -94,7 +94,7 @@ class ProjectController extends Controller
         $this->authorize('archive', $project);
 
         return response()->json([
-            'message' => 'Project archived.',
+            'message' => __('Project archived.'),
             'project' => $this->present($this->service->archive($project), $request->user()),
         ]);
     }
@@ -104,7 +104,7 @@ class ProjectController extends Controller
         $this->authorize('restore', $project);
 
         return response()->json([
-            'message' => 'Project restored.',
+            'message' => __('Project restored.'),
             'project' => $this->present($this->service->restore($project), $request->user()),
         ]);
     }
@@ -115,7 +115,7 @@ class ProjectController extends Controller
 
         $this->service->delete($project);
 
-        return response()->json(['message' => 'Project deleted.']);
+        return response()->json(['message' => __('Project deleted.')]);
     }
 
     private function present(Project $project, ?User $user = null): array

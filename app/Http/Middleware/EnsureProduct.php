@@ -25,11 +25,11 @@ class EnsureProduct
             if ($request->user()?->is_super_admin) {
                 return $next($request);
             }
-            abort(403, 'A valid tenant context is required.');
+            abort(403, __('A valid tenant context is required.'));
         }
 
         $tenant = Tenant::find($tenantId);
-        abort_unless($tenant, 403, 'A valid tenant context is required.');
+        abort_unless($tenant, 403, __('A valid tenant context is required.'));
 
         if (app(TenantLimits::class)->productEnabled($tenant, $product)) {
             return $next($request);

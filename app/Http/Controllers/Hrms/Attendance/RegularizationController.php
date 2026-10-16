@@ -61,7 +61,7 @@ class RegularizationController extends Controller
         $row = $this->regularizations->request($employee, $request->validated(), $request->user());
 
         return response()->json([
-            'message' => 'Correction requested.',
+            'message' => __('Correction requested.'),
             'request' => $this->presenter->present($row),
         ], Response::HTTP_CREATED);
     }
@@ -82,7 +82,7 @@ class RegularizationController extends Controller
         $row = $this->regularizations->approve($regularization, $request->user(), $request->validated()['note'] ?? null);
 
         return response()->json([
-            'message' => 'Correction approved and applied.',
+            'message' => __('Correction approved and applied.'),
             'request' => $this->presenter->present($row),
         ]);
     }
@@ -94,7 +94,7 @@ class RegularizationController extends Controller
         $row = $this->regularizations->reject($regularization, $request->user(), (string) ($request->validated()['note'] ?? ''));
 
         return response()->json([
-            'message' => 'Correction rejected.',
+            'message' => __('Correction rejected.'),
             'request' => $this->presenter->present($row),
         ]);
     }

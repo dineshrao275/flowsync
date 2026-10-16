@@ -31,7 +31,7 @@ class TaskUpdater
 
         if ($statusChanged && $status->is_done && $this->lifecycle->hasOpenBlockers($task)) {
             throw ValidationException::withMessages([
-                'form' => 'Cannot complete a task that has open blockers.',
+                'form' => __('Cannot complete a task that has open blockers.'),
             ]);
         }
 

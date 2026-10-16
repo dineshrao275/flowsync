@@ -58,7 +58,7 @@ class TalentController extends Controller
         $calibrated = $this->calibration->calibrate($review, (int) $request->validated('rating'), $request->user());
 
         return response()->json([
-            'message' => 'Review calibrated.',
+            'message' => __('Review calibrated.'),
             'review' => $this->row($calibrated),
         ]);
     }
@@ -75,7 +75,7 @@ class TalentController extends Controller
         $this->notifications->talentReviewFinalized($final, $request->user());
 
         return response()->json([
-            'message' => 'Review finalized.',
+            'message' => __('Review finalized.'),
             'review' => $this->row($final),
         ]);
     }

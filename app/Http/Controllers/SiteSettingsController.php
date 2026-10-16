@@ -63,6 +63,6 @@ class SiteSettingsController extends Controller
             );
         }
 
-        return response()->json(['settings' => $after, 'message' => 'Site settings saved.']);
+        return response()->json(['settings' => $after, 'message' => __('Site settings saved.')]);
     }
 }

@@ -64,7 +64,7 @@ class SupportDesk
     public function replyAsTenant(SupportTicket $ticket, User $author, string $body): SupportTicketMessage
     {
         if ($ticket->status === SupportTicket::STATUS_CLOSED) {
-            throw ValidationException::withMessages(['form' => 'This ticket is closed. Open a new ticket if the problem continues.']);
+            throw ValidationException::withMessages(['form' => __('This ticket is closed. Open a new ticket if the problem continues.')]);
         }
 
         $message = $ticket->messages()->create([
@@ -84,7 +84,7 @@ class SupportDesk
     public function replyAsStaff(SupportTicket $ticket, User $staff, string $body, bool $internal): SupportTicketMessage
     {
         if ($ticket->status === SupportTicket::STATUS_CLOSED && ! $internal) {
-            throw ValidationException::withMessages(['form' => 'This ticket is closed.']);
+            throw ValidationException::withMessages(['form' => __('This ticket is closed.')]);
         }
 
         $message = $ticket->messages()->create([

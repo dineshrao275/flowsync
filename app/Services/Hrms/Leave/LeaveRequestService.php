@@ -132,7 +132,7 @@ class LeaveRequestService
     public function updateAsk(LeaveRequest $request, array $data, ?User $actor = null): LeaveRequest
     {
         if ($request->status->isTerminal()) {
-            throw ValidationException::withMessages(['form' => 'A decided ask cannot be edited.']);
+            throw ValidationException::withMessages(['form' => __('A decided ask cannot be edited.')]);
         }
 
         $before = ['reason' => $request->reason];

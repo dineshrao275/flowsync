@@ -46,7 +46,7 @@ class ActionRunner
 
             case 'set_priority':
                 $priority = Priority::where('slug', $action['priority'])->first()
-                    ?? throw ValidationException::withMessages(['action' => "Unknown priority '{$action['priority']}'."]);
+                    ?? throw ValidationException::withMessages(['action' => __('Unknown priority \':priority\'.', ['priority' => $action['priority']])]);
                 $this->tasks->update($task, ['priority_id' => $priority->id]);
                 $this->log($task, $actor, 'task.updated', ['fields' => ['priority_id']] + $marker);
 
@@ -54,7 +54,7 @@ class ActionRunner
 
             case 'move_to_status':
                 $status = $task->project->statuses()->where('slug', $action['status'])->orWhere('id', is_numeric($action['status']) ? $action['status'] : 0)->first()
-                    ?? throw ValidationException::withMessages(['action' => 'Unknown status.']);
+                    ?? throw ValidationException::withMessages(['action' => __('Unknown status.')]);
                 $from = $task->status;
                 $moved = $this->tasks->move($task, $status->id, null);
                 $this->log($task, $actor, 'task.moved', [
@@ -91,7 +91,7 @@ class ActionRunner
                 return "notified {$count} ".($count === 1 ? 'person' : 'people');
         }
 
-        throw ValidationException::withMessages(['action' => 'Unknown action.']);
+        throw ValidationException::withMessages(['action' => __('Unknown action.')]);
     }
 
     private function log(Task $task, User $actor, string $action, array $data): void
@@ -105,7 +105,7 @@ class ActionRunner
             'unassign' => null,
             'reporter' => $task->reporter_user_id ? User::find($task->reporter_user_id) : null,
             'lead' => $task->project->lead_user_id ? User::find($task->project->lead_user_id) : null,
-            default => User::find((int) $ref) ?? throw ValidationException::withMessages(['action' => 'Unknown user.']),
+            default => User::find((int) $ref) ?? throw ValidationException::withMessages(['action' => __('Unknown user.')]),
         };
     }
 

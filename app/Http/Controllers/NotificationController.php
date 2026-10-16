@@ -91,7 +91,7 @@ class NotificationController extends Controller
 
         $model->markAsRead();
 
-        return response()->json(['message' => 'Notification marked as read.']);
+        return response()->json(['message' => __('Notification marked as read.')]);
     }
 
     public function markAllRead(Request $request): JsonResponse
@@ -99,7 +99,7 @@ class NotificationController extends Controller
         $count = $this->isPlatformSuperAdmin($request) ? 0 : $this->service->markAllRead($request->user());
 
         return response()->json([
-            'message' => 'All notifications marked as read.',
+            'message' => __('All notifications marked as read.'),
             'count' => $count,
         ]);
     }

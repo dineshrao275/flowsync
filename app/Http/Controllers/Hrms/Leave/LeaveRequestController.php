@@ -117,7 +117,7 @@ class LeaveRequestController extends Controller
 
         $employee = Employee::where('user_id', $request->user()->id)->first();
 
-        abort_if($employee === null, 404, 'There is no employment record to read the team for.');
+        abort_if($employee === null, 404, __('There is no employment record to read the team for.'));
 
         $now = today();
 
@@ -141,7 +141,7 @@ class LeaveRequestController extends Controller
         $row = $this->requests->request($employee, $request->validated(), $request->user());
 
         return response()->json([
-            'message' => 'Leave requested.',
+            'message' => __('Leave requested.'),
             'request' => $this->presenter->request($row),
         ], Response::HTTP_CREATED);
     }
@@ -162,7 +162,7 @@ class LeaveRequestController extends Controller
         $row = $this->requests->updateAsk($leaveRequest, $request->validated(), $request->user());
 
         return response()->json([
-            'message' => 'Leave request updated.',
+            'message' => __('Leave request updated.'),
             'request' => $this->presenter->request($row),
         ]);
     }
@@ -174,7 +174,7 @@ class LeaveRequestController extends Controller
         $row = $this->decisions->cancelRequest($leaveRequest, $request->user());
 
         return response()->json([
-            'message' => 'Leave request withdrawn.',
+            'message' => __('Leave request withdrawn.'),
             'request' => $this->presenter->request($row),
         ]);
     }
@@ -188,7 +188,7 @@ class LeaveRequestController extends Controller
         $row = $this->decisions->cancelRequest($leaveRequest, $request->user(), $filters['reason'] ?? null);
 
         return response()->json([
-            'message' => 'Leave request cancelled.',
+            'message' => __('Leave request cancelled.'),
             'request' => $this->presenter->request($row),
         ]);
     }
@@ -212,7 +212,7 @@ class LeaveRequestController extends Controller
         $row = $this->decisions->reject($leaveRequest, $request->user(), (string) ($request->validated()['note'] ?? ''));
 
         return response()->json([
-            'message' => 'Leave request rejected.',
+            'message' => __('Leave request rejected.'),
             'request' => $this->presenter->request($row),
         ]);
     }
@@ -228,7 +228,7 @@ class LeaveRequestController extends Controller
             ? Employee::where('user_id', $request->user()->id)->first()
             : Employee::find($employeeId);
 
-        abort_if($employee === null, 404, 'There is no employment record to file leave for.');
+        abort_if($employee === null, 404, __('There is no employment record to file leave for.'));
 
         return $employee;
     }

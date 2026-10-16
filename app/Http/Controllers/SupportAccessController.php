@@ -53,7 +53,7 @@ class SupportAccessController extends Controller
             'granted_by' => $request->user()->email,
         ]);
 
-        return response()->json(['message' => 'Support access granted.', 'grant' => $this->present($grant)], 201);
+        return response()->json(['message' => __('Support access granted.'), 'grant' => $this->present($grant)], 201);
     }
 
     public function destroy(Request $request, int $grant): JsonResponse
@@ -68,7 +68,7 @@ class SupportAccessController extends Controller
             'tenant_id' => $tenant->id, 'revoked_by' => $request->user()->email,
         ]);
 
-        return response()->json(['message' => 'Support access revoked.', 'grant' => $this->present($model->refresh())]);
+        return response()->json(['message' => __('Support access revoked.'), 'grant' => $this->present($model->refresh())]);
     }
 
     /** Platform side: grants currently usable, optionally for one tenant. */
@@ -95,7 +95,7 @@ class SupportAccessController extends Controller
         app(PlatformAudit::class)->diff($request, 'platform.support_consent_policy_updated', 'platform_settings', null,
             ['consent_required' => $before], ['consent_required' => (bool) $data['consent_required']]);
 
-        return response()->json(['message' => 'Policy saved.', 'consent_required' => (bool) $data['consent_required']]);
+        return response()->json(['message' => __('Policy saved.'), 'consent_required' => (bool) $data['consent_required']]);
     }
 
     /** @return array<string, mixed> */

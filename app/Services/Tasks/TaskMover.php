@@ -39,10 +39,10 @@ class TaskMover
     {
         $source = $task->project;
         if ($source->id === $target->id) {
-            throw ValidationException::withMessages(['target_project_id' => 'The task is already in that project.']);
+            throw ValidationException::withMessages(['target_project_id' => __('The task is already in that project.')]);
         }
         if ($target->archived_at !== null) {
-            throw ValidationException::withMessages(['target_project_id' => 'Archived projects cannot receive tasks.']);
+            throw ValidationException::withMessages(['target_project_id' => __('Archived projects cannot receive tasks.')]);
         }
 
         $map = $this->validatedMap($target, $statusMap);
@@ -166,7 +166,7 @@ class TaskMover
         $map = [];
         foreach ($statusMap as $from => $to) {
             if (! in_array((int) $to, $valid, true)) {
-                throw ValidationException::withMessages(['status_map' => 'Every mapped status must belong to the target project.']);
+                throw ValidationException::withMessages(['status_map' => __('Every mapped status must belong to the target project.')]);
             }
             $map[(int) $from] = (int) $to;
         }

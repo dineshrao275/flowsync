@@ -38,7 +38,7 @@ class LabelController extends Controller
         ]);
 
         return response()->json([
-            'message' => 'Label created.',
+            'message' => __('Label created.'),
             'label' => $this->present($label),
         ], 201);
     }
@@ -60,7 +60,7 @@ class LabelController extends Controller
         ]);
 
         return response()->json([
-            'message' => 'Label updated.',
+            'message' => __('Label updated.'),
             'label' => $this->present($label),
         ]);
     }
@@ -71,7 +71,7 @@ class LabelController extends Controller
 
         $label->delete();
 
-        return response()->json(['message' => 'Label deleted.']);
+        return response()->json(['message' => __('Label deleted.')]);
     }
 
     private function present(Label $label): array

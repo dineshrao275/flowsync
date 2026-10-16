@@ -78,7 +78,7 @@ class CompensationCatalogService
         $this->requireMutable($component);
 
         if ($component->structures()->exists()) {
-            throw ValidationException::withMessages(['form' => 'That head is on a salary structure — remove it there first.']);
+            throw ValidationException::withMessages(['form' => __('That head is on a salary structure — remove it there first.')]);
         }
 
         $this->audit->log($component, 'compensation.component_deleted', [
@@ -114,7 +114,7 @@ class CompensationCatalogService
     public function deleteStructure(SalaryStructure $structure, ?User $actor = null): void
     {
         if ($structure->assignments()->exists()) {
-            throw ValidationException::withMessages(['form' => 'That structure prices people — deactivate it instead of deleting history.']);
+            throw ValidationException::withMessages(['form' => __('That structure prices people — deactivate it instead of deleting history.')]);
         }
 
         $this->audit->log($structure, 'compensation.structure_deleted', [
@@ -141,7 +141,7 @@ class CompensationCatalogService
             $component = SalaryComponent::find($link['component_id'] ?? null);
 
             if ($component === null) {
-                throw ValidationException::withMessages(['components' => 'A linked head does not exist.']);
+                throw ValidationException::withMessages(['components' => __('A linked head does not exist.')]);
             }
 
             $sync[$component->id] = [
@@ -168,11 +168,11 @@ class CompensationCatalogService
     private function requireMutable(SalaryComponent $component): void
     {
         if ($component->is_system) {
-            throw ValidationException::withMessages(['form' => 'That is a starter head — it can be renamed, not repurposed.']);
+            throw ValidationException::withMessages(['form' => __('That is a starter head — it can be renamed, not repurposed.')]);
         }
 
         if ($component->is_statutory) {
-            throw ValidationException::withMessages(['form' => 'That head belongs to the statutory engine — it is not hand-edited.']);
+            throw ValidationException::withMessages(['form' => __('That head belongs to the statutory engine — it is not hand-edited.')]);
         }
     }
 }

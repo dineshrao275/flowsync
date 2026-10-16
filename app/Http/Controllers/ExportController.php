@@ -72,7 +72,7 @@ class ExportController extends Controller
         BuildTenantExportJob::dispatch($tenantId, $run->id);
 
         return response()->json([
-            'message' => 'Export queued. Poll the status URL to track progress.',
+            'message' => __('Export queued. Poll the status URL to track progress.'),
             'run' => $this->presentRun($run),
         ], 202);
     }
@@ -117,17 +117,17 @@ class ExportController extends Controller
     public function download(Request $request, int $run): StreamedResponse
     {
         $tenant = Tenant::find((int) $request->query('tenant'));
-        abort_if($tenant === null, 404, 'Tenant not found.');
+        abort_if($tenant === null, 404, __('Tenant not found.'));
 
         return app(TenantDatabaseManager::class)->using($tenant, function () use ($run) {
             $record = ExportRun::find($run);
 
-            abort_if($record === null, 404, 'Export run not found.');
-            abort_if($record->status !== ExportRun::STATUS_READY, 404, 'Export is not ready yet.');
-            abort_if($record->isExpired(), 410, 'This export link has expired. Please request a new export.');
+            abort_if($record === null, 404, __('Export run not found.'));
+            abort_if($record->status !== ExportRun::STATUS_READY, 404, __('Export is not ready yet.'));
+            abort_if($record->isExpired(), 410, __('This export link has expired. Please request a new export.'));
 
             $fullPath = storage_path('app/private/'.$record->file_path);
-            abort_if(! file_exists($fullPath), 404, 'Export file no longer exists.');
+            abort_if(! file_exists($fullPath), 404, __('Export file no longer exists.'));
 
             $filename = 'flowsync-export-'.now()->format('Ymd-His').'.zip';
 

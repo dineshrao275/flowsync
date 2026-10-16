@@ -68,7 +68,7 @@ class AttendanceController extends Controller
         $settings->save();
 
         return response()->json([
-            'message' => 'Attendance settings saved.',
+            'message' => __('Attendance settings saved.'),
             'settings' => [
                 'attendance' => $settings->attendance,
                 'remote_clock_in' => $settings->remote_clock_in,
@@ -89,10 +89,10 @@ class AttendanceController extends Controller
     {
         $employee = Employee::where('user_id', $request->user()->id)->first();
 
-        abort_if($employee === null, 404, 'There is no employment record for this login to punch with.');
+        abort_if($employee === null, 404, __('There is no employment record for this login to punch with.'));
 
         // The tenant can switch remote clock-in off; the toggle is meaningless otherwise.
-        abort_if(HrmsSetting::current()->setting('remote_clock_in.enabled') === false, 403, 'Remote clock-in is switched off for this workspace.');
+        abort_if(HrmsSetting::current()->setting('remote_clock_in.enabled') === false, 403, __('Remote clock-in is switched off for this workspace.'));
 
         $validated = $request->validated();
 

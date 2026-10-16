@@ -61,7 +61,7 @@ class CompOffRequestController extends Controller
         $row = $this->compOff->request($employee, $request->validated(), $request->user());
 
         return response()->json([
-            'message' => 'Comp-off requested.',
+            'message' => __('Comp-off requested.'),
             'request' => $this->presenter->request($row),
         ], Response::HTTP_CREATED);
     }
@@ -82,7 +82,7 @@ class CompOffRequestController extends Controller
         $row = $this->compOff->cancelRequest($compOffRequest, $request->user());
 
         return response()->json([
-            'message' => 'Comp-off request withdrawn.',
+            'message' => __('Comp-off request withdrawn.'),
             'request' => $this->presenter->request($row),
         ]);
     }
@@ -94,7 +94,7 @@ class CompOffRequestController extends Controller
         $row = $this->compOff->cancelRequest($compOffRequest, $request->user());
 
         return response()->json([
-            'message' => 'Comp-off request cancelled.',
+            'message' => __('Comp-off request cancelled.'),
             'request' => $this->presenter->request($row),
         ]);
     }
@@ -106,7 +106,7 @@ class CompOffRequestController extends Controller
         $row = $this->compOff->approve($compOffRequest, $request->user(), $request->validated()['note'] ?? null);
 
         return response()->json([
-            'message' => 'Comp-off request approved.',
+            'message' => __('Comp-off request approved.'),
             'request' => $this->presenter->request($row),
         ]);
     }
@@ -118,7 +118,7 @@ class CompOffRequestController extends Controller
         $row = $this->compOff->reject($compOffRequest, $request->user(), (string) ($request->validated()['note'] ?? ''));
 
         return response()->json([
-            'message' => 'Comp-off request rejected.',
+            'message' => __('Comp-off request rejected.'),
             'request' => $this->presenter->request($row),
         ]);
     }
@@ -134,7 +134,7 @@ class CompOffRequestController extends Controller
             ? Employee::where('user_id', $request->user()->id)->first()
             : Employee::find($employeeId);
 
-        abort_if($employee === null, 404, 'There is no employment record to file comp-off for.');
+        abort_if($employee === null, 404, __('There is no employment record to file comp-off for.'));
 
         return $employee;
     }

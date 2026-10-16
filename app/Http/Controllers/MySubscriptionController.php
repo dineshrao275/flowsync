@@ -72,16 +72,16 @@ class MySubscriptionController extends Controller
         ]);
 
         $plan = SubscriptionPlan::find($data['plan_id']);
-        abort_unless($plan, 422, 'Unknown plan.');
+        abort_unless($plan, 422, __('Unknown plan.'));
 
         if ($tenant->subscriptionFor($plan->product ?? 'suite')?->plan_id === $plan->id) {
             return response()->json([
-                'message' => 'Already subscribed to this plan.',
+                'message' => __('Already subscribed to this plan.'),
                 ...$this->payload($tenant),
             ]);
         }
 
-        abort_unless($plan->is_active, 422, 'That plan is not currently available.');
+        abort_unless($plan->is_active, 422, __('That plan is not currently available.'));
 
         $actor = $request->user();
 
@@ -97,7 +97,7 @@ class MySubscriptionController extends Controller
             ]),
         ]);
 
-        return response()->json(['message' => 'Plan updated.', ...$this->payload($tenant)]);
+        return response()->json(['message' => __('Plan updated.'), ...$this->payload($tenant)]);
     }
 
     public function cancel(Request $request): JsonResponse
@@ -113,7 +113,7 @@ class MySubscriptionController extends Controller
         $this->payments->setProviderCancelAtPeriodEnd($tenant, true, $product);
         $this->subscriptions->cancel($tenant, null, $product);
 
-        return response()->json(['message' => 'Subscription canceled.', ...$this->payload($tenant)]);
+        return response()->json(['message' => __('Subscription canceled.'), ...$this->payload($tenant)]);
     }
 
     public function renew(Request $request): JsonResponse
@@ -125,7 +125,7 @@ class MySubscriptionController extends Controller
         $this->payments->setProviderCancelAtPeriodEnd($tenant, false, $product);
         $this->subscriptions->renew($tenant, null, $product);
 
-        return response()->json(['message' => 'Subscription renewed.', ...$this->payload($tenant)]);
+        return response()->json(['message' => __('Subscription renewed.'), ...$this->payload($tenant)]);
     }
 
     /** Which product's subscription an action is about; none = the primary one (older clients). */

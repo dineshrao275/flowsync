@@ -38,7 +38,7 @@ class EnsureOnboardingComplete
             }
 
             return response()->json([
-                'message' => 'Complete onboarding before continuing.',
+                'message' => __('Complete onboarding before continuing.'),
                 'redirect' => '/onboarding',
             ], Response::HTTP_FORBIDDEN, [
                 'X-Onboarding-Redirect' => '/onboarding',

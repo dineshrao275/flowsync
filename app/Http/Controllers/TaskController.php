@@ -109,7 +109,7 @@ class TaskController extends Controller
         $this->changes->created($task, $request->user(), $request->ip());
 
         return response()->json([
-            'message' => 'Task created.',
+            'message' => __('Task created.'),
             'task' => $this->service->present($this->service->show($task)),
         ], 201);
     }
@@ -177,7 +177,7 @@ class TaskController extends Controller
         $this->changes->updated($updated, $data, $oldAssigneeId, $oldStatusId, $oldStatus, $request->user(), $request->ip());
 
         return response()->json([
-            'message' => 'Task updated.',
+            'message' => __('Task updated.'),
             'task' => $this->service->present($this->service->show($updated)),
         ]);
     }
@@ -199,7 +199,7 @@ class TaskController extends Controller
 
         broadcast(new TaskSynced($task, 'deleted'));
 
-        return response()->json(['message' => 'Task deleted.']);
+        return response()->json(['message' => __('Task deleted.')]);
     }
 
     private function filtersPayload(Project $project): array

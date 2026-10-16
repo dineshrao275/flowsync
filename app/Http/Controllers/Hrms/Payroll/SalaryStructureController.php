@@ -58,7 +58,7 @@ class SalaryStructureController extends Controller
         );
 
         return response()->json([
-            'message' => 'Structure created.',
+            'message' => __('Structure created.'),
             'structure' => $this->present($structure->load('components')),
         ], Response::HTTP_CREATED);
     }
@@ -73,7 +73,7 @@ class SalaryStructureController extends Controller
         $updated = $this->catalog->updateStructure($structure, $data, $request->user());
 
         return response()->json([
-            'message' => 'Structure updated.',
+            'message' => __('Structure updated.'),
             'structure' => $this->present($updated->load('components')),
         ]);
     }
@@ -84,7 +84,7 @@ class SalaryStructureController extends Controller
 
         $this->catalog->deleteStructure($structure, $request->user());
 
-        return response()->json(['message' => 'Structure deleted.']);
+        return response()->json(['message' => __('Structure deleted.')]);
     }
 
     /**
@@ -106,7 +106,7 @@ class SalaryStructureController extends Controller
         $updated = $this->catalog->setStructureComponents($structure, $validated['components'], $request->user());
 
         return response()->json([
-            'message' => 'Structure heads updated.',
+            'message' => __('Structure heads updated.'),
             'structure' => $this->present($updated->load('components')),
         ]);
     }

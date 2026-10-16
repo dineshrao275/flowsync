@@ -28,13 +28,13 @@ class LeaveBlackoutController extends Controller
     {
         $b = $this->blackouts->create($request->validated(), $request->user());
 
-        return response()->json(['message' => 'Blackout created.', 'blackout' => $this->present($b)], Response::HTTP_CREATED);
+        return response()->json(['message' => __('Blackout created.'), 'blackout' => $this->present($b)], Response::HTTP_CREATED);
     }
 
     public function update(LeaveBlackoutRequest $request, LeaveBlackout $blackout): JsonResponse
     {
         return response()->json([
-            'message' => 'Blackout updated.',
+            'message' => __('Blackout updated.'),
             'blackout' => $this->present($this->blackouts->update($blackout, $request->validated(), $request->user())),
         ]);
     }
@@ -43,7 +43,7 @@ class LeaveBlackoutController extends Controller
     {
         $this->blackouts->delete($blackout, $request->user());
 
-        return response()->json(['message' => 'Blackout deleted.']);
+        return response()->json(['message' => __('Blackout deleted.')]);
     }
 
     /** @return array<string, mixed> */
