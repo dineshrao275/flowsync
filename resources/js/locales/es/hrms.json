@@ -2590,5 +2590,36 @@
             "reject": "Cambio rechazado.",
             "withdraw": "Cambio retirado."
         }
+    },
+    "swaps": {
+        "pageTitle": "Cambios de turno",
+        "subtitle": "Intercambia un turno con un compañero por un día. Él acepta, tu responsable aprueba y el horario se actualiza solo.",
+        "loadFailed": "No se pudieron cargar los cambios de turno.",
+        "actionFailed": "No se pudo completar la acción.",
+        "request": "Solicitar un cambio",
+        "requested": "Cambio solicitado.",
+        "empty": "Aún no hay cambios de turno.",
+        "between": "{{a}} ↔ {{b}}",
+        "note": "Nota: {{note}}",
+        "withdraw": "Retirar",
+        "reject": "Rechazar",
+        "approve": "Aprobar",
+        "noteLabel": "Nota (necesaria para rechazar)",
+        "modalHint": "Ambos deben tener turnos distintos ese día.",
+        "with": "Cambiar con",
+        "date": "Día",
+        "reason": "Motivo",
+        "send": "Enviar solicitud",
+        "status": {
+            "pending": "En espera",
+            "applied": "Hecho",
+            "rejected": "Rechazado",
+            "withdrawn": "Retirado"
+        },
+        "done": {
+            "approve": "Decisión registrada.",
+            "reject": "Cambio rechazado.",
+            "withdraw": "Cambio retirado."
+        }
     }
 }

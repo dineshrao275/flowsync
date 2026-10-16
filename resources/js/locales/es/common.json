@@ -301,7 +301,8 @@
             "resignation": "Renuncia",
             "exitInterview": "Entrevista de salida",
             "hrAutomation": "Automatización RR. HH.",
-            "changes": "Traslados y ascensos"
+            "changes": "Traslados y ascensos",
+            "shiftSwaps": "Cambios de turno"
         },
         "platform": {
             "overview": "Resumen",

@@ -822,5 +822,19 @@
     "Change decided.": "Cambio resuelto.",
     "Change rejected.": "Cambio rechazado.",
     "Change withdrawn.": "Cambio retirado.",
-    "Only the requester or HR can withdraw a change.": "Solo quien lo solicitó o RR. HH. puede retirar un cambio."
+    "Only the requester or HR can withdraw a change.": "Solo quien lo solicitó o RR. HH. puede retirar un cambio.",
+    "Choose someone else to swap with.": "Elige a otra persona para el cambio.",
+    "A swap has to be for today or a later day.": "El cambio debe ser para hoy o un día posterior.",
+    "That person has no login to agree to the swap.": "Esa persona no tiene acceso para aceptar el cambio.",
+    "You both work the same shift that day, so there is nothing to swap.": "Ambos tenéis el mismo turno ese día, no hay nada que cambiar.",
+    "One of you already has a swap waiting for that day.": "Uno de vosotros ya tiene un cambio pendiente para ese día.",
+    "This swap has already been decided.": "Este cambio ya fue resuelto.",
+    "The roster changed after the swap was requested.": "El horario cambió después de solicitar el cambio.",
+    "The roster changed after the swap was requested, so it was not applied.": "El horario cambió después de solicitar el cambio, por lo que no se aplicó.",
+    "You need an employment record to swap shifts.": "Necesitas un registro de empleo para cambiar turnos.",
+    "Swap requested.": "Cambio solicitado.",
+    "Swap decided.": "Cambio resuelto.",
+    "Swap rejected.": "Cambio rechazado.",
+    "Swap withdrawn.": "Cambio retirado.",
+    "Only the requester or HR can withdraw a swap.": "Solo quien lo solicita o RR. HH. puede retirar un cambio."
 }

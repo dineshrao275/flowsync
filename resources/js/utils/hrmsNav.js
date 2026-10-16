@@ -39,6 +39,7 @@ export const HRMS_NAV = [
     { to: '/hrms/comp-off', label: 'nav.hrms.compOff', group: 'nav.groups.time', capabilities: ['module:hrms.core', 'module:hrms.comp_off', 'permission:hrms.comp_off.manage'] },
     { to: '/hrms/comp-off/mine', label: 'nav.hrms.myCompOff', group: 'nav.groups.time', capabilities: ['module:hrms.core', 'module:hrms.comp_off'] },
     { to: '/hrms/holidays', label: 'nav.hrms.holidays', group: 'nav.groups.time', capabilities: ['module:hrms.core', 'module:hrms.holidays'] },
+    { to: '/hrms/shift-swaps', label: 'nav.hrms.shiftSwaps', group: 'nav.groups.time', capabilities: ['module:hrms.core', 'module:hrms.shifts'] },
     { to: '/hrms/shifts', label: 'nav.hrms.shifts', group: 'nav.groups.time', capabilities: ['module:hrms.core', 'module:hrms.shifts'] },
 
     { to: '/hrms/compensation', label: 'nav.hrms.compensation', group: 'nav.groups.pay', capabilities: ['module:hrms.core', 'module:hrms.compensation', 'permission:hrms.compensation.view'] },

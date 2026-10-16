@@ -301,7 +301,8 @@
             "resignation": "Resignation",
             "exitInterview": "Exit interview",
             "hrAutomation": "HR automation",
-            "changes": "Transfers & promotions"
+            "changes": "Transfers & promotions",
+            "shiftSwaps": "Shift swaps"
         },
         "platform": {
             "overview": "Overview",

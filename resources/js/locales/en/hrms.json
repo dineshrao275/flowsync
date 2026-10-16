@@ -2590,5 +2590,36 @@
             "reject": "Change rejected.",
             "withdraw": "Change withdrawn."
         }
+    },
+    "swaps": {
+        "pageTitle": "Shift swaps",
+        "subtitle": "Trade a shift with a colleague for one day. They agree, your manager approves, and the roster updates itself.",
+        "loadFailed": "Could not load shift swaps.",
+        "actionFailed": "That did not work.",
+        "request": "Request a swap",
+        "requested": "Swap requested.",
+        "empty": "No shift swaps yet.",
+        "between": "{{a}} ↔ {{b}}",
+        "note": "Note: {{note}}",
+        "withdraw": "Withdraw",
+        "reject": "Reject",
+        "approve": "Approve",
+        "noteLabel": "Note (needed to reject)",
+        "modalHint": "Both of you must be on different shifts that day.",
+        "with": "Swap with",
+        "date": "Day",
+        "reason": "Reason",
+        "send": "Send request",
+        "status": {
+            "pending": "Waiting",
+            "applied": "Done",
+            "rejected": "Rejected",
+            "withdrawn": "Withdrawn"
+        },
+        "done": {
+            "approve": "Decision recorded.",
+            "reject": "Swap rejected.",
+            "withdraw": "Swap withdrawn."
+        }
     }
 }
