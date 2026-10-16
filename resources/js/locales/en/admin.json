@@ -25,7 +25,12 @@
         "none": "None",
         "yes": "Yes",
         "no": "No",
-        "saving": "Saving…"
+        "saving": "Saving…",
+        "retry": "Try again",
+        "loadFailed": "Something went wrong loading this.",
+        "selectAll": "Select all rows",
+        "selectRow": "Select row",
+        "noResults": "No results."
     },
     "titles": {
         "dashboard": "Dashboard",

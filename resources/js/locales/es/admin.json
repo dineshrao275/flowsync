@@ -25,7 +25,12 @@
         "none": "Ninguno",
         "yes": "Sí",
         "no": "No",
-        "saving": "Guardando…"
+        "saving": "Guardando…",
+        "retry": "Intentar de nuevo",
+        "loadFailed": "Algo salió mal al cargar esto.",
+        "selectAll": "Seleccionar todas las filas",
+        "selectRow": "Seleccionar fila",
+        "noResults": "Sin resultados."
     },
     "titles": {
         "dashboard": "Panel",

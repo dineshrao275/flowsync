@@ -53,6 +53,7 @@
     --color-fg-subtle: var(--fg-subtle);
     --color-line: var(--line);
     --color-line-strong: var(--line-strong);
+    --color-line-input: var(--line-input);
     --color-success: var(--success);
     --color-success-soft: var(--success-soft);
     --color-success-line: var(--success-line);
@@ -97,6 +98,8 @@
     --fg-subtle: #64748b;
     --line: #e2e8f0;
     --line-strong: #cbd5e1;
+    /* Form-control boundary: >= 3:1 on white (WCAG 1.4.11). */
+    --line-input: #8392a5;
     --success: #047857;
     --success-soft: #ecfdf5;
     --success-line: #a7f3d0;
@@ -134,6 +137,7 @@
     --fg-subtle: #a7afbe;
     --line: #28303f;
     --line-strong: #364052;
+    --line-input: #6b7689;
     --success: #6ee7b7;
     --success-soft: #11332b;
     --success-line: #175339;

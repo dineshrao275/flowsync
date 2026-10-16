@@ -30,7 +30,7 @@ const styles = {
     },
 };
 
-function ToastItem({ toast, onClose }) {
+function ToastItem({ toast, onClose, onPause, onResume }) {
     const { t } = useTranslation();
     const config = styles[toast.type] || styles.info;
 
@@ -39,9 +39,15 @@ function ToastItem({ toast, onClose }) {
             className={`pointer-events-auto relative flex w-full items-start gap-3 rounded-lg border border-l-4 ${config.border} ${config.soft} px-4 py-3 shadow-popover ${
                 toast.leaving ? 'animate-toast-out' : 'animate-toast-in'
             }`}
-            role="status"
+            // Errors interrupt (alert); everything else is polite (status).
+            role={toast.type === 'error' ? 'alert' : 'status'}
+            onMouseEnter={onPause}
+            onMouseLeave={onResume}
+            onFocus={onPause}
+            onBlur={onResume}
         >
             <svg
+                aria-hidden="true"
                 className="mt-0.5 h-5 w-5 shrink-0"
                 viewBox="0 0 24 24"
                 fill="none"
@@ -61,7 +67,7 @@ function ToastItem({ toast, onClose }) {
                 className="-mr-1 -mt-0.5 shrink-0 rounded-md p-1 text-gray-400 transition-colors hover:bg-black/5 hover:text-gray-600"
                 aria-label={t('shell.dismiss')}
             >
-                <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+                <svg aria-hidden="true" className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
                     <path d="M6 6l12 12M18 6L6 18" />
                 </svg>
             </button>
@@ -81,17 +87,31 @@ export function ToastProvider({ children }) {
         }, 300);
     }, []);
 
+    // One dismiss timer per toast so hovering/focusing it can pause the clock
+    // (WCAG 2.2.1: time-limited content must be extendable).
+    const timers = useRef({});
+
+    const schedule = useCallback(
+        (id, ms) => {
+            window.clearTimeout(timers.current[id]);
+            timers.current[id] = window.setTimeout(() => dismiss(id), ms);
+        },
+        [dismiss],
+    );
+
+    const pause = useCallback((id) => window.clearTimeout(timers.current[id]), []);
+
     const push = useCallback(
         (type, message) => {
             counter.current += 1;
             const id = counter.current;
 
             setToasts((current) => [...current.slice(-3), { id, type, message }]);
-            window.setTimeout(() => dismiss(id), 4200);
+            schedule(id, type === 'error' ? 7000 : 4200);
 
             return id;
         },
-        [dismiss],
+        [schedule],
     );
 
     const success = useCallback((message) => push('success', message), [push]);
@@ -110,7 +130,13 @@ export function ToastProvider({ children }) {
                 aria-live="polite"
             >
                 {toasts.map((toast) => (
-                    <ToastItem key={toast.id} toast={toast} onClose={() => dismiss(toast.id)} />
+                    <ToastItem
+                        key={toast.id}
+                        toast={toast}
+                        onClose={() => dismiss(toast.id)}
+                        onPause={() => pause(toast.id)}
+                        onResume={() => schedule(toast.id, 2000)}
+                    />
                 ))}
             </div>
         </ToastContext.Provider>
