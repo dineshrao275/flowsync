@@ -215,7 +215,7 @@ export default function ProjectDetail() {
         if (!project || (tab !== 'tasks' && tab !== 'automation')) return;
         loadTasks();
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [projectId, tab, view, swimlane, filters, page]);
+    }, [projectId, Boolean(project), tab, view, swimlane, filters, page]);
 
     // A filter change or a deletion can strand the list past its last page —
     // fall back instead of showing an empty table.
