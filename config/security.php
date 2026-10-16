@@ -16,7 +16,8 @@ return [
 
     'csp' => [
         'mode' => env('SECURITY_CSP_MODE', 'report_only'),
-        'report_uri' => env('SECURITY_CSP_REPORT_URI'),
+        // Defaults to our own collector (POST /api/csp-report -> `csp.violation` log lines).
+        'report_uri' => env('SECURITY_CSP_REPORT_URI', '/api/csp-report'),
         // Extra origins per directive, merged onto the built-in set (comma lists in env).
         'extra' => [
             'script-src' => array_filter(explode(',', (string) env('SECURITY_CSP_SCRIPT_SRC', ''))),

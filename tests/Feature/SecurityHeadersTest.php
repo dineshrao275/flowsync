@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use Illuminate\Support\Facades\Log;
 use Tests\TestCase;
 
 /** P8.5 - baseline headers and the report-only/enforce CSP toggle. */
@@ -60,5 +61,35 @@ class SecurityHeadersTest extends TestCase
     {
         $this->assertFalse($this->getJson('/api/health')->headers->has('Strict-Transport-Security'));
         $this->assertTrue($this->getJson('https://localhost/api/health')->headers->has('Strict-Transport-Security'));
+    }
+
+    public function test_csp_reports_to_the_built_in_collector_by_default(): void
+    {
+        $header = $this->getJson('/api/health')->headers->get('Content-Security-Policy-Report-Only');
+
+        $this->assertStringContainsString('report-uri /api/csp-report', (string) $header);
+    }
+
+    public function test_the_collector_logs_a_trimmed_violation_and_never_fails(): void
+    {
+        Log::spy();
+
+        $this->call('POST', '/api/csp-report', [], [], [], ['CONTENT_TYPE' => 'application/csp-report'], json_encode([
+            'csp-report' => [
+                'violated-directive' => 'script-src',
+                'blocked-uri' => str_repeat('x', 1000),
+                'evil' => 'ignored',
+            ],
+        ]))->assertNoContent();
+
+        Log::shouldHaveReceived('warning')
+            ->withArgs(fn ($message, $context) => $message === 'csp.violation'
+                && $context['violated_directive'] === 'script-src'
+                && strlen($context['blocked_uri']) === 300
+                && ! array_key_exists('evil', $context))
+            ->once();
+
+        // Garbage is accepted silently (browsers do not retry, and it must not 500).
+        $this->call('POST', '/api/csp-report', [], [], [], ['CONTENT_TYPE' => 'application/csp-report'], 'not json')->assertNoContent();
     }
 }
