@@ -6,6 +6,7 @@ use App\Models\Project;
 use App\Models\Task;
 use App\Models\TaskStatus;
 use App\Models\User;
+use App\Services\CustomFields\CustomFieldService;
 use App\Support\Like;
 use App\Support\TaskScope;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
@@ -213,6 +214,10 @@ class TaskReader
 
         if (! empty($filters['q'])) {
             Like::any($query, ['tasks.title', 'tasks.key', 'tasks.description'], $filters['q']);
+        }
+
+        if (! empty($filters['cf']) && is_array($filters['cf']) && app(CustomFieldService::class)->enabled()) {
+            app(CustomFieldService::class)->applyFilters($query, 'task', $filters['cf'], 'tasks.id');
         }
 
         if (! empty($filters['due_from'])) {

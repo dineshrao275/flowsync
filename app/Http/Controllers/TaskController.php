@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Events\TaskSynced;
+use App\Http\Controllers\Concerns\HandlesCustomFields;
 use App\Models\IssueType;
 use App\Models\Priority;
 use App\Models\Project;
@@ -17,6 +18,8 @@ use Illuminate\Http\Request;
 
 class TaskController extends Controller
 {
+    use HandlesCustomFields;
+
     public function __construct(
         private readonly TaskService $service,
         private readonly TaskChangeLogger $changes,
@@ -46,6 +49,7 @@ class TaskController extends Controller
             'component_id' => ['nullable', 'integer'],
             'sprint' => ['nullable', 'regex:/^(active|none|\d+)$/'],
             'swimlane' => ['nullable', 'in:none,assignee'],
+            'cf' => ['nullable', 'array', 'max:20'],
             'q' => ['nullable', 'string', 'max:255'],
             'due_from' => ['nullable', 'date'],
             'due_to' => ['nullable', 'date'],
@@ -69,7 +73,11 @@ class TaskController extends Controller
         $tasks = $this->service->list($project, $filters, $user);
 
         return response()->json([
-            'tasks' => collect($tasks->items())->map(fn (Task $task) => $this->service->present($task)),
+            'tasks' => $this->withCustomFields(
+                collect($tasks->items())->map(fn (Task $task) => $this->service->present($task))->all(),
+                'task',
+                false,
+            ),
             'filters' => $this->filtersPayload($project),
             'my_role' => $project->memberRole($user)?->slug,
             'pagination' => [
@@ -105,13 +113,16 @@ class TaskController extends Controller
             'estimate_minutes' => ['nullable', 'integer', 'min:0'],
         ]);
 
+        $custom = $this->validatedCustomFields($request, 'task', partial: false);
+
         $task = $this->service->create($project, $data, $request->user());
+        $this->storeCustomFields('task', $task->id, $custom);
 
         $this->changes->created($task, $request->user(), $request->ip());
 
         return response()->json([
             'message' => __('Task created.'),
-            'task' => $this->service->present($this->service->show($task)),
+            'task' => $this->presentOne($task),
         ], 201);
     }
 
@@ -120,7 +131,7 @@ class TaskController extends Controller
         $this->authorize('view', $task);
 
         return response()->json([
-            'task' => $this->service->present($this->service->show($task)),
+            'task' => $this->presentOne($task),
         ]);
     }
 
@@ -138,7 +149,7 @@ class TaskController extends Controller
         $this->authorize('view', $task);
 
         return response()->json([
-            'task' => $this->service->present($this->service->show($task)),
+            'task' => $this->presentOne($task),
         ]);
     }
 
@@ -170,16 +181,19 @@ class TaskController extends Controller
             $this->authorize('assign', $task);
         }
 
+        $custom = $this->validatedCustomFields($request, 'task', partial: true);
+
         $oldAssigneeId = $task->assignee_id;
         $oldStatusId = $task->status_id;
         $oldStatus = $task->status;
         $updated = $this->service->update($task, $data);
+        $this->storeCustomFields('task', $updated->id, $custom);
 
         $this->changes->updated($updated, $data, $oldAssigneeId, $oldStatusId, $oldStatus, $request->user(), $request->ip());
 
         return response()->json([
             'message' => __('Task updated.'),
-            'task' => $this->service->present($this->service->show($updated)),
+            'task' => $this->presentOne($updated),
         ]);
     }
 
@@ -246,5 +260,11 @@ class TaskController extends Controller
                     'name' => $c->name,
                 ]),
         ];
+    }
+
+    /** @return array<string, mixed> one task with its custom-field values (when the plan has them) */
+    private function presentOne(Task $task): array
+    {
+        return $this->withCustomFields([$this->service->present($this->service->show($task))], 'task', false)[0];
     }
 }

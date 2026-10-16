@@ -175,4 +175,25 @@ class CustomFieldsTest extends TestCase
         $this->postJson('/api/hrms/employees', ['name' => 'No Module', 'custom_fields' => ['blood_group' => 'o_neg']])
             ->assertCreated()->assertJsonMissingPath('employee.custom_fields');
     }
+
+    public function test_tasks_and_projects_carry_custom_fields_and_tasks_filter_on_them(): void
+    {
+        $this->setAcmeModules(['hrms.core', 'custom_fields', 'time_tracking']);
+        $this->define(['entity' => 'task', 'label' => 'Customer', 'type' => 'text', 'options' => null]);
+        $this->define(['entity' => 'project', 'label' => 'Budget', 'type' => 'number', 'options' => null]);
+
+        $workspace = $this->postJson('/api/workspaces', ['name' => 'CF WS'])->assertCreated()->json('workspace.id');
+        $project = $this->postJson("/api/workspaces/{$workspace}/projects", ['name' => 'CF Project', 'custom_fields' => ['budget' => 5000]])
+            ->assertCreated()->assertJsonPath('project.custom_fields.budget', 5000)->json('project.id');
+
+        $this->postJson("/api/projects/{$project}/tasks", ['title' => 'Acme job', 'custom_fields' => ['customer' => 'Acme Corp']])
+            ->assertCreated()->assertJsonPath('task.custom_fields.customer', 'Acme Corp');
+        $this->postJson("/api/projects/{$project}/tasks", ['title' => 'Other job', 'custom_fields' => ['customer' => 'Globex']])->assertCreated();
+
+        $titles = collect($this->getJson("/api/projects/{$project}/tasks?view=list&cf[customer]=acme")->assertOk()->json('tasks'))->pluck('title');
+        $this->assertSame(['Acme job'], $titles->all());
+
+        $this->postJson("/api/projects/{$project}/tasks", ['title' => 'Bad', 'custom_fields' => ['nope' => 1]])
+            ->assertUnprocessable()->assertJsonValidationErrors('custom_fields.nope');
+    }
 }
