@@ -37,6 +37,7 @@ use App\Http\Controllers\RegisterController;
 use App\Http\Controllers\ReportsController;
 use App\Http\Controllers\ResetPasswordController;
 use App\Http\Controllers\RoleController;
+use App\Http\Controllers\RoleTemplateController;
 use App\Http\Controllers\SearchController;
 use App\Http\Controllers\SupportTicketController;
 use App\Http\Controllers\TenantController;
@@ -185,6 +186,8 @@ Route::prefix('api')->group(function () {
         Route::get('search/global', GlobalSearchController::class)->middleware(['permission:workspaces.view', 'ensure_product:tms', 'ensure_module:global_search']);
 
         Route::get('roles', [RoleController::class, 'index'])->middleware('permission:roles.view');
+        Route::get('roles/templates', [RoleTemplateController::class, 'index'])->middleware('permission:roles.view');
+        Route::post('roles/templates/{key}', [RoleTemplateController::class, 'apply'])->middleware('permission:roles.manage');
         Route::post('roles', [RoleController::class, 'store'])->middleware('permission:roles.manage');
         Route::put('roles/{role}', [RoleController::class, 'update'])->middleware('permission:roles.manage');
         Route::post('roles/{role}/clone', [RoleController::class, 'clone'])->middleware('permission:roles.manage');

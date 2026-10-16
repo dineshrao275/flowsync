@@ -475,7 +475,8 @@
         "copySuffix": " (copy)",
         "cannotDelete": "Move its members to another role first",
         "permissionsSummary": "{{count}} of {{total}} permissions",
-        "allPermissions": "All permissions"
+        "allPermissions": "All permissions",
+        "fromTemplate": "Add from a template…"
     },
     "settings": {
         "pageTitle": "Settings",

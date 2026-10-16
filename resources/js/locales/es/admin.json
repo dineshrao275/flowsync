@@ -475,7 +475,8 @@
         "copySuffix": " (copia)",
         "cannotDelete": "Antes, traslada a sus miembros a otro rol",
         "permissionsSummary": "{{count}} de {{total}} permisos",
-        "allPermissions": "Todos los permisos"
+        "allPermissions": "Todos los permisos",
+        "fromTemplate": "Añadir desde una plantilla…"
     },
     "settings": {
         "pageTitle": "Ajustes",
