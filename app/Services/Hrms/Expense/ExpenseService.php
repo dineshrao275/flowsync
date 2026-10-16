@@ -7,6 +7,7 @@ use App\Models\Hrms\Document\EmployeeDocument;
 use App\Models\Hrms\Employee\Employee;
 use App\Models\Hrms\Expense\ExpenseCategory;
 use App\Models\Hrms\Expense\ExpenseClaim;
+use App\Models\Hrms\Expense\ExpenseClaimItem;
 use App\Models\Hrms\Payroll\PayrollRun;
 use App\Models\Hrms\Payroll\PayslipAdjustment;
 use App\Models\User;
@@ -352,6 +353,9 @@ class ExpenseService
                 throw ValidationException::withMessages(["items.{$index}.receipt_document_id" => __('Lines over :threshold need a receipt.', ['threshold' => $threshold])]);
             }
 
+            $spentAt = isset($item['spent_at']) ? Carbon::parse((string) $item['spent_at']) : now();
+            $this->assertWithinLimits($employee, $category, $amount, $spentAt, $lines, $index);
+
             $lines[] = [
                 'category_id' => $category?->id,
                 'description' => (string) ($item['description'] ?? ''),
@@ -365,6 +369,46 @@ class ExpenseService
         }
 
         return $lines;
+    }
+
+    /**
+     * Category ceilings: one line may not exceed `max_per_line`, and an employee's lines in the category for
+     * the month (counting claims already filed and the lines of this very request) may not exceed `monthly_limit`.
+     *
+     * @param  list<array<string, mixed>>  $earlier  lines of this request validated so far
+     */
+    private function assertWithinLimits(Employee $employee, ?ExpenseCategory $category, Money $amount, Carbon $spentAt, array $earlier, int $index): void
+    {
+        if ($category === null) {
+            return;
+        }
+
+        if ($category->max_per_line !== null && $amount->minor > Money::fromDecimal((string) $category->max_per_line)->minor) {
+            throw ValidationException::withMessages(["items.{$index}.amount" => __('This category allows at most :limit per line.', ['limit' => $category->max_per_line])]);
+        }
+
+        if ($category->monthly_limit === null) {
+            return;
+        }
+
+        $month = [$spentAt->copy()->startOfMonth()->toDateString(), $spentAt->copy()->endOfMonth()->toDateString()];
+        $used = Money::fromDecimal((string) ExpenseClaimItem::query()
+            ->where('category_id', $category->id)
+            ->whereBetween('spent_at', $month)
+            ->whereHas('claim', fn ($q) => $q->where('employee_id', $employee->id)
+                ->whereIn('status', [ExpenseClaimStatus::Submitted, ExpenseClaimStatus::Pending, ExpenseClaimStatus::Approved, ExpenseClaimStatus::Paid]))
+            ->sum('amount') ?: '0');
+
+        $minor = $used->minor + $amount->minor;
+        foreach ($earlier as $line) {
+            if ((int) $line['category_id'] === $category->id && $line['spent_at'] !== null && $line['spent_at'] >= $month[0] && $line['spent_at'] <= $month[1]) {
+                $minor += Money::fromDecimal((string) $line['amount'])->minor;
+            }
+        }
+
+        if ($minor > Money::fromDecimal((string) $category->monthly_limit)->minor) {
+            throw ValidationException::withMessages(["items.{$index}.amount" => __('This would take you over the :limit monthly limit for this category.', ['limit' => $category->monthly_limit])]);
+        }
     }
 
     private function sum(array $lines): string

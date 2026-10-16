@@ -2127,7 +2127,11 @@
         "approvedAmount": "Approved amount",
         "reasonForCut": "Reason (required for a cut)",
         "reason": "Reason",
-        "recordDecision": "Record decision"
+        "recordDecision": "Record decision",
+        "maxPerLine": "Max per line",
+        "monthlyLimit": "Monthly limit per person",
+        "maxPerLineShort": "max {{amount}}/line",
+        "monthlyShort": "{{amount}}/month"
     },
     "myExpenses": {
         "pageTitle": "My expenses",

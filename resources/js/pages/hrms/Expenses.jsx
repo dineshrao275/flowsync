@@ -53,7 +53,7 @@ export default function Expenses() {
     const [reason, setReason] = useState('');
     const [decideErrors, setDecideErrors] = useState({});
 
-    const [categoryForm, setCategoryForm] = useState({ name: '', requires_receipt_above: '' });
+    const [categoryForm, setCategoryForm] = useState({ name: '', requires_receipt_above: '', max_per_line: '', monthly_limit: '' });
     const [categoryErrors, setCategoryErrors] = useState({});
 
     useEffect(() => {
@@ -136,9 +136,11 @@ export default function Expenses() {
             await api.post('/hrms/expenses/categories', {
                 name: categoryForm.name,
                 requires_receipt_above: categoryForm.requires_receipt_above === '' ? null : categoryForm.requires_receipt_above,
+                max_per_line: categoryForm.max_per_line === '' ? null : categoryForm.max_per_line,
+                monthly_limit: categoryForm.monthly_limit === '' ? null : categoryForm.monthly_limit,
             });
             toast.success(t('hrms.expenses.categoryCreated'));
-            setCategoryForm({ name: '', requires_receipt_above: '' });
+            setCategoryForm({ name: '', requires_receipt_above: '', max_per_line: '', monthly_limit: '' });
             load();
         } catch (err) {
             setCategoryErrors(fieldErrors(err));
@@ -222,7 +224,7 @@ export default function Expenses() {
                                 <span>
                                     {category.name}
                                     <span className="ml-2 text-xs text-gray-400">
-                                        {category.is_system ? t('hrms.expenses.starter') : ''}{category.requires_receipt_above === null ? t('hrms.expenses.receiptOptional') : t('hrms.expenses.receiptOver', { amount: category.requires_receipt_above })}
+                                        {category.is_system ? t('hrms.expenses.starter') : ''}{category.requires_receipt_above === null ? t('hrms.expenses.receiptOptional') : t('hrms.expenses.receiptOver', { amount: category.requires_receipt_above })}{category.max_per_line ? ` · ${t('hrms.expenses.maxPerLineShort', { amount: category.max_per_line })}` : ''}{category.monthly_limit ? ` · ${t('hrms.expenses.monthlyShort', { amount: category.monthly_limit })}` : ''}
                                     </span>
                                 </span>
                                 <Button size="sm" variant="danger" onClick={() => deleteCategory(category)}>{t('hrms.common.delete')}</Button>
@@ -232,6 +234,8 @@ export default function Expenses() {
                     <form onSubmit={saveCategory} className="grid gap-3 sm:grid-cols-3">
                         <Input label={t('hrms.expenses.name')} value={categoryForm.name} error={categoryErrors.name} onChange={(e) => setCategoryForm({ ...categoryForm, name: e.target.value })} required />
                         <Input label={t('hrms.expenses.receiptOverLabel')} value={categoryForm.requires_receipt_above} error={categoryErrors.requires_receipt_above} onChange={(e) => setCategoryForm({ ...categoryForm, requires_receipt_above: e.target.value })} />
+                        <Input label={t('hrms.expenses.maxPerLine')} value={categoryForm.max_per_line} error={categoryErrors.max_per_line} onChange={(e) => setCategoryForm({ ...categoryForm, max_per_line: e.target.value })} />
+                        <Input label={t('hrms.expenses.monthlyLimit')} value={categoryForm.monthly_limit} error={categoryErrors.monthly_limit} onChange={(e) => setCategoryForm({ ...categoryForm, monthly_limit: e.target.value })} />
                         <div className="flex items-end"><Button type="submit" variant="secondary">{t('hrms.expenses.addCategory')}</Button></div>
                     </form>
                 </Card>

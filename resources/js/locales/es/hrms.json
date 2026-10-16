@@ -2127,7 +2127,11 @@
         "approvedAmount": "Importe aprobado",
         "reasonForCut": "Motivo (obligatorio si se reduce)",
         "reason": "Motivo",
-        "recordDecision": "Registrar resolución"
+        "recordDecision": "Registrar resolución",
+        "maxPerLine": "Máximo por línea",
+        "monthlyLimit": "Límite mensual por persona",
+        "maxPerLineShort": "máx. {{amount}}/línea",
+        "monthlyShort": "{{amount}}/mes"
     },
     "myExpenses": {
         "pageTitle": "Mis gastos",

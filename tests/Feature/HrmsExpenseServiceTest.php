@@ -59,6 +59,32 @@ class HrmsExpenseServiceTest extends TestCase
         $this->assertSame('draft', $claim->status->value);
     }
 
+    public function test_category_limits_cap_a_line_and_the_month(): void
+    {
+        $employee = $this->makeEmployee();
+        $cat = ExpenseCategory::query()->where('slug', 'travel')->firstOrFail();
+        $cat->update(['requires_receipt_above' => null, 'max_per_line' => '300', 'monthly_limit' => '500']);
+        $service = app(ExpenseService::class);
+        $line = fn (string $amount) => ['category_id' => $cat->id, 'description' => 'Cab.', 'amount' => $amount, 'spent_at' => now()->toDateString()];
+
+        try {
+            $service->create($employee, $this->claimData(), [$line('301')]);
+            $this->fail('A line over the per-line cap filed.');
+        } catch (ValidationException $e) {
+            $this->assertArrayHasKey('items.0.amount', $e->errors());
+        }
+
+        // Two lines in one request that together pass the month cap are refused on the second.
+        try {
+            $service->create($employee, $this->claimData(), [$line('300'), $line('250')]);
+            $this->fail('The monthly limit was not enforced across lines.');
+        } catch (ValidationException $e) {
+            $this->assertArrayHasKey('items.1.amount', $e->errors());
+        }
+
+        $this->assertSame('500.00', (string) $service->create($employee, $this->claimData(), [$line('250'), $line('250')])->total_amount);
+    }
+
     public function test_submission_locks_and_routes(): void
     {
         [$manager, $employee] = $this->reportingLine();

@@ -840,5 +840,7 @@
     "SLA saved.": "SLA guardado.",
     "SLA removed.": "SLA eliminado.",
     "This project does not use the :type issue type.": "Este proyecto no usa el tipo de incidencia :type.",
-    "Issue types saved.": "Tipos de incidencia guardados."
+    "Issue types saved.": "Tipos de incidencia guardados.",
+    "This category allows at most :limit per line.": "Esta categoría permite como máximo :limit por línea.",
+    "This would take you over the :limit monthly limit for this category.": "Esto superaría el límite mensual de :limit para esta categoría."
 }

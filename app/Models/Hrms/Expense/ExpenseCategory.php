@@ -23,6 +23,8 @@ class ExpenseCategory extends Model
         'slug',
         'description',
         'requires_receipt_above',
+        'max_per_line',
+        'monthly_limit',
         'is_reimbursable',
         'payroll_component_id',
         'is_active',
@@ -34,6 +36,8 @@ class ExpenseCategory extends Model
     {
         return [
             'requires_receipt_above' => 'decimal:2',
+            'max_per_line' => 'decimal:2',
+            'monthly_limit' => 'decimal:2',
             'is_reimbursable' => 'boolean',
             'payroll_component_id' => 'integer',
             'is_active' => 'boolean',
