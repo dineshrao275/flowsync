@@ -452,9 +452,13 @@ Hierarchy: **Tenant → Workspace → Project → Task** (subtask `tasks.parent_
 ## Internationalization (i18n)
 - **English is the source of truth.** Catalogs live under `lang/en/` and `resources/js/locales/en/`;
   other locales are added per phase and only flip `complete => true` in `config/locales.php` after a
-  native review. Phases 0-4 shipped: backend messages (`lang/en/*.php`), locale resolution +
+  native review. Phases 0-5 shipped: backend messages (`lang/en/*.php`), locale resolution +
   `PUT /api/language`, the SPA dictionaries + switcher, SPA nav labels (`utils/nav.js`/`utils/hrmsNav.js`
-  are key lookups, never literals), and the public marketing site chrome (`lang/en/site.php`).
+  are key lookups, never literals), the public marketing site chrome (`lang/en/site.php`), and the
+  remaining SPA chrome — the product-switcher title, the date-picker placeholders (`ui.selectDate`/
+  `ui.selectDateTime`), the generic API error fallback (`errors.generic`, read via `i18n.t` in
+  `services/api.js`), and the asset condition vocabulary (`utils/hrmsAssets.js` `ASSET_CONDITIONS` +
+  `assetConditionLabel()`, labels in `hrms.assets.conditions.*`) so no raw column value renders.
 - **Resolution:** `?locale=` → `user_settings.locale` → session `locale` → `tenants.locale` →
   `Accept-Language` → `config/locales.php` default. `SetRequestLocale` (alias **`locale`**) applies it
   and sets `Content-Language`; it guards `$request->user()`/`hasSession()`, so public routes fall
