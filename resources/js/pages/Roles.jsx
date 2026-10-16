@@ -8,7 +8,7 @@ import Spinner from '../components/ui/Spinner';
 import Alert from '../components/ui/Alert';
 import Button from '../components/ui/Button';
 import Input from '../components/ui/Input';
-import { Table, Th, Td, TableEmpty } from '../components/ui/Table';
+import Menu from '../components/ui/Menu';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
 import { useConfirm } from '../components/ui/ConfirmDialog';
@@ -114,6 +114,148 @@ function PermissionGrid({ permissions, isChecked, onToggle, disabled = false, de
                 );
             })}
         </div>
+    );
+}
+
+const CHIP_LIMIT = 6;
+
+/**
+ * One role as a card instead of a table row: the old row crammed every granted
+ * permission into a single comma-separated cell (80+ names for the admin role).
+ * Here the grants are summarised (count + bar), grouped by domain into chips,
+ * and the full per-domain breakdown is one click away. Editing opens the
+ * grouped, searchable PermissionGrid inside the same card at full width.
+ */
+function RoleCard({ role, permissions, manageable, editing, saving, onRename, onToggle, onEdit, onCancel, onSave, onDuplicate, onDelete }) {
+    const { t } = useTranslation();
+    const [expanded, setExpanded] = useState(false);
+    const selectedIds = new Set((role.permissions ?? []).map((p) => p.id));
+    const granted = permissions.filter((permission) => selectedIds.has(permission.id));
+    const groups = groupPermissionsByDomain(granted);
+    const total = permissions.length;
+    const all = total > 0 && granted.length >= total;
+    const visibleChips = expanded ? groups : groups.slice(0, CHIP_LIMIT);
+    const hidden = groups.length - CHIP_LIMIT;
+    const deleteBlocked = role.users_count > 0;
+
+    const menuItems = [
+        { key: 'duplicate', label: t('admin.roles.duplicate'), onSelect: onDuplicate },
+        ...(!role.is_system
+            ? [{ separator: true }, { key: 'delete', label: deleteBlocked ? `${t('admin.common.delete')} — ${t('admin.roles.cannotDelete')}` : t('admin.common.delete'), danger: true, disabled: deleteBlocked, onSelect: onDelete }]
+            : []),
+    ];
+
+    return (
+        <Card className={editing ? 'xl:col-span-2' : ''}>
+            <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                    {editing ? (
+                        <input
+                            value={role.name}
+                            onChange={(e) => onRename(e.target.value)}
+                            aria-label={t('admin.roles.roleName')}
+                            className="w-full max-w-xs rounded-lg border border-line-input px-2.5 py-1.5 text-base font-semibold text-fg"
+                        />
+                    ) : (
+                        <h3 className="truncate text-base font-semibold capitalize text-fg">{role.name}</h3>
+                    )}
+                    <div className="mt-1.5 flex flex-wrap items-center gap-2">
+                        <Badge tone="neutral">{role.slug}</Badge>
+                        {role.is_system && <Badge tone="info">{t('admin.roles.builtIn')}</Badge>}
+                        <span className="text-caption text-fg-muted">{t(role.users_count === 1 ? 'admin.roles.membersCountOne' : 'admin.roles.membersCount', { count: role.users_count })}</span>
+                    </div>
+                </div>
+                {manageable && !editing && (
+                    <div className="flex shrink-0 items-center gap-2">
+                        {!role.is_system && (
+                            <Button variant="secondary" size="sm" onClick={onEdit}>{t('admin.roles.editPermissions')}</Button>
+                        )}
+                        <Menu
+                            label={t('admin.roles.actionsLabel', { name: role.name })}
+                            items={menuItems}
+                            trigger={(props) => (
+                                <Button {...props} variant="ghost" size="sm" className="px-2" loading={saving}>
+                                    <span aria-hidden="true">⋯</span>
+                                </Button>
+                            )}
+                        />
+                    </div>
+                )}
+            </div>
+
+            {!editing && (
+                <div className="mt-4">
+                    <div className="flex items-center justify-between text-caption">
+                        <span className="font-medium text-fg">
+                            {all ? t('admin.roles.allPermissions') : t('admin.roles.permissionsSummary', { count: granted.length, total })}
+                        </span>
+                        {granted.length > 0 && !all && <span className="text-fg-subtle">{Math.round((granted.length / Math.max(total, 1)) * 100)}%</span>}
+                    </div>
+                    <div className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-surface-sunken" aria-hidden="true">
+                        <div className="h-full rounded-full bg-[var(--accent)]" style={{ width: `${(granted.length / Math.max(total, 1)) * 100}%` }} />
+                    </div>
+
+                    {granted.length === 0 ? (
+                        <p className="mt-3 text-sm text-fg-subtle">{t('admin.roles.noPermissions')}</p>
+                    ) : expanded ? (
+                        <dl className="mt-3 space-y-2.5">
+                            {groups.map(({ domain, items }) => (
+                                <div key={domain}>
+                                    <dt className="text-caption font-semibold uppercase tracking-wide text-fg-muted">
+                                        {prettyDomain(domain)} <span className="font-normal normal-case text-fg-subtle">({items.length})</span>
+                                    </dt>
+                                    <dd className="mt-1 flex flex-wrap gap-1.5">
+                                        {items.map((permission) => (
+                                            <span key={permission.id} title={permission.slug} className="rounded-md bg-surface-sunken px-2 py-0.5 text-caption text-fg ring-1 ring-inset ring-line">
+                                                {permission.name}
+                                            </span>
+                                        ))}
+                                    </dd>
+                                </div>
+                            ))}
+                        </dl>
+                    ) : (
+                        <ul className="mt-3 flex flex-wrap gap-1.5" aria-label={t('admin.roles.permissions')}>
+                            {visibleChips.map(({ domain, items }) => (
+                                <li key={domain} className="rounded-full bg-[var(--accent-soft)] px-2.5 py-0.5 text-caption font-medium text-[var(--accent-soft-text)]">
+                                    {prettyDomain(domain)} <span className="opacity-70">{items.length}</span>
+                                </li>
+                            ))}
+                            {hidden > 0 && (
+                                <li className="rounded-full bg-surface-sunken px-2.5 py-0.5 text-caption text-fg-muted">{t('admin.roles.moreChips', { count: hidden })}</li>
+                            )}
+                        </ul>
+                    )}
+
+                    {granted.length > 0 && (
+                        <button
+                            type="button"
+                            onClick={() => setExpanded((open) => !open)}
+                            aria-expanded={expanded}
+                            className="mt-3 text-caption font-medium text-[var(--accent-soft-text)] hover:underline"
+                        >
+                            {expanded ? t('admin.roles.hideAll') : t('admin.roles.showAll')}
+                        </button>
+                    )}
+                </div>
+            )}
+
+            {editing && (
+                <div className="mt-4">
+                    <PermissionGrid
+                        permissions={permissions}
+                        disabled={!manageable}
+                        dense
+                        isChecked={(permission) => selectedIds.has(permission.id)}
+                        onToggle={onToggle}
+                    />
+                    <div className="mt-4 flex justify-end gap-2 border-t border-line pt-4">
+                        <Button variant="secondary" size="sm" onClick={onCancel}>{t('admin.common.cancel')}</Button>
+                        <Button size="sm" loading={saving} onClick={onSave}>{t('admin.roles.saveRole')}</Button>
+                    </div>
+                </div>
+            )}
+        </Card>
     );
 }
 
@@ -319,130 +461,31 @@ export default function Roles() {
                 </Card>
             )}
 
-            <Table>
-                <thead>
-                    <tr>
-                        <Th>{t('admin.common.role')}</Th>
-                        <Th>{t('admin.roles.slug')}</Th>
-                        <Th>{t('admin.roles.permissions')}</Th>
-                        <Th align="right">{t('admin.roles.thMembers')}</Th>
-                        <Th align="right">{t('admin.common.actions')}</Th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {roles.length === 0 ? (
-                        <TableEmpty colSpan={5}>{t('admin.roles.empty')}</TableEmpty>
-                    ) : (
-                        roles.map((role, index) => {
-                            const selectedIds = role.permissions?.map((p) => p.id) || [];
-                            const editing = manageable && editingId === role.id;
-                            const granted = permissions
-                                .filter((permission) => selectedIds.includes(permission.id))
-                                .map((permission) => `${permission.name} (${permission.slug})`);
-
-                            return (
-                                <tr
-                                    key={role.id}
-                                    className="animate-fade-in align-top transition-colors duration-150 hover:bg-gray-50"
-                                    style={{ animationDelay: `${index * 30}ms` }}
-                                >
-                                    <Td>
-                                        <span className="block font-medium capitalize">
-                                            {editingId === role.id ? (
-                                                <input
-                                                    value={role.name}
-                                                    onChange={(e) =>
-                                                        setRoles((current) =>
-                                                            current.map((r) =>
-                                                                r.id === role.id ? { ...r, name: e.target.value } : r,
-                                                            ),
-                                                        )
-                                                    }
-                                                    className="rounded border border-gray-300 px-2 py-1 text-sm capitalize"
-                                                />
-                                            ) : (
-                                                role.name
-                                            )}
-                                        </span>
-                                    </Td>
-                                    <Td>
-                                        <Badge>{role.slug}</Badge>
-                                        {role.is_system && (
-                                            <span className="ml-2 text-xs text-gray-400">{t('admin.roles.builtIn')}</span>
-                                        )}
-                                    </Td>
-                                    <Td>
-                                        {editing ? (
-                                            <PermissionGrid
-                                                permissions={permissions}
-                                                disabled={!manageable}
-                                                dense
-                                                isChecked={(permission) => selectedIds.includes(permission.id)}
-                                                onToggle={(permission) => togglePermission(role.id, permission.id)}
-                                            />
-                                        ) : (
-                                            <span className="text-sm text-gray-500">
-                                                {granted.length ? granted.join(', ') : t('admin.roles.noPermissions')}
-                                            </span>
-                                        )}
-                                    </Td>
-                                    <Td align="right" className="tabular-nums">
-                                        {role.users_count}
-                                    </Td>
-                                    <Td align="right">
-                                        {manageable &&
-                                            (editingId === role.id ? (
-                                                <div className="flex justify-end gap-2">
-                                                    <Button
-                                                        variant="secondary"
-                                                        size="sm"
-                                                        onClick={() => setEditingId(null)}
-                                                    >
-                                                        {t('admin.common.cancel')}
-                                                    </Button>
-                                                    <Button
-                                                        size="sm"
-                                                        loading={savingId === role.id}
-                                                        onClick={() => save(role)}
-                                                    >
-                                                        {t('admin.roles.saveRole')}
-                                                    </Button>
-                                                </div>
-                                            ) : (
-                                                <div className="flex justify-end gap-2">
-                                                    {!role.is_system && (
-                                                        <Button
-                                                            variant="secondary"
-                                                            size="sm"
-                                                            onClick={() => setEditingId(role.id)}
-                                                        >
-                                                            {t('admin.roles.editPermissions')}
-                                                        </Button>
-                                                    )}
-                                                    <Button variant="secondary" size="sm" onClick={() => duplicate(role)}>
-                                                        {t('admin.roles.duplicate')}
-                                                    </Button>
-                                                    {!role.is_system && (
-                                                        <Button
-                                                            variant="secondary"
-                                                            size="sm"
-                                                            loading={savingId === role.id}
-                                                            disabled={role.users_count > 0}
-                                                            title={role.users_count > 0 ? t('admin.roles.cannotDelete') : undefined}
-                                                            onClick={() => remove(role)}
-                                                        >
-                                                            {t('admin.common.delete')}
-                                                        </Button>
-                                                    )}
-                                                </div>
-                                            ))}
-                                    </Td>
-                                </tr>
-                            );
-                        })
-                    )}
-                </tbody>
-            </Table>
+            {roles.length === 0 ? (
+                <Card>
+                    <p className="py-6 text-center text-sm text-fg-subtle">{t('admin.roles.empty')}</p>
+                </Card>
+            ) : (
+                <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
+                    {roles.map((role) => (
+                        <RoleCard
+                            key={role.id}
+                            role={role}
+                            permissions={permissions}
+                            manageable={manageable}
+                            editing={manageable && editingId === role.id}
+                            saving={savingId === role.id}
+                            onRename={(name) => setRoles((current) => current.map((r) => (r.id === role.id ? { ...r, name } : r)))}
+                            onToggle={(permission) => togglePermission(role.id, permission.id)}
+                            onEdit={() => setEditingId(role.id)}
+                            onCancel={() => { setEditingId(null); load(); }}
+                            onSave={() => save(role)}
+                            onDuplicate={() => duplicate(role)}
+                            onDelete={() => remove(role)}
+                        />
+                    ))}
+                </div>
+            )}
         </div>
     );
 }

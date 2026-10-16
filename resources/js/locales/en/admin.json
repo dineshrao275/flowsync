@@ -465,7 +465,15 @@
         "editPermissions": "Edit permissions",
         "duplicate": "Duplicate",
         "copySuffix": " (copy)",
-        "cannotDelete": "Move its members to another role first"
+        "cannotDelete": "Move its members to another role first",
+        "permissionsSummary": "{{count}} of {{total}} permissions",
+        "allPermissions": "All permissions",
+        "moreChips": "+{{count}} more",
+        "membersCount": "{{count}} members",
+        "membersCountOne": "{{count}} member",
+        "showAll": "Show all permissions",
+        "hideAll": "Show summary",
+        "actionsLabel": "Actions for {{name}}"
     },
     "settings": {
         "pageTitle": "Settings",

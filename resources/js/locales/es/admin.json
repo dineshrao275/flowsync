@@ -465,7 +465,15 @@
         "editPermissions": "Editar permisos",
         "duplicate": "Duplicar",
         "copySuffix": " (copia)",
-        "cannotDelete": "Antes, traslada a sus miembros a otro rol"
+        "cannotDelete": "Antes, traslada a sus miembros a otro rol",
+        "permissionsSummary": "{{count}} de {{total}} permisos",
+        "allPermissions": "Todos los permisos",
+        "moreChips": "+{{count}} más",
+        "membersCount": "{{count}} miembros",
+        "membersCountOne": "{{count}} miembro",
+        "showAll": "Mostrar todos los permisos",
+        "hideAll": "Mostrar resumen",
+        "actionsLabel": "Acciones de {{name}}"
     },
     "settings": {
         "pageTitle": "Ajustes",
