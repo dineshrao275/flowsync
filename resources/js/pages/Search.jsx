@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import api from '../services/api';
@@ -6,70 +6,65 @@ import Button from '../components/ui/Button';
 import Input from '../components/ui/Input';
 import Pagination from '../components/ui/Pagination';
 import Spinner from '../components/ui/Spinner';
-import Alert from '../components/ui/Alert';
 import { Table, Th, Td, TableEmpty } from '../components/ui/Table';
 import { useSetCrumbs } from '../context/BreadcrumbContext';
 import { fieldClass } from '../components/ui/fieldStyles';
 import usePageTitle from '../hooks/usePageTitle';
+import useUrlState from '../hooks/useUrlState';
+import { useResource } from '../hooks/useResource';
+import ErrorState from '../components/ui/ErrorState';
 import { projectUrl } from '../utils/deepLinks';
+
+const FILTER_KEYS = ['q', 'workspace_id', 'project_id', 'status_id', 'priority_id', 'assignee_id', 'label_id', 'due_from', 'due_to'];
+const URL_DEFAULTS = { ...Object.fromEntries(FILTER_KEYS.map((key) => [key, ''])), page: '1' };
+const EMPTY_OPTIONS = { statuses: [], priorities: [], assignees: [], projects: [], workspaces: [], labels: [] };
 
 export default function Search() {
     const { t } = useTranslation();
     usePageTitle(t('dashboard.search.pageTitle'));
     const setCrumbs = useSetCrumbs();
-    const [filters, setFilters] = useState({});
-    const [params, setParams] = useState({});
-    const [options, setOptions] = useState({
-        statuses: [],
-        priorities: [],
-        assignees: [],
-        projects: [],
-        workspaces: [],
-        labels: [],
-    });
-    const [data, setData] = useState(null);
-    const [loading, setLoading] = useState(true);
-    const [error, setError] = useState(null);
-    const [page, setPage] = useState(1);
+
+    // The applied filters + page live in the URL (shareable, refresh-safe,
+    // back/forward aware); `filters` is only the draft being typed.
+    const [url, updateUrl, resetUrl] = useUrlState(URL_DEFAULTS);
+    const applied = Object.fromEntries(FILTER_KEYS.filter((key) => url[key] !== '').map((key) => [key, url[key]]));
+    const page = Number(url.page) || 1;
+    const [filters, setFilters] = useState(applied);
+    const [options, setOptions] = useState(EMPTY_OPTIONS);
+
+    const { data, loading, error, reload } = useResource(
+        (signal) => api.get('/search/tasks', { params: { ...applied, page, per_page: 25 }, signal }).then(({ data: response }) => response),
+        [JSON.stringify(applied), page],
+    );
 
     useEffect(() => {
         setCrumbs([{ label: t('dashboard.search.pageTitle') }]);
     }, [setCrumbs, t]);
 
-    const load = useCallback((targetPage, queryParams) => {
-        setLoading(true);
-        setError(null);
-        api.get('/search/tasks', { params: { ...queryParams, page: targetPage, per_page: 25 } })
-            .then(({ data: response }) => {
-                setData(response);
-                if (response.filters) setOptions(response.filters);
-            })
-            .catch(() => setError(t('dashboard.search.loadFailed')))
-            .finally(() => setLoading(false));
-    }, [t]);
-
+    // Filter option lists come back with each response; keep the last set so the
+    // selects don't empty while the next page loads.
     useEffect(() => {
-        load(1, {});
+        if (data?.filters) setOptions(data.filters);
+    }, [data]);
+
+    // Back/forward (or a pasted link) changes the URL under the form.
+    useEffect(() => {
+        setFilters(applied);
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, []);
+    }, [JSON.stringify(applied)]);
 
     function submit(e) {
         e.preventDefault();
-        const clean = {};
-        Object.entries(filters).forEach(([key, value]) => {
-            if (value !== '' && value !== undefined && value !== null) clean[key] = value;
-        });
-        setParams(clean);
-        setPage(1);
-        load(1, clean);
+        const clean = Object.fromEntries(FILTER_KEYS.map((key) => [key, filters[key] ?? '']));
+        updateUrl(clean);
     }
 
     function reset() {
         setFilters({});
-        setParams({});
-        setPage(1);
-        load(1, {});
+        resetUrl();
     }
+
+    const params = applied;
 
     const tasks = data?.tasks ?? [];
     const pagination = data?.pagination ?? null;
@@ -83,7 +78,7 @@ export default function Search() {
                 </p>
             </div>
 
-            {error && <Alert>{error}</Alert>}
+            {error && data == null && <ErrorState title={t('dashboard.search.loadFailed')} onRetry={reload} />}
 
             <form onSubmit={submit} className="flex flex-wrap items-end gap-3">
                 <div className="min-w-56 flex-1">
@@ -195,7 +190,7 @@ export default function Search() {
                     </tr>
                 </thead>
                 <tbody>
-                    {loading ? (
+                    {loading && data == null ? (
                         <tr>
                             <Td colSpan={7} className="py-12 text-center">
                                 <Spinner />
@@ -272,10 +267,7 @@ export default function Search() {
                     page={page}
                     pages={pagination.last_page}
                     total={pagination.total}
-                    onChange={(p) => {
-                        setPage(p);
-                        load(p, params);
-                    }}
+                    onChange={(p) => updateUrl({ page: String(p) })}
                 />
             )}
         </div>

@@ -30,7 +30,12 @@
         "loadFailed": "Something went wrong loading this.",
         "selectAll": "Select all rows",
         "selectRow": "Select row",
-        "noResults": "No results."
+        "noResults": "No results.",
+        "unsavedTitle": "Discard unsaved changes?",
+        "unsavedMessage": "You have changes that haven't been saved. If you leave now they will be lost.",
+        "discard": "Discard changes",
+        "keepEditing": "Keep editing",
+        "unsavedBadge": "Unsaved changes"
     },
     "titles": {
         "dashboard": "Dashboard",

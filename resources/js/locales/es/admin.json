@@ -30,7 +30,12 @@
         "loadFailed": "Algo salió mal al cargar esto.",
         "selectAll": "Seleccionar todas las filas",
         "selectRow": "Seleccionar fila",
-        "noResults": "Sin resultados."
+        "noResults": "Sin resultados.",
+        "unsavedTitle": "¿Descartar los cambios sin guardar?",
+        "unsavedMessage": "Tienes cambios que no se han guardado. Si sales ahora se perderán.",
+        "discard": "Descartar cambios",
+        "keepEditing": "Seguir editando",
+        "unsavedBadge": "Cambios sin guardar"
     },
     "titles": {
         "dashboard": "Panel",

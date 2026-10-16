@@ -7,7 +7,7 @@ import Badge from '../components/ui/Badge';
 import Button from '../components/ui/Button';
 import Pagination from '../components/ui/Pagination';
 import Spinner from '../components/ui/Spinner';
-import Alert from '../components/ui/Alert';
+import ErrorState from '../components/ui/ErrorState';
 import { Table, Th, Td, TableEmpty } from '../components/ui/Table';
 import { useNotifications } from '../context/NotificationContext';
 import { useSetCrumbs } from '../context/BreadcrumbContext';
@@ -23,7 +23,7 @@ export default function Notifications() {
     const { markAllRead, markRead } = useNotifications();
     const setCrumbs = useSetCrumbs();
     const navigate = useNavigate();
-    const { data, error, page, setPage } = usePaginated((p, signal) =>
+    const { data, error, reload, page, setPage } = usePaginated((p, signal) =>
         api.get('/notifications', { params: { page: p, per_page: 20 }, signal }).then(({ data: response }) => response),
     );
 
@@ -50,7 +50,7 @@ export default function Notifications() {
                 )}
             </div>
 
-            {error && <Alert>{t('notifications.loadFailed')}</Alert>}
+            {error && data == null && <ErrorState title={t('notifications.loadFailed')} onRetry={reload} />}
 
             <Table>
                 <thead>
