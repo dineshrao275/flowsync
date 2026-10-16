@@ -10,6 +10,11 @@ import Button from '../components/ui/Button';
 import Input from '../components/ui/Input';
 import Tabs from '../components/ui/Tabs';
 import Pagination from '../components/ui/Pagination';
+import ColumnSettingsDrawer from '../components/tasks/ColumnSettingsDrawer';
+import ColumnEditModal from '../components/tasks/ColumnEditModal';
+import useBoardPreferences from '../hooks/useBoardPreferences';
+import Icon from '../components/ui/Icon';
+import { Columns } from '@phosphor-icons/react';
 import { useAuth } from '../context/AuthContext';
 import AutomationPanel from '../components/automation/AutomationPanel';
 import SprintsPanel from '../components/sprints/SprintsPanel';
@@ -77,6 +82,9 @@ export default function ProjectDetail() {
     const [settingsDates, setSettingsDates] = useState(null);
 
     const [view, setView] = useState('board');
+    const [showColumns, setShowColumns] = useState(false);
+    const [editingColumn, setEditingColumn] = useState(null);
+    const [boardPrefs, updateBoardPrefs] = useBoardPreferences(projectId, Boolean(project));
     const [swimlane, setSwimlane] = useState('none');
     const [filters, setFilters] = useState({});
     const [board, setBoard] = useState(null);
@@ -314,6 +322,45 @@ export default function ProjectDetail() {
             });
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [project, tab, view, board, listTasks, searchParams]);
+
+    // Shared column edits go through the Workflow-tab handlers (same endpoints,
+    // same server-side `manageWorkflow` gate), then re-sync the board.
+    async function saveColumn(status, fields) {
+        try {
+            await api.put(`/projects/${projectId}/statuses/${status.id}`, fields);
+            const { data } = await api.get(`/projects/${projectId}/statuses`);
+            setStatuses(data.statuses);
+            toast.success(t('tms.project.statusUpdated'));
+            loadTasks();
+            return true;
+        } catch (e) {
+            toast.error(fieldErrors(e).form || fieldErrors(e).name || t('tms.project.statusUpdateFailed'));
+            return false;
+        }
+    }
+
+    async function moveColumn(status, position) {
+        await saveColumn(status, { position });
+    }
+
+    async function removeColumn(status) {
+        await deleteStatus(status);
+        loadTasks();
+    }
+
+    async function createColumn(fields) {
+        try {
+            await api.post(`/projects/${projectId}/statuses`, fields);
+            const { data } = await api.get(`/projects/${projectId}/statuses`);
+            setStatuses(data.statuses);
+            toast.success(t('tms.project.statusCreated'));
+            loadTasks();
+            return true;
+        } catch (e) {
+            toast.error(fieldErrors(e).name || fieldErrors(e).form || t('tms.project.statusUpdateFailed'));
+            return false;
+        }
+    }
 
     function changeTab(next) {
         if (next === tab) return;
@@ -740,9 +787,20 @@ export default function ProjectDetail() {
                             )}
                             {loadingTasks && <Spinner className="h-5 w-5" />}
                         </div>
-                        {canCreateTask && (
-                            <Button onClick={() => setShowCreate(true)}>{t('tms.project.newTask')}</Button>
-                        )}
+                        <div className="flex items-center gap-2">
+                            {view === 'board' && (
+                                <Button type="button" variant="secondary" onClick={() => setShowColumns(true)}>
+                                    <Icon as={Columns} size="sm" className="mr-1.5" />
+                                    {t('tms.columns.button')}
+                                    {boardPrefs.hidden.length > 0 && (
+                                        <span className="ml-1.5 rounded-full bg-gray-200 px-1.5 text-xs font-semibold text-gray-700">{boardPrefs.hidden.length}</span>
+                                    )}
+                                </Button>
+                            )}
+                            {canCreateTask && (
+                                <Button onClick={() => setShowCreate(true)}>{t('tms.project.newTask')}</Button>
+                            )}
+                        </div>
                     </div>
 
                     <Card>
@@ -767,6 +825,8 @@ export default function ProjectDetail() {
                             onOpen={openTask}
                             onDragEnd={handleDragEnd}
                             onQuickAdd={quickAddTask}
+                            prefs={{ ...boardPrefs, save: updateBoardPrefs }}
+                            manage={isProjectManager && !archived ? { onEdit: setEditingColumn, onMove: moveColumn, onDelete: removeColumn, order: statuses.map((s) => s.id) } : null}
                         />
                     ) : view === 'list' ? (
                         <div className="space-y-3">
@@ -824,6 +884,22 @@ export default function ProjectDetail() {
                         deleteProject={deleteProject}
                     />
                 </Card>
+            )}
+
+            <ColumnSettingsDrawer
+                open={showColumns}
+                onClose={() => setShowColumns(false)}
+                statuses={statuses}
+                prefs={boardPrefs}
+                onPrefs={updateBoardPrefs}
+                canManage={isProjectManager && !archived}
+                onEdit={(status) => { setShowColumns(false); setEditingColumn(status); }}
+                onMove={moveColumn}
+                onDelete={removeColumn}
+                onAdd={createColumn}
+            />
+            {editingColumn && (
+                <ColumnEditModal status={editingColumn} onClose={() => setEditingColumn(null)} onSave={saveColumn} />
             )}
 
             {showCreate && (

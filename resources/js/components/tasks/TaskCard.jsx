@@ -27,7 +27,7 @@ export const CARD_CLASS =
     'group cursor-pointer rounded-lg border border-gray-200 bg-white px-3 py-2.5 shadow-sm transition hover:border-[var(--accent-ring)] hover:shadow-md active:z-10';
 
 /** The card's content, shared by the sortable card and the drag overlay. */
-export function TaskCardBody({ task }) {
+export function TaskCardBody({ task, compact = false }) {
     const { t } = useTranslation();
     const due = formatDue(task.due_date, t);
 
@@ -72,7 +72,7 @@ export function TaskCardBody({ task }) {
             <p className={`mt-1 text-sm font-medium leading-snug text-gray-900 ${task.completed_at ? 'line-through opacity-60' : ''}`}>
                 {task.title}
             </p>
-            {(task.version || task.components?.length > 0) && (
+            {!compact && (task.version || task.components?.length > 0) && (
                 <div className="mt-1.5 flex flex-wrap gap-1">
                     {task.version && (
                         <span className="rounded bg-purple-50 px-1.5 py-0.5 text-xs font-medium text-purple-700">
@@ -86,7 +86,7 @@ export function TaskCardBody({ task }) {
                     ))}
                 </div>
             )}
-            {task.labels?.length > 0 && (
+            {!compact && task.labels?.length > 0 && (
                 <div className="mt-2 flex flex-wrap gap-1">
                     {task.labels.map((label) => (
                         <span
@@ -128,7 +128,7 @@ export function TaskCardBody({ task }) {
     );
 }
 
-export default function TaskCard({ task, onClick, disabled }) {
+export default function TaskCard({ task, onClick, disabled, compact = false }) {
     const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
         id: task.id,
         disabled: Boolean(disabled),
@@ -145,9 +145,9 @@ export default function TaskCard({ task, onClick, disabled }) {
             {...attributes}
             {...listeners}
             onClick={onClick}
-            className={CARD_CLASS}
+            className={compact ? `${CARD_CLASS} !px-2.5 !py-1.5` : CARD_CLASS}
         >
-            <TaskCardBody task={task} />
+            <TaskCardBody task={task} compact={compact} />
         </div>
     );
 }
