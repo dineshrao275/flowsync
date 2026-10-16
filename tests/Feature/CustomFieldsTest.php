@@ -196,4 +196,26 @@ class CustomFieldsTest extends TestCase
         $this->postJson("/api/projects/{$project}/tasks", ['title' => 'Bad', 'custom_fields' => ['nope' => 1]])
             ->assertUnprocessable()->assertJsonValidationErrors('custom_fields.nope');
     }
+
+    public function test_assets_and_expense_claims_carry_custom_fields_too(): void
+    {
+        $this->setAcmeModules(['hrms.core', 'hrms.assets', 'hrms.expenses', 'custom_fields']);
+        $this->define(['entity' => 'asset', 'label' => 'Cost centre', 'type' => 'text', 'options' => null]);
+        $this->define(['entity' => 'expense', 'label' => 'Project code', 'type' => 'text', 'options' => null, 'required' => true]);
+
+        $category = $this->postJson('/api/hrms/assets/categories', ['name' => 'Screens'])->assertCreated()->json('category.id');
+        $this->postJson('/api/hrms/assets', ['name' => 'Monitor', 'category_id' => $category, 'custom_fields' => ['cost_centre' => 'CC-42']])
+            ->assertCreated()->assertJsonPath('asset.custom_fields.cost_centre', 'CC-42');
+
+        $employee = $this->makeEmployee('Claimant');
+        $claim = [
+            'employee_id' => $employee->id, 'claim_date' => '2026-08-10', 'period_year' => 2026, 'period_month' => 8,
+            'purpose' => 'Offsite.', 'items' => [['description' => 'Train.', 'amount' => '120']],
+        ];
+
+        // The expense field is required: a claim without it is refused before anything is written.
+        $this->postJson('/api/hrms/expenses/claims', $claim)->assertUnprocessable()->assertJsonValidationErrors('custom_fields.project_code');
+        $this->postJson('/api/hrms/expenses/claims', $claim + ['custom_fields' => ['project_code' => 'PX-1']])
+            ->assertCreated()->assertJsonPath('claim.custom_fields.project_code', 'PX-1');
+    }
 }

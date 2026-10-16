@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Hrms\Expense;
 
+use App\Http\Controllers\Concerns\HandlesCustomFields;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Hrms\ExpenseClaimItemsRequest;
 use App\Http\Requests\Hrms\ExpenseClaimRequest;
@@ -26,6 +27,8 @@ use Illuminate\Http\Response;
  */
 class ExpenseClaimController extends Controller
 {
+    use HandlesCustomFields;
+
     public function __construct(private readonly ExpenseService $expenses) {}
 
     public function index(Request $request): JsonResponse
@@ -73,7 +76,10 @@ class ExpenseClaimController extends Controller
         $items = $data['items'] ?? [];
         unset($data['items'], $data['employee_id']);
 
+        $custom = $this->validatedCustomFields($request, 'expense', partial: false);
+
         $claim = $this->expenses->create($employee, $data, $items, $request->user());
+        $this->storeCustomFields('expense', $claim->id, $custom);
 
         return response()->json([
             'message' => __('Claim filed.'),
@@ -125,6 +131,14 @@ class ExpenseClaimController extends Controller
      * @return array<string, mixed>
      */
     private function present(ExpenseClaim $claim): array
+    {
+        return $this->withCustomFields([$this->presentBase($claim)], 'expense', true)[0];
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function presentBase(ExpenseClaim $claim): array
     {
         $claim->loadMissing(['employee:id,employee_code,name', 'items.category:id,name,slug']);
 
