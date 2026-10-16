@@ -1287,5 +1287,31 @@
         "loadError": "No se pudo cargar el asistente del inquilino.",
         "provisioning": "Se está aprovisionando al inquilino «{{name}}».",
         "submitLabel": "Crear y aprovisionar inquilino"
+    },
+    "queue": {
+        "pageTitle": "Cola en segundo plano",
+        "crumb": "Cola",
+        "subtitle": "Trabajos en espera, cuánto lleva esperando el más antiguo y trabajos fallidos. Se actualiza cada 15 segundos.",
+        "pending": "En espera",
+        "running": "En ejecución",
+        "oldest": "Más antiguo",
+        "failed": "Fallidos",
+        "failedTitle": "Trabajos fallidos",
+        "failedSubtitle": "Reintentar devuelve el trabajo original a la cola; descartar lo elimina definitivamente.",
+        "noneFailed": "No hay trabajos fallidos.",
+        "job": "Trabajo",
+        "tenant": "Inquilino",
+        "failedAt": "Falló",
+        "error": "Error",
+        "retry": "Reintentar",
+        "discard": "Descartar",
+        "discardTitle": "¿Descartar este trabajo fallido?",
+        "discardMessage": "{{job}} se eliminará y no se volverá a ejecutar.",
+        "actionFailed": "Esa acción no funcionó.",
+        "loadFailed": "No se pudo cargar la cola.",
+        "seconds_one": "{{count}} segundo",
+        "seconds_other": "{{count}} segundos",
+        "minutes_one": "{{count}} minuto",
+        "minutes_other": "{{count}} minutos"
     }
 }

@@ -7,6 +7,7 @@ use App\Http\Controllers\BillingController;
 use App\Http\Controllers\BlogController;
 use App\Http\Controllers\ClientLogController;
 use App\Http\Controllers\ContactController;
+use App\Http\Controllers\CspReportController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\ExportController;
 use App\Http\Controllers\ForgotPasswordController;
@@ -24,6 +25,7 @@ use App\Http\Controllers\IssueTypeController;
 use App\Http\Controllers\LanguageController;
 use App\Http\Controllers\MySubscriptionController;
 use App\Http\Controllers\NotificationController;
+use App\Http\Controllers\NotificationPolicyController;
 use App\Http\Controllers\NotificationPreferenceController;
 use App\Http\Controllers\OnboardingController;
 use App\Http\Controllers\PlanController;
@@ -69,7 +71,7 @@ Route::prefix('api')->group(function () {
     });
     Route::post('logs/client', [ClientLogController::class, 'store'])->middleware('throttle:60,1');
     // CSP violation reports (browser-sent, no CSRF/session) — see CspReportController.
-    Route::post('csp-report', [\App\Http\Controllers\CspReportController::class, 'store'])->middleware('throttle:120,1');
+    Route::post('csp-report', [CspReportController::class, 'store'])->middleware('throttle:120,1');
 
     Route::middleware(['switch_tenant', 'auth', 'tenant', 'locale'])->group(function () {
         Route::post('auth/logout', [AuthController::class, 'logout']);
@@ -96,8 +98,8 @@ Route::prefix('api')->group(function () {
         Route::get('notification-preferences', [NotificationPreferenceController::class, 'show']);
         Route::put('notification-preferences', [NotificationPreferenceController::class, 'update']);
         // Tenant-wide switches for emailable events (admins: tenant.manage).
-        Route::get('notification-policies', [\App\Http\Controllers\NotificationPolicyController::class, 'show'])->middleware('permission:tenant.manage');
-        Route::put('notification-policies', [\App\Http\Controllers\NotificationPolicyController::class, 'update'])->middleware('permission:tenant.manage');
+        Route::get('notification-policies', [NotificationPolicyController::class, 'show'])->middleware('permission:tenant.manage');
+        Route::put('notification-policies', [NotificationPolicyController::class, 'update'])->middleware('permission:tenant.manage');
 
         // HR inbox (self-scoped by login like notifications; the service
         // short-circuits platform super admins to empty payloads).

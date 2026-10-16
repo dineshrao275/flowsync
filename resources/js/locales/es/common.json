@@ -308,7 +308,8 @@
             "siteSettings": "Ajustes del sitio",
             "blog": "Blog",
             "leads": "Contactos",
-            "auditLogs": "Registros de auditoría"
+            "auditLogs": "Registros de auditoría",
+            "queue": "Cola en segundo plano"
         }
     }
 }

@@ -308,7 +308,8 @@
             "siteSettings": "Site settings",
             "blog": "Blog",
             "leads": "Leads",
-            "auditLogs": "Audit Logs"
+            "auditLogs": "Audit Logs",
+            "queue": "Background queue"
         }
     }
 }

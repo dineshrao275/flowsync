@@ -85,6 +85,7 @@ import SystemUsers from './pages/SystemUsers';
 import SystemSettings from './pages/SystemSettings';
 import AuditLogs from './pages/AuditLogs';
 import FeatureManagement from './pages/FeatureManagement';
+import AdminQueue from './pages/AdminQueue';
 import FeatureFlags from './pages/FeatureFlags';
 import Security from './pages/Security';
 import CmsPages from './pages/CmsPages';
@@ -165,6 +166,7 @@ function AppRoutes() {
                                 <Route path="/admin/leads" element={<Leads />} />
                                 <Route path="/admin/features" element={<FeatureManagement />} />
                                 <Route path="/admin/feature-flags" element={<FeatureFlags />} />
+                                <Route path="/admin/queue" element={<AdminQueue />} />
                                 <Route path="/admin/pages" element={<CmsPages />} />
                                 <Route path="/admin/media" element={<MediaLibrary />} />
                                 <Route path="/admin/site-settings" element={<WebsiteSettings />} />

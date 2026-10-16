@@ -1287,5 +1287,31 @@
         "loadError": "Unable to load the tenant wizard.",
         "provisioning": "Tenant \"{{name}}\" is being provisioned.",
         "submitLabel": "Create & provision tenant"
+    },
+    "queue": {
+        "pageTitle": "Background queue",
+        "crumb": "Queue",
+        "subtitle": "Jobs waiting to run, how long the oldest has waited, and jobs that failed. Refreshes every 15 seconds.",
+        "pending": "Waiting",
+        "running": "Running",
+        "oldest": "Oldest waiting",
+        "failed": "Failed",
+        "failedTitle": "Failed jobs",
+        "failedSubtitle": "Retry puts the original job back on the queue; discard removes it for good.",
+        "noneFailed": "No failed jobs.",
+        "job": "Job",
+        "tenant": "Tenant",
+        "failedAt": "Failed",
+        "error": "Error",
+        "retry": "Retry",
+        "discard": "Discard",
+        "discardTitle": "Discard this failed job?",
+        "discardMessage": "{{job}} will be removed and will not run again.",
+        "actionFailed": "That action did not work.",
+        "loadFailed": "Could not load the queue.",
+        "seconds_one": "{{count}} second",
+        "seconds_other": "{{count}} seconds",
+        "minutes_one": "{{count}} minute",
+        "minutes_other": "{{count}} minutes"
     }
 }

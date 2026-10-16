@@ -765,5 +765,7 @@
     "Locked runs are sealed history.": "Las nóminas bloqueadas son historia sellada.",
     "A run can be reopened only after approval and before it is locked.": "Una nómina solo se puede reabrir tras su aprobación y antes de bloquearla.",
     "Say why the run is being reopened (at least 10 characters).": "Indica por qué se reabre la nómina (al menos 10 caracteres).",
-    "Payroll run reopened.": "Nómina reabierta."
+    "Payroll run reopened.": "Nómina reabierta.",
+    "Job queued again.": "Trabajo puesto en cola de nuevo.",
+    "Failed job discarded.": "Trabajo fallido descartado."
 }
