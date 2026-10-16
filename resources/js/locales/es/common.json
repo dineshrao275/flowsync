@@ -249,7 +249,8 @@
             "projects": "Proyectos",
             "search": "Búsqueda",
             "reports": "Informes",
-            "webhooks": "Webhooks"
+            "webhooks": "Webhooks",
+            "timesheets": "Partes de horas"
         },
         "admin": {
             "users": "Usuarios",

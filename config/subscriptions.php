@@ -24,6 +24,7 @@ return [
         'sprints',              // sprints, backlog planning and agile reports
         'automation',           // project automation rules (when X and Y, do Z)
         'webhooks',             // outbound webhooks (signed event delivery to the tenant's own systems)
+        'timesheets',           // weekly timesheets with submit/approve (needs time_tracking)
         'jql',                  // advanced search: a JQL-style query language over tasks
         'saved_filters',        // saved and shared task filters (and, later, the JQL-style query language)
         'custom_fields',        // tenant-defined fields on employees, tasks, projects, assets, expenses, documents
@@ -75,6 +76,7 @@ return [
         'custom_fields' => ['label' => 'Custom Fields', 'group' => 'Platform'],
         'saved_filters' => ['label' => 'Saved Filters', 'group' => 'Platform'],
         'jql' => ['label' => 'Advanced Search (JQL)', 'group' => 'Platform'],
+        'timesheets' => ['label' => 'Timesheets', 'group' => 'Platform'],
         'automation' => ['label' => 'Automation', 'group' => 'Platform'],
         'sprints' => ['label' => 'Sprints & Agile Reports', 'group' => 'Platform'],
 
@@ -175,7 +177,7 @@ return [
                 'audit_retention_days' => 365,
                 // Plan B HRMS set — see docs/hrms-implementation-plan.md §3.1.
                 'modules' => [
-                    'time_tracking', 'webhooks', 'api', 'custom_fields', 'saved_filters', 'jql', 'automation', 'sprints', 'reports', 'global_search',
+                    'time_tracking', 'webhooks', 'api', 'custom_fields', 'saved_filters', 'jql', 'timesheets', 'automation', 'sprints', 'reports', 'global_search',
                     'hrms.core', 'hrms.documents', 'hrms.onboarding', 'hrms.offboarding',
                     'hrms.assets', 'hrms.attendance', 'hrms.attendance.remote', 'hrms.leave',
                     'hrms.comp_off', 'hrms.holidays', 'hrms.shifts', 'hrms.inbox',
@@ -207,7 +209,7 @@ return [
                 // Plan B HRMS set + Plan C (compensation, expenses, performance,
                 // talent, engagement, analytics). No payroll: that is Enterprise.
                 'modules' => [
-                    'time_tracking', 'webhooks', 'api', 'custom_fields', 'saved_filters', 'jql', 'automation', 'sprints', 'reports', 'global_search',
+                    'time_tracking', 'webhooks', 'api', 'custom_fields', 'saved_filters', 'jql', 'timesheets', 'automation', 'sprints', 'reports', 'global_search',
                     'hrms.core', 'hrms.documents', 'hrms.onboarding', 'hrms.offboarding',
                     'hrms.assets', 'hrms.attendance', 'hrms.attendance.remote', 'hrms.leave',
                     'hrms.comp_off', 'hrms.holidays', 'hrms.shifts', 'hrms.inbox',
@@ -240,7 +242,7 @@ return [
                 // Everything: the Plan B set + Plan C + payroll + statutory +
                 // exemption + the platform's own modules + full data export.
                 'modules' => [
-                    'time_tracking', 'webhooks', 'api', 'custom_fields', 'saved_filters', 'jql', 'automation', 'sprints', 'reports', 'global_search', 'branding',
+                    'time_tracking', 'webhooks', 'api', 'custom_fields', 'saved_filters', 'jql', 'timesheets', 'automation', 'sprints', 'reports', 'global_search', 'branding',
                     'export.full',
                     'hrms.core', 'hrms.documents', 'hrms.onboarding', 'hrms.offboarding',
                     'hrms.assets', 'hrms.attendance', 'hrms.attendance.remote', 'hrms.leave',
@@ -271,7 +273,7 @@ return [
             'limits' => [
                 'users' => 50, 'workspaces' => 20, 'projects' => 200, 'tasks' => 10000,
                 'storage_bytes' => 50 * 1024 * 1024 * 1024, 'attachments_per_task' => 25,
-                'modules' => ['time_tracking', 'webhooks', 'api', 'custom_fields', 'saved_filters', 'jql', 'automation', 'sprints', 'reports', 'global_search'],
+                'modules' => ['time_tracking', 'webhooks', 'api', 'custom_fields', 'saved_filters', 'jql', 'timesheets', 'automation', 'sprints', 'reports', 'global_search'],
             ],
         ],
         'tms-enterprise' => [
@@ -281,7 +283,7 @@ return [
             'limits' => [
                 'users' => 1000, 'workspaces' => 500, 'projects' => 5000, 'tasks' => 1000000,
                 'storage_bytes' => 500 * 1024 * 1024 * 1024, 'attachments_per_task' => 100,
-                'modules' => ['time_tracking', 'webhooks', 'api', 'custom_fields', 'saved_filters', 'jql', 'automation', 'sprints', 'reports', 'global_search', 'branding', 'export.full'],
+                'modules' => ['time_tracking', 'webhooks', 'api', 'custom_fields', 'saved_filters', 'jql', 'timesheets', 'automation', 'sprints', 'reports', 'global_search', 'branding', 'export.full'],
             ],
         ],
         'hrms-starter' => [

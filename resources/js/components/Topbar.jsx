@@ -10,6 +10,7 @@ import useLocale from '../hooks/useLocale';
 import useLocales from '../hooks/useLocales';
 import useMenuNavigation from '../hooks/useMenuNavigation';
 import NotificationBell from './NotificationBell';
+import TimerPill from './time/TimerPill';
 import ProductSwitcher from './ProductSwitcher';
 import Avatar from './ui/Avatar';
 
@@ -173,6 +174,7 @@ export default function Topbar({ onOpenTheme, onToggleSidebar, onOpenSearch, sho
                         <MagnifyingGlass size={20} aria-hidden="true" />
                     </button>
                 )}
+                <TimerPill />
                 <NotificationBell />
                 {showTheme && (
                     <button

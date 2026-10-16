@@ -249,7 +249,8 @@
             "projects": "Projects",
             "search": "Search",
             "reports": "Reports",
-            "webhooks": "Webhooks"
+            "webhooks": "Webhooks",
+            "timesheets": "Timesheets"
         },
         "admin": {
             "users": "Users",

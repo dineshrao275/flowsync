@@ -145,7 +145,8 @@
         "edit": "Editar",
         "delete": "Eliminar",
         "removeTitle": "¿Quitar el registro de trabajo?",
-        "removeMessage": "¿Quitar este registro de trabajo? Esta acción no se puede deshacer."
+        "removeMessage": "¿Quitar este registro de trabajo? Esta acción no se puede deshacer.",
+        "billable": "Tiempo facturable"
     },
     "create": {
         "title": "Nueva tarea",
@@ -701,5 +702,48 @@
         "deleteTitle": "¿Eliminar este filtro?",
         "deleteMessage": "«{{name}}» se eliminará para todos los que puedan verlo.",
         "deleteFailed": "No se pudo eliminar el filtro."
+    },
+    "timesheets": {
+        "title": "Partes de horas",
+        "subtitle": "Revisa tu semana, envíala para aprobación y aprueba el tiempo de tu equipo.",
+        "loadFailed": "No se pudo cargar el parte de horas.",
+        "submit": "Enviar semana",
+        "submitted": "Parte de horas enviado.",
+        "submitFailed": "No se pudo enviar el parte de horas.",
+        "previous": "Semana anterior",
+        "next": "Semana siguiente",
+        "total": "Total",
+        "billable": "Facturable",
+        "nonBillable": "No facturable",
+        "billableShort": "facturables",
+        "task": "Tarea",
+        "project": "Proyecto",
+        "empty": "No hay tiempo registrado esta semana.",
+        "sentBack": "Devuelto: {{note}}",
+        "status": {
+            "open": "Abierto",
+            "submitted": "Enviado",
+            "approved": "Aprobado",
+            "rejected": "Devuelto"
+        },
+        "tab": {
+            "mine": "Mi semana",
+            "approvals": "Aprobaciones"
+        },
+        "nothingPending": "No hay partes de horas pendientes para ti.",
+        "weekOf": "Semana del {{date}}",
+        "noteLabel": "Nota (obligatoria para devolver)",
+        "sendBack": "Devolver",
+        "approve": "Aprobar",
+        "approved": "Parte de horas aprobado.",
+        "rejected": "Parte de horas devuelto.",
+        "decideFailed": "No se pudo registrar la decisión."
+    },
+    "timer": {
+        "start": "Iniciar temporizador",
+        "stop": "Detener temporizador",
+        "stopped": "Temporizador detenido.",
+        "stopFailed": "No se pudo detener el temporizador.",
+        "running": "Temporizador en marcha en {{key}}"
     }
 }

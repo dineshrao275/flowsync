@@ -31,6 +31,7 @@ import UserImport from './pages/UserImport';
 import Roles from './pages/Roles';
 import Settings from './pages/Settings';
 import Reports from './pages/Reports';
+import Timesheets from './pages/Timesheets';
 import HrmsErrorBoundary from './components/hrms/HrmsErrorBoundary';
 import ApprovalChains from './pages/hrms/ApprovalChains';
 import HrmsOverview from './pages/hrms/HrmsOverview';
@@ -210,6 +211,9 @@ function AppRoutes() {
                         </Route>
                         <Route element={<ProtectedRoute permission="workspaces.view" product="tms" module="global_search" />}>
                             <Route path="/search" element={<Search />} />
+                        </Route>
+                        <Route element={<ProtectedRoute permission="workspaces.view" product="tms" module="timesheets" />}>
+                            <Route path="/timesheets" element={<Timesheets />} />
                         </Route>
                         <Route element={<ProtectedRoute permission="reports.view" product="tms" module="reports" />}>
                             <Route path="/reports" element={<Reports />} />

@@ -16,6 +16,8 @@ use App\Http\Controllers\ProjectVersionController;
 use App\Http\Controllers\SprintController;
 use App\Http\Controllers\BoardPreferenceController;
 use App\Http\Controllers\SavedFilterController;
+use App\Http\Controllers\TimerController;
+use App\Http\Controllers\TimesheetController;
 use App\Http\Controllers\StatusController;
 use App\Http\Controllers\TaskBulkController;
 use App\Http\Controllers\TaskChecklistController;
@@ -176,6 +178,20 @@ Route::middleware(['permission:workspaces.view', 'ensure_product:tms'])->group(f
         Route::post('projects/{project}/tasks/{task}/work-logs', [WorkLogController::class, 'store']);
         Route::put('projects/{project}/tasks/{task}/work-logs/{workLog}', [WorkLogController::class, 'update']);
         Route::delete('projects/{project}/tasks/{task}/work-logs/{workLog}', [WorkLogController::class, 'destroy']);
+
+        // Timer (one running per person) and weekly timesheets.
+        Route::get('time/timer', [TimerController::class, 'current']);
+        Route::post('time/timer/stop', [TimerController::class, 'stop']);
+        Route::post('projects/{project}/tasks/{task}/timer/start', [TimerController::class, 'start'])->middleware('throttle:60,1');
+
+        Route::middleware('ensure_module:timesheets')->group(function () {
+            Route::get('timesheets/week', [TimesheetController::class, 'week']);
+            Route::post('timesheets/submit', [TimesheetController::class, 'submit'])->middleware('throttle:30,1');
+            Route::get('timesheets/pending', [TimesheetController::class, 'pending']);
+            Route::get('timesheets/{timesheet}', [TimesheetController::class, 'show']);
+            Route::post('timesheets/{timesheet}/approve', [TimesheetController::class, 'approve']);
+            Route::post('timesheets/{timesheet}/reject', [TimesheetController::class, 'reject']);
+        });
 
         Route::get('projects/{project}/time-summary', [WorkLogController::class, 'projectTime']);
         Route::get('workspaces/{workspace}/time-summary', [WorkLogController::class, 'workspaceTime']);

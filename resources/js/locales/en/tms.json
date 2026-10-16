@@ -145,7 +145,8 @@
         "edit": "Edit",
         "delete": "Delete",
         "removeTitle": "Remove work log?",
-        "removeMessage": "Remove this work log? This cannot be undone."
+        "removeMessage": "Remove this work log? This cannot be undone.",
+        "billable": "Billable time"
     },
     "create": {
         "title": "New task",
@@ -701,5 +702,48 @@
         "deleteTitle": "Delete this filter?",
         "deleteMessage": "“{{name}}” will be removed for everyone who can see it.",
         "deleteFailed": "Could not delete the filter."
+    },
+    "timesheets": {
+        "title": "Timesheets",
+        "subtitle": "Review your week, submit it for approval, and approve your team's time.",
+        "loadFailed": "Could not load the timesheet.",
+        "submit": "Submit week",
+        "submitted": "Timesheet submitted.",
+        "submitFailed": "Could not submit the timesheet.",
+        "previous": "Previous week",
+        "next": "Next week",
+        "total": "Total",
+        "billable": "Billable",
+        "nonBillable": "Non-billable",
+        "billableShort": "billable",
+        "task": "Task",
+        "project": "Project",
+        "empty": "No time logged this week.",
+        "sentBack": "Sent back: {{note}}",
+        "status": {
+            "open": "Open",
+            "submitted": "Submitted",
+            "approved": "Approved",
+            "rejected": "Sent back"
+        },
+        "tab": {
+            "mine": "My week",
+            "approvals": "Approvals"
+        },
+        "nothingPending": "No timesheets are waiting for you.",
+        "weekOf": "Week of {{date}}",
+        "noteLabel": "Note (needed to send back)",
+        "sendBack": "Send back",
+        "approve": "Approve",
+        "approved": "Timesheet approved.",
+        "rejected": "Timesheet sent back.",
+        "decideFailed": "Could not record the decision."
+    },
+    "timer": {
+        "start": "Start timer",
+        "stop": "Stop timer",
+        "stopped": "Timer stopped.",
+        "stopFailed": "Could not stop the timer.",
+        "running": "Timer running on {{key}}"
     }
 }

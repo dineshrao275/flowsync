@@ -10,6 +10,8 @@ import Spinner from '../ui/Spinner';
 import Input from '../ui/Input';
 import { fieldClass } from '../ui/fieldStyles';
 import { useConfirm } from '../ui/ConfirmDialog';
+import Switch from '../ui/Switch';
+import { TIMER_EVENT } from '../time/TimerPill';
 
 function toLocalInput(iso) {
     if (!iso) return '';
@@ -37,7 +39,7 @@ export default function WorkLogPanel({ task, projectId, canLog, canManage }) {
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
     const [errors, setErrors] = useState({});
-    const [form, setForm] = useState({ started_at: '', ended_at: '', description: '' });
+    const [form, setForm] = useState({ started_at: '', ended_at: '', description: '', billable: true });
     const [editingId, setEditingId] = useState(null);
 
     const base = `/projects/${projectId}/tasks/${task.id}/work-logs`;
@@ -74,13 +76,14 @@ export default function WorkLogPanel({ task, projectId, canLog, canManage }) {
             started_at: toLocalInput(log.started_at),
             ended_at: toLocalInput(log.ended_at),
             description: log.description || '',
+            billable: log.billable !== false,
         });
     }
 
     function reset() {
         setEditingId(null);
         setErrors({});
-        setForm({ started_at: '', ended_at: '', description: '' });
+        setForm({ started_at: '', ended_at: '', description: '', billable: true });
     }
 
     function submit(e) {
@@ -101,6 +104,25 @@ export default function WorkLogPanel({ task, projectId, canLog, canManage }) {
         if (!(await confirm({ title: t('tms.worklogs.removeTitle'), message: t('tms.worklogs.removeMessage'), variant: 'danger' }))) return;
         api.delete(`${base}/${log.id}`).then(() => load()).catch((e) => setErrors(fieldErrors(e)));
     }
+
+    async function startTimer() {
+        setErrors({});
+        try {
+            await api.post(`/projects/${projectId}/tasks/${task.id}/timer/start`, { billable: form.billable });
+            window.dispatchEvent(new Event(TIMER_EVENT));
+            await load();
+        } catch (err) {
+            setErrors(fieldErrors(err));
+        }
+    }
+
+    // Reload when the top-bar timer is stopped from elsewhere.
+    useEffect(() => {
+        const reload = () => load();
+        window.addEventListener('flowsync:worklogs-changed', reload);
+        return () => window.removeEventListener('flowsync:worklogs-changed', reload);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [task.id]);
 
     const canEditLog = (log) => (canLog && log.user?.id === user?.id) || canManage;
 
@@ -147,9 +169,17 @@ export default function WorkLogPanel({ task, projectId, canLog, canManage }) {
                         />
                         {errors.description && <p className="mt-1.5 text-sm text-red-600">{errors.description}</p>}
                     </div>
-                    <Button type="submit" loading={saving}>
-                        {editingId ? t('tms.worklogs.save') : t('tms.worklogs.add')}
-                    </Button>
+                    <Switch label={t('tms.worklogs.billable')} checked={form.billable} onChange={(billable) => setForm((f) => ({ ...f, billable }))} />
+                    <div className="flex flex-wrap gap-2">
+                        <Button type="submit" loading={saving}>
+                            {editingId ? t('tms.worklogs.save') : t('tms.worklogs.add')}
+                        </Button>
+                        {!editingId && (
+                            <Button type="button" variant="secondary" onClick={startTimer}>
+                                {t('tms.timer.start')}
+                            </Button>
+                        )}
+                    </div>
                 </form>
             ) : null}
 

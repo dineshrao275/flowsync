@@ -127,6 +127,7 @@ export const tmsSections = [
             { to: '/dashboard', label: 'nav.tms.dashboard', capabilities: ['dashboard.view', 'product:tms'], icon: ICONS.dashboard },
             { to: '/workspaces', label: 'nav.tms.workspaces', capabilities: ['workspaces.view', 'product:tms'], icon: ICONS.workspaces },
             { to: '/projects', label: 'nav.tms.projects', capabilities: ['workspaces.view', 'product:tms'], icon: ICONS.projects },
+            { to: '/timesheets', label: 'nav.tms.timesheets', capabilities: ['workspaces.view', 'product:tms', 'module:timesheets'], icon: ICONS.clock },
             { to: '/search', label: 'nav.tms.search', capabilities: ['workspaces.view', 'product:tms', 'module:global_search'], icon: ICONS.search },
         ],
     },

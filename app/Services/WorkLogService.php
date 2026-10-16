@@ -7,6 +7,7 @@ use App\Models\Task;
 use App\Models\User;
 use App\Models\WorkLog;
 use App\Models\Workspace;
+use App\Services\Time\TimesheetService;
 use Carbon\Carbon;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Eloquent\Builder;
@@ -14,6 +15,8 @@ use Illuminate\Validation\ValidationException;
 
 class WorkLogService
 {
+    public function __construct(private readonly TimesheetService $timesheets) {}
+
     public function taskLogs(Task $task, int $perPage = 50): LengthAwarePaginator
     {
         return $task->workLogs()
@@ -25,6 +28,7 @@ class WorkLogService
     public function create(Task $task, array $data, User $user): WorkLog
     {
         [$startedAt, $endedAt] = $this->resolveInterval($data['started_at'], $data['ended_at'] ?? null);
+        $this->timesheets->assertOpen($user->id, $startedAt);
 
         if ($this->overlaps($task, $startedAt, $endedAt)) {
             throw ValidationException::withMessages([
@@ -39,12 +43,16 @@ class WorkLogService
             'ended_at' => $endedAt,
             'duration_minutes' => $this->duration($startedAt, $endedAt),
             'description' => $data['description'] ?? null,
+            'billable' => $data['billable'] ?? true,
         ]);
     }
 
     public function update(WorkLog $log, array $data): WorkLog
     {
         [$startedAt, $endedAt] = $this->resolveInterval($data['started_at'], $data['ended_at'] ?? null);
+        // Both the week the log is in and the week it is moving to must be open.
+        $this->timesheets->assertOpen($log->user_id, $log->started_at);
+        $this->timesheets->assertOpen($log->user_id, $startedAt);
 
         if ($this->overlaps($log->task, $startedAt, $endedAt, $log->id)) {
             throw ValidationException::withMessages([
@@ -57,6 +65,7 @@ class WorkLogService
             'ended_at' => $endedAt,
             'duration_minutes' => $this->duration($startedAt, $endedAt),
             'description' => $data['description'] ?? $log->description,
+            'billable' => $data['billable'] ?? $log->billable,
         ]);
 
         return $log->fresh();
@@ -64,6 +73,8 @@ class WorkLogService
 
     public function delete(WorkLog $log): void
     {
+        $this->timesheets->assertOpen($log->user_id, $log->started_at);
+
         $log->delete();
     }
 
