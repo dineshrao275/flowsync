@@ -30,7 +30,7 @@ trait RunsPerTenant
         }
 
         $tenants = $scoped
-            ? collect(Tenant::find($this->option('tenant')))->filter()
+            ? Tenant::query()->whereKey($this->option('tenant'))->get()
             : Tenant::query()->whereNotNull('provisioned_at')->orderBy('id')->get();
 
         if ($tenants->isEmpty()) {
