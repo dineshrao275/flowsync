@@ -495,7 +495,16 @@
                 "unblocked": "Se elimina un bloqueo de tu tarea",
                 "work_logged": "Se registra tiempo en tu tarea"
             }
-        }
+        },
+        "emailModeLabel": "¿Cómo quieres recibir los correos?",
+        "emailModeHint": "Al instante envía un correo por evento; el resumen envía uno al día.",
+        "emailModeInstant": "Al instante",
+        "emailModeDigest": "Resumen diario",
+        "policyTitle": "Política de correo de la empresa",
+        "policySubtitle": "Desactiva un correo para toda la empresa. Las notificaciones dentro de la app siempre se muestran.",
+        "policyEventHint": "Enviar este correo a las personas de la empresa",
+        "policySaved": "Política de correo guardada.",
+        "policySaveFailed": "No se pudo guardar la política de correo."
     },
     "subscription": {
         "pageTitle": "Suscripción",

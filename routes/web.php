@@ -68,6 +68,8 @@ Route::prefix('api')->group(function () {
         Route::get('register/options', [RegisterController::class, 'options'])->middleware('throttle:30,1');
     });
     Route::post('logs/client', [ClientLogController::class, 'store'])->middleware('throttle:60,1');
+    // CSP violation reports (browser-sent, no CSRF/session) — see CspReportController.
+    Route::post('csp-report', [\App\Http\Controllers\CspReportController::class, 'store'])->middleware('throttle:120,1');
 
     Route::middleware(['switch_tenant', 'auth', 'tenant', 'locale'])->group(function () {
         Route::post('auth/logout', [AuthController::class, 'logout']);
@@ -93,6 +95,9 @@ Route::prefix('api')->group(function () {
         // the notifications family; the SA short-circuit mirrors them).
         Route::get('notification-preferences', [NotificationPreferenceController::class, 'show']);
         Route::put('notification-preferences', [NotificationPreferenceController::class, 'update']);
+        // Tenant-wide switches for emailable events (admins: tenant.manage).
+        Route::get('notification-policies', [\App\Http\Controllers\NotificationPolicyController::class, 'show'])->middleware('permission:tenant.manage');
+        Route::put('notification-policies', [\App\Http\Controllers\NotificationPolicyController::class, 'update'])->middleware('permission:tenant.manage');
 
         // HR inbox (self-scoped by login like notifications; the service
         // short-circuits platform super admins to empty payloads).

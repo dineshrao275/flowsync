@@ -495,7 +495,16 @@
                 "unblocked": "A blocker on your task is removed",
                 "work_logged": "Time is logged against your task"
             }
-        }
+        },
+        "emailModeLabel": "How should we email you?",
+        "emailModeHint": "Instant sends one email per event; digest sends one summary a day.",
+        "emailModeInstant": "Instantly",
+        "emailModeDigest": "Daily digest",
+        "policyTitle": "Company email policy",
+        "policySubtitle": "Turn an email off for everyone in your company. In-app notifications are always shown.",
+        "policyEventHint": "Send this email to people in the company",
+        "policySaved": "Email policy saved.",
+        "policySaveFailed": "Could not save the email policy."
     },
     "subscription": {
         "pageTitle": "Subscription",

@@ -3,6 +3,8 @@ import { useTranslation } from 'react-i18next';
 import api from '../services/api';
 import Card from '../components/ui/Card';
 import Spinner from '../components/ui/Spinner';
+import Switch from '../components/ui/Switch';
+import { fieldClassCompact } from '../components/ui/fieldStyles';
 import ApiTokens from '../components/settings/ApiTokens';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
@@ -17,13 +19,28 @@ function NotificationPreferences() {
     const { t } = useTranslation();
     const toast = useToast();
     const [prefs, setPrefs] = useState(undefined);
+    const [emailMode, setEmailMode] = useState('instant');
     const [saving, setSaving] = useState(false);
 
     useEffect(() => {
         api.get('/notification-preferences')
-            .then(({ data }) => setPrefs(data.preferences))
+            .then(({ data }) => {
+                setPrefs(data.preferences);
+                setEmailMode(data.email_mode ?? 'instant');
+            })
             .catch(() => setPrefs(null));
     }, []);
+
+    function changeMode(next) {
+        const last = emailMode;
+        setEmailMode(next);
+        api.put('/notification-preferences', { email_mode: next })
+            .then(() => toast.success(t('admin.settings.prefsSaved')))
+            .catch(() => {
+                setEmailMode(last);
+                toast.error(t('admin.settings.prefsSaveFailed'));
+            });
+    }
 
     function toggle(event) {
         if (!prefs || saving) return;
@@ -57,6 +74,17 @@ function NotificationPreferences() {
     }
 
     return (
+        <div>
+            <div className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-lg bg-gray-50 px-4 py-3">
+                <div>
+                    <label htmlFor="email-mode" className="text-sm font-medium text-gray-800">{t('admin.settings.emailModeLabel')}</label>
+                    <p className="text-xs text-gray-500">{t('admin.settings.emailModeHint')}</p>
+                </div>
+                <select id="email-mode" className={`${fieldClassCompact} w-auto`} value={emailMode} onChange={(e) => changeMode(e.target.value)}>
+                    <option value="instant">{t('admin.settings.emailModeInstant')}</option>
+                    <option value="digest">{t('admin.settings.emailModeDigest')}</option>
+                </select>
+            </div>
         <ul className="divide-y divide-gray-100">
             {Object.keys(prefs).map((event) => (
                 <li key={event} className="flex items-center justify-between gap-4 py-3">
@@ -83,6 +111,48 @@ function NotificationPreferences() {
                             }`}
                         />
                     </button>
+                </li>
+            ))}
+        </ul>
+        </div>
+    );
+}
+
+function TenantEmailPolicy() {
+    const { t } = useTranslation();
+    const toast = useToast();
+    const [policies, setPolicies] = useState(undefined);
+
+    useEffect(() => {
+        api.get('/notification-policies')
+            .then(({ data }) => setPolicies(data.policies))
+            .catch(() => setPolicies(null));
+    }, []);
+
+    function toggle(event, enabled) {
+        const last = policies[event];
+        setPolicies({ ...policies, [event]: enabled });
+        api.put('/notification-policies', { policies: { [event]: enabled } })
+            .then(() => toast.success(t('admin.settings.policySaved')))
+            .catch(() => {
+                setPolicies({ ...policies, [event]: last });
+                toast.error(t('admin.settings.policySaveFailed'));
+            });
+    }
+
+    if (policies === undefined) return <div className="flex justify-center py-8"><Spinner /></div>;
+    if (policies === null) return <p className="py-8 text-sm text-gray-500">{t('admin.settings.prefsUnavailable')}</p>;
+
+    return (
+        <ul className="divide-y divide-gray-100">
+            {Object.keys(policies).map((event) => (
+                <li key={event} className="py-3">
+                    <Switch
+                        label={eventLabel(t, event)}
+                        description={t('admin.settings.policyEventHint')}
+                        checked={policies[event]}
+                        onChange={(v) => toggle(event, v)}
+                    />
                 </li>
             ))}
         </ul>
@@ -160,6 +230,14 @@ export default function Settings() {
                     <NotificationPreferences />
                 </Card>
             </div>
+
+            {can('tenant.manage') && (
+                <div className="animate-fade-in-up" style={{ animationDelay: '250ms' }}>
+                    <Card title={t('admin.settings.policyTitle')} subtitle={t('admin.settings.policySubtitle')}>
+                        <TenantEmailPolicy />
+                    </Card>
+                </div>
+            )}
 
             {can('api.manage') && hasModule('api') && (
                 <div className="animate-fade-in-up" style={{ animationDelay: '300ms' }}>
