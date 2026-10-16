@@ -3,7 +3,12 @@
         "wipTitle": "{{open}} abiertas de un límite WIP de {{limit}}",
         "dropHere": "Suelta las tareas aquí",
         "unassigned": "Sin asignar",
-        "laneTotals": "{{open}} abiertas · {{done}} hechas"
+        "laneTotals": "{{open}} abiertas · {{done}} hechas",
+        "quickAdd": "Añadir tarea",
+        "quickAddLabel": "Título de la nueva tarea en {{name}}",
+        "quickAddPlaceholder": "Título de la tarea y luego Intro",
+        "collapseColumn": "Contraer la columna {{name}}",
+        "expandColumn": "Expandir la columna {{name}}"
     },
     "card": {
         "dueOverdue": "Vencida el {{date}}",
@@ -520,7 +525,8 @@
         "deleteTypeTitle": "¿Eliminar el tipo de incidencia?",
         "deleteTypeMessage": "¿Eliminar el tipo de incidencia «{{name}}»?",
         "typeDeleted": "Tipo de incidencia eliminado.",
-        "typeDeleteFailed": "No se pudo eliminar el tipo de incidencia."
+        "typeDeleteFailed": "No se pudo eliminar el tipo de incidencia.",
+        "taskCreateFailed": "No se pudo crear la tarea."
     },
     "hierarchy": {
         "collapse": "Contraer",
