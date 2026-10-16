@@ -303,7 +303,8 @@
             "exitInterview": "Entrevista de salida",
             "hrAutomation": "Automatización RR. HH.",
             "changes": "Traslados y ascensos",
-            "shiftSwaps": "Cambios de turno"
+            "shiftSwaps": "Cambios de turno",
+            "improvementPlans": "Planes de mejora"
         },
         "platform": {
             "overview": "Resumen",

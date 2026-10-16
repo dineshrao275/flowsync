@@ -10,6 +10,7 @@ use App\Http\Controllers\Hrms\HrmsAnalyticsController;
 use App\Http\Controllers\Hrms\HrmsAnalyticsExportController;
 use App\Http\Controllers\Hrms\Performance\CheckInController;
 use App\Http\Controllers\Hrms\Performance\FeedbackRequestController;
+use App\Http\Controllers\Hrms\Performance\ImprovementPlanController;
 use App\Http\Controllers\Hrms\Performance\OneOnOneController;
 use App\Http\Controllers\Hrms\Performance\PerformanceCycleController;
 use App\Http\Controllers\Hrms\Performance\PerformanceGoalController;
@@ -156,6 +157,11 @@ Route::group(['middleware' => ['ensure_module:hrms.core', 'ensure_module:hrms.as
 // (manage, or self-while-draft for goals). Feedback, reviews and the
 // evidence read land in P12.4b.
 Route::group(['middleware' => ['ensure_module:hrms.core', 'ensure_module:hrms.performance', 'permission:hrms.view']], function () {
+    Route::get('hrms/improvement-plans', [ImprovementPlanController::class, 'index']);
+    Route::post('hrms/employees/{employee}/improvement-plans', [ImprovementPlanController::class, 'store']);
+    Route::put('hrms/improvement-plans/{plan}/milestones/{milestone}', [ImprovementPlanController::class, 'milestone']);
+    Route::post('hrms/improvement-plans/{plan}/extend', [ImprovementPlanController::class, 'extend']);
+    Route::post('hrms/improvement-plans/{plan}/close', [ImprovementPlanController::class, 'close']);
     Route::get('hrms/performance/cycles', [PerformanceCycleController::class, 'index']);
     Route::post('hrms/performance/cycles', [PerformanceCycleController::class, 'store']);
     Route::get('hrms/performance/cycles/{cycle}', [PerformanceCycleController::class, 'show']);

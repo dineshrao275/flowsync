@@ -843,5 +843,17 @@
     "Issue types saved.": "Tipos de incidencia guardados.",
     "This category allows at most :limit per line.": "Esta categoría permite como máximo :limit por línea.",
     "This would take you over the :limit monthly limit for this category.": "Esto superaría el límite mensual de :limit para esta categoría.",
-    "The payout file is available once the run is approved.": "El archivo de pago está disponible cuando la ejecución está aprobada."
+    "The payout file is available once the run is approved.": "El archivo de pago está disponible cuando la ejecución está aprobada.",
+    "The plan must end after it starts.": "El plan debe terminar después de empezar.",
+    "This person already has an active improvement plan.": "Esta persona ya tiene un plan de mejora activo.",
+    "That milestone is not part of this plan.": "Ese hito no forma parte de este plan.",
+    "Extend to a date after the current end.": "Amplía a una fecha posterior al final actual.",
+    "Choose completed, unsuccessful or cancelled.": "Elige completado, sin éxito o cancelado.",
+    "Write down the outcome before closing the plan.": "Escribe el resultado antes de cerrar el plan.",
+    "A plan can have at most :max milestones.": "Un plan puede tener como máximo :max hitos.",
+    "This plan is already closed.": "Este plan ya está cerrado.",
+    "You cannot open a plan for this person.": "No puedes abrir un plan para esta persona.",
+    "Plan opened.": "Plan abierto.",
+    "Plan extended.": "Plan ampliado.",
+    "Plan closed.": "Plan cerrado."
 }

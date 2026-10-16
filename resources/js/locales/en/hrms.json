@@ -2629,5 +2629,34 @@
             "reject": "Swap rejected.",
             "withdraw": "Swap withdrawn."
         }
+    },
+    "pip": {
+        "pageTitle": "Improvement plans",
+        "subtitle": "Confidential. Only the person, their manager and performance managers can see a plan.",
+        "loadFailed": "Could not load improvement plans.",
+        "actionFailed": "That did not work.",
+        "open": "Open a plan",
+        "opened": "Plan opened.",
+        "closed": "Plan closed.",
+        "empty": "No improvement plans.",
+        "modalHint": "Set a clear reason, a window and a few milestones that can be ticked off.",
+        "employee": "Employee",
+        "reason": "Reason",
+        "start": "Starts",
+        "end": "Ends",
+        "milestones": "Milestones",
+        "milestone": "Milestone {{n}}",
+        "addMilestone": "Add a milestone",
+        "create": "Open plan",
+        "close": "Close plan",
+        "result": "Result",
+        "outcomeLabel": "Outcome",
+        "outcome": "Outcome: {{outcome}}",
+        "status": {
+            "active": "Active",
+            "completed": "Completed",
+            "unsuccessful": "Unsuccessful",
+            "cancelled": "Cancelled"
+        }
     }
 }

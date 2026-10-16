@@ -2629,5 +2629,34 @@
             "reject": "Cambio rechazado.",
             "withdraw": "Cambio retirado."
         }
+    },
+    "pip": {
+        "pageTitle": "Planes de mejora",
+        "subtitle": "Confidencial. Solo la persona, su responsable y los gestores de desempeño pueden ver un plan.",
+        "loadFailed": "No se pudieron cargar los planes de mejora.",
+        "actionFailed": "No se pudo completar la acción.",
+        "open": "Abrir un plan",
+        "opened": "Plan abierto.",
+        "closed": "Plan cerrado.",
+        "empty": "No hay planes de mejora.",
+        "modalHint": "Indica un motivo claro, un plazo y algunos hitos que se puedan marcar.",
+        "employee": "Empleado",
+        "reason": "Motivo",
+        "start": "Inicio",
+        "end": "Fin",
+        "milestones": "Hitos",
+        "milestone": "Hito {{n}}",
+        "addMilestone": "Añadir un hito",
+        "create": "Abrir plan",
+        "close": "Cerrar plan",
+        "result": "Resultado",
+        "outcomeLabel": "Resultado detallado",
+        "outcome": "Resultado: {{outcome}}",
+        "status": {
+            "active": "Activo",
+            "completed": "Completado",
+            "unsuccessful": "Sin éxito",
+            "cancelled": "Cancelado"
+        }
     }
 }
