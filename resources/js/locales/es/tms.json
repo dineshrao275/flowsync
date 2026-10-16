@@ -678,6 +678,10 @@
             "todo": "Por hacer",
             "in_progress": "En curso",
             "done": "Hecho"
-        }
+        },
+        "editSubtitle": "Los cambios se aplican a todos los miembros del proyecto.",
+        "categoryHint": "Determina si las tareas de esta columna cuentan como abiertas o hechas.",
+        "customColor": "Color personalizado",
+        "wipHint": "Máximo de tareas abiertas en esta columna. Déjalo vacío para no tener límite."
     }
 }

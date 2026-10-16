@@ -678,6 +678,10 @@
             "todo": "To do",
             "in_progress": "In progress",
             "done": "Done"
-        }
+        },
+        "editSubtitle": "Changes apply to everyone on this project.",
+        "categoryHint": "Decides whether tasks here count as open or done.",
+        "customColor": "Custom colour",
+        "wipHint": "Maximum open tasks in this column. Leave empty for no limit."
     }
 }
