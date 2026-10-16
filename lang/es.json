@@ -760,5 +760,6 @@
     "submitted": "enviado",
     "approved": "aprobado",
     "rejected": "rechazado",
-    "open": "abierto"
+    "open": "abierto",
+    "Choose a range of at most :days days.": "Elige un rango de como máximo :days días."
 }

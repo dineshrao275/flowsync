@@ -417,7 +417,8 @@
             "time": "Tiempo",
             "sprints": "Sprints",
             "automation": "Automatización",
-            "settings": "Ajustes"
+            "settings": "Ajustes",
+            "workload": "Carga"
         },
         "detailsTitle": "Detalles",
         "detailsSubtitle": "Espacio de trabajo · {{id}}",
@@ -766,5 +767,26 @@
         "next": "Después",
         "empty": "No hay tareas con fecha en este periodo.",
         "noVersion": "Sin versión"
+    },
+    "workload": {
+        "title": "Carga de trabajo",
+        "subtitle": "Trabajo planificado frente a la capacidad de cada persona. Planificado = estimación restante de las tareas abiertas que vencen en el periodo.",
+        "window": "Periodo",
+        "weeks_one": "{{count}} semana",
+        "weeks_other": "{{count}} semanas",
+        "member": "Miembro",
+        "capacity": "Capacidad",
+        "planned": "Planificado",
+        "utilization": "Utilización",
+        "notes": "Notas",
+        "leave_one": "{{count}} día de permiso",
+        "leave_other": "{{count}} días de permiso",
+        "over": "Sobrecarga",
+        "unestimated_one": "{{count}} tarea sin estimación",
+        "unestimated_other": "{{count}} tareas sin estimación",
+        "unscheduled_one": "{{count}} tarea sin fecha límite",
+        "unscheduled_other": "{{count}} tareas sin fecha límite",
+        "utilizationLabel": "Utilización de {{name}}",
+        "loadFailed": "No se pudo cargar la carga de trabajo."
     }
 }

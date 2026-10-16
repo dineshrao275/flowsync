@@ -417,7 +417,8 @@
             "time": "Time",
             "sprints": "Sprints",
             "automation": "Automation",
-            "settings": "Settings"
+            "settings": "Settings",
+            "workload": "Workload"
         },
         "detailsTitle": "Details",
         "detailsSubtitle": "Workspace · {{id}}",
@@ -766,5 +767,26 @@
         "next": "Later",
         "empty": "No dated tasks in this window.",
         "noVersion": "No version"
+    },
+    "workload": {
+        "title": "Workload",
+        "subtitle": "Planned work against each person's capacity. Planned = remaining estimate of open tasks due in the window.",
+        "window": "Window",
+        "weeks_one": "{{count}} week",
+        "weeks_other": "{{count}} weeks",
+        "member": "Member",
+        "capacity": "Capacity",
+        "planned": "Planned",
+        "utilization": "Utilization",
+        "notes": "Notes",
+        "leave_one": "{{count}} leave day",
+        "leave_other": "{{count}} leave days",
+        "over": "Over capacity",
+        "unestimated_one": "{{count}} task without estimate",
+        "unestimated_other": "{{count}} tasks without estimate",
+        "unscheduled_one": "{{count}} task without due date",
+        "unscheduled_other": "{{count}} tasks without due date",
+        "utilizationLabel": "{{name}} utilization",
+        "loadFailed": "Could not load the workload."
     }
 }

@@ -32,6 +32,7 @@ import RichText from '../components/ui/RichText';
 import FiltersBar from '../components/tasks/FiltersBar';
 import CalendarView from '../components/tasks/CalendarView';
 import TimelineView from '../components/tasks/TimelineView';
+import WorkloadPanel from '../components/project/WorkloadPanel';
 import CreateTaskModal from '../components/tasks/CreateTaskModal';
 import TaskDetail from '../components/tasks/TaskDetail';
 import TimeSummary from '../components/time/TimeSummary';
@@ -705,7 +706,7 @@ export default function ProjectDetail() {
         { key: 'members', label: t('tms.project.tabs.members', { count: members.length }) },
         { key: 'workflow', label: t('tms.project.tabs.workflow') },
         ...(hasModule('time_tracking') ? [{ key: 'time', label: t('tms.project.tabs.time') }] : []),
-        ...(hasModule('sprints') ? [{ key: 'sprints', label: t('tms.project.tabs.sprints') }] : []),
+        ...(hasModule('sprints') ? [{ key: 'sprints', label: t('tms.project.tabs.sprints') }, { key: 'workload', label: t('tms.project.tabs.workload') }] : []),
         ...(isProjectManager && hasModule('automation') ? [{ key: 'automation', label: t('tms.project.tabs.automation') }] : []),
         ...(isProjectManager ? [{ key: 'settings', label: t('tms.project.tabs.settings') }] : []),
     ];
@@ -889,6 +890,8 @@ export default function ProjectDetail() {
             )}
 
             {tab === 'hierarchy' && <HierarchyPanel projectId={projectId} />}
+
+            {tab === 'workload' && hasModule('sprints') && <WorkloadPanel projectId={projectId} />}
 
             {tab === 'sprints' && hasModule('sprints') && <SprintsPanel projectId={projectId} canPlan={isProjectManager} />}
 

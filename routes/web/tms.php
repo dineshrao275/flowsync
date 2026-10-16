@@ -16,6 +16,7 @@ use App\Http\Controllers\ProjectVersionController;
 use App\Http\Controllers\SprintController;
 use App\Http\Controllers\BoardPreferenceController;
 use App\Http\Controllers\SavedFilterController;
+use App\Http\Controllers\WorkloadController;
 use App\Http\Controllers\TimerController;
 use App\Http\Controllers\TimesheetController;
 use App\Http\Controllers\StatusController;
@@ -101,6 +102,7 @@ Route::middleware(['permission:workspaces.view', 'ensure_product:tms'])->group(f
     Route::put('projects/{project}/members/{user}', [ProjectMemberController::class, 'update']);
     Route::delete('projects/{project}/members/{user}', [ProjectMemberController::class, 'destroy']);
 
+    Route::get('projects/{project}/workload', [WorkloadController::class, 'show'])->middleware('ensure_module:sprints');
     Route::middleware('ensure_module:saved_filters')->group(function () {
         Route::get('projects/{project}/saved-filters', [SavedFilterController::class, 'index']);
         Route::post('projects/{project}/saved-filters', [SavedFilterController::class, 'store'])->middleware('throttle:60,1');
