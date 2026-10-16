@@ -6,6 +6,7 @@ use App\Models\ApiToken;
 use App\Models\IntegrationLog;
 use App\Models\User;
 use App\Services\Api\ApiTokenService;
+use App\Services\UsageMeter;
 use App\Support\TenantContext;
 use App\Support\TenantDatabaseManager;
 use Closure;
@@ -61,9 +62,15 @@ class AuthenticateApiToken
         $request->setUserResolver(fn () => $user);
         $request->attributes->set('api_token', $token);
 
-        $response = $request->isMethodSafe() || $token->can_write
-            ? $next($request)
-            : response()->json(['message' => __('This API token is read-only.'), 'code' => 'token_read_only'], 403);
+        $response = match (true) {
+            app(UsageMeter::class)->exceeded(UsageMeter::API_CALLS) => response()->json(
+                ['message' => __('Your plan\'s monthly API call limit has been reached.'), 'code' => 'usage_limit'],
+                429,
+                ['Retry-After' => (string) now()->diffInSeconds(now()->addMonthNoOverflow()->startOfMonth())],
+            ),
+            $request->isMethodSafe() || $token->can_write => $next($request),
+            default => response()->json(['message' => __('This API token is read-only.'), 'code' => 'token_read_only'], 403),
+        };
 
         $this->record($request, $token, $response, $started);
 

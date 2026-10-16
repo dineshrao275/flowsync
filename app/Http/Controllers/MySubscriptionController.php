@@ -56,6 +56,7 @@ class MySubscriptionController extends Controller
 
         return response()->json([
             'usage' => $usage,
+            'monthly' => app(\App\Services\UsageMeter::class)->summary(),
             'limits' => $this->limits->effective($tenant),
             'modules' => $this->limits->visibleModules($tenant),
             'modules_available' => config('subscriptions.modules', []),

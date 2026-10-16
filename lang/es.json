@@ -782,5 +782,6 @@
     "Skills assessed.": "Habilidades evaluadas.",
     "You cannot view the skills matrix.": "No puedes ver la matriz de habilidades.",
     "You cannot manage skills.": "No puedes gestionar habilidades.",
-    "You have no employment record.": "No tienes un registro de empleo."
+    "You have no employment record.": "No tienes un registro de empleo.",
+    "Your plan's monthly API call limit has been reached.": "Se alcanzó el límite mensual de llamadas a la API de tu plan."
 }

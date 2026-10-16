@@ -14,7 +14,7 @@ import { Table, Th, Td, TableEmpty } from '../components/ui/Table';
 import { formatDate, formatPrice, formatNumber } from '../utils/format';
 import Timestamp from '../components/ui/Timestamp';
 
-const RESOURCES = ['users', 'seats', 'workspaces', 'projects', 'tasks'];
+const RESOURCES = ['users', 'seats', 'workspaces', 'projects', 'tasks', 'api_calls_per_month', 'automation_runs_per_month'];
 
 const MODULE_KEYS = { 'export.full': 'exportFull' };
 
@@ -111,7 +111,11 @@ export default function Subscription() {
             setSubscriptions(subRes.data.subscriptions || []);
             setTenant(subRes.data.tenant);
             setEvents(subRes.data.events || []);
-            setUsage(usageRes.data.usage || {});
+            setUsage({
+                ...(usageRes.data.usage || {}),
+                api_calls_per_month: usageRes.data.monthly?.api_calls?.used ?? 0,
+                automation_runs_per_month: usageRes.data.monthly?.automation_runs?.used ?? 0,
+            });
             setLimits(usageRes.data.limits || {});
             setModules(usageRes.data.modules ?? null);
             setModulesAvailable(usageRes.data.modules_available || []);

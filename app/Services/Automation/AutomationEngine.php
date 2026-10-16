@@ -7,6 +7,7 @@ use App\Models\AutomationRun;
 use App\Models\DomainEvent;
 use App\Models\Task;
 use App\Models\User;
+use App\Services\UsageMeter;
 use Illuminate\Validation\ValidationException;
 use Throwable;
 
@@ -64,6 +65,12 @@ class AutomationEngine
 
         if (! $this->conditions->passes($task, $rule->conditions ?? [])) {
             $run->update(['summary' => 'Conditions not met.']);
+
+            return;
+        }
+
+        if (app(UsageMeter::class)->exceeded(UsageMeter::AUTOMATION_RUNS)) {
+            $run->update(['summary' => 'Not run: the plan\'s monthly automation limit has been reached.']);
 
             return;
         }

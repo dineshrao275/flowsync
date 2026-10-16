@@ -122,6 +122,8 @@ return [
         'employees',             // HRMS headcount
         'assets',                // HRMS asset register
         'hr_document_bytes',     // HRMS document storage
+        'api_calls_per_month',     // API token requests per calendar month (absent = unlimited)
+        'automation_runs_per_month', // automation rule executions per calendar month (absent = unlimited)
         'audit_retention_days',  // platform audit rows about the tenant are pruned after this (absent = kept forever)
     ],
 
@@ -176,6 +178,8 @@ return [
                 'tasks' => 10000,
                 'storage_bytes' => 50 * 1024 * 1024 * 1024,     // 50 GB
                 'attachments_per_task' => 25,
+                'api_calls_per_month' => 10000,
+                'automation_runs_per_month' => 1000,
                 'audit_retention_days' => 365,
                 // Plan B HRMS set — see docs/hrms-implementation-plan.md §3.1.
                 'modules' => [
@@ -207,6 +211,8 @@ return [
                 'hr_document_bytes' => 100 * 1024 * 1024 * 1024, // 100 GB
                 'assets' => 1000,
                 'attachments_per_task' => 50,
+                'api_calls_per_month' => 100000,
+                'automation_runs_per_month' => 20000,
                 'audit_retention_days' => 730,
                 // Plan B HRMS set + Plan C (compensation, expenses, performance,
                 // talent, engagement, analytics). No payroll: that is Enterprise.
@@ -274,6 +280,7 @@ return [
             'trial_duration_days' => null, 'sort_order' => 120,
             'limits' => [
                 'users' => 50, 'workspaces' => 20, 'projects' => 200, 'tasks' => 10000,
+                'api_calls_per_month' => 10000, 'automation_runs_per_month' => 1000,
                 'storage_bytes' => 50 * 1024 * 1024 * 1024, 'attachments_per_task' => 25,
                 'modules' => ['time_tracking', 'webhooks', 'api', 'custom_fields', 'saved_filters', 'jql', 'timesheets', 'project_templates', 'automation', 'sprints', 'reports', 'global_search'],
             ],

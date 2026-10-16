@@ -610,7 +610,9 @@
             "seats": "Puestos",
             "workspaces": "Espacios de trabajo",
             "projects": "Proyectos",
-            "tasks": "Tareas"
+            "tasks": "Tareas",
+            "api_calls_per_month": "Llamadas a la API este mes",
+            "automation_runs_per_month": "Ejecuciones de automatización este mes"
         },
         "modules": {
             "time_tracking": "Seguimiento del tiempo",
