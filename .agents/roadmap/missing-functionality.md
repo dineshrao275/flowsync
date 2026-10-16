@@ -18,6 +18,34 @@ P4 future. **Size:** S ≤ 1 day · M 2-4 days · L 1-2 weeks · XL > 2 weeks (s
 
 ---
 
+## Progress log (branch `feat/f0-baseline`, 2026-10-16/17)
+Each row was implemented with its tests; the full-suite gate is still pending (see `f0-baseline-report.md`).
+
+| Register ID | What shipped | Commit |
+|---|---|---|
+| M-B12 | `hrms:leave-consistency [--repair]`; also fixed `--tenant=ID` in every fleet command (`RunsPerTenant`) | 146d4697 |
+| M-K4 | `audit:verify` scheduled daily; critical log + `SECURITY_AUDIT_ALERT_EMAILS` on a broken chain | 7d8198ac |
+| M-G5, M-F8 | `impersonator_id` + `request_id` on activities and HRMS ledgers; queued jobs keep the request id | b51120fa |
+| M-K2 | CSP violation collector `POST /api/csp-report` + default report-uri (flip to enforce after a clean report window) | d24cceeb |
+| M-F4 | Notification delivery controls: tenant email policy, daily digest mode, dedupe window, hourly email throttle, Settings UI | 7dbf5692 |
+| M-F2, M-A7 | Custom-field engine + employee integration (typed values, filters, sensitive fields, module `custom_fields`) | 0300dda8 |
+| M-F2 (tasks, projects) | Custom fields on tasks and projects, list filter `cf[key]` | 05059d04 |
+| M-E1 | Saved/shared task filters (module `saved_filters`) | 3f6053ba |
+| M-E2 | JQL-style query language (`jql=` on the task list; module `jql`) — lexer, parser, whitelisted compiler | 045b17ee |
+| M-E6 | Timer, billable time, weekly timesheets with submit/approve/send-back (module `timesheets`) | 95ab9469 |
+| M-E10 | Sprint burnup chart | (F3.5 commit) |
+| M-E4, M-E3 | Due-date calendar view; timeline (roadmap) view | 6ac51725, F4.2 commit |
+| M-E5 | Workload vs capacity (weekday capacity − approved leave) | 66c2fb6e |
+| M-I1, M-M3 (slice) | OpenAPI spec for `/api/v1` with a route-contract test; API route auth audit | 7d942d2f |
+| M-B3 | Payroll reopen with mandatory reason (never from locked) | 89d3effe |
+| infra | Test DB template per process (a 24-test run: 12 min → ~1.5 min) | 1d5d24d9 |
+
+**Corrections found while building (rows marked missing that already existed):** invoices + PDF (`InvoiceService`, `InvoicePdf`, `InvoiceController`, `InvoiceTest`) → M-H1 ✅; dunning and period-end expiry (`DunningTest`, `PeriodEndTest`) → M-H2 ✅; PDF payslips (`PayslipRenderer` + `SimplePdf`) → M-B8 ✅; export ZIP cleanup (`PruneTenantExports`) → part of M-H6 ✅; approvals v2 modes/conditions/delegation/SLA/editor (`ApprovalStepMode`, `ChainBuilder`, `ApprovalChains.jsx`) → M-F1 only needs the remaining consumers.
+
+**Deliberately deferred:** M-E9 (new link types relates/duplicates/clones) — `task_dependencies.type` is a database enum with a CHECK constraint; widening it safely on both PostgreSQL and the sqlite test path needs its own migration plan (see the CHECK-constraint pitfall in AGENTS.md). M-A8 employee tags — covered by a multi-select custom field.
+
+---
+
 ## 0. Read this first — corrections and the one real blocker
 
 ### 0.1 Items the master roadmap still lists as open but the repo shows are (at least partly) done — verify, then close
