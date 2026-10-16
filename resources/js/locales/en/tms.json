@@ -749,5 +749,15 @@
         "stopped": "Timer stopped.",
         "stopFailed": "Could not stop the timer.",
         "running": "Timer running on {{key}}"
+    },
+    "calendar": {
+        "view": "Calendar",
+        "label": "Due-date calendar",
+        "previous": "Previous month",
+        "next": "Next month",
+        "today": "Today",
+        "more": "+{{count}} more",
+        "empty": "No tasks have a due date in this period.",
+        "rescheduleFailed": "Could not move the task to that day."
     }
 }

@@ -749,5 +749,15 @@
         "stopped": "Temporizador detenido.",
         "stopFailed": "No se pudo detener el temporizador.",
         "running": "Temporizador en marcha en {{key}}"
+    },
+    "calendar": {
+        "view": "Calendario",
+        "label": "Calendario de vencimientos",
+        "previous": "Mes anterior",
+        "next": "Mes siguiente",
+        "today": "Hoy",
+        "more": "+{{count}} más",
+        "empty": "Ninguna tarea vence en este periodo.",
+        "rescheduleFailed": "No se pudo mover la tarea a ese día."
     }
 }

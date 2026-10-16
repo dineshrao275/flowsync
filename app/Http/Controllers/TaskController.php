@@ -51,6 +51,8 @@ class TaskController extends Controller
             'swimlane' => ['nullable', 'in:none,assignee'],
             'cf' => ['nullable', 'array', 'max:20'],
             'jql' => ['nullable', 'string', 'max:1000'],
+            'per_page' => ['nullable', 'integer', 'min:1', 'max:100'],
+            'page' => ['nullable', 'integer', 'min:1'],
             'q' => ['nullable', 'string', 'max:255'],
             'due_from' => ['nullable', 'date'],
             'due_to' => ['nullable', 'date'],
