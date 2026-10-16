@@ -274,13 +274,13 @@ export default function BlogPosts() {
                 {loading ? (
                     <Spinner />
                 ) : (
-                    <table className="w-full text-left text-sm">
+                    <div className="overflow-x-auto"><table className="w-full text-left text-sm">
                         <thead className="text-xs uppercase tracking-wide text-gray-400">
                             <tr>
-                                <th className="pb-2 font-semibold">{t('admin.blogPosts.thPost')}</th>
-                                <th className="pb-2 font-semibold">{t('admin.blogPosts.category')}</th>
-                                <th className="pb-2 font-semibold">{t('admin.common.status')}</th>
-                                <th className="pb-2 text-right font-semibold">{t('admin.common.actions')}</th>
+                                <th scope="col" className="pb-2 font-semibold">{t('admin.blogPosts.thPost')}</th>
+                                <th scope="col" className="pb-2 font-semibold">{t('admin.blogPosts.category')}</th>
+                                <th scope="col" className="pb-2 font-semibold">{t('admin.common.status')}</th>
+                                <th scope="col" className="pb-2 text-right font-semibold">{t('admin.common.actions')}</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -310,7 +310,7 @@ export default function BlogPosts() {
                                 <tr><td colSpan={4} className="py-6 text-center text-gray-400">{t('admin.blogPosts.noPosts')}</td></tr>
                             )}
                         </tbody>
-                    </table>
+                    </table></div>
                 )}
                 {pagination && (
                     <div className="mt-4">

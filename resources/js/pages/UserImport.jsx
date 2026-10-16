@@ -105,9 +105,9 @@ export default function UserImport() {
                 <Card title={t('admin.userImport.step3Title')} subtitle={t('admin.userImport.step3Subtitle', { valid: report.summary.valid, total: report.summary.total })}>
                     {roles.length > 0 && <p className="mb-3 text-xs text-gray-500">{t('admin.userImport.rolesYouMayAssign', { roles: roles.map((r) => r.slug).join(', ') })}</p>}
                     <div className="max-h-96 overflow-auto rounded-lg border border-gray-200">
-                        <table className="min-w-full divide-y divide-gray-100 text-sm">
+                        <div className="overflow-x-auto"><table className="min-w-full divide-y divide-gray-100 text-sm">
                             <thead className="bg-gray-50 text-left text-xs uppercase tracking-wide text-gray-500">
-                                <tr><th className="px-3 py-2">{t('admin.userImport.thLine')}</th><th className="px-3 py-2">{t('admin.userImport.thName')}</th><th className="px-3 py-2">{t('admin.userImport.thEmail')}</th><th className="px-3 py-2">{t('admin.userImport.thRoles')}</th><th className="px-3 py-2">{t('admin.userImport.thResult')}</th></tr>
+                                <tr><th scope="col" className="px-3 py-2">{t('admin.userImport.thLine')}</th><th scope="col" className="px-3 py-2">{t('admin.userImport.thName')}</th><th scope="col" className="px-3 py-2">{t('admin.userImport.thEmail')}</th><th scope="col" className="px-3 py-2">{t('admin.userImport.thRoles')}</th><th scope="col" className="px-3 py-2">{t('admin.userImport.thResult')}</th></tr>
                             </thead>
                             <tbody className="divide-y divide-gray-50">
                                 {report.rows.map((r) => (
@@ -122,7 +122,7 @@ export default function UserImport() {
                                     </tr>
                                 ))}
                             </tbody>
-                        </table>
+                        </table></div>
                     </div>
                     <div className="mt-4 flex flex-wrap gap-2">
                         {report.summary.invalid === 0 ? (

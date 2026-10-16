@@ -2368,5 +2368,32 @@
         "detractors": "Detractores",
         "yes": "Sí",
         "no": "No"
+    },
+    "setup": {
+        "title": "Termina de configurar RR. HH.",
+        "subtitle": "{{done}} de {{total}} pasos completados",
+        "open": "Abrir",
+        "steps": {
+            "employees": {
+                "title": "Añade a tu gente",
+                "hint": "Crea fichas de empleados o impórtalas desde un CSV."
+            },
+            "org": {
+                "title": "Construye tu organización",
+                "hint": "Coloca a los empleados en departamentos e indica quién dirige cada uno."
+            },
+            "holidays": {
+                "title": "Añade un calendario de festivos",
+                "hint": "Los festivos alimentan la asistencia, las ausencias y la nómina."
+            },
+            "leave": {
+                "title": "Configura las políticas de ausencias",
+                "hint": "Define cómo se devengan las ausencias y quién puede tomar cuáles."
+            },
+            "payroll": {
+                "title": "Crea una plantilla salarial",
+                "hint": "Las plantillas salariales valoran las nóminas; añade una antes de abrir una ejecución de nómina."
+            }
+        }
     }
 }

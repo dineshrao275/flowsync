@@ -237,7 +237,7 @@ export default function Reports() {
                 <p className="mt-1 flex flex-wrap items-center gap-2 text-sm text-gray-500">
                     {t('dashboard.reports.subtitle')}
                     <span
-                        className="rounded-full px-2 py-0.5 text-[11px] font-medium text-gray-600"
+                        className="rounded-full px-2 py-0.5 text-xs font-medium text-gray-600"
                         style={{ backgroundColor: 'var(--accent-soft)' }}
                         title={t('dashboard.scope.title')}
                     >

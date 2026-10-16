@@ -472,13 +472,13 @@ export default function Tenants() {
                     <table className="min-w-full divide-y divide-gray-100">
                         <thead>
                             <tr className="bg-gray-50 text-left text-xs font-medium uppercase tracking-wide text-gray-500">
-                                <th className="px-4 py-2.5">{t('admin.tenants.thTenant')}</th>
-                                <th className="px-4 py-2.5">{t('admin.tenants.thStatus')}</th>
-                                <th className="px-4 py-2.5">{t('admin.tenants.thPlan')}</th>
-                                <th className="px-4 py-2.5">{t('admin.tenants.thRenews')}</th>
-                                <th className="px-4 py-2.5">{t('admin.tenants.thUsers')}</th>
-                                <th className="px-4 py-2.5">{t('admin.tenants.thCreated')}</th>
-                                <th className="px-4 py-2.5 text-right">{t('admin.common.actions')}</th>
+                                <th scope="col" className="px-4 py-2.5">{t('admin.tenants.thTenant')}</th>
+                                <th scope="col" className="px-4 py-2.5">{t('admin.tenants.thStatus')}</th>
+                                <th scope="col" className="px-4 py-2.5">{t('admin.tenants.thPlan')}</th>
+                                <th scope="col" className="px-4 py-2.5">{t('admin.tenants.thRenews')}</th>
+                                <th scope="col" className="px-4 py-2.5">{t('admin.tenants.thUsers')}</th>
+                                <th scope="col" className="px-4 py-2.5">{t('admin.tenants.thCreated')}</th>
+                                <th scope="col" className="px-4 py-2.5 text-right">{t('admin.common.actions')}</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-gray-50">

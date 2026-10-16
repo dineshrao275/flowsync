@@ -128,6 +128,42 @@ function luminance(hex) {
     return 0.2126 * channel(r) + 0.7152 * channel(g) + 0.0722 * channel(b);
 }
 
+/** WCAG 2.x contrast ratio between two hex colours (1–21). */
+export function contrastRatio(a, b) {
+    const la = luminance(a);
+    const lb = luminance(b);
+
+    return (Math.max(la, lb) + 0.05) / (Math.min(la, lb) + 0.05);
+}
+
+const isHex = (value) => /^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/.test(String(value || '').trim());
+
+/**
+ * Pairs an admin can break by picking colours freely. Text pairs need 4.5:1
+ * (WCAG AA body text); the accent against the card is a UI component
+ * boundary, so 3:1. Returns the failing pairs so the drawer can warn — it
+ * never blocks a save, the admin owns the brand.
+ */
+export const CONTRAST_PAIRS = [
+    { id: 'sidebar_text', fg: 'sidebar_text', bg: 'sidebar_bg', min: 4.5 },
+    { id: 'active_menu', fg: 'active_menu', bg: 'sidebar_bg', min: 3 },
+    { id: 'header_text', fg: 'header_text', bg: 'header_bg', min: 4.5 },
+    { id: 'accent', fg: 'accent', bg: 'card_bg', min: 3 },
+];
+
+export function themeContrastIssues(theme) {
+    return CONTRAST_PAIRS.flatMap((pair) => {
+        const fg = theme?.[pair.fg];
+        const bg = theme?.[pair.bg];
+
+        if (!isHex(fg) || !isHex(bg)) return [];
+
+        const ratio = contrastRatio(fg, bg);
+
+        return ratio < pair.min ? [{ ...pair, ratio }] : [];
+    });
+}
+
 export const DARK_SURFACES = {
     sidebar_bg: '#0b0f1a',
     sidebar_hover: '#1b2333',

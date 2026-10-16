@@ -25,7 +25,18 @@
         "none": "Ninguno",
         "yes": "Sí",
         "no": "No",
-        "saving": "Guardando…"
+        "saving": "Guardando…",
+        "retry": "Intentar de nuevo",
+        "loadFailed": "Algo salió mal al cargar esto.",
+        "selectAll": "Seleccionar todas las filas",
+        "selectRow": "Seleccionar fila",
+        "noResults": "Sin resultados.",
+        "unsavedTitle": "¿Descartar los cambios sin guardar?",
+        "unsavedMessage": "Tienes cambios que no se han guardado. Si sales ahora se perderán.",
+        "discard": "Descartar cambios",
+        "keepEditing": "Seguir editando",
+        "unsavedBadge": "Cambios sin guardar",
+        "view": "Ver"
     },
     "titles": {
         "dashboard": "Panel",
@@ -455,7 +466,9 @@
         "editPermissions": "Editar permisos",
         "duplicate": "Duplicar",
         "copySuffix": " (copia)",
-        "cannotDelete": "Antes, traslada a sus miembros a otro rol"
+        "cannotDelete": "Antes, traslada a sus miembros a otro rol",
+        "permissionsSummary": "{{count}} de {{total}} permisos",
+        "allPermissions": "Todos los permisos"
     },
     "settings": {
         "pageTitle": "Ajustes",

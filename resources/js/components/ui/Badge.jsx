@@ -4,12 +4,21 @@ const palette = {
     viewer: 'bg-sky-100 text-sky-700',
 };
 
+// Semantic tones read the colour-role tokens (app.css), so they stay AA in
+// light and dark without a per-tone dark: variant.
+export const TONES = {
+    accent: 'bg-[var(--accent-soft)] text-[var(--accent-soft-text)]',
+    neutral: 'bg-surface-sunken text-fg-muted ring-1 ring-inset ring-line',
+    success: 'bg-success-soft text-success',
+    warning: 'bg-warning-soft text-warning',
+    danger: 'bg-danger-soft text-danger-fg',
+    info: 'bg-info-soft text-info',
+};
+
 export default function Badge({ children, tone, className = '', ...props }) {
-    // `tone="accent"` follows the theme's accent color (see theme.js tokens);
-    // otherwise the color is derived from the label (role slugs).
-    const colors = tone === 'accent'
-        ? 'bg-[var(--accent-soft)] text-[var(--accent-soft-text)]'
-        : palette[String(children).toLowerCase()] || 'bg-gray-100 text-gray-700';
+    // An explicit `tone` wins; without one the colour is derived from the
+    // label (role slugs) for the call sites that predate tones.
+    const colors = TONES[tone] ?? palette[String(children).toLowerCase()] ?? 'bg-gray-100 text-gray-700';
 
     return (
         <span

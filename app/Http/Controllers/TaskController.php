@@ -10,6 +10,7 @@ use App\Models\Task;
 use App\Services\ActivityLogger;
 use App\Services\Tasks\TaskChangeLogger;
 use App\Services\TaskService;
+use App\Support\Realtime;
 use App\Support\TaskScope;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -197,7 +198,7 @@ class TaskController extends Controller
             ipAddress: $request->ip(),
         );
 
-        broadcast(new TaskSynced($task, 'deleted'));
+        Realtime::send(new TaskSynced($task, 'deleted'));
 
         return response()->json(['message' => __('Task deleted.')]);
     }

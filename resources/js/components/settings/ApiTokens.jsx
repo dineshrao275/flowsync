@@ -157,7 +157,7 @@ export default function ApiTokens() {
                             {logsFor === token.id && (
                                 <div className="mt-3 overflow-x-auto rounded-lg border border-gray-100">
                                     <table className="min-w-full text-xs">
-                                        <thead className="bg-gray-50 text-left uppercase text-gray-500"><tr><th className="px-3 py-2">{t('admin.apiTokens.when')}</th><th className="px-3 py-2">{t('admin.apiTokens.call')}</th><th className="px-3 py-2">{t('admin.apiTokens.http')}</th><th className="px-3 py-2">ms</th><th className="px-3 py-2">IP</th></tr></thead>
+                                        <thead className="bg-gray-50 text-left uppercase text-gray-500"><tr><th scope="col" className="px-3 py-2">{t('admin.apiTokens.when')}</th><th scope="col" className="px-3 py-2">{t('admin.apiTokens.call')}</th><th scope="col" className="px-3 py-2">{t('admin.apiTokens.http')}</th><th scope="col" className="px-3 py-2">ms</th><th scope="col" className="px-3 py-2">IP</th></tr></thead>
                                         <tbody className="divide-y divide-gray-50">
                                             {logs.length === 0 && <tr><td colSpan={5} className="px-3 py-4 text-center text-gray-400">{t('admin.apiTokens.noCalls')}</td></tr>}
                                             {logs.map((l) => (

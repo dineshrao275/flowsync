@@ -116,12 +116,14 @@ export function PromptDialog({
     }, [defaultValue, open]);
 
     useEffect(() => {
-        if (open) {
-            setTimeout(() => {
-                inputRef.current?.focus();
-                inputRef.current?.select?.();
-            }, 50);
-        }
+        if (!open) return undefined;
+        const timer = setTimeout(() => {
+            inputRef.current?.focus();
+            inputRef.current?.select?.();
+        }, 50);
+
+        // Cancel on close/unmount so the callback never fires after teardown.
+        return () => clearTimeout(timer);
     }, [open]);
 
     const isInvalid = required && !val.trim();

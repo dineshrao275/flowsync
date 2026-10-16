@@ -365,8 +365,9 @@ Route::view('/app/{any}', 'app')->where('any', '.*');
 // false (HTTP 403). `auth` keeps unauthenticated socket clients from hitting
 // the callbacks at all.
 Broadcast::routes(['middleware' => ['switch_tenant', 'auth', 'tenant']]);
-
-require __DIR__.'/../routes/channels.php';
+// NOTE: channel callbacks (routes/channels.php) are registered by AppServiceProvider,
+// NOT here — `route:cache` (run by docker/entrypoint.sh) skips this file entirely, which
+// left zero channels registered and made every /broadcasting/auth answer 403.
 
 // Security track (P8.x) routes live in their own file.
 require __DIR__.'/security.php';

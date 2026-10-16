@@ -25,7 +25,18 @@
         "none": "None",
         "yes": "Yes",
         "no": "No",
-        "saving": "Saving…"
+        "saving": "Saving…",
+        "retry": "Try again",
+        "loadFailed": "Something went wrong loading this.",
+        "selectAll": "Select all rows",
+        "selectRow": "Select row",
+        "noResults": "No results.",
+        "unsavedTitle": "Discard unsaved changes?",
+        "unsavedMessage": "You have changes that haven't been saved. If you leave now they will be lost.",
+        "discard": "Discard changes",
+        "keepEditing": "Keep editing",
+        "unsavedBadge": "Unsaved changes",
+        "view": "View"
     },
     "titles": {
         "dashboard": "Dashboard",
@@ -455,7 +466,9 @@
         "editPermissions": "Edit permissions",
         "duplicate": "Duplicate",
         "copySuffix": " (copy)",
-        "cannotDelete": "Move its members to another role first"
+        "cannotDelete": "Move its members to another role first",
+        "permissionsSummary": "{{count}} of {{total}} permissions",
+        "allPermissions": "All permissions"
     },
     "settings": {
         "pageTitle": "Settings",

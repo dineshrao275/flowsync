@@ -13,13 +13,16 @@ const shapes = {
     block: 'h-32 w-full rounded-xl',
 };
 
-export default function Skeleton({ variant = 'line', className = '' }) {
+export default function Skeleton({ variant = 'line', className = '', decorative = false }) {
     const { t } = useTranslation();
 
     return (
         <span
-            role="status"
-            aria-label={t('admin.common.loadingLabel')}
+            // A list of placeholders should announce "loading" once (on its
+            // container), not once per bar — see TableSkeleton.
+            {...(decorative
+                ? { 'aria-hidden': true }
+                : { role: 'status', 'aria-label': t('admin.common.loadingLabel') })}
             className={`block animate-pulse bg-gray-200 ${shapes[variant] ?? shapes.line} ${className}`}
         />
     );

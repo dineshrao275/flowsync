@@ -3,7 +3,12 @@
         "wipTitle": "{{open}} open of {{limit}} WIP limit",
         "dropHere": "Drop tasks here",
         "unassigned": "Unassigned",
-        "laneTotals": "{{open}} open · {{done}} done"
+        "laneTotals": "{{open}} open · {{done}} done",
+        "quickAdd": "Add task",
+        "quickAddLabel": "New task title in {{name}}",
+        "quickAddPlaceholder": "Task title, then Enter",
+        "collapseColumn": "Collapse column {{name}}",
+        "expandColumn": "Expand column {{name}}"
     },
     "card": {
         "dueOverdue": "Overdue {{date}}",
@@ -520,7 +525,8 @@
         "deleteTypeTitle": "Delete issue type?",
         "deleteTypeMessage": "Delete issue type \"{{name}}\"?",
         "typeDeleted": "Issue type deleted.",
-        "typeDeleteFailed": "Could not delete issue type."
+        "typeDeleteFailed": "Could not delete issue type.",
+        "taskCreateFailed": "Could not create the task."
     },
     "hierarchy": {
         "collapse": "Collapse",

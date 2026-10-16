@@ -118,7 +118,7 @@ export default function MediaLibrary() {
                                 <img src={item.url} alt={item.alt || item.original_name} className="aspect-[4/3] w-full object-cover" loading="lazy" />
                                 <div className="space-y-2 p-3">
                                     <p className="truncate text-xs font-medium text-gray-700" title={item.original_name}>{item.original_name}</p>
-                                    <p className="text-[11px] text-gray-400">
+                                    <p className="text-xs text-gray-400">
                                         {[item.width && item.height ? `${item.width}×${item.height}` : null, formatSize(item.size)].filter(Boolean).join(' · ')}
                                     </p>
                                     <Input

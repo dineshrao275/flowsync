@@ -8,6 +8,7 @@ use App\Models\Project;
 use App\Models\Task;
 use App\Services\ActivityLogger;
 use App\Services\NotificationService;
+use App\Support\Realtime;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\ValidationException;
@@ -55,7 +56,7 @@ class CommentController extends Controller
             ipAddress: $request->ip(),
         );
 
-        broadcast(new CommentSynced($comment, 'created'));
+        Realtime::send(new CommentSynced($comment, 'created'));
 
         // `truncated` is true when the fan-out dropped mentions beyond the
         // per-comment cap (20); the UI warns the author instead of silently
@@ -84,7 +85,7 @@ class CommentController extends Controller
             'edited_at' => now(),
         ]);
 
-        broadcast(new CommentSynced($comment->fresh(), 'updated'));
+        Realtime::send(new CommentSynced($comment->fresh(), 'updated'));
 
         return response()->json([
             'message' => __('Comment updated.'),
@@ -102,7 +103,7 @@ class CommentController extends Controller
 
         $comment->delete();
 
-        broadcast(new CommentSynced($comment, 'deleted'));
+        Realtime::send(new CommentSynced($comment, 'deleted'));
 
         return response()->json(['message' => __('Comment deleted.')]);
     }

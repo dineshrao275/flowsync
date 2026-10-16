@@ -125,7 +125,7 @@ export default function SystemDashboard() {
             </div>
 
             <Card title={t('admin.systemDashboard.largestTenants')} subtitle={t('admin.systemDashboard.largestTenantsSubtitle')}>
-                <table className="w-full text-left text-sm">
+                <div className="overflow-x-auto"><table className="w-full text-left text-sm">
                     <thead className="text-xs uppercase tracking-wide text-gray-400">
                         <tr>
                             <th scope="col" className="pb-2 font-semibold">{t('admin.systemDashboard.colTenant')}</th>
@@ -150,7 +150,7 @@ export default function SystemDashboard() {
                             <tr><td colSpan={3} className="py-4 text-gray-400">{t('admin.systemDashboard.noServiceable')}</td></tr>
                         )}
                     </tbody>
-                </table>
+                </table></div>
             </Card>
         </div>
     );

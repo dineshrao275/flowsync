@@ -7,6 +7,7 @@ import { useAuth } from '../../context/AuthContext';
 import { hrmsModuleGroups } from '../../utils/hrmsModules';
 import { useSetCrumbs } from '../../context/BreadcrumbContext';
 import usePageTitle from '../../hooks/usePageTitle';
+import SetupChecklist from '../../components/hrms/SetupChecklist';
 
 /**
  * HRMS landing page.
@@ -38,6 +39,8 @@ export default function HrmsOverview() {
                     {modules.length === 1 ? t('hrms.overview.modulesOne') : t('hrms.overview.modules', { count: modules.length })}
                 </p>
             </div>
+
+            <SetupChecklist />
 
             {groups.length === 0 ? (
                 <Card>

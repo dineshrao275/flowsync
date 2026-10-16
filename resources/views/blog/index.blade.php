@@ -38,7 +38,7 @@
                             @endif
                         </a>
                         <div class="flex flex-1 flex-col p-5">
-                            <p class="mb-2 flex flex-wrap items-center gap-2 text-xs text-slate-400">
+                            <p class="mb-2 flex flex-wrap items-center gap-2 text-xs text-slate-500">
                                 @if($post->category)<a href="/blog/category/{{ $post->category->slug }}" class="rounded-full bg-blue-50 px-2.5 py-0.5 font-semibold text-blue-700">{{ $post->category->name }}</a>@endif
                                 @if($post->published_at)<time datetime="{{ $post->published_at->toDateString() }}">{{ $post->published_at->format('M j, Y') }}</time>@endif
                                 @if($post->reading_minutes)<span aria-hidden="true">·</span><span>{{ __('site.blog.minRead', ['count' => $post->reading_minutes]) }}</span>@endif

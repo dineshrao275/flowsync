@@ -14,6 +14,7 @@ import { useConfirm } from '../components/ui/ConfirmDialog';
 import { useSetCrumbs } from '../context/BreadcrumbContext';
 import usePageTitle from '../hooks/usePageTitle';
 import Timestamp from '../components/ui/Timestamp';
+import { onRealtimeReconnect } from '../utils/realtimeAuth';
 
 const CATEGORIES = ['technical', 'billing', 'access', 'feature_request', 'other'];
 const PRIORITIES = ['low', 'normal', 'high', 'urgent'];
@@ -169,9 +170,14 @@ function TicketDetail({ id }) {
                 });
             }
         });
+        // Messages pushed while the socket was down are not replayed: reload the thread.
+        const stopReconnect = onRealtimeReconnect(() => {
+            api.get(`/support/tickets/${id}`).then(({ data }) => setTicket(data.ticket)).catch(() => {});
+        });
         return () => {
             channel.stopListening('.support.message.sent');
             channel.stopListening('.support.ticket.updated');
+            stopReconnect();
             window.Echo.leaveChannel(channel.name);
         };
     }, [id]);

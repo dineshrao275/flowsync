@@ -21,6 +21,7 @@ return [
     'actions' => [
         'logIn' => 'Iniciar sesión',
         'startFree' => 'Empieza gratis',
+        'bookDemo' => 'Reservar una demostración',
     ],
 
     'footer' => [

@@ -13,11 +13,13 @@ import { useAuth } from '../context/AuthContext';
 import AutomationPanel from '../components/automation/AutomationPanel';
 import SprintsPanel from '../components/sprints/SprintsPanel';
 import HierarchyPanel from '../components/hierarchy/HierarchyPanel';
-import WorkflowRules from '../components/tasks/WorkflowRules';
 import { useToast } from '../context/ToastContext';
 import { useConfirm } from '../components/ui/ConfirmDialog';
 import { useSetCrumbs } from '../context/BreadcrumbContext';
 import KanbanBoard from '../components/tasks/KanbanBoard';
+import { moveCardInBoard } from '../utils/board';
+import { optimistic } from '../utils/optimistic';
+import { onRealtimeReconnect } from '../utils/realtimeAuth';
 import TaskTable from '../components/tasks/TaskTable';
 import RichTextEditor from '../components/ui/RichTextEditor';
 import RichText from '../components/ui/RichText';
@@ -27,6 +29,9 @@ import TaskDetail from '../components/tasks/TaskDetail';
 import TimeSummary from '../components/time/TimeSummary';
 import usePageTitle from '../hooks/usePageTitle';
 import { projectRoleLabel } from '../utils/roles';
+import ProjectOverviewTab from '../components/project/ProjectOverviewTab';
+import ProjectMembersTab from '../components/project/ProjectMembersTab';
+import ProjectWorkflowTab from '../components/project/ProjectWorkflowTab';
 
 const DEFAULT_COLORS = ['#2563eb', '#0ea5e9', '#f59e0b', '#10b981', '#ef4444', '#8b5cf6'];
 
@@ -231,7 +236,7 @@ export default function ProjectDetail() {
     useEffect(() => {
         if (!project || !window.Echo) return undefined;
         const channel = window.Echo.private(`project.${projectId}`);
-        channel.listen('.task.synced', (event) => {
+        const onTaskSynced = (event) => {
             if (tabRef.current === 'tasks') {
                 loadTasksRef.current();
             }
@@ -240,9 +245,14 @@ export default function ProjectDetail() {
                     .then(({ data }) => setSelectedTask(data.task))
                     .catch(() => {});
             }
-        });
+        };
+        channel.listen('.task.synced', onTaskSynced);
+        // A task changed while the socket was down is not replayed: re-sync.
+        const stopReconnect = onRealtimeReconnect(() => onTaskSynced(null));
+
         return () => {
-            channel.stopListening('.task.synced');
+            channel.stopListening('.task.synced', onTaskSynced);
+            stopReconnect();
             window.Echo.leaveChannel(channel.name);
         };
     }, [projectId, project]);
@@ -347,7 +357,13 @@ export default function ProjectDetail() {
             return;
         }
 
-        api.post(`/projects/${projectId}/tasks/${task.id}/move`, { status_id: statusId, index })
+        // The card lands in its new column immediately; a refusal rolls it back
+        // (and the refetch below re-syncs counts/positions with the server).
+        optimistic(
+            setBoard,
+            (current) => moveCardInBoard(current, task.id, statusId, index),
+            () => api.post(`/projects/${projectId}/tasks/${task.id}/move`, { status_id: statusId, index }),
+        )
             .then(() => {
                 toast.success(t('tms.project.moved', { key: task.key }));
                 loadTasks();
@@ -360,6 +376,19 @@ export default function ProjectDetail() {
                 toast.error(message);
                 loadTasks(); // snap the card back to where the server says it is
             });
+    }
+
+    // Column footer "+ Add task": title only, lands in that column. Re-throws
+    // so the board keeps the typed text when the server refuses it.
+    async function quickAddTask(statusId, title) {
+        try {
+            await api.post(`/projects/${projectId}/tasks`, { title, status_id: statusId });
+            toast.success(t('tms.project.taskCreated'));
+            await loadTasks();
+        } catch (e) {
+            toast.error(fieldErrors(e).title || fieldErrors(e).form || fieldErrors(e).status_id || t('tms.project.taskCreateFailed'));
+            throw e;
+        }
     }
 
     function createTask(data) {
@@ -666,66 +695,7 @@ export default function ProjectDetail() {
             <Tabs tabs={tabs} active={tab} onChange={changeTab} />
 
             {tab === 'overview' && (
-                <div className="grid grid-cols-1 gap-5 lg:grid-cols-3">
-                    <div className="space-y-5 lg:col-span-2">
-                        <Card title={t('tms.project.detailsTitle')} subtitle={t('tms.project.detailsSubtitle', { id: project.workspace_id })}>
-                            <dl className="grid grid-cols-2 gap-4 text-sm">
-                                <div>
-                                    <dt className="text-xs font-medium uppercase tracking-wide text-gray-400">{t('tms.project.key')}</dt>
-                                    <dd className="mt-1 font-semibold text-gray-900">{project.key}</dd>
-                                </div>
-                                <div>
-                                    <dt className="text-xs font-medium uppercase tracking-wide text-gray-400">{t('tms.project.lead')}</dt>
-                                    <dd className="mt-1 text-gray-700">{lead?.name ?? '—'}</dd>
-                                </div>
-                                <div>
-                                    <dt className="text-xs font-medium uppercase tracking-wide text-gray-400">{t('tms.project.startDate')}</dt>
-                                    <dd className="mt-1 text-gray-700">{project.start_date ?? '—'}</dd>
-                                </div>
-                                <div>
-                                    <dt className="text-xs font-medium uppercase tracking-wide text-gray-400">{t('tms.project.dueDate')}</dt>
-                                    <dd className="mt-1 text-gray-700">{project.due_date ?? '—'}</dd>
-                                </div>
-                            </dl>
-                        </Card>
-                    </div>
-                    <div className="space-y-5">
-                        <Card title={t('tms.project.workflowTitle')}>
-                            {statuses.length === 0 ? (
-                                <p className="text-sm text-gray-500">{t('tms.project.noStatuses')}</p>
-                            ) : (
-                                <ol className="space-y-2">
-                                    {statuses.map((s) => (
-                                        <li
-                                            key={s.id}
-                                            className="flex items-center justify-between rounded-lg border px-3 py-2 text-sm"
-                                        >
-                                            <span className="flex items-center gap-2 font-medium text-gray-700">
-                                                <span className="h-3 w-3 rounded-full" style={{ backgroundColor: s.color || '#cbd5e1' }} />
-                                                {s.name}
-                                            </span>
-                                            <span className="text-xs text-gray-400">{t(`tms.project.categories.${s.category}`)}</span>
-                                        </li>
-                                    ))}
-                                </ol>
-                            )}
-                            <div className="mt-4 grid grid-cols-3 gap-3 text-center">
-                                <div className="rounded-lg border border-gray-100 px-3 py-2">
-                                    <p className="text-xl font-bold text-gray-900">{members.length}</p>
-                                    <p className="text-xs text-gray-500">{t('tms.project.statMembers')}</p>
-                                </div>
-                                <div className="rounded-lg border border-gray-100 px-3 py-2">
-                                    <p className="text-xl font-bold text-gray-900">{project.tasks_count ?? 0}</p>
-                                    <p className="text-xs text-gray-500">{t('tms.project.statTasks')}</p>
-                                </div>
-                                <div className="rounded-lg border border-gray-100 px-3 py-2">
-                                    <p className="text-xl font-bold text-gray-900">{statuses.length}</p>
-                                    <p className="text-xs text-gray-500">{t('tms.project.statStatuses')}</p>
-                                </div>
-                            </div>
-                        </Card>
-                    </div>
-                </div>
+                <ProjectOverviewTab lead={lead} members={members} project={project} statuses={statuses} />
             )}
 
             {tab === 'tasks' && (
@@ -792,8 +762,10 @@ export default function ProjectDetail() {
                             board={board}
                             canMove={canMoveTask}
                             canEdit={canEditTask}
+                            canCreate={canCreateTask}
                             onOpen={openTask}
                             onDragEnd={handleDragEnd}
+                            onQuickAdd={quickAddTask}
                         />
                     ) : view === 'list' ? (
                         <div className="space-y-3">
@@ -812,100 +784,7 @@ export default function ProjectDetail() {
             )}
 
             {tab === 'members' && (
-                <div className="space-y-5">
-                    {isProjectManager && (
-                        <Card title={t('tms.project.addMemberTitle')} subtitle={t('tms.project.addMemberSubtitle')}>
-                            <form onSubmit={addMember} className="flex flex-col gap-3 sm:flex-row sm:items-end">
-                                <div className="flex-1">
-                                    <select
-                                        className="block w-full rounded-lg border border-gray-300 bg-white px-3.5 py-2.5 text-sm shadow-sm focus:border-[var(--accent)] focus:outline-none"
-                                        value={memberForm.user_id}
-                                        onChange={(e) => setMemberForm((f) => ({ ...f, user_id: e.target.value }))}
-                                    >
-                                        <option value="">{t('tms.project.selectUser')}</option>
-                                        {candidateUsers.map((u) => (
-                                            <option key={u.id} value={u.id}>
-                                                {u.name} ({u.email})
-                                            </option>
-                                        ))}
-                                        {candidateUsers.length === 0 && <option value="">{t('tms.project.noEligible')}</option>}
-                                    </select>
-                                    {formErrors.user_id && <p className="mt-1.5 text-sm text-red-600">{formErrors.user_id}</p>}
-                                </div>
-                                <div>
-                                    <select
-                                        className="block w-full rounded-lg border border-gray-300 bg-white px-3.5 py-2.5 text-sm shadow-sm focus:border-[var(--accent)] focus:outline-none"
-                                        value={memberForm.role_id}
-                                        onChange={(e) => setMemberForm((f) => ({ ...f, role_id: Number(e.target.value) }))}
-                                    >
-                                        {roles.map((r) => (
-                                            <option key={r.id} value={r.id}>
-                                                {r.name}
-                                            </option>
-                                        ))}
-                                    </select>
-                                    {formErrors.role_id && <p className="mt-1.5 text-sm text-red-600">{formErrors.role_id}</p>}
-                                </div>
-                                <Button type="submit" loading={savingMember}>
-                                    {t('tms.project.add')}
-                                </Button>
-                            </form>
-                        </Card>
-                    )}
-
-                    <Card title={t('tms.project.membersTitle')}>
-                        <ul className="divide-y divide-gray-100">
-                            {members.map((member) => {
-                                const self = member.id === user?.id;
-                                const canManage = isProjectManager && !self;
-                                return (
-                                    <li key={member.id} className="flex flex-wrap items-center justify-between gap-3 py-3">
-                                        <div className="flex items-center gap-3">
-                                            <span
-                                                className="flex h-9 w-9 items-center justify-center rounded-full text-xs font-bold text-white"
-                                                style={{ backgroundColor: 'var(--accent)' }}
-                                            >
-                                                {member.name.charAt(0).toUpperCase()}
-                                            </span>
-                                            <div>
-                                                <p className="text-sm font-medium text-gray-900">
-                                                    {member.name} {self && <span className="text-gray-400">{t('tms.project.you')}</span>}
-                                                </p>
-                                                <p className="text-xs text-gray-400">{member.email}</p>
-                                            </div>
-                                        </div>
-                                        <div className="flex items-center gap-2">
-                                            {member.role ? (
-                                                canManage ? (
-                                                    <select
-                                                        className="rounded-lg border border-gray-300 bg-white px-2 py-1 text-xs shadow-sm focus:outline-none"
-                                                        value={member.role.id}
-                                                        onChange={(e) => changeRole(member, Number(e.target.value))}
-                                                    >
-                                                        {roles.map((r) => (
-                                                            <option key={r.id} value={r.id}>
-                                                                {r.name}
-                                                            </option>
-                                                        ))}
-                                                    </select>
-                                                ) : (
-                                                    <Badge>{projectRoleLabel(member.role.slug, member.role.name)}</Badge>
-                                                )
-                                            ) : (
-                                                <Badge>{t('tms.project.memberFallback')}</Badge>
-                                            )}
-                                            {canManage && (
-                                                <Button size="sm" variant="ghost" onClick={() => removeMember(member)}>
-                                                    {t('tms.project.remove')}
-                                                </Button>
-                                            )}
-                                        </div>
-                                    </li>
-                                );
-                            })}
-                        </ul>
-                    </Card>
-                </div>
+                <ProjectMembersTab addMember={addMember} candidateUsers={candidateUsers} changeRole={changeRole} formErrors={formErrors} isProjectManager={isProjectManager} memberForm={memberForm} members={members} removeMember={removeMember} roles={roles} savingMember={savingMember} setMemberForm={setMemberForm} user={user} />
             )}
 
             {tab === 'hierarchy' && <HierarchyPanel projectId={projectId} />}
@@ -923,234 +802,7 @@ export default function ProjectDetail() {
             )}
 
             {tab === 'workflow' && isProjectManager && (
-                <div className="space-y-5">
-                    <WorkflowRules projectId={projectId} />
-                    <Card title={t('tms.project.newStatusTitle')} subtitle={t('tms.project.newStatusSubtitle')}>
-                        <form onSubmit={addStatus} className="flex flex-col gap-3 sm:flex-row sm:items-end">
-                            <div className="flex-1">
-                                <Input
-                                    label={t('tms.project.statusName')}
-                                    name="status-name"
-                                    placeholder={t('tms.project.statusNamePlaceholder')}
-                                    value={statusForm.name}
-                                    onChange={(e) => setStatusForm((f) => ({ ...f, name: e.target.value }))}
-                                    error={formErrors.name}
-                                    required
-                                />
-                            </div>
-                            <div>
-                                <label className="mb-1.5 block text-sm font-medium text-gray-700">{t('tms.project.category')}</label>
-                                <select
-                                    className="block w-full rounded-lg border border-gray-300 bg-white px-3.5 py-2.5 text-sm shadow-sm focus:border-[var(--accent)] focus:outline-none"
-                                    value={statusForm.category}
-                                    onChange={(e) => setStatusForm((f) => ({ ...f, category: e.target.value }))}
-                                >
-                                    <option value="todo">{t('tms.project.categories.todo')}</option>
-                                    <option value="in_progress">{t('tms.project.categories.in_progress')}</option>
-                                    <option value="done">{t('tms.project.categories.done')}</option>
-                                </select>
-                            </div>
-                            <div>
-                                <label className="mb-1.5 block text-sm font-medium text-gray-700">{t('tms.project.color')}</label>
-                                <input
-                                    type="color"
-                                    className="h-[42px] w-16 rounded-lg border border-gray-300 bg-white p-1 shadow-sm focus:outline-none"
-                                    value={statusForm.color}
-                                    onChange={(e) => setStatusForm((f) => ({ ...f, color: e.target.value }))}
-                                />
-                            </div>
-                            <div>
-                                <Input
-                                    label={t('tms.project.wip')}
-                                    name="status-wip"
-                                    type="number"
-                                    min="1"
-                                    placeholder={t('tms.project.wipPlaceholder')}
-                                    value={statusForm.wip_limit ?? ''}
-                                    onChange={(e) => setStatusForm((f) => ({ ...f, wip_limit: e.target.value === '' ? null : Number(e.target.value) }))}
-                                />
-                            </div>
-                            <Button type="submit" loading={savingStatus}>
-                                {t('tms.project.addStatus')}
-                            </Button>
-                        </form>
-                    </Card>
-
-                    <Card title={t('tms.project.workflowCardTitle')} subtitle={t('tms.project.workflowCardSubtitle')}>
-                        {formErrors.form && <Alert>{formErrors.form}</Alert>}
-                        <ol className="space-y-2">
-                            {statuses.map((status, index) => (
-                                <li
-                                    key={status.id}
-                                    className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-gray-100 px-3 py-2"
-                                >
-                                    <div className="flex items-center gap-2">
-                                        <div className="flex flex-col">
-                                            <button
-                                                type="button"
-                                                className="text-gray-400 transition hover:text-gray-700 disabled:opacity-30"
-                                                disabled={index === 0}
-                                                onClick={() => moveStatus(status, status.position - 1)}
-                                                aria-label={t('tms.project.moveUp', { name: status.name })}
-                                            >
-                                                ↑
-                                            </button>
-                                            <button
-                                                type="button"
-                                                className="text-gray-400 transition hover:text-gray-700 disabled:opacity-30"
-                                                disabled={index === statuses.length - 1}
-                                                onClick={() => moveStatus(status, status.position + 1)}
-                                                aria-label={t('tms.project.moveDown', { name: status.name })}
-                                            >
-                                                ↓
-                                            </button>
-                                        </div>
-                                        <input
-                                            type="text"
-                                            className="w-40 rounded-lg border border-transparent bg-transparent px-2 py-1 text-sm font-semibold text-gray-800 focus:border-[var(--accent-ring)] focus:bg-white"
-                                            defaultValue={status.name}
-                                            onBlur={(e) => {
-                                                if (e.target.value !== status.name && e.target.value.trim()) {
-                                                    updateStatus(status, { name: e.target.value.trim() });
-                                                }
-                                            }}
-                                        />
-                                        <span className="h-3 w-3 rounded-full" style={{ backgroundColor: status.color || '#cbd5e1' }} />
-                                    </div>
-                                    <div className="flex items-center gap-2">
-                                        <select
-                                            className="rounded-lg border border-gray-300 bg-white px-2 py-1 text-xs shadow-sm focus:outline-none"
-                                            value={status.category}
-                                            onChange={(e) => updateStatus(status, { category: e.target.value })}
-                                        >
-                                            <option value="todo">{t('tms.project.categories.todo')}</option>
-                                            <option value="in_progress">{t('tms.project.categories.in_progress')}</option>
-                                            <option value="done">{t('tms.project.categories.done')}</option>
-                                        </select>
-                                        <input
-                                            type="number"
-                                            min="1"
-                                            placeholder={t('tms.project.wipShort')}
-                                            title={t('tms.project.wipTitle')}
-                                            className="w-16 rounded-lg border border-gray-300 bg-white px-2 py-1 text-xs shadow-sm focus:border-[var(--accent-ring)] focus:outline-none"
-                                            defaultValue={status.wip_limit ?? ''}
-                                            onBlur={(e) => {
-                                                const next = e.target.value === '' ? null : Number(e.target.value);
-                                                if ((next ?? '') !== (status.wip_limit ?? '')) {
-                                                    updateStatus(status, { wip_limit: next });
-                                                }
-                                            }}
-                                        />
-                                        {status.is_default && <Badge>{t('tms.project.defaultBadge')}</Badge>}
-                                        <Button size="sm" variant="ghost" onClick={() => deleteStatus(status)}>
-                                            {t('tms.project.delete')}
-                                        </Button>
-                                    </div>
-                                </li>
-                            ))}
-                        </ol>
-                    </Card>
-
-                    <Card title={t('tms.project.typesTitle')} subtitle={t('tms.project.typesSubtitle')}>
-                        {can('workspaces.manage') && (
-                            <form onSubmit={addIssueType} className="mb-6 flex flex-col gap-3 rounded-lg border border-gray-100 bg-gray-50/50 p-4 sm:flex-row sm:items-end">
-                                <div className="flex-1">
-                                    <Input
-                                        label={t('tms.project.typeName')}
-                                        placeholder={t('tms.project.typeNamePlaceholder')}
-                                        value={issueTypeForm.name}
-                                        onChange={(e) => setIssueTypeForm((f) => ({ ...f, name: e.target.value }))}
-                                        error={issueTypeErrors.name}
-                                        required
-                                    />
-                                </div>
-                                <div className="flex-1">
-                                    <Input
-                                        label={t('tms.project.typeDesc')}
-                                        placeholder={t('tms.project.typeDescPlaceholder')}
-                                        value={issueTypeForm.description}
-                                        onChange={(e) => setIssueTypeForm((f) => ({ ...f, description: e.target.value }))}
-                                    />
-                                </div>
-                                <div>
-                                    <label className="mb-1.5 block text-sm font-medium text-gray-700">{t('tms.project.color')}</label>
-                                    <input
-                                        type="color"
-                                        className="h-[42px] w-16 rounded-lg border border-gray-300 bg-white p-1 shadow-sm focus:outline-none"
-                                        value={issueTypeForm.color}
-                                        onChange={(e) => setIssueTypeForm((f) => ({ ...f, color: e.target.value }))}
-                                    />
-                                </div>
-                                <div className="flex items-center gap-2 pb-2">
-                                    <label className="flex items-center gap-1.5 text-xs text-gray-600 cursor-pointer">
-                                        <input
-                                            type="checkbox"
-                                            className="rounded border-gray-300 accent-[var(--accent)]"
-                                            checked={issueTypeForm.is_subtask}
-                                            onChange={(e) => setIssueTypeForm((f) => ({ ...f, is_subtask: e.target.checked }))}
-                                        />
-                                        {t('tms.project.subtask')}
-                                    </label>
-                                </div>
-                                <Button type="submit" loading={savingIssueType}>
-                                    {t('tms.project.addType')}
-                                </Button>
-                            </form>
-                        )}
-                        {issueTypeErrors.form && <Alert>{issueTypeErrors.form}</Alert>}
-                        <ul className="divide-y divide-gray-100">
-                            {issueTypes.map((type) => (
-                                <li key={type.id} className="flex items-center justify-between py-3">
-                                    <div className="flex items-center gap-3">
-                                        <span
-                                            className="h-3.5 w-3.5 rounded-full"
-                                            style={{ backgroundColor: type.color || '#2563eb' }}
-                                        />
-                                        <div>
-                                            <div className="flex items-center gap-2">
-                                                <span className="font-medium text-gray-900">{type.name}</span>
-                                                <span className="text-xs text-gray-400">({type.slug})</span>
-                                                {type.is_subtask && (
-                                                    <Badge color="purple">{t('tms.project.subtaskBadge')}</Badge>
-                                                )}
-                                                {type.tasks_count != null && (
-                                                    <span className="text-xs text-gray-400">{t('tms.project.tasksCount', { count: type.tasks_count })}</span>
-                                                )}
-                                            </div>
-                                            {type.description && (
-                                                <p className="text-xs text-gray-500">{type.description}</p>
-                                            )}
-                                        </div>
-                                    </div>
-                                    {can('workspaces.manage') && (
-                                        <div className="flex items-center gap-2">
-                                            <input
-                                                type="color"
-                                                className="h-7 w-8 rounded border border-gray-200 bg-white p-0.5"
-                                                defaultValue={type.color || '#2563eb'}
-                                                onBlur={(e) => {
-                                                    if (e.target.value !== type.color) {
-                                                        updateIssueType(type, { color: e.target.value });
-                                                    }
-                                                }}
-                                                title={t('tms.project.changeColor')}
-                                            />
-                                            <Button
-                                                size="sm"
-                                                variant="ghost"
-                                                onClick={() => deleteIssueType(type)}
-                                                disabled={type.tasks_count > 0}
-                                                title={type.tasks_count > 0 ? t('tms.project.cannotDelete') : t('tms.project.delete')}
-                                            >
-                                                {t('tms.project.delete')}
-                                            </Button>
-                                        </div>
-                                    )}
-                                </li>
-                            ))}
-                        </ul>
-                    </Card>
-                </div>
+                <ProjectWorkflowTab addIssueType={addIssueType} addStatus={addStatus} can={can} deleteIssueType={deleteIssueType} deleteStatus={deleteStatus}  formErrors={formErrors} issueTypeErrors={issueTypeErrors} issueTypeForm={issueTypeForm} issueTypes={issueTypes} moveStatus={moveStatus} projectId={projectId} savingIssueType={savingIssueType} savingStatus={savingStatus} setIssueTypeForm={setIssueTypeForm} setStatusForm={setStatusForm} statusForm={statusForm} statuses={statuses} updateIssueType={updateIssueType} updateStatus={updateStatus} />
             )}
 
             {tab === 'time' && (

@@ -1,4 +1,5 @@
 @php($site = $site ?? \App\Support\SiteConfig::all())
+@php($demoLink = collect($site['nav'] ?? [])->first(fn ($link) => ($link['href'] ?? null) === '/contact'))
 <!DOCTYPE html>
 <html lang="{{ str_replace('_', '-', app()->getLocale()) }}">
 <head>
@@ -21,12 +22,6 @@
     @endif
     @if(!empty($site['custom_head'])){!! $site['custom_head'] !!}@endif
     <x-site.json-ld :crumbs="$crumbs ?? []" :faq="$faqSchema ?? []" :article="$article ?? null" />
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link
-        href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap"
-        rel="stylesheet"
-    >
     @php($siteI18n = [
         'contactError' => __('site.contact.error'),
         'contactThanks' => __('site.contact.thanks'),
@@ -64,6 +59,7 @@
                 @endforeach
             </nav>
             <div class="hidden items-center gap-2 lg:flex">
+                @if($demoLink)<x-site.button href="/contact" variant="ghost">{{ __('site.actions.bookDemo') }}</x-site.button>@endif
                 <x-site.button href="/app/login" variant="ghost">{{ __('site.actions.logIn') }}</x-site.button>
                 <x-site.button href="/app/register">{{ __('site.actions.startFree') }}</x-site.button>
             </div>
@@ -77,6 +73,7 @@
                     <a href="{{ $link['href'] }}" class="rounded-lg px-3 py-2.5 text-sm font-medium text-slate-700 transition hover:bg-slate-100">{{ $link['label'] }}</a>
                 @endforeach
                 <div class="mt-2 flex flex-col gap-2 border-t border-slate-100 pt-4">
+                    @if($demoLink)<x-site.button href="/contact" variant="ghost">{{ __('site.actions.bookDemo') }}</x-site.button>@endif
                     <x-site.button href="/app/login" variant="ghost">{{ __('site.actions.logIn') }}</x-site.button>
                     <x-site.button href="/app/register">{{ __('site.actions.startFree') }}</x-site.button>
                 </div>

@@ -8,6 +8,7 @@ import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
 import { useConfirm, usePrompt } from '../ui/ConfirmDialog';
 import Timestamp from '../ui/Timestamp';
+import { onRealtimeReconnect } from '../../utils/realtimeAuth';
 
 export default function CommentThread({ task, projectId, isManager, targetCommentId = null }) {
     const { t } = useTranslation();
@@ -48,8 +49,13 @@ export default function CommentThread({ task, projectId, isManager, targetCommen
         if (!window.Echo) return undefined;
         const channel = window.Echo.private(`project.${projectId}`);
         channel.listen('.comment.synced', fetchComments);
+        const stopReconnect = onRealtimeReconnect(fetchComments);
+
         return () => {
-            channel.stopListening('.comment.synced');
+            // Pass the handler: the channel is shared with the board, and a bare
+            // stopListening would also drop other listeners of this event.
+            channel.stopListening('.comment.synced', fetchComments);
+            stopReconnect();
         };
     }, [fetchComments, projectId]);
 
@@ -354,7 +360,7 @@ export default function CommentThread({ task, projectId, isManager, targetCommen
                             onMouseEnter={() => setSugActive(index)}
                             onClick={() => selectSuggestion(member)}
                         >
-                            <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[var(--accent-soft)] text-[11px] font-semibold text-[var(--accent-soft-text)]">
+                            <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[var(--accent-soft)] text-xs font-semibold text-[var(--accent-soft-text)]">
                                 {member.name
                                     .split(' ')
                                     .map((part) => part[0])

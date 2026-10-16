@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import api, { fieldErrors } from '../../services/api';
 import Button from '../ui/Button';
@@ -17,6 +17,7 @@ import { useAuth } from '../../context/AuthContext';
 import RichTextEditor from '../ui/RichTextEditor';
 import RichText from '../ui/RichText';
 import Timestamp from '../ui/Timestamp';
+import useUnsavedChanges from '../../hooks/useUnsavedChanges';
 
 export default function TaskDetail({
     task,
@@ -47,11 +48,13 @@ export default function TaskDetail({
     const [watchers, setWatchers] = useState([]);
     const [togglingWatch, setTogglingWatch] = useState(false);
     const [watcherError, setWatcherError] = useState(null);
+    // Snapshot of the form as loaded from the server; the drawer is "dirty"
+    // while the live form differs from it.
+    const baseline = useRef('');
 
     useEffect(() => {
-        setForm(
-            task
-                ? {
+        const loaded = task
+            ? {
                       title: task.title,
                       description: task.description || '',
                       issue_type_id: task.issue_type_id ?? task.issue_type?.id ?? '',
@@ -67,9 +70,10 @@ export default function TaskDetail({
                       due_date: task.due_date || '',
                       story_points: task.story_points ?? '',
                       estimate_minutes: task.estimate_minutes ?? '',
-                  }
-                : null,
-        );
+              }
+            : null;
+        baseline.current = JSON.stringify(loaded);
+        setForm(loaded);
         setWatchers(task?.watchers || []);
         setWatcherError(null);
         setErrors({});
@@ -77,6 +81,13 @@ export default function TaskDetail({
             ? initialSection
             : 'details');
     }, [task, initialSection]);
+
+    const dirty = form !== null && JSON.stringify(form) !== baseline.current;
+    const confirmDiscard = useUnsavedChanges(dirty);
+
+    async function handleClose() {
+        if (await confirmDiscard()) onClose();
+    }
 
     if (!task) return null;
 
@@ -182,7 +193,7 @@ export default function TaskDetail({
     return (
         <Drawer
             open={!!task}
-            onClose={onClose}
+            onClose={handleClose}
             title={form ? task.title : t('tms.detail.fallbackTitle')}
             subtitle={form ? `${projectKey} · ${task.key}` : ''}
             footer={
@@ -194,6 +205,11 @@ export default function TaskDetail({
                             </Button>
                         ) : (
                             <span />
+                        )}
+                        {dirty && (
+                            <span className="self-center text-caption font-medium text-warning" role="status">
+                                {t('admin.common.unsavedBadge')}
+                            </span>
                         )}
                         {canEdit && (
                             <Button type="submit" form="task-detail-form" loading={saving} disabled={disabled}>

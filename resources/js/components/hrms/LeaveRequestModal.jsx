@@ -66,7 +66,7 @@ function TeamMiniCalendar({ year, month, days }) {
         <div>
             <div className="mb-1 grid grid-cols-7 gap-0.5">
                 {weekdayInitials().map((day, i) => (
-                    <span key={i} className="text-center text-[11px] font-medium text-gray-400">
+                    <span key={i} className="text-center text-xs font-medium text-gray-400">
                         {day}
                     </span>
                 ))}

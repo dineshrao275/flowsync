@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '../context/ThemeContext';
 import { useToast } from '../context/ToastContext';
-import { THEME_FIELDS, THEME_PRESETS } from '../theme';
+import { THEME_FIELDS, THEME_PRESETS, themeContrastIssues } from '../theme';
 import Button from './ui/Button';
 
 const SCHEMES = [
@@ -42,7 +42,7 @@ function SchemeField({ value, onChange }) {
                     >
                         <span className={`h-5 w-9 rounded border ${scheme.swatch}`} />
                         <span className="text-xs font-semibold">{t(`shell.theme.modes.${scheme.value}`)}</span>
-                        <span className="text-[10px] text-gray-500">{t(`shell.theme.hints.${scheme.value}`)}</span>
+                        <span className="text-xs text-gray-500">{t(`shell.theme.hints.${scheme.value}`)}</span>
                     </button>
                 );
             })}
@@ -159,6 +159,18 @@ export default function ThemeSettingsDrawer({ open, onClose }) {
 
                     <section>
                         <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-gray-500">{t('shell.theme.colors')}</h3>
+                        {themeContrastIssues(draft).length > 0 && (
+                            <div role="status" className="mb-3 rounded-lg border border-warning-line bg-warning-soft px-3 py-2 text-xs text-warning">
+                                <p className="font-semibold">{t('shell.theme.contrast.title')}</p>
+                                <ul className="mt-1 list-disc space-y-0.5 pl-4">
+                                    {themeContrastIssues(draft).map((issue) => (
+                                        <li key={issue.id}>
+                                            {t(`shell.theme.contrast.${issue.id}`, { ratio: issue.ratio.toFixed(1), min: issue.min })}
+                                        </li>
+                                    ))}
+                                </ul>
+                            </div>
+                        )}
                         <div className="space-y-2">
                             {THEME_FIELDS.map((field) => (
                                 <ColorField
