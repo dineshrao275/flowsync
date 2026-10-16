@@ -69,6 +69,11 @@
 }
 
 :root {
+    /* gray-400 is used for secondary TEXT all over the app (placeholders, meta
+       lines, empty states). The stock value is 2.5:1 on white; this is 4.8:1
+       (AA). Dark mode re-maps gray-400 below, so this only affects light. */
+    --color-gray-400: #6b7280;
+
     --sidebar-bg: #0f172a;
     --sidebar-hover: #1e293b;
     --active-menu: #2563eb;
@@ -678,4 +683,17 @@ body {
 .dark .rich-text,
 .dark .rich-text-editor-content {
     color: #e5e7eb;
+}
+
+
+/*
+ * Form controls often carry `focus:outline-none` plus a 1px border-colour
+ * change, which is not a visible focus indicator (WCAG 2.4.7/2.4.11). Restore
+ * a real ring for keyboard focus on every control, whatever its utilities say.
+ */
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+    outline: 2px solid var(--accent) !important;
+    outline-offset: 1px;
 }

@@ -194,7 +194,7 @@ export default function CommandPalette({ open, onClose }) {
                             className="h-12 flex-1 bg-transparent text-sm text-gray-900 outline-none placeholder:text-gray-400"
                             aria-label={t('shell.commandPalette.ariaLabel')}
                         />
-                        <kbd className="shrink-0 rounded border border-gray-200 bg-gray-50 px-1.5 py-0.5 text-[10px] font-medium text-gray-400">
+                        <kbd className="shrink-0 rounded border border-gray-200 bg-gray-50 px-1.5 py-0.5 text-xs font-medium text-gray-400">
                             {t('shell.commandPalette.escLabel')}
                         </kbd>
                     </div>
@@ -262,7 +262,7 @@ export default function CommandPalette({ open, onClose }) {
                         )}
                     </div>
 
-                    <div className="border-t border-gray-100 px-4 py-2 text-[11px] text-gray-400">
+                    <div className="border-t border-gray-100 px-4 py-2 text-xs text-gray-400">
                         {t('shell.commandPalette.footer')}
                     </div>
                 </div>

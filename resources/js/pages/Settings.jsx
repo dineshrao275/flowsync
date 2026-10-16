@@ -132,7 +132,7 @@ export default function Settings() {
                                 {(user?.permissions || []).map((permission) => (
                                     <span
                                         key={permission}
-                                        className="rounded bg-gray-100 px-2 py-0.5 text-[11px] text-gray-600"
+                                        className="rounded bg-gray-100 px-2 py-0.5 text-xs text-gray-600"
                                     >
                                         {permission}
                                     </span>

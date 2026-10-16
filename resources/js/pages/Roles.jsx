@@ -70,7 +70,7 @@ function PermissionGrid({ permissions, isChecked, onToggle, disabled = false, de
                             >
                                 <span>{open ? '▾' : '▸'}</span>
                                 {prettyDomain(domain)}
-                                <span className="rounded-full bg-white px-1.5 py-0.5 text-[10px] font-medium normal-case text-gray-500">
+                                <span className="rounded-full bg-white px-1.5 py-0.5 text-xs font-medium normal-case text-gray-500">
                                     {on}/{all.length}
                                 </span>
                             </button>
@@ -100,7 +100,7 @@ function PermissionGrid({ permissions, isChecked, onToggle, disabled = false, de
                                         <span className="text-gray-700">
                                             <span className="flex flex-wrap items-center gap-1.5">
                                                 {permission.name}
-                                                <span className="rounded bg-gray-100 px-1 py-px text-[10px] font-medium uppercase tracking-wide text-gray-500">
+                                                <span className="rounded bg-gray-100 px-1 py-px text-xs font-medium uppercase tracking-wide text-gray-500">
                                                     {productBadge(t, permission.product)}
                                                 </span>
                                             </span>

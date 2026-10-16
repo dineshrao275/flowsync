@@ -90,7 +90,7 @@ export default function FeatureManagement() {
                                     <th scope="col" key={plan.id} className="pb-2 text-center font-semibold">
                                         {plan.name}
                                         {!plan.is_active && (
-                                            <span className="block text-[10px] text-gray-300">{t('admin.featureManagement.inactive')}</span>
+                                            <span className="block text-xs text-gray-300">{t('admin.featureManagement.inactive')}</span>
                                         )}
                                     </th>
                                 ))}

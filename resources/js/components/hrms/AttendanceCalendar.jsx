@@ -87,14 +87,14 @@ export default function AttendanceCalendar({ year, month, days = [], selectedDat
                         {/* The bar carries the status hue; the label stays
                             dark — 11px colored text on white fails contrast
                             for every hue, while the bar needs no text. */}
-                        <span className="block truncate text-[11px] font-medium text-gray-700">
+                        <span className="block truncate text-xs font-medium text-gray-700">
                             {entry.status_label}
                             {entry.is_regularized ? ' ·R' : ''}
                         </span>
-                        <span className="block text-[11px] text-gray-500">{formatMinutes(entry.worked_minutes)}</span>
+                        <span className="block text-xs text-gray-500">{formatMinutes(entry.worked_minutes)}</span>
                     </span>
                 ) : (
-                    <span className="text-[11px] text-gray-300">—</span>
+                    <span className="text-xs text-gray-300">—</span>
                 )}
             </button>,
         );

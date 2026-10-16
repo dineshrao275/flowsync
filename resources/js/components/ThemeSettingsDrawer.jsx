@@ -42,7 +42,7 @@ function SchemeField({ value, onChange }) {
                     >
                         <span className={`h-5 w-9 rounded border ${scheme.swatch}`} />
                         <span className="text-xs font-semibold">{t(`shell.theme.modes.${scheme.value}`)}</span>
-                        <span className="text-[10px] text-gray-500">{t(`shell.theme.hints.${scheme.value}`)}</span>
+                        <span className="text-xs text-gray-500">{t(`shell.theme.hints.${scheme.value}`)}</span>
                     </button>
                 );
             })}

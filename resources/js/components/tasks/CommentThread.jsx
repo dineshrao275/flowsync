@@ -354,7 +354,7 @@ export default function CommentThread({ task, projectId, isManager, targetCommen
                             onMouseEnter={() => setSugActive(index)}
                             onClick={() => selectSuggestion(member)}
                         >
-                            <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[var(--accent-soft)] text-[11px] font-semibold text-[var(--accent-soft-text)]">
+                            <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[var(--accent-soft)] text-xs font-semibold text-[var(--accent-soft-text)]">
                                 {member.name
                                     .split(' ')
                                     .map((part) => part[0])

@@ -64,7 +64,7 @@ export default function DocumentList({ documents, canVerify, canDelete, canRepla
                             <span className="block font-medium text-gray-900">
                                 {document.title}
                                 {document.confidential && (
-                                    <span className="ml-2 rounded bg-amber-100 px-1.5 py-0.5 text-[10px] font-semibold uppercase text-amber-700">
+                                    <span className="ml-2 rounded bg-amber-100 px-1.5 py-0.5 text-xs font-semibold uppercase text-amber-700">
                                         {t('hrms.docs.confidential')}
                                     </span>
                                 )}
