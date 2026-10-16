@@ -457,6 +457,7 @@ function CatalogPanel({ designations, locations, canManage, onEditDesignation, o
 }
 
 function CatalogList({ items, empty, onEdit, secondary }) {
+    const { t } = useTranslation();
     if (items.length === 0) {
         return <p className="text-sm text-gray-500">{empty}</p>;
     }
@@ -467,12 +468,12 @@ function CatalogList({ items, empty, onEdit, secondary }) {
                 <li key={item.id} className="flex items-center gap-2 py-2 first:pt-0 last:pb-0">
                     <span className="min-w-0 flex-1 truncate text-sm text-gray-800">
                         {item.name}
-                        {!item.is_active && <span className="ml-2 text-xs text-gray-400">inactive</span>}
+                        {!item.is_active && <span className="ml-2 text-xs text-gray-400">{t('hrms.org.inactive')}</span>}
                     </span>
                     <span className="shrink-0 text-xs text-gray-400">{secondary?.(item) ?? ''}</span>
                     {onEdit && (
                         <Button variant="ghost" size="sm" onClick={() => onEdit(item)}>
-                            Edit
+                            {t('hrms.common.edit')}
                         </Button>
                     )}
                 </li>

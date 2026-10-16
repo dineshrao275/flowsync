@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import Button from './Button';
 
 export default function Pagination({
@@ -11,19 +12,22 @@ export default function Pagination({
     size = 'md',
     className = '',
 }) {
+    const { t } = useTranslation();
     if (!pages || pages <= 1) return null;
 
     const center = (custom) =>
-        custom ?? `Page ${page} of ${pages}${total != null ? ` · ${total}` : ''}`;
+        custom ?? (total != null
+            ? t('admin.common.pageOfTotal', { page, pages, total })
+            : t('admin.common.pageOf', { page, pages }));
 
     const prevBtn = (
         <Button variant={variant} size={size} disabled={page <= 1} onClick={() => onChange(page - 1)}>
-            Prev
+            {t('admin.common.prev')}
         </Button>
     );
     const nextBtn = (
         <Button variant={variant} size={size} disabled={page >= pages} onClick={() => onChange(page + 1)}>
-            Next
+            {t('admin.common.next')}
         </Button>
     );
 
