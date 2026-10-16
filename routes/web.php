@@ -23,6 +23,7 @@ use App\Http\Controllers\ImpersonationController;
 use App\Http\Controllers\InvoiceController;
 use App\Http\Controllers\IssueTypeController;
 use App\Http\Controllers\LanguageController;
+use App\Http\Controllers\MetricsController;
 use App\Http\Controllers\MySubscriptionController;
 use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\NotificationPolicyController;
@@ -55,6 +56,7 @@ use Illuminate\Support\Facades\Route;
 
 Route::prefix('api')->group(function () {
     Route::get('health', [PlatformHealthController::class, 'ping']);
+    Route::get('metrics', MetricsController::class)->middleware('throttle:120,1');
     Route::get('locales', [LanguageController::class, 'index']);
     // Guest auth endpoints resolve locale from ?locale=/session/
     // Accept-Language (no tenant is known before sign-in), so sign-in

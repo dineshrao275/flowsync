@@ -22,6 +22,7 @@ class RouteAuthAuditTest extends TestCase
         'POST api/csp-report',
         'GET api/health',
         'GET api/locales',
+        'GET api/metrics',
         'POST api/logs/client',
         'POST api/register',
         'POST api/register/card',

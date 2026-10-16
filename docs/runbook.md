@@ -327,6 +327,19 @@ The drill performs:
     driver name; it does **not** probe a worker or broker, so it reads `ok`
     even when no worker is consuming)
 
+### 6.1a Prometheus metrics & alert catalogue (F11.2)
+`GET /api/metrics` answers only to `Authorization: Bearer $METRICS_TOKEN` and does not exist (404) while the
+variable is empty. It exposes queue depth/age/failures and tenants by lifecycle status. Suggested alerts:
+
+| Metric | Condition | Meaning / first action |
+|---|---|---|
+| `flowsync_queue_failed` | `> 0` for 10 min | Open **Admin → Queue**, read the failure, retry or discard |
+| `flowsync_queue_oldest_age_seconds` | `> 300` | No worker is consuming: `systemctl --user status flowsync-queue` |
+| `flowsync_queue_pending` | rising for 15 min | Worker too slow or stuck on one job: raise processes, check `failed` |
+| `flowsync_tenants{status="provisioning_failed"}` | `> 0` | Run `php artisan tenants:provision --tenant=<id>` and read `provisioning_error` |
+| `flowsync_tenants{status="suspended"}` | step change | Billing dunning ran; confirm intended |
+| `/api/health` | non-200 | Central DB unreachable: §7.1 |
+
 ### 6.2 Tenant Usage Metrics Collection
 A daily job gathers cross-tenant statistics into the central `usage_metrics` table:
 ```bash
