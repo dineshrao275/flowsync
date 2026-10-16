@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it } from 'vitest';
-import i18n, { DEFAULT_LOCALE, intlTag, storedLocale } from './i18n';
+import i18n, { DEFAULT_LOCALE, changeLocale, intlTag, storedLocale } from './i18n';
 
 describe('i18n framework', () => {
     afterEach(async () => {
@@ -31,5 +31,32 @@ describe('i18n framework', () => {
 
         expect(i18n.language).toBe('es');
         expect(document.documentElement.lang).toBe('es');
+    });
+
+    it('lazy-loads the Spanish dictionary and falls back to English for gaps', async () => {
+        expect(i18n.hasResourceBundle('es', 'common')).toBe(false);
+
+        await changeLocale('es');
+
+        expect(i18n.language).toBe('es');
+        expect(i18n.t('topbar.signOut')).toBe('Cerrar sesión');
+        expect(i18n.t('auth.login.title')).toBe('Te damos la bienvenida de nuevo');
+        expect(i18n.t('tms.board.dropHere')).toBe('Suelta las tareas aquí');
+        expect(i18n.t('hrms.overview.heading')).toBe('Recursos Humanos');
+        expect(i18n.t('admin.common.save')).toBe('Guardar');
+        // Interpolation survives translation.
+        expect(i18n.t('auth.login.welcomeBack', { name: 'Ana' })).toBe('¡Te damos la bienvenida de nuevo, Ana!');
+    });
+
+    it('formats relative time with the active language, not hand-built English', async () => {
+        const { formatRelativeTime } = await import('./utils/format');
+        const threeHoursAgo = new Date(Date.now() - 3 * 3600 * 1000).toISOString();
+
+        expect(formatRelativeTime(threeHoursAgo)).toMatch(/3 hours ago/);
+
+        await changeLocale('es');
+
+        expect(formatRelativeTime(threeHoursAgo)).toMatch(/hace 3 horas/);
+        expect(formatRelativeTime(new Date().toISOString())).toBe('justo ahora');
     });
 });

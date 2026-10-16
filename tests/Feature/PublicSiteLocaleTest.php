@@ -38,11 +38,9 @@ class PublicSiteLocaleTest extends TestCase
         $response = $this->get('/?locale=es');
 
         $response->assertOk();
-        // `es` is a supported-but-incomplete locale: the chrome falls back to
-        // English through `fallback_locale`, while the response advertises the
-        // requested language so a translated catalog can drop in later.
         $this->assertSame('es', $response->headers->get('Content-Language'));
-        $response->assertSee('Skip to content', false);
+        $response->assertSee('Saltar al contenido', false);
+        $response->assertDontSee('Skip to content', false);
     }
 
     public function test_the_layout_ships_contact_copy_for_site_js(): void

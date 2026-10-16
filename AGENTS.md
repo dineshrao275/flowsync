@@ -460,6 +460,24 @@ Hierarchy: **Tenant → Workspace → Project → Task** (subtask `tasks.parent_
   `services/api.js`), and the asset condition vocabulary (`utils/hrmsAssets.js` `ASSET_CONDITIONS` +
   `assetConditionLabel()`, labels in `hrms.assets.conditions.*`) so no raw column value renders — and
   **email copy** (Phase 6, `notifications.*`).
+- **Spanish + completion (L1–L8, plan in `.agents/roadmap/i18n-completion-plan.md`):** `es` is now a
+  `complete` locale. (L1) formatters are locale-correct — `formatRelativeTime` uses
+  `Intl.RelativeTimeFormat` (only `ui.justNow` is a dictionary phrase), `formatPrice` reads
+  `ui.pricePerMonth[Annual]`, and `formatDateOnly`/`formatTime`/`formatNumber` replace bare
+  `toLocale*()` calls — never call those with no/`[]` locale. (L2) non-English SPA dictionaries are
+  **lazy**: `i18n.js` globs `./locales/*/*.json`, `changeLocale(locale)` fetches the chunk then calls
+  `changeLanguage` (use it, never `i18n.changeLanguage` directly, for a non-`en` target; `en` stays
+  statically bundled and is the fallback). (L3–L5) `resources/js/locales/es/{common,auth,dashboard,tms,admin,hrms}.json`
+  mirror `en` exactly (4,429 strings). (L6) `lang/es/{validation,pagination,site}.php`. (L7) every
+  literal backend response string (`'message' =>`, `'form' =>`, `ValidationException::withMessages`
+  values, `abort*()` messages) is wrapped in `__('English sentence')` — the English text *is* the key —
+  and translated in `lang/es.json`; interpolated sentences use `:placeholder` args
+  (`__('A :status case cannot be completed.', ['status' => …])`). **When you add a backend message,
+  wrap it and add it to `lang/es.json`** (`TranslationParityTest::test_every_literal_backend_message_has_a_translation`
+  fails otherwise). (L8) Guards: `tests/Feature/TranslationParityTest.php` (PHP group files + JSON
+  coverage + placeholders) and `resources/js/locales/parity.test.js` (SPA keys + placeholders per
+  non-`en` locale). The `es` text is a first-pass translation **awaiting native review** — the
+  catalog's `complete` flag was flipped so the switcher offers it; set it back to `false` to hide it.
 - **Email locale (Phase 6):** `TaskNotificationMail` composes its subject/line from
   `notifications.task.{assigned,commented,status_changed,unblocked}.{line,subject}` (unknown kinds fold
   to `notifications.task.other`) and pins the rendering locale (`$this->locale()`) so the view's

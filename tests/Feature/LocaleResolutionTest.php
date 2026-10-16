@@ -40,7 +40,12 @@ class LocaleResolutionTest extends TestCase
             ->assertOk()
             ->assertJsonPath('default', 'en')
             ->assertJsonPath('locales.en.native', 'English')
-            ->assertJsonMissingPath('locales.es');
+            ->assertJsonPath('locales.es.native', 'Español');
+
+        // A locale still under translation stays out of the catalog.
+        config(['locales.supported.fr' => ['name' => 'French', 'native' => 'Français', 'dir' => 'ltr', 'intl' => 'fr-FR', 'complete' => false]]);
+
+        $this->getJson('/api/locales')->assertOk()->assertJsonMissingPath('locales.fr');
     }
 
     public function test_guest_login_failure_defaults_to_english(): void
@@ -147,8 +152,12 @@ class LocaleResolutionTest extends TestCase
         // Unknown keys 422…
         $this->putJson('/api/language', ['locale' => 'xx'])->assertStatus(422)->assertJsonValidationErrors('locale');
 
-        // …and so does Spanish: the dictionary is still under translation.
-        $this->putJson('/api/language', ['locale' => 'es'])->assertStatus(422)->assertJsonValidationErrors('locale');
+        // …and so does a locale whose dictionary is still under translation.
+        config(['locales.supported.fr' => ['name' => 'French', 'native' => 'Français', 'dir' => 'ltr', 'intl' => 'fr-FR', 'complete' => false]]);
+        $this->putJson('/api/language', ['locale' => 'fr'])->assertStatus(422)->assertJsonValidationErrors('locale');
+
+        // Spanish is complete, so it persists.
+        $this->putJson('/api/language', ['locale' => 'es'])->assertOk()->assertJsonPath('locale', 'es');
     }
 
     public function test_platform_super_admin_preference_uses_central_settings(): void

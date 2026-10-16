@@ -31,7 +31,7 @@ return [
             'native' => 'Español',
             'dir' => 'ltr',
             'intl' => 'es-ES',
-            'complete' => false,
+            'complete' => true,
         ],
     ],
 ];

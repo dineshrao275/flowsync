@@ -1,4 +1,4 @@
-import { act, render, screen } from '@testing-library/react';
+import { act, render, screen, waitFor } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import i18n, { DEFAULT_LOCALE } from '../i18n';
 
@@ -43,7 +43,8 @@ describe('useLocale', () => {
             screen.getByRole('button', { name: 'switch' }).click();
         });
 
-        expect(screen.getByTestId('locale')).toHaveTextContent('es');
+        // The dictionary is a lazy chunk: the switch lands once it has loaded.
+        await waitFor(() => expect(screen.getByTestId('locale')).toHaveTextContent('es'));
         expect(window.localStorage.getItem('flowsync.locale')).toBe('es');
         expect(put).not.toHaveBeenCalled();
     });
