@@ -35,7 +35,8 @@
         "unsavedMessage": "You have changes that haven't been saved. If you leave now they will be lost.",
         "discard": "Discard changes",
         "keepEditing": "Keep editing",
-        "unsavedBadge": "Unsaved changes"
+        "unsavedBadge": "Unsaved changes",
+        "view": "View"
     },
     "titles": {
         "dashboard": "Dashboard",
@@ -467,13 +468,7 @@
         "copySuffix": " (copy)",
         "cannotDelete": "Move its members to another role first",
         "permissionsSummary": "{{count}} of {{total}} permissions",
-        "allPermissions": "All permissions",
-        "moreChips": "+{{count}} more",
-        "membersCount": "{{count}} members",
-        "membersCountOne": "{{count}} member",
-        "showAll": "Show all permissions",
-        "hideAll": "Show summary",
-        "actionsLabel": "Actions for {{name}}"
+        "allPermissions": "All permissions"
     },
     "settings": {
         "pageTitle": "Settings",

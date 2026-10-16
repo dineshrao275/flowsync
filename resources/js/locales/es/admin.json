@@ -35,7 +35,8 @@
         "unsavedMessage": "Tienes cambios que no se han guardado. Si sales ahora se perderán.",
         "discard": "Descartar cambios",
         "keepEditing": "Seguir editando",
-        "unsavedBadge": "Cambios sin guardar"
+        "unsavedBadge": "Cambios sin guardar",
+        "view": "Ver"
     },
     "titles": {
         "dashboard": "Panel",
@@ -467,13 +468,7 @@
         "copySuffix": " (copia)",
         "cannotDelete": "Antes, traslada a sus miembros a otro rol",
         "permissionsSummary": "{{count}} de {{total}} permisos",
-        "allPermissions": "Todos los permisos",
-        "moreChips": "+{{count}} más",
-        "membersCount": "{{count}} miembros",
-        "membersCountOne": "{{count}} miembro",
-        "showAll": "Mostrar todos los permisos",
-        "hideAll": "Mostrar resumen",
-        "actionsLabel": "Acciones de {{name}}"
+        "allPermissions": "Todos los permisos"
     },
     "settings": {
         "pageTitle": "Ajustes",
