@@ -2504,5 +2504,45 @@
             "maybe": "Quizás",
             "no": "No"
         }
+    },
+    "hrAutomation": {
+        "pageTitle": "Automatización de RR. HH.",
+        "subtitle": "Cuando le ocurre algo a una persona —se incorpora, se aprueba una ausencia, empieza una salida— crea automáticamente las tareas adecuadas en un proyecto.",
+        "add": "Añadir regla",
+        "addTitle": "Añadir una regla de automatización",
+        "editTitle": "Editar regla",
+        "placeholders": "Usa {employee} para el nombre de la persona y {date} para la fecha de hoy en los títulos.",
+        "empty": "Aún no hay reglas.",
+        "off": "Desactivada",
+        "createsIn": "crea {{count}} tarea(s) en {{project}}",
+        "ran": "Ejecutada {{count}} vez/veces",
+        "edit": "Editar",
+        "delete": "Eliminar",
+        "deleteTitle": "¿Eliminar esta regla?",
+        "deleteMessage": "«{{name}}» dejará de crear tareas. Las que ya creó se conservan.",
+        "failed": "No funcionó.",
+        "saved": "Regla guardada.",
+        "name": "Nombre de la regla",
+        "when": "Cuando",
+        "project": "Crear tareas en",
+        "tasks": "Tareas",
+        "taskTitle": "Título de la tarea",
+        "assignee": "Asignar a",
+        "dueIn": "Vence en (días)",
+        "removeTask": "Quitar esta tarea",
+        "addTask": "Añadir otra tarea",
+        "active": "Regla activada",
+        "assignees": {
+            "none": "Nadie",
+            "employee": "La persona afectada",
+            "manager": "Su responsable"
+        },
+        "triggers": {
+            "employee_created": "Se añade un empleado",
+            "leave_approved": "Se aprueba una ausencia",
+            "onboarding_case_started": "Empieza la incorporación",
+            "offboarding_case_initiated": "Empieza una salida",
+            "resignation_approved": "Se aprueba una renuncia"
+        }
     }
 }

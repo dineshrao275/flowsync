@@ -299,7 +299,8 @@
             "audit": "Audit log",
             "skills": "Skills",
             "resignation": "Resignation",
-            "exitInterview": "Exit interview"
+            "exitInterview": "Exit interview",
+            "hrAutomation": "HR automation"
         },
         "platform": {
             "overview": "Overview",

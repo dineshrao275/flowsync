@@ -299,7 +299,8 @@
             "audit": "Registro de auditoría",
             "skills": "Habilidades",
             "resignation": "Renuncia",
-            "exitInterview": "Entrevista de salida"
+            "exitInterview": "Entrevista de salida",
+            "hrAutomation": "Automatización RR. HH."
         },
         "platform": {
             "overview": "Resumen",

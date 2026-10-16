@@ -2504,5 +2504,45 @@
             "maybe": "Maybe",
             "no": "No"
         }
+    },
+    "hrAutomation": {
+        "pageTitle": "HR automation",
+        "subtitle": "When something happens to a person — they join, a leave is approved, an exit starts — create the right tasks in a project automatically.",
+        "add": "Add rule",
+        "addTitle": "Add an HR automation rule",
+        "editTitle": "Edit rule",
+        "placeholders": "Use {employee} for the person's name and {date} for today's date in task titles.",
+        "empty": "No rules yet.",
+        "off": "Off",
+        "createsIn": "creates {{count}} task(s) in {{project}}",
+        "ran": "Ran {{count}} time(s)",
+        "edit": "Edit",
+        "delete": "Delete",
+        "deleteTitle": "Delete this rule?",
+        "deleteMessage": "“{{name}}” will stop creating tasks. Tasks it already made stay.",
+        "failed": "That did not work.",
+        "saved": "Rule saved.",
+        "name": "Rule name",
+        "when": "When",
+        "project": "Create tasks in",
+        "tasks": "Tasks",
+        "taskTitle": "Task title",
+        "assignee": "Assign to",
+        "dueIn": "Due in (days)",
+        "removeTask": "Remove this task",
+        "addTask": "Add another task",
+        "active": "Rule is on",
+        "assignees": {
+            "none": "Nobody",
+            "employee": "The person it is about",
+            "manager": "Their manager"
+        },
+        "triggers": {
+            "employee_created": "A new employee is added",
+            "leave_approved": "A leave request is approved",
+            "onboarding_case_started": "Onboarding starts",
+            "offboarding_case_initiated": "An exit starts",
+            "resignation_approved": "A resignation is approved"
+        }
     }
 }
