@@ -193,5 +193,87 @@
             "noResults": "No results for “{{query}}”.",
             "footer": "↑↓ navigate · ↵ select · esc close"
         }
+    },
+    "nav": {
+        "groups": {
+            "main": "Main",
+            "insights": "Insights",
+            "overview": "Overview",
+            "workforce": "Workforce",
+            "time": "Time",
+            "pay": "Pay & benefits",
+            "performance": "Performance",
+            "records": "Records",
+            "insight": "Insight",
+            "administration": "Administration",
+            "billing": "Billing",
+            "platform": "Platform"
+        },
+        "tms": {
+            "dashboard": "Dashboard",
+            "workspaces": "Workspaces",
+            "projects": "Projects",
+            "search": "Search",
+            "reports": "Reports",
+            "webhooks": "Webhooks"
+        },
+        "admin": {
+            "users": "Users",
+            "roles": "Roles",
+            "settings": "Settings",
+            "security": "Security",
+            "subscription": "Subscription",
+            "support": "Support",
+            "dataExport": "Data Export"
+        },
+        "hrms": {
+            "myHr": "My HR",
+            "overview": "Overview",
+            "inbox": "Inbox",
+            "myTeam": "My team",
+            "employees": "Employees",
+            "org": "Organisation",
+            "documents": "Documents",
+            "myFiles": "My files",
+            "onboarding": "Onboarding",
+            "offboarding": "Offboarding",
+            "attendance": "Attendance",
+            "approvals": "Approvals",
+            "leave": "Leave",
+            "myLeave": "My leave",
+            "compOff": "Comp-off",
+            "myCompOff": "My comp-off",
+            "holidays": "Holidays",
+            "shifts": "Shifts",
+            "compensation": "Compensation",
+            "payroll": "Payroll",
+            "myPayslips": "My payslips",
+            "statutory": "Statutory",
+            "expenses": "Expenses",
+            "myExpenses": "My expenses",
+            "performance": "Performance",
+            "myPerformance": "My performance",
+            "engagement": "Engagement",
+            "mySurveys": "My surveys",
+            "talent": "Talent",
+            "assets": "Assets",
+            "myAssets": "My assets",
+            "approvalChains": "Approval chains",
+            "analytics": "Analytics",
+            "audit": "Audit log"
+        },
+        "platform": {
+            "overview": "Overview",
+            "tenants": "Tenants",
+            "plans": "Plans",
+            "features": "Features",
+            "featureFlags": "Feature flags",
+            "website": "Website",
+            "media": "Media",
+            "siteSettings": "Site settings",
+            "blog": "Blog",
+            "leads": "Leads",
+            "auditLogs": "Audit Logs"
+        }
     }
 }

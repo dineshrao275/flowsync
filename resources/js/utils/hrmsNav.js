@@ -16,45 +16,49 @@
  * tabs keep bookmarks working with no redirect layer.
  */
 
+// `label` and `group` are i18n keys (translated by the Sidebar), not literals:
+// the catalog stays data the shell test can parse, and the strings live in
+// `common.json` `nav.*`. Keep each entry on one line, `to → label → group →
+// capabilities`, or `HrmsNavTest::navTabs()` stops matching it.
 export const HRMS_NAV = [
-    { to: '/hrms', label: 'Overview', group: 'Overview', capabilities: ['module:hrms.core'] },
+    { to: '/hrms', label: 'nav.hrms.overview', group: 'nav.groups.overview', capabilities: ['module:hrms.core'] },
 
-    { to: '/hrms/inbox', label: 'Inbox', group: 'Workforce', capabilities: ['module:hrms.core'], badge: 'inbox' },
-    { to: '/hrms/team', label: 'My team', group: 'Workforce', capabilities: ['module:hrms.core'] },
-    { to: '/hrms/employees', label: 'Employees', group: 'Workforce', capabilities: ['module:hrms.core', 'permission:hrms.employees.view'] },
-    { to: '/hrms/org', label: 'Organisation', group: 'Workforce', capabilities: ['module:hrms.core', 'permission:hrms.org.view'] },
-    { to: '/hrms/documents', label: 'Documents', group: 'Workforce', capabilities: ['module:hrms.core', 'permission:hrms.documents.view'] },
-    { to: '/hrms/documents/mine', label: 'My files', group: 'Workforce', capabilities: ['module:hrms.core'] },
-    { to: '/hrms/onboarding', label: 'Onboarding', group: 'Workforce', capabilities: ['module:hrms.core', 'permission:hrms.onboarding.view'] },
-    { to: '/hrms/offboarding', label: 'Offboarding', group: 'Workforce', capabilities: ['module:hrms.core', 'permission:hrms.offboarding.view'] },
+    { to: '/hrms/inbox', label: 'nav.hrms.inbox', group: 'nav.groups.workforce', capabilities: ['module:hrms.core'], badge: 'inbox' },
+    { to: '/hrms/team', label: 'nav.hrms.myTeam', group: 'nav.groups.workforce', capabilities: ['module:hrms.core'] },
+    { to: '/hrms/employees', label: 'nav.hrms.employees', group: 'nav.groups.workforce', capabilities: ['module:hrms.core', 'permission:hrms.employees.view'] },
+    { to: '/hrms/org', label: 'nav.hrms.org', group: 'nav.groups.workforce', capabilities: ['module:hrms.core', 'permission:hrms.org.view'] },
+    { to: '/hrms/documents', label: 'nav.hrms.documents', group: 'nav.groups.workforce', capabilities: ['module:hrms.core', 'permission:hrms.documents.view'] },
+    { to: '/hrms/documents/mine', label: 'nav.hrms.myFiles', group: 'nav.groups.workforce', capabilities: ['module:hrms.core'] },
+    { to: '/hrms/onboarding', label: 'nav.hrms.onboarding', group: 'nav.groups.workforce', capabilities: ['module:hrms.core', 'permission:hrms.onboarding.view'] },
+    { to: '/hrms/offboarding', label: 'nav.hrms.offboarding', group: 'nav.groups.workforce', capabilities: ['module:hrms.core', 'permission:hrms.offboarding.view'] },
 
-    { to: '/hrms/attendance', label: 'Attendance', group: 'Time', capabilities: ['module:hrms.core', 'module:hrms.attendance'] },
-    { to: '/hrms/attendance/approvals', label: 'Approvals', group: 'Time', capabilities: ['module:hrms.core', 'module:hrms.attendance', 'permission:hrms.attendance.regularize'] },
-    { to: '/hrms/leave', label: 'Leave', group: 'Time', capabilities: ['module:hrms.core', 'module:hrms.leave', 'permission:hrms.leave.manage'] },
-    { to: '/hrms/leave/mine', label: 'My leave', group: 'Time', capabilities: ['module:hrms.core', 'module:hrms.leave'] },
-    { to: '/hrms/comp-off', label: 'Comp-off', group: 'Time', capabilities: ['module:hrms.core', 'module:hrms.comp_off', 'permission:hrms.comp_off.manage'] },
-    { to: '/hrms/comp-off/mine', label: 'My comp-off', group: 'Time', capabilities: ['module:hrms.core', 'module:hrms.comp_off'] },
-    { to: '/hrms/holidays', label: 'Holidays', group: 'Time', capabilities: ['module:hrms.core', 'module:hrms.holidays'] },
-    { to: '/hrms/shifts', label: 'Shifts', group: 'Time', capabilities: ['module:hrms.core', 'module:hrms.shifts'] },
+    { to: '/hrms/attendance', label: 'nav.hrms.attendance', group: 'nav.groups.time', capabilities: ['module:hrms.core', 'module:hrms.attendance'] },
+    { to: '/hrms/attendance/approvals', label: 'nav.hrms.approvals', group: 'nav.groups.time', capabilities: ['module:hrms.core', 'module:hrms.attendance', 'permission:hrms.attendance.regularize'] },
+    { to: '/hrms/leave', label: 'nav.hrms.leave', group: 'nav.groups.time', capabilities: ['module:hrms.core', 'module:hrms.leave', 'permission:hrms.leave.manage'] },
+    { to: '/hrms/leave/mine', label: 'nav.hrms.myLeave', group: 'nav.groups.time', capabilities: ['module:hrms.core', 'module:hrms.leave'] },
+    { to: '/hrms/comp-off', label: 'nav.hrms.compOff', group: 'nav.groups.time', capabilities: ['module:hrms.core', 'module:hrms.comp_off', 'permission:hrms.comp_off.manage'] },
+    { to: '/hrms/comp-off/mine', label: 'nav.hrms.myCompOff', group: 'nav.groups.time', capabilities: ['module:hrms.core', 'module:hrms.comp_off'] },
+    { to: '/hrms/holidays', label: 'nav.hrms.holidays', group: 'nav.groups.time', capabilities: ['module:hrms.core', 'module:hrms.holidays'] },
+    { to: '/hrms/shifts', label: 'nav.hrms.shifts', group: 'nav.groups.time', capabilities: ['module:hrms.core', 'module:hrms.shifts'] },
 
-    { to: '/hrms/compensation', label: 'Compensation', group: 'Pay & benefits', capabilities: ['module:hrms.core', 'module:hrms.compensation', 'permission:hrms.compensation.view'] },
-    { to: '/hrms/payroll', label: 'Payroll', group: 'Pay & benefits', capabilities: ['module:hrms.core', 'module:hrms.payroll', 'permission:hrms.payroll.run'] },
-    { to: '/hrms/payroll/mine', label: 'My payslips', group: 'Pay & benefits', capabilities: ['module:hrms.core', 'module:hrms.payroll'] },
-    { to: '/hrms/statutory', label: 'Statutory', group: 'Pay & benefits', capabilities: ['module:hrms.core', 'module:hrms.payroll.statutory'] },
-    { to: '/hrms/expenses', label: 'Expenses', group: 'Pay & benefits', capabilities: ['module:hrms.core', 'module:hrms.expenses', 'permission:hrms.expenses.view'] },
-    { to: '/hrms/expenses/mine', label: 'My expenses', group: 'Pay & benefits', capabilities: ['module:hrms.core', 'module:hrms.expenses'] },
+    { to: '/hrms/compensation', label: 'nav.hrms.compensation', group: 'nav.groups.pay', capabilities: ['module:hrms.core', 'module:hrms.compensation', 'permission:hrms.compensation.view'] },
+    { to: '/hrms/payroll', label: 'nav.hrms.payroll', group: 'nav.groups.pay', capabilities: ['module:hrms.core', 'module:hrms.payroll', 'permission:hrms.payroll.run'] },
+    { to: '/hrms/payroll/mine', label: 'nav.hrms.myPayslips', group: 'nav.groups.pay', capabilities: ['module:hrms.core', 'module:hrms.payroll'] },
+    { to: '/hrms/statutory', label: 'nav.hrms.statutory', group: 'nav.groups.pay', capabilities: ['module:hrms.core', 'module:hrms.payroll.statutory'] },
+    { to: '/hrms/expenses', label: 'nav.hrms.expenses', group: 'nav.groups.pay', capabilities: ['module:hrms.core', 'module:hrms.expenses', 'permission:hrms.expenses.view'] },
+    { to: '/hrms/expenses/mine', label: 'nav.hrms.myExpenses', group: 'nav.groups.pay', capabilities: ['module:hrms.core', 'module:hrms.expenses'] },
 
-    { to: '/hrms/performance', label: 'Performance', group: 'Performance', capabilities: ['module:hrms.core', 'module:hrms.performance', 'permission:hrms.performance.view'] },
-    { to: '/hrms/performance/mine', label: 'My performance', group: 'Performance', capabilities: ['module:hrms.core', 'module:hrms.performance'] },
-    { to: '/hrms/engagement', label: 'Engagement', group: 'Performance', capabilities: ['module:hrms.core', 'module:hrms.engagement', 'permission:hrms.engagement.view'] },
-    { to: '/hrms/engagement/mine', label: 'My surveys', group: 'Performance', capabilities: ['module:hrms.core', 'module:hrms.engagement'] },
-    { to: '/hrms/talent', label: 'Talent', group: 'Performance', capabilities: ['module:hrms.core', 'module:hrms.talent', 'permission:hrms.talent.manage'] },
+    { to: '/hrms/performance', label: 'nav.hrms.performance', group: 'nav.groups.performance', capabilities: ['module:hrms.core', 'module:hrms.performance', 'permission:hrms.performance.view'] },
+    { to: '/hrms/performance/mine', label: 'nav.hrms.myPerformance', group: 'nav.groups.performance', capabilities: ['module:hrms.core', 'module:hrms.performance'] },
+    { to: '/hrms/engagement', label: 'nav.hrms.engagement', group: 'nav.groups.performance', capabilities: ['module:hrms.core', 'module:hrms.engagement', 'permission:hrms.engagement.view'] },
+    { to: '/hrms/engagement/mine', label: 'nav.hrms.mySurveys', group: 'nav.groups.performance', capabilities: ['module:hrms.core', 'module:hrms.engagement'] },
+    { to: '/hrms/talent', label: 'nav.hrms.talent', group: 'nav.groups.performance', capabilities: ['module:hrms.core', 'module:hrms.talent', 'permission:hrms.talent.manage'] },
 
-    { to: '/hrms/assets', label: 'Assets', group: 'Records', capabilities: ['module:hrms.core', 'module:hrms.assets', 'permission:hrms.assets.view'] },
-    { to: '/hrms/assets/mine', label: 'My assets', group: 'Records', capabilities: ['module:hrms.core', 'module:hrms.assets'] },
-    { to: '/hrms/approvals/chains', label: 'Approval chains', group: 'Records', capabilities: ['module:hrms.core', 'permission:hrms.approvals.manage'] },
+    { to: '/hrms/assets', label: 'nav.hrms.assets', group: 'nav.groups.records', capabilities: ['module:hrms.core', 'module:hrms.assets', 'permission:hrms.assets.view'] },
+    { to: '/hrms/assets/mine', label: 'nav.hrms.myAssets', group: 'nav.groups.records', capabilities: ['module:hrms.core', 'module:hrms.assets'] },
+    { to: '/hrms/approvals/chains', label: 'nav.hrms.approvalChains', group: 'nav.groups.records', capabilities: ['module:hrms.core', 'permission:hrms.approvals.manage'] },
 
-    { to: '/hrms/analytics', label: 'Analytics', group: 'Insight', capabilities: ['module:hrms.core', 'module:hrms.analytics', 'permission:hrms.analytics.view'] },
-    { to: '/hrms/audit', label: 'Audit log', group: 'Insight', capabilities: ['module:hrms.core', 'permission:hrms.audit.view'] },
+    { to: '/hrms/analytics', label: 'nav.hrms.analytics', group: 'nav.groups.insight', capabilities: ['module:hrms.core', 'module:hrms.analytics', 'permission:hrms.analytics.view'] },
+    { to: '/hrms/audit', label: 'nav.hrms.audit', group: 'nav.groups.insight', capabilities: ['module:hrms.core', 'permission:hrms.audit.view'] },
 ];
 

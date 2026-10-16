@@ -220,7 +220,7 @@ class HrmsShellTest extends TestCase
         $this->assertStringContainsString("item.key !== 'exemptions' || showExemptions", $page);
         $this->assertStringContainsString('if (showExemptions)', $page);
         $this->assertStringContainsString("await api.post('/hrms/leave/exemptions'", $page);
-        $this->assertStringContainsString('File exemption', $page);
+        $this->assertStringContainsString("t('hrms.leave.fileExemption')", $page);
     }
 
     public function test_the_notification_helpers_cover_comp_off_nudges(): void
@@ -351,7 +351,7 @@ class HrmsShellTest extends TestCase
 
         // The inert-tile path stays: a module whose phase has not landed still
         // renders as a non-interactive tile.
-        $this->assertStringContainsString('Planned', $page);
+        $this->assertStringContainsString("t('hrms.overview.planned')", $page);
 
         preg_match_all("/'hrms\\.[a-z_.]+': hrmsUrl\\('([a-z-]+)'\\)/", $js, $matches);
 

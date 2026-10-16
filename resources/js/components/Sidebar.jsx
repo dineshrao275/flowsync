@@ -23,6 +23,7 @@ function ItemIcon({ icon }) {
 }
 
 function SidebarLink({ item, collapsed, onClose }) {
+    const { t } = useTranslation();
     const location = useLocation();
     const { inboxUnread } = useNotifications();
     const isActive = location.pathname === item.to;
@@ -34,7 +35,7 @@ function SidebarLink({ item, collapsed, onClose }) {
             onClick={onClose}
             role="menuitem"
             aria-current={isActive ? 'page' : undefined}
-            title={collapsed ? item.label : undefined}
+            title={collapsed ? t(item.label) : undefined}
             className={`group relative flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors duration-150 ${
                 isActive ? 'bg-[var(--active-menu)]' : 'hover:bg-[var(--sidebar-hover)]'
             } ${collapsed ? 'justify-center lg:justify-center' : ''}`}
@@ -51,7 +52,7 @@ function SidebarLink({ item, collapsed, onClose }) {
             <ItemIcon icon={item.icon} />
             <span className={`min-w-0 ${labelClass}`}>
                 <span className="flex items-center justify-between gap-2">
-                    <span className="truncate">{item.label}</span>
+                    <span className="truncate">{t(item.label)}</span>
                     {item.badge === 'inbox' && inboxUnread > 0 && (
                         <span className="flex h-4 min-w-4 shrink-0 items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-bold normal-case tracking-normal text-white">
                             {inboxUnread > 99 ? '99+' : inboxUnread}
@@ -73,7 +74,7 @@ function SidebarSection({ section, collapsed, onClose, canViewPlans }) {
                     className="flex items-center justify-between px-3 pb-1.5 pt-4 text-xs font-semibold normal-case tracking-normal"
                     style={{ color: 'var(--sidebar-text)', opacity: 0.55 }}
                 >
-                    <span>{section.label}</span>
+                    <span>{t(section.label)}</span>
                 </p>
             )}
             {section.items.length === 0 && !collapsed && (
@@ -137,8 +138,8 @@ function CollapsibleSection({ section, collapsed, onClose, open, onToggle }) {
                 onClick={onClose}
                 role="menuitem"
                 aria-current={active ? 'page' : undefined}
-                title={section.label}
-                aria-label={section.label}
+                title={t(section.label)}
+                aria-label={t(section.label)}
                 className={`group relative flex items-center justify-center rounded-lg px-3 py-2.5 text-sm font-medium transition-colors duration-150 ${
                     active ? 'bg-[var(--active-menu)]' : 'hover:bg-[var(--sidebar-hover)]'
                 }`}
@@ -156,12 +157,12 @@ function CollapsibleSection({ section, collapsed, onClose, open, onToggle }) {
                 type="button"
                 onClick={onToggle}
                 aria-expanded={open}
-                title={open ? t('shell.sidebar.collapseGroup', { label: section.label }) : t('shell.sidebar.expandGroup', { label: section.label })}
+                title={open ? t('shell.sidebar.collapseGroup', { label: t(section.label) }) : t('shell.sidebar.expandGroup', { label: t(section.label) })}
                 className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors duration-150 hover:bg-[var(--sidebar-hover)]"
                 style={{ color: 'var(--sidebar-text)' }}
             >
                 <ItemIcon icon={first?.icon} />
-                <span className="min-w-0 flex-1 truncate text-left">{section.label}</span>
+                <span className="min-w-0 flex-1 truncate text-left">{t(section.label)}</span>
                 {badge}
                 <CaretDown size={16} weight="bold" aria-hidden="true" className={`shrink-0 transition-transform duration-150 ${open ? 'rotate-180' : ''}`} />
             </button>
