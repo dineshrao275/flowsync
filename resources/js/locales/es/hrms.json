@@ -1808,7 +1808,11 @@
         "kindDeduction": "Deducción (resta del neto)",
         "label": "Etiqueta",
         "amount": "Importe",
-        "addLine": "Añadir línea"
+        "addLine": "Añadir línea",
+        "payoutGeneric": "Archivo de pago (CSV)",
+        "payoutNeft": "Carga bancaria (NEFT)",
+        "payoutMissing": "{{count}} personas quedaron fuera: sin datos bancarios.",
+        "payoutFailed": "No se pudo crear el archivo de pago."
     },
     "myPayslips": {
         "pageTitle": "Mis nóminas",

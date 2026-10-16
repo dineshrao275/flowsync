@@ -1808,7 +1808,11 @@
         "kindDeduction": "Deduction (takes from net)",
         "label": "Label",
         "amount": "Amount",
-        "addLine": "Add line"
+        "addLine": "Add line",
+        "payoutGeneric": "Payout file (CSV)",
+        "payoutNeft": "Bank upload (NEFT)",
+        "payoutMissing": "{{count}} people were left out: no bank details on file.",
+        "payoutFailed": "Could not create the payout file."
     },
     "myPayslips": {
         "pageTitle": "My payslips",

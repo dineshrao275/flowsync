@@ -102,6 +102,23 @@ export default function PayrollRunDetail() {
         }
     }
 
+    async function downloadPayout(format) {
+        setError(null);
+        try {
+            const res = await api.get(`/hrms/payroll/runs/${runId}/bank-file`, { params: { format }, responseType: 'blob' });
+            const url = URL.createObjectURL(res.data);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `payout-run-${runId}-${format}.csv`;
+            a.click();
+            URL.revokeObjectURL(url);
+            const missing = Number(res.headers['x-missing-bank'] || 0);
+            if (missing > 0) setError(t('hrms.payrollRun.payoutMissing', { count: missing }));
+        } catch {
+            setError(t('hrms.payrollRun.payoutFailed'));
+        }
+    }
+
     function lines(title, rows, key = 'monthly') {
         if (!rows || rows.length === 0) return null;
 
@@ -129,6 +146,12 @@ export default function PayrollRunDetail() {
                 <p className="mt-0.5 text-sm text-gray-500">
                     {run ? `${run.status} · ${t('hrms.payrollRun.people', { count: run.employee_count })} · ${t('hrms.payrollRun.net')} ${run.totals?.net_pay ?? '—'}` : '—'}
                 </p>
+                {run && ['approved', 'processing', 'paid', 'locked'].includes(run.status) && (
+                    <div className="mt-2 flex gap-2">
+                        <Button size="sm" variant="secondary" onClick={() => downloadPayout('generic')}>{t('hrms.payrollRun.payoutGeneric')}</Button>
+                        <Button size="sm" variant="secondary" onClick={() => downloadPayout('neft')}>{t('hrms.payrollRun.payoutNeft')}</Button>
+                    </div>
+                )}
             </div>
 
             {error && <Alert>{error}</Alert>}
