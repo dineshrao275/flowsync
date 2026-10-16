@@ -8,6 +8,11 @@
         "/home/dineshrao/Public/flowsync/.agents/orchestrator/mcp-server/index.js"
       ],
       "enabled": true
+    },
+    "catalyst": {
+      "type": "remote",
+      "url": "https://catalyst.zohomcp.in/mcp/message",
+      "enabled": true
     }
   }
 }
