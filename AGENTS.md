@@ -500,6 +500,7 @@ Hierarchy: **Tenant → Workspace → Project → Task** (subtask `tasks.parent_
   array with commas compiles to broken PHP. Build it in `@php($x = [...])` and call `@json($x)`.
 
 ## Frontend conventions
+- **UI/UX programme (plan: `~/.claude/plans/i-want-you-ti-shimmering-lagoon.md`, phases U1–U9).** U1 shipped: semantic colour roles in `resources/css/app.css` (`bg-surface`, `text-fg|fg-muted|fg-subtle`, `border-line`, `bg/text/border-success|warning|danger-*|info-*`, light + `.dark`; prefer these over literal gray/red/emerald steps — the `.dark` scale remap is legacy and goes away in U6), type-scale tokens (`text-display|h1|h2|h3|body|caption`, nothing below 12px), admin-colour contrast warnings (`contrastRatio`/`themeContrastIssues` in `theme.js`, shown in the theme drawer), default accent unified to `#2563eb` (config/theme.php = theme.js = app.css), Plus Jakarta Sans self-hosted via `@fontsource-variable/plus-jakarta-sans` (no Google Fonts links), and `ui/Icon.jsx` (Phosphor wrapper: size scale, decorative-by-default).
 - The Roles page (`pages/Roles.jsx`) groups the permission checkboxes by domain via
   `utils/permissions.js` (`domainOfPermission`/`prettyDomain`/`groupPermissionsByDomain` — the domain
   is everything before the last slug segment, so scope variants keep grouping without a server change);

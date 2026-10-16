@@ -18,13 +18,13 @@ return [
     'defaults' => [
         'sidebar_bg' => '#0f172a',
         'sidebar_hover' => '#1e293b',
-        'active_menu' => '#6366f1',
+        'active_menu' => '#2563eb',
         'sidebar_text' => '#cbd5e1',
         'dashboard_bg' => '#f1f5f9',
         'header_bg' => '#ffffff',
         'header_text' => '#0f172a',
         'card_bg' => '#ffffff',
-        'accent' => '#6366f1',
+        'accent' => '#2563eb',
     ],
 
     /*

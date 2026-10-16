@@ -179,6 +179,13 @@
                 "header_text": "Header text color",
                 "card_bg": "Card background",
                 "accent": "Accent color"
+            },
+            "contrast": {
+                "title": "Some colour pairs are hard to read",
+                "sidebar_text": "Sidebar text on the sidebar background is {{ratio}}:1 (needs {{min}}:1).",
+                "active_menu": "The active menu colour on the sidebar is {{ratio}}:1 (needs {{min}}:1).",
+                "header_text": "Header text on the header background is {{ratio}}:1 (needs {{min}}:1).",
+                "accent": "The accent colour on cards is {{ratio}}:1 (needs {{min}}:1)."
             }
         },
         "errorBoundary": {
