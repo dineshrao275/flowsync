@@ -17,6 +17,7 @@ use App\Http\Controllers\ProjectRoleController;
 use App\Http\Controllers\ProjectTemplateController;
 use App\Http\Controllers\ProjectVersionController;
 use App\Http\Controllers\SavedFilterController;
+use App\Http\Controllers\SlaPolicyController;
 use App\Http\Controllers\SprintController;
 use App\Http\Controllers\StatusController;
 use App\Http\Controllers\TaskBulkController;
@@ -48,6 +49,10 @@ Route::middleware(['permission:workspaces.view', 'ensure_product:tms', 'ensure_m
     Route::put('projects/{project}/automations/{rule}', [AutomationRuleController::class, 'update']);
     Route::delete('projects/{project}/automations/{rule}', [AutomationRuleController::class, 'destroy']);
     Route::get('projects/{project}/automations/{rule}/runs', [AutomationRuleController::class, 'runs']);
+    Route::get('projects/{project}/sla-policies', [SlaPolicyController::class, 'index']);
+    Route::post('projects/{project}/sla-policies', [SlaPolicyController::class, 'store']);
+    Route::put('projects/{project}/sla-policies/{policy}', [SlaPolicyController::class, 'update']);
+    Route::delete('projects/{project}/sla-policies/{policy}', [SlaPolicyController::class, 'destroy']);
 });
 
 Route::middleware(['permission:workspaces.view', 'ensure_product:tms', 'ensure_module:sprints'])->group(function () {

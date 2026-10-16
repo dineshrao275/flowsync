@@ -836,5 +836,7 @@
     "Swap decided.": "Cambio resuelto.",
     "Swap rejected.": "Cambio rechazado.",
     "Swap withdrawn.": "Cambio retirado.",
-    "Only the requester or HR can withdraw a swap.": "Solo quien lo solicita o RR. HH. puede retirar un cambio."
+    "Only the requester or HR can withdraw a swap.": "Solo quien lo solicita o RR. HH. puede retirar un cambio.",
+    "SLA saved.": "SLA guardado.",
+    "SLA removed.": "SLA eliminado."
 }

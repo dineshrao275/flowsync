@@ -16,6 +16,7 @@ Schedule::command('tenants:backup --all --verify')->dailyAt('02:00')->withoutOve
 Schedule::command('tenants:prune-exports')->dailyAt('03:00')->withoutOverlapping();
 // Time-based automation triggers (overdue / due soon) — only for projects with a rule listening.
 Schedule::command('automation:time-triggers --all')->hourly()->withoutOverlapping();
+Schedule::command('tasks:sla-sweep --all')->hourly()->withoutOverlapping();
 // Processed domain events and settled webhook deliveries are kept 30 days.
 Schedule::command('events:prune --all')->dailyAt('03:45')->withoutOverlapping();
 // Sign-up drafts that never finished (no database exists for them) are removed after a week.

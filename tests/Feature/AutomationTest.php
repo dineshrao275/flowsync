@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Models\Activity;
 use App\Models\AutomationRule;
 use App\Models\AutomationRun;
 use App\Models\Comment;
@@ -18,7 +19,9 @@ use App\Models\User;
 use App\Models\UserNotification;
 use App\Models\Workspace;
 use App\Services\SubscriptionService;
+use App\Services\Tasks\SlaService;
 use Illuminate\Support\Facades\Artisan;
+use Illuminate\Support\Facades\DB;
 use Tests\IsolatesDatabase;
 use Tests\TestCase;
 
@@ -189,6 +192,23 @@ class AutomationTest extends TestCase
         $this->assertSame('highest', Task::with('priority')->find($late)->priority->slug);
         $this->assertNotSame('highest', Task::with('priority')->find($fine)->priority?->slug);
         $this->assertSame(1, AutomationRun::where('task_id', $late)->count());
+    }
+
+    public function test_an_sla_breach_is_recorded_once_and_emitted(): void
+    {
+        $this->setUpProject();
+        $policy = $this->postJson("/api/projects/{$this->project->id}/sla-policies", ['name' => 'Fast', 'target_hours' => 4])->assertCreated()->json('policy');
+        $old = $this->createTask(['title' => 'Old']);
+        $new = $this->createTask(['title' => 'New']);
+        Task::whereKey($old)->update(['created_at' => now()->subHours(10)]);
+
+        $service = app(SlaService::class);
+        $this->assertSame(1, $service->sweep());
+        $this->assertSame(0, $service->sweep());   // once per (policy, task)
+
+        $this->assertSame(1, DB::table('sla_breaches')->where('sla_policy_id', $policy['id'])->where('task_id', $old)->count());
+        $this->assertSame(0, DB::table('sla_breaches')->where('task_id', $new)->count());
+        $this->assertTrue(Activity::where('action', 'task.sla_breached')->where('subject_id', $old)->exists());
     }
 
     public function test_the_module_gate_applies(): void
