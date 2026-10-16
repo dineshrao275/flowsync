@@ -259,7 +259,8 @@
             "security": "Security",
             "subscription": "Subscription",
             "support": "Support",
-            "dataExport": "Data Export"
+            "dataExport": "Data Export",
+            "customFields": "Custom fields"
         },
         "hrms": {
             "myHr": "My HR",

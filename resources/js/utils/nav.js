@@ -110,6 +110,7 @@ function hrmsGroups() {
 const SHARED_ADMIN = [
     { to: '/users', label: 'nav.admin.users', capabilities: ['users.view'], icon: ICONS.users },
     { to: '/roles', label: 'nav.admin.roles', capabilities: ['roles.view'], icon: ICONS.roles },
+    { to: '/custom-fields', label: 'nav.admin.customFields', capabilities: ['custom_fields.manage', 'module:custom_fields'], icon: SlidersHorizontal },
     { to: '/settings', label: 'nav.admin.settings', capabilities: ['settings.view'], icon: ICONS.settings },
     { to: '/security', label: 'nav.admin.security', icon: ICONS.security },
 ];

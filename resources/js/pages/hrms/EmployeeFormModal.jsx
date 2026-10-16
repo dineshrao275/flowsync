@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import CustomFieldInputs, { useCustomFieldDefinitions } from '../../components/customFields/CustomFieldInputs';
 import { useTranslation } from 'react-i18next';
 import api, { fieldErrors } from '../../services/api';
 import Alert from '../../components/ui/Alert';
@@ -50,6 +51,8 @@ export default function EmployeeFormModal({ options, saving, onClose, onCreate }
     const { can } = useAuth();
     const [form, setForm] = useState(() => initial(options));
     const [errors, setErrors] = useState({});
+    const cfDefs = useCustomFieldDefinitions('employee');
+    const [cf, setCf] = useState({});
     const [roles, setRoles] = useState([]);
     const [users, setUsers] = useState([]);
 
@@ -95,6 +98,10 @@ export default function EmployeeFormModal({ options, saving, onClose, onCreate }
             ...profile(form),
             ...loginFields(form),
         };
+
+        if (cfDefs.length) {
+            payload.custom_fields = Object.fromEntries(Object.entries(cf).filter(([, v]) => v !== '' && !(Array.isArray(v) && v.length === 0)));
+        }
 
         onCreate(payload).catch((err) => setErrors(fieldErrors(err)));
     }
@@ -346,6 +353,8 @@ export default function EmployeeFormModal({ options, saving, onClose, onCreate }
                         </div>
                     )}
                 </fieldset>
+
+                <CustomFieldInputs fields={cfDefs} values={cf} onChange={setCf} errors={errors} />
 
                 <div className="flex justify-end gap-2 border-t border-gray-200 pt-4">
                     <Button type="button" variant="secondary" onClick={onClose}>

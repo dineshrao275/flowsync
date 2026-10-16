@@ -259,7 +259,8 @@
             "security": "Seguridad",
             "subscription": "Suscripción",
             "support": "Soporte",
-            "dataExport": "Exportación de datos"
+            "dataExport": "Exportación de datos",
+            "customFields": "Campos personalizados"
         },
         "hrms": {
             "myHr": "Mi RR. HH.",

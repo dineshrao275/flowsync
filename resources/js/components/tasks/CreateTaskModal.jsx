@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import CustomFieldInputs, { useCustomFieldDefinitions } from '../customFields/CustomFieldInputs';
 import { useTranslation } from 'react-i18next';
 import { fieldErrors } from '../../services/api';
 import Button from '../ui/Button';
@@ -10,7 +11,9 @@ import RichTextEditor from '../ui/RichTextEditor';
 
 export default function CreateTaskModal({ options, topLevelTasks, projectKey, saving, onClose, onCreate }) {
     const { t } = useTranslation();
+    const cfDefs = useCustomFieldDefinitions('task');
     const [form, setForm] = useState({
+        custom_fields: {},
         title: '',
         description: '',
         issue_type_id: options.issue_types?.find((t) => !t.is_subtask)?.id ?? options.issue_types?.[0]?.id ?? '',
@@ -265,6 +268,7 @@ export default function CreateTaskModal({ options, topLevelTasks, projectKey, sa
                         error={errors.estimate_minutes}
                     />
                 </div>
+                <CustomFieldInputs fields={cfDefs} values={form.custom_fields} onChange={(v) => set('custom_fields', v)} errors={errors} />
                 <div className="flex justify-end gap-2 pt-2">
                     <Button type="button" variant="secondary" onClick={onClose}>
                         {t('tms.create.cancel')}

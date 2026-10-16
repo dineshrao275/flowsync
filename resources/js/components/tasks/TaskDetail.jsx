@@ -18,6 +18,7 @@ import RichTextEditor from '../ui/RichTextEditor';
 import RichText from '../ui/RichText';
 import Timestamp from '../ui/Timestamp';
 import useUnsavedChanges from '../../hooks/useUnsavedChanges';
+import CustomFieldInputs, { useCustomFieldDefinitions } from '../customFields/CustomFieldInputs';
 
 export default function TaskDetail({
     task,
@@ -42,6 +43,7 @@ export default function TaskDetail({
 }) {
     const { user, hasModule } = useAuth();
     const { t } = useTranslation();
+    const cfDefs = useCustomFieldDefinitions('task');
     const [form, setForm] = useState(null);
     const [errors, setErrors] = useState({});
     const [tab, setTab] = useState('details');
@@ -70,6 +72,7 @@ export default function TaskDetail({
                       due_date: task.due_date || '',
                       story_points: task.story_points ?? '',
                       estimate_minutes: task.estimate_minutes ?? '',
+                      custom_fields: { ...(task.custom_fields || {}) },
               }
             : null;
         baseline.current = JSON.stringify(loaded);
@@ -547,6 +550,7 @@ export default function TaskDetail({
                                     </dl>
                                 </aside>
                             </div>
+                            <CustomFieldInputs fields={cfDefs} values={form.custom_fields || {}} onChange={(v) => set('custom_fields', v)} errors={errors} />
                         </form>
                     ) : (
                         <div className="px-6 py-5">

@@ -15,6 +15,7 @@ import usePageTitle from '../../hooks/usePageTitle';
 import { hrmsProfileTabs } from '../../utils/hrmsModules';
 import { hrmsUrl } from '../../utils/deepLinks';
 import EmployeeEditModal from './EmployeeEditModal';
+import { CustomFieldValues } from '../../components/customFields/CustomFieldInputs';
 import StatusHistory from './StatusHistory';
 import EmployeeDocuments from '../../components/hrms/EmployeeDocuments';
 import EmployeeAudit from '../../components/hrms/EmployeeAudit';
@@ -235,6 +236,12 @@ export default function EmployeeDetail() {
                         </Panel>
 
                         <PersonalPanel employee={employee} t={t} />
+
+                        {employee.custom_fields && Object.keys(employee.custom_fields).length > 0 && (
+                            <Panel title={t('admin.customFields.sectionTitle')}>
+                                <CustomFieldValues entity="employee" values={employee.custom_fields} Row={Row} />
+                            </Panel>
+                        )}
 
                         {canManage && (
                             <Panel title={t('hrms.employee.reporting')}>
