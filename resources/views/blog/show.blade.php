@@ -14,8 +14,8 @@
             <p class="flex flex-wrap items-center justify-center gap-2 text-xs text-slate-400">
                 @if($post->category)<a href="/blog/category/{{ $post->category->slug }}" class="rounded-full bg-blue-50 px-2.5 py-0.5 font-semibold text-blue-700">{{ $post->category->name }}</a>@endif
                 @if($post->published_at)<time datetime="{{ $post->published_at->toDateString() }}">{{ $post->published_at->format('M j, Y') }}</time>@endif
-                @if($post->reading_minutes)<span aria-hidden="true">·</span><span>{{ $post->reading_minutes }} min read</span>@endif
-                @if($post->author_name)<span aria-hidden="true">·</span><span>By {{ $post->author_name }}</span>@endif
+                @if($post->reading_minutes)<span aria-hidden="true">·</span><span>{{ __('site.blog.minRead', ['count' => $post->reading_minutes]) }}</span>@endif
+                @if($post->author_name)<span aria-hidden="true">·</span><span>{{ __('site.blog.by', ['name' => $post->author_name]) }}</span>@endif
             </p>
             <h1 class="mx-auto mt-4 max-w-2xl text-4xl font-extrabold tracking-tight text-balance text-slate-900 sm:text-5xl">{{ $post->title }}</h1>
             @if($post->excerpt)<p class="mx-auto mt-4 max-w-xl text-lg text-slate-600">{{ $post->excerpt }}</p>@endif
@@ -30,8 +30,8 @@
         </div>
 
         @if(($related ?? collect())->isNotEmpty())
-            <section class="mt-14" aria-label="Related posts">
-                <h2 class="mb-6 text-center text-2xl font-extrabold tracking-tight text-slate-900">Keep reading</h2>
+            <section class="mt-14" aria-label="{{ __('site.blog.relatedLabel') }}">
+                <h2 class="mb-6 text-center text-2xl font-extrabold tracking-tight text-slate-900">{{ __('site.blog.keepReading') }}</h2>
                 <div class="grid gap-5 sm:grid-cols-3">
                     @foreach ($related as $item)
                         <a href="/blog/{{ $item->slug }}" class="rounded-2xl border border-slate-200/80 bg-white p-5 shadow-sm transition hover:-translate-y-1 hover:shadow-md">
@@ -44,7 +44,7 @@
         @endif
 
         <div class="mt-14 text-center">
-            <x-site.button href="/app/register" size="lg">Start free</x-site.button>
+            <x-site.button href="/app/register" size="lg">{{ __('site.actions.startFree') }}</x-site.button>
         </div>
     </article>
 @endsection

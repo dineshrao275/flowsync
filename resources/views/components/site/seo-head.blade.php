@@ -23,6 +23,7 @@
     $ogDescription = $ogDescription ?? $description ?? '';
     $ogUrl = $ogUrl ?? $canonical;
     $twitterCard = $twitterCard ?? ($ogImage ? 'summary_large_image' : 'summary');
+    $ogLocale = str_replace('-', '_', config('locales.supported.'.app()->getLocale().'.intl', 'en-US'));
 @endphp
 
 <title>{{ $title }}</title>
@@ -33,6 +34,7 @@
 <link rel="icon" type="image/svg+xml" href="{{ url('/favicon.svg') }}">
 
 <meta property="og:site_name" content="{{ $siteName }}">
+<meta property="og:locale" content="{{ $ogLocale }}">
 <meta property="og:title" content="{{ $ogTitle }}">
 @if($ogDescription)<meta property="og:description" content="{{ $ogDescription }}">@endif
 <meta property="og:url" content="{{ $ogUrl }}">

@@ -29,7 +29,7 @@
                         @if(!empty($block['cta']['label']))
                             <div class="mt-8 flex animate-fade-up flex-col items-center justify-center gap-3 [animation-delay:240ms] sm:flex-row">
                                 <x-site.button href="{{ $block['cta']['href'] ?? '/app/register' }}" size="lg">{{ $block['cta']['label'] }}</x-site.button>
-                                <x-site.button href="/app/login" variant="ghost" size="lg">Log in</x-site.button>
+                                <x-site.button href="/app/login" variant="ghost" size="lg">{{ __('site.actions.logIn') }}</x-site.button>
                             </div>
                         @endif
                     </div>
@@ -58,7 +58,7 @@
                             <div class="absolute -bottom-24 -right-24 h-72 w-72 rounded-full bg-violet-600/30 blur-3xl"></div>
                         </div>
                         <div class="relative">
-                            <x-site.section-heading :heading="$block['heading'] ?? 'Ready to start?'" :lead="$block['text'] ?? null" dark align="center" class="mb-8" />
+                            <x-site.section-heading :heading="$block['heading'] ?? __('site.blocks.readyToStart')" :lead="$block['text'] ?? null" dark align="center" class="mb-8" />
                             @if(!empty($block['cta']['label']))
                                 <x-site.button href="{{ $block['cta']['href'] ?? '/app/register' }}" variant="light" size="lg">{{ $block['cta']['label'] }}</x-site.button>
                             @endif
@@ -213,10 +213,10 @@
                     @endif
                     @if($embed)
                         <div class="overflow-hidden rounded-3xl shadow-2xl shadow-slate-900/10 ring-1 ring-slate-900/5">
-                            <iframe src="{{ $embed }}" title="{{ $block['heading'] ?? 'Video' }}" class="aspect-video w-full" loading="lazy" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+                            <iframe src="{{ $embed }}" title="{{ $block['heading'] ?? __('site.video.title') }}" class="aspect-video w-full" loading="lazy" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
                         </div>
                     @elseif(!empty($block['embed_url']))
-                        <div class="text-center"><x-site.button href="{{ $block['embed_url'] }}" variant="ghost">Watch the video</x-site.button></div>
+                        <div class="text-center"><x-site.button href="{{ $block['embed_url'] }}" variant="ghost">{{ __('site.video.watch') }}</x-site.button></div>
                     @endif
                 </section>
                 @break
@@ -227,21 +227,21 @@
                 @php($moduleMeta = config('subscriptions.module_meta', []))
                 @if($plans->isNotEmpty())
                     <section class="mx-auto max-w-6xl px-4 py-14 sm:px-6">
-                        <x-site.section-heading :eyebrow="$block['eyebrow'] ?? null" :heading="$block['heading'] ?? 'Simple pricing'" :lead="$block['lead'] ?? null" align="center" class="mb-10" />
+                        <x-site.section-heading :eyebrow="$block['eyebrow'] ?? null" :heading="$block['heading'] ?? __('site.pricing.heading')" :lead="$block['lead'] ?? null" align="center" class="mb-10" />
                         <div class="grid items-stretch gap-5 {{ $planCols }}">
                             @foreach ($plans as $plan)
                                 @php($modules = array_values(array_filter((array) ($plan->limits['modules'] ?? []))))
                                 <div class="relative flex flex-col rounded-3xl p-7 {{ $plan->is_default ? 'bg-slate-950 text-white shadow-2xl shadow-slate-900/20 ring-2 ring-blue-500' : 'border border-slate-200/80 bg-white shadow-sm' }}">
                                     @if($plan->is_default)
-                                        <span class="absolute -top-3.5 left-1/2 -translate-x-1/2 rounded-full bg-blue-600 px-3 py-1 text-xs font-bold uppercase tracking-wider text-white shadow-lg shadow-blue-600/30">Most popular</span>
+                                        <span class="absolute -top-3.5 left-1/2 -translate-x-1/2 rounded-full bg-blue-600 px-3 py-1 text-xs font-bold uppercase tracking-wider text-white shadow-lg shadow-blue-600/30">{{ __('site.pricing.mostPopular') }}</span>
                                     @endif
                                     <h3 class="text-lg font-extrabold tracking-tight {{ $plan->is_default ? 'text-white' : 'text-slate-900' }}">{{ $plan->name }}</h3>
                                     @if($plan->description)<p class="mt-1 text-sm {{ $plan->is_default ? 'text-blue-100/70' : 'text-slate-500' }}">{{ $plan->description }}</p>@endif
                                     <p class="mt-5 flex items-baseline gap-1.5">
-                                        <span class="text-4xl font-extrabold tracking-tight {{ $plan->is_default ? 'text-white' : 'text-slate-900' }}">{{ $plan->price_cents > 0 ? number_format($plan->price_cents / 100, 0).' '.strtoupper($plan->currency ?? 'USD') : 'Free' }}</span>
-                                        @if($plan->price_cents > 0)<span class="text-sm {{ $plan->is_default ? 'text-blue-100/70' : 'text-slate-500' }}">/ mo{{ $plan->billing_cycle === 'annual' ? ', billed annually' : '' }}</span>@endif
+                                        <span class="text-4xl font-extrabold tracking-tight {{ $plan->is_default ? 'text-white' : 'text-slate-900' }}">{{ $plan->price_cents > 0 ? number_format($plan->price_cents / 100, 0).' '.strtoupper($plan->currency ?? 'USD') : __('site.pricing.free') }}</span>
+                                        @if($plan->price_cents > 0)<span class="text-sm {{ $plan->is_default ? 'text-blue-100/70' : 'text-slate-500' }}">{{ __('site.pricing.perMonth') }}{{ $plan->billing_cycle === 'annual' ? __('site.pricing.billedAnnually') : '' }}</span>@endif
                                     </p>
-                                    @if($plan->trial_duration_days)<p class="mt-1 text-xs font-medium {{ $plan->is_default ? 'text-blue-200' : 'text-blue-600' }}">{{ $plan->trial_duration_days }}-day free trial</p>@endif
+                                    @if($plan->trial_duration_days)<p class="mt-1 text-xs font-medium {{ $plan->is_default ? 'text-blue-200' : 'text-blue-600' }}">{{ __('site.pricing.trialDays', ['count' => $plan->trial_duration_days]) }}</p>@endif
                                     @if($modules)
                                         <ul class="mt-6 flex-1 space-y-2.5 text-sm {{ $plan->is_default ? 'text-blue-50' : 'text-slate-600' }}">
                                             @foreach (array_slice($modules, 0, 6) as $module)
@@ -253,7 +253,7 @@
                                             @if(count($modules) > 6)<li class="pl-6 text-xs opacity-70">+{{ count($modules) - 6 }} more included</li>@endif
                                         </ul>
                                     @endif
-                                    <div class="mt-7"><x-site.button href="/app/register" :variant="$plan->is_default ? 'light' : 'primary'" class="w-full">Start free</x-site.button></div>
+                                    <div class="mt-7"><x-site.button href="/app/register" :variant="$plan->is_default ? 'light' : 'primary'" class="w-full">{{ __('site.actions.startFree') }}</x-site.button></div>
                                 </div>
                             @endforeach
                         </div>
@@ -301,9 +301,9 @@
                                             @php($cell = trim((string) ($row['values'][$ci] ?? '')))
                                             <td class="px-5 py-3.5 text-slate-600">
                                                 @if(strtolower($cell) === 'yes')
-                                                    <span class="inline-flex h-6 w-6 items-center justify-center rounded-full bg-emerald-100 text-emerald-700" role="img" aria-label="Included">✓</span>
+                                                    <span class="inline-flex h-6 w-6 items-center justify-center rounded-full bg-emerald-100 text-emerald-700" role="img" aria-label="{{ __('site.comparison.included') }}">✓</span>
                                                 @elseif(strtolower($cell) === 'no' || $cell === '')
-                                                    <span class="text-slate-300" aria-label="Not included">—</span>
+                                                    <span class="text-slate-300" aria-label="{{ __('site.comparison.notIncluded') }}">—</span>
                                                 @else
                                                     {{ $cell }}
                                                 @endif
@@ -320,29 +320,29 @@
             @case('contact_form')
                 <section class="mx-auto max-w-2xl px-4 py-14 sm:px-6">
                     <div class="rounded-3xl border border-slate-200/80 bg-white p-6 shadow-sm sm:p-10">
-                        <x-site.section-heading :eyebrow="$block['eyebrow'] ?? null" :heading="$block['heading'] ?? 'Talk to us'" :lead="$block['lead'] ?? null" align="center" class="mb-8" />
+                        <x-site.section-heading :eyebrow="$block['eyebrow'] ?? null" :heading="$block['heading'] ?? __('site.contact.heading')" :lead="$block['lead'] ?? null" align="center" class="mb-8" />
                         <form data-contact-form data-source="{{ $block['source'] ?? 'contact' }}" class="space-y-4" novalidate>
                             <div class="grid gap-4 sm:grid-cols-2">
                                 <div>
-                                    <label class="mb-1.5 block text-sm font-medium text-slate-700" for="cf-name">Name</label>
+                                    <label class="mb-1.5 block text-sm font-medium text-slate-700" for="cf-name">{{ __('site.contact.name') }}</label>
                                     <input id="cf-name" name="name" type="text" required autocomplete="name" class="w-full rounded-xl border border-slate-200 px-3.5 py-2.5 text-sm outline-none focus:border-blue-400">
                                 </div>
                                 <div>
-                                    <label class="mb-1.5 block text-sm font-medium text-slate-700" for="cf-email">Work email</label>
+                                    <label class="mb-1.5 block text-sm font-medium text-slate-700" for="cf-email">{{ __('site.contact.email') }}</label>
                                     <input id="cf-email" name="email" type="email" required autocomplete="email" class="w-full rounded-xl border border-slate-200 px-3.5 py-2.5 text-sm outline-none focus:border-blue-400">
                                 </div>
                             </div>
                             <div>
-                                <label class="mb-1.5 block text-sm font-medium text-slate-700" for="cf-company">Company <span class="font-normal text-slate-400">(optional)</span></label>
+                                <label class="mb-1.5 block text-sm font-medium text-slate-700" for="cf-company">{{ __('site.contact.company') }} <span class="font-normal text-slate-400">{{ __('site.contact.optional') }}</span></label>
                                 <input id="cf-company" name="company" type="text" autocomplete="organization" class="w-full rounded-xl border border-slate-200 px-3.5 py-2.5 text-sm outline-none focus:border-blue-400">
                             </div>
                             <div>
-                                <label class="mb-1.5 block text-sm font-medium text-slate-700" for="cf-message">How can we help?</label>
+                                <label class="mb-1.5 block text-sm font-medium text-slate-700" for="cf-message">{{ __('site.contact.message') }}</label>
                                 <textarea id="cf-message" name="message" required rows="4" minlength="10" class="w-full rounded-xl border border-slate-200 px-3.5 py-2.5 text-sm outline-none focus:border-blue-400"></textarea>
                             </div>
                             <input type="text" name="website" tabindex="-1" autocomplete="off" class="hidden" aria-hidden="true">
                             <p data-contact-error class="hidden rounded-xl bg-red-50 px-4 py-2.5 text-sm text-red-700" role="alert"></p>
-                            <x-site.button type="submit" size="lg" class="w-full" data-contact-submit>{{ ($block['source'] ?? 'contact') === 'demo' ? 'Book my demo' : 'Send message' }}</x-site.button>
+                            <x-site.button type="submit" size="lg" class="w-full" data-contact-submit>{{ ($block['source'] ?? 'contact') === 'demo' ? __('site.contact.submitDemo') : __('site.contact.submit') }}</x-site.button>
                         </form>
                     </div>
                 </section>

@@ -319,20 +319,24 @@ Route::post('api/contact', [ContactController::class, 'store'])->middleware('thr
 Route::post('api/webhooks/stripe', [WebhookController::class, 'handleStripe'])->middleware('throttle:60,1');
 Route::post('api/webhooks/razorpay', [WebhookController::class, 'handleRazorpay'])->middleware('throttle:60,1');
 
-// Public marketing site (server-rendered from the DB-backed CMS pages).
-Route::get('/', [PublicSiteController::class, 'home']);
-Route::get('page/{slug}', [PublicSiteController::class, 'page']);
+// Public marketing site (server-rendered from the DB-backed CMS pages). The
+// `locale` middleware honours `?locale=` / Accept-Language for the template
+// chrome (page/block bodies are CMS data and are never translated by code).
+Route::middleware('locale')->group(function () {
+    Route::get('/', [PublicSiteController::class, 'home']);
+    Route::get('page/{slug}', [PublicSiteController::class, 'page']);
 
-// Signed draft preview for the CMS (never indexed — see controller).
-Route::get('preview/{websitePage}', [PublicSiteController::class, 'preview'])->name('site.preview')->middleware('signed');
+    // Signed draft preview for the CMS (never indexed — see controller).
+    Route::get('preview/{websitePage}', [PublicSiteController::class, 'preview'])->name('site.preview')->middleware('signed');
 
-// Public blog. Specific routes first: `blog/{post}` would otherwise claim
-// the feed and category paths as post slugs.
-Route::get('blog', [BlogController::class, 'index'])->name('site.blog');
-Route::get('blog/rss.xml', [BlogController::class, 'feed'])->name('site.blog_feed');
-Route::get('blog/category/{slug}', [BlogController::class, 'category'])->name('site.blog_category');
-Route::get('blog/{post}', [BlogController::class, 'show'])->name('site.blog_post');
-Route::get('blog-preview/{blogPost}', [BlogController::class, 'preview'])->name('site.blog_preview')->middleware('signed');
+    // Public blog. Specific routes first: `blog/{post}` would otherwise claim
+    // the feed and category paths as post slugs.
+    Route::get('blog', [BlogController::class, 'index'])->name('site.blog');
+    Route::get('blog/rss.xml', [BlogController::class, 'feed'])->name('site.blog_feed');
+    Route::get('blog/category/{slug}', [BlogController::class, 'category'])->name('site.blog_category');
+    Route::get('blog/{post}', [BlogController::class, 'show'])->name('site.blog_post');
+    Route::get('blog-preview/{blogPost}', [BlogController::class, 'preview'])->name('site.blog_preview')->middleware('signed');
+});
 
 // Named reset landing for the framework's ResetPassword mail: the notification
 // builds its URL via `route('password.reset', token + email)`, and without this
@@ -371,9 +375,9 @@ require __DIR__.'/security.php';
 // last on purpose: `/{slug}` and the fallback only see requests no other
 // route claimed, and reserved slugs 404 in the controller regardless, so a
 // page can never shadow a real route (notably POST broadcasting/auth above).
-Route::get('{slug}', [PublicSiteController::class, 'topPage'])->name('site.page');
+Route::get('{slug}', [PublicSiteController::class, 'topPage'])->name('site.page')->middleware('locale');
 
 // Legacy `/page/{slug}` prefix 301s to the canonical URL (see controller).
 // Unknown paths resolve `website_redirects` before the designed 404; the
 // handler lets framework prefixes keep their own 404 shape.
-Route::fallback([PublicSiteController::class, 'fallback']);
+Route::fallback([PublicSiteController::class, 'fallback'])->middleware('locale');
