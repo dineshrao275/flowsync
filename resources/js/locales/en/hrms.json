@@ -2368,5 +2368,32 @@
         "detractors": "Detractors",
         "yes": "Yes",
         "no": "No"
+    },
+    "setup": {
+        "title": "Finish setting up HR",
+        "subtitle": "{{done}} of {{total}} steps done",
+        "open": "Open",
+        "steps": {
+            "employees": {
+                "title": "Add your people",
+                "hint": "Create employee records or import them from a CSV."
+            },
+            "org": {
+                "title": "Build your organisation",
+                "hint": "Place employees in departments and set who heads each one."
+            },
+            "holidays": {
+                "title": "Add a holiday calendar",
+                "hint": "Holidays feed attendance, leave and payroll."
+            },
+            "leave": {
+                "title": "Set up leave policies",
+                "hint": "Define how leave accrues and who can take what."
+            },
+            "payroll": {
+                "title": "Create a salary template",
+                "hint": "Salary templates price payslips; add one before opening a pay run."
+            }
+        }
     }
 }

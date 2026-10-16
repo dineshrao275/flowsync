@@ -82,12 +82,12 @@ export default function FeatureManagement() {
                     <h2 className="mb-3 text-xs font-semibold uppercase tracking-wide text-gray-400">
                         {group.label}
                     </h2>
-                    <table className="w-full text-left text-sm">
+                    <div className="overflow-x-auto"><table className="w-full text-left text-sm">
                         <thead>
                             <tr>
-                                <th className="pb-2 font-semibold" />
+                                <th scope="col" className="pb-2 font-semibold" />
                                 {data.plans.map((plan) => (
-                                    <th key={plan.id} className="pb-2 text-center font-semibold">
+                                    <th scope="col" key={plan.id} className="pb-2 text-center font-semibold">
                                         {plan.name}
                                         {!plan.is_active && (
                                             <span className="block text-[10px] text-gray-300">{t('admin.featureManagement.inactive')}</span>
@@ -120,7 +120,7 @@ export default function FeatureManagement() {
                                 </tr>
                             ))}
                         </tbody>
-                    </table>
+                    </table></div>
                 </Card>
             ))}
         </div>

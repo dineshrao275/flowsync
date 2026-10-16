@@ -671,13 +671,13 @@ export default function CmsPages() {
                 {loading ? (
                     <Spinner />
                 ) : (
-                    <table className="w-full text-left text-sm">
+                    <div className="overflow-x-auto"><table className="w-full text-left text-sm">
                         <thead className="text-xs uppercase tracking-wide text-gray-400">
                             <tr>
-                                <th className="pb-2 font-semibold">{t('admin.cmsPages.thPage')}</th>
-                                <th className="pb-2 font-semibold">{t('admin.common.status')}</th>
-                                <th className="pb-2 font-semibold">{t('admin.cmsPages.thSlug')}</th>
-                                <th className="pb-2 text-right font-semibold">{t('admin.common.actions')}</th>
+                                <th scope="col" className="pb-2 font-semibold">{t('admin.cmsPages.thPage')}</th>
+                                <th scope="col" className="pb-2 font-semibold">{t('admin.common.status')}</th>
+                                <th scope="col" className="pb-2 font-semibold">{t('admin.cmsPages.thSlug')}</th>
+                                <th scope="col" className="pb-2 text-right font-semibold">{t('admin.common.actions')}</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -710,7 +710,7 @@ export default function CmsPages() {
                                 <tr><td colSpan={4} className="py-6 text-center text-gray-400">{t('admin.cmsPages.noPages')}</td></tr>
                             )}
                         </tbody>
-                    </table>
+                    </table></div>
                 )}
             </Card>
 

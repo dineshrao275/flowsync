@@ -107,13 +107,13 @@ export default function SystemUsers() {
                 {loading ? (
                     <Spinner />
                 ) : (
-                    <table className="w-full text-left text-sm">
+                    <div className="overflow-x-auto"><table className="w-full text-left text-sm">
                         <thead className="text-xs uppercase tracking-wide text-gray-400">
                             <tr>
-                                <th className="pb-2 font-semibold">{t('admin.systemUsers.colName')}</th>
-                                <th className="pb-2 font-semibold">{t('admin.systemUsers.colEmail')}</th>
-                                <th className="pb-2 font-semibold">{t('admin.systemUsers.colAccess')}</th>
-                                <th className="pb-2 text-right font-semibold">{t('admin.systemUsers.colCreated')}</th>
+                                <th scope="col" className="pb-2 font-semibold">{t('admin.systemUsers.colName')}</th>
+                                <th scope="col" className="pb-2 font-semibold">{t('admin.systemUsers.colEmail')}</th>
+                                <th scope="col" className="pb-2 font-semibold">{t('admin.systemUsers.colAccess')}</th>
+                                <th scope="col" className="pb-2 text-right font-semibold">{t('admin.systemUsers.colCreated')}</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -137,7 +137,7 @@ export default function SystemUsers() {
                                 <tr><td colSpan={4} className="py-6 text-center text-gray-400">{t('admin.systemUsers.empty')}</td></tr>
                             )}
                         </tbody>
-                    </table>
+                    </table></div>
                 )}
             </Card>
 

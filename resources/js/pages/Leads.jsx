@@ -112,13 +112,13 @@ export default function Leads() {
                 {loading ? (
                     <Spinner />
                 ) : (
-                    <table className="w-full text-left text-sm">
+                    <div className="overflow-x-auto"><table className="w-full text-left text-sm">
                         <thead className="text-xs uppercase tracking-wide text-gray-400">
                             <tr>
-                                <th className="pb-2 font-semibold">{t('admin.leads.thLead')}</th>
-                                <th className="pb-2 font-semibold">{t('admin.leads.thSource')}</th>
-                                <th className="pb-2 font-semibold">{t('admin.leads.thStatus')}</th>
-                                <th className="pb-2 font-semibold">{t('admin.leads.thReceived')}</th>
+                                <th scope="col" className="pb-2 font-semibold">{t('admin.leads.thLead')}</th>
+                                <th scope="col" className="pb-2 font-semibold">{t('admin.leads.thSource')}</th>
+                                <th scope="col" className="pb-2 font-semibold">{t('admin.leads.thStatus')}</th>
+                                <th scope="col" className="pb-2 font-semibold">{t('admin.leads.thReceived')}</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -137,7 +137,7 @@ export default function Leads() {
                                 <tr><td colSpan={4} className="py-6 text-center text-gray-400">{t('admin.leads.empty')}</td></tr>
                             )}
                         </tbody>
-                    </table>
+                    </table></div>
                 )}
                 {pagination && (
                     <div className="mt-4">

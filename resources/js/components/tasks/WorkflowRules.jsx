@@ -58,8 +58,8 @@ export default function WorkflowRules({ projectId, onSaved }) {
                 <table className="min-w-full text-sm">
                     <thead>
                         <tr className="text-left text-xs uppercase tracking-wide text-gray-500">
-                            <th className="px-2 py-1.5">{t('tms.workflow.matrixCorner')}</th>
-                            {data.statuses.map((s) => <th key={s.id} className="px-2 py-1.5">{s.name}</th>)}
+                            <th scope="col" className="px-2 py-1.5">{t('tms.workflow.matrixCorner')}</th>
+                            {data.statuses.map((s) => <th scope="col" key={s.id} className="px-2 py-1.5">{s.name}</th>)}
                         </tr>
                     </thead>
                     <tbody>
