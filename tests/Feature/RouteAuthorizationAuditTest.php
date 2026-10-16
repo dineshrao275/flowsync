@@ -50,6 +50,8 @@ class RouteAuthorizationAuditTest extends TestCase
         'ApiV1Controller@me' => 'bearer-token identity: returns the token owner\'s own record and the token\'s abilities',
         'ContactController@store' => 'public: throttled + honeypot-guarded, writes only a lead row',
         'ClientLogController@store' => 'public: throttled client error reporting, writes only a log line',
+        'CspReportController@store' => 'public: browser-sent CSP violation reports, throttled, logs a few trimmed fields',
+        'LanguageController@index' => 'public: the list of supported languages, no tenant data',
     ];
 
     /** Calls that count as an explicit authorization decision. */

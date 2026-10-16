@@ -11,7 +11,7 @@
 ## F0 task status
 | Task | Status | Evidence |
 |---|---|---|
-| F0.1 full ParaTest run | pending (final gate) | — |
+| F0.1 full ParaTest run | **done on a snapshot at `0300dda8`**: 2077 tests / 12030 assertions; 28 failures + 1 error, all triaged below; final re-run still required at the end | `scratchpad/full-run2.txt` |
 | F0.2 verify §0.1 | done | `missing-functionality.md` §0.1 updated with findings |
 | F0.3 impersonator on audit rows | written, awaiting run | `AuditTrace`, migrations `…_000052`, `…_000062`, `AuditTraceTest` |
 | F0.4 request id on activities + jobs | written, awaiting run | same files + `SwitchesTenantConnectionForQueuedJobs` |
@@ -23,3 +23,8 @@
 ## Defects found on the way
 - `RunsPerTenant::tenantsOrFail()` turned `--tenant=ID` into an array of attribute values (`collect($model)`), so every fleet command run with `--tenant` failed. Fixed (F0.7 commit).
 - `Command::alert()` name clash when adding an alert helper to a console command (renamed `raiseAlert`).
+
+## F0.1 result (snapshot of commit 0300dda8, 2077 tests, 12030 assertions)
+- **24 of the 29 red tests were an artefact of the copy** (the snapshot excluded `public/build`, so every page that renders the Vite manifest — public site, 404 pages, SPA shell — returned 500). The same 119 tests (CmsTest, BlogTest, PublicSiteLocaleTest, CollaborationTest, ExampleTest, HrmsEmployeeApiTest, InvoiceTest, SiteSettingsTest, TenantExportTest, BrandSweepTest, HrmsDocumentServiceTest) all pass in the real checkout.
+- **5 real failures, all fixed:** `RouteAuthorizationAuditTest` (two public routes, `api/csp-report` and `api/locales`, needed explicit entries), `ScopePermissionTest` (permission count 105 → 106 for `custom_fields.manage`), `BroadcastingChannelAuthTest::test_workspace_channel_allows_workspace_member` (the test still asserted the pre-fix behaviour that a tenant admin is refused a workspace channel; admins are allowed since `9958af8c`).
+- Lesson: to snapshot for a background full run, copy `public/build` too (`rsync` without `--exclude public/build`).

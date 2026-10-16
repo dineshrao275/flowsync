@@ -16,6 +16,7 @@ use App\Http\Controllers\Hrms\Performance\PerformanceGoalController;
 use App\Http\Controllers\Hrms\Performance\ReviewSummaryController;
 use App\Http\Controllers\Hrms\Survey\SurveyCampaignController;
 use App\Http\Controllers\Hrms\Survey\SurveyTemplateController;
+use App\Http\Controllers\Hrms\Talent\SkillController;
 use App\Http\Controllers\Hrms\Talent\TalentController;
 use App\Http\Controllers\Hrms\TaskLinkController;
 use Illuminate\Support\Facades\Route;
@@ -225,4 +226,18 @@ Route::group(['middleware' => ['ensure_module:hrms.core', 'ensure_module:hrms.ta
     Route::post('hrms/talent/reviews/{review}/finalize', [TalentController::class, 'finalize']);
     Route::get('hrms/talent/cycles/{cycle}/distribution', [TalentController::class, 'distribution']);
     Route::get('hrms/talent/cycles/{cycle}/feedback-summary', [TalentController::class, 'feedbackSummary']);
+});
+
+// HRMS skills (F8). Same two gates plus the talent module: the catalogue reads for anyone with HRMS
+// access, edits and assessments answer to hrms.talent.manage, and the matrix follows the talent
+// view scope (own / assigned / all). `skills/mine` is self-service and needs only an employment record.
+Route::group(['middleware' => ['ensure_module:hrms.core', 'ensure_module:hrms.talent', 'permission:hrms.view']], function () {
+    Route::get('hrms/skills', [SkillController::class, 'index']);
+    Route::post('hrms/skills', [SkillController::class, 'store']);
+    Route::get('hrms/skills/matrix', [SkillController::class, 'matrix']);
+    Route::get('hrms/skills/mine', [SkillController::class, 'mine']);
+    Route::put('hrms/skills/mine', [SkillController::class, 'saveMine']);
+    Route::put('hrms/skills/{skill}', [SkillController::class, 'update']);
+    Route::delete('hrms/skills/{skill}', [SkillController::class, 'destroy']);
+    Route::put('hrms/employees/{employee}/skills', [SkillController::class, 'assess']);
 });

@@ -771,5 +771,16 @@
     "This template has no workflow to copy.": "Esta plantilla no tiene un flujo de trabajo que copiar.",
     "Template saved.": "Plantilla guardada.",
     "Choose an existing template.": "Elige una plantilla existente.",
-    "Only its creator or a tenant admin can delete a template.": "Solo su creador o un administrador puede eliminar una plantilla."
+    "Only its creator or a tenant admin can delete a template.": "Solo su creador o un administrador puede eliminar una plantilla.",
+    "People hold this skill. Archive it instead of deleting it.": "Hay personas con esta habilidad. Archívala en lugar de eliminarla.",
+    "Choose skills from the active catalogue.": "Elige habilidades del catálogo activo.",
+    "\":skill\" was assessed by a manager; ask them to update it.": "\":skill\" fue evaluada por un responsable; pídele que la actualice.",
+    "Skill added.": "Habilidad añadida.",
+    "Skill updated.": "Habilidad actualizada.",
+    "Skill deleted.": "Habilidad eliminada.",
+    "Your skills were saved.": "Tus habilidades se guardaron.",
+    "Skills assessed.": "Habilidades evaluadas.",
+    "You cannot view the skills matrix.": "No puedes ver la matriz de habilidades.",
+    "You cannot manage skills.": "No puedes gestionar habilidades.",
+    "You have no employment record.": "No tienes un registro de empleo."
 }

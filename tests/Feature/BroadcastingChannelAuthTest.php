@@ -103,7 +103,9 @@ class BroadcastingChannelAuthTest extends TestCase
         $this->workspace->members()->attach($this->outsider->id, ['role' => 'member']);
 
         $this->assertTrue((bool) $callback($this->outsider, $this->workspace->id));
-        $this->assertFalse((bool) $callback($this->member, $this->workspace->id));
+        // The tenant admin (`workspaces.manage`) reads every workspace without being a member — the
+        // channel mirrors WorkspacePolicy::view, so live updates reach admins who open one.
+        $this->assertTrue((bool) $callback($this->member, $this->workspace->id));
     }
 
     public function test_broadcast_auth_route_is_registered(): void
