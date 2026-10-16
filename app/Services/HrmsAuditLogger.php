@@ -8,7 +8,7 @@ use App\Models\Hrms\Shared\HrmsAuditLog;
 use App\Models\Hrms\Shared\HrmsDataAccessLog;
 use App\Models\User;
 use App\Support\AuditMask;
-use App\Support\RequestId;
+use App\Support\AuditTrace;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Log;
@@ -60,7 +60,7 @@ class HrmsAuditLogger implements AuditWriter
                 'after' => $after,
             ]),
             'ip_address' => $ipAddress,
-        ] + RequestId::columnFor(new HrmsAuditLog));
+        ] + AuditTrace::columnsFor(new HrmsAuditLog));
 
         // Operational line: identifiers only. The values live in the ledger.
         Log::channel('hrms')->info($action, [
@@ -101,7 +101,7 @@ class HrmsAuditLogger implements AuditWriter
             'action' => $action,
             'data' => AuditMask::mask($context + ['before' => $before, 'after' => $after]),
             'ip_address' => $ipAddress ?? request()->ip(),
-        ] + RequestId::columnFor(new HrmsAuditLog));
+        ] + AuditTrace::columnsFor(new HrmsAuditLog));
 
         Log::channel('hrms')->info($action, [
             'entity' => $subjectType,
@@ -138,7 +138,7 @@ class HrmsAuditLogger implements AuditWriter
             // `['gross' => 95000]`.
             'fields' => $this->fieldNames($fields),
             'ip_address' => $ipAddress,
-        ] + RequestId::columnFor(new HrmsDataAccessLog));
+        ] + AuditTrace::columnsFor(new HrmsDataAccessLog));
 
         Log::channel('hrms')->notice('data.'.$action->value, [
             'entity' => $model,

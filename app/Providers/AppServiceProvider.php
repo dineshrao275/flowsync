@@ -16,6 +16,7 @@ use App\Services\Security\PlatformAccess;
 use App\Services\TenantLimits;
 use App\Support\Hrms\HrmsSchema;
 use App\Support\Integration\BridgeSchema;
+use App\Support\RequestId;
 use App\Support\TenantContext;
 use App\Support\TenantDatabaseManager;
 use App\Support\Tms\TmsSchema;
@@ -162,7 +163,11 @@ class AppServiceProvider extends ServiceProvider
         Queue::createPayloadUsing(function (): array {
             $tenantId = $this->app->make(TenantContext::class)->currentId();
 
-            return is_int($tenantId) ? ['tenant_id' => $tenantId] : [];
+            // Tenant + the originating request's correlation id travel with the job.
+            return array_filter([
+                'tenant_id' => is_int($tenantId) ? $tenantId : null,
+                'request_id' => RequestId::current(),
+            ], fn ($v) => $v !== null);
         });
 
         $listener = $this->app->make(SwitchesTenantConnectionForQueuedJobs::class);

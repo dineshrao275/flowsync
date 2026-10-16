@@ -46,6 +46,7 @@ class HrmsAuditLog extends Model
         'data',
         'ip_address',
         'request_id',
+        'impersonator_id',
         'created_at',
     ];
 
