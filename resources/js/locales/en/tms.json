@@ -418,7 +418,8 @@
             "sprints": "Sprints",
             "automation": "Automation",
             "settings": "Settings",
-            "workload": "Workload"
+            "workload": "Workload",
+            "dashboard": "Dashboard"
         },
         "detailsTitle": "Details",
         "detailsSubtitle": "Workspace · {{id}}",
@@ -800,5 +801,33 @@
         "save": "Save template",
         "saved": "Template saved.",
         "saveFailed": "Could not save the template."
+    },
+    "dashboard": {
+        "customize": "Customize",
+        "cancel": "Cancel",
+        "pick": "Choose the widgets",
+        "saveMine": "Save for me",
+        "saveTeam": "Save as team default",
+        "reset": "Reset to default",
+        "saved": "Dashboard saved.",
+        "saveFailed": "Could not save the dashboard.",
+        "loadFailed": "Could not load the dashboard.",
+        "noData": "Nothing to show yet.",
+        "total": "Tasks",
+        "open": "Open",
+        "done": "Done",
+        "overdue": "Overdue",
+        "created": "Created",
+        "completed": "Completed",
+        "due": "due {{date}}",
+        "widgets": {
+            "overview": "Overview",
+            "status_breakdown": "Tasks by status",
+            "priority_breakdown": "Tasks by priority",
+            "assignee_load": "Open work per person",
+            "overdue_list": "Overdue tasks",
+            "due_soon": "Due in the next 7 days",
+            "created_vs_done": "Created vs completed (14 days)"
+        }
     }
 }

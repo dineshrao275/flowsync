@@ -804,5 +804,10 @@
     "Thank you — your exit interview was saved.": "Gracias: tu entrevista de salida se guardó.",
     "Exit interview recorded.": "Entrevista de salida registrada.",
     "Exit interview waived.": "Entrevista de salida dispensada.",
-    "You cannot access exit interviews.": "No puedes acceder a las entrevistas de salida."
+    "You cannot access exit interviews.": "No puedes acceder a las entrevistas de salida.",
+    "Choose at least one widget.": "Elige al menos un widget.",
+    "Dashboard saved.": "Panel guardado.",
+    "Dashboard reset.": "Panel restablecido.",
+    "None": "Ninguno",
+    "Unassigned": "Sin asignar"
 }

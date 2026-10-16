@@ -10,6 +10,7 @@ use App\Http\Controllers\IssueTypeController;
 use App\Http\Controllers\LabelController;
 use App\Http\Controllers\ProjectComponentController;
 use App\Http\Controllers\ProjectController;
+use App\Http\Controllers\ProjectDashboardController;
 use App\Http\Controllers\ProjectHierarchyController;
 use App\Http\Controllers\ProjectMemberController;
 use App\Http\Controllers\ProjectRoleController;
@@ -104,6 +105,11 @@ Route::middleware(['permission:workspaces.view', 'ensure_product:tms'])->group(f
     Route::delete('projects/{project}/members/{user}', [ProjectMemberController::class, 'destroy']);
 
     Route::get('projects/{project}/workload', [WorkloadController::class, 'show'])->middleware('ensure_module:sprints');
+    Route::middleware('ensure_module:reports')->group(function () {
+        Route::get('projects/{project}/dashboard', [ProjectDashboardController::class, 'show']);
+        Route::put('projects/{project}/dashboard', [ProjectDashboardController::class, 'update']);
+        Route::delete('projects/{project}/dashboard', [ProjectDashboardController::class, 'reset']);
+    });
     Route::middleware('ensure_module:project_templates')->group(function () {
         Route::get('project-templates', [ProjectTemplateController::class, 'index']);
         Route::delete('project-templates/{template}', [ProjectTemplateController::class, 'destroy']);

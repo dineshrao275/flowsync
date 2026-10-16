@@ -34,6 +34,7 @@ import CalendarView from '../components/tasks/CalendarView';
 import TimelineView from '../components/tasks/TimelineView';
 import WorkloadPanel from '../components/project/WorkloadPanel';
 import SaveAsTemplate from '../components/project/SaveAsTemplate';
+import DashboardPanel from '../components/project/DashboardPanel';
 import CreateTaskModal from '../components/tasks/CreateTaskModal';
 import TaskDetail from '../components/tasks/TaskDetail';
 import TimeSummary from '../components/time/TimeSummary';
@@ -706,6 +707,7 @@ export default function ProjectDetail() {
         { key: 'hierarchy', label: t('tms.project.tabs.hierarchy') },
         { key: 'members', label: t('tms.project.tabs.members', { count: members.length }) },
         { key: 'workflow', label: t('tms.project.tabs.workflow') },
+        ...(hasModule('reports') ? [{ key: 'dashboard', label: t('tms.project.tabs.dashboard') }] : []),
         ...(hasModule('time_tracking') ? [{ key: 'time', label: t('tms.project.tabs.time') }] : []),
         ...(hasModule('sprints') ? [{ key: 'sprints', label: t('tms.project.tabs.sprints') }, { key: 'workload', label: t('tms.project.tabs.workload') }] : []),
         ...(isProjectManager && hasModule('automation') ? [{ key: 'automation', label: t('tms.project.tabs.automation') }] : []),
@@ -891,6 +893,8 @@ export default function ProjectDetail() {
             )}
 
             {tab === 'hierarchy' && <HierarchyPanel projectId={projectId} />}
+
+            {tab === 'dashboard' && hasModule('reports') && <DashboardPanel projectId={projectId} canShare={isProjectManager} />}
 
             {tab === 'workload' && hasModule('sprints') && <WorkloadPanel projectId={projectId} />}
 
