@@ -788,5 +788,17 @@
         "unscheduled_other": "{{count}} tareas sin fecha límite",
         "utilizationLabel": "Utilización de {{name}}",
         "loadFailed": "No se pudo cargar la carga de trabajo."
+    },
+    "templates": {
+        "startFrom": "Empezar desde",
+        "blank": "Proyecto en blanco",
+        "title": "Guardar como plantilla",
+        "hint": "Copia el flujo de trabajo de este proyecto (columnas, movimientos permitidos, límites WIP) y sus componentes para empezar nuevos proyectos igual.",
+        "name": "Nombre de la plantilla",
+        "includeTasks": "Incluir tareas abiertas",
+        "includeTasksHint": "Copia hasta 100 tareas abiertas de primer nivel como trabajo inicial (sin responsables ni fechas).",
+        "save": "Guardar plantilla",
+        "saved": "Plantilla guardada.",
+        "saveFailed": "No se pudo guardar la plantilla."
     }
 }

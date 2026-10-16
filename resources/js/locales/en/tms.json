@@ -788,5 +788,17 @@
         "unscheduled_other": "{{count}} tasks without due date",
         "utilizationLabel": "{{name}} utilization",
         "loadFailed": "Could not load the workload."
+    },
+    "templates": {
+        "startFrom": "Start from",
+        "blank": "Blank project",
+        "title": "Save as template",
+        "hint": "Copies this project's workflow (columns, allowed moves, WIP limits) and components so new projects can start the same way.",
+        "name": "Template name",
+        "includeTasks": "Include open tasks",
+        "includeTasksHint": "Copies up to 100 open top-level tasks as starter work (no assignees or dates).",
+        "save": "Save template",
+        "saved": "Template saved.",
+        "saveFailed": "Could not save the template."
     }
 }

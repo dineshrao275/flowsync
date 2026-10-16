@@ -767,5 +767,9 @@
     "Say why the run is being reopened (at least 10 characters).": "Indica por qué se reabre la nómina (al menos 10 caracteres).",
     "Payroll run reopened.": "Nómina reabierta.",
     "Job queued again.": "Trabajo puesto en cola de nuevo.",
-    "Failed job discarded.": "Trabajo fallido descartado."
+    "Failed job discarded.": "Trabajo fallido descartado.",
+    "This template has no workflow to copy.": "Esta plantilla no tiene un flujo de trabajo que copiar.",
+    "Template saved.": "Plantilla guardada.",
+    "Choose an existing template.": "Elige una plantilla existente.",
+    "Only its creator or a tenant admin can delete a template.": "Solo su creador o un administrador puede eliminar una plantilla."
 }

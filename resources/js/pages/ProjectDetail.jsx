@@ -33,6 +33,7 @@ import FiltersBar from '../components/tasks/FiltersBar';
 import CalendarView from '../components/tasks/CalendarView';
 import TimelineView from '../components/tasks/TimelineView';
 import WorkloadPanel from '../components/project/WorkloadPanel';
+import SaveAsTemplate from '../components/project/SaveAsTemplate';
 import CreateTaskModal from '../components/tasks/CreateTaskModal';
 import TaskDetail from '../components/tasks/TaskDetail';
 import TimeSummary from '../components/time/TimeSummary';
@@ -926,6 +927,7 @@ export default function ProjectDetail() {
                         updateProject={updateProject}
                         deleteProject={deleteProject}
                     />
+                    {hasModule('project_templates') && <SaveAsTemplate projectId={projectId} defaultName={project.name} />}
                 </Card>
             )}
 

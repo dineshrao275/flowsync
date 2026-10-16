@@ -6,6 +6,7 @@ import Card from '../components/ui/Card';
 import Badge from '../components/ui/Badge';
 import Spinner from '../components/ui/Spinner';
 import Alert from '../components/ui/Alert';
+import { fieldClass } from '../components/ui/fieldStyles';
 import Button from '../components/ui/Button';
 import Input from '../components/ui/Input';
 import Tabs from '../components/ui/Tabs';
@@ -45,7 +46,14 @@ export default function WorkspaceDetail() {
 
     const [memberForm, setMemberForm] = useState({ user_id: '', role: 'member' });
     const [labelForm, setLabelForm] = useState({ name: '', color: '#2563eb' });
-    const [projectForm, setProjectForm] = useState({ name: '', key: '', description: '' });
+    const [projectForm, setProjectForm] = useState({ name: '', key: '', description: '', template_id: '' });
+    const [templates, setTemplates] = useState([]);
+
+    useEffect(() => {
+        if (!hasModule('project_templates')) return;
+        api.get('/project-templates').then(({ data }) => setTemplates(data.templates)).catch(() => setTemplates([]));
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
     // The settings description is editor-controlled; it follows the loaded
     // workspace (the page remounts per workspace, and a same-id refetch
     // after save already matches what was typed).
@@ -241,13 +249,22 @@ export default function WorkspaceDetail() {
         setSavingProject(true);
         setFormErrors({});
         try {
-            const { data } = await api.post(`/workspaces/${workspaceId}/projects`, {
+            const payload = {
                 name: projectForm.name,
                 key: projectForm.key || undefined,
                 description: projectForm.description || undefined,
-            });
-            setProjects((current) => [...current, data.project]);
-            setProjectForm({ name: '', key: '', description: '' });
+            };
+            const { data } = projectForm.template_id
+                ? await api.post(`/workspaces/${workspaceId}/projects/from-template`, { ...payload, template_id: Number(projectForm.template_id) })
+                : await api.post(`/workspaces/${workspaceId}/projects`, payload);
+            // The from-template reply is minimal; refetch the list so the new project card is complete.
+            if (projectForm.template_id) {
+                const list = await api.get(`/workspaces/${workspaceId}/projects`);
+                setProjects(list.data.projects);
+            } else {
+                setProjects((current) => [...current, data.project]);
+            }
+            setProjectForm({ name: '', key: '', description: '', template_id: '' });
             toast.success(t('tms.workspaceDetail.projectCreated', { key: data.project.key }));
         } catch (e) {
             setCreatingProject(true);
@@ -366,6 +383,17 @@ export default function WorkspaceDetail() {
                                         error={formErrors.key}
                                     />
                                 </div>
+                                {templates.length > 0 && (
+                                    <div>
+                                        <label htmlFor="project-template" className="mb-1.5 block text-sm font-medium text-gray-700">{t('tms.templates.startFrom')}</label>
+                                        <select id="project-template" className={fieldClass} value={projectForm.template_id} onChange={(e) => setProjectForm((f) => ({ ...f, template_id: e.target.value }))}>
+                                            <option value="">{t('tms.templates.blank')}</option>
+                                            {templates.map((tpl) => (
+                                                <option key={tpl.id} value={tpl.id}>{tpl.name} — {tpl.statuses.join(' → ')}</option>
+                                            ))}
+                                        </select>
+                                    </div>
+                                )}
                                 <div>
                                     <label className="mb-1.5 block text-sm font-medium text-gray-700">{t('tms.workspaceDetail.projectDesc')}</label>
                                     <RichTextEditor

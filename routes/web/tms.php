@@ -14,6 +14,7 @@ use App\Http\Controllers\ProjectHierarchyController;
 use App\Http\Controllers\ProjectMemberController;
 use App\Http\Controllers\ProjectRoleController;
 use App\Http\Controllers\ProjectVersionController;
+use App\Http\Controllers\ProjectTemplateController;
 use App\Http\Controllers\SavedFilterController;
 use App\Http\Controllers\SprintController;
 use App\Http\Controllers\StatusController;
@@ -103,6 +104,12 @@ Route::middleware(['permission:workspaces.view', 'ensure_product:tms'])->group(f
     Route::delete('projects/{project}/members/{user}', [ProjectMemberController::class, 'destroy']);
 
     Route::get('projects/{project}/workload', [WorkloadController::class, 'show'])->middleware('ensure_module:sprints');
+    Route::middleware('ensure_module:project_templates')->group(function () {
+        Route::get('project-templates', [ProjectTemplateController::class, 'index']);
+        Route::delete('project-templates/{template}', [ProjectTemplateController::class, 'destroy']);
+        Route::post('projects/{project}/save-as-template', [ProjectTemplateController::class, 'store'])->middleware('throttle:30,1');
+        Route::post('workspaces/{workspace}/projects/from-template', [ProjectTemplateController::class, 'fromTemplate'])->middleware('throttle:30,1');
+    });
     Route::middleware('ensure_module:saved_filters')->group(function () {
         Route::get('projects/{project}/saved-filters', [SavedFilterController::class, 'index']);
         Route::post('projects/{project}/saved-filters', [SavedFilterController::class, 'store'])->middleware('throttle:60,1');
