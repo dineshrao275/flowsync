@@ -2401,5 +2401,46 @@
                 "hint": "Salary templates price payslips; add one before opening a pay run."
             }
         }
+    },
+    "skills": {
+        "pageTitle": "Skills",
+        "subtitle": "What people can do, in their own words and as assessed by managers. Levels are entered by people — never calculated.",
+        "tab": {
+            "mine": "My skills",
+            "matrix": "Team matrix",
+            "catalog": "Catalogue"
+        },
+        "noLevel": "Not set",
+        "level": {
+            "1": "Beginner",
+            "2": "Basic",
+            "3": "Working",
+            "4": "Advanced",
+            "5": "Expert"
+        },
+        "mineHint": "Set your level for the skills you have. A level a manager assessed is locked until they change it.",
+        "assessed": "Assessed",
+        "save": "Save my skills",
+        "saved": "Your skills were saved.",
+        "saveFailed": "Could not save.",
+        "loadFailed": "Could not load skills.",
+        "noRecord": "You have no employment record, so there are no skills to set.",
+        "search": "Search people",
+        "employee": "Employee",
+        "coverage": "{{holders}} people · {{expert}} expert",
+        "legend": "Italic = self-declared · bold = assessed by a manager. Levels 1–5.",
+        "emptyCatalog": "No skills in the catalogue yet.",
+        "assessedToast": "Level recorded.",
+        "name": "Skill name",
+        "category": "Category",
+        "add": "Add skill",
+        "archived": "Archived",
+        "holders_one": "{{count}} person",
+        "holders_other": "{{count}} people",
+        "archive": "Archive",
+        "restore": "Restore",
+        "delete": "Delete",
+        "deleteTitle": "Delete this skill?",
+        "deleteMessage": "“{{name}}” will be removed from the catalogue."
     }
 }

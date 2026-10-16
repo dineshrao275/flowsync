@@ -66,6 +66,7 @@ import MyTeam from './pages/hrms/MyTeam';
 import Performance from './pages/hrms/Performance';
 import PerformanceCycleDetail from './pages/hrms/PerformanceCycleDetail';
 import MyPerformance from './pages/hrms/MyPerformance';
+import Skills from './pages/hrms/Skills';
 import Talent from './pages/hrms/Talent';
 import Assets from './pages/hrms/Assets';
 import MyAssets from './pages/hrms/MyAssets';
@@ -448,6 +449,7 @@ function AppRoutes() {
                                     end to end — the grid names reviewees and
                                     their ratings, so there is no viewer tier. */}
                                 <Route element={<ProtectedRoute module="hrms.talent" />}>
+                                    <Route path="/hrms/skills" element={<Skills />} />
                                     <Route
                                         path="/hrms/talent"
                                         element={

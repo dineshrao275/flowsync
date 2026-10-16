@@ -2401,5 +2401,46 @@
                 "hint": "Las plantillas salariales valoran las nóminas; añade una antes de abrir una ejecución de nómina."
             }
         }
+    },
+    "skills": {
+        "pageTitle": "Habilidades",
+        "subtitle": "Lo que sabe hacer cada persona, según ella misma y según sus responsables. Los niveles los introducen personas; nunca se calculan.",
+        "tab": {
+            "mine": "Mis habilidades",
+            "matrix": "Matriz del equipo",
+            "catalog": "Catálogo"
+        },
+        "noLevel": "Sin indicar",
+        "level": {
+            "1": "Principiante",
+            "2": "Básico",
+            "3": "Competente",
+            "4": "Avanzado",
+            "5": "Experto"
+        },
+        "mineHint": "Indica tu nivel en las habilidades que tienes. Un nivel evaluado por un responsable queda bloqueado hasta que él lo cambie.",
+        "assessed": "Evaluada",
+        "save": "Guardar mis habilidades",
+        "saved": "Tus habilidades se guardaron.",
+        "saveFailed": "No se pudo guardar.",
+        "loadFailed": "No se pudieron cargar las habilidades.",
+        "noRecord": "No tienes registro de empleo, así que no hay habilidades que indicar.",
+        "search": "Buscar personas",
+        "employee": "Empleado",
+        "coverage": "{{holders}} personas · {{expert}} expertas",
+        "legend": "Cursiva = declarada por la persona · negrita = evaluada por un responsable. Niveles 1–5.",
+        "emptyCatalog": "Aún no hay habilidades en el catálogo.",
+        "assessedToast": "Nivel registrado.",
+        "name": "Nombre de la habilidad",
+        "category": "Categoría",
+        "add": "Añadir habilidad",
+        "archived": "Archivada",
+        "holders_one": "{{count}} persona",
+        "holders_other": "{{count}} personas",
+        "archive": "Archivar",
+        "restore": "Restaurar",
+        "delete": "Eliminar",
+        "deleteTitle": "¿Eliminar esta habilidad?",
+        "deleteMessage": "«{{name}}» se eliminará del catálogo."
     }
 }

@@ -296,7 +296,8 @@
             "myAssets": "My assets",
             "approvalChains": "Approval chains",
             "analytics": "Analytics",
-            "audit": "Audit log"
+            "audit": "Audit log",
+            "skills": "Skills"
         },
         "platform": {
             "overview": "Overview",
