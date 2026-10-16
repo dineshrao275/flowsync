@@ -2658,5 +2658,47 @@
             "unsuccessful": "Sin éxito",
             "cancelled": "Cancelado"
         }
+    },
+    "loans": {
+        "pageTitle": "Préstamos y anticipos",
+        "subtitle": "Pide dinero a cuenta del salario y devuélvelo en cuotas mensuales iguales a través de la nómina.",
+        "loadFailed": "No se pudieron cargar los préstamos.",
+        "actionFailed": "No se pudo completar la acción.",
+        "request": "Solicitar un préstamo",
+        "requested": "Préstamo solicitado.",
+        "empty": "No hay préstamos ni anticipos.",
+        "modalHint": "Se devuelve en cuotas iguales, descontadas de tu nómina desde el mes que elijas.",
+        "kind": "Tipo",
+        "kinds": {
+            "advance": "Anticipo",
+            "loan": "Préstamo"
+        },
+        "amount": "Importe",
+        "installments": "Cuotas",
+        "firstMonth": "Mes del primer descuento",
+        "firstYear": "Año",
+        "reason": "Motivo",
+        "send": "Enviar solicitud",
+        "terms": "{{n}} × {{amount}}",
+        "progress": "{{paid}}/{{total}} devueltas, quedan {{balance}}",
+        "note": "Nota: {{note}}",
+        "withdraw": "Retirar",
+        "stop": "Detener descuentos",
+        "reject": "Rechazar",
+        "approve": "Aprobar",
+        "noteLabel": "Nota (necesaria para rechazar)",
+        "status": {
+            "pending": "En espera",
+            "active": "En devolución",
+            "closed": "Devuelto",
+            "rejected": "Rechazado",
+            "cancelled": "Detenido"
+        },
+        "done": {
+            "approve": "Decisión registrada.",
+            "reject": "Préstamo rechazado.",
+            "withdraw": "Préstamo retirado.",
+            "stop": "Descuentos detenidos."
+        }
     }
 }

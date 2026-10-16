@@ -855,5 +855,19 @@
     "You cannot open a plan for this person.": "No puedes abrir un plan para esta persona.",
     "Plan opened.": "Plan abierto.",
     "Plan extended.": "Plan ampliado.",
-    "Plan closed.": "Plan cerrado."
+    "Plan closed.": "Plan cerrado.",
+    "Choose loan or advance.": "Elige préstamo o anticipo.",
+    "A loan is for positive money.": "Un préstamo es por un importe positivo.",
+    "Choose between 1 and :max instalments.": "Elige entre 1 y :max cuotas.",
+    "Choose a month from 1 to 12.": "Elige un mes del 1 al 12.",
+    "This person already has a loan that is open or waiting for a decision.": "Esta persona ya tiene un préstamo abierto o pendiente de decisión.",
+    "This loan has already been decided.": "Este préstamo ya fue resuelto.",
+    "Only an active loan can be stopped.": "Solo se puede detener un préstamo activo.",
+    "You need an employment record to ask for a loan.": "Necesitas un registro de empleo para pedir un préstamo.",
+    "You cannot request a loan for this person.": "No puedes solicitar un préstamo para esta persona.",
+    "Loan requested.": "Préstamo solicitado.",
+    "Loan decided.": "Préstamo resuelto.",
+    "Loan rejected.": "Préstamo rechazado.",
+    "Loan withdrawn.": "Préstamo retirado.",
+    "Loan stopped.": "Préstamo detenido."
 }

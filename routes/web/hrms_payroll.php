@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Hrms\Payroll\EmployeeLoanController;
 use App\Http\Controllers\Hrms\Payroll\EmployeeSalaryController;
 use App\Http\Controllers\Hrms\Payroll\PayrollBankFileController;
 use App\Http\Controllers\Hrms\Payroll\PayrollRunController;
@@ -64,6 +65,12 @@ Route::group(['middleware' => ['ensure_module:hrms.core', 'ensure_module:hrms.co
 // and adjustments ride the payslip's `adjust` ability with both models
 // bound.
 Route::group(['middleware' => ['ensure_module:hrms.core', 'ensure_module:hrms.payroll', 'permission:hrms.view']], function () {
+    Route::get('hrms/loans', [EmployeeLoanController::class, 'index']);
+    Route::post('hrms/loans', [EmployeeLoanController::class, 'store']);
+    Route::post('hrms/loans/{loan}/approve', [EmployeeLoanController::class, 'approve']);
+    Route::post('hrms/loans/{loan}/reject', [EmployeeLoanController::class, 'reject']);
+    Route::post('hrms/loans/{loan}/withdraw', [EmployeeLoanController::class, 'withdraw']);
+    Route::post('hrms/loans/{loan}/stop', [EmployeeLoanController::class, 'stop']);
     Route::get('hrms/payroll/runs', [PayrollRunController::class, 'index']);
     Route::post('hrms/payroll/runs', [PayrollRunController::class, 'store']);
     Route::get('hrms/payroll/runs/{run}', [PayrollRunController::class, 'show']);

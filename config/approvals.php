@@ -85,6 +85,15 @@ return [
                 ['type' => 'role', 'role_slug' => 'hr_manager', 'omit_if_requester_holds' => true],
             ],
         ],
+        'loan' => [
+            'label' => 'Loans and salary advances',
+            'action' => 'loan.request',
+            'fields' => ['amount', 'department_id'],
+            'steps' => [
+                ['type' => 'manager'],
+                ['type' => 'role', 'role_slug' => 'hr_manager', 'omit_if_requester_holds' => true],
+            ],
+        ],
         'salary_revision' => [
             'label' => 'Salary revisions',
             'action' => 'compensation.revise',

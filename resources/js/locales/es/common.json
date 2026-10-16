@@ -304,7 +304,8 @@
             "hrAutomation": "Automatización RR. HH.",
             "changes": "Traslados y ascensos",
             "shiftSwaps": "Cambios de turno",
-            "improvementPlans": "Planes de mejora"
+            "improvementPlans": "Planes de mejora",
+            "loans": "Préstamos y anticipos"
         },
         "platform": {
             "overview": "Resumen",

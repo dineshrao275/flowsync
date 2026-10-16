@@ -14,6 +14,7 @@ use App\Models\User;
 use App\Models\UserNotification;
 use App\Services\Hrms\Compensation\CompensationService;
 use App\Services\Hrms\Expense\ExpenseService;
+use App\Services\Hrms\Payroll\LoanService;
 use App\Services\Hrms\Payroll\PayrollService;
 use App\Services\Hrms\Shared\ApprovalService;
 use Illuminate\Validation\ValidationException;
@@ -241,6 +242,43 @@ class HrmsExpenseServiceTest extends TestCase
             ->where('user_id', $employee->user->id)
             ->where('type', 'hrms.expense.paid')
             ->exists());
+    }
+
+    public function test_an_approved_loan_is_deducted_in_instalments_through_payroll(): void
+    {
+        [$manager, $employee] = $this->reportingLine();
+        $this->price($employee);
+        $finance = $this->financeUser();
+        $loans = app(LoanService::class);
+
+        $loan = $loans->request($employee, 'advance', '3000', 3, 2026, 8, 'Rent', $employee->user);
+        $this->assertSame('pending', $loan->status);
+
+        $approval = $loan->approval;
+        app(ApprovalService::class)->approve($approval->fresh(), $manager->user);
+        $roleId = $approval->fresh()->currentStepRecord()?->approver_role_id;
+        if ($roleId !== null) {
+            $finance->roles()->syncWithoutDetaching([(int) $roleId]);
+        }
+        $loan = $loans->approve($loan->refresh(), $finance);
+
+        $this->assertSame('active', $loan->status);
+        $this->assertCount(3, $loan->schedule);
+
+        $run = $this->openRun();
+        app(PayrollService::class)->calculate($run);
+
+        $payslip = $run->refresh()->payslips()->where('employee_id', $employee->id)->firstOrFail();
+        $line = $payslip->adjustments()->where('reference_type', 'loan_installment')->get();
+        $this->assertCount(1, $line);
+        $this->assertSame('deduction', $line->first()->kind);
+        $this->assertSame('1000.00', (string) $line->first()->amount);
+        $this->assertSame('2000.00', (string) $loan->refresh()->balance);
+
+        // A recalculation deducts nothing twice.
+        app(PayrollService::class)->calculate($run->refresh());
+        $this->assertCount(1, $run->refresh()->payslips()->where('employee_id', $employee->id)->firstOrFail()->adjustments()->where('reference_type', 'loan_installment')->get());
+        $this->assertSame('2000.00', (string) $loan->refresh()->balance);
     }
 
     public function test_a_claim_from_another_period_waits(): void

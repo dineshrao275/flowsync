@@ -2658,5 +2658,47 @@
             "unsuccessful": "Unsuccessful",
             "cancelled": "Cancelled"
         }
+    },
+    "loans": {
+        "pageTitle": "Loans & advances",
+        "subtitle": "Borrow against your salary and repay in equal monthly instalments through payroll.",
+        "loadFailed": "Could not load loans.",
+        "actionFailed": "That did not work.",
+        "request": "Request a loan",
+        "requested": "Loan requested.",
+        "empty": "No loans or advances.",
+        "modalHint": "Repaid in equal instalments, taken from your pay from the month you choose.",
+        "kind": "Type",
+        "kinds": {
+            "advance": "Advance",
+            "loan": "Loan"
+        },
+        "amount": "Amount",
+        "installments": "Instalments",
+        "firstMonth": "First deduction month",
+        "firstYear": "Year",
+        "reason": "Reason",
+        "send": "Send request",
+        "terms": "{{n}} × {{amount}}",
+        "progress": "{{paid}}/{{total}} repaid, {{balance}} left",
+        "note": "Note: {{note}}",
+        "withdraw": "Withdraw",
+        "stop": "Stop deductions",
+        "reject": "Reject",
+        "approve": "Approve",
+        "noteLabel": "Note (needed to reject)",
+        "status": {
+            "pending": "Waiting",
+            "active": "Repaying",
+            "closed": "Repaid",
+            "rejected": "Rejected",
+            "cancelled": "Stopped"
+        },
+        "done": {
+            "approve": "Decision recorded.",
+            "reject": "Loan rejected.",
+            "withdraw": "Loan withdrawn.",
+            "stop": "Deductions stopped."
+        }
     }
 }
