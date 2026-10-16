@@ -75,11 +75,18 @@ if [[ "${RUN_INIT:-false}" == "true" ]]; then
         echo "== users already exist — skipping seed =="
     fi
 
-    # Warm application caches
-    echo "== warming caches =="
-    php artisan config:cache --no-interaction 2>/dev/null || true
-    php artisan route:cache  --no-interaction 2>/dev/null || true
-    php artisan view:cache   --no-interaction 2>/dev/null || true
+    if [[ "${DEV_MODE:-false}" == "true" ]]; then
+        # Local development: the source is bind-mounted, so cached config/routes
+        # would hide your edits. Clear them instead of warming them.
+        echo "== dev mode: clearing caches (no warm-up) =="
+        php artisan optimize:clear --no-interaction 2>/dev/null || true
+    else
+        # Warm application caches
+        echo "== warming caches =="
+        php artisan config:cache --no-interaction 2>/dev/null || true
+        php artisan route:cache  --no-interaction 2>/dev/null || true
+        php artisan view:cache   --no-interaction 2>/dev/null || true
+    fi
 
     echo "== init complete — starting server =="
 fi

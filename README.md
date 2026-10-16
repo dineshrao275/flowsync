@@ -32,6 +32,35 @@ Built on **Laravel 12** and **React 19**, FlowSync employs a **database-per-tena
 
 ---
 
+## Run locally
+
+One script, two ways: `./scripts/dev.sh help`
+
+**With Docker** (PostgreSQL, app, queue, Reverb and Vite in containers):
+
+```bash
+./scripts/dev.sh docker up        # first run builds the image, migrates and seeds demo data
+./scripts/dev.sh docker logs      # follow logs (add a service name: queue, reverb, vite)
+./scripts/dev.sh docker down      # stop, keep data
+./scripts/dev.sh docker rebuild   # after changing composer.json / package.json / Dockerfile
+./scripts/dev.sh docker reset     # wipe all local data and re-seed
+```
+
+The project folder is bind-mounted into the containers, so edits appear immediately: React/CSS through Vite
+hot reload (`http://localhost:5173`), PHP/Blade on the next page refresh. The queue uses `queue:listen`; after
+changing broadcasting code run `docker compose restart reverb`. On Docker Desktop or a network drive where file
+changes are not detected, start with `CHOKIDAR_USEPOLLING=true ./scripts/dev.sh docker up`.
+
+**Without Docker** (needs PHP 8.2+ with `pdo_pgsql`, Composer, Node 20+, a running PostgreSQL):
+
+```bash
+./scripts/dev.sh local setup      # .env, composer/npm install, database, migrate, seed, provision
+./scripts/dev.sh local start      # serve + queue + Reverb + Vite in one terminal (Ctrl+C stops all)
+```
+
+App: <http://localhost:8000/app> · Public site: <http://localhost:8000/>. Demo logins (password `password`):
+`superadmin@flowsync.test`, `admin@flowsync.test`, `owner@globex.test`.
+
 ## Technical Stack & Architecture
 
 - **Backend**: Laravel 12 (PHP 8.3+)
