@@ -12,9 +12,9 @@ return [
      * SPA's `Intl` formatters; `dir` reserves the RTL axis (no RTL language
      * is in the pipeline, but new CSS should prefer logical properties).
      *
-     * This is the product catalog; `config/notifications.php` `locales` is
-     * the older email-only map and stays untouched until the email phase
-     * consolidates on this file.
+     * This is the product catalog — the SPA dictionaries, the backend
+     * messages, the public site chrome and the notification/email copy all
+     * resolve their language from here (`lang/<locale>/` folders mirror it).
      */
     'default' => env('APP_LOCALE', 'en'),
 
