@@ -7,6 +7,7 @@ use App\Models\Hrms\Attendance\ShiftSwap;
 use App\Models\Hrms\Employee\Employee;
 use App\Models\User;
 use App\Services\Hrms\Shift\ShiftSwapService;
+use Illuminate\Support\Facades\DB;
 use Tests\Feature\Concerns\HrmsP5Helpers;
 use Tests\IsolatesDatabase;
 use Tests\TestCase;
@@ -40,8 +41,11 @@ class HrmsShiftSwapTest extends TestCase
         $morning = AttendanceShift::create(['name' => 'Morning', 'code' => 'AM', 'start_time' => '08:00', 'end_time' => '16:00', 'break_minutes' => 30, 'grace_minutes' => 10, 'is_active' => true]);
         $evening = AttendanceShift::create(['name' => 'Evening', 'code' => 'PM', 'start_time' => '14:00', 'end_time' => '22:00', 'break_minutes' => 30, 'grace_minutes' => 10, 'is_active' => true]);
 
-        $this->annEmp = $this->makeEmployee('Ann', ['user_id' => $this->ann->id, 'shift_id' => $morning->id]);
-        $this->bobEmp = $this->makeEmployee('Bob', ['user_id' => $this->bob->id, 'shift_id' => $evening->id]);
+        $this->annEmp = $this->makeEmployee('Ann', ['user_id' => $this->ann->id]);
+        $this->bobEmp = $this->makeEmployee('Bob', ['user_id' => $this->bob->id]);
+        // shift_id is not mass-assignable (raw column), so set it directly.
+        DB::table('employees')->where('id', $this->annEmp->id)->update(['shift_id' => $morning->id]);
+        DB::table('employees')->where('id', $this->bobEmp->id)->update(['shift_id' => $evening->id]);
         $this->date = now()->addDays(3)->toDateString();
     }
 

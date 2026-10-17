@@ -2,7 +2,6 @@
 
 namespace Tests\Feature;
 
-use App\Models\Activity;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
 use Tests\IsolatesDatabase;
@@ -24,7 +23,7 @@ class UnifiedAuditTimelineTest extends TestCase
         $this->connectTenant('acme');
         $admin = User::where('email', 'admin@flowsync.test')->firstOrFail();
 
-        Activity::create(['actor_user_id' => $admin->id, 'subject_type' => 'App\\Models\\Task', 'subject_id' => 1, 'action' => 'task.created', 'created_at' => now()->subMinutes(5)]);
+        DB::table('activities')->insert(['actor_user_id' => $admin->id, 'subject_type' => 'App\\Models\\Task', 'subject_id' => 1, 'action' => 'task.created', 'created_at' => now()->subMinutes(5)]);
         DB::table('hrms_audit_logs')->insert(['actor_user_id' => $admin->id, 'subject_type' => 'App\\Models\\Hrms\\Employee\\Employee', 'subject_id' => 7, 'action' => 'employee.updated', 'created_at' => now()]);
 
         $all = $this->getJson('/api/audit/timeline')->assertOk()->json('entries');

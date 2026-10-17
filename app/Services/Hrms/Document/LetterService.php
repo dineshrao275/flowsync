@@ -110,7 +110,8 @@ class LetterService
             }
         }
 
-        return $extras + $base; // the record's own facts win over a typed value of the same name
+        // The record's own facts win over a typed value of the same name; a fact the record lacks can be typed in.
+        return array_filter($base, fn ($v) => trim((string) $v) !== '') + $extras;
     }
 
     private function pdf(string $title, string $text): string

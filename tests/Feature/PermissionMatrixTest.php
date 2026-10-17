@@ -36,12 +36,20 @@ class PermissionMatrixTest extends TestCase
 
             if ($slugs !== [] && ! $platform) {
                 foreach (array_diff($route->methods(), ['HEAD']) as $method) {
-                    $rows[] = [$method, '/'.preg_replace('/\{[^}]+\}/', '1', $route->uri()), $slugs];
+                    $rows[] = [$method, '/'.preg_replace_callback('/\{([^}?]+)\??\}/', fn ($m) => $this->sample($route, $m[1]), $route->uri()), $slugs];
                 }
             }
         }
 
         return $rows;
+    }
+
+    /** A value that satisfies the route's own constraint (`whereIn('type', [...])` is a regex alternation), else 1. */
+    private function sample(LaravelRoute $route, string $param): string
+    {
+        $regex = $route->wheres[$param] ?? null;
+
+        return $regex !== null && preg_match('/^[a-z_|]+$/i', $regex) ? explode('|', $regex)[0] : '1';
     }
 
     public function test_a_user_with_no_permissions_is_refused_on_every_gated_route(): void

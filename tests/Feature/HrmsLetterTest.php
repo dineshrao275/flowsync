@@ -33,7 +33,7 @@ class HrmsLetterTest extends TestCase
         $this->postJson("/api/hrms/employees/{$this->emp->id}/letters", ['template_id' => $experience['id']])
             ->assertStatus(422)->assertJsonValidationErrors('fields');
 
-        $this->postJson("/api/hrms/employees/{$this->emp->id}/letters", ['template_id' => $experience['id'], 'fields' => ['last_working_day' => '30 June 2026']])->assertCreated();
+        $this->postJson("/api/hrms/employees/{$this->emp->id}/letters", ['template_id' => $experience['id'], 'fields' => ['last_working_day' => '30 June 2026', 'designation' => 'Analyst', 'department' => 'Finance']])->assertCreated();
 
         $doc = EmployeeDocument::query()->where('employee_id', $this->emp->id)->firstOrFail();
         $this->assertSame('application/pdf', $doc->mime);
