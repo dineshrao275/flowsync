@@ -2,11 +2,13 @@
 
 namespace App\Http\Controllers;
 
+use App\Events\BoardColumnsChanged;
 use App\Http\Requests\StatusStoreRequest;
 use App\Http\Requests\StatusUpdateRequest;
 use App\Models\Project;
 use App\Models\TaskStatus;
 use App\Services\ProjectService;
+use App\Support\Realtime;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -31,6 +33,7 @@ class StatusController extends Controller
         $data = $request->validated();
 
         $status = $this->service->addStatus($project, $data);
+        Realtime::send(new BoardColumnsChanged($project->id));
 
         return response()->json([
             'message' => __('Status created.'),
@@ -44,10 +47,12 @@ class StatusController extends Controller
         abort_if((int) $status->project_id !== (int) $project->id, 404);
 
         $data = $request->validated();
+        $updated = $this->service->updateStatus($status, $data);
+        Realtime::send(new BoardColumnsChanged($project->id));
 
         return response()->json([
             'message' => __('Status updated.'),
-            'status' => $this->present($this->service->updateStatus($status, $data)),
+            'status' => $this->present($updated),
         ]);
     }
 
@@ -57,6 +62,7 @@ class StatusController extends Controller
         abort_if((int) $status->project_id !== (int) $project->id, 404);
 
         $this->service->deleteStatus($status);
+        Realtime::send(new BoardColumnsChanged($project->id));
 
         return response()->json(['message' => __('Status deleted.')]);
     }

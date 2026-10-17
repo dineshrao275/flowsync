@@ -270,11 +270,13 @@ export default function ProjectDetail() {
             }
         };
         channel.listen('.task.synced', onTaskSynced);
+        channel.listen('.board.columns', onTaskSynced);
         // A task changed while the socket was down is not replayed: re-sync.
         const stopReconnect = onRealtimeReconnect(() => onTaskSynced(null));
 
         return () => {
             channel.stopListening('.task.synced', onTaskSynced);
+            channel.stopListening('.board.columns', onTaskSynced);
             stopReconnect();
             window.Echo.leaveChannel(channel.name);
         };
