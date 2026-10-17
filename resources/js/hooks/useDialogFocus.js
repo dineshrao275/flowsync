@@ -15,6 +15,13 @@ const FOCUSABLE =
  */
 export default function useDialogFocus(open, onClose) {
     const panelRef = useRef(null);
+    // `onClose` is usually an inline arrow, so its identity changes on every parent
+    // render. Keep it in a ref and run the effect on `open` alone: depending on it
+    // re-ran the effect after each keystroke, which moved focus back to the first
+    // control (the close button) and restored the opener's focus — typing in any
+    // modal field was impossible.
+    const closeRef = useRef(onClose);
+    closeRef.current = onClose;
 
     useEffect(() => {
         if (!open) return;
@@ -23,12 +30,13 @@ export default function useDialogFocus(open, onClose) {
         const panel = panelRef.current;
         const focusables = () => (panel ? [...panel.querySelectorAll(FOCUSABLE)] : []);
 
-        const first = focusables()[0] ?? panel;
+        // Land on the first field when there is one (a form), else the first control.
+        const first = panel?.querySelector('input:not([disabled]):not([type="hidden"]), textarea:not([disabled]), select:not([disabled])') ?? focusables()[0] ?? panel;
         if (first && typeof first.focus === 'function') first.focus();
 
         function onKeyDown(e) {
             if (e.key === 'Escape') {
-                onClose();
+                closeRef.current?.();
                 return;
             }
 
@@ -61,7 +69,7 @@ export default function useDialogFocus(open, onClose) {
             document.body.style.overflow = '';
             if (previouslyFocused instanceof HTMLElement) previouslyFocused.focus();
         };
-    }, [open, onClose]);
+    }, [open]);
 
     return panelRef;
 }
