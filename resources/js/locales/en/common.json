@@ -325,7 +325,8 @@
             "blog": "Blog",
             "leads": "Leads",
             "auditLogs": "Audit Logs",
-            "queue": "Background queue"
+            "queue": "Background queue",
+            "activity": "Tenant activity"
         }
     }
 }

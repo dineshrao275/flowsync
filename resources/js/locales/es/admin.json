@@ -1410,5 +1410,23 @@
         "enforceHint": "Con esto activado, las contraseñas dejan de funcionar salvo para el usuario predeterminado protegido, que conserva una contraseña como acceso de emergencia.",
         "save": "Guardar ajustes",
         "saved": "Ajustes de inicio de sesión único guardados."
+    },
+    "activity": {
+        "title": "Actividad de inquilinos",
+        "subtitle": "Quién usa realmente el producto. Primero los inquilinos inactivos (nadie activo en 30 días).",
+        "loadFailed": "No se pudo cargar la actividad.",
+        "tenants": "Inquilinos",
+        "withData": "Con datos de uso",
+        "dormant": "Inactivos",
+        "activeUsers": "Usuarios activos (30 d)",
+        "tenant": "Inquilino",
+        "users": "Usuarios",
+        "active7": "Activos 7 d",
+        "active30": "Activos 30 d",
+        "events30": "Eventos 30 d",
+        "state": "Estado",
+        "dormantBadge": "Inactivo",
+        "ok": "Activo",
+        "noData": "Sin datos aún"
     }
 }

@@ -325,7 +325,8 @@
             "blog": "Blog",
             "leads": "Contactos",
             "auditLogs": "Registros de auditoría",
-            "queue": "Cola en segundo plano"
+            "queue": "Cola en segundo plano",
+            "activity": "Actividad de inquilinos"
         }
     }
 }

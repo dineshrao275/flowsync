@@ -174,6 +174,7 @@ export const superAdminSections = [
             { to: '/plans', label: 'nav.platform.plans', capabilities: ['billing.view'], icon: FileText },
             { to: '/admin/features', label: 'nav.platform.features', capabilities: ['billing.view'], icon: Gift },
             { to: '/admin/feature-flags', label: 'nav.platform.featureFlags', capabilities: ['flags.view'], icon: Flag },
+            { to: '/admin/activity', label: 'nav.platform.activity', capabilities: ['analytics.view'], icon: ICONS.grid },
             { to: '/admin/queue', label: 'nav.platform.queue', capabilities: ['analytics.view'], icon: Lightning },
             { to: '/admin/pages', label: 'nav.platform.website', capabilities: ['content.view'], icon: Globe },
             { to: '/admin/media', label: 'nav.platform.media', capabilities: ['content.view'], icon: Image },

@@ -75,6 +75,7 @@ return [
         ['api/platform/health', 'analytics.view', 'analytics.view'],
         ['api/system/health', 'analytics.view', 'analytics.view'],
         ['api/system/queue*', 'analytics.view', 'queue.manage'],
+        ['api/system/tenant-activity', 'analytics.view', 'analytics.view'],
         ['api/system/features*', 'billing.view', 'billing.manage'],
         ['api/plans*', 'billing.view', 'billing.manage'],
         ['api/tenants/{tenant}/subscription*', 'billing.view', 'billing.manage'],

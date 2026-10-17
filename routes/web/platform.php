@@ -17,6 +17,7 @@ use App\Http\Controllers\SystemInvoiceController;
 use App\Http\Controllers\SystemQueueController;
 use App\Http\Controllers\SystemSettingsController;
 use App\Http\Controllers\SystemSupportController;
+use App\Http\Controllers\SystemTenantActivityController;
 use App\Http\Controllers\SystemUsersController;
 use App\Http\Controllers\TenantController;
 use App\Http\Controllers\TenantHrmsController;
@@ -88,6 +89,7 @@ Route::middleware('super_admin')->group(function () {
     Route::get('system/analytics', [SystemAnalyticsController::class, 'index']);
     Route::get('platform/health', [PlatformHealthController::class, 'show']);
     Route::get('system/health', [PlatformHealthController::class, 'show']);
+    Route::get('system/tenant-activity', SystemTenantActivityController::class);
     // Background queue: depth, oldest job and failed jobs with retry / discard.
     Route::get('system/queue', [SystemQueueController::class, 'show']);
     Route::post('system/queue/failed/{id}/retry', [SystemQueueController::class, 'retry'])->whereNumber('id')->middleware('throttle:30,1');

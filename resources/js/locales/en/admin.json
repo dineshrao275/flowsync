@@ -1410,5 +1410,23 @@
         "enforceHint": "With this on, passwords stop working for everyone except the protected default user, who keeps a password as a break-glass login.",
         "save": "Save settings",
         "saved": "Single sign-on settings saved."
+    },
+    "activity": {
+        "title": "Tenant activity",
+        "subtitle": "Who is really using the product. Dormant tenants (nobody active for 30 days) come first.",
+        "loadFailed": "Could not load tenant activity.",
+        "tenants": "Tenants",
+        "withData": "With usage data",
+        "dormant": "Dormant",
+        "activeUsers": "Active users (30 d)",
+        "tenant": "Tenant",
+        "users": "Users",
+        "active7": "Active 7 d",
+        "active30": "Active 30 d",
+        "events30": "Events 30 d",
+        "state": "State",
+        "dormantBadge": "Dormant",
+        "ok": "Active",
+        "noData": "No data yet"
     }
 }
