@@ -2842,5 +2842,42 @@
             "one_two_years": "Listo en 1–2 años",
             "three_plus": "Listo en 3+ años"
         }
+    },
+    "signatures": {
+        "pageTitle": "Firmas electrónicas",
+        "subtitle": "Firma los documentos que RR. HH. te envía. Cada firma registra quién, cuándo, desde dónde y una huella del archivo.",
+        "loadFailed": "No se pudieron cargar las firmas.",
+        "actionFailed": "No se pudo completar la acción.",
+        "requestTitle": "Solicitar una firma",
+        "signer": "Firmante",
+        "document": "Documento",
+        "message": "Mensaje (opcional)",
+        "send": "Enviar solicitud",
+        "requested": "Firma solicitada.",
+        "empty": "Nada que firmar.",
+        "status": {
+            "pending": "En espera",
+            "signed": "Firmado",
+            "declined": "Rechazado",
+            "cancelled": "Cancelado"
+        },
+        "code": "Recibo",
+        "sign": "Firmar",
+        "decline": "Rechazar",
+        "cancel": "Cancelar solicitud",
+        "declineReason": "¿Por qué rechazas?",
+        "signHint": "Escribe tu nombre completo y vuelve a introducir tu contraseña. Se registra tu firma con la hora, tu dirección de red y una huella del archivo.",
+        "typedName": "Nombre completo",
+        "password": "Contraseña",
+        "signNow": "Firmar documento",
+        "signedToast": "Firmado.",
+        "verifyTitle": "Recibo de firma",
+        "notFound": "Ningún documento firmado coincide con ese código.",
+        "signedBy": "Firmado por",
+        "signedAt": "Firmado el",
+        "receiptValid": "El recibo es auténtico",
+        "receiptInvalid": "El recibo no coincide",
+        "intact": "Archivo sin cambios desde la firma",
+        "changed": "El archivo ha cambiado desde la firma"
     }
 }

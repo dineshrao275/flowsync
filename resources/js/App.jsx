@@ -55,6 +55,8 @@ import ImprovementPlans from './pages/hrms/ImprovementPlans';
 import DevelopmentPlans from './pages/hrms/DevelopmentPlans';
 import Okrs from './pages/hrms/Okrs';
 import Careers from './pages/hrms/Careers';
+import Signatures from './pages/hrms/Signatures';
+import SignatureVerify from './pages/SignatureVerify';
 import Loans from './pages/hrms/Loans';
 import OrgChart from './pages/hrms/OrgChart';
 import Letters from './pages/hrms/Letters';
@@ -156,6 +158,7 @@ function AppRoutes() {
     return (
         <ThemeProvider>
             <Routes>
+                <Route path="/verify-signature/:code" element={<SignatureVerify />} />
                 <Route element={<GuestRoute />}>
                     <Route path="/login" element={<Login />} />
                     <Route path="/register" element={<Register />} />
@@ -306,6 +309,9 @@ function AppRoutes() {
                                 <Route path="/hrms/changes" element={<EmployeeChanges />} />
                                 <Route path="/hrms/careers" element={<ProtectedRoute module="hrms.talent" />}>
                                     <Route index element={<Careers />} />
+                                </Route>
+                                <Route path="/hrms/signatures" element={<ProtectedRoute module="hrms.documents" />}>
+                                    <Route index element={<Signatures />} />
                                 </Route>
                                 <Route path="/hrms/okrs" element={<ProtectedRoute module="hrms.performance" />}>
                                     <Route index element={<Okrs />} />

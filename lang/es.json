@@ -906,5 +906,18 @@
     "Could not read the identity provider's configuration from that address.": "No se pudo leer la configuración del proveedor de identidad desde esa dirección.",
     "Single sign-on settings saved.": "Ajustes de inicio de sesión único guardados.",
     "This workspace requires single sign-on. Use the SSO button on the sign-in page.": "Este espacio exige inicio de sesión único. Usa el botón SSO de la página de acceso.",
-    "This tenant's data was permanently purged and cannot be restored.": "Los datos de este inquilino se eliminaron de forma permanente y no se pueden restaurar."
+    "This tenant's data was permanently purged and cannot be restored.": "Los datos de este inquilino se eliminaron de forma permanente y no se pueden restaurar.",
+    "That person has no login to sign with.": "Esa persona no tiene acceso para firmar.",
+    "This document already has a signature request for that person.": "Este documento ya tiene una solicitud de firma para esa persona.",
+    "That password is not correct.": "Esa contraseña no es correcta.",
+    "Type your full name to sign.": "Escribe tu nombre completo para firmar.",
+    "Say why you are declining.": "Indica por qué rechazas.",
+    "Only a waiting request can be cancelled.": "Solo se puede cancelar una solicitud en espera.",
+    "This request has already been answered.": "Esta solicitud ya fue respondida.",
+    "Only the person asked to sign can answer this request.": "Solo la persona a la que se pidió firmar puede responder.",
+    "The document file could not be read.": "No se pudo leer el archivo del documento.",
+    "Signature requested.": "Firma solicitada.",
+    "Signed.": "Firmado.",
+    "Declined.": "Rechazado.",
+    "Request cancelled.": "Solicitud cancelada."
 }

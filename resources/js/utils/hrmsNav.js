@@ -61,6 +61,7 @@ export const HRMS_NAV = [
     { to: '/hrms/exit-interview', label: 'nav.hrms.exitInterview', group: 'nav.groups.records', capabilities: ['module:hrms.core', 'module:hrms.offboarding'] },
     { to: '/hrms/automation', label: 'nav.hrms.hrAutomation', group: 'nav.groups.records', capabilities: ['module:hrms.core', 'module:automation', 'permission:hrms.onboarding.manage'] },
     { to: '/hrms/careers', label: 'nav.hrms.careers', group: 'nav.groups.records', capabilities: ['module:hrms.core', 'module:hrms.talent'] },
+    { to: '/hrms/signatures', label: 'nav.hrms.signatures', group: 'nav.groups.records', capabilities: ['module:hrms.core', 'module:hrms.documents'] },
     { to: '/hrms/okrs', label: 'nav.hrms.okrs', group: 'nav.groups.records', capabilities: ['module:hrms.core', 'module:hrms.performance'] },
     { to: '/hrms/development-plans', label: 'nav.hrms.developmentPlans', group: 'nav.groups.records', capabilities: ['module:hrms.core', 'module:hrms.performance'] },
     { to: '/hrms/improvement-plans', label: 'nav.hrms.improvementPlans', group: 'nav.groups.records', capabilities: ['module:hrms.core', 'module:hrms.performance'] },

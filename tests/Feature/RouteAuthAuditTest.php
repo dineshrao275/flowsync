@@ -23,6 +23,7 @@ class RouteAuthAuditTest extends TestCase
         'GET api/health',
         'GET api/locales',
         'GET api/metrics',
+        'GET api/signatures/verify/{code}',
         'GET api/sso/{slug}/callback',
         'GET api/sso/{slug}/info',
         'GET api/sso/{slug}/start',

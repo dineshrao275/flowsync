@@ -13,6 +13,7 @@ use App\Http\Controllers\ExportController;
 use App\Http\Controllers\ForgotPasswordController;
 use App\Http\Controllers\GlobalSearchController;
 use App\Http\Controllers\Hrms\Asset\AssetController;
+use App\Http\Controllers\Hrms\Document\SignatureController;
 use App\Http\Controllers\Hrms\DocumentDownloadController;
 use App\Http\Controllers\Hrms\EmployeeController;
 use App\Http\Controllers\Hrms\InboxController;
@@ -60,6 +61,7 @@ Route::prefix('api')->group(function () {
     Route::get('health', [PlatformHealthController::class, 'ping']);
     Route::get('metrics', MetricsController::class)->middleware('throttle:120,1');
     // OpenID Connect sign-in (F10.2): public by nature, tenant-addressed by slug, always throttled.
+    Route::get('signatures/verify/{code}', [SignatureController::class, 'verify'])->middleware('throttle:30,1');
     Route::get('sso/{slug}/info', [SsoController::class, 'info'])->middleware('throttle:60,1');
     Route::get('sso/{slug}/start', [SsoController::class, 'start'])->middleware('throttle:20,1');
     Route::get('sso/{slug}/callback', [SsoController::class, 'callback'])->middleware('throttle:20,1');

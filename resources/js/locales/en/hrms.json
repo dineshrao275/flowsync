@@ -2842,5 +2842,42 @@
             "one_two_years": "Ready in 1–2 years",
             "three_plus": "Ready in 3+ years"
         }
+    },
+    "signatures": {
+        "pageTitle": "E-signatures",
+        "subtitle": "Sign documents HR has sent you. Each signature records who, when, from where, and a fingerprint of the file.",
+        "loadFailed": "Could not load signatures.",
+        "actionFailed": "That did not work.",
+        "requestTitle": "Request a signature",
+        "signer": "Signer",
+        "document": "Document",
+        "message": "Message (optional)",
+        "send": "Send request",
+        "requested": "Signature requested.",
+        "empty": "Nothing to sign.",
+        "status": {
+            "pending": "Waiting",
+            "signed": "Signed",
+            "declined": "Declined",
+            "cancelled": "Cancelled"
+        },
+        "code": "Receipt",
+        "sign": "Sign",
+        "decline": "Decline",
+        "cancel": "Cancel request",
+        "declineReason": "Why are you declining?",
+        "signHint": "Type your full name and re-enter your password. This records your signature with the time, your network address and a fingerprint of the file.",
+        "typedName": "Full name",
+        "password": "Password",
+        "signNow": "Sign document",
+        "signedToast": "Signed.",
+        "verifyTitle": "Signature receipt",
+        "notFound": "No signed document matches that receipt code.",
+        "signedBy": "Signed by",
+        "signedAt": "Signed at",
+        "receiptValid": "Receipt is genuine",
+        "receiptInvalid": "Receipt does not match",
+        "intact": "File unchanged since signing",
+        "changed": "File has changed since signing"
     }
 }

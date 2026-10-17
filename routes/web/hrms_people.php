@@ -4,6 +4,7 @@ use App\Http\Controllers\Hrms\Attendance\AttendanceController;
 use App\Http\Controllers\Hrms\Attendance\AttendanceRecordsController;
 use App\Http\Controllers\Hrms\Attendance\RegularizationController;
 use App\Http\Controllers\Hrms\Document\LetterController;
+use App\Http\Controllers\Hrms\Document\SignatureController;
 use App\Http\Controllers\Hrms\DocumentController;
 use App\Http\Controllers\Hrms\DocumentTypeController;
 use App\Http\Controllers\Hrms\Employee\EmployeeChangeController;
@@ -87,6 +88,11 @@ Route::group(['middleware' => ['ensure_module:hrms.core', 'permission:hrms.view'
 // `expiring` is declared before `{document}`, because otherwise the word
 // binds as a document id and a valid warning query 404s.
 Route::group(['middleware' => ['ensure_module:hrms.core', 'ensure_module:hrms.documents', 'permission:hrms.view']], function () {
+    Route::get('hrms/signatures', [SignatureController::class, 'index']);
+    Route::post('hrms/signatures', [SignatureController::class, 'store']);
+    Route::post('hrms/signatures/{signature}/sign', [SignatureController::class, 'sign'])->middleware('throttle:10,1');
+    Route::post('hrms/signatures/{signature}/decline', [SignatureController::class, 'decline']);
+    Route::post('hrms/signatures/{signature}/cancel', [SignatureController::class, 'cancel']);
     Route::get('hrms/letter-templates', [LetterController::class, 'index']);
     Route::post('hrms/letter-templates', [LetterController::class, 'store']);
     Route::post('hrms/letter-templates/starters', [LetterController::class, 'addStarters']);
