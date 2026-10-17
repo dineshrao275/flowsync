@@ -2756,5 +2756,13 @@
             "completed": "Completado",
             "cancelled": "Cancelado"
         }
+    },
+    "orgChart": {
+        "pageTitle": "Organigrama",
+        "subtitle": "Quién reporta a quién. Abre a un responsable para ver su equipo.",
+        "find": "Buscar a una persona",
+        "empty": "Aún no hay empleados activos.",
+        "loadFailed": "No se pudo cargar el organigrama.",
+        "truncated": "Solo se muestran las primeras 2000 personas."
     }
 }

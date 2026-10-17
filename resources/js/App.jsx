@@ -54,6 +54,7 @@ import ShiftSwaps from './pages/hrms/ShiftSwaps';
 import ImprovementPlans from './pages/hrms/ImprovementPlans';
 import DevelopmentPlans from './pages/hrms/DevelopmentPlans';
 import Loans from './pages/hrms/Loans';
+import OrgChart from './pages/hrms/OrgChart';
 import Letters from './pages/hrms/Letters';
 import OffboardingCaseDetail from './pages/hrms/OffboardingCaseDetail';
 import Attendance from './pages/hrms/Attendance';
@@ -312,6 +313,9 @@ function AppRoutes() {
                                 </Route>
                                 <Route path="/hrms/letters" element={<ProtectedRoute module="hrms.documents" permission="hrms.documents.manage" />}>
                                     <Route index element={<Letters />} />
+                                </Route>
+                                <Route path="/hrms/org-chart" element={<ProtectedRoute permission="hrms.employees.view" />}>
+                                    <Route index element={<OrgChart />} />
                                 </Route>
                                 <Route path="/hrms/shift-swaps" element={<ProtectedRoute module="hrms.shifts" />}>
                                     <Route index element={<ShiftSwaps />} />

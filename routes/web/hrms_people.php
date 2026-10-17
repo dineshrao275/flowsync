@@ -19,6 +19,7 @@ use App\Http\Controllers\Hrms\MyTeamController;
 use App\Http\Controllers\Hrms\Org\DepartmentController;
 use App\Http\Controllers\Hrms\Org\DesignationController;
 use App\Http\Controllers\Hrms\Org\LocationController;
+use App\Http\Controllers\Hrms\Org\OrgChartController;
 use App\Http\Controllers\Hrms\Org\OrgController;
 use Illuminate\Support\Facades\Route;
 
@@ -36,6 +37,7 @@ use Illuminate\Support\Facades\Route;
 // comes back as a 404 on a perfectly valid drag-and-drop.
 Route::group(['middleware' => ['ensure_module:hrms.core', 'permission:hrms.view']], function () {
     Route::get('hrms/org', [OrgController::class, 'index']);
+    Route::get('hrms/org-chart', OrgChartController::class);
 
     Route::get('hrms/departments', [DepartmentController::class, 'index']);
     Route::post('hrms/departments', [DepartmentController::class, 'store']);

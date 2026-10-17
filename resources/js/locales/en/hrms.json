@@ -2756,5 +2756,13 @@
             "completed": "Completed",
             "cancelled": "Cancelled"
         }
+    },
+    "orgChart": {
+        "pageTitle": "Org chart",
+        "subtitle": "Who reports to whom. Open a manager to see their team.",
+        "find": "Find a person",
+        "empty": "No active employees yet.",
+        "loadFailed": "Could not load the org chart.",
+        "truncated": "Showing the first 2,000 people only."
     }
 }

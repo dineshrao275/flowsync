@@ -307,7 +307,8 @@
             "improvementPlans": "Planes de mejora",
             "loans": "Préstamos y anticipos",
             "letters": "Cartas",
-            "developmentPlans": "Planes de desarrollo"
+            "developmentPlans": "Planes de desarrollo",
+            "orgChart": "Organigrama"
         },
         "platform": {
             "overview": "Resumen",
