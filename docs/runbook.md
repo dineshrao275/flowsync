@@ -390,3 +390,20 @@ php artisan tenants:scope-grants
 # Apply scope grants
 php artisan tenants:scope-grants --force
 ```
+
+---
+
+## 8. Scaling thresholds (F11.7)
+Numbers to act on, not to admire. Review when a dashboard crosses a line; do nothing before.
+
+| Signal | Threshold | Action |
+|---|---|---|
+| Tenant database count on one PostgreSQL server | 1,500 | Add a second server; `tenants.db_host` already routes per tenant — provision new tenants there |
+| One tenant's `activities` (or `hrms_audit_logs`) table | 50 M rows | Partition it by month (`created_at`) and keep 24 months hot; archive older partitions |
+| Central `audit_logs` | 20 M rows | Raise `audit:prune` aggressiveness per plan; partition by month |
+| p95 of board / dashboard reads (k6 profiles in `tests/load`) | > 800 ms for 3 consecutive runs | Check `pg_stat_statements`, then add a read replica for report and search endpoints |
+| Replica lag acceptable for reports | ≤ 30 s | Route `report-builder` and `reports/*` reads to the replica; never route writes or auth |
+| Queue wait (`flowsync_queue_oldest_age_seconds`) | > 300 s sustained | Add worker processes before anything else |
+| Failed jobs | > 0 for 10 min | Read the cause on **Admin → Queue**; retry or discard |
+
+Every migration must be safe to re-run on a populated database (repair path); `MigrationRepairTest` enforces it.
