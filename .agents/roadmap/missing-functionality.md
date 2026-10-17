@@ -45,6 +45,28 @@ Each row was implemented with its tests; the full-suite gate is still pending (s
 | M-I5 | Webhook endpoints can post Slack/Mattermost or Teams messages | 1e596f59 |
 | M-C1 | Skills catalogue, self-declared + assessed levels, scoped matrix, Skills page | 86004662, c0bae4ef |
 | M-H4 | Monthly API-call and automation-run limits (plan limits, 429 `usage_limit`, Subscription page) | eb0c1eb9 |
+| F4.5 | Project dashboards (widget catalogue, personal layouts over a team default) | 9ad7d760 |
+| M-A12 (F6.4) | Resignation self-service → approval opens the exit case | c09c2620 |
+| M-A4 (F6.6) | Exit interview (anonymity-guarded insights) | d71ba01d |
+| F5 | HR events on the bus + HR→task automation rules (page) | 3ae5b923, cdf0092a |
+| M-A2 (F6.3) | Transfers, promotions, confirmations — effective-dated, approved, applied on date | 1acd53ad |
+| M-B1 (F7.1) | Shift swap: counterparty then manager approve, roster rewritten for the day | 589feaeb |
+| M-E12 (F4.7) | Task SLA policies + hourly breach sweep (`task.sla_breached`) | c1a3ecae |
+| M-E14 (F4.8) | Board types scrum/kanban/basic + per-project issue-type scheme | c5e9ae50 |
+| M-F7 (F2.7) | Unified audit timeline (activities + HR ledger), filters, CSV, page | 96953a5c |
+| M-L (F12) | Installable PWA (manifest + offline shell, never caches /api) | ab007395 |
+| M-B6 (F7.7) | Expense category limits (per line, per month) | bbb2cb26 |
+| M-B4 (F7.5) | Payroll bank payout file (generic + NEFT), audited | b9c4d839 |
+| M-G6 (F10.6) | Role template gallery | b15f9d2b |
+| M-C (F8) | Performance improvement plans | 2cbcf9ae |
+| M-B5 (F7.6) | Loans and advances with EMI deduction through payroll | 9a828a61 |
+| M-E11 (F4.1) | Approval-gated transitions (`approval` entry rule + move requests) | d360233a |
+| M-M3 (F11.4) | Generated permission matrix test | 915af675 |
+| M-K1 (F11.8) | Upload content sniffing + optional antivirus hook | d4a20c72 |
+| M-J2 (F11.2) | Token-guarded Prometheus metrics + alert catalogue | 2ad47cd2 |
+| M-F6 (F2.6) | Shared comment thread on HR records (expense, leave) | 3c520da5 |
+| M-F5 (F2.5) | ILIKE + pg_trgm GIN indexes for substring search | fbd592ca |
+| M-A6 (F6.2) | Letter templates with merge fields → PDF filed as a document | bc765308 |
 | infra | Test DB template per process (a 24-test run: 12 min → ~1.5 min) | 1d5d24d9 |
 
 **Corrections found while building (rows marked missing that already existed):** invoices + PDF (`InvoiceService`, `InvoicePdf`, `InvoiceController`, `InvoiceTest`) → M-H1 ✅; dunning and period-end expiry (`DunningTest`, `PeriodEndTest`) → M-H2 ✅; PDF payslips (`PayslipRenderer` + `SimplePdf`) → M-B8 ✅; export ZIP cleanup (`PruneTenantExports`) → part of M-H6 ✅; approvals v2 modes/conditions/delegation/SLA/editor (`ApprovalStepMode`, `ChainBuilder`, `ApprovalChains.jsx`) → M-F1 only needs the remaining consumers.
