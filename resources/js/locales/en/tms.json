@@ -133,7 +133,29 @@
         "remove": "Remove",
         "removeTitle": "Remove dependency?",
         "removeMessage": "Remove this dependency relationship?",
-        "taskFallback": "Task #{{id}}"
+        "taskFallback": "Task #{{id}}",
+        "links": "Other links",
+        "typeLabel": "Link type",
+        "types": {
+            "blocks": "is blocked by",
+            "related_to": "relates to",
+            "duplicates": "duplicates",
+            "clones": "is a clone of"
+        },
+        "linkWording": {
+            "related_to": {
+                "outward": "relates to",
+                "inward": "relates to"
+            },
+            "duplicates": {
+                "outward": "duplicates",
+                "inward": "is duplicated by"
+            },
+            "clones": {
+                "outward": "clones",
+                "inward": "is cloned by"
+            }
+        }
     },
     "worklogs": {
         "editTitle": "Edit work log",

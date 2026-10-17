@@ -133,7 +133,29 @@
         "remove": "Quitar",
         "removeTitle": "¿Quitar la dependencia?",
         "removeMessage": "¿Quitar esta relación de dependencia?",
-        "taskFallback": "Tarea n.º {{id}}"
+        "taskFallback": "Tarea n.º {{id}}",
+        "links": "Otros vínculos",
+        "typeLabel": "Tipo de vínculo",
+        "types": {
+            "blocks": "está bloqueada por",
+            "related_to": "se relaciona con",
+            "duplicates": "duplica a",
+            "clones": "es un clon de"
+        },
+        "linkWording": {
+            "related_to": {
+                "outward": "se relaciona con",
+                "inward": "se relaciona con"
+            },
+            "duplicates": {
+                "outward": "duplica a",
+                "inward": "está duplicada por"
+            },
+            "clones": {
+                "outward": "clona a",
+                "inward": "está clonada por"
+            }
+        }
     },
     "worklogs": {
         "editTitle": "Editar registro de trabajo",
