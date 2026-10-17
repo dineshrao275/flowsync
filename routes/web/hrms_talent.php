@@ -21,6 +21,7 @@ use App\Http\Controllers\Hrms\RecordCommentController;
 use App\Http\Controllers\Hrms\Survey\SurveyCampaignController;
 use App\Http\Controllers\Hrms\Survey\SurveyTemplateController;
 use App\Http\Controllers\Hrms\Talent\SkillController;
+use App\Http\Controllers\Hrms\Talent\SkillExpectationController;
 use App\Http\Controllers\Hrms\Talent\TalentController;
 use App\Http\Controllers\Hrms\TaskLinkController;
 use Illuminate\Support\Facades\Route;
@@ -255,6 +256,9 @@ Route::group(['middleware' => ['ensure_module:hrms.core', 'ensure_module:hrms.ta
 // access, edits and assessments answer to hrms.talent.manage, and the matrix follows the talent
 // view scope (own / assigned / all). `skills/mine` is self-service and needs only an employment record.
 Route::group(['middleware' => ['ensure_module:hrms.core', 'ensure_module:hrms.talent', 'permission:hrms.view']], function () {
+    Route::get('hrms/skill-expectations', [SkillExpectationController::class, 'index']);
+    Route::put('hrms/skill-expectations/{designation}', [SkillExpectationController::class, 'save'])->whereNumber('designation');
+    Route::get('hrms/employees/{employee}/skill-gaps', [SkillExpectationController::class, 'gaps']);
     Route::get('hrms/skills', [SkillController::class, 'index']);
     Route::post('hrms/skills', [SkillController::class, 'store']);
     Route::get('hrms/skills/matrix', [SkillController::class, 'matrix']);

@@ -2416,7 +2416,9 @@
         "tab": {
             "mine": "Mis habilidades",
             "matrix": "Matriz del equipo",
-            "catalog": "Catálogo"
+            "catalog": "Catálogo",
+            "gaps": "Brechas",
+            "expectations": "Expectativas del puesto"
         },
         "noLevel": "Sin indicar",
         "level": {
@@ -2449,7 +2451,21 @@
         "restore": "Restaurar",
         "delete": "Eliminar",
         "deleteTitle": "¿Eliminar esta habilidad?",
-        "deleteMessage": "«{{name}}» se eliminará del catálogo."
+        "deleteMessage": "«{{name}}» se eliminará del catálogo.",
+        "gaps": {
+            "failed": "No se pudieron cargar tus brechas de habilidades.",
+            "none": "Cumples todas las expectativas de tu puesto.",
+            "noDesignation": "Aún no hay expectativas definidas para tu puesto.",
+            "line": "tú {{level}} / esperado {{expected}}",
+            "short": "faltan {{n}}",
+            "met": "cumplido"
+        },
+        "expectations": {
+            "designation": "Puesto",
+            "none": "No se espera",
+            "save": "Guardar expectativas",
+            "saved": "Expectativas guardadas."
+        }
     },
     "resignation": {
         "pageTitle": "Renuncia",

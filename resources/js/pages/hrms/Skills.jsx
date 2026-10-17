@@ -1,3 +1,5 @@
+import SkillGaps from '../../components/hrms/SkillGaps';
+import SkillExpectations from '../../components/hrms/SkillExpectations';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import api, { fieldErrors } from '../../services/api';
@@ -233,7 +235,7 @@ export default function Skills() {
     const { can } = useAuth();
     const manage = can('hrms.talent.manage');
     const [skills, setSkills] = useState(null);
-    const tabs = useMemo(() => ['mine', 'matrix', ...(manage ? ['catalog'] : [])], [manage]);
+    const tabs = useMemo(() => ['mine', 'gaps', 'matrix', ...(manage ? ['expectations', 'catalog'] : [])], [manage]);
     const [tab, setTab] = useState('mine');
 
     const load = useCallback(() => {
@@ -259,8 +261,10 @@ export default function Skills() {
             <Card>
                 {!skills ? <div className="flex justify-center py-8"><Spinner /></div>
                     : tab === 'mine' ? <MySkills skills={skills} />
-                        : tab === 'matrix' ? <Matrix canManage={manage} />
-                            : <Catalog skills={skills} reload={load} />}
+                        : tab === 'gaps' ? <SkillGaps />
+                            : tab === 'matrix' ? <Matrix canManage={manage} />
+                                : tab === 'expectations' ? <SkillExpectations skills={skills} />
+                                    : <Catalog skills={skills} reload={load} />}
             </Card>
         </div>
     );

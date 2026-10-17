@@ -69,7 +69,7 @@ class SkillController extends Controller
     {
         $employee = $this->ownEmployee($request);
 
-        return response()->json(['levels' => EmployeeSkill::query()->where('employee_id', $employee->id)->get()
+        return response()->json(['employee_id' => $employee->id, 'levels' => EmployeeSkill::query()->where('employee_id', $employee->id)->get()
             ->map(fn ($r) => ['skill_id' => $r->skill_id, 'level' => $r->level, 'source' => $r->source, 'note' => $r->note])->values()]);
     }
 

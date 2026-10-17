@@ -2416,7 +2416,9 @@
         "tab": {
             "mine": "My skills",
             "matrix": "Team matrix",
-            "catalog": "Catalogue"
+            "catalog": "Catalogue",
+            "gaps": "Gaps",
+            "expectations": "Role expectations"
         },
         "noLevel": "Not set",
         "level": {
@@ -2449,7 +2451,21 @@
         "restore": "Restore",
         "delete": "Delete",
         "deleteTitle": "Delete this skill?",
-        "deleteMessage": "“{{name}}” will be removed from the catalogue."
+        "deleteMessage": "“{{name}}” will be removed from the catalogue.",
+        "gaps": {
+            "failed": "Could not load your skill gaps.",
+            "none": "You meet every expectation for your role.",
+            "noDesignation": "No expectations are set for your designation yet.",
+            "line": "you {{level}} / expected {{expected}}",
+            "short": "{{n}} short",
+            "met": "met"
+        },
+        "expectations": {
+            "designation": "Designation",
+            "none": "Not expected",
+            "save": "Save expectations",
+            "saved": "Expectations saved."
+        }
     },
     "resignation": {
         "pageTitle": "Resignation",
