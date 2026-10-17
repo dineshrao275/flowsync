@@ -155,7 +155,7 @@ export default function Roles() {
     }
 
     useEffect(() => {
-        api.get('/roles/templates').then(({ data }) => setTemplates(data.templates)).catch(() => {});
+        api.get('/roles/templates').then(({ data }) => setTemplates(data.templates || [])).catch(() => {});
         load();
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
