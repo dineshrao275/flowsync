@@ -136,6 +136,7 @@ export const tmsSections = [
     {
         label: 'nav.groups.insights',
         items: [
+            { to: '/reports/builder', label: 'nav.tms.reportBuilder', capabilities: ['reports.view', 'product:tms', 'module:reports'], icon: ICONS.reports },
             { to: '/reports', label: 'nav.tms.reports', capabilities: ['reports.view', 'product:tms', 'module:reports'], icon: ICONS.reports },
         ],
     },

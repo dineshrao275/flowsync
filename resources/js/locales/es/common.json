@@ -250,7 +250,8 @@
             "search": "Búsqueda",
             "reports": "Informes",
             "webhooks": "Webhooks",
-            "timesheets": "Partes de horas"
+            "timesheets": "Partes de horas",
+            "reportBuilder": "Generador de informes"
         },
         "admin": {
             "users": "Usuarios",

@@ -47,6 +47,7 @@ class ScheduleRegistrationTest extends TestCase
             'events:prune --all',
             'automation:time-triggers --all',
             'tasks:sla-sweep --all',
+            'reports:send-scheduled --all',
             'tenants:close-impersonations',
             'tenants:expire-trials',
             'billing:period-ends',

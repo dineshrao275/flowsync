@@ -919,5 +919,12 @@
     "Signature requested.": "Firma solicitada.",
     "Signed.": "Firmado.",
     "Declined.": "Rechazado.",
-    "Request cancelled.": "Solicitud cancelada."
+    "Request cancelled.": "Solicitud cancelada.",
+    "That dataset is not available.": "Ese conjunto de datos no está disponible.",
+    "Choose at least one column.": "Elige al menos una columna.",
+    "Report saved.": "Informe guardado.",
+    "Report deleted.": "Informe eliminado.",
+    "Your report: :name": "Tu informe: :name",
+    "Your scheduled report \":name\" is attached (:rows rows).": "Tu informe programado «:name» va adjunto (:rows filas).",
+    "It was cut at the first :max rows; narrow the filters to see the rest.": "Se cortó en las primeras :max filas; ajusta los filtros para ver el resto."
 }

@@ -36,6 +36,7 @@ use App\Http\Controllers\ProjectRoleController;
 use App\Http\Controllers\PublicSiteController;
 use App\Http\Controllers\RegisterCardController;
 use App\Http\Controllers\RegisterController;
+use App\Http\Controllers\ReportBuilderController;
 use App\Http\Controllers\ReportsController;
 use App\Http\Controllers\ResetPasswordController;
 use App\Http\Controllers\RoleController;
@@ -244,6 +245,12 @@ Route::prefix('api')->group(function () {
         Route::get('dashboard', [DashboardController::class, '__invoke'])->middleware(['permission:dashboard.view', 'ensure_product:tms']);
 
         Route::get('analytics/overview', [AnalyticsController::class, '__invoke'])->middleware(['permission:dashboard.view', 'ensure_product:tms']);
+
+        Route::get('report-builder', [ReportBuilderController::class, 'index'])->middleware(['permission:reports.view', 'ensure_module:reports']);
+        Route::post('report-builder/preview', [ReportBuilderController::class, 'preview'])->middleware(['permission:reports.view', 'ensure_module:reports', 'throttle:30,1']);
+        Route::post('report-builder', [ReportBuilderController::class, 'store'])->middleware(['permission:reports.view', 'ensure_module:reports']);
+        Route::delete('report-builder/{report}', [ReportBuilderController::class, 'destroy'])->middleware(['permission:reports.view', 'ensure_module:reports']);
+        Route::get('report-builder/{report}/export', [ReportBuilderController::class, 'export'])->middleware(['permission:reports.view', 'ensure_module:reports', 'throttle:20,1']);
 
         Route::get('reports/overview', [ReportsController::class, 'overview'])->middleware(['permission:reports.view', 'ensure_product:tms', 'ensure_module:reports']);
 

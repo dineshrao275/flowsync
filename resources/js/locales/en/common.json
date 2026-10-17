@@ -250,7 +250,8 @@
             "search": "Search",
             "reports": "Reports",
             "webhooks": "Webhooks",
-            "timesheets": "Timesheets"
+            "timesheets": "Timesheets",
+            "reportBuilder": "Report builder"
         },
         "admin": {
             "users": "Users",

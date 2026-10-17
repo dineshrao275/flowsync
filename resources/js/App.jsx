@@ -33,6 +33,7 @@ import UserImport from './pages/UserImport';
 import Roles from './pages/Roles';
 import Settings from './pages/Settings';
 import Reports from './pages/Reports';
+import ReportBuilder from './pages/ReportBuilder';
 import Timesheets from './pages/Timesheets';
 import HrmsErrorBoundary from './components/hrms/HrmsErrorBoundary';
 import ApprovalChains from './pages/hrms/ApprovalChains';
@@ -239,6 +240,7 @@ function AppRoutes() {
                         </Route>
                         <Route element={<ProtectedRoute permission="reports.view" product="tms" module="reports" />}>
                             <Route path="/reports" element={<Reports />} />
+                            <Route path="/reports/builder" element={<ReportBuilder />} />
                         </Route>
                         <Route element={<ProtectedRoute module="hrms.core" />}>
                             <Route path="/hrms" element={<HrmsErrorScope />}>
