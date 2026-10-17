@@ -62,6 +62,7 @@ export const HRMS_NAV = [
     { to: '/hrms/automation', label: 'nav.hrms.hrAutomation', group: 'nav.groups.records', capabilities: ['module:hrms.core', 'module:automation', 'permission:hrms.onboarding.manage'] },
     { to: '/hrms/improvement-plans', label: 'nav.hrms.improvementPlans', group: 'nav.groups.records', capabilities: ['module:hrms.core', 'module:hrms.performance'] },
     { to: '/hrms/loans', label: 'nav.hrms.loans', group: 'nav.groups.records', capabilities: ['module:hrms.core', 'module:hrms.payroll'] },
+    { to: '/hrms/letters', label: 'nav.hrms.letters', group: 'nav.groups.records', capabilities: ['module:hrms.core', 'module:hrms.documents', 'permission:hrms.documents.manage'] },
     { to: '/hrms/changes', label: 'nav.hrms.changes', group: 'nav.groups.records', capabilities: ['module:hrms.core'] },
     { to: '/hrms/assets/mine', label: 'nav.hrms.myAssets', group: 'nav.groups.records', capabilities: ['module:hrms.core', 'module:hrms.assets'] },
     { to: '/hrms/approvals/chains', label: 'nav.hrms.approvalChains', group: 'nav.groups.records', capabilities: ['module:hrms.core', 'permission:hrms.approvals.manage'] },

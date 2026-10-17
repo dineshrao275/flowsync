@@ -882,5 +882,10 @@
     "The file content does not match its :ext extension.": "El contenido del archivo no coincide con su extensión :ext.",
     "That SVG contains active content and cannot be uploaded.": "Ese SVG contiene contenido activo y no se puede subir.",
     "Uploads are paused while the virus scanner is unavailable.": "Las subidas están en pausa mientras el antivirus no está disponible.",
-    "That file was rejected by the virus scanner.": "El antivirus rechazó ese archivo."
+    "That file was rejected by the virus scanner.": "El antivirus rechazó ese archivo.",
+    "That template names a document type this tenant does not have.": "Esa plantilla indica un tipo de documento que este inquilino no tiene.",
+    "Fill in: :fields.": "Completa: :fields.",
+    "Template removed.": "Plantilla eliminada.",
+    "Starter templates added.": "Plantillas iniciales añadidas.",
+    "Letter generated and filed in the employee's documents.": "Carta generada y archivada en los documentos del empleado."
 }

@@ -3,6 +3,7 @@
 use App\Http\Controllers\Hrms\Attendance\AttendanceController;
 use App\Http\Controllers\Hrms\Attendance\AttendanceRecordsController;
 use App\Http\Controllers\Hrms\Attendance\RegularizationController;
+use App\Http\Controllers\Hrms\Document\LetterController;
 use App\Http\Controllers\Hrms\DocumentController;
 use App\Http\Controllers\Hrms\DocumentTypeController;
 use App\Http\Controllers\Hrms\Employee\EmployeeChangeController;
@@ -84,6 +85,13 @@ Route::group(['middleware' => ['ensure_module:hrms.core', 'permission:hrms.view'
 // `expiring` is declared before `{document}`, because otherwise the word
 // binds as a document id and a valid warning query 404s.
 Route::group(['middleware' => ['ensure_module:hrms.core', 'ensure_module:hrms.documents', 'permission:hrms.view']], function () {
+    Route::get('hrms/letter-templates', [LetterController::class, 'index']);
+    Route::post('hrms/letter-templates', [LetterController::class, 'store']);
+    Route::post('hrms/letter-templates/starters', [LetterController::class, 'addStarters']);
+    Route::put('hrms/letter-templates/{template}', [LetterController::class, 'update']);
+    Route::delete('hrms/letter-templates/{template}', [LetterController::class, 'destroy']);
+    Route::post('hrms/employees/{employee}/letters', [LetterController::class, 'generate'])->middleware('throttle:30,1');
+
     Route::get('hrms/documents/types', [DocumentTypeController::class, 'index']);
     Route::get('hrms/documents/types/{type}', [DocumentTypeController::class, 'show']);
 

@@ -2709,5 +2709,27 @@
         "unknown": "Someone",
         "loadFailed": "Could not load comments.",
         "postFailed": "Could not post the comment."
+    },
+    "letters": {
+        "pageTitle": "Letters",
+        "subtitle": "Write a template once using merge fields, then generate a PDF for any employee. It is filed in their documents.",
+        "loadFailed": "Could not load letters.",
+        "generateFailed": "Could not generate the letter.",
+        "addStarters": "Add starter templates",
+        "newTemplate": "New template",
+        "editTemplate": "Edit template",
+        "generate": "Generate a letter",
+        "template": "Template",
+        "employee": "Employee",
+        "generateBtn": "Generate PDF",
+        "generated": "Letter generated and filed.",
+        "templates": "Templates",
+        "empty": "No templates yet — add the starters or create your own.",
+        "saved": "Template saved.",
+        "name": "Name",
+        "documentType": "Document type (slug)",
+        "body": "Letter text",
+        "save": "Save template",
+        "fieldsHint": "Available fields: {{fields}}. Any other field you add is asked for when you generate."
     }
 }

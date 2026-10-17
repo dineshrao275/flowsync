@@ -305,7 +305,8 @@
             "changes": "Traslados y ascensos",
             "shiftSwaps": "Cambios de turno",
             "improvementPlans": "Planes de mejora",
-            "loans": "Préstamos y anticipos"
+            "loans": "Préstamos y anticipos",
+            "letters": "Cartas"
         },
         "platform": {
             "overview": "Resumen",

@@ -2709,5 +2709,27 @@
         "unknown": "Alguien",
         "loadFailed": "No se pudieron cargar los comentarios.",
         "postFailed": "No se pudo publicar el comentario."
+    },
+    "letters": {
+        "pageTitle": "Cartas",
+        "subtitle": "Escribe una plantilla una vez con campos de combinación y genera un PDF para cualquier empleado. Se archiva en sus documentos.",
+        "loadFailed": "No se pudieron cargar las cartas.",
+        "generateFailed": "No se pudo generar la carta.",
+        "addStarters": "Añadir plantillas iniciales",
+        "newTemplate": "Nueva plantilla",
+        "editTemplate": "Editar plantilla",
+        "generate": "Generar una carta",
+        "template": "Plantilla",
+        "employee": "Empleado",
+        "generateBtn": "Generar PDF",
+        "generated": "Carta generada y archivada.",
+        "templates": "Plantillas",
+        "empty": "Aún no hay plantillas: añade las iniciales o crea las tuyas.",
+        "saved": "Plantilla guardada.",
+        "name": "Nombre",
+        "documentType": "Tipo de documento (slug)",
+        "body": "Texto de la carta",
+        "save": "Guardar plantilla",
+        "fieldsHint": "Campos disponibles: {{fields}}. Cualquier otro campo que añadas se pedirá al generar."
     }
 }
