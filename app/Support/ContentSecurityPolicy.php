@@ -27,7 +27,7 @@ class ContentSecurityPolicy
             'form-action' => [$self, 'https://checkout.stripe.com'],
             'script-src' => [$self, "'unsafe-inline'", 'https://js.stripe.com', ...$dev],
             'style-src' => [$self, "'unsafe-inline'", 'https://fonts.googleapis.com', ...$dev],
-            'font-src' => [$self, 'data:', 'https://fonts.gstatic.com'],
+            'font-src' => [$self, 'data:', 'https://fonts.gstatic.com', ...$dev],
             'img-src' => [$self, 'data:', 'blob:', 'https:'],
             'connect-src' => [$self, 'https://api.stripe.com', ...$ws, ...$dev],
             'frame-src' => [$self, 'https://js.stripe.com', 'https://hooks.stripe.com', 'https://checkout.stripe.com'],
