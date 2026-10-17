@@ -82,7 +82,7 @@ class SignatureController extends Controller
         $tenant = Tenant::query()->find((int) $m[1]);
 
         $result = $tenant ? $dbm->using($tenant, function () use ($code) {
-            $sig = DocumentSignature::query()->with(['document:id,title', 'employee:id,name,user_id'])->where('verification_code', $code)->where('status', 'signed')->first();
+            $sig = DocumentSignature::query()->with(['document', 'employee:id,name,user_id'])->where('verification_code', $code)->where('status', 'signed')->first();
             if ($sig === null) {
                 return null;
             }

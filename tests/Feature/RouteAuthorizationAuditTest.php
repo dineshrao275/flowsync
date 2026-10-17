@@ -52,6 +52,12 @@ class RouteAuthorizationAuditTest extends TestCase
         'ClientLogController@store' => 'public: throttled client error reporting, writes only a log line',
         'CspReportController@store' => 'public: browser-sent CSP violation reports, throttled, logs a few trimmed fields',
         'LanguageController@index' => 'public: the list of supported languages, no tenant data',
+        'GithubIntegrationController@receive' => 'public: HMAC-SHA256 signature over the raw body with the tenant\'s secret; every failure is the same 404',
+        'SignatureController@verify' => 'public: the unguessable receipt code is the check; answers only what a receipt proves',
+        'SsoController@info' => 'public: whether the workspace has SSO switched on, nothing else',
+        'SsoController@start' => 'public: starts an OIDC redirect for a workspace slug; no data returned',
+        'SsoController@callback' => 'public: state + PKCE + RS256-verified ID token are the check',
+        'CalendarFeedController@destroy' => 'self-scoped: deletes only the caller\'s own feed row',
     ];
 
     /** Calls that count as an explicit authorization decision. */

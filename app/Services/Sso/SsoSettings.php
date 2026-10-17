@@ -3,6 +3,7 @@
 namespace App\Services\Sso;
 
 use App\Models\Tenant;
+use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\Crypt;
 
 /** A tenant's single-sign-on configuration, kept in `tenants.settings.sso` with the client secret encrypted. */
@@ -49,6 +50,6 @@ class SsoSettings
     /** What the admin UI may see: never the secret itself. */
     public function present(Tenant $tenant): array
     {
-        return $this->get($tenant) + ['has_secret' => (bool) ($tenant->settings['sso']['client_secret'] ?? false)];
+        return Arr::except($this->get($tenant), ['client_secret']) + ['has_secret' => (bool) ($tenant->settings['sso']['client_secret'] ?? false)];
     }
 }

@@ -23,6 +23,8 @@ class SsoTest extends TestCase
 
     private array $jwk;
 
+    private ?string $idToken = null;
+
     protected function setUp(): void
     {
         parent::setUp();
@@ -34,6 +36,14 @@ class SsoTest extends TestCase
         $this->jwk = ['kty' => 'RSA', 'kid' => 'k1', 'n' => OidcClient::b64($d['n']), 'e' => OidcClient::b64($d['e'])];
 
         $tenant = $this->tenant();
+        Http::fake([
+            self::ISSUER.'/.well-known/openid-configuration' => Http::response([
+                'issuer' => self::ISSUER, 'authorization_endpoint' => self::ISSUER.'/auth', 'token_endpoint' => self::ISSUER.'/token', 'jwks_uri' => self::ISSUER.'/jwks',
+            ]),
+            self::ISSUER.'/jwks' => Http::response(['keys' => [$this->jwk]]),
+            self::ISSUER.'/token' => fn () => Http::response(['id_token' => $this->idToken]),
+        ]);
+
         app(SsoSettings::class)->save($tenant, [
             'enabled' => true, 'enforce' => false, 'jit' => false, 'issuer' => self::ISSUER, 'client_id' => 'flowsync', 'client_secret' => 's3cret',
             'allowed_domains' => [], 'default_role' => 'viewer',
@@ -64,14 +74,7 @@ class SsoTest extends TestCase
         parse_str(parse_url($start->headers->get('Location'), PHP_URL_QUERY), $q);
         $this->assertSame('S256', $q['code_challenge_method']);
 
-        $token = $this->jwt($claims + ['iss' => self::ISSUER, 'aud' => 'flowsync', 'exp' => time() + 300, 'nonce' => $q['nonce'], 'email_verified' => true], $alg, $badKey ? 'other' : null);
-        Http::fake([
-            self::ISSUER.'/.well-known/openid-configuration' => Http::response([
-                'issuer' => self::ISSUER, 'authorization_endpoint' => self::ISSUER.'/auth', 'token_endpoint' => self::ISSUER.'/token', 'jwks_uri' => self::ISSUER.'/jwks',
-            ]),
-            self::ISSUER.'/jwks' => Http::response(['keys' => [$this->jwk]]),
-            self::ISSUER.'/token' => Http::response(['id_token' => $token]),
-        ]);
+        $this->idToken = $this->jwt($claims + ['iss' => self::ISSUER, 'aud' => 'flowsync', 'exp' => time() + 300, 'nonce' => $q['nonce'], 'email_verified' => true], $alg, $badKey ? 'other' : null);
 
         return $this->get('/api/sso/acme/callback?code=abc&state='.$q['state']);
     }
