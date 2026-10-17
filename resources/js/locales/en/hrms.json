@@ -2764,5 +2764,33 @@
         "empty": "No active employees yet.",
         "loadFailed": "Could not load the org chart.",
         "truncated": "Showing the first 2,000 people only."
+    },
+    "okrs": {
+        "pageTitle": "OKRs",
+        "subtitle": "Objectives and measurable key results. Progress is calculated from the numbers you enter.",
+        "loadFailed": "Could not load OKRs.",
+        "actionFailed": "That did not work.",
+        "new": "New objective",
+        "created": "Objective created.",
+        "empty": "No objectives yet.",
+        "company": "Company",
+        "closed": "Closed",
+        "close": "Close objective",
+        "current": "Current value for {{title}}",
+        "modalHint": "One objective, a few key results with a start and a target number.",
+        "scope": "Whose objective",
+        "scopeMine": "Mine",
+        "scopeCompany": "Company-wide",
+        "title": "Objective",
+        "period": "Period",
+        "start": "Starts",
+        "end": "Ends",
+        "keyResults": "Key results",
+        "krTitle": "Key result {{n}}",
+        "krPlaceholder": "e.g. Reduce churn",
+        "from": "Start value",
+        "to": "Target",
+        "addKr": "Add a key result",
+        "create": "Create objective"
     }
 }

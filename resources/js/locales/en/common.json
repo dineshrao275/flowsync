@@ -308,7 +308,8 @@
             "loans": "Loans & advances",
             "letters": "Letters",
             "developmentPlans": "Development plans",
-            "orgChart": "Org chart"
+            "orgChart": "Org chart",
+            "okrs": "OKRs"
         },
         "platform": {
             "overview": "Overview",

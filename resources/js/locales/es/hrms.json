@@ -2764,5 +2764,33 @@
         "empty": "Aún no hay empleados activos.",
         "loadFailed": "No se pudo cargar el organigrama.",
         "truncated": "Solo se muestran las primeras 2000 personas."
+    },
+    "okrs": {
+        "pageTitle": "OKR",
+        "subtitle": "Objetivos y resultados clave medibles. El avance se calcula con los números que introduces.",
+        "loadFailed": "No se pudieron cargar los OKR.",
+        "actionFailed": "No se pudo completar la acción.",
+        "new": "Nuevo objetivo",
+        "created": "Objetivo creado.",
+        "empty": "Aún no hay objetivos.",
+        "company": "Empresa",
+        "closed": "Cerrado",
+        "close": "Cerrar objetivo",
+        "current": "Valor actual de {{title}}",
+        "modalHint": "Un objetivo y unos resultados clave con un valor inicial y una meta.",
+        "scope": "De quién es",
+        "scopeMine": "Mío",
+        "scopeCompany": "De toda la empresa",
+        "title": "Objetivo",
+        "period": "Periodo",
+        "start": "Inicio",
+        "end": "Fin",
+        "keyResults": "Resultados clave",
+        "krTitle": "Resultado clave {{n}}",
+        "krPlaceholder": "p. ej. Reducir la rotación",
+        "from": "Valor inicial",
+        "to": "Meta",
+        "addKr": "Añadir un resultado clave",
+        "create": "Crear objetivo"
     }
 }

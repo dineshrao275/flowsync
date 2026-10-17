@@ -308,7 +308,8 @@
             "loans": "Préstamos y anticipos",
             "letters": "Cartas",
             "developmentPlans": "Planes de desarrollo",
-            "orgChart": "Organigrama"
+            "orgChart": "Organigrama",
+            "okrs": "OKR"
         },
         "platform": {
             "overview": "Resumen",

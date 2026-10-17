@@ -12,6 +12,7 @@ use App\Http\Controllers\Hrms\Performance\CheckInController;
 use App\Http\Controllers\Hrms\Performance\DevelopmentPlanController;
 use App\Http\Controllers\Hrms\Performance\FeedbackRequestController;
 use App\Http\Controllers\Hrms\Performance\ImprovementPlanController;
+use App\Http\Controllers\Hrms\Performance\OkrController;
 use App\Http\Controllers\Hrms\Performance\OneOnOneController;
 use App\Http\Controllers\Hrms\Performance\PerformanceCycleController;
 use App\Http\Controllers\Hrms\Performance\PerformanceGoalController;
@@ -165,6 +166,10 @@ Route::group(['middleware' => ['ensure_module:hrms.core', 'ensure_module:hrms.as
 // (manage, or self-while-draft for goals). Feedback, reviews and the
 // evidence read land in P12.4b.
 Route::group(['middleware' => ['ensure_module:hrms.core', 'ensure_module:hrms.performance', 'permission:hrms.view']], function () {
+    Route::get('hrms/okrs', [OkrController::class, 'index']);
+    Route::post('hrms/okrs', [OkrController::class, 'store']);
+    Route::put('hrms/okrs/key-results/{keyResult}', [OkrController::class, 'updateKeyResult']);
+    Route::post('hrms/okrs/{objective}/close', [OkrController::class, 'close']);
     Route::get('hrms/development-plans', [DevelopmentPlanController::class, 'index']);
     Route::post('hrms/development-plans', [DevelopmentPlanController::class, 'store']);
     Route::put('hrms/development-plans/{plan}/actions/{action}', [DevelopmentPlanController::class, 'action']);
