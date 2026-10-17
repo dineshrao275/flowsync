@@ -1442,5 +1442,13 @@
         "rotate": "New secret",
         "disable": "Turn off",
         "saved": "GitHub integration saved."
+    },
+    "calendarFeed": {
+        "title": "Calendar subscription",
+        "subtitle": "See your due tasks and approved leave in your own calendar app.",
+        "once": "Your private link (shown once — anyone with it can read your schedule):",
+        "create": "Create link",
+        "rotate": "Make a new link",
+        "revoke": "Revoke"
     }
 }

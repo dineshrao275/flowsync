@@ -5,6 +5,7 @@ use App\Http\Controllers\AttachmentController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\BillingController;
 use App\Http\Controllers\BlogController;
+use App\Http\Controllers\CalendarFeedController;
 use App\Http\Controllers\ClientLogController;
 use App\Http\Controllers\ContactController;
 use App\Http\Controllers\CspReportController;
@@ -63,6 +64,7 @@ Route::prefix('api')->group(function () {
     Route::get('health', [PlatformHealthController::class, 'ping']);
     Route::get('metrics', MetricsController::class)->middleware('throttle:120,1');
     // OpenID Connect sign-in (F10.2): public by nature, tenant-addressed by slug, always throttled.
+    Route::get('calendar/{tenantId}/{token}', [CalendarFeedController::class, 'ics'])->whereNumber('tenantId')->middleware('throttle:60,1');
     Route::post('integrations/github/{tenantId}', [GithubIntegrationController::class, 'receive'])->whereNumber('tenantId')->middleware('throttle:120,1');
     Route::get('signatures/verify/{code}', [SignatureController::class, 'verify'])->middleware('throttle:30,1');
     Route::get('sso/{slug}/info', [SsoController::class, 'info'])->middleware('throttle:60,1');
@@ -112,6 +114,9 @@ Route::prefix('api')->group(function () {
         // the notifications family; the SA short-circuit mirrors them).
         Route::get('notification-preferences', [NotificationPreferenceController::class, 'show']);
         Route::put('notification-preferences', [NotificationPreferenceController::class, 'update']);
+        Route::get('calendar-feed', [CalendarFeedController::class, 'show']);
+        Route::post('calendar-feed', [CalendarFeedController::class, 'rotate'])->middleware('throttle:10,1');
+        Route::delete('calendar-feed', [CalendarFeedController::class, 'destroy']);
         Route::get('github-integration', [GithubIntegrationController::class, 'show'])->middleware('permission:tenant.manage');
         Route::put('github-integration', [GithubIntegrationController::class, 'update'])->middleware('permission:tenant.manage');
         Route::get('sso-settings', [SsoSettingsController::class, 'show'])->middleware('permission:tenant.manage');

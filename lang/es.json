@@ -927,5 +927,8 @@
     "Your report: :name": "Tu informe: :name",
     "Your scheduled report \":name\" is attached (:rows rows).": "Tu informe programado «:name» va adjunto (:rows filas).",
     "It was cut at the first :max rows; narrow the filters to see the rest.": "Se cortó en las primeras :max filas; ajusta los filtros para ver el resto.",
-    "GitHub integration saved.": "Integración con GitHub guardada."
+    "GitHub integration saved.": "Integración con GitHub guardada.",
+    "Calendar link created. Copy it now; it is not shown again.": "Enlace de calendario creado. Cópialo ahora; no se vuelve a mostrar.",
+    "Calendar link revoked.": "Enlace de calendario revocado.",
+    "Leave": "Ausencia"
 }

@@ -1442,5 +1442,13 @@
         "rotate": "Nuevo secreto",
         "disable": "Desactivar",
         "saved": "Integración con GitHub guardada."
+    },
+    "calendarFeed": {
+        "title": "Suscripción de calendario",
+        "subtitle": "Ve tus tareas con vencimiento y tus ausencias aprobadas en tu propia aplicación de calendario.",
+        "once": "Tu enlace privado (se muestra una vez; quien lo tenga puede leer tu agenda):",
+        "create": "Crear enlace",
+        "rotate": "Generar un enlace nuevo",
+        "revoke": "Revocar"
     }
 }
