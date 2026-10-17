@@ -850,5 +850,18 @@
             "due_soon": "Vencen en los próximos 7 días",
             "created_vs_done": "Creadas vs completadas (14 días)"
         }
+    },
+    "sla": {
+        "title": "Niveles de servicio (SLA)",
+        "subtitle": "Las tareas aún abiertas pasado el tiempo objetivo se marcan y se avisa a su responsable.",
+        "empty": "Aún no hay políticas de SLA.",
+        "within": "resolver en {{hours}} h",
+        "allPriorities": "todas las prioridades",
+        "onePriority": "una prioridad",
+        "remove": "Quitar",
+        "name": "Nombre",
+        "hours": "Objetivo (horas)",
+        "priority": "Prioridad",
+        "add": "Añadir política"
     }
 }

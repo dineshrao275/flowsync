@@ -850,5 +850,18 @@
             "due_soon": "Due in the next 7 days",
             "created_vs_done": "Created vs completed (14 days)"
         }
+    },
+    "sla": {
+        "title": "Service levels (SLA)",
+        "subtitle": "Tasks still open after the target time are flagged, and their assignee is told.",
+        "empty": "No SLA policies yet.",
+        "within": "resolve within {{hours}} h",
+        "allPriorities": "all priorities",
+        "onePriority": "one priority",
+        "remove": "Remove",
+        "name": "Name",
+        "hours": "Target (hours)",
+        "priority": "Priority",
+        "add": "Add policy"
     }
 }
