@@ -40,6 +40,8 @@ use App\Http\Controllers\ResetPasswordController;
 use App\Http\Controllers\RoleController;
 use App\Http\Controllers\RoleTemplateController;
 use App\Http\Controllers\SearchController;
+use App\Http\Controllers\SsoController;
+use App\Http\Controllers\SsoSettingsController;
 use App\Http\Controllers\SupportTicketController;
 use App\Http\Controllers\TenantController;
 use App\Http\Controllers\ThemeController;
@@ -57,6 +59,10 @@ use Illuminate\Support\Facades\Route;
 Route::prefix('api')->group(function () {
     Route::get('health', [PlatformHealthController::class, 'ping']);
     Route::get('metrics', MetricsController::class)->middleware('throttle:120,1');
+    // OpenID Connect sign-in (F10.2): public by nature, tenant-addressed by slug, always throttled.
+    Route::get('sso/{slug}/info', [SsoController::class, 'info'])->middleware('throttle:60,1');
+    Route::get('sso/{slug}/start', [SsoController::class, 'start'])->middleware('throttle:20,1');
+    Route::get('sso/{slug}/callback', [SsoController::class, 'callback'])->middleware('throttle:20,1');
     Route::get('locales', [LanguageController::class, 'index']);
     // Guest auth endpoints resolve locale from ?locale=/session/
     // Accept-Language (no tenant is known before sign-in), so sign-in
@@ -101,6 +107,8 @@ Route::prefix('api')->group(function () {
         // the notifications family; the SA short-circuit mirrors them).
         Route::get('notification-preferences', [NotificationPreferenceController::class, 'show']);
         Route::put('notification-preferences', [NotificationPreferenceController::class, 'update']);
+        Route::get('sso-settings', [SsoSettingsController::class, 'show'])->middleware('permission:tenant.manage');
+        Route::put('sso-settings', [SsoSettingsController::class, 'update'])->middleware('permission:tenant.manage');
         // Tenant-wide switches for emailable events (admins: tenant.manage).
         Route::get('notification-policies', [NotificationPolicyController::class, 'show'])->middleware('permission:tenant.manage');
         Route::put('notification-policies', [NotificationPolicyController::class, 'update'])->middleware('permission:tenant.manage');

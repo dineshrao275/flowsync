@@ -1393,5 +1393,22 @@
         "system": "System",
         "empty": "No entries match.",
         "loadFailed": "Could not load the audit timeline."
+    },
+    "sso": {
+        "title": "Single sign-on",
+        "subtitle": "Let people sign in with your company identity provider (OpenID Connect).",
+        "redirectHint": "Register this redirect URL with your provider:",
+        "enabled": "Enable single sign-on",
+        "issuer": "Issuer URL",
+        "clientId": "Client ID",
+        "clientSecret": "Client secret",
+        "secretKept": "•••••• (kept — type to replace)",
+        "domains": "Allowed email domains (comma separated; empty = any)",
+        "jit": "Create accounts on first sign-in",
+        "defaultRole": "Role for new accounts",
+        "enforce": "Require single sign-on",
+        "enforceHint": "With this on, passwords stop working for everyone except the protected default user, who keeps a password as a break-glass login.",
+        "save": "Save settings",
+        "saved": "Single sign-on settings saved."
     }
 }

@@ -14,6 +14,7 @@ use App\Services\PlatformAudit;
 use App\Services\Security\PlatformAccess;
 use App\Services\Security\TwoFactorLogin;
 use App\Services\Security\TwoFactorService;
+use App\Services\Sso\SsoSettings;
 use App\Services\TenantLimits;
 use App\Services\TenantOnboarding;
 use App\Support\Hrms\HrmsSchema;
@@ -187,6 +188,21 @@ class AuthController extends Controller
                 ]);
 
                 throw ValidationException::withMessages(['email' => __('auth.failed')]);
+            }
+
+            // F10.2: when the tenant enforces single sign-on, a password only works for the protected default user
+            // (the break-glass account); everyone else must use the identity provider.
+            if (app(SsoSettings::class)->get($tenant)['enforce'] && ! Auth::user()->is_default) {
+                Auth::logout();
+
+                app(PlatformAudit::class)->auth($request, 'auth.login_failed', [
+                    'email' => $email,
+                    'tenant_id' => $tenant->id,
+                    'reason' => 'sso_required',
+                    'via' => 'password',
+                ]);
+
+                throw ValidationException::withMessages(['email' => __('This workspace requires single sign-on. Use the SSO button on the sign-in page.')]);
             }
 
             // H-3: valid credentials are not enough — the employment record

@@ -1393,5 +1393,22 @@
         "system": "Sistema",
         "empty": "Ninguna entrada coincide.",
         "loadFailed": "No se pudo cargar la cronología de auditoría."
+    },
+    "sso": {
+        "title": "Inicio de sesión único",
+        "subtitle": "Permite acceder con el proveedor de identidad de tu empresa (OpenID Connect).",
+        "redirectHint": "Registra esta URL de redirección en tu proveedor:",
+        "enabled": "Activar el inicio de sesión único",
+        "issuer": "URL del emisor",
+        "clientId": "ID de cliente",
+        "clientSecret": "Secreto de cliente",
+        "secretKept": "•••••• (guardado — escribe para cambiarlo)",
+        "domains": "Dominios de correo permitidos (separados por comas; vacío = cualquiera)",
+        "jit": "Crear cuentas en el primer acceso",
+        "defaultRole": "Rol para cuentas nuevas",
+        "enforce": "Exigir inicio de sesión único",
+        "enforceHint": "Con esto activado, las contraseñas dejan de funcionar salvo para el usuario predeterminado protegido, que conserva una contraseña como acceso de emergencia.",
+        "save": "Guardar ajustes",
+        "saved": "Ajustes de inicio de sesión único guardados."
     }
 }
