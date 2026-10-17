@@ -67,6 +67,16 @@ Each row was implemented with its tests; the full-suite gate is still pending (s
 | M-F6 (F2.6) | Shared comment thread on HR records (expense, leave) | 3c520da5 |
 | M-F5 (F2.5) | ILIKE + pg_trgm GIN indexes for substring search | fbd592ca |
 | M-A6 (F6.2) | Letter templates with merge fields → PDF filed as a document | bc765308 |
+| F8 | Individual development plans; OKRs; competency expectations + gaps; career paths + succession | 5d363553, c9821f71, 64ba1858, dcfe52b4 |
+| M-E9 | Duplicates / clones link types | 31e2652c |
+| F10.2 | OIDC single sign-on (PKCE, RS256 verification, JIT never admin, enforce with break-glass) | b2681ae5 |
+| F9.5 | `tenants:purge` (gated, confirmed, audited; billing tombstone kept) | bcedbddf |
+| F6.7 | Internal e-signature with SHA-256 receipt + public verification | 208e60e2 |
+| F11.10 | Tenant activity analytics + dormant tenants page | f3edec13 |
+| F11.9 | Report builder (tasks, expense claims) with saved + scheduled CSV email | 8648a3d8 |
+| F10.7 | GitHub task links; personal iCalendar feed | 7fe32cd3, df2eb65d |
+| F11.7 | Scaling thresholds runbook + migration repair-safety test | 9cbd0f9c |
+| M-L6 | Boards refresh when columns change | 4c2a777c |
 | infra | Test DB template per process (a 24-test run: 12 min → ~1.5 min) | 1d5d24d9 |
 
 **Corrections found while building (rows marked missing that already existed):** invoices + PDF (`InvoiceService`, `InvoicePdf`, `InvoiceController`, `InvoiceTest`) → M-H1 ✅; dunning and period-end expiry (`DunningTest`, `PeriodEndTest`) → M-H2 ✅; PDF payslips (`PayslipRenderer` + `SimplePdf`) → M-B8 ✅; export ZIP cleanup (`PruneTenantExports`) → part of M-H6 ✅; approvals v2 modes/conditions/delegation/SLA/editor (`ApprovalStepMode`, `ChainBuilder`, `ApprovalChains.jsx`) → M-F1 only needs the remaining consumers.
