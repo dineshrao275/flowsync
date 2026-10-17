@@ -2700,5 +2700,14 @@
             "withdraw": "Loan withdrawn.",
             "stop": "Deductions stopped."
         }
+    },
+    "comments": {
+        "title": "Comments",
+        "empty": "No comments yet.",
+        "add": "Add a comment",
+        "post": "Post",
+        "unknown": "Someone",
+        "loadFailed": "Could not load comments.",
+        "postFailed": "Could not post the comment."
     }
 }

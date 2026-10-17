@@ -2700,5 +2700,14 @@
             "withdraw": "Préstamo retirado.",
             "stop": "Descuentos detenidos."
         }
+    },
+    "comments": {
+        "title": "Comentarios",
+        "empty": "Aún no hay comentarios.",
+        "add": "Añadir un comentario",
+        "post": "Publicar",
+        "unknown": "Alguien",
+        "loadFailed": "No se pudieron cargar los comentarios.",
+        "postFailed": "No se pudo publicar el comentario."
     }
 }

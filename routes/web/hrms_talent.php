@@ -15,6 +15,7 @@ use App\Http\Controllers\Hrms\Performance\OneOnOneController;
 use App\Http\Controllers\Hrms\Performance\PerformanceCycleController;
 use App\Http\Controllers\Hrms\Performance\PerformanceGoalController;
 use App\Http\Controllers\Hrms\Performance\ReviewSummaryController;
+use App\Http\Controllers\Hrms\RecordCommentController;
 use App\Http\Controllers\Hrms\Survey\SurveyCampaignController;
 use App\Http\Controllers\Hrms\Survey\SurveyTemplateController;
 use App\Http\Controllers\Hrms\Talent\SkillController;
@@ -91,6 +92,12 @@ Route::group(['middleware' => ['ensure_module:hrms.core', 'ensure_module:hrms.an
     Route::get('hrms/analytics/payroll', [HrmsAnalyticsController::class, 'payroll'])->middleware('permission:hrms.payroll.run');
     Route::get('hrms/analytics/documents', [HrmsAnalyticsController::class, 'documents'])->middleware('permission:hrms.documents.view');
     Route::get('hrms/analytics/assets', [HrmsAnalyticsController::class, 'assets'])->middleware('permission:hrms.assets.view');
+});
+
+// Comments on HR records (F2.6): the record's own policy decides who may read and write the thread.
+Route::group(['middleware' => ['ensure_module:hrms.core', 'permission:hrms.view']], function () {
+    Route::get('hrms/records/{type}/{id}/comments', [RecordCommentController::class, 'index'])->whereIn('type', ['expense', 'leave'])->whereNumber('id');
+    Route::post('hrms/records/{type}/{id}/comments', [RecordCommentController::class, 'store'])->whereIn('type', ['expense', 'leave'])->whereNumber('id')->middleware('throttle:60,1');
 });
 
 // HRMS audit trail (Phase 19 P19.1). The ledger is cross-cutting, so no

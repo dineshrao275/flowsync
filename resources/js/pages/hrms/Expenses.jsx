@@ -16,6 +16,7 @@ import { useToast } from '../../context/ToastContext';
 import { useConfirm } from '../../components/ui/ConfirmDialog';
 import { useSetCrumbs } from '../../context/BreadcrumbContext';
 import usePageTitle from '../../hooks/usePageTitle';
+import RecordComments from '../../components/hrms/RecordComments';
 
 const STATUSES = ['', 'draft', 'submitted', 'pending', 'approved', 'rejected', 'paid', 'cancelled'];
 
@@ -253,6 +254,7 @@ export default function Expenses() {
                     )}
                     <Input label={verdict === 'approve' ? t('hrms.expenses.reasonForCut') : t('hrms.expenses.reason')} value={reason} error={decideErrors.reason} onChange={(e) => setReason(e.target.value)} />
                     <div><Button type="submit">{t('hrms.expenses.recordDecision')}</Button></div>
+                    {deciding && <RecordComments type="expense" id={deciding.id} />}
                 </form>
             </Modal>
         </div>

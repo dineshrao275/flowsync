@@ -20,6 +20,7 @@ import LeaveBalanceTable from '../../components/hrms/LeaveBalanceTable';
 import LeaveAdjustPanel from '../../components/hrms/LeaveAdjustPanel';
 import LeaveBlackoutPanel from '../../components/hrms/LeaveBlackoutPanel';
 import LeaveRequestModal from '../../components/hrms/LeaveRequestModal';
+import RecordComments from '../../components/hrms/RecordComments';
 
 const TABS = [
     { key: 'requests', labelKey: 'hrms.leave.tabs.requests' },
@@ -606,6 +607,7 @@ export default function Leave() {
                     </p>
                     <Input label={deciding?.verdict === 'approve' ? t('hrms.leave.noteOptional') : t('hrms.leave.reason')} value={decisionNote} onChange={(e) => setDecisionNote(e.target.value)} error={decisionErrors.note ?? decisionErrors.decision_note} />
                     {decisionErrors.form && <Alert>{decisionErrors.form}</Alert>}
+                    {deciding?.id && <RecordComments type="leave" id={deciding.id} />}
                     <div className="flex justify-end gap-2">
                         <Button variant="secondary" onClick={() => setDeciding(null)}>{t('hrms.leave.cancel')}</Button>
                         <Button onClick={() => decide(deciding.verdict)}>
