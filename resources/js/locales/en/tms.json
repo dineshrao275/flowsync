@@ -231,7 +231,18 @@
         "checklistRemovedTitle": "removed checklist item \"{{title}}\"",
         "someone": "Someone",
         "empty": "No activity yet.",
-        "loadFailed": "Could not load activity."
+        "loadFailed": "Could not load activity.",
+        "slaBreached": "missed its SLA",
+        "slaLine": "missed the “{{sla}}” SLA ({{hours}} h)",
+        "moveRequested": "asked for approval to move",
+        "moveApproved": "move approved",
+        "moveRejected": "move rejected",
+        "vcsEvent": "linked from GitHub",
+        "vcsLine": "GitHub {{kind}} {{state}}: {{title}}",
+        "vcsKind": {
+            "pull_request": "pull request",
+            "commit": "commit"
+        }
     },
     "workspaces": {
         "pageTitle": "Workspaces",

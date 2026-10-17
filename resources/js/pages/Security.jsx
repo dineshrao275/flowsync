@@ -13,6 +13,7 @@ import { useSetCrumbs } from '../context/BreadcrumbContext';
 import { useConfirm } from '../components/ui/ConfirmDialog';
 import Timestamp from '../components/ui/Timestamp';
 import SsoSettings from '../components/settings/SsoSettings';
+import GithubSettings from '../components/settings/GithubSettings';
 
 function RecoveryCodes({ codes }) {
     const { t } = useTranslation();
@@ -293,6 +294,7 @@ export default function Security() {
             </div>
             <TwoFactorCard onChanged={refresh} />
             {!platform && can('tenant.manage') && <SsoSettings />}
+            {!platform && can('tenant.manage') && <GithubSettings />}
             {!platform && can('support.manage') && <SupportAccessCard />}
             {platform ? <PlatformPolicyCard /> : can('roles.manage') && <TenantPolicyCard />}
         </div>

@@ -1428,5 +1428,19 @@
         "dormantBadge": "Inactivo",
         "ok": "Activo",
         "noData": "Sin datos aún"
+    },
+    "github": {
+        "title": "GitHub",
+        "subtitle": "Las pull requests y commits que mencionan la clave de una tarea (por ejemplo ABC-123) aparecen en su actividad.",
+        "status": "Estado",
+        "on": "Activada",
+        "off": "Desactivada",
+        "payload": "En GitHub, añade un webhook con esta URL de carga:",
+        "contentType": "tipo de contenido application/json; eventos: Pull requests y Pushes",
+        "secretOnce": "Secreto de firma (se muestra una vez; pégalo en el campo Secret de GitHub):",
+        "enable": "Activar",
+        "rotate": "Nuevo secreto",
+        "disable": "Desactivar",
+        "saved": "Integración con GitHub guardada."
     }
 }

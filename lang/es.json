@@ -926,5 +926,6 @@
     "Report deleted.": "Informe eliminado.",
     "Your report: :name": "Tu informe: :name",
     "Your scheduled report \":name\" is attached (:rows rows).": "Tu informe programado «:name» va adjunto (:rows filas).",
-    "It was cut at the first :max rows; narrow the filters to see the rest.": "Se cortó en las primeras :max filas; ajusta los filtros para ver el resto."
+    "It was cut at the first :max rows; narrow the filters to see the rest.": "Se cortó en las primeras :max filas; ajusta los filtros para ver el resto.",
+    "GitHub integration saved.": "Integración con GitHub guardada."
 }

@@ -231,7 +231,18 @@
         "checklistRemovedTitle": "quitó el elemento «{{title}}» de la lista de verificación",
         "someone": "Alguien",
         "empty": "Aún no hay actividad.",
-        "loadFailed": "No se pudo cargar la actividad."
+        "loadFailed": "No se pudo cargar la actividad.",
+        "slaBreached": "incumplió su SLA",
+        "slaLine": "incumplió el SLA «{{sla}}» ({{hours}} h)",
+        "moveRequested": "pidió aprobación para mover",
+        "moveApproved": "movimiento aprobado",
+        "moveRejected": "movimiento rechazado",
+        "vcsEvent": "vinculada desde GitHub",
+        "vcsLine": "GitHub {{kind}} {{state}}: {{title}}",
+        "vcsKind": {
+            "pull_request": "pull request",
+            "commit": "commit"
+        }
     },
     "workspaces": {
         "pageTitle": "Espacios de trabajo",

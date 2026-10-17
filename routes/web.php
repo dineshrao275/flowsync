@@ -11,6 +11,7 @@ use App\Http\Controllers\CspReportController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\ExportController;
 use App\Http\Controllers\ForgotPasswordController;
+use App\Http\Controllers\GithubIntegrationController;
 use App\Http\Controllers\GlobalSearchController;
 use App\Http\Controllers\Hrms\Asset\AssetController;
 use App\Http\Controllers\Hrms\Document\SignatureController;
@@ -62,6 +63,7 @@ Route::prefix('api')->group(function () {
     Route::get('health', [PlatformHealthController::class, 'ping']);
     Route::get('metrics', MetricsController::class)->middleware('throttle:120,1');
     // OpenID Connect sign-in (F10.2): public by nature, tenant-addressed by slug, always throttled.
+    Route::post('integrations/github/{tenantId}', [GithubIntegrationController::class, 'receive'])->whereNumber('tenantId')->middleware('throttle:120,1');
     Route::get('signatures/verify/{code}', [SignatureController::class, 'verify'])->middleware('throttle:30,1');
     Route::get('sso/{slug}/info', [SsoController::class, 'info'])->middleware('throttle:60,1');
     Route::get('sso/{slug}/start', [SsoController::class, 'start'])->middleware('throttle:20,1');
@@ -110,6 +112,8 @@ Route::prefix('api')->group(function () {
         // the notifications family; the SA short-circuit mirrors them).
         Route::get('notification-preferences', [NotificationPreferenceController::class, 'show']);
         Route::put('notification-preferences', [NotificationPreferenceController::class, 'update']);
+        Route::get('github-integration', [GithubIntegrationController::class, 'show'])->middleware('permission:tenant.manage');
+        Route::put('github-integration', [GithubIntegrationController::class, 'update'])->middleware('permission:tenant.manage');
         Route::get('sso-settings', [SsoSettingsController::class, 'show'])->middleware('permission:tenant.manage');
         Route::put('sso-settings', [SsoSettingsController::class, 'update'])->middleware('permission:tenant.manage');
         // Tenant-wide switches for emailable events (admins: tenant.manage).

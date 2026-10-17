@@ -1428,5 +1428,19 @@
         "dormantBadge": "Dormant",
         "ok": "Active",
         "noData": "No data yet"
+    },
+    "github": {
+        "title": "GitHub",
+        "subtitle": "Pull requests and commits that mention a task key (for example ABC-123) appear on that task's activity.",
+        "status": "Status",
+        "on": "On",
+        "off": "Off",
+        "payload": "In GitHub, add a webhook with this payload URL:",
+        "contentType": "content type application/json; events: Pull requests and Pushes",
+        "secretOnce": "Signing secret (shown once, paste it into GitHub's Secret field):",
+        "enable": "Turn on",
+        "rotate": "New secret",
+        "disable": "Turn off",
+        "saved": "GitHub integration saved."
     }
 }

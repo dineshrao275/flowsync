@@ -19,6 +19,11 @@ const ACTION_KEYS = {
     'task.checklist_item_checked': 'checklistChecked',
     'task.checklist_item_unchecked': 'checklistUnchecked',
     'task.checklist_item_removed': 'checklistRemoved',
+    'task.sla_breached': 'slaBreached',
+    'task.move_requested': 'moveRequested',
+    'task.move_approved': 'moveApproved',
+    'task.move_rejected': 'moveRejected',
+    'task.vcs_event': 'vcsEvent',
 };
 
 function describe(t, action, data) {
@@ -42,6 +47,12 @@ function describe(t, action, data) {
     }
     if (action === 'task.checklist_item_removed') {
         return t('tms.activity.checklistRemovedTitle', { title: data?.title ?? '' });
+    }
+    if (action === 'task.vcs_event') {
+        return t('tms.activity.vcsLine', { kind: t(`tms.activity.vcsKind.${data?.kind}`, { defaultValue: data?.kind ?? '' }), state: data?.state ?? '', title: data?.title ?? '' });
+    }
+    if (action === 'task.sla_breached') {
+        return t('tms.activity.slaLine', { sla: data?.sla ?? '', hours: data?.target_hours ?? '' });
     }
     const key = ACTION_KEYS[action];
     return key ? t(`tms.activity.${key}`) : action;
