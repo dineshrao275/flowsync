@@ -887,5 +887,6 @@
     "Fill in: :fields.": "Completa: :fields.",
     "Template removed.": "Plantilla eliminada.",
     "Starter templates added.": "Plantillas iniciales añadidas.",
-    "Letter generated and filed in the employee's documents.": "Carta generada y archivada en los documentos del empleado."
+    "Letter generated and filed in the employee's documents.": "Carta generada y archivada en los documentos del empleado.",
+    "You need an employment record to have a development plan.": "Necesitas un registro de empleo para tener un plan de desarrollo."
 }

@@ -2731,5 +2731,30 @@
         "body": "Texto de la carta",
         "save": "Guardar plantilla",
         "fieldsHint": "Campos disponibles: {{fields}}. Cualquier otro campo que añadas se pedirá al generar."
+    },
+    "idp": {
+        "pageTitle": "Planes de desarrollo",
+        "subtitle": "Tus metas de crecimiento con acciones fechadas. Solo tú, tu responsable y los gestores de desempeño ven un plan.",
+        "loadFailed": "No se pudieron cargar los planes de desarrollo.",
+        "actionFailed": "No se pudo completar la acción.",
+        "open": "Empezar un plan",
+        "opened": "Plan abierto.",
+        "empty": "Aún no hay planes de desarrollo.",
+        "modalHint": "Elige algo en lo que crecer y unos pasos concretos.",
+        "title": "Meta",
+        "focus": "Por qué / cómo se ve el éxito",
+        "start": "Inicio",
+        "end": "Fin",
+        "actions": "Acciones",
+        "action": "Acción {{n}}",
+        "addAction": "Añadir una acción",
+        "create": "Empezar plan",
+        "cancel": "Cancelar plan",
+        "complete": "Marcar completado",
+        "status": {
+            "active": "Activo",
+            "completed": "Completado",
+            "cancelled": "Cancelado"
+        }
     }
 }

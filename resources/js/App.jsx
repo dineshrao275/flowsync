@@ -52,6 +52,7 @@ import HrAutomation from './pages/hrms/HrAutomation';
 import EmployeeChanges from './pages/hrms/EmployeeChanges';
 import ShiftSwaps from './pages/hrms/ShiftSwaps';
 import ImprovementPlans from './pages/hrms/ImprovementPlans';
+import DevelopmentPlans from './pages/hrms/DevelopmentPlans';
 import Loans from './pages/hrms/Loans';
 import Letters from './pages/hrms/Letters';
 import OffboardingCaseDetail from './pages/hrms/OffboardingCaseDetail';
@@ -300,6 +301,9 @@ function AppRoutes() {
                                     <Route index element={<Resignation />} />
                                 </Route>
                                 <Route path="/hrms/changes" element={<EmployeeChanges />} />
+                                <Route path="/hrms/development-plans" element={<ProtectedRoute module="hrms.performance" />}>
+                                    <Route index element={<DevelopmentPlans />} />
+                                </Route>
                                 <Route path="/hrms/improvement-plans" element={<ProtectedRoute module="hrms.performance" />}>
                                     <Route index element={<ImprovementPlans />} />
                                 </Route>

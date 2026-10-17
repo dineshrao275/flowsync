@@ -2731,5 +2731,30 @@
         "body": "Letter text",
         "save": "Save template",
         "fieldsHint": "Available fields: {{fields}}. Any other field you add is asked for when you generate."
+    },
+    "idp": {
+        "pageTitle": "Development plans",
+        "subtitle": "Your growth goals with dated actions. Only you, your manager and performance managers see a plan.",
+        "loadFailed": "Could not load development plans.",
+        "actionFailed": "That did not work.",
+        "open": "Start a plan",
+        "opened": "Plan opened.",
+        "empty": "No development plans yet.",
+        "modalHint": "Pick one thing to grow and a few concrete steps.",
+        "title": "Goal",
+        "focus": "Why / what good looks like",
+        "start": "Starts",
+        "end": "Ends",
+        "actions": "Actions",
+        "action": "Action {{n}}",
+        "addAction": "Add an action",
+        "create": "Start plan",
+        "cancel": "Cancel plan",
+        "complete": "Mark complete",
+        "status": {
+            "active": "Active",
+            "completed": "Completed",
+            "cancelled": "Cancelled"
+        }
     }
 }
