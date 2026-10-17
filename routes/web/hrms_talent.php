@@ -20,6 +20,7 @@ use App\Http\Controllers\Hrms\Performance\ReviewSummaryController;
 use App\Http\Controllers\Hrms\RecordCommentController;
 use App\Http\Controllers\Hrms\Survey\SurveyCampaignController;
 use App\Http\Controllers\Hrms\Survey\SurveyTemplateController;
+use App\Http\Controllers\Hrms\Talent\CareerController;
 use App\Http\Controllers\Hrms\Talent\SkillController;
 use App\Http\Controllers\Hrms\Talent\SkillExpectationController;
 use App\Http\Controllers\Hrms\Talent\TalentController;
@@ -256,6 +257,14 @@ Route::group(['middleware' => ['ensure_module:hrms.core', 'ensure_module:hrms.ta
 // access, edits and assessments answer to hrms.talent.manage, and the matrix follows the talent
 // view scope (own / assigned / all). `skills/mine` is self-service and needs only an employment record.
 Route::group(['middleware' => ['ensure_module:hrms.core', 'ensure_module:hrms.talent', 'permission:hrms.view']], function () {
+    Route::get('hrms/career-paths', [CareerController::class, 'paths']);
+    Route::post('hrms/career-paths', [CareerController::class, 'addPath']);
+    Route::delete('hrms/career-paths/{path}', [CareerController::class, 'removePath'])->whereNumber('path');
+    Route::get('hrms/succession', [CareerController::class, 'succession']);
+    Route::post('hrms/succession', [CareerController::class, 'addPosition']);
+    Route::delete('hrms/succession/{position}', [CareerController::class, 'removePosition'])->whereNumber('position');
+    Route::put('hrms/succession/{position}/candidates', [CareerController::class, 'setCandidate'])->whereNumber('position');
+    Route::delete('hrms/succession/candidates/{candidate}', [CareerController::class, 'removeCandidate'])->whereNumber('candidate');
     Route::get('hrms/skill-expectations', [SkillExpectationController::class, 'index']);
     Route::put('hrms/skill-expectations/{designation}', [SkillExpectationController::class, 'save'])->whereNumber('designation');
     Route::get('hrms/employees/{employee}/skill-gaps', [SkillExpectationController::class, 'gaps']);

@@ -2808,5 +2808,39 @@
         "to": "Meta",
         "addKr": "Añadir un resultado clave",
         "create": "Crear objetivo"
+    },
+    "careers": {
+        "pageTitle": "Carreras y sucesión",
+        "subtitle": "Adónde puede llevar cada puesto y quién podría ocupar los puestos más importantes.",
+        "tab": {
+            "paths": "Rutas de carrera",
+            "succession": "Sucesión"
+        },
+        "noPaths": "Aún no hay rutas de carrera definidas.",
+        "from": "Desde",
+        "to": "Lleva a",
+        "note": "Nota",
+        "addPath": "Añadir ruta",
+        "failed": "No se pudo completar la acción.",
+        "confidential": "Confidencial: solo los gestores de talento ven esta pestaña.",
+        "noPositions": "Aún no hay puestos clave.",
+        "heldBy": "ocupado por {{name}}",
+        "successor": "Sucesor",
+        "readinessLabel": "Preparación",
+        "addSuccessor": "Añadir sucesor",
+        "positionTitle": "Puesto clave",
+        "incumbent": "Titular actual",
+        "riskLabel": "Riesgo si queda vacante",
+        "addPosition": "Añadir puesto",
+        "risk": {
+            "low": "Riesgo bajo",
+            "medium": "Riesgo medio",
+            "high": "Riesgo alto"
+        },
+        "readiness": {
+            "now": "Listo ya",
+            "one_two_years": "Listo en 1–2 años",
+            "three_plus": "Listo en 3+ años"
+        }
     }
 }

@@ -2808,5 +2808,39 @@
         "to": "Target",
         "addKr": "Add a key result",
         "create": "Create objective"
+    },
+    "careers": {
+        "pageTitle": "Careers & succession",
+        "subtitle": "Where each role can lead, and who could step into the roles that matter most.",
+        "tab": {
+            "paths": "Career paths",
+            "succession": "Succession"
+        },
+        "noPaths": "No career paths defined yet.",
+        "from": "From",
+        "to": "Leads to",
+        "note": "Note",
+        "addPath": "Add path",
+        "failed": "That did not work.",
+        "confidential": "Confidential: only talent managers can see this tab.",
+        "noPositions": "No key positions yet.",
+        "heldBy": "held by {{name}}",
+        "successor": "Successor",
+        "readinessLabel": "Readiness",
+        "addSuccessor": "Add successor",
+        "positionTitle": "Key position",
+        "incumbent": "Current holder",
+        "riskLabel": "Risk if vacant",
+        "addPosition": "Add position",
+        "risk": {
+            "low": "Low risk",
+            "medium": "Medium risk",
+            "high": "High risk"
+        },
+        "readiness": {
+            "now": "Ready now",
+            "one_two_years": "Ready in 1–2 years",
+            "three_plus": "Ready in 3+ years"
+        }
     }
 }

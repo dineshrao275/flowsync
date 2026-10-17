@@ -892,5 +892,13 @@
     "You need an employment record to own an objective.": "Necesitas un registro de empleo para tener un objetivo.",
     "Objective created.": "Objetivo creado.",
     "Objective closed.": "Objetivo cerrado.",
-    "Expectations saved.": "Expectativas guardadas."
+    "Expectations saved.": "Expectativas guardadas.",
+    "That path already exists.": "Esa ruta ya existe.",
+    "Path added.": "Ruta añadida.",
+    "Path removed.": "Ruta eliminada.",
+    "Position added.": "Puesto añadido.",
+    "Position removed.": "Puesto eliminado.",
+    "The current holder cannot be their own successor.": "El titular actual no puede ser su propio sucesor.",
+    "Successor saved.": "Sucesor guardado.",
+    "Successor removed.": "Sucesor eliminado."
 }
