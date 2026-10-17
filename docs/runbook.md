@@ -370,6 +370,14 @@ psql -h 127.0.0.1 -U flowsync -d flowsync_system < storage/app/backups/<backup_f
 psql -h 127.0.0.1 -U flowsync -d flowsync_tenant_<id> < storage/app/backups/<backup_folder>/tenant_<slug>_<id>.sql
 ```
 
+### 7.2a Permanently removing a deleted tenant (`tenants:purge`)
+A tenant that was soft-deleted can be restored from the Tenants page. After `TENANCY_PURGE_AFTER_DAYS` (default 30) an operator may remove its data for good:
+```bash
+php artisan tenants:purge <id-or-slug> --dry-run            # report what would go
+php artisan tenants:purge <id-or-slug> --confirm=<slug>     # drops the database, HR files and login routing
+```
+A `tenant.purged` audit row is written first. The central tenant row stays as a tombstone (invoices and payments reference it) and can never be restored. Task attachments are not stored under a tenant prefix and are not swept; delete them with the storage lifecycle policy of your bucket.
+
 ### 7.3 Repairing Permissions & Scopes
 If new roles or features are added, run the idempotent provisioner and scope backfill:
 ```bash

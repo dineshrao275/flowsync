@@ -905,5 +905,6 @@
     "Enter the client secret from your identity provider.": "Introduce el secreto de cliente de tu proveedor de identidad.",
     "Could not read the identity provider's configuration from that address.": "No se pudo leer la configuración del proveedor de identidad desde esa dirección.",
     "Single sign-on settings saved.": "Ajustes de inicio de sesión único guardados.",
-    "This workspace requires single sign-on. Use the SSO button on the sign-in page.": "Este espacio exige inicio de sesión único. Usa el botón SSO de la página de acceso."
+    "This workspace requires single sign-on. Use the SSO button on the sign-in page.": "Este espacio exige inicio de sesión único. Usa el botón SSO de la página de acceso.",
+    "This tenant's data was permanently purged and cannot be restored.": "Los datos de este inquilino se eliminaron de forma permanente y no se pueden restaurar."
 }
