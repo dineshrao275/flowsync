@@ -304,6 +304,7 @@ php artisan tenants:backup --restore-drill=latest
 # Test a specific manifest
 php artisan tenants:backup --restore-drill=storage/app/backups/2026-10-08_180000/manifest.json
 ```
+The same drill runs **weekly (Sunday 05:30)** from the scheduler; a failure writes a `backup.restore_drill_failed` critical log line.
 The drill performs:
 1. Full SHA-256 integrity verification against the manifest.
 2. Read-test validation confirming records can be queried cleanly.

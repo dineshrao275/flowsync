@@ -2,6 +2,7 @@
 
 use Illuminate\Foundation\Inspiring;
 use Illuminate\Support\Facades\Artisan;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Schedule;
 
 Artisan::command('inspire', function () {
@@ -12,6 +13,10 @@ Artisan::command('inspire', function () {
 // its minute is skipped, never started a second time by the next tick.
 Schedule::command('tenants:collect-usage')->daily()->withoutOverlapping();
 Schedule::command('tenants:backup --all --verify')->dailyAt('02:00')->withoutOverlapping();
+// F11.3: a backup nobody has restored is a hope. Weekly non-destructive drill against the newest manifest; a failure
+// is a critical log line (and exit code 1 in the scheduler log) the day it happens, not the day it is needed.
+Schedule::command('tenants:backup --restore-drill=latest')->weeklyOn(0, '05:30')->withoutOverlapping()
+    ->onFailure(fn () => Log::critical('backup.restore_drill_failed'));
 // Expired full-tenant export ZIPs (signed link lives 1h) are deleted, rows kept as history.
 Schedule::command('tenants:prune-exports')->dailyAt('03:00')->withoutOverlapping();
 // Time-based automation triggers (overdue / due soon) — only for projects with a rule listening.

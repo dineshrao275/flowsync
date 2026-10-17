@@ -41,6 +41,7 @@ class ScheduleRegistrationTest extends TestCase
         $expected = [
             'tenants:collect-usage',
             'tenants:backup --all --verify',
+            'tenants:backup --restore-drill=latest',
             'tenants:prune-exports',
             'tenants:prune-drafts',
             'events:prune --all',
