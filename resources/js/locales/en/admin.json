@@ -435,7 +435,15 @@
         "onlyAdminDefault": "Only an admin can be the default user",
         "makeDefault": "Make default",
         "defaultDeleteTitle": "The default user cannot be deleted. Shift the default to another admin first.",
-        "deleteTooltip": "Delete user"
+        "deleteTooltip": "Delete user",
+        "searchPlaceholder": "Search by name or email…",
+        "allRoles": "All roles",
+        "allTypes": "All users",
+        "defaultOnly": "Default user",
+        "standardOnly": "Standard users",
+        "clearFilters": "Clear filters",
+        "noMatches": "No users match your filters.",
+        "showingCount": "Showing {{count}} of {{total}} users"
     },
     "roles": {
         "pageTitle": "Roles & Permissions",

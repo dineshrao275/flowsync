@@ -435,7 +435,15 @@
         "onlyAdminDefault": "Solo un administrador puede ser el usuario predeterminado",
         "makeDefault": "Hacer predeterminado",
         "defaultDeleteTitle": "No se puede eliminar al usuario predeterminado. Antes, traslada esa condición a otro administrador.",
-        "deleteTooltip": "Eliminar usuario"
+        "deleteTooltip": "Eliminar usuario",
+        "searchPlaceholder": "Buscar por nombre o correo…",
+        "allRoles": "Todos los roles",
+        "allTypes": "Todos los usuarios",
+        "defaultOnly": "Usuario predeterminado",
+        "standardOnly": "Usuarios estándar",
+        "clearFilters": "Limpiar filtros",
+        "noMatches": "Ningún usuario coincide con los filtros.",
+        "showingCount": "Mostrando {{count}} de {{total}} usuarios"
     },
     "roles": {
         "pageTitle": "Roles y permisos",

@@ -1,4 +1,5 @@
 import { useTranslation } from 'react-i18next';
+import UserChip from '../ui/UserChip';
 
 export default function TaskTable({ tasks, canEdit, onOpen }) {
     const { t } = useTranslation();
