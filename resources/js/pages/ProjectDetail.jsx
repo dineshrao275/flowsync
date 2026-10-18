@@ -133,7 +133,7 @@ export default function ProjectDetail() {
             api.get(`/projects/${projectId}/statuses`),
             api.get('/project-roles'),
             api.get('/issue-types'),
-            can('users.view') ? api.get('/users') : Promise.resolve({ data: { users: [] } }),
+            can('users.view') ? api.get('/users', { params: { all: 1 } }) : Promise.resolve({ data: { users: [] } }),
         ])
             .then(([proj, mem, st, ro, it, users]) => {
                 if (!active) return;
@@ -565,7 +565,7 @@ export default function ProjectDetail() {
     function loadMemberCandidates() {
         return Promise.all([
             api.get(`/projects/${projectId}/members`),
-            can('users.view') ? api.get('/users') : Promise.resolve({ data: { users: [] } }),
+            can('users.view') ? api.get('/users', { params: { all: 1 } }) : Promise.resolve({ data: { users: [] } }),
         ]).then(([mem, users]) => {
             setMembers(mem.data.members);
             setCandidateUsers(

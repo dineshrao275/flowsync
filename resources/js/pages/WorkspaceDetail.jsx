@@ -86,7 +86,7 @@ export default function WorkspaceDetail() {
             api.get(`/workspaces/${workspaceId}/members`),
             api.get(`/workspaces/${workspaceId}/labels`),
             api.get(`/workspaces/${workspaceId}/projects`),
-            can('users.view') ? api.get('/users') : Promise.resolve({ data: { users: [] } }),
+            can('users.view') ? api.get('/users', { params: { all: 1 } }) : Promise.resolve({ data: { users: [] } }),
         ])
             .then(([ws, mem, lab, proj, users]) => {
                 if (!active) return;
@@ -173,7 +173,7 @@ export default function WorkspaceDetail() {
     function loadMembers() {
         return Promise.all([
             api.get(`/workspaces/${workspaceId}/members`),
-            can('users.view') ? api.get('/users') : Promise.resolve({ data: { users: [] } }),
+            can('users.view') ? api.get('/users', { params: { all: 1 } }) : Promise.resolve({ data: { users: [] } }),
         ]).then(([mem, users]) => {
             setMembers(mem.data.members);
             setCandidateUsers(
