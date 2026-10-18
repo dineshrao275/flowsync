@@ -24,7 +24,9 @@
         "selectDateTime": "Seleccionar fecha y hora…",
         "justNow": "justo ahora",
         "pricePerMonth": "{{value}}/mes",
-        "pricePerMonthAnnual": "{{value}}/mes facturado anualmente"
+        "pricePerMonthAnnual": "{{value}}/mes facturado anualmente",
+        "change": "Cambiar",
+        "noMatches": "Nadie coincide"
     },
     "errors": {
         "generic": "Algo salió mal. Inténtalo de nuevo."

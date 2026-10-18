@@ -36,7 +36,7 @@ export default function Tabs({ tabs, active, onChange, label, panelId, className
     }
 
     return (
-        <div role="tablist" aria-label={label} className={`flex gap-1 overflow-x-auto border-b border-line ${className}`}>
+        <div role="tablist" aria-label={label} className={`flex gap-1 overflow-x-auto overflow-y-hidden [scrollbar-width:none] [&::-webkit-scrollbar]:hidden border-b border-line ${className}`}>
             {tabs.map((tab, index) => {
                 const selected = active === tab.key;
 

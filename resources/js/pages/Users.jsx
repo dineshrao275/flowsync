@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import Avatar from '../components/ui/Avatar';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import api, { fieldErrors } from '../services/api';
@@ -228,12 +229,7 @@ export default function Users() {
                             >
                                 <Td>
                                     <div className="flex items-center gap-3">
-                                        <span
-                                            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-xs font-semibold text-white"
-                                            style={{ backgroundColor: 'var(--accent)' }}
-                                        >
-                                            {user.name.charAt(0).toUpperCase()}
-                                        </span>
+                                        <Avatar name={user.name} photoUrl={user.photo_url} />
                                         <span className="font-medium text-gray-800">{user.name}</span>
                                         {user.is_default && (
                                             <Badge tone="accent" title={t('admin.users.defaultBadgeTitle')}>

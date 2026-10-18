@@ -90,7 +90,7 @@ export default function WorkLogPanel({ task, projectId, canLog, canManage }) {
         e.preventDefault();
         setSaving(true);
         setErrors({});
-        const payload = { ...form, description: form.description || null };
+        const payload = { ...form, description: form.description.trim() };
         const req = editingId ? api.put(`${base}/${editingId}`, payload) : api.post(base, payload);
         req.then(() => {
             reset();
@@ -159,9 +159,10 @@ export default function WorkLogPanel({ task, projectId, canLog, canManage }) {
                         />
                     </div>
                     <div>
-                        <label className="mb-1.5 block text-sm font-medium text-gray-700">{t('tms.worklogs.description')}</label>
+                        <label className="mb-1.5 block text-sm font-medium text-gray-700">{t('tms.worklogs.description')} <span className="text-red-600" aria-hidden="true">*</span></label>
                         <input
                             type="text"
+                            required
                             className={fieldClass}
                             placeholder={t('tms.worklogs.descriptionPlaceholder')}
                             value={form.description}

@@ -24,7 +24,9 @@
         "selectDateTime": "Select date & time…",
         "justNow": "just now",
         "pricePerMonth": "{{value}}/mo",
-        "pricePerMonthAnnual": "{{value}}/mo billed annually"
+        "pricePerMonthAnnual": "{{value}}/mo billed annually",
+        "change": "Change",
+        "noMatches": "No matching people"
     },
     "errors": {
         "generic": "Something went wrong. Please try again."

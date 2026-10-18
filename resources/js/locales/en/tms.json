@@ -21,7 +21,8 @@
         "comments": "Comments",
         "commentsCount": "{{count}} comments",
         "estimate": "Estimate",
-        "estimateShort": "est {{value}}"
+        "estimateShort": "est {{value}}",
+        "subtasksProgress": "{{done}} of {{total}} subtasks done"
     },
     "table": {
         "empty": "No tasks match the current filters.",
@@ -361,7 +362,8 @@
             "kanban": "Continuous flow with WIP limits; every issue type.",
             "scrum": "Backlog and sprints; epics, stories, tasks and bugs.",
             "basic": "A simple to-do board: three columns, tasks and sub-tasks."
-        }
+        },
+        "searchPeople": "Search people by name or email…"
     },
     "detail": {
         "fallbackTitle": "Task",
@@ -590,7 +592,10 @@
         "deleteTypeMessage": "Delete issue type \"{{name}}\"?",
         "typeDeleted": "Issue type deleted.",
         "typeDeleteFailed": "Could not delete issue type.",
-        "taskCreateFailed": "Could not create the task."
+        "taskCreateFailed": "Could not create the task.",
+        "progress": "Progress",
+        "progressDone": "{{done}} of {{total}} tasks done",
+        "searchPeople": "Search people by name or email…"
     },
     "hierarchy": {
         "collapse": "Collapse",

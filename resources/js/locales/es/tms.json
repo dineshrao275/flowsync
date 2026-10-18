@@ -21,7 +21,8 @@
         "comments": "Comentarios",
         "commentsCount": "{{count}} comentarios",
         "estimate": "Estimación",
-        "estimateShort": "est. {{value}}"
+        "estimateShort": "est. {{value}}",
+        "subtasksProgress": "{{done}} de {{total}} subtareas hechas"
     },
     "table": {
         "empty": "Ninguna tarea coincide con los filtros actuales.",
@@ -361,7 +362,8 @@
             "kanban": "Flujo continuo con límites WIP; todos los tipos de incidencia.",
             "scrum": "Backlog y sprints; épicas, historias, tareas y errores.",
             "basic": "Un tablero simple: tres columnas, tareas y subtareas."
-        }
+        },
+        "searchPeople": "Buscar personas por nombre o correo…"
     },
     "detail": {
         "fallbackTitle": "Tarea",
@@ -590,7 +592,10 @@
         "deleteTypeMessage": "¿Eliminar el tipo de incidencia «{{name}}»?",
         "typeDeleted": "Tipo de incidencia eliminado.",
         "typeDeleteFailed": "No se pudo eliminar el tipo de incidencia.",
-        "taskCreateFailed": "No se pudo crear la tarea."
+        "taskCreateFailed": "No se pudo crear la tarea.",
+        "progress": "Progreso",
+        "progressDone": "{{done}} de {{total}} tareas hechas",
+        "searchPeople": "Buscar personas por nombre o correo…"
     },
     "hierarchy": {
         "collapse": "Contraer",

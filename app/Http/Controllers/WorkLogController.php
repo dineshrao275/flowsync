@@ -139,7 +139,7 @@ class WorkLogController extends Controller
         return $request->validate([
             'started_at' => ['required', 'date'],
             'ended_at' => ['nullable', 'date', 'after:started_at'],
-            'description' => ['nullable', 'string', 'max:1000'],
+            'description' => ['required', 'string', 'max:1000', 'regex:/\S/'],
             'billable' => ['sometimes', 'boolean'],
         ]);
     }

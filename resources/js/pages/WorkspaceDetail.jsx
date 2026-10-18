@@ -1,4 +1,7 @@
 import { useEffect, useState } from 'react';
+import MemberPicker from '../components/ui/MemberPicker';
+import Avatar from '../components/ui/Avatar';
+import ProgressBar from '../components/ui/ProgressBar';
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import api, { fieldErrors } from '../services/api';
@@ -459,6 +462,9 @@ export default function WorkspaceDetail() {
                                             <div className="flex items-center gap-4 text-xs text-gray-400">
                                                 <span>{t('tms.workspaceDetail.tasksCount', { count: project.tasks_count })}</span>
                                                 <span>{t('tms.workspaceDetail.membersCount', { count: project.members_count })}</span>
+                                                {project.tasks_count > 0 && (
+                                                    <ProgressBar className="w-28" value={project.done_tasks_count ?? 0} max={project.tasks_count} label={t('tms.project.progress')} showPercent />
+                                                )}
                                             </div>
                                         </Link>
                                     </li>
@@ -475,18 +481,12 @@ export default function WorkspaceDetail() {
                         <Card title={t('tms.workspaceDetail.addMemberTitle')} subtitle={t('tms.workspaceDetail.addMemberSubtitle')}>
                             <form onSubmit={addMember} className="flex flex-col gap-3 sm:flex-row sm:items-end">
                                 <div className="flex-1">
-                                    <select
-                                        className="block w-full rounded-lg border border-gray-300 bg-white px-3.5 py-2.5 text-sm shadow-sm focus:border-[var(--accent)] focus:outline-none"
+                                    <MemberPicker
+                                        users={candidateUsers}
                                         value={memberForm.user_id}
-                                        onChange={(e) => setMemberForm((f) => ({ ...f, user_id: e.target.value }))}
-                                    >
-                                        <option value="">{t('tms.workspaceDetail.selectUser')}</option>
-                                        {candidateUsers.map((u) => (
-                                            <option key={u.id} value={u.id}>
-                                                {u.name} ({u.email})
-                                            </option>
-                                        ))}
-                                    </select>
+                                        onChange={(id) => setMemberForm((f) => ({ ...f, user_id: id }))}
+                                        placeholder={t('tms.workspaceDetail.searchPeople')}
+                                    />
                                     {formErrors.user_id && <p className="mt-1.5 text-sm text-red-600">{formErrors.user_id}</p>}
                                 </div>
                                 <div>
@@ -518,12 +518,7 @@ export default function WorkspaceDetail() {
                                 return (
                                     <li key={member.id} className="flex flex-wrap items-center justify-between gap-3 py-3">
                                         <div className="flex items-center gap-3">
-                                            <span
-                                                className="flex h-9 w-9 items-center justify-center rounded-full text-xs font-bold text-white"
-                                                style={{ backgroundColor: 'var(--accent)' }}
-                                            >
-                                                {member.name.charAt(0).toUpperCase()}
-                                            </span>
+                                            <Avatar name={member.name} photoUrl={member.photo_url} size="lg" />
                                             <div>
                                                 <p className="text-sm font-medium text-gray-900">
                                                     {member.name} {self && <span className="text-gray-400">{t('tms.workspaceDetail.you')}</span>}

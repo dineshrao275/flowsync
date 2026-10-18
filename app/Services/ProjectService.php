@@ -24,7 +24,7 @@ class ProjectService
         $query = Project::where('workspace_id', $workspace->id)
             ->with('workspace')
             ->with(['members' => fn ($q) => $q->where('user_id', $user->id)])
-            ->withCount(['members', 'tasks', 'statuses'])
+            ->withCount(['members', 'tasks', 'statuses', 'tasks as done_tasks_count' => fn ($q) => $q->whereNotNull('completed_at')])
             ->orderBy('name');
 
         if (! $user->hasPermission('workspaces.manage')) {
@@ -39,7 +39,7 @@ class ProjectService
         $query = Project::query()
             ->with('workspace')
             ->with(['members' => fn ($q) => $q->where('user_id', $user->id)])
-            ->withCount(['members', 'tasks', 'statuses'])
+            ->withCount(['members', 'tasks', 'statuses', 'tasks as done_tasks_count' => fn ($q) => $q->whereNotNull('completed_at')])
             ->orderBy('name');
 
         if (! $user->hasPermission('workspaces.manage')) {

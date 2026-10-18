@@ -149,6 +149,7 @@ class ProjectController extends Controller
             'archived_at' => $project->archived_at?->toISOString(),
             'members_count' => $project->members_count ?? $project->members()->count(),
             'tasks_count' => $project->tasks_count ?? $project->tasks()->count(),
+            'done_tasks_count' => $project->done_tasks_count ?? $project->tasks()->whereNotNull('completed_at')->count(),
             'statuses_count' => $project->statuses_count ?? $project->statuses()->count(),
             'my_role' => $user ? $project->memberRole($user)?->slug : null,
         ];

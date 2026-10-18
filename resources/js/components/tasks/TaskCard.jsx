@@ -1,4 +1,6 @@
 import { useSortable } from '@dnd-kit/sortable';
+import Avatar from '../ui/Avatar';
+import ProgressBar from '../ui/ProgressBar';
 import { CSS } from '@dnd-kit/utilities';
 import { useTranslation } from 'react-i18next';
 import { formatMinutes } from '../../utils/time';
@@ -99,6 +101,14 @@ export function TaskCardBody({ task, compact = false }) {
                     ))}
                 </div>
             )}
+            {task.subtasks_count > 0 && (
+                <ProgressBar
+                    className="mt-2"
+                    value={task.subtasks_done_count ?? 0}
+                    max={task.subtasks_count}
+                    label={t('tms.card.subtasksProgress', { done: task.subtasks_done_count ?? 0, total: task.subtasks_count })}
+                />
+            )}
             <div className="mt-2 flex items-center justify-between">
                 <div className="flex items-center gap-2 text-xs text-gray-400">
                     {task.subtasks_count > 0 && (
@@ -113,13 +123,7 @@ export function TaskCardBody({ task, compact = false }) {
                     {due && <span className={due.className}>{due.label}</span>}
                 </div>
                 {task.assignee ? (
-                    <span
-                        className="flex h-5 w-5 items-center justify-center rounded-full text-xs font-bold text-white"
-                        style={{ backgroundColor: 'var(--accent)' }}
-                        title={task.assignee.name}
-                    >
-                        {task.assignee.name.charAt(0).toUpperCase()}
-                    </span>
+                    <Avatar name={task.assignee.name} photoUrl={task.assignee.photo_url} size="xs" />
                 ) : (
                     <span className="h-5 w-5 rounded-full border border-dashed border-gray-300" />
                 )}

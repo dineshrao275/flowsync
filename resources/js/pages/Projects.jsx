@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import ProgressBar from '../components/ui/ProgressBar';
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import api from '../services/api';
@@ -129,6 +130,9 @@ export default function Projects() {
                                         </Td>
                                         <Td align="right" className="tabular-nums">
                                             {project.tasks_count}
+                                            {project.tasks_count > 0 && (
+                                                <ProgressBar className="mt-1 min-w-24" value={project.done_tasks_count ?? 0} max={project.tasks_count} label={t('tms.project.progress')} showPercent />
+                                            )}
                                         </Td>
                                         <Td align="right" className="tabular-nums">
                                             {project.members_count}

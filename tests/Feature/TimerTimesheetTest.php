@@ -52,7 +52,7 @@ class TimerTimesheetTest extends TestCase
     {
         $start = Carbon::now()->startOfWeek(Carbon::MONDAY)->addHours(9);
 
-        return $this->postJson("/api/projects/{$this->project}/tasks/{$task}/work-logs", $extra + [
+        return $this->postJson("/api/projects/{$this->project}/tasks/{$task}/work-logs", $extra + ['description' => 'Work',
             'started_at' => $start->toIso8601String(),
             'ended_at' => $start->copy()->addMinutes((int) ($hours * 60))->toIso8601String(),
         ])->assertCreated()->json('work_log');
@@ -90,7 +90,7 @@ class TimerTimesheetTest extends TestCase
         $this->postJson('/api/timesheets/submit')->assertOk()->assertJsonPath('timesheet.status', 'submitted')->assertJsonPath('timesheet.locked', true);
         // Frozen: neither a new log in that week nor a repeat submit.
         $start = Carbon::now()->startOfWeek(Carbon::MONDAY)->addHours(14);
-        $this->postJson("/api/projects/{$this->project}/tasks/{$this->tasks[1]}/work-logs", ['started_at' => $start->toIso8601String(), 'ended_at' => $start->copy()->addHour()->toIso8601String()])
+        $this->postJson("/api/projects/{$this->project}/tasks/{$this->tasks[1]}/work-logs", ['description' => 'Work', 'started_at' => $start->toIso8601String(), 'ended_at' => $start->copy()->addHour()->toIso8601String()])
             ->assertUnprocessable();
         $this->postJson('/api/timesheets/submit')->assertUnprocessable();
         // A submitter cannot decide their own sheet.

@@ -1,4 +1,5 @@
 import { caretRect } from '../../utils/caret';
+import Avatar from '../ui/Avatar';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import api from '../../services/api';
@@ -366,14 +367,7 @@ export default function CommentThread({ task, projectId, isManager, targetCommen
                             onMouseEnter={() => setSugActive(index)}
                             onClick={() => selectSuggestion(member)}
                         >
-                            <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[var(--accent-soft)] text-xs font-semibold text-[var(--accent-soft-text)]">
-                                {member.name
-                                    .split(' ')
-                                    .map((part) => part[0])
-                                    .slice(0, 2)
-                                    .join('')
-                                    .toUpperCase()}
-                            </span>
+                            <Avatar name={member.name} photoUrl={member.photo_url} size="sm" />
                             <span className="min-w-0">
                                 <span className="block truncate font-medium text-gray-800">{member.name}</span>
                                 <span className="block truncate text-xs text-gray-400">{member.email}</span>

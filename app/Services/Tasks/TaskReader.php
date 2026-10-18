@@ -179,6 +179,7 @@ class TaskReader
                 ->with(['status', 'priority', 'assignee', 'labels', 'issueType', 'version', 'components', 'watchers:users.id,name,email'])
                 ->withCount([
                     'subtasks',
+                    'subtasks as subtasks_done_count' => fn ($q) => $q->whereNotNull('completed_at'),
                     'comments',
                     'attachments',
                     'openBlockers as open_blockers_count',

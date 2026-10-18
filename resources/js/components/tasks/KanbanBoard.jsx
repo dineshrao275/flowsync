@@ -1,9 +1,11 @@
 import { useState } from 'react';
+import Avatar from '../ui/Avatar';
 import { createPortal } from 'react-dom';
 import { DndContext, DragOverlay, KeyboardSensor, PointerSensor, closestCorners, useSensor, useSensors, useDroppable } from '@dnd-kit/core';
 import { SortableContext, sortableKeyboardCoordinates } from '@dnd-kit/sortable';
 import { useTranslation } from 'react-i18next';
 import { DotsThree } from '@phosphor-icons/react';
+import ProgressBar from '../ui/ProgressBar';
 import Menu from '../ui/Menu';
 import Icon from '../ui/Icon';
 import TaskCard, { CARD_CLASS, TaskCardBody } from './TaskCard';
@@ -165,6 +167,16 @@ function Column({ status, canMove, canEdit, canCreate, collapsed, onToggle, onOp
                     )}
                 </div>
             </div>
+            {status.wip_limit != null && (
+                <div className="px-2 pb-2">
+                    <ProgressBar
+                        value={status.open_count}
+                        max={status.wip_limit}
+                        label={t('tms.board.wipTitle', { open: status.open_count, limit: status.wip_limit })}
+                        tone={status.open_count >= status.wip_limit ? 'danger' : 'accent'}
+                    />
+                </div>
+            )}
             <SortableContext items={status.tasks.map((task) => task.id)}>
                 <div className="flex flex-col gap-2">
                     {status.tasks.map((task) => (
@@ -290,12 +302,7 @@ export default function KanbanBoard({ board, canMove, canEdit, canCreate = false
                         <div key={lane.assignee?.id ?? 'unassigned'} className="space-y-2">
                             <div className="flex items-center justify-between rounded-lg border border-gray-100 bg-white px-3 py-2">
                                 <div className="flex items-center gap-2 text-sm font-medium text-gray-700">
-                                    <span
-                                        className="flex h-6 w-6 items-center justify-center rounded-full text-xs font-bold text-white"
-                                        style={{ backgroundColor: 'var(--accent)' }}
-                                    >
-                                        {(lane.assignee?.name ?? 'U').charAt(0).toUpperCase()}
-                                    </span>
+                                    <Avatar name={lane.assignee?.name ?? 'U'} photoUrl={lane.assignee?.photo_url} size="xs" />
                                     {lane.assignee ? lane.assignee.name : t('tms.board.unassigned')}
                                 </div>
                                 <span className="text-xs text-gray-500">
