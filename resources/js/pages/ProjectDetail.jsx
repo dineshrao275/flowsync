@@ -471,13 +471,27 @@ export default function ProjectDetail() {
             .finally(() => setSavingTask(false));
     }
 
+    // The one way to close the task tray: also drops the ?task= deep link, otherwise the deep-link
+    // effect re-opens the tray as soon as the board refetches.
+    function closeTask() {
+        setSelectedTask(null);
+        setSelectedTaskSection(null);
+        setSelectedCommentId(null);
+        openedDeepTaskRef.current = null;
+        fetchedDeepTaskRef.current = null;
+        const params = new URLSearchParams(searchParams.toString());
+        params.delete('task');
+        params.delete('section');
+        params.delete('comment');
+        navigate(`?${params.toString()}`, { replace: true });
+    }
+
     function updateTask(taskId, data) {
         setSavingTask(true);
         return api
             .put(`/projects/${projectId}/tasks/${taskId}`, data)
             .then(() => {
-                setSelectedTask(null);
-                setSelectedTaskSection(null);
+                closeTask();
                 toast.success(t('tms.project.taskUpdated'));
                 return loadTasks();
             })
@@ -493,7 +507,7 @@ export default function ProjectDetail() {
         setSavingTask(true);
         try {
             await api.delete(`/projects/${projectId}/tasks/${selectedTask.id}`);
-            setSelectedTask(null);
+            closeTask();
             setSelectedTaskSection(null);
             toast.success(t('tms.project.taskDeleted'));
             await loadTasks();
@@ -980,18 +994,7 @@ export default function ProjectDetail() {
                     canLog={canLogTime}
                     canManageLogs={canManageLogs}
                     saving={savingTask}
-                    onClose={() => {
-                        setSelectedTask(null);
-                        setSelectedTaskSection(null);
-                        setSelectedCommentId(null);
-                        openedDeepTaskRef.current = null;
-                        fetchedDeepTaskRef.current = null;
-                        const params = new URLSearchParams(searchParams.toString());
-                        params.delete('task');
-                        params.delete('section');
-                        params.delete('comment');
-                        navigate(`?${params.toString()}`, { replace: true });
-                    }}
+                    onClose={closeTask}
                     onUpdate={(data) => updateTask(selectedTask.id, data)}
                     onDelete={deleteTask}
                 />

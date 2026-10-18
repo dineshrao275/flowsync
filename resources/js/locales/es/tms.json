@@ -399,6 +399,8 @@
         "parent": "Tarea principal",
         "labels": "Etiquetas",
         "watchers": "Seguidores ({{count}})",
+        "lastSeen": "Visto por última vez",
+        "you": "Tú",
         "watching": "Siguiendo",
         "watch": "Seguir",
         "removeWatcher": "Quitar seguidor",

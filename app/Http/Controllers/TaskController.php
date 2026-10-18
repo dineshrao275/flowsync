@@ -8,8 +8,10 @@ use App\Models\IssueType;
 use App\Models\Priority;
 use App\Models\Project;
 use App\Models\Task;
+use App\Models\User;
 use App\Services\ActivityLogger;
 use App\Services\Tasks\TaskChangeLogger;
+use App\Services\Tasks\TaskViews;
 use App\Services\TaskService;
 use App\Services\Workflow\MoveApprovals;
 use App\Support\Realtime;
@@ -136,7 +138,7 @@ class TaskController extends Controller
         $this->authorize('view', $task);
 
         return response()->json([
-            'task' => $this->presentOne($task),
+            'task' => $this->presentSeen($task, $request->user()),
         ]);
     }
 
@@ -154,7 +156,7 @@ class TaskController extends Controller
         $this->authorize('view', $task);
 
         return response()->json([
-            'task' => $this->presentOne($task),
+            'task' => $this->presentSeen($task, $request->user()),
         ]);
     }
 
@@ -275,6 +277,15 @@ class TaskController extends Controller
     }
 
     /** @return array<string, mixed> one task with its custom-field values (when the plan has them) */
+    /** Opening a task counts as seeing it: stamp the viewer, then return the payload with the "seen by" list. */
+    private function presentSeen(Task $task, User $viewer): array
+    {
+        $views = app(TaskViews::class);
+        $views->record($task, $viewer);
+
+        return $this->presentOne($task) + ['viewers' => $views->viewers($task)];
+    }
+
     private function presentOne(Task $task): array
     {
         return $this->withCustomFields([$this->service->present($this->service->show($task))], 'task', false)[0];

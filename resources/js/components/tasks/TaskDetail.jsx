@@ -17,6 +17,7 @@ import { useAuth } from '../../context/AuthContext';
 import RichTextEditor from '../ui/RichTextEditor';
 import RichText from '../ui/RichText';
 import Timestamp from '../ui/Timestamp';
+import { formatRelativeTime } from '../../utils/format';
 import useUnsavedChanges from '../../hooks/useUnsavedChanges';
 import CustomFieldInputs, { useCustomFieldDefinitions } from '../customFields/CustomFieldInputs';
 
@@ -472,6 +473,22 @@ export default function TaskDetail({
                                                 ))}
                                             </div>
                                             {errors.labels && <p className="mt-1.5 text-sm text-red-600">{errors.labels}</p>}
+                                        </div>
+                                    )}
+
+                                    {(task.viewers?.length ?? 0) > 0 && (
+                                        <div className="border-t border-gray-100 pt-3">
+                                            <span className="text-xs font-medium uppercase tracking-wide text-gray-500">
+                                                {t('tms.detail.lastSeen')}
+                                            </span>
+                                            <ul className="mt-2 space-y-1">
+                                                {task.viewers.map((v) => (
+                                                    <li key={v.id} className="flex items-center justify-between gap-2 text-xs text-gray-700">
+                                                        <span className="truncate">{v.id === user?.id ? t('tms.detail.you') : v.name}</span>
+                                                        <span className="shrink-0 text-gray-400" title={v.last_seen_at}>{formatRelativeTime(v.last_seen_at)}</span>
+                                                    </li>
+                                                ))}
+                                            </ul>
                                         </div>
                                     )}
 

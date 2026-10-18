@@ -90,7 +90,7 @@ class ProjectDashboardService
     /** @return array<string, int> */
     private function overview(Builder $q): array
     {
-        $row = (clone $q)->selectRaw(
+        $row = (clone $q)->select([])->selectRaw(
             'count(*) as total,'
             .' sum(case when tasks.completed_at is null then 1 else 0 end) as open_count,'
             .' sum(case when tasks.completed_at is null and tasks.due_date is not null and date(tasks.due_date) < ? then 1 else 0 end) as overdue',

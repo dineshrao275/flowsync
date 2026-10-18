@@ -399,6 +399,8 @@
         "parent": "Parent task",
         "labels": "Labels",
         "watchers": "Watchers ({{count}})",
+        "lastSeen": "Last seen",
+        "you": "You",
         "watching": "Watching",
         "watch": "Watch",
         "removeWatcher": "Remove watcher",

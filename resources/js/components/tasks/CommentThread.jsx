@@ -1,3 +1,4 @@
+import { caretRect } from '../../utils/caret';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import api from '../../services/api';
@@ -95,12 +96,19 @@ export default function CommentThread({ task, projectId, isManager, targetCommen
         }
 
         const query = before.slice(at + 1, caret);
-        const rect = el.getBoundingClientRect();
+        // Anchor the list to the "@" itself, not the bottom of the field.
+        const caretAt = caretRect(el, at);
+        const width = 300;
+        const rowsHeight = 224;
+        const left = Math.max(8, Math.min(caretAt.left, window.innerWidth - width - 8));
+        const top = caretAt.bottom + 4 + rowsHeight > window.innerHeight && caretAt.top - 4 - rowsHeight > 0
+            ? caretAt.top - 4 - rowsHeight
+            : caretAt.bottom + 4;
 
         setSugField(field);
         setSugActive(0);
         setSugText({ value, at, caret });
-        setSugPos({ top: rect.bottom + 4, left: rect.left, width: Math.max(240, Math.min(320, rect.width)) });
+        setSugPos({ top, left, width });
         sugAnchor.current = el;
         sugFieldRef.current = field;
 
@@ -345,7 +353,7 @@ export default function CommentThread({ task, projectId, isManager, targetCommen
 
             {sugField && suggestions.length > 0 && (
                 <div
-                    className="fixed z-40 max-h-56 overflow-auto rounded-lg border border-gray-200 bg-white py-1 shadow-popover"
+                    className="fixed z-[95] max-h-56 overflow-auto rounded-lg border border-gray-200 bg-white py-1 shadow-popover"
                     style={{ top: sugPos.top, left: sugPos.left, width: sugPos.width }}
                 >
                     {suggestions.map((member, index) => (

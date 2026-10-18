@@ -28,7 +28,9 @@ const ACTION_KEYS = {
 
 function describe(t, action, data) {
     if (action === 'task.moved' && data?.from_status && data?.to_status) {
-        return t('tms.activity.movedFromTo', { from: data.from_status.name, to: data.to_status.name });
+        // Stored as plain names by the server; older rows / other writers may carry {id, name}.
+        const label = (status) => (typeof status === 'string' ? status : status?.name ?? '');
+        return t('tms.activity.movedFromTo', { from: label(data.from_status), to: label(data.to_status) });
     }
     if (action === 'task.commented' && data?.snippet) {
         return t('tms.activity.commentedSnippet', { snippet: data.snippet });
