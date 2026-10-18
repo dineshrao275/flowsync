@@ -167,6 +167,35 @@ class SubscriptionService
     }
 
     /**
+     * Apply a scheduled plan change at the boundary the provider (or the sweep) reports: the new plan from the new period
+     * on, pending fields cleared, one plan_changed event. Idempotent — a replayed webhook finds nothing pending.
+     */
+    public function applyScheduledChange(Subscription $subscription, ?Carbon $periodStart = null, ?Carbon $periodEnd = null): ?Subscription
+    {
+        $plan = $subscription->pendingPlan;
+        if (! $plan || ! $subscription->hasPendingChange()) {
+            return null;
+        }
+
+        $tenant = $subscription->tenant;
+        $from = $subscription->plan_id;
+        $start = $periodStart ?? $subscription->pending_change_at;
+
+        $subscription->update([
+            'plan_id' => $plan->id,
+            'current_period_start' => $start,
+            'current_period_end' => $periodEnd ?? $plan->periodEnd($start),
+            'seats' => $plan->limit('users') ?: $plan->limit('seats') ?: 0,
+            'pending_plan_id' => null, 'pending_change_at' => null, 'pending_requested_at' => null, 'provider_schedule_id' => null,
+        ]);
+
+        $this->record($tenant, $subscription, Subscription::EVENT_PLAN_CHANGED, fromPlanId: $from, toPlanId: $plan->id, data: ['scheduled' => true]);
+        app(TenantProductSync::class)->ensure($tenant);
+
+        return $subscription->refresh();
+    }
+
+    /**
      * Cancel at period end: status=canceled, auto_renew off.
      */
     public function cancel(Tenant $tenant, ?int $actorId = null, ?string $product = null): Subscription

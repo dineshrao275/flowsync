@@ -41,6 +41,11 @@ Schedule::command('audit:verify')->dailyAt('04:10')->withoutOverlapping();
 // Billing: lapsed paid periods are expired / renewed / sent to dunning first (08:00), then dunning runs.
 Schedule::command('billing:period-ends')->dailyAt('08:00')->withoutOverlapping();
 Schedule::command('billing:dunning')->dailyAt('09:00')->withoutOverlapping();
+Schedule::command('billing:sync-plans')->dailyAt('02:30')->withoutOverlapping();
+Schedule::command('billing:apply-price-changes')->dailyAt('07:00')->withoutOverlapping();
+Schedule::command('billing:apply-plan-changes')->hourly()->withoutOverlapping();
+Schedule::command('billing:card-expiry')->dailyAt('09:30')->withoutOverlapping();
+Schedule::command('billing:trial-reminders')->dailyAt('09:15')->withoutOverlapping();
 
 // HRMS fleet sweeps. Every command here takes exactly one of --tenant=ID or
 // --all and is idempotent, so the worst a re-run does is nothing. Cadences

@@ -168,7 +168,7 @@ class AuthController extends Controller
 
         $tenant = $routes->first()->tenant;
 
-        if (! $tenant || ! $tenant->isServiceable()) {
+        if (! $tenant || ! $tenant->canSignIn()) {
             app(PlatformAudit::class)->auth($request, 'auth.login_failed', [
                 'email' => $email,
                 'tenant_id' => $tenant?->id,
@@ -332,6 +332,8 @@ class AuthController extends Controller
                 'impersonation_mode' => $impersonation['mode'] ?? null,
                 'impersonation_expires_at' => isset($impersonation['expires_at']) ? Carbon::createFromTimestamp($impersonation['expires_at'])->toIso8601String() : null,
                 'onboarding_complete' => ! $tenant || app(TenantOnboarding::class)->isComplete($tenant),
+                // Trial/subscription ended with no paid plan: the SPA confines the session to the Subscription page.
+                'subscription_required' => $tenant !== null && $tenant->status === Tenant::STATUS_EXPIRED,
                 // Runtime feature flags resolved for this tenant (P8.7); the SPA only mirrors them.
                 // Platform personas (P8.3): null = unrestricted break-glass admin; otherwise the held slugs.
                 'platform' => $isSuperAdmin ? [

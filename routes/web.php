@@ -90,7 +90,7 @@ Route::prefix('api')->group(function () {
     // CSP violation reports (browser-sent, no CSRF/session) — see CspReportController.
     Route::post('csp-report', [CspReportController::class, 'store'])->middleware('throttle:120,1');
 
-    Route::middleware(['switch_tenant', 'auth', 'tenant', 'locale'])->group(function () {
+    Route::middleware(['switch_tenant', 'auth', 'tenant', 'ensure_subscribed', 'locale'])->group(function () {
         Route::post('auth/logout', [AuthController::class, 'logout']);
         Route::get('auth/me', [AuthController::class, 'me']);
 
@@ -163,6 +163,7 @@ Route::prefix('api')->group(function () {
         Route::get('my-usage', [MySubscriptionController::class, 'usage']);
         Route::post('my-subscription/switch', [MySubscriptionController::class, 'switch'])->middleware('throttle:10,1');
         Route::post('my-subscription/cancel', [MySubscriptionController::class, 'cancel'])->middleware('throttle:10,1');
+        Route::delete('my-subscription/pending-change', [MySubscriptionController::class, 'cancelScheduledChange'])->middleware('throttle:10,1');
         Route::post('my-subscription/renew', [MySubscriptionController::class, 'renew'])->middleware('throttle:10,1');
         Route::get('plans', [PlanController::class, 'index']);
 
@@ -190,6 +191,11 @@ Route::prefix('api')->group(function () {
         Route::post('billing/portal', [BillingController::class, 'portal'])->middleware('throttle:10,1');
         Route::post('billing/verify', [BillingController::class, 'verify'])->middleware('throttle:10,1');
         Route::get('billing/history', [BillingController::class, 'history']);
+        Route::get('billing/payment-methods', [BillingController::class, 'paymentMethods']);
+        Route::post('billing/payment-methods/setup', [BillingController::class, 'setupPaymentMethod'])->middleware('throttle:10,1');
+        Route::post('billing/payment-methods/complete', [BillingController::class, 'completePaymentMethod'])->middleware('throttle:10,1');
+        Route::post('billing/payment-methods/{paymentMethod}/default', [BillingController::class, 'makeDefaultPaymentMethod'])->where('paymentMethod', 'pm_[A-Za-z0-9_]+')->middleware('throttle:10,1');
+        Route::delete('billing/payment-methods/{paymentMethod}', [BillingController::class, 'removePaymentMethod'])->where('paymentMethod', 'pm_[A-Za-z0-9_]+')->middleware('throttle:10,1');
         Route::get('billing/invoices', [InvoiceController::class, 'index']);
         Route::get('billing/invoices/{invoice}/pdf', [InvoiceController::class, 'pdf'])->whereNumber('invoice');
         Route::post('billing/payments/{payment}/refund', [BillingController::class, 'refund'])->middleware('throttle:5,1');
@@ -220,7 +226,7 @@ Route::prefix('api')->group(function () {
         Route::post('impersonate/stop', [ImpersonationController::class, 'stop'])->middleware('throttle:30,1');
     });
 
-    Route::middleware(['switch_tenant', 'auth', 'tenant', 'tenant_context', 'onboarding_complete'])->group(function () {
+    Route::middleware(['switch_tenant', 'auth', 'tenant', 'tenant_context', 'ensure_subscribed', 'onboarding_complete'])->group(function () {
         // Tenant user administration. Lives in the tenant_context group because
         // the users table lives in the tenant's own database: a non-impersonating
         // super admin has nothing to route to and is rejected by the middleware
@@ -280,7 +286,7 @@ Route::prefix('api')->group(function () {
     // central DB in production) and every bound HRMS route answers 500
     // instead of data. The signed file routes further below stay outside —
     // the signature is their credential.
-    Route::middleware(['switch_tenant', 'auth', 'tenant', 'tenant_context', 'onboarding_complete', 'ensure_product:hrms'])->group(function () {
+    Route::middleware(['switch_tenant', 'auth', 'tenant', 'tenant_context', 'ensure_subscribed', 'onboarding_complete', 'ensure_product:hrms'])->group(function () {
 
         require __DIR__.'/web/hrms_people.php';
 

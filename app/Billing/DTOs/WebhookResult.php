@@ -16,11 +16,12 @@ class WebhookResult
         public readonly string $currency,
         public readonly array $payload,
         public readonly ?string $failureReason = null,
-        /** Subscription-lifecycle event, not tied to one checkout payment: invoice_paid|invoice_failed|subscription_updated|subscription_deleted. */
+        /** Subscription-lifecycle event, not tied to one checkout payment: invoice_paid|invoice_failed|subscription_updated|subscription_deleted|trial_will_end|action_required|schedule_ended|payment_method. */
         public readonly ?string $kind = null,
         public readonly ?string $providerSubscriptionId = null,
         public readonly ?int $tenantId = null,
         public readonly ?int $periodEnd = null,
         public readonly ?bool $cancelAtPeriodEnd = null,
+        public readonly ?string $providerCustomerId = null,
     ) {}
 }

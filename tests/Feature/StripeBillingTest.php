@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Billing\PaymentResolver;
 use App\Models\Payment;
 use App\Models\PaymentEvent;
+use App\Models\Subscription;
 use App\Models\SubscriptionPlan;
 use App\Models\Tenant;
 use App\Services\SubscriptionService;
@@ -78,6 +79,8 @@ class StripeBillingTest extends TestCase
         $this->loginAdmin();
         Http::fake([
             'api.stripe.com/v1/customers' => Http::response(['id' => 'cus_1']),
+            'api.stripe.com/v1/products*' => Http::response(['id' => 'prod_1']),
+            'api.stripe.com/v1/prices/*' => Http::response(['id' => 'price_old']),
             'api.stripe.com/v1/prices' => Http::response(['id' => 'price_1']),
             'api.stripe.com/v1/checkout/sessions' => Http::response(['id' => 'cs_test_1', 'url' => 'https://checkout.stripe.com/c/pay/cs_test_1']),
         ]);
@@ -108,6 +111,8 @@ class StripeBillingTest extends TestCase
         $this->loginAdmin();
         Http::fake([
             'api.stripe.com/v1/customers' => Http::response(['id' => 'cus_1']),
+            'api.stripe.com/v1/products*' => Http::response(['id' => 'prod_1']),
+            'api.stripe.com/v1/prices/*' => Http::response(['id' => 'price_old']),
             'api.stripe.com/v1/prices' => Http::sequence()->push(['id' => 'price_1'])->push(['id' => 'price_2']),
             'api.stripe.com/v1/checkout/sessions' => Http::response(['id' => 'cs_test_x', 'url' => 'https://x']),
         ]);
@@ -126,6 +131,8 @@ class StripeBillingTest extends TestCase
         $this->loginAdmin();
         Http::fake([
             'api.stripe.com/v1/customers' => Http::response(['id' => 'cus_1']),
+            'api.stripe.com/v1/products*' => Http::response(['id' => 'prod_1']),
+            'api.stripe.com/v1/prices/*' => Http::response(['id' => 'price_old']),
             'api.stripe.com/v1/prices' => Http::response(['id' => 'price_1']),
             'api.stripe.com/v1/checkout/sessions' => Http::response(['id' => 'cs_test_1', 'url' => 'https://x']),
         ]);
@@ -154,6 +161,8 @@ class StripeBillingTest extends TestCase
         $this->loginAdmin();
         Http::fake([
             'api.stripe.com/v1/customers' => Http::response(['id' => 'cus_1']),
+            'api.stripe.com/v1/products*' => Http::response(['id' => 'prod_1']),
+            'api.stripe.com/v1/prices/*' => Http::response(['id' => 'price_old']),
             'api.stripe.com/v1/prices' => Http::response(['id' => 'price_1']),
             'api.stripe.com/v1/checkout/sessions' => Http::response(['id' => 'cs_test_1', 'url' => 'https://x']),
         ]);
@@ -176,6 +185,8 @@ class StripeBillingTest extends TestCase
         $this->loginAdmin();
         Http::fake([
             'api.stripe.com/v1/customers' => Http::response(['id' => 'cus_1']),
+            'api.stripe.com/v1/products*' => Http::response(['id' => 'prod_1']),
+            'api.stripe.com/v1/prices/*' => Http::response(['id' => 'price_old']),
             'api.stripe.com/v1/prices' => Http::response(['id' => 'price_1']),
             'api.stripe.com/v1/checkout/sessions' => Http::response(['id' => 'cs_test_1', 'url' => 'https://x']),
         ]);
@@ -268,26 +279,41 @@ class StripeBillingTest extends TestCase
         $this->assertSame('canceled', $this->acme()->subscription->status);
     }
 
-    public function test_an_existing_stripe_subscriber_changes_plan_in_place_instead_of_paying_twice(): void
+    public function test_an_existing_stripe_subscriber_queues_the_plan_change_instead_of_paying_twice(): void
     {
         $this->stripeSubscriber();
+        $pro = $this->pro();
         $business = SubscriptionPlan::where('slug', 'business')->firstOrFail();
         $this->loginAdmin();
         Http::fake([
             'api.stripe.com/v1/customers' => Http::response(['id' => 'cus_1']),
+            'api.stripe.com/v1/products*' => Http::response(['id' => 'prod_1']),
+            'api.stripe.com/v1/prices/*' => Http::response(['id' => 'price_old']),
             'api.stripe.com/v1/prices' => Http::response(['id' => 'price_biz']),
-            'api.stripe.com/v1/subscriptions/sub_123' => Http::sequence()
-                ->push(['id' => 'sub_123', 'items' => ['data' => [['id' => 'si_1']]]])
-                ->push(['id' => 'sub_123']),
+            'api.stripe.com/v1/subscriptions/sub_123' => Http::response(['id' => 'sub_123', 'schedule' => null, 'items' => ['data' => [['id' => 'si_1']]]]),
+            'api.stripe.com/v1/subscription_schedules' => Http::response(['id' => 'sub_sched_1']),
+            'api.stripe.com/v1/subscription_schedules/sub_sched_1' => Http::response([
+                'id' => 'sub_sched_1',
+                'phases' => [['start_date' => 1700000000, 'end_date' => 1702600000, 'items' => [['price' => 'price_pro', 'quantity' => 1]]]],
+            ]),
         ]);
 
-        $this->postJson('/api/billing/checkout', ['plan_id' => $business->id])->assertOk()->assertJsonPath('changed', true);
+        $this->postJson('/api/billing/checkout', ['plan_id' => $business->id])
+            ->assertOk()->assertJsonPath('changed', true)->assertJsonPath('mode', 'scheduled');
 
         Http::assertNotSent(fn (HttpRequest $r) => str_ends_with($r->url(), '/checkout/sessions'));
+        // The queue lives at Stripe (a schedule), not as a second subscription or a mid-period price swap.
         Http::assertSent(fn (HttpRequest $r) => $r->method() === 'POST'
-            && str_ends_with($r->url(), '/subscriptions/sub_123')
-            && ($r->data()['items[0][price]'] ?? null) === 'price_biz');
-        $this->assertSame($business->id, $this->acme()->subscription->plan_id);
+            && str_ends_with($r->url(), '/subscription_schedules/sub_sched_1')
+            && ($r->data()['phases[1][items][0][price]'] ?? null) === 'price_biz'
+            && ($r->data()['phases[1][proration_behavior]'] ?? null) === 'none');
+        Http::assertNotSent(fn (HttpRequest $r) => str_ends_with($r->url(), '/subscriptions/sub_123') && $r->method() === 'POST');
+
+        $subscription = $this->acme()->subscription;
+        $this->assertSame($pro->id, $subscription->plan_id); // still the paid plan until the period ends
+        $this->assertSame($business->id, $subscription->pending_plan_id);
+        $this->assertSame('sub_sched_1', $subscription->provider_schedule_id);
+        $this->assertSame(1, Subscription::where('tenant_id', $this->acme()->id)->count());
     }
 
     public function test_the_billing_portal_url_comes_from_stripe_and_needs_billing_rights(): void

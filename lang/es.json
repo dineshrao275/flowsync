@@ -930,5 +930,21 @@
     "GitHub integration saved.": "Integración con GitHub guardada.",
     "Calendar link created. Copy it now; it is not shown again.": "Enlace de calendario creado. Cópialo ahora; no se vuelve a mostrar.",
     "Calendar link revoked.": "Enlace de calendario revocado.",
-    "Leave": "Ausencia"
+    "Leave": "Ausencia",
+    "Plan change scheduled for the end of your current billing period. You will not be charged twice.": "Cambio de plan programado para el final de tu periodo de facturación actual. No se te cobrará dos veces.",
+    "Payment method saved.": "Método de pago guardado.",
+    "Default payment method updated.": "Método de pago predeterminado actualizado.",
+    "Payment method removed.": "Método de pago eliminado.",
+    "Plan change scheduled for :date. You keep your current plan until then.": "Cambio de plan programado para el :date. Conservas tu plan actual hasta entonces.",
+    "Scheduled plan change withdrawn.": "Cambio de plan programado retirado.",
+    "Your trial or subscription has ended. Choose a plan to continue — your data is safe and untouched.": "Tu prueba o suscripción ha terminado. Elige un plan para continuar; tus datos están a salvo e intactos.",
+    "Saving a card is not available for this billing provider.": "Guardar una tarjeta no está disponible con este proveedor de facturación.",
+    "That card setup was not completed for this organisation.": "Esa configuración de tarjeta no se completó para esta organización.",
+    "Make another card the default before removing this one — your subscription renews with it.": "Haz predeterminada otra tarjeta antes de eliminar esta: tu suscripción se renueva con ella.",
+    "Managing cards is not available for this billing provider.": "Gestionar tarjetas no está disponible con este proveedor de facturación.",
+    "That card does not belong to this organisation.": "Esa tarjeta no pertenece a esta organización.",
+    "Another billing change for your organisation is in progress. Please try again in a moment.": "Hay otro cambio de facturación de tu organización en curso. Inténtalo de nuevo en un momento.",
+    "The billing provider is temporarily unavailable. Nothing was changed — please try again in a few minutes.": "El proveedor de facturación no está disponible temporalmente. No se cambió nada; inténtalo de nuevo en unos minutos.",
+    "The billing provider could not complete that request. Nothing was changed; please contact support if it keeps happening.": "El proveedor de facturación no pudo completar esa solicitud. No se cambió nada; contacta con soporte si sigue ocurriendo.",
+    "This price change reaches :count paying subscription.|This price change reaches :count paying subscriptions. Confirm to email them the new amount and the date it starts.": "Este cambio de precio afecta a :count suscripción de pago.|Este cambio de precio afecta a :count suscripciones de pago. Confirma para enviarles por correo el nuevo importe y la fecha en que empieza."
 }

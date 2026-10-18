@@ -71,4 +71,32 @@ return [
     'overage' => [
         'policy' => env('BILLING_OVERAGE_POLICY', 'block'),
     ],
+
+    /*
+    | Stripe transport: bounded retries on transient failures (connection, 429, 5xx); every write carries an
+    | Idempotency-Key, so a retry can never create a second customer, price or subscription.
+    */
+    'stripe' => [
+        'attempts' => (int) env('STRIPE_ATTEMPTS', 3),
+        'timeout' => (int) env('STRIPE_TIMEOUT', 20),
+        'retry_sleep_ms' => (int) env('STRIPE_RETRY_SLEEP_MS', 250),
+    ],
+
+    /*
+    | Price changes: a raised price reaches an existing subscriber only on a renewal at least this many days after we
+    | told them by email (a decrease applies at the next renewal, no minimum). Card expiry: warn the billing contacts
+    | this many days before the saved card expires. `lock_seconds`: the per-tenant lock around billing mutations.
+    */
+    'price_change_notice_days' => (int) env('BILLING_PRICE_NOTICE_DAYS', 30),
+    'card_expiry_warning_days' => [30, 7],
+    'lock_seconds' => 15,
+
+    /*
+    | Endpoints an EXPIRED tenant may still call (paths below `api/`; a trailing `*` is a prefix). Everything else answers
+    | 402 `subscription_required` while the data stays untouched.
+    */
+    'restricted_allow' => [
+        'auth/*', 'language', 'notifications*', 'notification-preferences', 'tenant/profile', 'onboarding*',
+        'my-subscription*', 'my-usage', 'plans', 'billing/*', 'my-export*', 'support/*', 'security/*', 'impersonate/stop',
+    ],
 ];
