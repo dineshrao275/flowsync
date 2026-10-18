@@ -139,9 +139,24 @@ class DiscoveryTest extends TestCase
             ->assertOk()
             ->assertJsonPath('pagination.total', 2)
             ->assertJsonCount(2, 'filters.projects')
-            ->assertJsonCount(2, 'filters.statuses')
+            ->assertJsonCount(1, 'filters.statuses') // one "To Do" per project, listed once
             ->assertJsonCount(1, 'filters.priorities')
             ->assertJsonCount(2, 'filters.workspaces');
+    }
+
+    public function test_status_and_label_options_are_distinct_and_filter_across_projects(): void
+    {
+        $a = $this->createProject('Alfa', 'ALF', 'alfa-ws');
+        $b = $this->createProject('Bravo', 'BRA', 'bravo-ws');
+        $this->makeTask($a, 'One');
+        $this->makeTask($b, 'Two');
+        $this->login('admin@flowsync.test');
+
+        $statuses = $this->getJson('/api/search/tasks')->assertOk()->json('filters.statuses');
+        $this->assertSame(array_unique(array_column($statuses, 'name')), array_column($statuses, 'name'));
+
+        // the one listed option stands for the same-named status of every project
+        $this->getJson('/api/search/tasks?status_id='.$statuses[0]['id'])->assertOk()->assertJsonPath('pagination.total', 2);
     }
 
     public function test_search_filters_by_status_priority_assignee_project_workspace_and_label(): void
