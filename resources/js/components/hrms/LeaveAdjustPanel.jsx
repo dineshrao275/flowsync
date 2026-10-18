@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
+import PersonSelect from '../ui/PersonSelect';
 import { Trans, useTranslation } from 'react-i18next';
 import api, { fieldErrors } from '../../services/api';
 import Alert from '../ui/Alert';
@@ -77,10 +78,7 @@ export default function LeaveAdjustPanel({ employees, types }) {
         <div className="space-y-4">
             <Card dense title={t('hrms.leaveAdjust.title')}>
                 <form onSubmit={adjust} className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                    <Select label={t('hrms.leaveAdjust.employee')} value={form.employee_id} onChange={(e) => setForm({ ...form, employee_id: e.target.value })} error={errors.employee_id}>
-                        <option value="">{t('hrms.leaveAdjust.choose')}</option>
-                        {employees.map((emp) => <option key={emp.id} value={emp.id}>{emp.name}</option>)}
-                    </Select>
+                    <PersonSelect label={t('hrms.leaveAdjust.employee')} value={form.employee_id} onChange={(e) => setForm({ ...form, employee_id: e.target.value })} error={errors.employee_id} placeholder={t('hrms.leaveAdjust.choose')} people={employees} />
                     <Select label={t('hrms.leaveAdjust.leaveType')} value={form.leave_type_id} onChange={(e) => setForm({ ...form, leave_type_id: e.target.value })} error={errors.leave_type_id}>
                         <option value="">{t('hrms.leaveAdjust.choose')}</option>
                         {(types ?? []).map((type) => <option key={type.id} value={type.id}>{type.name}</option>)}

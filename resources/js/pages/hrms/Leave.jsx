@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
+import PersonSelect from '../../components/ui/PersonSelect';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import api, { fieldErrors } from '../../services/api';
@@ -521,14 +522,7 @@ export default function Leave() {
             {tab === 'balances' && (
                 <Card dense title={t('hrms.leave.balancesTitle')}>
                     <div className="mb-3 flex items-center gap-2">
-                        <Select aria-label={t('hrms.leave.employee')} value={balanceEmployee} onChange={(e) => setBalanceEmployee(e.target.value)} className="w-56">
-                            <option value="">{t('hrms.leave.selectEmployee')}</option>
-                            {employees.map((employee) => (
-                                <option key={employee.id} value={employee.id}>
-                                    {employee.name}
-                                </option>
-                            ))}
-                        </Select>
+                        <PersonSelect aria-label={t('hrms.leave.employee')} value={balanceEmployee} onChange={(e) => setBalanceEmployee(e.target.value)} className="w-56" placeholder={t('hrms.leave.selectEmployee')} people={employees} />
                         <Input aria-label={t('hrms.leave.year')} value={balanceYear} onChange={(e) => setBalanceYear(e.target.value)} className="w-28" />
                     </div>
 
@@ -677,12 +671,7 @@ export default function Leave() {
 
             <Modal open={filingExemption} onClose={() => setFilingExemption(false)} title={t('hrms.leave.fileExemptionTitle')}>
                 <form onSubmit={saveExemption} className="grid grid-cols-1 gap-3 px-6 py-5 sm:grid-cols-2">
-                    <Select label={t('hrms.leave.exemptionEmployee')} value={exemptionForm.employee_id} onChange={(e) => setExemptionForm({ ...exemptionForm, employee_id: e.target.value })} error={exemptionErrors.employee_id}>
-                        <option value="">{t('hrms.leave.selectPerson')}</option>
-                        {employees.map((employee) => (
-                            <option key={employee.id} value={employee.id}>{employee.name}</option>
-                        ))}
-                    </Select>
+                    <PersonSelect label={t('hrms.leave.exemptionEmployee')} value={exemptionForm.employee_id} onChange={(e) => setExemptionForm({ ...exemptionForm, employee_id: e.target.value })} error={exemptionErrors.employee_id} placeholder={t('hrms.leave.selectPerson')} people={employees} />
                     <Select label={t('hrms.leave.exemptionType')} value={exemptionForm.leave_type_id} onChange={(e) => setExemptionForm({ ...exemptionForm, leave_type_id: e.target.value })} error={exemptionErrors.leave_type_id}>
                         <option value="">{t('hrms.leave.selectType')}</option>
                         {(types ?? []).map((type) => (

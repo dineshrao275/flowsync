@@ -26,7 +26,8 @@
         "pricePerMonth": "{{value}}/mes",
         "pricePerMonthAnnual": "{{value}}/mes facturado anualmente",
         "change": "Cambiar",
-        "noMatches": "Nadie coincide"
+        "noMatches": "Nadie coincide",
+        "searchPeople": "Buscar personas…"
     },
     "errors": {
         "generic": "Algo salió mal. Inténtalo de nuevo."

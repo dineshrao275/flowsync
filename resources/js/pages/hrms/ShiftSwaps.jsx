@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
+import PersonSelect from '../../components/ui/PersonSelect';
 import { useTranslation } from 'react-i18next';
 import api, { fieldErrors } from '../../services/api';
 import { useToast } from '../../context/ToastContext';
@@ -11,7 +12,6 @@ import Input from '../../components/ui/Input';
 import Modal from '../../components/ui/Modal';
 import ContentSkeleton from '../../components/ui/ContentSkeleton';
 import Alert from '../../components/ui/Alert';
-import { fieldClass } from '../../components/ui/fieldStyles';
 
 const TONE = { pending: 'warning', applied: 'success', rejected: 'danger', withdrawn: 'neutral' };
 const BLANK = { counterparty_employee_id: '', swap_date: '', reason: '' };
@@ -116,10 +116,7 @@ export default function ShiftSwaps() {
                         {errors.form && <Alert>{errors.form}</Alert>}
                         <div>
                             <label htmlFor="swap-with" className="mb-1.5 block text-sm font-medium text-gray-700">{t('hrms.swaps.with')}</label>
-                            <select id="swap-with" className={fieldClass} value={form.counterparty_employee_id} onChange={(e) => setForm((f) => ({ ...f, counterparty_employee_id: e.target.value }))}>
-                                <option value="">—</option>
-                                {people.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
-                            </select>
+                            <PersonSelect id="swap-with" value={form.counterparty_employee_id} onChange={(e) => setForm((f) => ({ ...f, counterparty_employee_id: e.target.value }))} placeholder="—" people={people} />
                             {errors.counterparty_employee_id && <p className="mt-1 text-xs text-red-600">{errors.counterparty_employee_id}</p>}
                         </div>
                         <Input label={t('hrms.swaps.date')} type="date" value={form.swap_date} onChange={(e) => setForm((f) => ({ ...f, swap_date: e.target.value }))} error={errors.swap_date} required />

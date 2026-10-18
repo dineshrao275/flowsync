@@ -1,4 +1,5 @@
 import { caretRect } from '../../utils/caret';
+import UserChip from '../ui/UserChip';
 import Avatar from '../ui/Avatar';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -264,7 +265,7 @@ export default function CommentThread({ task, projectId, isManager, targetCommen
                                 <div className="flex items-start justify-between gap-2">
                                     <div className="min-w-0">
                                         <p className="text-xs text-gray-400">
-                                            <span className="font-semibold text-gray-700">{comment.user?.name ?? t('tms.comments.unknown')}</span>
+                                            <UserChip user={comment.user} name={comment.user?.name ?? t('tms.comments.unknown')} nameClassName="font-semibold text-gray-700" />
                                             {comment.edited_at ? t('tms.comments.edited') : ''} · <Timestamp date={comment.created_at} />
                                         </p>
                                         <p className="mt-1 whitespace-pre-wrap text-sm text-gray-800">{comment.comment}</p>
@@ -303,7 +304,7 @@ export default function CommentThread({ task, projectId, isManager, targetCommen
                                         {comment.replies.map((reply) => (
                                             <li key={reply.id} id={`comment-${reply.id}`} className="rounded-md p-1.5 transition-all">
                                                 <p className="text-xs text-gray-400">
-                                                    <span className="font-semibold text-gray-700">{reply.user?.name ?? t('tms.comments.unknown')}</span>
+                                                    <UserChip user={reply.user} name={reply.user?.name ?? t('tms.comments.unknown')} nameClassName="font-semibold text-gray-700" />
                                                     {reply.edited_at ? t('tms.comments.edited') : ''} · <Timestamp date={reply.created_at} />
                                                 </p>
                                                 <p className="mt-0.5 whitespace-pre-wrap text-sm text-gray-700">{reply.comment}</p>

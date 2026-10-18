@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
+import UserChip from '../ui/UserChip';
 import { useTranslation } from 'react-i18next';
 import api from '../../services/api';
 import { formatMinutes } from '../../utils/time';
@@ -70,7 +71,7 @@ export default function WorkloadPanel({ projectId }) {
                     <tbody>
                         {data.members.map((m) => (
                             <tr key={m.user.id}>
-                                <Td>{m.user.name}</Td>
+                                <Td><UserChip user={m.user} size="sm" /></Td>
                                 <Td align="right">{formatMinutes(m.capacity_minutes)}{m.leave_days > 0 && <span className="ml-1 text-xs text-gray-500">({t('tms.workload.leave', { count: m.leave_days })})</span>}</Td>
                                 <Td align="right">{formatMinutes(m.planned_minutes)}</Td>
                                 <Td><UtilizationBar value={m.utilization} label={t('tms.workload.utilizationLabel', { name: m.user.name })} /></Td>

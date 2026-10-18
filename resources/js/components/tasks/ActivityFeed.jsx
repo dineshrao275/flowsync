@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import UserChip from '../ui/UserChip';
 import { useTranslation } from 'react-i18next';
 import api from '../../services/api';
 import Alert from '../ui/Alert';
@@ -99,7 +100,7 @@ export default function ActivityFeed({ task, projectId }) {
                 <li key={activity.id} className="relative py-1.5">
                     <span className="absolute -left-[21px] top-3 h-2.5 w-2.5 rounded-full border-2 border-white bg-[var(--accent)] shadow" />
                     <p className="text-sm text-gray-700">
-                        <span className="font-medium text-gray-900">{activity.actor?.name ?? t('tms.activity.someone')}</span>{' '}
+                        <UserChip user={activity.actor} name={activity.actor?.name ?? t('tms.activity.someone')} className="align-middle" nameClassName="font-medium text-gray-900" />{' '}
                         {describe(t, activity.action, activity.data)}
                     </p>
                     <p className="text-xs text-gray-400"><Timestamp date={activity.created_at} /></p>

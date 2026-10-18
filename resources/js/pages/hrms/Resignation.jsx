@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
+import UserChip from '../../components/ui/UserChip';
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import api, { fieldErrors } from '../../services/api';
@@ -136,7 +137,7 @@ export default function Resignation() {
                     <ul className="space-y-3">
                         {data.to_decide.map((r) => (
                             <li key={r.id} className="rounded-lg border border-gray-200 p-4">
-                                <p className="font-medium text-gray-900">{r.employee?.name}</p>
+                                <p className="font-medium text-gray-900"><UserChip user={r.employee} /></p>
                                 <p className="text-sm text-gray-600">{t('hrms.resignation.lastDayIs', { date: formatDateOnly(r.requested_last_day) })}</p>
                                 <p className="mt-1 text-sm text-gray-700">{r.reason}</p>
                                 <div className="mt-3 flex flex-wrap items-end gap-2">
@@ -155,7 +156,7 @@ export default function Resignation() {
                     <ul className="divide-y divide-gray-100">
                         {data.all.map((r) => (
                             <li key={r.id} className="flex items-center justify-between py-2 text-sm">
-                                <span><span className="font-medium text-gray-900">{r.employee?.name}</span> · {formatDateOnly(r.requested_last_day)}</span>
+                                <span><span className="font-medium text-gray-900"><UserChip user={r.employee} /></span> · {formatDateOnly(r.requested_last_day)}</span>
                                 <StatusBadge r={r} />
                             </li>
                         ))}

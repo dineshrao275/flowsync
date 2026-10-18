@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
+import PersonSelect from '../../components/ui/PersonSelect';
 import { useTranslation } from 'react-i18next';
 import api, { fieldErrors } from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
@@ -99,10 +100,7 @@ export default function Signatures() {
                     <form onSubmit={request} className="grid gap-3 sm:grid-cols-3">
                         <div>
                             <label htmlFor="sg-emp" className="mb-1.5 block text-sm font-medium text-gray-700">{t('hrms.signatures.signer')}</label>
-                            <select id="sg-emp" className={fieldClass} value={req.employee_id} onChange={(e) => setReq({ employee_id: e.target.value, document_id: '', message: req.message })}>
-                                <option value="">—</option>
-                                {people.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
-                            </select>
+                            <PersonSelect id="sg-emp" value={req.employee_id} onChange={(e) => setReq({ employee_id: e.target.value, document_id: '', message: req.message })} placeholder="—" people={people} />
                         </div>
                         <div>
                             <label htmlFor="sg-doc" className="mb-1.5 block text-sm font-medium text-gray-700">{t('hrms.signatures.document')}</label>

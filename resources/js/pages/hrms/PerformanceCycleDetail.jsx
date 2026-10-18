@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
+import PersonSelect from '../../components/ui/PersonSelect';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import api, { fieldErrors } from '../../services/api';
@@ -317,10 +318,7 @@ export default function PerformanceCycleDetail() {
                         {canManage ? (
                             <>
                                 <div className="mb-3 max-w-xs">
-                                    <Select label={t('hrms.cycleDetail.person')} value={checkInFor} onChange={(e) => setCheckInFor(e.target.value)}>
-                                        <option value="">{t('hrms.cycleDetail.select')}</option>
-                                        {employees.map((e) => <option key={e.id} value={e.id}>{e.name}</option>)}
-                                    </Select>
+                                    <PersonSelect label={t('hrms.cycleDetail.person')} value={checkInFor} onChange={(e) => setCheckInFor(e.target.value)} placeholder={t('hrms.cycleDetail.select')} people={employees} />
                                 </div>
                                 <CheckInComposer cycleId={cycleId} employeeId={checkInFor} onFiled={load} />
                             </>
@@ -426,10 +424,7 @@ export default function PerformanceCycleDetail() {
 
             <Modal open={goalModal} onClose={() => setGoalModal(false)} title={t('hrms.cycleDetail.fileGoal')}>
                 <form onSubmit={saveGoal} className="grid gap-3 px-6 py-5">
-                    <Select label={t('hrms.cycleDetail.person')} value={goalForm.employee_id} error={goalErrors.employee_id} onChange={(e) => setGoalForm({ ...goalForm, employee_id: e.target.value })} required>
-                        <option value="">{t('hrms.cycleDetail.select')}</option>
-                        {employees.map((e) => <option key={e.id} value={e.id}>{e.name}</option>)}
-                    </Select>
+                    <PersonSelect label={t('hrms.cycleDetail.person')} value={goalForm.employee_id} error={goalErrors.employee_id} onChange={(e) => setGoalForm({ ...goalForm, employee_id: e.target.value })} required placeholder={t('hrms.cycleDetail.select')} people={employees} />
                     <Input label={t('hrms.cycleDetail.titleLabel')} value={goalForm.title} error={goalErrors.title} onChange={(e) => setGoalForm({ ...goalForm, title: e.target.value })} required />
                     <div className="grid grid-cols-3 gap-3">
                         <Select label={t('hrms.cycleDetail.metric')} value={goalForm.metric_type} error={goalErrors.metric_type} onChange={(e) => setGoalForm({ ...goalForm, metric_type: e.target.value })}>
@@ -448,14 +443,8 @@ export default function PerformanceCycleDetail() {
             <Modal open={oneOnOneModal} onClose={() => setOneOnOneModal(false)} title={t('hrms.cycleDetail.scheduleOneOnOneTitle')}>
                 <form onSubmit={saveOneOnOne} className="grid gap-3 px-6 py-5">
                     <div className="grid grid-cols-2 gap-3">
-                        <Select label={t('hrms.cycleDetail.person')} value={oneOnOneForm.employee_id} error={oneOnOneErrors.employee_id} onChange={(e) => setOneOnOneForm({ ...oneOnOneForm, employee_id: e.target.value })} required>
-                            <option value="">{t('hrms.cycleDetail.select')}</option>
-                            {employees.map((e) => <option key={e.id} value={e.id}>{e.name}</option>)}
-                        </Select>
-                        <Select label={t('hrms.cycleDetail.manager')} value={oneOnOneForm.manager_employee_id} error={oneOnOneErrors.manager_employee_id} onChange={(e) => setOneOnOneForm({ ...oneOnOneForm, manager_employee_id: e.target.value })}>
-                            <option value="">{t('hrms.cycleDetail.managerOptionNone')}</option>
-                            {employees.map((e) => <option key={e.id} value={e.id}>{e.name}</option>)}
-                        </Select>
+                        <PersonSelect label={t('hrms.cycleDetail.person')} value={oneOnOneForm.employee_id} error={oneOnOneErrors.employee_id} onChange={(e) => setOneOnOneForm({ ...oneOnOneForm, employee_id: e.target.value })} required placeholder={t('hrms.cycleDetail.select')} people={employees} />
+                        <PersonSelect label={t('hrms.cycleDetail.manager')} value={oneOnOneForm.manager_employee_id} error={oneOnOneErrors.manager_employee_id} onChange={(e) => setOneOnOneForm({ ...oneOnOneForm, manager_employee_id: e.target.value })} placeholder={t('hrms.cycleDetail.managerOptionNone')} people={employees} />
                     </div>
                     <Input label={t('hrms.cycleDetail.scheduledAt')} type="datetime-local" value={oneOnOneForm.scheduled_at} error={oneOnOneErrors.scheduled_at} onChange={(e) => setOneOnOneForm({ ...oneOnOneForm, scheduled_at: e.target.value })} required />
                     <Input label={t('hrms.cycleDetail.agenda')} value={oneOnOneForm.agenda} error={oneOnOneErrors.agenda} onChange={(e) => setOneOnOneForm({ ...oneOnOneForm, agenda: e.target.value })} />
@@ -481,10 +470,7 @@ export default function PerformanceCycleDetail() {
 
             <Modal open={reviewModal} onClose={() => setReviewModal(false)} title={t('hrms.cycleDetail.reviewModalTitle')}>
                 <form onSubmit={saveReview} className="grid gap-3 px-6 py-5">
-                    <Select label={t('hrms.cycleDetail.person')} value={reviewForm.employee_id} error={reviewErrors.employee_id} onChange={(e) => setReviewForm({ ...reviewForm, employee_id: e.target.value })} required>
-                        <option value="">{t('hrms.cycleDetail.select')}</option>
-                        {employees.map((e) => <option key={e.id} value={e.id}>{e.name}</option>)}
-                    </Select>
+                    <PersonSelect label={t('hrms.cycleDetail.person')} value={reviewForm.employee_id} error={reviewErrors.employee_id} onChange={(e) => setReviewForm({ ...reviewForm, employee_id: e.target.value })} required placeholder={t('hrms.cycleDetail.select')} people={employees} />
                     <Input label={t('hrms.cycleDetail.managerRatingLabel')} value={reviewForm.manager_rating} error={reviewErrors.manager_rating} onChange={(e) => setReviewForm({ ...reviewForm, manager_rating: e.target.value })} />
                     <Input label={t('hrms.cycleDetail.strengths')} value={reviewForm.strengths} error={reviewErrors.strengths} onChange={(e) => setReviewForm({ ...reviewForm, strengths: e.target.value })} />
                     <Input label={t('hrms.cycleDetail.improvements')} value={reviewForm.improvements} error={reviewErrors.improvements} onChange={(e) => setReviewForm({ ...reviewForm, improvements: e.target.value })} />

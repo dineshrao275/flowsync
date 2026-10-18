@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import PersonSelect from '../../components/ui/PersonSelect';
 import { useTranslation } from 'react-i18next';
 import api, { fieldErrors } from '../../services/api';
 import { useToast } from '../../context/ToastContext';
@@ -100,10 +101,7 @@ export default function Letters() {
                     </div>
                     <div>
                         <label htmlFor="let-emp" className="mb-1.5 block text-sm font-medium text-gray-700">{t('hrms.letters.employee')}</label>
-                        <select id="let-emp" className={fieldClass} value={gen.employee_id} onChange={(e) => setGen({ ...gen, employee_id: e.target.value })}>
-                            <option value="">—</option>
-                            {people.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
-                        </select>
+                        <PersonSelect id="let-emp" value={gen.employee_id} onChange={(e) => setGen({ ...gen, employee_id: e.target.value })} placeholder="—" people={people} />
                     </div>
                     {extraFields.map((f) => (
                         <Input key={f} label={f.replace(/_/g, ' ')} value={gen.fields[f] || ''} onChange={(e) => setGen({ ...gen, fields: { ...gen.fields, [f]: e.target.value } })} required />

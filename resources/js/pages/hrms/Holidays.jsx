@@ -1,4 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
+import UserChip from '../../components/ui/UserChip';
+import PersonSelect from '../../components/ui/PersonSelect';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import api, { fieldErrors } from '../../services/api';
@@ -479,7 +481,7 @@ export default function Holidays() {
                                     {assignments.map((assignment) => (
                                         <li key={assignment.id} className="flex items-center justify-between gap-3 py-1.5 text-sm">
                                             <span>
-                                                <span className="font-medium">{assignment.employee?.name}</span>
+                                                <span className="font-medium"><UserChip user={assignment.employee} /></span>
                                                 <span className="text-gray-500"> → {assignment.calendar?.name} {t('hrms.holidays.assignFrom', { date: assignment.effective_from })}</span>
                                             </span>
                                             {canManage && (
@@ -492,12 +494,7 @@ export default function Holidays() {
 
                             {canManage && (
                                 <form onSubmit={submitAssign} className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-                                    <Select aria-label={t('hrms.holidays.employee')} value={assignForm.employee_id} onChange={(e) => setAssignForm({ ...assignForm, employee_id: e.target.value })} error={assignErrors.employee_id}>
-                                        <option value="">{t('hrms.holidays.employeePlaceholder')}</option>
-                                        {employees.map((employee) => (
-                                            <option key={employee.id} value={employee.id}>{employee.name}</option>
-                                        ))}
-                                    </Select>
+                                    <PersonSelect aria-label={t('hrms.holidays.employee')} value={assignForm.employee_id} onChange={(e) => setAssignForm({ ...assignForm, employee_id: e.target.value })} error={assignErrors.employee_id} placeholder={t('hrms.holidays.employeePlaceholder')} people={employees} />
                                     <Select aria-label={t('hrms.holidays.calendar')} value={assignForm.calendar_id} onChange={(e) => setAssignForm({ ...assignForm, calendar_id: e.target.value })} error={assignErrors.calendar_id}>
                                         <option value="">{t('hrms.holidays.calendarPlaceholder')}</option>
                                         {(calendars ?? []).map((calendar) => (
@@ -526,7 +523,7 @@ export default function Holidays() {
                                     {optionals.map((answer) => (
                                         <li key={answer.id} className="flex items-center justify-between gap-3 py-1.5 text-sm">
                                             <span>
-                                                <span className="font-medium">{answer.employee?.name}</span>
+                                                <span className="font-medium"><UserChip user={answer.employee} /></span>
                                                 <span className="text-gray-500"> · {answer.holiday?.name} · {answer.status_label}</span>
                                             </span>
                                         </li>

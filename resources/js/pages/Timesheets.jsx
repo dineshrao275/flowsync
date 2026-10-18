@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
+import UserChip from '../components/ui/UserChip';
 import { useTranslation } from 'react-i18next';
 import { CaretLeft, CaretRight } from '@phosphor-icons/react';
 import api, { fieldErrors } from '../services/api';
@@ -145,7 +146,7 @@ function Approvals() {
             {rows.map((row) => (
                 <div key={row.id} className="flex flex-wrap items-end justify-between gap-3 rounded-lg border border-gray-200 p-4">
                     <div>
-                        <p className="font-medium text-gray-900">{row.user?.name}</p>
+                        <p className="font-medium text-gray-900"><UserChip user={row.user} size="sm" /></p>
                         <p className="text-sm text-gray-500">
                             {t('tms.timesheets.weekOf', { date: formatDateOnly(row.week_start) })} · {formatMinutes(row.total_minutes)} ({formatMinutes(row.billable_minutes)} {t('tms.timesheets.billableShort')})
                         </p>

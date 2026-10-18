@@ -13,7 +13,7 @@ function PersonCard({ person, active, ...rest }) {
             <Avatar name={person.name} photoUrl={person.photo_url} size="lg" />
             <span className="min-w-0">
                 <span className="block truncate text-sm font-medium text-gray-900">{person.name}</span>
-                <span className="block truncate text-xs text-gray-500">{person.email}</span>
+                {person.email && <span className="block truncate text-xs text-gray-500">{person.email}</span>}
             </span>
         </div>
     );
@@ -24,7 +24,7 @@ function PersonCard({ person, active, ...rest }) {
  * chosen person stays shown as a card. `users` is `[{id, name, email, photo_url?}]`; `value` is an id
  * (or ''), `onChange(id)` gets the new id ('' when cleared).
  */
-export default function MemberPicker({ users, value, onChange, placeholder, emptyText }) {
+export default function MemberPicker({ users, value, onChange, placeholder, emptyText, id, disabled = false }) {
     const { t } = useTranslation();
     const listId = useId();
     const rootRef = useRef(null);
@@ -36,7 +36,7 @@ export default function MemberPicker({ users, value, onChange, placeholder, empt
     const selected = users.find((u) => String(u.id) === String(value)) ?? null;
     const matches = useMemo(() => {
         const q = query.trim().toLowerCase();
-        return (q ? users.filter((u) => `${u.name} ${u.email}`.toLowerCase().includes(q)) : users).slice(0, 8);
+        return (q ? users.filter((u) => `${u.name} ${u.email ?? ''}`.toLowerCase().includes(q)) : users).slice(0, 8);
     }, [users, query]);
 
     useEffect(() => {
@@ -62,7 +62,7 @@ export default function MemberPicker({ users, value, onChange, placeholder, empt
         return (
             <div className="flex items-center gap-2">
                 <div className="min-w-0 flex-1"><PersonCard person={selected} active /></div>
-                <button type="button" onClick={() => onChange('')} className="rounded-lg px-2 py-1 text-xs font-medium text-gray-500 hover:bg-gray-100">
+                <button type="button" disabled={disabled} onClick={() => onChange('')} className="rounded-lg px-2 py-1 text-xs font-medium text-gray-500 hover:bg-gray-100">
                     {t('ui.change')}
                 </button>
             </div>
@@ -72,6 +72,8 @@ export default function MemberPicker({ users, value, onChange, placeholder, empt
     return (
         <div ref={rootRef} className="relative">
             <input
+                id={id}
+                disabled={disabled}
                 type="text"
                 role="combobox"
                 aria-expanded={open}
@@ -79,7 +81,7 @@ export default function MemberPicker({ users, value, onChange, placeholder, empt
                 aria-autocomplete="list"
                 autoComplete="off"
                 className={fieldClass}
-                placeholder={placeholder}
+                placeholder={placeholder ?? t('ui.searchPeople')}
                 value={query}
                 onChange={(e) => { setQuery(e.target.value); setOpen(true); setActive(0); }}
                 onFocus={() => setOpen(true)}

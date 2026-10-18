@@ -94,7 +94,7 @@ export default function TaskTable({ tasks, canEdit, onOpen }) {
                             <td className="px-4 py-3 text-xs font-semibold text-gray-600">
                                 {task.story_points != null ? `${task.story_points}` : '—'}
                             </td>
-                            <td className="px-4 py-3 text-xs text-gray-600">{task.assignee?.name ?? '—'}</td>
+                            <td className="px-4 py-3 text-xs text-gray-600">{task.assignee ? <UserChip user={task.assignee} /> : '—'}</td>
                             <td className="px-4 py-3 text-xs text-gray-500">{task.due_date ?? '—'}</td>
                         </tr>
                     ))}

@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import UserChip from '../components/ui/UserChip';
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import api from '../services/api';
@@ -239,7 +240,7 @@ export default function Search() {
                                     {task.status?.name}
                                 </Td>
                                 <Td className="whitespace-nowrap">
-                                    {task.assignee?.name ?? <span className="text-gray-400">{t('dashboard.search.unassigned')}</span>}
+                                    {task.assignee ? <UserChip user={task.assignee} /> : <span className="text-gray-400">{t('dashboard.search.unassigned')}</span>}
                                 </Td>
                                 <Td align="right" className="whitespace-nowrap">
                                     {task.due_date ? (

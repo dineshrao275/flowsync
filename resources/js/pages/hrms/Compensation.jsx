@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
+import PersonSelect from '../../components/ui/PersonSelect';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import api, { fieldErrors } from '../../services/api';
@@ -371,10 +372,7 @@ export default function Compensation() {
 
             <Card title={t('hrms.compensation.employeePay')} dense>
                 <div className="mb-4 max-w-sm">
-                    <Select label={t('hrms.compensation.employee')} value={employeeId} onChange={(e) => setEmployeeId(e.target.value)}>
-                        <option value="">{t('hrms.compensation.selectPerson')}</option>
-                        {employees.map((e) => <option key={e.id} value={e.id}>{e.name}</option>)}
-                    </Select>
+                    <PersonSelect label={t('hrms.compensation.employee')} value={employeeId} onChange={(e) => setEmployeeId(e.target.value)} placeholder={t('hrms.compensation.selectPerson')} people={employees} />
                 </div>
 
                 {employeeId && (

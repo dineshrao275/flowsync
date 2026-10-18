@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
+import PersonSelect from '../../components/ui/PersonSelect';
 import { useTranslation } from 'react-i18next';
 import api, { fieldErrors } from '../../services/api';
 import { useToast } from '../../context/ToastContext';
@@ -129,10 +130,7 @@ export default function ImprovementPlans() {
                         {errors.form && <Alert>{errors.form}</Alert>}
                         <div>
                             <label htmlFor="pip-emp" className="mb-1.5 block text-sm font-medium text-gray-700">{t('hrms.pip.employee')}</label>
-                            <select id="pip-emp" className={fieldClass} value={form.employee_id} onChange={(e) => setForm((f) => ({ ...f, employee_id: e.target.value }))}>
-                                <option value="">—</option>
-                                {people.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
-                            </select>
+                            <PersonSelect id="pip-emp" value={form.employee_id} onChange={(e) => setForm((f) => ({ ...f, employee_id: e.target.value }))} placeholder="—" people={people} />
                         </div>
                         <Input label={t('hrms.pip.reason')} value={form.reason} onChange={(e) => setForm((f) => ({ ...f, reason: e.target.value }))} error={errors.reason} required />
                         <div className="grid gap-4 sm:grid-cols-2">

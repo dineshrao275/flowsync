@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import UserChip from '../ui/UserChip';
 import { useTranslation } from 'react-i18next';
 import api, { fieldErrors } from '../../services/api';
 import { formatMinutes } from '../../utils/time';
@@ -209,7 +210,7 @@ export default function WorkLogPanel({ task, projectId, canLog, canManage }) {
                         <li key={log.id} className="flex flex-wrap items-center justify-between gap-3 py-3">
                             <div className="min-w-0">
                                 <p className="text-sm font-medium text-gray-900">
-                                    {log.user?.name || t('tms.worklogs.unknown')}{' '}
+                                    <UserChip user={log.user} name={log.user?.name || t('tms.worklogs.unknown')} />{' '}
                                     {log.user?.id === user?.id && <span className="text-gray-400">{t('tms.worklogs.you')}</span>}
                                 </p>
                                 <p className="text-xs text-gray-500">{formatRange(log, t)}</p>

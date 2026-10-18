@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
+import PersonSelect from '../../components/ui/PersonSelect';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import api, { fieldErrors } from '../../services/api';
@@ -202,14 +203,7 @@ export default function CompOff() {
 
             <Card dense title={t('hrms.comp.bank')}>
                 <div className="mb-3">
-                    <Select aria-label={t('hrms.comp.employee')} value={employeeId} onChange={(e) => setEmployeeId(e.target.value)} className="w-56">
-                        <option value="">{t('hrms.comp.selectEmployee')}</option>
-                        {employees.map((employee) => (
-                            <option key={employee.id} value={employee.id}>
-                                {employee.name}
-                            </option>
-                        ))}
-                    </Select>
+                    <PersonSelect aria-label={t('hrms.comp.employee')} value={employeeId} onChange={(e) => setEmployeeId(e.target.value)} className="w-56" placeholder={t('hrms.comp.selectEmployee')} people={employees} />
                 </div>
 
                 {!employeeId ? (
@@ -324,14 +318,7 @@ export default function CompOff() {
 
             <Modal open={granting} onClose={() => setGranting(false)} title={t('hrms.comp.grantTitle')}>
                 <form onSubmit={submitGrant} className="space-y-3 px-6 py-5">
-                    <Select label={t('hrms.comp.employee')} value={grant.employee_id} onChange={(e) => setGrant({ ...grant, employee_id: e.target.value })} error={grantErrors.employee_id}>
-                        <option value="">{t('hrms.comp.select')}</option>
-                        {employees.map((employee) => (
-                            <option key={employee.id} value={employee.id}>
-                                {employee.name}
-                            </option>
-                        ))}
-                    </Select>
+                    <PersonSelect label={t('hrms.comp.employee')} value={grant.employee_id} onChange={(e) => setGrant({ ...grant, employee_id: e.target.value })} error={grantErrors.employee_id} placeholder={t('hrms.comp.select')} people={employees} />
                     <div className="grid grid-cols-2 gap-3">
                         <Input type="date" label={t('hrms.comp.workDate')} value={grant.work_date} onChange={(e) => setGrant({ ...grant, work_date: e.target.value })} error={grantErrors.work_date} />
                         <Input type="number" label={t('hrms.comp.minutes')} value={grant.minutes} onChange={(e) => setGrant({ ...grant, minutes: e.target.value })} error={grantErrors.minutes} />

@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import PersonSelect from '../../components/ui/PersonSelect';
 import { useTranslation } from 'react-i18next';
 import api, { fieldErrors } from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
@@ -120,10 +121,7 @@ function Succession({ people }) {
                         ))}
                     </ul>
                     <div className="mt-3 flex flex-wrap items-center gap-2">
-                        <select aria-label={t('hrms.careers.successor')} className="rounded-md border border-gray-300 px-2 py-1 text-sm" value={cand[p.id]?.employee_id || ''} onChange={(e) => setCand((s) => ({ ...s, [p.id]: { ...s[p.id], employee_id: e.target.value } }))}>
-                            <option value="">{t('hrms.careers.successor')}</option>
-                            {people.map((x) => <option key={x.id} value={x.id}>{x.name}</option>)}
-                        </select>
+                        <PersonSelect aria-label={t('hrms.careers.successor')} value={cand[p.id]?.employee_id || ''} onChange={(e) => setCand((s) => ({ ...s, [p.id]: { ...s[p.id], employee_id: e.target.value } }))} placeholder={t('hrms.careers.successor')} people={people} />
                         <select aria-label={t('hrms.careers.readinessLabel')} className="rounded-md border border-gray-300 px-2 py-1 text-sm" value={cand[p.id]?.readiness || 'one_two_years'} onChange={(e) => setCand((s) => ({ ...s, [p.id]: { ...s[p.id], readiness: e.target.value } }))}>
                             {['now', 'one_two_years', 'three_plus'].map((r) => <option key={r} value={r}>{t(`hrms.careers.readiness.${r}`)}</option>)}
                         </select>
@@ -135,10 +133,7 @@ function Succession({ people }) {
                 <Input label={t('hrms.careers.positionTitle')} value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} required />
                 <div>
                     <label htmlFor="sp-inc" className="mb-1.5 block text-sm font-medium text-gray-700">{t('hrms.careers.incumbent')}</label>
-                    <select id="sp-inc" className={fieldClass} value={form.incumbent_employee_id} onChange={(e) => setForm({ ...form, incumbent_employee_id: e.target.value })}>
-                        <option value="">—</option>
-                        {people.map((x) => <option key={x.id} value={x.id}>{x.name}</option>)}
-                    </select>
+                    <PersonSelect id="sp-inc" value={form.incumbent_employee_id} onChange={(e) => setForm({ ...form, incumbent_employee_id: e.target.value })} placeholder="—" people={people} />
                 </div>
                 <div>
                     <label htmlFor="sp-risk" className="mb-1.5 block text-sm font-medium text-gray-700">{t('hrms.careers.riskLabel')}</label>
