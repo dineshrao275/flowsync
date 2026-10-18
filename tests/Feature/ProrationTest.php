@@ -100,7 +100,7 @@ class ProrationTest extends TestCase
         $this->assertGreaterThanOrEqual(ProrationCalculator::MIN_CHARGE_CENTS, $quote['amount_cents']);
     }
 
-    public function test_stripe_prorates_a_plan_change_itself(): void
+    public function test_a_stripe_plan_change_is_queued_for_the_period_end_so_nothing_is_prorated_or_charged_twice(): void
     {
         config([
             'payments.driver' => 'stripe',
@@ -111,17 +111,23 @@ class ProrationTest extends TestCase
         app(SubscriptionService::class)->assign($tenant, $this->plan('pro'));
         $tenant->refresh()->subscription->update(['billing_provider' => 'stripe', 'provider_subscription_id' => 'sub_pr', 'status' => 'active']);
         Http::fake([
-            'api.stripe.com/v1/subscriptions/sub_pr' => Http::response(['id' => 'sub_pr', 'items' => ['data' => [['id' => 'si_1']]]]),
+            'api.stripe.com/v1/subscriptions/sub_pr' => Http::response(['id' => 'sub_pr', 'schedule' => null, 'items' => ['data' => [['id' => 'si_1']]]]),
+            'api.stripe.com/v1/products*' => Http::response(['id' => 'prod_1']),
+            'api.stripe.com/v1/prices/*' => Http::response(['id' => 'price_old']),
             'api.stripe.com/v1/prices' => Http::response(['id' => 'price_b']),
-            'api.stripe.com/v1/customers' => Http::response(['id' => 'cus_1']),
+            'api.stripe.com/v1/customers*' => Http::response(['id' => 'cus_1']),
+            'api.stripe.com/v1/subscription_schedules' => Http::response(['id' => 'sub_sched_pr']),
+            'api.stripe.com/v1/subscription_schedules/sub_sched_pr' => Http::response(['id' => 'sub_sched_pr', 'phases' => [['start_date' => 1, 'end_date' => 2, 'items' => [['price' => 'price_a', 'quantity' => 1]]]]]),
         ]);
         $this->loginAs('admin@flowsync.test');
 
-        $this->postJson('/api/billing/checkout', ['plan_id' => $this->plan('business')->id])->assertOk()->assertJsonPath('changed', true);
+        $this->postJson('/api/billing/checkout', ['plan_id' => $this->plan('business')->id])
+            ->assertOk()->assertJsonPath('changed', true)->assertJsonPath('mode', 'scheduled');
 
-        Http::assertSent(fn (HttpRequest $r) => $r->method() === 'POST'
-            && str_ends_with($r->url(), '/subscriptions/sub_pr')
-            && ($r->data()['proration_behavior'] ?? null) === 'create_prorations');
+        // never a mid-period price swap with proration on the live subscription
+        Http::assertNotSent(fn (HttpRequest $r) => $r->method() === 'POST' && str_ends_with($r->url(), '/subscriptions/sub_pr'));
+        Http::assertSent(fn (HttpRequest $r) => str_ends_with($r->url(), '/subscription_schedules/sub_sched_pr')
+            && ($r->data()['phases[1][proration_behavior]'] ?? null) === 'none');
         $this->assertSame(0, Payment::count());
     }
 }

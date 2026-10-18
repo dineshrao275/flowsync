@@ -72,6 +72,15 @@ api.interceptors.response.use(
             window.location.href = '/app/onboarding';
         }
 
+        // Trial/subscription ended: every product call answers 402 — take the person to the page that fixes it.
+        if (
+            error.response?.status === 402 &&
+            error.response?.data?.code === 'subscription_required' &&
+            !window.location.pathname.startsWith('/app/subscription')
+        ) {
+            window.location.href = '/app/subscription';
+        }
+
         return Promise.reject(error);
     },
 );

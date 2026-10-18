@@ -946,5 +946,7 @@
     "Another billing change for your organisation is in progress. Please try again in a moment.": "Hay otro cambio de facturación de tu organización en curso. Inténtalo de nuevo en un momento.",
     "The billing provider is temporarily unavailable. Nothing was changed — please try again in a few minutes.": "El proveedor de facturación no está disponible temporalmente. No se cambió nada; inténtalo de nuevo en unos minutos.",
     "The billing provider could not complete that request. Nothing was changed; please contact support if it keeps happening.": "El proveedor de facturación no pudo completar esa solicitud. No se cambió nada; contacta con soporte si sigue ocurriendo.",
-    "This price change reaches :count paying subscription.|This price change reaches :count paying subscriptions. Confirm to email them the new amount and the date it starts.": "Este cambio de precio afecta a :count suscripción de pago.|Este cambio de precio afecta a :count suscripciones de pago. Confirma para enviarles por correo el nuevo importe y la fecha en que empieza."
+    "This price change reaches :count paying subscription.|This price change reaches :count paying subscriptions. Confirm to email them the new amount and the date it starts.": "Este cambio de precio afecta a :count suscripción de pago.|Este cambio de precio afecta a :count suscripciones de pago. Confirma para enviarles por correo el nuevo importe y la fecha en que empieza.",
+    "Stripe is not configured on this installation.": "Stripe no está configurado en esta instalación.",
+    "Plan synchronised with Stripe.": "Plan sincronizado con Stripe."
 }

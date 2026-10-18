@@ -66,6 +66,7 @@ Route::middleware('super_admin')->group(function () {
     Route::post('plans', [PlanController::class, 'store']);
     Route::put('plans/{plan}', [PlanController::class, 'update']);
     Route::delete('plans/{plan}', [PlanController::class, 'destroy']);
+    Route::post('plans/{plan}/sync', [PlanController::class, 'sync'])->middleware('throttle:20,1');
 
     Route::get('tenants/{tenant}/subscription', [TenantSubscriptionController::class, 'show']);
     Route::post('tenants/{tenant}/subscription', [TenantSubscriptionController::class, 'assign']);

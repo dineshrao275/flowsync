@@ -148,7 +148,9 @@ class StripeCatalogSyncTest extends TestCase
 
         // a tenant admin may read the active plans but not change them
         $this->loginAdmin();
-        $this->getJson('/api/plans')->assertOk();
+        $listed = $this->getJson('/api/plans')->assertOk()->json('plans.0');
+        $this->assertArrayNotHasKey('stripe_price_id', $listed);
+        $this->assertArrayNotHasKey('stripe_sync_error', $listed);
         $this->putJson("/api/plans/{$plan->id}", ['name' => 'Hacked', 'slug' => 'pro', 'price_cents' => 1])->assertForbidden();
         $this->postJson('/api/auth/logout');
 

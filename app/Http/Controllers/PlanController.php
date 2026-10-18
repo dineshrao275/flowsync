@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Billing\PriceChanges\PlanPriceChanges;
+use App\Billing\Stripe\CatalogSync;
 use App\Http\Controllers\Concerns\NormalizesBooleanInput;
 use App\Http\Controllers\Concerns\ValidatesResourceLimits;
 use App\Jobs\ArchiveStripePlan;
@@ -36,7 +37,14 @@ class PlanController extends Controller
             $query->where('is_active', true);
         }
 
-        return response()->json(['plans' => $query->get()]);
+        $plans = $query->get();
+
+        // Stripe ids and sync errors are the platform's business, not something a tenant needs to see.
+        if (! $isSuperAdmin) {
+            $plans->each->makeHidden(['stripe_product_id', 'stripe_price_id', 'stripe_price_key', 'stripe_sync_error', 'stripe_synced_at']);
+        }
+
+        return response()->json(['plans' => $plans]);
     }
 
     public function store(Request $request): JsonResponse
@@ -94,6 +102,16 @@ class PlanController extends Controller
         $this->syncToStripe($plan);
 
         return response()->json(['plan' => $plan->fresh()]);
+    }
+
+    /** Push this plan to Stripe now (the nightly job does it too): shows the result — or the error — on the plan. */
+    public function sync(SubscriptionPlan $plan, CatalogSync $catalog): JsonResponse
+    {
+        abort_unless($catalog->enabled(), 422, __('Stripe is not configured on this installation.'));
+
+        $catalog->syncPlan($plan); // a provider failure is answered as 503 and recorded on the plan
+
+        return response()->json(['plan' => $plan->fresh(), 'message' => __('Plan synchronised with Stripe.')]);
     }
 
     public function destroy(SubscriptionPlan $plan): JsonResponse

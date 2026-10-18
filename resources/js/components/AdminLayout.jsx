@@ -45,6 +45,15 @@ export default function AdminLayout() {
         }
     }, [user, location.pathname, navigate]);
 
+    // A trial or subscription that ended with no paid plan confines the session to billing (the server answers 402 for
+    // everything else); send the person where they can fix it instead of a page full of errors.
+    useEffect(() => {
+        const allowed = ['/subscription', '/support', '/security'];
+        if (user?.subscription_required && !allowed.some((p) => location.pathname === p || location.pathname.startsWith(`${p}/`))) {
+            navigate('/subscription', { replace: true });
+        }
+    }, [user, location.pathname, navigate]);
+
     // After a client-side navigation focus would otherwise stay on the link that
     // was clicked (now gone); move it to <main> so screen readers announce the
     // new page and the next Tab starts in its content. Skipped on first paint.

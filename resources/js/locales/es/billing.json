@@ -1,0 +1,37 @@
+{
+    "sub": {
+        "subscriptionRequired": "Tu prueba o suscripción ha terminado. Elige un plan para continuar; tus datos están a salvo e intactos.",
+        "pendingChangeTitle": "Cambio de plan programado.",
+        "pendingChangeBody": "Tu plan pasa de {{from}} a {{to}} el {{date}}, cuando termina el periodo de facturación actual. Conservas {{from}} hasta entonces y no se te cobrará dos veces.",
+        "keepCurrentPlan": "Mantener plan actual",
+        "changeWithdrawn": "Cambio de plan programado retirado.",
+        "priceNoticeTitle": "Cambio de precio.",
+        "priceNoticeBody": "A partir del {{date}} (tu siguiente renovación desde esa fecha) tu plan cuesta {{new}} en lugar de {{old}}. No cambia nada antes.",
+        "paymentMethods": "Métodos de pago",
+        "paymentMethodsSubtitle": "La tarjeta predeterminada se cobra en las renovaciones. Las tarjetas se guardan en la página segura del proveedor de pagos; nunca vemos el número.",
+        "addCard": "Añadir tarjeta",
+        "noCards": "Aún no hay tarjetas guardadas.",
+        "cardExpires": "Caduca {{month}}/{{year}}",
+        "defaultCard": "Predeterminada",
+        "makeDefault": "Hacer predeterminada",
+        "removeCard": "Eliminar",
+        "removeCardTitle": "¿Eliminar esta tarjeta?",
+        "removeCardMessage": "La tarjeta terminada en {{last4}} se eliminará de tu cuenta.",
+        "cardRemoved": "Tarjeta eliminada.",
+        "defaultUpdated": "Tarjeta predeterminada actualizada.",
+        "cardSaved": "Tarjeta guardada y establecida como predeterminada.",
+        "cardSetupCanceled": "Se canceló la configuración de la tarjeta.",
+        "thReceipt": "Recibo",
+        "viewReceipt": "Ver"
+    },
+    "plan": {
+        "priceChangeTitle": "¿Subir el precio a los suscriptores actuales?",
+        "priceChangeMessage": "Este cambio afecta a {{count}} suscripción(es) de pago. A cada una se le enviará por correo el nuevo importe y la fecha en que empieza: su primera renovación al menos {{days}} días a partir de hoy. Los clientes nuevos pagan el precio nuevo de inmediato.",
+        "synced": "Plan sincronizado con Stripe.",
+        "syncFailed": "Falló la sincronización con Stripe: consulta el estado del plan.",
+        "stripeError": "Falló la sincronización con Stripe",
+        "stripeSynced": "Sincronizado con Stripe",
+        "stripeNotSynced": "Aún no sincronizado con Stripe",
+        "syncStripe": "Sincronizar"
+    }
+}

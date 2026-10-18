@@ -7,6 +7,7 @@ import { useToast } from '../context/ToastContext';
 import { useConfirm } from '../components/ui/ConfirmDialog';
 import usePageTitle from '../hooks/usePageTitle';
 import Badge from '../components/ui/Badge';
+import PaymentMethodsPanel from '../components/billing/PaymentMethodsPanel';
 import ContentSkeleton from '../components/ui/ContentSkeleton';
 import Alert from '../components/ui/Alert';
 import Button from '../components/ui/Button';
@@ -89,6 +90,8 @@ export default function Subscription() {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
     const [action, setAction] = useState(null);
+    const [billing, setBilling] = useState(null);
+    const [cardsKey, setCardsKey] = useState(0);
 
     // Mirrors MySubscriptionController::authorizeAdmin exactly: the admin ROLE
     // OR the `billing.manage` grant. Keying off the role alone hid every
@@ -110,6 +113,7 @@ export default function Subscription() {
             setSubscription(subRes.data.subscription);
             setSubscriptions(subRes.data.subscriptions || []);
             setTenant(subRes.data.tenant);
+            setBilling(subRes.data.billing || null);
             setEvents(subRes.data.events || []);
             setUsage({
                 ...(usageRes.data.usage || {}),
@@ -138,6 +142,22 @@ export default function Subscription() {
     const [searchParams, setSearchParams] = useSearchParams();
     const handledReturn = useRef(false);
     useEffect(() => {
+        // Back from the provider's hosted "add a card" page: confirm the session, make that card the default.
+        const cardSession = searchParams.get('card_session');
+        if (cardSession && !handledReturn.current) {
+            handledReturn.current = true;
+            api.post('/billing/payment-methods/complete', { session_id: cardSession })
+                .then(() => { toast.success(t('billing.sub.cardSaved')); setCardsKey((k) => k + 1); })
+                .catch((e) => toast.error(fieldErrors(e).session_id || e.response?.data?.message || t('admin.subscription.somethingWrong')))
+                .finally(() => setSearchParams({}, { replace: true }));
+            return;
+        }
+        if (searchParams.get('card_setup') === 'canceled' && !handledReturn.current) {
+            handledReturn.current = true;
+            toast.info(t('billing.sub.cardSetupCanceled'));
+            setSearchParams({}, { replace: true });
+            return;
+        }
         const status = searchParams.get('status');
         if (!status || handledReturn.current) return;
         handledReturn.current = true;
@@ -179,8 +199,8 @@ export default function Subscription() {
     async function run(fn, successMessage) {
         setAction(true);
         try {
-            await fn();
-            toast.success(successMessage);
+            const res = await fn();
+            toast.success(res?.data?.message || successMessage);
             await load();
         } catch (e) {
             toast.error(fieldErrors(e).form || fieldErrors(e).message || t('admin.subscription.somethingWrong'));
@@ -220,6 +240,10 @@ export default function Subscription() {
         await run(() => api.post('/my-subscription/cancel', product ? { product } : {}), t('admin.subscription.canceled'));
     }
 
+    async function withdrawChange(product) {
+        await run(() => api.delete('/my-subscription/pending-change', { data: product ? { product } : {} }), t('billing.sub.changeWithdrawn'));
+    }
+
     async function renew(product) {
         await run(() => api.post('/my-subscription/renew', product ? { product } : {}), t('admin.subscription.renewed'));
     }
@@ -257,6 +281,32 @@ export default function Subscription() {
                     {t('admin.subscription.subtitle', { name: tenant?.name || t('admin.subscription.subtitleFallback') })}
                 </p>
             </div>
+
+
+            {billing?.subscription_required && (
+                <Alert tone="warning">{t('billing.sub.subscriptionRequired')}</Alert>
+            )}
+            {subscriptions.filter((s) => s.pending_change).map((s) => (
+                <Alert key={`pending-${s.id}`} tone="info">
+                    <div className="flex flex-wrap items-center justify-between gap-3">
+                        <span>
+                            <strong>{t('billing.sub.pendingChangeTitle')}</strong>{' '}
+                            {t('billing.sub.pendingChangeBody', { from: s.plan?.name, to: s.pending_change.plan?.name, date: formatDate(s.pending_change.effective_at) })}
+                        </span>
+                        {canManage && <Button size="sm" variant="secondary" loading={action} onClick={() => withdrawChange(s.product)}>{t('billing.sub.keepCurrentPlan')}</Button>}
+                    </div>
+                </Alert>
+            ))}
+            {subscriptions.filter((s) => s.price_notice).map((s) => (
+                <Alert key={`price-${s.id}`} tone="info">
+                    <strong>{t('billing.sub.priceNoticeTitle')}</strong>{' '}
+                    {t('billing.sub.priceNoticeBody', {
+                        date: formatDate(s.price_notice.effective_at),
+                        old: `${s.price_notice.currency} ${(s.price_notice.old_amount_cents / 100).toFixed(2)}`,
+                        new: `${s.price_notice.currency} ${(s.price_notice.new_amount_cents / 100).toFixed(2)}`,
+                    })}
+                </Alert>
+            ))}
 
             <section>
                 <h3 className="mb-2 text-sm font-semibold text-gray-900">{t('admin.subscription.sectionCurrentPlan')}</h3>
@@ -493,6 +543,8 @@ export default function Subscription() {
                 </section>
             )}
 
+            <PaymentMethodsPanel canManage={canManage} reloadKey={cardsKey} />
+
             {/* P6.1: invoices, each downloadable as a PDF */}
             <section>
                 <h3 className="mb-2 text-sm font-semibold text-gray-900">{t('admin.subscription.invoices')}</h3>
@@ -509,6 +561,7 @@ export default function Subscription() {
                                 <Th>{t('admin.subscription.thStatus')}</Th>
                                 <Th>{t('admin.subscription.thIssued')}</Th>
                                 <Th align="right">{t('admin.subscription.thPdf')}</Th>
+                                <Th align="right">{t('billing.sub.thReceipt')}</Th>
                             </tr>
                         </thead>
                         <tbody>
@@ -527,6 +580,13 @@ export default function Subscription() {
                                         >
                                             {t('admin.subscription.download')}
                                         </a>
+                                    </Td>
+                                    <Td align="right">
+                                        {inv.hosted_invoice_url ? (
+                                            <a href={inv.hosted_invoice_url} target="_blank" rel="noopener noreferrer" className="text-xs font-medium text-[var(--accent-soft-text)] hover:underline">
+                                                {t('billing.sub.viewReceipt')}
+                                            </a>
+                                        ) : <span className="text-xs text-gray-400">—</span>}
                                     </Td>
                                 </tr>
                             ))}
