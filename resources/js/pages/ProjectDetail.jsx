@@ -778,7 +778,7 @@ export default function ProjectDetail() {
 
             {tab === 'tasks' && (
                 <div className="space-y-5">
-                    <div className="flex flex-wrap items-center justify-between gap-3">
+                    <div className="flex flex-wrap items-center gap-3">
                         <div className="flex items-center gap-3">
                             <div className="flex rounded-lg border border-gray-300 p-0.5">
                                 <button
@@ -839,7 +839,19 @@ export default function ProjectDetail() {
                             )}
                             {loadingTasks && <Spinner className="h-5 w-5" />}
                         </div>
-                        <div className="flex items-center gap-2">
+
+                <FiltersBar
+                    filters={filters}
+                    options={{ ...taskOptions, sprints: hasModule('sprints'), savedFilters: hasModule('saved_filters'), jql: hasModule('jql') }}
+                    jqlError={jqlError}
+                    projectId={projectId}
+                    canShareFilters={isProjectManager}
+                    onChange={(next) => {
+                        setFilters(next);
+                        setPage(1);
+                    }}
+                />
+                        <div className="ml-auto flex items-center gap-2">
                             {view === 'board' && (
                                 <Button type="button" variant="secondary" onClick={() => setShowColumns(true)}>
                                     <Icon as={Columns} size="sm" className="mr-1.5" />
@@ -854,20 +866,6 @@ export default function ProjectDetail() {
                             )}
                         </div>
                     </div>
-
-                    <Card>
-                        <FiltersBar
-                            filters={filters}
-                            options={{ ...taskOptions, sprints: hasModule('sprints'), savedFilters: hasModule('saved_filters'), jql: hasModule('jql') }}
-                            jqlError={jqlError}
-                            projectId={projectId}
-                            canShareFilters={isProjectManager}
-                            onChange={(next) => {
-                                setFilters(next);
-                                setPage(1);
-                            }}
-                        />
-                    </Card>
 
                     {tasksError ? (
                         <Alert>{tasksError}</Alert>

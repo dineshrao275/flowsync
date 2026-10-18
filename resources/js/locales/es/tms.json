@@ -441,7 +441,8 @@
         "clear": "Borrar",
         "jql": "Búsqueda avanzada",
         "jqlPlaceholder": "status = \"In Progress\" AND assignee = currentUser() ORDER BY due",
-        "jqlHelp": "Pulsa Intro para ejecutar. Campos: status, assignee, priority, type, label, due, created, title, text, cf.<campo> …"
+        "jqlHelp": "Pulsa Intro para ejecutar. Campos: status, assignee, priority, type, label, due, created, title, text, cf.<campo> …",
+        "done": "Listo"
     },
     "projectsList": {
         "pageTitle": "Proyectos",

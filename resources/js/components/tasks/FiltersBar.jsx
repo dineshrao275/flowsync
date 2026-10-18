@@ -1,10 +1,11 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Funnel, X } from '@phosphor-icons/react';
 import Icon from '../ui/Icon';
 import { fieldClassCompact } from '../ui/fieldStyles';
 import Button from '../ui/Button';
 import Input from '../ui/Input';
+import FloatingPanel from '../ui/FloatingPanel';
 import SavedFilters from './SavedFilters';
 
 function JqlBox({ value, error, onCommit }) {
@@ -48,13 +49,31 @@ export default function FiltersBar({ filters, options, onChange, projectId = nul
     }
 
     const [open, setOpen] = useState(false);
+    const anchorRef = useRef(null);
+    const panelRef = useRef(null);
+
+    // The panel floats over the board, so close it on an outside press or Escape.
+    useEffect(() => {
+        if (!open) return undefined;
+        const onDown = (e) => {
+            const inCalendar = e.target.closest?.('.react-datepicker-popper');
+            if (!anchorRef.current?.contains(e.target) && !panelRef.current?.contains(e.target) && !inCalendar) setOpen(false);
+        };
+        const onKey = (e) => { if (e.key === 'Escape') setOpen(false); };
+        document.addEventListener('mousedown', onDown);
+        document.addEventListener('keydown', onKey);
+        return () => {
+            document.removeEventListener('mousedown', onDown);
+            document.removeEventListener('keydown', onKey);
+        };
+    }, [open]);
+
     const activeCount = Object.entries(filters).filter(([key, value]) => key !== 'q' && value !== '' && value != null).length;
     const hasAny = activeCount > 0 || Boolean(filters.q);
 
     return (
-        <div className="space-y-3">
-        <div className="flex flex-wrap items-center gap-2">
-            <div className="w-full sm:w-72">
+        <div ref={anchorRef} className="flex min-w-0 flex-1 flex-wrap items-center gap-2">
+            <div className="w-full sm:w-64">
                 <label htmlFor="filter-q" className="sr-only">{t('tms.filters.search')}</label>
                 <input
                     id="filter-q"
@@ -91,10 +110,16 @@ export default function FiltersBar({ filters, options, onChange, projectId = nul
                     {t('tms.filters.clear')}
                 </Button>
             )}
-        </div>
         {open && (
-        <div id="task-filter-panel" className="flex flex-wrap items-end gap-3 rounded-lg border border-line bg-surface p-3">
-            {options.jql && <JqlBox value={filters.jql} error={jqlError} onCommit={(v) => set('jql', v)} />}
+        <FloatingPanel
+            ref={panelRef}
+            anchorRef={anchorRef}
+            align="left"
+            id="task-filter-panel"
+            className="max-h-[75vh] w-[min(44rem,calc(100vw-1.5rem))] overflow-y-auto rounded-xl border border-line bg-surface p-4 shadow-popover animate-scale-in"
+        >
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 [&_select]:w-full [&_input]:w-full">
+            {options.jql && <div className="sm:col-span-2 lg:col-span-3"><JqlBox value={filters.jql} error={jqlError} onCommit={(v) => set('jql', v)} /></div>}
             <div>
                 <label htmlFor="filter-status" className="mb-1 block text-xs font-medium text-gray-600">{t('tms.filters.status')}</label>
                 <select id="filter-status" className={fieldClassCompact} value={filters.status_id || ''} onChange={(e) => set('status_id', e.target.value)}>
@@ -206,7 +231,12 @@ export default function FiltersBar({ filters, options, onChange, projectId = nul
                 value={filters.due_to || ''}
                 onChange={(e) => set('due_to', e.target.value)}
             />
-        </div>
+          </div>
+          <div className="mt-3 flex justify-end gap-2 border-t border-line pt-3">
+            {hasAny && <Button type="button" size="sm" variant="ghost" onClick={clear}>{t('tms.filters.clear')}</Button>}
+            <Button type="button" size="sm" onClick={() => setOpen(false)}>{t('tms.filters.done')}</Button>
+          </div>
+        </FloatingPanel>
         )}
         </div>
     );
