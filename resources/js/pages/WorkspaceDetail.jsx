@@ -328,7 +328,7 @@ export default function WorkspaceDetail() {
                             {archived && <Badge>{t('tms.workspaceDetail.archivedBadge')}</Badge>}
                         </div>
                         {workspace.description ? (
-                            <RichText value={workspace.description} className="mt-1 text-gray-500" />
+                            <RichText value={workspace.description} className="mt-1 max-h-24 max-w-3xl overflow-y-auto break-words text-gray-500 [overflow-wrap:anywhere]" />
                         ) : (
                             <p className="mt-1 text-sm text-gray-500">{t('tms.workspaceDetail.noDescription')}</p>
                         )}

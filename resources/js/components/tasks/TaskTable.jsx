@@ -49,8 +49,8 @@ export default function TaskTable({ tasks, canEdit, onOpen }) {
                                 )}
                             </td>
                             <td className="px-4 py-3">
-                                <div className="flex flex-wrap items-center gap-2">
-                                    <span className={`font-medium text-gray-900 ${task.completed_at ? 'line-through opacity-60' : ''}`}>
+                                <div className="flex min-w-0 max-w-xl flex-wrap items-center gap-2">
+                                    <span title={task.title} className={`line-clamp-2 min-w-0 break-words font-medium text-gray-900 [overflow-wrap:anywhere] ${task.completed_at ? 'line-through opacity-60' : ''}`}>
                                         {task.title}
                                     </span>
                                     {task.subtasks_count > 0 && (

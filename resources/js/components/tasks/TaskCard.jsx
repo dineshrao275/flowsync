@@ -26,7 +26,7 @@ function formatDue(date, t) {
 }
 
 export const CARD_CLASS =
-    'group cursor-pointer rounded-lg border border-gray-200 bg-white px-3 py-2.5 shadow-sm transition hover:border-[var(--accent-ring)] hover:shadow-md active:z-10';
+    'group min-w-0 cursor-pointer overflow-hidden rounded-lg border border-gray-200 bg-white px-3 py-2.5 shadow-sm transition hover:border-[var(--accent-ring)] hover:shadow-md active:z-10';
 
 /** The card's content, shared by the sortable card and the drag overlay. */
 export function TaskCardBody({ task, compact = false }) {
@@ -36,10 +36,10 @@ export function TaskCardBody({ task, compact = false }) {
     return (
         <>
             <div className="flex items-start justify-between gap-2">
-                <div className="flex items-center gap-1.5 flex-wrap">
+                <div className="flex min-w-0 flex-1 flex-wrap items-center gap-1.5">
                     {task.issue_type && (
                         <span
-                            className="inline-flex items-center rounded px-1.5 py-0.5 text-xs font-semibold"
+                            className="inline-flex max-w-[9rem] items-center truncate rounded px-1.5 py-0.5 text-xs font-semibold"
                             style={{
                                 backgroundColor: `${task.issue_type.color || '#2563eb'}18`,
                                 color: task.issue_type.color || '#2563eb',
@@ -71,18 +71,21 @@ export function TaskCardBody({ task, compact = false }) {
                     )}
                 </div>
             </div>
-            <p className={`mt-1 text-sm font-medium leading-snug text-gray-900 ${task.completed_at ? 'line-through opacity-60' : ''}`}>
+            <p
+                title={task.title}
+                className={`mt-1 line-clamp-3 break-words text-sm font-medium leading-snug text-gray-900 [overflow-wrap:anywhere] ${task.completed_at ? 'line-through opacity-60' : ''}`}
+            >
                 {task.title}
             </p>
             {!compact && (task.version || task.components?.length > 0) && (
                 <div className="mt-1.5 flex flex-wrap gap-1">
                     {task.version && (
-                        <span className="rounded bg-purple-50 px-1.5 py-0.5 text-xs font-medium text-purple-700">
+                        <span className="max-w-full truncate rounded bg-purple-50 px-1.5 py-0.5 text-xs font-medium text-purple-700" title={task.version.name}>
                             {task.version.name}
                         </span>
                     )}
                     {task.components?.map((c) => (
-                        <span key={c.id} className="rounded bg-blue-50 px-1.5 py-0.5 text-xs font-medium text-blue-700">
+                        <span key={c.id} className="max-w-full truncate rounded bg-blue-50 px-1.5 py-0.5 text-xs font-medium text-blue-700" title={c.name}>
                             {c.name}
                         </span>
                     ))}
@@ -93,7 +96,8 @@ export function TaskCardBody({ task, compact = false }) {
                     {task.labels.map((label) => (
                         <span
                             key={label.id}
-                            className="rounded-full px-2 py-0.5 text-xs font-medium"
+                            className="max-w-full truncate rounded-full px-2 py-0.5 text-xs font-medium"
+                            title={label.name}
                             style={{ backgroundColor: `${label.color || '#e2e8f0'}22`, color: label.color || '#475569' }}
                         >
                             {label.name}

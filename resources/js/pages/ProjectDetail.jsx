@@ -748,7 +748,7 @@ export default function ProjectDetail() {
                             {archived && <Badge>{t('tms.project.archivedBadge')}</Badge>}
                         </div>
                         {project.description ? (
-                            <RichText value={project.description} className="mt-1 text-gray-500" />
+                            <RichText value={project.description} className="mt-1 max-h-24 max-w-3xl overflow-y-auto break-words text-gray-500 [overflow-wrap:anywhere]" />
                         ) : (
                             <p className="mt-1 text-sm text-gray-500">{t('tms.project.noDescription')}</p>
                         )}
