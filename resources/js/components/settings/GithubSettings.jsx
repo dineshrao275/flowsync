@@ -4,7 +4,7 @@ import api from '../../services/api';
 import { useToast } from '../../context/ToastContext';
 import Card from '../ui/Card';
 import Button from '../ui/Button';
-import Spinner from '../ui/Spinner';
+import ContentSkeleton from '../ui/ContentSkeleton';
 
 /** Link GitHub pull requests and commits to tasks by key (ABC-123). The signing secret is shown once. */
 export default function GithubSettings() {
@@ -23,7 +23,7 @@ export default function GithubSettings() {
     }
 
     if (state === false) return null;
-    if (!state) return <Card><div className="flex justify-center py-6"><Spinner /></div></Card>;
+    if (!state) return <Card><ContentSkeleton size="sm" /></Card>;
 
     return (
         <Card title={t('admin.github.title')} subtitle={t('admin.github.subtitle')}>

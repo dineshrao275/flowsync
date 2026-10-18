@@ -1,7 +1,7 @@
 import { useTranslation } from 'react-i18next';
 import Button from '../ui/Button';
 import Card from '../ui/Card';
-import Spinner from '../ui/Spinner';
+import ContentSkeleton from '../ui/ContentSkeleton';
 import i18n, { intlTag } from '../../i18n';
 
 function clockTime(iso) {
@@ -31,9 +31,7 @@ export default function ClockInWidget({ today, punching, onPunch, allowPunch = t
     if (!today) {
         return (
             <Card title={t('hrms.clock.title')}>
-                <div className="flex justify-center py-6">
-                    <Spinner />
-                </div>
+                <ContentSkeleton size="sm" />
             </Card>
         );
     }

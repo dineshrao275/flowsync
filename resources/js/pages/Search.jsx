@@ -5,7 +5,7 @@ import api from '../services/api';
 import Button from '../components/ui/Button';
 import Input from '../components/ui/Input';
 import Pagination from '../components/ui/Pagination';
-import Spinner from '../components/ui/Spinner';
+import ContentSkeleton from '../components/ui/ContentSkeleton';
 import { Table, Th, Td, TableEmpty } from '../components/ui/Table';
 import { useSetCrumbs } from '../context/BreadcrumbContext';
 import { fieldClass } from '../components/ui/fieldStyles';
@@ -193,7 +193,7 @@ export default function Search() {
                     {loading && data == null ? (
                         <tr>
                             <Td colSpan={7} className="py-12 text-center">
-                                <Spinner />
+                                <ContentSkeleton size="sm" />
                             </Td>
                         </tr>
                     ) : tasks.length === 0 ? (

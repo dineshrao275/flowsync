@@ -6,7 +6,7 @@ import Badge from '../components/ui/Badge';
 import Button from '../components/ui/Button';
 import Input from '../components/ui/Input';
 import Modal from '../components/ui/Modal';
-import Spinner from '../components/ui/Spinner';
+import ContentSkeleton from '../components/ui/ContentSkeleton';
 import Pagination from '../components/ui/Pagination';
 import RichTextEditor from '../components/ui/RichTextEditor';
 import MediaPicker from '../components/cms/MediaPicker';
@@ -272,7 +272,7 @@ export default function BlogPosts() {
                     </div>
                 </div>
                 {loading ? (
-                    <Spinner />
+                    <ContentSkeleton size="sm" />
                 ) : (
                     <div className="overflow-x-auto"><table className="w-full text-left text-sm">
                         <thead className="text-xs uppercase tracking-wide text-gray-400">

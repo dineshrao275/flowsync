@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import api from '../services/api';
-import Spinner from './ui/Spinner';
+import ContentSkeleton from './ui/ContentSkeleton';
 import { Bell, Users } from '@phosphor-icons/react';
 import { useNotifications } from '../context/NotificationContext';
 import { useClickOutside } from '../hooks/useClickOutside';
@@ -66,9 +66,7 @@ export default function NotificationBell() {
 
                     <div className="max-h-96 overflow-y-auto">
                         {notifications === null ? (
-                            <div className="flex justify-center py-10">
-                                <Spinner />
-                            </div>
+                            <ContentSkeleton size="md" />
                         ) : notifications.length === 0 ? (
                             <p className="px-4 py-10 text-center text-sm text-gray-400">{t('notifications.caughtUp')}</p>
                         ) : (

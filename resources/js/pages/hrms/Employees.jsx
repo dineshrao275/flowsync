@@ -8,7 +8,7 @@ import Button from '../../components/ui/Button';
 import Input from '../../components/ui/Input';
 import Pagination from '../../components/ui/Pagination';
 import Select from '../../components/ui/Select';
-import Spinner from '../../components/ui/Spinner';
+import ContentSkeleton from '../../components/ui/ContentSkeleton';
 import { Table, Th, Td, TableEmpty } from '../../components/ui/Table';
 import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
@@ -273,7 +273,7 @@ export default function Employees() {
                     {rows === null ? (
                         <tr>
                             <Td colSpan={COLUMNS.length} className="py-12 text-center">
-                                <Spinner />
+                                <ContentSkeleton size="sm" />
                             </Td>
                         </tr>
                     ) : rows.length === 0 ? (

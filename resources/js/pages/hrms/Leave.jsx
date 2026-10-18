@@ -9,7 +9,7 @@ import EmptyState from '../../components/ui/EmptyState';
 import Input from '../../components/ui/Input';
 import Modal from '../../components/ui/Modal';
 import Select from '../../components/ui/Select';
-import Spinner from '../../components/ui/Spinner';
+import ContentSkeleton from '../../components/ui/ContentSkeleton';
 import { Table, Th, Td, TableEmpty } from '../../components/ui/Table';
 import { useToast } from '../../context/ToastContext';
 import { useConfirm, usePrompt } from '../../components/ui/ConfirmDialog';
@@ -390,7 +390,7 @@ export default function Leave() {
                     </div>
 
                     {!requests ? (
-                        <div className="flex justify-center py-10"><Spinner /></div>
+                        <ContentSkeleton size="md" />
                     ) : requests.length === 0 ? (
                         <EmptyState title={t('hrms.leave.emptyTitle')} description={t('hrms.leave.emptyHint')} />
                     ) : (
@@ -440,7 +440,7 @@ export default function Leave() {
                     actions={<Button onClick={() => openTypeEditor(null)}>{t('hrms.leave.newType')}</Button>}
                 >
                     {!types ? (
-                        <div className="flex justify-center py-10"><Spinner /></div>
+                        <ContentSkeleton size="md" />
                     ) : (
                         <Table>
                             <thead>
@@ -484,7 +484,7 @@ export default function Leave() {
                     actions={<Button onClick={() => openPolicyEditor(null)}>{t('hrms.leave.newPolicy')}</Button>}
                 >
                     {!policies ? (
-                        <div className="flex justify-center py-10"><Spinner /></div>
+                        <ContentSkeleton size="md" />
                     ) : (
                         <Table>
                             <thead>
@@ -535,7 +535,7 @@ export default function Leave() {
                     {!balanceEmployee ? (
                         <EmptyState title={t('hrms.leave.noEmployee')} description={t('hrms.leave.noEmployeeHint')} />
                     ) : !balances ? (
-                        <div className="flex justify-center py-10"><Spinner /></div>
+                        <ContentSkeleton size="md" />
                     ) : (
                         <LeaveBalanceTable balances={balances} />
                     )}
@@ -560,7 +560,7 @@ export default function Leave() {
                     </div>
                     <Card dense title={t('hrms.leave.exemptionsTitle')}>
                     {!exemptions ? (
-                        <div className="flex justify-center py-10"><Spinner /></div>
+                        <ContentSkeleton size="md" />
                     ) : exemptions.length === 0 ? (
                         <EmptyState title={t('hrms.leave.exemptionsEmptyTitle')} description={t('hrms.leave.exemptionsEmptyHint')} />
                     ) : (

@@ -5,7 +5,7 @@ import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
 import api, { fieldErrors } from '../../services/api';
 import AuthShell from '../../components/ui/AuthShell';
-import Spinner from '../../components/ui/Spinner';
+import ContentSkeleton from '../../components/ui/ContentSkeleton';
 import IntakeWizard from '../../components/tenant/IntakeWizard';
 import usePageTitle from '../../hooks/usePageTitle';
 
@@ -107,7 +107,7 @@ export default function Register() {
             {closed ? (
                 <p className="text-sm text-slate-600">{t('auth.register.closed')}</p>
             ) : !options ? (
-                <div className="flex justify-center py-10"><Spinner /></div>
+                <ContentSkeleton size="md" />
             ) : (
                 <>
                 {canceledCard && <p className="mb-3 text-sm text-amber-700">{t('auth.register.cardCanceled')}</p>}

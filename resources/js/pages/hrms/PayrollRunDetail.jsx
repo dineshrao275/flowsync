@@ -9,7 +9,7 @@ import EmptyState from '../../components/ui/EmptyState';
 import Input from '../../components/ui/Input';
 import Modal from '../../components/ui/Modal';
 import Select from '../../components/ui/Select';
-import Spinner from '../../components/ui/Spinner';
+import ContentSkeleton from '../../components/ui/ContentSkeleton';
 import { Table, Th, Td } from '../../components/ui/Table';
 import { useToast } from '../../context/ToastContext';
 import { useConfirm } from '../../components/ui/ConfirmDialog';
@@ -157,7 +157,7 @@ export default function PayrollRunDetail() {
             {error && <Alert>{error}</Alert>}
 
             {!payslips ? (
-                <div className="flex justify-center py-10"><Spinner /></div>
+                <ContentSkeleton size="md" />
             ) : payslips.length === 0 ? (
                 <EmptyState title={t('hrms.payrollRun.emptyTitle')} hint={t('hrms.payrollRun.emptyHint')} />
             ) : (

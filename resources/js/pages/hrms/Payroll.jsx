@@ -9,7 +9,7 @@ import EmptyState from '../../components/ui/EmptyState';
 import Input from '../../components/ui/Input';
 import { usePrompt } from '../../components/ui/ConfirmDialog';
 import Modal from '../../components/ui/Modal';
-import Spinner from '../../components/ui/Spinner';
+import ContentSkeleton from '../../components/ui/ContentSkeleton';
 import { Table, Th, Td } from '../../components/ui/Table';
 import { useToast } from '../../context/ToastContext';
 import { useSetCrumbs } from '../../context/BreadcrumbContext';
@@ -170,7 +170,7 @@ export default function Payroll() {
             {error && <Alert>{error}</Alert>}
 
             {!runs ? (
-                <div className="flex justify-center py-10"><Spinner /></div>
+                <ContentSkeleton size="md" />
             ) : runs.length === 0 ? (
                 <EmptyState title={t('hrms.payroll.emptyTitle')} hint={t('hrms.payroll.emptyHint')} />
             ) : (

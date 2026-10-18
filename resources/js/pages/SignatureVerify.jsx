@@ -3,7 +3,7 @@ import { useParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import api from '../services/api';
 import usePageTitle from '../hooks/usePageTitle';
-import Spinner from '../components/ui/Spinner';
+import ContentSkeleton from '../components/ui/ContentSkeleton';
 import Badge from '../components/ui/Badge';
 import { formatDateTime } from '../utils/format';
 
@@ -18,7 +18,7 @@ export default function SignatureVerify() {
         api.get(`/signatures/verify/${encodeURIComponent(code)}`).then(({ data }) => setResult(data)).catch(() => setResult({ found: false }));
     }, [code]);
 
-    if (!result) return <div className="flex justify-center py-16"><Spinner /></div>;
+    if (!result) return <ContentSkeleton size="lg" />;
 
     return (
         <main className="mx-auto max-w-lg px-4 py-16">

@@ -7,7 +7,7 @@ import Badge from '../components/ui/Badge';
 import Modal from '../components/ui/Modal';
 import Input from '../components/ui/Input';
 import Switch from '../components/ui/Switch';
-import Spinner from '../components/ui/Spinner';
+import ContentSkeleton from '../components/ui/ContentSkeleton';
 import { Table, Th, Td } from '../components/ui/Table';
 import { fieldClass } from '../components/ui/fieldStyles';
 import { useToast } from '../context/ToastContext';
@@ -109,7 +109,7 @@ export default function CustomFields() {
             </div>
 
             <Card>
-                {!fields ? <div className="flex justify-center py-8"><Spinner /></div> : fields.length === 0 ? (
+                {!fields ? <ContentSkeleton size="md" /> : fields.length === 0 ? (
                     <p className="py-8 text-center text-sm text-gray-500">{t('admin.customFields.empty', { entity: t(`admin.customFields.entity.${entity}`).toLowerCase() })}</p>
                 ) : (
                     <Table>

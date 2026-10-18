@@ -7,7 +7,7 @@ import Button from '../../components/ui/Button';
 import Card from '../../components/ui/Card';
 import EmptyState from '../../components/ui/EmptyState';
 import Input from '../../components/ui/Input';
-import Spinner from '../../components/ui/Spinner';
+import ContentSkeleton from '../../components/ui/ContentSkeleton';
 import { Table, Th, Td } from '../../components/ui/Table';
 import { useSetCrumbs } from '../../context/BreadcrumbContext';
 import usePageTitle from '../../hooks/usePageTitle';
@@ -81,7 +81,7 @@ export default function MyTeam() {
             </Card>
 
             {!reports ? (
-                <div className="flex justify-center py-10"><Spinner /></div>
+                <ContentSkeleton size="md" />
             ) : reports.length === 0 ? (
                 <EmptyState title={t('hrms.team.emptyTitle')} hint={t('hrms.team.emptyHint')} />
             ) : (

@@ -9,7 +9,7 @@ import Input from '../../components/ui/Input';
 import Modal from '../../components/ui/Modal';
 import Pagination from '../../components/ui/Pagination';
 import Select from '../../components/ui/Select';
-import Spinner from '../../components/ui/Spinner';
+import ContentSkeleton from '../../components/ui/ContentSkeleton';
 import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
 import { useConfirm, usePrompt } from '../../components/ui/ConfirmDialog';
@@ -255,9 +255,7 @@ export default function Documents() {
             </div>
 
             {!rows ? (
-                <div className="flex justify-center py-10">
-                    <Spinner />
-                </div>
+                <ContentSkeleton size="md" />
             ) : (
                 <>
                     <DocumentList

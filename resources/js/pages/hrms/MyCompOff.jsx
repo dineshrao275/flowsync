@@ -8,7 +8,7 @@ import Card from '../../components/ui/Card';
 import EmptyState from '../../components/ui/EmptyState';
 import Input from '../../components/ui/Input';
 import Modal from '../../components/ui/Modal';
-import Spinner from '../../components/ui/Spinner';
+import ContentSkeleton from '../../components/ui/ContentSkeleton';
 import { Table, Th, Td } from '../../components/ui/Table';
 import { useToast } from '../../context/ToastContext';
 import { useSetCrumbs } from '../../context/BreadcrumbContext';
@@ -124,21 +124,21 @@ export default function MyCompOff() {
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
                 <Card title={t('hrms.compMine.free')} dense>
                     {!bank ? (
-                        <div className="flex justify-center py-4"><Spinner /></div>
+                        <ContentSkeleton size="sm" />
                     ) : (
                         <p className="text-2xl font-semibold text-gray-900">{formatMinutes(bank.balance_minutes)}</p>
                     )}
                 </Card>
                 <Card title={t('hrms.compMine.expiring')} dense>
                     {!bank ? (
-                        <div className="flex justify-center py-4"><Spinner /></div>
+                        <ContentSkeleton size="sm" />
                     ) : (
                         <p className="text-2xl font-semibold text-amber-600">{formatMinutes(bank.expiring_minutes)}</p>
                     )}
                 </Card>
                 <Card title={t('hrms.compMine.expired')} dense>
                     {!bank ? (
-                        <div className="flex justify-center py-4"><Spinner /></div>
+                        <ContentSkeleton size="sm" />
                     ) : (
                         <p className="text-2xl font-semibold text-gray-400">{formatMinutes(bank.expired_minutes)}</p>
                     )}
@@ -147,7 +147,7 @@ export default function MyCompOff() {
 
             <Card title={t('hrms.compMine.banked')} dense>
                 {!bank ? (
-                    <div className="flex justify-center py-6"><Spinner /></div>
+                    <ContentSkeleton size="sm" />
                 ) : bank.credits.length === 0 ? (
                     <EmptyState title={t('hrms.compMine.emptyBank')} description={t('hrms.compMine.emptyBankHint')} />
                 ) : (
@@ -176,7 +176,7 @@ export default function MyCompOff() {
 
             <Card title={t('hrms.compMine.history')} dense>
                 {!requests ? (
-                    <div className="flex justify-center py-6"><Spinner /></div>
+                    <ContentSkeleton size="sm" />
                 ) : requests.length === 0 ? (
                     <EmptyState title={t('hrms.compMine.historyEmpty')} description={t('hrms.compMine.historyHint')} />
                 ) : (

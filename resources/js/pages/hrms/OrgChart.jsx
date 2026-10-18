@@ -4,7 +4,7 @@ import api from '../../services/api';
 import usePageTitle from '../../hooks/usePageTitle';
 import Card from '../../components/ui/Card';
 import Input from '../../components/ui/Input';
-import Spinner from '../../components/ui/Spinner';
+import ContentSkeleton from '../../components/ui/ContentSkeleton';
 import Alert from '../../components/ui/Alert';
 import Avatar from '../../components/ui/Avatar';
 
@@ -72,7 +72,7 @@ export default function OrgChart() {
     }
 
     if (error) return <Alert>{error}</Alert>;
-    if (!data) return <div className="flex justify-center py-12"><Spinner /></div>;
+    if (!data) return <ContentSkeleton size="lg" />;
 
     return (
         <div className="space-y-6">

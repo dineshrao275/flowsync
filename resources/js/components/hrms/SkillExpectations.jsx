@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next';
 import api from '../../services/api';
 import { useToast } from '../../context/ToastContext';
 import Button from '../ui/Button';
-import Spinner from '../ui/Spinner';
+import ContentSkeleton from '../ui/ContentSkeleton';
 import { fieldClass } from '../ui/fieldStyles';
 
 /** Talent managers: pick a designation, then the level it is expected to hold in each skill. */
@@ -34,7 +34,7 @@ export default function SkillExpectations({ skills }) {
         load();
     }
 
-    if (!designations) return <div className="flex justify-center py-8"><Spinner /></div>;
+    if (!designations) return <ContentSkeleton size="md" />;
 
     return (
         <div className="space-y-4">

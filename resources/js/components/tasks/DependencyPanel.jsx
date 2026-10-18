@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next';
 import api, { fieldErrors } from '../../services/api';
 import Badge from '../ui/Badge';
 import Alert from '../ui/Alert';
-import Spinner from '../ui/Spinner';
+import ContentSkeleton from '../ui/ContentSkeleton';
 import Button from '../ui/Button';
 import { useConfirm } from '../ui/ConfirmDialog';
 
@@ -67,9 +67,7 @@ export default function DependencyPanel({ task, projectId, canManage, allTasks }
 
     if (!data) {
         return (
-            <div className="flex justify-center py-10">
-                <Spinner />
-            </div>
+            <ContentSkeleton size="md" />
         );
     }
 

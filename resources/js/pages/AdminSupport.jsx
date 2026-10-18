@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import api, { fieldErrors } from '../services/api';
-import Spinner from '../components/ui/Spinner';
+import ContentSkeleton from '../components/ui/ContentSkeleton';
 import Alert from '../components/ui/Alert';
 import TicketThread, { PRIORITY_STYLES, STATUS_LABELS, StatusPill } from '../components/support/TicketThread';
 import { useAuth } from '../context/AuthContext';
@@ -63,7 +63,7 @@ function Inbox() {
                     <option value="">{t('admin.support.anyone')}</option><option value="me">{t('admin.support.assignedToMe')}</option><option value="none">{t('admin.support.unassigned')}</option>
                 </select>
             </div>
-            {!data ? <div className="flex justify-center py-10"><Spinner /></div> : data.tickets.length === 0 ? (
+            {!data ? <ContentSkeleton size="md" /> : data.tickets.length === 0 ? (
                 <p className="py-10 text-center text-sm text-gray-400">{t('admin.support.inboxZero')}</p>
             ) : (
                 <ul className="divide-y divide-gray-100 rounded-xl border border-gray-200 bg-white">
@@ -162,7 +162,7 @@ function Detail({ id }) {
         } catch (e) { setErrors(fieldErrors(e)); return false; }
     }
 
-    if (ticket === null) return <div className="flex justify-center py-20"><Spinner /></div>;
+    if (ticket === null) return <ContentSkeleton size="lg" />;
     if (ticket === false) return <div className="mx-auto max-w-md py-20"><Alert>{t('admin.support.notFound')}</Alert></div>;
     const sel = 'rounded-lg border border-gray-300 px-2 py-1.5 text-sm';
 

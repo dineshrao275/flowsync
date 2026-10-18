@@ -7,7 +7,7 @@ import Card from '../../components/ui/Card';
 import Button from '../../components/ui/Button';
 import Input from '../../components/ui/Input';
 import Modal from '../../components/ui/Modal';
-import Spinner from '../../components/ui/Spinner';
+import ContentSkeleton from '../../components/ui/ContentSkeleton';
 import Alert from '../../components/ui/Alert';
 import { fieldClass } from '../../components/ui/fieldStyles';
 
@@ -73,7 +73,7 @@ export default function Letters() {
         }
     }
 
-    if (!data) return <div className="flex justify-center py-12">{error ? <Alert>{error}</Alert> : <Spinner />}</div>;
+    if (!data) return (error ? <Alert>{error}</Alert> : <ContentSkeleton size="lg" />);
 
     return (
         <div className="space-y-6">

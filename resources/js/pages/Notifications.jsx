@@ -6,7 +6,7 @@ import Avatar from '../components/ui/Avatar';
 import Badge from '../components/ui/Badge';
 import Button from '../components/ui/Button';
 import Pagination from '../components/ui/Pagination';
-import Spinner from '../components/ui/Spinner';
+import ContentSkeleton from '../components/ui/ContentSkeleton';
 import ErrorState from '../components/ui/ErrorState';
 import { Table, Th, Td, TableEmpty } from '../components/ui/Table';
 import { useNotifications } from '../context/NotificationContext';
@@ -66,7 +66,7 @@ export default function Notifications() {
                     {notifications === null ? (
                         <tr>
                             <Td colSpan={5} className="py-12 text-center">
-                                <Spinner />
+                                <ContentSkeleton size="sm" />
                             </Td>
                         </tr>
                     ) : notifications.length === 0 ? (

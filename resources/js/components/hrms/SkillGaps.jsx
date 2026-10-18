@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import api from '../../services/api';
-import Spinner from '../ui/Spinner';
+import ContentSkeleton from '../ui/ContentSkeleton';
 import Badge from '../ui/Badge';
 
 /** Expected level (from the designation) against the person's own level, biggest gaps first. */
@@ -18,7 +18,7 @@ export default function SkillGaps() {
     }, []);
 
     if (failed) return <p className="py-6 text-center text-sm text-gray-500">{t('hrms.skills.gaps.failed')}</p>;
-    if (!data) return <div className="flex justify-center py-8"><Spinner /></div>;
+    if (!data) return <ContentSkeleton size="md" />;
     if (data.gaps.length === 0) return <p className="py-6 text-center text-sm text-gray-500">{data.has_designation ? t('hrms.skills.gaps.none') : t('hrms.skills.gaps.noDesignation')}</p>;
 
     return (

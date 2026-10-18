@@ -9,7 +9,7 @@ import EmptyState from '../../components/ui/EmptyState';
 import Input from '../../components/ui/Input';
 import Modal from '../../components/ui/Modal';
 import Select from '../../components/ui/Select';
-import Spinner from '../../components/ui/Spinner';
+import ContentSkeleton from '../../components/ui/ContentSkeleton';
 import { Table, Th, Td } from '../../components/ui/Table';
 import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
@@ -339,7 +339,7 @@ export default function Statutory() {
                     actions={<Button size="sm" onClick={() => openConfigModal(null)}>{t('hrms.statutory.newRulebook')}</Button>}
                 >
                     {!configs ? (
-                        <div className="flex justify-center py-8"><Spinner /></div>
+                        <ContentSkeleton size="md" />
                     ) : configs.length === 0 ? (
                         <EmptyState title={t('hrms.statutory.noRulebooks')} hint={t('hrms.statutory.noRulebooksHint')} />
                     ) : (
@@ -379,7 +379,7 @@ export default function Statutory() {
                 {employeeId && (
                     <>
                         {!profileLoaded ? (
-                            <div className="flex justify-center py-8"><Spinner /></div>
+                            <ContentSkeleton size="md" />
                         ) : !profile ? (
                             <p className="text-sm text-gray-500">{t('hrms.statutory.noIdentifiers')}</p>
                         ) : (
@@ -428,7 +428,7 @@ export default function Statutory() {
                 actions={<Button size="sm" onClick={() => setDeclModal(true)}>{t('hrms.statutory.fileClaim')}</Button>}
             >
                 {!declarations ? (
-                    <div className="flex justify-center py-8"><Spinner /></div>
+                    <ContentSkeleton size="md" />
                 ) : declarations.length === 0 ? (
                     <EmptyState title={t('hrms.statutory.noClaims')} />
                 ) : (

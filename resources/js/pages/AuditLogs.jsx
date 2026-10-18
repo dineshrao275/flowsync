@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import api from '../services/api';
 import Badge from '../components/ui/Badge';
-import Spinner from '../components/ui/Spinner';
+import ContentSkeleton from '../components/ui/ContentSkeleton';
 import Button from '../components/ui/Button';
 import Pagination from '../components/ui/Pagination';
 import { Table, Th, Td, TableEmpty } from '../components/ui/Table';
@@ -127,9 +127,7 @@ export default function AuditLogs() {
             </div>
 
             {loading ? (
-                <div className="flex justify-center py-12">
-                    <Spinner />
-                </div>
+                <ContentSkeleton size="lg" />
             ) : (
                 <Table>
                     <thead>

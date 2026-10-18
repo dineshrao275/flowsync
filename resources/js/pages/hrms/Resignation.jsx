@@ -11,7 +11,7 @@ import Card from '../../components/ui/Card';
 import Button from '../../components/ui/Button';
 import Input from '../../components/ui/Input';
 import Alert from '../../components/ui/Alert';
-import Spinner from '../../components/ui/Spinner';
+import ContentSkeleton from '../../components/ui/ContentSkeleton';
 import Badge from '../../components/ui/Badge';
 import Textarea from '../../components/ui/Textarea';
 
@@ -95,7 +95,7 @@ export default function Resignation() {
         if (await confirm({ title: t('hrms.resignation.withdrawTitle'), message: t('hrms.resignation.withdrawMessage'), variant: 'danger' })) act(r, 'withdraw');
     }
 
-    if (!data) return <div className="flex justify-center py-12">{error ? <Alert>{error}</Alert> : <Spinner />}</div>;
+    if (!data) return (error ? <Alert>{error}</Alert> : <ContentSkeleton size="lg" />);
 
     const open = data.mine.find((r) => r.status === 'pending');
 

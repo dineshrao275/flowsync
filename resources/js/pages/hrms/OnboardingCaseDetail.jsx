@@ -5,7 +5,7 @@ import api, { fieldErrors } from '../../services/api';
 import Alert from '../../components/ui/Alert';
 import Button from '../../components/ui/Button';
 import Card from '../../components/ui/Card';
-import Spinner from '../../components/ui/Spinner';
+import ContentSkeleton from '../../components/ui/ContentSkeleton';
 import StatusPill from '../../components/ui/StatusPill';
 import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
@@ -199,9 +199,7 @@ export default function OnboardingCaseDetail() {
 
     if (!detail) {
         return (
-            <div className="flex justify-center py-16">
-                <Spinner />
-            </div>
+            <ContentSkeleton size="lg" />
         );
     }
 

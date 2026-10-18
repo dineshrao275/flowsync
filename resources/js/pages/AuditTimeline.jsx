@@ -8,7 +8,7 @@ import Card from '../components/ui/Card';
 import Button from '../components/ui/Button';
 import Badge from '../components/ui/Badge';
 import Input from '../components/ui/Input';
-import Spinner from '../components/ui/Spinner';
+import ContentSkeleton from '../components/ui/ContentSkeleton';
 import Alert from '../components/ui/Alert';
 import Pagination from '../components/ui/Pagination';
 import { fieldClass } from '../components/ui/fieldStyles';
@@ -71,7 +71,7 @@ export default function AuditTimeline() {
             </Card>
 
             {error && <Alert>{error}</Alert>}
-            {!data && !error && <div className="flex justify-center py-12"><Spinner /></div>}
+            {!data && !error && <ContentSkeleton size="lg" />}
             {data && (
                 <Card>
                     {data.entries.length === 0 ? <p className="py-8 text-center text-sm text-gray-500">{t('admin.auditTimeline.empty')}</p> : (

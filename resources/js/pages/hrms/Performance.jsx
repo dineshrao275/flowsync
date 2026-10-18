@@ -9,7 +9,7 @@ import EmptyState from '../../components/ui/EmptyState';
 import Input from '../../components/ui/Input';
 import Modal from '../../components/ui/Modal';
 import Select from '../../components/ui/Select';
-import Spinner from '../../components/ui/Spinner';
+import ContentSkeleton from '../../components/ui/ContentSkeleton';
 import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
 import { useSetCrumbs } from '../../context/BreadcrumbContext';
@@ -161,7 +161,7 @@ export default function Performance() {
             {error && <Alert>{error}</Alert>}
 
             {!cycles ? (
-                <div className="flex justify-center py-10"><Spinner /></div>
+                <ContentSkeleton size="md" />
             ) : cycles.length === 0 ? (
                 <EmptyState title={t('hrms.performance.emptyTitle')} hint={t('hrms.performance.emptyHint')} />
             ) : (

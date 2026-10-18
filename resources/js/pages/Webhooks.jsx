@@ -6,7 +6,7 @@ import Badge from '../components/ui/Badge';
 import Button from '../components/ui/Button';
 import Input from '../components/ui/Input';
 import Alert from '../components/ui/Alert';
-import Spinner from '../components/ui/Spinner';
+import ContentSkeleton from '../components/ui/ContentSkeleton';
 import { useToast } from '../context/ToastContext';
 import { useConfirm } from '../components/ui/ConfirmDialog';
 import { useSetCrumbs } from '../context/BreadcrumbContext';
@@ -71,7 +71,7 @@ export default function Webhooks() {
         if (open === id) showDeliveries(id).then(() => showDeliveries(id));
     }
 
-    if (!data) return <div className="flex justify-center py-20"><Spinner /></div>;
+    if (!data) return <ContentSkeleton size="lg" />;
 
     return (
         <div className="mx-auto max-w-4xl space-y-6">

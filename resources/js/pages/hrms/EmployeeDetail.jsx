@@ -7,7 +7,7 @@ import Avatar from '../../components/ui/Avatar';
 import Button from '../../components/ui/Button';
 import Card from '../../components/ui/Card';
 import Select from '../../components/ui/Select';
-import Spinner from '../../components/ui/Spinner';
+import ContentSkeleton from '../../components/ui/ContentSkeleton';
 import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
 import { useSetCrumbs } from '../../context/BreadcrumbContext';
@@ -158,7 +158,7 @@ export default function EmployeeDetail() {
     if (loading) {
         return (
             <div className="py-16 text-center">
-                <Spinner />
+                <ContentSkeleton size="sm" />
             </div>
         );
     }

@@ -11,7 +11,7 @@ import Card from '../../components/ui/Card';
 import Button from '../../components/ui/Button';
 import Badge from '../../components/ui/Badge';
 import Input from '../../components/ui/Input';
-import Spinner from '../../components/ui/Spinner';
+import ContentSkeleton from '../../components/ui/ContentSkeleton';
 import Alert from '../../components/ui/Alert';
 import { fieldClass } from '../../components/ui/fieldStyles';
 
@@ -57,7 +57,7 @@ function MySkills({ skills }) {
     }
 
     if (error && !mine) return <Alert>{error}</Alert>;
-    if (!mine) return <div className="flex justify-center py-8"><Spinner /></div>;
+    if (!mine) return <ContentSkeleton size="md" />;
 
     const byId = Object.fromEntries(mine.map((m) => [m.skill_id, m]));
 
@@ -116,7 +116,7 @@ function Matrix({ canManage }) {
     }
 
     if (error) return <Alert>{error}</Alert>;
-    if (!data) return <div className="flex justify-center py-8"><Spinner /></div>;
+    if (!data) return <ContentSkeleton size="md" />;
     if (!data.skills.length) return <p className="py-8 text-center text-sm text-gray-500">{t('hrms.skills.emptyCatalog')}</p>;
 
     return (
@@ -259,7 +259,7 @@ export default function Skills() {
                 ))}
             </div>
             <Card>
-                {!skills ? <div className="flex justify-center py-8"><Spinner /></div>
+                {!skills ? <ContentSkeleton size="md" />
                     : tab === 'mine' ? <MySkills skills={skills} />
                         : tab === 'gaps' ? <SkillGaps />
                             : tab === 'matrix' ? <Matrix canManage={manage} />

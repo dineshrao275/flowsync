@@ -9,7 +9,7 @@ import EmptyState from '../../components/ui/EmptyState';
 import Input from '../../components/ui/Input';
 import Modal from '../../components/ui/Modal';
 import Select from '../../components/ui/Select';
-import Spinner from '../../components/ui/Spinner';
+import ContentSkeleton from '../../components/ui/ContentSkeleton';
 import AssetReplaceModal from '../../components/hrms/AssetReplaceModal';
 import { Table, Th, Td } from '../../components/ui/Table';
 import { useAuth } from '../../context/AuthContext';
@@ -216,7 +216,7 @@ export default function Assets() {
             </Card>
 
             {!assets ? (
-                <div className="flex justify-center py-10"><Spinner /></div>
+                <ContentSkeleton size="md" />
             ) : assets.length === 0 ? (
                 <EmptyState title={t('hrms.assets.emptyTitle')} hint={t('hrms.assets.emptyHint')} />
             ) : (

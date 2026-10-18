@@ -10,7 +10,7 @@ import Button from '../../components/ui/Button';
 import Badge from '../../components/ui/Badge';
 import Input from '../../components/ui/Input';
 import Modal from '../../components/ui/Modal';
-import Spinner from '../../components/ui/Spinner';
+import ContentSkeleton from '../../components/ui/ContentSkeleton';
 import Alert from '../../components/ui/Alert';
 import { fieldClass } from '../../components/ui/fieldStyles';
 
@@ -92,7 +92,7 @@ export default function EmployeeChanges() {
         }
     }
 
-    if (!data) return <div className="flex justify-center py-12">{error ? <Alert>{error}</Alert> : <Spinner />}</div>;
+    if (!data) return (error ? <Alert>{error}</Alert> : <ContentSkeleton size="lg" />);
 
     const summary = (c) => ['department_id', 'designation_id', 'location_id', 'manager_id', 'employment_type_id'].filter((k) => k in c.changes).map((k) => t(`hrms.changes.fields.${k}`)).join(', ') || (c.type === 'confirmation' ? t('hrms.changes.confirmation') : '');
 

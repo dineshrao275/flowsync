@@ -9,7 +9,7 @@ import Button from '../../components/ui/Button';
 import Badge from '../../components/ui/Badge';
 import Input from '../../components/ui/Input';
 import Modal from '../../components/ui/Modal';
-import Spinner from '../../components/ui/Spinner';
+import ContentSkeleton from '../../components/ui/ContentSkeleton';
 import Alert from '../../components/ui/Alert';
 import { fieldClass } from '../../components/ui/fieldStyles';
 
@@ -74,7 +74,7 @@ export default function Okrs() {
 
     const setKr = (i, key) => (e) => setForm((f) => ({ ...f, key_results: f.key_results.map((k, j) => (j === i ? { ...k, [key]: e.target.value } : k)) }));
 
-    if (!items) return <div className="flex justify-center py-12">{error ? <Alert>{error}</Alert> : <Spinner />}</div>;
+    if (!items) return (error ? <Alert>{error}</Alert> : <ContentSkeleton size="lg" />);
 
     return (
         <div className="space-y-6">

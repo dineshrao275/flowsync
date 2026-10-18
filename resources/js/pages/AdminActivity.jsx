@@ -4,7 +4,7 @@ import api from '../services/api';
 import Card from '../components/ui/Card';
 import Badge from '../components/ui/Badge';
 import Alert from '../components/ui/Alert';
-import Spinner from '../components/ui/Spinner';
+import ContentSkeleton from '../components/ui/ContentSkeleton';
 import { Table, Th, Td } from '../components/ui/Table';
 import usePageTitle from '../hooks/usePageTitle';
 import { useSetCrumbs } from '../context/BreadcrumbContext';
@@ -31,7 +31,7 @@ export default function AdminActivity() {
     }, [t]);
 
     if (error) return <Alert>{error}</Alert>;
-    if (!data) return <div className="flex justify-center py-12"><Spinner /></div>;
+    if (!data) return <ContentSkeleton size="lg" />;
 
     const dash = (v) => (v ?? '—');
 

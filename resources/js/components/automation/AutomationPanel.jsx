@@ -6,7 +6,7 @@ import Badge from '../ui/Badge';
 import Button from '../ui/Button';
 import Input from '../ui/Input';
 import Alert from '../ui/Alert';
-import Spinner from '../ui/Spinner';
+import ContentSkeleton from '../ui/ContentSkeleton';
 import { useToast } from '../../context/ToastContext';
 import { useConfirm } from '../ui/ConfirmDialog';
 import Timestamp from '../ui/Timestamp';
@@ -50,7 +50,7 @@ export default function AutomationPanel({ projectId, members, statuses, labels, 
         setRuns({ id, items: data.runs });
     }
 
-    if (!catalog || !rules) return <div className="flex justify-center py-10"><Spinner /></div>;
+    if (!catalog || !rules) return <ContentSkeleton size="md" />;
 
     function valueInput(c, i) {
         if (['is_empty', 'is_not_empty', 'is_overdue'].includes(c.op)) return null;

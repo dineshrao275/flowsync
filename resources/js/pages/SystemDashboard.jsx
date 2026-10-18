@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next';
 import api from '../services/api';
 import Card from '../components/ui/Card';
 import Badge from '../components/ui/Badge';
-import Spinner from '../components/ui/Spinner';
+import ContentSkeleton from '../components/ui/ContentSkeleton';
 import usePageTitle from '../hooks/usePageTitle';
 import { useSetCrumbs } from '../context/BreadcrumbContext';
 
@@ -62,7 +62,7 @@ export default function SystemDashboard() {
     }, []);
 
     if (error) return <p className="text-sm text-gray-400">{t('admin.systemDashboard.unavailable')}</p>;
-    if (!data) return <Spinner />;
+    if (!data) return <ContentSkeleton size="sm" />;
 
     const statusLabel = (status) => t(`admin.systemDashboard.statuses.${status}`, { defaultValue: status });
     const statusCount = (status) => data.tenants.by_status.find((s) => s.status === status)?.count || 0;

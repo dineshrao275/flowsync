@@ -6,7 +6,7 @@ import usePageTitle from '../../hooks/usePageTitle';
 import Card from '../../components/ui/Card';
 import Button from '../../components/ui/Button';
 import Alert from '../../components/ui/Alert';
-import Spinner from '../../components/ui/Spinner';
+import ContentSkeleton from '../../components/ui/ContentSkeleton';
 import Textarea from '../../components/ui/Textarea';
 import { fieldClass } from '../../components/ui/fieldStyles';
 
@@ -78,7 +78,7 @@ export default function ExitInterview() {
         }
     }
 
-    if (!data) return <div className="flex justify-center py-12"><Spinner /></div>;
+    if (!data) return <ContentSkeleton size="lg" />;
 
     const interview = data.interview;
 

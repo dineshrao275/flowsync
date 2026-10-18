@@ -6,7 +6,7 @@ import Alert from '../components/ui/Alert';
 import Button from '../components/ui/Button';
 import Card from '../components/ui/Card';
 import EmptyState from '../components/ui/EmptyState';
-import Spinner from '../components/ui/Spinner';
+import ContentSkeleton from '../components/ui/ContentSkeleton';
 import { useToast } from '../context/ToastContext';
 import { useSetCrumbs } from '../context/BreadcrumbContext';
 import usePageTitle from '../hooks/usePageTitle';
@@ -89,7 +89,7 @@ export default function MyHr() {
         return (
             <div className="space-y-4">
                 <h2 className="text-xl font-semibold text-gray-900">{t('hrms.home.pageTitle')}</h2>
-                <div className="flex justify-center py-10"><Spinner /></div>
+                <ContentSkeleton size="md" />
             </div>
         );
     }

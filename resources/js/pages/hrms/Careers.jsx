@@ -7,7 +7,7 @@ import Card from '../../components/ui/Card';
 import Button from '../../components/ui/Button';
 import Badge from '../../components/ui/Badge';
 import Input from '../../components/ui/Input';
-import Spinner from '../../components/ui/Spinner';
+import ContentSkeleton from '../../components/ui/ContentSkeleton';
 import Alert from '../../components/ui/Alert';
 import { fieldClass } from '../../components/ui/fieldStyles';
 
@@ -35,7 +35,7 @@ function Paths({ designations, manage }) {
         }
     }
 
-    if (!paths) return <div className="flex justify-center py-8"><Spinner /></div>;
+    if (!paths) return <ContentSkeleton size="md" />;
 
     return (
         <div className="space-y-4">
@@ -98,7 +98,7 @@ function Succession({ people }) {
         }
     }
 
-    if (!positions) return <div className="flex justify-center py-8"><Spinner /></div>;
+    if (!positions) return <ContentSkeleton size="md" />;
 
     return (
         <div className="space-y-4">

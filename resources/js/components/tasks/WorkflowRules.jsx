@@ -4,7 +4,7 @@ import api, { fieldErrors } from '../../services/api';
 import Card from '../ui/Card';
 import Button from '../ui/Button';
 import Alert from '../ui/Alert';
-import Spinner from '../ui/Spinner';
+import ContentSkeleton from '../ui/ContentSkeleton';
 import { useToast } from '../../context/ToastContext';
 
 const key = (from, to) => `${from ?? 'any'}>${to}`;
@@ -41,7 +41,7 @@ export default function WorkflowRules({ projectId, onSaved }) {
         }
     }
 
-    if (!data) return <Card title={t('tms.workflow.title')}><Spinner /></Card>;
+    if (!data) return <Card title={t('tms.workflow.title')}><ContentSkeleton size="sm" /></Card>;
 
     const toggle = (from, to) => setAllowed((cur) => { const next = new Set(cur); const k = key(from, to); next.has(k) ? next.delete(k) : next.add(k); return next; });
     const toggleRule = (statusId, rule) => setRules((cur) => ({ ...cur, [statusId]: cur[statusId].includes(rule) ? cur[statusId].filter((r) => r !== rule) : [...cur[statusId], rule] }));

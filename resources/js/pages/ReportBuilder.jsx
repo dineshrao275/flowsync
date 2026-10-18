@@ -7,7 +7,7 @@ import Card from '../components/ui/Card';
 import Button from '../components/ui/Button';
 import Input from '../components/ui/Input';
 import Alert from '../components/ui/Alert';
-import Spinner from '../components/ui/Spinner';
+import ContentSkeleton from '../components/ui/ContentSkeleton';
 import { Table, Th, Td } from '../components/ui/Table';
 import { fieldClass } from '../components/ui/fieldStyles';
 
@@ -74,7 +74,7 @@ export default function ReportBuilder() {
     }
 
     if (error) return <Alert>{error}</Alert>;
-    if (!data) return <div className="flex justify-center py-12"><Spinner /></div>;
+    if (!data) return <ContentSkeleton size="lg" />;
 
     return (
         <div className="space-y-6">

@@ -4,7 +4,7 @@ import api, { fieldErrors } from '../../services/api';
 import Button from '../ui/Button';
 import Input from '../ui/Input';
 import Modal from '../ui/Modal';
-import Spinner from '../ui/Spinner';
+import ContentSkeleton from '../ui/ContentSkeleton';
 import Pagination from '../ui/Pagination';
 import { useToast } from '../../context/ToastContext';
 import { usePaginated } from '../../hooks/useResource';
@@ -71,7 +71,7 @@ function MediaBrowser({ value, onPick }) {
             <Input label={t('admin.mediaPicker.searchLibrary')} name="q" value={q} onChange={(e) => { setQ(e.target.value); setPage(1); }} placeholder={t('admin.mediaLibrary.searchPlaceholder')} />
 
             {loading ? (
-                <Spinner />
+                <ContentSkeleton size="sm" />
             ) : items.length === 0 ? (
                 <p className="py-6 text-center text-sm text-gray-400">{t('admin.mediaPicker.empty')}</p>
             ) : (

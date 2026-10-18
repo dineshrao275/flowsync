@@ -4,7 +4,7 @@ import api from '../services/api';
 import Card from '../components/ui/Card';
 import Button from '../components/ui/Button';
 import Alert from '../components/ui/Alert';
-import Spinner from '../components/ui/Spinner';
+import ContentSkeleton from '../components/ui/ContentSkeleton';
 import { Table, Th, Td } from '../components/ui/Table';
 import { useToast } from '../context/ToastContext';
 import { useConfirm } from '../components/ui/ConfirmDialog';
@@ -68,7 +68,7 @@ export default function AdminQueue() {
         }
     }
 
-    if (!data) return <div className="flex justify-center py-12">{error ? <Alert>{error}</Alert> : <Spinner />}</div>;
+    if (!data) return (error ? <Alert>{error}</Alert> : <ContentSkeleton size="lg" />);
 
     const q = data.queue;
 

@@ -9,7 +9,7 @@ import EmptyState from '../../components/ui/EmptyState';
 import Input from '../../components/ui/Input';
 import Modal from '../../components/ui/Modal';
 import Select from '../../components/ui/Select';
-import Spinner from '../../components/ui/Spinner';
+import ContentSkeleton from '../../components/ui/ContentSkeleton';
 import { Table, Th, Td } from '../../components/ui/Table';
 import { useToast } from '../../context/ToastContext';
 import { useConfirm } from '../../components/ui/ConfirmDialog';
@@ -215,7 +215,7 @@ export default function CompOff() {
                 {!employeeId ? (
                     <EmptyState title={t('hrms.comp.noEmployee')} description={t('hrms.comp.noEmployeeHint')} />
                 ) : !bank ? (
-                    <div className="flex justify-center py-6"><Spinner /></div>
+                    <ContentSkeleton size="sm" />
                 ) : (
                     <>
                         <dl className="mb-3 grid grid-cols-3 gap-2 text-sm">
@@ -264,7 +264,7 @@ export default function CompOff() {
                 </div>
 
                 {!requests ? (
-                    <div className="flex justify-center py-6"><Spinner /></div>
+                    <ContentSkeleton size="sm" />
                 ) : requests.length === 0 ? (
                     <EmptyState title={t('hrms.comp.emptyTitle')} description={t('hrms.comp.emptyHint')} />
                 ) : (

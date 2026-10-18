@@ -4,7 +4,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import api, { fieldErrors } from '../services/api';
 import Card from '../components/ui/Card';
 import Badge from '../components/ui/Badge';
-import Spinner from '../components/ui/Spinner';
+import ContentSkeleton from '../components/ui/ContentSkeleton';
 import Alert from '../components/ui/Alert';
 import Button from '../components/ui/Button';
 import Pagination from '../components/ui/Pagination';
@@ -12,7 +12,7 @@ import { useAuth } from '../context/AuthContext';
 import ImpersonateModal from '../components/ImpersonateModal';
 import { useToast } from '../context/ToastContext';
 import { useConfirm } from '../components/ui/ConfirmDialog';
-import { useClickOutside } from '../hooks/useClickOutside';
+import FloatingPanel from '../components/ui/FloatingPanel';
 import usePageTitle from '../hooks/usePageTitle';
 import i18n, { intlTag } from '../i18n';
 import Timestamp from '../components/ui/Timestamp';
@@ -98,7 +98,16 @@ function TenantActions({ tenant, onChanged, onImpersonate }) {
     const [loadingUsers, setLoadingUsers] = useState(false);
     const [busy, setBusy] = useState(false);
 
-    useClickOutside(ref, () => setOpen(false));
+    const panelRef = useRef(null);
+
+    useEffect(() => {
+        if (!open) return undefined;
+        const onDown = (event) => {
+            if (!ref.current?.contains(event.target) && !panelRef.current?.contains(event.target)) setOpen(false);
+        };
+        document.addEventListener('mousedown', onDown);
+        return () => document.removeEventListener('mousedown', onDown);
+    }, [open]);
 
     const confirm = useConfirm();
     const trashed = Boolean(tenant.deleted_at);
@@ -180,7 +189,7 @@ function TenantActions({ tenant, onChanged, onImpersonate }) {
             </button>
 
             {open && (
-                <div className="absolute right-0 top-full z-10 mt-1 w-52 origin-top-right animate-scale-in overflow-hidden rounded-xl border border-gray-200 bg-white py-1 shadow-xl">
+                <FloatingPanel ref={panelRef} anchorRef={ref} className="w-52 origin-top-right animate-scale-in overflow-hidden rounded-xl border border-gray-200 bg-white py-1 shadow-xl">
                     {mode === 'users' ? (
                         <>
                             <button
@@ -255,7 +264,7 @@ function TenantActions({ tenant, onChanged, onImpersonate }) {
                             )}
                         </>
                     )}
-                </div>
+                </FloatingPanel>
             )}
         </div>
     );
@@ -486,7 +495,7 @@ export default function Tenants() {
                                 <tr>
                                     <td colSpan={7} className="px-4 py-14 text-center">
                                         <div className="flex justify-center">
-                                            <Spinner />
+                                            <ContentSkeleton size="sm" />
                                         </div>
                                     </td>
                                 </tr>

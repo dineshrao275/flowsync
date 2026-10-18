@@ -6,7 +6,7 @@ import Alert from '../../components/ui/Alert';
 import Button from '../../components/ui/Button';
 import Card from '../../components/ui/Card';
 import EmptyState from '../../components/ui/EmptyState';
-import Spinner from '../../components/ui/Spinner';
+import ContentSkeleton from '../../components/ui/ContentSkeleton';
 import { useToast } from '../../context/ToastContext';
 import { useAuth } from '../../context/AuthContext';
 import { useSetCrumbs } from '../../context/BreadcrumbContext';
@@ -115,7 +115,7 @@ export default function MyExpenses() {
             {error && <Alert>{error}</Alert>}
 
             {!claims ? (
-                <div className="flex justify-center py-10"><Spinner /></div>
+                <ContentSkeleton size="md" />
             ) : claims.length === 0 ? (
                 <EmptyState title={t('hrms.myExpenses.emptyTitle')} hint={t('hrms.myExpenses.emptyHint')} />
             ) : (

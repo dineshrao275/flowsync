@@ -5,7 +5,7 @@ import Alert from '../ui/Alert';
 import Badge from '../ui/Badge';
 import Button from '../ui/Button';
 import Input from '../ui/Input';
-import Spinner from '../ui/Spinner';
+import ContentSkeleton from '../ui/ContentSkeleton';
 import { useToast } from '../../context/ToastContext';
 import Timestamp from '../ui/Timestamp';
 
@@ -81,7 +81,7 @@ export default function ApiTokens() {
         setLogsFor(id);
     }
 
-    if (!data) return <div className="flex justify-center py-8"><Spinner /></div>;
+    if (!data) return <ContentSkeleton size="md" />;
 
     return (
         <div className="space-y-4">

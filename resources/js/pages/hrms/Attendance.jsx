@@ -9,7 +9,7 @@ import EmptyState from '../../components/ui/EmptyState';
 import Input from '../../components/ui/Input';
 import Modal from '../../components/ui/Modal';
 import Select from '../../components/ui/Select';
-import Spinner from '../../components/ui/Spinner';
+import ContentSkeleton from '../../components/ui/ContentSkeleton';
 import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
 import { useSetCrumbs } from '../../context/BreadcrumbContext';
@@ -370,9 +370,7 @@ export default function Attendance() {
             <div className="grid grid-cols-1 gap-4 xl:grid-cols-3">
                 <Card className="xl:col-span-2" title={monthLabel(year, month)} dense>
                     {!monthData ? (
-                        <div className="flex justify-center py-10">
-                            <Spinner />
-                        </div>
+                        <ContentSkeleton size="md" />
                     ) : days.length === 0 ? (
                         <EmptyState title={t('hrms.attendance.emptyTitle')} description={t('hrms.attendance.emptyHint')} />
                     ) : (
@@ -407,9 +405,7 @@ export default function Attendance() {
 
                     <Card title={t('hrms.attendance.totals')} dense>
                         {!summary ? (
-                            <div className="flex justify-center py-6">
-                                <Spinner />
-                            </div>
+                            <ContentSkeleton size="sm" />
                         ) : (
                             <dl className="grid grid-cols-2 gap-2 text-sm">
                                 <div><dt className="text-gray-500">{t('hrms.attendance.present')}</dt><dd className="text-lg font-semibold text-gray-900">{summary.present}</dd></div>
@@ -490,7 +486,7 @@ export default function Attendance() {
             >
                 {settingsLoading ? (
                     <div className="flex justify-center px-6 py-8">
-                        <Spinner />
+                        <ContentSkeleton size="sm" />
                     </div>
                 ) : (
                     <form onSubmit={saveSettings} className="space-y-4 px-6 py-5">

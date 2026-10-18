@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import api, { fieldErrors } from '../services/api';
 import Card from '../components/ui/Card';
-import Spinner from '../components/ui/Spinner';
+import ContentSkeleton from '../components/ui/ContentSkeleton';
 import Button from '../components/ui/Button';
 import Input from '../components/ui/Input';
 import Alert from '../components/ui/Alert';
@@ -107,7 +107,7 @@ function TicketList() {
                 ))}
             </div>
 
-            {tickets === null ? <div className="flex justify-center py-10"><Spinner /></div> : tickets.length === 0 ? (
+            {tickets === null ? <ContentSkeleton size="md" /> : tickets.length === 0 ? (
                 <p className="py-10 text-center text-sm text-gray-400">{t('admin.support.noTickets')}</p>
             ) : (
                 <ul className="divide-y divide-gray-100 rounded-xl border border-gray-200 bg-white">
@@ -198,7 +198,7 @@ function TicketDetail({ id }) {
         toast.success(data.message);
     }
 
-    if (ticket === null) return <div className="flex justify-center py-20"><Spinner /></div>;
+    if (ticket === null) return <ContentSkeleton size="lg" />;
     if (ticket === false) return <div className="mx-auto max-w-md py-20"><Alert>{t('admin.support.notFound')}</Alert></div>;
 
     return (

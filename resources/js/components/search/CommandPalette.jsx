@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import { CheckCircle, Folders, IdentificationBadge, Kanban, Users } from '@phosphor-icons/react';
 import api from '../../services/api';
-import Spinner from '../ui/Spinner';
+import ContentSkeleton from '../ui/ContentSkeleton';
 import { useAuth } from '../../context/AuthContext';
 import { HRMS_MODULE_META, HRMS_MODULE_ROUTES } from '../../utils/hrmsModules';
 import { employeeUrl, projectUrl, taskUrl, workspaceUrl } from '../../utils/deepLinks';
@@ -205,9 +205,7 @@ export default function CommandPalette({ open, onClose }) {
                                 {t('shell.commandPalette.hint')}
                             </p>
                         ) : loading ? (
-                            <div className="flex justify-center py-10">
-                                <Spinner />
-                            </div>
+                            <ContentSkeleton size="md" />
                         ) : groups.length === 0 ? (
                             <p className="px-3 py-10 text-center text-sm text-gray-400">
                                 {t('shell.commandPalette.noResults', { query: query.trim() })}

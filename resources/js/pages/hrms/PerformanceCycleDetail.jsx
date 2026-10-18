@@ -8,7 +8,7 @@ import Card from '../../components/ui/Card';
 import Input from '../../components/ui/Input';
 import Modal from '../../components/ui/Modal';
 import Select from '../../components/ui/Select';
-import Spinner from '../../components/ui/Spinner';
+import ContentSkeleton from '../../components/ui/ContentSkeleton';
 import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
 import { useConfirm } from '../../components/ui/ConfirmDialog';
@@ -296,7 +296,7 @@ export default function PerformanceCycleDetail() {
             {tab === 'goals' && (
                 <div className="space-y-3">
                     {canManage && <div><Button size="sm" onClick={() => setGoalModal(true)}>{t('hrms.cycleDetail.fileGoal')}</Button></div>}
-                    {!goals ? <div className="flex justify-center py-8"><Spinner /></div> : goals.length === 0 ? (
+                    {!goals ? <ContentSkeleton size="md" /> : goals.length === 0 ? (
                         <p className="py-8 text-center text-sm text-gray-400">{t('hrms.cycleDetail.noGoals')}</p>
                     ) : goals.map((goal) => (
                         <GoalCard
@@ -336,7 +336,7 @@ export default function PerformanceCycleDetail() {
                         )}
                     </Card>
                     <Card title={t('hrms.cycleDetail.notes')} dense>
-                        {!checkIns ? <div className="flex justify-center py-6"><Spinner /></div> : checkIns.length === 0 ? (
+                        {!checkIns ? <ContentSkeleton size="sm" /> : checkIns.length === 0 ? (
                             <p className="text-sm text-gray-500">{t('hrms.cycleDetail.noNotes')}</p>
                         ) : (
                             <ul className="divide-y divide-gray-100 text-sm">
@@ -359,7 +359,7 @@ export default function PerformanceCycleDetail() {
                     {(canManage || selfEmployeeId !== null) && (
                         <div><Button size="sm" onClick={() => setOneOnOneModal(true)}>{t('hrms.cycleDetail.scheduleOneOnOne')}</Button></div>
                     )}
-                    {!oneOnOnes ? <div className="flex justify-center py-8"><Spinner /></div> : oneOnOnes.length === 0 ? (
+                    {!oneOnOnes ? <ContentSkeleton size="md" /> : oneOnOnes.length === 0 ? (
                         <p className="text-sm text-gray-500">{t('hrms.cycleDetail.noConversations')}</p>
                     ) : (
                         <ul className="divide-y divide-gray-100 rounded-lg border border-gray-200 bg-white text-sm">
@@ -377,7 +377,7 @@ export default function PerformanceCycleDetail() {
 
             {tab === 'feedback' && (
                 <div className="space-y-3">
-                    {!feedback ? <div className="flex justify-center py-8"><Spinner /></div> : feedback.length === 0 ? (
+                    {!feedback ? <ContentSkeleton size="md" /> : feedback.length === 0 ? (
                         <p className="text-sm text-gray-500">{t('hrms.cycleDetail.noFeedbackAsks')}</p>
                     ) : feedback.map((request) => (
                         <Card key={request.id} dense>
@@ -401,7 +401,7 @@ export default function PerformanceCycleDetail() {
             {tab === 'reviews' && (
                 <div className="space-y-3">
                     {canManage && <div><Button size="sm" onClick={() => setReviewModal(true)}>{t('hrms.cycleDetail.fileReview')}</Button></div>}
-                    {!reviews ? <div className="flex justify-center py-8"><Spinner /></div> : reviews.length === 0 ? (
+                    {!reviews ? <ContentSkeleton size="md" /> : reviews.length === 0 ? (
                         <p className="text-sm text-gray-500">{t('hrms.cycleDetail.noWriteUps')}</p>
                     ) : reviews.map((review) => (
                         <Card key={review.id} dense>

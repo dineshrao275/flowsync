@@ -8,7 +8,7 @@ import EmptyState from '../ui/EmptyState';
 import Input from '../ui/Input';
 import Modal from '../ui/Modal';
 import Select from '../ui/Select';
-import Spinner from '../ui/Spinner';
+import ContentSkeleton from '../ui/ContentSkeleton';
 import { Table, Th, Td } from '../ui/Table';
 import { useToast } from '../../context/ToastContext';
 import { useConfirm } from '../ui/ConfirmDialog';
@@ -141,7 +141,7 @@ export default function ShiftCatalog({ canManage, onChanged }) {
                 actions={canManage ? <Button onClick={() => openEditor(null)}>{t('hrms.shiftCatalog.new')}</Button> : null}
             >
                 {!shifts ? (
-                    <div className="flex justify-center py-6"><Spinner /></div>
+                    <ContentSkeleton size="sm" />
                 ) : shifts.length === 0 ? (
                     <EmptyState title={t('hrms.shiftCatalog.emptyTitle')} description={t('hrms.shiftCatalog.emptyHint')} />
                 ) : (

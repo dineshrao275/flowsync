@@ -4,7 +4,7 @@ import api, { fieldErrors } from '../services/api';
 import Card from '../components/ui/Card';
 import Button from '../components/ui/Button';
 import Input from '../components/ui/Input';
-import Spinner from '../components/ui/Spinner';
+import ContentSkeleton from '../components/ui/ContentSkeleton';
 import Pagination from '../components/ui/Pagination';
 import { useToast } from '../context/ToastContext';
 import { useConfirm } from '../components/ui/ConfirmDialog';
@@ -108,7 +108,7 @@ export default function MediaLibrary() {
                     <Input label={t('admin.mediaLibrary.searchLabel')} name="q" value={q} onChange={(e) => { setQ(e.target.value); setPage(1); }} placeholder={t('admin.mediaLibrary.searchPlaceholder')} />
                 </div>
                 {loading ? (
-                    <Spinner />
+                    <ContentSkeleton size="sm" />
                 ) : items.length === 0 ? (
                     <p className="py-6 text-center text-sm text-gray-400">{t('admin.mediaLibrary.empty')}</p>
                 ) : (

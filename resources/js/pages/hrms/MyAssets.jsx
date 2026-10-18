@@ -9,7 +9,7 @@ import EmptyState from '../../components/ui/EmptyState';
 import Input from '../../components/ui/Input';
 import Modal from '../../components/ui/Modal';
 import Select from '../../components/ui/Select';
-import Spinner from '../../components/ui/Spinner';
+import ContentSkeleton from '../../components/ui/ContentSkeleton';
 import { useToast } from '../../context/ToastContext';
 import { useSetCrumbs } from '../../context/BreadcrumbContext';
 import usePageTitle from '../../hooks/usePageTitle';
@@ -109,7 +109,7 @@ export default function MyAssets() {
             {error && <Alert>{error}</Alert>}
 
             {!rows ? (
-                <div className="flex justify-center py-10"><Spinner /></div>
+                <ContentSkeleton size="md" />
             ) : rows.length === 0 ? (
                 <EmptyState title={t('hrms.myAssets.emptyTitle')} hint={t('hrms.myAssets.emptyHint')} />
             ) : (

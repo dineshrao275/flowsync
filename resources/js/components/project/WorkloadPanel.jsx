@@ -4,7 +4,7 @@ import api from '../../services/api';
 import { formatMinutes } from '../../utils/time';
 import Card from '../ui/Card';
 import Alert from '../ui/Alert';
-import Spinner from '../ui/Spinner';
+import ContentSkeleton from '../ui/ContentSkeleton';
 import Badge from '../ui/Badge';
 import { Table, Th, Td } from '../ui/Table';
 
@@ -55,7 +55,7 @@ export default function WorkloadPanel({ projectId }) {
                 </select>
             </div>
             {error && <Alert>{error}</Alert>}
-            {!data && !error && <div className="flex justify-center py-8"><Spinner /></div>}
+            {!data && !error && <ContentSkeleton size="md" />}
             {data && (
                 <Table>
                     <thead>

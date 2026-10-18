@@ -5,7 +5,7 @@ import Alert from '../../components/ui/Alert';
 import Button from '../../components/ui/Button';
 import Input from '../../components/ui/Input';
 import Select from '../../components/ui/Select';
-import Spinner from '../../components/ui/Spinner';
+import ContentSkeleton from '../../components/ui/ContentSkeleton';
 import { useToast } from '../../context/ToastContext';
 
 const CATEGORIES = [
@@ -175,9 +175,7 @@ export default function TemplateEditor({ templateId, onSaved }) {
 
     if (loading) {
         return (
-            <div className="flex justify-center py-10">
-                <Spinner />
-            </div>
+            <ContentSkeleton size="md" />
         );
     }
 

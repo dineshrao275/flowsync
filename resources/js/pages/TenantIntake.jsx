@@ -3,7 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import api, { fieldErrors } from '../services/api';
 import IntakeWizard from '../components/tenant/IntakeWizard';
-import Spinner from '../components/ui/Spinner';
+import ContentSkeleton from '../components/ui/ContentSkeleton';
 import { useToast } from '../context/ToastContext';
 import { useSetCrumbs } from '../context/BreadcrumbContext';
 import usePageTitle from '../hooks/usePageTitle';
@@ -109,7 +109,7 @@ export default function TenantIntake() {
     }
 
     if (loading) {
-        return <div className="flex justify-center py-20"><Spinner /></div>;
+        return <ContentSkeleton size="lg" />;
     }
 
     return (

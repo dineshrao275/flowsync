@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import api from '../services/api';
 import Card from '../components/ui/Card';
-import Spinner from '../components/ui/Spinner';
+import ContentSkeleton from '../components/ui/ContentSkeleton';
 import Switch from '../components/ui/Switch';
 import { fieldClassCompact } from '../components/ui/fieldStyles';
 import ApiTokens from '../components/settings/ApiTokens';
@@ -59,9 +59,7 @@ function NotificationPreferences() {
 
     if (prefs === undefined) {
         return (
-            <div className="flex justify-center py-8">
-                <Spinner />
-            </div>
+            <ContentSkeleton size="md" />
         );
     }
 
@@ -140,7 +138,7 @@ function TenantEmailPolicy() {
             });
     }
 
-    if (policies === undefined) return <div className="flex justify-center py-8"><Spinner /></div>;
+    if (policies === undefined) return <ContentSkeleton size="md" />;
     if (policies === null) return <p className="py-8 text-sm text-gray-500">{t('admin.settings.prefsUnavailable')}</p>;
 
     return (

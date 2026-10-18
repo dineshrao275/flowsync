@@ -9,7 +9,7 @@ import Button from '../../components/ui/Button';
 import Badge from '../../components/ui/Badge';
 import Input from '../../components/ui/Input';
 import Modal from '../../components/ui/Modal';
-import Spinner from '../../components/ui/Spinner';
+import ContentSkeleton from '../../components/ui/ContentSkeleton';
 import Alert from '../../components/ui/Alert';
 
 const TONE = { active: 'info', completed: 'success', cancelled: 'neutral' };
@@ -61,7 +61,7 @@ export default function DevelopmentPlans() {
         load();
     }
 
-    if (!plans) return <div className="flex justify-center py-12">{error ? <Alert>{error}</Alert> : <Spinner />}</div>;
+    if (!plans) return (error ? <Alert>{error}</Alert> : <ContentSkeleton size="lg" />);
 
     return (
         <div className="space-y-6">

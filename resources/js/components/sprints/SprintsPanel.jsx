@@ -6,7 +6,7 @@ import Card from '../ui/Card';
 import Badge from '../ui/Badge';
 import Button from '../ui/Button';
 import Input from '../ui/Input';
-import Spinner from '../ui/Spinner';
+import ContentSkeleton from '../ui/ContentSkeleton';
 import { useToast } from '../../context/ToastContext';
 import { useConfirm } from '../ui/ConfirmDialog';
 import { formatDate } from '../../utils/format';
@@ -76,7 +76,7 @@ export default function SprintsPanel({ projectId, canPlan }) {
         });
     }
 
-    if (!data) return <div className="flex justify-center py-10"><Spinner /></div>;
+    if (!data) return <ContentSkeleton size="md" />;
     const open = data.sprints.filter((s) => s.status !== 'completed');
     const closed = data.sprints.filter((s) => s.status === 'completed');
 
@@ -151,7 +151,7 @@ export default function SprintsPanel({ projectId, canPlan }) {
                 </>
             )}
 
-            {view === 'reports' && (!reports ? <div className="flex justify-center py-10"><Spinner /></div> : (
+            {view === 'reports' && (!reports ? <ContentSkeleton size="md" /> : (
                 <div className="space-y-5">
                     <Card title={reports.sprint ? t('tms.sprints.burndown', { name: reports.sprint.name }) : t('tms.sprints.burndownFallback')} subtitle={t('tms.sprints.burndownSubtitle')}>
                         {reports.burndown?.days?.length ? (

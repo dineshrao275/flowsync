@@ -7,7 +7,7 @@ import { useToast } from '../../context/ToastContext';
 import Card from '../ui/Card';
 import Button from '../ui/Button';
 import Alert from '../ui/Alert';
-import Spinner from '../ui/Spinner';
+import ContentSkeleton from '../ui/ContentSkeleton';
 import Checkbox from '../ui/Checkbox';
 
 function Stat({ label, value, tone }) {
@@ -133,7 +133,7 @@ export default function DashboardPanel({ projectId, canShare }) {
     }
 
     if (error) return <Alert>{error}</Alert>;
-    if (!state) return <div className="flex justify-center py-10"><Spinner /></div>;
+    if (!state) return <ContentSkeleton size="md" />;
 
     const toggle = (w) => setDraft((d) => (d.includes(w) ? d.filter((x) => x !== w) : [...d, w]));
 

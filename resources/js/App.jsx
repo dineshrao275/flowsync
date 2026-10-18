@@ -8,7 +8,7 @@ import { ConfirmProvider } from './components/ui/ConfirmDialog';
 import GuestRoute from './components/GuestRoute';
 import ProtectedRoute from './components/ProtectedRoute';
 import AdminLayout from './components/AdminLayout';
-import Spinner from './components/ui/Spinner';
+import AppSkeleton from './components/ui/AppSkeleton';
 
 import Login from './pages/auth/Login';
 import Register from './pages/auth/Register';
@@ -118,9 +118,7 @@ import { homeRouteFor } from './utils/deepLinks';
 
 function LoadingScreen() {
     return (
-        <div className="flex min-h-screen items-center justify-center bg-gray-100">
-            <Spinner />
-        </div>
+        <AppSkeleton />
     );
 }
 

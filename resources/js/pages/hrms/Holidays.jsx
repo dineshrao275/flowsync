@@ -9,7 +9,7 @@ import EmptyState from '../../components/ui/EmptyState';
 import Input from '../../components/ui/Input';
 import Modal from '../../components/ui/Modal';
 import Select from '../../components/ui/Select';
-import Spinner from '../../components/ui/Spinner';
+import ContentSkeleton from '../../components/ui/ContentSkeleton';
 import { Table, Th, Td, TableEmpty } from '../../components/ui/Table';
 import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
@@ -357,7 +357,7 @@ export default function Holidays() {
 
             <Card dense title={t('hrms.holidays.calendars')}>
                 {!calendars ? (
-                    <div className="flex justify-center py-6"><Spinner /></div>
+                    <ContentSkeleton size="sm" />
                 ) : calendars.length === 0 ? (
                     <EmptyState title={t('hrms.holidays.emptyCalendars')} description={t('hrms.holidays.emptyCalendarsHint')} />
                 ) : (
@@ -401,7 +401,7 @@ export default function Holidays() {
             {selectedCalendar && (
                 <Card dense title={`${selectedCalendar.name} · ${year}`}>
                     {!holidays ? (
-                        <div className="flex justify-center py-6"><Spinner /></div>
+                        <ContentSkeleton size="sm" />
                     ) : (
                         <>
                             <HolidayGrid holidays={holidays} year={Number(year)} />
@@ -471,7 +471,7 @@ export default function Holidays() {
             <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
                 <Card dense title={t('hrms.holidays.assignments')}>
                     {!assignments ? (
-                        <div className="flex justify-center py-6"><Spinner /></div>
+                        <ContentSkeleton size="sm" />
                     ) : (
                         <>
                             {assignments.length > 0 && (
@@ -518,7 +518,7 @@ export default function Holidays() {
 
                 <Card dense title={t('hrms.holidays.optionals')}>
                     {!optionals ? (
-                        <div className="flex justify-center py-6"><Spinner /></div>
+                        <ContentSkeleton size="sm" />
                     ) : (
                         <>
                             {optionals.length > 0 && (

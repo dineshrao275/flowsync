@@ -1,5 +1,5 @@
 import { Navigate, Outlet, useLocation } from 'react-router-dom';
-import Spinner from './ui/Spinner';
+import AppSkeleton from './ui/AppSkeleton';
 import { useAuth } from '../context/AuthContext';
 
 // Two usages share this guard: as a layout route (`<Route element={<ProtectedRoute/>}>`
@@ -12,9 +12,7 @@ export default function ProtectedRoute({ permission, module, product, children }
 
     if (loading) {
         return (
-            <div className="flex min-h-screen items-center justify-center bg-gray-100">
-                <Spinner />
-            </div>
+            <AppSkeleton />
         );
     }
 

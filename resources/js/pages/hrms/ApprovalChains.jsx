@@ -8,7 +8,7 @@ import Card from '../../components/ui/Card';
 import Input from '../../components/ui/Input';
 import Modal from '../../components/ui/Modal';
 import Select from '../../components/ui/Select';
-import Spinner from '../../components/ui/Spinner';
+import ContentSkeleton from '../../components/ui/ContentSkeleton';
 import { useToast } from '../../context/ToastContext';
 import { useSetCrumbs } from '../../context/BreadcrumbContext';
 import usePageTitle from '../../hooks/usePageTitle';
@@ -153,7 +153,7 @@ export default function ApprovalChains() {
     }
 
     if (error) return <Alert type="error">{error}</Alert>;
-    if (!data) return <Spinner />;
+    if (!data) return <ContentSkeleton size="sm" />;
 
     const { options } = data;
 

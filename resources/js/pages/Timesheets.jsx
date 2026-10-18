@@ -11,7 +11,7 @@ import Card from '../components/ui/Card';
 import Button from '../components/ui/Button';
 import Badge from '../components/ui/Badge';
 import Alert from '../components/ui/Alert';
-import Spinner from '../components/ui/Spinner';
+import ContentSkeleton from '../components/ui/ContentSkeleton';
 import Icon from '../components/ui/Icon';
 import Input from '../components/ui/Input';
 import { Table, Th, Td } from '../components/ui/Table';
@@ -55,7 +55,7 @@ function MyWeek() {
         }
     }
 
-    if (!sheet) return <div className="flex justify-center py-10">{error ? <Alert>{error}</Alert> : <Spinner />}</div>;
+    if (!sheet) return (error ? <Alert>{error}</Alert> : <ContentSkeleton size="md" />);
 
     return (
         <div className="space-y-4">
@@ -136,7 +136,7 @@ function Approvals() {
         }
     }
 
-    if (rows === undefined) return <div className="flex justify-center py-10"><Spinner /></div>;
+    if (rows === undefined) return <ContentSkeleton size="md" />;
     if (rows.length === 0) return <p className="py-8 text-center text-sm text-gray-500">{t('tms.timesheets.nothingPending')}</p>;
 
     return (

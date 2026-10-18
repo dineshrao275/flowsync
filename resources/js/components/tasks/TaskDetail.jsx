@@ -6,7 +6,7 @@ import Input from '../ui/Input';
 import Select from '../ui/Select';
 import Drawer from '../ui/Drawer';
 import Alert from '../ui/Alert';
-import Spinner from '../ui/Spinner';
+import ContentSkeleton from '../ui/ContentSkeleton';
 import CommentThread from './CommentThread';
 import AttachmentList from './AttachmentList';
 import DependencyPanel from './DependencyPanel';
@@ -224,9 +224,7 @@ export default function TaskDetail({
             }
         >
             {!form ? (
-                <div className="flex justify-center py-20">
-                    <Spinner />
-                </div>
+                <ContentSkeleton size="lg" />
             ) : (
                 <>
                     <div className="flex gap-1 border-b border-gray-200 px-6 pt-2">

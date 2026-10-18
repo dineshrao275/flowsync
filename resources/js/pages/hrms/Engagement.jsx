@@ -9,7 +9,7 @@ import EmptyState from '../../components/ui/EmptyState';
 import Input from '../../components/ui/Input';
 import Modal from '../../components/ui/Modal';
 import Select from '../../components/ui/Select';
-import Spinner from '../../components/ui/Spinner';
+import ContentSkeleton from '../../components/ui/ContentSkeleton';
 import { Table, Th, Td } from '../../components/ui/Table';
 import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
@@ -179,7 +179,7 @@ export default function Engagement() {
 
             <Card title={t('hrms.engagement.campaigns')} dense>
                 {!campaigns ? (
-                    <div className="flex justify-center py-8"><Spinner /></div>
+                    <ContentSkeleton size="md" />
                 ) : campaigns.length === 0 ? (
                     <EmptyState title={t('hrms.engagement.noCampaignsTitle')} hint={t('hrms.engagement.noCampaignsHint')} />
                 ) : (
@@ -219,7 +219,7 @@ export default function Engagement() {
 
             <Card title={t('hrms.engagement.templates')} dense>
                 {!templates ? (
-                    <div className="flex justify-center py-8"><Spinner /></div>
+                    <ContentSkeleton size="md" />
                 ) : templates.length === 0 ? (
                     <EmptyState title={t('hrms.engagement.noTemplatesTitle')} />
                 ) : (
@@ -243,7 +243,7 @@ export default function Engagement() {
 
             <Modal open={!!resultsFor} onClose={() => setResultsFor(null)} title={t('hrms.engagement.resultsTitle', { name: resultsFor?.name ?? '' })} size="lg">
                 {!results ? (
-                    <div className="flex justify-center px-6 py-6"><Spinner /></div>
+                    <div className="flex justify-center px-6 py-6"><ContentSkeleton size="sm" /></div>
                 ) : results.results.length === 0 ? (
                     <p className="px-6 py-5 text-sm text-gray-500">
                         {t('hrms.engagement.belowThreshold', { count: results.response_count, threshold: results.anonymity_threshold })}

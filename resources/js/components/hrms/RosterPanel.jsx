@@ -6,7 +6,7 @@ import Button from '../ui/Button';
 import Card from '../ui/Card';
 import Input from '../ui/Input';
 import Select from '../ui/Select';
-import Spinner from '../ui/Spinner';
+import ContentSkeleton from '../ui/ContentSkeleton';
 import { Table, Th, Td, TableEmpty } from '../ui/Table';
 import { useToast } from '../../context/ToastContext';
 import { useConfirm } from '../ui/ConfirmDialog';
@@ -102,7 +102,7 @@ export default function RosterPanel({ shifts, canManage, canView }) {
                 </div>
 
                 {!rosters ? (
-                    <div className="flex justify-center py-6"><Spinner /></div>
+                    <ContentSkeleton size="sm" />
                 ) : (
                     <Table compact>
                         <thead>

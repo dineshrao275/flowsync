@@ -14,7 +14,7 @@ import {
     YAxis,
 } from 'recharts';
 import api from '../services/api';
-import Spinner from '../components/ui/Spinner';
+import ContentSkeleton from '../components/ui/ContentSkeleton';
 import Alert from '../components/ui/Alert';
 import StatRow from '../components/ui/StatRow';
 import TimeSummary from '../components/time/TimeSummary';
@@ -224,9 +224,7 @@ export default function Reports() {
 
     if (!data) {
         return (
-            <div className="flex justify-center py-20">
-                <Spinner />
-            </div>
+            <ContentSkeleton size="lg" />
         );
     }
 

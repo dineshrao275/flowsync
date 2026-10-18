@@ -6,7 +6,7 @@ import i18n, { intlTag } from '../../i18n';
 import { useAuth } from '../../context/AuthContext';
 import Button from '../ui/Button';
 import Alert from '../ui/Alert';
-import Spinner from '../ui/Spinner';
+import ContentSkeleton from '../ui/ContentSkeleton';
 import Input from '../ui/Input';
 import { fieldClass } from '../ui/fieldStyles';
 import { useConfirm } from '../ui/ConfirmDialog';
@@ -199,9 +199,7 @@ export default function WorkLogPanel({ task, projectId, canLog, canManage }) {
             </div>
 
             {loading ? (
-                <div className="flex justify-center py-8">
-                    <Spinner />
-                </div>
+                <ContentSkeleton size="md" />
             ) : logs.length === 0 ? (
                 <p className="py-6 text-center text-sm text-gray-500">{t('tms.worklogs.empty')}</p>
             ) : (

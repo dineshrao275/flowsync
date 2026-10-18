@@ -6,7 +6,7 @@ import Card from '../ui/Card';
 import Button from '../ui/Button';
 import Input from '../ui/Input';
 import Alert from '../ui/Alert';
-import Spinner from '../ui/Spinner';
+import ContentSkeleton from '../ui/ContentSkeleton';
 
 /** Tenant admins: connect an OpenID Connect identity provider (Google, Microsoft Entra, Okta, Keycloak…). */
 export default function SsoSettings() {
@@ -45,7 +45,7 @@ export default function SsoSettings() {
     }
 
     if (data === false) return null;
-    if (!form) return <Card><div className="flex justify-center py-6"><Spinner /></div></Card>;
+    if (!form) return <Card><ContentSkeleton size="sm" /></Card>;
 
     return (
         <Card title={t('admin.sso.title')} subtitle={t('admin.sso.subtitle')}>

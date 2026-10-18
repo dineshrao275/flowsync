@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { useAuth } from '../../context/AuthContext';
 import { fieldErrors } from '../../services/api';
 import AuthShell from '../../components/ui/AuthShell';
-import Spinner from '../../components/ui/Spinner';
+import ContentSkeleton from '../../components/ui/ContentSkeleton';
 import Alert from '../../components/ui/Alert';
 import usePageTitle from '../../hooks/usePageTitle';
 
@@ -40,7 +40,7 @@ export default function RegisterComplete() {
                     <Link to="/register" className="text-sm font-medium text-[var(--accent-soft-text)]">{t('auth.complete.startAgain')}</Link>
                 </div>
             ) : (
-                <div className="flex justify-center py-8"><Spinner /></div>
+                <ContentSkeleton size="md" />
             )}
         </AuthShell>
     );
