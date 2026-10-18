@@ -127,7 +127,7 @@ class CatalogSync
             'unit_amount' => $plan->price_cents,
             'recurring[interval]' => $interval,
             'metadata[plan_id]' => (string) $plan->id,
-        ], "plan_{$plan->id}_price_{$key}");
+        ], "plan_{$plan->id}_price_{$key}_after_".($old ?: 'none')); // per transition: reverting to an earlier amount must create a fresh price, not replay the archived one
 
         $plan->forceFill(['stripe_price_id' => $price['id'], 'stripe_price_key' => $key])->save();
 

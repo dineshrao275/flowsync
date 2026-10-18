@@ -81,6 +81,22 @@ class StripeCatalogSyncTest extends TestCase
         $this->assertCount(1, $archived);
     }
 
+    public function test_reverting_to_an_earlier_amount_creates_a_fresh_price_instead_of_replaying_the_archived_one(): void
+    {
+        $this->fakeStripe();
+        $plan = $this->plan('pro');
+        $sync = app(CatalogSync::class);
+        $sync->syncPlan($plan);                              // 2900 -> price_1
+        $plan->update(['price_cents' => 3400]);
+        $sync->syncPlan($plan->fresh());                     // 3400 -> price_2
+        $plan->update(['price_cents' => 2900]);
+        $sync->syncPlan($plan->fresh());                     // back to 2900 -> price_3 (a new one)
+
+        $this->assertSame('price_3', $plan->fresh()->stripe_price_id);
+        $keys = collect($this->stripePosts('/prices'))->map(fn ($r) => $r->header('Idempotency-Key')[0])->all();
+        $this->assertCount(3, array_unique($keys)); // three distinct creations, so Stripe cannot replay an old response
+    }
+
     public function test_a_deactivated_plan_is_archived_at_stripe_and_comes_back_when_reactivated(): void
     {
         $this->fakeStripe();

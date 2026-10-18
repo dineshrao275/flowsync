@@ -238,15 +238,20 @@ class SubscriptionService
         $wasCanceled = $subscription->isCanceled();
         $plan = $subscription->plan;
 
-        $subscription->update([
+        // Resuming a cancelled subscription BEFORE its paid period ends is not a new period: nothing was paid, so the
+        // period must not grow (the provider bills the next one when this one ends).
+        $resumedInPeriod = $wasCanceled && $subscription->current_period_end?->isFuture();
+
+        $subscription->update(array_merge([
             'status' => Subscription::STATUS_ACTIVE,
             'auto_renew' => true,
             'canceled_at' => null,
             'past_due_at' => null,
+            'trial_ends_at' => null,
+        ], $resumedInPeriod ? [] : [
             'current_period_start' => now(),
             'current_period_end' => $plan->periodEnd($subscription->current_period_end),
-            'trial_ends_at' => null,
-        ]);
+        ]));
 
         $tenant->update(['trial_ends_at' => null]);
         $this->lifecycle->transition($tenant, Tenant::STATUS_ACTIVE);

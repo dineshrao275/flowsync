@@ -116,7 +116,7 @@ return Application::configure(basePath: dirname(__DIR__))
         ]);
 
         // Token routes and client log beacon routes are exempted from CSRF.
-        $middleware->validateCsrfTokens(except: ['api/v1/*', 'api/logs/client', 'api/csp-report']);
+        $middleware->validateCsrfTokens(except: ['api/v1/*', 'api/logs/client', 'api/csp-report', 'api/webhooks/stripe', 'api/webhooks/razorpay']);
 
         $middleware->redirectGuestsTo('/login');
     })

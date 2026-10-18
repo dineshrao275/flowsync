@@ -8,6 +8,8 @@ use App\Models\Payment;
 use App\Models\PaymentEvent;
 use App\Models\Subscription;
 use App\Models\SubscriptionEvent;
+use Illuminate\Foundation\Http\Middleware\ValidateCsrfToken;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Mail;
@@ -37,6 +39,20 @@ class BillingWebhookEdgeTest extends TestCase
                 'payment_intent' => 'pi_'.$id, 'lines' => ['data' => [['period' => ['start' => $periodEnd - 2592000, 'end' => $periodEnd], 'amount' => 2900]]],
             ], $extra)],
         ];
+    }
+
+    /** Provider callbacks carry no session or CSRF token: a missing exemption answered 419 in production while tests (which skip CSRF) stayed green. */
+    public function test_provider_webhooks_are_exempt_from_csrf_but_tenant_webhook_management_is_not(): void
+    {
+        $middleware = app(ValidateCsrfToken::class);
+        $exempt = new \ReflectionMethod($middleware, 'inExceptArray');
+
+        foreach (['/api/webhooks/stripe', '/api/webhooks/razorpay'] as $path) {
+            $this->assertTrue($exempt->invoke($middleware, Request::create($path, 'POST')), "$path must not require a CSRF token");
+        }
+        foreach (['/api/webhooks/12', '/api/webhooks/12/rotate-secret', '/api/billing/checkout'] as $path) {
+            $this->assertFalse($exempt->invoke($middleware, Request::create($path, 'POST')), "$path must stay CSRF-protected");
+        }
     }
 
     public function test_bad_and_stale_signatures_are_rejected(): void
@@ -190,7 +206,9 @@ class BillingWebhookEdgeTest extends TestCase
         $this->postJson('/api/my-subscription/cancel')->assertOk();
         $this->assertSame(Subscription::STATUS_CANCELED, $tenant->subscription->refresh()->status);
 
+        $endBefore = $tenant->subscription->refresh()->current_period_end->timestamp;
         $this->postJson('/api/my-subscription/renew')->assertOk();
+        $this->assertSame($endBefore, $tenant->subscription->refresh()->current_period_end->timestamp); // nothing paid: the period does not grow
         $resumed = collect($this->stripePosts('/subscriptions/sub_123'))->last();
         $this->assertSame('false', $resumed->data()['cancel_at_period_end']);
         $this->assertSame(Subscription::STATUS_ACTIVE, $tenant->subscription->refresh()->status);
