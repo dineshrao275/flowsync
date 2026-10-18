@@ -57,6 +57,9 @@ Laravel 12 + React 19 SPA. Session-based auth **without** Breeze/Fortify/Sanctum
   `storage/`; never use `--force`.
 - Entry: `resources/js/main.jsx` (imports `./bootstrap`, React StrictMode).
 
+## Realistic demo dataset (dev only)
+- `php artisan tenants:seed-realistic [--from --to --category --slug --reseed --dry-run]` seeds 150 named tenants (50 HRMS-only / 50 TMS-only / 50 both) with every plan × lifecycle state, 25–200 users each, 20–30 projects × 150–160 tasks per TMS tenant and module-gated HRMS data; `tenants:verify-realistic [--report=path]` checks it. Code in `database/seeders/Realistic/*`, sizes in `config/demo_seed.php` (`DEMO_SEED_*`), plan and final report in `.agents/roadmap/realistic-seed-plan.md`. Never run two workers over the same tenant range (a killed `docker exec` client keeps running inside the container); tenants are identified by `settings.demo_seed` and nothing else is touched. Logins: `{first}.{last}@{slug}.test`, password `password`. Tests: `RealisticSeedTest`.
+
 ## Demo logins (password `password`)
 - `superadmin@flowsync.test` — Super Admin (no tenant)
 - `admin@flowsync.test` (admin), `editor@flowsync.test` (editor), `viewer@flowsync.test` (viewer) — Acme tenant
