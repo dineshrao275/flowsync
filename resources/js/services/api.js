@@ -86,7 +86,7 @@ api.interceptors.response.use(
         // Trial/subscription ended: every product call answers 402 — take the person to the page that fixes it.
         if (
             error.response?.status === 402 &&
-            error.response?.data?.code === 'subscription_required' &&
+            ['subscription_required', 'payment_method_required'].includes(error.response?.data?.code) &&
             !window.location.pathname.startsWith('/app/subscription')
         ) {
             window.location.href = '/app/subscription';

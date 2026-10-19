@@ -26,7 +26,9 @@ class EnsureSubscribed
         }
 
         $tenant = Tenant::find($tenantId);
-        if (! $tenant || $tenant->status !== Tenant::STATUS_EXPIRED) {
+        $expired = $tenant?->status === Tenant::STATUS_EXPIRED;
+        $needsCard = $tenant && ! $expired && $tenant->needsPaymentMethod();
+        if (! $tenant || (! $expired && ! $needsCard)) {
             return $next($request);
         }
 
@@ -36,6 +38,14 @@ class EnsureSubscribed
             if ($prefix ? str_starts_with($path, rtrim($allowed, '*')) : $path === $allowed) {
                 return $next($request);
             }
+        }
+
+        if ($needsCard) {
+            return response()->json([
+                'message' => __('Add a payment method to continue your free trial. You will not be charged until the trial ends.'),
+                'code' => 'payment_method_required',
+                'redirect' => '/subscription',
+            ], 402, ['X-Subscription-Required' => 'true', 'X-Payment-Method-Required' => 'true']);
         }
 
         return response()->json([

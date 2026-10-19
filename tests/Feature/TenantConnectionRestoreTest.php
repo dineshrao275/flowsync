@@ -29,4 +29,26 @@ class TenantConnectionRestoreTest extends TestCase
         // … and it must still be in globex.
         $this->assertSame(1, $this->dbm->using($globex, fn () => DB::table('domain_events')->count()));
     }
+
+    /**
+     * Regression: webhook/billing code writes to the central DB inside a transaction and enters a tenant halfway through
+     * (plan activation). Leaving the tenant block purged the central connection — closing the PDO and silently rolling the
+     * transaction back, so a payment looked processed while nothing was saved.
+     */
+    public function test_entering_a_tenant_inside_a_central_transaction_does_not_roll_it_back(): void
+    {
+        $central = config('tenancy.system.connection');
+        DB::setDefaultConnection($central);
+        $acme = $this->acme();
+
+        DB::connection($central)->transaction(function () use ($central, $acme) {
+            DB::connection($central)->table('platform_settings')->insert(['key' => 'tx_probe', 'value' => '1', 'created_at' => now(), 'updated_at' => now()]);
+
+            $this->dbm->using($acme, fn () => DB::table('domain_events')->count());
+
+            $this->assertSame(1, DB::connection($central)->transactionLevel(), 'the transaction must survive leaving the tenant block');
+        });
+
+        $this->assertSame('1', DB::connection($central)->table('platform_settings')->where('key', 'tx_probe')->value('value'));
+    }
 }

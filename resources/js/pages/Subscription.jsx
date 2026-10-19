@@ -284,7 +284,7 @@ export default function Subscription() {
 
 
             {billing?.subscription_required && (
-                <Alert tone="warning">{t('billing.sub.subscriptionRequired')}</Alert>
+                <Alert tone="warning">{billing?.payment_method_required ? t('billing.sub.paymentMethodRequired') : t('billing.sub.subscriptionRequired')}</Alert>
             )}
             {subscriptions.filter((s) => s.pending_change).map((s) => (
                 <Alert key={`pending-${s.id}`} tone="info">

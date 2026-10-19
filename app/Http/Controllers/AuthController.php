@@ -333,7 +333,8 @@ class AuthController extends Controller
                 'impersonation_expires_at' => isset($impersonation['expires_at']) ? Carbon::createFromTimestamp($impersonation['expires_at'])->toIso8601String() : null,
                 'onboarding_complete' => ! $tenant || app(TenantOnboarding::class)->isComplete($tenant),
                 // Trial/subscription ended with no paid plan: the SPA confines the session to the Subscription page.
-                'subscription_required' => $tenant !== null && $tenant->status === Tenant::STATUS_EXPIRED,
+                'subscription_required' => $tenant !== null && ($tenant->status === Tenant::STATUS_EXPIRED || $tenant->needsPaymentMethod()),
+                'payment_method_required' => $tenant !== null && $tenant->needsPaymentMethod(),
                 // Runtime feature flags resolved for this tenant (P8.7); the SPA only mirrors them.
                 // Platform personas (P8.3): null = unrestricted break-glass admin; otherwise the held slugs.
                 'platform' => $isSuperAdmin ? [

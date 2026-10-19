@@ -22,7 +22,8 @@
         "cardSaved": "Card saved and set as the default.",
         "cardSetupCanceled": "Card setup was canceled.",
         "thReceipt": "Receipt",
-        "viewReceipt": "View"
+        "viewReceipt": "View",
+        "paymentMethodRequired": "Add a payment method to continue your free trial. You will not be charged until the trial ends."
     },
     "plan": {
         "priceChangeTitle": "Raise the price for current subscribers?",

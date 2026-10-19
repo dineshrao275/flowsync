@@ -190,4 +190,15 @@ class Tenant extends Model
     {
         return $this->status === self::STATUS_DEACTIVATED;
     }
+
+    /**
+     * A trial that must have a card on file before the product opens: set when the tenant was created without one
+     * (an administrator cannot enter somebody else's card) and cleared the moment any card becomes the default.
+     */
+    public function needsPaymentMethod(): bool
+    {
+        return (bool) ($this->settings['billing']['card_required'] ?? false)
+            && config('onboarding.require_card_for_trial')
+            && $this->status === self::STATUS_TRIAL;
+    }
 }

@@ -32,7 +32,8 @@ class BillingProviderFailureTest extends TestCase
             ->assertStatus(503)->assertJsonPath('code', 'billing_unavailable')
             ->assertJsonMissing(['message' => 'Internal error']); // Stripe's wording never reaches the tenant
 
-        $this->assertSame(0, Payment::count());
+        // Nothing is left pending: the intent row is committed before the provider call and marked failed when it breaks.
+        $this->assertSame(0, Payment::where('status', Payment::STATUS_PENDING)->count());
         Http::assertSentCount(3); // bounded retries, then give up
     }
 

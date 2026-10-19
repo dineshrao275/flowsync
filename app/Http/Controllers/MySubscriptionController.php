@@ -270,7 +270,8 @@ class MySubscriptionController extends Controller
             ] : null,
             'billing' => [
                 'card' => $tenant->settings['billing']['card'] ?? null,
-                'subscription_required' => $tenant->status === Tenant::STATUS_EXPIRED,
+                'subscription_required' => $tenant->status === Tenant::STATUS_EXPIRED || $tenant->needsPaymentMethod(),
+                'payment_method_required' => $tenant->needsPaymentMethod(),
             ],
             'tenant' => [
                 'id' => $tenant->id,

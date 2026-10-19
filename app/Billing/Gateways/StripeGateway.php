@@ -310,7 +310,8 @@ class StripeGateway implements CardCaptureGateway, PaymentGateway, RecurringGate
             'invoice.paid', 'invoice.payment_succeeded' => 'invoice_paid',
             'invoice.payment_failed' => 'invoice_failed',
             'invoice.payment_action_required' => 'action_required',
-            'customer.subscription.updated' => 'subscription_updated',
+            'customer.subscription.updated', 'customer.subscription.created' => 'subscription_updated',
+            'customer.created', 'customer.updated' => 'customer',
             'customer.subscription.deleted' => 'subscription_deleted',
             'customer.subscription.trial_will_end' => 'trial_will_end',
             'subscription_schedule.released', 'subscription_schedule.canceled', 'subscription_schedule.aborted' => 'schedule_ended',
@@ -322,7 +323,9 @@ class StripeGateway implements CardCaptureGateway, PaymentGateway, RecurringGate
             $isInvoice = str_starts_with($eventType, 'invoice.');
             $isSchedule = str_starts_with($eventType, 'subscription_schedule.');
             $isPaymentMethod = $kind === 'payment_method';
+            $isCustomer = $kind === 'customer';
             $subscriptionId = match (true) {
+                $isCustomer => null,
                 $isInvoice => $object['subscription'] ?? $object['parent']['subscription_details']['subscription'] ?? null,
                 $isSchedule => $object['released_subscription'] ?? $object['subscription'] ?? null,
                 $isPaymentMethod => null,
@@ -331,7 +334,7 @@ class StripeGateway implements CardCaptureGateway, PaymentGateway, RecurringGate
             $metadata = $isInvoice
                 ? ($object['subscription_details']['metadata'] ?? $object['parent']['subscription_details']['metadata'] ?? [])
                 : ($object['metadata'] ?? []);
-            $customerId = is_string($object['customer'] ?? null) ? $object['customer'] : null;
+            $customerId = $isCustomer ? ($object['id'] ?? null) : (is_string($object['customer'] ?? null) ? $object['customer'] : null);
 
             // The creation invoice is settled by checkout completion itself.
             $skip = $isInvoice && ($object['billing_reason'] ?? '') === 'subscription_create';
@@ -354,7 +357,7 @@ class StripeGateway implements CardCaptureGateway, PaymentGateway, RecurringGate
                 periodEnd: $isInvoice
                     ? ($object['lines']['data'][0]['period']['end'] ?? null)
                     : ($kind === 'trial_will_end' ? ($object['trial_end'] ?? null) : $this->periodEndOf($object)),
-                cancelAtPeriodEnd: ($isInvoice || $isSchedule || $isPaymentMethod) ? null : (bool) ($object['cancel_at_period_end'] ?? false),
+                cancelAtPeriodEnd: ($isInvoice || $isSchedule || $isPaymentMethod || $isCustomer) ? null : (bool) ($object['cancel_at_period_end'] ?? false),
                 providerCustomerId: $customerId,
             );
         }
@@ -528,6 +531,16 @@ class StripeGateway implements CardCaptureGateway, PaymentGateway, RecurringGate
         return $this->call('get', "/subscriptions/{$providerSubscriptionId}");
     }
 
+    public function cancelSubscription(string $providerSubscriptionId): void
+    {
+        $this->call('delete', "/subscriptions/{$providerSubscriptionId}");
+    }
+
+    public function ensureCustomer(Tenant $tenant): string
+    {
+        return $this->customerFor($tenant);
+    }
+
     // ---------------------------------------------------------- card on file
 
     public function createCardSession(Tenant $tenant, string $successUrl, string $cancelUrl): array
@@ -557,19 +570,25 @@ class StripeGateway implements CardCaptureGateway, PaymentGateway, RecurringGate
         ];
     }
 
-    public function startTrialSubscription(Tenant $tenant, SubscriptionPlan $plan, string $currency, string $paymentMethod, int $trialDays): array
+    public function startTrialSubscription(Tenant $tenant, SubscriptionPlan $plan, string $currency, ?string $paymentMethod, int $trialDays): array
     {
         $customer = $this->customerFor($tenant);
-        $this->call('post', "/customers/{$customer}", ['invoice_settings[default_payment_method]' => $paymentMethod]);
 
-        $sub = $this->call('post', '/subscriptions', [
+        if ($paymentMethod) {
+            $this->call('post', "/customers/{$customer}", ['invoice_settings[default_payment_method]' => $paymentMethod]);
+        }
+
+        // Idempotent per (tenant, plan, trial): a retry after a timeout returns the same subscription instead of a second one.
+        $sub = $this->call('post', '/subscriptions', array_filter([
             'customer' => $customer,
             'items[0][price]' => $this->priceFor($plan, $currency),
             'trial_period_days' => $trialDays,
             'default_payment_method' => $paymentMethod,
+            // No card yet: Stripe ends the subscription at trial end rather than invoicing a customer who cannot pay.
+            'trial_settings[end_behavior][missing_payment_method]' => $paymentMethod ? null : 'cancel',
             'metadata[tenant_id]' => (string) $tenant->id,
             'metadata[plan_id]' => (string) $plan->id,
-        ]);
+        ]), "tenant_{$tenant->id}_trial_{$plan->id}_{$trialDays}");
 
         return ['subscription_id' => $sub['id'], 'period_end' => $this->periodEndOf($sub)];
     }

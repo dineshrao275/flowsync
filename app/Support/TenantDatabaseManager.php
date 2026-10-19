@@ -396,7 +396,12 @@ class TenantDatabaseManager
      */
     private function switchDefault(string $connection): void
     {
-        if (DB::getDefaultConnection() !== $connection) {
+        // Purging closes the PDO, which silently ROLLS BACK any transaction open on it. Billing/webhook code runs
+        // central-database transactions that enter a tenant (`using()`) halfway through, so leaving that block must not
+        // throw away the writes the transaction already made — a payment marked completed, a subscription activated.
+        $inTransaction = (DB::getConnections()[$connection] ?? null)?->transactionLevel() > 0;
+
+        if (DB::getDefaultConnection() !== $connection && ! $inTransaction) {
             DB::purge($connection);
         }
 

@@ -953,5 +953,7 @@
     "You can save up to 50 filters per page.": "Puedes guardar hasta 50 filtros por página.",
     "You are not allowed to share filters.": "No tienes permiso para compartir filtros.",
     "Only the owner or an administrator can change a shared filter.": "Solo el propietario o un administrador puede cambiar un filtro compartido.",
-    "Those filters cannot be saved.": "Esos filtros no se pueden guardar."
+    "Those filters cannot be saved.": "Esos filtros no se pueden guardar.",
+    "Add a payment method to continue your free trial. You will not be charged until the trial ends.": "Añade un método de pago para continuar tu prueba gratuita. No se te cobrará hasta que termine la prueba.",
+    "That payment does not match this checkout.": "Ese pago no corresponde a esta compra."
 }
