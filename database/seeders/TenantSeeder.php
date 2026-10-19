@@ -11,6 +11,7 @@ use App\Models\Tenant;
 use App\Models\User;
 use App\Models\WebsitePage;
 use App\Services\TenantLifecycle;
+use App\Support\SiteShowcase;
 use App\Support\TenantDatabaseManager;
 use App\Support\TenantProvisioner;
 use Illuminate\Database\Seeder;
@@ -39,6 +40,9 @@ class TenantSeeder extends Seeder
         ])->each(fn ($value, $key) => PlatformSetting::firstOrCreate(['key' => $key], ['value' => $value]));
 
         $this->seedWebsitePages();
+        if (! app()->environment('testing')) {
+            SiteShowcase::install();
+        }
         $this->seedWebsiteConfig();
         $this->seedBlogContent();
 

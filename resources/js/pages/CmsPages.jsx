@@ -31,7 +31,7 @@ const emptyForm = {
     sort_order: 0,
 };
 
-const BLOCK_TYPES = ['hero', 'logo_cloud', 'features', 'split', 'steps', 'stats', 'testimonials', 'team', 'video', 'pricing', 'faq', 'comparison', 'contact_form', 'text', 'richtext', 'cta'];
+const BLOCK_TYPES = ['hero', 'logo_cloud', 'features', 'showcase', 'split', 'steps', 'stats', 'testimonials', 'team', 'video', 'pricing', 'faq', 'comparison', 'contact_form', 'text', 'richtext', 'cta'];
 
 // Media id ↔ picker object bridge: blocks store the id, the picker needs the
 // row. Hydrated once per id; a deleted image resolves to null (unpicked).
@@ -116,6 +116,22 @@ function BlockEditor({ blocks, onChange }) {
                             className="mb-2 w-full rounded border border-gray-200 px-2 py-1.5 text-sm outline-none focus:border-[var(--accent)]"
                         />
                     )}
+                    {b.type === 'hero' && <ImageField mediaId={b.media_id} onChange={(media_id) => update(i, { media_id })} />}
+                    {b.type === 'showcase' && (
+                        <div className="space-y-2">
+                            {(b.items || []).map((item, j) => (
+                                <div key={j} className="space-y-2 rounded border border-gray-100 p-2">
+                                    <div className="flex gap-2">
+                                        {textInput(item.title, (v) => update(i, { items: b.items.map((it, idx) => (idx === j ? { ...it, title: v } : it)) }), t('admin.cmsPages.itemTitlePlaceholder'))}
+                                        <button type="button" onClick={() => update(i, { items: b.items.filter((_, idx) => idx !== j) })} className="text-red-400">✕</button>
+                                    </div>
+                                    {textInput(item.text, (v) => update(i, { items: b.items.map((it, idx) => (idx === j ? { ...it, text: v } : it)) }), t('admin.cmsPages.itemTextPlaceholder'))}
+                                    <ImageField mediaId={item.media_id} onChange={(media_id) => update(i, { items: b.items.map((it, idx) => (idx === j ? { ...it, media_id } : it)) })} />
+                                </div>
+                            ))}
+                            <Button type="button" variant="ghost" onClick={() => update(i, { items: [...(b.items || []), { title: '', text: '', media_id: null }] })}>{t('admin.cmsPages.addScreenshot')}</Button>
+                        </div>
+                    )}
                     {b.type === 'text' && (
                         <textarea
                             value={b.body || ''}
@@ -140,7 +156,7 @@ function BlockEditor({ blocks, onChange }) {
                             className="mb-2 w-full rounded border border-gray-200 px-2 py-1.5 text-sm outline-none focus:border-[var(--accent)]"
                         />
                     )}
-                    {['steps', 'split', 'testimonials', 'team', 'pricing', 'faq', 'contact_form'].includes(b.type) && (
+                    {['steps', 'split', 'testimonials', 'team', 'pricing', 'faq', 'contact_form', 'showcase'].includes(b.type) && (
                         <div className="mb-2 grid gap-2 sm:grid-cols-2">
                             <input
                                 value={b.eyebrow || ''}

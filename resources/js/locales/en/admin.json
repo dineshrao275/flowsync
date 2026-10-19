@@ -1034,7 +1034,10 @@
         "ctaLinkPlaceholder": "Link (e.g. /app/register)",
         "featureTitlePlaceholder": "Feature title",
         "descriptionPlaceholder": "Description",
-        "addFeature": "+ feature"
+        "addFeature": "+ feature",
+        "itemTitlePlaceholder": "Screenshot title",
+        "itemTextPlaceholder": "Caption",
+        "addScreenshot": "+ screenshot"
     },
     "blogPosts": {
         "pageTitle": "Blog",

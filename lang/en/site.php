@@ -18,6 +18,10 @@ return [
         'label' => 'Language',
     ],
 
+    'showcase' => [
+        'label' => 'Product tour',
+    ],
+
     'theme' => [
         'toggle' => 'Toggle dark mode',
     ],

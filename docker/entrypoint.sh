@@ -56,6 +56,8 @@ if [[ "${RUN_INIT:-false}" == "true" ]]; then
     wait_for_db
 
     echo "== running system migrations =="
+    # Uploaded media (CMS images, avatars) is served through public/storage; without the link every image 403s/404s.
+    php artisan storage:link --no-interaction 2>/dev/null || true
     php artisan migrate --force --no-interaction --database=system --path=database/migrations/system
 
     echo "== provisioning tenant permissions/roles =="

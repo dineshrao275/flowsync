@@ -32,6 +32,38 @@
                                 <x-site.button href="/app/login" variant="ghost" size="lg">{{ __('site.actions.logIn') }}</x-site.button>
                             </div>
                         @endif
+                        @php($heroMedia = !empty($block['media_id']) ? ($mediaMap[(int) $block['media_id']] ?? null) : null)
+                        @if($heroMedia)
+                            <div class="relative mx-auto mt-14 max-w-5xl animate-fade-up [animation-delay:360ms]">
+                                <div class="pointer-events-none absolute -inset-x-6 -bottom-6 top-10 -z-10 rounded-[2rem] bg-gradient-to-b from-blue-500/20 to-violet-500/20 blur-2xl" aria-hidden="true"></div>
+                                <x-site.browser-frame :media="$heroMedia" :eager="true" />
+                            </div>
+                        @endif
+                    </div>
+                </section>
+                @break
+
+            @case('showcase')
+                <section class="py-16" data-showcase>
+                    <div class="mx-auto max-w-6xl px-4 sm:px-6">
+                        <x-site.section-heading :eyebrow="$block['eyebrow'] ?? null" :heading="$block['heading'] ?? null" :lead="$block['lead'] ?? null" align="center" class="mb-10" />
+                        @php($tour = collect($block['items'] ?? [])->filter(fn ($it) => !empty($it['media_id']) && isset($mediaMap[(int) $it['media_id']]))->values())
+                        @if($tour->isNotEmpty())
+                            <div role="tablist" aria-label="{{ $block['heading'] ?? __('site.showcase.label') }}" class="mb-8 flex flex-wrap justify-center gap-2">
+                                @foreach($tour as $n => $item)
+                                    <button type="button" role="tab" id="tour-tab-{{ $loop->parent->index }}-{{ $n }}" aria-controls="tour-panel-{{ $loop->parent->index }}-{{ $n }}" aria-selected="{{ $n === 0 ? 'true' : 'false' }}" data-showcase-tab="{{ $n }}"
+                                        class="rounded-full px-4 py-2 text-sm font-semibold ring-1 ring-inset ring-slate-200 transition hover:bg-slate-100 aria-selected:bg-blue-600 aria-selected:text-white aria-selected:ring-blue-600 aria-selected:shadow-lg aria-selected:shadow-blue-600/25">{{ $item['title'] ?? '' }}</button>
+                                @endforeach
+                            </div>
+                            @foreach($tour as $n => $item)
+                                <div role="tabpanel" id="tour-panel-{{ $loop->parent->index }}-{{ $n }}" aria-labelledby="tour-tab-{{ $loop->parent->index }}-{{ $n }}" data-showcase-panel="{{ $n }}" class="mb-12 data-[ready]:mb-0">
+                                    <div class="mx-auto max-w-5xl">
+                                        <x-site.browser-frame :media="$mediaMap[(int) $item['media_id']]" :eager="$n === 0" />
+                                        @if(!empty($item['text']))<p class="mx-auto mt-6 max-w-2xl text-center text-lg text-pretty text-slate-600">{{ $item['text'] }}</p>@endif
+                                    </div>
+                                </div>
+                            @endforeach
+                        @endif
                     </div>
                 </section>
                 @break
