@@ -1,10 +1,11 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import api, { fieldErrors } from '../../services/api';
 import Alert from '../../components/ui/Alert';
 import Button from '../../components/ui/Button';
 import Card from '../../components/ui/Card';
-import Spinner from '../../components/ui/Spinner';
+import ContentSkeleton from '../../components/ui/ContentSkeleton';
 import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
 import { useConfirm } from '../../components/ui/ConfirmDialog';
@@ -24,6 +25,7 @@ import Timestamp from '../../components/ui/Timestamp';
  * button confirms, because a 200 here is a signature.
  */
 export default function OffboardingCaseDetail() {
+    const { t } = useTranslation();
     const { caseId } = useParams();
     const navigate = useNavigate();
     const setCrumbs = useSetCrumbs();
@@ -38,7 +40,7 @@ export default function OffboardingCaseDetail() {
 
     const canManage = can('permission:hrms.offboarding.manage');
 
-    usePageTitle(detail ? `Exit · ${detail.employee?.name ?? ''}` : 'Exit run');
+    usePageTitle(detail ? t('hrms.offboarding.detailPerson', { name: detail.employee?.name ?? '' }) : t('hrms.offboarding.detailTitle'));
 
     const load = useCallback(() => {
         setError(null);
@@ -52,9 +54,9 @@ export default function OffboardingCaseDetail() {
                     return;
                 }
 
-                setError('Unable to load this exit run.');
+                setError(t('hrms.offboarding.loadDetailFailed'));
             });
-    }, [caseId, navigate]);
+    }, [caseId, navigate, t]);
 
     useEffect(() => {
         load();
@@ -64,11 +66,11 @@ export default function OffboardingCaseDetail() {
         if (!detail) return;
 
         setCrumbs([
-            { label: 'HRMS', to: '/hrms' },
-            { label: 'Offboarding', to: hrmsUrl('offboarding') },
-            { label: detail.employee?.name ?? `Exit ${detail.id}` },
+            { label: t('hrms.overview.pageTitle'), to: '/hrms' },
+            { label: t('hrms.offboarding.pageTitle'), to: hrmsUrl('offboarding') },
+            { label: detail.employee?.name ?? t('hrms.offboarding.crumbExit', { id: detail.id }) },
         ]);
-    }, [detail, setCrumbs]);
+    }, [detail, setCrumbs, t]);
 
     async function completeTask(task) {
         setActing(true);
@@ -77,7 +79,7 @@ export default function OffboardingCaseDetail() {
             await api.post(`/hrms/offboarding/cases/${caseId}/tasks/${task.id}/complete`, {});
             await load();
         } catch {
-            toast.error('Unable to complete this item.');
+            toast.error(t('hrms.caseDetail.completeItemFailed'));
         } finally {
             setActing(false);
         }
@@ -88,26 +90,26 @@ export default function OffboardingCaseDetail() {
 
         try {
             const { data } = await api.post(`/hrms/offboarding/cases/${caseId}/tasks/${task.id}/sync`, {});
-            toast.success(data.message ?? 'Synced.');
+            toast.success(data.message ?? t('hrms.caseDetail.synced'));
             await load();
         } catch (err) {
-            toast.error(err.response?.data?.message ?? 'Unable to sync this item.');
+            toast.error(err.response?.data?.message ?? t('hrms.caseDetail.syncFailed'));
         } finally {
             setActing(false);
         }
     }
 
     async function clear() {
-        if (!(await confirm({ title: 'Sign off exit?', message: 'Sign off this exit? This records that nothing is outstanding.' }))) return;
+        if (!(await confirm({ title: t('hrms.offboarding.clearTitle'), message: t('hrms.offboarding.clearMessage') }))) return;
 
         setActing(true);
 
         try {
             await api.post(`/hrms/offboarding/cases/${caseId}/clear`, {});
-            toast.success('Exit cleared.');
+            toast.success(t('hrms.offboarding.clearDone'));
             await load();
         } catch (err) {
-            toast.error(fieldErrors(err).form ?? 'Unable to clear this exit.');
+            toast.error(fieldErrors(err).form ?? t('hrms.offboarding.clearFailed'));
         } finally {
             setActing(false);
         }
@@ -118,26 +120,26 @@ export default function OffboardingCaseDetail() {
 
         try {
             await api.post(`/hrms/offboarding/cases/${caseId}/complete`, {});
-            toast.success('Exit run completed.');
+            toast.success(t('hrms.offboarding.completeDone'));
             await load();
         } catch (err) {
-            toast.error(fieldErrors(err).form ?? 'Unable to complete this exit.');
+            toast.error(fieldErrors(err).form ?? t('hrms.offboarding.completeFailed'));
         } finally {
             setActing(false);
         }
     }
 
     async function cancel() {
-        if (!(await confirm({ title: 'Cancel exit run?', message: 'Cancel this exit run? The rows stay for the audit trail.', variant: 'danger' }))) return;
+        if (!(await confirm({ title: t('hrms.offboarding.cancelTitle'), message: t('hrms.offboarding.cancelMessage'), variant: 'danger' }))) return;
 
         setActing(true);
 
         try {
             await api.post(`/hrms/offboarding/cases/${caseId}/cancel`, {});
-            toast.success('Exit run cancelled.');
+            toast.success(t('hrms.offboarding.cancelDone'));
             await load();
         } catch {
-            toast.error('Unable to cancel this exit.');
+            toast.error(t('hrms.offboarding.cancelFailed'));
         } finally {
             setActing(false);
         }
@@ -149,9 +151,7 @@ export default function OffboardingCaseDetail() {
 
     if (!detail) {
         return (
-            <div className="flex justify-center py-16">
-                <Spinner />
-            </div>
+            <ContentSkeleton size="lg" />
         );
     }
 
@@ -169,7 +169,7 @@ export default function OffboardingCaseDetail() {
                 <div>
                     <h2 className="text-xl font-semibold text-gray-900">{detail.employee?.name}</h2>
                     <p className="mt-0.5 text-sm text-gray-500">
-                        {detail.reason_label ?? detail.reason} · last day {detail.last_working_day} ·{' '}
+                        {detail.reason_label ?? detail.reason} · {t('hrms.offboarding.lastDayMeta', { date: detail.last_working_day })} ·{' '}
                         {detail.status_label ?? detail.status}
                     </p>
                 </div>
@@ -178,33 +178,34 @@ export default function OffboardingCaseDetail() {
                     <div className="flex gap-2">
                         {!signed && (
                             <Button loading={acting} onClick={clear}>
-                                Clear exit
+                                {t('hrms.offboarding.clearExit')}
                             </Button>
                         )}
                         <Button variant="secondary" loading={acting} onClick={complete}>
-                            Complete
+                            {t('hrms.offboarding.complete')}
                         </Button>
                         <Button variant="ghost" loading={acting} onClick={cancel}>
-                            Cancel
+                            {t('hrms.common.cancel')}
                         </Button>
                     </div>
                 )}
             </div>
 
             <Card
-                title="Clearance"
+                title={t('hrms.offboarding.clearanceCard')}
                 dense
                 className={signed ? '' : blockedReasons.length > 0 ? 'border-red-300' : ''}
             >
                 {signed ? (
                     <p className="text-sm text-green-700">
-                        Signed{clearance.cleared_at ? <> on <Timestamp date={clearance.cleared_at} /></> : ''}.
-                        Nothing is outstanding.
+                        {t('hrms.offboarding.signed')}
+                        {clearance.cleared_at ? <>{t('hrms.offboarding.signedOn')} <Timestamp date={clearance.cleared_at} /></> : ''}
+                        {t('hrms.offboarding.signedRest')}
                     </p>
                 ) : blockedReasons.length > 0 ? (
                     <div>
                         <p className="mb-2 text-sm font-semibold text-red-700">
-                            This exit cannot be cleared yet:
+                            {t('hrms.offboarding.blockedTitle')}
                         </p>
                         <ul className="list-disc space-y-1 pl-5 text-sm text-red-700">
                             {blockedReasons.map((reason, i) => (
@@ -214,18 +215,18 @@ export default function OffboardingCaseDetail() {
                     </div>
                 ) : (
                     <p className="text-sm text-gray-500">
-                        Nothing is outstanding. Clearing signs the exit off.
+                        {t('hrms.offboarding.clearanceHint')}
                     </p>
                 )}
                 <dl className="mt-3 grid grid-cols-2 gap-2 text-sm sm:grid-cols-4">
-                    <Counter label="Assets" value={clearance.pending_assets_count} />
-                    <Counter label="Leave days" value={clearance.pending_leave_encashment_days} />
-                    <Counter label="Expense" value={clearance.pending_expense_amount} />
-                    <Counter label="Documents" value={clearance.pending_documents_count} />
+                    <Counter label={t('hrms.offboarding.counterAssets')} value={clearance.pending_assets_count} />
+                    <Counter label={t('hrms.offboarding.counterLeave')} value={clearance.pending_leave_encashment_days} />
+                    <Counter label={t('hrms.offboarding.counterExpense')} value={clearance.pending_expense_amount} />
+                    <Counter label={t('hrms.offboarding.counterDocuments')} value={clearance.pending_documents_count} />
                 </dl>
             </Card>
 
-            <Card title="Checklist" dense>
+            <Card title={t('hrms.caseDetail.checklist')} dense>
                 <Checklist
                     tasks={detail.tasks ?? []}
                     canAct={open && canWork}
@@ -252,15 +253,15 @@ export default function OffboardingCaseDetail() {
             )}
 
             {(detail.requests ?? []).length > 0 && (
-                <Card title="Document asks" dense>
+                <Card title={t('hrms.caseDetail.docAsks')} dense>
                     <ul className="divide-y divide-gray-100">
                         {(detail.requests ?? []).map((ask) => (
                             <li key={ask.id} className="flex items-center justify-between gap-3 py-2 text-sm">
                                 <span className="min-w-0">
                                     <span className="block truncate font-medium text-gray-900">{ask.title}</span>
                                     <span className="text-xs text-gray-400">
-                                        {ask.type?.name ?? 'Any file'}
-                                        {ask.due_date ? ` · due ${ask.due_date}` : ''}
+                                        {ask.type?.name ?? t('hrms.caseDetail.anyFile')}
+                                        {ask.due_date ? t('hrms.caseDetail.due', { date: ask.due_date }) : ''}
                                     </span>
                                 </span>
                                 <span className="shrink-0 text-xs capitalize text-gray-500">{ask.status}</span>
@@ -271,8 +272,8 @@ export default function OffboardingCaseDetail() {
             )}
 
             <div className="pt-2 text-sm">
-                <Link to={hrmsUrl('offboarding')} className="text-indigo-600 hover:text-indigo-800">
-                    ← Back to offboarding
+                <Link to={hrmsUrl('offboarding')} className="text-[var(--accent-soft-text)] hover:text-[var(--accent)]">
+                    {t('hrms.offboarding.backLink')}
                 </Link>
             </div>
         </div>

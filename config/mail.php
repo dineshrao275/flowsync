@@ -112,7 +112,9 @@ return [
 
     'from' => [
         'address' => env('MAIL_FROM_ADDRESS', 'hello@example.com'),
-        'name' => env('MAIL_FROM_NAME', env('APP_NAME', 'Laravel')),
+        // null = follow the configured product name (App\Support\AppName::apply()).
+        'name' => env('MAIL_FROM_NAME'),
+        'follows_app_name' => env('MAIL_FROM_NAME') === null,
     ],
 
 ];

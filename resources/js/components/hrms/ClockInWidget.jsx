@@ -1,11 +1,13 @@
+import { useTranslation } from 'react-i18next';
 import Button from '../ui/Button';
 import Card from '../ui/Card';
-import Spinner from '../ui/Spinner';
+import ContentSkeleton from '../ui/ContentSkeleton';
+import i18n, { intlTag } from '../../i18n';
 
 function clockTime(iso) {
     if (!iso) return '—';
 
-    return new Date(iso).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    return new Date(iso).toLocaleTimeString(intlTag(i18n.language), { hour: '2-digit', minute: '2-digit' });
 }
 
 /**
@@ -25,12 +27,11 @@ function clockTime(iso) {
  * and the disabled state says whose day this is.
  */
 export default function ClockInWidget({ today, punching, onPunch, allowPunch = true }) {
+    const { t } = useTranslation();
     if (!today) {
         return (
-            <Card title="Clock in">
-                <div className="flex justify-center py-6">
-                    <Spinner />
-                </div>
+            <Card title={t('hrms.clock.title')}>
+                <ContentSkeleton size="sm" />
             </Card>
         );
     }
@@ -42,31 +43,31 @@ export default function ClockInWidget({ today, punching, onPunch, allowPunch = t
     const flagged = punches.filter((punch) => punch.is_out_of_range);
 
     return (
-        <Card title="Clock in">
+        <Card title={t('hrms.clock.title')}>
             <div className="space-y-3">
                 <div className="flex items-center justify-between">
                     <div>
-                        <p className="text-sm font-medium text-gray-900">Today · {today.status_label}</p>
+                        <p className="text-sm font-medium text-gray-900">{t('hrms.clock.today', { status: today.status_label })}</p>
                         <p className="text-xs text-gray-500">
                             {today.day
-                                ? `In ${clockTime(today.day.first_in_at)} · Out ${clockTime(today.day.last_out_at)}`
-                                : 'No day record yet'}
+                                ? t('hrms.clock.inOut', { inn: clockTime(today.day.first_in_at), out: clockTime(today.day.last_out_at) })
+                                : t('hrms.clock.noDay')}
                         </p>
                     </div>
                     <div className="flex gap-2">
                         {onBreak ? (
                             <Button onClick={() => onPunch('in', 'break')} disabled={punching || !allowPunch}>
-                                {punching ? 'Punching…' : 'End break'}
+                                {punching ? t('hrms.clock.punching') : t('hrms.clock.endBreak')}
                             </Button>
                         ) : (
                             <>
                                 {next === 'out' && (
                                     <Button variant="secondary" onClick={() => onPunch('out', 'break')} disabled={punching || !allowPunch}>
-                                        Start break
+                                        {t('hrms.clock.startBreak')}
                                     </Button>
                                 )}
-                                <Button onClick={() => onPunch(next)} disabled={punching || !allowPunch} title={allowPunch ? null : 'You can only clock yourself in'}>
-                                    {punching ? 'Punching…' : next === 'in' ? 'Clock in' : 'Clock out'}
+                                <Button onClick={() => onPunch(next)} disabled={punching || !allowPunch} title={allowPunch ? null : t('hrms.clock.selfOnly')}>
+                                    {punching ? t('hrms.clock.punching') : next === 'in' ? t('hrms.clock.clockIn') : t('hrms.clock.clockOut')}
                                 </Button>
                             </>
                         )}
@@ -75,9 +76,7 @@ export default function ClockInWidget({ today, punching, onPunch, allowPunch = t
 
                 {flagged.length > 0 && (
                     <div className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800">
-                        {flagged.length} punch{flagged.length === 1 ? '' : 'es'} recorded outside the allowed
-                        network or area{flagged[0]?.out_of_range_reason ? `: ${flagged[0].out_of_range_reason}` : ''}.
-                        Your reviewer will see the flag.
+                        {t('hrms.clock.flagged', { count: flagged.length, reason: flagged[0]?.out_of_range_reason ? `: ${flagged[0].out_of_range_reason}` : '' })}
                     </div>
                 )}
 
@@ -86,12 +85,12 @@ export default function ClockInWidget({ today, punching, onPunch, allowPunch = t
                         {punches.map((punch) => (
                             <li key={punch.id} className="flex items-center justify-between py-1.5 text-sm">
                                 <span className="font-medium capitalize text-gray-700">
-                                    {punch.kind === 'break' ? (punch.direction === 'out' ? 'break start' : 'break end') : punch.direction}
+                                    {punch.kind === 'break' ? (punch.direction === 'out' ? t('hrms.clock.breakStart') : t('hrms.clock.breakEnd')) : punch.direction}
                                 </span>
                                 <span className="text-gray-500">
                                     {clockTime(punch.punch_at)}
-                                    {punch.is_out_of_range && <span className="ml-1 text-amber-600">· flagged</span>}
-                                    {punch.source === 'regularized' && <span className="ml-1 text-gray-400">· corrected</span>}
+                                    {punch.is_out_of_range && <span className="ml-1 text-amber-600">{t('hrms.clock.flaggedShort')}</span>}
+                                    {punch.source === 'regularized' && <span className="ml-1 text-gray-400">{t('hrms.clock.corrected')}</span>}
                                 </span>
                             </li>
                         ))}

@@ -3,17 +3,24 @@
 use App\Http\Controllers\Hrms\Attendance\AttendanceController;
 use App\Http\Controllers\Hrms\Attendance\AttendanceRecordsController;
 use App\Http\Controllers\Hrms\Attendance\RegularizationController;
+use App\Http\Controllers\Hrms\Document\LetterController;
+use App\Http\Controllers\Hrms\Document\SignatureController;
 use App\Http\Controllers\Hrms\DocumentController;
 use App\Http\Controllers\Hrms\DocumentTypeController;
+use App\Http\Controllers\Hrms\Employee\EmployeeChangeController;
 use App\Http\Controllers\Hrms\EmployeeController;
+use App\Http\Controllers\Hrms\HrAutomationRuleController;
 use App\Http\Controllers\Hrms\Lifecycle\DocumentRequestController;
+use App\Http\Controllers\Hrms\Lifecycle\ExitInterviewController;
 use App\Http\Controllers\Hrms\Lifecycle\OffboardingCaseController;
 use App\Http\Controllers\Hrms\Lifecycle\OnboardingCaseController;
 use App\Http\Controllers\Hrms\Lifecycle\OnboardingTemplateController;
+use App\Http\Controllers\Hrms\Lifecycle\ResignationController;
 use App\Http\Controllers\Hrms\MyTeamController;
 use App\Http\Controllers\Hrms\Org\DepartmentController;
 use App\Http\Controllers\Hrms\Org\DesignationController;
 use App\Http\Controllers\Hrms\Org\LocationController;
+use App\Http\Controllers\Hrms\Org\OrgChartController;
 use App\Http\Controllers\Hrms\Org\OrgController;
 use Illuminate\Support\Facades\Route;
 
@@ -31,6 +38,7 @@ use Illuminate\Support\Facades\Route;
 // comes back as a 404 on a perfectly valid drag-and-drop.
 Route::group(['middleware' => ['ensure_module:hrms.core', 'permission:hrms.view']], function () {
     Route::get('hrms/org', [OrgController::class, 'index']);
+    Route::get('hrms/org-chart', OrgChartController::class);
 
     Route::get('hrms/departments', [DepartmentController::class, 'index']);
     Route::post('hrms/departments', [DepartmentController::class, 'store']);
@@ -80,6 +88,18 @@ Route::group(['middleware' => ['ensure_module:hrms.core', 'permission:hrms.view'
 // `expiring` is declared before `{document}`, because otherwise the word
 // binds as a document id and a valid warning query 404s.
 Route::group(['middleware' => ['ensure_module:hrms.core', 'ensure_module:hrms.documents', 'permission:hrms.view']], function () {
+    Route::get('hrms/signatures', [SignatureController::class, 'index']);
+    Route::post('hrms/signatures', [SignatureController::class, 'store']);
+    Route::post('hrms/signatures/{signature}/sign', [SignatureController::class, 'sign'])->middleware('throttle:10,1');
+    Route::post('hrms/signatures/{signature}/decline', [SignatureController::class, 'decline']);
+    Route::post('hrms/signatures/{signature}/cancel', [SignatureController::class, 'cancel']);
+    Route::get('hrms/letter-templates', [LetterController::class, 'index']);
+    Route::post('hrms/letter-templates', [LetterController::class, 'store']);
+    Route::post('hrms/letter-templates/starters', [LetterController::class, 'addStarters']);
+    Route::put('hrms/letter-templates/{template}', [LetterController::class, 'update']);
+    Route::delete('hrms/letter-templates/{template}', [LetterController::class, 'destroy']);
+    Route::post('hrms/employees/{employee}/letters', [LetterController::class, 'generate'])->middleware('throttle:30,1');
+
     Route::get('hrms/documents/types', [DocumentTypeController::class, 'index']);
     Route::get('hrms/documents/types/{type}', [DocumentTypeController::class, 'show']);
 
@@ -125,6 +145,21 @@ Route::group(['middleware' => ['ensure_module:hrms.core', 'ensure_module:hrms.on
 });
 
 Route::group(['middleware' => ['ensure_module:hrms.core', 'ensure_module:hrms.offboarding', 'permission:hrms.view']], function () {
+    // Resignations (F6.4): self-service filing, approval through the shared engine, then the exit case opens itself.
+    Route::get('hrms/resignations', [ResignationController::class, 'index']);
+    Route::post('hrms/resignations', [ResignationController::class, 'store'])->middleware('throttle:10,1');
+    Route::post('hrms/resignations/{resignation}/approve', [ResignationController::class, 'approve']);
+    Route::post('hrms/resignations/{resignation}/reject', [ResignationController::class, 'reject']);
+    Route::post('hrms/resignations/{resignation}/withdraw', [ResignationController::class, 'withdraw']);
+
+    // Exit interview (F6.6): the leaver's own, HR's view/record/waive, and anonymity-guarded insights.
+    Route::get('hrms/exit-interview', [ExitInterviewController::class, 'mine']);
+    Route::put('hrms/exit-interview', [ExitInterviewController::class, 'submitMine']);
+    Route::get('hrms/offboarding/exit-insights', [ExitInterviewController::class, 'insights']);
+    Route::get('hrms/offboarding/cases/{case}/exit-interview', [ExitInterviewController::class, 'show']);
+    Route::put('hrms/offboarding/cases/{case}/exit-interview', [ExitInterviewController::class, 'record']);
+    Route::post('hrms/offboarding/cases/{case}/exit-interview/waive', [ExitInterviewController::class, 'waive']);
+
     Route::get('hrms/offboarding/cases', [OffboardingCaseController::class, 'index']);
     Route::post('hrms/offboarding/cases', [OffboardingCaseController::class, 'store']);
     Route::get('hrms/offboarding/cases/{case}', [OffboardingCaseController::class, 'show']);
@@ -182,4 +217,22 @@ Route::group(['middleware' => ['ensure_module:hrms.attendance']], function () {
     // the month grid and widget stay unthrottled — and unlike those
     // self-service reads, exports answer to tenant admins only.
     Route::get('hrms/attendance/export', [AttendanceRecordsController::class, 'export'])->middleware(['throttle:30,1', 'permission:workspaces.manage']);
+});
+
+// HR event -> tasks rules (F5). The tasks land in a TMS project, so the rule needs the HRMS core, the
+// automation module and the TMS product; managing one needs onboarding-manage plus project settings.
+Route::group(['middleware' => ['ensure_module:hrms.core', 'ensure_module:automation', 'ensure_product:tms', 'permission:hrms.view', 'permission:hrms.onboarding.manage']], function () {
+    Route::get('hrms/automation-rules', [HrAutomationRuleController::class, 'index']);
+    Route::post('hrms/automation-rules', [HrAutomationRuleController::class, 'store']);
+    Route::put('hrms/automation-rules/{rule}', [HrAutomationRuleController::class, 'update']);
+    Route::delete('hrms/automation-rules/{rule}', [HrAutomationRuleController::class, 'destroy']);
+});
+
+// Transfers, promotions, confirmations (F6.3): effective-dated changes through the approval engine.
+Route::group(['middleware' => ['ensure_module:hrms.core', 'permission:hrms.view']], function () {
+    Route::get('hrms/employee-changes', [EmployeeChangeController::class, 'index']);
+    Route::post('hrms/employees/{employee}/changes', [EmployeeChangeController::class, 'store']);
+    Route::post('hrms/employee-changes/{change}/approve', [EmployeeChangeController::class, 'approve']);
+    Route::post('hrms/employee-changes/{change}/reject', [EmployeeChangeController::class, 'reject']);
+    Route::post('hrms/employee-changes/{change}/withdraw', [EmployeeChangeController::class, 'withdraw']);
 });

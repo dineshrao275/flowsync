@@ -44,7 +44,7 @@ class LeavePolicyController extends Controller
         $policy = $this->catalog->createPolicy($request->validated(), $request->user());
 
         return response()->json([
-            'message' => 'Leave policy created.',
+            'message' => __('Leave policy created.'),
             'leave_policy' => $this->presenter->policy($policy),
         ], Response::HTTP_CREATED);
     }
@@ -56,7 +56,7 @@ class LeavePolicyController extends Controller
         $policy = $this->catalog->updatePolicy($leavePolicy, $request->validated(), $request->user());
 
         return response()->json([
-            'message' => 'Leave policy updated.',
+            'message' => __('Leave policy updated.'),
             'leave_policy' => $this->presenter->policy($policy),
         ]);
     }
@@ -67,6 +67,6 @@ class LeavePolicyController extends Controller
 
         $this->catalog->deletePolicy($leavePolicy, $request->user());
 
-        return response()->json(['message' => 'Leave policy deleted.']);
+        return response()->json(['message' => __('Leave policy deleted.')]);
     }
 }

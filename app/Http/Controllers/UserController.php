@@ -11,6 +11,7 @@ use App\Services\Api\ApiTokenService;
 use App\Services\Hrms\Employee\EmployeeBackfill;
 use App\Services\TenantLimits;
 use App\Support\GrantCeiling;
+use App\Support\Like;
 use App\Support\TenantContext;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -37,12 +38,46 @@ class UserController extends Controller
 
     public function index(Request $request): JsonResponse
     {
-        $users = User::with('roles')
-            ->orderBy('name')
-            ->get()
-            ->map(fn (User $user) => $this->present($user));
+        $query = User::with('roles')->orderBy('name');
 
-        return response()->json(['users' => $users]);
+        if ($q = trim((string) $request->input('q', $request->input('search', '')))) {
+            Like::any($query, ['name', 'email'], $q);
+        }
+
+        if ($role = $request->input('role')) {
+            $query->whereHas('roles', fn ($r) => $r->where('slug', $role));
+        }
+
+        if ($request->has('is_default') && $request->input('is_default') !== '' && $request->input('is_default') !== null) {
+            $query->where('is_default', filter_var($request->input('is_default'), FILTER_VALIDATE_BOOL));
+        }
+
+        if ($request->boolean('all')) {
+            $users = $query->get()->map(fn (User $user) => $this->present($user));
+
+            return response()->json([
+                'users' => $users,
+                'pagination' => [
+                    'current_page' => 1,
+                    'last_page' => 1,
+                    'per_page' => $users->count(),
+                    'total' => $users->count(),
+                ],
+            ]);
+        }
+
+        $perPage = min(max((int) $request->input('per_page', 15), 1), 200);
+        $paginator = $query->paginate($perPage)->withQueryString();
+
+        return response()->json([
+            'users' => $paginator->getCollection()->map(fn (User $user) => $this->present($user))->values(),
+            'pagination' => [
+                'current_page' => $paginator->currentPage(),
+                'last_page' => $paginator->lastPage(),
+                'per_page' => $paginator->perPage(),
+                'total' => $paginator->total(),
+            ],
+        ]);
     }
 
     public function store(Request $request): JsonResponse
@@ -99,7 +134,7 @@ class UserController extends Controller
         $this->backfill->linkFor($user);
 
         return response()->json([
-            'message' => 'User created.',
+            'message' => __('User created.'),
             'user' => $this->present($user->load('roles')),
         ], 201);
     }
@@ -126,7 +161,7 @@ class UserController extends Controller
             $taken = TenantUserRouting::where('email', $data['email'])->exists()
                 || SystemUser::where('email', $data['email'])->exists();
             if ($taken) {
-                throw ValidationException::withMessages(['email' => 'An account with this email already exists.']);
+                throw ValidationException::withMessages(['email' => __('An account with this email already exists.')]);
             }
         }
 
@@ -141,7 +176,7 @@ class UserController extends Controller
             $this->auditTenantAdmin($request, 'user.updated', 'users', $user->id, $before, ['name' => $user->name, 'email' => $user->email]);
         }
 
-        return response()->json(['message' => 'User updated.', 'user' => $this->present($user->load('roles'))]);
+        return response()->json(['message' => __('User updated.'), 'user' => $this->present($user->load('roles'))]);
     }
 
     public function updateRoles(Request $request, User $user): JsonResponse
@@ -173,7 +208,7 @@ class UserController extends Controller
         }
 
         return response()->json([
-            'message' => 'Roles updated.',
+            'message' => __('Roles updated.'),
             'user' => $this->present($user->load('roles')),
         ]);
     }
@@ -182,7 +217,7 @@ class UserController extends Controller
     {
         if ($user->id === $request->user()->id) {
             throw ValidationException::withMessages([
-                'form' => 'You cannot delete your own account.',
+                'form' => __('You cannot delete your own account.'),
             ]);
         }
 
@@ -204,7 +239,7 @@ class UserController extends Controller
             ->where('email', $email)
             ->delete();
 
-        return response()->json(['message' => 'User deleted.']);
+        return response()->json(['message' => __('User deleted.')]);
     }
 
     /**

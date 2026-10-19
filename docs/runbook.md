@@ -304,6 +304,7 @@ php artisan tenants:backup --restore-drill=latest
 # Test a specific manifest
 php artisan tenants:backup --restore-drill=storage/app/backups/2026-10-08_180000/manifest.json
 ```
+The same drill runs **weekly (Sunday 05:30)** from the scheduler; a failure writes a `backup.restore_drill_failed` critical log line.
 The drill performs:
 1. Full SHA-256 integrity verification against the manifest.
 2. Read-test validation confirming records can be queried cleanly.
@@ -326,6 +327,19 @@ The drill performs:
   - Queue connection status (config echo only — the configured `queue.default`
     driver name; it does **not** probe a worker or broker, so it reads `ok`
     even when no worker is consuming)
+
+### 6.1a Prometheus metrics & alert catalogue (F11.2)
+`GET /api/metrics` answers only to `Authorization: Bearer $METRICS_TOKEN` and does not exist (404) while the
+variable is empty. It exposes queue depth/age/failures and tenants by lifecycle status. Suggested alerts:
+
+| Metric | Condition | Meaning / first action |
+|---|---|---|
+| `flowsync_queue_failed` | `> 0` for 10 min | Open **Admin → Queue**, read the failure, retry or discard |
+| `flowsync_queue_oldest_age_seconds` | `> 300` | No worker is consuming: `systemctl --user status flowsync-queue` |
+| `flowsync_queue_pending` | rising for 15 min | Worker too slow or stuck on one job: raise processes, check `failed` |
+| `flowsync_tenants{status="provisioning_failed"}` | `> 0` | Run `php artisan tenants:provision --tenant=<id>` and read `provisioning_error` |
+| `flowsync_tenants{status="suspended"}` | step change | Billing dunning ran; confirm intended |
+| `/api/health` | non-200 | Central DB unreachable: §7.1 |
 
 ### 6.2 Tenant Usage Metrics Collection
 A daily job gathers cross-tenant statistics into the central `usage_metrics` table:
@@ -356,6 +370,14 @@ psql -h 127.0.0.1 -U flowsync -d flowsync_system < storage/app/backups/<backup_f
 psql -h 127.0.0.1 -U flowsync -d flowsync_tenant_<id> < storage/app/backups/<backup_folder>/tenant_<slug>_<id>.sql
 ```
 
+### 7.2a Permanently removing a deleted tenant (`tenants:purge`)
+A tenant that was soft-deleted can be restored from the Tenants page. After `TENANCY_PURGE_AFTER_DAYS` (default 30) an operator may remove its data for good:
+```bash
+php artisan tenants:purge <id-or-slug> --dry-run            # report what would go
+php artisan tenants:purge <id-or-slug> --confirm=<slug>     # drops the database, HR files and login routing
+```
+A `tenant.purged` audit row is written first. The central tenant row stays as a tombstone (invoices and payments reference it) and can never be restored. Task attachments are not stored under a tenant prefix and are not swept; delete them with the storage lifecycle policy of your bucket.
+
 ### 7.3 Repairing Permissions & Scopes
 If new roles or features are added, run the idempotent provisioner and scope backfill:
 ```bash
@@ -368,3 +390,20 @@ php artisan tenants:scope-grants
 # Apply scope grants
 php artisan tenants:scope-grants --force
 ```
+
+---
+
+## 8. Scaling thresholds (F11.7)
+Numbers to act on, not to admire. Review when a dashboard crosses a line; do nothing before.
+
+| Signal | Threshold | Action |
+|---|---|---|
+| Tenant database count on one PostgreSQL server | 1,500 | Add a second server; `tenants.db_host` already routes per tenant — provision new tenants there |
+| One tenant's `activities` (or `hrms_audit_logs`) table | 50 M rows | Partition it by month (`created_at`) and keep 24 months hot; archive older partitions |
+| Central `audit_logs` | 20 M rows | Raise `audit:prune` aggressiveness per plan; partition by month |
+| p95 of board / dashboard reads (k6 profiles in `tests/load`) | > 800 ms for 3 consecutive runs | Check `pg_stat_statements`, then add a read replica for report and search endpoints |
+| Replica lag acceptable for reports | ≤ 30 s | Route `report-builder` and `reports/*` reads to the replica; never route writes or auth |
+| Queue wait (`flowsync_queue_oldest_age_seconds`) | > 300 s sustained | Add worker processes before anything else |
+| Failed jobs | > 0 for 10 min | Read the cause on **Admin → Queue**; retry or discard |
+
+Every migration must be safe to re-run on a populated database (repair path); `MigrationRepairTest` enforces it.

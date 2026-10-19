@@ -1,15 +1,17 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { useAuth } from '../../context/AuthContext';
 import { fieldErrors } from '../../services/api';
 import AuthShell from '../../components/ui/AuthShell';
-import Spinner from '../../components/ui/Spinner';
+import ContentSkeleton from '../../components/ui/ContentSkeleton';
 import Alert from '../../components/ui/Alert';
 import usePageTitle from '../../hooks/usePageTitle';
 
 /** Landing page after Stripe saved the card: finish the sign-up and drop the user into onboarding. */
 export default function RegisterComplete() {
-    usePageTitle('Finishing sign-up');
+    const { t } = useTranslation();
+    usePageTitle(t('auth.pageTitles.finishing'));
     const [params] = useSearchParams();
     const { completeRegistration } = useAuth();
     const navigate = useNavigate();
@@ -22,23 +24,23 @@ export default function RegisterComplete() {
         const session_id = params.get('session_id');
         const t = params.get('t');
         if (!session_id || !t) {
-            setError('This sign-up link is incomplete.');
+            setError(t('auth.complete.incompleteLink'));
             return;
         }
         completeRegistration({ session_id, t })
             .then(() => navigate('/onboarding', { replace: true }))
-            .catch((e) => setError(fieldErrors(e).form || e.response?.data?.message || 'We could not finish your sign-up.'));
+            .catch((e) => setError(fieldErrors(e).form || e.response?.data?.message || t('auth.complete.failed')));
     }, [params, completeRegistration, navigate]);
 
     return (
-        <AuthShell title="Setting up your workspace" subtitle="This takes a few seconds">
+        <AuthShell title={t('auth.complete.title')} subtitle={t('auth.complete.subtitle')}>
             {error ? (
                 <div className="space-y-3">
                     <Alert>{error}</Alert>
-                    <Link to="/register" className="text-sm font-medium text-indigo-600">Start again</Link>
+                    <Link to="/register" className="text-sm font-medium text-[var(--accent-soft-text)]">{t('auth.complete.startAgain')}</Link>
                 </div>
             ) : (
-                <div className="flex justify-center py-8"><Spinner /></div>
+                <ContentSkeleton size="md" />
             )}
         </AuthShell>
     );

@@ -1,4 +1,5 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import Modal from './Modal';
 import Button from './Button';
 
@@ -42,7 +43,7 @@ function VariantIcon({ variant }) {
         );
     }
     return (
-        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-indigo-50 text-indigo-600 ring-8 ring-indigo-50/50">
+        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[var(--accent-soft)] text-[var(--accent-soft-text)] ring-8 ring-[var(--accent-soft)]/50">
             <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                 <circle cx="12" cy="12" r="10" />
                 <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3" />
@@ -54,16 +55,18 @@ function VariantIcon({ variant }) {
 
 export function ConfirmDialog({
     open,
-    title = 'Are you sure?',
+    title,
     message = '',
-    confirmLabel = 'Confirm',
-    cancelLabel = 'Cancel',
+    confirmLabel,
+    cancelLabel,
     variant = 'primary',
     onConfirm,
     onCancel,
 }) {
+    const { t } = useTranslation();
+
     return (
-        <Modal open={open} onClose={onCancel} title={title} size="sm">
+        <Modal open={open} onClose={onCancel} title={title ?? t('admin.dialog.areYouSure')} size="sm">
             <div className="px-6 py-5">
                 <div className="flex items-start gap-3.5">
                     <VariantIcon variant={variant} />
@@ -78,10 +81,10 @@ export function ConfirmDialog({
             </div>
             <div className="flex justify-end gap-2 border-t border-gray-100 px-6 py-4">
                 <Button type="button" variant="secondary" onClick={onCancel}>
-                    {cancelLabel}
+                    {cancelLabel ?? t('admin.common.cancel')}
                 </Button>
                 <Button type="button" variant={variant} onClick={onConfirm}>
-                    {confirmLabel}
+                    {confirmLabel ?? t('admin.dialog.confirm')}
                 </Button>
             </div>
         </Modal>
@@ -90,18 +93,19 @@ export function ConfirmDialog({
 
 export function PromptDialog({
     open,
-    title = 'Input Required',
+    title,
     message = '',
     defaultValue = '',
     placeholder = '',
-    confirmLabel = 'Submit',
-    cancelLabel = 'Cancel',
+    confirmLabel,
+    cancelLabel,
     variant = 'primary',
     multiline = false,
     required = false,
     onConfirm,
     onCancel,
 }) {
+    const { t } = useTranslation();
     const [val, setVal] = useState(defaultValue);
     const [touched, setTouched] = useState(false);
     const inputRef = useRef(null);
@@ -112,12 +116,14 @@ export function PromptDialog({
     }, [defaultValue, open]);
 
     useEffect(() => {
-        if (open) {
-            setTimeout(() => {
-                inputRef.current?.focus();
-                inputRef.current?.select?.();
-            }, 50);
-        }
+        if (!open) return undefined;
+        const timer = setTimeout(() => {
+            inputRef.current?.focus();
+            inputRef.current?.select?.();
+        }, 50);
+
+        // Cancel on close/unmount so the callback never fires after teardown.
+        return () => clearTimeout(timer);
     }, [open]);
 
     const isInvalid = required && !val.trim();
@@ -130,7 +136,7 @@ export function PromptDialog({
     };
 
     return (
-        <Modal open={open} onClose={onCancel} title={title} size="sm">
+        <Modal open={open} onClose={onCancel} title={title ?? t('admin.dialog.inputRequired')} size="sm">
             <form onSubmit={handleSubmit}>
                 <div className="px-6 py-5">
                     <div className="flex items-start gap-3.5">
@@ -148,7 +154,7 @@ export function PromptDialog({
                                     value={val}
                                     placeholder={placeholder}
                                     onChange={(e) => setVal(e.target.value)}
-                                    className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                                    className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 shadow-sm focus:border-[var(--accent)] focus:outline-none"
                                 />
                             ) : (
                                 <input
@@ -157,21 +163,21 @@ export function PromptDialog({
                                     value={val}
                                     placeholder={placeholder}
                                     onChange={(e) => setVal(e.target.value)}
-                                    className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                                    className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 shadow-sm focus:border-[var(--accent)] focus:outline-none"
                                 />
                             )}
                             {touched && isInvalid && (
-                                <p className="text-xs text-red-600">This field is required.</p>
+                                <p className="text-xs text-red-600">{t('admin.dialog.required')}</p>
                             )}
                         </div>
                     </div>
                 </div>
                 <div className="flex justify-end gap-2 border-t border-gray-100 px-6 py-4">
                     <Button type="button" variant="secondary" onClick={onCancel}>
-                        {cancelLabel}
+                        {cancelLabel ?? t('admin.common.cancel')}
                     </Button>
                     <Button type="submit" variant={variant} disabled={required && !val.trim()}>
-                        {confirmLabel}
+                        {confirmLabel ?? t('admin.dialog.submit')}
                     </Button>
                 </div>
             </form>
@@ -181,14 +187,16 @@ export function PromptDialog({
 
 export function AlertDialog({
     open,
-    title = 'Notice',
+    title,
     message = '',
-    confirmLabel = 'OK',
+    confirmLabel,
     variant = 'primary',
     onClose,
 }) {
+    const { t } = useTranslation();
+
     return (
-        <Modal open={open} onClose={onClose} title={title} size="sm">
+        <Modal open={open} onClose={onClose} title={title ?? t('admin.dialog.notice')} size="sm">
             <div className="px-6 py-5">
                 <div className="flex items-start gap-3.5">
                     <VariantIcon variant={variant} />
@@ -203,7 +211,7 @@ export function AlertDialog({
             </div>
             <div className="flex justify-end gap-2 border-t border-gray-100 px-6 py-4">
                 <Button type="button" variant={variant} onClick={onClose}>
-                    {confirmLabel}
+                    {confirmLabel ?? t('admin.dialog.ok')}
                 </Button>
             </div>
         </Modal>
@@ -211,6 +219,7 @@ export function AlertDialog({
 }
 
 export function ConfirmProvider({ children }) {
+    const { t } = useTranslation();
     const [request, setRequest] = useState(null);
     const resolver = useRef(null);
 
@@ -219,15 +228,15 @@ export function ConfirmProvider({ children }) {
             resolver.current = resolve;
             setRequest({
                 type: 'confirm',
-                title: options.title ?? 'Are you sure?',
+                title: options.title ?? t('admin.dialog.areYouSure'),
                 message: options.message ?? '',
                 confirmLabel:
-                    options.confirmLabel ?? (options.variant === 'danger' ? 'Delete' : 'Confirm'),
-                cancelLabel: options.cancelLabel ?? 'Cancel',
+                    options.confirmLabel ?? (options.variant === 'danger' ? t('admin.common.delete') : t('admin.dialog.confirm')),
+                cancelLabel: options.cancelLabel ?? t('admin.common.cancel'),
                 variant: options.variant ?? 'primary',
             });
         });
-    }, []);
+    }, [t]);
 
     const prompt = useCallback((options = {}, defaultVal = '') => {
         const opts = typeof options === 'string' ? { message: options, defaultValue: defaultVal } : options;
@@ -235,18 +244,18 @@ export function ConfirmProvider({ children }) {
             resolver.current = resolve;
             setRequest({
                 type: 'prompt',
-                title: opts.title ?? 'Input Required',
+                title: opts.title ?? t('admin.dialog.inputRequired'),
                 message: opts.message ?? '',
                 defaultValue: opts.defaultValue ?? '',
                 placeholder: opts.placeholder ?? '',
-                confirmLabel: opts.confirmLabel ?? 'Submit',
-                cancelLabel: opts.cancelLabel ?? 'Cancel',
+                confirmLabel: opts.confirmLabel ?? t('admin.dialog.submit'),
+                cancelLabel: opts.cancelLabel ?? t('admin.common.cancel'),
                 variant: opts.variant ?? 'primary',
                 multiline: opts.multiline ?? false,
                 required: opts.required ?? false,
             });
         });
-    }, []);
+    }, [t]);
 
     const alert = useCallback((options = {}) => {
         const opts = typeof options === 'string' ? { message: options } : options;
@@ -254,13 +263,13 @@ export function ConfirmProvider({ children }) {
             resolver.current = resolve;
             setRequest({
                 type: 'alert',
-                title: opts.title ?? 'Notice',
+                title: opts.title ?? t('admin.dialog.notice'),
                 message: opts.message ?? '',
-                confirmLabel: opts.confirmLabel ?? 'OK',
+                confirmLabel: opts.confirmLabel ?? t('admin.dialog.ok'),
                 variant: opts.variant ?? 'primary',
             });
         });
-    }, []);
+    }, [t]);
 
     const settle = useCallback((value) => {
         resolver.current?.(value);

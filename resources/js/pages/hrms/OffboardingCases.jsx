@@ -1,11 +1,12 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import api, { fieldErrors } from '../../services/api';
 import Alert from '../../components/ui/Alert';
 import Button from '../../components/ui/Button';
 import Input from '../../components/ui/Input';
 import Select from '../../components/ui/Select';
-import Spinner from '../../components/ui/Spinner';
+import ContentSkeleton from '../../components/ui/ContentSkeleton';
 import { Table, Th, Td } from '../../components/ui/Table';
 import EmptyState from '../../components/ui/EmptyState';
 import { useAuth } from '../../context/AuthContext';
@@ -14,18 +15,18 @@ import { useSetCrumbs } from '../../context/BreadcrumbContext';
 import usePageTitle from '../../hooks/usePageTitle';
 
 const STATUSES = [
-    { value: 'initiated', label: 'Initiated' },
-    { value: 'in_progress', label: 'In progress' },
-    { value: 'completed', label: 'Completed' },
-    { value: 'cancelled', label: 'Cancelled' },
+    { value: 'initiated', key: 'stInitiated' },
+    { value: 'in_progress', key: 'stInProgress' },
+    { value: 'completed', key: 'stCompleted' },
+    { value: 'cancelled', key: 'stCancelled' },
 ];
 
 const REASONS = [
-    { value: 'resigned', label: 'Resigned' },
-    { value: 'terminated', label: 'Terminated' },
-    { value: 'retired', label: 'Retired' },
-    { value: 'contract_end', label: 'Contract ended' },
-    { value: 'other', label: 'Other' },
+    { value: 'resigned', key: 'reasonResigned' },
+    { value: 'terminated', key: 'reasonTerminated' },
+    { value: 'retired', key: 'reasonRetired' },
+    { value: 'contract_end', key: 'reasonContractEnd' },
+    { value: 'other', key: 'reasonOther' },
 ];
 
 /**
@@ -38,7 +39,8 @@ const REASONS = [
  * detail to learn it.
  */
 export default function OffboardingCases() {
-    usePageTitle('Offboarding');
+    const { t } = useTranslation();
+    usePageTitle(t('hrms.offboarding.pageTitle'));
     const setCrumbs = useSetCrumbs();
     const navigate = useNavigate();
     const { can } = useAuth();
@@ -56,8 +58,8 @@ export default function OffboardingCases() {
     const canPickEmployee = can('permission:hrms.employees.view');
 
     useEffect(() => {
-        setCrumbs([{ label: 'HRMS', to: '/hrms' }, { label: 'Offboarding' }]);
-    }, [setCrumbs]);
+        setCrumbs([{ label: t('hrms.overview.pageTitle'), to: '/hrms' }, { label: t('hrms.offboarding.pageTitle') }]);
+    }, [setCrumbs, t]);
 
     const load = useCallback(() => {
         setError(null);
@@ -73,9 +75,9 @@ export default function OffboardingCases() {
                     return;
                 }
 
-                setError('Unable to load exit runs.');
+                setError(t('hrms.offboarding.loadFailed'));
             });
-    }, [status, navigate]);
+    }, [status, navigate, t]);
 
     useEffect(() => {
         load();
@@ -103,7 +105,7 @@ export default function OffboardingCases() {
                 notice_period_days: form.notice_period_days === '' ? null : Number(form.notice_period_days),
             });
 
-            toast.success('Exit run opened.');
+            toast.success(t('hrms.offboarding.started'));
             setForm({ employee_id: '', last_working_day: '', reason: 'resigned', notice_period_days: '' });
             navigate(`/hrms/offboarding/cases/${data.case.id}`);
         } catch (err) {
@@ -117,9 +119,9 @@ export default function OffboardingCases() {
         <div className="space-y-4">
             <div className="flex flex-wrap items-center justify-between gap-3">
                 <div>
-                    <h2 className="text-xl font-semibold text-gray-900">Offboarding</h2>
+                    <h2 className="text-xl font-semibold text-gray-900">{t('hrms.offboarding.pageTitle')}</h2>
                     <p className="mt-0.5 text-sm text-gray-500">
-                        {cases ? `${cases.length} exit${cases.length === 1 ? '' : 's'}` : '—'}
+                        {cases ? (cases.length === 1 ? t('hrms.offboarding.exitsOne') : t('hrms.offboarding.exits', { count: cases.length })) : '—'}
                     </p>
                 </div>
             </div>
@@ -128,26 +130,26 @@ export default function OffboardingCases() {
 
             {canManage && canPickEmployee && (
                 <form onSubmit={open} className="grid gap-3 rounded-xl border border-gray-200/70 bg-white p-3 sm:grid-cols-2 lg:grid-cols-5">
-                    <Select label="Employee" value={form.employee_id} onChange={(e) => setForm((f) => ({ ...f, employee_id: e.target.value }))}>
-                        <option value="">Select an employee</option>
+                    <Select label={t('hrms.offboarding.employee')} value={form.employee_id} onChange={(e) => setForm((f) => ({ ...f, employee_id: e.target.value }))}>
+                        <option value="">{t('hrms.offboarding.selectEmployee')}</option>
                         {(employees ?? []).map((employee) => (
                             <option key={employee.id} value={employee.id}>
                                 {employee.name}
                             </option>
                         ))}
                     </Select>
-                    <Input label="Last working day" type="date" value={form.last_working_day} onChange={(e) => setForm((f) => ({ ...f, last_working_day: e.target.value }))} />
-                    <Select label="Reason" value={form.reason} onChange={(e) => setForm((f) => ({ ...f, reason: e.target.value }))}>
+                    <Input label={t('hrms.offboarding.lastDay')} type="date" value={form.last_working_day} onChange={(e) => setForm((f) => ({ ...f, last_working_day: e.target.value }))} />
+                    <Select label={t('hrms.offboarding.reason')} value={form.reason} onChange={(e) => setForm((f) => ({ ...f, reason: e.target.value }))}>
                         {REASONS.map((reason) => (
                             <option key={reason.value} value={reason.value}>
-                                {reason.label}
+                                {t(`hrms.offboarding.${reason.key}`)}
                             </option>
                         ))}
                     </Select>
-                    <Input label="Notice (days)" type="number" value={form.notice_period_days} onChange={(e) => setForm((f) => ({ ...f, notice_period_days: e.target.value }))} />
+                    <Input label={t('hrms.offboarding.notice')} type="number" value={form.notice_period_days} onChange={(e) => setForm((f) => ({ ...f, notice_period_days: e.target.value }))} />
                     <div className="flex items-end">
                         <Button type="submit" loading={opening} disabled={!form.employee_id || !form.last_working_day}>
-                            Open exit
+                            {t('hrms.offboarding.startCase')}
                         </Button>
                     </div>
                     {formErrors.form && <Alert>{formErrors.form}</Alert>}
@@ -155,38 +157,36 @@ export default function OffboardingCases() {
             )}
 
             <div className="grid gap-3 rounded-xl border border-gray-200/70 bg-white p-3 sm:grid-cols-2 lg:grid-cols-4">
-                <Select label="Status" value={status} onChange={(e) => setStatus(e.target.value)}>
-                    <option value="">Any status</option>
+                <Select label={t('hrms.offboarding.status')} value={status} onChange={(e) => setStatus(e.target.value)}>
+                    <option value="">{t('hrms.offboarding.anyStatus')}</option>
                     {STATUSES.map((s) => (
                         <option key={s.value} value={s.value}>
-                            {s.label}
+                            {t(`hrms.offboarding.${s.key}`)}
                         </option>
                     ))}
                 </Select>
             </div>
 
             {!cases ? (
-                <div className="flex justify-center py-10">
-                    <Spinner />
-                </div>
+                <ContentSkeleton size="md" />
             ) : cases.length === 0 ? (
-                <EmptyState title="No exit runs" description="No departures in flight right now." />
+                <EmptyState title={t('hrms.offboarding.emptyTitle')} description={t('hrms.offboarding.emptyHint')} />
             ) : (
                 <Table>
                     <thead>
                         <tr>
-                            <Th>Employee</Th>
-                            <Th>Last day</Th>
-                            <Th>Reason</Th>
-                            <Th>Status</Th>
-                            <Th>Clearance</Th>
+                            <Th>{t('hrms.offboarding.thEmployee')}</Th>
+                            <Th>{t('hrms.offboarding.thLastDay')}</Th>
+                            <Th>{t('hrms.offboarding.thReason')}</Th>
+                            <Th>{t('hrms.offboarding.thStatus')}</Th>
+                            <Th>{t('hrms.offboarding.thClearance')}</Th>
                         </tr>
                     </thead>
                     <tbody>
                         {cases.map((row) => (
                             <tr key={row.id}>
                                 <Td>
-                                    <Link to={`/hrms/offboarding/cases/${row.id}`} className="font-medium text-indigo-600 hover:underline">
+                                    <Link to={`/hrms/offboarding/cases/${row.id}`} className="font-medium text-[var(--accent-soft-text)] hover:underline">
                                         {row.employee?.name ?? '—'}
                                     </Link>
                                 </Td>
@@ -195,11 +195,11 @@ export default function OffboardingCases() {
                                 <Td className="capitalize">{row.status_label ?? row.status}</Td>
                                 <Td>
                                     {row.clearance?.cleared_at ? (
-                                        <span className="text-sm text-green-700">Signed</span>
+                                        <span className="text-sm text-green-700">{t('hrms.offboarding.clearanceSigned')}</span>
                                     ) : (row.clearance?.blocked_reasons ?? []).length > 0 ? (
-                                        <span className="text-sm font-medium text-red-600">Blocked</span>
+                                        <span className="text-sm font-medium text-red-600">{t('hrms.offboarding.clearanceBlocked')}</span>
                                     ) : (
-                                        <span className="text-sm text-gray-400">Open</span>
+                                        <span className="text-sm text-gray-400">{t('hrms.offboarding.clearanceOpen')}</span>
                                     )}
                                 </Td>
                             </tr>

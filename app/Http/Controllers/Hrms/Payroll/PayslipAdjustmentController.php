@@ -35,7 +35,7 @@ class PayslipAdjustmentController extends Controller
         $updated = $this->runs->addAdjustment($payslip, $request->validated(), $request->user());
 
         return response()->json([
-            'message' => 'Adjustment added.',
+            'message' => __('Adjustment added.'),
             'payslip' => $this->reading->present($updated, $request->user()),
         ], Response::HTTP_CREATED);
     }
@@ -48,7 +48,7 @@ class PayslipAdjustmentController extends Controller
         $updated = $this->runs->removeAdjustment($adjustment, $request->user());
 
         return response()->json([
-            'message' => 'Adjustment removed.',
+            'message' => __('Adjustment removed.'),
             'payslip' => $this->reading->present($updated, $request->user()),
         ]);
     }

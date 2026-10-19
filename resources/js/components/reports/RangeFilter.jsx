@@ -1,7 +1,8 @@
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import Button from '../ui/Button';
 import Input from '../ui/Input';
-import { RANGE_PRESETS } from '../../utils/dateRange';
+import { RANGE_PRESETS, presetLabel } from '../../utils/dateRange';
 
 /**
  * Preset window picker shared by Reports and Dashboard: one row of preset
@@ -10,6 +11,7 @@ import { RANGE_PRESETS } from '../../utils/dateRange';
  * same spans from the same labels.
  */
 export default function RangeFilter({ preset, onChange }) {
+    const { t } = useTranslation();
     const [custom, setCustom] = useState({ from: '', to: '' });
 
     function pick(key) {
@@ -24,30 +26,30 @@ export default function RangeFilter({ preset, onChange }) {
 
     return (
         <div className="flex flex-wrap items-center gap-2">
-            {RANGE_PRESETS.filter((p) => p.key !== 'custom').map((item) => (
+            {RANGE_PRESETS.filter((key) => key !== 'custom').map((key) => (
                 <Button
-                    key={item.key}
+                    key={key}
                     size="sm"
-                    variant={preset === item.key ? 'primary' : 'secondary'}
-                    onClick={() => pick(item.key)}
+                    variant={preset === key ? 'primary' : 'secondary'}
+                    onClick={() => pick(key)}
                 >
-                    {item.label}
+                    {presetLabel(key)}
                 </Button>
             ))}
             <div className="flex items-center gap-2">
                 <Input
                     type="date"
                     compact
-                    aria-label="Custom range start"
+                    aria-label={t('dashboard.range.start')}
                     value={custom.from}
                     max={custom.to || undefined}
                     onChange={(e) => setCustom((c) => ({ ...c, from: e.target.value }))}
                 />
-                <span className="text-xs text-gray-400">→</span>
+                <span className="text-xs text-gray-400">–</span>
                 <Input
                     type="date"
                     compact
-                    aria-label="Custom range end"
+                    aria-label={t('dashboard.range.end')}
                     value={custom.to}
                     min={custom.from || undefined}
                     onChange={(e) => setCustom((c) => ({ ...c, to: e.target.value }))}
@@ -58,7 +60,7 @@ export default function RangeFilter({ preset, onChange }) {
                     disabled={!custom.from || !custom.to || custom.from > custom.to}
                     onClick={() => pick('custom')}
                 >
-                    Apply
+                    {t('dashboard.range.apply')}
                 </Button>
             </div>
         </div>

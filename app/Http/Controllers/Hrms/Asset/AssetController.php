@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Hrms\Asset;
 
+use App\Http\Controllers\Concerns\HandlesCustomFields;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Hrms\AssetAssignRequest;
 use App\Http\Requests\Hrms\AssetMaintenanceRequest;
@@ -33,6 +34,8 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
  */
 class AssetController extends Controller
 {
+    use HandlesCustomFields;
+
     public function __construct(
         private readonly AssetService $assets,
         private readonly AssetAssignmentService $handovers,
@@ -88,10 +91,13 @@ class AssetController extends Controller
     {
         $this->authorize('create', Asset::class);
 
+        $custom = $this->validatedCustomFields($request, 'asset', partial: false);
+
         $asset = $this->assets->create($request->validated(), $request->user());
+        $this->storeCustomFields('asset', $asset->id, $custom);
 
         return response()->json([
-            'message' => 'Asset registered.',
+            'message' => __('Asset registered.'),
             'asset' => $this->present($asset),
         ], Response::HTTP_CREATED);
     }
@@ -106,7 +112,7 @@ class AssetController extends Controller
         $assignment = $this->handovers->assign($asset, $employee, (string) ($data['condition_out'] ?? 'good'), $request->user());
 
         return response()->json([
-            'message' => 'Asset assigned.',
+            'message' => __('Asset assigned.'),
             'assignment' => $this->presentAssignment($assignment),
             'asset' => $this->present($asset->refresh()),
         ]);
@@ -119,7 +125,7 @@ class AssetController extends Controller
         $acknowledged = $this->handovers->acknowledge($assignment, $request->user());
 
         return response()->json([
-            'message' => 'Handover acknowledged.',
+            'message' => __('Handover acknowledged.'),
             'assignment' => $this->presentAssignment($acknowledged),
         ]);
     }
@@ -140,7 +146,7 @@ class AssetController extends Controller
         );
 
         return response()->json([
-            'message' => 'Asset returned.',
+            'message' => __('Asset returned.'),
             'assignment' => $this->presentAssignment($returned),
             'asset' => $this->present($asset->refresh()),
         ]);
@@ -153,7 +159,7 @@ class AssetController extends Controller
         $record = $this->assets->maintenance($asset, $request->validated(), $request->user());
 
         return response()->json([
-            'message' => 'Maintenance opened.',
+            'message' => __('Maintenance opened.'),
             'maintenance' => $this->presentMaintenance($record),
             'asset' => $this->present($asset->refresh()),
         ], Response::HTTP_CREATED);
@@ -217,6 +223,14 @@ class AssetController extends Controller
      * @return array<string, mixed>
      */
     private function present(Asset $asset): array
+    {
+        return $this->withCustomFields([$this->presentBase($asset)], 'asset', true)[0];
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function presentBase(Asset $asset): array
     {
         $asset->loadMissing(['category:id,name,slug', 'assignee:id,employee_code,name']);
 

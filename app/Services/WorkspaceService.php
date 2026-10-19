@@ -90,7 +90,7 @@ class WorkspaceService
     {
         if ($workspace->projects()->exists()) {
             throw ValidationException::withMessages([
-                'form' => 'Cannot delete a workspace that still contains projects. Archive it instead.',
+                'form' => __('Cannot delete a workspace that still contains projects. Archive it instead.'),
             ]);
         }
 
@@ -103,13 +103,13 @@ class WorkspaceService
 
         if (! $user) {
             throw ValidationException::withMessages([
-                'user_id' => 'The selected user does not belong to this tenant.',
+                'user_id' => __('The selected user does not belong to this tenant.'),
             ]);
         }
 
         if ($workspace->isMember($user)) {
             throw ValidationException::withMessages([
-                'user_id' => 'This user is already a member of the workspace.',
+                'user_id' => __('This user is already a member of the workspace.'),
             ]);
         }
 
@@ -125,7 +125,7 @@ class WorkspaceService
 
         if ($current === null) {
             throw ValidationException::withMessages([
-                'form' => 'This user is not a member of the workspace.',
+                'form' => __('This user is not a member of the workspace.'),
             ]);
         }
 
@@ -143,7 +143,7 @@ class WorkspaceService
     {
         if ($workspace->memberRole($member) === null) {
             throw ValidationException::withMessages([
-                'form' => 'This user is not a member of the workspace.',
+                'form' => __('This user is not a member of the workspace.'),
             ]);
         }
 
@@ -181,7 +181,7 @@ class WorkspaceService
 
         if ($memberIsOwner && $ownerCount <= 1) {
             throw ValidationException::withMessages([
-                'form' => 'A workspace must keep at least one owner.',
+                'form' => __('A workspace must keep at least one owner.'),
             ]);
         }
     }

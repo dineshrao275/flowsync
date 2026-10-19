@@ -1,5 +1,6 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
 import { fieldErrors } from '../../services/api';
@@ -7,11 +8,13 @@ import Button from '../../components/ui/Button';
 import Input from '../../components/ui/Input';
 import Alert from '../../components/ui/Alert';
 import AuthShell from '../../components/ui/AuthShell';
+import useErrorFocus from '../../hooks/useErrorFocus';
 import usePageTitle from '../../hooks/usePageTitle';
 import { homeRouteFor } from '../../utils/deepLinks';
 
 export default function Login() {
-    usePageTitle('Sign in');
+    const { t } = useTranslation();
+    usePageTitle(t('auth.pageTitles.signIn'));
     const { login, verifyTwoFactor } = useAuth();
     const toast = useToast();
     const navigate = useNavigate();
@@ -21,6 +24,10 @@ export default function Login() {
     const [submitting, setSubmitting] = useState(false);
     const [needsCode, setNeedsCode] = useState(false);
     const [code, setCode] = useState('');
+    const formRef = useRef(null);
+    const [ssoSlug, setSsoSlug] = useState('');
+    const ssoError = new URLSearchParams(location.search).get('sso_error');
+    useErrorFocus(errors, formRef);
 
     function update(field, value) {
         setForm((current) => ({ ...current, [field]: value }));
@@ -37,7 +44,7 @@ export default function Login() {
                 setNeedsCode(true);
                 return;
             }
-            toast.success(`Welcome back, ${data.user.name.split(' ')[0]}!`);
+            toast.success(t('auth.login.welcomeBack', { name: data.user.name.split(' ')[0] }));
             navigate(location.state?.from || homeRouteFor(data.user), { replace: true });
         } catch (error) {
             if (error.response?.data?.code === 'two_factor_expired') {
@@ -55,45 +62,46 @@ export default function Login() {
 
     return (
         <AuthShell
-            title="Welcome back"
-            subtitle="Sign in to your admin account"
+            title={t('auth.login.title')}
+            subtitle={t('auth.login.subtitle')}
             footer={
                 <span className="text-sm text-slate-500">
-                    Access is managed by your tenant administrator.{' '}
-                    <Link to="/register" className="font-medium text-[var(--accent)] hover:text-indigo-500">
-                        New here? Create a workspace
+                    {t('auth.login.managedBy')}{' '}
+                    <Link to="/register" className="font-medium text-[var(--accent)] hover:text-[var(--accent)]">
+                        {t('auth.login.newHere')}
                     </Link>
                 </span>
             }
         >
-            <form onSubmit={handleSubmit} className="space-y-4" noValidate>
+            <form ref={formRef} onSubmit={handleSubmit} className="space-y-4" noValidate>
                 <Alert>{errors.form}</Alert>
+                {ssoError && <Alert>{t(`auth.login.sso.errors.${ssoError}`, { defaultValue: t('auth.login.sso.errors.sso_failed') })}</Alert>}
                 {needsCode ? (
                     <Input
-                        label="Authentication code"
+                        label={t('auth.login.code')}
                         name="code"
                         autoComplete="one-time-code"
                         autoFocus
                         required
-                        placeholder="123456 or a recovery code"
+                        placeholder={t('auth.login.codePlaceholder')}
                         value={code}
                         onChange={(e) => setCode(e.target.value)}
                         error={errors.code}
                     />
                 ) : (<>
                 <Input
-                    label="Email address"
+                    label={t('auth.login.email')}
                     name="email"
                     type="email"
                     autoComplete="email"
                     required
-                    placeholder="you@example.com"
+                    placeholder={t('auth.login.emailPlaceholder')}
                     value={form.email}
                     onChange={(e) => update('email', e.target.value)}
                     error={errors.email}
                 />
                 <Input
-                    label="Password"
+                    label={t('auth.login.password')}
                     name="password"
                     type="password"
                     autoComplete="current-password"
@@ -111,20 +119,32 @@ export default function Login() {
                             onChange={(e) => update('remember', e.target.checked)}
                             className="h-4 w-4 rounded border-slate-300 text-[var(--accent)] accent-[var(--accent)] transition-all duration-150 focus:ring-[var(--accent-ring)]"
                         />
-                        Remember me
+                        {t('auth.login.rememberMe')}
                     </label>
                     <Link
                         to="/forgot-password"
-                        className="text-sm font-medium text-[var(--accent)] hover:text-indigo-500"
+                        className="text-sm font-medium text-[var(--accent)] hover:text-[var(--accent)]"
                     >
-                        Forgot password?
+                        {t('auth.login.forgotPassword')}
                     </Link>
                 </div>
                 </>)}
                 <Button type="submit" className="w-full" loading={submitting}>
-                    {needsCode ? 'Verify' : 'Sign in'}
+                    {needsCode ? t('auth.login.verify') : t('auth.login.signIn')}
                 </Button>
             </form>
+            {!needsCode && (
+                <form
+                    className="mt-5 flex items-end gap-2 border-t border-slate-200 pt-4"
+                    onSubmit={(e) => {
+                        e.preventDefault();
+                        if (ssoSlug.trim()) window.location.assign(`/api/sso/${encodeURIComponent(ssoSlug.trim().toLowerCase())}/start`);
+                    }}
+                >
+                    <div className="flex-1"><Input label={t('auth.login.sso.workspace')} name="workspace" placeholder="acme" value={ssoSlug} onChange={(e) => setSsoSlug(e.target.value)} /></div>
+                    <Button type="submit" variant="secondary" disabled={!ssoSlug.trim()}>{t('auth.login.sso.button')}</Button>
+                </form>
+            )}
         </AuthShell>
     );
 }

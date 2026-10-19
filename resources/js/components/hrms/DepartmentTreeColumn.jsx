@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { orgUrl } from '../../utils/deepLinks';
 
 /**
@@ -28,6 +29,7 @@ import { orgUrl } from '../../utils/deepLinks';
  * state and the router state disagreeing about one value.
  */
 export default function DepartmentTreeColumn({ tree, departments, selectedId, canManage, onMove }) {
+    const { t } = useTranslation();
     const [collapsed, setCollapsed] = useState(() => new Set());
 
     // Everything open on first paint, so a tenant that has never touched a
@@ -53,7 +55,7 @@ export default function DepartmentTreeColumn({ tree, departments, selectedId, ca
     if (!tree || tree.length === 0) {
         return (
             <p className="px-1 py-6 text-sm text-gray-500">
-                No departments yet. Create the first one to start the chart.
+                {t('hrms.orgTree.empty')}
             </p>
         );
     }
@@ -70,13 +72,14 @@ export default function DepartmentTreeColumn({ tree, departments, selectedId, ca
                     canManage={canManage}
                     onToggle={toggle}
                     onMove={onMove}
+                    t={t}
                 />
             ))}
         </ul>
     );
 }
 
-function TreeNode({ node, departments, collapsed, selectedId, canManage, onToggle, onMove }) {
+function TreeNode({ node, departments, collapsed, selectedId, canManage, onToggle, onMove, t }) {
     const hasChildren = node.departments.length > 0;
     const isCollapsed = collapsed.has(node.id);
     const selected = node.id === selectedId;
@@ -100,7 +103,7 @@ function TreeNode({ node, departments, collapsed, selectedId, canManage, onToggl
                     <button
                         type="button"
                         onClick={() => onToggle(node.id)}
-                        aria-label={isCollapsed ? `Expand ${node.name}` : `Collapse ${node.name}`}
+                        aria-label={isCollapsed ? t('hrms.orgTree.expand', { name: node.name }) : t('hrms.orgTree.collapse', { name: node.name })}
                         aria-expanded={!isCollapsed}
                         className="flex h-5 w-5 shrink-0 items-center justify-center rounded text-gray-400 hover:bg-gray-200 hover:text-gray-700"
                     >
@@ -128,13 +131,13 @@ function TreeNode({ node, departments, collapsed, selectedId, canManage, onToggl
                         {node.name}
                     </span>
 
-                    <span className="shrink-0 text-xs text-gray-400" title="People in this department">
+                    <span className="shrink-0 text-xs text-gray-400" title={t('hrms.orgTree.directTitle')}>
                         {node.direct_count}
                     </span>
                     {node.headcount !== node.direct_count && (
                         <span
                             className="shrink-0 text-xs text-gray-400"
-                            title="People in this department and every department beneath it"
+                            title={t('hrms.orgTree.subtreeTitle')}
                         >
                             ({node.headcount})
                         </span>
@@ -144,14 +147,14 @@ function TreeNode({ node, departments, collapsed, selectedId, canManage, onToggl
                 {canManage && (
                     <span className="flex shrink-0 items-center opacity-0 transition-opacity group-hover:opacity-100 focus-within:opacity-100">
                         <IconButton
-                            label={`Move ${node.name} up`}
+                            label={t('hrms.orgTree.moveUp', { name: node.name })}
                             disabled={index <= 0}
                             onClick={() => onMove(node, -1)}
                         >
                             ↑
                         </IconButton>
                         <IconButton
-                            label={`Move ${node.name} down`}
+                            label={t('hrms.orgTree.moveDown', { name: node.name })}
                             disabled={index === -1 || index === siblings.length - 1}
                             onClick={() => onMove(node, 1)}
                         >
@@ -173,6 +176,7 @@ function TreeNode({ node, departments, collapsed, selectedId, canManage, onToggl
                             canManage={canManage}
                             onToggle={onToggle}
                             onMove={onMove}
+                            t={t}
                         />
                     ))}
                 </ul>

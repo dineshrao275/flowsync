@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import api, { fieldErrors } from '../../services/api';
 import { useToast } from '../../context/ToastContext';
 import Button from '../ui/Button';
@@ -12,6 +13,7 @@ import Modal from '../ui/Modal';
  * project list so both case pages share one picker instead of two.
  */
 export default function ConvertTaskModal({ caseKind, caseId, item, onClose, onDone }) {
+    const { t } = useTranslation();
     const toast = useToast();
     const [projects, setProjects] = useState(null);
     const [projectId, setProjectId] = useState('');
@@ -33,11 +35,11 @@ export default function ConvertTaskModal({ caseKind, caseId, item, onClose, onDo
             await api.post(`/hrms/${caseKind}/cases/${caseId}/tasks/${item.id}/convert`, {
                 project_id: Number(projectId),
             });
-            toast.success('Checklist item converted.');
+            toast.success(t('hrms.convert.converted'));
             onDone();
         } catch (err) {
             if (err.response?.status === 403) {
-                setErrors({ form: 'You cannot file tasks into this project.' });
+                setErrors({ form: t('hrms.convert.forbidden') });
             } else {
                 setErrors(fieldErrors(err));
             }
@@ -47,16 +49,16 @@ export default function ConvertTaskModal({ caseKind, caseId, item, onClose, onDo
     }
 
     return (
-        <Modal open onClose={onClose} title={`Convert “${item.title}”`}>
+        <Modal open onClose={onClose} title={t('hrms.convert.title', { title: item.title })}>
             <form onSubmit={submit} className="space-y-4 px-6 py-5">
                 <Select
-                    label="Project"
+                    label={t('hrms.convert.project')}
                     value={projectId}
                     onChange={(e) => setProjectId(e.target.value)}
                     error={errors.project_id}
                     required
                 >
-                    <option value="">Select…</option>
+                    <option value="">{t('hrms.convert.select')}</option>
                     {(projects ?? []).map((project) => (
                         <option key={project.id} value={project.id}>
                             {project.workspace?.name ? `${project.workspace.name} / ` : ''}{project.name} ({project.key})
@@ -64,15 +66,15 @@ export default function ConvertTaskModal({ caseKind, caseId, item, onClose, onDo
                     ))}
                 </Select>
                 {projects !== null && projects.length === 0 && (
-                    <p className="text-sm text-gray-500">No project you may file into. Join one first.</p>
+                    <p className="text-sm text-gray-500">{t('hrms.convert.noProjects')}</p>
                 )}
                 {errors.form && <p className="text-sm text-red-600">{errors.form}</p>}
                 <div className="flex justify-end gap-2">
                     <Button type="button" variant="secondary" onClick={onClose}>
-                        Cancel
+                        {t('hrms.convert.cancel')}
                     </Button>
                     <Button type="submit" loading={saving} disabled={!projectId}>
-                        Create task
+                        {t('hrms.convert.submit')}
                     </Button>
                 </div>
             </form>

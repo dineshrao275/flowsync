@@ -2,9 +2,9 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\PlatformSetting;
 use App\Models\WebsitePage;
 use App\Models\WebsiteRedirect;
+use App\Support\AppName;
 use App\Support\SiteMedia;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -76,7 +76,7 @@ class PublicSiteController extends Controller
         return response()
             ->view('public.page', [
                 'page' => $websitePage,
-                'siteName' => (string) PlatformSetting::value('app_name', 'FlowSync'),
+                'siteName' => AppName::get(),
                 'crumbs' => [],
                 'forceRobots' => 'noindex, nofollow',
                 'mediaMap' => SiteMedia::mapForContent($websitePage->content),
@@ -202,7 +202,7 @@ class PublicSiteController extends Controller
 
         return view('public.page', [
             'page' => $page,
-            'siteName' => (string) PlatformSetting::value('app_name', 'FlowSync'),
+            'siteName' => AppName::get(),
             'crumbs' => $crumbs,
             'canonicalOverride' => $page->canonical_url,
             'forceRobots' => $page->noindex ? 'noindex, follow' : null,

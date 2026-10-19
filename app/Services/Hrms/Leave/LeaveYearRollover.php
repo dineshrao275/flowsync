@@ -47,7 +47,7 @@ class LeaveYearRollover
     public function rollover(int $fromYear, ?LeaveType $only = null, bool $dryRun = false, ?User $actor = null): array
     {
         if ($fromYear >= $this->calendar->leaveYearFor(now())) {
-            throw ValidationException::withMessages(['year' => "Leave year {$fromYear} has not ended yet."]);
+            throw ValidationException::withMessages(['year' => __('Leave year :fromyear has not ended yet.', ['fromyear' => $fromYear])]);
         }
 
         $result = ['year' => $fromYear, 'to_year' => $fromYear + 1, 'employees' => 0, 'carried' => 0.0, 'lapsed' => 0.0, 'skipped' => 0, 'dry_run' => $dryRun];

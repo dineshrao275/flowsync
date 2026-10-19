@@ -1,11 +1,13 @@
 import { useEffect, useState } from 'react';
+import ListSavedFilters from '../components/ui/ListSavedFilters';
+import { useTranslation } from 'react-i18next';
 import api, { fieldErrors } from '../services/api';
 import Card from '../components/ui/Card';
 import Badge from '../components/ui/Badge';
 import Button from '../components/ui/Button';
 import Input from '../components/ui/Input';
 import Modal from '../components/ui/Modal';
-import Spinner from '../components/ui/Spinner';
+import ContentSkeleton from '../components/ui/ContentSkeleton';
 import Pagination from '../components/ui/Pagination';
 import RichTextEditor from '../components/ui/RichTextEditor';
 import MediaPicker from '../components/cms/MediaPicker';
@@ -31,6 +33,7 @@ const emptyPost = {
 };
 
 function PostFormModal({ initial, categories, onClose, onSave }) {
+    const { t } = useTranslation();
     const [form, setForm] = useState(initial);
     const [cover, setCover] = useState(null);
     const [errors, setErrors] = useState({});
@@ -69,56 +72,56 @@ function PostFormModal({ initial, categories, onClose, onSave }) {
     }
 
     return (
-        <Modal open title={initial.id ? `Edit ${initial.title}` : 'New post'} onClose={onClose} size="lg">
+        <Modal open title={initial.id ? t('admin.blogPosts.editTitle', { title: initial.title }) : t('admin.blogPosts.newPost')} onClose={onClose} size="lg">
             <form onSubmit={submit} className="space-y-4 px-6 pb-6 pt-4">
                 <div className="grid gap-4 sm:grid-cols-2">
-                    <Input label="Title" name="title" value={form.title} onChange={(e) => set('title', e.target.value)} error={errors.title?.[0]} required />
-                    <Input label="Slug" name="slug" value={form.slug} onChange={(e) => set('slug', e.target.value)} error={errors.slug?.[0]} required />
+                    <Input label={t('admin.blogPosts.title')} name="title" value={form.title} onChange={(e) => set('title', e.target.value)} error={errors.title?.[0]} required />
+                    <Input label={t('admin.blogPosts.slug')} name="slug" value={form.slug} onChange={(e) => set('slug', e.target.value)} error={errors.slug?.[0]} required />
                 </div>
                 <div className="grid gap-4 sm:grid-cols-2">
                     <div>
-                        <label className="mb-1.5 block text-sm font-medium text-gray-700">Category</label>
+                        <label className="mb-1.5 block text-sm font-medium text-gray-700">{t('admin.blogPosts.category')}</label>
                         <select value={form.category_id || ''} onChange={(e) => set('category_id', e.target.value)} className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm">
-                            <option value="">Uncategorized</option>
+                            <option value="">{t('admin.blogPosts.uncategorized')}</option>
                             {(categories || []).map((c) => (
                                 <option key={c.id} value={c.id}>{c.name}</option>
                             ))}
                         </select>
                     </div>
                     <div>
-                        <label className="mb-1.5 block text-sm font-medium text-gray-700">Status</label>
+                        <label className="mb-1.5 block text-sm font-medium text-gray-700">{t('admin.common.status')}</label>
                         <select value={form.status} onChange={(e) => set('status', e.target.value)} className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm">
-                            <option value="draft">Draft</option>
-                            <option value="published">Published</option>
+                            <option value="draft">{t('admin.cmsPages.draft')}</option>
+                            <option value="published">{t('admin.cmsPages.published')}</option>
                         </select>
                     </div>
                 </div>
                 <div className="grid gap-4 sm:grid-cols-2">
-                    <Input label="Author" name="author_name" value={form.author_name || ''} onChange={(e) => set('author_name', e.target.value)} placeholder="Team FlowSync" />
-                    <Input label="Excerpt" name="excerpt" value={form.excerpt || ''} onChange={(e) => set('excerpt', e.target.value)} placeholder="One-line summary" />
+                    <Input label={t('admin.blogPosts.author')} name="author_name" value={form.author_name || ''} onChange={(e) => set('author_name', e.target.value)} placeholder={t('admin.blogPosts.authorPlaceholder')} />
+                    <Input label={t('admin.blogPosts.excerpt')} name="excerpt" value={form.excerpt || ''} onChange={(e) => set('excerpt', e.target.value)} placeholder={t('admin.blogPosts.excerptPlaceholder')} />
                 </div>
-                <MediaPicker label="Cover image" value={cover} onSelect={pickCover} />
+                <MediaPicker label={t('admin.blogPosts.coverImage')} value={cover} onSelect={pickCover} />
                 <div>
-                    <p className="mb-1.5 text-sm font-medium text-gray-700">Body</p>
-                    <RichTextEditor value={form.body || ''} onChange={(body) => set('body', body)} placeholder="Write the post…" />
+                    <p className="mb-1.5 text-sm font-medium text-gray-700">{t('admin.blogPosts.body')}</p>
+                    <RichTextEditor value={form.body || ''} onChange={(body) => set('body', body)} placeholder={t('admin.blogPosts.bodyPlaceholder')} />
                 </div>
                 <div className="rounded-lg bg-gray-50 p-3">
-                    <p className="mb-3 text-sm font-semibold text-gray-700">SEO</p>
+                    <p className="mb-3 text-sm font-semibold text-gray-700">{t('admin.cmsPages.seo')}</p>
                     <div className="grid gap-4 sm:grid-cols-2">
-                        <Input label="SEO title" name="seo_title" value={form.seo_title || ''} onChange={(e) => set('seo_title', e.target.value)} />
-                        <Input label="Canonical URL" name="canonical_url" value={form.canonical_url || ''} onChange={(e) => set('canonical_url', e.target.value)} error={errors.canonical_url?.[0]} />
+                        <Input label={t('admin.cmsPages.seoTitle')} name="seo_title" value={form.seo_title || ''} onChange={(e) => set('seo_title', e.target.value)} />
+                        <Input label={t('admin.cmsPages.canonicalUrl')} name="canonical_url" value={form.canonical_url || ''} onChange={(e) => set('canonical_url', e.target.value)} error={errors.canonical_url?.[0]} />
                     </div>
                     <div className="mt-4">
-                        <Input label="Meta description" name="meta_description" value={form.meta_description || ''} onChange={(e) => set('meta_description', e.target.value)} />
+                        <Input label={t('admin.cmsPages.metaDescription')} name="meta_description" value={form.meta_description || ''} onChange={(e) => set('meta_description', e.target.value)} />
                     </div>
                     <label className="mt-3 flex items-center gap-2 text-sm text-gray-700">
-                        <input type="checkbox" checked={!!form.noindex} onChange={(e) => set('noindex', e.target.checked)} className="h-4 w-4 rounded border-gray-300 text-indigo-600" />
-                        Hide from search engines (noindex, excluded from sitemap)
+                        <input type="checkbox" checked={!!form.noindex} onChange={(e) => set('noindex', e.target.checked)} className="h-4 w-4 rounded border-gray-300 accent-[var(--accent)]" />
+                        {t('admin.cmsPages.noindex')}
                     </label>
                 </div>
                 <div className="flex justify-end gap-2 pt-2">
-                    <Button type="button" variant="ghost" onClick={onClose} disabled={saving}>Cancel</Button>
-                    <Button type="submit" disabled={saving}>{saving ? 'Saving…' : 'Save post'}</Button>
+                    <Button type="button" variant="ghost" onClick={onClose} disabled={saving}>{t('admin.common.cancel')}</Button>
+                    <Button type="submit" disabled={saving}>{saving ? t('admin.common.saving') : t('admin.blogPosts.savePost')}</Button>
                 </div>
             </form>
         </Modal>
@@ -126,6 +129,7 @@ function PostFormModal({ initial, categories, onClose, onSave }) {
 }
 
 function CategoryManager({ categories, onChanged }) {
+    const { t } = useTranslation();
     const toast = useToast();
     const [name, setName] = useState('');
     const [slug, setSlug] = useState('');
@@ -134,28 +138,28 @@ function CategoryManager({ categories, onChanged }) {
         e.preventDefault();
         try {
             await api.post('/system/blog-categories', { name, slug });
-            toast.success('Category added.');
+            toast.success(t('admin.blogPosts.categoryAdded'));
             setName('');
             setSlug('');
             onChanged();
         } catch (err) {
-            toast.error(fieldErrors(err).slug?.[0] || fieldErrors(err).name?.[0] || 'Could not add the category.');
+            toast.error(fieldErrors(err).slug?.[0] || fieldErrors(err).name?.[0] || t('admin.blogPosts.categoryAddFailed'));
         }
     }
 
     async function remove(category) {
         try {
             await api.delete(`/system/blog-categories/${category.id}`);
-            toast.success('Category deleted.');
+            toast.success(t('admin.blogPosts.categoryDeleted'));
             onChanged();
         } catch {
-            toast.error('Move or delete the category posts first.');
+            toast.error(t('admin.blogPosts.categoryDeleteFailed'));
         }
     }
 
     return (
         <Card>
-            <h2 className="mb-3 text-base font-semibold text-gray-800">Categories</h2>
+            <h2 className="mb-3 text-base font-semibold text-gray-800">{t('admin.blogPosts.categories')}</h2>
             <div className="mb-3 flex flex-wrap gap-2">
                 {(categories || []).map((c) => (
                     <span key={c.id} className="inline-flex items-center gap-1.5 rounded-full bg-gray-100 py-1 pl-3 pr-1.5 text-xs font-medium text-gray-700">
@@ -163,20 +167,21 @@ function CategoryManager({ categories, onChanged }) {
                         <button type="button" onClick={() => remove(c)} className="rounded-full px-1 text-gray-400 hover:text-red-500">✕</button>
                     </span>
                 ))}
-                {(categories || []).length === 0 && <p className="text-xs text-gray-400">No categories yet.</p>}
+                {(categories || []).length === 0 && <p className="text-xs text-gray-400">{t('admin.blogPosts.noCategories')}</p>}
             </div>
             <form onSubmit={add} className="flex gap-2">
-                <input value={name} onChange={(e) => setName(e.target.value)} placeholder="Name" required className="w-1/2 rounded-lg border border-gray-200 px-3 py-2 text-sm outline-none focus:border-indigo-400" />
-                <input value={slug} onChange={(e) => setSlug(e.target.value)} placeholder="slug" required className="w-1/2 rounded-lg border border-gray-200 px-3 py-2 text-sm outline-none focus:border-indigo-400" />
-                <Button type="submit">Add</Button>
+                <input value={name} onChange={(e) => setName(e.target.value)} placeholder={t('admin.common.name')} required className="w-1/2 rounded-lg border border-gray-200 px-3 py-2 text-sm outline-none focus:border-[var(--accent)]" />
+                <input value={slug} onChange={(e) => setSlug(e.target.value)} placeholder={t('admin.blogPosts.slugPlaceholder')} required className="w-1/2 rounded-lg border border-gray-200 px-3 py-2 text-sm outline-none focus:border-[var(--accent)]" />
+                <Button type="submit">{t('admin.blogPosts.addCategory')}</Button>
             </form>
         </Card>
     );
 }
 
 export default function BlogPosts() {
-    usePageTitle('Blog');
-    useSetCrumbs([{ label: 'Platform', to: '/admin' }, { label: 'Blog' }]);
+    const { t } = useTranslation();
+    usePageTitle(t('admin.blogPosts.pageTitle'));
+    useSetCrumbs([{ label: t('admin.platform.breadcrumb'), to: '/admin' }, { label: t('admin.blogPosts.crumbBlog') }]);
     const toast = useToast();
     const confirm = useConfirm();
     const [status, setStatus] = useState('');
@@ -196,17 +201,17 @@ export default function BlogPosts() {
             const { data: full } = await api.get(`/system/blog-posts/${post.id}`);
             setEditor({ ...emptyPost, ...full.post });
         } catch {
-            toast.error('Could not load the post.');
+            toast.error(t('admin.blogPosts.loadFailed'));
         }
     }
 
     async function save(form) {
         if (form.id) {
             await api.put(`/system/blog-posts/${form.id}`, form);
-            toast.success('Post updated.');
+            toast.success(t('admin.blogPosts.updated'));
         } else {
             await api.post('/system/blog-posts', form);
-            toast.success('Post created.');
+            toast.success(t('admin.blogPosts.created'));
         }
         setEditor(null);
         reload();
@@ -214,13 +219,13 @@ export default function BlogPosts() {
 
     async function publish(post) {
         await api.post(`/system/blog-posts/${post.id}/publish`);
-        toast.success('Post published.');
+        toast.success(t('admin.blogPosts.publishedToast'));
         reload();
     }
 
     async function unpublish(post) {
         await api.post(`/system/blog-posts/${post.id}/unpublish`);
-        toast.success('Post taken down.');
+        toast.success(t('admin.blogPosts.takenDown'));
         reload();
     }
 
@@ -230,17 +235,17 @@ export default function BlogPosts() {
             if (full.post.preview_url) {
                 window.open(full.post.preview_url, '_blank', 'noopener');
             } else {
-                toast.error('Preview is not available yet.');
+                toast.error(t('admin.blogPosts.previewNotAvailable'));
             }
         } catch {
-            toast.error('Could not build the preview link.');
+            toast.error(t('admin.blogPosts.previewFailed'));
         }
     }
 
     async function remove(post) {
-        if (!(await confirm({ title: 'Delete post?', message: `Delete "${post.title}"? This cannot be undone.`, variant: 'danger' }))) return;
+        if (!(await confirm({ title: t('admin.blogPosts.deleteTitle'), message: t('admin.cmsPages.deleteMessage', { title: post.title }), variant: 'danger' }))) return;
         await api.delete(`/system/blog-posts/${post.id}`);
-        toast.success('Post deleted.');
+        toast.success(t('admin.blogPosts.deleted'));
         reload();
     }
 
@@ -248,10 +253,10 @@ export default function BlogPosts() {
         <div className="space-y-6">
             <div className="flex items-center justify-between">
                 <div>
-                    <h1 className="text-2xl font-bold text-gray-800">Blog</h1>
-                    <p className="text-sm text-gray-500">Posts for the public blog at <span className="font-mono">/blog</span>.</p>
+                    <h1 className="text-2xl font-bold text-gray-800">{t('admin.blogPosts.pageTitle')}</h1>
+                    <p className="text-sm text-gray-500">{t('admin.blogPosts.subtitlePrefix')} <span className="font-mono">/blog</span>{t('admin.blogPosts.subtitleSuffix')}</p>
                 </div>
-                <Button onClick={() => setEditor(emptyPost)}>New post</Button>
+                <Button onClick={() => setEditor(emptyPost)}>{t('admin.blogPosts.newPost')}</Button>
             </div>
 
             <CategoryManager categories={categories} onChanged={reloadCategories} />
@@ -259,24 +264,25 @@ export default function BlogPosts() {
             <Card>
                 <div className="mb-4 flex max-w-xs items-end gap-2">
                     <div className="flex-1">
-                        <label className="mb-1.5 block text-sm font-medium text-gray-700">Status</label>
+                        <label className="mb-1.5 block text-sm font-medium text-gray-700">{t('admin.common.status')}</label>
                         <select value={status} onChange={(e) => { setStatus(e.target.value); setPage(1); }} className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm">
-                            <option value="">All</option>
-                            <option value="published">Published</option>
-                            <option value="draft">Draft</option>
+                            <option value="">{t('admin.blogPosts.all')}</option>
+                            <option value="published">{t('admin.cmsPages.published')}</option>
+                            <option value="draft">{t('admin.cmsPages.draft')}</option>
                         </select>
                     </div>
+                    <ListSavedFilters page="platform-blog" scope="system" value={{ status }} onApply={(saved) => { setStatus(saved.status || ''); setPage(1); }} />
                 </div>
                 {loading ? (
-                    <Spinner />
+                    <ContentSkeleton size="sm" />
                 ) : (
-                    <table className="w-full text-left text-sm">
+                    <div className="overflow-x-auto"><table className="w-full text-left text-sm">
                         <thead className="text-xs uppercase tracking-wide text-gray-400">
                             <tr>
-                                <th className="pb-2 font-semibold">Post</th>
-                                <th className="pb-2 font-semibold">Category</th>
-                                <th className="pb-2 font-semibold">Status</th>
-                                <th className="pb-2 text-right font-semibold">Actions</th>
+                                <th scope="col" className="pb-2 font-semibold">{t('admin.blogPosts.thPost')}</th>
+                                <th scope="col" className="pb-2 font-semibold">{t('admin.blogPosts.category')}</th>
+                                <th scope="col" className="pb-2 font-semibold">{t('admin.common.status')}</th>
+                                <th scope="col" className="pb-2 text-right font-semibold">{t('admin.common.actions')}</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -290,23 +296,23 @@ export default function BlogPosts() {
                                     <td className="py-2.5"><Badge>{post.status}</Badge></td>
                                     <td className="py-2.5">
                                         <div className="flex justify-end gap-2">
-                                            <button type="button" onClick={() => openPreview(post)} className="text-indigo-600 hover:text-indigo-500">preview</button>
-                                            <button type="button" onClick={() => openEditor(post)} className="text-gray-500 hover:text-gray-700">edit</button>
+                                            <button type="button" onClick={() => openPreview(post)} className="text-[var(--accent-soft-text)] hover:text-[var(--accent)]">{t('admin.cmsPages.preview')}</button>
+                                            <button type="button" onClick={() => openEditor(post)} className="text-gray-500 hover:text-gray-700">{t('admin.cmsPages.edit')}</button>
                                             {post.status === 'published' ? (
-                                                <button type="button" onClick={() => unpublish(post)} className="text-amber-600 hover:text-amber-500">unpublish</button>
+                                                <button type="button" onClick={() => unpublish(post)} className="text-amber-600 hover:text-amber-500">{t('admin.cmsPages.unpublish')}</button>
                                             ) : (
-                                                <button type="button" onClick={() => publish(post)} className="text-green-600 hover:text-green-500">publish</button>
+                                                <button type="button" onClick={() => publish(post)} className="text-green-600 hover:text-green-500">{t('admin.cmsPages.publish')}</button>
                                             )}
-                                            <button type="button" onClick={() => remove(post)} className="text-red-500 hover:text-red-400">delete</button>
+                                            <button type="button" onClick={() => remove(post)} className="text-red-500 hover:text-red-400">{t('admin.cmsPages.delete')}</button>
                                         </div>
                                     </td>
                                 </tr>
                             ))}
                             {posts.length === 0 && (
-                                <tr><td colSpan={4} className="py-6 text-center text-gray-400">No posts yet.</td></tr>
+                                <tr><td colSpan={4} className="py-6 text-center text-gray-400">{t('admin.blogPosts.noPosts')}</td></tr>
                             )}
                         </tbody>
-                    </table>
+                    </table></div>
                 )}
                 {pagination && (
                     <div className="mt-4">

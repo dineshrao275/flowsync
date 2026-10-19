@@ -1,0 +1,29 @@
+import { useTranslation } from 'react-i18next';
+
+/**
+ * Loading placeholder that holds layout while data fetches, so lists and
+ * stat grids don't jump when the real rows land. `bg-gray-200` is theme-safe
+ * (the dark remap points it at a dark surface). The pulse freezes at full
+ * opacity under `prefers-reduced-motion` via the app.css kill-switch.
+ */
+const shapes = {
+    line: 'h-4 w-full rounded',
+    text: 'h-3 w-2/3 rounded',
+    circle: 'h-10 w-10 shrink-0 rounded-full',
+    block: 'h-32 w-full rounded-xl',
+};
+
+export default function Skeleton({ variant = 'line', className = '', decorative = false }) {
+    const { t } = useTranslation();
+
+    return (
+        <span
+            // A list of placeholders should announce "loading" once (on its
+            // container), not once per bar — see TableSkeleton.
+            {...(decorative
+                ? { 'aria-hidden': true }
+                : { role: 'status', 'aria-label': t('admin.common.loadingLabel') })}
+            className={`block animate-pulse bg-gray-200 ${shapes[variant] ?? shapes.line} ${className}`}
+        />
+    );
+}

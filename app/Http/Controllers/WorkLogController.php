@@ -61,7 +61,7 @@ class WorkLogController extends Controller
         );
 
         return response()->json([
-            'message' => 'Work log added.',
+            'message' => __('Work log added.'),
             'work_log' => $this->present($log),
         ], 201);
     }
@@ -88,7 +88,7 @@ class WorkLogController extends Controller
         );
 
         return response()->json([
-            'message' => 'Work log updated.',
+            'message' => __('Work log updated.'),
             'work_log' => $this->present($log),
         ]);
     }
@@ -113,7 +113,7 @@ class WorkLogController extends Controller
             ipAddress: $request->ip(),
         );
 
-        return response()->json(['message' => 'Work log removed.']);
+        return response()->json(['message' => __('Work log removed.')]);
     }
 
     public function projectTime(Request $request, Project $project): JsonResponse
@@ -139,7 +139,8 @@ class WorkLogController extends Controller
         return $request->validate([
             'started_at' => ['required', 'date'],
             'ended_at' => ['nullable', 'date', 'after:started_at'],
-            'description' => ['nullable', 'string', 'max:1000'],
+            'description' => ['required', 'string', 'max:1000', 'regex:/\S/'],
+            'billable' => ['sometimes', 'boolean'],
         ]);
     }
 
@@ -164,6 +165,7 @@ class WorkLogController extends Controller
             'duration_minutes' => $log->duration_minutes,
             'effective_minutes' => $this->service->effectiveMinutes($log),
             'description' => $log->description,
+            'billable' => (bool) $log->billable,
             'user' => $log->user ? [
                 'id' => $log->user->id,
                 'name' => $log->user->name,

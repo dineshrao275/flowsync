@@ -22,8 +22,15 @@ export default [
             'react/jsx-uses-react': 'off',
             'no-unused-vars': ['error', { argsIgnorePattern: '^_', varsIgnorePattern: '^_', caughtErrors: 'none' }],
             'react-hooks/rules-of-hooks': 'error',
+            // Raw <table> markup skips the scroll wrapper, header semantics and
+            // density of ui/Table (UI/UX U2/U6). Warn while the stragglers migrate.
+            'no-restricted-syntax': ['warn', {
+                selector: "JSXOpeningElement[name.name='table']",
+                message: 'Use the Table / DataTable primitives from components/ui instead of a raw <table>.',
+            }],
         },
     },
+    { files: ['resources/js/components/ui/Table.jsx'], rules: { 'no-restricted-syntax': 'off' } },
     {
         files: ['resources/js/**/*.test.{js,jsx}', 'resources/js/test/**'],
         languageOptions: { globals: { ...globals.vitest } },

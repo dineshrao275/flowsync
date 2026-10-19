@@ -10,6 +10,7 @@ class NotificationPreference extends Model
     protected $fillable = [
         'user_id',
         'preferences',
+        'email_mode',
     ];
 
     protected function casts(): array
@@ -30,6 +31,18 @@ class NotificationPreference extends Model
      * default, only an explicit `false` turns delivery off. Un-catalogued events
      * (HRMS nudges etc.) cannot be toggled and always deliver.
      */
+    public const MODE_INSTANT = 'instant';
+
+    public const MODE_DIGEST = 'digest';
+
+    /** How this user wants emailable events delivered: one mail each, or batched into a daily digest. */
+    public static function emailMode(User $user): string
+    {
+        $row = static::firstWhere('user_id', $user->id);
+
+        return ($row?->email_mode ?? self::MODE_INSTANT) === self::MODE_DIGEST ? self::MODE_DIGEST : self::MODE_INSTANT;
+    }
+
     public static function wants(User $user, string $type): bool
     {
         if (! in_array($type, config('notifications.events', []), true)) {

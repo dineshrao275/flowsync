@@ -46,14 +46,14 @@ class CompOffService
         $to = Carbon::parse((string) $data['to_date'])->startOfDay();
 
         if ($from->greaterThan($to)) {
-            throw ValidationException::withMessages(['to_date' => 'The range ends before it starts.']);
+            throw ValidationException::withMessages(['to_date' => __('The range ends before it starts.')]);
         }
 
         $split = $this->credits->chargeableDays($employee, $from, $to);
         $total = count($split) * CompOffCredits::DAY_MINUTES;
 
         if ($total <= 0) {
-            throw ValidationException::withMessages(['form' => 'The range holds no chargeable day — only week-offs and holidays.']);
+            throw ValidationException::withMessages(['form' => __('The range holds no chargeable day — only week-offs and holidays.')]);
         }
 
         $this->checkOverlap($employee, $from, $to);
@@ -126,7 +126,7 @@ class CompOffService
         $this->requireDecidable($request);
 
         if (trim($note) === '') {
-            throw ValidationException::withMessages(['decision_note' => 'A rejection needs a reason the requester can act on.']);
+            throw ValidationException::withMessages(['decision_note' => __('A rejection needs a reason the requester can act on.')]);
         }
 
         $this->approvals->reject($request->approval, $actor, $note);
@@ -156,12 +156,12 @@ class CompOffService
     public function cancelRequest(CompOffRequest $request, ?User $actor = null): CompOffRequest
     {
         if (in_array($request->status, [CompOffRequestStatus::Rejected, CompOffRequestStatus::Cancelled], true)) {
-            throw ValidationException::withMessages(['form' => 'This ask can no longer be cancelled.']);
+            throw ValidationException::withMessages(['form' => __('This ask can no longer be cancelled.')]);
         }
 
         if ($request->approval !== null && $request->approval->isOpen()) {
             if ($actor === null) {
-                throw ValidationException::withMessages(['form' => 'Cancelling an open ask needs a login.']);
+                throw ValidationException::withMessages(['form' => __('Cancelling an open ask needs a login.')]);
             }
 
             $this->approvals->cancel($request->approval, $actor);
@@ -212,7 +212,7 @@ class CompOffService
             ->exists();
 
         if ($clash) {
-            throw ValidationException::withMessages(['form' => 'An ask already covers part of this range.']);
+            throw ValidationException::withMessages(['form' => __('An ask already covers part of this range.')]);
         }
     }
 
@@ -221,11 +221,11 @@ class CompOffService
     private function requireDecidable(CompOffRequest $request): void
     {
         if ($request->status !== CompOffRequestStatus::Submitted && $request->status !== CompOffRequestStatus::Pending) {
-            throw ValidationException::withMessages(['form' => 'This ask has already been decided.']);
+            throw ValidationException::withMessages(['form' => __('This ask has already been decided.')]);
         }
 
         if ($request->approval === null) {
-            throw ValidationException::withMessages(['form' => 'This ask has no approval chain.']);
+            throw ValidationException::withMessages(['form' => __('This ask has no approval chain.')]);
         }
     }
 

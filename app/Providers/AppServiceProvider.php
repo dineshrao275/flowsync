@@ -4,18 +4,23 @@ namespace App\Providers;
 
 use App\Billing\PaymentResolver;
 use App\Billing\PaymentService;
+use App\Billing\Stripe\StripeClient;
 use App\Contracts\Notifications\NotificationSender;
 use App\Http\Middleware\EnsurePermission;
+use App\Jobs\SyncStripeCustomer;
 use App\Listeners\SwitchesTenantConnectionForQueuedJobs;
 use App\Models\ApiToken;
+use App\Models\Tenant;
 use App\Models\User;
 use App\Services\FeatureFlags;
 use App\Services\Notifications\NotificationDispatcher;
 use App\Services\ReportsTo;
 use App\Services\Security\PlatformAccess;
 use App\Services\TenantLimits;
+use App\Support\AppName;
 use App\Support\Hrms\HrmsSchema;
 use App\Support\Integration\BridgeSchema;
+use App\Support\RequestId;
 use App\Support\TenantContext;
 use App\Support\TenantDatabaseManager;
 use App\Support\Tms\TmsSchema;
@@ -29,6 +34,7 @@ use Illuminate\Queue\Events\JobProcessed;
 use Illuminate\Queue\Events\JobProcessing;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Queue;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\ServiceProvider;
@@ -41,6 +47,9 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
+        // Fresh per resolution so a runtime change of the Stripe key (tests, `config:cache` refresh) is honoured.
+        $this->app->bind(StripeClient::class, fn () => new StripeClient((string) config('payments.gateways.stripe.secret', '')));
+
         $this->app->singleton(TenantContext::class);
         $this->app->singleton(TenantDatabaseManager::class);
         $this->app->singleton(PaymentResolver::class, function ($app) {
@@ -58,6 +67,21 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        // The tenant's Stripe customer carries the organisation's name and billing email: keep it in step.
+        Tenant::updated(function (Tenant $tenant): void {
+            if ($tenant->billing_customer_id && $tenant->wasChanged(['name', 'billing_email'])) {
+                try {
+                    SyncStripeCustomer::dispatch($tenant)->afterCommit();
+                } catch (\Throwable $e) { // best effort: with a sync queue a Stripe outage must not break saving the tenant
+                    Log::warning('Stripe customer sync failed.', ['tenant' => $tenant->id, 'error' => $e->getMessage()]);
+                }
+            }
+        });
+
+        // Private/presence channel authorization callbacks. Must be registered on every
+        // boot, independent of the route cache (see the note above Broadcast::routes()).
+        require base_path('routes/channels.php');
+
         // A denied gate answers with the SAME sentence the route middleware
         // uses, so `Gate::authorize('permission', …)` and a `permission:…`
         // route gate can never word a refusal differently. `Gate::inspect`
@@ -107,6 +131,10 @@ class AppServiceProvider extends ServiceProvider
             BridgeSchema::flush();
         });
         Event::listen(JobProcessing::class, function (): void {
+            try {
+                AppName::apply();
+            } catch (\Throwable) {
+            }
             TenantLimits::resetMemo();
             ReportsTo::resetMemo();
             TmsSchema::flush();
@@ -158,7 +186,11 @@ class AppServiceProvider extends ServiceProvider
         Queue::createPayloadUsing(function (): array {
             $tenantId = $this->app->make(TenantContext::class)->currentId();
 
-            return is_int($tenantId) ? ['tenant_id' => $tenantId] : [];
+            // Tenant + the originating request's correlation id travel with the job.
+            return array_filter([
+                'tenant_id' => is_int($tenantId) ? $tenantId : null,
+                'request_id' => RequestId::current(),
+            ], fn ($v) => $v !== null);
         });
 
         $listener = $this->app->make(SwitchesTenantConnectionForQueuedJobs::class);

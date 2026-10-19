@@ -1,9 +1,10 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import api from '../services/api';
 import Card from '../components/ui/Card';
 import Badge from '../components/ui/Badge';
-import Spinner from '../components/ui/Spinner';
+import ContentSkeleton from '../components/ui/ContentSkeleton';
 import usePageTitle from '../hooks/usePageTitle';
 import { useSetCrumbs } from '../context/BreadcrumbContext';
 
@@ -31,16 +32,6 @@ function Bar({ label, count, max, color }) {
     );
 }
 
-const STATUS_LABEL = {
-    trial: 'Trial',
-    active: 'Active',
-    suspended: 'Suspended',
-    pending: 'Pending',
-    expired: 'Expired',
-    deactivated: 'Deactivated',
-    provisioning_failed: 'Failed',
-};
-
 const STATUS_COLOR = {
     active: '#16a34a',
     trial: '#f59e0b',
@@ -58,8 +49,9 @@ const STATUS_COLOR = {
  * here so the numbers cannot disagree and there is one place to extend.
  */
 export default function SystemDashboard() {
-    usePageTitle('Platform Overview');
-    useSetCrumbs([{ label: 'Platform' }]);
+    const { t } = useTranslation();
+    usePageTitle(t('admin.systemDashboard.pageTitle'));
+    useSetCrumbs([{ label: t('admin.platform.breadcrumb') }]);
     const [data, setData] = useState(null);
     const [error, setError] = useState(false);
 
@@ -69,51 +61,52 @@ export default function SystemDashboard() {
             .catch(() => setError(true));
     }, []);
 
-    if (error) return <p className="text-sm text-gray-400">Analytics are currently unavailable.</p>;
-    if (!data) return <Spinner />;
+    if (error) return <p className="text-sm text-gray-400">{t('admin.systemDashboard.unavailable')}</p>;
+    if (!data) return <ContentSkeleton size="sm" />;
 
+    const statusLabel = (status) => t(`admin.systemDashboard.statuses.${status}`, { defaultValue: status });
     const statusCount = (status) => data.tenants.by_status.find((s) => s.status === status)?.count || 0;
     const tenantMax = Math.max(...data.tenants.by_status.map((s) => s.count), 1);
 
     return (
         <div className="space-y-6">
             <div>
-                <h1 className="text-2xl font-bold text-gray-800">Platform Overview</h1>
-                <p className="text-sm text-gray-500">Health and activity across every tenant.</p>
+                <h1 className="text-2xl font-bold text-gray-800">{t('admin.systemDashboard.heading')}</h1>
+                <p className="text-sm text-gray-500">{t('admin.systemDashboard.subtitle')}</p>
             </div>
 
             <div className="grid grid-cols-2 gap-4 md:grid-cols-3 xl:grid-cols-6">
-                <Stat label="Tenants" value={data.tenants.total} />
-                <Stat label="Active" value={statusCount('active')} />
-                <Stat label="Trialing" value={statusCount('trial')} />
-                <Stat label="Suspended" value={statusCount('suspended')} />
-                <Stat label="Provisioning failed" value={data.tenants.provisioning_failed} />
-                <Stat label="Deleted (trash)" value={data.tenants.trashed} />
+                <Stat label={t('admin.systemDashboard.statTenants')} value={data.tenants.total} />
+                <Stat label={t('admin.systemDashboard.statActive')} value={statusCount('active')} />
+                <Stat label={t('admin.systemDashboard.statTrialing')} value={statusCount('trial')} />
+                <Stat label={t('admin.systemDashboard.statSuspended')} value={statusCount('suspended')} />
+                <Stat label={t('admin.systemDashboard.statProvisioningFailed')} value={data.tenants.provisioning_failed} />
+                <Stat label={t('admin.systemDashboard.statDeleted')} value={data.tenants.trashed} />
             </div>
 
             <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
-                <Card title="Resources" subtitle="Summed across serviceable tenants (cached 5m)">
+                <Card title={t('admin.systemDashboard.resources')} subtitle={t('admin.systemDashboard.resourcesSubtitle')}>
                     <div className="grid grid-cols-2 gap-3">
-                        <Stat label="Users" value={data.resources.users} />
-                        <Stat label="Workspaces" value={data.resources.workspaces} />
-                        <Stat label="Projects" value={data.resources.projects} />
-                        <Stat label="Tasks" value={data.resources.tasks} />
+                        <Stat label={t('admin.systemDashboard.statUsers')} value={data.resources.users} />
+                        <Stat label={t('admin.systemDashboard.statWorkspaces')} value={data.resources.workspaces} />
+                        <Stat label={t('admin.systemDashboard.statProjects')} value={data.resources.projects} />
+                        <Stat label={t('admin.systemDashboard.statTasks')} value={data.resources.tasks} />
                     </div>
                 </Card>
 
-                <Card title="Tenants by status" subtitle="Every lifecycle state, not just the headline four">
+                <Card title={t('admin.systemDashboard.tenantsByStatus')} subtitle={t('admin.systemDashboard.tenantsByStatusSubtitle')}>
                     <ul className="space-y-2">
                         {data.tenants.by_status.map((s) => (
-                            <Bar key={s.status} label={STATUS_LABEL[s.status] || s.status} count={s.count} max={tenantMax} color={STATUS_COLOR[s.status] || '#94a3b8'} />
+                            <Bar key={s.status} label={statusLabel(s.status)} count={s.count} max={tenantMax} color={STATUS_COLOR[s.status] || '#94a3b8'} />
                         ))}
-                        {data.tenants.by_status.length === 0 && <li className="text-sm text-gray-400">No tenants yet.</li>}
+                        {data.tenants.by_status.length === 0 && <li className="text-sm text-gray-400">{t('admin.systemDashboard.noTenants')}</li>}
                     </ul>
                 </Card>
 
-                <Card title="Subscriptions" subtitle="Central subscription rows">
+                <Card title={t('admin.systemDashboard.subscriptions')} subtitle={t('admin.systemDashboard.subscriptionsSubtitle')}>
                     <div className="space-y-2">
                         {data.subscriptions.by_status.length === 0 && (
-                            <p className="text-sm text-gray-400">No subscriptions yet.</p>
+                            <p className="text-sm text-gray-400">{t('admin.systemDashboard.noSubscriptions')}</p>
                         )}
                         {data.subscriptions.by_status.map((s) => (
                             <div key={s.status} className="flex items-center justify-between text-sm">
@@ -123,7 +116,7 @@ export default function SystemDashboard() {
                         ))}
                         {data.subscriptions.by_status.length > 0 && (
                             <div className="mt-2 flex items-center justify-between border-t border-gray-100 pt-2 text-sm font-medium">
-                                <span className="text-gray-500">Total</span>
+                                <span className="text-gray-500">{t('admin.systemDashboard.total')}</span>
                                 <span className="font-bold text-gray-800">{data.subscriptions.total}</span>
                             </div>
                         )}
@@ -131,33 +124,33 @@ export default function SystemDashboard() {
                 </Card>
             </div>
 
-            <Card title="Largest tenants" subtitle="By tracked users">
-                <table className="w-full text-left text-sm">
+            <Card title={t('admin.systemDashboard.largestTenants')} subtitle={t('admin.systemDashboard.largestTenantsSubtitle')}>
+                <div className="overflow-x-auto"><table className="w-full text-left text-sm">
                     <thead className="text-xs uppercase tracking-wide text-gray-400">
                         <tr>
-                            <th scope="col" className="pb-2 font-semibold">Tenant</th>
-                            <th scope="col" className="pb-2 font-semibold">Status</th>
-                            <th scope="col" className="pb-2 text-right font-semibold">Users</th>
+                            <th scope="col" className="pb-2 font-semibold">{t('admin.systemDashboard.colTenant')}</th>
+                            <th scope="col" className="pb-2 font-semibold">{t('admin.systemDashboard.colStatus')}</th>
+                            <th scope="col" className="pb-2 text-right font-semibold">{t('admin.systemDashboard.colUsers')}</th>
                         </tr>
                     </thead>
                     <tbody>
-                        {data.top_tenants.map((t) => (
-                            <tr key={t.id} className="border-t border-gray-100">
+                        {data.top_tenants.map((tenant) => (
+                            <tr key={tenant.id} className="border-t border-gray-100">
                                 <td className="py-2">
-                                    <Link to={`/tenants/${t.id}`} className="font-medium text-indigo-600 hover:text-indigo-500">
-                                        {t.tenant.name}
+                                    <Link to={`/tenants/${tenant.id}`} className="font-medium text-[var(--accent-soft-text)] hover:text-[var(--accent)]">
+                                        {tenant.tenant.name}
                                     </Link>
-                                    <span className="ml-2 text-xs text-gray-400">{t.tenant.slug}</span>
+                                    <span className="ml-2 text-xs text-gray-400">{tenant.tenant.slug}</span>
                                 </td>
-                                <td className="py-2"><Badge>{STATUS_LABEL[t.tenant.status] || t.tenant.status}</Badge></td>
-                                <td className="py-2 text-right font-semibold text-gray-800">{t.users}</td>
+                                <td className="py-2"><Badge>{statusLabel(tenant.tenant.status)}</Badge></td>
+                                <td className="py-2 text-right font-semibold text-gray-800">{tenant.users}</td>
                             </tr>
                         ))}
                         {data.top_tenants.length === 0 && (
-                            <tr><td colSpan={3} className="py-4 text-gray-400">No serviceable tenants.</td></tr>
+                            <tr><td colSpan={3} className="py-4 text-gray-400">{t('admin.systemDashboard.noServiceable')}</td></tr>
                         )}
                     </tbody>
-                </table>
+                </table></div>
             </Card>
         </div>
     );

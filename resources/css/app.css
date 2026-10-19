@@ -1,4 +1,5 @@
 @import 'tailwindcss';
+@import '@fontsource-variable/plus-jakarta-sans';
 
 @source '../../vendor/laravel/framework/src/Illuminate/Pagination/resources/views/*.blade.php';
 @source '../../storage/framework/views/*.php';
@@ -6,33 +7,120 @@
 @source '../**/*.{js,jsx}';
 
 @theme {
-    --font-sans: 'Instrument Sans', ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji',
+    --font-sans: 'Plus Jakarta Sans Variable', 'Plus Jakarta Sans', ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji',
         'Segoe UI Symbol', 'Noto Color Emoji';
 
     --shadow-card: 0 1px 2px rgba(15, 23, 42, 0.04), 0 2px 8px -2px rgba(15, 23, 42, 0.06);
     --shadow-popover: 0 4px 12px -2px rgba(15, 23, 42, 0.08), 0 12px 32px -8px rgba(15, 23, 42, 0.14);
     --shadow-drawer: -12px 0 40px -12px rgba(15, 23, 42, 0.25);
+
+    /* Shared motion scale (Phase 1): fast = hover/press, base = popovers/
+       drawers, slow = page enters. Easing mirrors the gsap power1.out reads. */
+    --motion-fast: 150ms;
+    --motion-base: 250ms;
+    --motion-slow: 350ms;
+    --ease-out-soft: cubic-bezier(0.22, 1, 0.36, 1);
+
+    /* Type scale (UI/UX U1): semantic steps over the Tailwind sizes. Nothing
+       in the app should be smaller than `caption` (12px) — the old
+       text-[10px]/[11px] one-offs are retired in U8. */
+    --text-display: 2.25rem;
+    --text-display--line-height: 2.5rem;
+    --text-h1: 1.5rem;
+    --text-h1--line-height: 2rem;
+    --text-h2: 1.25rem;
+    --text-h2--line-height: 1.75rem;
+    --text-h3: 1rem;
+    --text-h3--line-height: 1.5rem;
+    --text-body: 0.875rem;
+    --text-body--line-height: 1.375rem;
+    --text-caption: max(12px, 0.75rem);
+    --text-caption--line-height: 1rem;
+
+    /* The root size is now below 16px (see `html` below), so the smallest utility
+       sizes are floored at 12px to keep the U8 accessibility floor. */
+    --text-xs: max(12px, 0.75rem);
+}
+
+/*
+ * Semantic colour roles (UI/UX U1). New and migrated components use these
+ * (`bg-surface`, `text-fg-muted`, `border-line`, `bg-success-soft` …) instead of
+ * a literal gray/red/emerald step, so intent survives dark mode without the
+ * scale remap below. `inline` makes the utilities read the live CSS variable.
+ */
+@theme inline {
+    --color-canvas: var(--dashboard-bg);
+    --color-surface: var(--surface);
+    --color-surface-sunken: var(--surface-sunken);
+    --color-fg: var(--fg);
+    --color-fg-muted: var(--fg-muted);
+    --color-fg-subtle: var(--fg-subtle);
+    --color-line: var(--line);
+    --color-line-strong: var(--line-strong);
+    --color-line-input: var(--line-input);
+    --color-success: var(--success);
+    --color-success-soft: var(--success-soft);
+    --color-success-line: var(--success-line);
+    --color-warning: var(--warning);
+    --color-warning-soft: var(--warning-soft);
+    --color-warning-line: var(--warning-line);
+    --color-danger-fg: var(--danger-fg);
+    --color-danger-soft: var(--danger-soft);
+    --color-danger-line: var(--danger-line);
+    --color-info: var(--info);
+    --color-info-soft: var(--info-soft);
+    --color-info-line: var(--info-line);
 }
 
 :root {
+    /* gray-400 is used for secondary TEXT all over the app (placeholders, meta
+       lines, empty states). The stock value is 2.5:1 on white; this is 4.8:1
+       (AA). Dark mode re-maps gray-400 below, so this only affects light. */
+    --color-gray-400: #6b7280;
+
     --sidebar-bg: #0f172a;
     --sidebar-hover: #1e293b;
-    --active-menu: #6366f1;
+    --active-menu: #2563eb;
     --sidebar-text: #cbd5e1;
     --dashboard-bg: #f1f5f9;
     --header-bg: #ffffff;
     --header-text: #0f172a;
     --card-bg: #ffffff;
-    --accent: #6366f1;
+    --accent: #2563eb;
     /* Accent-derived tokens; re-computed in resources/js/theme.js whenever the
-       admin changes `accent`, and mirrored here so the first paint is themed. */
-    --accent-hover: #7c7ff3;
-    --accent-active: #585bd5;
+       admin changes `accent`, and mirrored here so the first paint is themed.
+       Default accent is trust blue (#2563eb, 5.17:1 on white — AA). */
+    --accent-hover: #467aee;
+    --accent-active: #2055ca;
     --accent-contrast: #ffffff;
-    --accent-soft: #eef0fe;
-    --accent-soft-hover: #e0e3fd;
-    --accent-soft-text: #4f46e5;
-    --accent-ring: #c7c9f9;
+    --accent-soft: #e9effd;
+    --accent-soft-hover: #dce6fc;
+    --accent-soft-text: #1d4db7;
+    --accent-ring: #c8d8fa;
+
+    /* Semantic roles — light. Text roles are AA on --surface (#fff): fg 16:1,
+       fg-muted 7.6:1, fg-subtle 4.8:1. Status fg/soft pairs are all >= 4.8:1. */
+    --surface: var(--card-bg);
+    --surface-sunken: #f8fafc;
+    --fg: #0f172a;
+    --fg-muted: #475569;
+    --fg-subtle: #64748b;
+    --line: #e2e8f0;
+    --line-strong: #cbd5e1;
+    /* Form-control boundary: >= 3:1 on white (WCAG 1.4.11). */
+    --line-input: #8392a5;
+    --success: #047857;
+    --success-soft: #ecfdf5;
+    --success-line: #a7f3d0;
+    --warning: #b45309;
+    --warning-soft: #fffbeb;
+    --warning-line: #fde68a;
+    --danger-fg: #b91c1c;
+    --danger-soft: #fef2f2;
+    --danger-line: #fecaca;
+    --info: #0369a1;
+    --info-soft: #f0f9ff;
+    --info-line: #bae6fd;
 }
 
 /*
@@ -51,6 +139,27 @@
  * below.
  */
 .dark {
+    /* Semantic roles — dark (fg roles >= 4.9:1 on --surface #171d2b). */
+    --surface-sunken: #121826;
+    --fg: #f2f4f8;
+    --fg-muted: #c2c9d5;
+    --fg-subtle: #a7afbe;
+    --line: #28303f;
+    --line-strong: #364052;
+    --line-input: #6b7689;
+    --success: #6ee7b7;
+    --success-soft: #11332b;
+    --success-line: #175339;
+    --warning: #fcd34d;
+    --warning-soft: #362d22;
+    --warning-line: #5f461d;
+    --danger-fg: #fca5a5;
+    --danger-soft: #351f2b;
+    --danger-line: #5d2730;
+    --info: #7dd3fc;
+    --info-soft: #112f45;
+    --info-line: #114868;
+
     --color-gray-50: #171d2b;
     --color-gray-100: #1e2534;
     --color-gray-200: #28303f;
@@ -307,18 +416,67 @@
     background: transparent;
 }
 
+/* Density for 14-inch laptops. Every Tailwind size (text, spacing, radii) is in rem,
+   so lowering the root size scales the whole interface together: 14px by default
+   (≈ 12.5 % denser than the browser's 16px), 13.5px on common laptop panels
+   (≤ 1440 px wide or ≤ 800 px tall), and 15px on phones where touch targets and
+   reading distance need the room. Text never goes below 12px (see --text-xs). */
+html {
+    font-size: 14px;
+}
+
+@media (min-width: 1025px) and (max-width: 1440px), (min-width: 1025px) and (max-height: 800px) {
+    html {
+        font-size: 13.5px;
+    }
+}
+
+@media (max-width: 640px) {
+    html {
+        font-size: 15px;
+    }
+}
+
 html,
 body {
     overflow-x: hidden;
 }
 
+/* Visible keyboard focus everywhere (2px perimeter, accent, 3:1 against the
+   page). Components with their own `focus:ring-2` keep that ring AND gain
+   this outline until Phase 2 converges Button/Input on the outline token. */
+:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+}
+
+/* Tabular figures for KPI/stat reads so numbers don't jitter. */
+.tnum {
+    font-variant-numeric: tabular-nums;
+}
+
+/*
+ * Scrollbars stay visible but thin: fully hidden scrollbars remove the only
+ * affordance that a region scrolls (Kanban columns, HRMS tables, drawers).
+ * The Kanban board keeps its own slightly stronger tint via .board-scroll.
+ */
 * {
-    scrollbar-width: none;
-    -ms-overflow-style: none;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(100, 116, 139, 0.45) transparent;
 }
 
 *::-webkit-scrollbar {
-    display: none;
+    width: 8px;
+    height: 8px;
+}
+
+*::-webkit-scrollbar-thumb {
+    border-radius: 9999px;
+    background-color: rgba(100, 116, 139, 0.35);
+}
+
+*::-webkit-scrollbar-track {
+    background: transparent;
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -551,3 +709,19 @@ body {
 .dark .rich-text-editor-content {
     color: #e5e7eb;
 }
+
+
+/*
+ * Form controls often carry `focus:outline-none` plus a 1px border-colour
+ * change, which is not a visible focus indicator (WCAG 2.4.7/2.4.11). Restore
+ * a real ring for keyboard focus on every control, whatever its utilities say.
+ */
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+    outline: 2px solid var(--accent) !important;
+    outline-offset: 1px;
+}
+
+/* Calendar popups render in document.body (Input.jsx) and must sit above modals/drawers (z-50). */
+.react-datepicker-popper { z-index: 100 !important; }

@@ -91,6 +91,6 @@ class LeadController extends Controller
 
         $lead->delete();
 
-        return response()->json(['message' => 'Lead deleted.']);
+        return response()->json(['message' => __('Lead deleted.')]);
     }
 }

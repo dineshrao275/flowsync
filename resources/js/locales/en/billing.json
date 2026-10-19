@@ -1,0 +1,37 @@
+{
+    "sub": {
+        "subscriptionRequired": "Your trial or subscription has ended. Choose a plan to continue — your data is safe and untouched.",
+        "pendingChangeTitle": "Plan change scheduled.",
+        "pendingChangeBody": "Your plan moves from {{from}} to {{to}} on {{date}}, when the current billing period ends. You keep {{from}} until then and won't be charged twice.",
+        "keepCurrentPlan": "Keep current plan",
+        "changeWithdrawn": "Scheduled plan change withdrawn.",
+        "priceNoticeTitle": "Price change.",
+        "priceNoticeBody": "From {{date}} (your next renewal after that) your plan costs {{new}} instead of {{old}}. Nothing changes before then.",
+        "paymentMethods": "Payment methods",
+        "paymentMethodsSubtitle": "The default card is charged for renewals. Cards are saved on the payment provider's secure page — we never see the number.",
+        "addCard": "Add a card",
+        "noCards": "No saved cards yet.",
+        "cardExpires": "Expires {{month}}/{{year}}",
+        "defaultCard": "Default",
+        "makeDefault": "Make default",
+        "removeCard": "Remove",
+        "removeCardTitle": "Remove this card?",
+        "removeCardMessage": "The card ending in {{last4}} will be removed from your account.",
+        "cardRemoved": "Card removed.",
+        "defaultUpdated": "Default card updated.",
+        "cardSaved": "Card saved and set as the default.",
+        "cardSetupCanceled": "Card setup was canceled.",
+        "thReceipt": "Receipt",
+        "viewReceipt": "View"
+    },
+    "plan": {
+        "priceChangeTitle": "Raise the price for current subscribers?",
+        "priceChangeMessage": "This change reaches {{count}} paying subscription(s). Each will be emailed the new amount and the date it starts — their first renewal at least {{days}} days from now. New customers pay the new price immediately.",
+        "synced": "Plan synchronised with Stripe.",
+        "syncFailed": "Stripe sync failed — see the plan's status for the error.",
+        "stripeError": "Stripe sync failed",
+        "stripeSynced": "Synced with Stripe",
+        "stripeNotSynced": "Not synced to Stripe yet",
+        "syncStripe": "Sync"
+    }
+}

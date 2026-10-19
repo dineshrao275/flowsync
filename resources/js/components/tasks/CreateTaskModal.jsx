@@ -1,4 +1,7 @@
 import { useState } from 'react';
+import PersonSelect from '../ui/PersonSelect';
+import CustomFieldInputs, { useCustomFieldDefinitions } from '../customFields/CustomFieldInputs';
+import { useTranslation } from 'react-i18next';
 import { fieldErrors } from '../../services/api';
 import Button from '../ui/Button';
 import Input from '../ui/Input';
@@ -8,7 +11,10 @@ import Alert from '../ui/Alert';
 import RichTextEditor from '../ui/RichTextEditor';
 
 export default function CreateTaskModal({ options, topLevelTasks, projectKey, saving, onClose, onCreate }) {
+    const { t } = useTranslation();
+    const cfDefs = useCustomFieldDefinitions('task');
     const [form, setForm] = useState({
+        custom_fields: {},
         title: '',
         description: '',
         issue_type_id: options.issue_types?.find((t) => !t.is_subtask)?.id ?? options.issue_types?.[0]?.id ?? '',
@@ -65,13 +71,13 @@ export default function CreateTaskModal({ options, topLevelTasks, projectKey, sa
     }
 
     return (
-        <Modal open title="New task" subtitle={`in ${projectKey}`} onClose={onClose}>
+        <Modal open title={t('tms.create.title')} subtitle={t('tms.create.subtitle', { key: projectKey })} onClose={onClose}>
             <form onSubmit={submit} className="space-y-4 px-6 py-5">
                 {errors.form && <Alert>{errors.form}</Alert>}
                 <Input
-                    label="Title"
+                    label={t('tms.create.fieldTitle')}
                     name="task-title"
-                    placeholder="What needs doing?"
+                    placeholder={t('tms.create.titlePlaceholder')}
                     value={form.title}
                     onChange={(e) => set('title', e.target.value)}
                     error={errors.title}
@@ -81,7 +87,7 @@ export default function CreateTaskModal({ options, topLevelTasks, projectKey, sa
                 <div className="grid gap-4 sm:grid-cols-2">
                     {options.issue_types?.length > 0 && (
                         <Select
-                            label="Issue Type"
+                            label={t('tms.create.issueType')}
                             value={form.issue_type_id}
                             onChange={(e) => set('issue_type_id', e.target.value)}
                             error={errors.issue_type_id}
@@ -95,12 +101,12 @@ export default function CreateTaskModal({ options, topLevelTasks, projectKey, sa
                     )}
                     {options.versions?.length > 0 ? (
                         <Select
-                            label="Version"
+                            label={t('tms.create.version')}
                             value={form.version_id}
                             onChange={(e) => set('version_id', e.target.value)}
                             error={errors.version_id}
                         >
-                            <option value="">No version</option>
+                            <option value="">{t('tms.create.noVersion')}</option>
                             {options.versions.map((v) => (
                                 <option key={v.id} value={v.id}>
                                     {v.name}
@@ -112,8 +118,8 @@ export default function CreateTaskModal({ options, topLevelTasks, projectKey, sa
                     )}
                 </div>
                 {options.epics?.length > 0 && (
-                    <Select label="Epic" value={form.epic_id} onChange={(e) => set('epic_id', e.target.value)} error={errors.epic_id}>
-                        <option value="">No epic</option>
+                    <Select label={t('tms.create.epic')} value={form.epic_id} onChange={(e) => set('epic_id', e.target.value)} error={errors.epic_id}>
+                        <option value="">{t('tms.create.noEpic')}</option>
                         {options.epics.map((e) => (
                             <option key={e.id} value={e.id}>{e.key} · {e.title}</option>
                         ))}
@@ -121,7 +127,7 @@ export default function CreateTaskModal({ options, topLevelTasks, projectKey, sa
                 )}
                 <div className="grid gap-4 sm:grid-cols-2">
                     <Select
-                        label="Status"
+                        label={t('tms.create.status')}
                         value={form.status_id}
                         onChange={(e) => set('status_id', e.target.value)}
                         error={errors.status_id}
@@ -133,12 +139,12 @@ export default function CreateTaskModal({ options, topLevelTasks, projectKey, sa
                         ))}
                     </Select>
                     <Select
-                        label="Priority"
+                        label={t('tms.create.priority')}
                         value={form.priority_id}
                         onChange={(e) => set('priority_id', e.target.value)}
                         error={errors.priority_id}
                     >
-                        <option value="">None</option>
+                        <option value="">{t('tms.create.none')}</option>
                         {options.priorities.map((p) => (
                             <option key={p.id} value={p.id}>
                                 {p.name}
@@ -147,26 +153,19 @@ export default function CreateTaskModal({ options, topLevelTasks, projectKey, sa
                     </Select>
                 </div>
                 <div className="grid gap-4 sm:grid-cols-2">
-                    <Select
-                        label="Assignee"
+                    <PersonSelect
+                        label={t('tms.create.assignee')}
                         value={form.assignee_id}
                         onChange={(e) => set('assignee_id', e.target.value)}
                         error={errors.assignee_id}
-                    >
-                        <option value="">Unassigned</option>
-                        {options.assignees.map((u) => (
-                            <option key={u.id} value={u.id}>
-                                {u.name}
-                            </option>
-                        ))}
-                    </Select>
+                     placeholder={t('tms.create.unassigned')} people={options.assignees} />
                     <Select
-                        label="Parent task"
+                        label={t('tms.create.parent')}
                         value={form.parent_id}
                         onChange={(e) => set('parent_id', e.target.value)}
                         error={errors.parent_id}
                     >
-                        <option value="">None</option>
+                        <option value="">{t('tms.create.none')}</option>
                         {topLevelTasks.map((t) => (
                             <option key={t.id} value={t.id}>
                                 {t.key} · {t.title}
@@ -175,17 +174,17 @@ export default function CreateTaskModal({ options, topLevelTasks, projectKey, sa
                     </Select>
                 </div>
                 <div>
-                    <label className="mb-1.5 block text-sm font-medium text-gray-700">Description</label>
+                    <label className="mb-1.5 block text-sm font-medium text-gray-700">{t('tms.create.description')}</label>
                     <RichTextEditor
                         value={form.description}
                         onChange={(html) => set('description', html)}
-                        placeholder="Context, acceptance criteria…"
+                        placeholder={t('tms.create.descriptionPlaceholder')}
                         error={errors.description}
                     />
                 </div>
                 {options.components?.length > 0 && (
                     <div>
-                        <label className="mb-1.5 block text-sm font-medium text-gray-700">Components</label>
+                        <label className="mb-1.5 block text-sm font-medium text-gray-700">{t('tms.create.components')}</label>
                         <div className="flex flex-wrap gap-2">
                             {options.components.map((comp) => (
                                 <button
@@ -194,7 +193,7 @@ export default function CreateTaskModal({ options, topLevelTasks, projectKey, sa
                                     onClick={() => toggleComponent(comp.id)}
                                     className={`rounded-md px-2.5 py-1 text-xs font-medium transition ${
                                         form.components.includes(comp.id)
-                                            ? 'bg-indigo-600 text-white'
+                                            ? 'bg-[var(--accent)] text-[var(--accent-contrast)]'
                                             : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                                     }`}
                                 >
@@ -207,7 +206,7 @@ export default function CreateTaskModal({ options, topLevelTasks, projectKey, sa
                 )}
                 {options.labels?.length > 0 && (
                     <div>
-                        <label className="mb-1.5 block text-sm font-medium text-gray-700">Labels</label>
+                        <label className="mb-1.5 block text-sm font-medium text-gray-700">{t('tms.create.labels')}</label>
                         <div className="flex flex-wrap gap-2">
                             {options.labels.map((label) => (
                                 <button
@@ -229,14 +228,14 @@ export default function CreateTaskModal({ options, topLevelTasks, projectKey, sa
                 )}
                 <div className="grid gap-4 sm:grid-cols-2">
                     <Input
-                        label="Start date"
+                        label={t('tms.create.startDate')}
                         type="date"
                         value={form.start_date}
                         onChange={(e) => set('start_date', e.target.value)}
                         error={errors.start_date}
                     />
                     <Input
-                        label="Due date"
+                        label={t('tms.create.dueDate')}
                         type="date"
                         value={form.due_date}
                         onChange={(e) => set('due_date', e.target.value)}
@@ -245,17 +244,17 @@ export default function CreateTaskModal({ options, topLevelTasks, projectKey, sa
                 </div>
                 <div className="grid gap-4 sm:grid-cols-2">
                     <Input
-                        label="Story points"
+                        label={t('tms.create.storyPoints')}
                         type="number"
                         step="any"
                         min="0"
-                        placeholder="e.g. 3 or 5.5"
+                        placeholder={t('tms.create.storyPointsPlaceholder')}
                         value={form.story_points}
                         onChange={(e) => set('story_points', e.target.value)}
                         error={errors.story_points}
                     />
                     <Input
-                        label="Estimate (minutes)"
+                        label={t('tms.create.estimate')}
                         type="number"
                         min="0"
                         value={form.estimate_minutes}
@@ -263,12 +262,13 @@ export default function CreateTaskModal({ options, topLevelTasks, projectKey, sa
                         error={errors.estimate_minutes}
                     />
                 </div>
+                <CustomFieldInputs fields={cfDefs} values={form.custom_fields} onChange={(v) => set('custom_fields', v)} errors={errors} />
                 <div className="flex justify-end gap-2 pt-2">
                     <Button type="button" variant="secondary" onClick={onClose}>
-                        Cancel
+                        {t('tms.create.cancel')}
                     </Button>
                     <Button type="submit" loading={saving} disabled={!form.title.trim()}>
-                        Create task
+                        {t('tms.create.submit')}
                     </Button>
                 </div>
             </form>

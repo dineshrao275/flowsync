@@ -1,16 +1,19 @@
 import { useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import api, { fieldErrors } from '../../services/api';
 import Badge from '../ui/Badge';
 import Alert from '../ui/Alert';
-import Spinner from '../ui/Spinner';
+import ContentSkeleton from '../ui/ContentSkeleton';
 import Button from '../ui/Button';
 import { useConfirm } from '../ui/ConfirmDialog';
 
 export default function DependencyPanel({ task, projectId, canManage, allTasks }) {
+    const { t } = useTranslation();
     const confirm = useConfirm();
     const [data, setData] = useState(null);
     const [error, setError] = useState(null);
     const [selected, setSelected] = useState('');
+    const [linkType, setLinkType] = useState('blocks');
     const [busy, setBusy] = useState(false);
     const [formErrors, setFormErrors] = useState({});
 
@@ -20,7 +23,7 @@ export default function DependencyPanel({ task, projectId, canManage, allTasks }
                 setData(data);
                 setError(null);
             })
-            .catch(() => setError('Could not load dependencies.'));
+            .catch(() => setError(t('tms.dependencies.loadFailed')));
     }
 
     useEffect(() => {
@@ -35,7 +38,7 @@ export default function DependencyPanel({ task, projectId, canManage, allTasks }
         setFormErrors({});
         api.post(`/projects/${projectId}/tasks/${task.id}/dependencies`, {
             depends_on_task_id: Number(selected),
-            type: 'blocks',
+            type: linkType,
         })
             .then(() => {
                 setSelected('');
@@ -47,10 +50,10 @@ export default function DependencyPanel({ task, projectId, canManage, allTasks }
 
     async function remove(id) {
         if (!(await confirm({
-            title: 'Remove dependency?',
-            message: 'Remove this dependency relationship?',
+            title: t('tms.dependencies.removeTitle'),
+            message: t('tms.dependencies.removeMessage'),
             variant: 'danger',
-            confirmLabel: 'Remove',
+            confirmLabel: t('tms.dependencies.remove'),
         }))) return;
 
         api.delete(`/projects/${projectId}/tasks/${task.id}/dependencies/${id}`)
@@ -64,9 +67,7 @@ export default function DependencyPanel({ task, projectId, canManage, allTasks }
 
     if (!data) {
         return (
-            <div className="flex justify-center py-10">
-                <Spinner />
-            </div>
+            <ContentSkeleton size="md" />
         );
     }
 
@@ -77,7 +78,7 @@ export default function DependencyPanel({ task, projectId, canManage, allTasks }
             ? `${dependency.task.key} · ${dependency.task.title}`
             : dependency.dependsOn
                 ? `${dependency.dependsOn.key} · ${dependency.dependsOn.title}`
-                : `Task #${dependency.depends_on_task_id}`;
+                : t('tms.dependencies.taskFallback', { id: dependency.depends_on_task_id });
         return (
             <li className="flex items-center justify-between gap-3 rounded-lg border border-gray-100 px-3 py-2">
                 <span className="text-sm text-gray-700">{name}</span>
@@ -87,7 +88,7 @@ export default function DependencyPanel({ task, projectId, canManage, allTasks }
                         className="text-xs text-gray-400 transition hover:text-red-600"
                         onClick={() => remove(dependency.id)}
                     >
-                        Remove
+                        {t('tms.dependencies.remove')}
                     </button>
                 )}
             </li>
@@ -98,10 +99,10 @@ export default function DependencyPanel({ task, projectId, canManage, allTasks }
         <div className="space-y-5">
             <div>
                 <p className="mb-2 text-sm font-medium text-gray-700">
-                    Blocked by <Badge>{data.blocked_by.length}</Badge>
+                    {t('tms.dependencies.blockedBy')} <Badge>{data.blocked_by.length}</Badge>
                 </p>
                 {data.blocked_by.length === 0 ? (
-                    <p className="text-sm text-gray-400">Nothing is blocking this task.</p>
+                    <p className="text-sm text-gray-400">{t('tms.dependencies.emptyBlocked')}</p>
                 ) : (
                     <ul className="space-y-2">
                         {data.blocked_by.map((dependency) => (
@@ -113,10 +114,10 @@ export default function DependencyPanel({ task, projectId, canManage, allTasks }
 
             <div>
                 <p className="mb-2 text-sm font-medium text-gray-700">
-                    Blocks <Badge>{data.blocks.length}</Badge>
+                    {t('tms.dependencies.blocks')} <Badge>{data.blocks.length}</Badge>
                 </p>
                 {data.blocks.length === 0 ? (
-                    <p className="text-sm text-gray-400">This task is not blocking anything.</p>
+                    <p className="text-sm text-gray-400">{t('tms.dependencies.emptyBlocks')}</p>
                 ) : (
                     <ul className="space-y-2">
                         {data.blocks.map((dependency) => (
@@ -126,28 +127,45 @@ export default function DependencyPanel({ task, projectId, canManage, allTasks }
                 )}
             </div>
 
+            {data.links?.length > 0 && (
+                <div>
+                    <p className="mb-2 text-sm font-medium text-gray-700">{t('tms.dependencies.links')} <Badge>{data.links.length}</Badge></p>
+                    <ul className="space-y-2">
+                        {data.links.map((link) => (
+                            <li key={`${link.direction}-${link.id}`} className="flex items-center justify-between gap-3 rounded-lg border border-gray-100 px-3 py-2 text-sm text-gray-700">
+                                <span><span className="text-gray-500">{t(`tms.dependencies.linkWording.${link.type}.${link.direction}`)}</span> {link.task ? `${link.task.key} · ${link.task.title}` : ''}</span>
+                                {canManage && <button type="button" className="text-xs text-gray-400 transition hover:text-red-600" onClick={() => remove(link.id)}>{t('tms.dependencies.remove')}</button>}
+                            </li>
+                        ))}
+                    </ul>
+                </div>
+            )}
+
             {canManage && (
                 <form onSubmit={add} className="space-y-2 border-t border-gray-100 pt-4">
-                    <label className="block text-sm font-medium text-gray-700">Add dependency</label>
+                    <label className="block text-sm font-medium text-gray-700">{t('tms.dependencies.addTitle')}</label>
+                    <select aria-label={t('tms.dependencies.typeLabel')} className="block w-full rounded-lg border border-gray-300 bg-white px-3.5 py-2.5 text-sm shadow-sm focus:border-[var(--accent)] focus:outline-none" value={linkType} onChange={(e) => setLinkType(e.target.value)}>
+                        {['blocks', 'related_to', 'duplicates', 'clones'].map((ty) => <option key={ty} value={ty}>{t(`tms.dependencies.types.${ty}`)}</option>)}
+                    </select>
                     <div className="flex gap-2">
                         <select
-                            className="block w-full rounded-lg border border-gray-300 bg-white px-3.5 py-2.5 text-sm shadow-sm focus:border-indigo-500 focus:outline-none"
+                            className="block w-full rounded-lg border border-gray-300 bg-white px-3.5 py-2.5 text-sm shadow-sm focus:border-[var(--accent)] focus:outline-none"
                             value={selected}
                             onChange={(e) => setSelected(e.target.value)}
                         >
-                            <option value="">Select a task…</option>
+                            <option value="">{t('tms.dependencies.selectTask')}</option>
                             {candidates.map((t) => (
                                 <option key={t.id} value={t.id}>
                                     {t.key} · {t.title}
                                 </option>
                             ))}
-                            {candidates.length === 0 && <option value="">No other tasks</option>}
+                            {candidates.length === 0 && <option value="">{t('tms.dependencies.noOtherTasks')}</option>}
                         </select>
                         <button
                             type="button"
                             className="rounded-lg border border-gray-300 bg-white px-2 text-sm text-gray-500 hover:bg-gray-50"
                             onClick={() => setSelected('')}
-                            title="Clear"
+                            title={t('tms.dependencies.clear')}
                         >
                             ✕
                         </button>
@@ -155,7 +173,7 @@ export default function DependencyPanel({ task, projectId, canManage, allTasks }
                     {formErrors.depends_on_task_id && <Alert>{formErrors.depends_on_task_id}</Alert>}
                     {formErrors.form && <Alert>{formErrors.form}</Alert>}
                     <Button size="sm" type="submit" loading={busy} disabled={!selected}>
-                        Add
+                        {t('tms.dependencies.add')}
                     </Button>
                 </form>
             )}

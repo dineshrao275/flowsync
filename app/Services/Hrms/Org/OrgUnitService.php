@@ -68,11 +68,11 @@ class OrgUnitService
     public function delete(OrgUnit $unit, ?User $actor = null): void
     {
         if ($unit->children()->exists()) {
-            throw ValidationException::withMessages(['form' => 'This unit has child units. Move or delete them first.']);
+            throw ValidationException::withMessages(['form' => __('This unit has child units. Move or delete them first.')]);
         }
 
         if ($unit->assignments()->exists()) {
-            throw ValidationException::withMessages(['form' => 'People still sit in this unit. Reassign them, or deactivate the unit instead.']);
+            throw ValidationException::withMessages(['form' => __('People still sit in this unit. Reassign them, or deactivate the unit instead.')]);
         }
 
         $this->audit->log($unit, 'org_unit.deleted', $this->snapshot($unit), null, $actor);
@@ -87,7 +87,7 @@ class OrgUnitService
     public function assign(OrgUnit $unit, array $employeeIds, ?User $actor = null): int
     {
         if (! $unit->is_active) {
-            throw ValidationException::withMessages(['form' => 'That unit is inactive — pick a current one.']);
+            throw ValidationException::withMessages(['form' => __('That unit is inactive — pick a current one.')]);
         }
 
         return DB::transaction(function () use ($unit, $employeeIds, $actor): int {
@@ -142,7 +142,7 @@ class OrgUnitService
         $cursor = $parent;
         for ($i = 0; $i < self::MAX_DEPTH && $cursor !== null; $i++) {
             if ($self !== null && $cursor->id === $self->id) {
-                throw ValidationException::withMessages(['parent_id' => 'A unit cannot sit under itself or one of its own children.']);
+                throw ValidationException::withMessages(['parent_id' => __('A unit cannot sit under itself or one of its own children.')]);
             }
             $cursor = $cursor->parent_id === null ? null : OrgUnit::query()->find($cursor->parent_id);
         }

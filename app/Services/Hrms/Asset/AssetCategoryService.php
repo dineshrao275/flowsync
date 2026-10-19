@@ -63,7 +63,7 @@ class AssetCategoryService
     public function delete(AssetCategory $category, ?User $actor = null): void
     {
         if ($category->assets()->exists()) {
-            throw ValidationException::withMessages(['form' => 'That category labels assets — deactivate it instead of deleting history.']);
+            throw ValidationException::withMessages(['form' => __('That category labels assets — deactivate it instead of deleting history.')]);
         }
 
         $this->audit->log($category, 'asset.category_deleted', [

@@ -12,6 +12,6 @@
         <h2 class="text-3xl font-extrabold tracking-tight text-balance sm:text-4xl {{ $dark ? 'text-white' : 'text-slate-900' }}">{{ $heading }}</h2>
     @endif
     @if($lead)
-        <p class="text-lg text-pretty {{ $dark ? 'text-indigo-100/80' : 'text-slate-600' }}">{{ $lead }}</p>
+        <p class="text-lg text-pretty {{ $dark ? 'text-blue-100/80' : 'text-slate-600' }}">{{ $lead }}</p>
     @endif
 </div>

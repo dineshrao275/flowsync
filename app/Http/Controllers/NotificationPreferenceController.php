@@ -22,15 +22,16 @@ class NotificationPreferenceController extends Controller
     public function show(Request $request): JsonResponse
     {
         if ($this->isPlatformSuperAdmin($request)) {
-            return response()->json(['preferences' => $this->defaults()]);
+            return response()->json(['preferences' => $this->defaults(), 'email_mode' => NotificationPreference::MODE_INSTANT]);
         }
 
         $prefs = NotificationPreference::firstWhere('user_id', $request->user()->id);
 
         return response()->json([
             'preferences' => $prefs
-                ? array_merge($this->defaults(), $prefs->preferences)
+                ? array_merge($this->defaults(), $prefs->preferences ?? [])
                 : $this->defaults(),
+            'email_mode' => NotificationPreference::emailMode($request->user()),
         ]);
     }
 
@@ -41,16 +42,21 @@ class NotificationPreferenceController extends Controller
         }
 
         $prefs = NotificationPreference::firstOrNew(['user_id' => $request->user()->id]);
+        $validated = $request->validated();
         $prefs->preferences = array_merge(
             $this->defaults(),
             $prefs->preferences ?? [],
-            $request->validated()['preferences'],
+            $validated['preferences'] ?? [],
         );
+        if (isset($validated['email_mode'])) {
+            $prefs->email_mode = $validated['email_mode'];
+        }
         $prefs->save();
 
         return response()->json([
-            'message' => 'Notification preferences updated.',
+            'message' => __('Notification preferences updated.'),
             'preferences' => $prefs->preferences,
+            'email_mode' => NotificationPreference::emailMode($request->user()),
         ]);
     }
 

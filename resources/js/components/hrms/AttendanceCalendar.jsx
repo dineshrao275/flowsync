@@ -1,4 +1,6 @@
+import { useTranslation } from 'react-i18next';
 import { formatMinutes } from '../../utils/time';
+import i18n, { intlTag } from '../../i18n';
 
 /**
  * Hex fills for day statuses, mirroring the PHP enum labels (the server
@@ -17,7 +19,18 @@ export const ATTENDANCE_STATUS_COLORS = {
     inactive: '#9ca3af',
 };
 
-const WEEKDAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+/**
+ * Monday-first weekday headers in the interface language (2024-01-01 was a
+ * Monday, so seven consecutive days from it land Mon…Sun in every locale).
+ */
+function weekdayNames() {
+    const tag = intlTag(i18n.language);
+
+    return Array.from(
+        { length: 7 },
+        (_, i) => new Date(2024, 0, 1 + i).toLocaleDateString(tag, { weekday: 'short' }),
+    );
+}
 
 /**
  * A reusable month grid for attendance days.
@@ -29,6 +42,8 @@ const WEEKDAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
  * for them.
  */
 export default function AttendanceCalendar({ year, month, days = [], selectedDate = null, onSelectDay = null }) {
+    const { t } = useTranslation();
+    const weekdays = weekdayNames();
     const byDate = new Map(days.map((day) => [day.date, day]));
 
     // Monday-first offset: JS Sundays are 0, the grid starts on Monday.
@@ -53,10 +68,10 @@ export default function AttendanceCalendar({ year, month, days = [], selectedDat
                 type="button"
                 disabled={!entry || !onSelectDay}
                 onClick={() => onSelectDay?.(entry)}
-                title={entry ? `${entry.status_label} · ${formatMinutes(entry.worked_minutes)}` : 'Upcoming'}
+                title={entry ? `${entry.status_label} · ${formatMinutes(entry.worked_minutes)}` : t('hrms.calendar.upcoming')}
                 className={`flex min-h-14 flex-col items-start justify-between rounded-lg border p-1.5 text-left transition-colors ${
                     selected
-                        ? 'border-indigo-500 ring-1 ring-indigo-200'
+                        ? 'border-[var(--accent)] ring-1 ring-[var(--accent-ring)]'
                         : 'border-gray-100 hover:border-gray-300'
                 } ${entry ? '' : 'bg-gray-50/50'} ${!entry || !onSelectDay ? 'cursor-default' : 'cursor-pointer'}`}
             >
@@ -72,14 +87,14 @@ export default function AttendanceCalendar({ year, month, days = [], selectedDat
                         {/* The bar carries the status hue; the label stays
                             dark — 11px colored text on white fails contrast
                             for every hue, while the bar needs no text. */}
-                        <span className="block truncate text-[11px] font-medium text-gray-700">
+                        <span className="block truncate text-xs font-medium text-gray-700">
                             {entry.status_label}
                             {entry.is_regularized ? ' ·R' : ''}
                         </span>
-                        <span className="block text-[11px] text-gray-500">{formatMinutes(entry.worked_minutes)}</span>
+                        <span className="block text-xs text-gray-500">{formatMinutes(entry.worked_minutes)}</span>
                     </span>
                 ) : (
-                    <span className="text-[11px] text-gray-300">—</span>
+                    <span className="text-xs text-gray-300">—</span>
                 )}
             </button>,
         );
@@ -88,7 +103,7 @@ export default function AttendanceCalendar({ year, month, days = [], selectedDat
     return (
         <div>
             <div className="mb-1 grid grid-cols-7 gap-1">
-                {WEEKDAYS.map((day) => (
+                {weekdays.map((day) => (
                     <span key={day} className="pb-1 text-center text-xs font-medium text-gray-400">
                         {day}
                     </span>

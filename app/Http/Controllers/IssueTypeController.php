@@ -36,7 +36,7 @@ class IssueTypeController extends Controller
         $issueType = $this->service->create($data);
 
         return response()->json([
-            'message' => 'Issue type created.',
+            'message' => __('Issue type created.'),
             'issue_type' => $issueType,
         ], 201);
     }
@@ -57,7 +57,7 @@ class IssueTypeController extends Controller
         $updated = $this->service->update($issueType, $data);
 
         return response()->json([
-            'message' => 'Issue type updated.',
+            'message' => __('Issue type updated.'),
             'issue_type' => $updated,
         ]);
     }
@@ -67,7 +67,7 @@ class IssueTypeController extends Controller
         $this->service->delete($issueType);
 
         return response()->json([
-            'message' => 'Issue type deleted.',
+            'message' => __('Issue type deleted.'),
         ]);
     }
 }

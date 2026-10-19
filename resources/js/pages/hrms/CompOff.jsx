@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
+import PersonSelect from '../../components/ui/PersonSelect';
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import api, { fieldErrors } from '../../services/api';
 import Alert from '../../components/ui/Alert';
 import Button from '../../components/ui/Button';
@@ -8,7 +10,7 @@ import EmptyState from '../../components/ui/EmptyState';
 import Input from '../../components/ui/Input';
 import Modal from '../../components/ui/Modal';
 import Select from '../../components/ui/Select';
-import Spinner from '../../components/ui/Spinner';
+import ContentSkeleton from '../../components/ui/ContentSkeleton';
 import { Table, Th, Td } from '../../components/ui/Table';
 import { useToast } from '../../context/ToastContext';
 import { useConfirm } from '../../components/ui/ConfirmDialog';
@@ -17,8 +19,8 @@ import usePageTitle from '../../hooks/usePageTitle';
 import { formatMinutes } from '../../utils/time';
 
 const SOURCES = [
-    { value: 'manual', label: 'Manual grant' },
-    { value: 'special', label: 'Special day' },
+    { value: 'manual', key: 'srcManual' },
+    { value: 'special', key: 'srcSpecial' },
 ];
 
 function previousMonth() {
@@ -41,7 +43,8 @@ function previousMonth() {
  * self-service twin lives on `/hrms/comp-off/mine`.
  */
 export default function CompOff() {
-    usePageTitle('Comp-off');
+    const { t } = useTranslation();
+    usePageTitle(t('hrms.comp.pageTitle'));
     const setCrumbs = useSetCrumbs();
     const navigate = useNavigate();
     const toast = useToast();
@@ -62,19 +65,19 @@ export default function CompOff() {
     const [accruing, setAccruing] = useState(false);
 
     useEffect(() => {
-        setCrumbs([{ label: 'HRMS', to: '/hrms' }, { label: 'Comp-off' }]);
-    }, [setCrumbs]);
+        setCrumbs([{ label: t('hrms.overview.pageTitle'), to: '/hrms' }, { label: t('hrms.comp.pageTitle') }]);
+    }, [setCrumbs, t]);
 
     const fail = useCallback(
-        (message) => (err) => {
+        (key) => (err) => {
             if (err.response?.status === 403) {
                 navigate('/403', { replace: true });
                 return;
             }
 
-            setError(message);
+            setError(t(key));
         },
-        [navigate],
+        [navigate, t],
     );
 
     const loadBank = useCallback(() => {
@@ -87,7 +90,7 @@ export default function CompOff() {
         return api
             .get('/hrms/comp-off/credits', { params: { employee_id: Number(employeeId) } })
             .then(({ data }) => setBank(data))
-            .catch(fail('Unable to load the bank.'));
+            .catch(fail('hrms.comp.bankFailed'));
     }, [employeeId, fail]);
 
     const loadRequests = useCallback(() => {
@@ -96,7 +99,7 @@ export default function CompOff() {
         return api
             .get('/hrms/comp-off/requests', { params })
             .then(({ data }) => setRequests(data.requests ?? []))
-            .catch(fail('Unable to load comp-off requests.'));
+            .catch(fail('hrms.comp.requestsFailed'));
     }, [requestStatus, fail]);
 
     useEffect(() => {
@@ -125,13 +128,13 @@ export default function CompOff() {
         try {
             await api.post(`/hrms/comp-off/requests/${deciding.id}/${verdict}`, { note: decisionNote || null });
 
-            toast.success(verdict === 'approve' ? 'Comp-off approved.' : 'Comp-off rejected.');
+            toast.success(verdict === 'approve' ? t('hrms.comp.approved') : t('hrms.comp.rejected'));
             setDeciding(null);
             setDecisionNote('');
             loadRequests();
         } catch (err) {
             if (err.response?.status === 403) {
-                toast.error('Only the assigned approver can decide this request.');
+                toast.error(t('hrms.comp.forbidden'));
                 return;
             }
 
@@ -152,7 +155,7 @@ export default function CompOff() {
                 ...(grant.note ? { note: grant.note } : {}),
             });
 
-            toast.success('Comp-off granted.');
+            toast.success(t('hrms.comp.granted'));
             setGranting(false);
             setGrant({ employee_id: '', work_date: '', minutes: '', source: 'manual', note: '' });
             reload();
@@ -164,17 +167,17 @@ export default function CompOff() {
     async function runAccrual() {
         const { from, to } = previousMonth();
 
-        if (!(await confirm({ title: 'Credit comp-off?', message: `Credit comp-off for ${from} → ${to}? Reruns credit nothing new.` }))) return;
+        if (!(await confirm({ title: t('hrms.comp.creditTitle'), message: t('hrms.comp.creditMessage', { from, to }) }))) return;
 
         setAccruing(true);
 
         try {
             const { data } = await api.post('/hrms/comp-off/accrue', { from, to });
 
-            toast.success(`Accrual finished: ${data.credited} credited, ${data.skipped} skipped.`);
+            toast.success(t('hrms.comp.accrued', { credited: data.credited, skipped: data.skipped }));
             reload();
         } catch (err) {
-            toast.error('Unable to run the accrual.');
+            toast.error(t('hrms.comp.accrueFailed'));
         } finally {
             setAccruing(false);
         }
@@ -184,53 +187,46 @@ export default function CompOff() {
         <div className="space-y-4">
             <div className="flex flex-wrap items-center justify-between gap-3">
                 <div>
-                    <h2 className="text-xl font-semibold text-gray-900">Comp-off</h2>
-                    <p className="mt-0.5 text-sm text-gray-500">Banks, redemptions, grants, accrual runs.</p>
+                    <h2 className="text-xl font-semibold text-gray-900">{t('hrms.comp.pageTitle')}</h2>
+                    <p className="mt-0.5 text-sm text-gray-500">{t('hrms.comp.subtitle')}</p>
                 </div>
 
                 <div className="flex gap-2">
-                    <Button variant="secondary" onClick={() => setGranting(true)}>Grant time</Button>
+                    <Button variant="secondary" onClick={() => setGranting(true)}>{t('hrms.comp.grantTime')}</Button>
                     <Button variant="secondary" onClick={runAccrual} disabled={accruing}>
-                        {accruing ? 'Accruing…' : 'Run accrual'}
+                        {accruing ? t('hrms.comp.accruing') : t('hrms.comp.runAccrual')}
                     </Button>
                 </div>
             </div>
 
             {error && <Alert>{error}</Alert>}
 
-            <Card dense title="Bank">
+            <Card dense title={t('hrms.comp.bank')}>
                 <div className="mb-3">
-                    <Select aria-label="Employee" value={employeeId} onChange={(e) => setEmployeeId(e.target.value)} className="w-56">
-                        <option value="">Select an employee…</option>
-                        {employees.map((employee) => (
-                            <option key={employee.id} value={employee.id}>
-                                {employee.name}
-                            </option>
-                        ))}
-                    </Select>
+                    <PersonSelect aria-label={t('hrms.comp.employee')} value={employeeId} onChange={(e) => setEmployeeId(e.target.value)} className="w-56" placeholder={t('hrms.comp.selectEmployee')} people={employees} />
                 </div>
 
                 {!employeeId ? (
-                    <EmptyState title="No employee selected" description="Pick an employee to see their bank." />
+                    <EmptyState title={t('hrms.comp.noEmployee')} description={t('hrms.comp.noEmployeeHint')} />
                 ) : !bank ? (
-                    <div className="flex justify-center py-6"><Spinner /></div>
+                    <ContentSkeleton size="sm" />
                 ) : (
                     <>
                         <dl className="mb-3 grid grid-cols-3 gap-2 text-sm">
-                            <div><dt className="text-gray-500">Free</dt><dd className="text-lg font-semibold text-gray-900">{formatMinutes(bank.balance_minutes)}</dd></div>
-                            <div><dt className="text-gray-500">Expiring soon</dt><dd className="text-lg font-semibold text-gray-900">{formatMinutes(bank.expiring_minutes)}</dd></div>
-                            <div><dt className="text-gray-500">Expired</dt><dd className="text-lg font-semibold text-gray-400">{formatMinutes(bank.expired_minutes)}</dd></div>
+                            <div><dt className="text-gray-500">{t('hrms.comp.free')}</dt><dd className="text-lg font-semibold text-gray-900">{formatMinutes(bank.balance_minutes)}</dd></div>
+                            <div><dt className="text-gray-500">{t('hrms.comp.expiring')}</dt><dd className="text-lg font-semibold text-gray-900">{formatMinutes(bank.expiring_minutes)}</dd></div>
+                            <div><dt className="text-gray-500">{t('hrms.comp.expired')}</dt><dd className="text-lg font-semibold text-gray-400">{formatMinutes(bank.expired_minutes)}</dd></div>
                         </dl>
                         {bank.credits.length === 0 ? (
-                            <EmptyState title="Nothing banked" description="No credits on record." />
+                            <EmptyState title={t('hrms.comp.emptyBank')} description={t('hrms.comp.emptyBankHint')} />
                         ) : (
                             <Table>
                                 <thead>
                                     <tr>
-                                        <Th>Date</Th>
-                                        <Th>Source</Th>
-                                        <Th>Minutes</Th>
-                                        <Th>Expires</Th>
+                                        <Th>{t('hrms.comp.thDate')}</Th>
+                                        <Th>{t('hrms.comp.thSource')}</Th>
+                                        <Th>{t('hrms.comp.thMinutes')}</Th>
+                                        <Th>{t('hrms.comp.thExpires')}</Th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -239,7 +235,7 @@ export default function CompOff() {
                                             <Td>{credit.work_date}</Td>
                                             <Td>{credit.source_label}</Td>
                                             <Td>{formatMinutes(credit.minutes)}</Td>
-                                            <Td>{credit.expiry_date ?? 'Never'}</Td>
+                                            <Td>{credit.expiry_date ?? t('hrms.comp.never')}</Td>
                                         </tr>
                                     ))}
                                 </tbody>
@@ -249,31 +245,31 @@ export default function CompOff() {
                 )}
             </Card>
 
-            <Card dense title="Redemptions">
+            <Card dense title={t('hrms.comp.redemptions')}>
                 <div className="mb-3 flex items-center gap-2">
-                    <Select aria-label="Status filter" value={requestStatus} onChange={(e) => setRequestStatus(e.target.value)} className="w-44">
-                        <option value="">All open</option>
-                        <option value="submitted">Submitted</option>
-                        <option value="pending">Pending</option>
-                        <option value="approved">Approved</option>
-                        <option value="rejected">Rejected</option>
-                        <option value="cancelled">Cancelled</option>
+                    <Select aria-label={t('hrms.comp.statusFilter')} value={requestStatus} onChange={(e) => setRequestStatus(e.target.value)} className="w-44">
+                        <option value="">{t('hrms.leave.stAllOpen')}</option>
+                        <option value="submitted">{t('hrms.leave.stSubmitted')}</option>
+                        <option value="pending">{t('hrms.leave.stPending')}</option>
+                        <option value="approved">{t('hrms.leave.stApproved')}</option>
+                        <option value="rejected">{t('hrms.leave.stRejected')}</option>
+                        <option value="cancelled">{t('hrms.leave.stCancelled')}</option>
                     </Select>
                 </div>
 
                 {!requests ? (
-                    <div className="flex justify-center py-6"><Spinner /></div>
+                    <ContentSkeleton size="sm" />
                 ) : requests.length === 0 ? (
-                    <EmptyState title="No requests" description="Nothing filed under this filter." />
+                    <EmptyState title={t('hrms.comp.emptyTitle')} description={t('hrms.comp.emptyHint')} />
                 ) : (
                     <Table>
                         <thead>
                             <tr>
-                                <Th>Employee</Th>
-                                <Th>Dates</Th>
-                                <Th>Minutes</Th>
-                                <Th>Status</Th>
-                                <Th><span className="sr-only">Actions</span></Th>
+                                <Th>{t('hrms.comp.thEmployee')}</Th>
+                                <Th>{t('hrms.comp.thDates')}</Th>
+                                <Th>{t('hrms.comp.thMinutes')}</Th>
+                                <Th>{t('hrms.comp.thStatus')}</Th>
+                                <Th><span className="sr-only">{t('hrms.comp.thActions')}</span></Th>
                             </tr>
                         </thead>
                         <tbody>
@@ -287,10 +283,10 @@ export default function CompOff() {
                                         {(request.status === 'submitted' || request.status === 'pending') && (
                                             <div className="flex justify-end gap-2">
                                                 <Button variant="secondary" onClick={() => { setDeciding({ ...request, verdict: 'approve' }); setDecisionNote(''); setDecisionErrors({}); }}>
-                                                    Approve
+                                                    {t('hrms.comp.approve')}
                                                 </Button>
                                                 <Button variant="secondary" onClick={() => { setDeciding({ ...request, verdict: 'reject' }); setDecisionNote(''); setDecisionErrors({}); }}>
-                                                    Reject
+                                                    {t('hrms.comp.reject')}
                                                 </Button>
                                             </div>
                                         )}
@@ -302,48 +298,41 @@ export default function CompOff() {
                 )}
             </Card>
 
-            <Modal open={!!deciding} onClose={() => setDeciding(null)} title={deciding?.verdict === 'approve' ? 'Approve comp-off' : 'Reject comp-off'}>
+            <Modal open={!!deciding} onClose={() => setDeciding(null)} title={deciding?.verdict === 'approve' ? t('hrms.comp.decideApproveTitle') : t('hrms.comp.decideRejectTitle')}>
                 <div className="space-y-3 px-6 py-5">
                     <p className="text-sm text-gray-500">
                         {deciding?.verdict === 'approve'
-                            ? 'Approval spends the banked minutes immediately.'
-                            : 'A rejection needs a reason the requester can act on.'}
+                            ? t('hrms.comp.decideApproveIntro')
+                            : t('hrms.comp.decideRejectIntro')}
                     </p>
-                    <Input label={deciding?.verdict === 'approve' ? 'Note (optional)' : 'Reason'} value={decisionNote} onChange={(e) => setDecisionNote(e.target.value)} error={decisionErrors.note ?? decisionErrors.decision_note} />
+                    <Input label={deciding?.verdict === 'approve' ? t('hrms.comp.noteOptional') : t('hrms.comp.reason')} value={decisionNote} onChange={(e) => setDecisionNote(e.target.value)} error={decisionErrors.note ?? decisionErrors.decision_note} />
                     {decisionErrors.form && <Alert>{decisionErrors.form}</Alert>}
                     <div className="flex justify-end gap-2">
-                        <Button variant="secondary" onClick={() => setDeciding(null)}>Cancel</Button>
+                        <Button variant="secondary" onClick={() => setDeciding(null)}>{t('hrms.comp.cancel')}</Button>
                         <Button onClick={() => decide(deciding.verdict)}>
-                            {deciding?.verdict === 'approve' ? 'Approve' : 'Reject'}
+                            {deciding?.verdict === 'approve' ? t('hrms.comp.approve') : t('hrms.comp.reject')}
                         </Button>
                     </div>
                 </div>
             </Modal>
 
-            <Modal open={granting} onClose={() => setGranting(false)} title="Grant comp-off">
+            <Modal open={granting} onClose={() => setGranting(false)} title={t('hrms.comp.grantTitle')}>
                 <form onSubmit={submitGrant} className="space-y-3 px-6 py-5">
-                    <Select label="Employee" value={grant.employee_id} onChange={(e) => setGrant({ ...grant, employee_id: e.target.value })} error={grantErrors.employee_id}>
-                        <option value="">Select…</option>
-                        {employees.map((employee) => (
-                            <option key={employee.id} value={employee.id}>
-                                {employee.name}
-                            </option>
-                        ))}
-                    </Select>
+                    <PersonSelect label={t('hrms.comp.employee')} value={grant.employee_id} onChange={(e) => setGrant({ ...grant, employee_id: e.target.value })} error={grantErrors.employee_id} placeholder={t('hrms.comp.select')} people={employees} />
                     <div className="grid grid-cols-2 gap-3">
-                        <Input type="date" label="Work date" value={grant.work_date} onChange={(e) => setGrant({ ...grant, work_date: e.target.value })} error={grantErrors.work_date} />
-                        <Input type="number" label="Minutes" value={grant.minutes} onChange={(e) => setGrant({ ...grant, minutes: e.target.value })} error={grantErrors.minutes} />
+                        <Input type="date" label={t('hrms.comp.workDate')} value={grant.work_date} onChange={(e) => setGrant({ ...grant, work_date: e.target.value })} error={grantErrors.work_date} />
+                        <Input type="number" label={t('hrms.comp.minutes')} value={grant.minutes} onChange={(e) => setGrant({ ...grant, minutes: e.target.value })} error={grantErrors.minutes} />
                     </div>
-                    <Select label="Source" value={grant.source} onChange={(e) => setGrant({ ...grant, source: e.target.value })} error={grantErrors.source}>
+                    <Select label={t('hrms.comp.source')} value={grant.source} onChange={(e) => setGrant({ ...grant, source: e.target.value })} error={grantErrors.source}>
                         {SOURCES.map((option) => (
-                            <option key={option.value} value={option.value}>{option.label}</option>
+                            <option key={option.value} value={option.value}>{t(`hrms.comp.${option.key}`)}</option>
                         ))}
                     </Select>
-                    <Input label="Note (optional)" value={grant.note} onChange={(e) => setGrant({ ...grant, note: e.target.value })} error={grantErrors.note} />
+                    <Input label={t('hrms.comp.noteOptional')} value={grant.note} onChange={(e) => setGrant({ ...grant, note: e.target.value })} error={grantErrors.note} />
                     {grantErrors.form && <Alert>{grantErrors.form}</Alert>}
                     <div className="flex justify-end gap-2">
-                        <Button type="button" variant="secondary" onClick={() => setGranting(false)}>Cancel</Button>
-                        <Button type="submit">Grant</Button>
+                        <Button type="button" variant="secondary" onClick={() => setGranting(false)}>{t('hrms.comp.cancel')}</Button>
+                        <Button type="submit">{t('hrms.comp.grant')}</Button>
                     </div>
                 </form>
             </Modal>

@@ -57,20 +57,20 @@ class SupportTicketController extends Controller
 
         $this->desk->replyAsTenant($record, $request->user(), $data['body']);
 
-        return response()->json(['message' => 'Reply sent.', 'ticket' => $this->present($record->refresh(), true)], 201);
+        return response()->json(['message' => __('Reply sent.'), 'ticket' => $this->present($record->refresh(), true)], 201);
     }
 
     public function close(Request $request, int $ticket): JsonResponse
     {
         $record = $this->desk->setStatus($this->own($ticket), SupportTicket::STATUS_CLOSED);
 
-        return response()->json(['message' => 'Ticket closed.', 'ticket' => $this->present($record, true)]);
+        return response()->json(['message' => __('Ticket closed.'), 'ticket' => $this->present($record, true)]);
     }
 
     private function tenantId(): int
     {
         $id = $this->tenant->currentId();
-        abort_unless($id, 404, 'No active tenant context.');
+        abort_unless($id, 404, __('No active tenant context.'));
 
         return $id;
     }

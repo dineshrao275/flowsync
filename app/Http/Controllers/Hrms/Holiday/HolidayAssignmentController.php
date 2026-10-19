@@ -59,7 +59,7 @@ class HolidayAssignmentController extends Controller
         );
 
         return response()->json([
-            'message' => 'Calendar assigned.',
+            'message' => __('Calendar assigned.'),
             'assignment' => $this->presenter->assignment($assignment),
         ], Response::HTTP_CREATED);
     }
@@ -70,7 +70,7 @@ class HolidayAssignmentController extends Controller
 
         $this->assignments->unassign($assignment, $request->user());
 
-        return response()->json(['message' => 'Calendar unassigned.']);
+        return response()->json(['message' => __('Calendar unassigned.')]);
     }
 
     public function resolved(Request $request): JsonResponse
@@ -84,7 +84,7 @@ class HolidayAssignmentController extends Controller
             ? Employee::findOrFail((int) $filters['employee_id'])
             : Employee::where('user_id', $request->user()->id)->first();
 
-        abort_if($employee === null, 404, 'There is no employment record to resolve holidays for.');
+        abort_if($employee === null, 404, __('There is no employment record to resolve holidays for.'));
 
         $this->authorize('resolved', [EmployeeHolidayCalendar::class, $employee]);
 

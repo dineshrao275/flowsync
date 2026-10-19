@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Hrms;
 
 use App\Enums\Hrms\EmployeeStatus;
+use App\Http\Controllers\Concerns\HandlesCustomFields;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Hrms\EmployeeIndexRequest;
 use App\Http\Requests\Hrms\EmployeeStatusChangeRequest;
@@ -39,6 +40,8 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
  */
 class EmployeeController extends Controller
 {
+    use HandlesCustomFields;
+
     public function __construct(
         private readonly EmployeeService $employees,
         private readonly EmployeePresenter $presenter,
@@ -66,6 +69,7 @@ class EmployeeController extends Controller
         $rows = $page->getCollection()
             ->map(fn (Employee $employee) => $this->presenter->present($employee))
             ->all();
+        $rows = $this->withCustomFields($rows, 'employee', false);
 
         return response()->json([
             'employees' => $rows,
@@ -113,10 +117,13 @@ class EmployeeController extends Controller
     {
         $this->authorize('create', Employee::class);
 
+        $custom = $this->validatedCustomFields($request, 'employee', partial: false);
+
         $employee = $this->employees->create($request->validated(), $request->user());
+        $this->storeCustomFields('employee', $employee->id, $custom);
 
         return response()->json([
-            'message' => 'Employee created.',
+            'message' => __('Employee created.'),
             'employee' => $this->present($employee->load(['manager', 'employmentType', 'user']), $this->maySeeSensitive($request, $employee), $request),
         ], Response::HTTP_CREATED);
     }
@@ -128,10 +135,13 @@ class EmployeeController extends Controller
     {
         $this->authorize('update', $employee);
 
+        $custom = $this->validatedCustomFields($request, 'employee', partial: true);
+
         $employee = $this->employees->update($employee, $request->validated(), $request->user());
+        $this->storeCustomFields('employee', $employee->id, $custom);
 
         return response()->json([
-            'message' => 'Employee updated.',
+            'message' => __('Employee updated.'),
             'employee' => $this->present($employee->load(['manager', 'employmentType', 'user']), $this->maySeeSensitive($request, $employee), $request),
         ]);
     }
@@ -149,7 +159,7 @@ class EmployeeController extends Controller
 
         $this->employees->delete($employee, $request->user());
 
-        return response()->json(['message' => 'Employee deleted.']);
+        return response()->json(['message' => __('Employee deleted.')]);
     }
 
     /**
@@ -169,7 +179,7 @@ class EmployeeController extends Controller
         );
 
         return response()->json([
-            'message' => 'Employment status updated.',
+            'message' => __('Employment status updated.'),
             'employee' => $this->present($employee->load(['manager', 'employmentType', 'user']), $this->maySeeSensitive($request, $employee), $request),
         ]);
     }
@@ -192,7 +202,7 @@ class EmployeeController extends Controller
         );
 
         return response()->json([
-            'message' => 'Reporting line updated.',
+            'message' => __('Reporting line updated.'),
             'employee' => $this->present($employee->load(['manager', 'employmentType', 'user']), $this->maySeeSensitive($request, $employee), $request),
         ]);
     }
@@ -214,7 +224,7 @@ class EmployeeController extends Controller
         );
 
         return response()->json([
-            'message' => 'Employment ended.',
+            'message' => __('Employment ended.'),
             'employee' => $this->present($employee->load(['manager', 'employmentType', 'user']), $this->maySeeSensitive($request, $employee), $request),
         ]);
     }
@@ -274,7 +284,8 @@ class EmployeeController extends Controller
             ? $this->photos->url($employee, $request->user()->id)
             : null;
 
-        return $record;
+        // Sensitive custom fields follow the same gate as the other personal fields.
+        return $this->withCustomFields([$record], 'employee', $sensitive)[0];
     }
 
     private function pagination(LengthAwarePaginator $page): array

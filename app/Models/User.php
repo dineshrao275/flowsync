@@ -66,7 +66,7 @@ class User extends Authenticatable
         static::deleting(function (self $user) {
             if ($user->is_default) {
                 throw ValidationException::withMessages([
-                    'form' => 'The default user cannot be deleted. Shift the default to another admin first.',
+                    'form' => __('The default user cannot be deleted. Shift the default to another admin first.'),
                 ]);
             }
         });

@@ -2,7 +2,9 @@
 
 namespace App\Billing;
 
+use App\Billing\DTOs\WebhookResult;
 use App\Billing\Invoices\InvoiceService;
+use App\Billing\Plans\PlanChangeScheduler;
 use App\Billing\Proration\ProrationCalculator;
 use App\Models\Payment;
 use App\Models\PaymentEvent;
@@ -14,6 +16,7 @@ use App\Services\SubscriptionService;
 use App\Support\TenantDatabaseManager;
 use Illuminate\Database\ConnectionInterface;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use RuntimeException;
@@ -43,22 +46,24 @@ class PaymentService
         ?User $user = null,
         array $options = []
     ): array {
+        return BillingLock::for($tenant, fn () => $this->doInitiateCheckout($tenant, $plan, $user, $options));
+    }
+
+    /** @return array<string, mixed> */
+    private function doInitiateCheckout(Tenant $tenant, SubscriptionPlan $plan, ?User $user, array $options): array
+    {
         $currency = strtolower($options['currency'] ?? $plan->currency ?? 'usd');
         $idempotencyKey = $options['idempotency_key'] ?? ('fs_idem_'.Str::uuid());
 
         $gateway = $this->resolver->resolveForTenant($tenant, $currency);
 
-        // Already paying through a recurring gateway: swap the price on the
-        // existing subscription (prorated) — a second checkout would bill twice.
+        // Already paying through a recurring gateway: the change is queued for the end of the paid period (never a second
+        // checkout, never a mid-period swap that would double-charge) — PlanChangeScheduler explains why.
         $providerSubscriptionId = $tenant->subscriptionFor($plan->product ?? 'suite')?->provider_subscription_id;
         if ($providerSubscriptionId && $gateway instanceof RecurringGateway && $plan->price_cents > 0) {
-            $gateway->changePlan($providerSubscriptionId, $plan, $currency);
-            $this->subscriptions->switch($tenant, $plan, [
-                'billing_provider' => $gateway->name(),
-                'billing_reference' => $providerSubscriptionId,
-            ]);
+            $outcome = app(PlanChangeScheduler::class)->request($tenant, $plan, ['source' => 'checkout']);
 
-            return ['payment' => null, 'session' => null, 'changed' => true];
+            return ['payment' => null, 'session' => null, 'changed' => true, 'mode' => $outcome['mode'], 'effective_at' => $outcome['subscription']->pending_change_at?->toIso8601String()];
         }
 
         // A tenant still in its trial keeps the days it has left: Stripe starts
@@ -206,7 +211,7 @@ class PaymentService
         $gateway = $this->resolver->resolve($providerName);
 
         if (! $gateway->verifyWebhookSignature($request)) {
-            abort(403, 'Invalid webhook signature.');
+            abort(403, __('Invalid webhook signature.'));
         }
 
         $result = $gateway->handleWebhook($request);
@@ -223,6 +228,23 @@ class PaymentService
             }
         }
 
+        // The same event delivered twice at once (Stripe retries on a slow answer): only one worker processes it, the
+        // other acknowledges — a later redelivery then hits the replay check above.
+        $lock = $result->providerEventId ? Cache::lock('billing:event:'.$result->providerEventId, 60) : null;
+        if ($lock && ! $lock->get()) {
+            return ['status' => 'in_progress', 'event_id' => $result->providerEventId];
+        }
+
+        try {
+            return $this->process($result, $providerName);
+        } finally {
+            $lock?->release();
+        }
+    }
+
+    /** @return array<string, mixed> */
+    private function process(WebhookResult $result, string $providerName): array
+    {
         if ($result->kind !== null) {
             return $this->centralDb()->transaction(fn () => $this->sync->handle($result, $providerName));
         }

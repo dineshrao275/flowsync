@@ -7,13 +7,13 @@ export const THEME_MODES = ['light', 'dark', 'system'];
 export const DEFAULT_THEME = {
     sidebar_bg: '#0f172a',
     sidebar_hover: '#1e293b',
-    active_menu: '#6366f1',
+    active_menu: '#2563eb',
     sidebar_text: '#cbd5e1',
     dashboard_bg: '#f1f5f9',
     header_bg: '#ffffff',
     header_text: '#0f172a',
     card_bg: '#ffffff',
-    accent: '#6366f1',
+    accent: '#2563eb',
     mode: 'system',
 };
 
@@ -91,7 +91,7 @@ function hexToRgb(hex) {
     const value = String(hex || '').replace('#', '').trim();
     const full = value.length === 3 ? value.split('').map((c) => c + c).join('') : value;
 
-    if (!/^[0-9a-fA-F]{6}$/.test(full)) return { r: 99, g: 102, b: 241 };
+    if (!/^[0-9a-fA-F]{6}$/.test(full)) return { r: 37, g: 99, b: 235 };
 
     return {
         r: parseInt(full.slice(0, 2), 16),
@@ -126,6 +126,42 @@ function luminance(hex) {
     };
 
     return 0.2126 * channel(r) + 0.7152 * channel(g) + 0.0722 * channel(b);
+}
+
+/** WCAG 2.x contrast ratio between two hex colours (1–21). */
+export function contrastRatio(a, b) {
+    const la = luminance(a);
+    const lb = luminance(b);
+
+    return (Math.max(la, lb) + 0.05) / (Math.min(la, lb) + 0.05);
+}
+
+const isHex = (value) => /^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/.test(String(value || '').trim());
+
+/**
+ * Pairs an admin can break by picking colours freely. Text pairs need 4.5:1
+ * (WCAG AA body text); the accent against the card is a UI component
+ * boundary, so 3:1. Returns the failing pairs so the drawer can warn — it
+ * never blocks a save, the admin owns the brand.
+ */
+export const CONTRAST_PAIRS = [
+    { id: 'sidebar_text', fg: 'sidebar_text', bg: 'sidebar_bg', min: 4.5 },
+    { id: 'active_menu', fg: 'active_menu', bg: 'sidebar_bg', min: 3 },
+    { id: 'header_text', fg: 'header_text', bg: 'header_bg', min: 4.5 },
+    { id: 'accent', fg: 'accent', bg: 'card_bg', min: 3 },
+];
+
+export function themeContrastIssues(theme) {
+    return CONTRAST_PAIRS.flatMap((pair) => {
+        const fg = theme?.[pair.fg];
+        const bg = theme?.[pair.bg];
+
+        if (!isHex(fg) || !isHex(bg)) return [];
+
+        const ratio = contrastRatio(fg, bg);
+
+        return ratio < pair.min ? [{ ...pair, ratio }] : [];
+    });
 }
 
 export const DARK_SURFACES = {

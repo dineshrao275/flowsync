@@ -74,7 +74,7 @@ class AssetService
     public function retire(Asset $asset, ?User $actor = null): Asset
     {
         if ($asset->status === AssetStatus::Assigned || $asset->status === AssetStatus::Maintenance) {
-            throw ValidationException::withMessages(['form' => 'That asset is out — return or repair it before retiring.']);
+            throw ValidationException::withMessages(['form' => __('That asset is out — return or repair it before retiring.')]);
         }
 
         return DB::transaction(function () use ($asset, $actor): Asset {
@@ -121,7 +121,7 @@ class AssetService
     public function maintenance(Asset $asset, array $data, ?User $actor = null): AssetMaintenance
     {
         if ($asset->status->isTerminal()) {
-            throw ValidationException::withMessages(['form' => 'That asset is out of service — maintenance is for the living.']);
+            throw ValidationException::withMessages(['form' => __('That asset is out of service — maintenance is for the living.')]);
         }
 
         return DB::transaction(function () use ($asset, $data, $actor): AssetMaintenance {

@@ -40,14 +40,14 @@ class PlatformRoleController extends Controller
 
         $roles = PlatformRole::query()->whereIn('slug', $data['roles'])->get();
         if ($roles->count() !== count(array_unique($data['roles']))) {
-            throw ValidationException::withMessages(['roles' => 'Unknown platform role.']);
+            throw ValidationException::withMessages(['roles' => __('Unknown platform role.')]);
         }
 
         $before = $this->access->roleSlugsOf($user);
 
         // Narrowing yourself or the last unrestricted admin would lock the platform out of break-glass.
         if ($roles->isNotEmpty() && $this->unrestrictedAdminsExcluding($user) === 0) {
-            throw ValidationException::withMessages(['form' => 'At least one platform admin must stay unrestricted (break-glass).']);
+            throw ValidationException::withMessages(['form' => __('At least one platform admin must stay unrestricted (break-glass).')]);
         }
 
         DB::connection($user->getConnectionName())->transaction(fn () => $this->sync($user, $roles->pluck('id')->all()));
@@ -56,7 +56,7 @@ class PlatformRoleController extends Controller
         app(PlatformAudit::class)->diff($request, 'platform.roles_assigned', 'users', $user->id,
             ['roles' => $before], ['roles' => $this->access->roleSlugsOf($user)], ['email' => $user->email]);
 
-        return response()->json(['message' => 'Platform roles saved.', 'platform_roles' => $this->access->roleSlugsOf($user)]);
+        return response()->json(['message' => __('Platform roles saved.'), 'platform_roles' => $this->access->roleSlugsOf($user)]);
     }
 
     /** @param list<int> $roleIds */

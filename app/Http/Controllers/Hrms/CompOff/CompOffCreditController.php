@@ -72,7 +72,7 @@ class CompOffCreditController extends Controller
         );
 
         return response()->json([
-            'message' => 'Comp-off credited.',
+            'message' => __('Comp-off credited.'),
             'credit' => $this->presenter->credit($credit),
         ], Response::HTTP_CREATED);
     }
@@ -89,7 +89,7 @@ class CompOffCreditController extends Controller
             ? Employee::where('user_id', $request->user()->id)->first()
             : Employee::find($employeeId);
 
-        abort_if($employee === null, 404, 'There is no employment record to read comp-off for.');
+        abort_if($employee === null, 404, __('There is no employment record to read comp-off for.'));
 
         return $employee;
     }

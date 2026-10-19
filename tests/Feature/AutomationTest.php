@@ -2,9 +2,11 @@
 
 namespace Tests\Feature;
 
+use App\Models\Activity;
 use App\Models\AutomationRule;
 use App\Models\AutomationRun;
 use App\Models\Comment;
+use App\Models\IssueType;
 use App\Models\Label;
 use App\Models\Priority;
 use App\Models\Project;
@@ -18,7 +20,9 @@ use App\Models\User;
 use App\Models\UserNotification;
 use App\Models\Workspace;
 use App\Services\SubscriptionService;
+use App\Services\Tasks\SlaService;
 use Illuminate\Support\Facades\Artisan;
+use Illuminate\Support\Facades\DB;
 use Tests\IsolatesDatabase;
 use Tests\TestCase;
 
@@ -189,6 +193,68 @@ class AutomationTest extends TestCase
         $this->assertSame('highest', Task::with('priority')->find($late)->priority->slug);
         $this->assertNotSame('highest', Task::with('priority')->find($fine)->priority?->slug);
         $this->assertSame(1, AutomationRun::where('task_id', $late)->count());
+    }
+
+    public function test_an_sla_breach_is_recorded_once_and_emitted(): void
+    {
+        $this->setUpProject();
+        $policy = $this->postJson("/api/projects/{$this->project->id}/sla-policies", ['name' => 'Fast', 'target_hours' => 4])->assertCreated()->json('policy');
+        $old = $this->createTask(['title' => 'Old']);
+        $new = $this->createTask(['title' => 'New']);
+        Task::whereKey($old)->update(['created_at' => now()->subHours(10)]);
+
+        $service = app(SlaService::class);
+        $this->assertSame(1, $service->sweep());
+        $this->assertSame(0, $service->sweep());   // once per (policy, task)
+
+        $this->assertSame(1, DB::table('sla_breaches')->where('sla_policy_id', $policy['id'])->where('task_id', $old)->count());
+        $this->assertSame(0, DB::table('sla_breaches')->where('task_id', $new)->count());
+        $this->assertTrue(Activity::where('action', 'task.sla_breached')->where('subject_id', $old)->exists());
+    }
+
+    public function test_board_types_seed_statuses_and_an_issue_scheme_that_tasks_must_respect(): void
+    {
+        $this->setUpProject();
+        $this->postJson('/api/auth/login', ['email' => 'admin@flowsync.test', 'password' => 'password'])->assertOk();
+
+        $basic = $this->postJson("/api/workspaces/{$this->project->workspace_id}/projects", ['name' => 'Simple', 'key' => 'SMP', 'board_type' => 'basic'])->assertCreated()->json('project');
+        $this->assertSame('basic', $basic['board_type']);
+        $this->assertSame(3, $basic['statuses_count'] ?? TaskStatus::where('project_id', $basic['id'])->count());
+
+        $this->postJson("/api/projects/{$basic['id']}/tasks", ['title' => 'Bug?', 'issue_type_id' => IssueType::where('slug', 'bug')->value('id')])
+            ->assertStatus(422)->assertJsonValidationErrors('issue_type_id');
+        $this->postJson("/api/projects/{$basic['id']}/tasks", ['title' => 'Task', 'issue_type_id' => IssueType::where('slug', 'task')->value('id')])->assertCreated();
+
+        // A project with no scheme (the kanban default) allows every type.
+        $this->postJson("/api/projects/{$this->project->id}/tasks", ['title' => 'Bug', 'issue_type_id' => IssueType::where('slug', 'bug')->value('id')])->assertCreated();
+    }
+
+    public function test_a_move_into_an_approval_gated_status_waits_for_a_workflow_manager(): void
+    {
+        $this->setUpProject();
+        $done = TaskStatus::where('project_id', $this->project->id)->where('slug', 'done')->firstOrFail();
+        $done->update(['entry_rules' => ['approval']]);
+        $id = $this->createTask(['title' => 'Ship it']);
+
+        // A developer's drag is held as a request, and the card has not moved.
+        $this->postJson('/api/auth/logout');
+        $this->postJson('/api/auth/login', ['email' => 'editor@flowsync.test', 'password' => 'password'])->assertOk();
+        $res = $this->postJson("/api/projects/{$this->project->id}/tasks/$id/move", ['status_id' => $done->id])->assertStatus(202);
+        $this->assertTrue($res->json('pending_approval'));
+        $this->connectTenant('acme');
+        $this->assertNotEquals($done->id, Task::find($id)->status_id);
+
+        // The lead sees it and approves; now the card moves.
+        $this->postJson('/api/auth/logout');
+        $this->postJson('/api/auth/login', ['email' => 'admin@flowsync.test', 'password' => 'password'])->assertOk();
+        $requestId = $this->getJson("/api/projects/{$this->project->id}/move-requests")->assertOk()->json('requests.0.id');
+        $this->postJson("/api/projects/{$this->project->id}/move-requests/$requestId/approve")->assertOk();
+        $this->connectTenant('acme');
+        $this->assertEquals($done->id, Task::find($id)->status_id);
+
+        // A lead moving straight into the gated status needs no request.
+        $other = $this->createTask(['title' => 'Direct']);
+        $this->postJson("/api/projects/{$this->project->id}/tasks/$other/move", ['status_id' => $done->id])->assertOk();
     }
 
     public function test_the_module_gate_applies(): void

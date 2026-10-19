@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import api, { fieldErrors } from '../../services/api';
 import Alert from '../../components/ui/Alert';
 import Button from '../../components/ui/Button';
@@ -7,7 +8,7 @@ import Card from '../../components/ui/Card';
 import EmptyState from '../../components/ui/EmptyState';
 import Modal from '../../components/ui/Modal';
 import Select from '../../components/ui/Select';
-import Spinner from '../../components/ui/Spinner';
+import ContentSkeleton from '../../components/ui/ContentSkeleton';
 import StatusPill from '../../components/ui/StatusPill';
 import { useToast } from '../../context/ToastContext';
 import { useSetCrumbs } from '../../context/BreadcrumbContext';
@@ -37,7 +38,8 @@ const RATING_OPTIONS = [1, 2, 3, 4, 5].map((value) => ({ value: String(value), l
  * intended roles (admin, HR manager) hold the pair.
  */
 export default function Talent() {
-    usePageTitle('Talent');
+    const { t } = useTranslation();
+    usePageTitle(t('hrms.talent.pageTitle'));
     const setCrumbs = useSetCrumbs();
     const navigate = useNavigate();
     const toast = useToast();
@@ -55,8 +57,8 @@ export default function Talent() {
     const [saving, setSaving] = useState(false);
 
     useEffect(() => {
-        setCrumbs([{ label: 'HRMS', to: '/hrms' }, { label: 'Talent' }]);
-    }, [setCrumbs]);
+        setCrumbs([{ label: t('hrms.overview.pageTitle'), to: '/hrms' }, { label: t('hrms.talent.pageTitle') }]);
+    }, [setCrumbs, t]);
 
     const fail = useCallback(
         (message) => (err) => {
@@ -82,9 +84,9 @@ export default function Talent() {
                     setCycleId(String((inCalibration ?? list[0]).id));
                 }
             })
-            .catch(fail('Unable to load review cycles.'));
+            .catch(fail(t('hrms.talent.loadCyclesFailed')));
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [fail]);
+    }, [fail, t]);
 
     const loadRoom = useCallback(
         (id) => {
@@ -94,15 +96,15 @@ export default function Talent() {
 
             api.get(`/hrms/talent/cycles/${id}/reviews`)
                 .then(({ data }) => setReviews(data.reviews ?? []))
-                .catch(fail('Unable to load the calibration grid.'));
+                .catch(fail(t('hrms.talent.loadGridFailed')));
             api.get(`/hrms/talent/cycles/${id}/distribution`)
                 .then(({ data }) => setDistribution(data.distribution ?? null))
-                .catch(fail('Unable to load the distribution.'));
+                .catch(fail(t('hrms.talent.loadDistributionFailed')));
             api.get(`/hrms/talent/cycles/${id}/feedback-summary`)
                 .then(({ data }) => setSummary(data.feedback_summary ?? []))
-                .catch(fail('Unable to load the 360 summary.'));
+                .catch(fail(t('hrms.talent.loadSummaryFailed')));
         },
-        [fail],
+        [fail, t],
     );
 
     useEffect(() => {
@@ -124,7 +126,7 @@ export default function Talent() {
 
         try {
             await api.post(`/hrms/talent/reviews/${calibrating.id}/calibrate`, { rating: Number(rating) });
-            toast.success('Review calibrated.');
+            toast.success(t('hrms.talent.calibrated'));
             setCalibrating(null);
             loadRoom(cycleId);
         } catch (err) {
@@ -136,25 +138,25 @@ export default function Talent() {
 
     async function finalize(review) {
         const confirmed = await confirm({
-            title: 'Finalize this review?',
-            message: `Finalize ${review.employee?.name ?? 'this review'}? Final is a seal — the review cannot be recalibrated afterwards.`,
+            title: t('hrms.talent.finalizeTitle'),
+            message: t('hrms.talent.finalizeMessage', { name: review.employee?.name ?? t('hrms.talent.finalizeFallbackName') }),
             variant: 'warning',
-            confirmLabel: 'Finalize review',
+            confirmLabel: t('hrms.talent.finalizeLabel'),
         });
         if (!confirmed) return;
 
         try {
             await api.post(`/hrms/talent/reviews/${review.id}/finalize`);
-            toast.success('Review finalized.');
+            toast.success(t('hrms.talent.finalized'));
             loadRoom(cycleId);
         } catch (err) {
             if (err.response?.status === 422) {
-                toast.error(err.response.data?.message ?? 'That review cannot be finalized.');
+                toast.error(err.response.data?.message ?? t('hrms.talent.finalizeFailed'));
                 loadRoom(cycleId);
                 return;
             }
 
-            fail('Unable to finalize the review.')(err);
+            fail(t('hrms.talent.unableToFinalize'))(err);
         }
     }
 
@@ -163,34 +165,34 @@ export default function Talent() {
     return (
         <div className="space-y-6">
             <div>
-                <h1 className="text-xl font-semibold text-gray-900">Talent &amp; calibration</h1>
+                <h1 className="text-xl font-semibold text-gray-900">{t('hrms.talent.heading')}</h1>
                 <p className="mt-1 text-sm text-gray-500">
-                    Adjust review ratings while the cycle is in calibration, then seal them final.
+                    {t('hrms.talent.subtitle')}
                 </p>
             </div>
 
             {error && <Alert variant="error">{error}</Alert>}
 
             {cycles === null ? (
-                <Spinner />
+                <ContentSkeleton size="sm" />
             ) : cycles.length === 0 ? (
                 <Card>
-                    <EmptyState title="No review cycles" hint="Open a performance cycle to calibration first." />
+                    <EmptyState title={t('hrms.talent.emptyCyclesTitle')} hint={t('hrms.talent.emptyCyclesHint')} />
                 </Card>
             ) : (
                 <>
                     <div className="max-w-xs">
                         <Select
-                            label="Review cycle"
+                            label={t('hrms.talent.reviewCycle')}
                             value={cycleId}
                             onChange={(e) => setCycleId(e.target.value)}
                             options={cycles.map((cycle) => ({ value: String(cycle.id), label: cycle.name }))}
                         />
                     </div>
 
-                    <Card title="Rating distribution">
+                    <Card title={t('hrms.talent.ratingDistribution')}>
                         {distribution === null ? (
-                            <Spinner />
+                            <ContentSkeleton size="sm" />
                         ) : (
                             <div className="space-y-2">
                                 {[5, 4, 3, 2, 1].map((value) => {
@@ -211,28 +213,28 @@ export default function Talent() {
                                     );
                                 })}
                                 <p className="pt-1 text-xs text-gray-500">
-                                    {distribution.unrated ?? 0} unrated · {distribution.total ?? 0} reviews
+                                    {t('hrms.talent.unratedCount', { unrated: distribution.unrated ?? 0, total: distribution.total ?? 0 })}
                                 </p>
                             </div>
                         )}
                     </Card>
 
-                    <Card title="Calibration grid">
+                    <Card title={t('hrms.talent.calibrationGrid')}>
                         {reviews === null ? (
-                            <Spinner />
+                            <ContentSkeleton size="sm" />
                         ) : reviews.length === 0 ? (
-                            <EmptyState title="No reviews filed" hint="Managers file reviews from the performance cycle first." />
+                            <EmptyState title={t('hrms.talent.noReviewsTitle')} hint={t('hrms.talent.noReviewsHint')} />
                         ) : (
                             <div className="overflow-x-auto">
                                 <table className="w-full text-left text-sm">
                                     <thead>
                                         <tr className="border-b text-xs uppercase tracking-wide text-gray-500">
-                                            <th scope="col" className="px-3 py-2">Employee</th>
-                                            <th scope="col" className="px-3 py-2">Self</th>
-                                            <th scope="col" className="px-3 py-2">Manager</th>
-                                            <th scope="col" className="px-3 py-2">Calibrated</th>
-                                            <th scope="col" className="px-3 py-2">Status</th>
-                                            <th scope="col" className="px-3 py-2"><span className="sr-only">Actions</span></th>
+                                            <th scope="col" className="px-3 py-2">{t('hrms.talent.thEmployee')}</th>
+                                            <th scope="col" className="px-3 py-2">{t('hrms.talent.thSelf')}</th>
+                                            <th scope="col" className="px-3 py-2">{t('hrms.talent.thManager')}</th>
+                                            <th scope="col" className="px-3 py-2">{t('hrms.talent.thCalibrated')}</th>
+                                            <th scope="col" className="px-3 py-2">{t('hrms.talent.thStatus')}</th>
+                                            <th scope="col" className="px-3 py-2"><span className="sr-only">{t('hrms.talent.thActions')}</span></th>
                                         </tr>
                                     </thead>
                                     <tbody>
@@ -247,7 +249,7 @@ export default function Talent() {
                                                 </td>
                                                 <td className="px-3 py-2 text-right">
                                                     {['final', 'acknowledged'].includes(review.status) ? (
-                                                        <span className="text-xs text-gray-400">Sealed</span>
+                                                        <span className="text-xs text-gray-400">{t('hrms.talent.sealed')}</span>
                                                     ) : (
                                                         <span className="inline-flex gap-2">
                                                             <Button
@@ -258,10 +260,10 @@ export default function Talent() {
                                                                     setFormErrors({});
                                                                 }}
                                                             >
-                                                                Calibrate
+                                                                {t('hrms.talent.calibrate')}
                                                             </Button>
                                                             <Button variant="secondary" onClick={() => finalize(review)}>
-                                                                Finalize
+                                                                {t('hrms.talent.finalize')}
                                                             </Button>
                                                         </span>
                                                     )}
@@ -274,20 +276,20 @@ export default function Talent() {
                         )}
                     </Card>
 
-                    <Card title="360 summary">
+                    <Card title={t('hrms.talent.summary360')}>
                         {summary === null ? (
-                            <Spinner />
+                            <ContentSkeleton size="sm" />
                         ) : summary.length === 0 ? (
-                            <EmptyState title="No feedback yet" hint="Peer and manager responses aggregate here once submitted." />
+                            <EmptyState title={t('hrms.talent.noFeedbackTitle')} hint={t('hrms.talent.noFeedbackHint')} />
                         ) : (
                             <div className="overflow-x-auto">
                                 <table className="w-full text-left text-sm">
                                     <thead>
                                         <tr className="border-b text-xs uppercase tracking-wide text-gray-500">
-                                            <th scope="col" className="px-3 py-2">Employee</th>
-                                            <th scope="col" className="px-3 py-2">Manager</th>
-                                            <th scope="col" className="px-3 py-2">Peers</th>
-                                            <th scope="col" className="px-3 py-2">Direct reports</th>
+                                            <th scope="col" className="px-3 py-2">{t('hrms.talent.thEmployee')}</th>
+                                            <th scope="col" className="px-3 py-2">{t('hrms.talent.thManager')}</th>
+                                            <th scope="col" className="px-3 py-2">{t('hrms.talent.thPeers')}</th>
+                                            <th scope="col" className="px-3 py-2">{t('hrms.talent.thDirectReports')}</th>
                                         </tr>
                                     </thead>
                                     <tbody>
@@ -299,7 +301,7 @@ export default function Talent() {
 
                                                     return (
                                                         <td key={relation} className="px-3 py-2">
-                                                            {cell ? `${cell.rated_count}/${cell.count} rated${cell.average_rating !== null ? ` · avg ${cell.average_rating}` : ''}` : '—'}
+                                                            {cell ? `${t('hrms.talent.ratedCell', { rated: cell.rated_count, count: cell.count })}${cell.average_rating !== null ? t('hrms.talent.ratedAvgSuffix', { avg: cell.average_rating }) : ''}` : '—'}
                                                         </td>
                                                     );
                                                 })}
@@ -313,15 +315,15 @@ export default function Talent() {
                 </>
             )}
 
-            <Modal open={calibrating !== null} onClose={() => setCalibrating(null)} title="Calibrate review">
+            <Modal open={calibrating !== null} onClose={() => setCalibrating(null)} title={t('hrms.talent.calibrateModalTitle')}>
                 {calibrating && (
                     <form onSubmit={submitCalibrate} className="grid gap-3 px-6 py-5">
                         <p className="text-sm text-gray-600">
-                            {calibrating.employee?.name} · manager rated {calibrating.manager_rating ?? '—'}.
-                            The original stays on record; this records the calibrated outcome beside it.
+                            {t('hrms.talent.calibrateInfo', { name: calibrating.employee?.name, rating: calibrating.manager_rating ?? '—' })}
+                            {' '}{t('hrms.talent.calibrateNote')}
                         </p>
                         <Select
-                            label="Calibrated rating"
+                            label={t('hrms.talent.calibratedRating')}
                             value={rating}
                             onChange={(e) => setRating(e.target.value)}
                             options={RATING_OPTIONS}
@@ -329,10 +331,10 @@ export default function Talent() {
                         />
                         <div className="flex justify-end gap-2">
                             <Button variant="secondary" type="button" onClick={() => setCalibrating(null)}>
-                                Cancel
+                                {t('hrms.common.cancel')}
                             </Button>
                             <Button type="submit" disabled={saving}>
-                                {saving ? 'Saving…' : 'Save calibration'}
+                                {saving ? t('hrms.talent.saving') : t('hrms.talent.saveCalibration')}
                             </Button>
                         </div>
                     </form>

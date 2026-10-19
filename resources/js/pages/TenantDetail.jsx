@@ -1,11 +1,12 @@
 import { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
+import { Trans, useTranslation } from 'react-i18next';
 import LimitsEditor from '../components/billing/LimitsEditor';
 import ProductsPanel from '../components/tenant/ProductsPanel';
 import api, { fieldErrors } from '../services/api';
 import Card from '../components/ui/Card';
 import Badge from '../components/ui/Badge';
-import Spinner from '../components/ui/Spinner';
+import ContentSkeleton from '../components/ui/ContentSkeleton';
 import Alert from '../components/ui/Alert';
 import Button from '../components/ui/Button';
 import Input from '../components/ui/Input';
@@ -15,55 +16,12 @@ import usePageTitle from '../hooks/usePageTitle';
 import Timestamp from '../components/ui/Timestamp';
 
 const SECTIONS = [
-    {
-        key: 'legal',
-        title: 'Legal & registration',
-        fields: ['legal_name', 'registration_number', 'tax_id', 'industry', 'company_size'],
-    },
-    {
-        key: 'address',
-        title: 'Address',
-        fields: ['country', 'street', 'city', 'state', 'postal_code'],
-    },
-    {
-        key: 'billing',
-        title: 'Billing',
-        fields: ['billing_email', 'billing_address', 'billing_currency'],
-    },
-    {
-        key: 'contact',
-        title: 'Contact',
-        fields: ['contact_phone', 'website', 'timezone', 'locale'],
-    },
-    {
-        key: 'branding',
-        title: 'Branding',
-        fields: ['brand_domain', 'brand_logo_url', 'brand_primary_color'],
-    },
+    { key: 'legal', fields: ['legal_name', 'registration_number', 'tax_id', 'industry', 'company_size'] },
+    { key: 'address', fields: ['country', 'street', 'city', 'state', 'postal_code'] },
+    { key: 'billing', fields: ['billing_email', 'billing_address', 'billing_currency'] },
+    { key: 'contact', fields: ['contact_phone', 'website', 'timezone', 'locale'] },
+    { key: 'branding', fields: ['brand_domain', 'brand_logo_url', 'brand_primary_color'] },
 ];
-
-const FIELDS = {
-    legal_name: 'Legal name',
-    registration_number: 'Registration number',
-    tax_id: 'Tax ID',
-    industry: 'Industry',
-    company_size: 'Company size',
-    country: 'Country (2-letter code)',
-    street: 'Street',
-    city: 'City',
-    state: 'State / region',
-    postal_code: 'Postal code',
-    billing_email: 'Billing email',
-    billing_address: 'Billing address',
-    billing_currency: 'Currency',
-    contact_phone: 'Contact phone',
-    website: 'Website',
-    timezone: 'Timezone',
-    locale: 'Locale',
-    brand_domain: 'Brand domain',
-    brand_logo_url: 'Logo URL',
-    brand_primary_color: 'Primary color',
-};
 
 function StatCell({ label, value }) {
     return (
@@ -75,14 +33,15 @@ function StatCell({ label, value }) {
 }
 
 function Group({ section, form, setForm, errors }) {
+    const { t } = useTranslation();
     return (
         <section>
-            <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-gray-500">{section.title}</h3>
+            <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-gray-500">{t(`admin.tenantDetail.sections.${section.key}`)}</h3>
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 {section.fields.map((key) => (
                     <Input
                         key={key}
-                        label={FIELDS[key]}
+                        label={t(`admin.tenantDetail.fields.${key}`, { defaultValue: key })}
                         name={key}
                         value={form[key] ?? ''}
                         onChange={(e) => setForm((f) => ({ ...f, [key]: e.target.value }))}
@@ -100,6 +59,7 @@ const emptyProfile = Object.fromEntries(allProfileFields.map((key) => [key, ''])
 
 export default function TenantDetail() {
     const { tenantId } = useParams();
+    const { t } = useTranslation();
     const toast = useToast();
     const setCrumbs = useSetCrumbs();
     const [tenant, setTenant] = useState(null);
@@ -115,8 +75,8 @@ export default function TenantDetail() {
     const [defaultUser, setDefaultUser] = useState(null);
 
     useEffect(() => {
-        setCrumbs([{ label: 'Tenants', to: '/tenants' }, { label: tenant?.name || 'Tenant' }]);
-    }, [setCrumbs, tenant?.name]);
+        setCrumbs([{ label: t('admin.tenants.pageTitle'), to: '/tenants' }, { label: tenant?.name || t('admin.tenantDetail.title') }]);
+    }, [setCrumbs, t, tenant?.name]);
 
     useEffect(() => {
         let active = true;
@@ -128,14 +88,14 @@ export default function TenantDetail() {
                 setProfile(Object.fromEntries(allProfileFields.map((key) => [key, t[key] ?? ''])));
                 setBasicForm({ name: t.name, slug: t.slug, description: t.description || '', limits_override: t.limits_override || null });
             })
-            .catch(() => active && setError('Unable to load tenant profile.'))
+            .catch(() => active && setError(t('admin.tenantDetail.loadError')))
             .finally(() => active && setLoading(false));
         return () => {
             active = false;
         };
     }, [tenantId]);
 
-    usePageTitle(tenant?.name ? `${tenant.name} · Tenant` : 'Tenant');
+    usePageTitle(tenant?.name ? `${tenant.name} · ${t('admin.tenantDetail.title')}` : t('admin.tenantDetail.title'));
 
     useEffect(() => {
         api.get(`/tenants/${tenantId}`)
@@ -159,7 +119,7 @@ export default function TenantDetail() {
             const { data } = await api.put(`/tenants/${tenantId}/profile`, profile);
             setProfile(Object.fromEntries(allProfileFields.map((key) => [key, data.tenant[key] ?? ''])));
             setTenant((t) => ({ ...t, ...data.tenant }));
-            toast.success('Tenant profile updated.');
+            toast.success(t('admin.tenantDetail.savedProfile'));
         } catch (err) {
             setErrors(fieldErrors(err));
         } finally {
@@ -175,7 +135,7 @@ export default function TenantDetail() {
             const { data } = await api.put(`/tenants/${tenantId}`, basicForm);
             setTenant((t) => ({ ...t, ...data.tenant }));
             setBasicForm({ name: data.tenant.name, slug: data.tenant.slug, description: data.tenant.description || '', limits_override: data.tenant.limits_override || null });
-            toast.success('Tenant updated.');
+            toast.success(t('admin.tenantDetail.savedTenant'));
         } catch (err) {
             setBasicErrors(fieldErrors(err));
         } finally {
@@ -185,9 +145,7 @@ export default function TenantDetail() {
 
     if (loading) {
         return (
-            <div className="flex justify-center py-20">
-                <Spinner />
-            </div>
+            <ContentSkeleton size="lg" />
         );
     }
 
@@ -199,14 +157,14 @@ export default function TenantDetail() {
                     <Badge>{tenant?.slug}</Badge>
                     {tenant?.status && <Badge>{tenant.status}</Badge>}
                 </div>
-                <p className="mt-1 text-sm text-gray-500">{tenant?.description || 'No description'}</p>
+                <p className="mt-1 text-sm text-gray-500">{tenant?.description || t('admin.tenantDetail.noDescription')}</p>
             </div>
 
             {error && <Alert>{error}</Alert>}
 
             <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
                 <div className="animate-fade-in-up lg:col-span-2">
-                    <Card title="Company profile" subtitle="Expand the information stored about this tenant.">
+                    <Card title={t('admin.tenantDetail.companyProfile')} subtitle={t('admin.tenantDetail.companyProfileSubtitle')}>
                         <form onSubmit={saveProfile} className="space-y-6">
                             {SECTIONS.map((section) => (
                                 <Group key={section.key} section={section} form={profile} setForm={setProfile} errors={errors} />
@@ -214,7 +172,7 @@ export default function TenantDetail() {
                             {errors.form && <Alert>{errors.form}</Alert>}
                             <div className="flex gap-2 pt-1">
                                 <Button type="submit" loading={saving}>
-                                    Save profile
+                                    {t('admin.tenantDetail.saveProfile')}
                                 </Button>
                             </div>
                         </form>
@@ -222,10 +180,10 @@ export default function TenantDetail() {
                 </div>
 
                 <div className="animate-fade-in-up" style={{ animationDelay: '100ms' }}>
-                    <Card title="Tenant details" subtitle="Update name, slug and description.">
+                    <Card title={t('admin.tenantDetail.tenantDetails')} subtitle={t('admin.tenantDetail.tenantDetailsSubtitle')}>
                         <form onSubmit={saveBasic} className="space-y-4">
                             <Input
-                                label="Name"
+                                label={t('admin.tenantDetail.name')}
                                 name="name"
                                 value={basicForm.name}
                                 onChange={(e) => setBasicForm((f) => ({ ...f, name: e.target.value }))}
@@ -233,7 +191,7 @@ export default function TenantDetail() {
                                 required
                             />
                             <Input
-                                label="Slug"
+                                label={t('admin.tenantDetail.slug')}
                                 name="slug"
                                 value={basicForm.slug}
                                 onChange={(e) => setBasicForm((f) => ({ ...f, slug: e.target.value }))}
@@ -241,7 +199,7 @@ export default function TenantDetail() {
                                 required
                             />
                             <Input
-                                label="Description"
+                                label={t('admin.tenantDetail.description')}
                                 name="description"
                                 value={basicForm.description}
                                 onChange={(e) => setBasicForm((f) => ({ ...f, description: e.target.value }))}
@@ -250,13 +208,13 @@ export default function TenantDetail() {
                             <LimitsEditor
                                 limits={basicForm.limits_override}
                                 errors={basicErrors}
-                                legend="Resource limits override"
-                                hint="Blank = inherit the plan limit. Anything set here wins over the tenant's plan."
+                                legend={t('admin.tenantDetail.limitsLegend')}
+                                hint={t('admin.tenantDetail.limitsHint')}
                                 onChange={(next) => setBasicForm((f) => ({ ...f, limits_override: next }))}
                             />
                             {basicErrors.form && <Alert>{basicErrors.form}</Alert>}
                             <Button type="submit" loading={savingBasic}>
-                                Save tenant
+                                {t('admin.tenantDetail.saveTenant')}
                             </Button>
                         </form>
                     </Card>
@@ -264,18 +222,20 @@ export default function TenantDetail() {
                     <div className="mt-6 space-y-6">
                         {tenant?.status === 'draft' && (
                             <Alert>
-                                This tenant is an incomplete draft with no database yet.{' '}
-                                <Link className="font-semibold underline" to={`/tenants/${tenant.id}/setup`}>Continue setup</Link>
+                                <Trans
+                                    i18nKey="admin.tenantDetail.draftNotice"
+                                    components={[<Link key="0" className="font-semibold underline" to={`/tenants/${tenant.id}/setup`} />]}
+                                />
                             </Alert>
                         )}
-                        <Card title="Default user" subtitle="The tenant admin can change this from their Users page.">
+                        <Card title={t('admin.tenantDetail.defaultUser')} subtitle={t('admin.tenantDetail.defaultUserSubtitle')}>
                             {defaultUser ? (
                                 <div className="text-sm">
                                     <p className="font-medium text-gray-800">{defaultUser.name}</p>
                                     <p className="text-gray-500">{defaultUser.email}</p>
                                 </div>
                             ) : (
-                                <p className="text-sm text-gray-400">No default user yet.</p>
+                                <p className="text-sm text-gray-400">{t('admin.tenantDetail.noDefaultUser')}</p>
                             )}
                         </Card>
                         <ProductsPanel tenantId={tenantId} onChanged={() => api.get(`/tenants/${tenantId}`).then(({ data }) => setDefaultUser(data.default_user)).catch(() => {})} />
@@ -283,15 +243,15 @@ export default function TenantDetail() {
 
                     <div className="mt-6 space-y-3 rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm">
                         <div>
-                            <span className="text-xs font-semibold uppercase tracking-wide text-gray-400">Status</span>
+                            <span className="text-xs font-semibold uppercase tracking-wide text-gray-400">{t('admin.tenantDetail.status')}</span>
                             <p className="mt-0.5 font-medium text-gray-800">{tenant?.status || '—'}</p>
                         </div>
                         <div>
-                            <span className="text-xs font-semibold uppercase tracking-wide text-gray-400">Provisioning</span>
+                            <span className="text-xs font-semibold uppercase tracking-wide text-gray-400">{t('admin.tenantDetail.provisioning')}</span>
                             <p className="mt-0.5 font-medium text-gray-800">{tenant?.provisioning_status || '—'}</p>
                         </div>
                         <div>
-                            <span className="text-xs font-semibold uppercase tracking-wide text-gray-400">Trial ends</span>
+                            <span className="text-xs font-semibold uppercase tracking-wide text-gray-400">{t('admin.tenantDetail.trialEnds')}</span>
                             <p className="mt-0.5 font-medium text-gray-800">
                                 <Timestamp date={tenant?.trial_ends_at} />
                             </p>
@@ -299,16 +259,16 @@ export default function TenantDetail() {
                     </div>
 
                     <div className="mt-6">
-                        <Card title="Usage" subtitle="Live counts from the tenant DB (cached 60s)">
+                        <Card title={t('admin.tenantDetail.usage')} subtitle={t('admin.tenantDetail.usageSubtitle')}>
                             {stats ? (
                                 <div className="grid grid-cols-2 gap-3">
-                                    <StatCell label="Users" value={stats.users} />
-                                    <StatCell label="Workspaces" value={stats.workspaces} />
-                                    <StatCell label="Projects" value={stats.projects} />
-                                    <StatCell label="Tasks" value={stats.tasks} />
+                                    <StatCell label={t('admin.tenantDetail.stats.users')} value={stats.users} />
+                                    <StatCell label={t('admin.tenantDetail.stats.workspaces')} value={stats.workspaces} />
+                                    <StatCell label={t('admin.tenantDetail.stats.projects')} value={stats.projects} />
+                                    <StatCell label={t('admin.tenantDetail.stats.tasks')} value={stats.tasks} />
                                 </div>
                             ) : (
-                                <p className="py-2 text-sm text-gray-400">Unavailable.</p>
+                                <p className="py-2 text-sm text-gray-400">{t('admin.tenantDetail.unavailable')}</p>
                             )}
                         </Card>
                     </div>

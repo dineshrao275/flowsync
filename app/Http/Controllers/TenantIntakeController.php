@@ -43,7 +43,7 @@ class TenantIntakeController extends Controller
             'slug' => $tenant->slug,
         ]);
 
-        return response()->json(['message' => 'Draft saved.', ...$this->payload($tenant)], 201);
+        return response()->json(['message' => __('Draft saved.'), ...$this->payload($tenant)], 201);
     }
 
     public function show(Tenant $tenant): JsonResponse
@@ -58,7 +58,7 @@ class TenantIntakeController extends Controller
         $data = $request->validate($this->partialRules($tenant));
         $this->intake->save($tenant, $data);
 
-        return response()->json(['message' => 'Draft saved.', ...$this->payload($tenant->refresh())]);
+        return response()->json(['message' => __('Draft saved.'), ...$this->payload($tenant->refresh())]);
     }
 
     public function submit(Request $request, Tenant $tenant): JsonResponse
@@ -76,7 +76,7 @@ class TenantIntakeController extends Controller
         ]);
 
         return response()->json([
-            'message' => 'Tenant submitted for provisioning.',
+            'message' => __('Tenant submitted for provisioning.'),
             ...$this->payload($tenant->refresh()),
         ], 202);
     }

@@ -7,8 +7,9 @@ use App\Enums\Hrms\DataAccessAction;
 use App\Models\Hrms\Shared\HrmsAuditLog;
 use App\Models\Hrms\Shared\HrmsDataAccessLog;
 use App\Models\User;
+use App\Services\Events\DomainEvents;
 use App\Support\AuditMask;
-use App\Support\RequestId;
+use App\Support\AuditTrace;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Log;
@@ -60,7 +61,9 @@ class HrmsAuditLogger implements AuditWriter
                 'after' => $after,
             ]),
             'ip_address' => $ipAddress,
-        ] + RequestId::columnFor(new HrmsAuditLog));
+        ] + AuditTrace::columnsFor(new HrmsAuditLog));
+
+        $this->publish($action, $subject->getMorphClass(), $subject->getKey(), $actor);
 
         // Operational line: identifiers only. The values live in the ledger.
         Log::channel('hrms')->info($action, [
@@ -101,7 +104,7 @@ class HrmsAuditLogger implements AuditWriter
             'action' => $action,
             'data' => AuditMask::mask($context + ['before' => $before, 'after' => $after]),
             'ip_address' => $ipAddress ?? request()->ip(),
-        ] + RequestId::columnFor(new HrmsAuditLog));
+        ] + AuditTrace::columnsFor(new HrmsAuditLog));
 
         Log::channel('hrms')->info($action, [
             'entity' => $subjectType,
@@ -138,7 +141,7 @@ class HrmsAuditLogger implements AuditWriter
             // `['gross' => 95000]`.
             'fields' => $this->fieldNames($fields),
             'ip_address' => $ipAddress,
-        ] + RequestId::columnFor(new HrmsDataAccessLog));
+        ] + AuditTrace::columnsFor(new HrmsDataAccessLog));
 
         Log::channel('hrms')->notice('data.'.$action->value, [
             'entity' => $model,
@@ -148,6 +151,23 @@ class HrmsAuditLogger implements AuditWriter
         ]);
 
         return $log;
+    }
+
+    /**
+     * Curated lifecycle moments also go out on the event bus (webhooks, HR automation). The payload is
+     * the subject's identity only — personal data stays in the ledger behind its own access rules.
+     */
+    private function publish(string $action, string $subjectType, int|string|null $subjectId, ?User $actor): void
+    {
+        if (! in_array($action, (array) config('domain_events.hr_bridge', []), true) || ! is_numeric($subjectId)) {
+            return;
+        }
+
+        try {
+            app(DomainEvents::class)->record($action, $subjectType, (int) $subjectId, [], $actor?->id);
+        } catch (\Throwable) {
+            // The bus is best-effort: it must never break the audited write.
+        }
     }
 
     /** @return Builder<HrmsAuditLog> */

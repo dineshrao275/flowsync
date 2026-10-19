@@ -1,14 +1,20 @@
+import { caretRect } from '../../utils/caret';
+import UserChip from '../ui/UserChip';
+import Avatar from '../ui/Avatar';
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import api from '../../services/api';
 import Button from '../ui/Button';
 import Alert from '../ui/Alert';
-import Spinner from '../ui/Spinner';
+import ContentSkeleton from '../ui/ContentSkeleton';
 import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
 import { useConfirm, usePrompt } from '../ui/ConfirmDialog';
 import Timestamp from '../ui/Timestamp';
+import { onRealtimeReconnect } from '../../utils/realtimeAuth';
 
 export default function CommentThread({ task, projectId, isManager, targetCommentId = null }) {
+    const { t } = useTranslation();
     const { user } = useAuth();
     const toast = useToast();
     const confirm = useConfirm();
@@ -35,8 +41,8 @@ export default function CommentThread({ task, projectId, isManager, targetCommen
                 setComments(data.comments);
                 setError(null);
             })
-            .catch(() => setError('Could not load comments.'));
-    }, [projectId, task.id]);
+            .catch(() => setError(t('tms.comments.loadFailed')));
+    }, [projectId, task.id, t]);
 
     useEffect(() => {
         fetchComments();
@@ -46,8 +52,13 @@ export default function CommentThread({ task, projectId, isManager, targetCommen
         if (!window.Echo) return undefined;
         const channel = window.Echo.private(`project.${projectId}`);
         channel.listen('.comment.synced', fetchComments);
+        const stopReconnect = onRealtimeReconnect(fetchComments);
+
         return () => {
-            channel.stopListening('.comment.synced');
+            // Pass the handler: the channel is shared with the board, and a bare
+            // stopListening would also drop other listeners of this event.
+            channel.stopListening('.comment.synced', fetchComments);
+            stopReconnect();
         };
     }, [fetchComments, projectId]);
 
@@ -63,9 +74,9 @@ export default function CommentThread({ task, projectId, isManager, targetCommen
             if (el) {
                 lastScrolledCommentRef.current = targetCommentId;
                 el.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                el.classList.add('ring-2', 'ring-indigo-500', 'bg-indigo-50/70', 'transition-all', 'duration-500');
+                el.classList.add('ring-2', 'ring-[var(--accent-ring)]', 'bg-[var(--accent-soft)]', 'transition-all', 'duration-500');
                 setTimeout(() => {
-                    el.classList.remove('ring-2', 'ring-indigo-500', 'bg-indigo-50/70');
+                    el.classList.remove('ring-2', 'ring-[var(--accent-ring)]', 'bg-[var(--accent-soft)]');
                 }, 3000);
             }
         }, 120);
@@ -87,12 +98,19 @@ export default function CommentThread({ task, projectId, isManager, targetCommen
         }
 
         const query = before.slice(at + 1, caret);
-        const rect = el.getBoundingClientRect();
+        // Anchor the list to the "@" itself, not the bottom of the field.
+        const caretAt = caretRect(el, at);
+        const width = 300;
+        const rowsHeight = 224;
+        const left = Math.max(8, Math.min(caretAt.left, window.innerWidth - width - 8));
+        const top = caretAt.bottom + 4 + rowsHeight > window.innerHeight && caretAt.top - 4 - rowsHeight > 0
+            ? caretAt.top - 4 - rowsHeight
+            : caretAt.bottom + 4;
 
         setSugField(field);
         setSugActive(0);
         setSugText({ value, at, caret });
-        setSugPos({ top: rect.bottom + 4, left: rect.left, width: Math.max(240, Math.min(320, rect.width)) });
+        setSugPos({ top, left, width });
         sugAnchor.current = el;
         sugFieldRef.current = field;
 
@@ -162,7 +180,7 @@ export default function CommentThread({ task, projectId, isManager, targetCommen
                 setNewComment('');
                 fetchComments();
                 if (data.truncated_mentions) {
-                    toast.warning('Some mentioned people were skipped — comments can notify up to 20.');
+                    toast.warning(t('tms.comments.truncated'));
                 }
             })
             .catch(() => {})
@@ -179,7 +197,7 @@ export default function CommentThread({ task, projectId, isManager, targetCommen
                 setReplyTo(null);
                 fetchComments();
                 if (data.truncated_mentions) {
-                    toast.warning('Some mentioned people were skipped — comments can notify up to 20.');
+                    toast.warning(t('tms.comments.truncated'));
                 }
             })
             .catch(() => {})
@@ -188,13 +206,13 @@ export default function CommentThread({ task, projectId, isManager, targetCommen
 
     async function editComment(id, currentComment = '') {
         const next = await prompt({
-            title: 'Edit comment',
-            message: 'Update your comment below:',
+            title: t('tms.comments.editTitle'),
+            message: t('tms.comments.editMessage'),
             defaultValue: currentComment,
-            placeholder: 'Write comment…',
+            placeholder: t('tms.comments.editPlaceholder'),
             multiline: true,
             required: true,
-            confirmLabel: 'Save',
+            confirmLabel: t('tms.comments.editConfirm'),
         });
         if (!next || !next.trim()) return;
         api.put(`/projects/${projectId}/tasks/${task.id}/comments/${id}`, { comment: next.trim() })
@@ -203,7 +221,7 @@ export default function CommentThread({ task, projectId, isManager, targetCommen
     }
 
     async function deleteComment(id) {
-        if (!(await confirm({ title: 'Delete comment?', message: 'Delete this comment?', variant: 'danger' }))) return;
+        if (!(await confirm({ title: t('tms.comments.deleteTitle'), message: t('tms.comments.deleteMessage'), variant: 'danger' }))) return;
         api.delete(`/projects/${projectId}/tasks/${task.id}/comments/${id}`)
             .then(fetchComments)
             .catch(() => {});
@@ -215,9 +233,7 @@ export default function CommentThread({ task, projectId, isManager, targetCommen
 
     if (!comments) {
         return (
-            <div className="flex justify-center py-10">
-                <Spinner />
-            </div>
+            <ContentSkeleton size="md" />
         );
     }
 
@@ -226,19 +242,19 @@ export default function CommentThread({ task, projectId, isManager, targetCommen
             <form onSubmit={submitComment} className="relative flex gap-2">
                 <textarea
                     rows="2"
-                    className="flex-1 rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm shadow-sm focus:border-indigo-500 focus:outline-none"
-                    placeholder="Add a comment…  (type @ to mention someone)"
+                    className="flex-1 rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm shadow-sm focus:border-[var(--accent)] focus:outline-none"
+                    placeholder={t('tms.comments.composerPlaceholder')}
                     value={newComment}
                     onChange={(e) => handleTyping('comment', e.target.value, e.target.selectionStart, e.currentTarget)}
                     onKeyDown={handleKeyDown}
                 />
                 <Button type="submit" loading={busy} disabled={!newComment.trim()}>
-                    Post
+                    {t('tms.comments.post')}
                 </Button>
             </form>
 
             {comments.length === 0 ? (
-                <p className="py-6 text-center text-sm text-gray-400">No comments yet.</p>
+                <p className="py-6 text-center text-sm text-gray-400">{t('tms.comments.empty')}</p>
             ) : (
                 <ul className="space-y-3">
                     {comments.map((comment) => {
@@ -249,8 +265,8 @@ export default function CommentThread({ task, projectId, isManager, targetCommen
                                 <div className="flex items-start justify-between gap-2">
                                     <div className="min-w-0">
                                         <p className="text-xs text-gray-400">
-                                            <span className="font-semibold text-gray-700">{comment.user?.name ?? 'Unknown'}</span>
-                                            {comment.edited_at ? ' · edited' : ''} · <Timestamp date={comment.created_at} />
+                                            <UserChip user={comment.user} name={comment.user?.name ?? t('tms.comments.unknown')} nameClassName="font-semibold text-gray-700" />
+                                            {comment.edited_at ? t('tms.comments.edited') : ''} · <Timestamp date={comment.created_at} />
                                         </p>
                                         <p className="mt-1 whitespace-pre-wrap text-sm text-gray-800">{comment.comment}</p>
                                     </div>
@@ -259,26 +275,26 @@ export default function CommentThread({ task, projectId, isManager, targetCommen
                                             <>
                                                 <button
                                                     type="button"
-                                                    className="text-xs text-gray-400 transition hover:text-indigo-600"
+                                                    className="text-xs text-gray-400 transition hover:text-[var(--accent-soft-text)]"
                                                     onClick={() => editComment(comment.id, comment.comment)}
                                                 >
-                                                    Edit
+                                                    {t('tms.comments.edit')}
                                                 </button>
                                                 <button
                                                     type="button"
                                                     className="text-xs text-gray-400 transition hover:text-red-600"
                                                     onClick={() => deleteComment(comment.id)}
                                                 >
-                                                    Delete
+                                                    {t('tms.comments.delete')}
                                                 </button>
                                             </>
                                         )}
                                         <button
                                             type="button"
-                                            className="text-xs text-gray-400 transition hover:text-indigo-600"
+                                            className="text-xs text-gray-400 transition hover:text-[var(--accent-soft-text)]"
                                             onClick={() => setReplyTo(replyTo === comment.id ? null : comment.id)}
                                         >
-                                            Reply
+                                            {t('tms.comments.reply')}
                                         </button>
                                     </div>
                                 </div>
@@ -288,25 +304,25 @@ export default function CommentThread({ task, projectId, isManager, targetCommen
                                         {comment.replies.map((reply) => (
                                             <li key={reply.id} id={`comment-${reply.id}`} className="rounded-md p-1.5 transition-all">
                                                 <p className="text-xs text-gray-400">
-                                                    <span className="font-semibold text-gray-700">{reply.user?.name ?? 'Unknown'}</span>
-                                                    {reply.edited_at ? ' · edited' : ''} · <Timestamp date={reply.created_at} />
+                                                    <UserChip user={reply.user} name={reply.user?.name ?? t('tms.comments.unknown')} nameClassName="font-semibold text-gray-700" />
+                                                    {reply.edited_at ? t('tms.comments.edited') : ''} · <Timestamp date={reply.created_at} />
                                                 </p>
                                                 <p className="mt-0.5 whitespace-pre-wrap text-sm text-gray-700">{reply.comment}</p>
                                                 {(reply.user?.id && reply.user.id === user?.id) || isManager ? (
                                                     <div className="mt-1 flex gap-2">
                                                         <button
                                                             type="button"
-                                                            className="text-xs text-gray-400 transition hover:text-indigo-600"
+                                                            className="text-xs text-gray-400 transition hover:text-[var(--accent-soft-text)]"
                                                             onClick={() => editComment(reply.id, reply.comment)}
                                                         >
-                                                            Edit
+                                                            {t('tms.comments.edit')}
                                                         </button>
                                                         <button
                                                             type="button"
                                                             className="text-xs text-gray-400 transition hover:text-red-600"
                                                             onClick={() => deleteComment(reply.id)}
                                                         >
-                                                            Delete
+                                                            {t('tms.comments.delete')}
                                                         </button>
                                                     </div>
                                                 ) : null}
@@ -319,15 +335,15 @@ export default function CommentThread({ task, projectId, isManager, targetCommen
                                     <form onSubmit={(e) => submitReply(e, comment.id)} className="relative mt-3 flex gap-2">
                                         <textarea
                                             rows="2"
-                                            className="flex-1 rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm shadow-sm focus:border-indigo-500 focus:outline-none"
-                                            placeholder="Write a reply…"
+                                            className="flex-1 rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm shadow-sm focus:border-[var(--accent)] focus:outline-none"
+                                            placeholder={t('tms.comments.replyPlaceholder')}
                                             value={replyText}
                                             onChange={(e) => handleTyping('reply', e.target.value, e.target.selectionStart, e.currentTarget)}
                                             onKeyDown={handleKeyDown}
                                             autoFocus
                                         />
                                         <Button type="submit" loading={busy} disabled={!replyText.trim()}>
-                                            Reply
+                                            {t('tms.comments.reply')}
                                         </Button>
                                     </form>
                                 )}
@@ -339,7 +355,7 @@ export default function CommentThread({ task, projectId, isManager, targetCommen
 
             {sugField && suggestions.length > 0 && (
                 <div
-                    className="fixed z-40 max-h-56 overflow-auto rounded-lg border border-gray-200 bg-white py-1 shadow-popover"
+                    className="fixed z-[95] max-h-56 overflow-auto rounded-lg border border-gray-200 bg-white py-1 shadow-popover"
                     style={{ top: sugPos.top, left: sugPos.left, width: sugPos.width }}
                 >
                     {suggestions.map((member, index) => (
@@ -347,19 +363,12 @@ export default function CommentThread({ task, projectId, isManager, targetCommen
                             type="button"
                             key={member.id}
                             className={`flex w-full items-center gap-2 px-3 py-1.5 text-left text-sm ${
-                                index === sugActive ? 'bg-indigo-50' : 'hover:bg-gray-50'
+                                 index === sugActive ? 'bg-[var(--accent-soft)]' : 'hover:bg-gray-50'
                             }`}
                             onMouseEnter={() => setSugActive(index)}
                             onClick={() => selectSuggestion(member)}
                         >
-                            <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-indigo-100 text-[11px] font-semibold text-indigo-700">
-                                {member.name
-                                    .split(' ')
-                                    .map((part) => part[0])
-                                    .slice(0, 2)
-                                    .join('')
-                                    .toUpperCase()}
-                            </span>
+                            <Avatar name={member.name} photoUrl={member.photo_url} size="sm" />
                             <span className="min-w-0">
                                 <span className="block truncate font-medium text-gray-800">{member.name}</span>
                                 <span className="block truncate text-xs text-gray-400">{member.email}</span>

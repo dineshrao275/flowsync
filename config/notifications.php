@@ -38,7 +38,4 @@ return [
 
     // More than `max` emails to one person inside `per_minutes` overflow into their next digest.
     'email_throttle' => ['max' => 20, 'per_minutes' => 60],
-
-    // Languages the email copy exists in: a folder under lang/ per entry. Anything else falls back to `en`.
-    'locales' => ['en' => 'English', 'es' => 'Español'],
 ];

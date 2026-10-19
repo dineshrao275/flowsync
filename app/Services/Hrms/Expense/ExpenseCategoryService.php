@@ -63,11 +63,11 @@ class ExpenseCategoryService
     public function delete(ExpenseCategory $category, ?User $actor = null): void
     {
         if ($category->is_system) {
-            throw ValidationException::withMessages(['form' => 'That is a starter category — rename it, don’t remove it.']);
+            throw ValidationException::withMessages(['form' => __('That is a starter category — rename it, don’t remove it.')]);
         }
 
         if ($category->items()->exists()) {
-            throw ValidationException::withMessages(['form' => 'That category labels claim lines — deactivate it instead of deleting history.']);
+            throw ValidationException::withMessages(['form' => __('That category labels claim lines — deactivate it instead of deleting history.')]);
         }
 
         $this->audit->log($category, 'expense.category_deleted', [

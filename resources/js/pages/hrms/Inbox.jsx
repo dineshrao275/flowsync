@@ -1,26 +1,27 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import api from '../../services/api';
 import Alert from '../../components/ui/Alert';
 import Button from '../../components/ui/Button';
 import Card from '../../components/ui/Card';
 import EmptyState from '../../components/ui/EmptyState';
 import Pagination from '../../components/ui/Pagination';
-import Spinner from '../../components/ui/Spinner';
+import ContentSkeleton from '../../components/ui/ContentSkeleton';
 import { useToast } from '../../context/ToastContext';
 import { useSetCrumbs } from '../../context/BreadcrumbContext';
 import usePageTitle from '../../hooks/usePageTitle';
 import { useAuth } from '../../context/AuthContext';
 import { payrollRunUrl } from '../../utils/deepLinks';
 
-const TYPE_LABELS = {
-    approval: 'Approvals',
-    case_task: 'Checklists',
-    regularization: 'Corrections',
-    document_request: 'File asks',
-    asset: 'Hardware',
-    document_expiring: 'Expiring files',
-    payslip_dispute: 'Pay disputes',
+const TYPE_KEYS = {
+    approval: 'approval',
+    case_task: 'case_task',
+    regularization: 'regularization',
+    document_request: 'document_request',
+    asset: 'asset',
+    document_expiring: 'document_expiring',
+    payslip_dispute: 'payslip_dispute',
 };
 
 /**
@@ -35,7 +36,8 @@ const TYPE_LABELS = {
  * be worked wherever it lives.
  */
 export default function Inbox() {
-    usePageTitle('Inbox');
+    const { t } = useTranslation();
+    usePageTitle(t('hrms.inbox.pageTitle'));
     const setCrumbs = useSetCrumbs();
     const navigate = useNavigate();
     const toast = useToast();
@@ -46,8 +48,8 @@ export default function Inbox() {
     const [error, setError] = useState(null);
 
     useEffect(() => {
-        setCrumbs([{ label: 'HRMS', to: '/hrms' }, { label: 'Inbox' }]);
-    }, [setCrumbs]);
+        setCrumbs([{ label: t('hrms.overview.pageTitle'), to: '/hrms' }, { label: t('hrms.inbox.pageTitle') }]);
+    }, [setCrumbs, t]);
 
     const load = useCallback(
         (targetPage) => {
@@ -62,10 +64,10 @@ export default function Inbox() {
                         return;
                     }
 
-                    setError('Unable to load your inbox.');
+                    setError(t('hrms.inbox.loadFailed'));
                 });
         },
-        [navigate],
+        [navigate, t],
     );
 
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -78,28 +80,28 @@ export default function Inbox() {
             await api.post('/hrms/inbox/read', { keys: [item.key] });
             load(page);
         } catch {
-            setError('That item could not be marked read.');
+            setError(t('hrms.inbox.markReadFailed'));
         }
     }
 
     async function markAllRead() {
         try {
             await api.post('/hrms/inbox/read-all', {});
-            toast.success('Inbox cleared.');
+            toast.success(t('hrms.inbox.cleared'));
             load(1);
             setPage(1);
         } catch {
-            setError('The inbox could not be cleared.');
+            setError(t('hrms.inbox.clearFailed'));
         }
     }
 
     async function decideRegularization(item, verdict) {
         try {
             await api.post(`/hrms/attendance/regularizations/${item.source_id}/${verdict}`, {});
-            toast.success(verdict === 'approve' ? 'Correction approved.' : 'Correction rejected.');
+            toast.success(verdict === 'approve' ? t('hrms.inbox.approved') : t('hrms.inbox.rejected'));
             load(page);
         } catch {
-            setError('That correction cannot be decided here.');
+            setError(t('hrms.inbox.decideFailed'));
         }
     }
 
@@ -149,47 +151,45 @@ export default function Inbox() {
         <div className="space-y-4">
             <div className="flex flex-wrap items-center justify-between gap-3">
                 <div>
-                    <h2 className="text-xl font-semibold text-gray-900">Inbox</h2>
+                    <h2 className="text-xl font-semibold text-gray-900">{t('hrms.inbox.title')}</h2>
                     <p className="mt-0.5 text-sm text-gray-500">
-                        {data ? `${data.unread_count} unread` : '—'}
+                        {data ? t('hrms.inbox.unread', { count: data.unread_count }) : '—'}
                     </p>
                 </div>
                 {(data?.unread_count ?? 0) > 0 && (
-                    <Button variant="secondary" onClick={markAllRead}>Mark all read</Button>
+                    <Button variant="secondary" onClick={markAllRead}>{t('hrms.inbox.markAll')}</Button>
                 )}
             </div>
 
             {error && <Alert>{error}</Alert>}
 
             {!rows ? (
-                <div className="flex justify-center py-10">
-                    <Spinner />
-                </div>
+                <ContentSkeleton size="md" />
             ) : rows.length === 0 ? (
-                <EmptyState title="All caught up" hint="Approvals and action items land here." />
+                <EmptyState title={t('hrms.inbox.emptyTitle')} hint={t('hrms.inbox.emptyHint')} />
             ) : (
                 Object.entries(groups).map(([type, items]) => (
-                    <Card key={type} title={TYPE_LABELS[type] ?? type} dense>
+                    <Card key={type} title={TYPE_KEYS[type] ? t(`hrms.inbox.types.${TYPE_KEYS[type]}`) : type} dense>
                         <ul className="divide-y divide-gray-100">
                             {items.map((item) => (
                                 <li key={item.key} className="flex flex-wrap items-center justify-between gap-3 py-2.5">
                                     <button type="button" onClick={() => open(item)} className="min-w-0 flex-1 text-left">
                                         <span className="block truncate text-sm font-medium text-gray-900">
-                                            {item.priority === 'high' && <span className="mr-1.5 inline-block h-2 w-2 rounded-full bg-red-500" aria-label="high priority" />}
+                                            {item.priority === 'high' && <span className="mr-1.5 inline-block h-2 w-2 rounded-full bg-red-500" aria-label={t('hrms.inbox.highPriority')} />}
                                             {item.title}
                                         </span>
                                         <span className="block truncate text-xs text-gray-400">
-                                            {[item.subtitle, item.due_at ? `due ${item.due_at}` : null].filter(Boolean).join(' · ')}
+                                            {[item.subtitle, item.due_at ? t('hrms.inbox.due', { date: item.due_at }) : null].filter(Boolean).join(' · ')}
                                         </span>
                                     </button>
                                     <span className="flex shrink-0 gap-2">
                                         {item.type === 'regularization' && (
                                             <>
-                                                <Button size="sm" variant="secondary" onClick={() => decideRegularization(item, 'approve')}>Approve</Button>
-                                                <Button size="sm" variant="danger" onClick={() => decideRegularization(item, 'reject')}>Reject</Button>
+                                                <Button size="sm" variant="secondary" onClick={() => decideRegularization(item, 'approve')}>{t('hrms.inbox.approve')}</Button>
+                                                <Button size="sm" variant="danger" onClick={() => decideRegularization(item, 'reject')}>{t('hrms.inbox.reject')}</Button>
                                             </>
                                         )}
-                                        <Button size="sm" variant="ghost" onClick={() => markRead(item)}>Dismiss</Button>
+                                        <Button size="sm" variant="ghost" onClick={() => markRead(item)}>{t('hrms.inbox.dismiss')}</Button>
                                     </span>
                                 </li>
                             ))}

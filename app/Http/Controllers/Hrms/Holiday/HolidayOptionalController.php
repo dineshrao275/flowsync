@@ -58,7 +58,7 @@ class HolidayOptionalController extends Controller
             ? Employee::findOrFail((int) $validated['employee_id'])
             : Employee::where('user_id', $request->user()->id)->first();
 
-        abort_if($employee === null, 404, 'There is no employment record to declare for.');
+        abort_if($employee === null, 404, __('There is no employment record to declare for.'));
 
         $this->authorize('create', [HolidayOptionalHoliday::class, $employee]);
 
@@ -72,7 +72,7 @@ class HolidayOptionalController extends Controller
         );
 
         return response()->json([
-            'message' => 'Optional holiday declared.',
+            'message' => __('Optional holiday declared.'),
             'optional' => $this->presenter->optional($answer),
         ], Response::HTTP_CREATED);
     }

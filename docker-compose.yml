@@ -6,6 +6,19 @@
 #   app      — Laravel + built React SPA (php artisan serve)
 #   queue    — Laravel queue worker (database driver)
 #   reverb   — Laravel Reverb WebSocket server
+#   vite     — Vite dev server (hot reload for the React SPA)
+#
+# LOCAL DEVELOPMENT SETUP: the project folder is bind-mounted into app/queue/
+# reverb/vite, so edits on your machine show up in the browser immediately:
+#   * React/CSS  -> Vite HMR on http://localhost:5173 (page updates without reload)
+#   * PHP/Blade  -> served live by `php artisan serve` (just refresh the page)
+#   * queue      -> `queue:listen` re-reads code per job; restart `reverb` after
+#                   changing broadcasting code:  docker compose restart reverb
+# vendor/ and node_modules/ live in named volumes (not your host folders), so
+# host/container PHP and Node versions never clash. After changing composer.json
+# or package.json run:  ./scripts/dev.sh docker rebuild
+#
+# Easiest entry point:  ./scripts/dev.sh docker up
 #
 # Usage:
 #   docker compose up --build -d          # start everything
@@ -41,6 +54,22 @@ services:
       start_period: 10s
 
   # ---------------------------------------------------------------------------
+  # One-shot: named volumes are created root-owned; hand them to your host user
+  # so the (non-root) app and vite containers can write uploads, logs and
+  # node_modules.
+  # ---------------------------------------------------------------------------
+  perms:
+    image: alpine:3.20
+    container_name: flowsync-perms
+    user: "0:0"
+    restart: "no"
+    command: ["sh", "-c", "chown -R ${DOCKER_UID:-1000}:${DOCKER_GID:-1000} /vol/storage /vol/logs /vol/node_modules"]
+    volumes:
+      - flowsync_storage:/vol/storage
+      - flowsync_logs:/vol/logs
+      - flowsync_node_modules:/vol/node_modules
+
+  # ---------------------------------------------------------------------------
   # Laravel application — serves the React SPA + API via artisan serve
   # ---------------------------------------------------------------------------
   app:
@@ -59,12 +88,26 @@ services:
     env_file: .env.docker
     environment:
       RUN_INIT: "true"
+      DEV_MODE: "true"          # entrypoint skips config/route/view caching
+      APP_ENV: local
+      APP_DEBUG: "true"
+      PHP_CLI_SERVER_WORKERS: "4"   # parallel requests (SPA fires many at once)
+    # --no-reload: `artisan serve` otherwise strips the container's env and
+    # re-reads a .env file, which we deliberately hide (see volumes below).
+    command: ["php", "artisan", "serve", "--host=0.0.0.0", "--port=8000", "--no-reload"]
+    # Run as your host user so files created in the bind mount stay yours.
+    user: "${DOCKER_UID:-1000}:${DOCKER_GID:-1000}"
     ports:
       - "8000:8000"
     depends_on:
       db:
         condition: service_healthy
+      perms:
+        condition: service_completed_successfully
     volumes:
+      - .:/app                                  # live source (the reflect-immediately mount)
+      - /dev/null:/app/.env:ro                  # ignore the host's .env; containers use .env.docker
+      - flowsync_vendor:/app/vendor             # container's PHP deps, not the host's
       - flowsync_storage:/app/storage/app
       - flowsync_logs:/app/storage/logs
     healthcheck:
@@ -79,22 +122,29 @@ services:
   # ---------------------------------------------------------------------------
   queue:
     image: flowsync:latest
+    pull_policy: never
     container_name: flowsync-queue
     restart: unless-stopped
     env_file: .env.docker
     environment:
       RUN_INIT: "false"
+      DEV_MODE: "true"
+      APP_ENV: local
+      APP_DEBUG: "true"
+    user: "${DOCKER_UID:-1000}:${DOCKER_GID:-1000}"
+    # queue:listen boots a fresh framework per job, so code edits apply without a restart.
     command: >
-      php artisan queue:work database
+      php artisan queue:listen database
         --tries=3
         --backoff=3
         --sleep=1
-        --max-time=3600
-        --memory=256
     depends_on:
       app:
         condition: service_healthy
     volumes:
+      - .:/app
+      - /dev/null:/app/.env:ro
+      - flowsync_vendor:/app/vendor
       - flowsync_storage:/app/storage/app
       - flowsync_logs:/app/storage/logs
 
@@ -103,11 +153,16 @@ services:
   # ---------------------------------------------------------------------------
   reverb:
     image: flowsync:latest
+    pull_policy: never
     container_name: flowsync-reverb
     restart: unless-stopped
     env_file: .env.docker
     environment:
       RUN_INIT: "false"
+      DEV_MODE: "true"
+      APP_ENV: local
+      APP_DEBUG: "true"
+    user: "${DOCKER_UID:-1000}:${DOCKER_GID:-1000}"
     command: >
       php artisan reverb:start
         --host=0.0.0.0
@@ -119,9 +174,42 @@ services:
       app:
         condition: service_healthy
     volumes:
+      - .:/app
+      - /dev/null:/app/.env:ro
+      - flowsync_vendor:/app/vendor
       - flowsync_logs:/app/storage/logs
 
+  # ---------------------------------------------------------------------------
+  # Vite dev server — hot module replacement for resources/js and resources/css.
+  # It writes public/hot (shared through the bind mount); while that file exists
+  # Laravel loads assets from http://localhost:5173 instead of public/build.
+  # ---------------------------------------------------------------------------
+  vite:
+    image: node:20-alpine
+    container_name: flowsync-vite
+    restart: unless-stopped
+    working_dir: /app
+    user: "${DOCKER_UID:-1000}:${DOCKER_GID:-1000}"
+    env_file: .env.docker
+    environment:
+      HOME: /tmp
+      VITE_DEV_SERVER_ORIGIN: "http://localhost:5173"
+      CHOKIDAR_USEPOLLING: "${CHOKIDAR_USEPOLLING:-false}"   # set true on Docker Desktop / network drives
+    command: ["sh", "-c", "([ -d node_modules/.bin ] || npm ci --no-audit --no-fund) && npm run dev -- --host 0.0.0.0 --port 5173 --strictPort"]
+    ports:
+      - "5173:5173"
+    depends_on:
+      perms:
+        condition: service_completed_successfully
+    volumes:
+      - .:/app
+      - flowsync_node_modules:/app/node_modules
+
 volumes:
+  flowsync_vendor:
+    driver: local
+  flowsync_node_modules:
+    driver: local
   flowsync_pgdata:
     driver: local
   flowsync_storage:

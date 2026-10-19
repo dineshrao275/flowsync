@@ -75,23 +75,23 @@ class AssetReplacement
     private function assertSwappable(Asset $old, Asset $new, string $reason): void
     {
         if (! in_array($reason, self::REASONS, true)) {
-            throw ValidationException::withMessages(['reason' => 'Pick why the asset is being replaced.']);
+            throw ValidationException::withMessages(['reason' => __('Pick why the asset is being replaced.')]);
         }
 
         if ($old->id === $new->id) {
-            throw ValidationException::withMessages(['replacement_asset_id' => 'An asset cannot replace itself.']);
+            throw ValidationException::withMessages(['replacement_asset_id' => __('An asset cannot replace itself.')]);
         }
 
         if ($old->replaced_by_asset_id !== null) {
-            throw ValidationException::withMessages(['form' => 'That asset has already been replaced.']);
+            throw ValidationException::withMessages(['form' => __('That asset has already been replaced.')]);
         }
 
         if ($new->status !== AssetStatus::Available) {
-            throw ValidationException::withMessages(['replacement_asset_id' => "The replacement is {$new->status->value} — pick an available asset."]);
+            throw ValidationException::withMessages(['replacement_asset_id' => __('The replacement is :status — pick an available asset.', ['status' => $new->status->value])]);
         }
 
         if (Asset::query()->where('replaced_by_asset_id', $new->id)->exists()) {
-            throw ValidationException::withMessages(['replacement_asset_id' => 'That asset is already standing in for another one.']);
+            throw ValidationException::withMessages(['replacement_asset_id' => __('That asset is already standing in for another one.')]);
         }
     }
 }

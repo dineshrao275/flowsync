@@ -1,21 +1,116 @@
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
+import { Check, Globe, List, MagnifyingGlass, Palette } from '@phosphor-icons/react';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
 import { usePageTitleContext } from '../context/PageTitleContext';
 import { useClickOutside } from '../hooks/useClickOutside';
+import useLocale from '../hooks/useLocale';
+import useLocales from '../hooks/useLocales';
+import useMenuNavigation from '../hooks/useMenuNavigation';
 import NotificationBell from './NotificationBell';
+import TimerPill from './time/TimerPill';
 import ProductSwitcher from './ProductSwitcher';
 import Avatar from './ui/Avatar';
 
+function LanguageMenu() {
+    const { t } = useTranslation();
+    const { locale, setLocale } = useLocale();
+    const { locales } = useLocales();
+    const [open, setOpen] = useState(false);
+    const containerRef = useRef(null);
+    const buttonRef = useRef(null);
+
+    useClickOutside(containerRef, () => setOpen(false));
+    useMenuNavigation(open, containerRef, () => setOpen(false));
+
+    useEffect(() => {
+        if (!open) return undefined;
+
+        function onKey(e) {
+            if (e.key === 'Escape') {
+                setOpen(false);
+                buttonRef.current?.focus();
+            }
+        }
+
+        document.addEventListener('keydown', onKey);
+        return () => document.removeEventListener('keydown', onKey);
+    }, [open ]);
+
+    const entries = Object.entries(locales);
+
+    if (entries.length < 2) return null;
+
+    return (
+        <div className="relative" ref={containerRef}>
+            <button
+                ref={buttonRef}
+                onClick={() => setOpen((value) => !value)}
+                aria-haspopup="menu"
+                aria-expanded={open}
+                aria-label={t('topbar.language')}
+                title={t('topbar.language')}
+                className="rounded-lg p-2 transition-all duration-150 hover:bg-black/5 active:scale-90"
+                style={{ color: 'var(--header-text)' }}
+            >
+                <Globe size={20} aria-hidden="true" />
+            </button>
+
+            {open && (
+                <div role="menu" aria-label={t('topbar.language')} className="absolute right-0 z-30 mt-2 w-48 origin-top-right animate-scale-in overflow-hidden rounded-xl border border-gray-200 bg-white shadow-lg">
+                    {entries.map(([code, meta]) => (
+                        <button
+                            key={code}
+                            type="button"
+                            role="menuitemradio"
+                            aria-checked={locale === code}
+                            onClick={() => {
+                                setLocale(code);
+                                setOpen(false);
+                            }}
+                            className={`flex w-full items-center justify-between gap-2 px-4 py-2.5 text-sm transition ${
+                                locale === code ? 'bg-[var(--accent-soft)] font-medium text-[var(--accent-soft-text)]' : 'text-gray-700 hover:bg-gray-50'
+                            }`}
+                        >
+                            <span className="truncate">{meta.native ?? meta.name ?? code}</span>
+                            {locale === code && <Check size={16} weight="bold" aria-hidden="true" className="shrink-0" />}
+                        </button>
+                    ))}
+                </div>
+            )}
+        </div>
+    );
+}
+
 export default function Topbar({ onOpenTheme, onToggleSidebar, onOpenSearch, showSearch, showTheme = true }) {
     const { user, logout } = useAuth();
+    const { t } = useTranslation();
     const toast = useToast();
     const navigate = useNavigate();
     const [menuOpen, setMenuOpen] = useState(false);
     const menuRef = useRef(null);
+    const menuButtonRef = useRef(null);
 
     useClickOutside(menuRef, () => setMenuOpen(false));
+    useMenuNavigation(menuOpen, menuRef, () => setMenuOpen(false));
+
+    // Escape closes the account menu and returns focus to its trigger, so
+    // keyboard users don't lose their place in the topbar.
+    useEffect(() => {
+        if (!menuOpen) return undefined;
+
+        function onKey(e) {
+            if (e.key === 'Escape') {
+                setMenuOpen(false);
+                menuButtonRef.current?.focus();
+            }
+        }
+
+        document.addEventListener('keydown', onKey);
+        return () => document.removeEventListener('keydown', onKey);
+    }, [menuOpen]);
 
     useEffect(() => {
         if (!showSearch) return undefined;
@@ -33,7 +128,7 @@ export default function Topbar({ onOpenTheme, onToggleSidebar, onOpenSearch, sho
 
     async function handleLogout() {
         await logout();
-        toast.info('You have been signed out.');
+        toast.info(t('topbar.signedOut'));
         navigate('/login');
     }
 
@@ -48,11 +143,9 @@ export default function Topbar({ onOpenTheme, onToggleSidebar, onOpenSearch, sho
                 <button
                     onClick={onToggleSidebar}
                     className="rounded-lg p-2 transition-all duration-150 hover:bg-black/5 active:scale-90 lg:hidden"
-                    aria-label="Toggle sidebar"
+                    aria-label={t('topbar.toggleSidebar')}
                 >
-                    <svg className="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-                        <path d="M4 6h16M4 12h16M4 18h16" />
-                    </svg>
+                    <List size={24} aria-hidden="true" />
                 </button>
                 <h1 className="text-lg font-semibold">{title}</h1>
             </div>
@@ -62,14 +155,12 @@ export default function Topbar({ onOpenTheme, onToggleSidebar, onOpenSearch, sho
                 {showSearch && (
                     <button
                         onClick={onOpenSearch}
-                        className="hidden items-center gap-2 rounded-lg border border-gray-300 bg-white py-2 pl-3 pr-2 text-sm text-gray-500 shadow-sm transition hover:bg-gray-50 hover:text-gray-700 sm:flex sm:w-56"
-                        aria-label="Global search"
+                        className="hidden items-center gap-2 rounded-lg border border-line-input bg-white py-2 pl-3 pr-2 text-sm text-fg-muted shadow-sm transition hover:bg-gray-50 hover:text-fg sm:flex sm:w-56"
+                        aria-label={t('topbar.searchLabel')}
                     >
-                        <svg className="h-4 w-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                            <path d="M21 21l-4.35-4.35M17 11a6 6 0 11-12 0 6 6 0 0112 0z" />
-                        </svg>
-                        <span className="flex-1 text-left">Search…</span>
-                        <kbd className="rounded border border-gray-200 bg-gray-50 px-1.5 py-0.5 text-[10px] font-medium text-gray-400">
+                        <MagnifyingGlass size={16} weight="bold" aria-hidden="true" className="shrink-0" />
+                        <span className="flex-1 text-left">{t('topbar.searchPlaceholder')}</span>
+                        <kbd className="rounded border border-line bg-surface-sunken px-1.5 py-0.5 text-caption font-medium text-fg-subtle">
                             ⌘K
                         </kbd>
                     </button>
@@ -78,43 +169,46 @@ export default function Topbar({ onOpenTheme, onToggleSidebar, onOpenSearch, sho
                     <button
                         onClick={onOpenSearch}
                         className="rounded-lg p-2 transition-all duration-150 hover:bg-black/5 active:scale-90 sm:hidden"
-                        aria-label="Global search"
+                        aria-label={t('topbar.searchLabel')}
                     >
-                        <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                            <path d="M21 21l-4.35-4.35M17 11a6 6 0 11-12 0 6 6 0 0112 0z" />
-                        </svg>
+                        <MagnifyingGlass size={20} aria-hidden="true" />
                     </button>
                 )}
+                <TimerPill />
                 <NotificationBell />
                 {showTheme && (
                     <button
                         onClick={onOpenTheme}
                         className="rounded-lg p-2 transition-all duration-150 hover:rotate-12 hover:bg-black/5 active:scale-90"
-                        title="Theme settings"
+                        title={t('topbar.themeSettings')}
+                        aria-label={t('topbar.themeSettings')}
                         style={{ color: 'var(--header-text)' }}
                     >
-                        <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-                            <path d="M7.5 21a3.5 3.5 0 01-3.5-3.5c0-1.1.5-2.1 1.3-2.7l4.7-4.1a5 5 0 104-5.6L16.3 9l-.4 7.8c-.3 1.4-1.6 2.3-2.9 2.3l-3.7-1.2-.1 1.1c0 1-.8 1.9-1.7 2z" opacity=".9" />
-                        </svg>
+                        <Palette size={20} aria-hidden="true" />
                     </button>
                 )}
+                <LanguageMenu />
 
                 <div className="relative" ref={menuRef}>
                     <button
+                        ref={menuButtonRef}
                         onClick={() => setMenuOpen((open) => !open)}
+                        aria-haspopup="menu"
+                        aria-expanded={menuOpen}
+                        aria-label={t('topbar.accountMenu')}
                         className="flex items-center gap-2 rounded-full p-1 transition-all duration-150 hover:bg-black/5 active:scale-95"
                     >
                         <Avatar name={user?.name} />
                     </button>
 
                     {menuOpen && (
-                        <div className="absolute right-0 mt-2 w-56 origin-top-right animate-scale-in overflow-hidden rounded-xl border border-gray-200 bg-white shadow-lg">
+                        <div role="menu" className="absolute right-0 mt-2 w-56 origin-top-right animate-scale-in overflow-hidden rounded-xl border border-gray-200 bg-white shadow-lg">
                             <div className="border-b border-gray-100 px-4 py-3">
                                 <p className="truncate text-sm font-medium text-gray-900">{user?.name}</p>
                                 <p className="truncate text-xs text-gray-500">{user?.email}</p>
                                 <div className="mt-2 flex flex-wrap gap-1">
                                     {(user?.roles || []).map((role) => (
-                                        <span key={role} className="rounded bg-gray-100 px-1.5 py-0.5 text-[10px] uppercase tracking-wide text-gray-600">
+                                        <span key={role} className="rounded bg-gray-100 px-1.5 py-0.5 text-caption uppercase tracking-wide text-gray-600">
                                             {role}
                                         </span>
                                     ))}
@@ -122,15 +216,17 @@ export default function Topbar({ onOpenTheme, onToggleSidebar, onOpenSearch, sho
                             </div>
                             <button
                                 onClick={() => navigate('/settings')}
+                                role="menuitem"
                                 className="flex w-full items-center gap-2 px-4 py-2.5 text-sm text-gray-700 transition hover:bg-gray-50"
                             >
-                                Account settings
+                                {t('topbar.accountSettings')}
                             </button>
                             <button
                                 onClick={handleLogout}
+                                role="menuitem"
                                 className="flex w-full items-center gap-2 px-4 py-2.5 text-sm text-red-600 transition hover:bg-red-50"
                             >
-                                Sign out
+                                {t('topbar.signOut')}
                             </button>
                         </div>
                     )}

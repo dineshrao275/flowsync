@@ -160,12 +160,12 @@ class WorkLogTest extends TestCase
         $this->assertSame(60, $first->fresh()->duration_minutes);
         $this->login('editor@flowsync.test');
 
-        $this->postJson("/api/projects/{$project->id}/tasks/{$task->id}/work-logs", [
+        $this->postJson("/api/projects/{$project->id}/tasks/{$task->id}/work-logs", ['description' => 'Work',
             'started_at' => '2026-01-01 10:00:00',
             'ended_at' => '2026-01-01 11:00:00',
         ])->assertCreated();
 
-        $this->postJson("/api/projects/{$project->id}/tasks/{$task->id}/work-logs", [
+        $this->postJson("/api/projects/{$project->id}/tasks/{$task->id}/work-logs", ['description' => 'Work',
             'started_at' => '2026-01-01 09:30:00',
             'ended_at' => '2026-01-01 11:30:00',
         ])->assertUnprocessable()->assertJsonValidationErrors('form');
@@ -179,7 +179,7 @@ class WorkLogTest extends TestCase
         $log = $this->log($task, $this->editor(), '2026-01-01 09:00:00', '2026-01-01 10:00:00');
         $this->login('editor@flowsync.test');
 
-        $this->putJson("/api/projects/{$project->id}/tasks/{$task->id}/work-logs/{$log->id}", [
+        $this->putJson("/api/projects/{$project->id}/tasks/{$task->id}/work-logs/{$log->id}", ['description' => 'Work',
             'started_at' => '2026-01-01 09:15:00',
             'ended_at' => '2026-01-01 10:45:00',
         ])->assertOk()
@@ -193,11 +193,11 @@ class WorkLogTest extends TestCase
         $task = $this->makeTask($project, 'Backwards');
         $this->login('editor@flowsync.test');
 
-        $this->postJson("/api/projects/{$project->id}/tasks/{$task->id}/work-logs", [
+        $this->postJson("/api/projects/{$project->id}/tasks/{$task->id}/work-logs", ['description' => 'Work',
             'started_at' => 'not-a-date',
         ])->assertUnprocessable()->assertJsonValidationErrors('started_at');
 
-        $this->postJson("/api/projects/{$project->id}/tasks/{$task->id}/work-logs", [
+        $this->postJson("/api/projects/{$project->id}/tasks/{$task->id}/work-logs", ['description' => 'Work',
             'started_at' => '2026-01-01 11:00:00',
             'ended_at' => '2026-01-01 09:00:00',
         ])->assertUnprocessable()->assertJsonValidationErrors('ended_at');
@@ -210,7 +210,7 @@ class WorkLogTest extends TestCase
         $task = $this->makeTask($project, 'Gated');
         $this->login('viewer@flowsync.test');
 
-        $this->postJson("/api/projects/{$project->id}/tasks/{$task->id}/work-logs", [
+        $this->postJson("/api/projects/{$project->id}/tasks/{$task->id}/work-logs", ['description' => 'Work',
             'started_at' => '2026-01-01 09:00:00',
             'ended_at' => '2026-01-01 10:00:00',
         ])->assertForbidden();
@@ -219,7 +219,7 @@ class WorkLogTest extends TestCase
         $this->login('editor@flowsync.test');
         $log = $this->log($task, $this->editor(), '2026-01-01 09:00:00', '2026-01-01 10:00:00');
 
-        $this->putJson("/api/projects/{$project->id}/tasks/{$task->id}/work-logs/{$log->id}", [
+        $this->putJson("/api/projects/{$project->id}/tasks/{$task->id}/work-logs/{$log->id}", ['description' => 'Work',
             'started_at' => '2026-01-01 09:30:00',
             'ended_at' => '2026-01-01 10:30:00',
         ])->assertOk();
@@ -240,14 +240,14 @@ class WorkLogTest extends TestCase
         $log = $this->log($task, $this->editor(), '2026-01-01 09:00:00', '2026-01-01 10:00:00');
         $this->login('viewer@flowsync.test');
 
-        $this->putJson("/api/projects/{$project->id}/tasks/{$task->id}/work-logs/{$log->id}", [
+        $this->putJson("/api/projects/{$project->id}/tasks/{$task->id}/work-logs/{$log->id}", ['description' => 'Work',
             'started_at' => '2026-01-01 09:00:00',
             'ended_at' => '2026-01-01 10:00:00',
         ])->assertForbidden();
 
         $this->login('admin@flowsync.test');
 
-        $this->putJson("/api/projects/{$project->id}/tasks/{$task->id}/work-logs/{$log->id}", [
+        $this->putJson("/api/projects/{$project->id}/tasks/{$task->id}/work-logs/{$log->id}", ['description' => 'Work',
             'started_at' => '2026-01-01 09:00:00',
             'ended_at' => '2026-01-01 11:00:00',
         ])->assertOk()
@@ -262,7 +262,7 @@ class WorkLogTest extends TestCase
         $log = $this->log($a, $this->admin(), '2026-01-01 09:00:00', '2026-01-01 10:00:00');
         $this->login('admin@flowsync.test');
 
-        $this->putJson("/api/projects/{$project->id}/tasks/{$b->id}/work-logs/{$log->id}", [
+        $this->putJson("/api/projects/{$project->id}/tasks/{$b->id}/work-logs/{$log->id}", ['description' => 'Work',
             'started_at' => '2026-01-01 09:00:00',
             'ended_at' => '2026-01-01 11:00:00',
         ])->assertNotFound();
@@ -337,7 +337,7 @@ class WorkLogTest extends TestCase
         $task->update(['assignee_id' => $this->editor()->id]);
         $this->login('admin@flowsync.test');
 
-        $this->postJson("/api/projects/{$project->id}/tasks/{$task->id}/work-logs", [
+        $this->postJson("/api/projects/{$project->id}/tasks/{$task->id}/work-logs", ['description' => 'Work',
             'started_at' => '2026-01-01 09:00:00',
             'ended_at' => '2026-01-01 10:00:00',
         ])->assertCreated();
@@ -361,7 +361,7 @@ class WorkLogTest extends TestCase
         $task = $this->makeTask($project, 'Audited');
         $this->login('admin@flowsync.test');
 
-        $this->postJson("/api/projects/{$project->id}/tasks/{$task->id}/work-logs", [
+        $this->postJson("/api/projects/{$project->id}/tasks/{$task->id}/work-logs", ['description' => 'Work',
             'started_at' => '2026-01-01 09:00:00',
             'ended_at' => '2026-01-01 10:00:00',
         ])->assertCreated();

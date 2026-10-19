@@ -1,10 +1,15 @@
 import { useEffect, useState } from 'react';
+import MemberPicker from '../components/ui/MemberPicker';
+import Avatar from '../components/ui/Avatar';
+import ProgressBar from '../components/ui/ProgressBar';
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import api, { fieldErrors } from '../services/api';
 import Card from '../components/ui/Card';
 import Badge from '../components/ui/Badge';
-import Spinner from '../components/ui/Spinner';
+import ContentSkeleton from '../components/ui/ContentSkeleton';
 import Alert from '../components/ui/Alert';
+import { fieldClass } from '../components/ui/fieldStyles';
 import Button from '../components/ui/Button';
 import Input from '../components/ui/Input';
 import Tabs from '../components/ui/Tabs';
@@ -19,11 +24,12 @@ import usePageTitle from '../hooks/usePageTitle';
 import { projectRoleLabel, workspaceRoleLabel } from '../utils/roles';
 
 const roleOptions = [
-    { value: 'admin', label: 'Admin' },
-    { value: 'member', label: 'Member' },
+    { value: 'admin', labelKey: 'tms.workspaceDetail.roleAdmin' },
+    { value: 'member', labelKey: 'tms.workspaceDetail.roleMember' },
 ];
 
 export default function WorkspaceDetail() {
+    const { t } = useTranslation();
     const { workspaceId } = useParams();
     const navigate = useNavigate();
     const { user, can, hasModule } = useAuth();
@@ -31,7 +37,7 @@ export default function WorkspaceDetail() {
     const confirm = useConfirm();
     const setCrumbs = useSetCrumbs();
     const [workspace, setWorkspace] = useState(null);
-    usePageTitle(workspace?.name || 'Workspace');
+    usePageTitle(workspace?.name || t('tms.workspaceDetail.fallbackTitle'));
     const [members, setMembers] = useState([]);
     const [labels, setLabels] = useState([]);
     const [projects, setProjects] = useState([]);
@@ -42,8 +48,15 @@ export default function WorkspaceDetail() {
     const [updating, setUpdating] = useState(false);
 
     const [memberForm, setMemberForm] = useState({ user_id: '', role: 'member' });
-    const [labelForm, setLabelForm] = useState({ name: '', color: '#6366f1' });
-    const [projectForm, setProjectForm] = useState({ name: '', key: '', description: '' });
+    const [labelForm, setLabelForm] = useState({ name: '', color: '#2563eb' });
+    const [projectForm, setProjectForm] = useState({ name: '', key: '', description: '', template_id: '', board_type: 'kanban' });
+    const [templates, setTemplates] = useState([]);
+
+    useEffect(() => {
+        if (!hasModule('project_templates')) return;
+        api.get('/project-templates').then(({ data }) => setTemplates(data.templates)).catch(() => setTemplates([]));
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
     // The settings description is editor-controlled; it follows the loaded
     // workspace (the page remounts per workspace, and a same-id refetch
     // after save already matches what was typed).
@@ -73,7 +86,7 @@ export default function WorkspaceDetail() {
             api.get(`/workspaces/${workspaceId}/members`),
             api.get(`/workspaces/${workspaceId}/labels`),
             api.get(`/workspaces/${workspaceId}/projects`),
-            can('users.view') ? api.get('/users') : Promise.resolve({ data: { users: [] } }),
+            can('users.view') ? api.get('/users', { params: { all: 1 } }) : Promise.resolve({ data: { users: [] } }),
         ])
             .then(([ws, mem, lab, proj, users]) => {
                 if (!active) return;
@@ -90,7 +103,7 @@ export default function WorkspaceDetail() {
                     navigate('/403', { replace: true });
                     return;
                 }
-                if (active) setError('Unable to load workspace.');
+                if (active) setError(t('tms.workspaceDetail.loadFailed'));
             })
             .finally(() => {
                 if (active) setLoading(false);
@@ -106,10 +119,10 @@ export default function WorkspaceDetail() {
         setCrumbs(
             workspace
                 ? [
-                    { label: 'Workspaces', to: '/workspaces' },
+                    { label: t('tms.workspaceDetail.crumbWorkspaces'), to: '/workspaces' },
                     { label: workspace.name },
                 ]
-                : [{ label: 'Workspaces', to: '/workspaces' }],
+                : [{ label: t('tms.workspaceDetail.crumbWorkspaces'), to: '/workspaces' }],
         );
     }, [workspace, setCrumbs]);
 
@@ -119,20 +132,20 @@ export default function WorkspaceDetail() {
         api.put(`/workspaces/${workspaceId}`, fields)
             .then(({ data }) => {
                 setWorkspace(data.workspace);
-                toast.success('Workspace updated.');
+                toast.success(t('tms.workspaceDetail.updated'));
             })
             .catch((e) => setFormErrors(fieldErrors(e)))
             .finally(() => setUpdating(false));
     }
 
     async function archiveWorkspace() {
-        if (!(await confirm({ title: 'Archive workspace?', message: 'Archive this workspace? It will be hidden but not deleted.' }))) return;
+        if (!(await confirm({ title: t('tms.workspaceDetail.archiveTitle'), message: t('tms.workspaceDetail.archiveMessage') }))) return;
         try {
             const { data } = await api.post(`/workspaces/${workspaceId}/archive`);
             setWorkspace(data.workspace);
-            toast.success('Workspace archived.');
+            toast.success(t('tms.workspaceDetail.archived'));
         } catch (e) {
-            toast.error(fieldErrors(e).form || 'Could not archive workspace.');
+            toast.error(fieldErrors(e).form || t('tms.workspaceDetail.archiveFailed'));
         }
     }
 
@@ -140,27 +153,27 @@ export default function WorkspaceDetail() {
         try {
             const { data } = await api.post(`/workspaces/${workspaceId}/restore`);
             setWorkspace(data.workspace);
-            toast.success('Workspace restored.');
+            toast.success(t('tms.workspaceDetail.restored'));
         } catch (e) {
-            toast.error(fieldErrors(e).form || 'Could not restore workspace.');
+            toast.error(fieldErrors(e).form || t('tms.workspaceDetail.restoreFailed'));
         }
     }
 
     async function deleteWorkspace() {
-        if (!(await confirm({ title: 'Delete workspace?', message: 'Permanently delete this workspace? This cannot be undone.', variant: 'danger' }))) return;
+        if (!(await confirm({ title: t('tms.workspaceDetail.deleteTitle'), message: t('tms.workspaceDetail.deleteMessage'), variant: 'danger' }))) return;
         try {
             await api.delete(`/workspaces/${workspaceId}`);
-            toast.success('Workspace deleted.');
+            toast.success(t('tms.workspaceDetail.deleted'));
             navigate('/workspaces');
         } catch (e) {
-            toast.error(fieldErrors(e).form || 'Could not delete workspace. Archive it first?');
+            toast.error(fieldErrors(e).form || t('tms.workspaceDetail.deleteFailed'));
         }
     }
 
     function loadMembers() {
         return Promise.all([
             api.get(`/workspaces/${workspaceId}/members`),
-            can('users.view') ? api.get('/users') : Promise.resolve({ data: { users: [] } }),
+            can('users.view') ? api.get('/users', { params: { all: 1 } }) : Promise.resolve({ data: { users: [] } }),
         ]).then(([mem, users]) => {
             setMembers(mem.data.members);
             setCandidateUsers(
@@ -177,7 +190,7 @@ export default function WorkspaceDetail() {
             await api.post(`/workspaces/${workspaceId}/members`, memberForm);
             await loadMembers();
             setMemberForm((f) => ({ ...f, user_id: '' }));
-            toast.success('Member added.');
+            toast.success(t('tms.workspaceDetail.memberAdded'));
         } catch (e) {
             setFormErrors(fieldErrors(e));
         } finally {
@@ -189,20 +202,20 @@ export default function WorkspaceDetail() {
         try {
             await api.put(`/workspaces/${workspaceId}/members/${member.id}`, { role });
             await loadMembers();
-            toast.success('Role updated.');
+            toast.success(t('tms.workspaceDetail.roleUpdated'));
         } catch (e) {
-            toast.error(fieldErrors(e).form || 'Could not change role.');
+            toast.error(fieldErrors(e).form || t('tms.workspaceDetail.roleFailed'));
         }
     }
 
     async function removeMember(member) {
-        if (!(await confirm({ title: 'Remove member?', message: `Remove ${member.name} from this workspace?`, variant: 'danger' }))) return;
+        if (!(await confirm({ title: t('tms.workspaceDetail.removeMemberTitle'), message: t('tms.workspaceDetail.removeMemberMessage', { name: member.name }), variant: 'danger' }))) return;
         try {
             await api.delete(`/workspaces/${workspaceId}/members/${member.id}`);
             await loadMembers();
-            toast.success(`${member.name} removed.`);
+            toast.success(t('tms.workspaceDetail.memberRemoved', { name: member.name }));
         } catch (e) {
-            toast.error(fieldErrors(e).form || 'Could not remove member.');
+            toast.error(fieldErrors(e).form || t('tms.workspaceDetail.removeFailed'));
         }
     }
 
@@ -214,7 +227,7 @@ export default function WorkspaceDetail() {
             const { data } = await api.post(`/workspaces/${workspaceId}/labels`, labelForm);
             setLabels((l) => [...l, data.label]);
             setLabelForm((f) => ({ ...f, name: '' }));
-            toast.success('Label created.');
+            toast.success(t('tms.workspaceDetail.labelCreated'));
         } catch (e) {
             setFormErrors(fieldErrors(e));
         } finally {
@@ -223,13 +236,13 @@ export default function WorkspaceDetail() {
     }
 
     async function deleteLabel(label) {
-        if (!(await confirm({ title: 'Delete label?', message: `Delete label "${label.name}"?`, variant: 'danger' }))) return;
+        if (!(await confirm({ title: t('tms.workspaceDetail.deleteLabelTitle'), message: t('tms.workspaceDetail.deleteLabelMessage', { name: label.name }), variant: 'danger' }))) return;
         try {
             await api.delete(`/labels/${label.id}`);
             setLabels((l) => l.filter((x) => x.id !== label.id));
-            toast.success('Label deleted.');
+            toast.success(t('tms.workspaceDetail.labelDeleted'));
         } catch {
-            toast.error('Could not delete label.');
+            toast.error(t('tms.workspaceDetail.deleteLabelFailed'));
         }
     }
 
@@ -239,14 +252,24 @@ export default function WorkspaceDetail() {
         setSavingProject(true);
         setFormErrors({});
         try {
-            const { data } = await api.post(`/workspaces/${workspaceId}/projects`, {
+            const payload = {
                 name: projectForm.name,
                 key: projectForm.key || undefined,
                 description: projectForm.description || undefined,
-            });
-            setProjects((current) => [...current, data.project]);
-            setProjectForm({ name: '', key: '', description: '' });
-            toast.success(`${data.project.key} created.`);
+                board_type: projectForm.template_id ? undefined : projectForm.board_type,
+            };
+            const { data } = projectForm.template_id
+                ? await api.post(`/workspaces/${workspaceId}/projects/from-template`, { ...payload, template_id: Number(projectForm.template_id) })
+                : await api.post(`/workspaces/${workspaceId}/projects`, payload);
+            // The from-template reply is minimal; refetch the list so the new project card is complete.
+            if (projectForm.template_id) {
+                const list = await api.get(`/workspaces/${workspaceId}/projects`);
+                setProjects(list.data.projects);
+            } else {
+                setProjects((current) => [...current, data.project]);
+            }
+            setProjectForm({ name: '', key: '', description: '', template_id: '', board_type: 'kanban' });
+            toast.success(t('tms.workspaceDetail.projectCreated', { key: data.project.key }));
         } catch (e) {
             setCreatingProject(true);
             setFormErrors(fieldErrors(e));
@@ -257,26 +280,24 @@ export default function WorkspaceDetail() {
 
     if (loading) {
         return (
-            <div className="flex justify-center py-20">
-                <Spinner />
-            </div>
+            <ContentSkeleton size="lg" />
         );
     }
 
     if (error || !workspace) {
         return (
             <div className="max-w-md">
-                <Alert>{error || 'Workspace not found.'}</Alert>
+                <Alert>{error || t('tms.workspaceDetail.notFound')}</Alert>
             </div>
         );
     }
 
     const tabs = [
-        { key: 'projects', label: 'Projects' },
-        { key: 'members', label: `Members (${members.length})` },
-        { key: 'labels', label: `Labels (${labels.length})` },
-        ...(hasModule('time_tracking') ? [{ key: 'time', label: 'Time' }] : []),
-        ...(isOwner ? [{ key: 'settings', label: 'Settings' }] : []),
+        { key: 'projects', label: t('tms.workspaceDetail.tabProjects') },
+        { key: 'members', label: t('tms.workspaceDetail.tabMembers', { count: members.length }) },
+        { key: 'labels', label: t('tms.workspaceDetail.tabLabels', { count: labels.length }) },
+        ...(hasModule('time_tracking') ? [{ key: 'time', label: t('tms.workspaceDetail.tabTime') }] : []),
+        ...(isOwner ? [{ key: 'settings', label: t('tms.workspaceDetail.tabSettings') }] : []),
     ];
 
     const tabParam = searchParams.get('tab');
@@ -304,24 +325,24 @@ export default function WorkspaceDetail() {
                         <div className="flex flex-wrap items-center gap-2">
                             <h2 className="text-2xl font-bold text-gray-900">{workspace.name}</h2>
                             {workspace.my_role && <Badge>{workspaceRoleLabel(workspace.my_role)}</Badge>}
-                            {archived && <Badge>archived</Badge>}
+                            {archived && <Badge>{t('tms.workspaceDetail.archivedBadge')}</Badge>}
                         </div>
                         {workspace.description ? (
-                            <RichText value={workspace.description} className="mt-1 text-gray-500" />
+                            <RichText value={workspace.description} className="mt-1 max-h-24 max-w-3xl overflow-y-auto break-words text-gray-500 [overflow-wrap:anywhere]" />
                         ) : (
-                            <p className="mt-1 text-sm text-gray-500">No description</p>
+                            <p className="mt-1 text-sm text-gray-500">{t('tms.workspaceDetail.noDescription')}</p>
                         )}
                         <p className="mt-0.5 text-xs text-gray-400">{workspace.slug}</p>
                     </div>
                 </div>
                 {archived && isOwner ? (
                     <Button variant="secondary" onClick={restoreWorkspace}>
-                        Restore
+                        {t('tms.workspaceDetail.restore')}
                     </Button>
                 ) : (
                     isManager && (
                         <Button variant="secondary" onClick={archiveWorkspace}>
-                            Archive
+                            {t('tms.workspaceDetail.archive')}
                         </Button>
                     )
                 )}
@@ -332,12 +353,12 @@ export default function WorkspaceDetail() {
             {activeTab === 'projects' && (
                 <div className="space-y-5">
                     <Card
-                        title={`Projects in ${workspace.name}`}
+                        title={t('tms.workspaceDetail.projectsIn', { name: workspace.name })}
                         actions={
                             canCreateProject &&
                             !archived && (
                                 <Button size="sm" variant="secondary" onClick={() => setCreatingProject((open) => !open)}>
-                                    New project
+                                    {t('tms.workspaceDetail.newProject')}
                                 </Button>
                             )
                         }
@@ -347,38 +368,58 @@ export default function WorkspaceDetail() {
                                 {formErrors.form && <Alert>{formErrors.form}</Alert>}
                                 <div className="grid gap-4 sm:grid-cols-2">
                                     <Input
-                                        label="Name"
+                                        label={t('tms.workspaceDetail.projectName')}
                                         name="project-name"
-                                        placeholder="Website Redesign"
+                                        placeholder={t('tms.workspaceDetail.projectNamePlaceholder')}
                                         value={projectForm.name}
                                         onChange={(e) => setProjectForm((f) => ({ ...f, name: e.target.value }))}
                                         error={formErrors.name}
                                         required
                                     />
                                     <Input
-                                        label="Key (optional)"
+                                        label={t('tms.workspaceDetail.projectKey')}
                                         name="project-key"
-                                        placeholder="AUTO (initials used)"
+                                        placeholder={t('tms.workspaceDetail.projectKeyPlaceholder')}
                                         value={projectForm.key}
                                         onChange={(e) => setProjectForm((f) => ({ ...f, key: e.target.value }))}
                                         error={formErrors.key}
                                     />
                                 </div>
+                                {!projectForm.template_id && (
+                                    <div>
+                                        <label htmlFor="project-board-type" className="mb-1.5 block text-sm font-medium text-gray-700">{t('tms.workspaceDetail.boardType')}</label>
+                                        <select id="project-board-type" className={fieldClass} value={projectForm.board_type} onChange={(e) => setProjectForm((f) => ({ ...f, board_type: e.target.value }))}>
+                                            {['kanban', 'scrum', 'basic'].map((bt) => <option key={bt} value={bt}>{t(`tms.workspaceDetail.boardTypes.${bt}`)}</option>)}
+                                        </select>
+                                        <p className="mt-1 text-xs text-gray-500">{t(`tms.workspaceDetail.boardTypeHint.${projectForm.board_type}`)}</p>
+                                    </div>
+                                )}
+                                {templates.length > 0 && (
+                                    <div>
+                                        <label htmlFor="project-template" className="mb-1.5 block text-sm font-medium text-gray-700">{t('tms.templates.startFrom')}</label>
+                                        <select id="project-template" className={fieldClass} value={projectForm.template_id} onChange={(e) => setProjectForm((f) => ({ ...f, template_id: e.target.value }))}>
+                                            <option value="">{t('tms.templates.blank')}</option>
+                                            {templates.map((tpl) => (
+                                                <option key={tpl.id} value={tpl.id}>{tpl.name} — {tpl.statuses.join(' → ')}</option>
+                                            ))}
+                                        </select>
+                                    </div>
+                                )}
                                 <div>
-                                    <label className="mb-1.5 block text-sm font-medium text-gray-700">Description</label>
+                                    <label className="mb-1.5 block text-sm font-medium text-gray-700">{t('tms.workspaceDetail.projectDesc')}</label>
                                     <RichTextEditor
                                         value={projectForm.description}
                                         onChange={(html) => setProjectForm((f) => ({ ...f, description: html }))}
-                                        placeholder="What is this project about?"
+                                        placeholder={t('tms.workspaceDetail.projectDescPlaceholder')}
                                         error={formErrors.description}
                                     />
                                 </div>
                                 <div className="flex gap-2 pt-1">
                                     <Button type="button" variant="secondary" onClick={() => setCreatingProject(false)}>
-                                        Cancel
+                                        {t('tms.workspaceDetail.cancel')}
                                     </Button>
                                     <Button type="submit" loading={savingProject}>
-                                        Create project
+                                        {t('tms.workspaceDetail.createProject')}
                                     </Button>
                                 </div>
                             </form>
@@ -387,8 +428,8 @@ export default function WorkspaceDetail() {
                         {projects.length === 0 ? (
                             <p className="text-sm text-gray-500">
                                 {workspace.my_role === 'member' && !can('workspaces.manage')
-                                    ? 'No projects here yet.'
-                                    : 'No projects yet. Create one to start tracking work.'}
+                                    ? t('tms.workspaceDetail.emptyProjectsMember')
+                                    : t('tms.workspaceDetail.emptyProjectsCta')}
                             </p>
                         ) : (
                             <ul className="divide-y divide-gray-100">
@@ -411,16 +452,19 @@ export default function WorkspaceDetail() {
                                                         {project.my_role && (
                                                             <Badge>{projectRoleLabel(project.my_role)}</Badge>
                                                         )}
-                                                        {project.archived_at && <Badge>archived</Badge>}
+                                                        {project.archived_at && <Badge>{t('tms.workspaceDetail.archivedBadge')}</Badge>}
                                                     </p>
                                                         <p className="mt-0.5 line-clamp-1 text-xs text-gray-400">
-                                                            {stripRichText(project.description) || 'No description'}
+                                                            {stripRichText(project.description) || t('tms.workspaceDetail.noDescription')}
                                                         </p>
                                                 </div>
                                             </div>
                                             <div className="flex items-center gap-4 text-xs text-gray-400">
-                                                <span>{project.tasks_count} tasks</span>
-                                                <span>{project.members_count} members</span>
+                                                <span>{t('tms.workspaceDetail.tasksCount', { count: project.tasks_count })}</span>
+                                                <span>{t('tms.workspaceDetail.membersCount', { count: project.members_count })}</span>
+                                                {project.tasks_count > 0 && (
+                                                    <ProgressBar className="w-28" value={project.done_tasks_count ?? 0} max={project.tasks_count} label={t('tms.project.progress')} showPercent />
+                                                )}
                                             </div>
                                         </Link>
                                     </li>
@@ -434,44 +478,38 @@ export default function WorkspaceDetail() {
             {activeTab === 'members' && (
                 <div className="space-y-5">
                     {isManager && (
-                        <Card title="Add member" subtitle="Only users from your tenant can be added.">
+                        <Card title={t('tms.workspaceDetail.addMemberTitle')} subtitle={t('tms.workspaceDetail.addMemberSubtitle')}>
                             <form onSubmit={addMember} className="flex flex-col gap-3 sm:flex-row sm:items-end">
                                 <div className="flex-1">
-                                    <select
-                                        className="block w-full rounded-lg border border-gray-300 bg-white px-3.5 py-2.5 text-sm shadow-sm focus:border-indigo-500 focus:outline-none"
+                                    <MemberPicker
+                                        users={candidateUsers}
                                         value={memberForm.user_id}
-                                        onChange={(e) => setMemberForm((f) => ({ ...f, user_id: e.target.value }))}
-                                    >
-                                        <option value="">Select a user…</option>
-                                        {candidateUsers.map((u) => (
-                                            <option key={u.id} value={u.id}>
-                                                {u.name} ({u.email})
-                                            </option>
-                                        ))}
-                                    </select>
+                                        onChange={(id) => setMemberForm((f) => ({ ...f, user_id: id }))}
+                                        placeholder={t('tms.workspaceDetail.searchPeople')}
+                                    />
                                     {formErrors.user_id && <p className="mt-1.5 text-sm text-red-600">{formErrors.user_id}</p>}
                                 </div>
                                 <div>
                                     <select
-                                        className="block w-full rounded-lg border border-gray-300 bg-white px-3.5 py-2.5 text-sm shadow-sm focus:border-indigo-500 focus:outline-none"
+                                        className="block w-full rounded-lg border border-gray-300 bg-white px-3.5 py-2.5 text-sm shadow-sm focus:border-[var(--accent)] focus:outline-none"
                                         value={memberForm.role}
                                         onChange={(e) => setMemberForm((f) => ({ ...f, role: e.target.value }))}
                                     >
                                         {roleOptions.map((r) => (
                                             <option key={r.value} value={r.value}>
-                                                {r.label}
+                                                {t(r.labelKey)}
                                             </option>
                                         ))}
                                     </select>
                                 </div>
                                 <Button type="submit" loading={savingMember}>
-                                    Add
+                                    {t('tms.workspaceDetail.add')}
                                 </Button>
                             </form>
                         </Card>
                     )}
 
-                    <Card title="Members">
+                    <Card title={t('tms.workspaceDetail.membersTitle')}>
                         <ul className="divide-y divide-gray-100">
                             {members.map((member) => {
                                 const self = member.id === user?.id;
@@ -480,15 +518,10 @@ export default function WorkspaceDetail() {
                                 return (
                                     <li key={member.id} className="flex flex-wrap items-center justify-between gap-3 py-3">
                                         <div className="flex items-center gap-3">
-                                            <span
-                                                className="flex h-9 w-9 items-center justify-center rounded-full text-xs font-bold text-white"
-                                                style={{ backgroundColor: 'var(--accent)' }}
-                                            >
-                                                {member.name.charAt(0).toUpperCase()}
-                                            </span>
+                                            <Avatar name={member.name} photoUrl={member.photo_url} size="lg" />
                                             <div>
                                                 <p className="text-sm font-medium text-gray-900">
-                                                    {member.name} {self && <span className="text-gray-400">(you)</span>}
+                                                    {member.name} {self && <span className="text-gray-400">{t('tms.workspaceDetail.you')}</span>}
                                                 </p>
                                                 <p className="text-xs text-gray-400">{member.email}</p>
                                             </div>
@@ -503,14 +536,14 @@ export default function WorkspaceDetail() {
                                                 >
                                                     {roleOptions.map((r) => (
                                                         <option key={r.value} value={r.value}>
-                                                            {r.label}
+                                                            {t(r.labelKey)}
                                                         </option>
                                                     ))}
                                                 </select>
                                             )}
                                             {canRemove && (
                                                 <Button size="sm" variant="ghost" onClick={() => removeMember(member)}>
-                                                    Remove
+                                                    {t('tms.workspaceDetail.remove')}
                                                 </Button>
                                             )}
                                         </div>
@@ -525,13 +558,13 @@ export default function WorkspaceDetail() {
             {activeTab === 'labels' && (
                 <div className="space-y-5">
                     {isManager && (
-                        <Card title="New label">
+                        <Card title={t('tms.workspaceDetail.newLabelTitle')}>
                             <form onSubmit={addLabel} className="flex flex-col gap-3 sm:flex-row sm:items-end">
                                 <div className="flex-1">
                                     <Input
-                                        label="Name"
+                                        label={t('tms.workspaceDetail.labelName')}
                                         name="label-name"
-                                        placeholder="bug"
+                                        placeholder={t('tms.workspaceDetail.labelNamePlaceholder')}
                                         value={labelForm.name}
                                         onChange={(e) => setLabelForm((f) => ({ ...f, name: e.target.value }))}
                                         error={formErrors.name}
@@ -539,7 +572,7 @@ export default function WorkspaceDetail() {
                                     />
                                 </div>
                                 <div>
-                                    <label className="mb-1.5 block text-sm font-medium text-gray-700">Color</label>
+                                    <label className="mb-1.5 block text-sm font-medium text-gray-700">{t('tms.workspaceDetail.color')}</label>
                                     <input
                                         type="color"
                                         className="h-[42px] w-16 rounded-lg border border-gray-300 bg-white p-1 shadow-sm focus:outline-none"
@@ -548,15 +581,15 @@ export default function WorkspaceDetail() {
                                     />
                                 </div>
                                 <Button type="submit" loading={savingLabel}>
-                                    Add label
+                                    {t('tms.workspaceDetail.addLabel')}
                                 </Button>
                             </form>
                         </Card>
                     )}
 
-                    <Card title="Labels">
+                    <Card title={t('tms.workspaceDetail.labelsTitle')}>
                         {labels.length === 0 ? (
-                            <p className="text-sm text-gray-500">No labels yet.</p>
+                            <p className="text-sm text-gray-500">{t('tms.workspaceDetail.labelsEmpty')}</p>
                         ) : (
                             <ul className="flex flex-wrap gap-2">
                                 {labels.map((label) => (
@@ -572,7 +605,7 @@ export default function WorkspaceDetail() {
                                                 type="button"
                                                 className="text-inherit opacity-60 transition hover:opacity-100"
                                                 onClick={() => deleteLabel(label)}
-                                                aria-label={`Delete ${label.name}`}
+                                                aria-label={t('tms.workspaceDetail.deleteLabelAria', { name: label.name })}
                                             >
                                                 ×
                                             </button>
@@ -586,13 +619,13 @@ export default function WorkspaceDetail() {
             )}
 
             {activeTab === 'time' && (
-                <Card title="Time logged" subtitle="Filters apply to all work logs across projects in this workspace.">
+                <Card title={t('tms.workspaceDetail.timeTitle')} subtitle={t('tms.workspaceDetail.timeSubtitle')}>
                     <TimeSummary url={`/workspaces/${workspace.id}/time-summary`} />
                 </Card>
             )}
 
             {activeTab === 'settings' && isOwner && (
-                <Card title="Workspace settings" subtitle={`slug: ${workspace.slug}`}>
+                <Card title={t('tms.workspaceDetail.settingsTitle')} subtitle={`slug: ${workspace.slug}`}>
                     <form
                         className="space-y-4"
                         onSubmit={(e) => {
@@ -605,27 +638,27 @@ export default function WorkspaceDetail() {
                     >
                         {formErrors.form && <Alert>{formErrors.form}</Alert>}
                         <Input
-                            label="Name"
+                            label={t('tms.workspaceDetail.settingsName')}
                             name="name"
                             defaultValue={workspace.name}
                             error={formErrors.name}
                             required
                         />
                         <div>
-                            <label className="mb-1.5 block text-sm font-medium text-gray-700">Description</label>
+                            <label className="mb-1.5 block text-sm font-medium text-gray-700">{t('tms.workspaceDetail.settingsDesc')}</label>
                             <RichTextEditor
                                 value={settingsDescription}
                                 onChange={setSettingsDescription}
-                                placeholder="What is this workspace for?"
+                                placeholder={t('tms.workspaceDetail.settingsDescPlaceholder')}
                                 error={formErrors.description}
                             />
                         </div>
                         <div className="flex gap-2">
                             <Button type="submit" loading={updating}>
-                                Save changes
+                                {t('tms.workspaceDetail.save')}
                             </Button>
                             <Button type="button" variant="danger" onClick={deleteWorkspace}>
-                                Delete workspace
+                                {t('tms.workspaceDetail.deleteWorkspace')}
                             </Button>
                         </div>
                     </form>

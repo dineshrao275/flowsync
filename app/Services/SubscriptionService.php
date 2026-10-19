@@ -167,6 +167,35 @@ class SubscriptionService
     }
 
     /**
+     * Apply a scheduled plan change at the boundary the provider (or the sweep) reports: the new plan from the new period
+     * on, pending fields cleared, one plan_changed event. Idempotent — a replayed webhook finds nothing pending.
+     */
+    public function applyScheduledChange(Subscription $subscription, ?Carbon $periodStart = null, ?Carbon $periodEnd = null): ?Subscription
+    {
+        $plan = $subscription->pendingPlan;
+        if (! $plan || ! $subscription->hasPendingChange()) {
+            return null;
+        }
+
+        $tenant = $subscription->tenant;
+        $from = $subscription->plan_id;
+        $start = $periodStart ?? $subscription->pending_change_at;
+
+        $subscription->update([
+            'plan_id' => $plan->id,
+            'current_period_start' => $start,
+            'current_period_end' => $periodEnd ?? $plan->periodEnd($start),
+            'seats' => $plan->limit('users') ?: $plan->limit('seats') ?: 0,
+            'pending_plan_id' => null, 'pending_change_at' => null, 'pending_requested_at' => null, 'provider_schedule_id' => null,
+        ]);
+
+        $this->record($tenant, $subscription, Subscription::EVENT_PLAN_CHANGED, fromPlanId: $from, toPlanId: $plan->id, data: ['scheduled' => true]);
+        app(TenantProductSync::class)->ensure($tenant);
+
+        return $subscription->refresh();
+    }
+
+    /**
      * Cancel at period end: status=canceled, auto_renew off.
      */
     public function cancel(Tenant $tenant, ?int $actorId = null, ?string $product = null): Subscription
@@ -174,7 +203,7 @@ class SubscriptionService
         $subscription = $this->subscriptionOf($tenant, $product);
 
         if (! $subscription) {
-            abort(422, 'Tenant has no subscription.');
+            abort(422, __('Tenant has no subscription.'));
         }
 
         $subscription->update([
@@ -203,21 +232,26 @@ class SubscriptionService
         $subscription = $this->subscriptionOf($tenant, $product);
 
         if (! $subscription) {
-            abort(422, 'Tenant has no subscription.');
+            abort(422, __('Tenant has no subscription.'));
         }
 
         $wasCanceled = $subscription->isCanceled();
         $plan = $subscription->plan;
 
-        $subscription->update([
+        // Resuming a cancelled subscription BEFORE its paid period ends is not a new period: nothing was paid, so the
+        // period must not grow (the provider bills the next one when this one ends).
+        $resumedInPeriod = $wasCanceled && $subscription->current_period_end?->isFuture();
+
+        $subscription->update(array_merge([
             'status' => Subscription::STATUS_ACTIVE,
             'auto_renew' => true,
             'canceled_at' => null,
             'past_due_at' => null,
+            'trial_ends_at' => null,
+        ], $resumedInPeriod ? [] : [
             'current_period_start' => now(),
             'current_period_end' => $plan->periodEnd($subscription->current_period_end),
-            'trial_ends_at' => null,
-        ]);
+        ]));
 
         $tenant->update(['trial_ends_at' => null]);
         $this->lifecycle->transition($tenant, Tenant::STATUS_ACTIVE);
@@ -243,7 +277,7 @@ class SubscriptionService
         $subscription = $this->subscriptionOf($tenant, $product);
 
         if (! $subscription) {
-            abort(422, 'Tenant has no subscription.');
+            abort(422, __('Tenant has no subscription.'));
         }
 
         $subscription->update([
@@ -310,10 +344,10 @@ class SubscriptionService
         $others = $tenant->subscriptions()->where('status', '!=', Subscription::STATUS_ENDED)->pluck('product')->all();
 
         if ($product !== SubscriptionPlan::PRODUCT_SUITE && in_array(SubscriptionPlan::PRODUCT_SUITE, $others, true)) {
-            throw ValidationException::withMessages(['plan_id' => 'This tenant is on a bundle plan. Move it to per-product plans first.']);
+            throw ValidationException::withMessages(['plan_id' => __('This tenant is on a bundle plan. Move it to per-product plans first.')]);
         }
         if ($product === SubscriptionPlan::PRODUCT_SUITE && array_diff($others, [SubscriptionPlan::PRODUCT_SUITE]) !== []) {
-            throw ValidationException::withMessages(['plan_id' => 'This tenant is on per-product plans. End them before moving to a bundle plan.']);
+            throw ValidationException::withMessages(['plan_id' => __('This tenant is on per-product plans. End them before moving to a bundle plan.')]);
         }
     }
 
@@ -327,7 +361,7 @@ class SubscriptionService
     {
         $products = collect($plans)->map(fn (SubscriptionPlan $p) => $p->product)->all();
         if (count($products) !== count(array_unique($products)) || in_array(SubscriptionPlan::PRODUCT_SUITE, $products, true) || $plans === []) {
-            throw ValidationException::withMessages(['plan_id' => 'Give one TMS and/or one HRMS plan.']);
+            throw ValidationException::withMessages(['plan_id' => __('Give one TMS and/or one HRMS plan.')]);
         }
 
         $bundle = $tenant->subscriptionFor(SubscriptionPlan::PRODUCT_SUITE);

@@ -15,7 +15,7 @@ class InvoicePdf
         $money = fn (int $cents): string => $this->money($cents, $invoice->currency);
 
         $pdf = (new SimplePdf)
-            ->line((string) config('billing.invoice.issuer'), 18, true)
+            ->line((string) (config('billing.invoice.issuer') ?: config('app.name')), 18, true)
             ->gap(4)
             ->row([['Invoice '.$invoice->number, SimplePdf::MARGIN, false], [strtoupper($invoice->status), $right, true]], 12, true)
             ->gap(4)

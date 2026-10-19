@@ -27,7 +27,7 @@ class IssueTypeService
 
         if (IssueType::where('slug', $slug)->exists()) {
             throw ValidationException::withMessages([
-                'name' => 'An issue type with this name or slug already exists.',
+                'name' => __('An issue type with this name or slug already exists.'),
             ]);
         }
 
@@ -55,7 +55,7 @@ class IssueTypeService
 
             if ($existing) {
                 throw ValidationException::withMessages([
-                    'name' => 'An issue type with this name or slug already exists.',
+                    'name' => __('An issue type with this name or slug already exists.'),
                 ]);
             }
 
@@ -79,7 +79,7 @@ class IssueTypeService
     {
         if ($issueType->tasks()->exists()) {
             throw ValidationException::withMessages([
-                'form' => 'Cannot delete an issue type currently assigned to tasks.',
+                'form' => __('Cannot delete an issue type currently assigned to tasks.'),
             ]);
         }
 

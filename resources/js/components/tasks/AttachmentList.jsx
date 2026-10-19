@@ -1,8 +1,10 @@
 import { useEffect, useState } from 'react';
+import UserChip from '../ui/UserChip';
+import { useTranslation } from 'react-i18next';
 import api, { fieldErrors } from '../../services/api';
 import Button from '../ui/Button';
 import Alert from '../ui/Alert';
-import Spinner from '../ui/Spinner';
+import ContentSkeleton from '../ui/ContentSkeleton';
 import { useAuth } from '../../context/AuthContext';
 import { useConfirm } from '../ui/ConfirmDialog';
 import Timestamp from '../ui/Timestamp';
@@ -14,6 +16,7 @@ function formatSize(bytes) {
 }
 
 export default function AttachmentList({ task, projectId, canUpload, canManage }) {
+    const { t } = useTranslation();
     const { user } = useAuth();
     const confirm = useConfirm();
     const [attachments, setAttachments] = useState(null);
@@ -28,7 +31,7 @@ export default function AttachmentList({ task, projectId, canUpload, canManage }
                 setAttachments(data.attachments);
                 setError(null);
             })
-            .catch(() => setError('Could not load attachments.'));
+            .catch(() => setError(t('tms.attachments.loadFailed')));
     }
 
     useEffect(() => {
@@ -55,7 +58,7 @@ export default function AttachmentList({ task, projectId, canUpload, canManage }
     }
 
     async function remove(attachment) {
-        if (!(await confirm({ title: 'Delete attachment?', message: `Delete ${attachment.original_name}?`, variant: 'danger' }))) return;
+        if (!(await confirm({ title: t('tms.attachments.deleteTitle'), message: t('tms.attachments.deleteMessage', { name: attachment.original_name }), variant: 'danger' }))) return;
         api.delete(`/projects/${projectId}/tasks/${task.id}/attachments/${attachment.id}`)
             .then(fetchAttachments)
             .catch(() => {});
@@ -67,9 +70,7 @@ export default function AttachmentList({ task, projectId, canUpload, canManage }
 
     if (!attachments) {
         return (
-            <div className="flex justify-center py-10">
-                <Spinner />
-            </div>
+            <ContentSkeleton size="md" />
         );
     }
 
@@ -83,7 +84,7 @@ export default function AttachmentList({ task, projectId, canUpload, canManage }
                         onChange={(e) => setFile(e.target.files?.[0] ?? null)}
                     />
                     <Button type="submit" loading={uploading} disabled={!file}>
-                        Upload
+                        {t('tms.attachments.upload')}
                     </Button>
                 </form>
             )}
@@ -91,7 +92,7 @@ export default function AttachmentList({ task, projectId, canUpload, canManage }
             {uploadErrors.form && <Alert>{uploadErrors.form}</Alert>}
 
             {attachments.length === 0 ? (
-                <p className="py-6 text-center text-sm text-gray-400">No attachments.</p>
+                <p className="py-6 text-center text-sm text-gray-400">{t('tms.attachments.empty')}</p>
             ) : (
                 <ul className="divide-y divide-gray-100 rounded-lg border border-gray-100">
                     {attachments.map((attachment) => {
@@ -103,18 +104,18 @@ export default function AttachmentList({ task, projectId, canUpload, canManage }
                                         href={attachment.download_url}
                                         target="_blank"
                                         rel="noopener noreferrer"
-                                        className="block truncate text-sm font-medium text-indigo-600 hover:underline"
+                                        className="block truncate text-sm font-medium text-[var(--accent-soft-text)] hover:underline"
                                     >
                                         {attachment.original_name}
                                     </a>
                                     <p className="text-xs text-gray-400">
-                                        {attachment.user?.name ?? 'Unknown'} · {formatSize(attachment.size)} ·{' '}
+                                        <UserChip user={attachment.user} name={attachment.user?.name ?? t('tms.attachments.unknown')} className="align-middle" /> · {formatSize(attachment.size)} ·{' '}
                                         <Timestamp date={attachment.created_at} />
                                     </p>
                                 </div>
                                 {(canManage || own) && (
                                     <Button size="sm" variant="ghost" onClick={() => remove(attachment)}>
-                                        Delete
+                                        {t('tms.attachments.delete')}
                                     </Button>
                                 )}
                             </li>

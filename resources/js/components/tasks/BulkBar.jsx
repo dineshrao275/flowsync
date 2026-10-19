@@ -1,25 +1,27 @@
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import api, { fieldErrors } from '../../services/api';
 import { useToast } from '../../context/ToastContext';
 import Button from '../ui/Button';
 import { fieldClassCompact } from '../ui/fieldStyles';
 
-const ACTIONS = [
-    { key: 'transition', label: 'Move to status' },
-    { key: 'assign', label: 'Assign' },
-    { key: 'priority', label: 'Set priority' },
-    { key: 'due', label: 'Set due date' },
-    { key: 'label_add', label: 'Add label' },
-    { key: 'label_remove', label: 'Remove label' },
-];
-
 /** Bulk edit toolbar for the list view (P4.6): one action over the ticked tasks, per-task results reported back. */
 export default function BulkBar({ projectId, ids, options, canEdit, onClear, onDone }) {
+    const { t } = useTranslation();
     const toast = useToast();
     const [action, setAction] = useState('transition');
     const [value, setValue] = useState('');
     const [busy, setBusy] = useState(false);
     const [failed, setFailed] = useState([]);
+
+    const ACTIONS = [
+        { key: 'transition', label: t('tms.bulk.transition') },
+        { key: 'assign', label: t('tms.bulk.assign') },
+        { key: 'priority', label: t('tms.bulk.priority') },
+        { key: 'due', label: t('tms.bulk.due') },
+        { key: 'label_add', label: t('tms.bulk.labelAdd') },
+        { key: 'label_remove', label: t('tms.bulk.labelRemove') },
+    ];
 
     function payload() {
         const base = { task_ids: ids };
@@ -39,10 +41,14 @@ export default function BulkBar({ projectId, ids, options, canEdit, onClear, onD
         try {
             const { data } = await api.post(`/projects/${projectId}/tasks/bulk`, payload());
             setFailed(data.failed || []);
-            toast[data.failed?.length ? 'warning' : 'success'](`${data.updated.length} updated${data.failed?.length ? `, ${data.failed.length} skipped` : ''}.`);
+            toast[data.failed?.length ? 'warning' : 'success'](
+                data.failed?.length
+                    ? t('tms.bulk.updatedSkipped', { updated: data.updated.length, skipped: data.failed.length })
+                    : t('tms.bulk.updated', { count: data.updated.length }),
+            );
             onDone();
         } catch (e) {
-            toast.error(fieldErrors(e).fields || fieldErrors(e).status_id || e.response?.data?.message || 'Bulk update failed.');
+            toast.error(fieldErrors(e).fields || fieldErrors(e).status_id || e.response?.data?.message || t('tms.bulk.failed'));
         } finally {
             setBusy(false);
         }
@@ -50,29 +56,29 @@ export default function BulkBar({ projectId, ids, options, canEdit, onClear, onD
 
     const choices = {
         transition: options.statuses?.map((s) => [s.id, s.name]),
-        assign: [['', 'Unassigned'], ...(options.assignees || []).map((u) => [u.id, u.name])],
+        assign: [['', t('tms.bulk.unassigned')], ...(options.assignees || []).map((u) => [u.id, u.name])],
         priority: options.priorities?.map((p) => [p.id, p.name]),
         label_add: options.labels?.map((l) => [l.id, l.name]),
         label_remove: options.labels?.map((l) => [l.id, l.name]),
     }[action];
 
     return (
-        <div className="space-y-2 rounded-xl border border-indigo-200 bg-indigo-50/60 p-3">
+        <div className="space-y-2 rounded-xl border border-[var(--accent-ring)] bg-[var(--accent-soft)] p-3">
             <div className="flex flex-wrap items-center gap-2 text-sm">
-                <span className="font-medium text-indigo-900">{ids.length} selected</span>
+                <span className="font-medium text-[var(--accent-soft-text)]">{t('tms.bulk.selected', { count: ids.length })}</span>
                 <select className={fieldClassCompact} value={action} onChange={(e) => { setAction(e.target.value); setValue(''); }}>
                     {ACTIONS.filter((a) => canEdit || a.key === 'transition').map((a) => <option key={a.key} value={a.key}>{a.label}</option>)}
                 </select>
                 {choices ? (
                     <select className={fieldClassCompact} value={value} onChange={(e) => setValue(e.target.value)}>
-                        {action !== 'assign' && <option value="">Choose…</option>}
+                        {action !== 'assign' && <option value="">{t('tms.bulk.choose')}</option>}
                         {choices.map(([id, name]) => <option key={id} value={id}>{name}</option>)}
                     </select>
                 ) : (
                     <input type="date" className={fieldClassCompact} value={value} onChange={(e) => setValue(e.target.value)} />
                 )}
-                <Button type="button" onClick={apply} loading={busy} disabled={action !== 'assign' && action !== 'due' && !value}>Apply</Button>
-                <button type="button" onClick={onClear} className="text-xs text-gray-500 hover:underline">Clear</button>
+                <Button type="button" onClick={apply} loading={busy} disabled={action !== 'assign' && action !== 'due' && !value}>{t('tms.bulk.apply')}</Button>
+                <button type="button" onClick={onClear} className="text-xs text-gray-500 hover:underline">{t('tms.bulk.clear')}</button>
             </div>
             {failed.length > 0 && (
                 <ul className="text-xs text-amber-800">

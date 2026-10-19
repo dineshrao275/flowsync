@@ -49,7 +49,7 @@ class ApprovalChainController extends Controller
 
         $this->templates->save($domain, $request->validated(), $request->user());
 
-        return response()->json(['message' => 'Approval chain saved.', 'chain' => $this->present($domain)]);
+        return response()->json(['message' => __('Approval chain saved.'), 'chain' => $this->present($domain)]);
     }
 
     public function reset(string $domain): JsonResponse
@@ -59,7 +59,7 @@ class ApprovalChainController extends Controller
 
         $this->templates->reset($domain, request()->user());
 
-        return response()->json(['message' => 'Approval chain reset to the default.', 'chain' => $this->present($domain)]);
+        return response()->json(['message' => __('Approval chain reset to the default.'), 'chain' => $this->present($domain)]);
     }
 
     /** @return array<string, mixed> */

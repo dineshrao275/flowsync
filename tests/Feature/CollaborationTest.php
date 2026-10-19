@@ -299,6 +299,23 @@ class CollaborationTest extends TestCase
             ->assertForbidden();
     }
 
+    public function test_duplicate_and_clone_links_are_listed_apart_and_never_block_or_cycle(): void
+    {
+        $project = $this->createProjectWithLead();
+        $a = $this->makeTask($project, 'A');
+        $b = $this->makeTask($project, 'B');
+        $this->login('admin@flowsync.test');
+
+        $this->postJson("/api/projects/{$project->id}/tasks/{$a->id}/dependencies", ['depends_on_task_id' => $b->id, 'type' => 'duplicates'])->assertCreated();
+        // The opposite direction would be a cycle for blockers; for a plain link it is allowed.
+        $this->postJson("/api/projects/{$project->id}/tasks/{$b->id}/dependencies", ['depends_on_task_id' => $a->id, 'type' => 'clones'])->assertCreated();
+
+        $mine = $this->getJson("/api/projects/{$project->id}/tasks/{$a->id}/dependencies")->assertOk();
+        $mine->assertJsonCount(0, 'blocked_by')->assertJsonCount(0, 'blocks')->assertJsonCount(2, 'links');
+        $this->assertEqualsCanonicalizing(['outward', 'inward'], array_column($mine->json('links'), 'direction'));
+        $this->assertSame(0, $a->fresh()->openBlockers()->count());
+    }
+
     public function test_removing_dependency_unblocks_move_to_done(): void
     {
         $project = $this->createProjectWithLead();

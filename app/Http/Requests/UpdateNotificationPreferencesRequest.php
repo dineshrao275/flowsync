@@ -14,8 +14,9 @@ class UpdateNotificationPreferencesRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'preferences' => ['required', 'array'],
+            'preferences' => ['required_without:email_mode', 'array'],
             'preferences.*' => ['boolean'],
+            'email_mode' => ['sometimes', 'in:instant,digest'],
         ];
     }
 

@@ -41,7 +41,7 @@ class TenantLifecycle
     {
         if (! $this->canTransition($tenant, $to)) {
             throw ValidationException::withMessages([
-                'status' => "Tenant cannot transition from '{$tenant->status}' to '{$to}'.",
+                'status' => __('Tenant cannot transition from \':status\' to \':to\'.', ['status' => $tenant->status, 'to' => $to]),
             ]);
         }
     }

@@ -8,7 +8,7 @@ use Illuminate\Support\Str;
 
 class WebhookEndpoint extends Model
 {
-    protected $fillable = ['url', 'description', 'secret', 'events', 'is_active', 'consecutive_failures', 'disabled_at', 'disabled_reason', 'created_by'];
+    protected $fillable = ['url', 'description', 'secret', 'events', 'is_active', 'consecutive_failures', 'disabled_at', 'disabled_reason', 'created_by', 'format'];
 
     protected $hidden = ['secret'];
 

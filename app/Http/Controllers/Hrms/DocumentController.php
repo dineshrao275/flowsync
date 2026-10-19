@@ -73,7 +73,7 @@ class DocumentController extends Controller
         );
 
         return response()->json([
-            'message' => 'Document uploaded.',
+            'message' => __('Document uploaded.'),
             'document' => $this->documents->present($document, $request->user()),
         ], Response::HTTP_CREATED);
     }
@@ -100,7 +100,7 @@ class DocumentController extends Controller
 
         $this->documents->delete($document, $request->user());
 
-        return response()->json(['message' => 'Document deleted.']);
+        return response()->json(['message' => __('Document deleted.')]);
     }
 
     /**
@@ -113,7 +113,7 @@ class DocumentController extends Controller
         $document = $this->documents->verify($document, $request->user());
 
         return response()->json([
-            'message' => 'Document verified.',
+            'message' => __('Document verified.'),
             'document' => $this->documents->present($document, $request->user()),
         ]);
     }
@@ -132,7 +132,7 @@ class DocumentController extends Controller
         $document = $this->documents->reject($document, $validated['reason'], $request->user());
 
         return response()->json([
-            'message' => 'Document rejected.',
+            'message' => __('Document rejected.'),
             'document' => $this->documents->present($document, $request->user()),
         ]);
     }

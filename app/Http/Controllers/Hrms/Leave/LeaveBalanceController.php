@@ -60,7 +60,7 @@ class LeaveBalanceController extends Controller
         );
 
         return response()->json([
-            'message' => "Accrual run finished: {$result['credited']} credited, {$result['skipped']} skipped.",
+            'message' => __('Accrual run finished: :credited credited, :skipped skipped.', ['credited' => $result['credited'], 'skipped' => $result['skipped']]),
             ...$result,
         ], Response::HTTP_CREATED);
     }
@@ -77,7 +77,7 @@ class LeaveBalanceController extends Controller
             ? Employee::where('user_id', $request->user()->id)->first()
             : Employee::find($employeeId);
 
-        abort_if($employee === null, 404, 'There is no employment record to read balances for.');
+        abort_if($employee === null, 404, __('There is no employment record to read balances for.'));
 
         $this->authorize('view', [LeaveBalance::class, $employee]);
 

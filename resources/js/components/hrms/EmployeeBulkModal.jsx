@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { Trans, useTranslation } from 'react-i18next';
 import api, { fieldErrors } from '../../services/api';
 import Alert from '../ui/Alert';
 import Button from '../ui/Button';
@@ -9,10 +10,10 @@ import { Table, Th, Td } from '../ui/Table';
 import { useToast } from '../../context/ToastContext';
 
 const TARGETS = [
-    { value: 'active', label: 'Active' },
-    { value: 'probation', label: 'Probation' },
-    { value: 'on_notice', label: 'On notice' },
-    { value: 'suspended', label: 'Suspended' },
+    { value: 'active', key: 'stActive' },
+    { value: 'probation', key: 'stProbation' },
+    { value: 'on_notice', key: 'stNotice' },
+    { value: 'suspended', key: 'stSuspended' },
 ];
 
 /**
@@ -23,6 +24,7 @@ const TARGETS = [
  * decided per person through offboarding.
  */
 export default function EmployeeBulkModal({ mode, onClose, onDone }) {
+    const { t } = useTranslation();
     const toast = useToast();
     const [file, setFile] = useState(null);
     const [report, setReport] = useState(null);
@@ -59,7 +61,7 @@ export default function EmployeeBulkModal({ mode, onClose, onDone }) {
             const { data } = await api.post('/hrms/employees/import/preview', body(), { headers: { 'Content-Type': 'multipart/form-data' } });
             setReport(data);
         } catch (err) {
-            setError(fieldErrors(err).file ?? 'Unable to read that file.');
+            setError(fieldErrors(err).file ?? t('hrms.bulk.readFailed'));
         } finally {
             setBusy(false);
         }
@@ -75,7 +77,7 @@ export default function EmployeeBulkModal({ mode, onClose, onDone }) {
             onDone();
         } catch (err) {
             const errors = fieldErrors(err);
-            setError(errors.file ?? errors.form ?? 'The import failed.');
+            setError(errors.file ?? errors.form ?? t('hrms.bulk.importFailed'));
         } finally {
             setBusy(false);
         }
@@ -97,12 +99,12 @@ export default function EmployeeBulkModal({ mode, onClose, onDone }) {
             if (dryRun) {
                 setPreview(data.results);
             } else {
-                toast.success(`${data.changed} employee(s) updated.`);
+                toast.success(t('hrms.bulk.changed', { count: data.changed }));
                 onDone();
             }
         } catch (err) {
             const errors = fieldErrors(err);
-            setError(errors.to ?? errors.employee_ids ?? errors.form ?? 'The change failed.');
+            setError(errors.to ?? errors.employee_ids ?? errors.form ?? t('hrms.bulk.changeFailed'));
         } finally {
             setBusy(false);
         }
@@ -114,15 +116,14 @@ export default function EmployeeBulkModal({ mode, onClose, onDone }) {
     }
 
     return (
-        <Modal open onClose={onClose} title={mode === 'import' ? 'Import employees from CSV' : 'Change status in bulk'}>
+        <Modal open onClose={onClose} title={mode === 'import' ? t('hrms.bulk.importTitle') : t('hrms.bulk.statusTitle')}>
             <div className="space-y-3 px-6 py-5">
                 {error && <Alert>{error}</Alert>}
 
                 {mode === 'import' ? (
                     <>
                         <p className="text-sm text-gray-500">
-                            Columns: name (required), personal_email, phone, joining_date, department, designation, location, employment_type, work_mode, manager_code.
-                            Logins are not created.
+                            {t('hrms.bulk.columns')}
                         </p>
                         <input
                             type="file"
@@ -135,12 +136,16 @@ export default function EmployeeBulkModal({ mode, onClose, onDone }) {
                         {report && (
                             <>
                                 <p className="text-sm">
-                                    <strong>{report.valid}</strong> valid, <strong>{report.invalid}</strong> with errors
-                                    {report.free_seats !== null && ` · ${report.free_seats} free employee seat(s) on your plan`}
+                                    <Trans
+                                        i18nKey="hrms.bulk.report"
+                                        values={{ valid: report.valid, invalid: report.invalid }}
+                                        components={[<strong key="0" />, <strong key="1" />]}
+                                    />
+                                    {report.free_seats !== null && t('hrms.bulk.seats', { count: report.free_seats })}
                                 </p>
                                 {report.invalid > 0 && (
                                     <Table>
-                                        <thead><tr><Th>Line</Th><Th>Name</Th><Th>Problems</Th></tr></thead>
+                                        <thead><tr><Th>{t('hrms.bulk.thLine')}</Th><Th>{t('hrms.bulk.thName')}</Th><Th>{t('hrms.bulk.thProblems')}</Th></tr></thead>
                                         <tbody>
                                             {report.rows.filter((r) => r.errors.length > 0).map((r) => (
                                                 <tr key={r.line}><Td>{r.line}</Td><Td>{r.name}</Td><Td>{r.errors.join(' ')}</Td></tr>
@@ -151,11 +156,11 @@ export default function EmployeeBulkModal({ mode, onClose, onDone }) {
                             </>
                         )}
                         <div className="flex justify-between gap-2">
-                            <a className="text-sm text-indigo-600 underline" href="/api/hrms/employees/import/sample">Download sample</a>
+                            <a className="text-sm text-[var(--accent-soft-text)] underline" href="/api/hrms/employees/import/sample">{t('hrms.bulk.sample')}</a>
                             <div className="flex gap-2">
-                                <Button variant="secondary" onClick={runPreview} disabled={!file || busy}>Validate</Button>
+                                <Button variant="secondary" onClick={runPreview} disabled={!file || busy}>{t('hrms.bulk.validate')}</Button>
                                 <Button onClick={commit} disabled={!report || report.valid === 0 || busy}>
-                                    Import {report ? report.valid : 0} valid row(s)
+                                    {t('hrms.bulk.import', { count: report ? report.valid : 0 })}
                                 </Button>
                             </div>
                         </div>
@@ -163,11 +168,11 @@ export default function EmployeeBulkModal({ mode, onClose, onDone }) {
                 ) : (
                     <>
                         <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-                            <Select label="New status" value={form.to} onChange={(e) => { setForm({ ...form, to: e.target.value }); setPreview(null); }}>
-                                {TARGETS.map((t) => <option key={t.value} value={t.value}>{t.label}</option>)}
+                            <Select label={t('hrms.bulk.newStatus')} value={form.to} onChange={(e) => { setForm({ ...form, to: e.target.value }); setPreview(null); }}>
+                                {TARGETS.map((target) => <option key={target.value} value={target.value}>{t(`hrms.bulk.${target.key}`)}</option>)}
                             </Select>
-                            <Input type="date" label="Effective date" value={form.effective_date} onChange={(e) => setForm({ ...form, effective_date: e.target.value })} />
-                            <Input label="Reason" value={form.reason} onChange={(e) => setForm({ ...form, reason: e.target.value })} />
+                            <Input type="date" label={t('hrms.bulk.effectiveDate')} value={form.effective_date} onChange={(e) => setForm({ ...form, effective_date: e.target.value })} />
+                            <Input label={t('hrms.bulk.reason')} value={form.reason} onChange={(e) => setForm({ ...form, reason: e.target.value })} />
                         </div>
                         <div className="max-h-56 overflow-y-auto rounded-lg border border-gray-200 p-2">
                             {people.map((p) => (
@@ -186,8 +191,8 @@ export default function EmployeeBulkModal({ mode, onClose, onDone }) {
                             </ul>
                         )}
                         <div className="flex justify-end gap-2">
-                            <Button variant="secondary" onClick={() => runStatus(true)} disabled={picked.length === 0 || busy}>Preview</Button>
-                            <Button onClick={() => runStatus(false)} disabled={!preview || busy}>Apply to {picked.length}</Button>
+                            <Button variant="secondary" onClick={() => runStatus(true)} disabled={picked.length === 0 || busy}>{t('hrms.bulk.preview')}</Button>
+                            <Button onClick={() => runStatus(false)} disabled={!preview || busy}>{t('hrms.bulk.apply', { count: picked.length })}</Button>
                         </div>
                     </>
                 )}

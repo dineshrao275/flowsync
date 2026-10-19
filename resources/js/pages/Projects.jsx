@@ -1,8 +1,10 @@
 import { useEffect, useState } from 'react';
+import ProgressBar from '../components/ui/ProgressBar';
 import { Link } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import api from '../services/api';
 import Badge from '../components/ui/Badge';
-import Spinner from '../components/ui/Spinner';
+import ContentSkeleton from '../components/ui/ContentSkeleton';
 import Alert from '../components/ui/Alert';
 import { Table, Th, Td, TableEmpty } from '../components/ui/Table';
 import { useSetCrumbs } from '../context/BreadcrumbContext';
@@ -10,14 +12,15 @@ import usePageTitle from '../hooks/usePageTitle';
 import { projectRoleLabel } from '../utils/roles';
 
 export default function Projects() {
-    usePageTitle('Projects');
+    const { t } = useTranslation();
+    usePageTitle(t('tms.projectsList.pageTitle'));
     const setCrumbs = useSetCrumbs();
     const [projects, setProjects] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
 
     useEffect(() => {
-        setCrumbs([{ label: 'Projects' }]);
+        setCrumbs([{ label: t('tms.projectsList.pageTitle') }]);
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
@@ -26,7 +29,7 @@ export default function Projects() {
             const { data } = await api.get('/projects');
             setProjects(data.projects);
         } catch {
-            setError('Unable to load projects.');
+            setError(t('tms.projectsList.loadFailed'));
         } finally {
             setLoading(false);
         }
@@ -39,14 +42,12 @@ export default function Projects() {
 
     if (loading) {
         return (
-            <div className="flex justify-center py-20">
-                <Spinner />
-            </div>
+            <ContentSkeleton size="lg" />
         );
     }
 
     const grouped = projects.reduce((acc, project) => {
-        const key = project.workspace?.name || `Workspace ${project.workspace_id}`;
+        const key = project.workspace?.name || t('tms.projectsList.workspaceFallback', { id: project.workspace_id });
         (acc[key] ||= { workspaceId: project.workspace_id, projects: [] }).projects.push(project);
         return acc;
     }, {});
@@ -54,8 +55,8 @@ export default function Projects() {
     return (
         <div className="space-y-6">
             <div>
-                <h2 className="text-2xl font-bold text-gray-900">Projects</h2>
-                <p className="mt-1 text-sm text-gray-500">All projects you can access across your workspaces.</p>
+                <h2 className="text-2xl font-bold text-gray-900">{t('tms.projectsList.pageTitle')}</h2>
+                <p className="mt-1 text-sm text-gray-500">{t('tms.projectsList.subtitle')}</p>
             </div>
 
             {error && <Alert>{error}</Alert>}
@@ -64,15 +65,15 @@ export default function Projects() {
                 <Table>
                     <thead>
                         <tr>
-                            <Th>Project</Th>
-                            <Th>Description</Th>
-                            <Th>Your role</Th>
-                            <Th align="right">Tasks</Th>
-                            <Th align="right">Members</Th>
+                            <Th>{t('tms.projectsList.thProject')}</Th>
+                            <Th>{t('tms.projectsList.thDescription')}</Th>
+                            <Th>{t('tms.projectsList.thRole')}</Th>
+                            <Th align="right">{t('tms.projectsList.thTasks')}</Th>
+                            <Th align="right">{t('tms.projectsList.thMembers')}</Th>
                         </tr>
                     </thead>
                     <tbody>
-                        <TableEmpty colSpan={5}>No projects yet. Create one from a workspace.</TableEmpty>
+                        <TableEmpty colSpan={5}>{t('tms.projectsList.empty')}</TableEmpty>
                     </tbody>
                 </Table>
             ) : (
@@ -82,11 +83,11 @@ export default function Projects() {
                         <Table>
                             <thead>
                                 <tr>
-                                    <Th>Project</Th>
-                                    <Th>Description</Th>
-                                    <Th>Your role</Th>
-                                    <Th align="right">Tasks</Th>
-                                    <Th align="right">Members</Th>
+                                    <Th>{t('tms.projectsList.thProject')}</Th>
+                                    <Th>{t('tms.projectsList.thDescription')}</Th>
+                                    <Th>{t('tms.projectsList.thRole')}</Th>
+                                    <Th align="right">{t('tms.projectsList.thTasks')}</Th>
+                                    <Th align="right">{t('tms.projectsList.thMembers')}</Th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -99,7 +100,7 @@ export default function Projects() {
                                         <Td>
                                             <Link
                                                 to={`/projects/${project.id}`}
-                                                className="flex items-center gap-3 font-medium text-gray-900 hover:text-indigo-600"
+                                                className="flex items-center gap-3 font-medium text-gray-900 hover:text-[var(--accent-soft-text)]"
                                             >
                                                 <span
                                                     className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-xs font-bold text-white"
@@ -107,15 +108,15 @@ export default function Projects() {
                                                 >
                                                     {project.key}
                                                 </span>
-                                                <span className="flex min-w-0 flex-wrap items-center gap-2">
+                                                 <span className="flex min-w-0 flex-wrap items-center gap-2">
                                                     <span className="truncate">{project.name}</span>
-                                                    {project.archived_at && <Badge>archived</Badge>}
+                                                    {project.archived_at && <Badge>{t('tms.projectsList.archived')}</Badge>}
                                                 </span>
                                             </Link>
                                         </Td>
                                         <Td>
                                             <span className="block max-w-md truncate text-gray-500">
-                                                {project.description || 'No description'}
+                                                {project.description || t('tms.projectsList.noDescription')}
                                             </span>
                                         </Td>
                                         <Td>
@@ -129,6 +130,9 @@ export default function Projects() {
                                         </Td>
                                         <Td align="right" className="tabular-nums">
                                             {project.tasks_count}
+                                            {project.tasks_count > 0 && (
+                                                <ProgressBar className="mt-1 min-w-24" value={project.done_tasks_count ?? 0} max={project.tasks_count} label={t('tms.project.progress')} showPercent />
+                                            )}
                                         </Td>
                                         <Td align="right" className="tabular-nums">
                                             {project.members_count}

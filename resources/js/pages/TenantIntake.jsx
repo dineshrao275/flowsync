@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import api, { fieldErrors } from '../services/api';
 import IntakeWizard from '../components/tenant/IntakeWizard';
-import Spinner from '../components/ui/Spinner';
+import ContentSkeleton from '../components/ui/ContentSkeleton';
 import { useToast } from '../context/ToastContext';
 import { useSetCrumbs } from '../context/BreadcrumbContext';
 import usePageTitle from '../hooks/usePageTitle';
@@ -20,10 +21,11 @@ const EMPTY = {
  */
 export default function TenantIntake() {
     const { tenantId } = useParams();
+    const { t } = useTranslation();
     const navigate = useNavigate();
     const toast = useToast();
     const setCrumbs = useSetCrumbs();
-    usePageTitle(tenantId ? 'Finish tenant setup' : 'New tenant');
+    usePageTitle(tenantId ? t('admin.tenantIntake.finishTitle') : t('admin.tenantIntake.newTitle'));
 
     const [draftId, setDraftId] = useState(tenantId ? Number(tenantId) : null);
     const [values, setValues] = useState(EMPTY);
@@ -33,8 +35,8 @@ export default function TenantIntake() {
     const [errors, setErrors] = useState({});
 
     useEffect(() => {
-        setCrumbs([{ label: 'Tenants', to: '/tenants' }, { label: tenantId ? 'Finish setup' : 'New tenant' }]);
-    }, [setCrumbs, tenantId]);
+        setCrumbs([{ label: t('admin.tenants.pageTitle'), to: '/tenants' }, { label: tenantId ? t('admin.tenantIntake.crumbFinish') : t('admin.tenantIntake.newTitle') }]);
+    }, [setCrumbs, t, tenantId]);
 
     useEffect(() => {
         let active = true;
@@ -50,7 +52,7 @@ export default function TenantIntake() {
                     setValues({ ...EMPTY, ...Object.fromEntries(Object.entries(v).filter(([, x]) => x !== null && x !== undefined)) });
                 }
             })
-            .catch(() => active && toast.error('Unable to load the tenant wizard.'))
+            .catch(() => active && toast.error(t('admin.tenantIntake.loadError')))
             .finally(() => active && setLoading(false));
         return () => { active = false; };
         // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -97,7 +99,7 @@ export default function TenantIntake() {
                 admin_password: password,
                 admin_password_confirmation: confirmation,
             });
-            toast.success(`Tenant "${values.name}" is being provisioned.`);
+            toast.success(t('admin.tenantIntake.provisioning', { name: values.name }));
             navigate(`/tenants/${id}`, { replace: true });
         } catch (e) {
             setErrors(fieldErrors(e));
@@ -107,15 +109,15 @@ export default function TenantIntake() {
     }
 
     if (loading) {
-        return <div className="flex justify-center py-20"><Spinner /></div>;
+        return <ContentSkeleton size="lg" />;
     }
 
     return (
         <div className="mx-auto max-w-4xl space-y-4">
             <div>
-                <h2 className="text-2xl font-bold text-gray-900">{tenantId ? 'Finish tenant setup' : 'New tenant'}</h2>
+                <h2 className="text-2xl font-bold text-gray-900">{tenantId ? t('admin.tenantIntake.finishTitle') : t('admin.tenantIntake.newTitle')}</h2>
                 <p className="mt-1 text-sm text-gray-500">
-                    The tenant stays a draft, with no database, until every required field is complete.
+                    {t('admin.tenantIntake.subtitle')}
                 </p>
             </div>
             <IntakeWizard
@@ -127,7 +129,7 @@ export default function TenantIntake() {
                 saving={saving}
                 onSaveStep={saveStep}
                 onSubmit={submit}
-                submitLabel="Create & provision tenant"
+                submitLabel={t('admin.tenantIntake.submitLabel')}
             />
         </div>
     );

@@ -26,7 +26,7 @@ class EnsurePermission
         $user = $request->user();
 
         if (! $user) {
-            abort(403, 'Authentication is required for this action.');
+            abort(403, __('Authentication is required for this action.'));
         }
 
         if ($user->is_super_admin && ! app(TenantContext::class)->impersonating()) {

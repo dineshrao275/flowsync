@@ -70,7 +70,7 @@ class ProjectMemberController extends Controller
             $request->user(),
         );
 
-        return response()->json(['message' => 'Member added.'], 201);
+        return response()->json(['message' => __('Member added.')], 201);
     }
 
     public function update(Request $request, Project $project, User $user): JsonResponse
@@ -83,7 +83,7 @@ class ProjectMemberController extends Controller
 
         $this->service->changeMemberRole($project, $user, $data['role_id'], $request->user());
 
-        return response()->json(['message' => 'Member role updated.']);
+        return response()->json(['message' => __('Member role updated.')]);
     }
 
     public function destroy(Request $request, Project $project, User $user): JsonResponse
@@ -92,7 +92,7 @@ class ProjectMemberController extends Controller
 
         $this->service->removeMember($project, $user, $request->user());
 
-        return response()->json(['message' => 'Member removed.']);
+        return response()->json(['message' => __('Member removed.')]);
     }
 
     private function present(User $user): array

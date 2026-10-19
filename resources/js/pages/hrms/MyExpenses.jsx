@@ -1,11 +1,12 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import api from '../../services/api';
 import Alert from '../../components/ui/Alert';
 import Button from '../../components/ui/Button';
 import Card from '../../components/ui/Card';
 import EmptyState from '../../components/ui/EmptyState';
-import Spinner from '../../components/ui/Spinner';
+import ContentSkeleton from '../../components/ui/ContentSkeleton';
 import { useToast } from '../../context/ToastContext';
 import { useAuth } from '../../context/AuthContext';
 import { useSetCrumbs } from '../../context/BreadcrumbContext';
@@ -22,7 +23,8 @@ import ExpenseClaimModal from '../../components/hrms/ExpenseClaimModal';
  * file into someone else's name.
  */
 export default function MyExpenses() {
-    usePageTitle('My expenses');
+    const { t } = useTranslation();
+    usePageTitle(t('hrms.myExpenses.pageTitle'));
     const setCrumbs = useSetCrumbs();
     const navigate = useNavigate();
     const toast = useToast();
@@ -38,8 +40,8 @@ export default function MyExpenses() {
     const [editing, setEditing] = useState(null);
 
     useEffect(() => {
-        setCrumbs([{ label: 'HRMS', to: '/hrms' }, { label: 'My expenses' }]);
-    }, [setCrumbs]);
+        setCrumbs([{ label: 'HRMS', to: '/hrms' }, { label: t('hrms.myExpenses.pageTitle') }]);
+    }, [setCrumbs, t]);
 
     const load = useCallback(() => {
         setError(null);
@@ -53,9 +55,9 @@ export default function MyExpenses() {
                     return;
                 }
 
-                setError('Unable to load your claims.');
+                setError(t('hrms.myExpenses.loadFailed'));
             });
-    }, [navigate]);
+    }, [navigate, t]);
 
     useEffect(() => {
         load();
@@ -81,10 +83,10 @@ export default function MyExpenses() {
     async function submit(claim) {
         try {
             await api.post(`/hrms/expenses/claims/${claim.id}/submit`, {});
-            toast.success('Claim submitted for approval.');
+            toast.success(t('hrms.myExpenses.submitted'));
             load();
         } catch {
-            setError('That claim cannot be submitted.');
+            setError(t('hrms.myExpenses.submitFailed'));
         }
     }
 
@@ -102,20 +104,20 @@ export default function MyExpenses() {
         <div className="space-y-4">
             <div className="flex flex-wrap items-center justify-between gap-3">
                 <div>
-                    <h2 className="text-xl font-semibold text-gray-900">My expenses</h2>
+                    <h2 className="text-xl font-semibold text-gray-900">{t('hrms.myExpenses.pageTitle')}</h2>
                     <p className="mt-0.5 text-sm text-gray-500">
-                        {claims ? `${claims.length} claim${claims.length === 1 ? '' : 's'}` : '—'}
+                        {claims ? (claims.length === 1 ? t('hrms.myExpenses.claimCountOne') : t('hrms.myExpenses.claimCount', { count: claims.length })) : '—'}
                     </p>
                 </div>
-                {employeeId && <Button onClick={openNew}>File a claim</Button>}
+                {employeeId && <Button onClick={openNew}>{t('hrms.myExpenses.fileClaim')}</Button>}
             </div>
 
             {error && <Alert>{error}</Alert>}
 
             {!claims ? (
-                <div className="flex justify-center py-10"><Spinner /></div>
+                <ContentSkeleton size="md" />
             ) : claims.length === 0 ? (
-                <EmptyState title="No claims yet" hint="File your first receipted claim above." />
+                <EmptyState title={t('hrms.myExpenses.emptyTitle')} hint={t('hrms.myExpenses.emptyHint')} />
             ) : (
                 <Card dense>
                     <ul className="divide-y divide-gray-100">
@@ -130,8 +132,8 @@ export default function MyExpenses() {
                                     <div className="flex gap-2">
                                         {claim.status === 'draft' && (
                                             <>
-                                                <Button size="sm" variant="secondary" onClick={() => openEdit(claim)}>Lines</Button>
-                                                <Button size="sm" onClick={() => submit(claim)}>Submit</Button>
+                                                <Button size="sm" variant="secondary" onClick={() => openEdit(claim)}>{t('hrms.myExpenses.lines')}</Button>
+                                                <Button size="sm" onClick={() => submit(claim)}>{t('hrms.common.submit')}</Button>
                                             </>
                                         )}
                                     </div>
@@ -140,7 +142,7 @@ export default function MyExpenses() {
                                     {(claim.items ?? []).map((item) => (
                                         <li key={item.id}>
                                             {item.description} · {item.amount}
-                                            {item.receipt_document_id ? ' · receipt attached' : ''}
+                                            {item.receipt_document_id ? ` · ${t('hrms.myExpenses.receiptAttached')}` : ''}
                                         </li>
                                     ))}
                                 </ul>

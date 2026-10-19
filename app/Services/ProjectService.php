@@ -8,6 +8,7 @@ use App\Models\ProjectRole;
 use App\Models\TaskStatus;
 use App\Models\User;
 use App\Models\Workspace;
+use App\Services\Projects\ProjectIssueScheme;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
@@ -23,7 +24,7 @@ class ProjectService
         $query = Project::where('workspace_id', $workspace->id)
             ->with('workspace')
             ->with(['members' => fn ($q) => $q->where('user_id', $user->id)])
-            ->withCount(['members', 'tasks', 'statuses'])
+            ->withCount(['members', 'tasks', 'statuses', 'tasks as done_tasks_count' => fn ($q) => $q->whereNotNull('completed_at')])
             ->orderBy('name');
 
         if (! $user->hasPermission('workspaces.manage')) {
@@ -38,7 +39,7 @@ class ProjectService
         $query = Project::query()
             ->with('workspace')
             ->with(['members' => fn ($q) => $q->where('user_id', $user->id)])
-            ->withCount(['members', 'tasks', 'statuses'])
+            ->withCount(['members', 'tasks', 'statuses', 'tasks as done_tasks_count' => fn ($q) => $q->whereNotNull('completed_at')])
             ->orderBy('name');
 
         if (! $user->hasPermission('workspaces.manage')) {
@@ -53,6 +54,7 @@ class ProjectService
         $this->limits->assertQuota('projects');
 
         $key = $this->uniqueProjectKey($data['key'] ?? $this->suggestKey($data['name']));
+        $boardType = $data['board_type'] ?? config('board_types.default', 'kanban');
 
         $project = Project::create([
             'workspace_id' => $workspace->id,
@@ -66,9 +68,11 @@ class ProjectService
             'default_assignee_id' => $data['default_assignee_id'] ?? null,
             'start_date' => $data['start_date'] ?? null,
             'due_date' => $data['due_date'] ?? null,
+            'board_type' => $boardType,
         ]);
 
-        $this->seedDefaultStatuses($project);
+        $this->seedDefaultStatuses($project, $boardType);
+        ProjectIssueScheme::seedFor($project, $boardType);
 
         $leadRole = ProjectRole::where('slug', 'lead')->firstOrFail();
         $project->members()->attach($creator->id, [
@@ -112,7 +116,7 @@ class ProjectService
     {
         if ($project->tasks()->exists()) {
             throw ValidationException::withMessages([
-                'form' => 'Cannot delete a project that still contains tasks. Archive it instead.',
+                'form' => __('Cannot delete a project that still contains tasks. Archive it instead.'),
             ]);
         }
 
@@ -126,19 +130,19 @@ class ProjectService
 
         if ($user === null) {
             throw ValidationException::withMessages([
-                'user_id' => 'The selected user does not belong to this tenant.',
+                'user_id' => __('The selected user does not belong to this tenant.'),
             ]);
         }
 
         if (! $project->workspace->isMember($user)) {
             throw ValidationException::withMessages([
-                'user_id' => 'The selected user must be a member of the workspace first.',
+                'user_id' => __('The selected user must be a member of the workspace first.'),
             ]);
         }
 
         if ($project->isMember($user)) {
             throw ValidationException::withMessages([
-                'user_id' => 'This user is already a member of the project.',
+                'user_id' => __('This user is already a member of the project.'),
             ]);
         }
 
@@ -152,7 +156,7 @@ class ProjectService
     {
         if (! $project->isMember($member)) {
             throw ValidationException::withMessages([
-                'form' => 'This user is not a member of the project.',
+                'form' => __('This user is not a member of the project.'),
             ]);
         }
 
@@ -168,13 +172,13 @@ class ProjectService
     {
         if (! $project->isMember($member)) {
             throw ValidationException::withMessages([
-                'form' => 'This user is not a member of the project.',
+                'form' => __('This user is not a member of the project.'),
             ]);
         }
 
         if ($project->members()->count() <= 1) {
             throw ValidationException::withMessages([
-                'form' => 'A project must keep at least one member.',
+                'form' => __('A project must keep at least one member.'),
             ]);
         }
 
@@ -187,18 +191,22 @@ class ProjectService
 
         if ($role === null) {
             throw ValidationException::withMessages([
-                'role_id' => 'The selected project role is invalid.',
+                'role_id' => __('The selected project role is invalid.'),
             ]);
         }
 
         return $role;
     }
 
-    private function seedDefaultStatuses(Project $project): void
+    private function seedDefaultStatuses(Project $project, string $boardType = 'kanban'): void
     {
         $position = 0;
+        $keep = config("board_types.types.$boardType.statuses");
 
         foreach (config('task_statuses.statuses') as $status) {
+            if (is_array($keep) && ! in_array($status['slug'], $keep, true)) {
+                continue;
+            }
             $position++;
 
             TaskStatus::create([
@@ -260,13 +268,13 @@ class ProjectService
 
         if ($project->statuses()->count() <= 1) {
             throw ValidationException::withMessages([
-                'form' => 'A project must keep at least one status.',
+                'form' => __('A project must keep at least one status.'),
             ]);
         }
 
         if ($status->tasks()->exists()) {
             throw ValidationException::withMessages([
-                'form' => 'Cannot delete a status that still has tasks. Move or delete them first.',
+                'form' => __('Cannot delete a status that still has tasks. Move or delete them first.'),
             ]);
         }
 

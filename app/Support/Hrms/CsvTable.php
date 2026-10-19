@@ -31,7 +31,7 @@ final class CsvTable
         foreach ($required as $column) {
             if (! in_array($column, $header, true)) {
                 fclose($handle);
-                throw ValidationException::withMessages(['file' => "The CSV needs a '{$column}' column. Download the sample for the expected format."]);
+                throw ValidationException::withMessages(['file' => __('The CSV needs a \':column\' column. Download the sample for the expected format.', ['column' => $column])]);
             }
         }
 
@@ -48,13 +48,13 @@ final class CsvTable
 
             if (count($rows) > $maxRows) {
                 fclose($handle);
-                throw ValidationException::withMessages(['file' => "A single import is limited to {$maxRows} rows. Split the file."]);
+                throw ValidationException::withMessages(['file' => __('A single import is limited to :maxrows rows. Split the file.', ['maxrows' => $maxRows])]);
             }
         }
         fclose($handle);
 
         if ($rows === []) {
-            throw ValidationException::withMessages(['file' => 'The CSV has no data rows.']);
+            throw ValidationException::withMessages(['file' => __('The CSV has no data rows.')]);
         }
 
         return $rows;

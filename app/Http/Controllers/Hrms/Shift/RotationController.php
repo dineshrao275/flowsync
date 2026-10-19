@@ -35,7 +35,7 @@ class RotationController extends Controller
         $this->authorize('create', AttendanceRotation::class);
 
         return response()->json([
-            'message' => 'Rotation created.',
+            'message' => __('Rotation created.'),
             'rotation' => $this->rotations->create($request->validated(), $request->user()),
         ], Response::HTTP_CREATED);
     }
@@ -45,7 +45,7 @@ class RotationController extends Controller
         $this->authorize('update', $rotation);
 
         return response()->json([
-            'message' => 'Rotation updated.',
+            'message' => __('Rotation updated.'),
             'rotation' => $this->rotations->update($rotation, $request->validated(), $request->user()),
         ]);
     }
@@ -56,7 +56,7 @@ class RotationController extends Controller
 
         $this->rotations->delete($rotation, $request->user());
 
-        return response()->json(['message' => 'Rotation deleted.']);
+        return response()->json(['message' => __('Rotation deleted.')]);
     }
 
     public function apply(RotationApplyRequest $request, AttendanceRotation $rotation): JsonResponse
@@ -73,6 +73,6 @@ class RotationController extends Controller
             $request->user(),
         );
 
-        return response()->json(['message' => "Rotation applied to {$result['employees']} employee(s).", ...$result], Response::HTTP_CREATED);
+        return response()->json(['message' => __('Rotation applied to :employees employee(s).', ['employees' => $result['employees']]), ...$result], Response::HTTP_CREATED);
     }
 }

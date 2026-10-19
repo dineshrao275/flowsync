@@ -79,11 +79,11 @@ class ShiftService
     public function delete(AttendanceShift $shift, ?User $actor = null): void
     {
         if ($shift->is_system) {
-            throw ValidationException::withMessages(['form' => 'Starter shifts cannot be deleted. Deactivate it instead.']);
+            throw ValidationException::withMessages(['form' => __('Starter shifts cannot be deleted. Deactivate it instead.')]);
         }
 
         if ($shift->rosters()->exists() || Employee::query()->where('shift_id', $shift->id)->exists()) {
-            throw ValidationException::withMessages(['form' => 'People are still rostered on this shift. Reassign them or deactivate the shift.']);
+            throw ValidationException::withMessages(['form' => __('People are still rostered on this shift. Reassign them or deactivate the shift.')]);
         }
 
         DB::transaction(function () use ($shift, $actor): void {
@@ -101,7 +101,7 @@ class ShiftService
     public function assignDefault(?AttendanceShift $shift, array $employeeIds, ?User $actor = null): int
     {
         if ($shift !== null && ! $shift->is_active) {
-            throw ValidationException::withMessages(['shift_id' => 'An inactive shift cannot be assigned.']);
+            throw ValidationException::withMessages(['shift_id' => __('An inactive shift cannot be assigned.')]);
         }
 
         return DB::transaction(function () use ($shift, $employeeIds, $actor): int {

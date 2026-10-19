@@ -45,7 +45,7 @@ class ExpenseCategoryController extends Controller
         $category = $this->catalog->create($request->validated(), $request->user());
 
         return response()->json([
-            'message' => 'Category created.',
+            'message' => __('Category created.'),
             'category' => $this->present($category),
         ], Response::HTTP_CREATED);
     }
@@ -57,7 +57,7 @@ class ExpenseCategoryController extends Controller
         $updated = $this->catalog->update($category, $request->validated(), $request->user());
 
         return response()->json([
-            'message' => 'Category updated.',
+            'message' => __('Category updated.'),
             'category' => $this->present($updated),
         ]);
     }
@@ -68,7 +68,7 @@ class ExpenseCategoryController extends Controller
 
         $this->catalog->delete($category, $request->user());
 
-        return response()->json(['message' => 'Category deleted.']);
+        return response()->json(['message' => __('Category deleted.')]);
     }
 
     /**

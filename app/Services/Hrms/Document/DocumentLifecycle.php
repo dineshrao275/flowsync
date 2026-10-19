@@ -63,7 +63,7 @@ class DocumentLifecycle
         $reason = trim($reason);
 
         if ($reason === '' || mb_strlen($reason) > 255) {
-            throw ValidationException::withMessages(['rejection_reason' => 'A rejection needs a short reason the employee can act on.']);
+            throw ValidationException::withMessages(['rejection_reason' => __('A rejection needs a short reason the employee can act on.')]);
         }
 
         $this->requireTransition($document, DocumentStatus::Rejected);
@@ -132,7 +132,7 @@ class DocumentLifecycle
     public function expireSoon(Employee $employee, int $days): Collection
     {
         if ($days < 0) {
-            throw ValidationException::withMessages(['days' => 'The warning window cannot look backwards.']);
+            throw ValidationException::withMessages(['days' => __('The warning window cannot look backwards.')]);
         }
 
         return EmployeeDocument::query()
@@ -156,7 +156,7 @@ class DocumentLifecycle
         if (Storage::disk($document->file_disk)->exists($path)
             && ! Storage::disk($document->file_disk)->delete($path)
         ) {
-            throw ValidationException::withMessages(['form' => 'The file could not be removed, so the row was left alone.']);
+            throw ValidationException::withMessages(['form' => __('The file could not be removed, so the row was left alone.')]);
         }
 
         $document->delete();
@@ -172,7 +172,7 @@ class DocumentLifecycle
     private function requireTransition(EmployeeDocument $document, DocumentStatus $to): void
     {
         if (! $document->status->canTransitionTo($to)) {
-            throw ValidationException::withMessages(['form' => "A {$document->status->value} document cannot become {$to->value}."]);
+            throw ValidationException::withMessages(['form' => __('A :status document cannot become :to.', ['status' => $document->status->value, 'to' => $to->value])]);
         }
     }
 

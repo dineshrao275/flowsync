@@ -179,13 +179,13 @@ class DepartmentService
     {
         if ($department->employees()->exists()) {
             throw ValidationException::withMessages([
-                'form' => 'This department still has employees. Move them to another department, or deactivate the department instead.',
+                'form' => __('This department still has employees. Move them to another department, or deactivate the department instead.'),
             ]);
         }
 
         if ($department->children()->exists()) {
             throw ValidationException::withMessages([
-                'form' => 'This department still has sub-departments. Move them, or deactivate the department instead.',
+                'form' => __('This department still has sub-departments. Move them, or deactivate the department instead.'),
             ]);
         }
 
@@ -255,7 +255,7 @@ class DepartmentService
 
         if ($head->status !== EmployeeStatus::Active) {
             throw ValidationException::withMessages([
-                'head_employee_id' => 'A department head has to be an active employee.',
+                'head_employee_id' => __('A department head has to be an active employee.'),
             ]);
         }
 

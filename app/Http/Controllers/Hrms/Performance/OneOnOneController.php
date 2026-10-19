@@ -64,7 +64,7 @@ class OneOnOneController extends Controller
         $oneOnOne = OneOnOne::create([...$request->validated(), 'created_by' => $request->user()->id]);
 
         return response()->json([
-            'message' => 'One-on-one scheduled.',
+            'message' => __('One-on-one scheduled.'),
             'one_on_one' => $this->present($oneOnOne->refresh()),
         ], Response::HTTP_CREATED);
     }
@@ -76,7 +76,7 @@ class OneOnOneController extends Controller
         $oneOnOne->update($request->validated());
 
         return response()->json([
-            'message' => 'One-on-one updated.',
+            'message' => __('One-on-one updated.'),
             'one_on_one' => $this->present($oneOnOne->refresh()),
         ]);
     }

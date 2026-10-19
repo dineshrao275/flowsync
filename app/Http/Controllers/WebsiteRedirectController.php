@@ -52,6 +52,6 @@ class WebsiteRedirectController extends Controller
 
         $websiteRedirect->delete();
 
-        return response()->json(['message' => 'Redirect deleted.']);
+        return response()->json(['message' => __('Redirect deleted.')]);
     }
 }

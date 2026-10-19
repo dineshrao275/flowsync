@@ -34,7 +34,7 @@ class HolidayAssignments
     public function assign(Employee $employee, HolidayCalendar $calendar, Carbon|string $from, Carbon|string|null $to = null, ?User $actor = null): EmployeeHolidayCalendar
     {
         if (! $calendar->is_active) {
-            throw ValidationException::withMessages(['calendar_id' => 'That calendar is not active.']);
+            throw ValidationException::withMessages(['calendar_id' => __('That calendar is not active.')]);
         }
 
         $from = $from instanceof Carbon ? $from->toDateString() : (string) $from;
@@ -48,7 +48,7 @@ class HolidayAssignments
             ->exists();
 
         if ($overlap) {
-            throw ValidationException::withMessages(['form' => 'This calendar already covers part of that window.']);
+            throw ValidationException::withMessages(['form' => __('This calendar already covers part of that window.')]);
         }
 
         $assignment = EmployeeHolidayCalendar::create([
@@ -92,11 +92,11 @@ class HolidayAssignments
         $status = $status instanceof OptionalHolidayStatus ? $status : OptionalHolidayStatus::tryFrom((string) $status);
 
         if ($status === null) {
-            throw ValidationException::withMessages(['status' => 'An answer is taken or skipped.']);
+            throw ValidationException::withMessages(['status' => __('An answer is taken or skipped.')]);
         }
 
         if ($holiday->type === HolidayType::Public) {
-            throw ValidationException::withMessages(['holiday_id' => 'Public holidays need no declaration.']);
+            throw ValidationException::withMessages(['holiday_id' => __('Public holidays need no declaration.')]);
         }
 
         $answer = HolidayOptionalHoliday::updateOrCreate(

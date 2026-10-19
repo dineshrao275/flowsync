@@ -4,7 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\BlogCategory;
 use App\Models\BlogPost;
-use App\Models\PlatformSetting;
+use App\Support\AppName;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Illuminate\View\View;
@@ -25,8 +25,8 @@ class BlogController extends Controller
         return $this->render('blog.index', [
             'posts' => $posts,
             'title' => 'Blog',
-            'seoTitle' => 'Blog — '.PlatformSetting::value('app_name', 'FlowSync'),
-            'metaDescription' => 'Guides, changelogs, and notes from the FlowSync team.',
+            'seoTitle' => 'Blog — '.AppName::get(),
+            'metaDescription' => 'Guides, changelogs, and notes from the '.AppName::get().' team.',
             'crumbs' => [['name' => 'Home', 'url' => url('/')], ['name' => 'Blog']],
         ]);
     }
@@ -101,9 +101,9 @@ class BlogController extends Controller
 
         $xml = '<?xml version="1.0" encoding="UTF-8"?>'."\n"
             .'<rss version="2.0"><channel>'."\n"
-            .'<title>'.e(PlatformSetting::value('app_name', 'FlowSync').' Blog').'</title>'."\n"
+            .'<title>'.e(AppName::get().' Blog').'</title>'."\n"
             .'<link>'.e(url('/blog')).'</link>'."\n"
-            .'<description>'.e('Guides, changelogs, and notes from the FlowSync team.').'</description>'."\n";
+            .'<description>'.e('Guides, changelogs, and notes from the '.AppName::get().' team.').'</description>'."\n";
 
         foreach ($posts as $post) {
             $xml .= '<item>'
@@ -172,7 +172,7 @@ class BlogController extends Controller
     private function pageData(array $data): array
     {
         return $data + [
-            'siteName' => (string) PlatformSetting::value('app_name', 'FlowSync'),
+            'siteName' => AppName::get(),
             'crumbs' => [],
             'faqSchema' => [],
         ];

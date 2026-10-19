@@ -123,6 +123,51 @@ class PayrollLifecycle
     }
 
     /**
+     * Take a run back to review so a mistake can be corrected. Allowed from approved, published
+     * (processing) and paid; a locked run is sealed history and never reopens. Payslips that were
+     * released go back to draft (employees stop seeing them until the run is published again) and
+     * the run's approval and processing stamps are cleared — it has to be approved afresh. The
+     * reason and the state it was reopened from ride the audit row.
+     *
+     * @throws ValidationException when locked, not yet approved, or no reason is given
+     */
+    public function reopen(PayrollRun $run, string $reason, ?User $actor = null): PayrollRun
+    {
+        if ($run->status === PayrollRunStatus::Locked) {
+            throw ValidationException::withMessages(['run' => __('Locked runs are sealed history.')]);
+        }
+
+        if (! in_array($run->status, [PayrollRunStatus::Approved, PayrollRunStatus::Processing, PayrollRunStatus::Paid], true)) {
+            throw ValidationException::withMessages(['run' => __('A run can be reopened only after approval and before it is locked.')]);
+        }
+
+        if (mb_strlen(trim($reason)) < 10) {
+            throw ValidationException::withMessages(['reason' => __('Say why the run is being reopened (at least 10 characters).')]);
+        }
+
+        return DB::transaction(function () use ($run, $reason, $actor): PayrollRun {
+            $from = $run->status->value;
+
+            $run->payslips()->whereIn('status', [PayslipStatus::Published->value, PayslipStatus::Paid->value, PayslipStatus::Disputed->value])
+                ->update(['status' => PayslipStatus::Draft->value, 'published_at' => null]);
+
+            $run->update([
+                'status' => PayrollRunStatus::Review,
+                'approved_by_user_id' => null,
+                'approved_at' => null,
+                'processed_at' => null,
+            ]);
+
+            $this->audit->log($run->refresh(), 'payroll.reopened', ['status' => $from], [
+                'status' => 'review',
+                'reason' => trim($reason),
+            ], $actor);
+
+            return $run->refresh();
+        });
+    }
+
+    /**
      * @throws ValidationException on any other state
      */
     private function require(PayrollRun $run, PayrollRunStatus $expected, string $message): void

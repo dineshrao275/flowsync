@@ -1,5 +1,5 @@
 import { Navigate, Outlet } from 'react-router-dom';
-import Spinner from './ui/Spinner';
+import AppSkeleton from './ui/AppSkeleton';
 import { useAuth } from '../context/AuthContext';
 import { homeRouteFor } from '../utils/deepLinks';
 
@@ -8,9 +8,7 @@ export default function GuestRoute() {
 
     if (loading) {
         return (
-            <div className="flex min-h-screen items-center justify-center bg-gray-100">
-                <Spinner />
-            </div>
+            <AppSkeleton />
         );
     }
 

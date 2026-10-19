@@ -35,7 +35,7 @@ class ForgotPasswordController extends Controller
         // account. Whether the mail actually sends is a delivery concern, not
         // an API answer.
         return response()->json([
-            'message' => 'If that address belongs to an account, a reset link is on its way.',
+            'message' => __('If that address belongs to an account, a reset link is on its way.'),
         ]);
     }
 }

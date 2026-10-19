@@ -14,6 +14,7 @@ use App\Models\User;
 use App\Models\UserNotification;
 use App\Services\Hrms\Compensation\CompensationService;
 use App\Services\Hrms\Expense\ExpenseService;
+use App\Services\Hrms\Payroll\LoanService;
 use App\Services\Hrms\Payroll\PayrollService;
 use App\Services\Hrms\Shared\ApprovalService;
 use Illuminate\Validation\ValidationException;
@@ -57,6 +58,32 @@ class HrmsExpenseServiceTest extends TestCase
         $this->assertSame('450.00', (string) $claim->total_amount);
         $this->assertMatchesRegularExpression('/^EXP-2026-\d{6}$/', $claim->claim_number);
         $this->assertSame('draft', $claim->status->value);
+    }
+
+    public function test_category_limits_cap_a_line_and_the_month(): void
+    {
+        $employee = $this->makeEmployee();
+        $cat = ExpenseCategory::query()->where('slug', 'travel')->firstOrFail();
+        $cat->update(['requires_receipt_above' => null, 'max_per_line' => '300', 'monthly_limit' => '500']);
+        $service = app(ExpenseService::class);
+        $line = fn (string $amount) => ['category_id' => $cat->id, 'description' => 'Cab.', 'amount' => $amount, 'spent_at' => now()->toDateString()];
+
+        try {
+            $service->create($employee, $this->claimData(), [$line('301')]);
+            $this->fail('A line over the per-line cap filed.');
+        } catch (ValidationException $e) {
+            $this->assertArrayHasKey('items.0.amount', $e->errors());
+        }
+
+        // Two lines in one request that together pass the month cap are refused on the second.
+        try {
+            $service->create($employee, $this->claimData(), [$line('300'), $line('250')]);
+            $this->fail('The monthly limit was not enforced across lines.');
+        } catch (ValidationException $e) {
+            $this->assertArrayHasKey('items.1.amount', $e->errors());
+        }
+
+        $this->assertSame('500.00', (string) $service->create($employee, $this->claimData(), [$line('250'), $line('250')])->total_amount);
     }
 
     public function test_submission_locks_and_routes(): void
@@ -215,6 +242,43 @@ class HrmsExpenseServiceTest extends TestCase
             ->where('user_id', $employee->user->id)
             ->where('type', 'hrms.expense.paid')
             ->exists());
+    }
+
+    public function test_an_approved_loan_is_deducted_in_instalments_through_payroll(): void
+    {
+        [$manager, $employee] = $this->reportingLine();
+        $this->price($employee);
+        $finance = $this->financeUser();
+        $loans = app(LoanService::class);
+
+        $loan = $loans->request($employee, 'advance', '3000', 3, 2026, 8, 'Rent', $employee->user);
+        $this->assertSame('pending', $loan->status);
+
+        $approval = $loan->approval;
+        app(ApprovalService::class)->approve($approval->fresh(), $manager->user);
+        $roleId = $approval->fresh()->currentStepRecord()?->approver_role_id;
+        if ($roleId !== null) {
+            $finance->roles()->syncWithoutDetaching([(int) $roleId]);
+        }
+        $loan = $loans->approve($loan->refresh(), $finance);
+
+        $this->assertSame('active', $loan->status);
+        $this->assertCount(3, $loan->schedule);
+
+        $run = $this->openRun();
+        app(PayrollService::class)->calculate($run);
+
+        $payslip = $run->refresh()->payslips()->where('employee_id', $employee->id)->firstOrFail();
+        $line = $payslip->adjustments()->where('reference_type', 'loan_installment')->get();
+        $this->assertCount(1, $line);
+        $this->assertSame('deduction', $line->first()->kind);
+        $this->assertSame('1000.00', (string) $line->first()->amount);
+        $this->assertSame('2000.00', (string) $loan->refresh()->balance);
+
+        // A recalculation deducts nothing twice.
+        app(PayrollService::class)->calculate($run->refresh());
+        $this->assertCount(1, $run->refresh()->payslips()->where('employee_id', $employee->id)->firstOrFail()->adjustments()->where('reference_type', 'loan_installment')->get());
+        $this->assertSame('2000.00', (string) $loan->refresh()->balance);
     }
 
     public function test_a_claim_from_another_period_waits(): void

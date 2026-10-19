@@ -2,7 +2,10 @@
 
 namespace App\Http\Controllers;
 
+use App\Billing\BillingLock;
+use App\Billing\PaymentMethods;
 use App\Billing\PaymentService;
+use App\Billing\Stripe\BillingProviderException;
 use App\Http\Controllers\Concerns\ResolvesCurrentTenant;
 use App\Models\Payment;
 use App\Models\SubscriptionPlan;
@@ -18,6 +21,7 @@ class BillingController extends Controller
     public function __construct(
         private readonly PaymentService $paymentService,
         private readonly TenantContext $tenantContext,
+        private readonly PaymentMethods $methods,
     ) {}
 
     public function checkout(Request $request): JsonResponse
@@ -32,7 +36,7 @@ class BillingController extends Controller
         ]);
 
         $plan = SubscriptionPlan::findOrFail($data['plan_id']);
-        abort_unless($plan->is_active, 422, 'This plan is not available.');
+        abort_unless($plan->is_active, 422, __('This plan is not available.'));
 
         $result = $this->paymentService->initiateCheckout(
             tenant: $tenant,
@@ -46,14 +50,20 @@ class BillingController extends Controller
         );
 
         if (! empty($result['changed'])) {
+            $scheduled = ($result['mode'] ?? null) === 'scheduled';
+
             return response()->json([
-                'message' => 'Plan changed. The difference is prorated on your next invoice.',
+                'message' => $scheduled
+                    ? __('Plan change scheduled for the end of your current billing period. You will not be charged twice.')
+                    : __('Plan updated.'),
                 'changed' => true,
+                'mode' => $result['mode'] ?? 'immediate',
+                'effective_at' => $result['effective_at'] ?? null,
             ]);
         }
 
         return response()->json([
-            'message' => 'Checkout session created.',
+            'message' => __('Checkout session created.'),
             'payment' => $this->presentPayment($result['payment']),
             'session' => $result['session'],
         ], 201);
@@ -80,13 +90,15 @@ class BillingController extends Controller
                 providerPaymentId: $data['provider_payment_id'],
                 payload: $data,
             );
+        } catch (BillingProviderException $e) {
+            throw $e; // answered as 503 by the exception handler; Stripe's wording never reaches the tenant
         } catch (\RuntimeException $e) {
             // A refused or unfinished payment is the caller's answer, not a server fault.
             abort(422, $e->getMessage());
         }
 
         return response()->json([
-            'message' => 'Payment verified and plan activated.',
+            'message' => __('Payment verified and plan activated.'),
             'payment' => $this->presentPayment($updated),
         ]);
     }
@@ -98,11 +110,75 @@ class BillingController extends Controller
 
         try {
             $url = $this->paymentService->portalUrl($this->currentTenant(), url('/app/subscription'));
+        } catch (BillingProviderException $e) {
+            throw $e; // answered as 503 by the exception handler; Stripe's wording never reaches the tenant
         } catch (\RuntimeException $e) {
             abort(422, $e->getMessage());
         }
 
         return response()->json(['url' => $url]);
+    }
+
+    public function paymentMethods(Request $request): JsonResponse
+    {
+        $this->authorizeBillingView($request);
+
+        return response()->json($this->methods->list($this->currentTenant()));
+    }
+
+    /** Hosted page to add a card; the browser comes back to /subscription?card_session={CHECKOUT_SESSION_ID}. */
+    public function setupPaymentMethod(Request $request): JsonResponse
+    {
+        $this->authorizeAdmin($request);
+
+        $url = $this->methods->startSetup(
+            $this->currentTenant(),
+            url('/app/subscription?card_session={CHECKOUT_SESSION_ID}'),
+            url('/app/subscription?card_setup=canceled'),
+        );
+
+        return response()->json(['url' => $url]);
+    }
+
+    public function completePaymentMethod(Request $request): JsonResponse
+    {
+        $this->authorizeAdmin($request);
+        $data = $request->validate(['session_id' => ['required', 'string', 'max:255']]);
+
+        $tenant = $this->currentTenant();
+        BillingLock::for($tenant, fn () => $this->methods->completeSetup($tenant, $data['session_id']));
+
+        return response()->json(['message' => __('Payment method saved.'), ...$this->methods->list($tenant)]);
+    }
+
+    public function makeDefaultPaymentMethod(Request $request, string $paymentMethod): JsonResponse
+    {
+        $this->authorizeAdmin($request);
+
+        $tenant = $this->currentTenant();
+        BillingLock::for($tenant, fn () => $this->methods->makeDefault($tenant, $paymentMethod));
+
+        return response()->json(['message' => __('Default payment method updated.'), ...$this->methods->list($tenant)]);
+    }
+
+    public function removePaymentMethod(Request $request, string $paymentMethod): JsonResponse
+    {
+        $this->authorizeAdmin($request);
+
+        $tenant = $this->currentTenant();
+        BillingLock::for($tenant, fn () => $this->methods->remove($tenant, $paymentMethod));
+
+        return response()->json(['message' => __('Payment method removed.'), ...$this->methods->list($tenant)]);
+    }
+
+    private function authorizeBillingView(Request $request): void
+    {
+        $user = $request->user();
+        abort_unless(
+            $user?->hasRole('admin') || $user?->hasPermission('billing.view') || $user?->hasPermission('billing.manage'),
+            403,
+            __('You do not have permission to view billing information.')
+        );
     }
 
     public function history(Request $request): JsonResponse
@@ -113,7 +189,7 @@ class BillingController extends Controller
         abort_unless(
             $user?->hasRole('admin') || $user?->hasPermission('billing.view') || $user?->hasPermission('billing.manage'),
             403,
-            'You do not have permission to view billing information.'
+            __('You do not have permission to view billing information.')
         );
 
         $payments = Payment::where('tenant_id', $tenant->id)
@@ -132,7 +208,7 @@ class BillingController extends Controller
         abort_unless(
             $request->user()?->is_super_admin || $request->user()?->hasRole('admin') || $request->user()?->hasPermission('billing.manage'),
             403,
-            'Unauthorized to issue refund.'
+            __('Unauthorized to issue refund.')
         );
 
         $tenant = $this->currentTenant();
@@ -150,7 +226,7 @@ class BillingController extends Controller
         );
 
         return response()->json([
-            'message' => 'Refund processed.',
+            'message' => __('Refund processed.'),
             'payment' => $this->presentPayment($refunded),
         ]);
     }
@@ -160,7 +236,7 @@ class BillingController extends Controller
         abort_unless(
             $request->user()?->is_super_admin || $request->user()?->hasRole('admin') || $request->user()?->hasPermission('billing.manage'),
             403,
-            'Only tenant admins can manage billing.'
+            __('Only tenant admins can manage billing.')
         );
     }
 

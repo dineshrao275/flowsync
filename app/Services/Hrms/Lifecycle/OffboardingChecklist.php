@@ -95,11 +95,11 @@ class OffboardingChecklist
     public function completeTask(OffboardingCaseTask $task, ?User $actor = null, ?string $note = null): OffboardingCaseTask
     {
         if ($task->status->isResolved()) {
-            throw ValidationException::withMessages(['form' => "This item is already {$task->status->value}."]);
+            throw ValidationException::withMessages(['form' => __('This item is already :status.', ['status' => $task->status->value])]);
         }
 
         if (! $task->case->status->isOpen()) {
-            throw ValidationException::withMessages(['form' => 'This case is closed.']);
+            throw ValidationException::withMessages(['form' => __('This case is closed.')]);
         }
 
         return DB::transaction(function () use ($task, $actor, $note): OffboardingCaseTask {

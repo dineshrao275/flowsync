@@ -41,7 +41,7 @@ class DocumentVersioning
     public function addVersion(EmployeeDocument $current, UploadedFile $file, array $meta = [], ?User $actor = null): EmployeeDocument
     {
         if (! $current->is_current || $current->trashed()) {
-            throw ValidationException::withMessages(['form' => 'Only the current version of a document can be replaced.']);
+            throw ValidationException::withMessages(['form' => __('Only the current version of a document can be replaced.')]);
         }
 
         $current->loadMissing(['employee', 'type']);
@@ -61,7 +61,7 @@ class DocumentVersioning
                 // same row must not both become "the next version".
                 $locked = EmployeeDocument::query()->whereKey($current->id)->lockForUpdate()->firstOrFail();
                 if (! $locked->is_current) {
-                    throw ValidationException::withMessages(['form' => 'This document was replaced by someone else. Reload and try again.']);
+                    throw ValidationException::withMessages(['form' => __('This document was replaced by someone else. Reload and try again.')]);
                 }
 
                 $next = EmployeeDocument::create([

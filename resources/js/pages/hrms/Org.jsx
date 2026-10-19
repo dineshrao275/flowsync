@@ -1,11 +1,12 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import api from '../../services/api';
 import Alert from '../../components/ui/Alert';
 import Button from '../../components/ui/Button';
 import Card from '../../components/ui/Card';
 import EmptyState from '../../components/ui/EmptyState';
-import Spinner from '../../components/ui/Spinner';
+import ContentSkeleton from '../../components/ui/ContentSkeleton';
 import DepartmentTreeColumn from '../../components/hrms/DepartmentTreeColumn';
 import RichText from '../../components/ui/RichText';
 import { useAuth } from '../../context/AuthContext';
@@ -35,7 +36,8 @@ import { useConfirm } from '../../components/ui/ConfirmDialog';
  * somebody sends to a colleague.
  */
 export default function Org() {
-    usePageTitle('Organisation');
+    const { t } = useTranslation();
+    usePageTitle(t('hrms.org.pageTitle'));
     const setCrumbs = useSetCrumbs();
     const navigate = useNavigate();
     const { can } = useAuth();
@@ -61,8 +63,8 @@ export default function Org() {
     );
 
     useEffect(() => {
-        setCrumbs([{ label: 'HRMS', to: '/hrms' }, { label: 'Organisation' }]);
-    }, [setCrumbs]);
+        setCrumbs([{ label: t('hrms.overview.pageTitle'), to: '/hrms' }, { label: t('hrms.org.pageTitle') }]);
+    }, [setCrumbs, t]);
 
     const load = useCallback(() => {
         setError(null);
@@ -76,9 +78,9 @@ export default function Org() {
                     return;
                 }
 
-                setError('Unable to load the organisation.');
+                setError(t('hrms.org.loadFailed'));
             });
-    }, [navigate]);
+    }, [navigate, t]);
 
     useEffect(() => {
         load();
@@ -143,7 +145,7 @@ export default function Org() {
             });
             await load();
         } catch (err) {
-            toast.error(err?.response?.data?.message ?? 'Could not reorder the tree.');
+            toast.error(err?.response?.data?.message ?? t('hrms.org.reorderFailed'));
         }
     }
 
@@ -154,7 +156,7 @@ export default function Org() {
     if (!data) {
         return (
             <div className="py-16 text-center">
-                <Spinner />
+                <ContentSkeleton size="sm" />
             </div>
         );
     }
@@ -165,22 +167,20 @@ export default function Org() {
         <div className="space-y-4">
             <div className="flex flex-wrap items-center justify-between gap-3">
                 <div>
-                    <h2 className="text-xl font-semibold text-gray-900">Organisation</h2>
+                    <h2 className="text-xl font-semibold text-gray-900">{t('hrms.org.pageTitle')}</h2>
                     <p className="mt-0.5 text-sm text-gray-500">
-                        {data.departments.length} department{data.departments.length === 1 ? '' : 's'} ·{' '}
-                        {data.designations.length} designation{data.designations.length === 1 ? '' : 's'} ·{' '}
-                        {data.locations.length} location{data.locations.length === 1 ? '' : 's'}
+                        {t('hrms.org.counts', { departments: data.departments.length, designations: data.designations.length, locations: data.locations.length })}
                     </p>
                 </div>
 
                 {canManage && (
                     <div className="flex flex-wrap gap-2">
-                        <Button onClick={() => setModal({ kind: 'department' })}>New department</Button>
+                        <Button onClick={() => setModal({ kind: 'department' })}>{t('hrms.org.newDepartment')}</Button>
                         <Button variant="secondary" onClick={() => setModal({ kind: 'designation' })}>
-                            New designation
+                            {t('hrms.org.newDesignation')}
                         </Button>
                         <Button variant="secondary" onClick={() => setModal({ kind: 'location' })}>
-                            New location
+                            {t('hrms.org.newLocation')}
                         </Button>
                     </div>
                 )}
@@ -224,11 +224,11 @@ export default function Org() {
                     ) : (
                         <Card>
                             <EmptyState
-                                title="Nothing selected"
+                                title={t('hrms.org.emptyTitle')}
                                 description={
                                     canManage
-                                        ? 'Pick a department on the left, or create the first one.'
-                                        : 'Pick a department on the left to see its details.'
+                                        ? t('hrms.org.emptyManage')
+                                        : t('hrms.org.emptyView')
                                 }
                             />
                         </Card>
@@ -247,9 +247,9 @@ export default function Org() {
                         modal.record
                             ? write(
                                   () => api.put(`/hrms/departments/${modal.record.id}`, payload),
-                                  'Department updated.',
+                                  t('hrms.org.deptUpdated'),
                               )
-                            : write(() => api.post('/hrms/departments', payload), 'Department created.')
+                            : write(() => api.post('/hrms/departments', payload), t('hrms.org.deptCreated'))
                     }
                 />
             )}
@@ -264,9 +264,9 @@ export default function Org() {
                         modal.record
                             ? write(
                                   () => api.put(`/hrms/designations/${modal.record.id}`, payload),
-                                  'Designation updated.',
+                                  t('hrms.org.desigUpdated'),
                               )
-                            : write(() => api.post('/hrms/designations', payload), 'Designation created.')
+                            : write(() => api.post('/hrms/designations', payload), t('hrms.org.desigCreated'))
                     }
                 />
             )}
@@ -280,9 +280,9 @@ export default function Org() {
                         modal.record
                             ? write(
                                   () => api.put(`/hrms/locations/${modal.record.id}`, payload),
-                                  'Location updated.',
+                                  t('hrms.org.locUpdated'),
                               )
-                            : write(() => api.post('/hrms/locations', payload), 'Location created.')
+                            : write(() => api.post('/hrms/locations', payload), t('hrms.org.locCreated'))
                     }
                 />
             )}
@@ -308,23 +308,24 @@ function DepartmentPanel({
     onEditLocation,
     onChanged,
 }) {
+    const { t } = useTranslation();
     const toast = useToast();
     const confirm = useConfirm();
 
     async function retire() {
         if (!(await confirm({
-            title: 'Deactivate department?',
-            message: `Deactivate ${department.name}? Inactive departments cannot receive new members.`,
+            title: t('hrms.org.deactivateTitle'),
+            message: t('hrms.org.deactivateMessage', { name: department.name }),
             variant: 'danger',
-            confirmLabel: 'Deactivate',
+            confirmLabel: t('hrms.org.deactivate'),
         }))) return;
 
         try {
             await api.post(`/hrms/departments/${department.id}/deactivate`);
-            toast.success(`${department.name} deactivated.`);
+            toast.success(t('hrms.org.deactivated', { name: department.name }));
             await onChanged();
         } catch (err) {
-            toast.error(err?.response?.data?.message ?? 'Could not deactivate the department.');
+            toast.error(err?.response?.data?.message ?? t('hrms.org.deactivateFailed'));
         }
     }
 
@@ -339,12 +340,12 @@ function DepartmentPanel({
                         <h3 className="text-base font-semibold text-gray-900">
                             {department.name}
                             {!department.is_active && (
-                                <span className="ml-2 text-xs font-normal text-gray-400">inactive</span>
+                                <span className="ml-2 text-xs font-normal text-gray-400">{t('hrms.org.inactive')}</span>
                             )}
                         </h3>
                         <p className="mt-0.5 text-sm text-gray-500">
                             {department.code ? `${department.code} · ` : ''}
-                            {department.employees_count} here · {department.children_count} sub-departments
+                            {t('hrms.org.deptCounts', { here: department.employees_count, subs: department.children_count })}
                         </p>
                         {department.description && (
                             <RichText value={department.description} className="mt-2 text-gray-600" />
@@ -354,11 +355,11 @@ function DepartmentPanel({
                     {canManage && (
                         <div className="flex gap-2">
                             <Button variant="secondary" size="sm" onClick={onEditDepartment}>
-                                Edit
+                                {t('hrms.org.edit')}
                             </Button>
                             {department.is_active && (
                                 <Button variant="ghost" size="sm" onClick={retire} loading={saving}>
-                                    Deactivate
+                                    {t('hrms.org.deactivate')}
                                 </Button>
                             )}
                         </div>
@@ -367,18 +368,18 @@ function DepartmentPanel({
 
                 {department.head && (
                     <p className="mt-3 text-sm text-gray-600">
-                        Headed by{' '}
+                        {t('hrms.org.headedBy')}{' '}
                         <span className="font-medium text-gray-800">{department.head.name}</span>
                     </p>
                 )}
             </Card>
 
             <Card>
-                <h3 className="mb-3 text-sm font-semibold uppercase tracking-wide text-gray-500">Members</h3>
+                <h3 className="mb-3 text-sm font-semibold uppercase tracking-wide text-gray-500">{t('hrms.org.members')}</h3>
 
                 {!canViewEmployees ? (
                     <p className="text-sm text-gray-500">
-                        Member names need the employee records permission, which this role does not hold.
+                        {t('hrms.org.membersNoPermission')}
                     </p>
                 ) : (
                     <DepartmentMembersPanel
@@ -392,30 +393,30 @@ function DepartmentPanel({
             <div className="grid gap-4 sm:grid-cols-2">
                 <Card>
                     <h3 className="mb-3 text-sm font-semibold uppercase tracking-wide text-gray-500">
-                        Designations
+                        {t('hrms.org.designations')}
                     </h3>
                     <CatalogList
                         items={scopedDesignations}
-                        empty="No designation is scoped to this department."
+                        empty={t('hrms.org.emptyScopedDesig')}
                         onEdit={canManage ? onEditDesignation : null}
-                        secondary={(d) => (d.level === null ? null : `Level ${d.level}`)}
+                        secondary={(d) => (d.level === null ? null : t('hrms.org.level', { level: d.level }))}
                     />
                 </Card>
 
                 <Card>
-                    <h3 className="mb-3 text-sm font-semibold uppercase tracking-wide text-gray-500">Locations</h3>
+                    <h3 className="mb-3 text-sm font-semibold uppercase tracking-wide text-gray-500">{t('hrms.org.locations')}</h3>
                     <CatalogList
                         items={scopedLocations}
-                        empty="No locations yet."
+                        empty={t('hrms.org.emptyLocations')}
                         onEdit={canManage ? onEditLocation : null}
-                        secondary={(l) => (l.is_geo_fenced ? 'geofenced' : l.city || l.country)}
+                        secondary={(l) => (l.is_geo_fenced ? t('hrms.org.geofenced') : l.city || l.country)}
                     />
                 </Card>
             </div>
 
             {people.length === 0 && canViewEmployees && (
                 <p className="text-xs text-gray-400">
-                    The head picker stays empty until there is somebody to head a department.
+                    {t('hrms.org.headPickerEmpty')}
                 </p>
             )}
         </>
@@ -427,27 +428,28 @@ function DepartmentPanel({
  * never a dead end on first load.
  */
 function CatalogPanel({ designations, locations, canManage, onEditDesignation, onEditLocation }) {
+    const { t } = useTranslation();
     return (
         <div className="grid gap-4 sm:grid-cols-2">
             <Card>
                 <h3 className="mb-3 text-sm font-semibold uppercase tracking-wide text-gray-500">
-                    Designations
+                    {t('hrms.org.designations')}
                 </h3>
                 <CatalogList
                     items={designations}
-                    empty="No designations yet."
+                    empty={t('hrms.org.emptyDesignations')}
                     onEdit={canManage ? onEditDesignation : null}
-                    secondary={(d) => `${d.employees_count} holding`}
+                    secondary={(d) => t('hrms.org.holding', { count: d.employees_count })}
                 />
             </Card>
 
             <Card>
-                <h3 className="mb-3 text-sm font-semibold uppercase tracking-wide text-gray-500">Locations</h3>
+                <h3 className="mb-3 text-sm font-semibold uppercase tracking-wide text-gray-500">{t('hrms.org.locations')}</h3>
                 <CatalogList
                     items={locations}
-                    empty="No locations yet."
+                    empty={t('hrms.org.emptyLocations')}
                     onEdit={canManage ? onEditLocation : null}
-                    secondary={(l) => `${l.employees_count} at this site`}
+                    secondary={(l) => t('hrms.org.atSite', { count: l.employees_count })}
                 />
             </Card>
         </div>
@@ -455,6 +457,7 @@ function CatalogPanel({ designations, locations, canManage, onEditDesignation, o
 }
 
 function CatalogList({ items, empty, onEdit, secondary }) {
+    const { t } = useTranslation();
     if (items.length === 0) {
         return <p className="text-sm text-gray-500">{empty}</p>;
     }
@@ -465,12 +468,12 @@ function CatalogList({ items, empty, onEdit, secondary }) {
                 <li key={item.id} className="flex items-center gap-2 py-2 first:pt-0 last:pb-0">
                     <span className="min-w-0 flex-1 truncate text-sm text-gray-800">
                         {item.name}
-                        {!item.is_active && <span className="ml-2 text-xs text-gray-400">inactive</span>}
+                        {!item.is_active && <span className="ml-2 text-xs text-gray-400">{t('hrms.org.inactive')}</span>}
                     </span>
                     <span className="shrink-0 text-xs text-gray-400">{secondary?.(item) ?? ''}</span>
                     {onEdit && (
                         <Button variant="ghost" size="sm" onClick={() => onEdit(item)}>
-                            Edit
+                            {t('hrms.common.edit')}
                         </Button>
                     )}
                 </li>

@@ -17,8 +17,8 @@
             @case('hero')
                 <section class="relative overflow-hidden">
                     <div class="pointer-events-none absolute inset-0 -z-10" aria-hidden="true">
-                        <div class="absolute inset-0 bg-gradient-to-b from-indigo-50 via-white to-white"></div>
-                        <div class="absolute -top-32 left-1/2 h-96 w-[52rem] -translate-x-1/2 rounded-full bg-indigo-200/40 blur-3xl"></div>
+                        <div class="absolute inset-0 bg-gradient-to-b from-blue-50 via-white to-white"></div>
+                        <div class="absolute -top-32 left-1/2 h-96 w-[52rem] -translate-x-1/2 rounded-full bg-blue-200/40 blur-3xl"></div>
                         <div class="absolute -top-16 right-[8%] h-64 w-64 rounded-full bg-violet-200/40 blur-3xl"></div>
                     </div>
                     <div class="mx-auto max-w-6xl px-4 pb-16 pt-16 text-center sm:px-6 sm:pt-24">
@@ -29,7 +29,7 @@
                         @if(!empty($block['cta']['label']))
                             <div class="mt-8 flex animate-fade-up flex-col items-center justify-center gap-3 [animation-delay:240ms] sm:flex-row">
                                 <x-site.button href="{{ $block['cta']['href'] ?? '/app/register' }}" size="lg">{{ $block['cta']['label'] }}</x-site.button>
-                                <x-site.button href="/app/login" variant="ghost" size="lg">Log in</x-site.button>
+                                <x-site.button href="/app/login" variant="ghost" size="lg">{{ __('site.actions.logIn') }}</x-site.button>
                             </div>
                         @endif
                     </div>
@@ -40,8 +40,8 @@
                 <section class="mx-auto max-w-6xl px-4 py-14 sm:px-6">
                     <div class="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
                         @foreach ($block['items'] ?? [] as $item)
-                            <div class="group rounded-2xl border border-slate-200/80 bg-white p-6 shadow-sm transition hover:-translate-y-1 hover:border-indigo-200 hover:shadow-xl hover:shadow-indigo-600/5">
-                                <div class="mb-4 flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-indigo-500 to-violet-600 text-base font-extrabold text-white shadow-lg shadow-indigo-600/25" aria-hidden="true">{{ mb_substr($item['title'] ?? '?', 0, 1) }}</div>
+                            <div class="group rounded-2xl border border-slate-200/80 bg-white p-6 shadow-sm transition hover:-translate-y-1 hover:border-blue-200 hover:shadow-xl hover:shadow-blue-600/5">
+                                <div class="mb-4 flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-blue-500 to-violet-600 text-base font-extrabold text-white shadow-lg shadow-blue-600/25" aria-hidden="true">{{ mb_substr($item['title'] ?? '?', 0, 1) }}</div>
                                 <h3 class="mb-1.5 text-base font-bold tracking-tight text-slate-900">{{ $item['title'] ?? '' }}</h3>
                                 <p class="text-sm leading-relaxed text-slate-600">{{ $item['text'] ?? '' }}</p>
                             </div>
@@ -52,13 +52,13 @@
 
             @case('cta')
                 <section class="mx-auto max-w-6xl px-4 py-14 sm:px-6">
-                    <div class="relative overflow-hidden rounded-3xl bg-slate-950 px-6 py-14 text-center sm:px-12 sm:py-16">
+                    <div class="relative overflow-hidden rounded-3xl scale-fixed bg-ink px-6 py-14 text-center sm:px-12 sm:py-16">
                         <div class="pointer-events-none absolute inset-0" aria-hidden="true">
-                            <div class="absolute -left-24 -top-24 h-72 w-72 rounded-full bg-indigo-600/30 blur-3xl"></div>
+                            <div class="absolute -left-24 -top-24 h-72 w-72 rounded-full bg-blue-600/30 blur-3xl"></div>
                             <div class="absolute -bottom-24 -right-24 h-72 w-72 rounded-full bg-violet-600/30 blur-3xl"></div>
                         </div>
                         <div class="relative">
-                            <x-site.section-heading :heading="$block['heading'] ?? 'Ready to start?'" :lead="$block['text'] ?? null" dark align="center" class="mb-8" />
+                            <x-site.section-heading :heading="$block['heading'] ?? __('site.blocks.readyToStart')" :lead="$block['text'] ?? null" dark align="center" class="mb-8" />
                             @if(!empty($block['cta']['label']))
                                 <x-site.button href="{{ $block['cta']['href'] ?? '/app/register' }}" variant="light" size="lg">{{ $block['cta']['label'] }}</x-site.button>
                             @endif
@@ -69,7 +69,7 @@
 
             @case('richtext')
                 <section class="mx-auto max-w-3xl px-4 py-12 sm:px-6">
-                    <div class="space-y-4 rounded-2xl border border-slate-200/80 bg-white p-6 shadow-sm sm:p-10 [&_h2]:text-2xl [&_h2]:font-extrabold [&_h2]:tracking-tight [&_h2]:text-slate-900 [&_h3]:text-xl [&_h3]:font-bold [&_h3]:text-slate-900 [&_p]:leading-relaxed [&_p]:text-slate-600 [&_ul]:list-disc [&_ul]:space-y-2 [&_ul]:pl-6 [&_ul]:text-slate-600 [&_ol]:list-decimal [&_ol]:space-y-2 [&_ol]:pl-6 [&_ol]:text-slate-600 [&_a]:font-medium [&_a]:text-indigo-600 [&_a]:underline [&_blockquote]:border-l-4 [&_blockquote]:border-indigo-200 [&_blockquote]:pl-4 [&_blockquote]:italic [&_blockquote]:text-slate-600">
+                    <div class="space-y-4 rounded-2xl border border-slate-200/80 bg-white p-6 shadow-sm sm:p-10 [&_h2]:text-2xl [&_h2]:font-extrabold [&_h2]:tracking-tight [&_h2]:text-slate-900 [&_h3]:text-xl [&_h3]:font-bold [&_h3]:text-slate-900 [&_p]:leading-relaxed [&_p]:text-slate-600 [&_ul]:list-disc [&_ul]:space-y-2 [&_ul]:pl-6 [&_ul]:text-slate-600 [&_ol]:list-decimal [&_ol]:space-y-2 [&_ol]:pl-6 [&_ol]:text-slate-600 [&_a]:font-medium [&_a]:text-blue-600 [&_a]:underline [&_blockquote]:border-l-4 [&_blockquote]:border-blue-200 [&_blockquote]:pl-4 [&_blockquote]:italic [&_blockquote]:text-slate-600">
                         {!! $block['html'] ?? '' !!}
                     </div>
                 </section>
@@ -78,7 +78,7 @@
             @case('logo_cloud')
                 <section class="mx-auto max-w-6xl px-4 py-12 text-center sm:px-6">
                     @if(!empty($block['heading']))
-                        <p class="mb-7 text-xs font-semibold uppercase tracking-widest text-slate-400">{{ $block['heading'] }}</p>
+                        <p class="mb-7 text-xs font-semibold uppercase tracking-widest text-slate-500">{{ $block['heading'] }}</p>
                     @endif
                     <div class="flex flex-wrap items-center justify-center gap-x-10 gap-y-5">
                         @foreach ($block['logos'] ?? [] as $logo)
@@ -86,7 +86,7 @@
                             @if($logoMedia)
                                 <x-site.img :media="$logoMedia" class="h-8 w-auto opacity-60 grayscale transition hover:opacity-100 hover:grayscale-0" />
                             @elseif(!empty($logo['name']))
-                                <span class="text-lg font-extrabold tracking-tight text-slate-400 transition hover:text-slate-600">{{ $logo['name'] }}</span>
+                                <span class="text-lg font-extrabold tracking-tight text-slate-500 transition hover:text-slate-700">{{ $logo['name'] }}</span>
                             @endif
                         @endforeach
                     </div>
@@ -113,7 +113,7 @@
                     <ol class="grid gap-5 md:grid-cols-3">
                         @foreach ($block['items'] ?? [] as $i => $step)
                             <li class="relative rounded-2xl border border-slate-200/80 bg-white p-6 pt-7 shadow-sm">
-                                <span class="absolute -top-4 left-6 flex h-8 w-8 items-center justify-center rounded-full bg-indigo-600 text-sm font-extrabold text-white shadow-lg shadow-indigo-600/30" aria-hidden="true">{{ $i + 1 }}</span>
+                                <span class="absolute -top-4 left-6 flex h-8 w-8 items-center justify-center rounded-full bg-blue-600 text-sm font-extrabold text-white shadow-lg shadow-blue-600/30" aria-hidden="true">{{ $i + 1 }}</span>
                                 <h3 class="mb-1.5 text-base font-bold tracking-tight text-slate-900">{{ $step['title'] ?? '' }}</h3>
                                 <p class="text-sm leading-relaxed text-slate-600">{{ $step['text'] ?? '' }}</p>
                             </li>
@@ -128,10 +128,10 @@
                     <div class="grid items-center gap-10 lg:grid-cols-2">
                         <div class="{{ !empty($block['flip']) ? 'lg:order-2' : '' }}">
                             @if($splitMedia)
-                                <x-site.img :media="$splitMedia" class="w-full rounded-3xl shadow-2xl shadow-slate-900/10 ring-1 ring-slate-900/5" />
+                                <x-site.img :media="$splitMedia" :eager="$loop->first" class="w-full rounded-3xl shadow-2xl shadow-slate-900/10 ring-1 ring-slate-900/5" />
                             @else
-                                <div class="relative aspect-[4/3] w-full overflow-hidden rounded-3xl bg-slate-950 shadow-2xl shadow-slate-900/10 ring-1 ring-slate-900/5" aria-hidden="true">
-                                    <div class="absolute -left-16 -top-16 h-64 w-64 rounded-full bg-indigo-600/40 blur-3xl"></div>
+                                <div class="relative aspect-[4/3] w-full overflow-hidden rounded-3xl scale-fixed bg-ink shadow-2xl shadow-slate-900/10 ring-1 ring-slate-900/5" aria-hidden="true">
+                                    <div class="absolute -left-16 -top-16 h-64 w-64 rounded-full bg-blue-600/40 blur-3xl"></div>
                                     <div class="absolute -bottom-20 -right-16 h-72 w-72 rounded-full bg-violet-600/40 blur-3xl"></div>
                                     <div class="absolute inset-6 rounded-2xl border border-white/10 bg-white/5"></div>
                                     <div class="absolute inset-10 space-y-3">
@@ -139,7 +139,7 @@
                                         <div class="h-3 w-1/2 rounded-full bg-white/10"></div>
                                         <div class="grid grid-cols-3 gap-3 pt-2">
                                             <div class="h-16 rounded-xl bg-white/10"></div>
-                                            <div class="h-16 rounded-xl bg-indigo-500/30"></div>
+                                            <div class="h-16 rounded-xl bg-blue-500/30"></div>
                                             <div class="h-16 rounded-xl bg-white/10"></div>
                                         </div>
                                     </div>
@@ -171,7 +171,7 @@
                                         @if($avatar)
                                             <x-site.img :media="$avatar" class="h-10 w-10 rounded-full object-cover" />
                                         @else
-                                            <span class="flex h-10 w-10 items-center justify-center rounded-full bg-indigo-100 text-sm font-extrabold text-indigo-700" aria-hidden="true">{{ mb_substr($quote['name'] ?? '?', 0, 1) }}</span>
+                                            <span class="flex h-10 w-10 items-center justify-center rounded-full bg-blue-100 text-sm font-extrabold text-blue-700" aria-hidden="true">{{ mb_substr($quote['name'] ?? '?', 0, 1) }}</span>
                                         @endif
                                         <span>
                                             <span class="block text-sm font-bold text-slate-900">{{ $quote['name'] ?? '' }}</span>
@@ -195,7 +195,7 @@
                                 @if($photo)
                                     <x-site.img :media="$photo" class="mx-auto aspect-square w-full max-w-44 rounded-2xl object-cover" />
                                 @else
-                                    <span class="mx-auto flex aspect-square w-full max-w-44 items-center justify-center rounded-2xl bg-gradient-to-br from-indigo-100 to-violet-100 text-3xl font-extrabold text-indigo-400" aria-hidden="true">{{ mb_substr($member['name'] ?? '?', 0, 1) }}</span>
+                                    <span class="mx-auto flex aspect-square w-full max-w-44 items-center justify-center rounded-2xl bg-gradient-to-br from-blue-100 to-violet-100 text-3xl font-extrabold text-blue-400" aria-hidden="true">{{ mb_substr($member['name'] ?? '?', 0, 1) }}</span>
                                 @endif
                                 <p class="mt-3 text-sm font-bold text-slate-900">{{ $member['name'] ?? '' }}</p>
                                 @if(!empty($member['role']))<p class="text-xs text-slate-500">{{ $member['role'] }}</p>@endif
@@ -213,10 +213,10 @@
                     @endif
                     @if($embed)
                         <div class="overflow-hidden rounded-3xl shadow-2xl shadow-slate-900/10 ring-1 ring-slate-900/5">
-                            <iframe src="{{ $embed }}" title="{{ $block['heading'] ?? 'Video' }}" class="aspect-video w-full" loading="lazy" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+                            <iframe src="{{ $embed }}" title="{{ $block['heading'] ?? __('site.video.title') }}" class="aspect-video w-full" loading="lazy" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
                         </div>
                     @elseif(!empty($block['embed_url']))
-                        <div class="text-center"><x-site.button href="{{ $block['embed_url'] }}" variant="ghost">Watch the video</x-site.button></div>
+                        <div class="text-center"><x-site.button href="{{ $block['embed_url'] }}" variant="ghost">{{ __('site.video.watch') }}</x-site.button></div>
                     @endif
                 </section>
                 @break
@@ -227,33 +227,33 @@
                 @php($moduleMeta = config('subscriptions.module_meta', []))
                 @if($plans->isNotEmpty())
                     <section class="mx-auto max-w-6xl px-4 py-14 sm:px-6">
-                        <x-site.section-heading :eyebrow="$block['eyebrow'] ?? null" :heading="$block['heading'] ?? 'Simple pricing'" :lead="$block['lead'] ?? null" align="center" class="mb-10" />
+                        <x-site.section-heading :eyebrow="$block['eyebrow'] ?? null" :heading="$block['heading'] ?? __('site.pricing.heading')" :lead="$block['lead'] ?? null" align="center" class="mb-10" />
                         <div class="grid items-stretch gap-5 {{ $planCols }}">
                             @foreach ($plans as $plan)
                                 @php($modules = array_values(array_filter((array) ($plan->limits['modules'] ?? []))))
-                                <div class="relative flex flex-col rounded-3xl p-7 {{ $plan->is_default ? 'bg-slate-950 text-white shadow-2xl shadow-slate-900/20 ring-2 ring-indigo-500' : 'border border-slate-200/80 bg-white shadow-sm' }}">
+                                <div class="relative flex flex-col rounded-3xl p-7 {{ $plan->is_default ? 'scale-fixed bg-ink text-white shadow-2xl shadow-slate-900/20 ring-2 ring-blue-500' : 'border border-slate-200/80 bg-white shadow-sm' }}">
                                     @if($plan->is_default)
-                                        <span class="absolute -top-3.5 left-1/2 -translate-x-1/2 rounded-full bg-indigo-600 px-3 py-1 text-xs font-bold uppercase tracking-wider text-white shadow-lg shadow-indigo-600/30">Most popular</span>
+                                        <span class="absolute -top-3.5 left-1/2 -translate-x-1/2 rounded-full bg-blue-600 px-3 py-1 text-xs font-bold uppercase tracking-wider text-white shadow-lg shadow-blue-600/30">{{ __('site.pricing.mostPopular') }}</span>
                                     @endif
                                     <h3 class="text-lg font-extrabold tracking-tight {{ $plan->is_default ? 'text-white' : 'text-slate-900' }}">{{ $plan->name }}</h3>
-                                    @if($plan->description)<p class="mt-1 text-sm {{ $plan->is_default ? 'text-indigo-100/70' : 'text-slate-500' }}">{{ $plan->description }}</p>@endif
+                                    @if($plan->description)<p class="mt-1 text-sm {{ $plan->is_default ? 'text-blue-100/70' : 'text-slate-500' }}">{{ $plan->description }}</p>@endif
                                     <p class="mt-5 flex items-baseline gap-1.5">
-                                        <span class="text-4xl font-extrabold tracking-tight {{ $plan->is_default ? 'text-white' : 'text-slate-900' }}">{{ $plan->price_cents > 0 ? number_format($plan->price_cents / 100, 0).' '.strtoupper($plan->currency ?? 'USD') : 'Free' }}</span>
-                                        @if($plan->price_cents > 0)<span class="text-sm {{ $plan->is_default ? 'text-indigo-100/70' : 'text-slate-500' }}">/ mo{{ $plan->billing_cycle === 'annual' ? ', billed annually' : '' }}</span>@endif
+                                        <span class="text-4xl font-extrabold tracking-tight {{ $plan->is_default ? 'text-white' : 'text-slate-900' }}">{{ $plan->price_cents > 0 ? number_format($plan->price_cents / 100, 0).' '.strtoupper($plan->currency ?? 'USD') : __('site.pricing.free') }}</span>
+                                        @if($plan->price_cents > 0)<span class="text-sm {{ $plan->is_default ? 'text-blue-100/70' : 'text-slate-500' }}">{{ __('site.pricing.perMonth') }}{{ $plan->billing_cycle === 'annual' ? __('site.pricing.billedAnnually') : '' }}</span>@endif
                                     </p>
-                                    @if($plan->trial_duration_days)<p class="mt-1 text-xs font-medium {{ $plan->is_default ? 'text-indigo-200' : 'text-indigo-600' }}">{{ $plan->trial_duration_days }}-day free trial</p>@endif
+                                    @if($plan->trial_duration_days)<p class="mt-1 text-xs font-medium {{ $plan->is_default ? 'text-blue-200' : 'text-blue-600' }}">{{ __('site.pricing.trialDays', ['count' => $plan->trial_duration_days]) }}</p>@endif
                                     @if($modules)
-                                        <ul class="mt-6 flex-1 space-y-2.5 text-sm {{ $plan->is_default ? 'text-indigo-50' : 'text-slate-600' }}">
+                                        <ul class="mt-6 flex-1 space-y-2.5 text-sm {{ $plan->is_default ? 'text-blue-50' : 'text-slate-600' }}">
                                             @foreach (array_slice($modules, 0, 6) as $module)
                                                 <li class="flex items-start gap-2.5">
-                                                    <svg class="mt-0.5 h-4 w-4 shrink-0 {{ $plan->is_default ? 'text-indigo-300' : 'text-indigo-500' }}" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 8.5l3.5 3.5L13 4.5" /></svg>
+                                                    <svg class="mt-0.5 h-4 w-4 shrink-0 {{ $plan->is_default ? 'text-blue-300' : 'text-blue-500' }}" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 8.5l3.5 3.5L13 4.5" /></svg>
                                                     {{ $moduleMeta[$module]['label'] ?? \Illuminate\Support\Str::headline(str_replace(['.', '_'], ' ', $module)) }}
                                                 </li>
                                             @endforeach
                                             @if(count($modules) > 6)<li class="pl-6 text-xs opacity-70">+{{ count($modules) - 6 }} more included</li>@endif
                                         </ul>
                                     @endif
-                                    <div class="mt-7"><x-site.button href="/app/register" :variant="$plan->is_default ? 'light' : 'primary'" class="w-full">Start free</x-site.button></div>
+                                    <div class="mt-7"><x-site.button href="/app/register" :variant="$plan->is_default ? 'light' : 'primary'" class="w-full">{{ __('site.actions.startFree') }}</x-site.button></div>
                                 </div>
                             @endforeach
                         </div>
@@ -266,10 +266,10 @@
                     <x-site.section-heading :eyebrow="$block['eyebrow'] ?? null" :heading="$block['heading'] ?? 'Questions, answered'" :lead="$block['lead'] ?? null" align="center" class="mb-8" />
                     <div class="space-y-3">
                         @foreach ($block['items'] ?? [] as $faq)
-                            <details class="group rounded-2xl border border-slate-200/80 bg-white px-5 shadow-sm open:border-indigo-200 open:shadow-md">
+                            <details class="group rounded-2xl border border-slate-200/80 bg-white px-5 shadow-sm open:border-blue-200 open:shadow-md">
                                 <summary class="flex cursor-pointer list-none items-center justify-between gap-4 py-4 text-[15px] font-bold text-slate-900 [&::-webkit-details-marker]:hidden">
                                     {{ $faq['q'] ?? '' }}
-                                    <span class="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-slate-100 text-slate-500 transition group-open:rotate-45 group-open:bg-indigo-600 group-open:text-white" aria-hidden="true">+</span>
+                                    <span class="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-slate-100 text-slate-500 transition group-open:rotate-45 group-open:bg-blue-600 group-open:text-white" aria-hidden="true">+</span>
                                 </summary>
                                 <p class="pb-5 leading-relaxed text-slate-600">{{ $faq['a'] ?? '' }}</p>
                             </details>
@@ -301,9 +301,9 @@
                                             @php($cell = trim((string) ($row['values'][$ci] ?? '')))
                                             <td class="px-5 py-3.5 text-slate-600">
                                                 @if(strtolower($cell) === 'yes')
-                                                    <span class="inline-flex h-6 w-6 items-center justify-center rounded-full bg-emerald-100 text-emerald-700" role="img" aria-label="Included">✓</span>
+                                                    <span class="inline-flex h-6 w-6 items-center justify-center rounded-full bg-emerald-100 text-emerald-700" role="img" aria-label="{{ __('site.comparison.included') }}">✓</span>
                                                 @elseif(strtolower($cell) === 'no' || $cell === '')
-                                                    <span class="text-slate-300" aria-label="Not included">—</span>
+                                                    <span class="text-slate-300" aria-label="{{ __('site.comparison.notIncluded') }}">—</span>
                                                 @else
                                                     {{ $cell }}
                                                 @endif
@@ -320,29 +320,29 @@
             @case('contact_form')
                 <section class="mx-auto max-w-2xl px-4 py-14 sm:px-6">
                     <div class="rounded-3xl border border-slate-200/80 bg-white p-6 shadow-sm sm:p-10">
-                        <x-site.section-heading :eyebrow="$block['eyebrow'] ?? null" :heading="$block['heading'] ?? 'Talk to us'" :lead="$block['lead'] ?? null" align="center" class="mb-8" />
+                        <x-site.section-heading :eyebrow="$block['eyebrow'] ?? null" :heading="$block['heading'] ?? __('site.contact.heading')" :lead="$block['lead'] ?? null" align="center" class="mb-8" />
                         <form data-contact-form data-source="{{ $block['source'] ?? 'contact' }}" class="space-y-4" novalidate>
                             <div class="grid gap-4 sm:grid-cols-2">
                                 <div>
-                                    <label class="mb-1.5 block text-sm font-medium text-slate-700" for="cf-name">Name</label>
-                                    <input id="cf-name" name="name" type="text" required autocomplete="name" class="w-full rounded-xl border border-slate-200 px-3.5 py-2.5 text-sm outline-none focus:border-indigo-400">
+                                    <label class="mb-1.5 block text-sm font-medium text-slate-700" for="cf-name">{{ __('site.contact.name') }}</label>
+                                    <input id="cf-name" name="name" type="text" required autocomplete="name" class="w-full rounded-xl border border-slate-200 px-3.5 py-2.5 text-sm outline-none focus:border-blue-400">
                                 </div>
                                 <div>
-                                    <label class="mb-1.5 block text-sm font-medium text-slate-700" for="cf-email">Work email</label>
-                                    <input id="cf-email" name="email" type="email" required autocomplete="email" class="w-full rounded-xl border border-slate-200 px-3.5 py-2.5 text-sm outline-none focus:border-indigo-400">
+                                    <label class="mb-1.5 block text-sm font-medium text-slate-700" for="cf-email">{{ __('site.contact.email') }}</label>
+                                    <input id="cf-email" name="email" type="email" required autocomplete="email" class="w-full rounded-xl border border-slate-200 px-3.5 py-2.5 text-sm outline-none focus:border-blue-400">
                                 </div>
                             </div>
                             <div>
-                                <label class="mb-1.5 block text-sm font-medium text-slate-700" for="cf-company">Company <span class="font-normal text-slate-400">(optional)</span></label>
-                                <input id="cf-company" name="company" type="text" autocomplete="organization" class="w-full rounded-xl border border-slate-200 px-3.5 py-2.5 text-sm outline-none focus:border-indigo-400">
+                                <label class="mb-1.5 block text-sm font-medium text-slate-700" for="cf-company">{{ __('site.contact.company') }} <span class="font-normal text-slate-400">{{ __('site.contact.optional') }}</span></label>
+                                <input id="cf-company" name="company" type="text" autocomplete="organization" class="w-full rounded-xl border border-slate-200 px-3.5 py-2.5 text-sm outline-none focus:border-blue-400">
                             </div>
                             <div>
-                                <label class="mb-1.5 block text-sm font-medium text-slate-700" for="cf-message">How can we help?</label>
-                                <textarea id="cf-message" name="message" required rows="4" minlength="10" class="w-full rounded-xl border border-slate-200 px-3.5 py-2.5 text-sm outline-none focus:border-indigo-400"></textarea>
+                                <label class="mb-1.5 block text-sm font-medium text-slate-700" for="cf-message">{{ __('site.contact.message') }}</label>
+                                <textarea id="cf-message" name="message" required rows="4" minlength="10" class="w-full rounded-xl border border-slate-200 px-3.5 py-2.5 text-sm outline-none focus:border-blue-400"></textarea>
                             </div>
                             <input type="text" name="website" tabindex="-1" autocomplete="off" class="hidden" aria-hidden="true">
                             <p data-contact-error class="hidden rounded-xl bg-red-50 px-4 py-2.5 text-sm text-red-700" role="alert"></p>
-                            <x-site.button type="submit" size="lg" class="w-full" data-contact-submit>{{ ($block['source'] ?? 'contact') === 'demo' ? 'Book my demo' : 'Send message' }}</x-site.button>
+                            <x-site.button type="submit" size="lg" class="w-full" data-contact-submit>{{ ($block['source'] ?? 'contact') === 'demo' ? __('site.contact.submitDemo') : __('site.contact.submit') }}</x-site.button>
                         </form>
                     </div>
                 </section>

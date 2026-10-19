@@ -2,6 +2,7 @@
 
 use Illuminate\Foundation\Inspiring;
 use Illuminate\Support\Facades\Artisan;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Schedule;
 
 Artisan::command('inspire', function () {
@@ -12,10 +13,16 @@ Artisan::command('inspire', function () {
 // its minute is skipped, never started a second time by the next tick.
 Schedule::command('tenants:collect-usage')->daily()->withoutOverlapping();
 Schedule::command('tenants:backup --all --verify')->dailyAt('02:00')->withoutOverlapping();
+// F11.3: a backup nobody has restored is a hope. Weekly non-destructive drill against the newest manifest; a failure
+// is a critical log line (and exit code 1 in the scheduler log) the day it happens, not the day it is needed.
+Schedule::command('tenants:backup --restore-drill=latest')->weeklyOn(0, '05:30')->withoutOverlapping()
+    ->onFailure(fn () => Log::critical('backup.restore_drill_failed'));
 // Expired full-tenant export ZIPs (signed link lives 1h) are deleted, rows kept as history.
 Schedule::command('tenants:prune-exports')->dailyAt('03:00')->withoutOverlapping();
 // Time-based automation triggers (overdue / due soon) — only for projects with a rule listening.
 Schedule::command('automation:time-triggers --all')->hourly()->withoutOverlapping();
+Schedule::command('tasks:sla-sweep --all')->hourly()->withoutOverlapping();
+Schedule::command('reports:send-scheduled --all')->hourly()->withoutOverlapping();
 // Processed domain events and settled webhook deliveries are kept 30 days.
 Schedule::command('events:prune --all')->dailyAt('03:45')->withoutOverlapping();
 // Sign-up drafts that never finished (no database exists for them) are removed after a week.
@@ -27,11 +34,18 @@ Schedule::command('tenants:close-impersonations')->everyTenMinutes()->withoutOve
 Schedule::command('tenants:expire-trials')->dailyAt('00:05')->withoutOverlapping();
 // Platform audit rows older than the tenant's plan retention are removed (hash-chain tombstones keep it verifiable).
 Schedule::command('audit:prune')->dailyAt('03:50')->withoutOverlapping();
+// Tamper check of the audit hash chain; a break is logged critical and emailed (SECURITY_AUDIT_ALERT_EMAILS).
+Schedule::command('audit:verify')->dailyAt('04:10')->withoutOverlapping();
 
 // Billing: failed-payment dunning (reminders, final notice, suspension after the grace period).
 // Billing: lapsed paid periods are expired / renewed / sent to dunning first (08:00), then dunning runs.
 Schedule::command('billing:period-ends')->dailyAt('08:00')->withoutOverlapping();
 Schedule::command('billing:dunning')->dailyAt('09:00')->withoutOverlapping();
+Schedule::command('billing:sync-plans')->dailyAt('02:30')->withoutOverlapping();
+Schedule::command('billing:apply-price-changes')->dailyAt('07:00')->withoutOverlapping();
+Schedule::command('billing:apply-plan-changes')->hourly()->withoutOverlapping();
+Schedule::command('billing:card-expiry')->dailyAt('09:30')->withoutOverlapping();
+Schedule::command('billing:trial-reminders')->dailyAt('09:15')->withoutOverlapping();
 
 // HRMS fleet sweeps. Every command here takes exactly one of --tenant=ID or
 // --all and is idempotent, so the worst a re-run does is nothing. Cadences
@@ -52,6 +66,10 @@ Schedule::command('hrms:onboarding-reminders --all')->dailyAt('08:30')->withoutO
 // Approval SLA: reminder before a stage is due, one escalation once overdue (each once per stage).
 Schedule::command('hrms:approvals-sla --all')->hourly()->withoutOverlapping();
 Schedule::command('hrms:assets-overdue --all')->dailyAt('10:30')->withoutOverlapping();
+// Notification digests: one email per person for held notifications (digest mode / throttle overflow).
+Schedule::command('notifications:send-digests --all')->dailyAt('07:30')->withoutOverlapping();
+// Approved transfers/promotions/confirmations take effect on their date.
+Schedule::command('hrms:apply-employee-changes --all')->dailyAt('00:40')->withoutOverlapping();
 Schedule::command('hrms:report-digests --all')->dailyAt('18:00')->withoutOverlapping();
 Schedule::command('hrms:performance-evidence --all')->dailyAt('21:30')->withoutOverlapping();
 Schedule::command('hrms:attendance-rollup --all')->dailyAt('23:45')->withoutOverlapping();

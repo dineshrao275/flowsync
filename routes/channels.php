@@ -1,9 +1,11 @@
 <?php
 
+use App\Models\Project;
 use App\Models\ProjectMember;
 use App\Models\SupportTicket;
 use App\Models\Tenant;
 use App\Models\User;
+use App\Models\Workspace;
 use App\Models\WorkspaceMember;
 use App\Support\TenantContext;
 use Illuminate\Support\Facades\Broadcast;
@@ -44,9 +46,10 @@ Broadcast::channel('workspace.{id}', function (User $user, $workspaceId) use ($i
         return false;
     }
 
-    return WorkspaceMember::where('workspace_id', (int) $workspaceId)
-        ->where('user_id', (int) $user->id)
-        ->exists()
+    // Mirrors WorkspacePolicy::view: tenant admin OR member. A tenant admin sees every
+    // workspace in the UI without a membership row, so they must be able to listen too.
+    return ($user->hasPermission('workspaces.manage') && Workspace::whereKey((int) $workspaceId)->exists())
+        || WorkspaceMember::where('workspace_id', (int) $workspaceId)->where('user_id', (int) $user->id)->exists()
         ? ['id' => $user->id, 'name' => $user->name]
         : false;
 });
@@ -56,9 +59,11 @@ Broadcast::channel('project.{id}', function (User $user, $projectId) use ($isTen
         return false;
     }
 
-    return ProjectMember::where('project_id', (int) $projectId)
-        ->where('user_id', (int) $user->id)
-        ->exists()
+    // Mirrors ProjectPolicy::view: tenant admin OR member. Without the admin leg, an admin
+    // who opens a project they are not a member of (allowed by the API) was refused the
+    // project channel with a 403 and got no live board/comment updates.
+    return ($user->hasPermission('workspaces.manage') && Project::whereKey((int) $projectId)->exists())
+        || ProjectMember::where('project_id', (int) $projectId)->where('user_id', (int) $user->id)->exists()
         ? ['id' => $user->id, 'name' => $user->name]
         : false;
 });

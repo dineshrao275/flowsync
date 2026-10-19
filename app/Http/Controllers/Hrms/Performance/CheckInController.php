@@ -50,7 +50,7 @@ class CheckInController extends Controller
         $employee = Employee::findOrFail((int) $data['employee_id']);
 
         $this->authorize('create', [CheckIn::class, $employee]);
-        abort_if($cycle->stage->value === 'completed', 422, 'That cycle is sealed — history gains no new notes.');
+        abort_if($cycle->stage->value === 'completed', 422, __('That cycle is sealed — history gains no new notes.'));
 
         unset($data['employee_id']);
 
@@ -61,7 +61,7 @@ class CheckInController extends Controller
         ]);
 
         return response()->json([
-            'message' => 'Check-in filed.',
+            'message' => __('Check-in filed.'),
             'check_in' => $this->present($checkIn->refresh()),
         ], Response::HTTP_CREATED);
     }

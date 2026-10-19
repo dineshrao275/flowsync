@@ -3,10 +3,12 @@
 namespace App\Listeners;
 
 use App\Models\Tenant;
+use App\Support\RequestId;
 use App\Support\TenantContext;
 use App\Support\TenantDatabaseManager;
 use Illuminate\Queue\Events\JobProcessing;
 use Illuminate\Queue\Jobs\SyncJob;
+use Illuminate\Support\Facades\Log;
 use Throwable;
 
 /**
@@ -34,6 +36,9 @@ class SwitchesTenantConnectionForQueuedJobs
      */
     private bool $ownsConnection = false;
 
+    /** True while this listener set the correlation id of the job being processed. */
+    private bool $ownsRequestId = false;
+
     public function __construct(
         private readonly TenantDatabaseManager $tenancy,
         private readonly TenantContext $context,
@@ -41,6 +46,8 @@ class SwitchesTenantConnectionForQueuedJobs
 
     public function handleProcessing(JobProcessing $event): void
     {
+        $this->adoptRequestId($event);
+
         $tenantId = $this->tenantIdFromPayload($event->job->payload());
 
         if ($tenantId === null) {
@@ -69,6 +76,12 @@ class SwitchesTenantConnectionForQueuedJobs
 
     public function handleFinished(): void
     {
+        if ($this->ownsRequestId) {
+            $this->ownsRequestId = false;
+            RequestId::useForJob(null);
+            Log::withoutContext(['request_id']);
+        }
+
         if (! $this->ownsConnection) {
             return;
         }
@@ -79,6 +92,26 @@ class SwitchesTenantConnectionForQueuedJobs
         // previous job's tenant connection.
         $this->tenancy->connectSystem();
         $this->context->setImpersonating(false);
+    }
+
+    /**
+     * A queued job keeps the correlation id of the request that dispatched it,
+     * so its log lines and audit rows can be traced back to that request.
+     * Sync jobs run inside the request and already share its id.
+     */
+    private function adoptRequestId(JobProcessing $event): void
+    {
+        if ($event->job instanceof SyncJob) {
+            return;
+        }
+
+        $id = $event->job->payload()['request_id'] ?? null;
+
+        if (is_string($id) && preg_match('/^[A-Za-z0-9._-]{8,64}$/', $id) === 1) {
+            RequestId::useForJob($id);
+            Log::shareContext(['request_id' => $id]);
+            $this->ownsRequestId = true;
+        }
     }
 
     /**

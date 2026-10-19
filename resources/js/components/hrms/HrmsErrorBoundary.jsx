@@ -1,5 +1,6 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
+import { withTranslation } from 'react-i18next';
 import Button from '../ui/Button';
 import logger from '../../utils/logger';
 
@@ -10,7 +11,7 @@ import logger from '../../utils/logger';
  * from crashing the whole module shell or unmounting the navigation rail.
  * Automatically clears when `resetKey` (route pathname) changes.
  */
-export default class HrmsErrorBoundary extends React.Component {
+class HrmsErrorBoundary extends React.Component {
     constructor(props) {
         super(props);
         this.state = { hasError: false, error: null };
@@ -43,7 +44,8 @@ export default class HrmsErrorBoundary extends React.Component {
     render() {
         if (this.state.hasError) {
             const { error } = this.state;
-            const message = error?.message || 'An unexpected error occurred while rendering this section.';
+            const { t } = this.props;
+            const message = error?.message || t('hrms.errorBoundary.fallback');
 
             return (
                 <div
@@ -65,30 +67,30 @@ export default class HrmsErrorBoundary extends React.Component {
                         </div>
                         <div className="min-w-0 flex-1">
                             <h3 className="text-base font-semibold text-gray-900 dark:text-gray-100">
-                                This HRMS section encountered an unexpected error
+                                {t('hrms.errorBoundary.title')}
                             </h3>
                             <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">
-                                An isolated problem occurred loading this tab. The rest of FlowSync and your navigation rail remain fully functional.
+                                {t('hrms.errorBoundary.desc')}
                             </p>
                             <div className="mt-3 rounded-md bg-gray-50 p-3 text-xs font-mono text-gray-700 dark:bg-gray-800/80 dark:text-gray-300 overflow-x-auto">
                                 {message}
                             </div>
                             <div className="mt-4 flex flex-wrap items-center gap-3">
                                 <Button variant="secondary" onClick={this.handleReset}>
-                                    Try again
+                                    {t('hrms.errorBoundary.retry')}
                                 </Button>
                                 <Link to="/hrms">
                                     <Button variant="secondary">
-                                        Back to HRMS Overview
+                                        {t('hrms.errorBoundary.back')}
                                     </Button>
                                 </Link>
                                 <a
-                                    href={`mailto:support@flowsync.test?subject=${encodeURIComponent('HRMS UI Error Report')}&body=${encodeURIComponent(
+                                    href={`mailto:support@flowsync.test?subject=${encodeURIComponent(t('hrms.errorBoundary.reportSubject'))}&body=${encodeURIComponent(
                                         `Error: ${message}\nURL: ${typeof window !== 'undefined' ? window.location.href : ''}`,
                                     )}`}
-                                    className="text-xs text-indigo-600 hover:text-indigo-700 dark:text-indigo-400 hover:underline"
+                                    className="text-xs text-[var(--accent-soft-text)] hover:text-[var(--accent)] dark:text-[var(--accent-soft-text)] hover:underline"
                                 >
-                                    Report issue
+                                    {t('hrms.errorBoundary.report')}
                                 </a>
                             </div>
                         </div>
@@ -100,3 +102,5 @@ export default class HrmsErrorBoundary extends React.Component {
         return this.props.children;
     }
 }
+
+export default withTranslation()(HrmsErrorBoundary);

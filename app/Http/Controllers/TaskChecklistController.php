@@ -54,7 +54,7 @@ class TaskChecklistController extends Controller
 
         if ($itemCount >= 100) {
             throw ValidationException::withMessages([
-                'form' => 'A task cannot have more than 100 checklist items.',
+                'form' => __('A task cannot have more than 100 checklist items.'),
             ]);
         }
 
@@ -75,7 +75,7 @@ class TaskChecklistController extends Controller
         );
 
         return response()->json([
-            'message' => 'Checklist item added.',
+            'message' => __('Checklist item added.'),
             'item' => [
                 'id' => $item->id,
                 'title' => $item->title,
@@ -146,7 +146,7 @@ class TaskChecklistController extends Controller
         }
 
         return response()->json([
-            'message' => 'Checklist item updated.',
+            'message' => __('Checklist item updated.'),
             'item' => [
                 'id' => $item->id,
                 'title' => $item->title,
@@ -183,14 +183,14 @@ class TaskChecklistController extends Controller
         $this->renormalizePositions($task);
 
         return response()->json([
-            'message' => 'Checklist item removed.',
+            'message' => __('Checklist item removed.'),
         ]);
     }
 
     private function verifyTaskBelongsToProject(Task $task, Project $project): void
     {
         if ($task->project_id !== $project->id) {
-            abort(404, 'Task not found in this project.');
+            abort(404, __('Task not found in this project.'));
         }
     }
 

@@ -50,7 +50,7 @@ class PayrollRunController extends Controller
         $run = $this->runs->openRun($request->validated(), $request->user());
 
         return response()->json([
-            'message' => 'Payroll run opened.',
+            'message' => __('Payroll run opened.'),
             'run' => $this->present($run),
         ], Response::HTTP_CREATED);
     }
@@ -62,7 +62,7 @@ class PayrollRunController extends Controller
         $summary = $this->runs->calculate($run, $request->user());
 
         return response()->json([
-            'message' => 'Payroll run calculated.',
+            'message' => __('Payroll run calculated.'),
             'run' => $this->present($run->refresh()),
             'summary' => $summary,
         ]);
@@ -73,7 +73,7 @@ class PayrollRunController extends Controller
         $this->authorize('approve', $run);
 
         return response()->json([
-            'message' => 'Payroll run approved.',
+            'message' => __('Payroll run approved.'),
             'run' => $this->present($this->lifecycle->approve($run, $request->user())),
         ]);
     }
@@ -83,8 +83,20 @@ class PayrollRunController extends Controller
         $this->authorize('publish', $run);
 
         return response()->json([
-            'message' => 'Payslips published.',
+            'message' => __('Payslips published.'),
             'run' => $this->present($this->lifecycle->publish($run, $request->user())),
+        ]);
+    }
+
+    public function reopen(Request $request, PayrollRun $run): JsonResponse
+    {
+        $this->authorize('reopen', $run);
+
+        $data = $request->validate(['reason' => ['required', 'string', 'max:500']]);
+
+        return response()->json([
+            'message' => __('Payroll run reopened.'),
+            'run' => $this->present($this->lifecycle->reopen($run, $data['reason'], $request->user())),
         ]);
     }
 
@@ -93,7 +105,7 @@ class PayrollRunController extends Controller
         $this->authorize('markPaid', $run);
 
         return response()->json([
-            'message' => 'Payroll run marked paid.',
+            'message' => __('Payroll run marked paid.'),
             'run' => $this->present($this->lifecycle->markPaid($run, $request->user())),
         ]);
     }
@@ -103,7 +115,7 @@ class PayrollRunController extends Controller
         $this->authorize('lock', $run);
 
         return response()->json([
-            'message' => 'Payroll run locked.',
+            'message' => __('Payroll run locked.'),
             'run' => $this->present($this->lifecycle->lock($run, $request->user())),
         ]);
     }

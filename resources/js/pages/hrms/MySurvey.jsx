@@ -1,11 +1,12 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import api, { fieldErrors } from '../../services/api';
 import Alert from '../../components/ui/Alert';
 import Button from '../../components/ui/Button';
 import Card from '../../components/ui/Card';
 import EmptyState from '../../components/ui/EmptyState';
-import Spinner from '../../components/ui/Spinner';
+import ContentSkeleton from '../../components/ui/ContentSkeleton';
 import { useToast } from '../../context/ToastContext';
 import { useSetCrumbs } from '../../context/BreadcrumbContext';
 import usePageTitle from '../../hooks/usePageTitle';
@@ -20,7 +21,8 @@ import usePageTitle from '../../hooks/usePageTitle';
  * fingerprint, here or anywhere.
  */
 export default function MySurvey() {
-    usePageTitle('My surveys');
+    const { t } = useTranslation();
+    usePageTitle(t('hrms.mySurvey.pageTitle'));
     const setCrumbs = useSetCrumbs();
     const navigate = useNavigate();
     const toast = useToast();
@@ -34,8 +36,8 @@ export default function MySurvey() {
     const [error, setError] = useState(null);
 
     useEffect(() => {
-        setCrumbs([{ label: 'HRMS', to: '/hrms' }, { label: 'My surveys' }]);
-    }, [setCrumbs]);
+        setCrumbs([{ label: t('hrms.overview.pageTitle'), to: '/hrms' }, { label: t('hrms.mySurvey.pageTitle') }]);
+    }, [setCrumbs, t]);
 
     const loadList = useCallback(() => {
         return api
@@ -47,9 +49,9 @@ export default function MySurvey() {
                     return;
                 }
 
-                setError('Unable to load your surveys.');
+                setError(t('hrms.mySurvey.loadFailed'));
             });
-    }, [navigate]);
+    }, [navigate, t]);
 
     const loadForm = useCallback(() => {
         if (!campaignId) {
@@ -73,9 +75,9 @@ export default function MySurvey() {
                     return;
                 }
 
-                setError('That survey cannot be opened.');
+                setError(t('hrms.mySurvey.openFailed'));
             });
-    }, [campaignId, navigate]);
+    }, [campaignId, navigate, t]);
 
     useEffect(() => {
         loadList();
@@ -100,7 +102,7 @@ export default function MySurvey() {
                     value: answers[question.id] ?? null,
                 })),
             });
-            toast.success('Answer recorded — thank you.');
+            toast.success(t('hrms.mySurvey.recorded'));
             navigate('/hrms/engagement/mine');
         } catch (err) {
             setErrors(fieldErrors(err));
@@ -118,7 +120,7 @@ export default function MySurvey() {
                         rows={4}
                         value={value}
                         aria-label={question.text}
-                        placeholder="Type your answer…"
+                        placeholder={t('hrms.mySurvey.typePlaceholder')}
                         onChange={(e) => setAnswer(question.id, e.target.value)}
                     />
                 );
@@ -143,7 +145,7 @@ export default function MySurvey() {
             case 'yes_no':
                 return (
                     <div className="flex gap-4">
-                        {[{ v: 1, l: 'Yes' }, { v: 0, l: 'No' }].map((opt) => (
+                        {[{ v: 1, l: t('hrms.common.yes') }, { v: 0, l: t('hrms.common.no') }].map((opt) => (
                             <label key={opt.v} className="flex items-center gap-2 text-sm">
                                 <input type="radio" name={`q-${question.id}`} checked={Number(value) === opt.v} onChange={() => setAnswer(question.id, opt.v)} />
                                 {opt.l}
@@ -161,7 +163,7 @@ export default function MySurvey() {
                                     key={n}
                                     type="button"
                                     onClick={() => setAnswer(question.id, n)}
-                                    className={`h-10 w-10 rounded-lg border text-sm font-medium ${Number(value) === n ? 'border-indigo-600 bg-indigo-100 text-indigo-800' : 'border-gray-300 text-gray-600 hover:border-gray-400'}`}
+                                    className={`h-10 w-10 rounded-lg border text-sm font-medium ${Number(value) === n ? 'border-[var(--accent)] bg-[var(--accent-soft)] text-[var(--accent-soft-text)]' : 'border-gray-300 text-gray-600 hover:border-gray-400'}`}
                                 >
                                     {n}
                                 </button>
@@ -176,9 +178,9 @@ export default function MySurvey() {
         if (!form) {
             return (
                 <div className="space-y-4">
-                    <h2 className="text-xl font-semibold text-gray-900">Survey</h2>
+                    <h2 className="text-xl font-semibold text-gray-900">{t('hrms.mySurvey.survey')}</h2>
                     {error && <Alert>{error}</Alert>}
-                    <div className="flex justify-center py-10"><Spinner /></div>
+                    <ContentSkeleton size="md" />
                 </div>
             );
         }
@@ -188,9 +190,9 @@ export default function MySurvey() {
                 <div className="space-y-4">
                     <h2 className="text-xl font-semibold text-gray-900">{form.campaign?.name}</h2>
                     <Card dense>
-                        <p className="text-sm text-gray-600">Already answered — one submission per campaign. Thank you.</p>
+                        <p className="text-sm text-gray-600">{t('hrms.mySurvey.answered')}</p>
                         <div className="mt-3">
-                            <Button variant="secondary" onClick={() => navigate('/hrms/engagement/mine')}>Back to my surveys</Button>
+                            <Button variant="secondary" onClick={() => navigate('/hrms/engagement/mine')}>{t('hrms.mySurvey.backToMine')}</Button>
                         </div>
                     </Card>
                 </div>
@@ -206,15 +208,15 @@ export default function MySurvey() {
                 <div>
                     <h2 className="text-xl font-semibold text-gray-900">{form.campaign?.name}</h2>
                     <p className="mt-0.5 text-sm text-gray-500">
-                        Question {Math.min(step + 1, questions.length)} of {questions.length}
-                        {form.campaign?.template?.is_anonymous ? ' · anonymous' : ''}
+                        {t('hrms.mySurvey.progress', { n: Math.min(step + 1, questions.length), total: questions.length })}
+                        {form.campaign?.template?.is_anonymous ? t('hrms.mySurvey.anonymousSuffix') : ''}
                     </p>
                 </div>
 
                 {error && <Alert>{error}</Alert>}
 
                 <div className="h-2 overflow-hidden rounded-full bg-gray-100">
-                    <div className="h-full rounded-full bg-indigo-500 transition-all" style={{ width: `${questions.length === 0 ? 0 : ((step + 1) / questions.length) * 100}%` }} />
+                    <div className="h-full rounded-full bg-[var(--accent-soft)] transition-all" style={{ width: `${questions.length === 0 ? 0 : ((step + 1) / questions.length) * 100}%` }} />
                 </div>
 
                 {question ? (
@@ -230,17 +232,17 @@ export default function MySurvey() {
 
                         <div className="mt-4 flex justify-between">
                             <Button variant="secondary" disabled={step === 0} onClick={() => setStep((s) => s - 1)}>
-                                Back
+                                {t('hrms.mySurvey.back')}
                             </Button>
                             {last ? (
-                                <Button onClick={submit}>Submit answers</Button>
+                                <Button onClick={submit}>{t('hrms.mySurvey.submitAnswers')}</Button>
                             ) : (
-                                <Button onClick={() => setStep((s) => s + 1)}>Next</Button>
+                                <Button onClick={() => setStep((s) => s + 1)}>{t('hrms.mySurvey.next')}</Button>
                             )}
                         </div>
                     </Card>
                 ) : (
-                    <EmptyState title="No questions" hint="This survey has nothing to ask yet." />
+                    <EmptyState title={t('hrms.mySurvey.noQuestionsTitle')} hint={t('hrms.mySurvey.noQuestionsHint')} />
                 )}
             </div>
         );
@@ -249,16 +251,16 @@ export default function MySurvey() {
     return (
         <div className="space-y-4">
             <div>
-                <h2 className="text-xl font-semibold text-gray-900">My surveys</h2>
-                <p className="mt-0.5 text-sm text-gray-500">Campaigns waiting on your answers.</p>
+                <h2 className="text-xl font-semibold text-gray-900">{t('hrms.mySurvey.pageTitle')}</h2>
+                <p className="mt-0.5 text-sm text-gray-500">{t('hrms.mySurvey.subtitle')}</p>
             </div>
 
             {error && <Alert>{error}</Alert>}
 
             {!campaigns ? (
-                <div className="flex justify-center py-10"><Spinner /></div>
+                <ContentSkeleton size="md" />
             ) : campaigns.length === 0 ? (
-                <EmptyState title="Nothing waiting" hint="Invitations land here when a campaign opens." />
+                <EmptyState title={t('hrms.mySurvey.emptyTitle')} hint={t('hrms.mySurvey.emptyHint')} />
             ) : (
                 <Card dense>
                     <ul className="divide-y divide-gray-100">
@@ -267,13 +269,13 @@ export default function MySurvey() {
                                 <div>
                                     <p className="font-medium text-gray-900">{campaign.name}</p>
                                     <p className="text-xs text-gray-400">
-                                        {campaign.answered ? 'Answered' : 'Waiting on you'}
-                                        {campaign.ends_at ? ` · closes ${campaign.ends_at}` : ''}
+                                        {campaign.answered ? t('hrms.mySurvey.answeredState') : t('hrms.mySurvey.waitingOnYou')}
+                                        {campaign.ends_at ? t('hrms.mySurvey.closesSuffix', { date: campaign.ends_at }) : ''}
                                     </p>
                                 </div>
                                 {!campaign.answered && (
                                     <Button size="sm" onClick={() => navigate(`/hrms/engagement/mine/${campaign.id}`)}>
-                                        Answer
+                                        {t('hrms.mySurvey.answer')}
                                     </Button>
                                 )}
                             </li>

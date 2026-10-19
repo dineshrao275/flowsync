@@ -1,4 +1,5 @@
 import './bootstrap';
+import './i18n';
 import React from 'react';
 import { createRoot } from 'react-dom/client';
 import App from './App';
@@ -29,3 +30,10 @@ createRoot(document.getElementById('root')).render(
         <App />
     </React.StrictMode>,
 );
+
+// F12: offline app shell. Production only — a worker in dev would serve stale Vite modules.
+if (import.meta.env.PROD && 'serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+        navigator.serviceWorker.register('/sw.js', { scope: '/app/' }).catch(() => {});
+    });
+}

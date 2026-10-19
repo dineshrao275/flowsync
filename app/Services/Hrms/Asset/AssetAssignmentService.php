@@ -42,7 +42,7 @@ class AssetAssignmentService
     public function assign(Asset $asset, Employee $employee, string $conditionOut, ?User $actor = null): AssetAssignment
     {
         if ($asset->status !== AssetStatus::Available) {
-            throw ValidationException::withMessages(['form' => "That asset is {$asset->status->value} — only an available asset changes hands."]);
+            throw ValidationException::withMessages(['form' => __('That asset is :status — only an available asset changes hands.', ['status' => $asset->status->value])]);
         }
 
         return DB::transaction(function () use ($asset, $employee, $conditionOut, $actor): AssetAssignment {
@@ -83,7 +83,7 @@ class AssetAssignmentService
         $holderId = $assignment->employee?->user_id;
 
         if ($holderId === null || (int) $holderId !== (int) $actor->id) {
-            throw ValidationException::withMessages(['form' => 'Only the person holding the asset acknowledges it.']);
+            throw ValidationException::withMessages(['form' => __('Only the person holding the asset acknowledges it.')]);
         }
 
         return DB::transaction(function () use ($assignment, $actor): AssetAssignment {
@@ -171,7 +171,7 @@ class AssetAssignmentService
     private function requireActive(AssetAssignment $assignment): void
     {
         if ($assignment->status !== AssetAssignmentStatus::Active) {
-            throw ValidationException::withMessages(['form' => 'That handover is already closed.']);
+            throw ValidationException::withMessages(['form' => __('That handover is already closed.')]);
         }
     }
 

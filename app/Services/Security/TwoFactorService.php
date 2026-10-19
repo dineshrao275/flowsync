@@ -38,7 +38,7 @@ class TwoFactorService
     public function beginEnrollment(Authenticatable $user): array
     {
         if ($this->isEnabled($user)) {
-            throw ValidationException::withMessages(['form' => 'Two-factor authentication is already enabled.']);
+            throw ValidationException::withMessages(['form' => __('Two-factor authentication is already enabled.')]);
         }
 
         $secret = Totp::generateSecret();
@@ -47,7 +47,7 @@ class TwoFactorService
             ['secret' => $secret, 'confirmed_at' => null, 'recovery_codes' => null, 'last_used_step' => null],
         );
 
-        return ['secret' => $secret, 'uri' => Totp::uri($secret, (string) $user->email, config('app.name', 'FlowSync'))];
+        return ['secret' => $secret, 'uri' => Totp::uri($secret, (string) $user->email, config('app.name'))];
     }
 
     /**
@@ -60,12 +60,12 @@ class TwoFactorService
     {
         $credential = $this->credential($user);
         if (! $credential || $credential->isConfirmed()) {
-            throw ValidationException::withMessages(['form' => 'Start two-factor setup first.']);
+            throw ValidationException::withMessages(['form' => __('Start two-factor setup first.')]);
         }
 
         $step = Totp::verify($credential->secret, $code);
         if ($step === null) {
-            throw ValidationException::withMessages(['code' => 'That code is not valid. Check your authenticator and try again.']);
+            throw ValidationException::withMessages(['code' => __('That code is not valid. Check your authenticator and try again.')]);
         }
 
         $plain = $this->newRecoveryCodes();
@@ -111,7 +111,7 @@ class TwoFactorService
     {
         $credential = $this->credential($user);
         if (! $credential?->isConfirmed()) {
-            throw ValidationException::withMessages(['form' => 'Two-factor authentication is not enabled.']);
+            throw ValidationException::withMessages(['form' => __('Two-factor authentication is not enabled.')]);
         }
 
         $plain = $this->newRecoveryCodes();

@@ -9,11 +9,13 @@ use App\Models\Tenant;
 use App\Models\WebhookDelivery;
 use App\Models\WebhookEndpoint;
 use App\Services\Events\Consumers\WebhookConsumer;
+use App\Services\Webhooks\WebhookFormatter;
 use App\Services\Webhooks\WebhookUrlGuard;
 use App\Support\TenantContext;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
+use Illuminate\Validation\Rule;
 
 /** Tenant admins manage the endpoints their events are delivered to. The secret is shown once. */
 class WebhookEndpointController extends Controller
@@ -41,7 +43,7 @@ class WebhookEndpointController extends Controller
         $this->auditTenantAdmin($request, 'webhook.created', 'webhook_endpoints', $endpoint->id, null, ['url' => $endpoint->url, 'events' => $endpoint->events]);
 
         // The one and only time the signing secret is shown.
-        return response()->json(['message' => 'Webhook created.', 'endpoint' => $this->present($endpoint), 'secret' => $secret], 201);
+        return response()->json(['message' => __('Webhook created.'), 'endpoint' => $this->present($endpoint), 'secret' => $secret], 201);
     }
 
     public function update(Request $request, WebhookEndpoint $webhook): JsonResponse
@@ -55,7 +57,7 @@ class WebhookEndpointController extends Controller
 
         $this->auditTenantAdmin($request, 'webhook.updated', 'webhook_endpoints', $webhook->id, $before, ['url' => $webhook->url, 'events' => $webhook->events, 'is_active' => $webhook->is_active]);
 
-        return response()->json(['message' => 'Webhook updated.', 'endpoint' => $this->present($webhook->refresh())]);
+        return response()->json(['message' => __('Webhook updated.'), 'endpoint' => $this->present($webhook->refresh())]);
     }
 
     public function destroy(Request $request, WebhookEndpoint $webhook): JsonResponse
@@ -63,7 +65,7 @@ class WebhookEndpointController extends Controller
         $this->auditTenantAdmin($request, 'webhook.deleted', 'webhook_endpoints', $webhook->id, ['url' => $webhook->url], null);
         $webhook->delete();
 
-        return response()->json(['message' => 'Webhook deleted.']);
+        return response()->json(['message' => __('Webhook deleted.')]);
     }
 
     public function rotateSecret(Request $request, WebhookEndpoint $webhook): JsonResponse
@@ -72,14 +74,14 @@ class WebhookEndpointController extends Controller
         $webhook->update(['secret' => $secret]);
         $this->auditTenantAdmin($request, 'webhook.secret_rotated', 'webhook_endpoints', $webhook->id, null, null);
 
-        return response()->json(['message' => 'Secret rotated. Update your receiver now.', 'secret' => $secret]);
+        return response()->json(['message' => __('Secret rotated. Update your receiver now.'), 'secret' => $secret]);
     }
 
     /** Sends a `webhook.test` event to this endpoint right now and reports what happened. */
     public function test(WebhookEndpoint $webhook): JsonResponse
     {
         $event = new DomainEvent([
-            'uuid' => (string) Str::uuid(), 'type' => 'webhook.test', 'data' => ['message' => 'This is a test event from FlowSync.'],
+            'uuid' => (string) Str::uuid(), 'type' => 'webhook.test', 'data' => ['message' => __('This is a test event from :app.', ['app' => config('app.name')])],
             'occurred_at' => now(),
         ]);
         $tenantId = app(TenantContext::class)->currentId();
@@ -103,7 +105,7 @@ class WebhookEndpointController extends Controller
         $delivery->update(['status' => 'pending', 'attempts' => 0, 'error' => null, 'next_attempt_at' => null]);
         DeliverWebhook::dispatch($delivery->id);
 
-        return response()->json(['message' => 'Queued for redelivery.', 'delivery' => $this->presentDelivery($delivery->refresh())]);
+        return response()->json(['message' => __('Queued for redelivery.'), 'delivery' => $this->presentDelivery($delivery->refresh())]);
     }
 
     /** @return array<string, mixed> */
@@ -115,6 +117,7 @@ class WebhookEndpointController extends Controller
             'events' => ['required', 'array', 'min:1', 'max:50'],
             'events.*' => ['string', 'max:80', 'regex:/^(\*|[a-z0-9_.]+(\.\*)?)$/'],
             'is_active' => ['sometimes', 'boolean'],
+            'format' => ['sometimes', Rule::in(WebhookFormatter::FORMATS)],
         ]);
     }
 
@@ -122,7 +125,7 @@ class WebhookEndpointController extends Controller
     private function present(WebhookEndpoint $e): array
     {
         return [
-            'id' => $e->id, 'url' => $e->url, 'description' => $e->description, 'events' => $e->events,
+            'id' => $e->id, 'url' => $e->url, 'description' => $e->description, 'format' => $e->format ?? 'json', 'events' => $e->events,
             'is_active' => $e->is_active, 'consecutive_failures' => $e->consecutive_failures,
             'disabled_reason' => $e->disabled_reason, 'created_at' => $e->created_at?->toIso8601String(),
             'last_delivery' => $e->deliveries()->latest('id')->first(['status', 'response_status', 'created_at']),

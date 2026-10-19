@@ -1,16 +1,17 @@
 import { useCallback, useEffect, useState } from 'react';
+import PersonSelect from '../ui/PersonSelect';
+import { useTranslation } from 'react-i18next';
 import api, { fieldErrors } from '../../services/api';
 import Alert from '../ui/Alert';
 import Button from '../ui/Button';
 import Card from '../ui/Card';
 import Input from '../ui/Input';
 import Select from '../ui/Select';
-import Spinner from '../ui/Spinner';
+import ContentSkeleton from '../ui/ContentSkeleton';
 import { Table, Th, Td, TableEmpty } from '../ui/Table';
 import { useToast } from '../../context/ToastContext';
 import { useConfirm } from '../ui/ConfirmDialog';
-
-const DAY_LABELS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+import { weekdayNames } from '../../utils/calendar';
 
 function isoDate(date) {
     return date.toISOString().slice(0, 10);
@@ -23,6 +24,7 @@ function isoDate(date) {
  * sees only their own rows via the `mine` endpoint.
  */
 export default function RosterPanel({ shifts, canManage, canView }) {
+    const { t } = useTranslation();
     const toast = useToast();
     const confirm = useConfirm();
     const today = new Date();
@@ -40,8 +42,8 @@ export default function RosterPanel({ shifts, canManage, canView }) {
         return api
             .get(canView ? '/hrms/shifts/rosters' : '/hrms/shifts/rosters/mine', { params: { from, to } })
             .then(({ data }) => setRosters(data.rosters ?? []))
-            .catch(() => setError('Unable to load the roster.'));
-    }, [from, to, canView]);
+            .catch(() => setError(t('hrms.roster.loadFailed')));
+    }, [from, to, canView, t]);
 
     useEffect(() => {
         load();
@@ -71,7 +73,7 @@ export default function RosterPanel({ shifts, canManage, canView }) {
                 effective_to: form.effective_to || null,
                 weekly_offs: form.weekly_offs,
             });
-            toast.success('Roster saved.');
+            toast.success(t('hrms.roster.saved'));
             load();
         } catch (err) {
             setErrors(fieldErrors(err));
@@ -79,14 +81,14 @@ export default function RosterPanel({ shifts, canManage, canView }) {
     }
 
     async function remove(id) {
-        if (!(await confirm({ title: 'Remove roster row?', message: 'Remove this roster row?', variant: 'danger' }))) return;
+        if (!(await confirm({ title: t('hrms.roster.removeTitle'), message: t('hrms.roster.removeMessage'), variant: 'danger' }))) return;
 
         try {
             await api.delete(`/hrms/shifts/rosters/${id}`);
-            toast.success('Roster row removed.');
+            toast.success(t('hrms.roster.removed'));
             load();
         } catch {
-            toast.error('Unable to remove the roster row.');
+            toast.error(t('hrms.roster.removeFailed'));
         }
     }
 
@@ -94,66 +96,63 @@ export default function RosterPanel({ shifts, canManage, canView }) {
         <div className="space-y-4">
             {error && <Alert>{error}</Alert>}
 
-            <Card dense title="Roster">
+            <Card dense title={t('hrms.roster.title')}>
                 <div className="mb-3 flex flex-wrap items-end gap-2">
-                    <Input type="date" label="From" value={from} onChange={(e) => setFrom(e.target.value)} />
-                    <Input type="date" label="To" value={to} onChange={(e) => setTo(e.target.value)} />
+                    <Input type="date" label={t('hrms.roster.from')} value={from} onChange={(e) => setFrom(e.target.value)} />
+                    <Input type="date" label={t('hrms.roster.to')} value={to} onChange={(e) => setTo(e.target.value)} />
                 </div>
 
                 {!rosters ? (
-                    <div className="flex justify-center py-6"><Spinner /></div>
+                    <ContentSkeleton size="sm" />
                 ) : (
-                    <Table>
+                    <Table compact>
                         <thead>
                             <tr>
-                                <Th>Person</Th>
-                                <Th>Shift</Th>
-                                <Th>From</Th>
-                                <Th>To</Th>
-                                <Th>Offs</Th>
-                                {canManage && <Th><span className="sr-only">Actions</span></Th>}
+                                <Th>{t('hrms.roster.thPerson')}</Th>
+                                <Th>{t('hrms.roster.thShift')}</Th>
+                                <Th>{t('hrms.roster.thFrom')}</Th>
+                                <Th>{t('hrms.roster.thTo')}</Th>
+                                <Th>{t('hrms.roster.thOffs')}</Th>
+                                {canManage && <Th><span className="sr-only">{t('hrms.roster.thActions')}</span></Th>}
                             </tr>
                         </thead>
                         <tbody>
                             {rosters.map((row) => (
                                 <tr key={row.id}>
                                     <Td>{row.employee_name ?? `#${row.employee_id}`}</Td>
-                                    <Td>{row.shift_name ?? (row.is_flexible ? 'Flexible' : 'Day off')}</Td>
+                                    <Td>{row.shift_name ?? (row.is_flexible ? t('hrms.roster.flexible') : t('hrms.roster.dayOff'))}</Td>
                                     <Td>{row.effective_from}</Td>
-                                    <Td>{row.effective_to ?? 'open'}</Td>
-                                    <Td>{DAY_LABELS.filter((_, i) => row.weekly_offs?.[i] === 1).join(' ') || '—'}</Td>
+                                    <Td>{row.effective_to ?? t('hrms.roster.openEnded')}</Td>
+                                    <Td>{weekdayNames().filter((_, i) => row.weekly_offs?.[i] === 1).join(' ') || '—'}</Td>
                                     {canManage && (
                                         <Td>
                                             <div className="flex justify-end">
-                                                <Button variant="secondary" onClick={() => remove(row.id)}>Remove</Button>
+                                                <Button variant="secondary" onClick={() => remove(row.id)}>{t('hrms.roster.remove')}</Button>
                                             </div>
                                         </Td>
                                     )}
                                 </tr>
                             ))}
-                            {rosters.length === 0 && <TableEmpty colSpan={canManage ? 6 : 5}>No roster rows in this window.</TableEmpty>}
+                            {rosters.length === 0 && <TableEmpty colSpan={canManage ? 6 : 5}>{t('hrms.roster.empty')}</TableEmpty>}
                         </tbody>
                     </Table>
                 )}
             </Card>
 
             {canManage && (
-                <Card dense title="Assign a shift">
+                <Card dense title={t('hrms.roster.assignTitle')}>
                     <form onSubmit={assign} className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                        <Select label="Person" value={form.employee_id} onChange={(e) => setForm({ ...form, employee_id: e.target.value })} error={errors.employee_id}>
-                            <option value="">Choose…</option>
-                            {employees.map((emp) => <option key={emp.id} value={emp.id}>{emp.name}</option>)}
-                        </Select>
-                        <Select label="Shift" value={form.shift_id} onChange={(e) => setForm({ ...form, shift_id: e.target.value })} error={errors.shift_id}>
-                            <option value="">Flexible / none</option>
+                        <PersonSelect label={t('hrms.roster.person')} value={form.employee_id} onChange={(e) => setForm({ ...form, employee_id: e.target.value })} error={errors.employee_id} placeholder={t('hrms.roster.choose')} people={employees} />
+                        <Select label={t('hrms.roster.shift')} value={form.shift_id} onChange={(e) => setForm({ ...form, shift_id: e.target.value })} error={errors.shift_id}>
+                            <option value="">{t('hrms.roster.flexibleNone')}</option>
                             {shifts.filter((s) => s.is_active).map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
                         </Select>
-                        <Input type="date" label="From" value={form.effective_from} onChange={(e) => setForm({ ...form, effective_from: e.target.value })} error={errors.effective_from} />
-                        <Input type="date" label="To (blank = open-ended)" value={form.effective_to} onChange={(e) => setForm({ ...form, effective_to: e.target.value })} error={errors.effective_to} />
+                        <Input type="date" label={t('hrms.roster.from')} value={form.effective_from} onChange={(e) => setForm({ ...form, effective_from: e.target.value })} error={errors.effective_from} />
+                        <Input type="date" label={t('hrms.roster.toOpen')} value={form.effective_to} onChange={(e) => setForm({ ...form, effective_to: e.target.value })} error={errors.effective_to} />
                         <div className="sm:col-span-2">
-                            <span className="mb-1 block text-sm font-medium text-gray-700">Weekly offs</span>
+                            <span className="mb-1 block text-sm font-medium text-gray-700">{t('hrms.roster.weeklyOffs')}</span>
                             <div className="flex flex-wrap gap-1.5">
-                                {DAY_LABELS.map((label, index) => (
+                                {weekdayNames().map((label, index) => (
                                     <button
                                         key={label}
                                         type="button"
@@ -167,7 +166,7 @@ export default function RosterPanel({ shifts, canManage, canView }) {
                         </div>
                         {errors.form && <Alert>{errors.form}</Alert>}
                         <div className="sm:col-span-2">
-                            <Button type="submit">Save roster</Button>
+                            <Button type="submit">{t('hrms.roster.save')}</Button>
                         </div>
                     </form>
                 </Card>

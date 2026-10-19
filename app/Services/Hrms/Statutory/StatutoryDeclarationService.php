@@ -38,7 +38,7 @@ class StatutoryDeclarationService
             $proof = EmployeeDocument::find($data['proof_document_id']);
 
             if ($proof === null || (int) $proof->employee_id !== (int) $employee->id) {
-                throw ValidationException::withMessages(['proof_document_id' => 'That file does not belong to this employee.']);
+                throw ValidationException::withMessages(['proof_document_id' => __('That file does not belong to this employee.')]);
             }
         }
 
@@ -102,7 +102,7 @@ class StatutoryDeclarationService
         ?User $actor,
     ): StatutoryDeclaration {
         if ($declaration->status !== $from) {
-            throw ValidationException::withMessages(['form' => "Only a {$from} claim can move here."]);
+            throw ValidationException::withMessages(['form' => __('Only a :from claim can move here.', ['from' => $from])]);
         }
 
         return DB::transaction(function () use ($declaration, $attributes, $action, $actor): StatutoryDeclaration {

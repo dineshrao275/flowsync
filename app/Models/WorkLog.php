@@ -17,6 +17,7 @@ class WorkLog extends Model
         'ended_at',
         'duration_minutes',
         'description',
+        'billable',
     ];
 
     protected function casts(): array
@@ -25,6 +26,7 @@ class WorkLog extends Model
             'started_at' => 'datetime',
             'ended_at' => 'datetime',
             'duration_minutes' => 'integer',
+            'billable' => 'boolean',
         ];
     }
 

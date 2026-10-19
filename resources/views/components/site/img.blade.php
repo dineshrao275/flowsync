@@ -1,4 +1,4 @@
-@props(['media' => null, 'src' => null, 'alt' => null])
+@props(['media' => null, 'src' => null, 'alt' => null, 'eager' => false])
 
 @php
     $src = $src ?? $media?->url();
@@ -11,7 +11,9 @@
     <img
         src="{{ $src }}"
         alt="{{ $alt }}"
-        loading="lazy"
+        {{-- Above-the-fold images (LCP) load eagerly with high priority; the rest lazy. --}}
+        loading="{{ $eager ? 'eager' : 'lazy' }}"
+        @if($eager)fetchpriority="high" @endif
         decoding="async"
         @if($width)width="{{ $width }}" @endif
         @if($height)height="{{ $height }}" @endif

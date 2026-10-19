@@ -83,7 +83,7 @@ final class GrantCeiling
 
             if ($beyond->isNotEmpty()) {
                 throw ValidationException::withMessages([
-                    $field => "You cannot assign the {$role->name} role: it carries permissions you do not hold.",
+                    $field => __('You cannot assign the :role role: it carries permissions you do not hold.', ['role' => $role->name]),
                 ]);
             }
         }

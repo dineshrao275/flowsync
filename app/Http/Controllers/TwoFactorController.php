@@ -54,7 +54,7 @@ class TwoFactorController extends Controller
 
         $this->audit($request, 'auth.2fa_enabled');
 
-        return response()->json(['message' => 'Two-factor authentication is on.', 'recovery_codes' => $codes, ...$this->state($request)]);
+        return response()->json(['message' => __('Two-factor authentication is on.'), 'recovery_codes' => $codes, ...$this->state($request)]);
     }
 
     public function disable(Request $request): JsonResponse
@@ -63,13 +63,13 @@ class TwoFactorController extends Controller
         $this->assertReauthenticated($request);
 
         if ($this->policy->requiredFor($user, $this->currentTenant())) {
-            throw ValidationException::withMessages(['form' => 'Your organisation requires two-factor authentication for your role.']);
+            throw ValidationException::withMessages(['form' => __('Your organisation requires two-factor authentication for your role.')]);
         }
 
         $this->twoFactor->disable($user);
         $this->audit($request, 'auth.2fa_disabled');
 
-        return response()->json(['message' => 'Two-factor authentication is off.', ...$this->state($request)]);
+        return response()->json(['message' => __('Two-factor authentication is off.'), ...$this->state($request)]);
     }
 
     public function recoveryCodes(Request $request): JsonResponse
@@ -78,7 +78,7 @@ class TwoFactorController extends Controller
         $codes = $this->twoFactor->regenerateRecoveryCodes($request->user());
         $this->audit($request, 'auth.2fa_recovery_regenerated');
 
-        return response()->json(['message' => 'New recovery codes generated. The old ones no longer work.', 'recovery_codes' => $codes, ...$this->state($request)]);
+        return response()->json(['message' => __('New recovery codes generated. The old ones no longer work.'), 'recovery_codes' => $codes, ...$this->state($request)]);
     }
 
     public function showTenantPolicy(): JsonResponse
@@ -97,7 +97,7 @@ class TwoFactorController extends Controller
         app(PlatformAudit::class)->diff($request, 'tenant.two_factor_policy_updated', 'tenants', $tenant->id,
             ['roles' => $before], ['roles' => $this->policy->tenantRoles($tenant->refresh())]);
 
-        return response()->json(['message' => 'Policy saved.', ...$this->tenantPolicyPayload($tenant)]);
+        return response()->json(['message' => __('Policy saved.'), ...$this->tenantPolicyPayload($tenant)]);
     }
 
     public function showPlatformPolicy(): JsonResponse
@@ -115,7 +115,7 @@ class TwoFactorController extends Controller
         app(PlatformAudit::class)->diff($request, 'platform.two_factor_policy_updated', 'platform_settings', null,
             ['require_super_admins' => $before], ['require_super_admins' => (bool) $data['require_super_admins']]);
 
-        return response()->json(['message' => 'Policy saved.', 'require_super_admins' => (bool) $data['require_super_admins']]);
+        return response()->json(['message' => __('Policy saved.'), 'require_super_admins' => (bool) $data['require_super_admins']]);
     }
 
     /** Sensitive 2FA changes need the password AND a current code, so a hijacked session cannot strip the factor. */
@@ -125,11 +125,11 @@ class TwoFactorController extends Controller
         $user = $request->user();
 
         if (! Hash::check($data['password'], $user->password)) {
-            throw ValidationException::withMessages(['password' => 'Incorrect password.']);
+            throw ValidationException::withMessages(['password' => __('Incorrect password.')]);
         }
         if ($this->twoFactor->verify($user, $data['code']) === null) {
             $this->audit($request, 'auth.2fa_failed');
-            throw ValidationException::withMessages(['code' => 'That code is not valid.']);
+            throw ValidationException::withMessages(['code' => __('That code is not valid.')]);
         }
     }
 

@@ -17,7 +17,7 @@ class EnsureFeatureFlag
     public function handle(Request $request, Closure $next, string $flag): Response
     {
         if (! app(FeatureFlags::class)->enabled($flag)) {
-            return response()->json(['message' => 'This feature is not enabled.', 'flag' => $flag], 403, ['X-Feature-Flag' => $flag]);
+            return response()->json(['message' => __('This feature is not enabled.'), 'flag' => $flag], 403, ['X-Feature-Flag' => $flag]);
         }
 
         return $next($request);

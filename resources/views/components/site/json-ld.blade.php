@@ -5,7 +5,7 @@
 @props(['crumbs' => [], 'faq' => [], 'article' => null])
 
 @php
-    $siteName = $siteName ?? config('app.name', 'FlowSync');
+    $siteName = $siteName ?? config('app.name');
     $base = url('/');
     $graph = [
         [
@@ -18,7 +18,7 @@
             '@type' => 'WebSite',
             'name' => $siteName,
             'url' => $base,
-            'inLanguage' => 'en',
+            'inLanguage' => app()->getLocale(),
         ],
     ];
 
@@ -42,7 +42,7 @@
             }
         }
         $posting['author'] = ['@type' => $article['author'] ?? null ? 'Person' : 'Organization', 'name' => $article['author'] ?? $siteName];
-        $posting['inLanguage'] = 'en';
+        $posting['inLanguage'] = app()->getLocale();
         $graph[] = $posting;
     }
 

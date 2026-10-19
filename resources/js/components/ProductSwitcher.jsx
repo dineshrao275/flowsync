@@ -1,4 +1,5 @@
 import { useLocation, useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { useAuth } from '../context/AuthContext';
 import { productForPath } from '../utils/product';
 
@@ -15,6 +16,7 @@ import { productForPath } from '../utils/product';
  */
 export default function ProductSwitcher() {
     const { user, check, can, hasModule } = useAuth();
+    const { t } = useTranslation();
     const location = useLocation();
     const navigate = useNavigate();
 
@@ -30,7 +32,7 @@ export default function ProductSwitcher() {
     const toHrms = product === 'tms';
     const target = toHrms ? '/hrms' : can('dashboard.view') ? '/dashboard' : '/workspaces';
     const label = toHrms ? 'HR' : 'TMS';
-    const title = toHrms ? 'Switch to HR Management' : 'Switch to Task Management';
+    const title = toHrms ? t('topbar.productSwitcher.toHrms') : t('topbar.productSwitcher.toTms');
 
     return (
         <button

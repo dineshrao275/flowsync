@@ -43,7 +43,7 @@ class TaskBulkController extends Controller
         $result = $this->cloner->clone($task, $target, $request->validated(), $request->user(), $request->ip());
 
         return response()->json([
-            'message' => 'Task cloned.',
+            'message' => __('Task cloned.'),
             'task' => $this->tasks->present($this->tasks->show($result['task'])),
             'subtasks_cloned' => $result['subtasks'],
         ], 201);

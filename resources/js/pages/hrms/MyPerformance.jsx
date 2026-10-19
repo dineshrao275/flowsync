@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import api, { fieldErrors } from '../../services/api';
 import Alert from '../../components/ui/Alert';
 import Button from '../../components/ui/Button';
@@ -7,7 +8,7 @@ import Card from '../../components/ui/Card';
 import EmptyState from '../../components/ui/EmptyState';
 import Input from '../../components/ui/Input';
 import Modal from '../../components/ui/Modal';
-import Spinner from '../../components/ui/Spinner';
+import ContentSkeleton from '../../components/ui/ContentSkeleton';
 import { useToast } from '../../context/ToastContext';
 import { useAuth } from '../../context/AuthContext';
 import { useSetCrumbs } from '../../context/BreadcrumbContext';
@@ -29,7 +30,8 @@ import GoalCard from '../../components/hrms/GoalCard';
  * files it.
  */
 export default function MyPerformance() {
-    usePageTitle('My performance');
+    const { t } = useTranslation();
+    usePageTitle(t('hrms.myPerformance.pageTitle'));
     const setCrumbs = useSetCrumbs();
     const navigate = useNavigate();
     const toast = useToast();
@@ -47,8 +49,8 @@ export default function MyPerformance() {
     const [modal, setModal] = useState(false);
 
     useEffect(() => {
-        setCrumbs([{ label: 'HRMS', to: '/hrms' }, { label: 'My performance' }]);
-    }, [setCrumbs]);
+        setCrumbs([{ label: t('hrms.overview.pageTitle'), to: '/hrms' }, { label: t('hrms.myPerformance.pageTitle') }]);
+    }, [setCrumbs, t]);
 
     const fail = useCallback(
         (message) => (err) => {
@@ -70,8 +72,8 @@ export default function MyPerformance() {
                 setCycles(rows);
                 setCycleId((current) => current || (rows[0] ? String(rows[0].id) : ''));
             })
-            .catch(fail('Unable to load cycles.'));
-    }, [fail]);
+            .catch(fail(t('hrms.myPerformance.loadCyclesFailed')));
+    }, [fail, t]);
 
     const loadCycle = useCallback(
         (id) => {
@@ -97,9 +99,9 @@ export default function MyPerformance() {
                     (data.check_ins ?? []).filter((c) => c.employee_id === employeeId),
                 )),
                 api.get(`/hrms/performance/cycles/${id}/feedback-requests`).then(({ data }) => setFeedback(data.feedback_requests ?? [])),
-            ]).catch(fail('Unable to load this cycle.'));
+            ]).catch(fail(t('hrms.myPerformance.loadCycleFailed')));
         },
-        [employeeId, fail],
+        [employeeId, fail, t],
     );
 
     useEffect(() => {
@@ -128,18 +130,18 @@ export default function MyPerformance() {
         <div className="space-y-4">
             <div className="flex flex-wrap items-center justify-between gap-3">
                 <div>
-                    <h2 className="text-xl font-semibold text-gray-900">My performance</h2>
-                    <p className="mt-0.5 text-sm text-gray-500">Goals, notes, conversations, and feedback.</p>
+                    <h2 className="text-xl font-semibold text-gray-900">{t('hrms.myPerformance.pageTitle')}</h2>
+                    <p className="mt-0.5 text-sm text-gray-500">{t('hrms.myPerformance.subtitle')}</p>
                 </div>
-                {cycleId && <Button onClick={() => setModal(true)}>Draft a goal</Button>}
+                {cycleId && <Button onClick={() => setModal(true)}>{t('hrms.myPerformance.draftGoal')}</Button>}
             </div>
 
             {error && <Alert>{error}</Alert>}
 
             {!cycles ? (
-                <div className="flex justify-center py-10"><Spinner /></div>
+                <ContentSkeleton size="md" />
             ) : cycles.length === 0 ? (
-                <EmptyState title="No cycles yet" hint="Your goals appear here once a cycle opens." />
+                <EmptyState title={t('hrms.myPerformance.emptyTitle')} hint={t('hrms.myPerformance.emptyHint')} />
             ) : (
                 <>
                     <div className="flex flex-wrap gap-2">
@@ -148,7 +150,7 @@ export default function MyPerformance() {
                                 key={cycle.id}
                                 type="button"
                                 onClick={() => setCycleId(String(cycle.id))}
-                                className={`rounded-lg px-3 py-1.5 text-sm font-medium ${String(cycle.id) === cycleId ? 'bg-indigo-100 text-indigo-800' : 'bg-gray-100 text-gray-500 hover:bg-gray-200'}`}
+                                className={`rounded-lg px-3 py-1.5 text-sm font-medium ${String(cycle.id) === cycleId ? 'bg-[var(--accent-soft)] text-[var(--accent-soft-text)]' : 'bg-gray-100 text-gray-500 hover:bg-gray-200'}`}
                             >
                                 {cycle.name}
                             </button>
@@ -156,12 +158,12 @@ export default function MyPerformance() {
                     </div>
 
                     {!goals ? (
-                        <div className="flex justify-center py-8"><Spinner /></div>
+                        <ContentSkeleton size="md" />
                     ) : (
                         <div className="grid gap-4 lg:grid-cols-2">
-                            <Card title="My goals" dense>
+                            <Card title={t('hrms.myPerformance.myGoals')} dense>
                                 {goals.length === 0 ? (
-                                    <p className="text-sm text-gray-500">No goals in this cycle yet.</p>
+                                    <p className="text-sm text-gray-500">{t('hrms.myPerformance.noGoals')}</p>
                                 ) : (
                                     <div className="space-y-3">
                                         {goals.map((goal) => <GoalCard key={goal.id} goal={goal} />)}
@@ -169,9 +171,9 @@ export default function MyPerformance() {
                                 )}
                             </Card>
                             <div className="space-y-4">
-                                <Card title="Check-ins" dense>
+                                <Card title={t('hrms.myPerformance.checkIns')} dense>
                                     {checkIns.length === 0 ? (
-                                        <p className="text-sm text-gray-500">No notes in this cycle yet.</p>
+                                        <p className="text-sm text-gray-500">{t('hrms.myPerformance.noNotes')}</p>
                                     ) : (
                                         <ul className="divide-y divide-gray-100 text-sm">
                                             {checkIns.map((note) => (
@@ -183,9 +185,9 @@ export default function MyPerformance() {
                                         </ul>
                                     )}
                                 </Card>
-                                <Card title="Feedback" dense>
+                                <Card title={t('hrms.myPerformance.feedback')} dense>
                                     {feedback.length === 0 ? (
-                                        <p className="text-sm text-gray-500">No asks in this cycle yet.</p>
+                                        <p className="text-sm text-gray-500">{t('hrms.myPerformance.noAsks')}</p>
                                     ) : (
                                         <ul className="divide-y divide-gray-100 text-sm">
                                             {feedback.map((request) => (
@@ -199,15 +201,15 @@ export default function MyPerformance() {
                                         </ul>
                                     )}
                                 </Card>
-                                <Card title="One-on-ones" dense>
+                                <Card title={t('hrms.myPerformance.oneOnOnes')} dense>
                                     {myOneOnOnes.length === 0 ? (
-                                        <p className="text-sm text-gray-500">No conversations yet.</p>
+                                        <p className="text-sm text-gray-500">{t('hrms.myPerformance.noConversations')}</p>
                                     ) : (
                                         <ul className="divide-y divide-gray-100 text-sm">
                                             {myOneOnOnes.map((row) => (
                                                 <li key={row.id} className="py-2">
                                                     <p>{row.employee?.name ?? ''} ↔ {row.manager?.name ?? '—'}</p>
-                                                    <p className="text-xs text-gray-400">{row.scheduled_at ?? 'unscheduled'} · {row.status}</p>
+                                                    <p className="text-xs text-gray-400">{row.scheduled_at ?? t('hrms.myPerformance.unscheduled')} · {row.status}</p>
                                                 </li>
                                             ))}
                                         </ul>
@@ -219,19 +221,19 @@ export default function MyPerformance() {
                 </>
             )}
 
-            <Modal open={modal} onClose={() => setModal(false)} title="Draft a goal">
+            <Modal open={modal} onClose={() => setModal(false)} title={t('hrms.myPerformance.draftModalTitle')}>
                 {employeeId ? (
                     <GoalDraftForm
                         cycleId={cycleId}
                         employeeId={employeeId}
                         onDrafted={() => {
                             setModal(false);
-                            toast.success('Goal drafted.');
+                            toast.success(t('hrms.myPerformance.goalDrafted'));
                             loadCycle(cycleId);
                         }}
                     />
                 ) : (
-                    <p className="text-sm text-gray-500">No employment record found for this login.</p>
+                    <p className="text-sm text-gray-500">{t('hrms.myPerformance.noRecord')}</p>
                 )}
             </Modal>
         </div>
@@ -239,6 +241,7 @@ export default function MyPerformance() {
 }
 
 function GoalDraftForm({ cycleId, employeeId, onDrafted }) {
+    const { t } = useTranslation();
     const [form, setForm] = useState({ title: '', metric_type: 'manual', target_value: '', weight: '100' });
     const [errors, setErrors] = useState({});
 
@@ -259,12 +262,12 @@ function GoalDraftForm({ cycleId, employeeId, onDrafted }) {
 
     return (
         <form onSubmit={save} className="grid gap-3 px-6 py-5">
-            <Input label="Title" value={form.title} error={errors.title} onChange={(e) => setForm({ ...form, title: e.target.value })} required />
+            <Input label={t('hrms.myPerformance.titleLabel')} value={form.title} error={errors.title} onChange={(e) => setForm({ ...form, title: e.target.value })} required />
             <div className="grid grid-cols-2 gap-3">
-                <Input label="Target (optional)" value={form.target_value} error={errors.target_value} onChange={(e) => setForm({ ...form, target_value: e.target.value })} />
-                <Input label="Weight" value={form.weight} error={errors.weight} onChange={(e) => setForm({ ...form, weight: e.target.value })} required />
+                <Input label={t('hrms.myPerformance.targetOptional')} value={form.target_value} error={errors.target_value} onChange={(e) => setForm({ ...form, target_value: e.target.value })} />
+                <Input label={t('hrms.myPerformance.weight')} value={form.weight} error={errors.weight} onChange={(e) => setForm({ ...form, weight: e.target.value })} required />
             </div>
-            <div><Button type="submit">Draft goal</Button></div>
+            <div><Button type="submit">{t('hrms.myPerformance.draftGoalBtn')}</Button></div>
         </form>
     );
 }

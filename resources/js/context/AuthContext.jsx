@@ -1,5 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import api from '../services/api';
+import { applyServerLocale } from '../i18n';
 
 const MODULE_PREFIX = 'module:';
 const PERMISSION_PREFIX = 'permission:';
@@ -46,6 +47,12 @@ export function AuthProvider({ children }) {
     useEffect(() => {
         loadSession();
     }, [loadSession]);
+
+    // The server resolves the full chain (user → tenant → default) and hands
+    // it back as `user.locale`; it wins over the guest guess from storage.
+    useEffect(() => {
+        if (user?.locale) applyServerLocale(user.locale);
+    }, [user?.locale]);
 
     const login = useCallback(async (credentials) => {
         const { data } = await api.post('/auth/login', credentials);

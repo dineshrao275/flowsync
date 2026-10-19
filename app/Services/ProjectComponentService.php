@@ -26,7 +26,7 @@ class ProjectComponentService
         $existing = $project->components()->where('name', $data['name'])->exists();
         if ($existing) {
             throw ValidationException::withMessages([
-                'name' => 'A component with this name already exists in this project.',
+                'name' => __('A component with this name already exists in this project.'),
             ]);
         }
 
@@ -47,7 +47,7 @@ class ProjectComponentService
 
             if ($existing) {
                 throw ValidationException::withMessages([
-                    'name' => 'A component with this name already exists in this project.',
+                    'name' => __('A component with this name already exists in this project.'),
                 ]);
             }
         }

@@ -60,14 +60,14 @@ class SalaryRevisionService
         $current = $this->currentAssignment($employee);
 
         if ($current === null) {
-            throw ValidationException::withMessages(['form' => 'There is no current structure to revise from — assign first.']);
+            throw ValidationException::withMessages(['form' => __('There is no current structure to revise from — assign first.')]);
         }
 
         $from = Money::fromDecimal($current->ctc_annual, $current->structure->currency ?? 'INR');
         $to = Money::fromDecimal($toCtc, $from->currency);
 
         if ($to->isNegative() || $to->isZero()) {
-            throw ValidationException::withMessages(['to_ctc' => 'A CTC prices positive money.']);
+            throw ValidationException::withMessages(['to_ctc' => __('A CTC prices positive money.')]);
         }
 
         // Exact integer comparison, never floats: (to − from) × 100 >=
@@ -130,7 +130,7 @@ class SalaryRevisionService
     {
         if ($revision->status === RevisionStatus::Draft) {
             if ($revision->approval === null || $revision->approval->fresh()->status->value !== 'approved') {
-                throw ValidationException::withMessages(['form' => 'Resolve the approval chain before applying.']);
+                throw ValidationException::withMessages(['form' => __('Resolve the approval chain before applying.')]);
             }
 
             $revision->update([
@@ -141,7 +141,7 @@ class SalaryRevisionService
         }
 
         if ($revision->status !== RevisionStatus::Approved) {
-            throw ValidationException::withMessages(['form' => 'Only an approved revision can be applied.']);
+            throw ValidationException::withMessages(['form' => __('Only an approved revision can be applied.')]);
         }
 
         return DB::transaction(function () use ($revision, $actor): SalaryRevision {
@@ -149,7 +149,7 @@ class SalaryRevisionService
             $current = $this->currentAssignment($employee);
 
             if ($current === null) {
-                throw ValidationException::withMessages(['form' => 'There is no current structure to revise from — assign first.']);
+                throw ValidationException::withMessages(['form' => __('There is no current structure to revise from — assign first.')]);
             }
 
             $this->compensation->assign(
@@ -186,13 +186,13 @@ class SalaryRevisionService
         $type = DocumentType::query()->where('slug', 'revision_letter')->first();
 
         if ($type === null || ! $type->is_active) {
-            throw ValidationException::withMessages(['form' => 'There is no active revision-letter document type to file under.']);
+            throw ValidationException::withMessages(['form' => __('There is no active revision-letter document type to file under.')]);
         }
 
         $tenantId = $this->context->currentId();
 
         if ($tenantId === null) {
-            throw ValidationException::withMessages(['form' => 'Letters need an active tenant before anything can be stored.']);
+            throw ValidationException::withMessages(['form' => __('Letters need an active tenant before anything can be stored.')]);
         }
 
         $employee = $revision->employee;

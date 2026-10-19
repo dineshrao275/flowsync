@@ -40,7 +40,7 @@ class WorkspaceController extends Controller
         $workspace = $this->service->create($data, $request->user());
 
         return response()->json([
-            'message' => 'Workspace created.',
+            'message' => __('Workspace created.'),
             'workspace' => [...$this->present($workspace), 'my_role' => 'owner'],
         ], 201);
     }
@@ -71,7 +71,7 @@ class WorkspaceController extends Controller
         $workspace = $this->service->update($workspace, $data);
 
         return response()->json([
-            'message' => 'Workspace updated.',
+            'message' => __('Workspace updated.'),
             'workspace' => $this->present($workspace),
         ]);
     }
@@ -81,7 +81,7 @@ class WorkspaceController extends Controller
         $this->authorize('archive', $workspace);
 
         return response()->json([
-            'message' => 'Workspace archived.',
+            'message' => __('Workspace archived.'),
             'workspace' => $this->present($this->service->archive($workspace)),
         ]);
     }
@@ -91,7 +91,7 @@ class WorkspaceController extends Controller
         $this->authorize('restore', $workspace);
 
         return response()->json([
-            'message' => 'Workspace restored.',
+            'message' => __('Workspace restored.'),
             'workspace' => $this->present($this->service->restore($workspace)),
         ]);
     }
@@ -102,7 +102,7 @@ class WorkspaceController extends Controller
 
         $this->service->delete($workspace);
 
-        return response()->json(['message' => 'Workspace deleted.']);
+        return response()->json(['message' => __('Workspace deleted.')]);
     }
 
     private function present(Workspace $workspace): array

@@ -60,7 +60,7 @@ class OnboardingTemplates
         $name = trim($name);
 
         if ($name === '' || mb_strlen($name) > 255) {
-            throw ValidationException::withMessages(['name' => 'A template needs a short name.']);
+            throw ValidationException::withMessages(['name' => __('A template needs a short name.')]);
         }
 
         return DB::transaction(function () use ($name, $attributes, $actor): OnboardingTemplate {
@@ -93,7 +93,7 @@ class OnboardingTemplates
         $name = trim($name);
 
         if ($name === '' || mb_strlen($name) > 255) {
-            throw ValidationException::withMessages(['name' => 'A template needs a short name.']);
+            throw ValidationException::withMessages(['name' => __('A template needs a short name.')]);
         }
 
         $before = $this->snapshot($template);
@@ -123,7 +123,7 @@ class OnboardingTemplates
     public function delete(OnboardingTemplate $template, ?User $actor = null): void
     {
         if (OnboardingCase::where('template_id', $template->id)->exists()) {
-            throw ValidationException::withMessages(['form' => 'Cases are still running from this template. Retire it instead of deleting it.']);
+            throw ValidationException::withMessages(['form' => __('Cases are still running from this template. Retire it instead of deleting it.')]);
         }
 
         $snapshot = $this->snapshot($template);
@@ -181,7 +181,7 @@ class OnboardingTemplates
             ->exists();
 
         if ($referenced) {
-            throw ValidationException::withMessages(['form' => 'Open cases are still running this item. Finish or cancel those cases first.']);
+            throw ValidationException::withMessages(['form' => __('Open cases are still running this item. Finish or cancel those cases first.')]);
         }
 
         $template = $task->template;
@@ -227,7 +227,7 @@ class OnboardingTemplates
 
         if (! $partial || $title !== null) {
             if ($title === '' || $title === null || mb_strlen($title) > 255) {
-                throw ValidationException::withMessages(['title' => 'An item needs a short title.']);
+                throw ValidationException::withMessages(['title' => __('An item needs a short title.')]);
             }
         }
 
@@ -245,12 +245,12 @@ class OnboardingTemplates
 
         if (array_key_exists('category', $attributes)) {
             $resolved['category'] = TemplateTaskCategory::tryFrom((string) $attributes['category'])
-                ?? throw ValidationException::withMessages(['category' => 'That is not a checklist category.']);
+                ?? throw ValidationException::withMessages(['category' => __('That is not a checklist category.')]);
         }
 
         if (array_key_exists('owner_scope', $attributes)) {
             $resolved['owner_scope'] = TaskOwnerScope::tryFrom((string) $attributes['owner_scope'])
-                ?? throw ValidationException::withMessages(['owner_scope' => 'That scope does not name a real owner.']);
+                ?? throw ValidationException::withMessages(['owner_scope' => __('That scope does not name a real owner.')]);
         }
 
         return $resolved;

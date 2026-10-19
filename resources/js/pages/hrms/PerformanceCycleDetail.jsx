@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
+import PersonSelect from '../../components/ui/PersonSelect';
 import { useNavigate, useParams } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import api, { fieldErrors } from '../../services/api';
 import Alert from '../../components/ui/Alert';
 import Button from '../../components/ui/Button';
@@ -7,7 +9,7 @@ import Card from '../../components/ui/Card';
 import Input from '../../components/ui/Input';
 import Modal from '../../components/ui/Modal';
 import Select from '../../components/ui/Select';
-import Spinner from '../../components/ui/Spinner';
+import ContentSkeleton from '../../components/ui/ContentSkeleton';
 import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
 import { useConfirm } from '../../components/ui/ConfirmDialog';
@@ -29,7 +31,8 @@ const TABS = ['goals', 'check-ins', 'one-on-ones', 'feedback', 'reviews'];
  * write-up while notifying its owner.
  */
 export default function PerformanceCycleDetail() {
-    usePageTitle('Review cycle');
+    const { t } = useTranslation();
+    usePageTitle(t('hrms.cycleDetail.pageTitle'));
     const setCrumbs = useSetCrumbs();
     const navigate = useNavigate();
     const toast = useToast();
@@ -85,8 +88,12 @@ export default function PerformanceCycleDetail() {
     }, []);
 
     useEffect(() => {
-        setCrumbs([{ label: 'HRMS', to: '/hrms' }, { label: 'Performance', to: '/hrms/performance' }, { label: 'Cycle' }]);
-    }, [setCrumbs]);
+        setCrumbs([
+            { label: t('hrms.overview.pageTitle'), to: '/hrms' },
+            { label: t('hrms.performance.pageTitle'), to: '/hrms/performance' },
+            { label: t('hrms.cycleDetail.crumbCycle') },
+        ]);
+    }, [setCrumbs, t]);
 
     const fail = useCallback(
         (message) => (err) => {
@@ -110,8 +117,8 @@ export default function PerformanceCycleDetail() {
             api.get('/hrms/performance/one-on-ones').then(({ data }) => setOneOnOnes(data.one_on_ones ?? [])),
             api.get(`/hrms/performance/cycles/${cycleId}/feedback-requests`).then(({ data }) => setFeedback(data.feedback_requests ?? [])),
             api.get(`/hrms/performance/cycles/${cycleId}/reviews`).then(({ data }) => setReviews(data.reviews ?? [])),
-        ]).catch(fail('Unable to load this cycle.'));
-    }, [cycleId, fail]);
+        ]).catch(fail(t('hrms.cycleDetail.loadFailed')));
+    }, [cycleId, fail, t]);
 
     useEffect(() => {
         load();
@@ -128,7 +135,7 @@ export default function PerformanceCycleDetail() {
 
         try {
             await api.post(`/hrms/performance/cycles/${cycleId}/goals`, goalForm);
-            toast.success('Goal filed.');
+            toast.success(t('hrms.cycleDetail.goalFiled'));
             setGoalModal(false);
             setGoalForm({ employee_id: '', title: '', metric_type: 'manual', target_value: '', weight: '100', status: 'draft' });
             load();
@@ -142,10 +149,10 @@ export default function PerformanceCycleDetail() {
 
         try {
             await api.post(`/hrms/performance/goals/${goal.id}/refresh`, {});
-            toast.success('Evidence refreshed.');
+            toast.success(t('hrms.cycleDetail.evidenceRefreshed'));
             load();
         } catch {
-            setError('That goal cannot be refreshed.');
+            setError(t('hrms.cycleDetail.goalRefreshFailed'));
         } finally {
             setRefreshing(null);
         }
@@ -154,22 +161,22 @@ export default function PerformanceCycleDetail() {
     async function linkGoalTask(goal, taskKey) {
         try {
             await api.post(`/hrms/performance/goals/${goal.id}/tasks`, { task_key: taskKey });
-            toast.success('Task linked.');
+            toast.success(t('hrms.cycleDetail.taskLinked'));
             load();
         } catch {
-            setError('That task cannot be linked — check the key.');
+            setError(t('hrms.cycleDetail.taskLinkFailed'));
         }
     }
 
     async function unlinkGoalTask(goal, task) {
-        if (!(await confirm({ title: 'Unlink task?', message: `Unlink ${task.key}? The task itself is untouched.`, variant: 'danger' }))) return;
+        if (!(await confirm({ title: t('hrms.cycleDetail.unlinkTitle'), message: t('hrms.cycleDetail.unlinkMessage', { key: task.key }), variant: 'danger' }))) return;
 
         try {
             await api.delete(`/hrms/performance/goals/${goal.id}/tasks/${task.id}`);
-            toast.success('Task unlinked.');
+            toast.success(t('hrms.cycleDetail.taskUnlinked'));
             load();
         } catch {
-            setError('That task cannot be unlinked.');
+            setError(t('hrms.cycleDetail.taskUnlinkFailed'));
         }
     }
 
@@ -179,7 +186,7 @@ export default function PerformanceCycleDetail() {
 
         try {
             await api.post('/hrms/performance/one-on-ones', oneOnOneForm);
-            toast.success('One-on-one scheduled.');
+            toast.success(t('hrms.cycleDetail.oneOnOneScheduled'));
             setOneOnOneModal(false);
             setOneOnOneForm({ employee_id: '', manager_employee_id: '', scheduled_at: '', agenda: '' });
             load();
@@ -194,7 +201,7 @@ export default function PerformanceCycleDetail() {
 
         try {
             await api.post(`/hrms/performance/feedback-requests/${responding.id}/respond`, respondForm);
-            toast.success(respondForm.action === 'decline' ? 'Feedback declined.' : 'Feedback submitted.');
+            toast.success(respondForm.action === 'decline' ? t('hrms.cycleDetail.feedbackDeclined') : t('hrms.cycleDetail.feedbackSubmitted'));
             setResponding(null);
             load();
         } catch (err) {
@@ -208,7 +215,7 @@ export default function PerformanceCycleDetail() {
 
         try {
             await api.post(`/hrms/performance/cycles/${cycleId}/reviews`, reviewForm);
-            toast.success('Review filed as hidden.');
+            toast.success(t('hrms.cycleDetail.reviewFiled'));
             setReviewModal(false);
             setReviewForm({ employee_id: '', manager_rating: '', strengths: '', improvements: '', manager_comments: '', visibility_to_employee: 'hidden' });
             load();
@@ -220,10 +227,10 @@ export default function PerformanceCycleDetail() {
     async function acknowledge(review) {
         try {
             await api.post(`/hrms/performance/reviews/${review.id}/acknowledge`, {});
-            toast.success('Review acknowledged — its owner was notified.');
+            toast.success(t('hrms.cycleDetail.reviewAcknowledged'));
             load();
         } catch {
-            setError('That review cannot be acknowledged.');
+            setError(t('hrms.cycleDetail.reviewAcknowledgeFailed'));
         }
     }
 
@@ -234,14 +241,24 @@ export default function PerformanceCycleDetail() {
 
         if (Array.isArray(responses.rows)) {
             if (responses.rows.length === 0) {
-                return <p className="text-xs text-gray-400">{responses.count > 0 ? `Aggregated over ${responses.count} answer${responses.count === 1 ? '' : 's'}${responses.average_rating !== null ? ` · average ${responses.average_rating}` : ''}.` : 'No answers yet.'}</p>;
+                const avgSuffix = responses.average_rating !== null
+                    ? t('hrms.cycleDetail.feedbackAvgSuffix', { avg: responses.average_rating })
+                    : '';
+
+                return (
+                    <p className="text-xs text-gray-400">
+                        {responses.count > 0
+                            ? t(responses.count === 1 ? 'hrms.cycleDetail.feedbackAggregatedOne' : 'hrms.cycleDetail.feedbackAggregated', { count: responses.count, avgSuffix })
+                            : t('hrms.cycleDetail.noAnswersYet')}
+                    </p>
+                );
             }
 
             return (
                 <ul className="mt-1 space-y-1 text-sm">
                     {responses.rows.map((row) => (
                         <li key={row.id} className="rounded bg-gray-50 px-2 py-1">
-                            <span className="font-medium">{row.from?.name ?? 'A reviewer'}</span>
+                            <span className="font-medium">{row.from?.name ?? t('hrms.cycleDetail.anonymousReviewer')}</span>
                             {row.rating ? ` · ${row.rating}/5` : ''}
                             {row.body ? <span className="block text-gray-600">{row.body}</span> : null}
                         </li>
@@ -256,9 +273,9 @@ export default function PerformanceCycleDetail() {
     return (
         <div className="space-y-4">
             <div>
-                <h2 className="text-xl font-semibold text-gray-900">{cycle?.name ?? 'Review cycle'}</h2>
+                <h2 className="text-xl font-semibold text-gray-900">{cycle?.name ?? t('hrms.cycleDetail.pageTitle')}</h2>
                 <p className="mt-0.5 text-sm text-gray-500">
-                    {cycle ? `${cycle.stage} · ${cycle.period_start} → ${cycle.period_end}` : '—'}
+                    {cycle ? t('hrms.cycleDetail.headerMeta', { stage: cycle.stage, start: cycle.period_start, end: cycle.period_end }) : '—'}
                 </p>
             </div>
 
@@ -270,18 +287,18 @@ export default function PerformanceCycleDetail() {
                         key={name}
                         type="button"
                         onClick={() => setTab(name)}
-                        className={`rounded-lg px-3 py-1.5 text-sm font-medium ${tab === name ? 'bg-indigo-100 text-indigo-800' : 'text-gray-500 hover:bg-gray-100'}`}
+                        className={`rounded-lg px-3 py-1.5 text-sm font-medium ${tab === name ? 'bg-[var(--accent-soft)] text-[var(--accent-soft-text)]' : 'text-gray-500 hover:bg-gray-100'}`}
                     >
-                        {name}
+                        {t(`hrms.cycleDetail.tabs.${name}`)}
                     </button>
                 ))}
             </div>
 
             {tab === 'goals' && (
                 <div className="space-y-3">
-                    {canManage && <div><Button size="sm" onClick={() => setGoalModal(true)}>File a goal</Button></div>}
-                    {!goals ? <div className="flex justify-center py-8"><Spinner /></div> : goals.length === 0 ? (
-                        <p className="py-8 text-center text-sm text-gray-400">No goals filed on this cycle yet.</p>
+                    {canManage && <div><Button size="sm" onClick={() => setGoalModal(true)}>{t('hrms.cycleDetail.fileGoal')}</Button></div>}
+                    {!goals ? <ContentSkeleton size="md" /> : goals.length === 0 ? (
+                        <p className="py-8 text-center text-sm text-gray-400">{t('hrms.cycleDetail.noGoals')}</p>
                     ) : goals.map((goal) => (
                         <GoalCard
                             key={goal.id}
@@ -297,38 +314,35 @@ export default function PerformanceCycleDetail() {
 
             {tab === 'check-ins' && (
                 <div className="grid gap-4 lg:grid-cols-2">
-                    <Card title="File a check-in" dense>
+                    <Card title={t('hrms.cycleDetail.fileCheckIn')} dense>
                         {canManage ? (
                             <>
                                 <div className="mb-3 max-w-xs">
-                                    <Select label="Person" value={checkInFor} onChange={(e) => setCheckInFor(e.target.value)}>
-                                        <option value="">Select…</option>
-                                        {employees.map((e) => <option key={e.id} value={e.id}>{e.name}</option>)}
-                                    </Select>
+                                    <PersonSelect label={t('hrms.cycleDetail.person')} value={checkInFor} onChange={(e) => setCheckInFor(e.target.value)} placeholder={t('hrms.cycleDetail.select')} people={employees} />
                                 </div>
                                 <CheckInComposer cycleId={cycleId} employeeId={checkInFor} onFiled={load} />
                             </>
                         ) : selfEmployeeId !== null ? (
                             <>
-                                <p className="mb-3 text-xs text-gray-400">You are filing this against your own record.</p>
+                                <p className="mb-3 text-xs text-gray-400">{t('hrms.cycleDetail.selfNote')}</p>
                                 <CheckInComposer cycleId={cycleId} employeeId={selfEmployeeId} onFiled={load} />
                             </>
                         ) : (
                             <p className="text-sm text-gray-500">
-                                Your account has no employee record yet, so there is nothing to file a check-in against.
+                                {t('hrms.cycleDetail.noEmployeeRecord')}
                             </p>
                         )}
                     </Card>
-                    <Card title="Notes" dense>
-                        {!checkIns ? <div className="flex justify-center py-6"><Spinner /></div> : checkIns.length === 0 ? (
-                            <p className="text-sm text-gray-500">No notes yet.</p>
+                    <Card title={t('hrms.cycleDetail.notes')} dense>
+                        {!checkIns ? <ContentSkeleton size="sm" /> : checkIns.length === 0 ? (
+                            <p className="text-sm text-gray-500">{t('hrms.cycleDetail.noNotes')}</p>
                         ) : (
                             <ul className="divide-y divide-gray-100 text-sm">
                                 {checkIns.map((note) => (
                                     <li key={note.id} className="py-2">
                                         <p>{note.body}</p>
                                         <p className="mt-0.5 text-xs text-gray-400">
-                                            {note.employee?.name ?? ''}{note.mood ? ` · ${note.mood}` : ''}{note.needs_support ? ' · needs support' : ''}
+                                            {note.employee?.name ?? ''}{note.mood ? ` · ${note.mood}` : ''}{note.needs_support ? t('hrms.cycleDetail.needsSupportSuffix') : ''}
                                         </p>
                                     </li>
                                 ))}
@@ -341,16 +355,16 @@ export default function PerformanceCycleDetail() {
             {tab === 'one-on-ones' && (
                 <div className="space-y-3">
                     {(canManage || selfEmployeeId !== null) && (
-                        <div><Button size="sm" onClick={() => setOneOnOneModal(true)}>Schedule a 1:1</Button></div>
+                        <div><Button size="sm" onClick={() => setOneOnOneModal(true)}>{t('hrms.cycleDetail.scheduleOneOnOne')}</Button></div>
                     )}
-                    {!oneOnOnes ? <div className="flex justify-center py-8"><Spinner /></div> : oneOnOnes.length === 0 ? (
-                        <p className="text-sm text-gray-500">No conversations yet.</p>
+                    {!oneOnOnes ? <ContentSkeleton size="md" /> : oneOnOnes.length === 0 ? (
+                        <p className="text-sm text-gray-500">{t('hrms.cycleDetail.noConversations')}</p>
                     ) : (
                         <ul className="divide-y divide-gray-100 rounded-lg border border-gray-200 bg-white text-sm">
                             {oneOnOnes.map((row) => (
                                 <li key={row.id} className="px-4 py-3">
                                     <p className="font-medium text-gray-900">{row.employee?.name ?? ''} ↔ {row.manager?.name ?? '—'}</p>
-                                    <p className="text-xs text-gray-400">{row.scheduled_at ?? 'unscheduled'} · {row.status}</p>
+                                    <p className="text-xs text-gray-400">{row.scheduled_at ?? t('hrms.cycleDetail.unscheduled')} · {row.status}</p>
                                     {row.agenda ? <p className="mt-1 text-gray-600">{row.agenda}</p> : null}
                                 </li>
                             ))}
@@ -361,8 +375,8 @@ export default function PerformanceCycleDetail() {
 
             {tab === 'feedback' && (
                 <div className="space-y-3">
-                    {!feedback ? <div className="flex justify-center py-8"><Spinner /></div> : feedback.length === 0 ? (
-                        <p className="text-sm text-gray-500">No asks yet — they generate when manager review opens.</p>
+                    {!feedback ? <ContentSkeleton size="md" /> : feedback.length === 0 ? (
+                        <p className="text-sm text-gray-500">{t('hrms.cycleDetail.noFeedbackAsks')}</p>
                     ) : feedback.map((request) => (
                         <Card key={request.id} dense>
                             <div className="flex flex-wrap items-center justify-between gap-2 text-sm">
@@ -372,7 +386,7 @@ export default function PerformanceCycleDetail() {
                                 </p>
                                 {request.status === 'pending' && (
                                     <Button size="sm" variant="secondary" onClick={() => { setResponding(request); setRespondForm({ action: 'submit', rating: '', body: '' }); setRespondErrors({}); }}>
-                                        Respond
+                                        {t('hrms.cycleDetail.respond')}
                                     </Button>
                                 )}
                             </div>
@@ -384,9 +398,9 @@ export default function PerformanceCycleDetail() {
 
             {tab === 'reviews' && (
                 <div className="space-y-3">
-                    {canManage && <div><Button size="sm" onClick={() => setReviewModal(true)}>File a review</Button></div>}
-                    {!reviews ? <div className="flex justify-center py-8"><Spinner /></div> : reviews.length === 0 ? (
-                        <p className="text-sm text-gray-500">No write-ups yet.</p>
+                    {canManage && <div><Button size="sm" onClick={() => setReviewModal(true)}>{t('hrms.cycleDetail.fileReview')}</Button></div>}
+                    {!reviews ? <ContentSkeleton size="md" /> : reviews.length === 0 ? (
+                        <p className="text-sm text-gray-500">{t('hrms.cycleDetail.noWriteUps')}</p>
                     ) : reviews.map((review) => (
                         <Card key={review.id} dense>
                             <div className="flex flex-wrap items-center justify-between gap-2 text-sm">
@@ -394,86 +408,74 @@ export default function PerformanceCycleDetail() {
                                 <span className="text-xs text-gray-400">{review.status} · {review.visibility_to_employee}</span>
                             </div>
                             <div className="mt-2 grid gap-1 text-sm text-gray-600">
-                                {review.self_rating ? <p>Self: {review.self_rating}/5</p> : null}
-                                {review.manager_rating ? <p>Manager: {review.manager_rating}/5</p> : null}
-                                {review.strengths ? <p><strong>Strengths:</strong> {review.strengths}</p> : null}
-                                {review.improvements ? <p><strong>Improvements:</strong> {review.improvements}</p> : null}
-                                {review.manager_comments ? <p><strong>Manager:</strong> {review.manager_comments}</p> : null}
+                                {review.self_rating ? <p>{t('hrms.cycleDetail.selfRating', { rating: review.self_rating })}</p> : null}
+                                {review.manager_rating ? <p>{t('hrms.cycleDetail.managerRatingLabelValue', { rating: review.manager_rating })}</p> : null}
+                                {review.strengths ? <p><strong>{t('hrms.cycleDetail.strengths')}:</strong> {review.strengths}</p> : null}
+                                {review.improvements ? <p><strong>{t('hrms.cycleDetail.improvements')}:</strong> {review.improvements}</p> : null}
+                                {review.manager_comments ? <p><strong>{t('hrms.cycleDetail.managerCommentsBold')}</strong> {review.manager_comments}</p> : null}
                             </div>
                             {canManage && review.status !== 'acknowledged' && (
-                                <div className="mt-2"><Button size="sm" variant="secondary" onClick={() => acknowledge(review)}>Acknowledge</Button></div>
+                                <div className="mt-2"><Button size="sm" variant="secondary" onClick={() => acknowledge(review)}>{t('hrms.cycleDetail.acknowledge')}</Button></div>
                             )}
                         </Card>
                     ))}
                 </div>
             )}
 
-            <Modal open={goalModal} onClose={() => setGoalModal(false)} title="File a goal">
+            <Modal open={goalModal} onClose={() => setGoalModal(false)} title={t('hrms.cycleDetail.fileGoal')}>
                 <form onSubmit={saveGoal} className="grid gap-3 px-6 py-5">
-                    <Select label="Person" value={goalForm.employee_id} error={goalErrors.employee_id} onChange={(e) => setGoalForm({ ...goalForm, employee_id: e.target.value })} required>
-                        <option value="">Select…</option>
-                        {employees.map((e) => <option key={e.id} value={e.id}>{e.name}</option>)}
-                    </Select>
-                    <Input label="Title" value={goalForm.title} error={goalErrors.title} onChange={(e) => setGoalForm({ ...goalForm, title: e.target.value })} required />
+                    <PersonSelect label={t('hrms.cycleDetail.person')} value={goalForm.employee_id} error={goalErrors.employee_id} onChange={(e) => setGoalForm({ ...goalForm, employee_id: e.target.value })} required placeholder={t('hrms.cycleDetail.select')} people={employees} />
+                    <Input label={t('hrms.cycleDetail.titleLabel')} value={goalForm.title} error={goalErrors.title} onChange={(e) => setGoalForm({ ...goalForm, title: e.target.value })} required />
                     <div className="grid grid-cols-3 gap-3">
-                        <Select label="Metric" value={goalForm.metric_type} error={goalErrors.metric_type} onChange={(e) => setGoalForm({ ...goalForm, metric_type: e.target.value })}>
-                            <option value="manual">Manual</option>
-                            <option value="task_completion">Task completion</option>
-                            <option value="worklog_hours">Logged hours</option>
-                            <option value="none">None</option>
+                        <Select label={t('hrms.cycleDetail.metric')} value={goalForm.metric_type} error={goalErrors.metric_type} onChange={(e) => setGoalForm({ ...goalForm, metric_type: e.target.value })}>
+                            <option value="manual">{t('hrms.cycleDetail.metricManual')}</option>
+                            <option value="task_completion">{t('hrms.cycleDetail.metricTaskCompletion')}</option>
+                            <option value="worklog_hours">{t('hrms.cycleDetail.metricWorklogHours')}</option>
+                            <option value="none">{t('hrms.cycleDetail.metricNone')}</option>
                         </Select>
-                        <Input label="Target" value={goalForm.target_value} error={goalErrors.target_value} onChange={(e) => setGoalForm({ ...goalForm, target_value: e.target.value })} />
-                        <Input label="Weight" value={goalForm.weight} error={goalErrors.weight} onChange={(e) => setGoalForm({ ...goalForm, weight: e.target.value })} required />
+                        <Input label={t('hrms.cycleDetail.target')} value={goalForm.target_value} error={goalErrors.target_value} onChange={(e) => setGoalForm({ ...goalForm, target_value: e.target.value })} />
+                        <Input label={t('hrms.cycleDetail.weight')} value={goalForm.weight} error={goalErrors.weight} onChange={(e) => setGoalForm({ ...goalForm, weight: e.target.value })} required />
                     </div>
-                    <div><Button type="submit">File goal</Button></div>
+                    <div><Button type="submit">{t('hrms.cycleDetail.fileGoalBtn')}</Button></div>
                 </form>
             </Modal>
 
-            <Modal open={oneOnOneModal} onClose={() => setOneOnOneModal(false)} title="Schedule a 1:1">
+            <Modal open={oneOnOneModal} onClose={() => setOneOnOneModal(false)} title={t('hrms.cycleDetail.scheduleOneOnOneTitle')}>
                 <form onSubmit={saveOneOnOne} className="grid gap-3 px-6 py-5">
                     <div className="grid grid-cols-2 gap-3">
-                        <Select label="Person" value={oneOnOneForm.employee_id} error={oneOnOneErrors.employee_id} onChange={(e) => setOneOnOneForm({ ...oneOnOneForm, employee_id: e.target.value })} required>
-                            <option value="">Select…</option>
-                            {employees.map((e) => <option key={e.id} value={e.id}>{e.name}</option>)}
-                        </Select>
-                        <Select label="Manager" value={oneOnOneForm.manager_employee_id} error={oneOnOneErrors.manager_employee_id} onChange={(e) => setOneOnOneForm({ ...oneOnOneForm, manager_employee_id: e.target.value })}>
-                            <option value="">None…</option>
-                            {employees.map((e) => <option key={e.id} value={e.id}>{e.name}</option>)}
-                        </Select>
+                        <PersonSelect label={t('hrms.cycleDetail.person')} value={oneOnOneForm.employee_id} error={oneOnOneErrors.employee_id} onChange={(e) => setOneOnOneForm({ ...oneOnOneForm, employee_id: e.target.value })} required placeholder={t('hrms.cycleDetail.select')} people={employees} />
+                        <PersonSelect label={t('hrms.cycleDetail.manager')} value={oneOnOneForm.manager_employee_id} error={oneOnOneErrors.manager_employee_id} onChange={(e) => setOneOnOneForm({ ...oneOnOneForm, manager_employee_id: e.target.value })} placeholder={t('hrms.cycleDetail.managerOptionNone')} people={employees} />
                     </div>
-                    <Input label="Scheduled at" type="datetime-local" value={oneOnOneForm.scheduled_at} error={oneOnOneErrors.scheduled_at} onChange={(e) => setOneOnOneForm({ ...oneOnOneForm, scheduled_at: e.target.value })} required />
-                    <Input label="Agenda" value={oneOnOneForm.agenda} error={oneOnOneErrors.agenda} onChange={(e) => setOneOnOneForm({ ...oneOnOneForm, agenda: e.target.value })} />
-                    <div><Button type="submit">Schedule</Button></div>
+                    <Input label={t('hrms.cycleDetail.scheduledAt')} type="datetime-local" value={oneOnOneForm.scheduled_at} error={oneOnOneErrors.scheduled_at} onChange={(e) => setOneOnOneForm({ ...oneOnOneForm, scheduled_at: e.target.value })} required />
+                    <Input label={t('hrms.cycleDetail.agenda')} value={oneOnOneForm.agenda} error={oneOnOneErrors.agenda} onChange={(e) => setOneOnOneForm({ ...oneOnOneForm, agenda: e.target.value })} />
+                    <div><Button type="submit">{t('hrms.cycleDetail.schedule')}</Button></div>
                 </form>
             </Modal>
 
-            <Modal open={!!responding} onClose={() => setResponding(null)} title="Answer feedback">
+            <Modal open={!!responding} onClose={() => setResponding(null)} title={t('hrms.cycleDetail.answerFeedbackTitle')}>
                 <form onSubmit={respond} className="grid gap-3 px-6 py-5">
-                    <Select label="Answer" value={respondForm.action} error={respondErrors.action} onChange={(e) => setRespondForm({ ...respondForm, action: e.target.value })}>
-                        <option value="submit">Submit perspective</option>
-                        <option value="decline">Decline</option>
+                    <Select label={t('hrms.cycleDetail.answer')} value={respondForm.action} error={respondErrors.action} onChange={(e) => setRespondForm({ ...respondForm, action: e.target.value })}>
+                        <option value="submit">{t('hrms.cycleDetail.answerSubmit')}</option>
+                        <option value="decline">{t('hrms.cycleDetail.answerDecline')}</option>
                     </Select>
                     {respondForm.action === 'submit' && (
                         <>
-                            <Input label="Rating (1–5)" value={respondForm.rating} error={respondErrors.rating} onChange={(e) => setRespondForm({ ...respondForm, rating: e.target.value })} required />
-                            <Input label="Words" value={respondForm.body} error={respondErrors.body} onChange={(e) => setRespondForm({ ...respondForm, body: e.target.value })} />
+                            <Input label={t('hrms.cycleDetail.ratingLabel')} value={respondForm.rating} error={respondErrors.rating} onChange={(e) => setRespondForm({ ...respondForm, rating: e.target.value })} required />
+                            <Input label={t('hrms.cycleDetail.words')} value={respondForm.body} error={respondErrors.body} onChange={(e) => setRespondForm({ ...respondForm, body: e.target.value })} />
                         </>
                     )}
-                    <div><Button type="submit">Send answer</Button></div>
+                    <div><Button type="submit">{t('hrms.cycleDetail.sendAnswer')}</Button></div>
                 </form>
             </Modal>
 
-            <Modal open={reviewModal} onClose={() => setReviewModal(false)} title="File a review (hidden)">
+            <Modal open={reviewModal} onClose={() => setReviewModal(false)} title={t('hrms.cycleDetail.reviewModalTitle')}>
                 <form onSubmit={saveReview} className="grid gap-3 px-6 py-5">
-                    <Select label="Person" value={reviewForm.employee_id} error={reviewErrors.employee_id} onChange={(e) => setReviewForm({ ...reviewForm, employee_id: e.target.value })} required>
-                        <option value="">Select…</option>
-                        {employees.map((e) => <option key={e.id} value={e.id}>{e.name}</option>)}
-                    </Select>
-                    <Input label="Manager rating (1–5)" value={reviewForm.manager_rating} error={reviewErrors.manager_rating} onChange={(e) => setReviewForm({ ...reviewForm, manager_rating: e.target.value })} />
-                    <Input label="Strengths" value={reviewForm.strengths} error={reviewErrors.strengths} onChange={(e) => setReviewForm({ ...reviewForm, strengths: e.target.value })} />
-                    <Input label="Improvements" value={reviewForm.improvements} error={reviewErrors.improvements} onChange={(e) => setReviewForm({ ...reviewForm, improvements: e.target.value })} />
-                    <Input label="Manager comments" value={reviewForm.manager_comments} error={reviewErrors.manager_comments} onChange={(e) => setReviewForm({ ...reviewForm, manager_comments: e.target.value })} />
-                    <div><Button type="submit">File hidden</Button></div>
+                    <PersonSelect label={t('hrms.cycleDetail.person')} value={reviewForm.employee_id} error={reviewErrors.employee_id} onChange={(e) => setReviewForm({ ...reviewForm, employee_id: e.target.value })} required placeholder={t('hrms.cycleDetail.select')} people={employees} />
+                    <Input label={t('hrms.cycleDetail.managerRatingLabel')} value={reviewForm.manager_rating} error={reviewErrors.manager_rating} onChange={(e) => setReviewForm({ ...reviewForm, manager_rating: e.target.value })} />
+                    <Input label={t('hrms.cycleDetail.strengths')} value={reviewForm.strengths} error={reviewErrors.strengths} onChange={(e) => setReviewForm({ ...reviewForm, strengths: e.target.value })} />
+                    <Input label={t('hrms.cycleDetail.improvements')} value={reviewForm.improvements} error={reviewErrors.improvements} onChange={(e) => setReviewForm({ ...reviewForm, improvements: e.target.value })} />
+                    <Input label={t('hrms.cycleDetail.managerComments')} value={reviewForm.manager_comments} error={reviewErrors.manager_comments} onChange={(e) => setReviewForm({ ...reviewForm, manager_comments: e.target.value })} />
+                    <div><Button type="submit">{t('hrms.cycleDetail.fileHidden')}</Button></div>
                 </form>
             </Modal>
         </div>

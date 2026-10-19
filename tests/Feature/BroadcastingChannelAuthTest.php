@@ -81,6 +81,21 @@ class BroadcastingChannelAuthTest extends TestCase
         $this->assertFalse((bool) $callback($this->outsider, $this->project->id));
     }
 
+    public function test_tenant_admin_may_listen_to_projects_and_workspaces_they_are_not_a_member_of(): void
+    {
+        // ProjectPolicy/WorkspacePolicy::view let a tenant admin open anything; the
+        // channel must agree or the board/comment sockets 403 for admins.
+        $otherWorkspace = Workspace::create(['name' => 'Ops', 'slug' => 'ops']);
+        $otherProject = Project::create(['workspace_id' => $otherWorkspace->id, 'name' => 'Infra', 'key' => 'in']);
+
+        $this->assertTrue((bool) ($this->channels['project.{id}'])($this->member, $otherProject->id));
+        $this->assertTrue((bool) ($this->channels['workspace.{id}'])($this->member, $otherWorkspace->id));
+
+        $this->assertFalse((bool) ($this->channels['project.{id}'])($this->outsider, $otherProject->id));
+        $this->assertFalse((bool) ($this->channels['workspace.{id}'])($this->outsider, $otherWorkspace->id));
+        $this->assertFalse((bool) ($this->channels['project.{id}'])($this->member, 999999), 'unknown project');
+    }
+
     public function test_workspace_channel_allows_workspace_member(): void
     {
         $callback = $this->workspaceChannelCallback();
@@ -88,7 +103,9 @@ class BroadcastingChannelAuthTest extends TestCase
         $this->workspace->members()->attach($this->outsider->id, ['role' => 'member']);
 
         $this->assertTrue((bool) $callback($this->outsider, $this->workspace->id));
-        $this->assertFalse((bool) $callback($this->member, $this->workspace->id));
+        // The tenant admin (`workspaces.manage`) reads every workspace without being a member — the
+        // channel mirrors WorkspacePolicy::view, so live updates reach admins who open one.
+        $this->assertTrue((bool) $callback($this->member, $this->workspace->id));
     }
 
     public function test_broadcast_auth_route_is_registered(): void

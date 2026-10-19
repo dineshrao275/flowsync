@@ -2,14 +2,18 @@
 
 namespace App\Http\Controllers;
 
+use App\Billing\BillingLock;
 use App\Billing\PaymentService;
+use App\Billing\Plans\PlanChangeScheduler;
 use App\Billing\Proration\ProrationCalculator;
 use App\Http\Controllers\Concerns\DetectsPlatformUsers;
 use App\Http\Controllers\Concerns\ResolvesCurrentTenant;
 use App\Models\SubscriptionPlan;
+use App\Models\SubscriptionPriceNotice;
 use App\Models\Tenant;
 use App\Services\SubscriptionService;
 use App\Services\TenantLimits;
+use App\Services\UsageMeter;
 use App\Support\TenantContext;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -31,6 +35,7 @@ class MySubscriptionController extends Controller
         private readonly SubscriptionService $subscriptions,
         private readonly TenantLimits $limits,
         private readonly PaymentService $payments,
+        private readonly PlanChangeScheduler $scheduler,
     ) {}
 
     public function show(Request $request): JsonResponse
@@ -56,12 +61,18 @@ class MySubscriptionController extends Controller
 
         return response()->json([
             'usage' => $usage,
+            'monthly' => app(UsageMeter::class)->summary(),
             'limits' => $this->limits->effective($tenant),
             'modules' => $this->limits->visibleModules($tenant),
             'modules_available' => config('subscriptions.modules', []),
         ]);
     }
 
+    /**
+     * Change plan. For someone already paying the change is queued for the end of the paid period (see
+     * PlanChangeScheduler); a trial, a free plan or a lapsed subscription switches at once. Choosing the plan you are on
+     * withdraws a queued change.
+     */
     public function switch(Request $request): JsonResponse
     {
         $tenant = $this->currentTenant();
@@ -72,32 +83,38 @@ class MySubscriptionController extends Controller
         ]);
 
         $plan = SubscriptionPlan::find($data['plan_id']);
-        abort_unless($plan, 422, 'Unknown plan.');
-
-        if ($tenant->subscriptionFor($plan->product ?? 'suite')?->plan_id === $plan->id) {
-            return response()->json([
-                'message' => 'Already subscribed to this plan.',
-                ...$this->payload($tenant),
-            ]);
-        }
-
-        abort_unless($plan->is_active, 422, 'That plan is not currently available.');
+        abort_unless($plan, 422, __('Unknown plan.'));
 
         $actor = $request->user();
+        $current = $tenant->subscriptionFor($plan->product ?? 'suite');
 
-        // Moving off a paid plan mid-period leaves unused paid time; record its value on
-        // the event (P6.4) so support can honour it — nothing applies it automatically.
-        $credit = app(ProrationCalculator::class)->credit($tenant->subscriptionFor($plan->product ?? 'suite'), $plan);
+        // Moving off a paid plan mid-period leaves unused paid time; record its value on the event (P6.4) so support can
+        // honour it — nothing applies it automatically. Only the immediate path uses it; a queued change has no unused time.
+        $credit = $this->scheduler->wouldSchedule($tenant, $plan) ? null : app(ProrationCalculator::class)->credit($current, $plan);
 
-        $this->subscriptions->switch($tenant, $plan, [
-            'actor_id' => null,
-            'data' => array_filter([
-                'actor' => ['id' => $actor->id, 'name' => $actor->name, 'email' => $actor->email],
-                'proration' => $credit,
-            ]),
-        ]);
+        $outcome = $this->scheduler->request($tenant, $plan, array_filter([
+            'actor' => ['id' => $actor->id, 'name' => $actor->name, 'email' => $actor->email],
+            'proration' => $credit,
+        ]));
 
-        return response()->json(['message' => 'Plan updated.', ...$this->payload($tenant)]);
+        $message = match ($outcome['mode']) {
+            'scheduled' => __('Plan change scheduled for :date. You keep your current plan until then.', ['date' => $outcome['subscription']->pending_change_at->toFormattedDateString()]),
+            'cleared' => $current && $current->plan_id === $plan->id && ! $outcome['subscription']->hasPendingChange() ? __('Already subscribed to this plan.') : __('Scheduled plan change withdrawn.'),
+            default => __('Plan updated.'),
+        };
+
+        return response()->json(['message' => $message, 'mode' => $outcome['mode'], ...$this->payload($tenant)]);
+    }
+
+    /** Withdraw a plan change that is waiting for the end of the period. */
+    public function cancelScheduledChange(Request $request): JsonResponse
+    {
+        $tenant = $this->currentTenant();
+        $this->authorizeAdmin($request);
+
+        $this->scheduler->cancelPending($tenant, $this->product($request));
+
+        return response()->json(['message' => __('Scheduled plan change withdrawn.'), ...$this->payload($tenant)]);
     }
 
     public function cancel(Request $request): JsonResponse
@@ -108,12 +125,19 @@ class MySubscriptionController extends Controller
         // The tenant admin is not a central `users` row, so we cannot use their
         // id as subscription_events.actor_id (FK → system users). Omitting the
         // actor keeps the audit event write safe; the tenant is implicit.
-        // Stop the provider from billing the next period before we say so locally.
+        // Stop the provider from billing the next period before we say so locally. Access continues until the paid period
+        // ends (PeriodEndService then expires it); a queued plan change is dropped — there is no next period to move to.
         $product = $this->product($request);
-        $this->payments->setProviderCancelAtPeriodEnd($tenant, true, $product);
-        $this->subscriptions->cancel($tenant, null, $product);
+        BillingLock::for($tenant, function () use ($tenant, $product): void {
+            $subscription = $product ? $tenant->subscriptionFor($product) : $tenant->subscription()->first();
+            if ($subscription?->hasPendingChange()) {
+                $this->scheduler->cancelPending($tenant, $subscription->product);
+            }
+            $this->payments->setProviderCancelAtPeriodEnd($tenant, true, $product);
+            $this->subscriptions->cancel($tenant, null, $product);
+        });
 
-        return response()->json(['message' => 'Subscription canceled.', ...$this->payload($tenant)]);
+        return response()->json(['message' => __('Subscription canceled.'), ...$this->payload($tenant)]);
     }
 
     public function renew(Request $request): JsonResponse
@@ -122,10 +146,12 @@ class MySubscriptionController extends Controller
         $this->authorizeAdmin($request);
 
         $product = $this->product($request);
-        $this->payments->setProviderCancelAtPeriodEnd($tenant, false, $product);
-        $this->subscriptions->renew($tenant, null, $product);
+        BillingLock::for($tenant, function () use ($tenant, $product): void {
+            $this->payments->setProviderCancelAtPeriodEnd($tenant, false, $product);
+            $this->subscriptions->renew($tenant, null, $product);
+        });
 
-        return response()->json(['message' => 'Subscription renewed.', ...$this->payload($tenant)]);
+        return response()->json(['message' => __('Subscription renewed.'), ...$this->payload($tenant)]);
     }
 
     /** Which product's subscription an action is about; none = the primary one (older clients). */
@@ -172,6 +198,19 @@ class MySubscriptionController extends Controller
         );
     }
 
+    /** The pending price change a subscriber was told about (new amount and the date it starts), if any. */
+    private function priceNotice($subscription): ?array
+    {
+        $notice = SubscriptionPriceNotice::where('subscription_id', $subscription->id)->where('status', SubscriptionPriceNotice::PENDING)->orderByDesc('id')->first();
+
+        return $notice ? [
+            'old_amount_cents' => $notice->old_amount_cents,
+            'new_amount_cents' => $notice->new_amount_cents,
+            'currency' => strtoupper($notice->currency),
+            'effective_at' => $notice->effective_at->toIso8601String(),
+        ] : null;
+    }
+
     private function payload(Tenant $tenant): array
     {
         $tenant->load('subscription.plan', 'subscriptions.plan');
@@ -203,6 +242,11 @@ class MySubscriptionController extends Controller
                 'canceled_at' => $s->canceled_at?->toIso8601String(),
                 'auto_renew' => $s->auto_renew,
                 'billing_provider' => $s->billing_provider,
+                'pending_change' => $s->hasPendingChange() ? [
+                    'plan' => $s->pendingPlan?->only(['id', 'name', 'slug', 'price_cents', 'currency', 'billing_cycle']),
+                    'effective_at' => $s->pending_change_at->toIso8601String(),
+                ] : null,
+                'price_notice' => $this->priceNotice($s),
             ])->values(),
             'products' => [
                 'tms' => $this->limits->productEnabled($tenant, 'tms'),
@@ -224,6 +268,10 @@ class MySubscriptionController extends Controller
                 'billing_provider' => $subscription->billing_provider,
                 'billing_reference' => $subscription->billing_reference,
             ] : null,
+            'billing' => [
+                'card' => $tenant->settings['billing']['card'] ?? null,
+                'subscription_required' => $tenant->status === Tenant::STATUS_EXPIRED,
+            ],
             'tenant' => [
                 'id' => $tenant->id,
                 'name' => $tenant->name,

@@ -1,7 +1,9 @@
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import api from '../services/api';
-import Spinner from './ui/Spinner';
+import ContentSkeleton from './ui/ContentSkeleton';
+import { Bell, Users } from '@phosphor-icons/react';
 import { useNotifications } from '../context/NotificationContext';
 import { useClickOutside } from '../hooks/useClickOutside';
 import { describeNotification, notificationHref } from '../utils/notifications';
@@ -9,6 +11,7 @@ import Avatar from './ui/Avatar';
 import Timestamp from './ui/Timestamp';
 
 export default function NotificationBell() {
+    const { t } = useTranslation();
     const { unreadCount, markAllRead, markRead } = useNotifications();
     const [open, setOpen] = useState(false);
     const [notifications, setNotifications] = useState(null);
@@ -36,15 +39,12 @@ export default function NotificationBell() {
             <button
                 onClick={() => setOpen((value) => !value)}
                 className="relative rounded-lg p-2 transition-all duration-150 hover:bg-black/5 active:scale-90"
-                aria-label="Notifications"
+                aria-label={t('notifications.pageTitle')}
                 style={{ color: 'var(--header-text)' }}
             >
-                <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M18 8a6 6 0 10-12 0c0 7-3 9-3 9h18s-3-2-3-9" />
-                    <path d="M13.7 21a2 2 0 01-3.4 0" />
-                </svg>
+                <Bell size={20} aria-hidden="true" />
                 {unreadCount > 0 && (
-                    <span className="absolute -right-0.5 -top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-bold text-white">
+                    <span className="absolute -right-0.5 -top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-red-500 px-1 text-xs font-bold text-white">
                         {unreadCount > 99 ? '99+' : unreadCount}
                     </span>
                 )}
@@ -53,24 +53,22 @@ export default function NotificationBell() {
             {open && (
                 <div className="absolute right-0 z-30 mt-2 w-80 origin-top-right animate-scale-in overflow-hidden rounded-xl border border-gray-200 bg-white shadow-lg">
                     <div className="flex items-center justify-between border-b border-gray-100 px-4 py-3">
-                        <p className="text-sm font-semibold text-gray-900">Notifications</p>
+                        <p className="text-sm font-semibold text-gray-900">{t('notifications.pageTitle')}</p>
                         {unreadCount > 0 && (
                             <button
                                 onClick={markAllRead}
-                                className="text-xs font-medium text-indigo-600 transition hover:text-indigo-800"
+                                className="text-xs font-medium text-[var(--accent-soft-text)] transition hover:opacity-80"
                             >
-                                Mark all read
+                                {t('notifications.markAllReadShort')}
                             </button>
                         )}
                     </div>
 
                     <div className="max-h-96 overflow-y-auto">
                         {notifications === null ? (
-                            <div className="flex justify-center py-10">
-                                <Spinner />
-                            </div>
+                            <ContentSkeleton size="md" />
                         ) : notifications.length === 0 ? (
-                            <p className="px-4 py-10 text-center text-sm text-gray-400">You&apos;re all caught up.</p>
+                            <p className="px-4 py-10 text-center text-sm text-gray-400">{t('notifications.caughtUp')}</p>
                         ) : (
                             <ul className="divide-y divide-gray-50">
                                 {notifications.map((notification) => (
@@ -81,11 +79,8 @@ export default function NotificationBell() {
                                         >
                                             <span className="mt-1">
                                                 {notification.type?.startsWith('hrms.') ? (
-                                                    <span className="flex h-8 w-8 items-center justify-center rounded-full bg-indigo-100 text-indigo-700">
-                                                        <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-                                                            <path d="M17 20h5v-2a4 4 0 00-3-3.87M9 20H4v-2a4 4 0 012-4h14a4 4 0 012 4v2" />
-                                                            <circle cx="12" cy="8" r="4" />
-                                                        </svg>
+                                                    <span className="flex h-8 w-8 items-center justify-center rounded-full bg-[var(--accent-soft)] text-[var(--accent-soft-text)]">
+                                                        <Users size={16} aria-hidden="true" />
                                                     </span>
                                                 ) : (
                                                     <Avatar name={notification.actor?.name} size="md" />
@@ -94,9 +89,10 @@ export default function NotificationBell() {
                                             <span className="min-w-0 flex-1">
                                                 <span className="block text-sm text-gray-800">
                                                     {describeNotification(
+                                                        t,
                                                         notification.type,
                                                         notification.data ?? {},
-                                                        notification.actor?.name ?? 'Someone',
+                                                        notification.actor?.name ?? null,
                                                     )}
                                                 </span>
                                                 <span className="block text-xs text-gray-400">
@@ -116,9 +112,9 @@ export default function NotificationBell() {
                             setOpen(false);
                             navigate('/notifications');
                         }}
-                        className="w-full border-t border-gray-100 px-4 py-2.5 text-center text-sm font-medium text-indigo-600 transition hover:bg-indigo-50"
+                        className="w-full border-t border-gray-100 px-4 py-2.5 text-center text-sm font-medium text-[var(--accent-soft-text)] transition hover:bg-[var(--accent-soft)]"
                     >
-                        View all notifications
+                        {t('notifications.viewAll')}
                     </button>
                 </div>
             )}

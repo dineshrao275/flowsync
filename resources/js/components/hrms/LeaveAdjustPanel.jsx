@@ -1,4 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
+import PersonSelect from '../ui/PersonSelect';
+import { Trans, useTranslation } from 'react-i18next';
 import api, { fieldErrors } from '../../services/api';
 import Alert from '../ui/Alert';
 import Button from '../ui/Button';
@@ -15,6 +17,7 @@ import Timestamp from '../ui/Timestamp';
  * run). Every call needs `hrms.leave.manage` (the backend 403s regardless).
  */
 export default function LeaveAdjustPanel({ employees, types }) {
+    const { t } = useTranslation();
     const toast = useToast();
     const thisYear = new Date().getFullYear();
     const [form, setForm] = useState({ employee_id: '', leave_type_id: '', year: String(thisYear), quantity: '', reason: '' });
@@ -51,7 +54,7 @@ export default function LeaveAdjustPanel({ employees, types }) {
                 quantity: Number(form.quantity),
                 reason: form.reason,
             });
-            toast.success('Balance adjusted.');
+            toast.success(t('hrms.leaveAdjust.adjusted'));
             setForm({ ...form, quantity: '', reason: '' });
             loadLedger();
         } catch (err) {
@@ -67,36 +70,33 @@ export default function LeaveAdjustPanel({ employees, types }) {
             setRoll({ ...roll, result: data });
             if (!dryRun) toast.success(data.message);
         } catch (err) {
-            setRollError(fieldErrors(err).year ?? 'The rollover failed.');
+            setRollError(fieldErrors(err).year ?? t('hrms.leaveAdjust.rolloverFailed'));
         }
     }
 
     return (
         <div className="space-y-4">
-            <Card dense title="Adjust a balance">
+            <Card dense title={t('hrms.leaveAdjust.title')}>
                 <form onSubmit={adjust} className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                    <Select label="Employee" value={form.employee_id} onChange={(e) => setForm({ ...form, employee_id: e.target.value })} error={errors.employee_id}>
-                        <option value="">Choose…</option>
-                        {employees.map((emp) => <option key={emp.id} value={emp.id}>{emp.name}</option>)}
+                    <PersonSelect label={t('hrms.leaveAdjust.employee')} value={form.employee_id} onChange={(e) => setForm({ ...form, employee_id: e.target.value })} error={errors.employee_id} placeholder={t('hrms.leaveAdjust.choose')} people={employees} />
+                    <Select label={t('hrms.leaveAdjust.leaveType')} value={form.leave_type_id} onChange={(e) => setForm({ ...form, leave_type_id: e.target.value })} error={errors.leave_type_id}>
+                        <option value="">{t('hrms.leaveAdjust.choose')}</option>
+                        {(types ?? []).map((type) => <option key={type.id} value={type.id}>{type.name}</option>)}
                     </Select>
-                    <Select label="Leave type" value={form.leave_type_id} onChange={(e) => setForm({ ...form, leave_type_id: e.target.value })} error={errors.leave_type_id}>
-                        <option value="">Choose…</option>
-                        {(types ?? []).map((t) => <option key={t.id} value={t.id}>{t.name}</option>)}
-                    </Select>
-                    <Input label="Leave year" value={form.year} onChange={(e) => setForm({ ...form, year: e.target.value })} error={errors.year} />
-                    <Input type="number" step="0.5" label="Days (+ credit / − debit)" value={form.quantity} onChange={(e) => setForm({ ...form, quantity: e.target.value })} error={errors.quantity} />
-                    <Input label="Reason" value={form.reason} onChange={(e) => setForm({ ...form, reason: e.target.value })} error={errors.reason} className="sm:col-span-2" />
-                    <div className="sm:col-span-2"><Button type="submit">Apply adjustment</Button></div>
+                    <Input label={t('hrms.leaveAdjust.year')} value={form.year} onChange={(e) => setForm({ ...form, year: e.target.value })} error={errors.year} />
+                    <Input type="number" step="0.5" label={t('hrms.leaveAdjust.quantity')} value={form.quantity} onChange={(e) => setForm({ ...form, quantity: e.target.value })} error={errors.quantity} />
+                    <Input label={t('hrms.leaveAdjust.reason')} value={form.reason} onChange={(e) => setForm({ ...form, reason: e.target.value })} error={errors.reason} className="sm:col-span-2" />
+                    <div className="sm:col-span-2"><Button type="submit">{t('hrms.leaveAdjust.applyAdjustment')}</Button></div>
                 </form>
             </Card>
 
-            <Card dense title="Ledger">
+            <Card dense title={t('hrms.leaveAdjust.ledger')}>
                 {!form.employee_id ? (
-                    <p className="text-sm text-gray-500">Pick an employee above to see their ledger for the year.</p>
+                    <p className="text-sm text-gray-500">{t('hrms.leaveAdjust.pickEmployee')}</p>
                 ) : (
-                    <Table>
+                    <Table compact>
                         <thead>
-                            <tr><Th>When</Th><Th>Type</Th><Th>Kind</Th><Th align="right">Days</Th><Th>Note</Th><Th>By</Th></tr>
+                            <tr><Th>{t('hrms.leaveAdjust.thWhen')}</Th><Th>{t('hrms.leaveAdjust.thType')}</Th><Th>{t('hrms.leaveAdjust.thKind')}</Th><Th align="right">{t('hrms.leaveAdjust.thDays')}</Th><Th>{t('hrms.leaveAdjust.thNote')}</Th><Th>{t('hrms.leaveAdjust.thBy')}</Th></tr>
                         </thead>
                         <tbody>
                             {(ledger ?? []).map((row) => (
@@ -106,29 +106,32 @@ export default function LeaveAdjustPanel({ employees, types }) {
                                     <Td>{row.kind_label}</Td>
                                     <Td align="right">{row.quantity > 0 ? `+${row.quantity}` : row.quantity}</Td>
                                     <Td>{row.note}</Td>
-                                    <Td>{row.actor ?? 'system'}</Td>
+                                    <Td>{row.actor ?? t('hrms.leaveAdjust.system')}</Td>
                                 </tr>
                             ))}
-                            {ledger && ledger.length === 0 && <TableEmpty colSpan={6}>No ledger rows.</TableEmpty>}
+                            {ledger && ledger.length === 0 && <TableEmpty colSpan={6}>{t('hrms.leaveAdjust.emptyLedger')}</TableEmpty>}
                         </tbody>
                     </Table>
                 )}
             </Card>
 
-            <Card dense title="Year-end carry-forward and lapse">
+            <Card dense title={t('hrms.leaveAdjust.rolloverTitle')}>
                 <p className="mb-3 text-sm text-gray-500">
-                    Closes a finished leave year: balances up to each type&apos;s cap carry into the next year, the rest lapses. Safe to re-run.
+                    {t('hrms.leaveAdjust.rolloverIntro')}
                 </p>
                 <div className="flex flex-wrap items-end gap-2">
-                    <Input label="Closed leave year" value={roll.year} onChange={(e) => setRoll({ year: e.target.value, result: null })} />
-                    <Button variant="secondary" onClick={() => runRollover(true)}>Preview</Button>
-                    <Button onClick={() => runRollover(false)}>Run</Button>
+                    <Input label={t('hrms.leaveAdjust.closedYear')} value={roll.year} onChange={(e) => setRoll({ year: e.target.value, result: null })} />
+                    <Button variant="secondary" onClick={() => runRollover(true)}>{t('hrms.leaveAdjust.preview')}</Button>
+                    <Button onClick={() => runRollover(false)}>{t('hrms.leaveAdjust.run')}</Button>
                 </div>
                 {rollError && <div className="mt-2"><Alert>{rollError}</Alert></div>}
                 {roll.result && (
                     <p className="mt-3 text-sm">
-                        {roll.result.dry_run ? 'Would carry' : 'Carried'} <strong>{roll.result.carried}</strong> day(s) and lapse{' '}
-                        <strong>{roll.result.lapsed}</strong> across {roll.result.employees} employee(s).
+                        <Trans
+                            i18nKey={roll.result.dry_run ? 'hrms.leaveAdjust.carryPreview' : 'hrms.leaveAdjust.carriedResult'}
+                            values={{ carried: roll.result.carried, lapsed: roll.result.lapsed, employees: roll.result.employees }}
+                            components={[<strong key="0" />, <strong key="1" />]}
+                        />
                     </p>
                 )}
             </Card>

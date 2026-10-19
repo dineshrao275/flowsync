@@ -55,6 +55,11 @@ class PayrollRunPolicy
         return $this->canRun($user);
     }
 
+    public function reopen(User $user, PayrollRun $run): bool
+    {
+        return $this->canRun($user);
+    }
+
     private function canRun(User $user): bool
     {
         return $user->hasPermission('hrms.payroll.run');

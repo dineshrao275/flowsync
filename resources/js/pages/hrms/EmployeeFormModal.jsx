@@ -1,4 +1,7 @@
 import { useEffect, useState } from 'react';
+import PersonSelect from '../../components/ui/PersonSelect';
+import CustomFieldInputs, { useCustomFieldDefinitions } from '../../components/customFields/CustomFieldInputs';
+import { useTranslation } from 'react-i18next';
 import api, { fieldErrors } from '../../services/api';
 import Alert from '../../components/ui/Alert';
 import Button from '../../components/ui/Button';
@@ -13,16 +16,16 @@ import { useAuth } from '../../context/AuthContext';
  * exists for that first paint, not as a second copy to keep in step.
  */
 const WORK_MODES = [
-    { value: 'office', label: 'Office' },
-    { value: 'hybrid', label: 'Hybrid' },
-    { value: 'remote', label: 'Remote' },
+    { value: 'office', labelKey: 'hrms.form.workOffice', fallback: 'Office' },
+    { value: 'hybrid', labelKey: 'hrms.form.workHybrid', fallback: 'Hybrid' },
+    { value: 'remote', labelKey: 'hrms.form.workRemote', fallback: 'Remote' },
 ];
 
 const INITIAL_STATUSES = [
-    { value: 'active', label: 'Active' },
-    { value: 'on_notice', label: 'On notice' },
-    { value: 'on_leave', label: 'On leave' },
-    { value: 'suspended', label: 'Suspended' },
+    { value: 'active', labelKey: 'hrms.form.statusActive', fallback: 'Active' },
+    { value: 'on_notice', labelKey: 'hrms.form.statusNotice', fallback: 'On notice' },
+    { value: 'on_leave', labelKey: 'hrms.form.statusLeave', fallback: 'On leave' },
+    { value: 'suspended', labelKey: 'hrms.form.statusSuspended', fallback: 'Suspended' },
 ];
 
 /**
@@ -35,15 +38,22 @@ const INITIAL_STATUSES = [
  * up with accounts nobody chose to create.
  */
 const LOGIN_MODES = [
-    { value: 'none', label: 'No sign-in account' },
-    { value: 'new', label: 'Create a sign-in account' },
-    { value: 'link', label: 'Link an existing user' },
+    { value: 'none', labelKey: 'hrms.form.loginNone' },
+    { value: 'new', labelKey: 'hrms.form.loginNew' },
+    { value: 'link', labelKey: 'hrms.form.loginLink' },
 ];
 
+function optionLabel(t, option) {
+    return option.labelKey ? t(option.labelKey, { defaultValue: option.fallback }) : option.label;
+}
+
 export default function EmployeeFormModal({ options, saving, onClose, onCreate }) {
+    const { t } = useTranslation();
     const { can } = useAuth();
     const [form, setForm] = useState(() => initial(options));
     const [errors, setErrors] = useState({});
+    const cfDefs = useCustomFieldDefinitions('employee');
+    const [cf, setCf] = useState({});
     const [roles, setRoles] = useState([]);
     const [users, setUsers] = useState([]);
 
@@ -90,6 +100,10 @@ export default function EmployeeFormModal({ options, saving, onClose, onCreate }
             ...loginFields(form),
         };
 
+        if (cfDefs.length) {
+            payload.custom_fields = Object.fromEntries(Object.entries(cf).filter(([, v]) => v !== '' && !(Array.isArray(v) && v.length === 0)));
+        }
+
         onCreate(payload).catch((err) => setErrors(fieldErrors(err)));
     }
 
@@ -97,15 +111,15 @@ export default function EmployeeFormModal({ options, saving, onClose, onCreate }
     const managerOptions = options?.managers ?? [];
 
     return (
-        <Modal open title="New employee" subtitle="An employment record, and optionally a sign-in account" onClose={onClose} size="lg">
+        <Modal open title={t('hrms.form.title')} subtitle={t('hrms.form.subtitle')} onClose={onClose} size="lg">
             <form onSubmit={submit} className="space-y-5 px-6 py-5">
                 {errors.form && <Alert>{errors.form}</Alert>}
 
                 <fieldset className="space-y-3">
-                    <legend className="text-sm font-semibold text-gray-700">Identity</legend>
+                    <legend className="text-sm font-semibold text-gray-700">{t('hrms.form.identity')}</legend>
                     <div className="grid gap-4 sm:grid-cols-2">
                         <Input
-                            label="Full name"
+                            label={t('hrms.form.fullName')}
                             value={form.name}
                             onChange={(e) => set('name', e.target.value)}
                             error={errors.name}
@@ -113,24 +127,24 @@ export default function EmployeeFormModal({ options, saving, onClose, onCreate }
                             autoFocus
                         />
                         <Input
-                            label="Preferred name"
+                            label={t('hrms.form.preferredName')}
                             value={form.preferred_name}
                             onChange={(e) => set('preferred_name', e.target.value)}
                             error={errors.preferred_name}
                         />
                         <Input
-                            label="Designation"
+                            label={t('hrms.form.designation')}
                             value={form.designation}
                             onChange={(e) => set('designation', e.target.value)}
                             error={errors.designation}
                         />
                         <Select
-                            label="Employment type"
+                            label={t('hrms.form.employmentType')}
                             value={form.employment_type_id}
                             onChange={(e) => set('employment_type_id', e.target.value)}
                             error={errors.employment_type_id}
                         >
-                            <option value="">Not set</option>
+                            <option value="">{t('hrms.form.notSet')}</option>
                             {typeOptions.map((type) => (
                                 <option key={type.id} value={type.id}>
                                     {type.name}
@@ -141,88 +155,81 @@ export default function EmployeeFormModal({ options, saving, onClose, onCreate }
                 </fieldset>
 
                 <fieldset className="space-y-3">
-                    <legend className="text-sm font-semibold text-gray-700">Employment</legend>
+                    <legend className="text-sm font-semibold text-gray-700">{t('hrms.form.employment')}</legend>
                     <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
                         <Input
-                            label="Joining date"
+                            label={t('hrms.form.joiningDate')}
                             type="date"
                             value={form.joining_date}
                             onChange={(e) => set('joining_date', e.target.value)}
                             error={errors.joining_date}
                         />
                         <Input
-                            label="Probation ends"
+                            label={t('hrms.form.probationEnds')}
                             type="date"
                             value={form.probation_end_date}
                             onChange={(e) => set('probation_end_date', e.target.value)}
                             error={errors.probation_end_date}
                         />
                         <Select
-                            label="Work mode"
+                            label={t('hrms.form.workMode')}
                             value={form.work_mode}
                             onChange={(e) => set('work_mode', e.target.value)}
                             error={errors.work_mode}
                         >
                             {(options?.work_modes ?? WORK_MODES).map((mode) => (
                                 <option key={mode.value} value={mode.value}>
-                                    {mode.label}
+                                    {optionLabel(t, mode)}
                                 </option>
                             ))}
                         </Select>
                         <Select
-                            label="Status"
+                            label={t('hrms.form.status')}
                             value={form.status}
                             onChange={(e) => set('status', e.target.value)}
                             error={errors.status}
                         >
                             {(options?.statuses ?? INITIAL_STATUSES).map((status) => (
                                 <option key={status.value} value={status.value}>
-                                    {status.label}
+                                    {optionLabel(t, status)}
                                 </option>
                             ))}
                         </Select>
-                        <Select
-                            label="Manager"
+                        <PersonSelect
+                            label={t('hrms.form.manager')}
                             value={form.manager_id}
                             onChange={(e) => set('manager_id', e.target.value)}
                             error={errors.manager_id}
                             className="sm:col-span-2"
-                        >
-                            <option value="">No manager</option>
-                            {managerOptions.map((manager) => (
-                                <option key={manager.id} value={manager.id}>
-                                    {manager.name}
-                                </option>
-                            ))}
-                        </Select>
+                         placeholder={t('hrms.form.noManager')} people={managerOptions} />
                     </div>
                 </fieldset>
 
                 <fieldset className="space-y-3">
-                    <legend className="text-sm font-semibold text-gray-700">Personal</legend>
+                    <legend className="text-sm font-semibold text-gray-700">{t('hrms.form.personal')}</legend>
                     <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
                         <Input
-                            label="Personal email"
+                            label={t('hrms.form.personalEmail')}
                             type="email"
                             value={form.personal_email}
                             onChange={(e) => set('personal_email', e.target.value)}
                             error={errors.personal_email}
                         />
                         <Input
-                            label="Phone"
+                            label={t('hrms.form.phone')}
                             value={form.phone}
                             onChange={(e) => set('phone', e.target.value)}
                             error={errors.phone}
                         />
                         <Input
-                            label="Date of birth"
+                            label={t('hrms.form.dob')}
                             type="date"
                             value={form.date_of_birth}
                             onChange={(e) => set('date_of_birth', e.target.value)}
                             error={errors.date_of_birth}
                         />
                         <Input
-                            label="Nationality"
+                            label={t('hrms.form.nationality')}
                             value={form.nationality}
                             onChange={(e) => set('nationality', e.target.value)}
                             error={errors.nationality}
@@ -231,22 +238,22 @@ export default function EmployeeFormModal({ options, saving, onClose, onCreate }
                 </fieldset>
 
                 <fieldset className="space-y-3">
-                    <legend className="text-sm font-semibold text-gray-700">Emergency contact</legend>
+                    <legend className="text-sm font-semibold text-gray-700">{t('hrms.form.emergency')}</legend>
                     <div className="grid gap-4 sm:grid-cols-3">
                         <Input
-                            label="Name"
+                            label={t('hrms.form.emergencyName')}
                             value={form.emergency_contact_name}
                             onChange={(e) => set('emergency_contact_name', e.target.value)}
                             error={errors.emergency_contact_name}
                         />
                         <Input
-                            label="Phone"
+                            label={t('hrms.form.emergencyPhone')}
                             value={form.emergency_contact_phone}
                             onChange={(e) => set('emergency_contact_phone', e.target.value)}
                             error={errors.emergency_contact_phone}
                         />
                         <Input
-                            label="Relation"
+                            label={t('hrms.form.emergencyRelation')}
                             value={form.emergency_contact_relation}
                             onChange={(e) => set('emergency_contact_relation', e.target.value)}
                             error={errors.emergency_contact_relation}
@@ -255,7 +262,7 @@ export default function EmployeeFormModal({ options, saving, onClose, onCreate }
                 </fieldset>
 
                 <fieldset className="space-y-3">
-                    <legend className="text-sm font-semibold text-gray-700">Sign-in account</legend>
+                    <legend className="text-sm font-semibold text-gray-700">{t('hrms.form.account')}</legend>
                     <Select
                         value={form.login}
                         onChange={(e) => set('login', e.target.value)}
@@ -263,7 +270,7 @@ export default function EmployeeFormModal({ options, saving, onClose, onCreate }
                     >
                         {LOGIN_MODES.map((mode) => (
                             <option key={mode.value} value={mode.value}>
-                                {mode.label}
+                                {optionLabel(t, mode)}
                             </option>
                         ))}
                     </Select>
@@ -272,14 +279,14 @@ export default function EmployeeFormModal({ options, saving, onClose, onCreate }
                         <div className="space-y-3 rounded-lg border border-gray-200 bg-gray-50/60 p-3">
                             <div className="grid gap-4 sm:grid-cols-2">
                                 <Input
-                                    label="Work email"
+                                    label={t('hrms.form.workEmail')}
                                     type="email"
                                     value={form.email}
                                     onChange={(e) => set('email', e.target.value)}
                                     error={errors.email}
                                 />
                                 <Input
-                                    label="Password"
+                                    label={t('hrms.form.password')}
                                     type="password"
                                     value={form.password}
                                     onChange={(e) => set('password', e.target.value)}
@@ -289,16 +296,16 @@ export default function EmployeeFormModal({ options, saving, onClose, onCreate }
 
                             {canPickRoles ? (
                                 <div>
-                                    <span className="mb-1.5 block text-sm font-medium text-gray-700">Tenant roles</span>
+                                    <span className="mb-1.5 block text-sm font-medium text-gray-700">{t('hrms.form.tenantRoles')}</span>
                                     <div className="flex flex-wrap gap-2">
                                         {roles.map((role) => (
                                             <label
                                                 key={role.slug}
-                                                className="inline-flex cursor-pointer items-center gap-1.5 rounded-full border border-gray-300 bg-white px-2.5 py-1 text-xs font-medium text-gray-700 has-[:checked]:border-indigo-400 has-[:checked]:bg-indigo-50 has-[:checked]:text-indigo-700"
+                                                className="inline-flex cursor-pointer items-center gap-1.5 rounded-full border border-gray-300 bg-white px-2.5 py-1 text-xs font-medium text-gray-700 has-[:checked]:border-[var(--accent-ring)] has-[:checked]:bg-[var(--accent-soft)] has-[:checked]:text-[var(--accent-soft-text)]"
                                             >
                                                 <input
                                                     type="checkbox"
-                                                    className="h-3.5 w-3.5 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                                                    className="h-3.5 w-3.5 rounded border-gray-300 accent-[var(--accent)]"
                                                     checked={form.roles.includes(role.slug)}
                                                     onChange={() => toggleRole(role.slug)}
                                                 />
@@ -310,8 +317,7 @@ export default function EmployeeFormModal({ options, saving, onClose, onCreate }
                                 </div>
                             ) : (
                                 <p className="text-xs text-gray-500">
-                                    The account will be created with no roles — you do not have permission to read
-                                    this tenant&rsquo;s roles.
+                                    {t('hrms.form.noRolesNote')}
                                 </p>
                             )}
                         </div>
@@ -320,35 +326,29 @@ export default function EmployeeFormModal({ options, saving, onClose, onCreate }
                     {form.login === 'link' && (
                         <div className="space-y-2 rounded-lg border border-gray-200 bg-gray-50/60 p-3">
                             {canPickUsers ? (
-                                <Select
-                                    label="Existing user"
+                                <PersonSelect
+                                    label={t('hrms.form.existingUser')}
                                     value={form.user_id}
                                     onChange={(e) => set('user_id', e.target.value)}
                                     error={errors.user_id}
-                                >
-                                    <option value="">Choose a user</option>
-                                    {users.map((user) => (
-                                        <option key={user.id} value={user.id}>
-                                            {user.name} — {user.email}
-                                        </option>
-                                    ))}
-                                </Select>
+                                 placeholder={t('hrms.form.chooseUser')} people={users} />
                             ) : (
                                 <p className="text-xs text-gray-500">
-                                    You do not have permission to list users, so an existing account cannot be
-                                    linked from here.
+                                    {t('hrms.form.noLinkNote')}
                                 </p>
                             )}
                         </div>
                     )}
                 </fieldset>
 
+                <CustomFieldInputs fields={cfDefs} values={cf} onChange={setCf} errors={errors} />
+
                 <div className="flex justify-end gap-2 border-t border-gray-200 pt-4">
                     <Button type="button" variant="secondary" onClick={onClose}>
-                        Cancel
+                        {t('hrms.form.cancel')}
                     </Button>
                     <Button type="submit" disabled={saving}>
-                        {saving ? 'Creating…' : 'Create employee'}
+                        {saving ? t('hrms.form.creating') : t('hrms.form.create')}
                     </Button>
                 </div>
             </form>

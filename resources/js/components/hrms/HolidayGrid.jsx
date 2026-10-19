@@ -1,4 +1,6 @@
 import { useMemo, useState } from 'react';
+import { useTranslation } from 'react-i18next';
+import i18n, { intlTag } from '../../i18n';
 
 const TYPE_COLORS = {
     public: '#059669',
@@ -6,10 +8,31 @@ const TYPE_COLORS = {
     optional: '#0284cb',
 };
 
-const MONTHS = [
-    'January', 'February', 'March', 'April', 'May', 'June',
-    'July', 'August', 'September', 'October', 'November', 'December',
-];
+const TYPE_KEYS = {
+    public: 'typePublic',
+    restricted: 'typeRestricted',
+    optional: 'typeOptional',
+};
+
+/** Full month names in the interface language for the month tabs. */
+function monthNames() {
+    const tag = intlTag(i18n.language);
+
+    return Array.from(
+        { length: 12 },
+        (_, i) => new Date(2024, i, 1).toLocaleDateString(tag, { month: 'long' }),
+    );
+}
+
+/** Single-letter Monday-first weekday initials in the interface language. */
+function weekdayInitials() {
+    const tag = intlTag(i18n.language);
+
+    return Array.from(
+        { length: 7 },
+        (_, i) => new Date(2024, 0, 1 + i).toLocaleDateString(tag, { weekday: 'narrow' }),
+    );
+}
 
 /**
  * A year grid for one calendar's holidays, with month tabs.
@@ -20,6 +43,7 @@ const MONTHS = [
  * their own year.
  */
 export default function HolidayGrid({ holidays = [], year }) {
+    const { t } = useTranslation();
     const [month, setMonth] = useState(new Date().getMonth() + 1);
 
     const byDate = useMemo(() => {
@@ -73,13 +97,13 @@ export default function HolidayGrid({ holidays = [], year }) {
     return (
         <div>
             <div className="mb-2 flex flex-wrap gap-1">
-                {MONTHS.map((name, i) => (
+                {monthNames().map((name, i) => (
                     <button
                         key={name}
                         type="button"
                         onClick={() => setMonth(i + 1)}
                         className={`rounded-full px-2.5 py-1 text-xs font-medium ${
-                            month === i + 1 ? 'bg-indigo-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                            month === i + 1 ? 'bg-[var(--accent)] text-[var(--accent-contrast)]' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                         }`}
                     >
                         {name.slice(0, 3)}
@@ -87,7 +111,7 @@ export default function HolidayGrid({ holidays = [], year }) {
                 ))}
             </div>
             <div className="mb-1 grid grid-cols-7 gap-1">
-                {['M', 'T', 'W', 'T', 'F', 'S', 'S'].map((day, i) => (
+                {weekdayInitials().map((day, i) => (
                     <span key={i} className="pb-1 text-center text-xs font-medium text-gray-400">
                         {day}
                     </span>
@@ -98,7 +122,7 @@ export default function HolidayGrid({ holidays = [], year }) {
                 {Object.entries(TYPE_COLORS).map(([type, color]) => (
                     <span key={type} className="inline-flex items-center gap-1">
                         <span className="inline-block h-2.5 w-2.5 rounded-full" style={{ backgroundColor: color }} />
-                        {type}
+                        {t(`hrms.holidays.${TYPE_KEYS[type]}`)}
                     </span>
                 ))}
             </div>

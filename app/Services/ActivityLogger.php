@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Models\Activity;
 use App\Models\User;
 use App\Services\Events\DomainEvents;
+use App\Support\AuditTrace;
 use Illuminate\Database\Eloquent\Builder;
 
 class ActivityLogger
@@ -24,7 +25,7 @@ class ActivityLogger
             'action' => $action,
             'data' => $data,
             'ip_address' => $ipAddress,
-        ]);
+        ] + AuditTrace::columnsFor(new Activity));
 
         // Every activity is also a domain event: one funnel feeds the timeline and
         // the integrations. (A task moved into a done status is additionally `task.completed`.)

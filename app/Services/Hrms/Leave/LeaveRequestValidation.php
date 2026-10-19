@@ -44,13 +44,13 @@ class LeaveRequestValidation
         $to = Carbon::parse((string) $data['to_date'])->startOfDay();
 
         if ($from->greaterThan($to)) {
-            throw ValidationException::withMessages(['to_date' => 'The range ends before it starts.']);
+            throw ValidationException::withMessages(['to_date' => __('The range ends before it starts.')]);
         }
 
         [$total, $split] = $this->splitDays($employee, $type, $from, $to, $data);
 
         if ($total <= 0) {
-            throw ValidationException::withMessages(['form' => 'The range holds no chargeable day — only week-offs and holidays.']);
+            throw ValidationException::withMessages(['form' => __('The range holds no chargeable day — only week-offs and holidays.')]);
         }
 
         $this->checkQuota($type, $total, $from, $employee);
@@ -97,7 +97,7 @@ class LeaveRequestValidation
         $to = $to instanceof Carbon ? $to->copy()->startOfDay() : Carbon::parse((string) $to)->startOfDay();
 
         if ($from->greaterThan($to)) {
-            throw ValidationException::withMessages(['to_date' => 'The range ends before it starts.']);
+            throw ValidationException::withMessages(['to_date' => __('The range ends before it starts.')]);
         }
 
         [$total] = $this->splitDays($employee, $type, $from, $to, [
@@ -114,11 +114,11 @@ class LeaveRequestValidation
         $type = LeaveType::find($typeId);
 
         if ($type === null) {
-            throw ValidationException::withMessages(['leave_type_id' => 'That leave type does not exist.']);
+            throw ValidationException::withMessages(['leave_type_id' => __('That leave type does not exist.')]);
         }
 
         if (! $type->is_active) {
-            throw ValidationException::withMessages(['leave_type_id' => 'That leave type is not active.']);
+            throw ValidationException::withMessages(['leave_type_id' => __('That leave type is not active.')]);
         }
 
         return $type;
@@ -143,11 +143,11 @@ class LeaveRequestValidation
         $toHalf = LeaveHalf::tryFrom((string) ($data['to_half'] ?? 'full'));
 
         if ($fromHalf === null || $toHalf === null) {
-            throw ValidationException::withMessages(['from_half' => 'A day is full, first_half, or second_half.']);
+            throw ValidationException::withMessages(['from_half' => __('A day is full, first_half, or second_half.')]);
         }
 
         if (($fromHalf !== LeaveHalf::Full || $toHalf !== LeaveHalf::Full) && ! $type->allow_half_day) {
-            throw ValidationException::withMessages(['from_half' => 'This leave type does not allow half days.']);
+            throw ValidationException::withMessages(['from_half' => __('This leave type does not allow half days.')]);
         }
 
         // One range query for the window: the holiday branch of the single
@@ -183,7 +183,7 @@ class LeaveRequestValidation
     {
         if ($type->min_days_per_request !== null && $total < (float) $type->min_days_per_request) {
             throw ValidationException::withMessages([
-                'form' => "This type asks for at least {$type->min_days_per_request} days per request.",
+                'form' => __('This type asks for at least :mindaysperrequest days per request.', ['mindaysperrequest' => $type->min_days_per_request]),
             ]);
         }
 
@@ -204,7 +204,7 @@ class LeaveRequestValidation
 
         if ($used + $total > (float) $type->max_days_per_year) {
             throw ValidationException::withMessages([
-                'form' => "This type allows {$type->max_days_per_year} days a year; {$used} are already taken or held.",
+                'form' => __('This type allows :maxdaysperyear days a year; :used are already taken or held.', ['maxdaysperyear' => $type->max_days_per_year, 'used' => $used]),
             ]);
         }
     }
@@ -226,7 +226,7 @@ class LeaveRequestValidation
             ->exists();
 
         if ($clash) {
-            throw ValidationException::withMessages(['form' => 'An ask already covers part of this range.']);
+            throw ValidationException::withMessages(['form' => __('An ask already covers part of this range.')]);
         }
     }
 

@@ -33,12 +33,12 @@ class SupportAccessGrants
     public function grant(Tenant $tenant, User $by, array $data): SupportAccessGrant
     {
         if (SupportAccessGrant::active()->where('tenant_id', $tenant->id)->count() >= self::MAX_ACTIVE_PER_TENANT) {
-            throw ValidationException::withMessages(['form' => 'Too many active support grants. Revoke one first.']);
+            throw ValidationException::withMessages(['form' => __('Too many active support grants. Revoke one first.')]);
         }
 
         if (! empty($data['support_ticket_id'])
             && ! SupportTicket::where('id', $data['support_ticket_id'])->where('tenant_id', $tenant->id)->exists()) {
-            throw ValidationException::withMessages(['support_ticket_id' => 'Unknown support ticket.']);
+            throw ValidationException::withMessages(['support_ticket_id' => __('Unknown support ticket.')]);
         }
 
         $maxHours = (int) config('tenancy.support_access.max_hours', 72);
@@ -75,7 +75,7 @@ class SupportAccessGrants
     {
         if ($grantId === null) {
             if ($this->consentRequired()) {
-                throw ValidationException::withMessages(['grant_id' => 'This tenant must grant support access before you can sign in as its users.']);
+                throw ValidationException::withMessages(['grant_id' => __('This tenant must grant support access before you can sign in as its users.')]);
             }
 
             return null;
@@ -83,10 +83,10 @@ class SupportAccessGrants
 
         $grant = SupportAccessGrant::active()->where('tenant_id', $tenant->id)->find($grantId);
         if (! $grant) {
-            throw ValidationException::withMessages(['grant_id' => 'That support access grant is not active for this tenant.']);
+            throw ValidationException::withMessages(['grant_id' => __('That support access grant is not active for this tenant.')]);
         }
         if ($mode === 'write' && $grant->mode !== 'write') {
-            throw ValidationException::withMessages(['mode' => 'The tenant granted read-only access.']);
+            throw ValidationException::withMessages(['mode' => __('The tenant granted read-only access.')]);
         }
 
         return $grant;

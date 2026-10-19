@@ -49,7 +49,7 @@ class TenantActivation
         $this->lifecycle->transition($tenant, Tenant::STATUS_PENDING);
 
         if (! empty($values['plan_id']) && (! empty($values['tms_plan_id']) || ! empty($values['hrms_plan_id']))) {
-            throw ValidationException::withMessages(['plan_id' => 'Choose a bundle plan or per-product plans, not both.']);
+            throw ValidationException::withMessages(['plan_id' => __('Choose a bundle plan or per-product plans, not both.')]);
         }
 
         $planIds = collect(TenantIntake::PLAN_FIELDS)->map(fn (string $f) => $values[$f] ?? null)->filter()->map(fn ($id) => (int) $id)->values();

@@ -55,7 +55,7 @@ class TenantSubscriptionController extends Controller
         );
 
         return response()->json([
-            'message' => 'Subscription saved.',
+            'message' => __('Subscription saved.'),
             ...$this->payload($tenant),
         ]);
     }
@@ -72,7 +72,7 @@ class TenantSubscriptionController extends Controller
         $this->subscriptions->startTrial($tenant, $plan, $data['days'] ?? null, auth()->id());
 
         return response()->json([
-            'message' => 'Trial started.',
+            'message' => __('Trial started.'),
             ...$this->payload($tenant),
         ]);
     }
@@ -82,7 +82,7 @@ class TenantSubscriptionController extends Controller
         $this->subscriptions->cancel($tenant, auth()->id(), $this->product($request));
 
         return response()->json([
-            'message' => 'Subscription canceled.',
+            'message' => __('Subscription canceled.'),
             ...$this->payload($tenant),
         ]);
     }
@@ -92,7 +92,7 @@ class TenantSubscriptionController extends Controller
         $this->subscriptions->renew($tenant, auth()->id(), $this->product($request));
 
         return response()->json([
-            'message' => 'Subscription renewed.',
+            'message' => __('Subscription renewed.'),
             ...$this->payload($tenant),
         ]);
     }
@@ -106,7 +106,7 @@ class TenantSubscriptionController extends Controller
         $this->subscriptions->suspend($tenant, ['data' => ['reason' => $data['reason'] ?? null]], auth()->id(), $this->product($request));
 
         return response()->json([
-            'message' => 'Subscription suspended.',
+            'message' => __('Subscription suspended.'),
             ...$this->payload($tenant),
         ]);
     }
@@ -122,7 +122,7 @@ class TenantSubscriptionController extends Controller
         $plans = SubscriptionPlan::whereIn('id', array_filter([$data['tms_plan_id'] ?? null, $data['hrms_plan_id'] ?? null]))->get()->all();
         $this->subscriptions->splitBundle($tenant, $plans, auth()->id());
 
-        return response()->json(['message' => 'Tenant moved to per-product plans.', ...$this->payload($tenant)]);
+        return response()->json(['message' => __('Tenant moved to per-product plans.'), ...$this->payload($tenant)]);
     }
 
     /** Super Admin switch per product: true = on regardless of plan, false = off regardless of plan, null = follow the plan. */
@@ -146,7 +146,7 @@ class TenantSubscriptionController extends Controller
         app(TenantProductSync::class)->ensure($tenant);
         app(PlatformAudit::class)->record($request, 'tenant.products_changed', Tenant::class, $tenant->id, ['products' => $override['products'] ?? null]);
 
-        return response()->json(['message' => 'Products updated.', ...$this->payload($tenant->refresh())]);
+        return response()->json(['message' => __('Products updated.'), ...$this->payload($tenant->refresh())]);
     }
 
     private function product(Request $request): ?string

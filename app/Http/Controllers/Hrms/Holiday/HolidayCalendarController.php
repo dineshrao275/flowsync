@@ -48,7 +48,7 @@ class HolidayCalendarController extends Controller
         $calendar = $this->calendars->createCalendar($request->validated(), $request->user());
 
         return response()->json([
-            'message' => 'Holiday calendar created.',
+            'message' => __('Holiday calendar created.'),
             'calendar' => $this->presenter->calendar($calendar),
         ], Response::HTTP_CREATED);
     }
@@ -60,7 +60,7 @@ class HolidayCalendarController extends Controller
         $updated = $this->calendars->updateCalendar($calendar, $request->validated(), $request->user());
 
         return response()->json([
-            'message' => 'Holiday calendar updated.',
+            'message' => __('Holiday calendar updated.'),
             'calendar' => $this->presenter->calendar($updated),
         ]);
     }
@@ -71,7 +71,7 @@ class HolidayCalendarController extends Controller
 
         $this->calendars->deleteCalendar($calendar, $request->user());
 
-        return response()->json(['message' => 'Holiday calendar deleted.']);
+        return response()->json(['message' => __('Holiday calendar deleted.')]);
     }
 
     public function holidays(HolidayCalendar $calendar): JsonResponse
@@ -95,7 +95,7 @@ class HolidayCalendarController extends Controller
         $holiday = $this->calendars->createHoliday($calendar, $request->validated(), $request->user());
 
         return response()->json([
-            'message' => 'Holiday created.',
+            'message' => __('Holiday created.'),
             'holiday' => $this->presenter->holiday($holiday),
         ], Response::HTTP_CREATED);
     }
@@ -105,7 +105,7 @@ class HolidayCalendarController extends Controller
         $result = $this->calendars->seedYear((int) $request->validated()['year'], $request->user());
 
         return response()->json([
-            'message' => "Year seeded: {$result['calendars']} calendars, {$result['holidays']} holidays.",
+            'message' => __('Year seeded: :calendars calendars, :holidays holidays.', ['calendars' => $result['calendars'], 'holidays' => $result['holidays']]),
             ...$result,
         ], Response::HTTP_CREATED);
     }

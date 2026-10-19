@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import api, { fieldErrors } from '../../services/api';
 import Alert from '../ui/Alert';
 import Button from '../ui/Button';
@@ -19,6 +20,7 @@ const emptyLine = { category_id: '', description: '', amount: '', spent_at: '', 
  * same picker files one receipt per line without stale state.
  */
 export default function ExpenseClaimModal({ open, onClose, onSaved, employeeId, categories, types, claim = null }) {
+    const { t } = useTranslation();
     const toast = useToast();
     const [header, setHeader] = useState({ claim_date: '', period_year: String(new Date().getFullYear()), period_month: String(new Date().getMonth() + 1), purpose: '', description: '', currency: 'USD' });
     const [lines, setLines] = useState([{ ...emptyLine }]);
@@ -66,7 +68,7 @@ export default function ExpenseClaimModal({ open, onClose, onSaved, employeeId, 
         const formData = new FormData();
         formData.append('employee_id', employeeId);
         formData.append('document_type_id', types[0]?.id);
-        formData.append('title', `Receipt — ${file.name}`);
+        formData.append('title', t('hrms.expenseModal.receiptTitle', { name: file.name }));
         formData.append('file', file);
 
         try {
@@ -74,9 +76,9 @@ export default function ExpenseClaimModal({ open, onClose, onSaved, employeeId, 
                 headers: { 'Content-Type': 'multipart/form-data' },
             });
             setLine(index, { receipt_document_id: String(data.document.id) });
-            toast.success('Receipt attached.');
+            toast.success(t('hrms.expenseModal.receiptAttached'));
         } catch {
-            toast.error('That receipt did not upload.');
+            toast.error(t('hrms.expenseModal.receiptFailed'));
         } finally {
             setUploading(null);
         }
@@ -102,10 +104,10 @@ export default function ExpenseClaimModal({ open, onClose, onSaved, employeeId, 
         try {
             if (claim) {
                 await api.put(`/hrms/expenses/claims/${claim.id}/items`, { items: payload.items });
-                toast.success('Claim lines updated.');
+                toast.success(t('hrms.expenseModal.linesUpdated'));
             } else {
                 await api.post('/hrms/expenses/claims', { ...payload, employee_id: Number(employeeId) });
-                toast.success('Claim filed as a draft.');
+                toast.success(t('hrms.expenseModal.filedDraft'));
             }
 
             onSaved();
@@ -115,18 +117,18 @@ export default function ExpenseClaimModal({ open, onClose, onSaved, employeeId, 
     }
 
     return (
-        <Modal open={open} onClose={onClose} title={claim ? `Re-line ${claim.claim_number}` : 'File a claim'} size="lg">
+        <Modal open={open} onClose={onClose} title={claim ? t('hrms.expenseModal.relineTitle', { number: claim.claim_number }) : t('hrms.expenseModal.fileTitle')} size="lg">
             <form onSubmit={save} className="grid gap-3 px-6 py-5">
                 {!claim && (
                     <>
                         <div className="grid grid-cols-2 gap-3">
-                            <Input label="Claim date" type="date" value={header.claim_date} error={errors.claim_date} onChange={(e) => setHeader({ ...header, claim_date: e.target.value })} required />
-                            <Input label="Purpose" value={header.purpose} error={errors.purpose} onChange={(e) => setHeader({ ...header, purpose: e.target.value })} required />
+                            <Input label={t('hrms.expenseModal.claimDate')} type="date" value={header.claim_date} error={errors.claim_date} onChange={(e) => setHeader({ ...header, claim_date: e.target.value })} required />
+                            <Input label={t('hrms.expenseModal.purpose')} value={header.purpose} error={errors.purpose} onChange={(e) => setHeader({ ...header, purpose: e.target.value })} required />
                         </div>
                         <div className="grid grid-cols-3 gap-3">
-                            <Input label="Year" value={header.period_year} error={errors.period_year} onChange={(e) => setHeader({ ...header, period_year: e.target.value })} required />
-                            <Input label="Month" value={header.period_month} error={errors.period_month} onChange={(e) => setHeader({ ...header, period_month: e.target.value })} required />
-                            <Input label="Currency" value={header.currency} error={errors.currency} onChange={(e) => setHeader({ ...header, currency: e.target.value })} maxLength={3} />
+                            <Input label={t('hrms.expenseModal.year')} value={header.period_year} error={errors.period_year} onChange={(e) => setHeader({ ...header, period_year: e.target.value })} required />
+                            <Input label={t('hrms.expenseModal.month')} value={header.period_month} error={errors.period_month} onChange={(e) => setHeader({ ...header, period_month: e.target.value })} required />
+                            <Input label={t('hrms.expenseModal.currency')} value={header.currency} error={errors.currency} onChange={(e) => setHeader({ ...header, currency: e.target.value })} maxLength={3} />
                         </div>
                     </>
                 )}
@@ -136,19 +138,19 @@ export default function ExpenseClaimModal({ open, onClose, onSaved, employeeId, 
                 {lines.map((line, index) => (
                     <div key={index} className="rounded-lg border border-gray-200 p-3">
                         <div className="grid gap-3 sm:grid-cols-2">
-                            <Select label={`Line ${index + 1} category`} value={line.category_id} onChange={(e) => setLine(index, { category_id: e.target.value })}>
-                                <option value="">Ad-hoc (no head)…</option>
+                            <Select label={t('hrms.expenseModal.lineCategory', { number: index + 1 })} value={line.category_id} onChange={(e) => setLine(index, { category_id: e.target.value })}>
+                                <option value="">{t('hrms.expenseModal.adHoc')}</option>
                                 {categories.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
                             </Select>
-                            <Input label="Amount" value={line.amount} onChange={(e) => setLine(index, { amount: e.target.value })} required />
+                            <Input label={t('hrms.expenseModal.amount')} value={line.amount} onChange={(e) => setLine(index, { amount: e.target.value })} required />
                         </div>
                         <div className="mt-3 grid gap-3 sm:grid-cols-2">
-                            <Input label="Description" value={line.description} onChange={(e) => setLine(index, { description: e.target.value })} required />
-                            <Input label="Vendor" value={line.vendor} onChange={(e) => setLine(index, { vendor: e.target.value })} />
+                            <Input label={t('hrms.expenseModal.description')} value={line.description} onChange={(e) => setLine(index, { description: e.target.value })} required />
+                            <Input label={t('hrms.expenseModal.vendor')} value={line.vendor} onChange={(e) => setLine(index, { vendor: e.target.value })} />
                         </div>
                         <div className="mt-3 flex flex-wrap items-end gap-3">
                             <label className="block text-sm">
-                                <span className="mb-1.5 block font-medium text-gray-700">Receipt</span>
+                                <span className="mb-1.5 block font-medium text-gray-700">{t('hrms.expenseModal.receipt')}</span>
                                 <input
                                     type="file"
                                     disabled={uploading === index || types.length === 0}
@@ -156,15 +158,15 @@ export default function ExpenseClaimModal({ open, onClose, onSaved, employeeId, 
                                     className="text-sm text-gray-500"
                                 />
                             </label>
-                            {line.receipt_document_id !== '' && <span className="pb-1 text-sm text-green-700">Attached file #{line.receipt_document_id}</span>}
-                            {uploading === index && <span className="pb-1 text-sm text-gray-500">Uploading…</span>}
+                            {line.receipt_document_id !== '' && <span className="pb-1 text-sm text-green-700">{t('hrms.expenseModal.attachedFile', { id: line.receipt_document_id })}</span>}
+                            {uploading === index && <span className="pb-1 text-sm text-gray-500">{t('hrms.expenseModal.uploading')}</span>}
                             <label className="flex items-center gap-2 pb-1 text-sm">
                                 <input type="checkbox" checked={line.is_billable} onChange={(e) => setLine(index, { is_billable: e.target.checked })} />
-                                Billable
+                                {t('hrms.expenseModal.billable')}
                             </label>
                             {lines.length > 1 && (
                                 <Button type="button" size="sm" variant="danger" onClick={() => setLines((rows) => rows.filter((_, i) => i !== index))}>
-                                    Remove
+                                    {t('hrms.expenseModal.remove')}
                                 </Button>
                             )}
                         </div>
@@ -173,11 +175,11 @@ export default function ExpenseClaimModal({ open, onClose, onSaved, employeeId, 
 
                 <div>
                     <Button type="button" variant="secondary" onClick={() => setLines((rows) => [...rows, { ...emptyLine }])}>
-                        Add a line
+                        {t('hrms.expenseModal.addLine')}
                     </Button>
                 </div>
 
-                <div><Button type="submit">{claim ? 'Save lines' : 'File claim'}</Button></div>
+                <div><Button type="submit">{claim ? t('hrms.expenseModal.saveLines') : t('hrms.expenseModal.fileClaim')}</Button></div>
             </form>
         </Modal>
     );

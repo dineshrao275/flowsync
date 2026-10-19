@@ -1,42 +1,35 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import api, { fieldErrors } from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
 import { useConfirm } from '../components/ui/ConfirmDialog';
 import usePageTitle from '../hooks/usePageTitle';
 import Badge from '../components/ui/Badge';
-import Spinner from '../components/ui/Spinner';
+import PaymentMethodsPanel from '../components/billing/PaymentMethodsPanel';
+import ContentSkeleton from '../components/ui/ContentSkeleton';
 import Alert from '../components/ui/Alert';
 import Button from '../components/ui/Button';
 import { Table, Th, Td, TableEmpty } from '../components/ui/Table';
-import { formatDate, formatPrice } from '../utils/format';
+import { formatDate, formatPrice, formatNumber } from '../utils/format';
 import Timestamp from '../components/ui/Timestamp';
 
-const RESOURCES = [
-    { key: 'users', label: 'Users' },
-    { key: 'seats', label: 'Seats' },
-    { key: 'workspaces', label: 'Workspaces' },
-    { key: 'projects', label: 'Projects' },
-    { key: 'tasks', label: 'Tasks' },
-];
+const RESOURCES = ['users', 'seats', 'workspaces', 'projects', 'tasks', 'api_calls_per_month', 'automation_runs_per_month'];
 
-const MODULE_LABELS = {
-    time_tracking: 'Time tracking',
-    reports: 'Reports & analytics',
-    global_search: 'Global search',
-    branding: 'Custom branding',
-    'export.full': 'Data export (full)',
-};
+const MODULE_KEYS = { 'export.full': 'exportFull' };
 
-const STATUS_LABELS = {
-    trialing: 'Trial',
-    active: 'Active',
-    past_due: 'Past due',
-    canceled: 'Canceled',
-    expired: 'Expired',
-    ended: 'Ended',
-};
+function moduleLabel(t, m) {
+    return t(`admin.subscription.modules.${MODULE_KEYS[m] || m}`, { defaultValue: m });
+}
+
+function statusLabel(t, status) {
+    return status ? t(`admin.subscription.statuses.${status}`, { defaultValue: status }) : status;
+}
+
+function productName(t, product) {
+    return t(`admin.subscription.products.${product}`, { defaultValue: product });
+}
 
 function daysRemaining(iso) {
     if (!iso) return null;
@@ -44,11 +37,12 @@ function daysRemaining(iso) {
 }
 
 function ModuleList({ title, modules, tone }) {
+    const { t } = useTranslation();
     return (
         <div>
             <p className="text-xs font-semibold uppercase tracking-wide text-gray-400">{title}</p>
             {modules.length === 0 ? (
-                <p className="mt-2 text-sm text-gray-500">None.</p>
+                <p className="mt-2 text-sm text-gray-500">{t('admin.subscription.none')}</p>
             ) : (
                 <ul className="mt-2 space-y-1.5">
                     {modules.map((m) => (
@@ -67,7 +61,7 @@ function ModuleList({ title, modules, tone }) {
                                     <path d="M18 6L6 18M6 6l12 12" />
                                 </svg>
                             )}
-                            {MODULE_LABELS[m] || m}
+                            {moduleLabel(t, m)}
                         </li>
                     ))}
                 </ul>
@@ -77,7 +71,8 @@ function ModuleList({ title, modules, tone }) {
 }
 
 export default function Subscription() {
-    usePageTitle('Subscription');
+    const { t } = useTranslation();
+    usePageTitle(t('admin.subscription.pageTitle'));
     const toast = useToast();
     const confirm = useConfirm();
     const { user, can } = useAuth();
@@ -95,6 +90,8 @@ export default function Subscription() {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
     const [action, setAction] = useState(null);
+    const [billing, setBilling] = useState(null);
+    const [cardsKey, setCardsKey] = useState(0);
 
     // Mirrors MySubscriptionController::authorizeAdmin exactly: the admin ROLE
     // OR the `billing.manage` grant. Keying off the role alone hid every
@@ -116,8 +113,13 @@ export default function Subscription() {
             setSubscription(subRes.data.subscription);
             setSubscriptions(subRes.data.subscriptions || []);
             setTenant(subRes.data.tenant);
+            setBilling(subRes.data.billing || null);
             setEvents(subRes.data.events || []);
-            setUsage(usageRes.data.usage || {});
+            setUsage({
+                ...(usageRes.data.usage || {}),
+                api_calls_per_month: usageRes.data.monthly?.api_calls?.used ?? 0,
+                automation_runs_per_month: usageRes.data.monthly?.automation_runs?.used ?? 0,
+            });
             setLimits(usageRes.data.limits || {});
             setModules(usageRes.data.modules ?? null);
             setModulesAvailable(usageRes.data.modules_available || []);
@@ -125,11 +127,11 @@ export default function Subscription() {
             setPayments(historyRes.data.payments || []);
             setInvoices(invoiceRes.data.invoices || []);
         } catch (e) {
-            setError(e.response?.status === 404 ? 'No tenant context for this page.' : 'Unable to load subscription details.');
+            setError(e.response?.status === 404 ? t('admin.subscription.loadNoContext') : t('admin.subscription.loadFailed'));
         } finally {
             setLoading(false);
         }
-    }, []);
+    }, [t]);
 
     useEffect(() => {
         load();
@@ -140,6 +142,22 @@ export default function Subscription() {
     const [searchParams, setSearchParams] = useSearchParams();
     const handledReturn = useRef(false);
     useEffect(() => {
+        // Back from the provider's hosted "add a card" page: confirm the session, make that card the default.
+        const cardSession = searchParams.get('card_session');
+        if (cardSession && !handledReturn.current) {
+            handledReturn.current = true;
+            api.post('/billing/payment-methods/complete', { session_id: cardSession })
+                .then(() => { toast.success(t('billing.sub.cardSaved')); setCardsKey((k) => k + 1); })
+                .catch((e) => toast.error(fieldErrors(e).session_id || e.response?.data?.message || t('admin.subscription.somethingWrong')))
+                .finally(() => setSearchParams({}, { replace: true }));
+            return;
+        }
+        if (searchParams.get('card_setup') === 'canceled' && !handledReturn.current) {
+            handledReturn.current = true;
+            toast.info(t('billing.sub.cardSetupCanceled'));
+            setSearchParams({}, { replace: true });
+            return;
+        }
         const status = searchParams.get('status');
         if (!status || handledReturn.current) return;
         handledReturn.current = true;
@@ -149,17 +167,17 @@ export default function Subscription() {
         const clean = () => setSearchParams({}, { replace: true });
 
         if (status === 'canceled') {
-            toast.info('Checkout was canceled — your plan has not changed.');
+            toast.info(t('admin.subscription.checkoutCanceled'));
             clean();
             return;
         }
         if (status === 'success' && sessionId && paymentId) {
             api.post('/billing/verify', { payment_id: Number(paymentId), provider_payment_id: sessionId })
                 .then(() => {
-                    toast.success('Payment confirmed — your plan is active.');
+                    toast.success(t('admin.subscription.paymentConfirmed'));
                     return load();
                 })
-                .catch((e) => toast.error(fieldErrors(e).form || e.response?.data?.message || 'We could not confirm the payment yet. It will update shortly.'))
+                .catch((e) => toast.error(fieldErrors(e).form || e.response?.data?.message || t('admin.subscription.paymentUnconfirmed')))
                 .finally(clean);
         } else {
             clean();
@@ -173,7 +191,7 @@ export default function Subscription() {
             const { data } = await api.post('/billing/portal');
             window.location.href = data.url;
         } catch (e) {
-            toast.error(fieldErrors(e).form || e.response?.data?.message || 'Billing portal is unavailable.');
+            toast.error(fieldErrors(e).form || e.response?.data?.message || t('admin.subscription.portalUnavailable'));
             setAction(false);
         }
     }
@@ -181,11 +199,11 @@ export default function Subscription() {
     async function run(fn, successMessage) {
         setAction(true);
         try {
-            await fn();
-            toast.success(successMessage);
+            const res = await fn();
+            toast.success(res?.data?.message || successMessage);
             await load();
         } catch (e) {
-            toast.error(fieldErrors(e).form || fieldErrors(e).message || 'Something went wrong.');
+            toast.error(fieldErrors(e).form || fieldErrors(e).message || t('admin.subscription.somethingWrong'));
         } finally {
             setAction(false);
         }
@@ -205,32 +223,34 @@ export default function Subscription() {
                     window.location.href = res.data.session.redirect_url;
                     return;
                 }
-                toast.success('Checkout session created.');
+                toast.success(t('admin.subscription.checkoutCreated'));
                 await load();
             } catch (e) {
-                toast.error(fieldErrors(e).form || fieldErrors(e).message || 'Unable to initiate checkout.');
+                toast.error(fieldErrors(e).form || fieldErrors(e).message || t('admin.subscription.checkoutFailed'));
             } finally {
                 setAction(false);
             }
             return;
         }
-        await run(() => api.post('/my-subscription/switch', { plan_id: plan.id }), `Switched to ${plan.name}.`);
+        await run(() => api.post('/my-subscription/switch', { plan_id: plan.id }), t('admin.subscription.switchedTo', { name: plan.name }));
     }
 
     async function cancel(product) {
-        if (!(await confirm({ title: 'Cancel subscription?', message: 'Cancel the subscription at the end of the current period?', variant: 'danger' }))) return;
-        await run(() => api.post('/my-subscription/cancel', product ? { product } : {}), 'Subscription canceled.');
+        if (!(await confirm({ title: t('admin.subscription.cancelTitle'), message: t('admin.subscription.cancelMessage'), variant: 'danger' }))) return;
+        await run(() => api.post('/my-subscription/cancel', product ? { product } : {}), t('admin.subscription.canceled'));
+    }
+
+    async function withdrawChange(product) {
+        await run(() => api.delete('/my-subscription/pending-change', { data: product ? { product } : {} }), t('billing.sub.changeWithdrawn'));
     }
 
     async function renew(product) {
-        await run(() => api.post('/my-subscription/renew', product ? { product } : {}), 'Subscription renewed.');
+        await run(() => api.post('/my-subscription/renew', product ? { product } : {}), t('admin.subscription.renewed'));
     }
 
     if (loading) {
         return (
-            <div className="flex justify-center py-20">
-                <Spinner />
-            </div>
+            <ContentSkeleton size="lg" />
         );
     }
 
@@ -248,49 +268,74 @@ export default function Subscription() {
     const currentPlanIds = subscriptions.map((x) => x.plan?.id);
     // A bundle tenant compares bundles; everyone else compares the per-product ladders.
     const visiblePlans = plans.filter((p) => (onBundle ? (p.product ?? 'suite') === 'suite' : (p.product ?? 'suite') !== 'suite' || subscriptions.length === 0));
-    const PRODUCT_NAMES = { tms: 'Task Management', hrms: 'HR Management', suite: 'Bundle' };
     const endDate = subscription?.trial_ends_at || subscription?.current_period_end;
     const includedModules = modules || plan?.limits?.modules || [];
     const excludedModules = modulesAvailable.filter((m) => !includedModules.includes(m));
-    const usageResources = RESOURCES.filter((r) => limits[r.key] !== undefined);
+    const usageResources = RESOURCES.filter((r) => limits[r] !== undefined);
 
     return (
         <div className="space-y-6">
             <div>
-                <h2 className="text-2xl font-bold text-gray-900">Subscription</h2>
+                <h2 className="text-2xl font-bold text-gray-900">{t('admin.subscription.pageTitle')}</h2>
                 <p className="mt-1 text-sm text-gray-500">
-                    {tenant?.name || 'Your workspace'} — plan, usage and billing periods.
+                    {t('admin.subscription.subtitle', { name: tenant?.name || t('admin.subscription.subtitleFallback') })}
                 </p>
             </div>
 
+
+            {billing?.subscription_required && (
+                <Alert tone="warning">{t('billing.sub.subscriptionRequired')}</Alert>
+            )}
+            {subscriptions.filter((s) => s.pending_change).map((s) => (
+                <Alert key={`pending-${s.id}`} tone="info">
+                    <div className="flex flex-wrap items-center justify-between gap-3">
+                        <span>
+                            <strong>{t('billing.sub.pendingChangeTitle')}</strong>{' '}
+                            {t('billing.sub.pendingChangeBody', { from: s.plan?.name, to: s.pending_change.plan?.name, date: formatDate(s.pending_change.effective_at) })}
+                        </span>
+                        {canManage && <Button size="sm" variant="secondary" loading={action} onClick={() => withdrawChange(s.product)}>{t('billing.sub.keepCurrentPlan')}</Button>}
+                    </div>
+                </Alert>
+            ))}
+            {subscriptions.filter((s) => s.price_notice).map((s) => (
+                <Alert key={`price-${s.id}`} tone="info">
+                    <strong>{t('billing.sub.priceNoticeTitle')}</strong>{' '}
+                    {t('billing.sub.priceNoticeBody', {
+                        date: formatDate(s.price_notice.effective_at),
+                        old: `${s.price_notice.currency} ${(s.price_notice.old_amount_cents / 100).toFixed(2)}`,
+                        new: `${s.price_notice.currency} ${(s.price_notice.new_amount_cents / 100).toFixed(2)}`,
+                    })}
+                </Alert>
+            ))}
+
             <section>
-                <h3 className="mb-2 text-sm font-semibold text-gray-900">Current plan</h3>
+                <h3 className="mb-2 text-sm font-semibold text-gray-900">{t('admin.subscription.sectionCurrentPlan')}</h3>
                 {!subscription ? (
-                    <Alert>No subscription yet. Pick a plan below to get started.</Alert>
+                    <Alert>{t('admin.subscription.noSubscription')}</Alert>
                 ) : (
                     <>
                         <p className="flex flex-wrap items-center gap-2 text-sm text-gray-700">
                             <span className="text-lg font-bold text-gray-900">{plan?.name || '—'}</span>
-                            <Badge>{STATUS_LABELS[subscription.status] || subscription.status}</Badge>
+                            <Badge>{statusLabel(t, subscription.status)}</Badge>
                             {plan && <Badge>{plan.billing_cycle}</Badge>}
-                            <span className="text-gray-500">{plan ? formatPrice(plan) : 'No active plan'}</span>
+                            <span className="text-gray-500">{plan ? formatPrice(plan) : t('admin.subscription.noActivePlan')}</span>
                         </p>
                         <p className="mt-1 flex flex-wrap gap-x-6 gap-y-1 text-sm text-gray-500">
                             <span>
-                                <span className="text-gray-400">{subscription.trial_ends_at ? 'Trial ends' : 'Period ends'}:</span>{' '}
+                                <span className="text-gray-400">{subscription.trial_ends_at ? t('admin.subscription.trialEnds') : t('admin.subscription.periodEnds')}:</span>{' '}
                                 {formatDate(endDate)}
                             </span>
                             <span>
-                                <span className="text-gray-400">Days remaining:</span>{' '}
-                                {daysRemaining(endDate) === null ? '—' : `${daysRemaining(endDate)}d`}
+                                <span className="text-gray-400">{t('admin.subscription.daysRemaining')}</span>{' '}
+                                {daysRemaining(endDate) === null ? '—' : t('admin.subscription.daysSuffix', { days: daysRemaining(endDate) })}
                             </span>
                             <span>
-                                <span className="text-gray-400">Auto-renew:</span> {subscription.auto_renew ? 'On' : 'Off'}
+                                <span className="text-gray-400">{t('admin.subscription.autoRenew')}</span> {subscription.auto_renew ? t('admin.subscription.autoRenewOn') : t('admin.subscription.autoRenewOff')}
                             </span>
                         </p>
                         {subscription.canceled_at && (
                             <p className="mt-1 text-sm text-amber-600">
-                                Canceled <Timestamp date={subscription.canceled_at} /> — access continues until the period end.
+                                {t('admin.subscription.canceledPrefix')} <Timestamp date={subscription.canceled_at} /> {t('admin.subscription.canceledSuffix')}
                             </p>
                         )}
                     </>
@@ -299,16 +344,16 @@ export default function Subscription() {
                     <div className="mt-4 flex items-center gap-2">
                         {subscription.billing_provider === 'stripe' && (
                             <Button size="md" variant="secondary" onClick={openPortal} loading={action}>
-                                Manage billing
+                                {t('admin.subscription.manageBilling')}
                             </Button>
                         )}
                         {subscription.status === 'canceled' || subscription.status === 'expired' ? (
                             <Button size="md" onClick={renew} loading={action}>
-                                Renew
+                                {t('admin.subscription.renew')}
                             </Button>
                         ) : subscription.status !== 'past_due' ? (
                             <Button size="md" variant="danger" onClick={cancel} loading={action}>
-                                Cancel subscription
+                                {t('admin.subscription.cancelSubscription')}
                             </Button>
                         ) : null}
                     </div>
@@ -317,32 +362,32 @@ export default function Subscription() {
 
             {!onBundle && (
                 <section>
-                    <h3 className="mb-2 text-sm font-semibold text-gray-900">Your products</h3>
+                    <h3 className="mb-2 text-sm font-semibold text-gray-900">{t('admin.subscription.yourProducts')}</h3>
                     <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                         {['tms', 'hrms'].map((prod) => {
                             const sub = perProduct.find((x) => x.product === prod);
                             return (
                                 <div key={prod} className="rounded-xl border border-gray-200 bg-white p-4">
                                     <div className="flex items-center justify-between">
-                                        <p className="font-semibold text-gray-900">{PRODUCT_NAMES[prod]}</p>
-                                        {sub ? <Badge>{sub.status.replace('_', ' ')}</Badge> : <Badge>not subscribed</Badge>}
+                                        <p className="font-semibold text-gray-900">{productName(t, prod)}</p>
+                                        {sub ? <Badge>{sub.status.replace('_', ' ')}</Badge> : <Badge>{t('admin.subscription.notSubscribed')}</Badge>}
                                     </div>
                                     {sub ? (
                                         <>
                                             <p className="mt-1 text-sm text-gray-700">{sub.plan?.name}</p>
                                             <p className="text-xs text-gray-500">
-                                                {sub.trial_ends_at ? `Trial ends ${formatDate(sub.trial_ends_at)}` : sub.current_period_end ? `${sub.auto_renew ? 'Renews' : 'Ends'} ${formatDate(sub.current_period_end)}` : ''}
+                                                {sub.trial_ends_at ? t('admin.subscription.trialEndsOn', { date: formatDate(sub.trial_ends_at) }) : sub.current_period_end ? t('admin.subscription.' + (sub.auto_renew ? 'renewsOn' : 'endsOn'), { date: formatDate(sub.current_period_end) }) : ''}
                                             </p>
                                             {canManage && (
                                                 <div className="mt-3 flex gap-2">
                                                     {sub.status === 'canceled' || sub.status === 'expired'
-                                                        ? <Button size="sm" onClick={() => renew(prod)} loading={action}>Renew</Button>
-                                                        : sub.status !== 'past_due' && <Button size="sm" variant="danger" onClick={() => cancel(prod)} loading={action}>Cancel</Button>}
+                                                        ? <Button size="sm" onClick={() => renew(prod)} loading={action}>{t('admin.subscription.renew')}</Button>
+                                                        : sub.status !== 'past_due' && <Button size="sm" variant="danger" onClick={() => cancel(prod)} loading={action}>{t('admin.common.cancel')}</Button>}
                                                 </div>
                                             )}
                                         </>
                                     ) : (
-                                        <p className="mt-1 text-sm text-gray-500">Not part of your subscription — pick a plan below to add it.</p>
+                                        <p className="mt-1 text-sm text-gray-500">{t('admin.subscription.notPartOfSubscription')}</p>
                                     )}
                                 </div>
                             );
@@ -353,41 +398,41 @@ export default function Subscription() {
 
             {subscription && (
                 <section>
-                    <h3 className="mb-2 text-sm font-semibold text-gray-900">Usage</h3>
-                    <p className="mb-2 text-xs text-gray-500">Current counts against your plan limits</p>
+                    <h3 className="mb-2 text-sm font-semibold text-gray-900">{t('admin.subscription.usage')}</h3>
+                    <p className="mb-2 text-xs text-gray-500">{t('admin.subscription.usageSubtitle')}</p>
                     <Table>
                         <thead>
                             <tr>
-                                <Th>Resource</Th>
-                                <Th align="right">Used</Th>
-                                <Th align="right">Limit</Th>
+                                <Th>{t('admin.subscription.thResource')}</Th>
+                                <Th align="right">{t('admin.subscription.thUsed')}</Th>
+                                <Th align="right">{t('admin.subscription.thLimit')}</Th>
                             </tr>
                         </thead>
                         <tbody>
                             {usageResources.length === 0 ? (
-                                <TableEmpty colSpan={3}>No limits apply to this plan.</TableEmpty>
+                                <TableEmpty colSpan={3}>{t('admin.subscription.noLimits')}</TableEmpty>
                             ) : (
                                 usageResources.map((r) => {
-                                    const used = usage[r.key] ?? 0;
-                                    const limit = limits[r.key];
+                                    const used = usage[r] ?? 0;
+                                    const limit = limits[r];
                                     const unlimited = limit === null || limit === undefined;
                                     const over = !unlimited && used > limit;
 
                                     return (
-                                        <tr key={r.key} className="transition-colors duration-150 hover:bg-gray-50/60">
+                                        <tr key={r} className="transition-colors duration-150 hover:bg-gray-50/60">
                                             <Td>
-                                                <span className="font-medium text-gray-800">{r.label}</span>
+                                                <span className="font-medium text-gray-800">{t(`admin.subscription.resources.${r}`, { defaultValue: r })}</span>
                                                 {over && (
                                                     <span className="mt-0.5 block text-xs text-red-600">
-                                                        Over the plan limit — you may not be able to create more.
+                                                        {t('admin.subscription.overLimit')}
                                                     </span>
                                                 )}
                                             </Td>
                                             <Td align="right" className={`tabular-nums ${over ? 'font-semibold text-red-600' : 'text-gray-700'}`}>
-                                                {used.toLocaleString()}
+                                                {formatNumber(used)}
                                             </Td>
                                             <Td align="right" className="whitespace-nowrap tabular-nums text-gray-500">
-                                                {unlimited ? 'Unlimited' : limit.toLocaleString()}
+                                                {unlimited ? t('admin.subscription.unlimited') : formatNumber(limit)}
                                             </Td>
                                         </tr>
                                     );
@@ -399,30 +444,30 @@ export default function Subscription() {
             )}
 
             <section>
-                <h3 className="mb-2 text-sm font-semibold text-gray-900">Included features</h3>
-                <p className="mb-3 text-xs text-gray-500">Modules unlocked by your plan</p>
-                {includedModules.length === 0 && <p className="mb-3 text-sm text-gray-500">No feature modules included.</p>}
+                <h3 className="mb-2 text-sm font-semibold text-gray-900">{t('admin.subscription.includedFeatures')}</h3>
+                <p className="mb-3 text-xs text-gray-500">{t('admin.subscription.includedFeaturesSubtitle')}</p>
+                {includedModules.length === 0 && <p className="mb-3 text-sm text-gray-500">{t('admin.subscription.noFeatureModules')}</p>}
                 <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
                     {includedModules.length > 0 && (
-                        <ModuleList title="Included modules" modules={includedModules} tone="included" />
+                        <ModuleList title={t('admin.subscription.includedModulesTitle')} modules={includedModules} tone="included" />
                     )}
-                    <ModuleList title="Not included" modules={excludedModules} />
+                    <ModuleList title={t('admin.subscription.notIncludedTitle')} modules={excludedModules} />
                 </div>
             </section>
 
             <section>
-                <h3 className="mb-3 text-lg font-bold text-gray-900">Compare plans</h3>
-                {visiblePlans.length === 0 && <Alert>No plans are currently available.</Alert>}
+                <h3 className="mb-3 text-lg font-bold text-gray-900">{t('admin.subscription.comparePlans')}</h3>
+                {visiblePlans.length === 0 && <Alert>{t('admin.subscription.noPlans')}</Alert>}
                 {visiblePlans.length > 0 && (
                     <Table>
                         <thead>
                             <tr>
-                                <Th>Plan</Th>
-                                <Th>Price</Th>
-                                <Th>Trial</Th>
-                                <Th align="right">Modules</Th>
-                                <Th>Current</Th>
-                                <Th align="right">Actions</Th>
+                                <Th>{t('admin.subscription.thPlan')}</Th>
+                                <Th>{t('admin.subscription.thPrice')}</Th>
+                                <Th>{t('admin.subscription.thTrial')}</Th>
+                                <Th align="right">{t('admin.subscription.thModules')}</Th>
+                                <Th>{t('admin.subscription.thCurrent')}</Th>
+                                <Th align="right">{t('admin.common.actions')}</Th>
                             </tr>
                         </thead>
                         <tbody>
@@ -433,30 +478,30 @@ export default function Subscription() {
                                     <tr key={p.id} className="transition-colors duration-150 hover:bg-gray-50/60">
                                         <Td>
                                             <span className="font-medium text-gray-900">{p.name}</span>
-                                            {p.product && p.product !== 'suite' && <span className="ml-2"><Badge>{PRODUCT_NAMES[p.product]}</Badge></span>}
-                                            {p.is_default && <span className="ml-2"><Badge>default</Badge></span>}
+                                            {p.product && p.product !== 'suite' && <span className="ml-2"><Badge>{productName(t, p.product)}</Badge></span>}
+                                            {p.is_default && <span className="ml-2"><Badge>{t('admin.subscription.defaultBadge')}</Badge></span>}
                                             <span className="mt-0.5 block text-xs text-gray-500">
-                                                {p.description || 'No description'}
+                                                {p.description || t('admin.subscription.noDescription')}
                                             </span>
                                             <span className="mt-0.5 block text-xs text-gray-500">
-                                                <span className="tabular-nums font-semibold text-gray-800">{p.limits?.users ?? '∞'}</span> users ·{' '}
-                                                <span className="tabular-nums font-semibold text-gray-800">{p.limits?.projects ?? '∞'}</span> projects ·{' '}
-                                                <span className="tabular-nums font-semibold text-gray-800">{p.limits?.tasks ?? '∞'}</span> tasks
+                                                <span className="tabular-nums font-semibold text-gray-800">{p.limits?.users ?? '∞'}</span> {t('admin.subscription.limitUsers')} ·{' '}
+                                                <span className="tabular-nums font-semibold text-gray-800">{p.limits?.projects ?? '∞'}</span> {t('admin.subscription.limitProjects')} ·{' '}
+                                                <span className="tabular-nums font-semibold text-gray-800">{p.limits?.tasks ?? '∞'}</span> {t('admin.subscription.limitTasks')}
                                             </span>
                                         </Td>
                                         <Td className="whitespace-nowrap font-medium text-gray-900">{formatPrice(p)}</Td>
                                         <Td className="whitespace-nowrap text-gray-500">
-                                            {p.trial_duration_days ? `${p.trial_duration_days} days` : '—'}
+                                            {p.trial_duration_days ? t('admin.subscription.trialDays', { count: p.trial_duration_days }) : '—'}
                                         </Td>
                                         <Td align="right" className="tabular-nums">{(p.limits?.modules || []).length}</Td>
-                                        <Td>{isCurrent ? <Badge>current</Badge> : <span className="text-gray-400">—</span>}</Td>
+                                        <Td>{isCurrent ? <Badge>{t('admin.subscription.currentBadge')}</Badge> : <span className="text-gray-400">—</span>}</Td>
                                         <Td align="right" className="whitespace-nowrap">
                                             {canManage ? (
                                                 <Button size="sm" variant={isCurrent ? 'secondary' : 'primary'} disabled={isCurrent} onClick={() => switchPlan(p)} loading={action}>
-                                                    {isCurrent ? 'Current plan' : `Switch to ${p.name}`}
+                                                    {isCurrent ? t('admin.subscription.currentPlanBtn') : t('admin.subscription.switchTo', { name: p.name })}
                                                 </Button>
                                             ) : (
-                                                <span className="text-sm text-gray-400">{isCurrent ? 'Your current plan' : 'Ask an admin to switch plans.'}</span>
+                                                <span className="text-sm text-gray-400">{isCurrent ? t('admin.subscription.yourCurrentPlan') : t('admin.subscription.askAdmin')}</span>
                                             )}
                                         </Td>
                                     </tr>
@@ -469,14 +514,14 @@ export default function Subscription() {
 
             {events.length > 0 && (
                 <section>
-                    <h3 className="mb-2 text-sm font-semibold text-gray-900">Billing activity</h3>
-                    <p className="mb-2 text-xs text-gray-500">Recent subscription events</p>
+                    <h3 className="mb-2 text-sm font-semibold text-gray-900">{t('admin.subscription.billingActivity')}</h3>
+                    <p className="mb-2 text-xs text-gray-500">{t('admin.subscription.billingActivitySubtitle')}</p>
                     <Table>
                         <thead>
                             <tr>
-                                <Th>Event</Th>
-                                <Th>Plan change</Th>
-                                <Th align="right">When</Th>
+                                <Th>{t('admin.subscription.thEvent')}</Th>
+                                <Th>{t('admin.subscription.thPlanChange')}</Th>
+                                <Th align="right">{t('admin.subscription.thWhen')}</Th>
                             </tr>
                         </thead>
                         <tbody>
@@ -498,22 +543,25 @@ export default function Subscription() {
                 </section>
             )}
 
+            <PaymentMethodsPanel canManage={canManage} reloadKey={cardsKey} />
+
             {/* P6.1: invoices, each downloadable as a PDF */}
             <section>
-                <h3 className="mb-2 text-sm font-semibold text-gray-900">Invoices</h3>
+                <h3 className="mb-2 text-sm font-semibold text-gray-900">{t('admin.subscription.invoices')}</h3>
                 {invoices.length === 0 ? (
                     <div className="rounded-lg border border-dashed border-gray-200 bg-gray-50/60 px-4 py-6 text-center text-xs text-gray-400">
-                        No invoices yet. One is issued for every payment.
+                        {t('admin.subscription.noInvoices')}
                     </div>
                 ) : (
                     <Table>
                         <thead>
                             <tr>
-                                <Th>Invoice</Th>
-                                <Th>Amount</Th>
-                                <Th>Status</Th>
-                                <Th>Issued</Th>
-                                <Th align="right">PDF</Th>
+                                <Th>{t('admin.subscription.thInvoice')}</Th>
+                                <Th>{t('admin.subscription.thAmount')}</Th>
+                                <Th>{t('admin.subscription.thStatus')}</Th>
+                                <Th>{t('admin.subscription.thIssued')}</Th>
+                                <Th align="right">{t('admin.subscription.thPdf')}</Th>
+                                <Th align="right">{t('billing.sub.thReceipt')}</Th>
                             </tr>
                         </thead>
                         <tbody>
@@ -528,10 +576,17 @@ export default function Subscription() {
                                     <Td align="right">
                                         <a
                                             href={`/api/billing/invoices/${inv.id}/pdf`}
-                                            className="text-xs font-medium text-indigo-600 hover:underline"
+                                            className="text-xs font-medium text-[var(--accent-soft-text)] hover:underline"
                                         >
-                                            Download
+                                            {t('admin.subscription.download')}
                                         </a>
+                                    </Td>
+                                    <Td align="right">
+                                        {inv.hosted_invoice_url ? (
+                                            <a href={inv.hosted_invoice_url} target="_blank" rel="noopener noreferrer" className="text-xs font-medium text-[var(--accent-soft-text)] hover:underline">
+                                                {t('billing.sub.viewReceipt')}
+                                            </a>
+                                        ) : <span className="text-xs text-gray-400">—</span>}
                                     </Td>
                                 </tr>
                             ))}
@@ -542,22 +597,22 @@ export default function Subscription() {
 
             {/* Phase 6: Real billing history table */}
             <section>
-                <h3 className="mb-2 text-sm font-semibold text-gray-900">Billing history</h3>
-                <p className="mb-2 text-xs text-gray-500">Invoices and payment transactions</p>
+                <h3 className="mb-2 text-sm font-semibold text-gray-900">{t('admin.subscription.billingHistory')}</h3>
+                <p className="mb-2 text-xs text-gray-500">{t('admin.subscription.billingHistorySubtitle')}</p>
                 {payments.length === 0 ? (
                     <div className="rounded-lg border border-dashed border-gray-200 bg-gray-50/60 px-4 py-6 text-center text-xs text-gray-400">
-                        No billing transactions recorded yet.
+                        {t('admin.subscription.noTransactions')}
                     </div>
                 ) : (
                     <Table>
                         <thead>
                             <tr>
-                                <Th>Transaction</Th>
-                                <Th>Plan</Th>
-                                <Th>Amount</Th>
-                                <Th>Provider</Th>
-                                <Th>Status</Th>
-                                <Th align="right">Date</Th>
+                                <Th>{t('admin.subscription.thTransaction')}</Th>
+                                <Th>{t('admin.subscription.thPlan')}</Th>
+                                <Th>{t('admin.subscription.thAmount')}</Th>
+                                <Th>{t('admin.subscription.thProvider')}</Th>
+                                <Th>{t('admin.subscription.thStatus')}</Th>
+                                <Th align="right">{t('admin.subscription.thDate')}</Th>
                             </tr>
                         </thead>
                         <tbody>

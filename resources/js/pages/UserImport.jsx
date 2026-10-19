@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { Trans, useTranslation } from 'react-i18next';
 import api, { fieldErrors } from '../services/api';
 import Card from '../components/ui/Card';
 import Alert from '../components/ui/Alert';
@@ -25,7 +26,8 @@ function downloadCsv(filename, rows) {
 
 /** Preview → import. Every row is validated server-side with the same privilege ceiling as creating a user by hand. */
 export default function UserImport() {
-    usePageTitle('Import users');
+    const { t } = useTranslation();
+    usePageTitle(t('admin.userImport.pageTitle'));
     const navigate = useNavigate();
     const toast = useToast();
     const setCrumbs = useSetCrumbs();
@@ -36,7 +38,7 @@ export default function UserImport() {
     const [error, setError] = useState(null);
     const [result, setResult] = useState(null);
 
-    useEffect(() => { setCrumbs([{ label: 'Users', to: '/users' }, { label: 'Import' }]); }, [setCrumbs]);
+    useEffect(() => { setCrumbs([{ label: t('admin.userImport.usersCrumb'), to: '/users' }, { label: t('admin.userImport.crumb') }]); }, [setCrumbs, t]);
 
     function form(extra = {}) {
         const body = new FormData();
@@ -53,7 +55,7 @@ export default function UserImport() {
             setRoles(data.available_roles || []);
         } catch (e) {
             setReport(null);
-            setError(fieldErrors(e).file || fieldErrors(e).form || 'Could not read that file.');
+            setError(fieldErrors(e).file || fieldErrors(e).form || t('admin.userImport.readFailed'));
         } finally { setBusy(false); }
     }
 
@@ -66,7 +68,7 @@ export default function UserImport() {
             toast.success(data.message);
         } catch (e) {
             if (e?.response?.data?.rows) setReport(e.response.data);
-            setError(e?.response?.data?.message || 'Import failed.');
+            setError(e?.response?.data?.message || t('admin.userImport.importFailed'));
         } finally { setBusy(false); }
     }
 
@@ -75,37 +77,37 @@ export default function UserImport() {
     return (
         <div className="mx-auto max-w-4xl space-y-6">
             <div>
-                <h2 className="text-2xl font-bold text-gray-900">Import users</h2>
-                <p className="mt-1 text-sm text-gray-500">Add many people at once from a CSV file.</p>
+                <h2 className="text-2xl font-bold text-gray-900">{t('admin.userImport.title')}</h2>
+                <p className="mt-1 text-sm text-gray-500">{t('admin.userImport.subtitle')}</p>
             </div>
 
-            <Card title="1. Get the format" subtitle="Columns: name, email, roles — and an optional password.">
+            <Card title={t('admin.userImport.step1Title')} subtitle={t('admin.userImport.step1Subtitle')}>
                 <ul className="list-disc space-y-1 pl-5 text-sm text-gray-600">
-                    <li><b>roles</b>: role slugs or names; separate several with <code>|</code> (for example <code>editor|viewer</code>).</li>
-                    <li><b>password</b>: leave blank to generate one — generated passwords are shown once after import.</li>
-                    <li>You can only assign roles whose permissions you hold. Emails must not already exist. Max 500 rows.</li>
+                    <li><Trans i18nKey="admin.userImport.rolesFormat" components={[<b key="0" />, <code key="1" />, <code key="2" />]} /></li>
+                    <li><Trans i18nKey="admin.userImport.passwordFormat" components={[<b key="0" />]} /></li>
+                    <li>{t('admin.userImport.caps')}</li>
                 </ul>
                 <div className="mt-3 flex gap-2">
-                    <Button variant="secondary" onClick={() => downloadCsv('users-import-sample.csv', SAMPLE_ROWS)}>Download sample CSV</Button>
+                    <Button variant="secondary" onClick={() => downloadCsv('users-import-sample.csv', SAMPLE_ROWS)}>{t('admin.userImport.downloadSample')}</Button>
                 </div>
                 <pre className="mt-3 overflow-x-auto rounded-lg bg-gray-50 p-3 text-xs text-gray-700">{SAMPLE_ROWS.map((r) => r.join(',')).join('\n')}</pre>
             </Card>
 
-            <Card title="2. Upload & check">
+            <Card title={t('admin.userImport.step2Title')}>
                 <div className="flex flex-wrap items-center gap-3">
                     <input type="file" accept=".csv,text/csv" onChange={(e) => { setFile(e.target.files?.[0] || null); setReport(null); setResult(null); }} />
-                    <Button onClick={preview} disabled={!file} loading={busy}>Check file</Button>
+                    <Button onClick={preview} disabled={!file} loading={busy}>{t('admin.userImport.checkFile')}</Button>
                 </div>
                 <Alert>{error}</Alert>
             </Card>
 
             {report && (
-                <Card title="3. Review" subtitle={`${report.summary.valid} of ${report.summary.total} rows are ready to import.`}>
-                    {roles.length > 0 && <p className="mb-3 text-xs text-gray-500">Roles you may assign: {roles.map((r) => r.slug).join(', ')}</p>}
+                <Card title={t('admin.userImport.step3Title')} subtitle={t('admin.userImport.step3Subtitle', { valid: report.summary.valid, total: report.summary.total })}>
+                    {roles.length > 0 && <p className="mb-3 text-xs text-gray-500">{t('admin.userImport.rolesYouMayAssign', { roles: roles.map((r) => r.slug).join(', ') })}</p>}
                     <div className="max-h-96 overflow-auto rounded-lg border border-gray-200">
-                        <table className="min-w-full divide-y divide-gray-100 text-sm">
+                        <div className="overflow-x-auto"><table className="min-w-full divide-y divide-gray-100 text-sm">
                             <thead className="bg-gray-50 text-left text-xs uppercase tracking-wide text-gray-500">
-                                <tr><th className="px-3 py-2">Line</th><th className="px-3 py-2">Name</th><th className="px-3 py-2">Email</th><th className="px-3 py-2">Roles</th><th className="px-3 py-2">Result</th></tr>
+                                <tr><th scope="col" className="px-3 py-2">{t('admin.userImport.thLine')}</th><th scope="col" className="px-3 py-2">{t('admin.userImport.thName')}</th><th scope="col" className="px-3 py-2">{t('admin.userImport.thEmail')}</th><th scope="col" className="px-3 py-2">{t('admin.userImport.thRoles')}</th><th scope="col" className="px-3 py-2">{t('admin.userImport.thResult')}</th></tr>
                             </thead>
                             <tbody className="divide-y divide-gray-50">
                                 {report.rows.map((r) => (
@@ -115,22 +117,22 @@ export default function UserImport() {
                                         <td className="px-3 py-2">{r.email}</td>
                                         <td className="px-3 py-2">{r.roles.join(', ')}</td>
                                         <td className="px-3 py-2">
-                                            {r.errors.length ? <ul className="text-red-700">{r.errors.map((e) => <li key={e}>{e}</li>)}</ul> : <span className="text-emerald-700">Ready</span>}
+                                            {r.errors.length ? <ul className="text-red-700">{r.errors.map((e) => <li key={e}>{e}</li>)}</ul> : <span className="text-emerald-700">{t('admin.userImport.ready')}</span>}
                                         </td>
                                     </tr>
                                 ))}
                             </tbody>
-                        </table>
+                        </table></div>
                     </div>
                     <div className="mt-4 flex flex-wrap gap-2">
                         {report.summary.invalid === 0 ? (
-                            <Button onClick={() => commit(false)} loading={busy}>Import {report.summary.valid} users</Button>
+                            <Button onClick={() => commit(false)} loading={busy}>{t('admin.userImport.importUsers', { count: report.summary.valid })}</Button>
                         ) : (
                             <>
                                 <Button variant="secondary" onClick={() => commit(true)} loading={busy} disabled={report.summary.valid === 0}>
-                                    Import the {report.summary.valid} valid rows only
+                                    {t('admin.userImport.importValidOnly', { valid: report.summary.valid })}
                                 </Button>
-                                <span className="self-center text-sm text-gray-500">or fix the file and check again.</span>
+                                <span className="self-center text-sm text-gray-500">{t('admin.userImport.orFix')}</span>
                             </>
                         )}
                     </div>
@@ -138,16 +140,16 @@ export default function UserImport() {
             )}
 
             {result && (
-                <Card title="Done" subtitle={result.message}>
+                <Card title={t('admin.userImport.doneTitle')} subtitle={result.message}>
                     {generated.length > 0 && (
                         <>
-                            <Alert type="info">These generated passwords are shown only once. Download them now and share them securely.</Alert>
+                            <Alert type="info">{t('admin.userImport.generatedNotice')}</Alert>
                             <Button className="mt-3" variant="secondary" onClick={() => downloadCsv('imported-users-passwords.csv', [['name', 'email', 'temporary_password'], ...generated.map((u) => [u.name, u.email, u.temporary_password])])}>
-                                Download passwords CSV
+                                {t('admin.userImport.downloadPasswords')}
                             </Button>
                         </>
                     )}
-                    <div className="mt-4"><Button onClick={() => navigate('/users')}>Back to users</Button></div>
+                    <div className="mt-4"><Button onClick={() => navigate('/users')}>{t('admin.userImport.backToUsers')}</Button></div>
                 </Card>
             )}
         </div>

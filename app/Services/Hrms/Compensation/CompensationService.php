@@ -54,7 +54,7 @@ class CompensationService
             $component = SalaryComponent::find($row['component_id'] ?? null);
 
             if ($component === null) {
-                throw ValidationException::withMessages(['components' => 'A linked component does not exist.']);
+                throw ValidationException::withMessages(['components' => __('A linked component does not exist.')]);
             }
 
             $structure->components()->attach($component->id, [
@@ -88,13 +88,13 @@ class CompensationService
         ?User $actor = null,
     ): EmployeeSalaryStructure {
         if (! $structure->is_active) {
-            throw ValidationException::withMessages(['structure_id' => 'That structure is not active.']);
+            throw ValidationException::withMessages(['structure_id' => __('That structure is not active.')]);
         }
 
         $ctc = Money::fromDecimal($ctcAnnual, $structure->currency);
 
         if ($ctc->isNegative() || $ctc->isZero()) {
-            throw ValidationException::withMessages(['ctc_annual' => 'A CTC prices positive money.']);
+            throw ValidationException::withMessages(['ctc_annual' => __('A CTC prices positive money.')]);
         }
 
         $from = $effectiveFrom instanceof Carbon ? $effectiveFrom->toDateString() : (string) $effectiveFrom;
@@ -154,7 +154,7 @@ class CompensationService
                 CalculationType::PercentageOfCtc => $ctc->percent((string) ($component->pivot->value ?? $component->default_value))->dividedBy('12'),
                 CalculationType::PercentageOfBasic => $basic->percent((string) ($component->pivot->value ?? $component->default_value)),
                 CalculationType::Formula => throw ValidationException::withMessages([
-                    'components' => "The {$component->name} head needs a formula evaluator — price it by hand.",
+                    'components' => __('The :component head needs a formula evaluator — price it by hand.', ['component' => $component->name]),
                 ]),
             };
 
@@ -201,10 +201,10 @@ class CompensationService
             CalculationType::Fixed => Money::fromDecimal($basic->pivot->value ?? $basic->default_value, $ctc->currency),
             CalculationType::PercentageOfCtc => $ctc->percent($rate)->dividedBy('12'),
             CalculationType::PercentageOfBasic => throw ValidationException::withMessages([
-                'components' => 'Basic cannot price itself as a percentage of basic.',
+                'components' => __('Basic cannot price itself as a percentage of basic.'),
             ]),
             CalculationType::Formula => throw ValidationException::withMessages([
-                'components' => 'Basic needs a formula evaluator — price it by hand.',
+                'components' => __('Basic needs a formula evaluator — price it by hand.'),
             ]),
         };
     }

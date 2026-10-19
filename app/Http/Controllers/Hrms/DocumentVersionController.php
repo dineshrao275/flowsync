@@ -43,7 +43,7 @@ class DocumentVersionController extends Controller
         $next = $this->versions->addVersion($document, $request->file('file'), $request->safe()->except('file'), $request->user());
 
         return response()->json([
-            'message' => "Version {$next->version} uploaded.",
+            'message' => __('Version :version uploaded.', ['version' => $next->version]),
             'document' => $this->presenter->present($next, $request->user()),
         ], Response::HTTP_CREATED);
     }

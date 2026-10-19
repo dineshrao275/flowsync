@@ -1,5 +1,6 @@
-import { useId } from 'react';
+import { useId, useRef } from 'react';
 import { createPortal } from 'react-dom';
+import { useTranslation } from 'react-i18next';
 import useDialogFocus from '../../hooks/useDialogFocus';
 
 const sizes = {
@@ -9,8 +10,12 @@ const sizes = {
 };
 
 export default function Modal({ open, onClose, title, subtitle, size = 'md', children, className = '' }) {
+    const { t } = useTranslation();
     const panelRef = useDialogFocus(open, onClose);
     const titleId = useId();
+    // A press that starts inside the panel (e.g. selecting text) and ends on the
+    // backdrop must not dismiss the dialog, so remember where it began.
+    const pressedBackdrop = useRef(false);
 
     if (!open) return null;
 
@@ -19,14 +24,17 @@ export default function Modal({ open, onClose, title, subtitle, size = 'md', chi
     // block/stacking context that would otherwise trap a nested `fixed` modal.
     return createPortal(
         <div
-            className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-gray-900/40 p-4 animate-backdrop-in sm:p-6"
-            onMouseDown={onClose}
+            className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-gray-900/40 p-0 animate-backdrop-in sm:p-6"
+            onMouseDown={(e) => { pressedBackdrop.current = e.target === e.currentTarget; }}
+            onClick={(e) => {
+                if (pressedBackdrop.current && e.target === e.currentTarget) onClose?.();
+                pressedBackdrop.current = false;
+            }}
             role="presentation"
         >
             <div
-                className={`my-6 w-full ${sizes[size]} max-h-[calc(100dvh-3rem)] overflow-y-auto rounded-xl border border-gray-200 shadow-popover animate-scale-in ${className}`}
+                className={`w-full ${sizes[size]} max-h-dvh overflow-y-auto border border-line shadow-popover animate-scale-in sm:my-6 sm:max-h-[calc(100dvh-3rem)] sm:rounded-xl ${className}`}
                 style={{ backgroundColor: 'var(--card-bg)' }}
-                onMouseDown={(e) => e.stopPropagation()}
                 role="dialog"
                 aria-modal="true"
                 aria-labelledby={title ? titleId : undefined}
@@ -43,7 +51,7 @@ export default function Modal({ open, onClose, title, subtitle, size = 'md', chi
                             <button
                                 type="button"
                                 onClick={onClose}
-                                aria-label="Close"
+                                aria-label={t('admin.common.close')}
                                 className="-mr-1 -mt-1 rounded-lg p-1.5 text-gray-400 transition hover:bg-gray-100 hover:text-gray-600"
                             >
                                 <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">

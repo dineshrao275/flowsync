@@ -105,7 +105,7 @@ class TaskBulk
         }
 
         if ($data === []) {
-            throw ValidationException::withMessages(['fields' => 'Nothing to change.']);
+            throw ValidationException::withMessages(['fields' => __('Nothing to change.')]);
         }
 
         return $data;

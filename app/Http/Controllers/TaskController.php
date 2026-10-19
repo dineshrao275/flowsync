@@ -3,19 +3,27 @@
 namespace App\Http\Controllers;
 
 use App\Events\TaskSynced;
+use App\Http\Controllers\Concerns\HandlesCustomFields;
 use App\Models\IssueType;
 use App\Models\Priority;
 use App\Models\Project;
 use App\Models\Task;
+use App\Models\User;
 use App\Services\ActivityLogger;
 use App\Services\Tasks\TaskChangeLogger;
+use App\Services\Tasks\TaskViews;
 use App\Services\TaskService;
+use App\Services\Workflow\MoveApprovals;
+use App\Support\Realtime;
 use App\Support\TaskScope;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Validation\ValidationException;
 
 class TaskController extends Controller
 {
+    use HandlesCustomFields;
+
     public function __construct(
         private readonly TaskService $service,
         private readonly TaskChangeLogger $changes,
@@ -45,6 +53,10 @@ class TaskController extends Controller
             'component_id' => ['nullable', 'integer'],
             'sprint' => ['nullable', 'regex:/^(active|none|\d+)$/'],
             'swimlane' => ['nullable', 'in:none,assignee'],
+            'cf' => ['nullable', 'array', 'max:20'],
+            'jql' => ['nullable', 'string', 'max:1000'],
+            'per_page' => ['nullable', 'integer', 'min:1', 'max:100'],
+            'page' => ['nullable', 'integer', 'min:1'],
             'q' => ['nullable', 'string', 'max:255'],
             'due_from' => ['nullable', 'date'],
             'due_to' => ['nullable', 'date'],
@@ -68,7 +80,11 @@ class TaskController extends Controller
         $tasks = $this->service->list($project, $filters, $user);
 
         return response()->json([
-            'tasks' => collect($tasks->items())->map(fn (Task $task) => $this->service->present($task)),
+            'tasks' => $this->withCustomFields(
+                collect($tasks->items())->map(fn (Task $task) => $this->service->present($task))->all(),
+                'task',
+                false,
+            ),
             'filters' => $this->filtersPayload($project),
             'my_role' => $project->memberRole($user)?->slug,
             'pagination' => [
@@ -104,13 +120,16 @@ class TaskController extends Controller
             'estimate_minutes' => ['nullable', 'integer', 'min:0'],
         ]);
 
+        $custom = $this->validatedCustomFields($request, 'task', partial: false);
+
         $task = $this->service->create($project, $data, $request->user());
+        $this->storeCustomFields('task', $task->id, $custom);
 
         $this->changes->created($task, $request->user(), $request->ip());
 
         return response()->json([
-            'message' => 'Task created.',
-            'task' => $this->service->present($this->service->show($task)),
+            'message' => __('Task created.'),
+            'task' => $this->presentOne($task),
         ], 201);
     }
 
@@ -119,7 +138,7 @@ class TaskController extends Controller
         $this->authorize('view', $task);
 
         return response()->json([
-            'task' => $this->service->present($this->service->show($task)),
+            'task' => $this->presentSeen($task, $request->user()),
         ]);
     }
 
@@ -137,7 +156,7 @@ class TaskController extends Controller
         $this->authorize('view', $task);
 
         return response()->json([
-            'task' => $this->service->present($this->service->show($task)),
+            'task' => $this->presentSeen($task, $request->user()),
         ]);
     }
 
@@ -169,16 +188,26 @@ class TaskController extends Controller
             $this->authorize('assign', $task);
         }
 
+        if (! empty($data['status_id']) && (int) $data['status_id'] !== (int) $task->status_id) {
+            $target = $project->statuses()->whereKey($data['status_id'])->first();
+            if ($target !== null && app(MoveApprovals::class)->required($task, $target, $request->user())) {
+                throw ValidationException::withMessages(['status_id' => __('Moving to :status needs a workflow manager\'s approval — drag the card or use the move action to request it.', ['status' => $target->name])]);
+            }
+        }
+
+        $custom = $this->validatedCustomFields($request, 'task', partial: true);
+
         $oldAssigneeId = $task->assignee_id;
         $oldStatusId = $task->status_id;
         $oldStatus = $task->status;
         $updated = $this->service->update($task, $data);
+        $this->storeCustomFields('task', $updated->id, $custom);
 
         $this->changes->updated($updated, $data, $oldAssigneeId, $oldStatusId, $oldStatus, $request->user(), $request->ip());
 
         return response()->json([
-            'message' => 'Task updated.',
-            'task' => $this->service->present($this->service->show($updated)),
+            'message' => __('Task updated.'),
+            'task' => $this->presentOne($updated),
         ]);
     }
 
@@ -197,9 +226,9 @@ class TaskController extends Controller
             ipAddress: $request->ip(),
         );
 
-        broadcast(new TaskSynced($task, 'deleted'));
+        Realtime::send(new TaskSynced($task, 'deleted'));
 
-        return response()->json(['message' => 'Task deleted.']);
+        return response()->json(['message' => __('Task deleted.')]);
     }
 
     private function filtersPayload(Project $project): array
@@ -245,5 +274,20 @@ class TaskController extends Controller
                     'name' => $c->name,
                 ]),
         ];
+    }
+
+    /** @return array<string, mixed> one task with its custom-field values (when the plan has them) */
+    /** Opening a task counts as seeing it: stamp the viewer, then return the payload with the "seen by" list. */
+    private function presentSeen(Task $task, User $viewer): array
+    {
+        $views = app(TaskViews::class);
+        $views->record($task, $viewer);
+
+        return $this->presentOne($task) + ['viewers' => $views->viewers($task)];
+    }
+
+    private function presentOne(Task $task): array
+    {
+        return $this->withCustomFields([$this->service->present($this->service->show($task))], 'task', false)[0];
     }
 }

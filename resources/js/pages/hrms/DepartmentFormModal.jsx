@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { fieldErrors } from '../../services/api';
 import Alert from '../../components/ui/Alert';
 import Button from '../../components/ui/Button';
@@ -22,6 +23,7 @@ import RichTextEditor from '../../components/ui/RichTextEditor';
  * only offered roots would make a legal move impossible to express.
  */
 export default function DepartmentFormModal({ department, departments, heads, saving, onClose, onSubmit }) {
+    const { t } = useTranslation();
     const editing = Boolean(department);
 
     const [form, setForm] = useState(() => ({
@@ -67,8 +69,8 @@ export default function DepartmentFormModal({ department, departments, heads, sa
     return (
         <Modal
             open
-            title={editing ? 'Edit department' : 'New department'}
-            subtitle={editing ? department.name : 'A node in the org tree'}
+            title={editing ? t('hrms.orgModals.editDepartment') : t('hrms.orgModals.newDepartment')}
+            subtitle={editing ? department.name : t('hrms.orgModals.deptNode')}
             onClose={onClose}
             size="md"
         >
@@ -76,7 +78,7 @@ export default function DepartmentFormModal({ department, departments, heads, sa
                 {errors.form && <Alert>{errors.form}</Alert>}
 
                 <Input
-                    label="Name"
+                    label={t('hrms.orgModals.name')}
                     value={form.name}
                     onChange={(e) => set('name', e.target.value)}
                     error={errors.name}
@@ -85,30 +87,30 @@ export default function DepartmentFormModal({ department, departments, heads, sa
                 />
 
                 <Input
-                    label="Code"
+                    label={t('hrms.orgModals.code')}
                     value={form.code}
                     onChange={(e) => set('code', e.target.value)}
                     error={errors.code}
-                    placeholder="Optional — a short label like ENG or SALES"
+                    placeholder={t('hrms.orgModals.codePlaceholder')}
                 />
 
                 <div>
-                    <label htmlFor="department-description" className="mb-1.5 block text-sm font-medium text-gray-700">Description</label>
+                    <label htmlFor="department-description" className="mb-1.5 block text-sm font-medium text-gray-700">{t('hrms.orgModals.description')}</label>
                     <RichTextEditor
                         value={form.description}
                         onChange={(html) => set('description', html)}
-                        placeholder="What this team is responsible for…"
+                        placeholder={t('hrms.orgModals.deptDescPlaceholder')}
                         error={errors.description}
                     />
                 </div>
 
                 <Select
-                    label="Reports to"
+                    label={t('hrms.orgModals.reportsTo')}
                     value={form.parent_id}
                     onChange={(e) => set('parent_id', e.target.value)}
                     error={errors.parent_id}
                 >
-                    <option value="">No parent — a root department</option>
+                    <option value="">{t('hrms.orgModals.noParent')}</option>
                     {parentOptions.map((d) => (
                         <option key={d.id} value={d.id}>
                             {d.name}
@@ -117,12 +119,12 @@ export default function DepartmentFormModal({ department, departments, heads, sa
                 </Select>
 
                 <Select
-                    label="Department head"
+                    label={t('hrms.orgModals.deptHead')}
                     value={form.head_employee_id}
                     onChange={(e) => set('head_employee_id', e.target.value)}
                     error={errors.head_employee_id}
                 >
-                    <option value="">No head yet</option>
+                    <option value="">{t('hrms.orgModals.noHead')}</option>
                     {heads.map((person) => (
                         <option key={person.id} value={person.id}>
                             {person.name}
@@ -138,16 +140,16 @@ export default function DepartmentFormModal({ department, departments, heads, sa
                             onChange={(e) => set('is_active', e.target.checked)}
                             className="h-4 w-4 rounded border-gray-300"
                         />
-                        Active
+                        {t('hrms.orgModals.active')}
                     </label>
                 )}
 
                 <div className="flex justify-end gap-2 border-t border-gray-100 pt-4">
                     <Button variant="secondary" type="button" onClick={onClose}>
-                        Cancel
+                        {t('hrms.orgModals.cancel')}
                     </Button>
                     <Button type="submit" loading={saving}>
-                        {editing ? 'Save changes' : 'Create department'}
+                        {editing ? t('hrms.orgModals.save') : t('hrms.orgModals.createDepartment')}
                     </Button>
                 </div>
             </form>

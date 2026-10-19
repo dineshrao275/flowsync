@@ -6,6 +6,8 @@ use App\Models\Project;
 use App\Models\Task;
 use App\Models\TaskStatus;
 use App\Models\User;
+use App\Services\CustomFields\CustomFieldService;
+use App\Services\Jql\JqlSearch;
 use App\Support\Like;
 use App\Support\TaskScope;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
@@ -177,6 +179,7 @@ class TaskReader
                 ->with(['status', 'priority', 'assignee', 'labels', 'issueType', 'version', 'components', 'watchers:users.id,name,email'])
                 ->withCount([
                     'subtasks',
+                    'subtasks as subtasks_done_count' => fn ($q) => $q->whereNotNull('completed_at'),
                     'comments',
                     'attachments',
                     'openBlockers as open_blockers_count',
@@ -213,6 +216,14 @@ class TaskReader
 
         if (! empty($filters['q'])) {
             Like::any($query, ['tasks.title', 'tasks.key', 'tasks.description'], $filters['q']);
+        }
+
+        if (! empty($filters['jql']) && is_string($filters['jql'])) {
+            JqlSearch::apply($query, $filters['jql'], $user);
+        }
+
+        if (! empty($filters['cf']) && is_array($filters['cf']) && app(CustomFieldService::class)->enabled()) {
+            app(CustomFieldService::class)->applyFilters($query, 'task', $filters['cf'], 'tasks.id');
         }
 
         if (! empty($filters['due_from'])) {

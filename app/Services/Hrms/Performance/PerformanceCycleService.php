@@ -139,7 +139,7 @@ class PerformanceCycleService
     {
         if ($cycle->stage !== $expected) {
             throw ValidationException::withMessages([
-                'stage' => "That cycle is {$cycle->stage->value}, not {$expected->value} — {$target} opens from {$expected->value}.",
+                'stage' => __('That cycle is :stage, not :expected — :target opens from :expected.', ['stage' => $cycle->stage->value, 'expected' => $expected->value, 'target' => $target]),
             ]);
         }
     }

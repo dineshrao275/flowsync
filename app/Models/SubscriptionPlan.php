@@ -44,6 +44,9 @@ class SubscriptionPlan extends Model
         'sort_order',
         'stripe_price_id',
         'stripe_price_key',
+        'stripe_product_id',
+        'stripe_synced_at',
+        'stripe_sync_error',
     ];
 
     protected function casts(): array
@@ -55,6 +58,7 @@ class SubscriptionPlan extends Model
             'trial_duration_days' => 'integer',
             'limits' => 'array',
             'sort_order' => 'integer',
+            'stripe_synced_at' => 'datetime',
         ];
     }
 

@@ -1,5 +1,7 @@
 <?php
 
+use App\Billing\Stripe\BillingProviderException;
+use App\Http\Middleware\ApplyAppName;
 use App\Http\Middleware\AssignRequestId;
 use App\Http\Middleware\AuthenticateApiToken;
 use App\Http\Middleware\EnforceIdempotency;
@@ -9,11 +11,14 @@ use App\Http\Middleware\EnsureOnboardingComplete;
 use App\Http\Middleware\EnsurePermission;
 use App\Http\Middleware\EnsurePlatformPermission;
 use App\Http\Middleware\EnsureProduct;
+use App\Http\Middleware\EnsureSubscribed;
 use App\Http\Middleware\EnsureSuperAdmin;
 use App\Http\Middleware\EnsureTenantContext;
 use App\Http\Middleware\EnsureTwoFactorEnrolled;
 use App\Http\Middleware\LogHttpRequests;
+use App\Http\Middleware\PlatformMaintenance;
 use App\Http\Middleware\SecurityHeaders;
+use App\Http\Middleware\SetRequestLocale;
 use App\Http\Middleware\SetTenantContext;
 use App\Http\Middleware\SwitchTenant;
 use App\Http\Middleware\TokenCan;
@@ -52,17 +57,21 @@ return Application::configure(basePath: dirname(__DIR__))
         // middleware (CSRF, session, throttle) carries an id in its logs.
         $middleware->prepend(LogHttpRequests::class);
         $middleware->prepend(AssignRequestId::class);
+        $middleware->append(ApplyAppName::class);
         $middleware->append(SecurityHeaders::class);
         $middleware->appendToGroup('web', EnsureTwoFactorEnrolled::class);
+        $middleware->appendToGroup('web', PlatformMaintenance::class);
 
         $middleware->alias([
             'permission' => EnsurePermission::class,
             'signed' => ValidateSignature::class,
             'switch_tenant' => SwitchTenant::class,
             'tenant' => SetTenantContext::class,
+            'locale' => SetRequestLocale::class,
             'tenant_context' => EnsureTenantContext::class,
             'super_admin' => EnsureSuperAdmin::class,
             'onboarding_complete' => EnsureOnboardingComplete::class,
+            'ensure_subscribed' => EnsureSubscribed::class,
             'ensure_module' => EnsureModule::class,
             'ensure_product' => EnsureProduct::class,
             'ensure_flag' => EnsureFeatureFlag::class,
@@ -85,11 +94,16 @@ return Application::configure(basePath: dirname(__DIR__))
             StartSession::class,
             ShareErrorsFromSession::class,
             ValidateCsrfToken::class,
+            PlatformMaintenance::class,
             SwitchTenant::class,
             AuthenticateApiToken::class,
             Authenticate::class,
             SetTenantContext::class,
+            // After auth/session/tenant-context: needs $request->user(),
+            // the session store, and TenantContext pinned.
+            SetRequestLocale::class,
             EnsureTenantContext::class,
+            EnsureSubscribed::class,
             EnsureSuperAdmin::class,
             EnsurePlatformPermission::class,
             EnsurePermission::class,
@@ -107,12 +121,25 @@ return Application::configure(basePath: dirname(__DIR__))
         ]);
 
         // Token routes and client log beacon routes are exempted from CSRF.
-        $middleware->validateCsrfTokens(except: ['api/v1/*', 'api/logs/client']);
+        $middleware->validateCsrfTokens(except: ['api/v1/*', 'api/logs/client', 'api/csp-report', 'api/webhooks/stripe', 'api/webhooks/razorpay']);
 
         $middleware->redirectGuestsTo('/login');
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         $exceptions->render(function (AuthenticationException $e, Request $request) {
             return response()->json(['message' => 'Unauthenticated.'], 401);
+        });
+
+        // Stripe down / refusing: a plain, retry-able answer — never the provider's own error text. Nothing was changed
+        // locally (provider calls run first), so the tenant can simply try again.
+        $exceptions->render(function (BillingProviderException $e, Request $request) {
+            report($e);
+
+            return response()->json([
+                'message' => $e->retryable
+                    ? __('The billing provider is temporarily unavailable. Nothing was changed — please try again in a few minutes.')
+                    : __('The billing provider could not complete that request. Nothing was changed; please contact support if it keeps happening.'),
+                'code' => 'billing_unavailable',
+            ], $e->retryable ? 503 : 502);
         });
     })->create();

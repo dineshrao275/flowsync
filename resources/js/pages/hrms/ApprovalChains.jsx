@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import api, { fieldErrors } from '../../services/api';
 import Alert from '../../components/ui/Alert';
 import Button from '../../components/ui/Button';
@@ -7,21 +8,21 @@ import Card from '../../components/ui/Card';
 import Input from '../../components/ui/Input';
 import Modal from '../../components/ui/Modal';
 import Select from '../../components/ui/Select';
-import Spinner from '../../components/ui/Spinner';
+import ContentSkeleton from '../../components/ui/ContentSkeleton';
 import { useToast } from '../../context/ToastContext';
 import { useSetCrumbs } from '../../context/BreadcrumbContext';
 import usePageTitle from '../../hooks/usePageTitle';
 
 const blankStep = { type: 'manager' };
 
-function describeStep(step, options) {
-    const type = options.step_types.find((t) => t.value === step.type)?.label ?? step.type;
+function describeStep(step, options, t) {
+    const type = options.step_types.find((typeOption) => typeOption.value === step.type)?.label ?? step.type;
     const role = step.role_slug ? options.roles.find((r) => r.slug === step.role_slug)?.name ?? step.role_slug : null;
     const parts = [role ? `${type}: ${role}` : type];
 
-    if (step.mode && step.mode !== 'sequential') parts.push(step.mode === 'parallel_any' ? 'any of group' : 'all of group');
-    if (step.when) parts.push(`only if ${step.when.field} ${step.when.op} ${step.when.value}`);
-    if (step.sla_hours) parts.push(`${step.sla_hours}h`);
+    if (step.mode && step.mode !== 'sequential') parts.push(step.mode === 'parallel_any' ? t('hrms.approvalChains.modeAny') : t('hrms.approvalChains.modeAll'));
+    if (step.when) parts.push(t('hrms.approvalChains.onlyIf', { field: step.when.field, op: step.when.op, value: step.when.value }));
+    if (step.sla_hours) parts.push(t('hrms.approvalChains.hours', { count: step.sla_hours }));
 
     return parts.join(' · ');
 }
@@ -36,7 +37,8 @@ function describeStep(step, options) {
  * this page only collects it and shows the server's per-step errors.
  */
 export default function ApprovalChains() {
-    usePageTitle('Approval chains');
+    const { t } = useTranslation();
+    usePageTitle(t('hrms.approvalChains.pageTitle'));
     const setCrumbs = useSetCrumbs();
     const navigate = useNavigate();
     const toast = useToast();
@@ -50,8 +52,8 @@ export default function ApprovalChains() {
     const [resetting, setResetting] = useState(null);
 
     useEffect(() => {
-        setCrumbs([{ label: 'HRMS', to: '/hrms' }, { label: 'Approval chains' }]);
-    }, [setCrumbs]);
+        setCrumbs([{ label: 'HRMS', to: '/hrms' }, { label: t('hrms.approvalChains.pageTitle') }]);
+    }, [setCrumbs, t]);
 
     const load = useCallback(() => {
         setError(null);
@@ -65,9 +67,9 @@ export default function ApprovalChains() {
                     return;
                 }
 
-                setError('Unable to load the approval chains.');
+                setError(t('hrms.approvalChains.loadFailed'));
             });
-    }, [navigate]);
+    }, [navigate, t]);
 
     useEffect(() => {
         load();
@@ -147,21 +149,20 @@ export default function ApprovalChains() {
                 toast.success(response.message);
                 return load();
             })
-            .catch((err) => toast.error(fieldErrors(err).form ?? 'Unable to reset the chain.'));
+            .catch((err) => toast.error(fieldErrors(err).form ?? t('hrms.approvalChains.resetFailed')));
     }
 
     if (error) return <Alert type="error">{error}</Alert>;
-    if (!data) return <Spinner />;
+    if (!data) return <ContentSkeleton size="sm" />;
 
     const { options } = data;
 
     return (
         <div className="space-y-4">
             <div>
-                <h2 className="text-xl font-semibold text-gray-900">Approval chains</h2>
+                <h2 className="text-xl font-semibold text-gray-900">{t('hrms.approvalChains.pageTitle')}</h2>
                 <p className="mt-0.5 text-sm text-gray-500">
-                    Who approves each kind of request, in which order. Changes apply to requests filed from now on;
-                    approvals already in flight keep their steps.
+                    {t('hrms.approvalChains.subtitle')}
                 </p>
             </div>
 
@@ -169,15 +170,15 @@ export default function ApprovalChains() {
                 <Card
                     key={chain.domain}
                     title={chain.label}
-                    subtitle={chain.customised ? 'Customised' : 'Default chain'}
+                    subtitle={chain.customised ? t('hrms.approvalChains.customised') : t('hrms.approvalChains.defaultChain')}
                     actions={
                         <div className="flex gap-2">
                             <Button size="sm" variant="secondary" onClick={() => open(chain)}>
-                                Edit
+                                {t('hrms.approvalChains.edit')}
                             </Button>
                             {chain.customised && (
                                 <Button size="sm" variant="ghost" onClick={() => setResetting(chain)}>
-                                    Reset
+                                    {t('hrms.approvalChains.reset')}
                                 </Button>
                             )}
                         </div>
@@ -185,29 +186,28 @@ export default function ApprovalChains() {
                 >
                     <ol className="list-decimal space-y-1 pl-5 text-sm text-gray-700">
                         {chain.steps.map((step, i) => (
-                            <li key={i}>{describeStep(step, options)}</li>
+                            <li key={i}>{describeStep(step, options, t)}</li>
                         ))}
                     </ol>
                     {chain.sla_hours && (
                         <p className="mt-3 text-xs text-gray-500">
-                            Each stage is due in {chain.sla_hours}h; escalates to{' '}
-                            {chain.escalation_role_slug ?? 'the HR manager role'} when overdue.
+                            {t('hrms.approvalChains.eachStageDue', { hours: chain.sla_hours, role: chain.escalation_role_slug ?? t('hrms.approvalChains.roleFallback') })}
                         </p>
                     )}
                 </Card>
             ))}
 
-            <Modal open={!!resetting} onClose={() => setResetting(null)} title="Reset to default?" size="sm">
+            <Modal open={!!resetting} onClose={() => setResetting(null)} title={t('hrms.approvalChains.resetTitle')} size="sm">
                 <div className="space-y-4 px-6 py-5">
                 <p className="text-sm text-gray-600">
-                    “{resetting?.label}” goes back to the shipped chain. Approvals already in flight are not affected.
+                    {t('hrms.approvalChains.resetMessage', { label: resetting?.label })}
                 </p>
                 <div className="flex justify-end gap-2">
                     <Button variant="secondary" onClick={() => setResetting(null)}>
-                        Cancel
+                        {t('hrms.approvalChains.cancel')}
                     </Button>
                     <Button variant="danger" onClick={reset}>
-                        Reset chain
+                        {t('hrms.approvalChains.resetChain')}
                     </Button>
                 </div>
                 </div>
@@ -216,7 +216,7 @@ export default function ApprovalChains() {
             <Modal
                 open={!!editing}
                 onClose={() => setEditing(null)}
-                title={editing ? `Edit: ${editing.label}` : ''}
+                title={editing ? t('hrms.approvalChains.editTitle', { label: editing.label }) : ''}
                 size="lg"
             >
                 {draft && (
@@ -227,13 +227,13 @@ export default function ApprovalChains() {
                         {draft.steps.map((step, i) => (
                             <div key={i} className="space-y-3 rounded-lg border border-gray-200 p-3">
                                 <div className="flex items-center justify-between">
-                                    <span className="text-sm font-medium text-gray-700">Step {i + 1}</span>
+                                    <span className="text-sm font-medium text-gray-700">{t('hrms.approvalChains.step', { n: i + 1 })}</span>
                                     <div className="flex gap-1">
                                         <Button size="sm" variant="ghost" onClick={() => move(i, -1)} disabled={i === 0}>
-                                            Up
+                                            {t('hrms.approvalChains.up')}
                                         </Button>
                                         <Button size="sm" variant="ghost" onClick={() => move(i, 1)} disabled={i === draft.steps.length - 1}>
-                                            Down
+                                            {t('hrms.approvalChains.down')}
                                         </Button>
                                         <Button
                                             size="sm"
@@ -241,47 +241,47 @@ export default function ApprovalChains() {
                                             disabled={draft.steps.length === 1}
                                             onClick={() => setDraft((p) => ({ ...p, steps: p.steps.filter((_, k) => k !== i) }))}
                                         >
-                                            Remove
+                                            {t('hrms.approvalChains.remove')}
                                         </Button>
                                     </div>
                                 </div>
 
                                 <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
-                                    <Select label="Approver" value={step.type} onChange={(e) => patchStep(i, { type: e.target.value })} error={errors[`steps.${i}.type`]}>
+                                    <Select label={t('hrms.approvalChains.approver')} value={step.type} onChange={(e) => patchStep(i, { type: e.target.value })} error={errors[`steps.${i}.type`]}>
                                         {options.step_types
-                                            .filter((t) => t.value !== 'user')
-                                            .map((t) => (
-                                                <option key={t.value} value={t.value}>{t.label}</option>
+                                            .filter((typeOption) => typeOption.value !== 'user')
+                                            .map((typeOption) => (
+                                                <option key={typeOption.value} value={typeOption.value}>{typeOption.label}</option>
                                             ))}
                                     </Select>
                                     {step.type === 'role' && (
                                         <Select
-                                            label="Role"
+                                            label={t('hrms.approvalChains.roleLabel')}
                                             value={step.role_slug ?? ''}
                                             onChange={(e) => patchStep(i, { role_slug: e.target.value })}
                                             error={errors[`steps.${i}.role_slug`]}
                                         >
-                                            <option value="">Choose…</option>
+                                            <option value="">{t('hrms.approvalChains.choose')}</option>
                                             {options.roles.map((r) => (
                                                 <option key={r.slug} value={r.slug}>{r.name}</option>
                                             ))}
                                         </Select>
                                     )}
                                     <Input
-                                        label="Group (steps sharing a number decide together)"
+                                        label={t('hrms.approvalChains.groupLabel')}
                                         type="number"
                                         min="1"
                                         value={step.stage ?? ''}
                                         onChange={(e) => patchStep(i, { stage: e.target.value })}
                                         error={errors[`steps.${i}.stage`]}
                                     />
-                                    <Select label="Group mode" value={step.mode ?? 'sequential'} onChange={(e) => patchStep(i, { mode: e.target.value })}>
+                                    <Select label={t('hrms.approvalChains.groupMode')} value={step.mode ?? 'sequential'} onChange={(e) => patchStep(i, { mode: e.target.value })}>
                                         {options.modes.map((m) => (
                                             <option key={m.value} value={m.value}>{m.label}</option>
                                         ))}
                                     </Select>
                                     <Input
-                                        label="Due in (hours)"
+                                        label={t('hrms.approvalChains.dueInHours')}
                                         type="number"
                                         min="1"
                                         value={step.sla_hours ?? ''}
@@ -291,25 +291,25 @@ export default function ApprovalChains() {
 
                                 <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
                                     <Select
-                                        label="Only when…"
+                                        label={t('hrms.approvalChains.onlyWhen')}
                                         value={step.when?.field ?? ''}
                                         onChange={(e) => patchStep(i, { when: e.target.value ? { field: e.target.value, op: step.when?.op ?? '>=', value: step.when?.value ?? '' } : null })}
                                         error={errors[`steps.${i}.when.field`]}
                                     >
-                                        <option value="">Always</option>
+                                        <option value="">{t('hrms.approvalChains.always')}</option>
                                         {editing.fields.map((f) => (
                                             <option key={f} value={f}>{f}</option>
                                         ))}
                                     </Select>
                                     {step.when?.field && (
                                         <>
-                                            <Select label="Is" value={step.when.op ?? '>='} onChange={(e) => patchStep(i, { when: { ...step.when, op: e.target.value } })}>
+                                            <Select label={t('hrms.approvalChains.is')} value={step.when.op ?? '>='} onChange={(e) => patchStep(i, { when: { ...step.when, op: e.target.value } })}>
                                                 {options.operators.map((op) => (
                                                     <option key={op} value={op}>{op}</option>
                                                 ))}
                                             </Select>
                                             <Input
-                                                label="Value"
+                                                label={t('hrms.approvalChains.value')}
                                                 type="number"
                                                 value={step.when.value ?? ''}
                                                 onChange={(e) => patchStep(i, { when: { ...step.when, value: e.target.value } })}
@@ -327,31 +327,31 @@ export default function ApprovalChains() {
                             disabled={draft.steps.length >= 8}
                             onClick={() => setDraft((p) => ({ ...p, steps: [...p.steps, { ...blankStep }] }))}
                         >
-                            Add a step
+                            {t('hrms.approvalChains.addStep')}
                         </Button>
 
                         <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
                             <Input
-                                label="Default stage deadline (hours)"
+                                label={t('hrms.approvalChains.defaultStageDeadline')}
                                 type="number"
                                 min="1"
                                 value={draft.sla_hours}
                                 onChange={(e) => setDraft((p) => ({ ...p, sla_hours: e.target.value }))}
                             />
                             <Input
-                                label={`Remind before due (hours, default ${options.default_reminder_hours})`}
+                                label={t('hrms.approvalChains.remindBeforeDue', { hours: options.default_reminder_hours })}
                                 type="number"
                                 min="0"
                                 value={draft.reminder_before_hours}
                                 onChange={(e) => setDraft((p) => ({ ...p, reminder_before_hours: e.target.value }))}
                             />
                             <Select
-                                label="Escalate overdue to"
+                                label={t('hrms.approvalChains.escalateOverdue')}
                                 value={draft.escalation_role_slug}
                                 onChange={(e) => setDraft((p) => ({ ...p, escalation_role_slug: e.target.value }))}
                                 error={errors.escalation_role_slug}
                             >
-                                <option value="">HR manager (default)</option>
+                                <option value="">{t('hrms.approvalChains.hrManagerDefault')}</option>
                                 {options.roles.map((r) => (
                                     <option key={r.slug} value={r.slug}>{r.name}</option>
                                 ))}
@@ -360,10 +360,10 @@ export default function ApprovalChains() {
 
                         <div className="flex justify-end gap-2">
                             <Button variant="secondary" onClick={() => setEditing(null)}>
-                                Cancel
+                                {t('hrms.approvalChains.cancel')}
                             </Button>
                             <Button loading={saving} onClick={save}>
-                                Save chain
+                                {t('hrms.approvalChains.saveChain')}
                             </Button>
                         </div>
                     </div>

@@ -107,11 +107,11 @@ class PerformanceService
     public function linkTask(PerformanceGoal $goal, Task $task, ?User $actor = null): GoalTaskLink
     {
         if ($goal->cycle->stage->value === 'completed') {
-            throw ValidationException::withMessages(['form' => 'That cycle is sealed — history gains no new links.']);
+            throw ValidationException::withMessages(['form' => __('That cycle is sealed — history gains no new links.')]);
         }
 
         if ($goal->taskLinks()->where('task_id', $task->id)->exists()) {
-            throw ValidationException::withMessages(['task' => 'That task already evidences this goal.']);
+            throw ValidationException::withMessages(['task' => __('That task already evidences this goal.')]);
         }
 
         return DB::transaction(function () use ($goal, $task, $actor): GoalTaskLink {

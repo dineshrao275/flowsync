@@ -65,7 +65,7 @@ class LeaveAdjustmentController extends Controller
             $request->user(),
         );
 
-        return response()->json(['message' => 'Balance adjusted.', 'adjustment_id' => $row->id], Response::HTTP_CREATED);
+        return response()->json(['message' => __('Balance adjusted.'), 'adjustment_id' => $row->id], Response::HTTP_CREATED);
     }
 
     public function rollover(LeaveRolloverRequest $request): JsonResponse

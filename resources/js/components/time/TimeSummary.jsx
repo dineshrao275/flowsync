@@ -1,11 +1,13 @@
 import { useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import api from '../../services/api';
 import { formatMinutes } from '../../utils/time';
-import Spinner from '../ui/Spinner';
+import ContentSkeleton from '../ui/ContentSkeleton';
 import Input from '../ui/Input';
 import { fieldClass } from '../ui/fieldStyles';
 
 export default function TimeSummary({ url }) {
+    const { t } = useTranslation();
     const [summary, setSummary] = useState(null);
     const [loading, setLoading] = useState(true);
     const [filters, setFilters] = useState({ group_by: 'user', from: '', to: '' });
@@ -36,25 +38,25 @@ export default function TimeSummary({ url }) {
         <div className="space-y-4">
             <div className="flex flex-wrap items-end gap-3">
                 <div>
-                    <label className="mb-1.5 block text-sm font-medium text-gray-700">Group by</label>
+                    <label className="mb-1.5 block text-sm font-medium text-gray-700">{t('dashboard.time.groupBy')}</label>
                     <select
                         className={fieldClass}
                         value={filters.group_by}
                         onChange={(e) => setFilters((f) => ({ ...f, group_by: e.target.value }))}
                     >
-                        <option value="user">User</option>
-                        <option value="status">Status</option>
-                        <option value="date">Day</option>
+                        <option value="user">{t('dashboard.time.byUser')}</option>
+                        <option value="status">{t('dashboard.time.byStatus')}</option>
+                        <option value="date">{t('dashboard.time.byDay')}</option>
                     </select>
                 </div>
                 <Input
-                    label="From"
+                    label={t('dashboard.time.from')}
                     type="date"
                     value={filters.from}
                     onChange={(e) => setFilters((f) => ({ ...f, from: e.target.value }))}
                 />
                 <Input
-                    label="To"
+                    label={t('dashboard.time.to')}
                     type="date"
                     value={filters.to}
                     onChange={(e) => setFilters((f) => ({ ...f, to: e.target.value }))}
@@ -62,14 +64,15 @@ export default function TimeSummary({ url }) {
             </div>
 
             {loading ? (
-                <div className="flex justify-center py-10">
-                    <Spinner />
-                </div>
+                <ContentSkeleton size="md" />
             ) : summary && summary.logs_count > 0 ? (
                 <div className="space-y-4">
                     <p className="text-sm text-gray-600">
-                        <span className="font-semibold text-gray-900">{formatMinutes(summary.total_minutes)}</span> logged
-                        across {summary.logs_count} work log{summary.logs_count === 1 ? '' : 's'}.
+                        <span className="font-semibold text-gray-900">{formatMinutes(summary.total_minutes)}</span>{' '}
+                        {t('dashboard.time.logged')}{' '}
+                        {summary.logs_count === 1
+                            ? t('dashboard.time.acrossOne')
+                            : t('dashboard.time.across', { count: summary.logs_count })}
                     </p>
                     <ul className="space-y-2">
                         {summary.groups.map((group) => (
@@ -77,7 +80,9 @@ export default function TimeSummary({ url }) {
                                 <div className="flex items-center justify-between gap-3">
                                     <p className="truncate text-sm font-medium text-gray-700">
                                         {group.label}{' '}
-                                        <span className="font-normal text-gray-400">· {group.logs_count} log{group.logs_count === 1 ? '' : 's'}</span>
+                                        <span className="font-normal text-gray-400">
+                                            {group.logs_count === 1 ? t('dashboard.time.groupLogsOne') : t('dashboard.time.groupLogs', { count: group.logs_count })}
+                                        </span>
                                     </p>
                                     <p className="text-sm font-semibold text-gray-900">{formatMinutes(group.minutes)}</p>
                                 </div>
@@ -92,7 +97,7 @@ export default function TimeSummary({ url }) {
                     </ul>
                 </div>
             ) : (
-                <p className="py-8 text-center text-sm text-gray-500">No work logged in this period.</p>
+                <p className="py-8 text-center text-sm text-gray-500">{t('dashboard.time.empty')}</p>
             )}
         </div>
     );

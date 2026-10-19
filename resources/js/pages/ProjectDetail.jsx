@@ -1,41 +1,54 @@
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import api, { fieldErrors } from '../services/api';
 import Card from '../components/ui/Card';
 import Badge from '../components/ui/Badge';
 import Spinner from '../components/ui/Spinner';
+import ContentSkeleton from '../components/ui/ContentSkeleton';
 import Alert from '../components/ui/Alert';
 import Button from '../components/ui/Button';
 import Input from '../components/ui/Input';
 import Tabs from '../components/ui/Tabs';
+import Pagination from '../components/ui/Pagination';
+import ColumnSettingsDrawer from '../components/tasks/ColumnSettingsDrawer';
+import ColumnEditModal from '../components/tasks/ColumnEditModal';
+import useBoardPreferences from '../hooks/useBoardPreferences';
+import Icon from '../components/ui/Icon';
+import { Columns } from '@phosphor-icons/react';
 import { useAuth } from '../context/AuthContext';
 import AutomationPanel from '../components/automation/AutomationPanel';
 import SprintsPanel from '../components/sprints/SprintsPanel';
 import HierarchyPanel from '../components/hierarchy/HierarchyPanel';
-import WorkflowRules from '../components/tasks/WorkflowRules';
 import { useToast } from '../context/ToastContext';
 import { useConfirm } from '../components/ui/ConfirmDialog';
 import { useSetCrumbs } from '../context/BreadcrumbContext';
 import KanbanBoard from '../components/tasks/KanbanBoard';
+import { moveCardInBoard } from '../utils/board';
+import { optimistic } from '../utils/optimistic';
+import { onRealtimeReconnect } from '../utils/realtimeAuth';
 import TaskTable from '../components/tasks/TaskTable';
 import RichTextEditor from '../components/ui/RichTextEditor';
 import RichText from '../components/ui/RichText';
 import FiltersBar from '../components/tasks/FiltersBar';
+import CalendarView from '../components/tasks/CalendarView';
+import TimelineView from '../components/tasks/TimelineView';
+import WorkloadPanel from '../components/project/WorkloadPanel';
+import SaveAsTemplate from '../components/project/SaveAsTemplate';
+import DashboardPanel from '../components/project/DashboardPanel';
 import CreateTaskModal from '../components/tasks/CreateTaskModal';
 import TaskDetail from '../components/tasks/TaskDetail';
 import TimeSummary from '../components/time/TimeSummary';
 import usePageTitle from '../hooks/usePageTitle';
 import { projectRoleLabel } from '../utils/roles';
+import ProjectOverviewTab from '../components/project/ProjectOverviewTab';
+import ProjectMembersTab from '../components/project/ProjectMembersTab';
+import ProjectWorkflowTab from '../components/project/ProjectWorkflowTab';
 
-const CATEGORY_LABELS = {
-    todo: 'To do',
-    in_progress: 'In progress',
-    done: 'Done',
-};
-
-const DEFAULT_COLORS = ['#6366f1', '#0ea5e9', '#f59e0b', '#10b981', '#ef4444', '#8b5cf6'];
+const DEFAULT_COLORS = ['#2563eb', '#0ea5e9', '#f59e0b', '#10b981', '#ef4444', '#8b5cf6'];
 
 export default function ProjectDetail() {
+    const { t } = useTranslation();
     const { projectId } = useParams();
     const navigate = useNavigate();
     const { user, can, hasModule } = useAuth();
@@ -43,7 +56,7 @@ export default function ProjectDetail() {
     const confirm = useConfirm();
     const setCrumbs = useSetCrumbs();
     const [project, setProject] = useState(null);
-    usePageTitle(project?.name || 'Project');
+    usePageTitle(project?.name || t('tms.project.fallbackTitle'));
     const [members, setMembers] = useState([]);
     const [roles, setRoles] = useState([]);
     const [statuses, setStatuses] = useState([]);
@@ -75,6 +88,9 @@ export default function ProjectDetail() {
     const [settingsDates, setSettingsDates] = useState(null);
 
     const [view, setView] = useState('board');
+    const [showColumns, setShowColumns] = useState(false);
+    const [editingColumn, setEditingColumn] = useState(null);
+    const [boardPrefs, updateBoardPrefs] = useBoardPreferences(projectId, Boolean(project));
     const [swimlane, setSwimlane] = useState('none');
     const [filters, setFilters] = useState({});
     const [board, setBoard] = useState(null);
@@ -89,6 +105,7 @@ export default function ProjectDetail() {
     const [savingTask, setSavingTask] = useState(false);
     const [loadingTasks, setLoadingTasks] = useState(false);
     const [tasksError, setTasksError] = useState(null);
+    const [jqlError, setJqlError] = useState(null);
 
     const isProjectManager = can('workspaces.manage') || project?.my_role === 'lead';
     const archived = Boolean(project?.archived_at);
@@ -116,7 +133,7 @@ export default function ProjectDetail() {
             api.get(`/projects/${projectId}/statuses`),
             api.get('/project-roles'),
             api.get('/issue-types'),
-            can('users.view') ? api.get('/users') : Promise.resolve({ data: { users: [] } }),
+            can('users.view') ? api.get('/users', { params: { all: 1 } }) : Promise.resolve({ data: { users: [] } }),
         ])
             .then(([proj, mem, st, ro, it, users]) => {
                 if (!active) return;
@@ -137,7 +154,7 @@ export default function ProjectDetail() {
                     navigate('/403', { replace: true });
                     return;
                 }
-                if (active) setError('Unable to load project.');
+                if (active) setError(t('tms.project.loadFailed'));
             })
             .finally(() => {
                 if (active) setLoading(false);
@@ -157,13 +174,13 @@ export default function ProjectDetail() {
         setCrumbs(
             project
                 ? [
-                    { label: 'Workspaces', to: '/workspaces' },
-                    { label: project.workspace?.name || `Workspace ${project.workspace_id}`, to: `/workspaces/${project.workspace_id}` },
+                    { label: t('tms.project.crumbWorkspaces'), to: '/workspaces' },
+                    { label: project.workspace?.name || t('tms.projectsList.workspaceFallback', { id: project.workspace_id }), to: `/workspaces/${project.workspace_id}` },
                     { label: project.name },
                 ]
-                : [{ label: 'Workspaces', to: '/workspaces' }],
+                : [{ label: t('tms.project.crumbWorkspaces'), to: '/workspaces' }],
         );
-    }, [project, setCrumbs]);
+    }, [project, setCrumbs, t]);
 
     // Latest request wins: a slow earlier fetch (view toggle, filter change, a
     // realtime refetch) must never overwrite a newer board with stale data.
@@ -171,7 +188,8 @@ export default function ProjectDetail() {
 
     function loadTasks() {
         const seq = ++loadSeqRef.current;
-        const requestedView = view;
+        // The calendar loads its own month; the board payload still supplies the filter options.
+        const requestedView = view === 'calendar' || view === 'timeline' ? 'board' : view;
         const params = {};
         if (view === 'list') {
             params.view = 'list';
@@ -184,6 +202,7 @@ export default function ProjectDetail() {
 
         setLoadingTasks(true);
         setTasksError(null);
+        setJqlError(null);
         return api
             .get(`/projects/${projectId}/tasks`, { params })
             .then(({ data }) => {
@@ -202,7 +221,13 @@ export default function ProjectDetail() {
                     navigate('/403', { replace: true });
                     return;
                 }
-                setTasksError('Unable to load tasks.');
+                const jqlMessage = err?.response?.status === 422 ? err.response.data?.errors?.jql?.[0] : null;
+                if (jqlMessage) {
+                    // A bad query is the user's to fix: show it by the box and keep what was on screen.
+                    setJqlError(jqlMessage);
+                    return;
+                }
+                setTasksError(t('tms.project.tasksFailed'));
             })
             .finally(() => {
                 if (seq === loadSeqRef.current) setLoadingTasks(false);
@@ -214,7 +239,7 @@ export default function ProjectDetail() {
         if (!project || (tab !== 'tasks' && tab !== 'automation')) return;
         loadTasks();
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [projectId, tab, view, swimlane, filters, page]);
+    }, [projectId, Boolean(project), tab, view, swimlane, filters, page]);
 
     // A filter change or a deletion can strand the list past its last page —
     // fall back instead of showing an empty table.
@@ -235,7 +260,7 @@ export default function ProjectDetail() {
     useEffect(() => {
         if (!project || !window.Echo) return undefined;
         const channel = window.Echo.private(`project.${projectId}`);
-        channel.listen('.task.synced', (event) => {
+        const onTaskSynced = (event) => {
             if (tabRef.current === 'tasks') {
                 loadTasksRef.current();
             }
@@ -244,9 +269,16 @@ export default function ProjectDetail() {
                     .then(({ data }) => setSelectedTask(data.task))
                     .catch(() => {});
             }
-        });
+        };
+        channel.listen('.task.synced', onTaskSynced);
+        channel.listen('.board.columns', onTaskSynced);
+        // A task changed while the socket was down is not replayed: re-sync.
+        const stopReconnect = onRealtimeReconnect(() => onTaskSynced(null));
+
         return () => {
-            channel.stopListening('.task.synced');
+            channel.stopListening('.task.synced', onTaskSynced);
+            channel.stopListening('.board.columns', onTaskSynced);
+            stopReconnect();
             window.Echo.leaveChannel(channel.name);
         };
     }, [projectId, project]);
@@ -258,7 +290,7 @@ export default function ProjectDetail() {
             .then(({ data }) => setSelectedTask(data.task))
             .catch((err) => {
                 if (err?.response?.status === 403) {
-                    toast.error('You do not have permission to view this task.');
+                    toast.error(t('tms.project.noViewPermission'));
                     setSelectedTask(null);
                     setSelectedTaskSection(null);
                     setSelectedCommentId(null);
@@ -300,13 +332,52 @@ export default function ProjectDetail() {
             })
             .catch((err) => {
                 if (err?.response?.status === 403) {
-                    toast.error('You do not have permission to view this task.');
+                    toast.error(t('tms.project.noViewPermission'));
                 } else if (err?.response?.status === 404) {
-                    toast.error('Task not found.');
+                    toast.error(t('tms.project.taskNotFound'));
                 }
             });
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [project, tab, view, board, listTasks, searchParams]);
+
+    // Shared column edits go through the Workflow-tab handlers (same endpoints,
+    // same server-side `manageWorkflow` gate), then re-sync the board.
+    async function saveColumn(status, fields) {
+        try {
+            await api.put(`/projects/${projectId}/statuses/${status.id}`, fields);
+            const { data } = await api.get(`/projects/${projectId}/statuses`);
+            setStatuses(data.statuses);
+            toast.success(t('tms.project.statusUpdated'));
+            loadTasks();
+            return true;
+        } catch (e) {
+            toast.error(fieldErrors(e).form || fieldErrors(e).name || t('tms.project.statusUpdateFailed'));
+            return false;
+        }
+    }
+
+    async function moveColumn(status, position) {
+        await saveColumn(status, { position });
+    }
+
+    async function removeColumn(status) {
+        await deleteStatus(status);
+        loadTasks();
+    }
+
+    async function createColumn(fields) {
+        try {
+            await api.post(`/projects/${projectId}/statuses`, fields);
+            const { data } = await api.get(`/projects/${projectId}/statuses`);
+            setStatuses(data.statuses);
+            toast.success(t('tms.project.statusCreated'));
+            loadTasks();
+            return true;
+        } catch (e) {
+            toast.error(fieldErrors(e).name || fieldErrors(e).form || t('tms.project.statusUpdateFailed'));
+            return false;
+        }
+    }
 
     function changeTab(next) {
         if (next === tab) return;
@@ -351,19 +422,38 @@ export default function ProjectDetail() {
             return;
         }
 
-        api.post(`/projects/${projectId}/tasks/${task.id}/move`, { status_id: statusId, index })
+        // The card lands in its new column immediately; a refusal rolls it back
+        // (and the refetch below re-syncs counts/positions with the server).
+        optimistic(
+            setBoard,
+            (current) => moveCardInBoard(current, task.id, statusId, index),
+            () => api.post(`/projects/${projectId}/tasks/${task.id}/move`, { status_id: statusId, index }),
+        )
             .then(() => {
-                toast.success(`${task.key} moved.`);
+                toast.success(t('tms.project.moved', { key: task.key }));
                 loadTasks();
             })
             .catch((e) => {
                 const status = e?.response?.status;
                 const message = status === 403
-                    ? (e.response.data?.message || 'You do not have permission to move this task.')
-                    : (fieldErrors(e).form || 'Could not move task.');
+                    ? (e.response.data?.message || t('tms.project.moveDenied'))
+                    : (fieldErrors(e).form || t('tms.project.moveFailed'));
                 toast.error(message);
                 loadTasks(); // snap the card back to where the server says it is
             });
+    }
+
+    // Column footer "+ Add task": title only, lands in that column. Re-throws
+    // so the board keeps the typed text when the server refuses it.
+    async function quickAddTask(statusId, title) {
+        try {
+            await api.post(`/projects/${projectId}/tasks`, { title, status_id: statusId });
+            toast.success(t('tms.project.taskCreated'));
+            await loadTasks();
+        } catch (e) {
+            toast.error(fieldErrors(e).title || fieldErrors(e).form || fieldErrors(e).status_id || t('tms.project.taskCreateFailed'));
+            throw e;
+        }
     }
 
     function createTask(data) {
@@ -372,7 +462,7 @@ export default function ProjectDetail() {
             .post(`/projects/${projectId}/tasks`, data)
             .then(() => {
                 setShowCreate(false);
-                toast.success('Task created.');
+                toast.success(t('tms.project.taskCreated'));
                 return loadTasks();
             })
             .catch((e) => {
@@ -381,14 +471,28 @@ export default function ProjectDetail() {
             .finally(() => setSavingTask(false));
     }
 
+    // The one way to close the task tray: also drops the ?task= deep link, otherwise the deep-link
+    // effect re-opens the tray as soon as the board refetches.
+    function closeTask() {
+        setSelectedTask(null);
+        setSelectedTaskSection(null);
+        setSelectedCommentId(null);
+        openedDeepTaskRef.current = null;
+        fetchedDeepTaskRef.current = null;
+        const params = new URLSearchParams(searchParams.toString());
+        params.delete('task');
+        params.delete('section');
+        params.delete('comment');
+        navigate(`?${params.toString()}`, { replace: true });
+    }
+
     function updateTask(taskId, data) {
         setSavingTask(true);
         return api
             .put(`/projects/${projectId}/tasks/${taskId}`, data)
             .then(() => {
-                setSelectedTask(null);
-                setSelectedTaskSection(null);
-                toast.success('Task updated.');
+                closeTask();
+                toast.success(t('tms.project.taskUpdated'));
                 return loadTasks();
             })
             .catch((e) => {
@@ -399,16 +503,16 @@ export default function ProjectDetail() {
 
     async function deleteTask() {
         if (!selectedTask) return;
-        if (!(await confirm({ title: 'Delete task?', message: `Delete ${selectedTask.key}? This cannot be undone.`, variant: 'danger' }))) return;
+        if (!(await confirm({ title: t('tms.project.deleteTaskTitle'), message: t('tms.project.deleteTaskMessage', { key: selectedTask.key }), variant: 'danger' }))) return;
         setSavingTask(true);
         try {
             await api.delete(`/projects/${projectId}/tasks/${selectedTask.id}`);
-            setSelectedTask(null);
+            closeTask();
             setSelectedTaskSection(null);
-            toast.success('Task deleted.');
+            toast.success(t('tms.project.taskDeleted'));
             await loadTasks();
         } catch (e) {
-            toast.error(fieldErrors(e).form || 'Could not delete task.');
+            toast.error(fieldErrors(e).form || t('tms.project.taskDeleteFailed'));
         } finally {
             setSavingTask(false);
         }
@@ -421,7 +525,7 @@ export default function ProjectDetail() {
             .then(({ data }) => {
                 setProject(data.project);
                 setSettingsDates(null);
-                toast.success('Project updated.');
+                toast.success(t('tms.project.updated'));
             })
             .catch((e) => setFormErrors(fieldErrors(e)))
             .finally(() => setUpdating(false));
@@ -431,9 +535,9 @@ export default function ProjectDetail() {
         try {
             const { data } = await api.post(`/projects/${projectId}/archive`);
             setProject(data.project);
-            toast.success('Project archived.');
+            toast.success(t('tms.project.archived'));
         } catch (e) {
-            toast.error(fieldErrors(e).form || 'Could not archive project.');
+            toast.error(fieldErrors(e).form || t('tms.project.archiveFailed'));
         }
     }
 
@@ -441,27 +545,27 @@ export default function ProjectDetail() {
         try {
             const { data } = await api.post(`/projects/${projectId}/restore`);
             setProject(data.project);
-            toast.success('Project restored.');
+            toast.success(t('tms.project.restored'));
         } catch (e) {
-            toast.error(fieldErrors(e).form || 'Could not restore project.');
+            toast.error(fieldErrors(e).form || t('tms.project.restoreFailed'));
         }
     }
 
     async function deleteProject() {
-        if (!(await confirm({ title: 'Delete project?', message: 'Permanently delete this project? This cannot be undone.', variant: 'danger' }))) return;
+        if (!(await confirm({ title: t('tms.project.deleteTitle'), message: t('tms.project.deleteMessage'), variant: 'danger' }))) return;
         try {
             await api.delete(`/projects/${projectId}`);
-            toast.success('Project deleted.');
+            toast.success(t('tms.project.deleted'));
             navigate(-1);
         } catch (e) {
-            toast.error(fieldErrors(e).form || 'Could not delete project.');
+            toast.error(fieldErrors(e).form || t('tms.project.deleteFailed'));
         }
     }
 
     function loadMemberCandidates() {
         return Promise.all([
             api.get(`/projects/${projectId}/members`),
-            can('users.view') ? api.get('/users') : Promise.resolve({ data: { users: [] } }),
+            can('users.view') ? api.get('/users', { params: { all: 1 } }) : Promise.resolve({ data: { users: [] } }),
         ]).then(([mem, users]) => {
             setMembers(mem.data.members);
             setCandidateUsers(
@@ -478,7 +582,7 @@ export default function ProjectDetail() {
             await api.post(`/projects/${projectId}/members`, memberForm);
             await loadMemberCandidates();
             setMemberForm((f) => ({ ...f, user_id: '' }));
-            toast.success('Member added.');
+            toast.success(t('tms.project.memberAdded'));
         } catch (e) {
             setFormErrors(fieldErrors(e));
         } finally {
@@ -490,20 +594,20 @@ export default function ProjectDetail() {
         try {
             await api.put(`/projects/${projectId}/members/${member.id}`, { role_id: roleId });
             await loadMemberCandidates();
-            toast.success('Role updated.');
+            toast.success(t('tms.project.roleUpdated'));
         } catch (e) {
-            toast.error(fieldErrors(e).form || 'Could not change role.');
+            toast.error(fieldErrors(e).form || t('tms.project.roleFailed'));
         }
     }
 
     async function removeMember(member) {
-        if (!(await confirm({ title: 'Remove member?', message: `Remove ${member.name} from this project?`, variant: 'danger' }))) return;
+        if (!(await confirm({ title: t('tms.project.removeMemberTitle'), message: t('tms.project.removeMemberMessage', { name: member.name }), variant: 'danger' }))) return;
         try {
             await api.delete(`/projects/${projectId}/members/${member.id}`);
             await loadMemberCandidates();
-            toast.success(`${member.name} removed.`);
+            toast.success(t('tms.project.memberRemoved', { name: member.name }));
         } catch (e) {
-            toast.error(fieldErrors(e).form || 'Could not remove member.');
+            toast.error(fieldErrors(e).form || t('tms.project.memberRemoveFailed'));
         }
     }
 
@@ -516,7 +620,7 @@ export default function ProjectDetail() {
             const { data } = await api.get(`/projects/${projectId}/statuses`);
             setStatuses(data.statuses);
             setStatusForm((f) => ({ ...f, name: '' }));
-            toast.success('Status created.');
+            toast.success(t('tms.project.statusCreated'));
         } catch (e) {
             setFormErrors(fieldErrors(e));
         } finally {
@@ -529,9 +633,9 @@ export default function ProjectDetail() {
             await api.put(`/projects/${projectId}/statuses/${status.id}`, fields);
             const { data } = await api.get(`/projects/${projectId}/statuses`);
             setStatuses(data.statuses);
-            toast.success('Status updated.');
+            toast.success(t('tms.project.statusUpdated'));
         } catch (e) {
-            toast.error(fieldErrors(e).form || 'Could not update status.');
+            toast.error(fieldErrors(e).form || t('tms.project.statusUpdateFailed'));
         }
     }
 
@@ -540,14 +644,14 @@ export default function ProjectDetail() {
     }
 
     async function deleteStatus(status) {
-        if (!(await confirm({ title: 'Delete status?', message: `Delete status "${status.name}"? Tasks in it must move first.`, variant: 'danger' }))) return;
+        if (!(await confirm({ title: t('tms.project.deleteStatusTitle'), message: t('tms.project.deleteStatusMessage', { name: status.name }), variant: 'danger' }))) return;
         try {
             await api.delete(`/projects/${projectId}/statuses/${status.id}`);
             const { data } = await api.get(`/projects/${projectId}/statuses`);
             setStatuses(data.statuses);
-            toast.success('Status deleted.');
+            toast.success(t('tms.project.statusDeleted'));
         } catch (e) {
-            toast.error(fieldErrors(e).form || 'Could not delete status.');
+            toast.error(fieldErrors(e).form || t('tms.project.statusDeleteFailed'));
         }
     }
 
@@ -569,7 +673,7 @@ export default function ProjectDetail() {
             await api.post('/issue-types', issueTypeForm);
             await loadIssueTypes();
             setIssueTypeForm({ name: '', description: '', color: '#3b82f6', is_subtask: false });
-            toast.success('Issue type created.');
+            toast.success(t('tms.project.typeCreated'));
         } catch (e) {
             setIssueTypeErrors(fieldErrors(e));
         } finally {
@@ -581,49 +685,48 @@ export default function ProjectDetail() {
         try {
             await api.put(`/issue-types/${type.id}`, fields);
             await loadIssueTypes();
-            toast.success('Issue type updated.');
+            toast.success(t('tms.project.typeUpdated'));
         } catch (e) {
-            toast.error(fieldErrors(e).name || fieldErrors(e).form || 'Could not update issue type.');
+            toast.error(fieldErrors(e).name || fieldErrors(e).form || t('tms.project.typeUpdateFailed'));
         }
     }
 
     async function deleteIssueType(type) {
-        if (!(await confirm({ title: 'Delete issue type?', message: `Delete issue type "${type.name}"?`, variant: 'danger' }))) return;
+        if (!(await confirm({ title: t('tms.project.deleteTypeTitle'), message: t('tms.project.deleteTypeMessage', { name: type.name }), variant: 'danger' }))) return;
         try {
             await api.delete(`/issue-types/${type.id}`);
             await loadIssueTypes();
-            toast.success('Issue type deleted.');
+            toast.success(t('tms.project.typeDeleted'));
         } catch (e) {
-            toast.error(fieldErrors(e).form || 'Could not delete issue type.');
+            toast.error(fieldErrors(e).form || t('tms.project.typeDeleteFailed'));
         }
     }
 
     if (loading) {
         return (
-            <div className="flex justify-center py-20">
-                <Spinner />
-            </div>
+            <ContentSkeleton size="lg" />
         );
     }
 
     if (error || !project) {
         return (
             <div className="max-w-md">
-                <Alert>{error || 'Project not found.'}</Alert>
+                <Alert>{error || t('tms.project.notFound')}</Alert>
             </div>
         );
     }
 
     const tabs = [
-        { key: 'overview', label: 'Overview' },
-        { key: 'tasks', label: 'Tasks' },
-        { key: 'hierarchy', label: 'Hierarchy' },
-        { key: 'members', label: `Members (${members.length})` },
-        { key: 'workflow', label: 'Workflow' },
-        ...(hasModule('time_tracking') ? [{ key: 'time', label: 'Time' }] : []),
-        ...(hasModule('sprints') ? [{ key: 'sprints', label: 'Sprints' }] : []),
-        ...(isProjectManager && hasModule('automation') ? [{ key: 'automation', label: 'Automation' }] : []),
-        ...(isProjectManager ? [{ key: 'settings', label: 'Settings' }] : []),
+        { key: 'overview', label: t('tms.project.tabs.overview') },
+        { key: 'tasks', label: t('tms.project.tabs.tasks') },
+        { key: 'hierarchy', label: t('tms.project.tabs.hierarchy') },
+        { key: 'members', label: t('tms.project.tabs.members', { count: members.length }) },
+        { key: 'workflow', label: t('tms.project.tabs.workflow') },
+        ...(hasModule('reports') ? [{ key: 'dashboard', label: t('tms.project.tabs.dashboard') }] : []),
+        ...(hasModule('time_tracking') ? [{ key: 'time', label: t('tms.project.tabs.time') }] : []),
+        ...(hasModule('sprints') ? [{ key: 'sprints', label: t('tms.project.tabs.sprints') }, { key: 'workload', label: t('tms.project.tabs.workload') }] : []),
+        ...(isProjectManager && hasModule('automation') ? [{ key: 'automation', label: t('tms.project.tabs.automation') }] : []),
+        ...(isProjectManager ? [{ key: 'settings', label: t('tms.project.tabs.settings') }] : []),
     ];
 
     const lead = members.find((m) => m.role?.slug === 'lead') || members[0];
@@ -642,12 +745,12 @@ export default function ProjectDetail() {
                         <div className="flex flex-wrap items-center gap-2">
                             <h2 className="text-2xl font-bold text-gray-900">{project.name}</h2>
                             {project.my_role && <Badge>{projectRoleLabel(project.my_role)}</Badge>}
-                            {archived && <Badge>archived</Badge>}
+                            {archived && <Badge>{t('tms.project.archivedBadge')}</Badge>}
                         </div>
                         {project.description ? (
-                            <RichText value={project.description} className="mt-1 text-gray-500" />
+                            <RichText value={project.description} className="mt-1 max-h-24 max-w-3xl overflow-y-auto break-words text-gray-500 [overflow-wrap:anywhere]" />
                         ) : (
-                            <p className="mt-1 text-sm text-gray-500">No description</p>
+                            <p className="mt-1 text-sm text-gray-500">{t('tms.project.noDescription')}</p>
                         )}
                         <p className="mt-0.5 text-xs text-gray-400">{project.key}</p>
                     </div>
@@ -655,12 +758,12 @@ export default function ProjectDetail() {
                 <div className="flex items-center gap-2">
                     {archived && isProjectManager ? (
                         <Button variant="secondary" onClick={restoreProject}>
-                            Restore
+                            {t('tms.project.restore')}
                         </Button>
                     ) : (
                         isProjectManager && (
                             <Button variant="secondary" onClick={archiveProject}>
-                                Archive
+                                {t('tms.project.archive')}
                             </Button>
                         )
                     )}
@@ -670,71 +773,12 @@ export default function ProjectDetail() {
             <Tabs tabs={tabs} active={tab} onChange={changeTab} />
 
             {tab === 'overview' && (
-                <div className="grid grid-cols-1 gap-5 lg:grid-cols-3">
-                    <div className="space-y-5 lg:col-span-2">
-                        <Card title="Details" subtitle={`Workspace · ${project.workspace_id}`}>
-                            <dl className="grid grid-cols-2 gap-4 text-sm">
-                                <div>
-                                    <dt className="text-xs font-medium uppercase tracking-wide text-gray-400">Key</dt>
-                                    <dd className="mt-1 font-semibold text-gray-900">{project.key}</dd>
-                                </div>
-                                <div>
-                                    <dt className="text-xs font-medium uppercase tracking-wide text-gray-400">Lead</dt>
-                                    <dd className="mt-1 text-gray-700">{lead?.name ?? '—'}</dd>
-                                </div>
-                                <div>
-                                    <dt className="text-xs font-medium uppercase tracking-wide text-gray-400">Start date</dt>
-                                    <dd className="mt-1 text-gray-700">{project.start_date ?? '—'}</dd>
-                                </div>
-                                <div>
-                                    <dt className="text-xs font-medium uppercase tracking-wide text-gray-400">Due date</dt>
-                                    <dd className="mt-1 text-gray-700">{project.due_date ?? '—'}</dd>
-                                </div>
-                            </dl>
-                        </Card>
-                    </div>
-                    <div className="space-y-5">
-                        <Card title="Workflow">
-                            {statuses.length === 0 ? (
-                                <p className="text-sm text-gray-500">No statuses.</p>
-                            ) : (
-                                <ol className="space-y-2">
-                                    {statuses.map((s) => (
-                                        <li
-                                            key={s.id}
-                                            className="flex items-center justify-between rounded-lg border px-3 py-2 text-sm"
-                                        >
-                                            <span className="flex items-center gap-2 font-medium text-gray-700">
-                                                <span className="h-3 w-3 rounded-full" style={{ backgroundColor: s.color || '#cbd5e1' }} />
-                                                {s.name}
-                                            </span>
-                                            <span className="text-xs text-gray-400">{CATEGORY_LABELS[s.category] ?? s.category}</span>
-                                        </li>
-                                    ))}
-                                </ol>
-                            )}
-                            <div className="mt-4 grid grid-cols-3 gap-3 text-center">
-                                <div className="rounded-lg border border-gray-100 px-3 py-2">
-                                    <p className="text-xl font-bold text-gray-900">{members.length}</p>
-                                    <p className="text-xs text-gray-500">Members</p>
-                                </div>
-                                <div className="rounded-lg border border-gray-100 px-3 py-2">
-                                    <p className="text-xl font-bold text-gray-900">{project.tasks_count ?? 0}</p>
-                                    <p className="text-xs text-gray-500">Tasks</p>
-                                </div>
-                                <div className="rounded-lg border border-gray-100 px-3 py-2">
-                                    <p className="text-xl font-bold text-gray-900">{statuses.length}</p>
-                                    <p className="text-xs text-gray-500">Statuses</p>
-                                </div>
-                            </div>
-                        </Card>
-                    </div>
-                </div>
+                <ProjectOverviewTab lead={lead} members={members} project={project} statuses={statuses} />
             )}
 
             {tab === 'tasks' && (
                 <div className="space-y-5">
-                    <div className="flex flex-wrap items-center justify-between gap-3">
+                    <div className="flex flex-wrap items-center gap-3">
                         <div className="flex items-center gap-3">
                             <div className="flex rounded-lg border border-gray-300 p-0.5">
                                 <button
@@ -746,7 +790,7 @@ export default function ProjectDetail() {
                                     className={`rounded-md px-3 py-1.5 text-sm font-medium transition ${view === 'board' ? 'bg-[var(--accent)] text-[var(--accent-contrast)]' : 'text-gray-600 hover:bg-gray-100'
                                         }`}
                                 >
-                                    Board
+                                    {t('tms.project.board')}
                                 </button>
                                 <button
                                     type="button"
@@ -757,7 +801,29 @@ export default function ProjectDetail() {
                                     className={`rounded-md px-3 py-1.5 text-sm font-medium transition ${view === 'list' ? 'bg-[var(--accent)] text-[var(--accent-contrast)]' : 'text-gray-600 hover:bg-gray-100'
                                         }`}
                                 >
-                                    List
+                                    {t('tms.project.list')}
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        setView('calendar');
+                                        setPage(1);
+                                    }}
+                                    className={`rounded-md px-3 py-1.5 text-sm font-medium transition ${view === 'calendar' ? 'bg-[var(--accent)] text-[var(--accent-contrast)]' : 'text-gray-600 hover:bg-gray-100'
+                                        }`}
+                                >
+                                    {t('tms.calendar.view')}
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        setView('timeline');
+                                        setPage(1);
+                                    }}
+                                    className={`rounded-md px-3 py-1.5 text-sm font-medium transition ${view === 'timeline' ? 'bg-[var(--accent)] text-[var(--accent-contrast)]' : 'text-gray-600 hover:bg-gray-100'
+                                        }`}
+                                >
+                                    {t('tms.timeline.view')}
                                 </button>
                             </div>
                             {view === 'board' && (
@@ -765,29 +831,41 @@ export default function ProjectDetail() {
                                     value={swimlane}
                                     onChange={(e) => setSwimlane(e.target.value)}
                                     className="rounded-lg border border-gray-300 bg-white px-2 py-1.5 text-sm text-gray-600 shadow-sm focus:outline-none"
-                                    title="Group the board into swimlanes"
+                                    title={t('tms.project.swimlaneTitle')}
                                 >
-                                    <option value="none">No swimlanes</option>
-                                    <option value="assignee">Swimlanes by assignee</option>
+                                    <option value="none">{t('tms.project.noSwimlanes')}</option>
+                                    <option value="assignee">{t('tms.project.swimlanesByAssignee')}</option>
                                 </select>
                             )}
                             {loadingTasks && <Spinner className="h-5 w-5" />}
                         </div>
-                        {canCreateTask && (
-                            <Button onClick={() => setShowCreate(true)}>New task</Button>
-                        )}
-                    </div>
 
-                    <Card>
-                        <FiltersBar
-                            filters={filters}
-                            options={{ ...taskOptions, sprints: hasModule('sprints') }}
-                            onChange={(next) => {
-                                setFilters(next);
-                                setPage(1);
-                            }}
-                        />
-                    </Card>
+                <FiltersBar
+                    filters={filters}
+                    options={{ ...taskOptions, sprints: hasModule('sprints'), savedFilters: hasModule('saved_filters'), jql: hasModule('jql') }}
+                    jqlError={jqlError}
+                    projectId={projectId}
+                    canShareFilters={isProjectManager}
+                    onChange={(next) => {
+                        setFilters(next);
+                        setPage(1);
+                    }}
+                />
+                        <div className="ml-auto flex items-center gap-2">
+                            {view === 'board' && (
+                                <Button type="button" variant="secondary" onClick={() => setShowColumns(true)}>
+                                    <Icon as={Columns} size="sm" className="mr-1.5" />
+                                    {t('tms.columns.button')}
+                                    {boardPrefs.hidden.length > 0 && (
+                                        <span className="ml-1.5 rounded-full bg-gray-200 px-1.5 text-xs font-semibold text-gray-700">{boardPrefs.hidden.length}</span>
+                                    )}
+                                </Button>
+                            )}
+                            {canCreateTask && (
+                                <Button onClick={() => setShowCreate(true)}>{t('tms.project.newTask')}</Button>
+                            )}
+                        </div>
+                    </div>
 
                     {tasksError ? (
                         <Alert>{tasksError}</Alert>
@@ -796,9 +874,17 @@ export default function ProjectDetail() {
                             board={board}
                             canMove={canMoveTask}
                             canEdit={canEditTask}
+                            canCreate={canCreateTask}
                             onOpen={openTask}
                             onDragEnd={handleDragEnd}
+                            onQuickAdd={quickAddTask}
+                            prefs={{ ...boardPrefs, save: updateBoardPrefs }}
+                            manage={isProjectManager && !archived ? { onEdit: setEditingColumn, onMove: moveColumn, onDelete: removeColumn, order: statuses.map((s) => s.id) } : null}
                         />
+                    ) : view === 'timeline' ? (
+                        <TimelineView projectId={projectId} filters={filters} onOpen={openTask} />
+                    ) : view === 'calendar' ? (
+                        <CalendarView projectId={projectId} filters={filters} canEdit={canEditTask} onOpen={openTask} />
                     ) : view === 'list' ? (
                         <div className="space-y-3">
                             <TaskTable tasks={listTasks} canEdit={canEditTask} onOpen={openTask} />
@@ -816,103 +902,14 @@ export default function ProjectDetail() {
             )}
 
             {tab === 'members' && (
-                <div className="space-y-5">
-                    {isProjectManager && (
-                        <Card title="Add member" subtitle="Only users from your tenant can be added.">
-                            <form onSubmit={addMember} className="flex flex-col gap-3 sm:flex-row sm:items-end">
-                                <div className="flex-1">
-                                    <select
-                                        className="block w-full rounded-lg border border-gray-300 bg-white px-3.5 py-2.5 text-sm shadow-sm focus:border-indigo-500 focus:outline-none"
-                                        value={memberForm.user_id}
-                                        onChange={(e) => setMemberForm((f) => ({ ...f, user_id: e.target.value }))}
-                                    >
-                                        <option value="">Select a user…</option>
-                                        {candidateUsers.map((u) => (
-                                            <option key={u.id} value={u.id}>
-                                                {u.name} ({u.email})
-                                            </option>
-                                        ))}
-                                        {candidateUsers.length === 0 && <option value="">No eligible users</option>}
-                                    </select>
-                                    {formErrors.user_id && <p className="mt-1.5 text-sm text-red-600">{formErrors.user_id}</p>}
-                                </div>
-                                <div>
-                                    <select
-                                        className="block w-full rounded-lg border border-gray-300 bg-white px-3.5 py-2.5 text-sm shadow-sm focus:border-indigo-500 focus:outline-none"
-                                        value={memberForm.role_id}
-                                        onChange={(e) => setMemberForm((f) => ({ ...f, role_id: Number(e.target.value) }))}
-                                    >
-                                        {roles.map((r) => (
-                                            <option key={r.id} value={r.id}>
-                                                {r.name}
-                                            </option>
-                                        ))}
-                                    </select>
-                                    {formErrors.role_id && <p className="mt-1.5 text-sm text-red-600">{formErrors.role_id}</p>}
-                                </div>
-                                <Button type="submit" loading={savingMember}>
-                                    Add
-                                </Button>
-                            </form>
-                        </Card>
-                    )}
-
-                    <Card title="Members">
-                        <ul className="divide-y divide-gray-100">
-                            {members.map((member) => {
-                                const self = member.id === user?.id;
-                                const canManage = isProjectManager && !self;
-                                return (
-                                    <li key={member.id} className="flex flex-wrap items-center justify-between gap-3 py-3">
-                                        <div className="flex items-center gap-3">
-                                            <span
-                                                className="flex h-9 w-9 items-center justify-center rounded-full text-xs font-bold text-white"
-                                                style={{ backgroundColor: 'var(--accent)' }}
-                                            >
-                                                {member.name.charAt(0).toUpperCase()}
-                                            </span>
-                                            <div>
-                                                <p className="text-sm font-medium text-gray-900">
-                                                    {member.name} {self && <span className="text-gray-400">(you)</span>}
-                                                </p>
-                                                <p className="text-xs text-gray-400">{member.email}</p>
-                                            </div>
-                                        </div>
-                                        <div className="flex items-center gap-2">
-                                            {member.role ? (
-                                                canManage ? (
-                                                    <select
-                                                        className="rounded-lg border border-gray-300 bg-white px-2 py-1 text-xs shadow-sm focus:outline-none"
-                                                        value={member.role.id}
-                                                        onChange={(e) => changeRole(member, Number(e.target.value))}
-                                                    >
-                                                        {roles.map((r) => (
-                                                            <option key={r.id} value={r.id}>
-                                                                {r.name}
-                                                            </option>
-                                                        ))}
-                                                    </select>
-                                                ) : (
-                                                    <Badge>{projectRoleLabel(member.role.slug, member.role.name)}</Badge>
-                                                )
-                                            ) : (
-                                                <Badge>member</Badge>
-                                            )}
-                                            {canManage && (
-                                                <Button size="sm" variant="ghost" onClick={() => removeMember(member)}>
-                                                    Remove
-                                                </Button>
-                                            )}
-                                        </div>
-                                    </li>
-                                );
-                            })}
-                        </ul>
-                    </Card>
-                </div>
+                <ProjectMembersTab addMember={addMember} candidateUsers={candidateUsers} changeRole={changeRole} formErrors={formErrors} isProjectManager={isProjectManager} memberForm={memberForm} members={members} removeMember={removeMember} roles={roles} savingMember={savingMember} setMemberForm={setMemberForm} user={user} />
             )}
 
             {tab === 'hierarchy' && <HierarchyPanel projectId={projectId} />}
+
+            {tab === 'dashboard' && hasModule('reports') && <DashboardPanel projectId={projectId} canShare={isProjectManager} />}
+
+            {tab === 'workload' && hasModule('sprints') && <WorkloadPanel projectId={projectId} />}
 
             {tab === 'sprints' && hasModule('sprints') && <SprintsPanel projectId={projectId} canPlan={isProjectManager} />}
 
@@ -927,244 +924,17 @@ export default function ProjectDetail() {
             )}
 
             {tab === 'workflow' && isProjectManager && (
-                <div className="space-y-5">
-                    <WorkflowRules projectId={projectId} />
-                    <Card title="New status" subtitle="Ordered by position. 'Done' category finishes the flow.">
-                        <form onSubmit={addStatus} className="flex flex-col gap-3 sm:flex-row sm:items-end">
-                            <div className="flex-1">
-                                <Input
-                                    label="Name"
-                                    name="status-name"
-                                    placeholder="Blocked"
-                                    value={statusForm.name}
-                                    onChange={(e) => setStatusForm((f) => ({ ...f, name: e.target.value }))}
-                                    error={formErrors.name}
-                                    required
-                                />
-                            </div>
-                            <div>
-                                <label className="mb-1.5 block text-sm font-medium text-gray-700">Category</label>
-                                <select
-                                    className="block w-full rounded-lg border border-gray-300 bg-white px-3.5 py-2.5 text-sm shadow-sm focus:border-indigo-500 focus:outline-none"
-                                    value={statusForm.category}
-                                    onChange={(e) => setStatusForm((f) => ({ ...f, category: e.target.value }))}
-                                >
-                                    <option value="todo">To do</option>
-                                    <option value="in_progress">In progress</option>
-                                    <option value="done">Done</option>
-                                </select>
-                            </div>
-                            <div>
-                                <label className="mb-1.5 block text-sm font-medium text-gray-700">Color</label>
-                                <input
-                                    type="color"
-                                    className="h-[42px] w-16 rounded-lg border border-gray-300 bg-white p-1 shadow-sm focus:outline-none"
-                                    value={statusForm.color}
-                                    onChange={(e) => setStatusForm((f) => ({ ...f, color: e.target.value }))}
-                                />
-                            </div>
-                            <div>
-                                <Input
-                                    label="WIP limit (optional)"
-                                    name="status-wip"
-                                    type="number"
-                                    min="1"
-                                    placeholder="Unlimited"
-                                    value={statusForm.wip_limit ?? ''}
-                                    onChange={(e) => setStatusForm((f) => ({ ...f, wip_limit: e.target.value === '' ? null : Number(e.target.value) }))}
-                                />
-                            </div>
-                            <Button type="submit" loading={savingStatus}>
-                                Add status
-                            </Button>
-                        </form>
-                    </Card>
-
-                    <Card title="Workflow" subtitle="Reorder with the arrows; renamed/recategorized inline.">
-                        {formErrors.form && <Alert>{formErrors.form}</Alert>}
-                        <ol className="space-y-2">
-                            {statuses.map((status, index) => (
-                                <li
-                                    key={status.id}
-                                    className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-gray-100 px-3 py-2"
-                                >
-                                    <div className="flex items-center gap-2">
-                                        <div className="flex flex-col">
-                                            <button
-                                                type="button"
-                                                className="text-gray-400 transition hover:text-gray-700 disabled:opacity-30"
-                                                disabled={index === 0}
-                                                onClick={() => moveStatus(status, status.position - 1)}
-                                                aria-label={`Move ${status.name} up`}
-                                            >
-                                                ↑
-                                            </button>
-                                            <button
-                                                type="button"
-                                                className="text-gray-400 transition hover:text-gray-700 disabled:opacity-30"
-                                                disabled={index === statuses.length - 1}
-                                                onClick={() => moveStatus(status, status.position + 1)}
-                                                aria-label={`Move ${status.name} down`}
-                                            >
-                                                ↓
-                                            </button>
-                                        </div>
-                                        <input
-                                            type="text"
-                                            className="w-40 rounded-lg border border-transparent bg-transparent px-2 py-1 text-sm font-semibold text-gray-800 focus:border-indigo-300 focus:bg-white"
-                                            defaultValue={status.name}
-                                            onBlur={(e) => {
-                                                if (e.target.value !== status.name && e.target.value.trim()) {
-                                                    updateStatus(status, { name: e.target.value.trim() });
-                                                }
-                                            }}
-                                        />
-                                        <span className="h-3 w-3 rounded-full" style={{ backgroundColor: status.color || '#cbd5e1' }} />
-                                    </div>
-                                    <div className="flex items-center gap-2">
-                                        <select
-                                            className="rounded-lg border border-gray-300 bg-white px-2 py-1 text-xs shadow-sm focus:outline-none"
-                                            value={status.category}
-                                            onChange={(e) => updateStatus(status, { category: e.target.value })}
-                                        >
-                                            <option value="todo">To do</option>
-                                            <option value="in_progress">In progress</option>
-                                            <option value="done">Done</option>
-                                        </select>
-                                        <input
-                                            type="number"
-                                            min="1"
-                                            placeholder="WIP"
-                                            title="WIP limit (leave empty for unlimited)"
-                                            className="w-16 rounded-lg border border-gray-300 bg-white px-2 py-1 text-xs shadow-sm focus:border-indigo-300 focus:outline-none"
-                                            defaultValue={status.wip_limit ?? ''}
-                                            onBlur={(e) => {
-                                                const next = e.target.value === '' ? null : Number(e.target.value);
-                                                if ((next ?? '') !== (status.wip_limit ?? '')) {
-                                                    updateStatus(status, { wip_limit: next });
-                                                }
-                                            }}
-                                        />
-                                        {status.is_default && <Badge>default</Badge>}
-                                        <Button size="sm" variant="ghost" onClick={() => deleteStatus(status)}>
-                                            Delete
-                                        </Button>
-                                    </div>
-                                </li>
-                            ))}
-                        </ol>
-                    </Card>
-
-                    <Card title="Issue types" subtitle="Tenant-level issue types available across projects.">
-                        {can('workspaces.manage') && (
-                            <form onSubmit={addIssueType} className="mb-6 flex flex-col gap-3 rounded-lg border border-gray-100 bg-gray-50/50 p-4 sm:flex-row sm:items-end">
-                                <div className="flex-1">
-                                    <Input
-                                        label="Name"
-                                        placeholder="e.g. Incident, Improvement"
-                                        value={issueTypeForm.name}
-                                        onChange={(e) => setIssueTypeForm((f) => ({ ...f, name: e.target.value }))}
-                                        error={issueTypeErrors.name}
-                                        required
-                                    />
-                                </div>
-                                <div className="flex-1">
-                                    <Input
-                                        label="Description"
-                                        placeholder="Optional description"
-                                        value={issueTypeForm.description}
-                                        onChange={(e) => setIssueTypeForm((f) => ({ ...f, description: e.target.value }))}
-                                    />
-                                </div>
-                                <div>
-                                    <label className="mb-1.5 block text-sm font-medium text-gray-700">Color</label>
-                                    <input
-                                        type="color"
-                                        className="h-[42px] w-16 rounded-lg border border-gray-300 bg-white p-1 shadow-sm focus:outline-none"
-                                        value={issueTypeForm.color}
-                                        onChange={(e) => setIssueTypeForm((f) => ({ ...f, color: e.target.value }))}
-                                    />
-                                </div>
-                                <div className="flex items-center gap-2 pb-2">
-                                    <label className="flex items-center gap-1.5 text-xs text-gray-600 cursor-pointer">
-                                        <input
-                                            type="checkbox"
-                                            className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
-                                            checked={issueTypeForm.is_subtask}
-                                            onChange={(e) => setIssueTypeForm((f) => ({ ...f, is_subtask: e.target.checked }))}
-                                        />
-                                        Subtask
-                                    </label>
-                                </div>
-                                <Button type="submit" loading={savingIssueType}>
-                                    Add type
-                                </Button>
-                            </form>
-                        )}
-                        {issueTypeErrors.form && <Alert>{issueTypeErrors.form}</Alert>}
-                        <ul className="divide-y divide-gray-100">
-                            {issueTypes.map((type) => (
-                                <li key={type.id} className="flex items-center justify-between py-3">
-                                    <div className="flex items-center gap-3">
-                                        <span
-                                            className="h-3.5 w-3.5 rounded-full"
-                                            style={{ backgroundColor: type.color || '#6366f1' }}
-                                        />
-                                        <div>
-                                            <div className="flex items-center gap-2">
-                                                <span className="font-medium text-gray-900">{type.name}</span>
-                                                <span className="text-xs text-gray-400">({type.slug})</span>
-                                                {type.is_subtask && (
-                                                    <Badge color="purple">subtask</Badge>
-                                                )}
-                                                {type.tasks_count != null && (
-                                                    <span className="text-xs text-gray-400">· {type.tasks_count} tasks</span>
-                                                )}
-                                            </div>
-                                            {type.description && (
-                                                <p className="text-xs text-gray-500">{type.description}</p>
-                                            )}
-                                        </div>
-                                    </div>
-                                    {can('workspaces.manage') && (
-                                        <div className="flex items-center gap-2">
-                                            <input
-                                                type="color"
-                                                className="h-7 w-8 rounded border border-gray-200 bg-white p-0.5"
-                                                defaultValue={type.color || '#6366f1'}
-                                                onBlur={(e) => {
-                                                    if (e.target.value !== type.color) {
-                                                        updateIssueType(type, { color: e.target.value });
-                                                    }
-                                                }}
-                                                title="Change color"
-                                            />
-                                            <Button
-                                                size="sm"
-                                                variant="ghost"
-                                                onClick={() => deleteIssueType(type)}
-                                                disabled={type.tasks_count > 0}
-                                                title={type.tasks_count > 0 ? 'Cannot delete type in use' : 'Delete'}
-                                            >
-                                                Delete
-                                            </Button>
-                                        </div>
-                                    )}
-                                </li>
-                            ))}
-                        </ul>
-                    </Card>
-                </div>
+                <ProjectWorkflowTab addIssueType={addIssueType} addStatus={addStatus} can={can} deleteIssueType={deleteIssueType} deleteStatus={deleteStatus}  formErrors={formErrors} issueTypeErrors={issueTypeErrors} issueTypeForm={issueTypeForm} issueTypes={issueTypes} moveStatus={moveStatus} projectId={projectId} savingIssueType={savingIssueType} savingStatus={savingStatus} setIssueTypeForm={setIssueTypeForm} setStatusForm={setStatusForm} statusForm={statusForm} statuses={statuses} updateIssueType={updateIssueType} updateStatus={updateStatus} />
             )}
 
             {tab === 'time' && (
-                <Card title="Time logged" subtitle="Filters apply to all work logs across this project.">
+                <Card title={t('tms.project.timeTitle')} subtitle={t('tms.project.timeSubtitle')}>
                     <TimeSummary url={`/projects/${projectId}/time-summary`} />
                 </Card>
             )}
 
             {tab === 'settings' && isProjectManager && (
-                <Card title="Project settings" subtitle={`key: ${project.key}`}>
+                <Card title={t('tms.project.settingsTitle')} subtitle={t('tms.project.settingsSubtitle', { key: project.key })}>
                     <SettingsForm
                         project={project}
                         settingsDates={settingsDates}
@@ -1174,7 +944,24 @@ export default function ProjectDetail() {
                         updateProject={updateProject}
                         deleteProject={deleteProject}
                     />
+                    {hasModule('project_templates') && <SaveAsTemplate projectId={projectId} defaultName={project.name} />}
                 </Card>
+            )}
+
+            <ColumnSettingsDrawer
+                open={showColumns}
+                onClose={() => setShowColumns(false)}
+                statuses={statuses}
+                prefs={boardPrefs}
+                onPrefs={updateBoardPrefs}
+                canManage={isProjectManager && !archived}
+                onEdit={(status) => { setShowColumns(false); setEditingColumn(status); }}
+                onMove={moveColumn}
+                onDelete={removeColumn}
+                onAdd={createColumn}
+            />
+            {editingColumn && (
+                <ColumnEditModal status={editingColumn} onClose={() => setEditingColumn(null)} onSave={saveColumn} />
             )}
 
             {showCreate && (
@@ -1205,18 +992,7 @@ export default function ProjectDetail() {
                     canLog={canLogTime}
                     canManageLogs={canManageLogs}
                     saving={savingTask}
-                    onClose={() => {
-                        setSelectedTask(null);
-                        setSelectedTaskSection(null);
-                        setSelectedCommentId(null);
-                        openedDeepTaskRef.current = null;
-                        fetchedDeepTaskRef.current = null;
-                        const params = new URLSearchParams(searchParams.toString());
-                        params.delete('task');
-                        params.delete('section');
-                        params.delete('comment');
-                        navigate(`?${params.toString()}`, { replace: true });
-                    }}
+                    onClose={closeTask}
                     onUpdate={(data) => updateTask(selectedTask.id, data)}
                     onDelete={deleteTask}
                 />
@@ -1232,6 +1008,7 @@ export default function ProjectDetail() {
  * (settingsDates null) and after a successful save.
  */
 function SettingsForm({ project, settingsDates, onDatesChange, formErrors, updating, updateProject, deleteProject }) {
+    const { t } = useTranslation();
     const dates = settingsDates ?? { start_date: project.start_date ?? '', due_date: project.due_date ?? '' };
     // Editor-controlled description (the form remounts per project, and a
     // same-id refetch after save already matches what was typed).
@@ -1251,26 +1028,26 @@ function SettingsForm({ project, settingsDates, onDatesChange, formErrors, updat
             }}
         >
             {formErrors.form && <Alert>{formErrors.form}</Alert>}
-            <Input label="Name" name="name" defaultValue={project.name} error={formErrors.name} required />
+            <Input label={t('tms.project.settingsName')} name="name" defaultValue={project.name} error={formErrors.name} required />
             <div>
-                <label className="mb-1.5 block text-sm font-medium text-gray-700">Description</label>
+                <label className="mb-1.5 block text-sm font-medium text-gray-700">{t('tms.project.settingsDesc')}</label>
                 <RichTextEditor
                     value={description}
                     onChange={setDescription}
-                    placeholder="What is this project about?"
+                    placeholder={t('tms.project.settingsDescPlaceholder')}
                     error={formErrors.description}
                 />
             </div>
             <div className="grid gap-4 sm:grid-cols-2">
                 <Input
-                    label="Start date"
+                    label={t('tms.project.settingsStart')}
                     type="date"
                     value={dates.start_date}
                     onChange={(e) => onDatesChange({ ...dates, start_date: e.target.value })}
                     error={formErrors.start_date}
                 />
                 <Input
-                    label="Due date"
+                    label={t('tms.project.settingsEnd')}
                     type="date"
                     value={dates.due_date}
                     onChange={(e) => onDatesChange({ ...dates, due_date: e.target.value })}
@@ -1279,10 +1056,10 @@ function SettingsForm({ project, settingsDates, onDatesChange, formErrors, updat
             </div>
             <div className="flex gap-2">
                 <Button type="submit" loading={updating}>
-                    Save changes
+                    {t('tms.project.save')}
                 </Button>
                 <Button type="button" variant="danger" onClick={deleteProject}>
-                    Delete project
+                    {t('tms.project.deleteProject')}
                 </Button>
             </div>
         </form>

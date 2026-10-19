@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import api, { fieldErrors } from '../../services/api';
 import Alert from '../../components/ui/Alert';
 import Button from '../../components/ui/Button';
@@ -8,13 +9,13 @@ import EmptyState from '../../components/ui/EmptyState';
 import Input from '../../components/ui/Input';
 import Modal from '../../components/ui/Modal';
 import Select from '../../components/ui/Select';
-import Spinner from '../../components/ui/Spinner';
+import ContentSkeleton from '../../components/ui/ContentSkeleton';
 import { Table, Th, Td } from '../../components/ui/Table';
 import { useToast } from '../../context/ToastContext';
 import { useConfirm } from '../../components/ui/ConfirmDialog';
 import { useSetCrumbs } from '../../context/BreadcrumbContext';
 import usePageTitle from '../../hooks/usePageTitle';
-import { monthLabel, PAYSLIP_STATUS_LABELS } from '../../utils/payroll';
+import { monthLabel, payslipStatusLabel } from '../../utils/payroll';
 
 /**
  * One run's review grid: every payslip's LOP, leave and overtime columns,
@@ -25,7 +26,8 @@ import { monthLabel, PAYSLIP_STATUS_LABELS } from '../../utils/payroll';
  * reviewer opens the printable payslip without a second lookup.
  */
 export default function PayrollRunDetail() {
-    usePageTitle('Pay run');
+    const { t } = useTranslation();
+    usePageTitle(t('hrms.payrollRun.pageTitle'));
     const setCrumbs = useSetCrumbs();
     const navigate = useNavigate();
     const toast = useToast();
@@ -42,8 +44,8 @@ export default function PayrollRunDetail() {
     const [adjustErrors, setAdjustErrors] = useState({});
 
     useEffect(() => {
-        setCrumbs([{ label: 'HRMS', to: '/hrms' }, { label: 'Payroll', to: '/hrms/payroll' }, { label: 'Run' }]);
-    }, [setCrumbs]);
+        setCrumbs([{ label: 'HRMS', to: '/hrms' }, { label: t('hrms.payroll.pageTitle'), to: '/hrms/payroll' }, { label: t('hrms.payrollRun.crumbRun') }]);
+    }, [setCrumbs, t]);
 
     const load = useCallback(() => {
         setError(null);
@@ -60,9 +62,9 @@ export default function PayrollRunDetail() {
                     return;
                 }
 
-                setError('Unable to load this pay run.');
+                setError(t('hrms.payrollRun.loadFailed'));
             });
-    }, [runId, navigate]);
+    }, [runId, navigate, t]);
 
     useEffect(() => {
         load();
@@ -77,7 +79,7 @@ export default function PayrollRunDetail() {
 
         try {
             const { data } = await api.post(`/hrms/payroll/payslips/${selected.id}/adjustments`, adjustForm);
-            toast.success('Adjustment added.');
+            toast.success(t('hrms.payrollRun.adjustAdded'));
             setAdjustModal(false);
             setAdjustForm({ kind: 'earning', label: '', amount: '' });
             setSelected(data.payslip);
@@ -88,15 +90,32 @@ export default function PayrollRunDetail() {
     }
 
     async function removeAdjustment(adjustment) {
-        if (!(await confirm({ title: 'Remove adjustment?', message: `Remove “${adjustment.label}”? Totals recompute without it.`, variant: 'danger' }))) return;
+        if (!(await confirm({ title: t('hrms.payrollRun.removeConfirmTitle'), message: t('hrms.payrollRun.removeConfirmMessage', { label: adjustment.label }), variant: 'danger' }))) return;
 
         try {
             const { data } = await api.delete(`/hrms/payroll/payslips/${selected.id}/adjustments/${adjustment.id}`);
-            toast.success('Adjustment removed.');
+            toast.success(t('hrms.payrollRun.adjustRemoved'));
             setSelected(data.payslip);
             load();
         } catch {
-            setError('That adjustment cannot be removed.');
+            setError(t('hrms.payrollRun.adjustRemoveFailed'));
+        }
+    }
+
+    async function downloadPayout(format) {
+        setError(null);
+        try {
+            const res = await api.get(`/hrms/payroll/runs/${runId}/bank-file`, { params: { format }, responseType: 'blob' });
+            const url = URL.createObjectURL(res.data);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `payout-run-${runId}-${format}.csv`;
+            a.click();
+            URL.revokeObjectURL(url);
+            const missing = Number(res.headers['x-missing-bank'] || 0);
+            if (missing > 0) setError(t('hrms.payrollRun.payoutMissing', { count: missing }));
+        } catch {
+            setError(t('hrms.payrollRun.payoutFailed'));
         }
     }
 
@@ -122,30 +141,36 @@ export default function PayrollRunDetail() {
         <div className="space-y-4">
             <div>
                 <h2 className="text-xl font-semibold text-gray-900">
-                    {run ? monthLabel(run.period_year, run.period_month) : 'Pay run'}
+                    {run ? monthLabel(run.period_year, run.period_month) : t('hrms.payrollRun.pageTitle')}
                 </h2>
                 <p className="mt-0.5 text-sm text-gray-500">
-                    {run ? `${run.status} · ${run.employee_count} people · net ${run.totals?.net_pay ?? '—'}` : '—'}
+                    {run ? `${run.status} · ${t('hrms.payrollRun.people', { count: run.employee_count })} · ${t('hrms.payrollRun.net')} ${run.totals?.net_pay ?? '—'}` : '—'}
                 </p>
+                {run && ['approved', 'processing', 'paid', 'locked'].includes(run.status) && (
+                    <div className="mt-2 flex gap-2">
+                        <Button size="sm" variant="secondary" onClick={() => downloadPayout('generic')}>{t('hrms.payrollRun.payoutGeneric')}</Button>
+                        <Button size="sm" variant="secondary" onClick={() => downloadPayout('neft')}>{t('hrms.payrollRun.payoutNeft')}</Button>
+                    </div>
+                )}
             </div>
 
             {error && <Alert>{error}</Alert>}
 
             {!payslips ? (
-                <div className="flex justify-center py-10"><Spinner /></div>
+                <ContentSkeleton size="md" />
             ) : payslips.length === 0 ? (
-                <EmptyState title="No payslips yet" hint="Calculate the run from the Payroll page first." />
+                <EmptyState title={t('hrms.payrollRun.emptyTitle')} hint={t('hrms.payrollRun.emptyHint')} />
             ) : (
                 <Card dense>
                     <Table>
                         <thead>
-                            <tr><Th>Employee</Th><Th>Paid / Working</Th><Th>LOP</Th><Th>Leave (paid/unpaid)</Th><Th>OT min</Th><Th>Gross</Th><Th>Net</Th><Th>Status</Th></tr>
+                            <tr><Th>{t('hrms.payrollRun.employee')}</Th><Th>{t('hrms.payrollRun.paidWorking')}</Th><Th>{t('hrms.payrollRun.lop')}</Th><Th>{t('hrms.payrollRun.leave')}</Th><Th>{t('hrms.payrollRun.otMin')}</Th><Th>{t('hrms.payrollRun.gross')}</Th><Th>{t('hrms.payrollRun.netLabel')}</Th><Th>{t('hrms.payrollRun.status')}</Th></tr>
                         </thead>
                         <tbody>
                             {payslips.map((payslip) => (
                                 <tr key={payslip.id}>
                                     <Td>
-                                        <button type="button" className="font-medium text-indigo-600 hover:underline" onClick={() => setSelected(payslip)}>
+                                        <button type="button" className="font-medium text-[var(--accent-soft-text)] hover:underline" onClick={() => setSelected(payslip)}>
                                             {payslip.employee?.name ?? `#${payslip.id}`}
                                         </button>
                                         <span className="ml-2 text-xs text-gray-400">{payslip.employee?.employee_code}</span>
@@ -156,7 +181,7 @@ export default function PayrollRunDetail() {
                                     <Td>{payslip.ot_minutes}</Td>
                                     <Td>{payslip.gross_pay}</Td>
                                     <Td>{payslip.net_pay}</Td>
-                                    <Td>{PAYSLIP_STATUS_LABELS[payslip.status] ?? payslip.status}</Td>
+                                    <Td>{payslipStatusLabel(t, payslip.status)}</Td>
                                 </tr>
                             ))}
                         </tbody>
@@ -164,31 +189,31 @@ export default function PayrollRunDetail() {
                 </Card>
             )}
 
-            <Modal open={!!selected} onClose={() => setSelected(null)} title={selected?.employee?.name ?? 'Payslip'} size="lg">
+            <Modal open={!!selected} onClose={() => setSelected(null)} title={selected?.employee?.name ?? t('hrms.payrollRun.payslip')} size="lg">
                 {selected && (
                     <div className="px-6 py-5 text-sm">
                         <p className="text-gray-500">
-                            {selected.employee?.employee_code} · paid {selected.paid_days} of {selected.working_days} · LOP {selected.lop_days} · overtime {selected.ot_minutes} min
+                            {selected.employee?.employee_code} · {t('hrms.payrollRun.payslipMeta', { paid: selected.paid_days, working: selected.working_days, lop: selected.lop_days, ot: selected.ot_minutes })}
                         </p>
 
-                        {lines('Earnings', selected.earnings)}
-                        {lines('Deductions', selected.deductions)}
-                        {lines('Employer contributions', selected.employer_contributions)}
-                        {lines('Adjustments', selected.adjustments, 'amount')}
+                        {lines(t('hrms.payrollRun.earnings'), selected.earnings)}
+                        {lines(t('hrms.payrollRun.deductions'), selected.deductions)}
+                        {lines(t('hrms.payrollRun.employerContributions'), selected.employer_contributions)}
+                        {lines(t('hrms.payrollRun.adjustments'), selected.adjustments, 'amount')}
 
                         <div className="mt-4 rounded-lg border border-gray-200 p-3">
-                            <div className="flex justify-between py-0.5"><span className="text-gray-600">Gross</span><span className="font-medium">{selected.gross_pay}</span></div>
-                            <div className="flex justify-between py-0.5"><span className="text-gray-600">Deductions</span><span className="font-medium">{selected.total_deductions}</span></div>
-                            <div className="flex justify-between py-0.5"><span className="font-semibold text-gray-900">Net</span><span className="font-semibold text-gray-900">{selected.net_pay}</span></div>
+                            <div className="flex justify-between py-0.5"><span className="text-gray-600">{t('hrms.payrollRun.gross')}</span><span className="font-medium">{selected.gross_pay}</span></div>
+                            <div className="flex justify-between py-0.5"><span className="text-gray-600">{t('hrms.payrollRun.deductions')}</span><span className="font-medium">{selected.total_deductions}</span></div>
+                            <div className="flex justify-between py-0.5"><span className="font-semibold text-gray-900">{t('hrms.payrollRun.netLabel')}</span><span className="font-semibold text-gray-900">{selected.net_pay}</span></div>
                         </div>
 
                         <div className="mt-4 flex flex-wrap gap-2">
                             {selected.download_url && (
                                 <a href={selected.download_url} target="_blank" rel="noopener noreferrer">
-                                    <Button variant="secondary" size="sm">Download payslip</Button>
+                                    <Button variant="secondary" size="sm">{t('hrms.payrollRun.downloadPayslip')}</Button>
                                 </a>
                             )}
-                            {editable && <Button size="sm" onClick={() => setAdjustModal(true)}>Add adjustment</Button>}
+                            {editable && <Button size="sm" onClick={() => setAdjustModal(true)}>{t('hrms.payrollRun.addAdjustment')}</Button>}
                         </div>
 
                         {editable && selected.adjustments?.length > 0 && (
@@ -196,7 +221,7 @@ export default function PayrollRunDetail() {
                                 {selected.adjustments.map((adjustment) => (
                                     <div key={adjustment.id} className="flex items-center justify-between gap-2 py-1 text-sm">
                                         <span>{adjustment.label}</span>
-                                        <Button size="sm" variant="danger" onClick={() => removeAdjustment(adjustment)}>Remove</Button>
+                                        <Button size="sm" variant="danger" onClick={() => removeAdjustment(adjustment)}>{t('hrms.common.remove')}</Button>
                                     </div>
                                 ))}
                             </div>
@@ -205,15 +230,15 @@ export default function PayrollRunDetail() {
                 )}
             </Modal>
 
-            <Modal open={adjustModal} onClose={() => setAdjustModal(false)} title="Add adjustment" subtitle="Review runs only — past review the backend refuses.">
+            <Modal open={adjustModal} onClose={() => setAdjustModal(false)} title={t('hrms.payrollRun.adjustModalTitle')} subtitle={t('hrms.payrollRun.adjustModalSubtitle')}>
                 <form onSubmit={saveAdjustment} className="grid gap-3 px-6 py-5">
-                    <Select label="Kind" value={adjustForm.kind} error={adjustErrors.kind} onChange={(e) => setAdjustForm({ ...adjustForm, kind: e.target.value })}>
-                        <option value="earning">Earning (adds to net)</option>
-                        <option value="deduction">Deduction (takes from net)</option>
+                    <Select label={t('hrms.payrollRun.kind')} value={adjustForm.kind} error={adjustErrors.kind} onChange={(e) => setAdjustForm({ ...adjustForm, kind: e.target.value })}>
+                        <option value="earning">{t('hrms.payrollRun.kindEarning')}</option>
+                        <option value="deduction">{t('hrms.payrollRun.kindDeduction')}</option>
                     </Select>
-                    <Input label="Label" value={adjustForm.label} error={adjustErrors.label} onChange={(e) => setAdjustForm({ ...adjustForm, label: e.target.value })} required />
-                    <Input label="Amount" value={adjustForm.amount} error={adjustErrors.amount} onChange={(e) => setAdjustForm({ ...adjustForm, amount: e.target.value })} required />
-                    <div><Button type="submit">Add line</Button></div>
+                    <Input label={t('hrms.payrollRun.label')} value={adjustForm.label} error={adjustErrors.label} onChange={(e) => setAdjustForm({ ...adjustForm, label: e.target.value })} required />
+                    <Input label={t('hrms.payrollRun.amount')} value={adjustForm.amount} error={adjustErrors.amount} onChange={(e) => setAdjustForm({ ...adjustForm, amount: e.target.value })} required />
+                    <div><Button type="submit">{t('hrms.payrollRun.addLine')}</Button></div>
                 </form>
             </Modal>
         </div>

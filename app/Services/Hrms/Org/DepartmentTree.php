@@ -48,7 +48,7 @@ class DepartmentTree
 
         if ($parent->id === $department->id) {
             throw ValidationException::withMessages([
-                'parent_id' => 'A department cannot be its own parent.',
+                'parent_id' => __('A department cannot be its own parent.'),
             ]);
         }
 

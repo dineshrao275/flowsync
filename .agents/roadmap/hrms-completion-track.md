@@ -6,7 +6,7 @@ list below, verified in code (see each item's file:line).
 
 ## Pending list
 
-- **A1 `hrms.talent` — sold but unshipped.** Catalog (`config/subscriptions.php:50,95`),
+- **A1 `hrms.talent` — sold but unshipped (Phase 24 later shipped calibration only; skills / succession / IDP remain — see missing-functionality M-C*).** Catalog (`config/subscriptions.php:50,95`),
   permissions (`config/permissions.php:203-204`), plan sales (business/enterprise/
   hrms-enterprise) exist; zero routes/controllers/pages/tiles. Plan scope:
   `talent/*` reviews/ratings/calibration, `ensure_module:hrms.talent`.

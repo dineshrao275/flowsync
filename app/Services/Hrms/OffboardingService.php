@@ -57,15 +57,15 @@ class OffboardingService
         $resolvedReason = $reason instanceof OffboardingReason ? $reason : OffboardingReason::tryFrom((string) $reason);
 
         if ($resolvedReason === null) {
-            throw ValidationException::withMessages(['reason' => 'That is not a way an employment ends.']);
+            throw ValidationException::withMessages(['reason' => __('That is not a way an employment ends.')]);
         }
 
         if ($noticeDays !== null && $noticeDays < 0) {
-            throw ValidationException::withMessages(['notice_period_days' => 'A notice period cannot run backwards.']);
+            throw ValidationException::withMessages(['notice_period_days' => __('A notice period cannot run backwards.')]);
         }
 
         if (OffboardingCase::where('employee_id', $employee->id)->open()->exists()) {
-            throw ValidationException::withMessages(['form' => 'This employee already has an open exit case. Finish or cancel that one first.']);
+            throw ValidationException::withMessages(['form' => __('This employee already has an open exit case. Finish or cancel that one first.')]);
         }
 
         return DB::transaction(function () use ($employee, $day, $resolvedReason, $noticeDays, $actor): OffboardingCase {
@@ -180,13 +180,13 @@ class OffboardingService
     public function complete(OffboardingCase $case, ?User $actor = null): OffboardingCase
     {
         if (! $case->status->isOpen()) {
-            throw ValidationException::withMessages(['form' => "A {$case->status->value} case cannot be completed."]);
+            throw ValidationException::withMessages(['form' => __('A :status case cannot be completed.', ['status' => $case->status->value])]);
         }
 
         $clearance = $case->clearance;
 
         if ($clearance === null || $clearance->cleared_at === null) {
-            throw ValidationException::withMessages(['form' => 'Clear the exit first — completion signs off a signed clearance, not an open one.']);
+            throw ValidationException::withMessages(['form' => __('Clear the exit first — completion signs off a signed clearance, not an open one.')]);
         }
 
         return DB::transaction(function () use ($case, $actor): OffboardingCase {
@@ -206,7 +206,7 @@ class OffboardingService
     public function cancel(OffboardingCase $case, ?User $actor = null): OffboardingCase
     {
         if (! $case->status->isOpen()) {
-            throw ValidationException::withMessages(['form' => "A {$case->status->value} case cannot be cancelled."]);
+            throw ValidationException::withMessages(['form' => __('A :status case cannot be cancelled.', ['status' => $case->status->value])]);
         }
 
         return DB::transaction(function () use ($case, $actor): OffboardingCase {

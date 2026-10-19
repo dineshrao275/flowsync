@@ -20,6 +20,7 @@ use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 
 class TenantController extends Controller
 {
@@ -174,7 +175,7 @@ class TenantController extends Controller
         ]);
 
         return response()->json([
-            'message' => 'Tenant updated.',
+            'message' => __('Tenant updated.'),
             'tenant' => $this->counts($tenant),
         ]);
     }
@@ -214,7 +215,7 @@ class TenantController extends Controller
         $tenant->update($data);
 
         return response()->json([
-            'message' => 'Tenant profile updated.',
+            'message' => __('Tenant profile updated.'),
             'tenant' => $tenant,
         ]);
     }
@@ -261,7 +262,7 @@ class TenantController extends Controller
         $tenant->update(array_filter($data, fn ($value) => $value !== null));
 
         return response()->json([
-            'message' => 'Business profile saved.',
+            'message' => __('Business profile saved.'),
             'tenant' => $tenant->fresh(),
         ]);
     }
@@ -278,11 +279,15 @@ class TenantController extends Controller
             ['name' => $tenant->name, 'slug' => $tenant->slug],
         );
 
-        return response()->json(['message' => 'Tenant deleted.']);
+        return response()->json(['message' => __('Tenant deleted.')]);
     }
 
     public function restore(Request $request, Tenant $tenant): JsonResponse
     {
+        if (($tenant->settings['purged_at'] ?? null) !== null) {
+            throw ValidationException::withMessages(['form' => __('This tenant\'s data was permanently purged and cannot be restored.')]);
+        }
+
         $tenant->restore();
 
         app(PlatformAudit::class)->record(
@@ -293,7 +298,7 @@ class TenantController extends Controller
             ['name' => $tenant->name, 'slug' => $tenant->slug],
         );
 
-        return response()->json(['message' => 'Tenant restored.', 'tenant' => $this->counts($tenant)]);
+        return response()->json(['message' => __('Tenant restored.'), 'tenant' => $this->counts($tenant)]);
     }
 
     public function suspend(Tenant $tenant): JsonResponse
@@ -301,7 +306,7 @@ class TenantController extends Controller
         app(TenantLifecycle::class)->transition($tenant, Tenant::STATUS_SUSPENDED, auth()->user());
 
         return response()->json([
-            'message' => 'Tenant suspended.',
+            'message' => __('Tenant suspended.'),
             'tenant' => $this->counts($tenant),
         ]);
     }
@@ -311,7 +316,7 @@ class TenantController extends Controller
         app(TenantLifecycle::class)->transition($tenant, Tenant::STATUS_ACTIVE, auth()->user());
 
         return response()->json([
-            'message' => 'Tenant activated.',
+            'message' => __('Tenant activated.'),
             'tenant' => $this->counts($tenant),
         ]);
     }

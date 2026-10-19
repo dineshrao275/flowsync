@@ -39,7 +39,7 @@ class ProjectRoleController extends Controller
         ]);
 
         return response()->json([
-            'message' => 'Project role created.',
+            'message' => __('Project role created.'),
             'role' => $this->present($role),
         ], 201);
     }
@@ -48,7 +48,7 @@ class ProjectRoleController extends Controller
     {
         if ($role->is_system) {
             throw ValidationException::withMessages([
-                'form' => 'System project roles cannot be modified.',
+                'form' => __('System project roles cannot be modified.'),
             ]);
         }
 
@@ -64,7 +64,7 @@ class ProjectRoleController extends Controller
         ]);
 
         return response()->json([
-            'message' => 'Project role updated.',
+            'message' => __('Project role updated.'),
             'role' => $this->present($role),
         ]);
     }
@@ -73,19 +73,19 @@ class ProjectRoleController extends Controller
     {
         if ($role->is_system) {
             throw ValidationException::withMessages([
-                'form' => 'System project roles cannot be deleted.',
+                'form' => __('System project roles cannot be deleted.'),
             ]);
         }
 
         if ($role->members()->exists()) {
             throw ValidationException::withMessages([
-                'form' => 'This role is assigned to project members and cannot be deleted.',
+                'form' => __('This role is assigned to project members and cannot be deleted.'),
             ]);
         }
 
         $role->delete();
 
-        return response()->json(['message' => 'Project role deleted.']);
+        return response()->json(['message' => __('Project role deleted.')]);
     }
 
     private function uniqueSlug(string $base): string

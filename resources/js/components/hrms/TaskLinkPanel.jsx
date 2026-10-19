@@ -1,23 +1,24 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import api, { fieldErrors } from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
 import Button from '../ui/Button';
 import Select from '../ui/Select';
 import Input from '../ui/Input';
-import Spinner from '../ui/Spinner';
+import ContentSkeleton from '../ui/ContentSkeleton';
 import EmptyState from '../ui/EmptyState';
 import { useConfirm } from '../ui/ConfirmDialog';
 
 const KINDS = [
-    { value: 'goal', label: 'Goal evidence' },
-    { value: 'onboarding', label: 'Onboarding' },
-    { value: 'attendance', label: 'Attendance' },
-    { value: 'expense', label: 'Expense' },
-    { value: 'payroll', label: 'Payroll' },
-    { value: 'leave', label: 'Leave' },
-    { value: 'review', label: 'Review' },
+    { value: 'goal', key: 'goal' },
+    { value: 'onboarding', key: 'onboarding' },
+    { value: 'attendance', key: 'attendance' },
+    { value: 'expense', key: 'expense' },
+    { value: 'payroll', key: 'payroll' },
+    { value: 'leave', key: 'leave' },
+    { value: 'review', key: 'review' },
 ];
 
 /**
@@ -28,6 +29,7 @@ const KINDS = [
  * directory rows, so it only renders for callers who may read them.
  */
 export default function TaskLinkPanel({ task, canManage }) {
+    const { t } = useTranslation();
     const { can } = useAuth();
     const toast = useToast();
     const confirm = useConfirm();
@@ -71,7 +73,7 @@ export default function TaskLinkPanel({ task, canManage }) {
                 kind: form.kind,
                 ...(form.note ? { note: form.note } : {}),
             });
-            toast.success('Task linked.');
+            toast.success(t('hrms.links.linked'));
             setForm({ employee_id: '', kind: 'goal', note: '' });
             load();
         } catch (err) {
@@ -83,48 +85,48 @@ export default function TaskLinkPanel({ task, canManage }) {
 
     async function unlink(link) {
         if (!(await confirm({
-            title: 'Remove HR link?',
-            message: `Remove the link to ${link.employee?.name || 'this employee'}?`,
+            title: t('hrms.links.removeTitle'),
+            message: t('hrms.links.removeMessage', { name: link.employee?.name || t('hrms.links.removeFallback') }),
             variant: 'danger',
-            confirmLabel: 'Unlink',
+            confirmLabel: t('hrms.links.removeConfirm'),
         }))) return;
 
         try {
             await api.delete(`/hrms/tasks/${task.id}/links/${link.id}`);
-            toast.success('Link removed.');
+            toast.success(t('hrms.links.removed'));
             load();
         } catch {
-            toast.error('Unable to remove this link.');
+            toast.error(t('hrms.links.removeFailed'));
         }
     }
 
     if (forbidden) {
-        return <p className="py-8 text-center text-sm text-gray-400">You cannot view HR links on this task.</p>;
+        return <p className="py-8 text-center text-sm text-gray-400">{t('hrms.links.forbidden')}</p>;
     }
 
-    if (!links) return <Spinner />;
+    if (!links) return <ContentSkeleton size="sm" />;
 
     return (
         <div className="space-y-4">
             {links.length === 0 ? (
-                <EmptyState title="No HR links" message="No employee record counts this task yet." />
+                <EmptyState title={t('hrms.links.emptyTitle')} message={t('hrms.links.emptyHint')} />
             ) : (
                 <ul className="divide-y divide-gray-100">
                     {links.map((link) => (
                         <li key={link.id} className="flex flex-wrap items-center gap-x-3 gap-y-1 py-2.5">
                             <Link
                                 to={`/hrms/employees/${link.employee?.id}`}
-                                className="text-sm font-medium text-indigo-600 hover:text-indigo-800"
+                                className="text-sm font-medium text-[var(--accent-soft-text)] hover:text-[var(--accent-soft-text)] hover:underline"
                             >
-                                {link.employee?.name ?? 'Someone'}
+                                {link.employee?.name ?? t('hrms.links.someone')}
                             </Link>
-                            <span className="rounded-full bg-indigo-50 px-2 py-0.5 text-xs text-indigo-700">
+                            <span className="rounded-full bg-[var(--accent-soft)] px-2 py-0.5 text-xs text-[var(--accent-soft-text)]">
                                 {link.kind_label ?? link.kind}
                             </span>
                             {link.note && <span className="text-xs italic text-gray-500">“{link.note}”</span>}
                             {canManage && (
                                 <Button size="sm" variant="ghost" onClick={() => unlink(link)} className="ml-auto">
-                                    Unlink
+                                    {t('hrms.links.unlink')}
                                 </Button>
                             )}
                         </li>
@@ -135,13 +137,13 @@ export default function TaskLinkPanel({ task, canManage }) {
             {canManage && canReadDirectory && (
                 <form onSubmit={submit} className="space-y-3 rounded-xl border border-gray-200/70 p-4">
                     <Select
-                        label="Employee"
+                        label={t('hrms.links.employee')}
                         value={form.employee_id}
                         onChange={(e) => setForm((prev) => ({ ...prev, employee_id: e.target.value }))}
                         error={errors.employee_id}
                         required
                     >
-                        <option value="">Select…</option>
+                        <option value="">{t('hrms.links.select')}</option>
                         {employees.map((employee) => (
                             <option key={employee.id} value={employee.id}>
                                 {employee.display_name ?? employee.name}
@@ -149,19 +151,19 @@ export default function TaskLinkPanel({ task, canManage }) {
                         ))}
                     </Select>
                     <Select
-                        label="Kind"
+                        label={t('hrms.links.kind')}
                         value={form.kind}
                         onChange={(e) => setForm((prev) => ({ ...prev, kind: e.target.value }))}
                         error={errors.kind}
                     >
                         {KINDS.map((kind) => (
                             <option key={kind.value} value={kind.value}>
-                                {kind.label}
+                                {t(`hrms.links.kinds.${kind.key}`)}
                             </option>
                         ))}
                     </Select>
                     <Input
-                        label="Note (optional)"
+                        label={t('hrms.links.note')}
                         value={form.note}
                         onChange={(e) => setForm((prev) => ({ ...prev, note: e.target.value }))}
                         error={errors.note}
@@ -169,7 +171,7 @@ export default function TaskLinkPanel({ task, canManage }) {
                     />
                     {errors.form && <p className="text-sm text-red-600">{errors.form}</p>}
                     <Button type="submit" loading={saving} disabled={!form.employee_id}>
-                        Link employee
+                        {t('hrms.links.submit')}
                     </Button>
                 </form>
             )}

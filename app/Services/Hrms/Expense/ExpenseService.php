@@ -7,6 +7,7 @@ use App\Models\Hrms\Document\EmployeeDocument;
 use App\Models\Hrms\Employee\Employee;
 use App\Models\Hrms\Expense\ExpenseCategory;
 use App\Models\Hrms\Expense\ExpenseClaim;
+use App\Models\Hrms\Expense\ExpenseClaimItem;
 use App\Models\Hrms\Payroll\PayrollRun;
 use App\Models\Hrms\Payroll\PayslipAdjustment;
 use App\Models\User;
@@ -56,7 +57,7 @@ class ExpenseService
         $lines = $this->validatedItems($employee, $items);
 
         if ($lines === []) {
-            throw ValidationException::withMessages(['items' => 'A claim names at least one line.']);
+            throw ValidationException::withMessages(['items' => __('A claim names at least one line.')]);
         }
 
         return DB::transaction(function () use ($employee, $data, $lines, $actor): ExpenseClaim {
@@ -98,7 +99,7 @@ class ExpenseService
         $lines = $this->validatedItems($claim->employee, $items);
 
         if ($lines === []) {
-            throw ValidationException::withMessages(['items' => 'A claim names at least one line.']);
+            throw ValidationException::withMessages(['items' => __('A claim names at least one line.')]);
         }
 
         return DB::transaction(function () use ($claim, $lines, $actor): ExpenseClaim {
@@ -159,18 +160,18 @@ class ExpenseService
         $this->requireDecider($claim, $actor);
 
         if ($claim->approval === null || $claim->approval->fresh()->status->value !== 'approved') {
-            throw ValidationException::withMessages(['form' => 'Resolve the approval chain before approving.']);
+            throw ValidationException::withMessages(['form' => __('Resolve the approval chain before approving.')]);
         }
 
         $total = Money::fromDecimal((string) $claim->total_amount);
         $approved = $approvedAmount === null ? $total : Money::fromDecimal($approvedAmount);
 
         if ($approved->isNegative() || $approved->minor > $total->minor) {
-            throw ValidationException::withMessages(['approved_amount' => 'An approval prices between nothing and the filed total.']);
+            throw ValidationException::withMessages(['approved_amount' => __('An approval prices between nothing and the filed total.')]);
         }
 
         if ($approved->minor < $total->minor && ($reason === null || trim($reason) === '')) {
-            throw ValidationException::withMessages(['reason' => 'A reduced approval says why, so the employee can act on it.']);
+            throw ValidationException::withMessages(['reason' => __('A reduced approval says why, so the employee can act on it.')]);
         }
 
         return DB::transaction(function () use ($claim, $actor, $approved): ExpenseClaim {
@@ -200,7 +201,7 @@ class ExpenseService
         $this->requireDecider($claim, $actor);
 
         if ($reason === null || trim($reason) === '') {
-            throw ValidationException::withMessages(['reason' => 'A rejection says why, so the employee can act on it.']);
+            throw ValidationException::withMessages(['reason' => __('A rejection says why, so the employee can act on it.')]);
         }
 
         return DB::transaction(function () use ($claim, $actor): ExpenseClaim {
@@ -288,7 +289,7 @@ class ExpenseService
         $ownerId = $claim->employee?->user_id;
 
         if ($ownerId !== null && (int) $ownerId === (int) $actor->id) {
-            throw ValidationException::withMessages(['form' => 'A claim is never decided by its own owner.']);
+            throw ValidationException::withMessages(['form' => __('A claim is never decided by its own owner.')]);
         }
     }
 
@@ -323,17 +324,17 @@ class ExpenseService
                 : null;
 
             if (! empty($item['category_id']) && $category === null) {
-                throw ValidationException::withMessages(["items.{$index}.category_id" => 'That category does not exist.']);
+                throw ValidationException::withMessages(["items.{$index}.category_id" => __('That category does not exist.')]);
             }
 
             if ($category !== null && ! $category->is_active) {
-                throw ValidationException::withMessages(["items.{$index}.category_id" => 'That category is retired.']);
+                throw ValidationException::withMessages(["items.{$index}.category_id" => __('That category is retired.')]);
             }
 
             $amount = Money::fromDecimal((string) ($item['amount'] ?? '0'));
 
             if ($amount->isNegative() || $amount->isZero()) {
-                throw ValidationException::withMessages(["items.{$index}.amount" => 'A line prices positive money.']);
+                throw ValidationException::withMessages(["items.{$index}.amount" => __('A line prices positive money.')]);
             }
 
             $receiptId = $item['receipt_document_id'] ?? null;
@@ -342,15 +343,18 @@ class ExpenseService
                 $receipt = EmployeeDocument::find($receiptId);
 
                 if ($receipt === null || (int) $receipt->employee_id !== (int) $employee->id) {
-                    throw ValidationException::withMessages(["items.{$index}.receipt_document_id" => 'That file does not belong to this employee.']);
+                    throw ValidationException::withMessages(["items.{$index}.receipt_document_id" => __('That file does not belong to this employee.')]);
                 }
             }
 
             $threshold = $category?->requires_receipt_above;
 
             if ($threshold !== null && $amount->minor > Money::fromDecimal((string) $threshold)->minor && $receiptId === null) {
-                throw ValidationException::withMessages(["items.{$index}.receipt_document_id" => "Lines over {$threshold} need a receipt."]);
+                throw ValidationException::withMessages(["items.{$index}.receipt_document_id" => __('Lines over :threshold need a receipt.', ['threshold' => $threshold])]);
             }
+
+            $spentAt = isset($item['spent_at']) ? Carbon::parse((string) $item['spent_at']) : now();
+            $this->assertWithinLimits($employee, $category, $amount, $spentAt, $lines, $index);
 
             $lines[] = [
                 'category_id' => $category?->id,
@@ -365,6 +369,46 @@ class ExpenseService
         }
 
         return $lines;
+    }
+
+    /**
+     * Category ceilings: one line may not exceed `max_per_line`, and an employee's lines in the category for
+     * the month (counting claims already filed and the lines of this very request) may not exceed `monthly_limit`.
+     *
+     * @param  list<array<string, mixed>>  $earlier  lines of this request validated so far
+     */
+    private function assertWithinLimits(Employee $employee, ?ExpenseCategory $category, Money $amount, Carbon $spentAt, array $earlier, int $index): void
+    {
+        if ($category === null) {
+            return;
+        }
+
+        if ($category->max_per_line !== null && $amount->minor > Money::fromDecimal((string) $category->max_per_line)->minor) {
+            throw ValidationException::withMessages(["items.{$index}.amount" => __('This category allows at most :limit per line.', ['limit' => $category->max_per_line])]);
+        }
+
+        if ($category->monthly_limit === null) {
+            return;
+        }
+
+        $month = [$spentAt->copy()->startOfMonth()->toDateString(), $spentAt->copy()->endOfMonth()->toDateString()];
+        $used = Money::fromDecimal((string) ExpenseClaimItem::query()
+            ->where('category_id', $category->id)
+            ->whereBetween('spent_at', $month)
+            ->whereHas('claim', fn ($q) => $q->where('employee_id', $employee->id)
+                ->whereIn('status', [ExpenseClaimStatus::Submitted, ExpenseClaimStatus::Pending, ExpenseClaimStatus::Approved, ExpenseClaimStatus::Paid]))
+            ->sum('amount') ?: '0');
+
+        $minor = $used->minor + $amount->minor;
+        foreach ($earlier as $line) {
+            if ((int) $line['category_id'] === $category->id && $line['spent_at'] !== null && $line['spent_at'] >= $month[0] && $line['spent_at'] <= $month[1]) {
+                $minor += Money::fromDecimal((string) $line['amount'])->minor;
+            }
+        }
+
+        if ($minor > Money::fromDecimal((string) $category->monthly_limit)->minor) {
+            throw ValidationException::withMessages(["items.{$index}.amount" => __('This would take you over the :limit monthly limit for this category.', ['limit' => $category->monthly_limit])]);
+        }
     }
 
     private function sum(array $lines): string

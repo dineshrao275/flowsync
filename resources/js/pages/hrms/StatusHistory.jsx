@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import Avatar from '../../components/ui/Avatar';
 import Card from '../../components/ui/Card';
 import Timestamp from '../../components/ui/Timestamp';
@@ -15,11 +16,12 @@ import Timestamp from '../../components/ui/Timestamp';
  * @param {{ from_status: string|null, to_status: string, from_status_label: string|null, to_status_label: string, reason: string|null, note: string|null, effective_date: string|null, created_at: string, actor: { id: number, name: string }|null }[]} history
  */
 export default function StatusHistory({ history }) {
+    const { t } = useTranslation();
     return (
-        <Card title="Status history" dense className="overflow-hidden">
+        <Card title={t('hrms.history.title')} dense className="overflow-hidden">
 
             {history.length === 0 ? (
-                <p className="px-4 py-3 text-sm text-gray-500">No transitions recorded yet.</p>
+                <p className="px-4 py-3 text-sm text-gray-500">{t('hrms.history.empty')}</p>
             ) : (
                 <ol className="divide-y divide-gray-100">
                     {history.map((entry) => (
@@ -42,7 +44,7 @@ export default function StatusHistory({ history }) {
 
                             <p className="mt-1.5 flex items-center gap-1.5 text-xs text-gray-400">
                                 <Avatar name={entry.actor?.name ?? '?'} size="sm" />
-                                {entry.actor?.name ?? 'Account deleted'}
+                                {entry.actor?.name ?? t('hrms.history.accountDeleted')}
                             </p>
                         </li>
                     ))}

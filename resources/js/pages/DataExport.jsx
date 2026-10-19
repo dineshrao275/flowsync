@@ -1,23 +1,25 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { Trans, useTranslation } from 'react-i18next';
 import api from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
 import usePageTitle from '../hooks/usePageTitle';
 import Button from '../components/ui/Button';
 import Spinner from '../components/ui/Spinner';
+import ContentSkeleton from '../components/ui/ContentSkeleton';
 import Alert from '../components/ui/Alert';
 import Badge from '../components/ui/Badge';
 import Timestamp from '../components/ui/Timestamp';
 
 const ALL_CATEGORIES = [
-    { key: 'workspaces', label: 'Workspaces', description: 'All workspaces and their metadata.' },
-    { key: 'projects', label: 'Projects', description: 'All projects across workspaces.' },
-    { key: 'tasks', label: 'Tasks', description: 'All tasks including deleted ones.' },
-    { key: 'work_logs', label: 'Work logs', description: 'All time-tracking entries.' },
-    { key: 'members', label: 'Members', description: 'All tenant users and their roles.' },
-    { key: 'employees', label: 'Employees (HRMS)', description: 'Employee records (if HRMS is enabled).' },
-    { key: 'leave_requests', label: 'Leave requests (HRMS)', description: 'Leave history (if HRMS is enabled).' },
-    { key: 'payslips', label: 'Payslips (HRMS)', description: 'Payslip index — salary values are not included.' },
+    { key: 'workspaces', tKey: 'workspaces' },
+    { key: 'projects', tKey: 'projects' },
+    { key: 'tasks', tKey: 'tasks' },
+    { key: 'work_logs', tKey: 'workLogs' },
+    { key: 'members', tKey: 'members' },
+    { key: 'employees', tKey: 'employees' },
+    { key: 'leave_requests', tKey: 'leaveRequests' },
+    { key: 'payslips', tKey: 'payslips' },
 ];
 
 const STATUS_BADGE = {
@@ -42,7 +44,8 @@ function formatBytes(bytes) {
  * export and download the ZIP once ready.
  */
 export default function DataExport() {
-    usePageTitle('Data Export');
+    const { t } = useTranslation();
+    usePageTitle(t('admin.dataExport.pageTitle'));
 
     const { user } = useAuth();
     const toast = useToast();
@@ -92,16 +95,16 @@ export default function DataExport() {
 
     const queueExport = async () => {
         if (selected.length === 0) {
-            toast.warning('Select at least one category.');
+            toast.warning(t('admin.dataExport.selectAtLeastOne'));
             return;
         }
         setSubmitting(true);
         try {
             await api.post('/my-export', { categories: selected });
-            toast.success('Export queued. It will be ready shortly.');
+            toast.success(t('admin.dataExport.queued'));
             await load();
         } catch (err) {
-            const msg = err?.response?.data?.message ?? 'Failed to queue export.';
+            const msg = err?.response?.data?.message ?? t('admin.dataExport.queueFailed');
             toast.error(msg);
         } finally {
             setSubmitting(false);
@@ -113,35 +116,35 @@ export default function DataExport() {
     return (
         <div className="mx-auto max-w-3xl space-y-8 px-4 py-8">
             <div>
-                <h2 className="text-2xl font-bold text-gray-900">Data Export</h2>
+                <h2 className="text-2xl font-bold text-gray-900">{t('admin.dataExport.title')}</h2>
                 <p className="mt-1 text-sm text-gray-500">
-                    Download a full ZIP of your tenant data. Large exports are queued and ready in minutes.
+                    {t('admin.dataExport.subtitle')}
                 </p>
             </div>
 
             {/* Category picker */}
             <section className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
-                <h3 className="mb-4 text-sm font-semibold text-gray-900">Select categories</h3>
+                <h3 className="mb-4 text-sm font-semibold text-gray-900">{t('admin.dataExport.selectCategories')}</h3>
                 <div className="grid gap-3 sm:grid-cols-2">
                     {ALL_CATEGORIES.map((cat) => (
                         <label
                             key={cat.key}
                             className={`flex cursor-pointer items-start gap-3 rounded-lg border p-3 transition-colors ${
                                 selected.includes(cat.key)
-                                    ? 'border-indigo-300 bg-indigo-50'
+                                    ? 'border-[var(--accent-ring)] bg-[var(--accent-soft)]'
                                     : 'border-gray-200 hover:border-gray-300'
                             }`}
                         >
                             <input
                                 id={`cat-${cat.key}`}
                                 type="checkbox"
-                                className="mt-0.5 h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                                className="mt-0.5 h-4 w-4 rounded border-gray-300 accent-[var(--accent)]"
                                 checked={selected.includes(cat.key)}
                                 onChange={() => toggle(cat.key)}
                             />
                             <div>
-                                <p className="text-sm font-medium text-gray-900">{cat.label}</p>
-                                <p className="text-xs text-gray-400">{cat.description}</p>
+                                <p className="text-sm font-medium text-gray-900">{t(`admin.dataExport.categories.${cat.tKey}Label`)}</p>
+                                <p className="text-xs text-gray-400">{t(`admin.dataExport.categories.${cat.tKey}Description`)}</p>
                             </div>
                         </label>
                     ))}
@@ -149,7 +152,7 @@ export default function DataExport() {
 
                 <div className="mt-5 flex items-center justify-between gap-3">
                     <p className="text-xs text-gray-400">
-                        {selected.length} of {ALL_CATEGORIES.length} categories selected
+                        {t('admin.dataExport.selectedCount', { selected: selected.length, total: ALL_CATEGORIES.length })}
                     </p>
                     {isAdmin ? (
                         <Button
@@ -158,24 +161,22 @@ export default function DataExport() {
                             loading={submitting}
                             disabled={submitting || hasInProgress}
                         >
-                            {hasInProgress ? 'Export in progress…' : 'Queue export'}
+                            {hasInProgress ? t('admin.dataExport.exportInProgress') : t('admin.dataExport.queueExport')}
                         </Button>
                     ) : (
-                        <p className="text-xs text-gray-400">Only tenant admins can request exports.</p>
+                        <p className="text-xs text-gray-400">{t('admin.dataExport.adminsOnly')}</p>
                     )}
                 </div>
             </section>
 
             {/* Recent runs */}
             <section>
-                <h3 className="mb-3 text-sm font-semibold text-gray-900">Recent exports</h3>
+                <h3 className="mb-3 text-sm font-semibold text-gray-900">{t('admin.dataExport.recentExports')}</h3>
                 {loading ? (
-                    <div className="flex justify-center py-8">
-                        <Spinner />
-                    </div>
+                    <ContentSkeleton size="md" />
                 ) : runs.length === 0 ? (
                     <p className="rounded-lg border border-dashed border-gray-200 py-8 text-center text-sm text-gray-400">
-                        No exports yet. Queue one above.
+                        {t('admin.dataExport.empty')}
                     </p>
                 ) : (
                     <ul className="space-y-3">
@@ -194,12 +195,12 @@ export default function DataExport() {
                                         </span>
                                     </div>
                                     <div className="mt-1 flex flex-wrap gap-3 text-xs text-gray-400">
-                                        <span>Requested <Timestamp date={run.created_at} /></span>
+                                        <span>{t('admin.dataExport.requested')} <Timestamp date={run.created_at} /></span>
                                         {run.file_size && (
-                                            <span>Size: {formatBytes(run.file_size)}</span>
+                                            <span>{t('admin.dataExport.size', { size: formatBytes(run.file_size) })}</span>
                                         )}
                                         {run.expires_at && run.status === 'ready' && (
-                                            <span>Expires <Timestamp date={run.expires_at} /></span>
+                                            <span>{t('admin.dataExport.expires')} <Timestamp date={run.expires_at} /></span>
                                         )}
                                     </div>
                                     {run.error && (
@@ -210,7 +211,7 @@ export default function DataExport() {
                                     {run.status === 'pending' || run.status === 'processing' ? (
                                         <span className="flex items-center gap-1.5 text-xs text-gray-400">
                                             <Spinner size="xs" />
-                                            Building…
+                                            {t('admin.dataExport.building')}
                                         </span>
                                     ) : run.status === 'ready' && run.download_url ? (
                                         <a
@@ -218,7 +219,7 @@ export default function DataExport() {
                                             href={run.download_url}
                                             target="_blank"
                                             rel="noopener noreferrer"
-                                            className="inline-flex items-center gap-1.5 rounded-lg bg-indigo-600 px-3 py-1.5 text-xs font-medium text-white shadow-sm transition hover:bg-indigo-700"
+                                            className="inline-flex items-center gap-1.5 rounded-lg bg-[var(--accent)] px-3 py-1.5 text-xs font-medium text-white shadow-sm transition hover:bg-[var(--accent-hover)]"
                                         >
                                             <svg
                                                 className="h-3.5 w-3.5"
@@ -231,11 +232,11 @@ export default function DataExport() {
                                             >
                                                 <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3" />
                                             </svg>
-                                            Download ZIP
+                                            {t('admin.dataExport.downloadZip')}
                                         </a>
                                     ) : (
                                         <span className="text-xs text-gray-400">
-                                            {run.status === 'ready' ? 'Link expired' : '—'}
+                                            {run.status === 'ready' ? t('admin.dataExport.linkExpired') : '—'}
                                         </span>
                                     )}
                                 </div>
@@ -246,8 +247,7 @@ export default function DataExport() {
             </section>
 
             <Alert variant="info">
-                <strong>Privacy note:</strong> Payslip exports include metadata only (no salary values).
-                HRMS categories are empty if the module is not provisioned for your plan.
+                <Trans i18nKey="admin.dataExport.privacyNote" components={[<strong key="0" />]} />
             </Alert>
         </div>
     );

@@ -9,6 +9,7 @@ use App\Http\Controllers\Hrms\Leave\LeaveBlackoutController;
 use App\Http\Controllers\Hrms\Shift\RosterController;
 use App\Http\Controllers\Hrms\Shift\RotationController;
 use App\Http\Controllers\Hrms\Shift\ShiftController;
+use App\Http\Controllers\Hrms\Shift\ShiftSwapController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -25,6 +26,11 @@ use Illuminate\Support\Facades\Route;
 // Shifts catalogue (P5.1). Literals (`default/clear`) are declared before any
 // `{shift}` sibling so they never bind as an id (the P3.3 lesson).
 Route::group(['middleware' => ['ensure_module:hrms.core', 'ensure_module:hrms.shifts', 'permission:hrms.view']], function () {
+    Route::get('hrms/shift-swaps', [ShiftSwapController::class, 'index']);
+    Route::post('hrms/shift-swaps', [ShiftSwapController::class, 'store']);
+    Route::post('hrms/shift-swaps/{swap}/approve', [ShiftSwapController::class, 'approve']);
+    Route::post('hrms/shift-swaps/{swap}/reject', [ShiftSwapController::class, 'reject']);
+    Route::post('hrms/shift-swaps/{swap}/withdraw', [ShiftSwapController::class, 'withdraw']);
     Route::get('hrms/shifts', [ShiftController::class, 'index']);
     Route::post('hrms/shifts', [ShiftController::class, 'store']);
     Route::post('hrms/shifts/default/clear', [ShiftController::class, 'clear']);

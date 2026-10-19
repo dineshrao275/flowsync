@@ -68,7 +68,7 @@ class DocumentRequestController extends Controller
         );
 
         return response()->json([
-            'message' => 'Document requested.',
+            'message' => __('Document requested.'),
             'request' => $this->presenter->request($row),
         ], Response::HTTP_CREATED);
     }
@@ -93,7 +93,7 @@ class DocumentRequestController extends Controller
         );
 
         return response()->json([
-            'message' => 'Document submitted.',
+            'message' => __('Document submitted.'),
             'request' => $this->presenter->request($row),
         ]);
     }
@@ -105,7 +105,7 @@ class DocumentRequestController extends Controller
         $row = $this->requests->accept($documentRequest, $request->user());
 
         return response()->json([
-            'message' => 'Document accepted.',
+            'message' => __('Document accepted.'),
             'request' => $this->presenter->request($row),
         ]);
     }
@@ -117,7 +117,7 @@ class DocumentRequestController extends Controller
         $row = $this->requests->waive($documentRequest, $request->validated()['reason'], $request->user());
 
         return response()->json([
-            'message' => 'Document request waived.',
+            'message' => __('Document request waived.'),
             'request' => $this->presenter->request($row),
         ]);
     }
@@ -129,7 +129,7 @@ class DocumentRequestController extends Controller
         $row = $this->requests->reject($documentRequest, $request->validated()['reason'], $request->user());
 
         return response()->json([
-            'message' => 'Document rejected.',
+            'message' => __('Document rejected.'),
             'request' => $this->presenter->request($row),
         ]);
     }
@@ -151,7 +151,7 @@ class DocumentRequestController extends Controller
         // Standalone asks attach to onboarding cases only: an offboarding ask
         // is raised by the exit run itself, which already links its requests.
         // A second path to the same link is a second place to get it wrong.
-        abort_unless($validated['case_type'] === 'onboarding', 422, 'Free asks attach to onboarding cases.');
+        abort_unless($validated['case_type'] === 'onboarding', 422, __('Free asks attach to onboarding cases.'));
 
         return OnboardingCase::findOrFail((int) $validated['case_id']);
     }

@@ -1,6 +1,8 @@
 <?php
 
+use App\Http\Controllers\Hrms\Payroll\EmployeeLoanController;
 use App\Http\Controllers\Hrms\Payroll\EmployeeSalaryController;
+use App\Http\Controllers\Hrms\Payroll\PayrollBankFileController;
 use App\Http\Controllers\Hrms\Payroll\PayrollRunController;
 use App\Http\Controllers\Hrms\Payroll\PayslipAdjustmentController;
 use App\Http\Controllers\Hrms\Payroll\PayslipController;
@@ -63,14 +65,22 @@ Route::group(['middleware' => ['ensure_module:hrms.core', 'ensure_module:hrms.co
 // and adjustments ride the payslip's `adjust` ability with both models
 // bound.
 Route::group(['middleware' => ['ensure_module:hrms.core', 'ensure_module:hrms.payroll', 'permission:hrms.view']], function () {
+    Route::get('hrms/loans', [EmployeeLoanController::class, 'index']);
+    Route::post('hrms/loans', [EmployeeLoanController::class, 'store']);
+    Route::post('hrms/loans/{loan}/approve', [EmployeeLoanController::class, 'approve']);
+    Route::post('hrms/loans/{loan}/reject', [EmployeeLoanController::class, 'reject']);
+    Route::post('hrms/loans/{loan}/withdraw', [EmployeeLoanController::class, 'withdraw']);
+    Route::post('hrms/loans/{loan}/stop', [EmployeeLoanController::class, 'stop']);
     Route::get('hrms/payroll/runs', [PayrollRunController::class, 'index']);
     Route::post('hrms/payroll/runs', [PayrollRunController::class, 'store']);
     Route::get('hrms/payroll/runs/{run}', [PayrollRunController::class, 'show']);
     Route::post('hrms/payroll/runs/{run}/calculate', [PayrollRunController::class, 'calculate']);
     Route::post('hrms/payroll/runs/{run}/approve', [PayrollRunController::class, 'approve']);
     Route::post('hrms/payroll/runs/{run}/publish', [PayrollRunController::class, 'publish']);
+    Route::get('hrms/payroll/runs/{run}/bank-file', PayrollBankFileController::class)->middleware('throttle:20,1');
     Route::post('hrms/payroll/runs/{run}/mark-paid', [PayrollRunController::class, 'markPaid']);
     Route::post('hrms/payroll/runs/{run}/lock', [PayrollRunController::class, 'lock']);
+    Route::post('hrms/payroll/runs/{run}/reopen', [PayrollRunController::class, 'reopen']);
 
     Route::post('hrms/payroll/payslips/{payslip}/adjustments', [PayslipAdjustmentController::class, 'store']);
     Route::delete('hrms/payroll/payslips/{payslip}/adjustments/{adjustment}', [PayslipAdjustmentController::class, 'destroy']);

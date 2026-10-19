@@ -58,7 +58,7 @@ class WebhookUrlGuard
 
         $all = [...$v4, ...$v6];
         if ($all === []) {
-            throw ValidationException::withMessages(['url' => 'That host name does not resolve.']);
+            throw ValidationException::withMessages(['url' => __('That host name does not resolve.')]);
         }
 
         return $all;

@@ -95,7 +95,7 @@ class HolidayImporter
         $invalid = count(array_filter($evaluated, fn ($r) => $r['status'] === 'invalid'));
 
         if ($invalid > 0 && ! $skipInvalid) {
-            throw ValidationException::withMessages(['file' => "{$invalid} row(s) have errors. Fix them or import only the valid rows."]);
+            throw ValidationException::withMessages(['file' => __(':invalid row(s) have errors. Fix them or import only the valid rows.', ['invalid' => $invalid])]);
         }
 
         $created = 0;
@@ -182,7 +182,7 @@ class HolidayImporter
         }
 
         if ($rows === []) {
-            throw ValidationException::withMessages(['file' => 'The calendar file holds no events.']);
+            throw ValidationException::withMessages(['file' => __('The calendar file holds no events.')]);
         }
 
         return $rows;

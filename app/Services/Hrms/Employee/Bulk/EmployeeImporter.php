@@ -144,10 +144,10 @@ class EmployeeImporter
         $bad = count($validated) - count($good);
 
         if ($bad > 0 && ! $skipInvalid) {
-            throw ValidationException::withMessages(['file' => "{$bad} row(s) have errors. Fix them or import only the valid rows."]);
+            throw ValidationException::withMessages(['file' => __(':bad row(s) have errors. Fix them or import only the valid rows.', ['bad' => $bad])]);
         }
         if ($good === []) {
-            throw ValidationException::withMessages(['file' => 'No valid rows to import.']);
+            throw ValidationException::withMessages(['file' => __('No valid rows to import.')]);
         }
 
         // Whole-batch quota: assertQuota fails when count >= limit, so ask for

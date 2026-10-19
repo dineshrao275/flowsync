@@ -1,9 +1,11 @@
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import Button from '../ui/Button';
 import DocumentVersionsModal from './DocumentVersionsModal';
 import EmptyState from '../ui/EmptyState';
 import StatusPill from '../ui/StatusPill';
 import { Table, Th, Td } from '../ui/Table';
+import { formatDateOnly } from '../../utils/format';
 
 const STATUS_COLORS = {
     pending: '#f59e0b',
@@ -12,10 +14,14 @@ const STATUS_COLORS = {
     expired: '#6b7280',
 };
 
-function formatDate(value) {
-    if (!value) return '—';
-    return new Date(`${value}T00:00:00`).toLocaleDateString();
-}
+const STATUS_KEYS = {
+    pending: 'stPending',
+    verified: 'stVerified',
+    rejected: 'stRejected',
+    expired: 'stExpired',
+};
+
+const formatDate = (value) => formatDateOnly(value);
 
 /**
  * The document rows every document surface shares: the store, “My files”,
@@ -27,13 +33,14 @@ function formatDate(value) {
  * decide what gets drawn.
  */
 export default function DocumentList({ documents, canVerify, canDelete, canReplace = false, onChanged, onVerify, onReject, onDelete, showEmployee }) {
+    const { t } = useTranslation();
     const [versionsOf, setVersionsOf] = useState(null);
 
     if (!documents || documents.length === 0) {
         // A real empty state, not a bare table row: this renders outside
         // any <table>, where a <tr> would be dropped by the browser and
         // read as a blank gap.
-        return <EmptyState title="No documents" description="Nothing filed here yet." />;
+        return <EmptyState title={t('hrms.docs.listEmpty')} description={t('hrms.docs.listEmptyHint')} />;
     }
 
     return (
@@ -41,13 +48,13 @@ export default function DocumentList({ documents, canVerify, canDelete, canRepla
         <Table>
             <thead>
                 <tr>
-                    <Th>Document</Th>
-                    {showEmployee && <Th>Employee</Th>}
-                    <Th>Type</Th>
-                    <Th>Status</Th>
-                    <Th>Expires</Th>
-                    <Th>File</Th>
-                    {(canVerify || canDelete) && <Th><span className="sr-only">Actions</span></Th>}
+                    <Th>{t('hrms.docs.thDocument')}</Th>
+                    {showEmployee && <Th>{t('hrms.docs.thEmployee')}</Th>}
+                    <Th>{t('hrms.docs.thType')}</Th>
+                    <Th>{t('hrms.docs.thStatus')}</Th>
+                    <Th>{t('hrms.docs.thExpires')}</Th>
+                    <Th>{t('hrms.docs.thFile')}</Th>
+                    {(canVerify || canDelete) && <Th><span className="sr-only">{t('hrms.docs.thActions')}</span></Th>}
                 </tr>
             </thead>
             <tbody>
@@ -57,8 +64,8 @@ export default function DocumentList({ documents, canVerify, canDelete, canRepla
                             <span className="block font-medium text-gray-900">
                                 {document.title}
                                 {document.confidential && (
-                                    <span className="ml-2 rounded bg-amber-100 px-1.5 py-0.5 text-[10px] font-semibold uppercase text-amber-700">
-                                        Confidential
+                                    <span className="ml-2 rounded bg-amber-100 px-1.5 py-0.5 text-xs font-semibold uppercase text-amber-700">
+                                        {t('hrms.docs.confidential')}
                                     </span>
                                 )}
                             </span>
@@ -66,16 +73,16 @@ export default function DocumentList({ documents, canVerify, canDelete, canRepla
                         </Td>
                         {showEmployee && <Td>{document.employee?.name ?? '—'}</Td>}
                         <Td>{document.type?.name ?? '—'}</Td>
-                        <Td><StatusPill color={STATUS_COLORS[document.status]} label={document.status} className="capitalize" /></Td>
+                        <Td><StatusPill color={STATUS_COLORS[document.status]} label={STATUS_KEYS[document.status] ? t(`hrms.docs.${STATUS_KEYS[document.status]}`) : document.status} className="capitalize" /></Td>
                         <Td>{formatDate(document.expires_at)}</Td>
                         <Td>
                             <a
                                 href={document.download_url}
                                 target="_blank"
                                 rel="noopener noreferrer"
-                                className="text-sm font-medium text-indigo-600 hover:underline"
+                                className="text-sm font-medium text-[var(--accent-soft-text)] hover:underline"
                             >
-                                Download
+                                {t('hrms.docs.download')}
                             </a>
                             {(document.version > 1 || canReplace) && (
                                 <button type="button" onClick={() => setVersionsOf(document)} className="ml-3 text-sm text-gray-500 hover:underline">
@@ -88,17 +95,17 @@ export default function DocumentList({ documents, canVerify, canDelete, canRepla
                                 <div className="flex justify-end gap-2">
                                     {canVerify && document.status === 'pending' && (
                                         <Button size="sm" variant="secondary" onClick={() => onVerify?.(document)}>
-                                            Verify
+                                            {t('hrms.docs.verify')}
                                         </Button>
                                     )}
                                     {canVerify && (document.status === 'pending' || document.status === 'verified') && (
                                         <Button size="sm" variant="ghost" onClick={() => onReject?.(document)}>
-                                            Reject
+                                            {t('hrms.docs.reject')}
                                         </Button>
                                     )}
                                     {canDelete && (
                                         <Button size="sm" variant="ghost" onClick={() => onDelete?.(document)}>
-                                            Delete
+                                            {t('hrms.docs.delete')}
                                         </Button>
                                     )}
                                 </div>

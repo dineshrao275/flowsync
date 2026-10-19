@@ -41,7 +41,7 @@ class TenantHrmsController extends Controller
         }
 
         return response()->json([
-            'message' => 'HRMS entitlement updated.',
+            'message' => __('HRMS entitlement updated.'),
             'hrms' => $this->resource($tenant)->resolve($request),
         ]);
     }
