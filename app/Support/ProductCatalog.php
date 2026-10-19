@@ -28,6 +28,7 @@ final class ProductCatalog
         'tenant.',
         'webhooks.',
         'api.',
+        'custom_fields.',
     ];
 
     /**

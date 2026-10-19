@@ -5,7 +5,7 @@
 @props(['crumbs' => [], 'faq' => [], 'article' => null])
 
 @php
-    $siteName = $siteName ?? config('app.name', 'FlowSync');
+    $siteName = $siteName ?? config('app.name');
     $base = url('/');
     $graph = [
         [

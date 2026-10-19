@@ -6,7 +6,7 @@ import Badge from '../components/ui/Badge';
 import Button from '../components/ui/Button';
 import Input from '../components/ui/Input';
 import Alert from '../components/ui/Alert';
-import Spinner from '../components/ui/Spinner';
+import ContentSkeleton from '../components/ui/ContentSkeleton';
 import { useToast } from '../context/ToastContext';
 import { useConfirm } from '../components/ui/ConfirmDialog';
 import { useSetCrumbs } from '../context/BreadcrumbContext';
@@ -23,7 +23,7 @@ export default function Webhooks() {
     const confirm = useConfirm();
     const setCrumbs = useSetCrumbs();
     const [data, setData] = useState(null);
-    const [form, setForm] = useState({ url: '', description: '', events: ['*'] });
+    const [form, setForm] = useState({ url: '', description: '', events: ['*'], format: 'json' });
     const [errors, setErrors] = useState({});
     const [creating, setCreating] = useState(false);
     const [saving, setSaving] = useState(false);
@@ -49,7 +49,7 @@ export default function Webhooks() {
         try {
             const res = await api.post('/webhooks', form);
             setSecret({ id: res.data.endpoint.id, value: res.data.secret });
-            setCreating(false); setForm({ url: '', description: '', events: ['*'] });
+            setCreating(false); setForm({ url: '', description: '', events: ['*'], format: 'json' });
             load();
         } catch (err) { setErrors(fieldErrors(err)); } finally { setSaving(false); }
     }
@@ -71,7 +71,7 @@ export default function Webhooks() {
         if (open === id) showDeliveries(id).then(() => showDeliveries(id));
     }
 
-    if (!data) return <div className="flex justify-center py-20"><Spinner /></div>;
+    if (!data) return <ContentSkeleton size="lg" />;
 
     return (
         <div className="mx-auto max-w-4xl space-y-6">
@@ -96,6 +96,13 @@ export default function Webhooks() {
                 <Card title={t('admin.webhooks.newEndpointTitle')} subtitle={t('admin.webhooks.newEndpointSubtitle')}>
                     <form onSubmit={create} className="space-y-4">
                         <Input label={t('admin.webhooks.endpointUrl')} name="url" required placeholder="https://example.com/hooks/flowsync" value={form.url} onChange={(e) => setForm((f) => ({ ...f, url: e.target.value }))} error={errors.url} />
+                        <div>
+                            <label htmlFor="webhook-format" className="mb-1.5 block text-sm font-medium text-gray-700">{t('admin.webhooks.format')}</label>
+                            <select id="webhook-format" className="block w-full rounded-lg border border-line-input bg-white px-3.5 py-2.5 text-sm" value={form.format} onChange={(e) => setForm((f) => ({ ...f, format: e.target.value }))}>
+                                {['json', 'slack', 'teams'].map((f) => <option key={f} value={f}>{t(`admin.webhooks.formats.${f}`)}</option>)}
+                            </select>
+                            <p className="mt-1 text-xs text-gray-500">{t('admin.webhooks.formatHint')}</p>
+                        </div>
                         <Input label={t('admin.webhooks.descriptionOptional')} name="description" value={form.description} onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))} error={errors.description} />
                         <div>
                             <p className="mb-1.5 text-sm font-medium text-gray-700">{t('admin.webhooks.events')}</p>
@@ -132,7 +139,7 @@ export default function Webhooks() {
                             <div className="mt-3 flex flex-wrap gap-2 text-sm">
                                 <Button size="sm" variant="secondary" onClick={() => test(e.id)}>{t('admin.webhooks.sendTest')}</Button>
                                 <Button size="sm" variant="secondary" onClick={() => showDeliveries(e.id)}>{open === e.id ? t('admin.webhooks.hideLog') : t('admin.webhooks.deliveryLog')}</Button>
-                                <Button size="sm" variant="secondary" onClick={() => act(() => api.put(`/webhooks/${e.id}`, { url: e.url, description: e.description, events: e.events, is_active: !e.is_active }), e.is_active ? t('admin.webhooks.endpointOff') : t('admin.webhooks.endpointOn'))}>{e.is_active ? t('admin.webhooks.switchOff') : t('admin.webhooks.switchOn')}</Button>
+                                <Button size="sm" variant="secondary" onClick={() => act(() => api.put(`/webhooks/${e.id}`, { url: e.url, description: e.description, events: e.events, format: e.format, is_active: !e.is_active }), e.is_active ? t('admin.webhooks.endpointOff') : t('admin.webhooks.endpointOn'))}>{e.is_active ? t('admin.webhooks.switchOff') : t('admin.webhooks.switchOn')}</Button>
                                 <Button size="sm" variant="secondary" onClick={async () => { const r = await act(() => api.post(`/webhooks/${e.id}/rotate-secret`)); if (r) setSecret({ id: e.id, value: r.data.secret }); }}>{t('admin.webhooks.rotateSecret')}</Button>
                                 <Button size="sm" variant="danger" onClick={async () => { if (await confirm({ title: t('admin.webhooks.deleteTitle'), message: t('admin.webhooks.deleteMessage'), variant: 'danger' })) act(() => api.delete(`/webhooks/${e.id}`), t('admin.webhooks.endpointDeleted')); }}>{t('admin.common.delete')}</Button>
                             </div>

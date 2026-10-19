@@ -1,10 +1,11 @@
 import { useState } from 'react';
+import ListSavedFilters from '../components/ui/ListSavedFilters';
 import { useTranslation } from 'react-i18next';
 import api, { fieldErrors } from '../services/api';
 import Card from '../components/ui/Card';
 import Button from '../components/ui/Button';
 import Input from '../components/ui/Input';
-import Spinner from '../components/ui/Spinner';
+import ContentSkeleton from '../components/ui/ContentSkeleton';
 import Pagination from '../components/ui/Pagination';
 import { useToast } from '../context/ToastContext';
 import { useConfirm } from '../components/ui/ConfirmDialog';
@@ -104,11 +105,14 @@ export default function MediaLibrary() {
             </Card>
 
             <Card>
-                <div className="mb-4 max-w-sm">
-                    <Input label={t('admin.mediaLibrary.searchLabel')} name="q" value={q} onChange={(e) => { setQ(e.target.value); setPage(1); }} placeholder={t('admin.mediaLibrary.searchPlaceholder')} />
+                <div className="mb-4 flex max-w-md items-end gap-2">
+                    <div className="flex-1">
+                        <Input label={t('admin.mediaLibrary.searchLabel')} name="q" value={q} onChange={(e) => { setQ(e.target.value); setPage(1); }} placeholder={t('admin.mediaLibrary.searchPlaceholder')} />
+                    </div>
+                    <ListSavedFilters page="platform-media" scope="system" value={{ q }} onApply={(saved) => { setQ(saved.q || ''); setPage(1); }} />
                 </div>
                 {loading ? (
-                    <Spinner />
+                    <ContentSkeleton size="sm" />
                 ) : items.length === 0 ? (
                     <p className="py-6 text-center text-sm text-gray-400">{t('admin.mediaLibrary.empty')}</p>
                 ) : (

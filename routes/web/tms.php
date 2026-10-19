@@ -3,25 +3,34 @@
 use App\Http\Controllers\ActivityController;
 use App\Http\Controllers\AttachmentController;
 use App\Http\Controllers\AutomationRuleController;
+use App\Http\Controllers\BoardPreferenceController;
 use App\Http\Controllers\CommentController;
 use App\Http\Controllers\DependencyController;
 use App\Http\Controllers\IssueTypeController;
 use App\Http\Controllers\LabelController;
 use App\Http\Controllers\ProjectComponentController;
 use App\Http\Controllers\ProjectController;
+use App\Http\Controllers\ProjectDashboardController;
 use App\Http\Controllers\ProjectHierarchyController;
+use App\Http\Controllers\ProjectIssueSchemeController;
 use App\Http\Controllers\ProjectMemberController;
 use App\Http\Controllers\ProjectRoleController;
+use App\Http\Controllers\ProjectTemplateController;
 use App\Http\Controllers\ProjectVersionController;
+use App\Http\Controllers\SavedFilterController;
+use App\Http\Controllers\SlaPolicyController;
 use App\Http\Controllers\SprintController;
-use App\Http\Controllers\BoardPreferenceController;
 use App\Http\Controllers\StatusController;
 use App\Http\Controllers\TaskBulkController;
 use App\Http\Controllers\TaskChecklistController;
 use App\Http\Controllers\TaskController;
 use App\Http\Controllers\TaskMoveController;
+use App\Http\Controllers\TaskMoveRequestController;
 use App\Http\Controllers\TaskWatcherController;
+use App\Http\Controllers\TimerController;
+use App\Http\Controllers\TimesheetController;
 use App\Http\Controllers\WorkflowController;
+use App\Http\Controllers\WorkloadController;
 use App\Http\Controllers\WorkLogController;
 use App\Http\Controllers\WorkspaceController;
 use App\Http\Controllers\WorkspaceMemberController;
@@ -42,6 +51,10 @@ Route::middleware(['permission:workspaces.view', 'ensure_product:tms', 'ensure_m
     Route::put('projects/{project}/automations/{rule}', [AutomationRuleController::class, 'update']);
     Route::delete('projects/{project}/automations/{rule}', [AutomationRuleController::class, 'destroy']);
     Route::get('projects/{project}/automations/{rule}/runs', [AutomationRuleController::class, 'runs']);
+    Route::get('projects/{project}/sla-policies', [SlaPolicyController::class, 'index']);
+    Route::post('projects/{project}/sla-policies', [SlaPolicyController::class, 'store']);
+    Route::put('projects/{project}/sla-policies/{policy}', [SlaPolicyController::class, 'update']);
+    Route::delete('projects/{project}/sla-policies/{policy}', [SlaPolicyController::class, 'destroy']);
 });
 
 Route::middleware(['permission:workspaces.view', 'ensure_product:tms', 'ensure_module:sprints'])->group(function () {
@@ -61,6 +74,10 @@ Route::middleware(['permission:workspaces.view', 'ensure_product:tms'])->group(f
     Route::get('projects/{project}/workflow', [WorkflowController::class, 'show']);
     Route::put('projects/{project}/workflow', [WorkflowController::class, 'update']);
     Route::get('projects/{project}/tasks/{task}/transitions', [WorkflowController::class, 'transitions']);
+    Route::get('projects/{project}/move-requests', [TaskMoveRequestController::class, 'index']);
+    Route::post('projects/{project}/move-requests/{moveRequest}/approve', [TaskMoveRequestController::class, 'approve']);
+    Route::post('projects/{project}/move-requests/{moveRequest}/reject', [TaskMoveRequestController::class, 'reject']);
+    Route::post('projects/{project}/move-requests/{moveRequest}/withdraw', [TaskMoveRequestController::class, 'withdraw']);
     Route::get('workspaces', [WorkspaceController::class, 'index']);
     Route::get('workspaces/{workspace}', [WorkspaceController::class, 'show']);
     Route::put('workspaces/{workspace}', [WorkspaceController::class, 'update']);
@@ -87,6 +104,8 @@ Route::middleware(['permission:workspaces.view', 'ensure_product:tms'])->group(f
     Route::get('projects', [ProjectController::class, 'indexAll']);
 
     Route::get('projects/{project}', [ProjectController::class, 'show']);
+    Route::get('projects/{project}/issue-scheme', [ProjectIssueSchemeController::class, 'show']);
+    Route::put('projects/{project}/issue-scheme', [ProjectIssueSchemeController::class, 'update']);
     Route::put('projects/{project}', [ProjectController::class, 'update']);
     Route::delete('projects/{project}', [ProjectController::class, 'destroy']);
     Route::post('projects/{project}/archive', [ProjectController::class, 'archive']);
@@ -98,6 +117,24 @@ Route::middleware(['permission:workspaces.view', 'ensure_product:tms'])->group(f
     Route::put('projects/{project}/members/{user}', [ProjectMemberController::class, 'update']);
     Route::delete('projects/{project}/members/{user}', [ProjectMemberController::class, 'destroy']);
 
+    Route::get('projects/{project}/workload', [WorkloadController::class, 'show'])->middleware('ensure_module:sprints');
+    Route::middleware('ensure_module:reports')->group(function () {
+        Route::get('projects/{project}/dashboard', [ProjectDashboardController::class, 'show']);
+        Route::put('projects/{project}/dashboard', [ProjectDashboardController::class, 'update']);
+        Route::delete('projects/{project}/dashboard', [ProjectDashboardController::class, 'reset']);
+    });
+    Route::middleware('ensure_module:project_templates')->group(function () {
+        Route::get('project-templates', [ProjectTemplateController::class, 'index']);
+        Route::delete('project-templates/{template}', [ProjectTemplateController::class, 'destroy']);
+        Route::post('projects/{project}/save-as-template', [ProjectTemplateController::class, 'store'])->middleware('throttle:30,1');
+        Route::post('workspaces/{workspace}/projects/from-template', [ProjectTemplateController::class, 'fromTemplate'])->middleware('throttle:30,1');
+    });
+    Route::middleware('ensure_module:saved_filters')->group(function () {
+        Route::get('projects/{project}/saved-filters', [SavedFilterController::class, 'index']);
+        Route::post('projects/{project}/saved-filters', [SavedFilterController::class, 'store'])->middleware('throttle:60,1');
+        Route::put('projects/{project}/saved-filters/{filter}', [SavedFilterController::class, 'update']);
+        Route::delete('projects/{project}/saved-filters/{filter}', [SavedFilterController::class, 'destroy']);
+    });
     Route::get('projects/{project}/board-preferences', [BoardPreferenceController::class, 'show']);
     Route::put('projects/{project}/board-preferences', [BoardPreferenceController::class, 'update']);
     Route::get('projects/{project}/statuses', [StatusController::class, 'index']);
@@ -169,6 +206,20 @@ Route::middleware(['permission:workspaces.view', 'ensure_product:tms'])->group(f
         Route::post('projects/{project}/tasks/{task}/work-logs', [WorkLogController::class, 'store']);
         Route::put('projects/{project}/tasks/{task}/work-logs/{workLog}', [WorkLogController::class, 'update']);
         Route::delete('projects/{project}/tasks/{task}/work-logs/{workLog}', [WorkLogController::class, 'destroy']);
+
+        // Timer (one running per person) and weekly timesheets.
+        Route::get('time/timer', [TimerController::class, 'current']);
+        Route::post('time/timer/stop', [TimerController::class, 'stop']);
+        Route::post('projects/{project}/tasks/{task}/timer/start', [TimerController::class, 'start'])->middleware('throttle:60,1');
+
+        Route::middleware('ensure_module:timesheets')->group(function () {
+            Route::get('timesheets/week', [TimesheetController::class, 'week']);
+            Route::post('timesheets/submit', [TimesheetController::class, 'submit'])->middleware('throttle:30,1');
+            Route::get('timesheets/pending', [TimesheetController::class, 'pending']);
+            Route::get('timesheets/{timesheet}', [TimesheetController::class, 'show']);
+            Route::post('timesheets/{timesheet}/approve', [TimesheetController::class, 'approve']);
+            Route::post('timesheets/{timesheet}/reject', [TimesheetController::class, 'reject']);
+        });
 
         Route::get('projects/{project}/time-summary', [WorkLogController::class, 'projectTime']);
         Route::get('workspaces/{workspace}/time-summary', [WorkLogController::class, 'workspaceTime']);

@@ -8,7 +8,7 @@ import { ConfirmProvider } from './components/ui/ConfirmDialog';
 import GuestRoute from './components/GuestRoute';
 import ProtectedRoute from './components/ProtectedRoute';
 import AdminLayout from './components/AdminLayout';
-import Spinner from './components/ui/Spinner';
+import AppSkeleton from './components/ui/AppSkeleton';
 
 import Login from './pages/auth/Login';
 import Register from './pages/auth/Register';
@@ -23,6 +23,8 @@ import ProjectDetail from './pages/ProjectDetail';
 import Projects from './pages/Projects';
 import Support from './pages/Support';
 import Webhooks from './pages/Webhooks';
+import AuditTimeline from './pages/AuditTimeline';
+import CustomFields from './pages/CustomFields';
 import AdminSupport from './pages/AdminSupport';
 import Leads from './pages/Leads';
 import Users from './pages/Users';
@@ -31,6 +33,8 @@ import UserImport from './pages/UserImport';
 import Roles from './pages/Roles';
 import Settings from './pages/Settings';
 import Reports from './pages/Reports';
+import ReportBuilder from './pages/ReportBuilder';
+import Timesheets from './pages/Timesheets';
 import HrmsErrorBoundary from './components/hrms/HrmsErrorBoundary';
 import ApprovalChains from './pages/hrms/ApprovalChains';
 import HrmsOverview from './pages/hrms/HrmsOverview';
@@ -43,6 +47,20 @@ import Inbox from './pages/hrms/Inbox';
 import OnboardingCases from './pages/hrms/OnboardingCases';
 import OnboardingCaseDetail from './pages/hrms/OnboardingCaseDetail';
 import OffboardingCases from './pages/hrms/OffboardingCases';
+import Resignation from './pages/hrms/Resignation';
+import ExitInterview from './pages/hrms/ExitInterview';
+import HrAutomation from './pages/hrms/HrAutomation';
+import EmployeeChanges from './pages/hrms/EmployeeChanges';
+import ShiftSwaps from './pages/hrms/ShiftSwaps';
+import ImprovementPlans from './pages/hrms/ImprovementPlans';
+import DevelopmentPlans from './pages/hrms/DevelopmentPlans';
+import Okrs from './pages/hrms/Okrs';
+import Careers from './pages/hrms/Careers';
+import Signatures from './pages/hrms/Signatures';
+import SignatureVerify from './pages/SignatureVerify';
+import Loans from './pages/hrms/Loans';
+import OrgChart from './pages/hrms/OrgChart';
+import Letters from './pages/hrms/Letters';
 import OffboardingCaseDetail from './pages/hrms/OffboardingCaseDetail';
 import Attendance from './pages/hrms/Attendance';
 import AttendanceApprovals from './pages/hrms/AttendanceApprovals';
@@ -64,6 +82,7 @@ import MyTeam from './pages/hrms/MyTeam';
 import Performance from './pages/hrms/Performance';
 import PerformanceCycleDetail from './pages/hrms/PerformanceCycleDetail';
 import MyPerformance from './pages/hrms/MyPerformance';
+import Skills from './pages/hrms/Skills';
 import Talent from './pages/hrms/Talent';
 import Assets from './pages/hrms/Assets';
 import MyAssets from './pages/hrms/MyAssets';
@@ -84,6 +103,8 @@ import SystemUsers from './pages/SystemUsers';
 import SystemSettings from './pages/SystemSettings';
 import AuditLogs from './pages/AuditLogs';
 import FeatureManagement from './pages/FeatureManagement';
+import AdminQueue from './pages/AdminQueue';
+import AdminActivity from './pages/AdminActivity';
 import FeatureFlags from './pages/FeatureFlags';
 import Security from './pages/Security';
 import CmsPages from './pages/CmsPages';
@@ -91,15 +112,14 @@ import MediaLibrary from './pages/MediaLibrary';
 import WebsiteSettings from './pages/WebsiteSettings';
 import BlogPosts from './pages/BlogPosts';
 import Forbidden from './pages/Forbidden';
+import Maintenance from './pages/Maintenance';
 import ModuleDenied from './pages/ModuleDenied';
 import NotFound from './pages/NotFound';
 import { homeRouteFor } from './utils/deepLinks';
 
 function LoadingScreen() {
     return (
-        <div className="flex min-h-screen items-center justify-center bg-gray-100">
-            <Spinner />
-        </div>
+        <AppSkeleton />
     );
 }
 
@@ -139,6 +159,7 @@ function AppRoutes() {
     return (
         <ThemeProvider>
             <Routes>
+                <Route path="/verify-signature/:code" element={<SignatureVerify />} />
                 <Route element={<GuestRoute />}>
                     <Route path="/login" element={<Login />} />
                     <Route path="/register" element={<Register />} />
@@ -164,6 +185,8 @@ function AppRoutes() {
                                 <Route path="/admin/leads" element={<Leads />} />
                                 <Route path="/admin/features" element={<FeatureManagement />} />
                                 <Route path="/admin/feature-flags" element={<FeatureFlags />} />
+                                <Route path="/admin/queue" element={<AdminQueue />} />
+                                <Route path="/admin/activity" element={<AdminActivity />} />
                                 <Route path="/admin/pages" element={<CmsPages />} />
                                 <Route path="/admin/media" element={<MediaLibrary />} />
                                 <Route path="/admin/site-settings" element={<WebsiteSettings />} />
@@ -211,8 +234,12 @@ function AppRoutes() {
                         <Route element={<ProtectedRoute permission="workspaces.view" product="tms" module="global_search" />}>
                             <Route path="/search" element={<Search />} />
                         </Route>
+                        <Route element={<ProtectedRoute permission="workspaces.view" product="tms" module="timesheets" />}>
+                            <Route path="/timesheets" element={<Timesheets />} />
+                        </Route>
                         <Route element={<ProtectedRoute permission="reports.view" product="tms" module="reports" />}>
                             <Route path="/reports" element={<Reports />} />
+                            <Route path="/reports/builder" element={<ReportBuilder />} />
                         </Route>
                         <Route element={<ProtectedRoute module="hrms.core" />}>
                             <Route path="/hrms" element={<HrmsErrorScope />}>
@@ -279,6 +306,43 @@ function AppRoutes() {
                                     }
                                 />
                                 <Route path="/hrms/onboarding/cases/:caseId" element={<OnboardingCaseDetail />} />
+                                <Route path="/hrms/resignation" element={<ProtectedRoute module="hrms.offboarding" />}>
+                                    <Route index element={<Resignation />} />
+                                </Route>
+                                <Route path="/hrms/changes" element={<EmployeeChanges />} />
+                                <Route path="/hrms/careers" element={<ProtectedRoute module="hrms.talent" />}>
+                                    <Route index element={<Careers />} />
+                                </Route>
+                                <Route path="/hrms/signatures" element={<ProtectedRoute module="hrms.documents" />}>
+                                    <Route index element={<Signatures />} />
+                                </Route>
+                                <Route path="/hrms/okrs" element={<ProtectedRoute module="hrms.performance" />}>
+                                    <Route index element={<Okrs />} />
+                                </Route>
+                                <Route path="/hrms/development-plans" element={<ProtectedRoute module="hrms.performance" />}>
+                                    <Route index element={<DevelopmentPlans />} />
+                                </Route>
+                                <Route path="/hrms/improvement-plans" element={<ProtectedRoute module="hrms.performance" />}>
+                                    <Route index element={<ImprovementPlans />} />
+                                </Route>
+                                <Route path="/hrms/loans" element={<ProtectedRoute module="hrms.payroll" />}>
+                                    <Route index element={<Loans />} />
+                                </Route>
+                                <Route path="/hrms/letters" element={<ProtectedRoute module="hrms.documents" permission="hrms.documents.manage" />}>
+                                    <Route index element={<Letters />} />
+                                </Route>
+                                <Route path="/hrms/org-chart" element={<ProtectedRoute permission="hrms.employees.view" />}>
+                                    <Route index element={<OrgChart />} />
+                                </Route>
+                                <Route path="/hrms/shift-swaps" element={<ProtectedRoute module="hrms.shifts" />}>
+                                    <Route index element={<ShiftSwaps />} />
+                                </Route>
+                                <Route path="/hrms/automation" element={<ProtectedRoute module="automation" permission="hrms.onboarding.manage" />}>
+                                    <Route index element={<HrAutomation />} />
+                                </Route>
+                                <Route path="/hrms/exit-interview" element={<ProtectedRoute module="hrms.offboarding" />}>
+                                    <Route index element={<ExitInterview />} />
+                                </Route>
                                 <Route
                                     path="/hrms/offboarding"
                                     element={
@@ -441,6 +505,7 @@ function AppRoutes() {
                                     end to end — the grid names reviewees and
                                     their ratings, so there is no viewer tier. */}
                                 <Route element={<ProtectedRoute module="hrms.talent" />}>
+                                    <Route path="/hrms/skills" element={<Skills />} />
                                     <Route
                                         path="/hrms/talent"
                                         element={
@@ -523,6 +588,12 @@ function AppRoutes() {
                         <Route element={<ProtectedRoute permission="users.manage" />}>
                             <Route path="/users/import" element={<UserImport />} />
                         </Route>
+                        <Route element={<ProtectedRoute permission="custom_fields.manage" module="custom_fields" />}>
+                            <Route path="/custom-fields" element={<CustomFields />} />
+                        </Route>
+                        <Route element={<ProtectedRoute permission="tenant.manage" />}>
+                            <Route path="/audit" element={<AuditTimeline />} />
+                        </Route>
                         <Route element={<ProtectedRoute permission="webhooks.manage" module="webhooks" />}>
                             <Route path="/webhooks" element={<Webhooks />} />
                         </Route>
@@ -540,6 +611,7 @@ function AppRoutes() {
                 </Route>
 
                 <Route path="/403" element={<Forbidden />} />
+                <Route path="/maintenance" element={<Maintenance />} />
                 <Route path="/module-denied" element={<ModuleDenied />} />
                 <Route path="*" element={<NotFound />} />
             </Routes>

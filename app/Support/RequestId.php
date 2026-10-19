@@ -12,8 +12,20 @@ use Illuminate\Database\Eloquent\Model;
  */
 final class RequestId
 {
+    /** Set by the queue listener while a worker runs a job dispatched by a traced request. */
+    private static ?string $forJob = null;
+
+    public static function useForJob(?string $id): void
+    {
+        self::$forJob = $id;
+    }
+
     public static function current(): ?string
     {
+        if (self::$forJob !== null) {
+            return self::$forJob;
+        }
+
         if (! app()->bound('request')) {
             return null;
         }

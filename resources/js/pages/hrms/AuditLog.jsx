@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
+import ListSavedFilters from '../../components/ui/ListSavedFilters';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import api from '../../services/api';
@@ -8,7 +9,7 @@ import Alert from '../../components/ui/Alert';
 import Button from '../../components/ui/Button';
 import Card from '../../components/ui/Card';
 import Input from '../../components/ui/Input';
-import Spinner from '../../components/ui/Spinner';
+import ContentSkeleton from '../../components/ui/ContentSkeleton';
 import Pagination from '../../components/ui/Pagination';
 import AuditTrail from '../../components/hrms/AuditTrail';
 
@@ -107,6 +108,14 @@ export default function AuditLog() {
                         <Button type="button" variant="secondary" onClick={reset}>
                             {t('hrms.auditLog.reset')}
                         </Button>
+                        <ListSavedFilters
+                            page="hrms-audit-log"
+                            value={draft}
+                            onApply={(saved) => {
+                                setDraft({ ...emptyFilters, ...saved });
+                                setSearchParams(saved);
+                            }}
+                        />
                     </div>
                 </form>
             </Card>
@@ -114,7 +123,7 @@ export default function AuditLog() {
             {error && <Alert type="error">{error}</Alert>}
 
             {loading && !rows ? (
-                <Spinner />
+                <ContentSkeleton size="sm" />
             ) : (
                 rows && (
                     <Card title={t('hrms.auditLog.trail')} subtitle={pagination ? t('hrms.auditLog.rows', { count: pagination.total }) : ''}>

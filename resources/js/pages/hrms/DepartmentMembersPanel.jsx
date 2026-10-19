@@ -6,7 +6,7 @@ import Alert from '../../components/ui/Alert';
 import Button from '../../components/ui/Button';
 import EmptyState from '../../components/ui/EmptyState';
 import Input from '../../components/ui/Input';
-import Spinner from '../../components/ui/Spinner';
+import ContentSkeleton from '../../components/ui/ContentSkeleton';
 import { useToast } from '../../context/ToastContext';
 import { employeeUrl } from '../../utils/deepLinks';
 import { useConfirm } from '../../components/ui/ConfirmDialog';
@@ -179,7 +179,7 @@ export default function DepartmentMembersPanel({ department, canManage, onChange
 
             {members === null ? (
                 <div className="py-8 text-center">
-                    <Spinner />
+                    <ContentSkeleton size="sm" />
                 </div>
             ) : members.length === 0 ? (
                 <EmptyState

@@ -41,14 +41,24 @@ class SearchController extends Controller
             Like::any($query, ['tasks.title', 'tasks.key', 'tasks.description'], $filters['q']);
         }
 
-        foreach (['status_id', 'priority_id', 'assignee_id', 'project_id', 'workspace_id'] as $column) {
+        // Statuses and labels are per-project / per-workspace rows, so the option list shows each name once; the
+        // chosen id therefore stands for every status (label) that carries the same name.
+        if (! empty($filters['status_id'])) {
+            $name = TaskStatus::whereKey($filters['status_id'])->value('name');
+            $query->whereIn('tasks.status_id', $name === null ? [$filters['status_id']] : TaskStatus::where('name', $name)->select('id'));
+        }
+
+        foreach (['priority_id', 'assignee_id', 'project_id', 'workspace_id'] as $column) {
             if (! empty($filters[$column])) {
                 $query->where('tasks.'.$column, $filters[$column]);
             }
         }
 
         if (! empty($filters['label_id'])) {
-            $query->whereHas('labels', fn (Builder $builder) => $builder->where('labels.id', $filters['label_id']));
+            $labelName = Label::whereKey($filters['label_id'])->value('name');
+            $query->whereHas('labels', fn (Builder $builder) => $labelName === null
+                ? $builder->where('labels.id', $filters['label_id'])
+                : $builder->where('labels.name', $labelName));
         }
 
         if (! empty($filters['due_from'])) {
@@ -94,7 +104,8 @@ class SearchController extends Controller
             ->distinct()->pluck('label_id');
 
         return [
-            'statuses' => TaskStatus::whereIn('id', $statusIds)->orderBy('position')->get()
+            'statuses' => TaskStatus::whereIn('id', $statusIds)->orderBy('position')->orderBy('id')->get()
+                ->unique(fn (TaskStatus $status) => mb_strtolower($status->name))
                 ->map(fn (TaskStatus $status) => [
                     'id' => $status->id,
                     'name' => $status->name,
@@ -124,7 +135,8 @@ class SearchController extends Controller
                     'id' => $workspace->id,
                     'name' => $workspace->name,
                 ])->values(),
-            'labels' => Label::whereIn('id', $labelIds)->orderBy('name')->get()
+            'labels' => Label::whereIn('id', $labelIds)->orderBy('name')->orderBy('id')->get()
+                ->unique(fn (Label $label) => mb_strtolower($label->name))
                 ->map(fn (Label $label) => [
                     'id' => $label->id,
                     'name' => $label->name,

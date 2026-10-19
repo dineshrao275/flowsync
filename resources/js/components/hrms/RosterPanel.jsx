@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
+import PersonSelect from '../ui/PersonSelect';
 import { useTranslation } from 'react-i18next';
 import api, { fieldErrors } from '../../services/api';
 import Alert from '../ui/Alert';
@@ -6,7 +7,7 @@ import Button from '../ui/Button';
 import Card from '../ui/Card';
 import Input from '../ui/Input';
 import Select from '../ui/Select';
-import Spinner from '../ui/Spinner';
+import ContentSkeleton from '../ui/ContentSkeleton';
 import { Table, Th, Td, TableEmpty } from '../ui/Table';
 import { useToast } from '../../context/ToastContext';
 import { useConfirm } from '../ui/ConfirmDialog';
@@ -102,7 +103,7 @@ export default function RosterPanel({ shifts, canManage, canView }) {
                 </div>
 
                 {!rosters ? (
-                    <div className="flex justify-center py-6"><Spinner /></div>
+                    <ContentSkeleton size="sm" />
                 ) : (
                     <Table compact>
                         <thead>
@@ -141,10 +142,7 @@ export default function RosterPanel({ shifts, canManage, canView }) {
             {canManage && (
                 <Card dense title={t('hrms.roster.assignTitle')}>
                     <form onSubmit={assign} className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                        <Select label={t('hrms.roster.person')} value={form.employee_id} onChange={(e) => setForm({ ...form, employee_id: e.target.value })} error={errors.employee_id}>
-                            <option value="">{t('hrms.roster.choose')}</option>
-                            {employees.map((emp) => <option key={emp.id} value={emp.id}>{emp.name}</option>)}
-                        </Select>
+                        <PersonSelect label={t('hrms.roster.person')} value={form.employee_id} onChange={(e) => setForm({ ...form, employee_id: e.target.value })} error={errors.employee_id} placeholder={t('hrms.roster.choose')} people={employees} />
                         <Select label={t('hrms.roster.shift')} value={form.shift_id} onChange={(e) => setForm({ ...form, shift_id: e.target.value })} error={errors.shift_id}>
                             <option value="">{t('hrms.roster.flexibleNone')}</option>
                             {shifts.filter((s) => s.is_active).map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}

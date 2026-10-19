@@ -39,8 +39,11 @@ final class Like
 
         return $query->where(function ($group) use ($columns, $pattern): void {
             $grammar = $group->getGrammar();
+            // PostgreSQL's LIKE is case-sensitive; ILIKE matches SQLite's behaviour and is what the pg_trgm
+            // indexes (F2.5) accelerate.
+            $operator = $group->getConnection()->getDriverName() === 'pgsql' ? 'ilike' : 'like';
             foreach ($columns as $column) {
-                $group->orWhereRaw($grammar->wrap($column)." like ? escape '".self::ESCAPE."'", [$pattern]);
+                $group->orWhereRaw($grammar->wrap($column)." $operator ? escape '".self::ESCAPE."'", [$pattern]);
             }
         });
     }

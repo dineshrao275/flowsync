@@ -4,7 +4,7 @@ import api, { fieldErrors } from '../../services/api';
 import Card from '../ui/Card';
 import Badge from '../ui/Badge';
 import Button from '../ui/Button';
-import Spinner from '../ui/Spinner';
+import ContentSkeleton from '../ui/ContentSkeleton';
 import { useToast } from '../../context/ToastContext';
 
 /**
@@ -36,7 +36,7 @@ export default function ProductsPanel({ tenantId, onChanged }) {
         } finally { setBusy(false); }
     }
 
-    if (data === null) return <Card title={t('admin.productsPanel.products')}><Spinner /></Card>;
+    if (data === null) return <Card title={t('admin.productsPanel.products')}><ContentSkeleton size="sm" /></Card>;
     if (data === false) return <Card title={t('admin.productsPanel.products')}><p className="text-sm text-gray-400">{t('admin.productsPanel.unavailable')}</p></Card>;
 
     const subs = data.subscriptions || [];

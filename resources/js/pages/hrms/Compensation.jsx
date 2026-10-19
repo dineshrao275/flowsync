@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
+import PersonSelect from '../../components/ui/PersonSelect';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import api, { fieldErrors } from '../../services/api';
@@ -9,7 +10,7 @@ import EmptyState from '../../components/ui/EmptyState';
 import Input from '../../components/ui/Input';
 import Modal from '../../components/ui/Modal';
 import Select from '../../components/ui/Select';
-import Spinner from '../../components/ui/Spinner';
+import ContentSkeleton from '../../components/ui/ContentSkeleton';
 import { Table, Th, Td } from '../../components/ui/Table';
 import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
@@ -301,7 +302,7 @@ export default function Compensation() {
                 actions={canManage && <Button size="sm" onClick={() => openHeadModal(null)}>{t('hrms.compensation.newHead')}</Button>}
             >
                 {!heads ? (
-                    <div className="flex justify-center py-8"><Spinner /></div>
+                    <ContentSkeleton size="md" />
                 ) : heads.length === 0 ? (
                     <EmptyState title={t('hrms.compensation.noHeads')} />
                 ) : (
@@ -338,7 +339,7 @@ export default function Compensation() {
                 actions={canManage && <Button size="sm" onClick={() => setTemplateModal(true)}>{t('hrms.compensation.newTemplate')}</Button>}
             >
                 {!templates ? (
-                    <div className="flex justify-center py-8"><Spinner /></div>
+                    <ContentSkeleton size="md" />
                 ) : templates.length === 0 ? (
                     <EmptyState title={t('hrms.compensation.noTemplates')} />
                 ) : (
@@ -371,16 +372,13 @@ export default function Compensation() {
 
             <Card title={t('hrms.compensation.employeePay')} dense>
                 <div className="mb-4 max-w-sm">
-                    <Select label={t('hrms.compensation.employee')} value={employeeId} onChange={(e) => setEmployeeId(e.target.value)}>
-                        <option value="">{t('hrms.compensation.selectPerson')}</option>
-                        {employees.map((e) => <option key={e.id} value={e.id}>{e.name}</option>)}
-                    </Select>
+                    <PersonSelect label={t('hrms.compensation.employee')} value={employeeId} onChange={(e) => setEmployeeId(e.target.value)} placeholder={t('hrms.compensation.selectPerson')} people={employees} />
                 </div>
 
                 {employeeId && (
                     <>
                         {!basisLoaded ? (
-                            <div className="mb-4 flex justify-center py-8"><Spinner /></div>
+                            <div className="mb-4 flex justify-center py-8"><ContentSkeleton size="sm" /></div>
                         ) : basis ? (
                             <div className="mb-4 rounded-lg border border-gray-200 p-4 text-sm">
                                 <p className="font-medium text-gray-900">{t('hrms.compensation.basisMeta', { structure: basis.structure?.name, ctc: basis.ctc_annual })}</p>

@@ -6,7 +6,7 @@ import Card from '../ui/Card';
 import Badge from '../ui/Badge';
 import Button from '../ui/Button';
 import Input from '../ui/Input';
-import Spinner from '../ui/Spinner';
+import ContentSkeleton from '../ui/ContentSkeleton';
 import { useToast } from '../../context/ToastContext';
 import { useConfirm } from '../ui/ConfirmDialog';
 import { formatDate } from '../../utils/format';
@@ -76,7 +76,7 @@ export default function SprintsPanel({ projectId, canPlan }) {
         });
     }
 
-    if (!data) return <div className="flex justify-center py-10"><Spinner /></div>;
+    if (!data) return <ContentSkeleton size="md" />;
     const open = data.sprints.filter((s) => s.status !== 'completed');
     const closed = data.sprints.filter((s) => s.status === 'completed');
 
@@ -151,7 +151,7 @@ export default function SprintsPanel({ projectId, canPlan }) {
                 </>
             )}
 
-            {view === 'reports' && (!reports ? <div className="flex justify-center py-10"><Spinner /></div> : (
+            {view === 'reports' && (!reports ? <ContentSkeleton size="md" /> : (
                 <div className="space-y-5">
                     <Card title={reports.sprint ? t('tms.sprints.burndown', { name: reports.sprint.name }) : t('tms.sprints.burndownFallback')} subtitle={t('tms.sprints.burndownSubtitle')}>
                         {reports.burndown?.days?.length ? (
@@ -161,6 +161,19 @@ export default function SprintsPanel({ projectId, canPlan }) {
                                         <CartesianGrid strokeDasharray="3 3" /><XAxis dataKey="date" tick={{ fontSize: 11 }} /><YAxis tick={{ fontSize: 11 }} /><Tooltip /><Legend />
                                         <Line type="monotone" dataKey="remaining" stroke="#2563eb" name={t('tms.sprints.remaining')} dot={false} />
                                         <Line type="monotone" dataKey="ideal" stroke="#9ca3af" strokeDasharray="5 5" name={t('tms.sprints.ideal')} dot={false} />
+                                    </LineChart>
+                                </ResponsiveContainer>
+                            </div>
+                        ) : <p className="text-sm text-gray-400">{t('tms.sprints.burndownEmpty')}</p>}
+                    </Card>
+                    <Card title={t('tms.sprints.burnup')} subtitle={t('tms.sprints.burnupSubtitle')}>
+                        {reports.burndown?.days?.length ? (
+                            <div style={{ height: 240 }}>
+                                <ResponsiveContainer>
+                                    <LineChart data={reports.burndown.days}>
+                                        <CartesianGrid strokeDasharray="3 3" /><XAxis dataKey="date" tick={{ fontSize: 11 }} /><YAxis tick={{ fontSize: 11 }} /><Tooltip /><Legend />
+                                        <Line type="stepAfter" dataKey="scope" stroke="#9ca3af" name={t('tms.sprints.scope')} dot={false} />
+                                        <Line type="monotone" dataKey="done" stroke="#10b981" name={t('tms.sprints.done')} dot={false} />
                                     </LineChart>
                                 </ResponsiveContainer>
                             </div>

@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import api from '../../services/api';
 import Alert from '../ui/Alert';
-import Spinner from '../ui/Spinner';
+import ContentSkeleton from '../ui/ContentSkeleton';
 import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
 import { useConfirm, usePrompt } from '../ui/ConfirmDialog';
@@ -105,9 +105,7 @@ export default function EmployeeDocuments({ employee }) {
 
     if (!documents) {
         return (
-            <div className="flex justify-center py-10">
-                <Spinner />
-            </div>
+            <ContentSkeleton size="md" />
         );
     }
 

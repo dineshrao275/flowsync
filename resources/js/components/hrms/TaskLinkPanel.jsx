@@ -7,7 +7,7 @@ import { useToast } from '../../context/ToastContext';
 import Button from '../ui/Button';
 import Select from '../ui/Select';
 import Input from '../ui/Input';
-import Spinner from '../ui/Spinner';
+import ContentSkeleton from '../ui/ContentSkeleton';
 import EmptyState from '../ui/EmptyState';
 import { useConfirm } from '../ui/ConfirmDialog';
 
@@ -104,7 +104,7 @@ export default function TaskLinkPanel({ task, canManage }) {
         return <p className="py-8 text-center text-sm text-gray-400">{t('hrms.links.forbidden')}</p>;
     }
 
-    if (!links) return <Spinner />;
+    if (!links) return <ContentSkeleton size="sm" />;
 
     return (
         <div className="space-y-4">

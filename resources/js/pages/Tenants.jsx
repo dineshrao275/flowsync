@@ -1,10 +1,11 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link, useNavigate } from 'react-router-dom';
+import ListSavedFilters from '../components/ui/ListSavedFilters';
 import api, { fieldErrors } from '../services/api';
 import Card from '../components/ui/Card';
 import Badge from '../components/ui/Badge';
-import Spinner from '../components/ui/Spinner';
+import ContentSkeleton from '../components/ui/ContentSkeleton';
 import Alert from '../components/ui/Alert';
 import Button from '../components/ui/Button';
 import Pagination from '../components/ui/Pagination';
@@ -12,7 +13,7 @@ import { useAuth } from '../context/AuthContext';
 import ImpersonateModal from '../components/ImpersonateModal';
 import { useToast } from '../context/ToastContext';
 import { useConfirm } from '../components/ui/ConfirmDialog';
-import { useClickOutside } from '../hooks/useClickOutside';
+import FloatingPanel from '../components/ui/FloatingPanel';
 import usePageTitle from '../hooks/usePageTitle';
 import i18n, { intlTag } from '../i18n';
 import Timestamp from '../components/ui/Timestamp';
@@ -98,7 +99,16 @@ function TenantActions({ tenant, onChanged, onImpersonate }) {
     const [loadingUsers, setLoadingUsers] = useState(false);
     const [busy, setBusy] = useState(false);
 
-    useClickOutside(ref, () => setOpen(false));
+    const panelRef = useRef(null);
+
+    useEffect(() => {
+        if (!open) return undefined;
+        const onDown = (event) => {
+            if (!ref.current?.contains(event.target) && !panelRef.current?.contains(event.target)) setOpen(false);
+        };
+        document.addEventListener('mousedown', onDown);
+        return () => document.removeEventListener('mousedown', onDown);
+    }, [open]);
 
     const confirm = useConfirm();
     const trashed = Boolean(tenant.deleted_at);
@@ -180,7 +190,7 @@ function TenantActions({ tenant, onChanged, onImpersonate }) {
             </button>
 
             {open && (
-                <div className="absolute right-0 top-full z-10 mt-1 w-52 origin-top-right animate-scale-in overflow-hidden rounded-xl border border-gray-200 bg-white py-1 shadow-xl">
+                <FloatingPanel ref={panelRef} anchorRef={ref} className="w-52 origin-top-right animate-scale-in overflow-hidden rounded-xl border border-gray-200 bg-white py-1 shadow-xl">
                     {mode === 'users' ? (
                         <>
                             <button
@@ -255,7 +265,7 @@ function TenantActions({ tenant, onChanged, onImpersonate }) {
                             )}
                         </>
                     )}
-                </div>
+                </FloatingPanel>
             )}
         </div>
     );
@@ -286,6 +296,8 @@ function ActionButton({ children, onClick, disabled, danger = false }) {
     );
 }
 
+const DEFAULT_FILTERS = { q: '', status: '', plan_id: '', subscription_status: '', sort: 'name', trashed: false };
+
 export default function Tenants() {
     const { t } = useTranslation();
     usePageTitle(t('admin.tenants.pageTitle'));
@@ -298,7 +310,7 @@ export default function Tenants() {
     const [summary, setSummary] = useState(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
-    const [filters, setFilters] = useState({ q: '', status: '', plan_id: '', subscription_status: '', sort: 'name', trashed: false });
+    const [filters, setFilters] = useState(DEFAULT_FILTERS);
     const [page, setPage] = useState(1);
     const [pagination, setPagination] = useState({ current_page: 1, last_page: 1, total: 0 });
 
@@ -466,6 +478,12 @@ export default function Tenants() {
                         />
                         {t('admin.tenants.includeDeleted')}
                     </label>
+                    <ListSavedFilters
+                        page="tenants"
+                        scope="system"
+                        value={filters}
+                        onApply={(saved) => applyFilter({ ...DEFAULT_FILTERS, ...saved })}
+                    />
                 </div>
 
                 <div className="overflow-x-auto">
@@ -486,7 +504,7 @@ export default function Tenants() {
                                 <tr>
                                     <td colSpan={7} className="px-4 py-14 text-center">
                                         <div className="flex justify-center">
-                                            <Spinner />
+                                            <ContentSkeleton size="sm" />
                                         </div>
                                     </td>
                                 </tr>

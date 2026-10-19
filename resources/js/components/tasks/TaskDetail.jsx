@@ -1,4 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
+import UserChip from '../ui/UserChip';
+import PersonSelect from '../ui/PersonSelect';
 import { useTranslation } from 'react-i18next';
 import api, { fieldErrors } from '../../services/api';
 import Button from '../ui/Button';
@@ -6,7 +8,7 @@ import Input from '../ui/Input';
 import Select from '../ui/Select';
 import Drawer from '../ui/Drawer';
 import Alert from '../ui/Alert';
-import Spinner from '../ui/Spinner';
+import ContentSkeleton from '../ui/ContentSkeleton';
 import CommentThread from './CommentThread';
 import AttachmentList from './AttachmentList';
 import DependencyPanel from './DependencyPanel';
@@ -17,7 +19,9 @@ import { useAuth } from '../../context/AuthContext';
 import RichTextEditor from '../ui/RichTextEditor';
 import RichText from '../ui/RichText';
 import Timestamp from '../ui/Timestamp';
+import { formatRelativeTime } from '../../utils/format';
 import useUnsavedChanges from '../../hooks/useUnsavedChanges';
+import CustomFieldInputs, { useCustomFieldDefinitions } from '../customFields/CustomFieldInputs';
 
 export default function TaskDetail({
     task,
@@ -42,6 +46,7 @@ export default function TaskDetail({
 }) {
     const { user, hasModule } = useAuth();
     const { t } = useTranslation();
+    const cfDefs = useCustomFieldDefinitions('task');
     const [form, setForm] = useState(null);
     const [errors, setErrors] = useState({});
     const [tab, setTab] = useState('details');
@@ -70,6 +75,7 @@ export default function TaskDetail({
                       due_date: task.due_date || '',
                       story_points: task.story_points ?? '',
                       estimate_minutes: task.estimate_minutes ?? '',
+                      custom_fields: { ...(task.custom_fields || {}) },
               }
             : null;
         baseline.current = JSON.stringify(loaded);
@@ -221,9 +227,7 @@ export default function TaskDetail({
             }
         >
             {!form ? (
-                <div className="flex justify-center py-20">
-                    <Spinner />
-                </div>
+                <ContentSkeleton size="lg" />
             ) : (
                 <>
                     <div className="flex gap-1 border-b border-gray-200 px-6 pt-2">
@@ -420,20 +424,13 @@ export default function TaskDetail({
                                             </option>
                                         ))}
                                     </Select>
-                                    <Select
+                                    <PersonSelect
                                         label={t('tms.detail.assignee')}
                                         value={form.assignee_id}
                                         onChange={(e) => set('assignee_id', e.target.value)}
                                         disabled={!canAssign}
                                         error={errors.assignee_id}
-                                    >
-                                        <option value="">{t('tms.detail.unassigned')}</option>
-                                        {options.assignees.map((u) => (
-                                            <option key={u.id} value={u.id}>
-                                                {u.name}
-                                            </option>
-                                        ))}
-                                    </Select>
+                                     placeholder={t('tms.detail.unassigned')} people={options.assignees} />
                                     <Select
                                         label={t('tms.detail.parent')}
                                         value={form.parent_id}
@@ -474,6 +471,22 @@ export default function TaskDetail({
                                         </div>
                                     )}
 
+                                    {(task.viewers?.length ?? 0) > 0 && (
+                                        <div className="border-t border-gray-100 pt-3">
+                                            <span className="text-xs font-medium uppercase tracking-wide text-gray-500">
+                                                {t('tms.detail.lastSeen')}
+                                            </span>
+                                            <ul className="mt-2 space-y-1">
+                                                {task.viewers.map((v) => (
+                                                    <li key={v.id} className="flex items-center justify-between gap-2 text-xs text-gray-700">
+                                                        <UserChip user={v} name={v.id === user?.id ? t('tms.detail.you') : v.name} />
+                                                        <span className="shrink-0 text-gray-400" title={v.last_seen_at}>{formatRelativeTime(v.last_seen_at)}</span>
+                                                    </li>
+                                                ))}
+                                            </ul>
+                                        </div>
+                                    )}
+
                                     <div className="border-t border-gray-100 pt-3">
                                         <div className="flex items-center justify-between">
                                             <span className="text-xs font-medium uppercase tracking-wide text-gray-500">
@@ -500,7 +513,7 @@ export default function TaskDetail({
                                                         key={w.id}
                                                         className="inline-flex items-center gap-1 rounded-full bg-gray-100 py-0.5 pl-2 pr-1 text-xs text-gray-700"
                                                     >
-                                                        <span>{w.name}</span>
+                                                        <UserChip user={w} />
                                                         {(canEdit || w.id === user?.id) && (
                                                             <button
                                                                 type="button"
@@ -536,7 +549,7 @@ export default function TaskDetail({
                                     <dl className="space-y-2 border-t border-gray-100 pt-3 text-sm">
                                         <div className="flex items-center justify-between gap-2">
                                             <dt className="text-xs uppercase tracking-wide text-gray-400">{t('tms.detail.reporter')}</dt>
-                                            <dd className="font-medium text-gray-700">{task.reporter?.name ?? '—'}</dd>
+                                            <dd className="font-medium text-gray-700">{task.reporter ? <UserChip user={task.reporter} /> : '—'}</dd>
                                         </div>
                                         <div className="flex items-center justify-between gap-2">
                                             <dt className="text-xs uppercase tracking-wide text-gray-400">{t('tms.detail.created')}</dt>
@@ -547,6 +560,7 @@ export default function TaskDetail({
                                     </dl>
                                 </aside>
                             </div>
+                            <CustomFieldInputs fields={cfDefs} values={form.custom_fields || {}} onChange={(v) => set('custom_fields', v)} errors={errors} />
                         </form>
                     ) : (
                         <div className="px-6 py-5">

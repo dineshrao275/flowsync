@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Hrms\Asset;
 
+use App\Http\Controllers\Concerns\HandlesCustomFields;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Hrms\AssetAssignRequest;
 use App\Http\Requests\Hrms\AssetMaintenanceRequest;
@@ -33,6 +34,8 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
  */
 class AssetController extends Controller
 {
+    use HandlesCustomFields;
+
     public function __construct(
         private readonly AssetService $assets,
         private readonly AssetAssignmentService $handovers,
@@ -88,7 +91,10 @@ class AssetController extends Controller
     {
         $this->authorize('create', Asset::class);
 
+        $custom = $this->validatedCustomFields($request, 'asset', partial: false);
+
         $asset = $this->assets->create($request->validated(), $request->user());
+        $this->storeCustomFields('asset', $asset->id, $custom);
 
         return response()->json([
             'message' => __('Asset registered.'),
@@ -217,6 +223,14 @@ class AssetController extends Controller
      * @return array<string, mixed>
      */
     private function present(Asset $asset): array
+    {
+        return $this->withCustomFields([$this->presentBase($asset)], 'asset', true)[0];
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function presentBase(Asset $asset): array
     {
         $asset->loadMissing(['category:id,name,slug', 'assignee:id,employee_code,name']);
 

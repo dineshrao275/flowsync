@@ -4,7 +4,7 @@ import api, { fieldErrors } from '../services/api';
 import Card from '../components/ui/Card';
 import Button from '../components/ui/Button';
 import Input from '../components/ui/Input';
-import Spinner from '../components/ui/Spinner';
+import ContentSkeleton from '../components/ui/ContentSkeleton';
 import Alert from '../components/ui/Alert';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
@@ -12,6 +12,9 @@ import usePageTitle from '../hooks/usePageTitle';
 import { useSetCrumbs } from '../context/BreadcrumbContext';
 import { useConfirm } from '../components/ui/ConfirmDialog';
 import Timestamp from '../components/ui/Timestamp';
+import SsoSettings from '../components/settings/SsoSettings';
+import GithubSettings from '../components/settings/GithubSettings';
+import CalendarFeedCard from '../components/settings/CalendarFeedCard';
 
 function RecoveryCodes({ codes }) {
     const { t } = useTranslation();
@@ -54,7 +57,7 @@ function TwoFactorCard({ onChanged }) {
         }
     }
 
-    if (!state) return <Spinner />;
+    if (!state) return <ContentSkeleton size="sm" />;
 
     const reauth = (
         <div className="grid gap-3 sm:grid-cols-2">
@@ -132,7 +135,7 @@ function SupportAccessCard() {
     const load = useCallback(() => api.get('/support-access').then(({ data: d }) => setData(d)).catch(() => setData(false)), []);
     useEffect(() => { load(); }, [load]);
 
-    if (data === null) return <Spinner />;
+    if (data === null) return <ContentSkeleton size="sm" />;
     if (data === false) return null;
 
     async function grant(e) {
@@ -206,7 +209,7 @@ function TenantPolicyCard() {
 
     useEffect(() => { api.get('/security/two-factor-policy').then(({ data }) => setPolicy(data)).catch(() => setPolicy(false)); }, []);
 
-    if (policy === null) return <Spinner />;
+    if (policy === null) return <ContentSkeleton size="sm" />;
     if (policy === false) return null;
 
     async function toggle(slug, on) {
@@ -252,7 +255,7 @@ function PlatformPolicyCard() {
         toast.success(data.message);
     }
 
-    if (on === null) return <Spinner />;
+    if (on === null) return <ContentSkeleton size="sm" />;
 
     async function change(value) {
         const { data } = await api.put('/system/two-factor-policy', { require_super_admins: value });
@@ -291,6 +294,9 @@ export default function Security() {
                 )}
             </div>
             <TwoFactorCard onChanged={refresh} />
+            {!platform && <CalendarFeedCard />}
+            {!platform && can('tenant.manage') && <SsoSettings />}
+            {!platform && can('tenant.manage') && <GithubSettings />}
             {!platform && can('support.manage') && <SupportAccessCard />}
             {platform ? <PlatformPolicyCard /> : can('roles.manage') && <TenantPolicyCard />}
         </div>

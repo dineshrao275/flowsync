@@ -24,7 +24,10 @@
         "selectDateTime": "Seleccionar fecha y hora…",
         "justNow": "justo ahora",
         "pricePerMonth": "{{value}}/mes",
-        "pricePerMonthAnnual": "{{value}}/mes facturado anualmente"
+        "pricePerMonthAnnual": "{{value}}/mes facturado anualmente",
+        "change": "Cambiar",
+        "noMatches": "Nadie coincide",
+        "searchPeople": "Buscar personas…"
     },
     "errors": {
         "generic": "Algo salió mal. Inténtalo de nuevo."
@@ -111,7 +114,7 @@
         "breadcrumb": "Ruta de navegación",
         "superAdmin": "Superadministrador",
         "admin": "Administrador",
-        "footer": "FlowSync Admin · Laravel + React",
+        "footer": "{{app}} · Laravel + React",
         "dismiss": "Descartar notificación",
         "sidebar": {
             "superAdminPanel": "Panel de superadministrador",
@@ -191,7 +194,7 @@
         },
         "errorBoundary": {
             "title": "Esta página encontró un error inesperado",
-            "desc": "El resto de FlowSync sigue funcionando. Inténtalo de nuevo o vuelve a tu panel.",
+            "desc": "El resto de {{app}} sigue funcionando. Inténtalo de nuevo o vuelve a tu panel.",
             "fallback": "Error desconocido",
             "retry": "Intentar de nuevo",
             "dashboard": "Ir al panel"
@@ -249,7 +252,9 @@
             "projects": "Proyectos",
             "search": "Búsqueda",
             "reports": "Informes",
-            "webhooks": "Webhooks"
+            "webhooks": "Webhooks",
+            "timesheets": "Partes de horas",
+            "reportBuilder": "Generador de informes"
         },
         "admin": {
             "users": "Usuarios",
@@ -258,7 +263,9 @@
             "security": "Seguridad",
             "subscription": "Suscripción",
             "support": "Soporte",
-            "dataExport": "Exportación de datos"
+            "dataExport": "Exportación de datos",
+            "customFields": "Campos personalizados",
+            "audit": "Cronología de auditoría"
         },
         "hrms": {
             "myHr": "Mi RR. HH.",
@@ -294,7 +301,21 @@
             "myAssets": "Mis activos",
             "approvalChains": "Cadenas de aprobación",
             "analytics": "Analítica",
-            "audit": "Registro de auditoría"
+            "audit": "Registro de auditoría",
+            "skills": "Habilidades",
+            "resignation": "Renuncia",
+            "exitInterview": "Entrevista de salida",
+            "hrAutomation": "Automatización RR. HH.",
+            "changes": "Traslados y ascensos",
+            "shiftSwaps": "Cambios de turno",
+            "improvementPlans": "Planes de mejora",
+            "loans": "Préstamos y anticipos",
+            "letters": "Cartas",
+            "developmentPlans": "Planes de desarrollo",
+            "orgChart": "Organigrama",
+            "okrs": "OKR",
+            "careers": "Carreras y sucesión",
+            "signatures": "Firmas electrónicas"
         },
         "platform": {
             "overview": "Resumen",
@@ -307,7 +328,34 @@
             "siteSettings": "Ajustes del sitio",
             "blog": "Blog",
             "leads": "Contactos",
-            "auditLogs": "Registros de auditoría"
+            "auditLogs": "Registros de auditoría",
+            "queue": "Cola en segundo plano",
+            "activity": "Actividad de inquilinos"
         }
+    },
+    "maintenance": {
+        "title": "Enseguida volvemos",
+        "body": "{{app}} está en mantenimiento programado. Tus datos están a salvo; vuelve en unos minutos.",
+        "retry": "Comprobar de nuevo",
+        "adminLogin": "Acceso de administrador"
+    },
+    "savedFilters": {
+        "title": "Filtros guardados",
+        "menu": "Filtros guardados",
+        "saved": "Filtro guardado.",
+        "updated": "Filtro actualizado.",
+        "saveFailed": "No se pudo guardar el filtro.",
+        "deleteFailed": "No se pudo eliminar el filtro.",
+        "deleteTitle": "Eliminar filtro guardado",
+        "deleteMessage": "¿Eliminar «{{name}}»? Esta acción no se puede deshacer.",
+        "shared": "compartido",
+        "saveCurrent": "Guardar filtros actuales…",
+        "update": "Actualizar «{{name}}» con los filtros actuales",
+        "delete": "Eliminar «{{name}}»",
+        "name": "Nombre",
+        "shareLabel": "Compartir con todos",
+        "shareHint": "Cualquiera con acceso a este listado podrá usarlo.",
+        "cancel": "Cancelar",
+        "save": "Guardar"
     }
 }

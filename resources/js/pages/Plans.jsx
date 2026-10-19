@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import api, { fieldErrors } from '../services/api';
 import Badge from '../components/ui/Badge';
-import Spinner from '../components/ui/Spinner';
+import ContentSkeleton from '../components/ui/ContentSkeleton';
 import Alert from '../components/ui/Alert';
 import Button from '../components/ui/Button';
 import Input from '../components/ui/Input';
@@ -203,7 +203,18 @@ export default function Plans() {
 
     async function save(payload) {
         if (editing?.id) {
-            await api.put(`/plans/${editing.id}`, payload);
+            try {
+                await api.put(`/plans/${editing.id}`, payload);
+            } catch (e) {
+                // Raising the price of paying subscribers is deliberate: say who it reaches, then confirm.
+                if (e.response?.status === 409 && e.response.data?.code === 'price_change_confirmation_required') {
+                    const { affected_subscriptions: count, notice_days: days } = e.response.data;
+                    if (!(await confirm({ title: t('billing.plan.priceChangeTitle'), message: t('billing.plan.priceChangeMessage', { count, days }), variant: 'danger' }))) return;
+                    await api.put(`/plans/${editing.id}`, { ...payload, confirm_price_change: true });
+                } else {
+                    throw e;
+                }
+            }
             toast.success(t('admin.plans.planUpdated'));
         } else {
             await api.post('/plans', payload);
@@ -212,6 +223,17 @@ export default function Plans() {
         setEditing(null);
         setCreating(false);
         await load();
+    }
+
+    async function syncPlan(plan) {
+        try {
+            await api.post(`/plans/${plan.id}/sync`);
+            toast.success(t('billing.plan.synced'));
+            await load();
+        } catch (e) {
+            toast.error(e.response?.data?.message || t('billing.plan.syncFailed'));
+            await load();
+        }
     }
 
     async function remove(plan) {
@@ -227,9 +249,7 @@ export default function Plans() {
 
     if (loading) {
         return (
-            <div className="flex justify-center py-20">
-                <Spinner />
-            </div>
+            <ContentSkeleton size="lg" />
         );
     }
 
@@ -316,8 +336,18 @@ export default function Plans() {
                             <Td className="tabular-nums">{(plan.limits?.modules || []).length}</Td>
                             <Td>
                                 <Badge>{plan.is_active ? t('admin.plans.activeBadge') : t('admin.plans.inactiveBadge')}</Badge>
+                                {plan.price_cents > 0 && (
+                                    <span className={`mt-1 block text-xs ${plan.stripe_sync_error ? 'text-red-600' : 'text-gray-500'}`} title={plan.stripe_sync_error || ''}>
+                                        {plan.stripe_sync_error ? t('billing.plan.stripeError') : plan.stripe_synced_at ? t('billing.plan.stripeSynced') : t('billing.plan.stripeNotSynced')}
+                                    </span>
+                                )}
                             </Td>
                             <Td align="right" className="whitespace-nowrap">
+                                {plan.price_cents > 0 && (
+                                    <button type="button" className="mr-3 text-sm font-medium text-gray-500 hover:text-gray-800" onClick={() => syncPlan(plan)}>
+                                        {t('billing.plan.syncStripe')}
+                                    </button>
+                                )}
                                 <button type="button" className="text-sm font-medium text-[var(--accent-soft-text)] hover:text-[var(--accent)]" onClick={() => setEditing(plan)}>
                                     {t('admin.common.edit')}
                                 </button>

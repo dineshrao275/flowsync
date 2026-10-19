@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
+import PersonSelect from '../../components/ui/PersonSelect';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import api, { fieldErrors } from '../../services/api';
@@ -9,7 +10,7 @@ import EmptyState from '../../components/ui/EmptyState';
 import Input from '../../components/ui/Input';
 import Modal from '../../components/ui/Modal';
 import Select from '../../components/ui/Select';
-import Spinner from '../../components/ui/Spinner';
+import ContentSkeleton from '../../components/ui/ContentSkeleton';
 import { Table, Th, Td, TableEmpty } from '../../components/ui/Table';
 import { useToast } from '../../context/ToastContext';
 import { useConfirm, usePrompt } from '../../components/ui/ConfirmDialog';
@@ -20,6 +21,7 @@ import LeaveBalanceTable from '../../components/hrms/LeaveBalanceTable';
 import LeaveAdjustPanel from '../../components/hrms/LeaveAdjustPanel';
 import LeaveBlackoutPanel from '../../components/hrms/LeaveBlackoutPanel';
 import LeaveRequestModal from '../../components/hrms/LeaveRequestModal';
+import RecordComments from '../../components/hrms/RecordComments';
 
 const TABS = [
     { key: 'requests', labelKey: 'hrms.leave.tabs.requests' },
@@ -389,7 +391,7 @@ export default function Leave() {
                     </div>
 
                     {!requests ? (
-                        <div className="flex justify-center py-10"><Spinner /></div>
+                        <ContentSkeleton size="md" />
                     ) : requests.length === 0 ? (
                         <EmptyState title={t('hrms.leave.emptyTitle')} description={t('hrms.leave.emptyHint')} />
                     ) : (
@@ -439,7 +441,7 @@ export default function Leave() {
                     actions={<Button onClick={() => openTypeEditor(null)}>{t('hrms.leave.newType')}</Button>}
                 >
                     {!types ? (
-                        <div className="flex justify-center py-10"><Spinner /></div>
+                        <ContentSkeleton size="md" />
                     ) : (
                         <Table>
                             <thead>
@@ -483,7 +485,7 @@ export default function Leave() {
                     actions={<Button onClick={() => openPolicyEditor(null)}>{t('hrms.leave.newPolicy')}</Button>}
                 >
                     {!policies ? (
-                        <div className="flex justify-center py-10"><Spinner /></div>
+                        <ContentSkeleton size="md" />
                     ) : (
                         <Table>
                             <thead>
@@ -520,21 +522,14 @@ export default function Leave() {
             {tab === 'balances' && (
                 <Card dense title={t('hrms.leave.balancesTitle')}>
                     <div className="mb-3 flex items-center gap-2">
-                        <Select aria-label={t('hrms.leave.employee')} value={balanceEmployee} onChange={(e) => setBalanceEmployee(e.target.value)} className="w-56">
-                            <option value="">{t('hrms.leave.selectEmployee')}</option>
-                            {employees.map((employee) => (
-                                <option key={employee.id} value={employee.id}>
-                                    {employee.name}
-                                </option>
-                            ))}
-                        </Select>
+                        <PersonSelect aria-label={t('hrms.leave.employee')} value={balanceEmployee} onChange={(e) => setBalanceEmployee(e.target.value)} className="w-56" placeholder={t('hrms.leave.selectEmployee')} people={employees} />
                         <Input aria-label={t('hrms.leave.year')} value={balanceYear} onChange={(e) => setBalanceYear(e.target.value)} className="w-28" />
                     </div>
 
                     {!balanceEmployee ? (
                         <EmptyState title={t('hrms.leave.noEmployee')} description={t('hrms.leave.noEmployeeHint')} />
                     ) : !balances ? (
-                        <div className="flex justify-center py-10"><Spinner /></div>
+                        <ContentSkeleton size="md" />
                     ) : (
                         <LeaveBalanceTable balances={balances} />
                     )}
@@ -559,7 +554,7 @@ export default function Leave() {
                     </div>
                     <Card dense title={t('hrms.leave.exemptionsTitle')}>
                     {!exemptions ? (
-                        <div className="flex justify-center py-10"><Spinner /></div>
+                        <ContentSkeleton size="md" />
                     ) : exemptions.length === 0 ? (
                         <EmptyState title={t('hrms.leave.exemptionsEmptyTitle')} description={t('hrms.leave.exemptionsEmptyHint')} />
                     ) : (
@@ -606,6 +601,7 @@ export default function Leave() {
                     </p>
                     <Input label={deciding?.verdict === 'approve' ? t('hrms.leave.noteOptional') : t('hrms.leave.reason')} value={decisionNote} onChange={(e) => setDecisionNote(e.target.value)} error={decisionErrors.note ?? decisionErrors.decision_note} />
                     {decisionErrors.form && <Alert>{decisionErrors.form}</Alert>}
+                    {deciding?.id && <RecordComments type="leave" id={deciding.id} />}
                     <div className="flex justify-end gap-2">
                         <Button variant="secondary" onClick={() => setDeciding(null)}>{t('hrms.leave.cancel')}</Button>
                         <Button onClick={() => decide(deciding.verdict)}>
@@ -675,12 +671,7 @@ export default function Leave() {
 
             <Modal open={filingExemption} onClose={() => setFilingExemption(false)} title={t('hrms.leave.fileExemptionTitle')}>
                 <form onSubmit={saveExemption} className="grid grid-cols-1 gap-3 px-6 py-5 sm:grid-cols-2">
-                    <Select label={t('hrms.leave.exemptionEmployee')} value={exemptionForm.employee_id} onChange={(e) => setExemptionForm({ ...exemptionForm, employee_id: e.target.value })} error={exemptionErrors.employee_id}>
-                        <option value="">{t('hrms.leave.selectPerson')}</option>
-                        {employees.map((employee) => (
-                            <option key={employee.id} value={employee.id}>{employee.name}</option>
-                        ))}
-                    </Select>
+                    <PersonSelect label={t('hrms.leave.exemptionEmployee')} value={exemptionForm.employee_id} onChange={(e) => setExemptionForm({ ...exemptionForm, employee_id: e.target.value })} error={exemptionErrors.employee_id} placeholder={t('hrms.leave.selectPerson')} people={employees} />
                     <Select label={t('hrms.leave.exemptionType')} value={exemptionForm.leave_type_id} onChange={(e) => setExemptionForm({ ...exemptionForm, leave_type_id: e.target.value })} error={exemptionErrors.leave_type_id}>
                         <option value="">{t('hrms.leave.selectType')}</option>
                         {(types ?? []).map((type) => (

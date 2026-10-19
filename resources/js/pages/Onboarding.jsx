@@ -7,7 +7,7 @@ import { useToast } from '../context/ToastContext';
 import Button from '../components/ui/Button';
 import Input from '../components/ui/Input';
 import Alert from '../components/ui/Alert';
-import Spinner from '../components/ui/Spinner';
+import ContentSkeleton from '../components/ui/ContentSkeleton';
 import usePageTitle from '../hooks/usePageTitle';
 
 export default function Onboarding() {
@@ -51,9 +51,7 @@ export default function Onboarding() {
 
     if (loading) {
         return (
-            <div className="flex justify-center py-20">
-                <Spinner />
-            </div>
+            <ContentSkeleton size="lg" />
         );
     }
 

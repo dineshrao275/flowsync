@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import api from '../../services/api';
 import { taskUrl } from '../../utils/deepLinks';
-import Spinner from '../ui/Spinner';
+import ContentSkeleton from '../ui/ContentSkeleton';
 import EmptyState from '../ui/EmptyState';
 
 /**
@@ -26,7 +26,7 @@ export default function EmployeeTasks({ employeeId }) {
     }, [employeeId, t]);
 
     if (error) return <p className="py-8 text-center text-sm text-red-600">{error}</p>;
-    if (!tasks) return <Spinner />;
+    if (!tasks) return <ContentSkeleton size="sm" />;
 
     if (tasks.length === 0) {
         return <EmptyState title={t('hrms.empTasks.emptyTitle')} message={t('hrms.empTasks.emptyHint')} />;

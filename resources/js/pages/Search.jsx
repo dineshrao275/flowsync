@@ -1,11 +1,13 @@
 import { useEffect, useState } from 'react';
+import ListSavedFilters from '../components/ui/ListSavedFilters';
+import UserChip from '../components/ui/UserChip';
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import api from '../services/api';
 import Button from '../components/ui/Button';
 import Input from '../components/ui/Input';
 import Pagination from '../components/ui/Pagination';
-import Spinner from '../components/ui/Spinner';
+import ContentSkeleton from '../components/ui/ContentSkeleton';
 import { Table, Th, Td, TableEmpty } from '../components/ui/Table';
 import { useSetCrumbs } from '../context/BreadcrumbContext';
 import { fieldClass } from '../components/ui/fieldStyles';
@@ -175,6 +177,14 @@ export default function Search() {
                 <Button type="button" variant="secondary" onClick={reset}>
                     {t('dashboard.search.reset')}
                 </Button>
+                <ListSavedFilters
+                    page="task-search"
+                    value={filters}
+                    onApply={(saved) => {
+                        setFilters(saved);
+                        updateUrl(Object.fromEntries(FILTER_KEYS.map((key) => [key, saved[key] ?? ''])));
+                    }}
+                />
             </form>
 
             <Table>
@@ -193,7 +203,7 @@ export default function Search() {
                     {loading && data == null ? (
                         <tr>
                             <Td colSpan={7} className="py-12 text-center">
-                                <Spinner />
+                                <ContentSkeleton size="sm" />
                             </Td>
                         </tr>
                     ) : tasks.length === 0 ? (
@@ -239,7 +249,7 @@ export default function Search() {
                                     {task.status?.name}
                                 </Td>
                                 <Td className="whitespace-nowrap">
-                                    {task.assignee?.name ?? <span className="text-gray-400">{t('dashboard.search.unassigned')}</span>}
+                                    {task.assignee ? <UserChip user={task.assignee} /> : <span className="text-gray-400">{t('dashboard.search.unassigned')}</span>}
                                 </Td>
                                 <Td align="right" className="whitespace-nowrap">
                                     {task.due_date ? (

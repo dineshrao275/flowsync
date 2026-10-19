@@ -1,3 +1,4 @@
+import { createPortal } from 'react-dom';
 import DatePicker from 'react-datepicker';
 import 'react-datepicker/dist/react-datepicker.css';
 import { format } from 'date-fns';
@@ -75,6 +76,7 @@ function DateField({ label, labelClassName = '', error, id, className = '', lead
                     aria-describedby={error && inputId ? `${inputId}-error` : undefined}
                     isClearable={!props.required && !props.disabled && !!props.value}
                     showPopperArrow={false}
+                    popperContainer={({ children }) => createPortal(children, document.body)}
                     calendarClassName="flowsync-calendar"
                     className={`block w-full border text-sm shadow-sm transition focus:outline-none ${
                         compact ? 'rounded-md px-2.5 py-1.5' : 'rounded-lg px-3.5 py-2.5'

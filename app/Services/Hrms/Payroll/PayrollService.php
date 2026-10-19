@@ -32,6 +32,7 @@ class PayrollService
         private readonly ExpenseService $expenses,
         private readonly HrmsAuditLogger $audit,
         private readonly PayrollAssignmentMap $assignments,
+        private readonly LoanService $loans,
     ) {}
 
     /**
@@ -119,6 +120,7 @@ class PayrollService
 
                     $this->storePayslip($run, $employee, $payload);
                     $this->reimburseExpenses($run, $employee, $actor);
+                    $this->deductLoans($run, $employee, $actor);
                     $calculated++;
                 }
             });
@@ -300,6 +302,16 @@ class PayrollService
         }
 
         if ($paid) {
+            $this->refreshTotals($payslip->refresh());
+        }
+    }
+
+    /** Instalments that have come due come off the payslip just built (loans and advances, F7.6). */
+    private function deductLoans(PayrollRun $run, Employee $employee, ?User $actor): void
+    {
+        $payslip = $run->payslips()->where('employee_id', $employee->id)->first();
+
+        if ($payslip !== null && $this->loans->deductDue($run, $payslip, $actor)) {
             $this->refreshTotals($payslip->refresh());
         }
     }

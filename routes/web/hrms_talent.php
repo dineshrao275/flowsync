@@ -9,13 +9,20 @@ use App\Http\Controllers\Hrms\Expense\ExpenseClaimController;
 use App\Http\Controllers\Hrms\HrmsAnalyticsController;
 use App\Http\Controllers\Hrms\HrmsAnalyticsExportController;
 use App\Http\Controllers\Hrms\Performance\CheckInController;
+use App\Http\Controllers\Hrms\Performance\DevelopmentPlanController;
 use App\Http\Controllers\Hrms\Performance\FeedbackRequestController;
+use App\Http\Controllers\Hrms\Performance\ImprovementPlanController;
+use App\Http\Controllers\Hrms\Performance\OkrController;
 use App\Http\Controllers\Hrms\Performance\OneOnOneController;
 use App\Http\Controllers\Hrms\Performance\PerformanceCycleController;
 use App\Http\Controllers\Hrms\Performance\PerformanceGoalController;
 use App\Http\Controllers\Hrms\Performance\ReviewSummaryController;
+use App\Http\Controllers\Hrms\RecordCommentController;
 use App\Http\Controllers\Hrms\Survey\SurveyCampaignController;
 use App\Http\Controllers\Hrms\Survey\SurveyTemplateController;
+use App\Http\Controllers\Hrms\Talent\CareerController;
+use App\Http\Controllers\Hrms\Talent\SkillController;
+use App\Http\Controllers\Hrms\Talent\SkillExpectationController;
 use App\Http\Controllers\Hrms\Talent\TalentController;
 use App\Http\Controllers\Hrms\TaskLinkController;
 use Illuminate\Support\Facades\Route;
@@ -91,6 +98,12 @@ Route::group(['middleware' => ['ensure_module:hrms.core', 'ensure_module:hrms.an
     Route::get('hrms/analytics/assets', [HrmsAnalyticsController::class, 'assets'])->middleware('permission:hrms.assets.view');
 });
 
+// Comments on HR records (F2.6): the record's own policy decides who may read and write the thread.
+Route::group(['middleware' => ['ensure_module:hrms.core', 'permission:hrms.view']], function () {
+    Route::get('hrms/records/{type}/{id}/comments', [RecordCommentController::class, 'index'])->whereIn('type', ['expense', 'leave'])->whereNumber('id');
+    Route::post('hrms/records/{type}/{id}/comments', [RecordCommentController::class, 'store'])->whereIn('type', ['expense', 'leave'])->whereNumber('id')->middleware('throttle:60,1');
+});
+
 // HRMS audit trail (Phase 19 P19.1). The ledger is cross-cutting, so no
 // per-record policy can answer for it — `hrms.audit.view` is the whole
 // gate, on both the filtered index and the single-record trail. The
@@ -155,6 +168,19 @@ Route::group(['middleware' => ['ensure_module:hrms.core', 'ensure_module:hrms.as
 // (manage, or self-while-draft for goals). Feedback, reviews and the
 // evidence read land in P12.4b.
 Route::group(['middleware' => ['ensure_module:hrms.core', 'ensure_module:hrms.performance', 'permission:hrms.view']], function () {
+    Route::get('hrms/okrs', [OkrController::class, 'index']);
+    Route::post('hrms/okrs', [OkrController::class, 'store']);
+    Route::put('hrms/okrs/key-results/{keyResult}', [OkrController::class, 'updateKeyResult']);
+    Route::post('hrms/okrs/{objective}/close', [OkrController::class, 'close']);
+    Route::get('hrms/development-plans', [DevelopmentPlanController::class, 'index']);
+    Route::post('hrms/development-plans', [DevelopmentPlanController::class, 'store']);
+    Route::put('hrms/development-plans/{plan}/actions/{action}', [DevelopmentPlanController::class, 'action']);
+    Route::post('hrms/development-plans/{plan}/close', [DevelopmentPlanController::class, 'close']);
+    Route::get('hrms/improvement-plans', [ImprovementPlanController::class, 'index']);
+    Route::post('hrms/employees/{employee}/improvement-plans', [ImprovementPlanController::class, 'store']);
+    Route::put('hrms/improvement-plans/{plan}/milestones/{milestone}', [ImprovementPlanController::class, 'milestone']);
+    Route::post('hrms/improvement-plans/{plan}/extend', [ImprovementPlanController::class, 'extend']);
+    Route::post('hrms/improvement-plans/{plan}/close', [ImprovementPlanController::class, 'close']);
     Route::get('hrms/performance/cycles', [PerformanceCycleController::class, 'index']);
     Route::post('hrms/performance/cycles', [PerformanceCycleController::class, 'store']);
     Route::get('hrms/performance/cycles/{cycle}', [PerformanceCycleController::class, 'show']);
@@ -225,4 +251,29 @@ Route::group(['middleware' => ['ensure_module:hrms.core', 'ensure_module:hrms.ta
     Route::post('hrms/talent/reviews/{review}/finalize', [TalentController::class, 'finalize']);
     Route::get('hrms/talent/cycles/{cycle}/distribution', [TalentController::class, 'distribution']);
     Route::get('hrms/talent/cycles/{cycle}/feedback-summary', [TalentController::class, 'feedbackSummary']);
+});
+
+// HRMS skills (F8). Same two gates plus the talent module: the catalogue reads for anyone with HRMS
+// access, edits and assessments answer to hrms.talent.manage, and the matrix follows the talent
+// view scope (own / assigned / all). `skills/mine` is self-service and needs only an employment record.
+Route::group(['middleware' => ['ensure_module:hrms.core', 'ensure_module:hrms.talent', 'permission:hrms.view']], function () {
+    Route::get('hrms/career-paths', [CareerController::class, 'paths']);
+    Route::post('hrms/career-paths', [CareerController::class, 'addPath']);
+    Route::delete('hrms/career-paths/{path}', [CareerController::class, 'removePath'])->whereNumber('path');
+    Route::get('hrms/succession', [CareerController::class, 'succession']);
+    Route::post('hrms/succession', [CareerController::class, 'addPosition']);
+    Route::delete('hrms/succession/{position}', [CareerController::class, 'removePosition'])->whereNumber('position');
+    Route::put('hrms/succession/{position}/candidates', [CareerController::class, 'setCandidate'])->whereNumber('position');
+    Route::delete('hrms/succession/candidates/{candidate}', [CareerController::class, 'removeCandidate'])->whereNumber('candidate');
+    Route::get('hrms/skill-expectations', [SkillExpectationController::class, 'index']);
+    Route::put('hrms/skill-expectations/{designation}', [SkillExpectationController::class, 'save'])->whereNumber('designation');
+    Route::get('hrms/employees/{employee}/skill-gaps', [SkillExpectationController::class, 'gaps']);
+    Route::get('hrms/skills', [SkillController::class, 'index']);
+    Route::post('hrms/skills', [SkillController::class, 'store']);
+    Route::get('hrms/skills/matrix', [SkillController::class, 'matrix']);
+    Route::get('hrms/skills/mine', [SkillController::class, 'mine']);
+    Route::put('hrms/skills/mine', [SkillController::class, 'saveMine']);
+    Route::put('hrms/skills/{skill}', [SkillController::class, 'update']);
+    Route::delete('hrms/skills/{skill}', [SkillController::class, 'destroy']);
+    Route::put('hrms/employees/{employee}/skills', [SkillController::class, 'assess']);
 });

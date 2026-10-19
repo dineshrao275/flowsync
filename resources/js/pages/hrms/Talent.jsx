@@ -8,7 +8,7 @@ import Card from '../../components/ui/Card';
 import EmptyState from '../../components/ui/EmptyState';
 import Modal from '../../components/ui/Modal';
 import Select from '../../components/ui/Select';
-import Spinner from '../../components/ui/Spinner';
+import ContentSkeleton from '../../components/ui/ContentSkeleton';
 import StatusPill from '../../components/ui/StatusPill';
 import { useToast } from '../../context/ToastContext';
 import { useSetCrumbs } from '../../context/BreadcrumbContext';
@@ -174,7 +174,7 @@ export default function Talent() {
             {error && <Alert variant="error">{error}</Alert>}
 
             {cycles === null ? (
-                <Spinner />
+                <ContentSkeleton size="sm" />
             ) : cycles.length === 0 ? (
                 <Card>
                     <EmptyState title={t('hrms.talent.emptyCyclesTitle')} hint={t('hrms.talent.emptyCyclesHint')} />
@@ -192,7 +192,7 @@ export default function Talent() {
 
                     <Card title={t('hrms.talent.ratingDistribution')}>
                         {distribution === null ? (
-                            <Spinner />
+                            <ContentSkeleton size="sm" />
                         ) : (
                             <div className="space-y-2">
                                 {[5, 4, 3, 2, 1].map((value) => {
@@ -221,7 +221,7 @@ export default function Talent() {
 
                     <Card title={t('hrms.talent.calibrationGrid')}>
                         {reviews === null ? (
-                            <Spinner />
+                            <ContentSkeleton size="sm" />
                         ) : reviews.length === 0 ? (
                             <EmptyState title={t('hrms.talent.noReviewsTitle')} hint={t('hrms.talent.noReviewsHint')} />
                         ) : (
@@ -278,7 +278,7 @@ export default function Talent() {
 
                     <Card title={t('hrms.talent.summary360')}>
                         {summary === null ? (
-                            <Spinner />
+                            <ContentSkeleton size="sm" />
                         ) : summary.length === 0 ? (
                             <EmptyState title={t('hrms.talent.noFeedbackTitle')} hint={t('hrms.talent.noFeedbackHint')} />
                         ) : (

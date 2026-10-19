@@ -1,0 +1,408 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "FlowSync API",
+    "version": "1.0.0",
+    "description": "Bearer-token API. Create a personal API token in Settings \u2192 API tokens (needs the API module). A token carries abilities and may be read-only; its effective rights are its abilities AND what its owner still holds. Errors: 401 for any bad credential (indistinguishable by design), 403 for missing ability/module/permission, 422 for validation, 429 when the per-token rate limit is exceeded."
+  },
+  "servers": [
+    {
+      "url": "/api/v1"
+    }
+  ],
+  "security": [
+    {
+      "bearerAuth": []
+    }
+  ],
+  "components": {
+    "securitySchemes": {
+      "bearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "description": "fst_<tenant>_<token>"
+      }
+    },
+    "parameters": {
+      "project": {
+        "name": "project",
+        "in": "path",
+        "required": true,
+        "schema": {
+          "type": "integer"
+        }
+      },
+      "idempotencyKey": {
+        "name": "Idempotency-Key",
+        "in": "header",
+        "required": false,
+        "description": "Repeating a POST with the same key, token and payload returns the stored response instead of creating a second record.",
+        "schema": {
+          "type": "string",
+          "maxLength": 128
+        }
+      }
+    },
+    "schemas": {
+      "Error": {
+        "type": "object",
+        "properties": {
+          "message": {
+            "type": "string"
+          },
+          "errors": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          }
+        }
+      },
+      "Pagination": {
+        "type": "object",
+        "properties": {
+          "current_page": {
+            "type": "integer"
+          },
+          "last_page": {
+            "type": "integer"
+          },
+          "per_page": {
+            "type": "integer"
+          },
+          "total": {
+            "type": "integer"
+          }
+        }
+      },
+      "Task": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "key": {
+            "type": "string",
+            "example": "APP-12"
+          },
+          "title": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string",
+            "nullable": true
+          },
+          "status_id": {
+            "type": "integer"
+          },
+          "priority_id": {
+            "type": "integer",
+            "nullable": true
+          },
+          "assignee_id": {
+            "type": "integer",
+            "nullable": true
+          },
+          "due_date": {
+            "type": "string",
+            "format": "date",
+            "nullable": true
+          },
+          "start_date": {
+            "type": "string",
+            "format": "date",
+            "nullable": true
+          },
+          "estimate_minutes": {
+            "type": "integer",
+            "nullable": true
+          },
+          "story_points": {
+            "type": "number",
+            "nullable": true
+          },
+          "custom_fields": {
+            "type": "object",
+            "description": "Present when the plan includes custom fields.",
+            "additionalProperties": true
+          }
+        }
+      },
+      "TaskInput": {
+        "type": "object",
+        "required": [
+          "title"
+        ],
+        "properties": {
+          "title": {
+            "type": "string",
+            "maxLength": 255
+          },
+          "description": {
+            "type": "string",
+            "nullable": true
+          },
+          "status_id": {
+            "type": "integer"
+          },
+          "priority_id": {
+            "type": "integer"
+          },
+          "assignee_id": {
+            "type": "integer"
+          },
+          "due_date": {
+            "type": "string",
+            "format": "date"
+          },
+          "start_date": {
+            "type": "string",
+            "format": "date"
+          },
+          "estimate_minutes": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "story_points": {
+            "type": "number"
+          },
+          "labels": {
+            "type": "array",
+            "items": {
+              "type": "integer"
+            }
+          },
+          "custom_fields": {
+            "type": "object",
+            "additionalProperties": true
+          }
+        }
+      }
+    },
+    "responses": {}
+  },
+  "paths": {
+    "/me": {
+      "get": {
+        "summary": "The token's owner and its abilities",
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "401": {
+            "description": "Invalid credential"
+          }
+        }
+      }
+    },
+    "/projects": {
+      "get": {
+        "summary": "Projects the token's owner can see",
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "403": {
+            "description": "Missing ability or module"
+          }
+        }
+      }
+    },
+    "/projects/{project}/tasks": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/project"
+        }
+      ],
+      "get": {
+        "summary": "List a project's tasks",
+        "description": "Use view=list for a paginated list (per_page \u2264 100). Filters: status_id, priority_id, assignee_id, label_id, issue_type_id, version_id, epic_id, component_id, sprint, q, due_from, due_to, cf[key], jql (advanced query; needs the JQL module).",
+        "parameters": [
+          {
+            "name": "view",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "board",
+                "list"
+              ]
+            }
+          },
+          {
+            "name": "jql",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "maxLength": 1000
+            }
+          },
+          {
+            "name": "per_page",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "maximum": 100
+            }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "403": {
+            "description": "No access to the project"
+          },
+          "422": {
+            "description": "Invalid filter or query",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "summary": "Create a task",
+        "description": "Requires a write token. Send an Idempotency-Key header to make retries safe.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/idempotencyKey"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TaskInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    },
+                    "task": {
+                      "$ref": "#/components/schemas/Task"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Read-only token or no permission"
+          },
+          "422": {
+            "description": "Validation failed"
+          }
+        }
+      }
+    },
+    "/search/tasks": {
+      "get": {
+        "summary": "Search tasks across the projects the owner can see",
+        "description": "Needs the global_search module.",
+        "parameters": [
+          {
+            "name": "q",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "project_id",
+            "in": "query",
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "status_id",
+            "in": "query",
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "per_page",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "maximum": 100
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "403": {
+            "description": "Missing module"
+          }
+        }
+      }
+    },
+    "/hrms/employees": {
+      "get": {
+        "summary": "Employee directory (masked personal fields)",
+        "description": "Needs the hrms.view ability and the HRMS core module.",
+        "parameters": [
+          {
+            "name": "q",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "per_page",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "maximum": 100
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "403": {
+            "description": "Missing ability or module"
+          }
+        }
+      }
+    }
+  }
+}

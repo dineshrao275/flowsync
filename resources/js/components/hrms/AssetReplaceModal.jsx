@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import PersonSelect from '../ui/PersonSelect';
 import { useTranslation } from 'react-i18next';
 import api, { fieldErrors } from '../../services/api';
 import Alert from '../ui/Alert';
@@ -45,10 +46,7 @@ export default function AssetReplaceModal({ asset, candidates, onClose, onDone }
     return (
         <Modal open onClose={onClose} title={t('hrms.assetReplace.title', { code: asset.asset_code })}>
             <form onSubmit={submit} className="space-y-3 px-6 py-5">
-                <Select label={t('hrms.assetReplace.replacement')} value={form.replacement_asset_id} error={errors.replacement_asset_id} onChange={(e) => setForm({ ...form, replacement_asset_id: e.target.value })}>
-                    <option value="">{t('hrms.assetReplace.choose')}</option>
-                    {candidates.map((c) => <option key={c.id} value={c.id}>{c.asset_code} · {c.name}</option>)}
-                </Select>
+                <PersonSelect label={t('hrms.assetReplace.replacement')} value={form.replacement_asset_id} error={errors.replacement_asset_id} onChange={(e) => setForm({ ...form, replacement_asset_id: e.target.value })} placeholder={t('hrms.assetReplace.choose')} people={candidates} />
                 <Select label={t('hrms.assetReplace.why')} value={form.reason} error={errors.reason} onChange={(e) => setForm({ ...form, reason: e.target.value })}>
                     {REASONS.map((r) => <option key={r.value} value={r.value}>{t(r.key)}</option>)}
                 </Select>

@@ -13,6 +13,7 @@ use App\Models\Workspace;
 use App\Support\TenantDatabaseManager;
 use Illuminate\Console\Command;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\DB;
 
 class CollectTenantUsage extends Command
 {
@@ -40,7 +41,13 @@ class CollectTenantUsage extends Command
                     $storageBytes += (int) EmployeeDocument::sum('size');
                 }
 
+                // F11.10: who actually used the product recently, from the tenant's own activity ledger.
+                $active = fn (int $days) => (int) DB::table('activities')->whereNotNull('actor_user_id')->where('created_at', '>=', now()->subDays($days))->distinct()->count('actor_user_id');
+
                 return [
+                    'active_users_7d' => $active(7),
+                    'active_users_30d' => $active(30),
+                    'activity_30d' => (int) DB::table('activities')->where('created_at', '>=', now()->subDays(30))->count(),
                     'users' => User::count(),
                     'workspaces' => Workspace::count(),
                     'projects' => Project::count(),

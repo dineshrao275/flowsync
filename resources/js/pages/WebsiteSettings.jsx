@@ -4,7 +4,7 @@ import api, { fieldErrors } from '../services/api';
 import Card from '../components/ui/Card';
 import Button from '../components/ui/Button';
 import Input from '../components/ui/Input';
-import Spinner from '../components/ui/Spinner';
+import ContentSkeleton from '../components/ui/ContentSkeleton';
 import MediaPicker from '../components/cms/MediaPicker';
 import { useToast } from '../context/ToastContext';
 import usePageTitle from '../hooks/usePageTitle';
@@ -83,7 +83,7 @@ export default function WebsiteSettings() {
         }
     }
 
-    if (loading || !form) return <Spinner />;
+    if (loading || !form) return <ContentSkeleton size="sm" />;
 
     return (
         <form onSubmit={submit} className="space-y-6">

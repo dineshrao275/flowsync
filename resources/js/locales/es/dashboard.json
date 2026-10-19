@@ -9,14 +9,33 @@
     "loadFailed": "No se pudo cargar el panel.",
     "loading": "Cargando el panel",
     "heroes": {
-        "myOpen": { "label": "Mis tareas abiertas", "hintAll": "Todas las tareas del inquilino", "hintMine": "Tareas de tus proyectos" },
-        "overdue": { "label": "Vencidas", "hint": "Tareas abiertas con la fecha límite superada" }
+        "myOpen": {
+            "label": "Mis tareas abiertas",
+            "hintAll": "Todas las tareas del inquilino",
+            "hintMine": "Tareas de tus proyectos"
+        },
+        "overdue": {
+            "label": "Vencidas",
+            "hint": "Tareas abiertas con la fecha límite superada"
+        }
     },
     "stats": {
-        "dueSoon": { "label": "Vencen pronto", "hint": "Próximos 7 días" },
-        "inProgress": { "label": "En curso", "hint": "En las que se está trabajando" },
-        "allOpen": { "label": "Todas las abiertas", "hint": "En todo el inquilino" },
-        "completed": { "label": "Completadas", "hint": "Todo hecho" }
+        "dueSoon": {
+            "label": "Vencen pronto",
+            "hint": "Próximos 7 días"
+        },
+        "inProgress": {
+            "label": "En curso",
+            "hint": "En las que se está trabajando"
+        },
+        "allOpen": {
+            "label": "Todas las abiertas",
+            "hint": "En todo el inquilino"
+        },
+        "completed": {
+            "label": "Completadas",
+            "hint": "Todo hecho"
+        }
     },
     "scope": {
         "all": "Mostrando: todas las tareas del inquilino",
@@ -24,9 +43,18 @@
         "title": "Los totales siguientes se limitan a lo que tu rol puede ver"
     },
     "charts": {
-        "projectProgress": { "title": "Progreso de los proyectos", "subtitle": "Tareas abiertas frente a completadas por proyecto" },
-        "hours": { "title": "Horas registradas", "subtitle": "{{range}} · {{total}} en total" },
-        "created": { "title": "Tareas creadas", "subtitle": "{{range}} · {{count}} creadas" },
+        "projectProgress": {
+            "title": "Progreso de los proyectos",
+            "subtitle": "Tareas abiertas frente a completadas por proyecto"
+        },
+        "hours": {
+            "title": "Horas registradas",
+            "subtitle": "{{range}} · {{total}} en total"
+        },
+        "created": {
+            "title": "Tareas creadas",
+            "subtitle": "{{range}} · {{count}} creadas"
+        },
         "emptyProjects": "Aún no hay proyectos sobre los que informar.",
         "emptyHours": "No se registró trabajo en este periodo.",
         "emptyTasks": "No se crearon tareas en este periodo.",
@@ -36,10 +64,26 @@
         "done": "Hechas"
     },
     "lists": {
-        "overdue": { "title": "Vencidas", "subtitle": "Tareas abiertas con la fecha límite superada", "empty": "Nada vencido." },
-        "dueSoon": { "title": "Vencen pronto", "subtitle": "Próximos siete días, asignadas a ti", "empty": "Nada vence en la próxima semana." },
-        "inProgress": { "title": "En curso", "subtitle": "En las que se está trabajando ahora", "empty": "No hay tareas en curso." },
-        "recent": { "title": "Actualizadas recientemente", "subtitle": "Tus tareas abiertas, con la actividad más reciente primero", "empty": "No hay cambios recientes." }
+        "overdue": {
+            "title": "Vencidas",
+            "subtitle": "Tareas abiertas con la fecha límite superada",
+            "empty": "Nada vencido."
+        },
+        "dueSoon": {
+            "title": "Vencen pronto",
+            "subtitle": "Próximos siete días, asignadas a ti",
+            "empty": "Nada vence en la próxima semana."
+        },
+        "inProgress": {
+            "title": "En curso",
+            "subtitle": "En las que se está trabajando ahora",
+            "empty": "No hay tareas en curso."
+        },
+        "recent": {
+            "title": "Actualizadas recientemente",
+            "subtitle": "Tus tareas abiertas, con la actividad más reciente primero",
+            "empty": "No hay cambios recientes."
+        }
     },
     "dueLabels": {
         "due": "Vence el {{date}} · {{project}}",
@@ -71,7 +115,12 @@
         "pageTitle": "Informes",
         "subtitle": "Distribución y resumen de tiempo de las tareas que puedes ver.",
         "loadFailed": "No se pudieron cargar los informes.",
-        "stats": { "total": "Tareas totales", "open": "Abiertas", "done": "Hechas", "overdue": "Vencidas" },
+        "stats": {
+            "total": "Tareas totales",
+            "open": "Abiertas",
+            "done": "Hechas",
+            "overdue": "Vencidas"
+        },
         "openVsDone": "Abiertas frente a hechas",
         "rangeSubtitle": "Tareas creadas o completadas: {{range}}",
         "byPriority": "Por prioridad",
@@ -102,7 +151,41 @@
         "thLabel": "Etiqueta",
         "thOpen": "Abiertas",
         "thDone": "Hechas",
-        "thTotal": "Total"
+        "thTotal": "Total",
+        "builder": {
+            "title": "Generador de informes",
+            "subtitle": "Elige un conjunto de datos y columnas, previsualiza, guarda y recibe el informe por correo con la frecuencia que quieras. Solo ves filas que ya podrías ver.",
+            "loadFailed": "No se pudo cargar el generador de informes.",
+            "build": "Crear un informe",
+            "dataset": "Conjunto de datos",
+            "columns": "Columnas",
+            "preview": "Vista previa",
+            "name": "Nombre del informe",
+            "schedule": "Enviarme por correo",
+            "schedules": {
+                "none": "Nunca",
+                "daily": "Cada día",
+                "weekly": "Cada semana"
+            },
+            "save": "Guardar informe",
+            "saved": "Informe guardado.",
+            "previewNote": "{{count}} filas",
+            "moreRows": "(la vista previa tiene tope; la descarga incluye todo hasta el límite)",
+            "mine": "Mis informes guardados",
+            "none": "Aún no hay informes guardados.",
+            "download": "Descargar CSV",
+            "delete": "Eliminar",
+            "filters": {
+                "project_id": "ID de proyecto",
+                "assignee_id": "ID de responsable",
+                "open_only": "Solo tareas abiertas",
+                "due_from": "Vence desde",
+                "due_to": "Vence hasta",
+                "status": "Estado",
+                "period_year": "Año",
+                "period_month": "Mes"
+            }
+        }
     },
     "search": {
         "pageTitle": "Búsqueda",

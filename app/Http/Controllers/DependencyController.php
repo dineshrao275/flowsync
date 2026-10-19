@@ -22,12 +22,15 @@ class DependencyController extends Controller
         $this->authorize('view', $task);
 
         return response()->json([
+            'links' => $this->links($task),
             'blocked_by' => $task->dependencies()
+                ->where('type', 'blocks')
                 ->with('dependsOn:id,key,title,status_id,completed_at')
                 ->orderBy('id')
                 ->get()
                 ->map(fn (TaskDependency $dependency) => $this->present($dependency)),
             'blocks' => TaskDependency::where('depends_on_task_id', $task->id)
+                ->where('type', 'blocks')
                 ->with('task:id,key,title,status_id,completed_at')
                 ->orderBy('id')
                 ->get()
@@ -68,7 +71,7 @@ class DependencyController extends Controller
             ]);
         }
 
-        if ($this->createsCycle($task, $blockerId)) {
+        if ($data['type'] === 'blocks' && $this->createsCycle($task, $blockerId)) {
             throw ValidationException::withMessages([
                 'form' => __('Adding this dependency would create a cycle.'),
             ]);
@@ -120,6 +123,22 @@ class DependencyController extends Controller
         return response()->json(['message' => __('Dependency removed.')]);
     }
 
+    /**
+     * Non-blocking links in both directions, worded from this task's side ("duplicates", "is duplicated by", …).
+     *
+     * @return list<array<string, mixed>>
+     */
+    private function links(Task $task): array
+    {
+        $out = TaskDependency::where('task_id', $task->id)->where('type', '!=', 'blocks')->with('dependsOn:id,key,title,status_id,completed_at')->orderBy('id')->get()
+            ->map(fn (TaskDependency $d) => $this->present($d) + ['direction' => 'outward'])->all();
+
+        $in = TaskDependency::where('depends_on_task_id', $task->id)->where('type', '!=', 'blocks')->with('task:id,key,title,status_id,completed_at')->orderBy('id')->get()
+            ->map(fn (TaskDependency $d) => $this->present($d, 'task') + ['direction' => 'inward'])->all();
+
+        return [...$out, ...$in];
+    }
+
     private function createsCycle(Task $task, int $blockerId): bool
     {
         $seen = [$blockerId];
@@ -128,7 +147,7 @@ class DependencyController extends Controller
         while ($queue !== []) {
             $current = array_shift($queue);
 
-            $next = TaskDependency::where('task_id', $current)->pluck('depends_on_task_id');
+            $next = TaskDependency::where('task_id', $current)->where('type', 'blocks')->pluck('depends_on_task_id');
 
             foreach ($next as $candidate) {
                 if ((int) $candidate === $task->id) {

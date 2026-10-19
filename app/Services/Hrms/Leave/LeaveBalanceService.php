@@ -121,8 +121,24 @@ class LeaveBalanceService
      */
     public function rebuildBalance(Employee $employee, LeaveType $type, int $year): LeaveBalance
     {
+        return LeaveBalance::query()->updateOrCreate(
+            ['employee_id' => $employee->id, 'leave_type_id' => $type->id, 'year' => $year],
+            $this->project($employee->id, $type, $year),
+        );
+    }
+
+    /**
+     * What the balance row for (employee, type, year) must contain, computed
+     * from the ledger without writing anything. `rebuildBalance()` stores it
+     * and `hrms:leave-consistency` compares against it, so the two can never
+     * disagree about the maths.
+     *
+     * @return array<string, float>
+     */
+    public function project(int $employeeId, LeaveType $type, int $year): array
+    {
         $rows = LeaveAdjustment::query()
-            ->where('employee_id', $employee->id)
+            ->where('employee_id', $employeeId)
             ->where('leave_type_id', $type->id)
             ->where('year', $year)
             ->get();
@@ -151,19 +167,7 @@ class LeaveBalanceService
             $balance = max(0.0, $balance);
         }
 
-        return LeaveBalance::query()->updateOrCreate(
-            ['employee_id' => $employee->id, 'leave_type_id' => $type->id, 'year' => $year],
-            [
-                'opening' => round($columns['opening'], 2),
-                'accrued' => round($columns['accrued'], 2),
-                'availed' => round($columns['availed'], 2),
-                'encashed' => round($columns['encashed'], 2),
-                'lapsed' => round($columns['lapsed'], 2),
-                'carried_forward' => round($columns['carried_forward'], 2),
-                'adjusted' => round($columns['adjusted'], 2),
-                'balance' => $balance,
-            ],
-        );
+        return array_map(fn (float $v) => round($v, 2), $columns) + ['balance' => $balance];
     }
 
     /**

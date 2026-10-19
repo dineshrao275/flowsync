@@ -1,4 +1,5 @@
 import { useEffect, useId, useRef, useState } from 'react';
+import FloatingPanel from './FloatingPanel';
 
 /**
  * Dropdown action menu (WAI-ARIA menu button): the trigger toggles it,
@@ -14,9 +15,10 @@ export default function Menu({ trigger, items, align = 'right', label }) {
     const [open, setOpen] = useState(false);
     const rootRef = useRef(null);
     const triggerRef = useRef(null);
+    const panelRef = useRef(null);
     const menuId = useId();
 
-    const enabled = () => [...(rootRef.current?.querySelectorAll('[role="menuitem"]:not([disabled])') ?? [])];
+    const enabled = () => [...(panelRef.current?.querySelectorAll('[role="menuitem"]:not([disabled])') ?? [])];
 
     function close(restoreFocus = true) {
         setOpen(false);
@@ -29,7 +31,7 @@ export default function Menu({ trigger, items, align = 'right', label }) {
         enabled()[0]?.focus();
 
         const onPointerDown = (event) => {
-            if (!rootRef.current?.contains(event.target)) setOpen(false);
+            if (!rootRef.current?.contains(event.target) && !panelRef.current?.contains(event.target)) setOpen(false);
         };
         document.addEventListener('mousedown', onPointerDown);
 
@@ -80,12 +82,15 @@ export default function Menu({ trigger, items, align = 'right', label }) {
         <div ref={rootRef} className="relative inline-block text-left">
             {trigger(triggerProps)}
             {open && (
-                <div
+                <FloatingPanel
+                    ref={panelRef}
+                    anchorRef={rootRef}
+                    align={align}
                     id={menuId}
                     role="menu"
                     aria-label={label}
                     onKeyDown={onMenuKeyDown}
-                    className={`absolute z-40 mt-1.5 min-w-44 rounded-xl border border-line bg-surface p-1 shadow-popover animate-scale-in ${align === 'right' ? 'right-0' : 'left-0'}`}
+                    className="min-w-44 rounded-xl border border-line bg-surface p-1 shadow-popover animate-scale-in"
                 >
                     {items.map((item, index) => (item.separator ? (
                         <div key={`sep-${index}`} role="separator" className="my-1 h-px bg-line" />
@@ -107,7 +112,7 @@ export default function Menu({ trigger, items, align = 'right', label }) {
                             {item.label}
                         </button>
                     )))}
-                </div>
+                </FloatingPanel>
             )}
         </div>
     );

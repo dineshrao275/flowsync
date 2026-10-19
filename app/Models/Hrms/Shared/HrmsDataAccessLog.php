@@ -42,6 +42,7 @@ class HrmsDataAccessLog extends Model
         'fields',
         'ip_address',
         'request_id',
+        'impersonator_id',
         'created_at',
     ];
 

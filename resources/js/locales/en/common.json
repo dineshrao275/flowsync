@@ -24,7 +24,10 @@
         "selectDateTime": "Select date & time…",
         "justNow": "just now",
         "pricePerMonth": "{{value}}/mo",
-        "pricePerMonthAnnual": "{{value}}/mo billed annually"
+        "pricePerMonthAnnual": "{{value}}/mo billed annually",
+        "change": "Change",
+        "noMatches": "No matching people",
+        "searchPeople": "Search people…"
     },
     "errors": {
         "generic": "Something went wrong. Please try again."
@@ -111,7 +114,7 @@
         "breadcrumb": "Breadcrumb",
         "superAdmin": "Super Admin",
         "admin": "Admin",
-        "footer": "FlowSync Admin · Laravel + React",
+        "footer": "{{app}} · Laravel + React",
         "dismiss": "Dismiss notification",
         "sidebar": {
             "superAdminPanel": "Super Admin Panel",
@@ -191,7 +194,7 @@
         },
         "errorBoundary": {
             "title": "This page hit an unexpected error",
-            "desc": "The rest of FlowSync is still working. Try again, or head back to your dashboard.",
+            "desc": "The rest of {{app}} is still working. Try again, or head back to your dashboard.",
             "fallback": "Unknown error",
             "retry": "Try again",
             "dashboard": "Go to dashboard"
@@ -249,7 +252,9 @@
             "projects": "Projects",
             "search": "Search",
             "reports": "Reports",
-            "webhooks": "Webhooks"
+            "webhooks": "Webhooks",
+            "timesheets": "Timesheets",
+            "reportBuilder": "Report builder"
         },
         "admin": {
             "users": "Users",
@@ -258,7 +263,9 @@
             "security": "Security",
             "subscription": "Subscription",
             "support": "Support",
-            "dataExport": "Data Export"
+            "dataExport": "Data Export",
+            "customFields": "Custom fields",
+            "audit": "Audit timeline"
         },
         "hrms": {
             "myHr": "My HR",
@@ -294,7 +301,21 @@
             "myAssets": "My assets",
             "approvalChains": "Approval chains",
             "analytics": "Analytics",
-            "audit": "Audit log"
+            "audit": "Audit log",
+            "skills": "Skills",
+            "resignation": "Resignation",
+            "exitInterview": "Exit interview",
+            "hrAutomation": "HR automation",
+            "changes": "Transfers & promotions",
+            "shiftSwaps": "Shift swaps",
+            "improvementPlans": "Improvement plans",
+            "loans": "Loans & advances",
+            "letters": "Letters",
+            "developmentPlans": "Development plans",
+            "orgChart": "Org chart",
+            "okrs": "OKRs",
+            "careers": "Careers & succession",
+            "signatures": "E-signatures"
         },
         "platform": {
             "overview": "Overview",
@@ -307,7 +328,34 @@
             "siteSettings": "Site settings",
             "blog": "Blog",
             "leads": "Leads",
-            "auditLogs": "Audit Logs"
+            "auditLogs": "Audit Logs",
+            "queue": "Background queue",
+            "activity": "Tenant activity"
         }
+    },
+    "maintenance": {
+        "title": "We'll be right back",
+        "body": "{{app}} is undergoing scheduled maintenance. Your data is safe — please check back in a few minutes.",
+        "retry": "Check again",
+        "adminLogin": "Administrator sign in"
+    },
+    "savedFilters": {
+        "title": "Saved filters",
+        "menu": "Saved filters",
+        "saved": "Filter saved.",
+        "updated": "Filter updated.",
+        "saveFailed": "Could not save the filter.",
+        "deleteFailed": "Could not delete the filter.",
+        "deleteTitle": "Delete saved filter",
+        "deleteMessage": "Delete “{{name}}”? This cannot be undone.",
+        "shared": "shared",
+        "saveCurrent": "Save current filters…",
+        "update": "Update “{{name}}” with current filters",
+        "delete": "Delete “{{name}}”",
+        "name": "Name",
+        "shareLabel": "Share with everyone",
+        "shareHint": "Everyone with access to this list can use it.",
+        "cancel": "Cancel",
+        "save": "Save"
     }
 }

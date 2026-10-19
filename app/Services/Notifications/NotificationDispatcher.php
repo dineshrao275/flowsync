@@ -5,13 +5,18 @@ namespace App\Services\Notifications;
 use App\Contracts\Notifications\NotificationSender;
 use App\Events\NotificationSent;
 use App\Mail\TaskNotificationMail;
+use App\Models\NotificationDigestItem;
+use App\Models\NotificationPolicy;
 use App\Models\NotificationPreference;
 use App\Models\User;
 use App\Models\UserNotification;
 use App\Support\Locales;
 use App\Support\Realtime;
+use App\Support\TenantContext;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\Schema;
 
 /**
  * Persists, broadcasts and (for the emailable TMS events) queues mail for a
@@ -38,12 +43,24 @@ class NotificationDispatcher implements NotificationSender
         array $data = [],
         ?User $actor = null,
     ): UserNotification {
+        // The same notification (recipient + type + payload) inside the dedupe window is
+        // written and sent once: bursts of identical updates (a rule firing twice, a
+        // double click) must not double-ping anyone.
+        $dedupeKey = $this->dedupeKey($recipient, $type, $data);
+        $duplicate = $this->recentDuplicate($recipient, $dedupeKey);
+        if ($duplicate !== null) {
+            return $duplicate;
+        }
+
         $notification = new UserNotification([
             'user_id' => $recipient->id,
             'actor_id' => $actor?->id,
             'type' => $type,
             'data' => $data,
         ]);
+        if ($dedupeKey !== null) {
+            $notification->dedupe_key = $dedupeKey;
+        }
         $notification->save();
 
         Realtime::send(new NotificationSent($notification));
@@ -90,13 +107,78 @@ class NotificationDispatcher implements NotificationSender
             return;
         }
 
+        // Tenant policy first (an admin can switch an event's email off for everyone),
+        // then the recipient's own per-event preference. In-app rows are unaffected.
+        if (! NotificationPolicy::allows($type)) {
+            return;
+        }
+
         if (! NotificationPreference::wants($recipient, $type)) {
             return;
         }
 
+        $url = $this->taskDeepLink($type, $data);
+
+        // Digest mode — or a burst past the per-hour email cap — holds the event;
+        // `notifications:send-digests` sends one mail per user.
+        if (NotificationPreference::emailMode($recipient) === NotificationPreference::MODE_DIGEST
+            || $this->overEmailThrottle($recipient)) {
+            NotificationDigestItem::create([
+                'user_id' => $recipient->id,
+                'type' => $type,
+                'actor_name' => $actor?->name,
+                'data' => $data + ['_url' => $url],
+                'created_at' => now(),
+            ]);
+
+            return;
+        }
+
         Mail::to($recipient->email, $recipient->name)->queue(
-            TaskNotificationMail::fromData($type, $actor?->name ?? '', $data, $this->taskDeepLink($type, $data), $this->localeFor($recipient)),
+            TaskNotificationMail::fromData($type, $actor?->name ?? '', $data, $url, $this->localeFor($recipient)),
         );
+    }
+
+    private function dedupeKey(User $recipient, string $type, array $data): ?string
+    {
+        if ((int) config('notifications.dedupe_window_seconds', 0) <= 0 || ! Schema::hasColumn('notifications', 'dedupe_key')) {
+            return null;
+        }
+
+        return substr(sha1($recipient->id.'|'.$type.'|'.json_encode($data)), 0, 40);
+    }
+
+    private function recentDuplicate(User $recipient, ?string $key): ?UserNotification
+    {
+        if ($key === null) {
+            return null;
+        }
+
+        return UserNotification::query()
+            ->where('user_id', $recipient->id)
+            ->where('dedupe_key', $key)
+            ->where('created_at', '>=', now()->subSeconds((int) config('notifications.dedupe_window_seconds')))
+            ->first();
+    }
+
+    /**
+     * True once this person has been emailed `max` times inside the window; the
+     * caller then routes the event to the digest instead of sending it. The
+     * counter lives in the shared cache, keyed by tenant so ids never collide.
+     */
+    private function overEmailThrottle(User $recipient): bool
+    {
+        $max = (int) config('notifications.email_throttle.max', 0);
+        $minutes = (int) config('notifications.email_throttle.per_minutes', 60);
+
+        if ($max <= 0) {
+            return false;
+        }
+
+        $key = 'notif-mail:'.(app(TenantContext::class)->currentId() ?? 0).':'.$recipient->id;
+        Cache::add($key, 0, now()->addMinutes($minutes));
+
+        return Cache::increment($key) > $max;
     }
 
     /**

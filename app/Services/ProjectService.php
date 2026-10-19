@@ -8,6 +8,7 @@ use App\Models\ProjectRole;
 use App\Models\TaskStatus;
 use App\Models\User;
 use App\Models\Workspace;
+use App\Services\Projects\ProjectIssueScheme;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
@@ -23,7 +24,7 @@ class ProjectService
         $query = Project::where('workspace_id', $workspace->id)
             ->with('workspace')
             ->with(['members' => fn ($q) => $q->where('user_id', $user->id)])
-            ->withCount(['members', 'tasks', 'statuses'])
+            ->withCount(['members', 'tasks', 'statuses', 'tasks as done_tasks_count' => fn ($q) => $q->whereNotNull('completed_at')])
             ->orderBy('name');
 
         if (! $user->hasPermission('workspaces.manage')) {
@@ -38,7 +39,7 @@ class ProjectService
         $query = Project::query()
             ->with('workspace')
             ->with(['members' => fn ($q) => $q->where('user_id', $user->id)])
-            ->withCount(['members', 'tasks', 'statuses'])
+            ->withCount(['members', 'tasks', 'statuses', 'tasks as done_tasks_count' => fn ($q) => $q->whereNotNull('completed_at')])
             ->orderBy('name');
 
         if (! $user->hasPermission('workspaces.manage')) {
@@ -53,6 +54,7 @@ class ProjectService
         $this->limits->assertQuota('projects');
 
         $key = $this->uniqueProjectKey($data['key'] ?? $this->suggestKey($data['name']));
+        $boardType = $data['board_type'] ?? config('board_types.default', 'kanban');
 
         $project = Project::create([
             'workspace_id' => $workspace->id,
@@ -66,9 +68,11 @@ class ProjectService
             'default_assignee_id' => $data['default_assignee_id'] ?? null,
             'start_date' => $data['start_date'] ?? null,
             'due_date' => $data['due_date'] ?? null,
+            'board_type' => $boardType,
         ]);
 
-        $this->seedDefaultStatuses($project);
+        $this->seedDefaultStatuses($project, $boardType);
+        ProjectIssueScheme::seedFor($project, $boardType);
 
         $leadRole = ProjectRole::where('slug', 'lead')->firstOrFail();
         $project->members()->attach($creator->id, [
@@ -194,11 +198,15 @@ class ProjectService
         return $role;
     }
 
-    private function seedDefaultStatuses(Project $project): void
+    private function seedDefaultStatuses(Project $project, string $boardType = 'kanban'): void
     {
         $position = 0;
+        $keep = config("board_types.types.$boardType.statuses");
 
         foreach (config('task_statuses.statuses') as $status) {
+            if (is_array($keep) && ! in_array($status['slug'], $keep, true)) {
+                continue;
+            }
             $position++;
 
             TaskStatus::create([

@@ -1,9 +1,10 @@
 import { useCallback, useEffect, useState } from 'react';
+import ListSavedFilters from '../components/ui/ListSavedFilters';
 import { useTranslation } from 'react-i18next';
 import api, { fieldErrors } from '../services/api';
 import Card from '../components/ui/Card';
 import Badge from '../components/ui/Badge';
-import Spinner from '../components/ui/Spinner';
+import ContentSkeleton from '../components/ui/ContentSkeleton';
 import Button from '../components/ui/Button';
 import Input from '../components/ui/Input';
 import Modal from '../components/ui/Modal';
@@ -102,10 +103,19 @@ export default function SystemUsers() {
                 />
                 <Button type="submit">{t('admin.common.search')}</Button>
             </form>
+            <ListSavedFilters
+                page="platform-users"
+                scope="system"
+                value={{ q }}
+                onApply={(saved) => {
+                    setQ(saved.q || '');
+                    fetchUsers(1, saved.q || '');
+                }}
+            />
 
             <Card>
                 {loading ? (
-                    <Spinner />
+                    <ContentSkeleton size="sm" />
                 ) : (
                     <div className="overflow-x-auto"><table className="w-full text-left text-sm">
                         <thead className="text-xs uppercase tracking-wide text-gray-400">

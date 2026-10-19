@@ -7,7 +7,7 @@ import Avatar from '../../components/ui/Avatar';
 import Button from '../../components/ui/Button';
 import Card from '../../components/ui/Card';
 import Select from '../../components/ui/Select';
-import Spinner from '../../components/ui/Spinner';
+import ContentSkeleton from '../../components/ui/ContentSkeleton';
 import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
 import { useSetCrumbs } from '../../context/BreadcrumbContext';
@@ -15,6 +15,7 @@ import usePageTitle from '../../hooks/usePageTitle';
 import { hrmsProfileTabs } from '../../utils/hrmsModules';
 import { hrmsUrl } from '../../utils/deepLinks';
 import EmployeeEditModal from './EmployeeEditModal';
+import { CustomFieldValues } from '../../components/customFields/CustomFieldInputs';
 import StatusHistory from './StatusHistory';
 import EmployeeDocuments from '../../components/hrms/EmployeeDocuments';
 import EmployeeAudit from '../../components/hrms/EmployeeAudit';
@@ -157,7 +158,7 @@ export default function EmployeeDetail() {
     if (loading) {
         return (
             <div className="py-16 text-center">
-                <Spinner />
+                <ContentSkeleton size="sm" />
             </div>
         );
     }
@@ -235,6 +236,12 @@ export default function EmployeeDetail() {
                         </Panel>
 
                         <PersonalPanel employee={employee} t={t} />
+
+                        {employee.custom_fields && Object.keys(employee.custom_fields).length > 0 && (
+                            <Panel title={t('admin.customFields.sectionTitle')}>
+                                <CustomFieldValues entity="employee" values={employee.custom_fields} Row={Row} />
+                            </Panel>
+                        )}
 
                         {canManage && (
                             <Panel title={t('hrms.employee.reporting')}>

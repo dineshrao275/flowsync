@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import api from '../../services/api';
 import { formatMinutes } from '../../utils/time';
-import Spinner from '../ui/Spinner';
+import ContentSkeleton from '../ui/ContentSkeleton';
 import Input from '../ui/Input';
 import { fieldClass } from '../ui/fieldStyles';
 
@@ -64,9 +64,7 @@ export default function TimeSummary({ url }) {
             </div>
 
             {loading ? (
-                <div className="flex justify-center py-10">
-                    <Spinner />
-                </div>
+                <ContentSkeleton size="md" />
             ) : summary && summary.logs_count > 0 ? (
                 <div className="space-y-4">
                     <p className="text-sm text-gray-600">

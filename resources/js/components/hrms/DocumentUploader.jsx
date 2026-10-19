@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import PersonSelect from '../ui/PersonSelect';
 import { useTranslation } from 'react-i18next';
 import api, { fieldErrors } from '../../services/api';
 import Alert from '../ui/Alert';
@@ -63,14 +64,7 @@ export default function DocumentUploader({ employeeId, employees, types, onUploa
     return (
         <form onSubmit={upload} className="space-y-3 px-6 py-5">
             {employees && (
-                <Select label={t('hrms.docs.uploadEmployee')} value={pickedEmployee} onChange={(e) => setPickedEmployee(e.target.value)}>
-                    <option value="">{t('hrms.docs.uploadEmployeePlaceholder')}</option>
-                    {employees.map((employee) => (
-                        <option key={employee.id} value={employee.id}>
-                            {employee.name}
-                        </option>
-                    ))}
-                </Select>
+                <PersonSelect label={t('hrms.docs.uploadEmployee')} value={pickedEmployee} onChange={(e) => setPickedEmployee(e.target.value)} placeholder={t('hrms.docs.uploadEmployeePlaceholder')} people={employees} />
             )}
             <Input label={t('hrms.docs.uploadTitle')} placeholder={t('hrms.docs.uploadTitlePlaceholder')} value={title} onChange={(e) => setTitle(e.target.value)} />
             {errors.title && <Alert>{errors.title}</Alert>}

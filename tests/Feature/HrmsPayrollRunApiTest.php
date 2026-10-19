@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Enums\Hrms\EmployeeStatus;
 use App\Models\Hrms\Employee\Employee;
+use App\Models\Hrms\Payroll\PayrollRun;
 use App\Models\Hrms\Payroll\SalaryComponent;
 use App\Models\Hrms\Shared\HrmsAuditLog;
 use App\Models\Permission;
@@ -240,6 +241,56 @@ class HrmsPayrollRunApiTest extends TestCase
             'status' => EmployeeStatus::Active,
             'user_id' => $user->id,
         ]);
+    }
+
+    public function test_a_run_can_be_reopened_with_a_reason_until_it_is_locked(): void
+    {
+        $this->pricedEmployee();
+        $this->actAs($this->userWith(['hrms.view', 'hrms.payroll.run']));
+
+        $run = $this->postJson('/api/hrms/payroll/runs', $this->period())->json('run');
+        $id = $run['id'];
+        $this->postJson("/api/hrms/payroll/runs/{$id}/calculate", [])->assertOk();
+
+        // Nothing to reopen before approval.
+        $this->postJson("/api/hrms/payroll/runs/{$id}/reopen", ['reason' => 'Fix the bonus amount'])->assertStatus(422);
+
+        $this->postJson("/api/hrms/payroll/runs/{$id}/approve", [])->assertOk();
+        $this->postJson("/api/hrms/payroll/runs/{$id}/publish", [])->assertOk();
+        $this->postJson("/api/hrms/payroll/runs/{$id}/mark-paid", [])->assertOk();
+
+        // A reason is mandatory and must be real.
+        $this->postJson("/api/hrms/payroll/runs/{$id}/reopen", [])->assertStatus(422);
+        $this->postJson("/api/hrms/payroll/runs/{$id}/reopen", ['reason' => 'too short'])->assertStatus(422)->assertJsonValidationErrors('reason');
+
+        $this->postJson("/api/hrms/payroll/runs/{$id}/reopen", ['reason' => 'Wrong bonus on one payslip'])
+            ->assertOk()->assertJsonPath('run.status', 'review');
+
+        $run = PayrollRun::findOrFail($id);
+        $this->assertSame(['draft'], $run->payslips()->pluck('status')->map(fn ($s) => $s->value ?? $s)->unique()->values()->all());
+        $this->assertNull($run->approved_at);
+
+        $audit = HrmsAuditLog::query()->where('action', 'payroll.reopened')->firstOrFail();
+        $this->assertSame('Wrong bonus on one payslip', $audit->data['after']['reason']);
+        $this->assertSame('paid', $audit->data['before']['status']);
+
+        // It goes round again, and once locked it is sealed.
+        $this->postJson("/api/hrms/payroll/runs/{$id}/approve", [])->assertOk();
+        $this->postJson("/api/hrms/payroll/runs/{$id}/publish", [])->assertOk();
+        $this->postJson("/api/hrms/payroll/runs/{$id}/mark-paid", [])->assertOk();
+        $this->postJson("/api/hrms/payroll/runs/{$id}/lock", [])->assertOk();
+        $this->postJson("/api/hrms/payroll/runs/{$id}/reopen", ['reason' => 'Trying to rewrite history'])->assertStatus(422);
+    }
+
+    public function test_only_a_runner_may_reopen(): void
+    {
+        $this->pricedEmployee();
+        $this->connectTenant('acme');
+        $run = app(PayrollService::class)->openRun($this->period());
+
+        $this->actAs($this->userWith(['hrms.view']));
+
+        $this->postJson("/api/hrms/payroll/runs/{$run->id}/reopen", ['reason' => 'Please let me in'])->assertForbidden();
     }
 
     private function actAs(User $user): void

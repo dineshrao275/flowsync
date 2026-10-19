@@ -9,7 +9,7 @@ import EmptyState from '../../components/ui/EmptyState';
 import Input from '../../components/ui/Input';
 import Modal from '../../components/ui/Modal';
 import Select from '../../components/ui/Select';
-import Spinner from '../../components/ui/Spinner';
+import ContentSkeleton from '../../components/ui/ContentSkeleton';
 import { Table, Th, Td } from '../../components/ui/Table';
 import { useToast } from '../../context/ToastContext';
 import { useSetCrumbs } from '../../context/BreadcrumbContext';
@@ -128,9 +128,7 @@ export default function AttendanceApprovals() {
 
             <Card dense>
                 {!requests ? (
-                    <div className="flex justify-center py-10">
-                        <Spinner />
-                    </div>
+                    <ContentSkeleton size="md" />
                 ) : requests.length === 0 ? (
                     <EmptyState title={t('hrms.approvals.emptyTitle')} description={t('hrms.approvals.emptyHint')} />
                 ) : (

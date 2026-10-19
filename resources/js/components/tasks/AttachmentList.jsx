@@ -1,9 +1,10 @@
 import { useEffect, useState } from 'react';
+import UserChip from '../ui/UserChip';
 import { useTranslation } from 'react-i18next';
 import api, { fieldErrors } from '../../services/api';
 import Button from '../ui/Button';
 import Alert from '../ui/Alert';
-import Spinner from '../ui/Spinner';
+import ContentSkeleton from '../ui/ContentSkeleton';
 import { useAuth } from '../../context/AuthContext';
 import { useConfirm } from '../ui/ConfirmDialog';
 import Timestamp from '../ui/Timestamp';
@@ -69,9 +70,7 @@ export default function AttachmentList({ task, projectId, canUpload, canManage }
 
     if (!attachments) {
         return (
-            <div className="flex justify-center py-10">
-                <Spinner />
-            </div>
+            <ContentSkeleton size="md" />
         );
     }
 
@@ -110,7 +109,7 @@ export default function AttachmentList({ task, projectId, canUpload, canManage }
                                         {attachment.original_name}
                                     </a>
                                     <p className="text-xs text-gray-400">
-                                        {attachment.user?.name ?? t('tms.attachments.unknown')} · {formatSize(attachment.size)} ·{' '}
+                                        <UserChip user={attachment.user} name={attachment.user?.name ?? t('tms.attachments.unknown')} className="align-middle" /> · {formatSize(attachment.size)} ·{' '}
                                         <Timestamp date={attachment.created_at} />
                                     </p>
                                 </div>

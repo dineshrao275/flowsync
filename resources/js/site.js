@@ -33,6 +33,31 @@ function thanksState(i18n) {
 document.addEventListener('DOMContentLoaded', () => {
     const i18n = readSiteI18n();
 
+    // Theme toggle: persists the explicit choice; with none stored the page follows the OS.
+    document.querySelectorAll('[data-theme-toggle]').forEach((toggle) => {
+        toggle.addEventListener('click', () => {
+            const dark = document.documentElement.classList.toggle('dark');
+            try {
+                localStorage.setItem('flowsync.site.theme', dark ? 'dark' : 'light');
+            } catch {
+                /* storage blocked: the choice just lasts for this page view */
+            }
+            document.querySelectorAll('[data-theme-toggle]').forEach((b) => b.setAttribute('aria-pressed', dark ? 'true' : 'false'));
+        });
+        toggle.setAttribute('aria-pressed', document.documentElement.classList.contains('dark') ? 'true' : 'false');
+    });
+
+    // Language menu (<details>): close on outside click or Escape.
+    const dropdowns = document.querySelectorAll('details[data-dropdown]');
+    document.addEventListener('click', (event) => {
+        dropdowns.forEach((d) => {
+            if (d.open && !d.contains(event.target)) d.open = false;
+        });
+    });
+    document.addEventListener('keydown', (event) => {
+        if (event.key === 'Escape') dropdowns.forEach((d) => { d.open = false; });
+    });
+
     const button = document.getElementById('site-menu-button');
     const menu = document.getElementById('site-mobile-menu');
 

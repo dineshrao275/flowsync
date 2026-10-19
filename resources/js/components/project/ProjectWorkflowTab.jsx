@@ -5,6 +5,7 @@ import Alert from '../../components/ui/Alert';
 import Button from '../../components/ui/Button';
 import Input from '../../components/ui/Input';
 import WorkflowRules from '../../components/tasks/WorkflowRules';
+import SlaPanel from './SlaPanel';
 
 export default function ProjectWorkflowTab({ addIssueType, addStatus, can, deleteIssueType, deleteStatus, formErrors, issueTypeErrors, issueTypeForm, issueTypes, moveStatus, projectId, savingIssueType, savingStatus, setIssueTypeForm, setStatusForm, statusForm, statuses, updateIssueType, updateStatus }) {
     const { t } = useTranslation();
@@ -12,6 +13,7 @@ export default function ProjectWorkflowTab({ addIssueType, addStatus, can, delet
     return (
                 <div className="space-y-5">
                     <WorkflowRules projectId={projectId} />
+                    <SlaPanel projectId={projectId} canManage />
                     <Card title={t('tms.project.newStatusTitle')} subtitle={t('tms.project.newStatusSubtitle')}>
                         <form onSubmit={addStatus} className="flex flex-col gap-3 sm:flex-row sm:items-end">
                             <div className="flex-1">

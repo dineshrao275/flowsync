@@ -21,7 +21,8 @@
         "comments": "Comments",
         "commentsCount": "{{count}} comments",
         "estimate": "Estimate",
-        "estimateShort": "est {{value}}"
+        "estimateShort": "est {{value}}",
+        "subtasksProgress": "{{done}} of {{total}} subtasks done"
     },
     "table": {
         "empty": "No tasks match the current filters.",
@@ -60,7 +61,17 @@
         "needs": "needs {{label}}",
         "save": "Save workflow",
         "saved": "Workflow saved.",
-        "saveFailed": "Could not save the workflow."
+        "saveFailed": "Could not save the workflow.",
+        "pendingTitle": "Moves waiting for approval",
+        "pendingLine": "{{key}}: {{from}} → {{to}} (asked by {{who}})",
+        "reject": "Reject",
+        "approve": "Approve",
+        "rejectReason": "Why is this move rejected?",
+        "moveFailed": "That did not work.",
+        "moveDone": {
+            "approve": "Move approved.",
+            "reject": "Move rejected."
+        }
     },
     "transfer": {
         "clone": "Clone",
@@ -123,7 +134,29 @@
         "remove": "Remove",
         "removeTitle": "Remove dependency?",
         "removeMessage": "Remove this dependency relationship?",
-        "taskFallback": "Task #{{id}}"
+        "taskFallback": "Task #{{id}}",
+        "links": "Other links",
+        "typeLabel": "Link type",
+        "types": {
+            "blocks": "is blocked by",
+            "related_to": "relates to",
+            "duplicates": "duplicates",
+            "clones": "is a clone of"
+        },
+        "linkWording": {
+            "related_to": {
+                "outward": "relates to",
+                "inward": "relates to"
+            },
+            "duplicates": {
+                "outward": "duplicates",
+                "inward": "is duplicated by"
+            },
+            "clones": {
+                "outward": "clones",
+                "inward": "is cloned by"
+            }
+        }
     },
     "worklogs": {
         "editTitle": "Edit work log",
@@ -145,7 +178,8 @@
         "edit": "Edit",
         "delete": "Delete",
         "removeTitle": "Remove work log?",
-        "removeMessage": "Remove this work log? This cannot be undone."
+        "removeMessage": "Remove this work log? This cannot be undone.",
+        "billable": "Billable time"
     },
     "create": {
         "title": "New task",
@@ -198,7 +232,18 @@
         "checklistRemovedTitle": "removed checklist item \"{{title}}\"",
         "someone": "Someone",
         "empty": "No activity yet.",
-        "loadFailed": "Could not load activity."
+        "loadFailed": "Could not load activity.",
+        "slaBreached": "missed its SLA",
+        "slaLine": "missed the “{{sla}}” SLA ({{hours}} h)",
+        "moveRequested": "asked for approval to move",
+        "moveApproved": "move approved",
+        "moveRejected": "move rejected",
+        "vcsEvent": "linked from GitHub",
+        "vcsLine": "GitHub {{kind}} {{state}}: {{title}}",
+        "vcsKind": {
+            "pull_request": "pull request",
+            "commit": "commit"
+        }
     },
     "workspaces": {
         "pageTitle": "Workspaces",
@@ -306,7 +351,19 @@
         "settingsDesc": "Description",
         "settingsDescPlaceholder": "What is this workspace for?",
         "save": "Save changes",
-        "deleteWorkspace": "Delete workspace"
+        "deleteWorkspace": "Delete workspace",
+        "boardType": "Board type",
+        "boardTypes": {
+            "kanban": "Kanban",
+            "scrum": "Scrum",
+            "basic": "Basic"
+        },
+        "boardTypeHint": {
+            "kanban": "Continuous flow with WIP limits; every issue type.",
+            "scrum": "Backlog and sprints; epics, stories, tasks and bugs.",
+            "basic": "A simple to-do board: three columns, tasks and sub-tasks."
+        },
+        "searchPeople": "Search people by name or email…"
     },
     "detail": {
         "fallbackTitle": "Task",
@@ -344,6 +401,8 @@
         "parent": "Parent task",
         "labels": "Labels",
         "watchers": "Watchers ({{count}})",
+        "lastSeen": "Last seen",
+        "you": "You",
         "watching": "Watching",
         "watch": "Watch",
         "removeWatcher": "Remove watcher",
@@ -379,7 +438,11 @@
         "allComponents": "All components",
         "dueFrom": "Due from",
         "dueTo": "Due to",
-        "clear": "Clear"
+        "clear": "Clear",
+        "jql": "Advanced search",
+        "jqlPlaceholder": "status = \"In Progress\" AND assignee = currentUser() ORDER BY due",
+        "jqlHelp": "Press Enter to run. Fields: status, assignee, priority, type, label, due, created, title, text, cf.<field> …",
+        "done": "Done"
     },
     "projectsList": {
         "pageTitle": "Projects",
@@ -413,7 +476,9 @@
             "time": "Time",
             "sprints": "Sprints",
             "automation": "Automation",
-            "settings": "Settings"
+            "settings": "Settings",
+            "workload": "Workload",
+            "dashboard": "Dashboard"
         },
         "detailsTitle": "Details",
         "detailsSubtitle": "Workspace · {{id}}",
@@ -528,7 +593,10 @@
         "deleteTypeMessage": "Delete issue type \"{{name}}\"?",
         "typeDeleted": "Issue type deleted.",
         "typeDeleteFailed": "Could not delete issue type.",
-        "taskCreateFailed": "Could not create the task."
+        "taskCreateFailed": "Could not create the task.",
+        "progress": "Progress",
+        "progressDone": "{{done}} of {{total}} tasks done",
+        "searchPeople": "Search people by name or email…"
     },
     "hierarchy": {
         "collapse": "Collapse",
@@ -633,7 +701,11 @@
         "cycleAvg": "Cycle time (avg)",
         "cycleMedian": "Cycle time (median)",
         "daysSuffix": "d",
-        "flowFootnote": "Lead time = created → completed. Cycle time = first moved to an in-progress status → completed."
+        "flowFootnote": "Lead time = created → completed. Cycle time = first moved to an in-progress status → completed.",
+        "burnup": "Burnup",
+        "burnupSubtitle": "Work completed against total scope — scope changes show as steps.",
+        "scope": "Scope",
+        "done": "Done"
     },
     "columns": {
         "title": "Board settings",
@@ -683,5 +755,154 @@
         "categoryHint": "Decides whether tasks here count as open or done.",
         "customColor": "Custom colour",
         "wipHint": "Maximum open tasks in this column. Leave empty for no limit."
+    },
+    "savedFilters": {
+        "title": "Saved",
+        "menu": "Saved filters",
+        "saveCurrent": "Save current filters…",
+        "name": "Filter name",
+        "shareLabel": "Share with the project",
+        "shareHint": "Everyone on this project can use it.",
+        "shared": "shared",
+        "saved": "Filter saved.",
+        "saveFailed": "Could not save the filter.",
+        "delete": "Delete “{{name}}”",
+        "deleteTitle": "Delete this filter?",
+        "deleteMessage": "“{{name}}” will be removed for everyone who can see it.",
+        "deleteFailed": "Could not delete the filter."
+    },
+    "timesheets": {
+        "title": "Timesheets",
+        "subtitle": "Review your week, submit it for approval, and approve your team's time.",
+        "loadFailed": "Could not load the timesheet.",
+        "submit": "Submit week",
+        "submitted": "Timesheet submitted.",
+        "submitFailed": "Could not submit the timesheet.",
+        "previous": "Previous week",
+        "next": "Next week",
+        "total": "Total",
+        "billable": "Billable",
+        "nonBillable": "Non-billable",
+        "billableShort": "billable",
+        "task": "Task",
+        "project": "Project",
+        "empty": "No time logged this week.",
+        "sentBack": "Sent back: {{note}}",
+        "status": {
+            "open": "Open",
+            "submitted": "Submitted",
+            "approved": "Approved",
+            "rejected": "Sent back"
+        },
+        "tab": {
+            "mine": "My week",
+            "approvals": "Approvals"
+        },
+        "nothingPending": "No timesheets are waiting for you.",
+        "weekOf": "Week of {{date}}",
+        "noteLabel": "Note (needed to send back)",
+        "sendBack": "Send back",
+        "approve": "Approve",
+        "approved": "Timesheet approved.",
+        "rejected": "Timesheet sent back.",
+        "decideFailed": "Could not record the decision."
+    },
+    "timer": {
+        "start": "Start timer",
+        "stop": "Stop timer",
+        "stopped": "Timer stopped.",
+        "stopFailed": "Could not stop the timer.",
+        "running": "Timer running on {{key}}"
+    },
+    "calendar": {
+        "view": "Calendar",
+        "label": "Due-date calendar",
+        "previous": "Previous month",
+        "next": "Next month",
+        "today": "Today",
+        "more": "+{{count}} more",
+        "empty": "No tasks have a due date in this period.",
+        "rescheduleFailed": "Could not move the task to that day."
+    },
+    "timeline": {
+        "view": "Timeline",
+        "previous": "Earlier",
+        "next": "Later",
+        "empty": "No dated tasks in this window.",
+        "noVersion": "No version"
+    },
+    "workload": {
+        "title": "Workload",
+        "subtitle": "Planned work against each person's capacity. Planned = remaining estimate of open tasks due in the window.",
+        "window": "Window",
+        "weeks_one": "{{count}} week",
+        "weeks_other": "{{count}} weeks",
+        "member": "Member",
+        "capacity": "Capacity",
+        "planned": "Planned",
+        "utilization": "Utilization",
+        "notes": "Notes",
+        "leave_one": "{{count}} leave day",
+        "leave_other": "{{count}} leave days",
+        "over": "Over capacity",
+        "unestimated_one": "{{count}} task without estimate",
+        "unestimated_other": "{{count}} tasks without estimate",
+        "unscheduled_one": "{{count}} task without due date",
+        "unscheduled_other": "{{count}} tasks without due date",
+        "utilizationLabel": "{{name}} utilization",
+        "loadFailed": "Could not load the workload."
+    },
+    "templates": {
+        "startFrom": "Start from",
+        "blank": "Blank project",
+        "title": "Save as template",
+        "hint": "Copies this project's workflow (columns, allowed moves, WIP limits) and components so new projects can start the same way.",
+        "name": "Template name",
+        "includeTasks": "Include open tasks",
+        "includeTasksHint": "Copies up to 100 open top-level tasks as starter work (no assignees or dates).",
+        "save": "Save template",
+        "saved": "Template saved.",
+        "saveFailed": "Could not save the template."
+    },
+    "dashboard": {
+        "customize": "Customize",
+        "cancel": "Cancel",
+        "pick": "Choose the widgets",
+        "saveMine": "Save for me",
+        "saveTeam": "Save as team default",
+        "reset": "Reset to default",
+        "saved": "Dashboard saved.",
+        "saveFailed": "Could not save the dashboard.",
+        "loadFailed": "Could not load the dashboard.",
+        "noData": "Nothing to show yet.",
+        "total": "Tasks",
+        "open": "Open",
+        "done": "Done",
+        "overdue": "Overdue",
+        "created": "Created",
+        "completed": "Completed",
+        "due": "due {{date}}",
+        "widgets": {
+            "overview": "Overview",
+            "status_breakdown": "Tasks by status",
+            "priority_breakdown": "Tasks by priority",
+            "assignee_load": "Open work per person",
+            "overdue_list": "Overdue tasks",
+            "due_soon": "Due in the next 7 days",
+            "created_vs_done": "Created vs completed (14 days)"
+        }
+    },
+    "sla": {
+        "title": "Service levels (SLA)",
+        "subtitle": "Tasks still open after the target time are flagged, and their assignee is told.",
+        "empty": "No SLA policies yet.",
+        "within": "resolve within {{hours}} h",
+        "allPriorities": "all priorities",
+        "onePriority": "one priority",
+        "remove": "Remove",
+        "name": "Name",
+        "hours": "Target (hours)",
+        "priority": "Priority",
+        "add": "Add policy"
     }
 }

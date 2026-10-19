@@ -9,6 +9,9 @@ use App\Billing\DTOs\RefundResult;
 use App\Billing\DTOs\WebhookResult;
 use App\Billing\PaymentGateway;
 use App\Billing\RecurringGateway;
+use App\Billing\Stripe\BillingProviderException;
+use App\Billing\Stripe\CatalogSync;
+use App\Billing\Stripe\StripeClient;
 use App\Models\Payment;
 use App\Models\SubscriptionPlan;
 use App\Models\Tenant;
@@ -20,9 +23,23 @@ class StripeGateway implements CardCaptureGateway, PaymentGateway, RecurringGate
 {
     private const API_URL = 'https://api.stripe.com/v1';
 
+    private ?StripeClient $client = null;
+
+    private ?CatalogSync $catalog = null;
+
     public function __construct(
         private readonly array $config,
     ) {}
+
+    private function client(): StripeClient
+    {
+        return $this->client ??= new StripeClient((string) ($this->config['secret'] ?? ''));
+    }
+
+    private function catalog(): CatalogSync
+    {
+        return $this->catalog ??= new CatalogSync($this->client());
+    }
 
     public function name(): string
     {
@@ -292,19 +309,29 @@ class StripeGateway implements CardCaptureGateway, PaymentGateway, RecurringGate
         $kind = match ($eventType) {
             'invoice.paid', 'invoice.payment_succeeded' => 'invoice_paid',
             'invoice.payment_failed' => 'invoice_failed',
+            'invoice.payment_action_required' => 'action_required',
             'customer.subscription.updated' => 'subscription_updated',
             'customer.subscription.deleted' => 'subscription_deleted',
+            'customer.subscription.trial_will_end' => 'trial_will_end',
+            'subscription_schedule.released', 'subscription_schedule.canceled', 'subscription_schedule.aborted' => 'schedule_ended',
+            'payment_method.attached', 'payment_method.detached', 'payment_method.updated', 'payment_method.automatically_updated' => 'payment_method',
             default => null,
         };
 
         if ($kind !== null) {
             $isInvoice = str_starts_with($eventType, 'invoice.');
-            $subscriptionId = $isInvoice
-                ? ($object['subscription'] ?? $object['parent']['subscription_details']['subscription'] ?? null)
-                : ($object['id'] ?? null);
+            $isSchedule = str_starts_with($eventType, 'subscription_schedule.');
+            $isPaymentMethod = $kind === 'payment_method';
+            $subscriptionId = match (true) {
+                $isInvoice => $object['subscription'] ?? $object['parent']['subscription_details']['subscription'] ?? null,
+                $isSchedule => $object['released_subscription'] ?? $object['subscription'] ?? null,
+                $isPaymentMethod => null,
+                default => $object['id'] ?? null,
+            };
             $metadata = $isInvoice
                 ? ($object['subscription_details']['metadata'] ?? $object['parent']['subscription_details']['metadata'] ?? [])
                 : ($object['metadata'] ?? []);
+            $customerId = is_string($object['customer'] ?? null) ? $object['customer'] : null;
 
             // The creation invoice is settled by checkout completion itself.
             $skip = $isInvoice && ($object['billing_reason'] ?? '') === 'subscription_create';
@@ -326,8 +353,9 @@ class StripeGateway implements CardCaptureGateway, PaymentGateway, RecurringGate
                 tenantId: isset($metadata['tenant_id']) ? (int) $metadata['tenant_id'] : null,
                 periodEnd: $isInvoice
                     ? ($object['lines']['data'][0]['period']['end'] ?? null)
-                    : $this->periodEndOf($object),
-                cancelAtPeriodEnd: $isInvoice ? null : (bool) ($object['cancel_at_period_end'] ?? false),
+                    : ($kind === 'trial_will_end' ? ($object['trial_end'] ?? null) : $this->periodEndOf($object)),
+                cancelAtPeriodEnd: ($isInvoice || $isSchedule || $isPaymentMethod) ? null : (bool) ($object['cancel_at_period_end'] ?? false),
+                providerCustomerId: $customerId,
             );
         }
 
@@ -394,6 +422,112 @@ class StripeGateway implements CardCaptureGateway, PaymentGateway, RecurringGate
         return $session['url'];
     }
 
+    public function setSubscriptionPrice(string $providerSubscriptionId, SubscriptionPlan $plan, string $currency): void
+    {
+        $sub = $this->call('get', "/subscriptions/{$providerSubscriptionId}");
+        $itemId = $sub['items']['data'][0]['id'] ?? null;
+        if (! $itemId) {
+            throw new RuntimeException('Stripe subscription has no item to change.');
+        }
+
+        // proration_behavior=none: the period already paid is untouched and nothing is charged now.
+        $this->call('post', "/subscriptions/{$providerSubscriptionId}", [
+            'items[0][id]' => $itemId,
+            'items[0][price]' => $this->priceFor($plan, $currency),
+            'proration_behavior' => 'none',
+            'metadata[plan_id]' => (string) $plan->id,
+        ], "sub_{$providerSubscriptionId}_price_{$plan->id}");
+    }
+
+    public function scheduleChange(string $providerSubscriptionId, SubscriptionPlan $plan, string $currency, ?string $scheduleId = null): string
+    {
+        $newPrice = $this->priceFor($plan, $currency);
+
+        if ($scheduleId === null) {
+            $sub = $this->call('get', "/subscriptions/{$providerSubscriptionId}");
+            $scheduleId = is_string($sub['schedule'] ?? null) ? $sub['schedule'] : null;
+        }
+        $scheduleId ??= $this->call('post', '/subscription_schedules', ['from_subscription' => $providerSubscriptionId], "sub_{$providerSubscriptionId}_schedule")['id'];
+
+        $schedule = $this->call('get', "/subscription_schedules/{$scheduleId}");
+        $current = $schedule['phases'][0] ?? null;
+        $currentItem = $current['items'][0] ?? null;
+        if (! $current || ! $currentItem) {
+            throw new RuntimeException('Stripe schedule has no current phase.');
+        }
+        $currentPrice = is_array($currentItem['price'] ?? null) ? ($currentItem['price']['id'] ?? null) : ($currentItem['price'] ?? null);
+
+        $this->call('post', "/subscription_schedules/{$scheduleId}", [
+            'end_behavior' => 'release',
+            'phases[0][start_date]' => $current['start_date'],
+            'phases[0][end_date]' => $current['end_date'],
+            'phases[0][items][0][price]' => $currentPrice,
+            'phases[0][items][0][quantity]' => $currentItem['quantity'] ?? 1,
+            'phases[1][items][0][price]' => $newPrice,
+            'phases[1][items][0][quantity]' => 1,
+            'phases[1][proration_behavior]' => 'none',
+            'phases[1][metadata][plan_id]' => (string) $plan->id,
+            'metadata[pending_plan_id]' => (string) $plan->id,
+        ], "schedule_{$scheduleId}_to_{$plan->id}");
+
+        return $scheduleId;
+    }
+
+    public function releaseSchedule(string $scheduleId): void
+    {
+        try {
+            $this->call('post', "/subscription_schedules/{$scheduleId}/release", [], "schedule_{$scheduleId}_release");
+        } catch (BillingProviderException $e) {
+            // Already released/completed/cancelled: the goal (no queued change) is met.
+            if ($e->status === 404 || ($e->status === 400 && str_contains($e->getMessage(), 'schedule'))) {
+                return;
+            }
+            throw $e;
+        }
+    }
+
+    public function paymentMethods(Tenant $tenant): array
+    {
+        if (! $tenant->billing_customer_id) {
+            return [];
+        }
+
+        $customer = $this->call('get', "/customers/{$tenant->billing_customer_id}");
+        $default = $customer['invoice_settings']['default_payment_method'] ?? null;
+        $default = is_array($default) ? ($default['id'] ?? null) : $default;
+        $list = $this->call('get', '/payment_methods', ['customer' => $tenant->billing_customer_id, 'type' => 'card']);
+
+        return collect($list['data'] ?? [])->map(fn (array $pm): array => [
+            'id' => $pm['id'],
+            'brand' => (string) ($pm['card']['brand'] ?? 'card'),
+            'last4' => (string) ($pm['card']['last4'] ?? ''),
+            'exp_month' => (int) ($pm['card']['exp_month'] ?? 0),
+            'exp_year' => (int) ($pm['card']['exp_year'] ?? 0),
+            'is_default' => $pm['id'] === $default,
+        ])->values()->all();
+    }
+
+    public function setDefaultPaymentMethod(Tenant $tenant, string $paymentMethodId, array $providerSubscriptionIds = []): void
+    {
+        $customer = $this->customerFor($tenant);
+        $this->call('post', "/customers/{$customer}", ['invoice_settings[default_payment_method]' => $paymentMethodId], "cust_{$customer}_default_{$paymentMethodId}");
+
+        // Subscriptions started with an explicit card keep charging it unless told otherwise.
+        foreach ($providerSubscriptionIds as $id) {
+            $this->call('post', "/subscriptions/{$id}", ['default_payment_method' => $paymentMethodId], "sub_{$id}_pm_{$paymentMethodId}");
+        }
+    }
+
+    public function detachPaymentMethod(string $paymentMethodId): void
+    {
+        $this->call('post', "/payment_methods/{$paymentMethodId}/detach", [], "pm_{$paymentMethodId}_detach");
+    }
+
+    public function retrieveSubscription(string $providerSubscriptionId): array
+    {
+        return $this->call('get', "/subscriptions/{$providerSubscriptionId}");
+    }
+
     // ---------------------------------------------------------- card on file
 
     public function createCardSession(Tenant $tenant, string $successUrl, string $cancelUrl): array
@@ -442,47 +576,16 @@ class StripeGateway implements CardCaptureGateway, PaymentGateway, RecurringGate
 
     // -------------------------------------------------------------- helpers
 
-    /** One Stripe Customer per tenant, created lazily and remembered. */
+    /** One Stripe Customer per tenant (named after the organisation), created lazily and remembered. */
     private function customerFor(Tenant $tenant, ?string $email = null): string
     {
-        if ($tenant->billing_customer_id) {
-            return $tenant->billing_customer_id;
-        }
-
-        $customer = $this->call('post', '/customers', array_filter([
-            'name' => $tenant->name,
-            'email' => $tenant->billing_email ?: $email,
-            'metadata[tenant_id]' => (string) $tenant->id,
-            'metadata[slug]' => $tenant->slug,
-        ]));
-
-        $tenant->forceFill(['billing_customer_id' => $customer['id']])->save();
-
-        return $customer['id'];
+        return $this->catalog()->customerFor($tenant, $email);
     }
 
-    /** The Stripe Price for this plan; re-created whenever amount, currency or cycle change. */
+    /** The Stripe Price for this plan; the catalog creates product/price when missing or stale. */
     private function priceFor(SubscriptionPlan $plan, string $currency): string
     {
-        $currency = strtolower($currency);
-        $interval = $plan->billing_cycle === 'annual' ? 'year' : 'month';
-        $key = implode(':', [$plan->price_cents, $currency, $interval]);
-
-        if ($plan->stripe_price_id && $plan->stripe_price_key === $key) {
-            return $plan->stripe_price_id;
-        }
-
-        $price = $this->call('post', '/prices', [
-            'currency' => $currency,
-            'unit_amount' => $plan->price_cents,
-            'recurring[interval]' => $interval,
-            'product_data[name]' => "FlowSync {$plan->name} Plan",
-            'metadata[plan_id]' => (string) $plan->id,
-        ]);
-
-        $plan->forceFill(['stripe_price_id' => $price['id'], 'stripe_price_key' => $key])->save();
-
-        return $price['id'];
+        return $this->catalog()->priceFor($plan, $currency);
     }
 
     /** Current-period end as a unix timestamp; Stripe moved it between API versions. */
@@ -497,17 +600,8 @@ class StripeGateway implements CardCaptureGateway, PaymentGateway, RecurringGate
      * @param  array<string, mixed>  $params
      * @return array<string, mixed>
      */
-    private function call(string $method, string $path, array $params = []): array
+    private function call(string $method, string $path, array $params = [], ?string $idempotencyKey = null): array
     {
-        $request = Http::withToken($this->config['secret'])->asForm()->timeout(20);
-        $response = $method === 'get'
-            ? $request->get(self::API_URL.$path, $params)
-            : $request->post(self::API_URL.$path, $params);
-
-        if (! $response->successful()) {
-            throw new RuntimeException('Stripe error: '.($response->json('error.message') ?? $response->body()));
-        }
-
-        return $response->json();
+        return $this->client()->request($method, $path, $params, $idempotencyKey);
     }
 }

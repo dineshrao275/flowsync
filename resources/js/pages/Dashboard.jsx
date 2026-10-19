@@ -1,4 +1,5 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
+import Avatar from '../components/ui/Avatar';
 import { Link, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { gsap } from 'gsap';
@@ -373,12 +374,7 @@ export default function Dashboard() {
                                 {analytics.top_contributors.map((c) => (
                                     <li key={c.user?.id} className="flex items-center justify-between py-2.5">
                                         <span className="flex items-center gap-3">
-                                            <span
-                                                className="flex h-8 w-8 items-center justify-center rounded-full text-xs font-bold text-white"
-                                                style={{ backgroundColor: 'var(--accent)' }}
-                                            >
-                                                {(c.user?.name || '?').charAt(0)}
-                                            </span>
+                                            <Avatar name={c.user?.name} photoUrl={c.user?.photo_url} />
                                             <span className="text-sm font-medium text-gray-800">{c.user?.name || t('dashboard.contributors.unknown')}</span>
                                         </span>
                                         <span className="text-sm text-gray-500">

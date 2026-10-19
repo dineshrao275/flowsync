@@ -12,7 +12,7 @@ return [
     'fallback' => ['task' => 'a task', 'key' => 'Task', 'status' => 'a new status', 'actor' => 'Someone', 'project' => 'Your project'],
     'labels' => ['project' => 'Project', 'task' => 'Task', 'comment' => 'Comment', 'status' => 'Status', 'unblocked_by' => 'Unblocked by', 'open_task' => 'Open task'],
     'digest' => [
-        'subject' => 'Your FlowSync digest: :count update|Your FlowSync digest: :count updates',
+        'subject' => 'Your :app digest: :count update|Your :app digest: :count updates',
         'intro' => 'Here is what happened since your last email:',
     ],
 ];

@@ -43,6 +43,17 @@ api.interceptors.response.use(
             requestId: error.response?.headers?.['x-request-id'],
         });
 
+        // Platform maintenance: the server answers 503 {code:'maintenance'} to tenant traffic; show the holding page.
+        if (
+            error.response?.status === 503 &&
+            error.response?.data?.code === 'maintenance' &&
+            !error.config?.url?.includes('/auth/login') &&
+            !window.location.pathname.startsWith('/app/maintenance') &&
+            !window.location.pathname.startsWith('/app/login')
+        ) {
+            window.location.href = '/app/maintenance';
+        }
+
         if (error.response?.status === 401 && !error.config?.url?.includes('/auth/')) {
             if (!window.location.pathname.startsWith('/app/login')) {
                 window.location.href = '/app/login';
@@ -70,6 +81,15 @@ api.interceptors.response.use(
             !window.location.pathname.startsWith('/app/onboarding')
         ) {
             window.location.href = '/app/onboarding';
+        }
+
+        // Trial/subscription ended: every product call answers 402 — take the person to the page that fixes it.
+        if (
+            error.response?.status === 402 &&
+            error.response?.data?.code === 'subscription_required' &&
+            !window.location.pathname.startsWith('/app/subscription')
+        ) {
+            window.location.href = '/app/subscription';
         }
 
         return Promise.reject(error);

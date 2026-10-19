@@ -27,6 +27,7 @@ class Project extends Model
         'last_task_sequence',
         'archived_at',
         'enforce_workflow',
+        'board_type',
     ];
 
     protected function casts(): array

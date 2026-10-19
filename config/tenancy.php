@@ -14,6 +14,9 @@ return [
     */
     'driver' => env('TENANCY_DRIVER', 'isolated'),
 
+    // F9.5: a soft-deleted tenant can be restored for this many days; `tenants:purge` refuses sooner.
+    'purge_after_days' => (int) env('TENANCY_PURGE_AFTER_DAYS', 30),
+
     'system' => [
         'connection' => 'system',
     ],

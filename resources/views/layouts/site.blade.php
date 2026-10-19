@@ -1,10 +1,14 @@
 @php($site = $site ?? \App\Support\SiteConfig::all())
+@php($signedIn = session()->has(auth()->guard('web')->getName()))
+@php($localeChoices = collect(config('locales.supported', []))->filter(fn ($l) => $l['complete'] ?? false))
 @php($demoLink = collect($site['nav'] ?? [])->first(fn ($link) => ($link['href'] ?? null) === '/contact'))
 <!DOCTYPE html>
 <html lang="{{ str_replace('_', '-', app()->getLocale()) }}">
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
+    <script>(function(){try{var t=localStorage.getItem('flowsync.site.theme');if(t==='dark'||(t!=='light'&&matchMedia('(prefers-color-scheme: dark)').matches)){document.documentElement.classList.add('dark');}}catch(e){}})();</script>
+    <meta name="color-scheme" content="light dark">
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <x-site.seo-head
         :title="$seoTitle ?? $title ?? null"
@@ -45,13 +49,13 @@
 
     <header class="sticky top-0 z-50 border-b border-slate-200/70 bg-white/80 backdrop-blur-xl">
         <div class="mx-auto flex h-16 max-w-6xl items-center justify-between gap-4 px-4 sm:px-6">
-            <a href="/" class="flex items-center gap-2.5" aria-label="{{ __('site.brand.home', ['name' => $siteName ?? config('app.name', 'FlowSync')]) }}">
+            <a href="/" class="flex items-center gap-2.5" aria-label="{{ __('site.brand.home', ['name' => $siteName ?? config('app.name')]) }}">
                 @if(!empty($site['logo']))
-                    <img src="{{ $site['logo']->url() }}" alt="{{ $site['logo']->alt ?: ($siteName ?? config('app.name', 'FlowSync')) }}" class="h-9 w-auto rounded-lg" @if($site['logo']->width)width="{{ $site['logo']->width }}" @endif @if($site['logo']->height)height="{{ $site['logo']->height }}" @endif>
+                    <img src="{{ $site['logo']->url() }}" alt="{{ $site['logo']->alt ?: ($siteName ?? config('app.name')) }}" class="h-9 w-auto rounded-lg" @if($site['logo']->width)width="{{ $site['logo']->width }}" @endif @if($site['logo']->height)height="{{ $site['logo']->height }}" @endif>
                 @else
                     <span class="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-blue-500 to-violet-600 text-lg font-extrabold text-white shadow-lg shadow-blue-600/25" aria-hidden="true">S</span>
                 @endif
-                <span class="text-lg font-extrabold tracking-tight text-slate-900">{{ $siteName ?? config('app.name', 'FlowSync') }}</span>
+                <span class="text-lg font-extrabold tracking-tight text-slate-900">{{ $siteName ?? config('app.name') }}</span>
             </a>
             <nav class="hidden items-center gap-1 lg:flex" aria-label="{{ __('site.nav.primary') }}">
                 @foreach($site['nav'] as $link)
@@ -60,8 +64,31 @@
             </nav>
             <div class="hidden items-center gap-2 lg:flex">
                 @if($demoLink)<x-site.button href="/contact" variant="ghost">{{ __('site.actions.bookDemo') }}</x-site.button>@endif
-                <x-site.button href="/app/login" variant="ghost">{{ __('site.actions.logIn') }}</x-site.button>
-                <x-site.button href="/app/register">{{ __('site.actions.startFree') }}</x-site.button>
+                @if($signedIn)
+                    <x-site.button href="/app">{{ __('site.actions.dashboard') }}</x-site.button>
+                @else
+                    <x-site.button href="/app/login" variant="ghost">{{ __('site.actions.logIn') }}</x-site.button>
+                    <x-site.button href="/app/register">{{ __('site.actions.startFree') }}</x-site.button>
+                @endif
+                <div class="flex items-center gap-1">
+                @if($localeChoices->count() > 1)
+                    <details class="group relative" data-dropdown>
+                        <summary class="flex h-10 cursor-pointer list-none items-center gap-1.5 rounded-xl px-3 text-sm font-medium text-slate-600 ring-1 ring-inset ring-slate-200 transition hover:bg-slate-100 hover:text-slate-900 [&::-webkit-details-marker]:hidden" aria-label="{{ __('site.language.label') }}">
+                            <svg class="h-4 w-4" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="10" cy="10" r="7.5"/><path d="M2.5 10h15M10 2.5c2 2.2 3 4.7 3 7.5s-1 5.3-3 7.5c-2-2.2-3-4.7-3-7.5s1-5.3 3-7.5Z"/></svg>
+                            <span class="uppercase">{{ app()->getLocale() }}</span>
+                        </summary>
+                        <ul class="absolute right-0 top-12 z-50 min-w-40 overflow-hidden rounded-xl border border-slate-200 bg-white p-1 shadow-xl">
+                            @foreach($localeChoices as $code => $choice)
+                                <li><a href="{{ request()->fullUrlWithQuery(['locale' => $code]) }}" hreflang="{{ $code }}" lang="{{ $code }}" @if($code === app()->getLocale()) aria-current="true" @endif class="flex items-center justify-between gap-3 rounded-lg px-3 py-2 text-sm text-slate-700 transition hover:bg-slate-100 {{ $code === app()->getLocale() ? 'font-semibold text-slate-900' : '' }}">{{ $choice['native'] }}@if($code === app()->getLocale())<span aria-hidden="true">✓</span>@endif</a></li>
+                            @endforeach
+                        </ul>
+                    </details>
+                @endif
+                <button type="button" data-theme-toggle class="inline-flex h-10 w-10 items-center justify-center rounded-xl text-slate-600 ring-1 ring-inset ring-slate-200 transition hover:bg-slate-100 hover:text-slate-900" aria-label="{{ __('site.theme.toggle') }}">
+                    <svg class="h-[18px] w-[18px] dark:hidden" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M16.5 11.5A6.5 6.5 0 0 1 8.5 3.5a6.5 6.5 0 1 0 8 8Z"/></svg>
+                    <svg class="hidden h-[18px] w-[18px] dark:block" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true"><circle cx="10" cy="10" r="3.5"/><path d="M10 2v2M10 16v2M2 10h2M16 10h2M4.3 4.3l1.4 1.4M14.3 14.3l1.4 1.4M4.3 15.7l1.4-1.4M14.3 5.7l1.4-1.4"/></svg>
+                </button>
+            </div>
             </div>
             <button id="site-menu-button" type="button" class="inline-flex h-10 w-10 items-center justify-center rounded-xl text-slate-700 ring-1 ring-inset ring-slate-200 transition hover:bg-slate-50 lg:hidden" aria-expanded="false" aria-controls="site-mobile-menu" aria-label="{{ __('site.nav.toggleMenu') }}">
                 <svg class="h-5 w-5" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M3 5.5h14M3 10h14M3 14.5h14" /></svg>
@@ -74,8 +101,18 @@
                 @endforeach
                 <div class="mt-2 flex flex-col gap-2 border-t border-slate-100 pt-4">
                     @if($demoLink)<x-site.button href="/contact" variant="ghost">{{ __('site.actions.bookDemo') }}</x-site.button>@endif
-                    <x-site.button href="/app/login" variant="ghost">{{ __('site.actions.logIn') }}</x-site.button>
-                    <x-site.button href="/app/register">{{ __('site.actions.startFree') }}</x-site.button>
+                    @if($signedIn)
+                        <x-site.button href="/app">{{ __('site.actions.dashboard') }}</x-site.button>
+                    @else
+                        <x-site.button href="/app/login" variant="ghost">{{ __('site.actions.logIn') }}</x-site.button>
+                        <x-site.button href="/app/register">{{ __('site.actions.startFree') }}</x-site.button>
+                    @endif
+                </div>
+                <div class="mt-3 flex flex-wrap items-center gap-2 border-t border-slate-100 pt-4">
+                    @foreach($localeChoices as $code => $choice)
+                        <a href="{{ request()->fullUrlWithQuery(['locale' => $code]) }}" hreflang="{{ $code }}" lang="{{ $code }}" class="rounded-lg px-3 py-1.5 text-sm ring-1 ring-inset ring-slate-200 {{ $code === app()->getLocale() ? 'bg-slate-100 font-semibold text-slate-900' : 'text-slate-600' }}">{{ $choice['native'] }}</a>
+                    @endforeach
+                    <button type="button" data-theme-toggle class="ml-auto rounded-lg px-3 py-1.5 text-sm text-slate-600 ring-1 ring-inset ring-slate-200">{{ __('site.theme.toggle') }}</button>
                 </div>
             </nav>
         </div>
@@ -85,16 +122,16 @@
         @yield('content')
     </main>
 
-    <footer class="bg-slate-950 text-slate-400">
+    <footer class="scale-fixed bg-ink text-slate-400">
         <div class="mx-auto grid max-w-6xl gap-10 px-4 py-14 sm:px-6 md:[grid-template-columns:1.4fr_repeat(var(--cols),1fr)]" style="--cols: {{ count($site['footer_columns']) }}">
             <div>
-                <a href="/" class="flex items-center gap-2.5" aria-label="{{ __('site.brand.home', ['name' => $siteName ?? config('app.name', 'FlowSync')]) }}">
+                <a href="/" class="flex items-center gap-2.5" aria-label="{{ __('site.brand.home', ['name' => $siteName ?? config('app.name')]) }}">
                     @if(!empty($site['logo']))
-                        <img src="{{ $site['logo']->url() }}" alt="{{ $site['logo']->alt ?: ($siteName ?? config('app.name', 'FlowSync')) }}" class="h-9 w-auto rounded-lg">
+                        <img src="{{ $site['logo']->url() }}" alt="{{ $site['logo']->alt ?: ($siteName ?? config('app.name')) }}" class="h-9 w-auto rounded-lg">
                     @else
                         <span class="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-blue-500 to-violet-600 text-lg font-extrabold text-white" aria-hidden="true">S</span>
                     @endif
-                    <span class="text-lg font-extrabold tracking-tight text-white">{{ $siteName ?? config('app.name', 'FlowSync') }}</span>
+                    <span class="text-lg font-extrabold tracking-tight text-white">{{ $siteName ?? config('app.name') }}</span>
                 </a>
                 <p class="mt-4 max-w-xs text-sm leading-relaxed">{{ $site['tagline'] }}</p>
                 @if(!empty($site['social']))
@@ -118,7 +155,7 @@
         </div>
         <div class="border-t border-white/10">
             <div class="mx-auto flex max-w-6xl flex-col items-center justify-between gap-2 px-4 py-5 text-xs sm:flex-row sm:px-6">
-                <p>{{ __('site.footer.copyright', ['year' => date('Y'), 'name' => $siteName ?? config('app.name', 'FlowSync')]) }}</p>
+                <p>{{ __('site.footer.copyright', ['year' => date('Y'), 'name' => $siteName ?? config('app.name')]) }}</p>
                 <p class="flex gap-4">
                     <a href="/privacy" class="transition hover:text-white">{{ __('site.footer.privacy') }}</a>
                     <a href="/terms" class="transition hover:text-white">{{ __('site.footer.terms') }}</a>

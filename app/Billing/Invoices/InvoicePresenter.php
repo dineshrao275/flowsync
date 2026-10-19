@@ -24,6 +24,10 @@ class InvoicePresenter
             'paid_at' => $invoice->paid_at?->toIso8601String(),
             'period_start' => $invoice->period_start?->toIso8601String(),
             'period_end' => $invoice->period_end?->toIso8601String(),
+            // The provider's own hosted invoice page / PDF (receipt), when it issued one.
+            'hosted_invoice_url' => $invoice->metadata['hosted_invoice_url'] ?? null,
+            'provider_pdf_url' => $invoice->metadata['invoice_pdf'] ?? null,
+            'receipt_number' => $invoice->metadata['receipt_number'] ?? null,
             'tenant' => $invoice->relationLoaded('tenant') && $invoice->tenant
                 ? ['id' => $invoice->tenant->id, 'name' => $invoice->tenant->name, 'slug' => $invoice->tenant->slug]
                 : null,

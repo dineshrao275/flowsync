@@ -110,8 +110,10 @@ function hrmsGroups() {
 const SHARED_ADMIN = [
     { to: '/users', label: 'nav.admin.users', capabilities: ['users.view'], icon: ICONS.users },
     { to: '/roles', label: 'nav.admin.roles', capabilities: ['roles.view'], icon: ICONS.roles },
+    { to: '/custom-fields', label: 'nav.admin.customFields', capabilities: ['custom_fields.manage', 'module:custom_fields'], icon: SlidersHorizontal },
     { to: '/settings', label: 'nav.admin.settings', capabilities: ['settings.view'], icon: ICONS.settings },
     { to: '/security', label: 'nav.admin.security', icon: ICONS.security },
+    { to: '/audit', label: 'nav.admin.audit', capabilities: ['tenant.manage'], icon: ICONS.security },
 ];
 
 const SHARED_BILLING = [
@@ -127,12 +129,14 @@ export const tmsSections = [
             { to: '/dashboard', label: 'nav.tms.dashboard', capabilities: ['dashboard.view', 'product:tms'], icon: ICONS.dashboard },
             { to: '/workspaces', label: 'nav.tms.workspaces', capabilities: ['workspaces.view', 'product:tms'], icon: ICONS.workspaces },
             { to: '/projects', label: 'nav.tms.projects', capabilities: ['workspaces.view', 'product:tms'], icon: ICONS.projects },
+            { to: '/timesheets', label: 'nav.tms.timesheets', capabilities: ['workspaces.view', 'product:tms', 'module:timesheets'], icon: ICONS.clock },
             { to: '/search', label: 'nav.tms.search', capabilities: ['workspaces.view', 'product:tms', 'module:global_search'], icon: ICONS.search },
         ],
     },
     {
         label: 'nav.groups.insights',
         items: [
+            { to: '/reports/builder', label: 'nav.tms.reportBuilder', capabilities: ['reports.view', 'product:tms', 'module:reports'], icon: ICONS.reports },
             { to: '/reports', label: 'nav.tms.reports', capabilities: ['reports.view', 'product:tms', 'module:reports'], icon: ICONS.reports },
         ],
     },
@@ -171,6 +175,8 @@ export const superAdminSections = [
             { to: '/plans', label: 'nav.platform.plans', capabilities: ['billing.view'], icon: FileText },
             { to: '/admin/features', label: 'nav.platform.features', capabilities: ['billing.view'], icon: Gift },
             { to: '/admin/feature-flags', label: 'nav.platform.featureFlags', capabilities: ['flags.view'], icon: Flag },
+            { to: '/admin/activity', label: 'nav.platform.activity', capabilities: ['analytics.view'], icon: ICONS.grid },
+            { to: '/admin/queue', label: 'nav.platform.queue', capabilities: ['analytics.view'], icon: Lightning },
             { to: '/admin/pages', label: 'nav.platform.website', capabilities: ['content.view'], icon: Globe },
             { to: '/admin/media', label: 'nav.platform.media', capabilities: ['content.view'], icon: Image },
             { to: '/admin/site-settings', label: 'nav.platform.siteSettings', capabilities: ['content.view'], icon: SlidersHorizontal },

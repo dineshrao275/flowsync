@@ -1,4 +1,5 @@
 import { useTranslation } from 'react-i18next';
+import ProgressBar from '../ui/ProgressBar';
 import Card from '../../components/ui/Card';
 
 export default function ProjectOverviewTab({ lead, members, project, statuses }) {
@@ -47,6 +48,15 @@ export default function ProjectOverviewTab({ lead, members, project, statuses })
                                         </li>
                                     ))}
                                 </ol>
+                            )}
+                            {(project.tasks_count ?? 0) > 0 && (
+                                <div className="mt-4">
+                                    <div className="mb-1 flex justify-between text-xs text-gray-500">
+                                        <span>{t('tms.project.progress')}</span>
+                                        <span>{t('tms.project.progressDone', { done: project.done_tasks_count ?? 0, total: project.tasks_count })}</span>
+                                    </div>
+                                    <ProgressBar value={project.done_tasks_count ?? 0} max={project.tasks_count} label={t('tms.project.progress')} showPercent />
+                                </div>
                             )}
                             <div className="mt-4 grid grid-cols-3 gap-3 text-center">
                                 <div className="rounded-lg border border-gray-100 px-3 py-2">

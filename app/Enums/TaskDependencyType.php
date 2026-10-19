@@ -6,6 +6,8 @@ enum TaskDependencyType: string
 {
     case Blocks = 'blocks';
     case RelatedTo = 'related_to';
+    case Duplicates = 'duplicates';
+    case Clones = 'clones';
 
     public function isBlocker(): bool
     {

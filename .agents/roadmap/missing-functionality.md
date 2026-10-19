@@ -18,18 +18,86 @@ P4 future. **Size:** S ≤ 1 day · M 2-4 days · L 1-2 weeks · XL > 2 weeks (s
 
 ---
 
+## Progress log (branch `feat/f0-baseline`, 2026-10-16/17)
+Each row was implemented with its tests; the full-suite gate is still pending (see `f0-baseline-report.md`).
+
+| Register ID | What shipped | Commit |
+|---|---|---|
+| M-B12 | `hrms:leave-consistency [--repair]`; also fixed `--tenant=ID` in every fleet command (`RunsPerTenant`) | 146d4697 |
+| M-K4 | `audit:verify` scheduled daily; critical log + `SECURITY_AUDIT_ALERT_EMAILS` on a broken chain | 7d8198ac |
+| M-G5, M-F8 | `impersonator_id` + `request_id` on activities and HRMS ledgers; queued jobs keep the request id | b51120fa |
+| M-K2 | CSP violation collector `POST /api/csp-report` + default report-uri (flip to enforce after a clean report window) | d24cceeb |
+| M-F4 | Notification delivery controls: tenant email policy, daily digest mode, dedupe window, hourly email throttle, Settings UI | 7dbf5692 |
+| M-F2, M-A7 | Custom-field engine + employee integration (typed values, filters, sensitive fields, module `custom_fields`) | 0300dda8 |
+| M-F2 (tasks, projects) | Custom fields on tasks and projects, list filter `cf[key]` | 05059d04 |
+| M-E1 | Saved/shared task filters (module `saved_filters`) | 3f6053ba |
+| M-E2 | JQL-style query language (`jql=` on the task list; module `jql`) — lexer, parser, whitelisted compiler | 045b17ee |
+| M-E6 | Timer, billable time, weekly timesheets with submit/approve/send-back (module `timesheets`) | 95ab9469 |
+| M-E10 | Sprint burnup chart | (F3.5 commit) |
+| M-E4, M-E3 | Due-date calendar view; timeline (roadmap) view | 6ac51725, F4.2 commit |
+| M-E5 | Workload vs capacity (weekday capacity − approved leave) | 66c2fb6e |
+| M-I1, M-M3 (slice) | OpenAPI spec for `/api/v1` with a route-contract test; API route auth audit | 7d942d2f |
+| M-B3 | Payroll reopen with mandatory reason (never from locked) | 89d3effe |
+| M-A7 UI | Custom-field management page (`/custom-fields`) + inputs on employee and task forms + employee profile section | 8d7076e5 |
+| M-F2 (assets, expenses) | Custom fields on assets and expense claims | (F2.3 assets/expenses commit) |
+| M-E8 | Project templates (workflow, transitions, components, starter tasks; module `project_templates`) | f87e8c62 |
+| M-J1 (queue) | Platform queue console: depth, oldest job, failed jobs retry/discard (`queue.manage`) | fa028554 |
+| M-I5 | Webhook endpoints can post Slack/Mattermost or Teams messages | 1e596f59 |
+| M-C1 | Skills catalogue, self-declared + assessed levels, scoped matrix, Skills page | 86004662, c0bae4ef |
+| M-H4 | Monthly API-call and automation-run limits (plan limits, 429 `usage_limit`, Subscription page) | eb0c1eb9 |
+| F4.5 | Project dashboards (widget catalogue, personal layouts over a team default) | 9ad7d760 |
+| M-A12 (F6.4) | Resignation self-service → approval opens the exit case | c09c2620 |
+| M-A4 (F6.6) | Exit interview (anonymity-guarded insights) | d71ba01d |
+| F5 | HR events on the bus + HR→task automation rules (page) | 3ae5b923, cdf0092a |
+| M-A2 (F6.3) | Transfers, promotions, confirmations — effective-dated, approved, applied on date | 1acd53ad |
+| M-B1 (F7.1) | Shift swap: counterparty then manager approve, roster rewritten for the day | 589feaeb |
+| M-E12 (F4.7) | Task SLA policies + hourly breach sweep (`task.sla_breached`) | c1a3ecae |
+| M-E14 (F4.8) | Board types scrum/kanban/basic + per-project issue-type scheme | c5e9ae50 |
+| M-F7 (F2.7) | Unified audit timeline (activities + HR ledger), filters, CSV, page | 96953a5c |
+| M-L (F12) | Installable PWA (manifest + offline shell, never caches /api) | ab007395 |
+| M-B6 (F7.7) | Expense category limits (per line, per month) | bbb2cb26 |
+| M-B4 (F7.5) | Payroll bank payout file (generic + NEFT), audited | b9c4d839 |
+| M-G6 (F10.6) | Role template gallery | b15f9d2b |
+| M-C (F8) | Performance improvement plans | 2cbcf9ae |
+| M-B5 (F7.6) | Loans and advances with EMI deduction through payroll | 9a828a61 |
+| M-E11 (F4.1) | Approval-gated transitions (`approval` entry rule + move requests) | d360233a |
+| M-M3 (F11.4) | Generated permission matrix test | 915af675 |
+| M-K1 (F11.8) | Upload content sniffing + optional antivirus hook | d4a20c72 |
+| M-J2 (F11.2) | Token-guarded Prometheus metrics + alert catalogue | 2ad47cd2 |
+| M-F6 (F2.6) | Shared comment thread on HR records (expense, leave) | 3c520da5 |
+| M-F5 (F2.5) | ILIKE + pg_trgm GIN indexes for substring search | fbd592ca |
+| M-A6 (F6.2) | Letter templates with merge fields → PDF filed as a document | bc765308 |
+| F8 | Individual development plans; OKRs; competency expectations + gaps; career paths + succession | 5d363553, c9821f71, 64ba1858, dcfe52b4 |
+| M-E9 | Duplicates / clones link types | 31e2652c |
+| F10.2 | OIDC single sign-on (PKCE, RS256 verification, JIT never admin, enforce with break-glass) | b2681ae5 |
+| F9.5 | `tenants:purge` (gated, confirmed, audited; billing tombstone kept) | bcedbddf |
+| F6.7 | Internal e-signature with SHA-256 receipt + public verification | 208e60e2 |
+| F11.10 | Tenant activity analytics + dormant tenants page | f3edec13 |
+| F11.9 | Report builder (tasks, expense claims) with saved + scheduled CSV email | 8648a3d8 |
+| F10.7 | GitHub task links; personal iCalendar feed | 7fe32cd3, df2eb65d |
+| F11.7 | Scaling thresholds runbook + migration repair-safety test | 9cbd0f9c |
+| M-L6 | Boards refresh when columns change | 4c2a777c |
+| infra | Test DB template per process (a 24-test run: 12 min → ~1.5 min) | 1d5d24d9 |
+
+**Corrections found while building (rows marked missing that already existed):** invoices + PDF (`InvoiceService`, `InvoicePdf`, `InvoiceController`, `InvoiceTest`) → M-H1 ✅; dunning and period-end expiry (`DunningTest`, `PeriodEndTest`) → M-H2 ✅; PDF payslips (`PayslipRenderer` + `SimplePdf`) → M-B8 ✅; export ZIP cleanup (`PruneTenantExports`) → part of M-H6 ✅; approvals v2 modes/conditions/delegation/SLA/editor (`ApprovalStepMode`, `ChainBuilder`, `ApprovalChains.jsx`) → M-F1 only needs the remaining consumers.
+
+**Deliberately deferred:** M-E9 (new link types relates/duplicates/clones) — `task_dependencies.type` is a database enum with a CHECK constraint; widening it safely on both PostgreSQL and the sqlite test path needs its own migration plan (see the CHECK-constraint pitfall in AGENTS.md). M-A8 employee tags — covered by a multi-select custom field.
+
+---
+
 ## 0. Read this first — corrections and the one real blocker
 
 ### 0.1 Items the master roadmap still lists as open but the repo shows are (at least partly) done — verify, then close
 | Item | Evidence | Action |
 |---|---|---|
-| P2.4 Approvals v2 (templates, delegation, SLA) | `app/Services/Hrms/Approval/{ChainBuilder,ChainTemplates,ApprovalSla,ApprovalTemplateSeeder}.php`, `ApprovalChains.jsx`, commit `72f24789` (merged as preserved WIP) | ❓ VERIFY modes (parallel / any-one / all / conditional) and the UI; then close or list the remainder under M-F1 |
-| P2.9 Notification digest/throttle/locale | `app/Services/Notifications/{NotificationDispatcher,RecipientResolver}`, commit `a0618941` (WIP) | ❓ VERIFY digest scheduler + tenant channel policy |
-| P4.6 clone / move / bulk edit | commit `7ca9c4ed` (WIP preserved) | ❓ VERIFY routes + UI + tests |
+| P2.4 Approvals v2 (templates, delegation, SLA) | `ApprovalStepMode` = sequential / parallel_any / parallel_all; `approval_delegations` + templates in `2026_11_05_000060_create_approvals_v2`; `ChainBuilder`, `ApprovalSla`; `HrmsApprovalTest`; **verified F0.2: engine modes ✅, no "conditional" step type yet** | 🟡 close modes; keep M-F1 for conditional steps + consumer migration + editor polish |
+| P2.9 Notification digest/throttle/locale | Only `hrms:report-digests` (HR *report* digest, scheduled 18:00) and migration `2026_11_03_000051_add_notification_delivery_controls`; **verified F0.2: no notification digest scheduler** | 🔴 stays open as M-F4 |
+| P4.6 clone / move / bulk edit | Routes `tasks/bulk`, `tasks/{task}/clone`, `tasks/{task}/move-project` exist (`TaskBulkController`); **verified F0.2: no test references them** | 🟡 shipped without tests → add `TaskBulkTest` (F0.2 follow-up) |
 | P3.1-3.5 workflow rules, transitions, automation core | `app/Services/Workflow`, `app/Services/Automation`, AGENTS.md "Workflow rules" / "Automation" | ✅ close (only P3.3 editor UI + P3.6 packs remain) |
 | P4.2 / P4.5 sprints, backlog, agile reports | `app/Services/Sprints`, AGENTS.md "Sprints" | ✅ close |
 | P6.6 packaging option B (TMS and HRMS sold separately) | AGENTS.md "Products" | ✅ close |
-| P2.2 / P2.3 correlation id, notification consumers | `AssignRequestId`, domain events | ✅ close |
+| P2.2 / P2.3 correlation id, notification consumers | `AssignRequestId`; request id already on platform + HRMS audit tables | ✅ close; F0.4 adds `activities` + queued jobs |
+| P6.2 / M-H2 dunning, period-end expiry | `billing:dunning`, `billing:period-ends` scheduled in `routes/console.php`; `DunningTest`, `PeriodEndTest` | ✅ mostly shipped → M-H2 shrinks to configurable cadence + UI |
 
 ### 0.2 The blocker that sits under everything
 **A full PHP test run has not completed in a long time.** AGENTS.md quotes 1720 tests / 8815 assertions (2026-10-09) and

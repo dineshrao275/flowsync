@@ -14,6 +14,7 @@ use App\Services\PlatformAudit;
 use App\Services\Security\PlatformAccess;
 use App\Services\Security\TwoFactorLogin;
 use App\Services\Security\TwoFactorService;
+use App\Services\Sso\SsoSettings;
 use App\Services\TenantLimits;
 use App\Services\TenantOnboarding;
 use App\Support\Hrms\HrmsSchema;
@@ -167,7 +168,7 @@ class AuthController extends Controller
 
         $tenant = $routes->first()->tenant;
 
-        if (! $tenant || ! $tenant->isServiceable()) {
+        if (! $tenant || ! $tenant->canSignIn()) {
             app(PlatformAudit::class)->auth($request, 'auth.login_failed', [
                 'email' => $email,
                 'tenant_id' => $tenant?->id,
@@ -187,6 +188,21 @@ class AuthController extends Controller
                 ]);
 
                 throw ValidationException::withMessages(['email' => __('auth.failed')]);
+            }
+
+            // F10.2: when the tenant enforces single sign-on, a password only works for the protected default user
+            // (the break-glass account); everyone else must use the identity provider.
+            if (app(SsoSettings::class)->get($tenant)['enforce'] && ! Auth::user()->is_default) {
+                Auth::logout();
+
+                app(PlatformAudit::class)->auth($request, 'auth.login_failed', [
+                    'email' => $email,
+                    'tenant_id' => $tenant->id,
+                    'reason' => 'sso_required',
+                    'via' => 'password',
+                ]);
+
+                throw ValidationException::withMessages(['email' => __('This workspace requires single sign-on. Use the SSO button on the sign-in page.')]);
             }
 
             // H-3: valid credentials are not enough — the employment record
@@ -316,6 +332,8 @@ class AuthController extends Controller
                 'impersonation_mode' => $impersonation['mode'] ?? null,
                 'impersonation_expires_at' => isset($impersonation['expires_at']) ? Carbon::createFromTimestamp($impersonation['expires_at'])->toIso8601String() : null,
                 'onboarding_complete' => ! $tenant || app(TenantOnboarding::class)->isComplete($tenant),
+                // Trial/subscription ended with no paid plan: the SPA confines the session to the Subscription page.
+                'subscription_required' => $tenant !== null && $tenant->status === Tenant::STATUS_EXPIRED,
                 // Runtime feature flags resolved for this tenant (P8.7); the SPA only mirrors them.
                 // Platform personas (P8.3): null = unrestricted break-glass admin; otherwise the held slugs.
                 'platform' => $isSuperAdmin ? [

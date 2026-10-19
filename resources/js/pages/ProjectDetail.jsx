@@ -5,6 +5,7 @@ import api, { fieldErrors } from '../services/api';
 import Card from '../components/ui/Card';
 import Badge from '../components/ui/Badge';
 import Spinner from '../components/ui/Spinner';
+import ContentSkeleton from '../components/ui/ContentSkeleton';
 import Alert from '../components/ui/Alert';
 import Button from '../components/ui/Button';
 import Input from '../components/ui/Input';
@@ -30,6 +31,11 @@ import TaskTable from '../components/tasks/TaskTable';
 import RichTextEditor from '../components/ui/RichTextEditor';
 import RichText from '../components/ui/RichText';
 import FiltersBar from '../components/tasks/FiltersBar';
+import CalendarView from '../components/tasks/CalendarView';
+import TimelineView from '../components/tasks/TimelineView';
+import WorkloadPanel from '../components/project/WorkloadPanel';
+import SaveAsTemplate from '../components/project/SaveAsTemplate';
+import DashboardPanel from '../components/project/DashboardPanel';
 import CreateTaskModal from '../components/tasks/CreateTaskModal';
 import TaskDetail from '../components/tasks/TaskDetail';
 import TimeSummary from '../components/time/TimeSummary';
@@ -99,6 +105,7 @@ export default function ProjectDetail() {
     const [savingTask, setSavingTask] = useState(false);
     const [loadingTasks, setLoadingTasks] = useState(false);
     const [tasksError, setTasksError] = useState(null);
+    const [jqlError, setJqlError] = useState(null);
 
     const isProjectManager = can('workspaces.manage') || project?.my_role === 'lead';
     const archived = Boolean(project?.archived_at);
@@ -126,7 +133,7 @@ export default function ProjectDetail() {
             api.get(`/projects/${projectId}/statuses`),
             api.get('/project-roles'),
             api.get('/issue-types'),
-            can('users.view') ? api.get('/users') : Promise.resolve({ data: { users: [] } }),
+            can('users.view') ? api.get('/users', { params: { all: 1 } }) : Promise.resolve({ data: { users: [] } }),
         ])
             .then(([proj, mem, st, ro, it, users]) => {
                 if (!active) return;
@@ -181,7 +188,8 @@ export default function ProjectDetail() {
 
     function loadTasks() {
         const seq = ++loadSeqRef.current;
-        const requestedView = view;
+        // The calendar loads its own month; the board payload still supplies the filter options.
+        const requestedView = view === 'calendar' || view === 'timeline' ? 'board' : view;
         const params = {};
         if (view === 'list') {
             params.view = 'list';
@@ -194,6 +202,7 @@ export default function ProjectDetail() {
 
         setLoadingTasks(true);
         setTasksError(null);
+        setJqlError(null);
         return api
             .get(`/projects/${projectId}/tasks`, { params })
             .then(({ data }) => {
@@ -210,6 +219,12 @@ export default function ProjectDetail() {
                 if (seq !== loadSeqRef.current) return;
                 if (err?.response?.status === 403) {
                     navigate('/403', { replace: true });
+                    return;
+                }
+                const jqlMessage = err?.response?.status === 422 ? err.response.data?.errors?.jql?.[0] : null;
+                if (jqlMessage) {
+                    // A bad query is the user's to fix: show it by the box and keep what was on screen.
+                    setJqlError(jqlMessage);
                     return;
                 }
                 setTasksError(t('tms.project.tasksFailed'));
@@ -256,11 +271,13 @@ export default function ProjectDetail() {
             }
         };
         channel.listen('.task.synced', onTaskSynced);
+        channel.listen('.board.columns', onTaskSynced);
         // A task changed while the socket was down is not replayed: re-sync.
         const stopReconnect = onRealtimeReconnect(() => onTaskSynced(null));
 
         return () => {
             channel.stopListening('.task.synced', onTaskSynced);
+            channel.stopListening('.board.columns', onTaskSynced);
             stopReconnect();
             window.Echo.leaveChannel(channel.name);
         };
@@ -454,13 +471,27 @@ export default function ProjectDetail() {
             .finally(() => setSavingTask(false));
     }
 
+    // The one way to close the task tray: also drops the ?task= deep link, otherwise the deep-link
+    // effect re-opens the tray as soon as the board refetches.
+    function closeTask() {
+        setSelectedTask(null);
+        setSelectedTaskSection(null);
+        setSelectedCommentId(null);
+        openedDeepTaskRef.current = null;
+        fetchedDeepTaskRef.current = null;
+        const params = new URLSearchParams(searchParams.toString());
+        params.delete('task');
+        params.delete('section');
+        params.delete('comment');
+        navigate(`?${params.toString()}`, { replace: true });
+    }
+
     function updateTask(taskId, data) {
         setSavingTask(true);
         return api
             .put(`/projects/${projectId}/tasks/${taskId}`, data)
             .then(() => {
-                setSelectedTask(null);
-                setSelectedTaskSection(null);
+                closeTask();
                 toast.success(t('tms.project.taskUpdated'));
                 return loadTasks();
             })
@@ -476,7 +507,7 @@ export default function ProjectDetail() {
         setSavingTask(true);
         try {
             await api.delete(`/projects/${projectId}/tasks/${selectedTask.id}`);
-            setSelectedTask(null);
+            closeTask();
             setSelectedTaskSection(null);
             toast.success(t('tms.project.taskDeleted'));
             await loadTasks();
@@ -534,7 +565,7 @@ export default function ProjectDetail() {
     function loadMemberCandidates() {
         return Promise.all([
             api.get(`/projects/${projectId}/members`),
-            can('users.view') ? api.get('/users') : Promise.resolve({ data: { users: [] } }),
+            can('users.view') ? api.get('/users', { params: { all: 1 } }) : Promise.resolve({ data: { users: [] } }),
         ]).then(([mem, users]) => {
             setMembers(mem.data.members);
             setCandidateUsers(
@@ -673,9 +704,7 @@ export default function ProjectDetail() {
 
     if (loading) {
         return (
-            <div className="flex justify-center py-20">
-                <Spinner />
-            </div>
+            <ContentSkeleton size="lg" />
         );
     }
 
@@ -693,8 +722,9 @@ export default function ProjectDetail() {
         { key: 'hierarchy', label: t('tms.project.tabs.hierarchy') },
         { key: 'members', label: t('tms.project.tabs.members', { count: members.length }) },
         { key: 'workflow', label: t('tms.project.tabs.workflow') },
+        ...(hasModule('reports') ? [{ key: 'dashboard', label: t('tms.project.tabs.dashboard') }] : []),
         ...(hasModule('time_tracking') ? [{ key: 'time', label: t('tms.project.tabs.time') }] : []),
-        ...(hasModule('sprints') ? [{ key: 'sprints', label: t('tms.project.tabs.sprints') }] : []),
+        ...(hasModule('sprints') ? [{ key: 'sprints', label: t('tms.project.tabs.sprints') }, { key: 'workload', label: t('tms.project.tabs.workload') }] : []),
         ...(isProjectManager && hasModule('automation') ? [{ key: 'automation', label: t('tms.project.tabs.automation') }] : []),
         ...(isProjectManager ? [{ key: 'settings', label: t('tms.project.tabs.settings') }] : []),
     ];
@@ -718,7 +748,7 @@ export default function ProjectDetail() {
                             {archived && <Badge>{t('tms.project.archivedBadge')}</Badge>}
                         </div>
                         {project.description ? (
-                            <RichText value={project.description} className="mt-1 text-gray-500" />
+                            <RichText value={project.description} className="mt-1 max-h-24 max-w-3xl overflow-y-auto break-words text-gray-500 [overflow-wrap:anywhere]" />
                         ) : (
                             <p className="mt-1 text-sm text-gray-500">{t('tms.project.noDescription')}</p>
                         )}
@@ -748,7 +778,7 @@ export default function ProjectDetail() {
 
             {tab === 'tasks' && (
                 <div className="space-y-5">
-                    <div className="flex flex-wrap items-center justify-between gap-3">
+                    <div className="flex flex-wrap items-center gap-3">
                         <div className="flex items-center gap-3">
                             <div className="flex rounded-lg border border-gray-300 p-0.5">
                                 <button
@@ -773,6 +803,28 @@ export default function ProjectDetail() {
                                 >
                                     {t('tms.project.list')}
                                 </button>
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        setView('calendar');
+                                        setPage(1);
+                                    }}
+                                    className={`rounded-md px-3 py-1.5 text-sm font-medium transition ${view === 'calendar' ? 'bg-[var(--accent)] text-[var(--accent-contrast)]' : 'text-gray-600 hover:bg-gray-100'
+                                        }`}
+                                >
+                                    {t('tms.calendar.view')}
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        setView('timeline');
+                                        setPage(1);
+                                    }}
+                                    className={`rounded-md px-3 py-1.5 text-sm font-medium transition ${view === 'timeline' ? 'bg-[var(--accent)] text-[var(--accent-contrast)]' : 'text-gray-600 hover:bg-gray-100'
+                                        }`}
+                                >
+                                    {t('tms.timeline.view')}
+                                </button>
                             </div>
                             {view === 'board' && (
                                 <select
@@ -787,7 +839,19 @@ export default function ProjectDetail() {
                             )}
                             {loadingTasks && <Spinner className="h-5 w-5" />}
                         </div>
-                        <div className="flex items-center gap-2">
+
+                <FiltersBar
+                    filters={filters}
+                    options={{ ...taskOptions, sprints: hasModule('sprints'), savedFilters: hasModule('saved_filters'), jql: hasModule('jql') }}
+                    jqlError={jqlError}
+                    projectId={projectId}
+                    canShareFilters={isProjectManager}
+                    onChange={(next) => {
+                        setFilters(next);
+                        setPage(1);
+                    }}
+                />
+                        <div className="ml-auto flex items-center gap-2">
                             {view === 'board' && (
                                 <Button type="button" variant="secondary" onClick={() => setShowColumns(true)}>
                                     <Icon as={Columns} size="sm" className="mr-1.5" />
@@ -803,17 +867,6 @@ export default function ProjectDetail() {
                         </div>
                     </div>
 
-                    <Card>
-                        <FiltersBar
-                            filters={filters}
-                            options={{ ...taskOptions, sprints: hasModule('sprints') }}
-                            onChange={(next) => {
-                                setFilters(next);
-                                setPage(1);
-                            }}
-                        />
-                    </Card>
-
                     {tasksError ? (
                         <Alert>{tasksError}</Alert>
                     ) : view === 'board' && board ? (
@@ -828,6 +881,10 @@ export default function ProjectDetail() {
                             prefs={{ ...boardPrefs, save: updateBoardPrefs }}
                             manage={isProjectManager && !archived ? { onEdit: setEditingColumn, onMove: moveColumn, onDelete: removeColumn, order: statuses.map((s) => s.id) } : null}
                         />
+                    ) : view === 'timeline' ? (
+                        <TimelineView projectId={projectId} filters={filters} onOpen={openTask} />
+                    ) : view === 'calendar' ? (
+                        <CalendarView projectId={projectId} filters={filters} canEdit={canEditTask} onOpen={openTask} />
                     ) : view === 'list' ? (
                         <div className="space-y-3">
                             <TaskTable tasks={listTasks} canEdit={canEditTask} onOpen={openTask} />
@@ -849,6 +906,10 @@ export default function ProjectDetail() {
             )}
 
             {tab === 'hierarchy' && <HierarchyPanel projectId={projectId} />}
+
+            {tab === 'dashboard' && hasModule('reports') && <DashboardPanel projectId={projectId} canShare={isProjectManager} />}
+
+            {tab === 'workload' && hasModule('sprints') && <WorkloadPanel projectId={projectId} />}
 
             {tab === 'sprints' && hasModule('sprints') && <SprintsPanel projectId={projectId} canPlan={isProjectManager} />}
 
@@ -883,6 +944,7 @@ export default function ProjectDetail() {
                         updateProject={updateProject}
                         deleteProject={deleteProject}
                     />
+                    {hasModule('project_templates') && <SaveAsTemplate projectId={projectId} defaultName={project.name} />}
                 </Card>
             )}
 
@@ -930,18 +992,7 @@ export default function ProjectDetail() {
                     canLog={canLogTime}
                     canManageLogs={canManageLogs}
                     saving={savingTask}
-                    onClose={() => {
-                        setSelectedTask(null);
-                        setSelectedTaskSection(null);
-                        setSelectedCommentId(null);
-                        openedDeepTaskRef.current = null;
-                        fetchedDeepTaskRef.current = null;
-                        const params = new URLSearchParams(searchParams.toString());
-                        params.delete('task');
-                        params.delete('section');
-                        params.delete('comment');
-                        navigate(`?${params.toString()}`, { replace: true });
-                    }}
+                    onClose={closeTask}
                     onUpdate={(data) => updateTask(selectedTask.id, data)}
                     onDelete={deleteTask}
                 />

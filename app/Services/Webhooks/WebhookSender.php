@@ -24,7 +24,7 @@ class WebhookSender
     public function send(WebhookDelivery $delivery): array
     {
         $endpoint = $delivery->endpoint;
-        $body = json_encode($delivery->payload, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
+        $body = WebhookFormatter::body($delivery->payload, $endpoint->format ?? 'json');
         $now = time();
 
         try {

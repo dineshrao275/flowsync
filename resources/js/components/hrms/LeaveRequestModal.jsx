@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import PersonSelect from '../ui/PersonSelect';
 import { useTranslation } from 'react-i18next';
 import api, { fieldErrors } from '../../services/api';
 import Alert from '../ui/Alert';
@@ -199,14 +200,7 @@ export default function LeaveRequestModal({ open, onClose, onSaved, employeeId =
             <form onSubmit={submit} className="space-y-3 px-6 py-5">
                 <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                     {employees && (
-                        <Select label={t('hrms.leaveModal.employee')} value={form.employee_id} onChange={set('employee_id')} error={formErrors.employee_id}>
-                            <option value="">{t('hrms.leaveModal.myself')}</option>
-                            {employees.map((employee) => (
-                                <option key={employee.id} value={employee.id}>
-                                    {employee.name}
-                                </option>
-                            ))}
-                        </Select>
+                        <PersonSelect label={t('hrms.leaveModal.employee')} value={form.employee_id} onChange={set('employee_id')} error={formErrors.employee_id} placeholder={t('hrms.leaveModal.myself')} people={employees} />
                     )}
                     <Select label={t('hrms.leaveModal.leaveType')} value={form.leave_type_id} onChange={set('leave_type_id')} error={formErrors.leave_type_id}>
                         <option value="">{t('hrms.leaveModal.selectType')}</option>

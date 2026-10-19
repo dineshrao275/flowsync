@@ -1,4 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
+import ListSavedFilters from '../../components/ui/ListSavedFilters';
+import PersonSelect from '../../components/ui/PersonSelect';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import api, { fieldErrors } from '../../services/api';
@@ -9,7 +11,7 @@ import EmptyState from '../../components/ui/EmptyState';
 import Input from '../../components/ui/Input';
 import Modal from '../../components/ui/Modal';
 import Select from '../../components/ui/Select';
-import Spinner from '../../components/ui/Spinner';
+import ContentSkeleton from '../../components/ui/ContentSkeleton';
 import AssetReplaceModal from '../../components/hrms/AssetReplaceModal';
 import { Table, Th, Td } from '../../components/ui/Table';
 import { useAuth } from '../../context/AuthContext';
@@ -212,11 +214,14 @@ export default function Assets() {
                         {categories.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
                     </Select>
                     <Input label={t('hrms.common.search')} value={filters.q} onChange={(e) => setFilters({ ...filters, q: e.target.value })} placeholder={t('hrms.assets.searchPlaceholder')} />
+                    <div className="flex items-end">
+                        <ListSavedFilters page="hrms-assets" value={filters} onApply={(saved) => setFilters({ status: '', category_id: '', q: '', ...saved })} />
+                    </div>
                 </div>
             </Card>
 
             {!assets ? (
-                <div className="flex justify-center py-10"><Spinner /></div>
+                <ContentSkeleton size="md" />
             ) : assets.length === 0 ? (
                 <EmptyState title={t('hrms.assets.emptyTitle')} hint={t('hrms.assets.emptyHint')} />
             ) : (
@@ -273,10 +278,7 @@ export default function Assets() {
 
             <Modal open={!!assigning} onClose={() => setAssigning(null)} title={t('hrms.assets.assignTitle', { code: assigning?.asset_code ?? '' })}>
                 <form onSubmit={assign} className="grid gap-3 px-6 py-5">
-                    <Select label={t('hrms.assets.person')} value={assignForm.employee_id} error={assignErrors.employee_id} onChange={(e) => setAssignForm({ ...assignForm, employee_id: e.target.value })} required>
-                        <option value="">{t('hrms.common.select')}</option>
-                        {employees.map((e) => <option key={e.id} value={e.id}>{e.name}</option>)}
-                    </Select>
+                    <PersonSelect label={t('hrms.assets.person')} value={assignForm.employee_id} error={assignErrors.employee_id} onChange={(e) => setAssignForm({ ...assignForm, employee_id: e.target.value })} required placeholder={t('hrms.common.select')} people={employees} />
                     <Select label={t('hrms.assets.conditionOut')} value={assignForm.condition_out} error={assignErrors.condition_out} onChange={(e) => setAssignForm({ ...assignForm, condition_out: e.target.value })}>
                         {ASSET_CONDITIONS.map((c) => <option key={c} value={c}>{assetConditionLabel(t, c)}</option>)}
                     </Select>

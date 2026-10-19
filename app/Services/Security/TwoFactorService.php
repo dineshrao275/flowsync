@@ -47,7 +47,7 @@ class TwoFactorService
             ['secret' => $secret, 'confirmed_at' => null, 'recovery_codes' => null, 'last_used_step' => null],
         );
 
-        return ['secret' => $secret, 'uri' => Totp::uri($secret, (string) $user->email, config('app.name', 'FlowSync'))];
+        return ['secret' => $secret, 'uri' => Totp::uri($secret, (string) $user->email, config('app.name'))];
     }
 
     /**

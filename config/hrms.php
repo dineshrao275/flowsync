@@ -457,4 +457,27 @@ return [
         ['name' => 'Headquarters', 'slug' => 'headquarters'],
         ['name' => 'Remote', 'slug' => 'remote'],
     ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Exit interview (F6.6)
+    |--------------------------------------------------------------------------
+    | The question set every exit interview uses. `scale` is 1-5, `choice` picks one option,
+    | `text` is free words. Answers are stored per interview; the insights view only ever shows
+    | counts and averages across several leavers (`min_group`), never one person's answers.
+    */
+    'exit_interview' => [
+        'min_group' => 5,
+        'questions' => [
+            ['key' => 'primary_reason', 'type' => 'choice', 'label' => 'What is the main reason you are leaving?', 'required' => true,
+                'options' => ['better_pay', 'career_growth', 'manager', 'culture', 'workload', 'relocation', 'personal', 'other']],
+            ['key' => 'manager_support', 'type' => 'scale', 'label' => 'My manager supported my work and growth.', 'required' => true],
+            ['key' => 'role_clarity', 'type' => 'scale', 'label' => 'My responsibilities were clear.', 'required' => false],
+            ['key' => 'culture', 'type' => 'scale', 'label' => 'I felt I belonged here.', 'required' => false],
+            ['key' => 'would_return', 'type' => 'choice', 'label' => 'Would you consider returning in future?', 'required' => true, 'options' => ['yes', 'maybe', 'no']],
+            ['key' => 'would_recommend', 'type' => 'scale', 'label' => 'I would recommend this company to a friend.', 'required' => false],
+            ['key' => 'went_well', 'type' => 'text', 'label' => 'What worked well?', 'required' => false],
+            ['key' => 'improve', 'type' => 'text', 'label' => 'What should we change?', 'required' => false],
+        ],
+    ],
 ];

@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next';
 import api from '../../services/api';
 import Alert from '../ui/Alert';
 import Card from '../ui/Card';
-import Spinner from '../ui/Spinner';
+import ContentSkeleton from '../ui/ContentSkeleton';
 import { taskUrl } from '../../utils/deepLinks';
 
 function Node({ node, projectId, depth }) {
@@ -56,7 +56,7 @@ export default function HierarchyPanel({ projectId }) {
     }, [projectId, t]);
 
     if (error) return <Alert>{error}</Alert>;
-    if (!data) return <div className="flex justify-center py-10"><Spinner /></div>;
+    if (!data) return <ContentSkeleton size="md" />;
 
     return (
         <Card title={t('tms.hierarchy.title')} subtitle={t('tms.hierarchy.subtitle')}>

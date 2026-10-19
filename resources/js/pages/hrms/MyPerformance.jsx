@@ -8,7 +8,7 @@ import Card from '../../components/ui/Card';
 import EmptyState from '../../components/ui/EmptyState';
 import Input from '../../components/ui/Input';
 import Modal from '../../components/ui/Modal';
-import Spinner from '../../components/ui/Spinner';
+import ContentSkeleton from '../../components/ui/ContentSkeleton';
 import { useToast } from '../../context/ToastContext';
 import { useAuth } from '../../context/AuthContext';
 import { useSetCrumbs } from '../../context/BreadcrumbContext';
@@ -139,7 +139,7 @@ export default function MyPerformance() {
             {error && <Alert>{error}</Alert>}
 
             {!cycles ? (
-                <div className="flex justify-center py-10"><Spinner /></div>
+                <ContentSkeleton size="md" />
             ) : cycles.length === 0 ? (
                 <EmptyState title={t('hrms.myPerformance.emptyTitle')} hint={t('hrms.myPerformance.emptyHint')} />
             ) : (
@@ -158,7 +158,7 @@ export default function MyPerformance() {
                     </div>
 
                     {!goals ? (
-                        <div className="flex justify-center py-8"><Spinner /></div>
+                        <ContentSkeleton size="md" />
                     ) : (
                         <div className="grid gap-4 lg:grid-cols-2">
                             <Card title={t('hrms.myPerformance.myGoals')} dense>

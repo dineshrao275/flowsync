@@ -6,8 +6,10 @@ use App\Http\Requests\SystemSettingsUpdateRequest;
 use App\Models\PlatformSetting;
 use App\Models\SubscriptionPlan;
 use App\Services\PlatformAudit;
+use App\Support\AppName;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Arr;
+use Illuminate\Support\Facades\Cache;
 
 class SystemSettingsController extends Controller
 {
@@ -47,6 +49,8 @@ class SystemSettingsController extends Controller
             );
         }
 
+        AppName::forget();
+        Cache::forget('platform.maintenance');
         $after = $this->all();
         $changed = collect(self::KEYS)->filter(fn ($k) => ($before[$k] ?? null) !== ($after[$k] ?? null))->values()->all();
 
@@ -68,7 +72,7 @@ class SystemSettingsController extends Controller
     private function all(): array
     {
         return [
-            'app_name' => (string) PlatformSetting::value('app_name', 'FlowSync'),
+            'app_name' => (string) AppName::get(),
             'public_registration' => PlatformSetting::bool('public_registration', false),
             'default_plan_id' => PlatformSetting::value('default_plan_id') !== null
                 ? (int) PlatformSetting::value('default_plan_id')

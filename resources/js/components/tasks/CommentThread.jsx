@@ -1,9 +1,12 @@
+import { caretRect } from '../../utils/caret';
+import UserChip from '../ui/UserChip';
+import Avatar from '../ui/Avatar';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import api from '../../services/api';
 import Button from '../ui/Button';
 import Alert from '../ui/Alert';
-import Spinner from '../ui/Spinner';
+import ContentSkeleton from '../ui/ContentSkeleton';
 import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
 import { useConfirm, usePrompt } from '../ui/ConfirmDialog';
@@ -95,12 +98,19 @@ export default function CommentThread({ task, projectId, isManager, targetCommen
         }
 
         const query = before.slice(at + 1, caret);
-        const rect = el.getBoundingClientRect();
+        // Anchor the list to the "@" itself, not the bottom of the field.
+        const caretAt = caretRect(el, at);
+        const width = 300;
+        const rowsHeight = 224;
+        const left = Math.max(8, Math.min(caretAt.left, window.innerWidth - width - 8));
+        const top = caretAt.bottom + 4 + rowsHeight > window.innerHeight && caretAt.top - 4 - rowsHeight > 0
+            ? caretAt.top - 4 - rowsHeight
+            : caretAt.bottom + 4;
 
         setSugField(field);
         setSugActive(0);
         setSugText({ value, at, caret });
-        setSugPos({ top: rect.bottom + 4, left: rect.left, width: Math.max(240, Math.min(320, rect.width)) });
+        setSugPos({ top, left, width });
         sugAnchor.current = el;
         sugFieldRef.current = field;
 
@@ -223,9 +233,7 @@ export default function CommentThread({ task, projectId, isManager, targetCommen
 
     if (!comments) {
         return (
-            <div className="flex justify-center py-10">
-                <Spinner />
-            </div>
+            <ContentSkeleton size="md" />
         );
     }
 
@@ -257,7 +265,7 @@ export default function CommentThread({ task, projectId, isManager, targetCommen
                                 <div className="flex items-start justify-between gap-2">
                                     <div className="min-w-0">
                                         <p className="text-xs text-gray-400">
-                                            <span className="font-semibold text-gray-700">{comment.user?.name ?? t('tms.comments.unknown')}</span>
+                                            <UserChip user={comment.user} name={comment.user?.name ?? t('tms.comments.unknown')} nameClassName="font-semibold text-gray-700" />
                                             {comment.edited_at ? t('tms.comments.edited') : ''} · <Timestamp date={comment.created_at} />
                                         </p>
                                         <p className="mt-1 whitespace-pre-wrap text-sm text-gray-800">{comment.comment}</p>
@@ -296,7 +304,7 @@ export default function CommentThread({ task, projectId, isManager, targetCommen
                                         {comment.replies.map((reply) => (
                                             <li key={reply.id} id={`comment-${reply.id}`} className="rounded-md p-1.5 transition-all">
                                                 <p className="text-xs text-gray-400">
-                                                    <span className="font-semibold text-gray-700">{reply.user?.name ?? t('tms.comments.unknown')}</span>
+                                                    <UserChip user={reply.user} name={reply.user?.name ?? t('tms.comments.unknown')} nameClassName="font-semibold text-gray-700" />
                                                     {reply.edited_at ? t('tms.comments.edited') : ''} · <Timestamp date={reply.created_at} />
                                                 </p>
                                                 <p className="mt-0.5 whitespace-pre-wrap text-sm text-gray-700">{reply.comment}</p>
@@ -347,7 +355,7 @@ export default function CommentThread({ task, projectId, isManager, targetCommen
 
             {sugField && suggestions.length > 0 && (
                 <div
-                    className="fixed z-40 max-h-56 overflow-auto rounded-lg border border-gray-200 bg-white py-1 shadow-popover"
+                    className="fixed z-[95] max-h-56 overflow-auto rounded-lg border border-gray-200 bg-white py-1 shadow-popover"
                     style={{ top: sugPos.top, left: sugPos.left, width: sugPos.width }}
                 >
                     {suggestions.map((member, index) => (
@@ -360,14 +368,7 @@ export default function CommentThread({ task, projectId, isManager, targetCommen
                             onMouseEnter={() => setSugActive(index)}
                             onClick={() => selectSuggestion(member)}
                         >
-                            <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[var(--accent-soft)] text-xs font-semibold text-[var(--accent-soft-text)]">
-                                {member.name
-                                    .split(' ')
-                                    .map((part) => part[0])
-                                    .slice(0, 2)
-                                    .join('')
-                                    .toUpperCase()}
-                            </span>
+                            <Avatar name={member.name} photoUrl={member.photo_url} size="sm" />
                             <span className="min-w-0">
                                 <span className="block truncate font-medium text-gray-800">{member.name}</span>
                                 <span className="block truncate text-xs text-gray-400">{member.email}</span>

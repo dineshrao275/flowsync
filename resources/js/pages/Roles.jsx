@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next';
 import api, { fieldErrors } from '../services/api';
 import Card from '../components/ui/Card';
 import Badge from '../components/ui/Badge';
-import Spinner from '../components/ui/Spinner';
+import ContentSkeleton from '../components/ui/ContentSkeleton';
 import Alert from '../components/ui/Alert';
 import Button from '../components/ui/Button';
 import Input from '../components/ui/Input';
@@ -15,6 +15,7 @@ import { useToast } from '../context/ToastContext';
 import { useConfirm } from '../components/ui/ConfirmDialog';
 import usePageTitle from '../hooks/usePageTitle';
 import { groupPermissionsByDomain, prettyDomain } from '../utils/permissions';
+import { fieldClassCompact } from '../components/ui/fieldStyles';
 
 const PRODUCT_BADGES = { tms: 'TMS', hrms: 'HRMS', shared: 'Shared' };
 
@@ -135,6 +136,7 @@ export default function Roles() {
     const [creating, setCreating] = useState(false);
     const [createForm, setCreateForm] = useState({ name: '', slug: '', permissions: [] });
     const [createErrors, setCreateErrors] = useState({});
+    const [templates, setTemplates] = useState([]);
 
     async function load() {
         try {
@@ -153,9 +155,20 @@ export default function Roles() {
     }
 
     useEffect(() => {
+        api.get('/roles/templates').then(({ data }) => setTemplates(data.templates || [])).catch(() => {});
         load();
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
+
+    async function applyTemplate(key) {
+        if (!key) return;
+        try {
+            await api.post(`/roles/templates/${key}`);
+            await load();
+        } catch (err) {
+            setError(fieldErrors(err).permissions || err.response?.data?.message || t('admin.roles.loadFailed'));
+        }
+    }
 
     async function createRole(e) {
         e.preventDefault();
@@ -242,9 +255,7 @@ export default function Roles() {
 
     if (loading) {
         return (
-            <div className="flex justify-center py-20">
-                <Spinner />
-            </div>
+            <ContentSkeleton size="lg" />
         );
     }
 
@@ -263,7 +274,15 @@ export default function Roles() {
                     </p>
                 </div>
                 {manageable && (
-                    <Button onClick={() => setCreating((open) => !open)}>{t('admin.roles.newRole')}</Button>
+                    <div className="flex items-center gap-2">
+                        {templates.length > 0 && (
+                            <select aria-label={t('admin.roles.fromTemplate')} className={fieldClassCompact} value="" onChange={(e) => applyTemplate(e.target.value)}>
+                                <option value="">{t('admin.roles.fromTemplate')}</option>
+                                {templates.map((tpl) => <option key={tpl.key} value={tpl.key}>{tpl.name} ({tpl.permission_count})</option>)}
+                            </select>
+                        )}
+                        <Button onClick={() => setCreating((open) => !open)}>{t('admin.roles.newRole')}</Button>
+                    </div>
                 )}
             </div>
 

@@ -6,7 +6,7 @@ import Alert from '../../components/ui/Alert';
 import Button from '../../components/ui/Button';
 import Card from '../../components/ui/Card';
 import EmptyState from '../../components/ui/EmptyState';
-import Spinner from '../../components/ui/Spinner';
+import ContentSkeleton from '../../components/ui/ContentSkeleton';
 import { Table, Th, Td } from '../../components/ui/Table';
 import { useToast } from '../../context/ToastContext';
 import { useSetCrumbs } from '../../context/BreadcrumbContext';
@@ -109,9 +109,7 @@ export default function MyLeave() {
 
             <Card title={t('hrms.myLeave.balances')} dense>
                 {!balances ? (
-                    <div className="flex justify-center py-6">
-                        <Spinner />
-                    </div>
+                    <ContentSkeleton size="sm" />
                 ) : balances.length === 0 ? (
                     <EmptyState title={t('hrms.myLeave.balancesEmpty')} description={t('hrms.myLeave.balancesHint')} />
                 ) : (
@@ -121,9 +119,7 @@ export default function MyLeave() {
 
             <Card title={t('hrms.myLeave.history')} dense>
                 {!requests ? (
-                    <div className="flex justify-center py-6">
-                        <Spinner />
-                    </div>
+                    <ContentSkeleton size="sm" />
                 ) : requests.length === 0 ? (
                     <EmptyState title={t('hrms.myLeave.historyEmpty')} description={t('hrms.myLeave.historyHint')} />
                 ) : (

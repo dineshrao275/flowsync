@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import api from '../../services/api';
-import Spinner from '../ui/Spinner';
+import ContentSkeleton from '../ui/ContentSkeleton';
 import AuditTrail from './AuditTrail';
 
 /**
@@ -34,7 +34,7 @@ export default function EmployeeAudit({ employeeId, subjectType }) {
     }, [employeeId, subjectType, t]);
 
     if (error) return <p className="py-8 text-center text-sm text-red-600">{error}</p>;
-    if (!rows) return <Spinner />;
+    if (!rows) return <ContentSkeleton size="sm" />;
 
     return <AuditTrail rows={rows} />;
 }

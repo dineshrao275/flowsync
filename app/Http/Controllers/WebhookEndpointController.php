@@ -9,11 +9,13 @@ use App\Models\Tenant;
 use App\Models\WebhookDelivery;
 use App\Models\WebhookEndpoint;
 use App\Services\Events\Consumers\WebhookConsumer;
+use App\Services\Webhooks\WebhookFormatter;
 use App\Services\Webhooks\WebhookUrlGuard;
 use App\Support\TenantContext;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
+use Illuminate\Validation\Rule;
 
 /** Tenant admins manage the endpoints their events are delivered to. The secret is shown once. */
 class WebhookEndpointController extends Controller
@@ -79,7 +81,7 @@ class WebhookEndpointController extends Controller
     public function test(WebhookEndpoint $webhook): JsonResponse
     {
         $event = new DomainEvent([
-            'uuid' => (string) Str::uuid(), 'type' => 'webhook.test', 'data' => ['message' => __('This is a test event from FlowSync.')],
+            'uuid' => (string) Str::uuid(), 'type' => 'webhook.test', 'data' => ['message' => __('This is a test event from :app.', ['app' => config('app.name')])],
             'occurred_at' => now(),
         ]);
         $tenantId = app(TenantContext::class)->currentId();
@@ -115,6 +117,7 @@ class WebhookEndpointController extends Controller
             'events' => ['required', 'array', 'min:1', 'max:50'],
             'events.*' => ['string', 'max:80', 'regex:/^(\*|[a-z0-9_.]+(\.\*)?)$/'],
             'is_active' => ['sometimes', 'boolean'],
+            'format' => ['sometimes', Rule::in(WebhookFormatter::FORMATS)],
         ]);
     }
 
@@ -122,7 +125,7 @@ class WebhookEndpointController extends Controller
     private function present(WebhookEndpoint $e): array
     {
         return [
-            'id' => $e->id, 'url' => $e->url, 'description' => $e->description, 'events' => $e->events,
+            'id' => $e->id, 'url' => $e->url, 'description' => $e->description, 'format' => $e->format ?? 'json', 'events' => $e->events,
             'is_active' => $e->is_active, 'consecutive_failures' => $e->consecutive_failures,
             'disabled_reason' => $e->disabled_reason, 'created_at' => $e->created_at?->toIso8601String(),
             'last_delivery' => $e->deliveries()->latest('id')->first(['status', 'response_status', 'created_at']),

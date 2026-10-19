@@ -13,6 +13,7 @@ use App\Services\TenantLimits;
 use App\Support\TenantContext;
 use App\Support\TenantDatabaseManager;
 use App\Support\Tms\TmsSchema;
+use App\Support\UploadScanner;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
@@ -52,6 +53,7 @@ class AttachmentController extends Controller
         // Phase 5 E6: enforce the plan's storage_bytes quota before writing.
         // TenantLimits::assertQuota() handles row counts; bytes need a SUM.
         $this->assertStorageQuota($file->getSize());
+        app(UploadScanner::class)->assertSafe($file);
 
         $extension = $file->getClientOriginalExtension() ?: pathinfo($file->getClientOriginalName(), PATHINFO_EXTENSION);
         $storedName = Str::uuid().'.'.$extension;

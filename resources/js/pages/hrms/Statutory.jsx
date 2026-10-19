@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
+import PersonSelect from '../../components/ui/PersonSelect';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import api, { fieldErrors } from '../../services/api';
@@ -8,8 +9,7 @@ import Card from '../../components/ui/Card';
 import EmptyState from '../../components/ui/EmptyState';
 import Input from '../../components/ui/Input';
 import Modal from '../../components/ui/Modal';
-import Select from '../../components/ui/Select';
-import Spinner from '../../components/ui/Spinner';
+import ContentSkeleton from '../../components/ui/ContentSkeleton';
 import { Table, Th, Td } from '../../components/ui/Table';
 import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
@@ -339,7 +339,7 @@ export default function Statutory() {
                     actions={<Button size="sm" onClick={() => openConfigModal(null)}>{t('hrms.statutory.newRulebook')}</Button>}
                 >
                     {!configs ? (
-                        <div className="flex justify-center py-8"><Spinner /></div>
+                        <ContentSkeleton size="md" />
                     ) : configs.length === 0 ? (
                         <EmptyState title={t('hrms.statutory.noRulebooks')} hint={t('hrms.statutory.noRulebooksHint')} />
                     ) : (
@@ -370,16 +370,13 @@ export default function Statutory() {
 
             <Card title={t('hrms.statutory.identifiers')} dense>
                 <div className="mb-4 max-w-sm">
-                    <Select label={t('hrms.statutory.employee')} value={employeeId} onChange={(e) => setEmployeeId(e.target.value)}>
-                        <option value="">{t('hrms.statutory.selectPerson')}</option>
-                        {employees.map((e) => <option key={e.id} value={e.id}>{e.name}</option>)}
-                    </Select>
+                    <PersonSelect label={t('hrms.statutory.employee')} value={employeeId} onChange={(e) => setEmployeeId(e.target.value)} placeholder={t('hrms.statutory.selectPerson')} people={employees} />
                 </div>
 
                 {employeeId && (
                     <>
                         {!profileLoaded ? (
-                            <div className="flex justify-center py-8"><Spinner /></div>
+                            <ContentSkeleton size="md" />
                         ) : !profile ? (
                             <p className="text-sm text-gray-500">{t('hrms.statutory.noIdentifiers')}</p>
                         ) : (
@@ -428,7 +425,7 @@ export default function Statutory() {
                 actions={<Button size="sm" onClick={() => setDeclModal(true)}>{t('hrms.statutory.fileClaim')}</Button>}
             >
                 {!declarations ? (
-                    <div className="flex justify-center py-8"><Spinner /></div>
+                    <ContentSkeleton size="md" />
                 ) : declarations.length === 0 ? (
                     <EmptyState title={t('hrms.statutory.noClaims')} />
                 ) : (
@@ -467,10 +464,7 @@ export default function Statutory() {
             {canManage && (
                 <Card title={t('hrms.statutory.tdsProjection')} dense>
                     <form onSubmit={runProjection} className="mb-4 grid gap-3 sm:grid-cols-3">
-                        <Select label={t('hrms.statutory.employee')} value={projEmployee} onChange={(e) => setProjEmployee(e.target.value)} required>
-                            <option value="">{t('hrms.statutory.selectPerson')}</option>
-                            {employees.map((e) => <option key={e.id} value={e.id}>{e.name}</option>)}
-                        </Select>
+                        <PersonSelect label={t('hrms.statutory.employee')} value={projEmployee} onChange={(e) => setProjEmployee(e.target.value)} required placeholder={t('hrms.statutory.selectPerson')} people={employees} />
                         <Input label={t('hrms.statutory.fiscalYear')} value={projYear} onChange={(e) => setProjYear(e.target.value)} required />
                         <div className="flex items-end"><Button type="submit">{t('hrms.statutory.projectYear')}</Button></div>
                     </form>
@@ -561,10 +555,7 @@ export default function Statutory() {
 
             <Modal open={declModal} onClose={() => setDeclModal(false)} title={t('hrms.statutory.declModalTitle')}>
                 <form onSubmit={saveDeclaration} className="grid gap-3 px-6 py-5">
-                    <Select label={t('hrms.statutory.employee')} value={declForm.employee_id} error={declErrors.employee_id} onChange={(e) => setDeclForm({ ...declForm, employee_id: e.target.value })} required>
-                        <option value="">{t('hrms.statutory.selectPerson')}</option>
-                        {employees.map((e) => <option key={e.id} value={e.id}>{e.name}</option>)}
-                    </Select>
+                    <PersonSelect label={t('hrms.statutory.employee')} value={declForm.employee_id} error={declErrors.employee_id} onChange={(e) => setDeclForm({ ...declForm, employee_id: e.target.value })} required placeholder={t('hrms.statutory.selectPerson')} people={employees} />
                     <div className="grid grid-cols-2 gap-3">
                         <Input label={t('hrms.statutory.fiscalYear')} value={declForm.fiscal_year} error={declErrors.fiscal_year} onChange={(e) => setDeclForm({ ...declForm, fiscal_year: e.target.value })} required />
                         <Input label={t('hrms.statutory.section')} value={declForm.section} error={declErrors.section} onChange={(e) => setDeclForm({ ...declForm, section: e.target.value })} placeholder="80c" required />

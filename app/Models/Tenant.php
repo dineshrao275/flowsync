@@ -172,6 +172,15 @@ class Tenant extends Model
         return in_array($this->status, [self::STATUS_ACTIVE, self::STATUS_TRIAL], true);
     }
 
+    /**
+     * May sign in: serviceable tenants, plus an EXPIRED one so its admin can subscribe (EnsureSubscribed then limits it to
+     * billing and data export). Suspended and deactivated tenants cannot.
+     */
+    public function canSignIn(): bool
+    {
+        return $this->isServiceable() || $this->status === self::STATUS_EXPIRED;
+    }
+
     public function isProvisioned(): bool
     {
         return $this->provisioning_status === self::PROVISIONING_PROVISIONED;

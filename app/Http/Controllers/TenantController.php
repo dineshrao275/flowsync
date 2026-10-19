@@ -20,6 +20,7 @@ use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 
 class TenantController extends Controller
 {
@@ -283,6 +284,10 @@ class TenantController extends Controller
 
     public function restore(Request $request, Tenant $tenant): JsonResponse
     {
+        if (($tenant->settings['purged_at'] ?? null) !== null) {
+            throw ValidationException::withMessages(['form' => __('This tenant\'s data was permanently purged and cannot be restored.')]);
+        }
+
         $tenant->restore();
 
         app(PlatformAudit::class)->record(

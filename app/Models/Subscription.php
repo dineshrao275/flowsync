@@ -54,6 +54,12 @@ class Subscription extends Model
 
     public const EVENT_EXPIRED = 'expired';
 
+    public const EVENT_PLAN_CHANGE_SCHEDULED = 'plan_change_scheduled';
+
+    public const EVENT_PLAN_CHANGE_CANCELED = 'plan_change_canceled';
+
+    public const EVENT_PRICE_CHANGED = 'price_changed';
+
     protected $fillable = [
         'product',
         'tenant_id',
@@ -69,6 +75,10 @@ class Subscription extends Model
         'billing_reference',
         'provider_subscription_id',
         'past_due_at',
+        'pending_plan_id',
+        'pending_change_at',
+        'pending_requested_at',
+        'provider_schedule_id',
     ];
 
     protected function casts(): array
@@ -79,6 +89,8 @@ class Subscription extends Model
             'trial_ends_at' => 'datetime',
             'canceled_at' => 'datetime',
             'past_due_at' => 'datetime',
+            'pending_change_at' => 'datetime',
+            'pending_requested_at' => 'datetime',
             'auto_renew' => 'boolean',
             'seats' => 'integer',
         ];
@@ -94,6 +106,11 @@ class Subscription extends Model
         return $this->belongsTo(SubscriptionPlan::class);
     }
 
+    public function pendingPlan(): BelongsTo
+    {
+        return $this->belongsTo(SubscriptionPlan::class, 'pending_plan_id');
+    }
+
     public function events(): HasMany
     {
         return $this->hasMany(SubscriptionEvent::class);
@@ -102,6 +119,17 @@ class Subscription extends Model
     /**
      * Subscription currently usable by the tenant (trial or active).
      */
+    public function hasPendingChange(): bool
+    {
+        return $this->pending_plan_id !== null && $this->pending_change_at !== null;
+    }
+
+    /** Someone bills this subscription: a provider subscription or a provider payment (not platform-assigned). */
+    public function isBilled(): bool
+    {
+        return $this->provider_subscription_id !== null || $this->billing_provider !== null;
+    }
+
     public function isActive(): bool
     {
         return in_array($this->status, [self::STATUS_TRIALING, self::STATUS_ACTIVE], true);

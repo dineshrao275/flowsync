@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next';
 import api, { fieldErrors } from '../services/api';
 import Card from '../components/ui/Card';
 import Badge from '../components/ui/Badge';
-import Spinner from '../components/ui/Spinner';
+import ContentSkeleton from '../components/ui/ContentSkeleton';
 import Alert from '../components/ui/Alert';
 import Button from '../components/ui/Button';
 import Input from '../components/ui/Input';
@@ -81,9 +81,7 @@ export default function Workspaces() {
 
     if (loading) {
         return (
-            <div className="flex justify-center py-20">
-                <Spinner />
-            </div>
+            <ContentSkeleton size="lg" />
         );
     }
 

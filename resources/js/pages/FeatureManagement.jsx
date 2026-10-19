@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import api from '../services/api';
 import Card from '../components/ui/Card';
-import Spinner from '../components/ui/Spinner';
+import ContentSkeleton from '../components/ui/ContentSkeleton';
 import { useToast } from '../context/ToastContext';
 import usePageTitle from '../hooks/usePageTitle';
 import { useSetCrumbs } from '../context/BreadcrumbContext';
@@ -66,7 +66,7 @@ export default function FeatureManagement() {
         );
     }
 
-    if (!data) return <Spinner />;
+    if (!data) return <ContentSkeleton size="sm" />;
 
     return (
         <div className="space-y-6">

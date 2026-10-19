@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Controllers\Concerns\HandlesCustomFields;
 use App\Models\Project;
 use App\Models\User;
 use App\Models\Workspace;
@@ -11,6 +12,8 @@ use Illuminate\Http\Request;
 
 class ProjectController extends Controller
 {
+    use HandlesCustomFields;
+
     public function __construct(private readonly ProjectService $service) {}
 
     public function index(Request $request, Workspace $workspace): JsonResponse
@@ -50,13 +53,17 @@ class ProjectController extends Controller
             'default_assignee_id' => ['nullable', 'integer'],
             'start_date' => ['nullable', 'date'],
             'due_date' => ['nullable', 'date', 'after_or_equal:start_date'],
+            'board_type' => ['nullable', 'in:'.implode(',', array_keys(config('board_types.types')))],
         ]);
 
+        $custom = $this->validatedCustomFields($request, 'project', partial: false);
+
         $project = $this->service->create($workspace, $data, $request->user());
+        $this->storeCustomFields('project', $project->id, $custom);
 
         return response()->json([
             'message' => __('Project created.'),
-            'project' => [...$this->present($project, $request->user()), 'my_role' => $request->user()->id === $project->lead_user_id ? 'lead' : null],
+            'project' => $this->withCustomFields([[...$this->present($project, $request->user()), 'my_role' => $request->user()->id === $project->lead_user_id ? 'lead' : null]], 'project', false)[0],
         ], 201);
     }
 
@@ -65,7 +72,7 @@ class ProjectController extends Controller
         $this->authorize('view', $project);
 
         return response()->json([
-            'project' => [...$this->present($project, $request->user()), 'my_role' => $project->memberRole($request->user())?->slug],
+            'project' => $this->withCustomFields([[...$this->present($project, $request->user()), 'my_role' => $project->memberRole($request->user())?->slug]], 'project', false)[0],
         ]);
     }
 
@@ -83,9 +90,14 @@ class ProjectController extends Controller
             'due_date' => ['nullable', 'date', 'after_or_equal:start_date'],
         ]);
 
+        $custom = $this->validatedCustomFields($request, 'project', partial: true);
+
+        $updated = $this->service->update($project, $data);
+        $this->storeCustomFields('project', $updated->id, $custom);
+
         return response()->json([
             'message' => __('Project updated.'),
-            'project' => $this->present($this->service->update($project, $data), $request->user()),
+            'project' => $this->withCustomFields([$this->present($updated, $request->user())], 'project', false)[0],
         ]);
     }
 
@@ -133,9 +145,11 @@ class ProjectController extends Controller
             'lead_user_id' => $project->lead_user_id,
             'start_date' => $project->start_date?->toDateString(),
             'due_date' => $project->due_date?->toDateString(),
+            'board_type' => $project->board_type ?? 'kanban',
             'archived_at' => $project->archived_at?->toISOString(),
             'members_count' => $project->members_count ?? $project->members()->count(),
             'tasks_count' => $project->tasks_count ?? $project->tasks()->count(),
+            'done_tasks_count' => $project->done_tasks_count ?? $project->tasks()->whereNotNull('completed_at')->count(),
             'statuses_count' => $project->statuses_count ?? $project->statuses()->count(),
             'my_role' => $user ? $project->memberRole($user)?->slug : null,
         ];

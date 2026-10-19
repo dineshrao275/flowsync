@@ -1,11 +1,15 @@
 import { useEffect, useState } from 'react';
+import MemberPicker from '../components/ui/MemberPicker';
+import Avatar from '../components/ui/Avatar';
+import ProgressBar from '../components/ui/ProgressBar';
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import api, { fieldErrors } from '../services/api';
 import Card from '../components/ui/Card';
 import Badge from '../components/ui/Badge';
-import Spinner from '../components/ui/Spinner';
+import ContentSkeleton from '../components/ui/ContentSkeleton';
 import Alert from '../components/ui/Alert';
+import { fieldClass } from '../components/ui/fieldStyles';
 import Button from '../components/ui/Button';
 import Input from '../components/ui/Input';
 import Tabs from '../components/ui/Tabs';
@@ -45,7 +49,14 @@ export default function WorkspaceDetail() {
 
     const [memberForm, setMemberForm] = useState({ user_id: '', role: 'member' });
     const [labelForm, setLabelForm] = useState({ name: '', color: '#2563eb' });
-    const [projectForm, setProjectForm] = useState({ name: '', key: '', description: '' });
+    const [projectForm, setProjectForm] = useState({ name: '', key: '', description: '', template_id: '', board_type: 'kanban' });
+    const [templates, setTemplates] = useState([]);
+
+    useEffect(() => {
+        if (!hasModule('project_templates')) return;
+        api.get('/project-templates').then(({ data }) => setTemplates(data.templates)).catch(() => setTemplates([]));
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
     // The settings description is editor-controlled; it follows the loaded
     // workspace (the page remounts per workspace, and a same-id refetch
     // after save already matches what was typed).
@@ -75,7 +86,7 @@ export default function WorkspaceDetail() {
             api.get(`/workspaces/${workspaceId}/members`),
             api.get(`/workspaces/${workspaceId}/labels`),
             api.get(`/workspaces/${workspaceId}/projects`),
-            can('users.view') ? api.get('/users') : Promise.resolve({ data: { users: [] } }),
+            can('users.view') ? api.get('/users', { params: { all: 1 } }) : Promise.resolve({ data: { users: [] } }),
         ])
             .then(([ws, mem, lab, proj, users]) => {
                 if (!active) return;
@@ -162,7 +173,7 @@ export default function WorkspaceDetail() {
     function loadMembers() {
         return Promise.all([
             api.get(`/workspaces/${workspaceId}/members`),
-            can('users.view') ? api.get('/users') : Promise.resolve({ data: { users: [] } }),
+            can('users.view') ? api.get('/users', { params: { all: 1 } }) : Promise.resolve({ data: { users: [] } }),
         ]).then(([mem, users]) => {
             setMembers(mem.data.members);
             setCandidateUsers(
@@ -241,13 +252,23 @@ export default function WorkspaceDetail() {
         setSavingProject(true);
         setFormErrors({});
         try {
-            const { data } = await api.post(`/workspaces/${workspaceId}/projects`, {
+            const payload = {
                 name: projectForm.name,
                 key: projectForm.key || undefined,
                 description: projectForm.description || undefined,
-            });
-            setProjects((current) => [...current, data.project]);
-            setProjectForm({ name: '', key: '', description: '' });
+                board_type: projectForm.template_id ? undefined : projectForm.board_type,
+            };
+            const { data } = projectForm.template_id
+                ? await api.post(`/workspaces/${workspaceId}/projects/from-template`, { ...payload, template_id: Number(projectForm.template_id) })
+                : await api.post(`/workspaces/${workspaceId}/projects`, payload);
+            // The from-template reply is minimal; refetch the list so the new project card is complete.
+            if (projectForm.template_id) {
+                const list = await api.get(`/workspaces/${workspaceId}/projects`);
+                setProjects(list.data.projects);
+            } else {
+                setProjects((current) => [...current, data.project]);
+            }
+            setProjectForm({ name: '', key: '', description: '', template_id: '', board_type: 'kanban' });
             toast.success(t('tms.workspaceDetail.projectCreated', { key: data.project.key }));
         } catch (e) {
             setCreatingProject(true);
@@ -259,9 +280,7 @@ export default function WorkspaceDetail() {
 
     if (loading) {
         return (
-            <div className="flex justify-center py-20">
-                <Spinner />
-            </div>
+            <ContentSkeleton size="lg" />
         );
     }
 
@@ -309,7 +328,7 @@ export default function WorkspaceDetail() {
                             {archived && <Badge>{t('tms.workspaceDetail.archivedBadge')}</Badge>}
                         </div>
                         {workspace.description ? (
-                            <RichText value={workspace.description} className="mt-1 text-gray-500" />
+                            <RichText value={workspace.description} className="mt-1 max-h-24 max-w-3xl overflow-y-auto break-words text-gray-500 [overflow-wrap:anywhere]" />
                         ) : (
                             <p className="mt-1 text-sm text-gray-500">{t('tms.workspaceDetail.noDescription')}</p>
                         )}
@@ -366,6 +385,26 @@ export default function WorkspaceDetail() {
                                         error={formErrors.key}
                                     />
                                 </div>
+                                {!projectForm.template_id && (
+                                    <div>
+                                        <label htmlFor="project-board-type" className="mb-1.5 block text-sm font-medium text-gray-700">{t('tms.workspaceDetail.boardType')}</label>
+                                        <select id="project-board-type" className={fieldClass} value={projectForm.board_type} onChange={(e) => setProjectForm((f) => ({ ...f, board_type: e.target.value }))}>
+                                            {['kanban', 'scrum', 'basic'].map((bt) => <option key={bt} value={bt}>{t(`tms.workspaceDetail.boardTypes.${bt}`)}</option>)}
+                                        </select>
+                                        <p className="mt-1 text-xs text-gray-500">{t(`tms.workspaceDetail.boardTypeHint.${projectForm.board_type}`)}</p>
+                                    </div>
+                                )}
+                                {templates.length > 0 && (
+                                    <div>
+                                        <label htmlFor="project-template" className="mb-1.5 block text-sm font-medium text-gray-700">{t('tms.templates.startFrom')}</label>
+                                        <select id="project-template" className={fieldClass} value={projectForm.template_id} onChange={(e) => setProjectForm((f) => ({ ...f, template_id: e.target.value }))}>
+                                            <option value="">{t('tms.templates.blank')}</option>
+                                            {templates.map((tpl) => (
+                                                <option key={tpl.id} value={tpl.id}>{tpl.name} — {tpl.statuses.join(' → ')}</option>
+                                            ))}
+                                        </select>
+                                    </div>
+                                )}
                                 <div>
                                     <label className="mb-1.5 block text-sm font-medium text-gray-700">{t('tms.workspaceDetail.projectDesc')}</label>
                                     <RichTextEditor
@@ -423,6 +462,9 @@ export default function WorkspaceDetail() {
                                             <div className="flex items-center gap-4 text-xs text-gray-400">
                                                 <span>{t('tms.workspaceDetail.tasksCount', { count: project.tasks_count })}</span>
                                                 <span>{t('tms.workspaceDetail.membersCount', { count: project.members_count })}</span>
+                                                {project.tasks_count > 0 && (
+                                                    <ProgressBar className="w-28" value={project.done_tasks_count ?? 0} max={project.tasks_count} label={t('tms.project.progress')} showPercent />
+                                                )}
                                             </div>
                                         </Link>
                                     </li>
@@ -439,18 +481,12 @@ export default function WorkspaceDetail() {
                         <Card title={t('tms.workspaceDetail.addMemberTitle')} subtitle={t('tms.workspaceDetail.addMemberSubtitle')}>
                             <form onSubmit={addMember} className="flex flex-col gap-3 sm:flex-row sm:items-end">
                                 <div className="flex-1">
-                                    <select
-                                        className="block w-full rounded-lg border border-gray-300 bg-white px-3.5 py-2.5 text-sm shadow-sm focus:border-[var(--accent)] focus:outline-none"
+                                    <MemberPicker
+                                        users={candidateUsers}
                                         value={memberForm.user_id}
-                                        onChange={(e) => setMemberForm((f) => ({ ...f, user_id: e.target.value }))}
-                                    >
-                                        <option value="">{t('tms.workspaceDetail.selectUser')}</option>
-                                        {candidateUsers.map((u) => (
-                                            <option key={u.id} value={u.id}>
-                                                {u.name} ({u.email})
-                                            </option>
-                                        ))}
-                                    </select>
+                                        onChange={(id) => setMemberForm((f) => ({ ...f, user_id: id }))}
+                                        placeholder={t('tms.workspaceDetail.searchPeople')}
+                                    />
                                     {formErrors.user_id && <p className="mt-1.5 text-sm text-red-600">{formErrors.user_id}</p>}
                                 </div>
                                 <div>
@@ -482,12 +518,7 @@ export default function WorkspaceDetail() {
                                 return (
                                     <li key={member.id} className="flex flex-wrap items-center justify-between gap-3 py-3">
                                         <div className="flex items-center gap-3">
-                                            <span
-                                                className="flex h-9 w-9 items-center justify-center rounded-full text-xs font-bold text-white"
-                                                style={{ backgroundColor: 'var(--accent)' }}
-                                            >
-                                                {member.name.charAt(0).toUpperCase()}
-                                            </span>
+                                            <Avatar name={member.name} photoUrl={member.photo_url} size="lg" />
                                             <div>
                                                 <p className="text-sm font-medium text-gray-900">
                                                     {member.name} {self && <span className="text-gray-400">{t('tms.workspaceDetail.you')}</span>}

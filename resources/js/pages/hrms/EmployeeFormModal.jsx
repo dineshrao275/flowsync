@@ -1,4 +1,6 @@
 import { useEffect, useState } from 'react';
+import PersonSelect from '../../components/ui/PersonSelect';
+import CustomFieldInputs, { useCustomFieldDefinitions } from '../../components/customFields/CustomFieldInputs';
 import { useTranslation } from 'react-i18next';
 import api, { fieldErrors } from '../../services/api';
 import Alert from '../../components/ui/Alert';
@@ -50,6 +52,8 @@ export default function EmployeeFormModal({ options, saving, onClose, onCreate }
     const { can } = useAuth();
     const [form, setForm] = useState(() => initial(options));
     const [errors, setErrors] = useState({});
+    const cfDefs = useCustomFieldDefinitions('employee');
+    const [cf, setCf] = useState({});
     const [roles, setRoles] = useState([]);
     const [users, setUsers] = useState([]);
 
@@ -95,6 +99,10 @@ export default function EmployeeFormModal({ options, saving, onClose, onCreate }
             ...profile(form),
             ...loginFields(form),
         };
+
+        if (cfDefs.length) {
+            payload.custom_fields = Object.fromEntries(Object.entries(cf).filter(([, v]) => v !== '' && !(Array.isArray(v) && v.length === 0)));
+        }
 
         onCreate(payload).catch((err) => setErrors(fieldErrors(err)));
     }
@@ -187,20 +195,13 @@ export default function EmployeeFormModal({ options, saving, onClose, onCreate }
                                 </option>
                             ))}
                         </Select>
-                        <Select
+                        <PersonSelect
                             label={t('hrms.form.manager')}
                             value={form.manager_id}
                             onChange={(e) => set('manager_id', e.target.value)}
                             error={errors.manager_id}
                             className="sm:col-span-2"
-                        >
-                            <option value="">{t('hrms.form.noManager')}</option>
-                            {managerOptions.map((manager) => (
-                                <option key={manager.id} value={manager.id}>
-                                    {manager.name}
-                                </option>
-                            ))}
-                        </Select>
+                         placeholder={t('hrms.form.noManager')} people={managerOptions} />
                     </div>
                 </fieldset>
 
@@ -325,19 +326,12 @@ export default function EmployeeFormModal({ options, saving, onClose, onCreate }
                     {form.login === 'link' && (
                         <div className="space-y-2 rounded-lg border border-gray-200 bg-gray-50/60 p-3">
                             {canPickUsers ? (
-                                <Select
+                                <PersonSelect
                                     label={t('hrms.form.existingUser')}
                                     value={form.user_id}
                                     onChange={(e) => set('user_id', e.target.value)}
                                     error={errors.user_id}
-                                >
-                                    <option value="">{t('hrms.form.chooseUser')}</option>
-                                    {users.map((user) => (
-                                        <option key={user.id} value={user.id}>
-                                            {user.name} — {user.email}
-                                        </option>
-                                    ))}
-                                </Select>
+                                 placeholder={t('hrms.form.chooseUser')} people={users} />
                             ) : (
                                 <p className="text-xs text-gray-500">
                                     {t('hrms.form.noLinkNote')}
@@ -346,6 +340,8 @@ export default function EmployeeFormModal({ options, saving, onClose, onCreate }
                         </div>
                     )}
                 </fieldset>
+
+                <CustomFieldInputs fields={cfDefs} values={cf} onChange={setCf} errors={errors} />
 
                 <div className="flex justify-end gap-2 border-t border-gray-200 pt-4">
                     <Button type="button" variant="secondary" onClick={onClose}>

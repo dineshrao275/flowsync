@@ -20,8 +20,14 @@ export default defineConfig({
         react(),
     ],
     server: {
+        // Docker dev: the browser must reach Vite at a host-visible URL, not
+        // the container's 0.0.0.0 (set by docker-compose's `vite` service).
+        origin: process.env.VITE_DEV_SERVER_ORIGIN || undefined,
+        cors: true,
         watch: {
             ignored: ['**/storage/framework/views/**'],
+            // Bind mounts on Docker Desktop / network drives don't emit file events.
+            usePolling: process.env.CHOKIDAR_USEPOLLING === 'true',
         },
     },
 });

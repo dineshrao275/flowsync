@@ -5,13 +5,17 @@ use App\Http\Controllers\AttachmentController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\BillingController;
 use App\Http\Controllers\BlogController;
+use App\Http\Controllers\CalendarFeedController;
 use App\Http\Controllers\ClientLogController;
 use App\Http\Controllers\ContactController;
+use App\Http\Controllers\CspReportController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\ExportController;
 use App\Http\Controllers\ForgotPasswordController;
+use App\Http\Controllers\GithubIntegrationController;
 use App\Http\Controllers\GlobalSearchController;
 use App\Http\Controllers\Hrms\Asset\AssetController;
+use App\Http\Controllers\Hrms\Document\SignatureController;
 use App\Http\Controllers\Hrms\DocumentDownloadController;
 use App\Http\Controllers\Hrms\EmployeeController;
 use App\Http\Controllers\Hrms\InboxController;
@@ -22,8 +26,11 @@ use App\Http\Controllers\ImpersonationController;
 use App\Http\Controllers\InvoiceController;
 use App\Http\Controllers\IssueTypeController;
 use App\Http\Controllers\LanguageController;
+use App\Http\Controllers\ListSavedFilterController;
+use App\Http\Controllers\MetricsController;
 use App\Http\Controllers\MySubscriptionController;
 use App\Http\Controllers\NotificationController;
+use App\Http\Controllers\NotificationPolicyController;
 use App\Http\Controllers\NotificationPreferenceController;
 use App\Http\Controllers\OnboardingController;
 use App\Http\Controllers\PlanController;
@@ -32,25 +39,50 @@ use App\Http\Controllers\ProjectRoleController;
 use App\Http\Controllers\PublicSiteController;
 use App\Http\Controllers\RegisterCardController;
 use App\Http\Controllers\RegisterController;
+use App\Http\Controllers\ReportBuilderController;
 use App\Http\Controllers\ReportsController;
 use App\Http\Controllers\ResetPasswordController;
 use App\Http\Controllers\RoleController;
+use App\Http\Controllers\RoleTemplateController;
 use App\Http\Controllers\SearchController;
+use App\Http\Controllers\SsoController;
+use App\Http\Controllers\SsoSettingsController;
 use App\Http\Controllers\SupportTicketController;
 use App\Http\Controllers\TenantController;
 use App\Http\Controllers\ThemeController;
+use App\Http\Controllers\UnifiedAuditController;
 use App\Http\Controllers\UserAccessController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\UserImportController;
 use App\Http\Controllers\WebhookController;
 use App\Http\Controllers\WebhookEndpointController;
 use App\Http\Controllers\WorkspaceController;
+use App\Http\Middleware\PlatformMaintenance;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Broadcast;
 use Illuminate\Support\Facades\Route;
 
+// PWA manifest: dynamic so the installed app carries the configured product name.
+Route::get('manifest.webmanifest', fn () => response()->json([
+    'name' => config('app.name'), 'short_name' => config('app.name'),
+    'description' => 'Tasks, people and payroll in one workspace.',
+    'start_url' => '/app/', 'scope' => '/app/', 'display' => 'standalone',
+    'background_color' => '#ffffff', 'theme_color' => '#2563eb',
+    'icons' => [['src' => '/favicon.svg', 'sizes' => 'any', 'type' => 'image/svg+xml', 'purpose' => 'any maskable']],
+], 200, ['Content-Type' => 'application/manifest+json']));
+
 Route::prefix('api')->group(function () {
+    // Public status probe for the SPA's maintenance screen (never leaks tenant data).
+    Route::get('maintenance', fn () => response()->json(['enabled' => PlatformMaintenance::active(), 'app_name' => config('app.name')]));
     Route::get('health', [PlatformHealthController::class, 'ping']);
+    Route::get('metrics', MetricsController::class)->middleware('throttle:120,1');
+    // OpenID Connect sign-in (F10.2): public by nature, tenant-addressed by slug, always throttled.
+    Route::get('calendar/{tenantId}/{token}', [CalendarFeedController::class, 'ics'])->whereNumber('tenantId')->middleware('throttle:60,1');
+    Route::post('integrations/github/{tenantId}', [GithubIntegrationController::class, 'receive'])->whereNumber('tenantId')->middleware('throttle:120,1');
+    Route::get('signatures/verify/{code}', [SignatureController::class, 'verify'])->middleware('throttle:30,1');
+    Route::get('sso/{slug}/info', [SsoController::class, 'info'])->middleware('throttle:60,1');
+    Route::get('sso/{slug}/start', [SsoController::class, 'start'])->middleware('throttle:20,1');
+    Route::get('sso/{slug}/callback', [SsoController::class, 'callback'])->middleware('throttle:20,1');
     Route::get('locales', [LanguageController::class, 'index']);
     // Guest auth endpoints resolve locale from ?locale=/session/
     // Accept-Language (no tenant is known before sign-in), so sign-in
@@ -68,8 +100,10 @@ Route::prefix('api')->group(function () {
         Route::get('register/options', [RegisterController::class, 'options'])->middleware('throttle:30,1');
     });
     Route::post('logs/client', [ClientLogController::class, 'store'])->middleware('throttle:60,1');
+    // CSP violation reports (browser-sent, no CSRF/session) — see CspReportController.
+    Route::post('csp-report', [CspReportController::class, 'store'])->middleware('throttle:120,1');
 
-    Route::middleware(['switch_tenant', 'auth', 'tenant', 'locale'])->group(function () {
+    Route::middleware(['switch_tenant', 'auth', 'tenant', 'ensure_subscribed', 'locale'])->group(function () {
         Route::post('auth/logout', [AuthController::class, 'logout']);
         Route::get('auth/me', [AuthController::class, 'me']);
 
@@ -93,6 +127,20 @@ Route::prefix('api')->group(function () {
         // the notifications family; the SA short-circuit mirrors them).
         Route::get('notification-preferences', [NotificationPreferenceController::class, 'show']);
         Route::put('notification-preferences', [NotificationPreferenceController::class, 'update']);
+        Route::get('calendar-feed', [CalendarFeedController::class, 'show']);
+        Route::post('calendar-feed', [CalendarFeedController::class, 'rotate'])->middleware('throttle:10,1');
+        Route::delete('calendar-feed', [CalendarFeedController::class, 'destroy']);
+        Route::get('github-integration', [GithubIntegrationController::class, 'show'])->middleware('permission:tenant.manage');
+        Route::put('github-integration', [GithubIntegrationController::class, 'update'])->middleware('permission:tenant.manage');
+        Route::get('sso-settings', [SsoSettingsController::class, 'show'])->middleware('permission:tenant.manage');
+        Route::put('sso-settings', [SsoSettingsController::class, 'update'])->middleware('permission:tenant.manage');
+        // Tenant-wide switches for emailable events (admins: tenant.manage).
+        Route::get('notification-policies', [NotificationPolicyController::class, 'show'])->middleware('permission:tenant.manage');
+        Route::put('notification-policies', [NotificationPolicyController::class, 'update'])->middleware('permission:tenant.manage');
+
+        // Unified tenant audit timeline (activities + HR ledger), admins only.
+        Route::get('audit/timeline', [UnifiedAuditController::class, 'index'])->middleware('permission:tenant.manage');
+        Route::get('audit/timeline/export', [UnifiedAuditController::class, 'export'])->middleware(['permission:tenant.manage', 'throttle:30,1']);
 
         // HR inbox (self-scoped by login like notifications; the service
         // short-circuits platform super admins to empty payloads).
@@ -128,6 +176,7 @@ Route::prefix('api')->group(function () {
         Route::get('my-usage', [MySubscriptionController::class, 'usage']);
         Route::post('my-subscription/switch', [MySubscriptionController::class, 'switch'])->middleware('throttle:10,1');
         Route::post('my-subscription/cancel', [MySubscriptionController::class, 'cancel'])->middleware('throttle:10,1');
+        Route::delete('my-subscription/pending-change', [MySubscriptionController::class, 'cancelScheduledChange'])->middleware('throttle:10,1');
         Route::post('my-subscription/renew', [MySubscriptionController::class, 'renew'])->middleware('throttle:10,1');
         Route::get('plans', [PlanController::class, 'index']);
 
@@ -155,6 +204,11 @@ Route::prefix('api')->group(function () {
         Route::post('billing/portal', [BillingController::class, 'portal'])->middleware('throttle:10,1');
         Route::post('billing/verify', [BillingController::class, 'verify'])->middleware('throttle:10,1');
         Route::get('billing/history', [BillingController::class, 'history']);
+        Route::get('billing/payment-methods', [BillingController::class, 'paymentMethods']);
+        Route::post('billing/payment-methods/setup', [BillingController::class, 'setupPaymentMethod'])->middleware('throttle:10,1');
+        Route::post('billing/payment-methods/complete', [BillingController::class, 'completePaymentMethod'])->middleware('throttle:10,1');
+        Route::post('billing/payment-methods/{paymentMethod}/default', [BillingController::class, 'makeDefaultPaymentMethod'])->where('paymentMethod', 'pm_[A-Za-z0-9_]+')->middleware('throttle:10,1');
+        Route::delete('billing/payment-methods/{paymentMethod}', [BillingController::class, 'removePaymentMethod'])->where('paymentMethod', 'pm_[A-Za-z0-9_]+')->middleware('throttle:10,1');
         Route::get('billing/invoices', [InvoiceController::class, 'index']);
         Route::get('billing/invoices/{invoice}/pdf', [InvoiceController::class, 'pdf'])->whereNumber('invoice');
         Route::post('billing/payments/{payment}/refund', [BillingController::class, 'refund'])->middleware('throttle:5,1');
@@ -173,6 +227,8 @@ Route::prefix('api')->group(function () {
         Route::get('search/global', GlobalSearchController::class)->middleware(['permission:workspaces.view', 'ensure_product:tms', 'ensure_module:global_search']);
 
         Route::get('roles', [RoleController::class, 'index'])->middleware('permission:roles.view');
+        Route::get('roles/templates', [RoleTemplateController::class, 'index'])->middleware('permission:roles.view');
+        Route::post('roles/templates/{key}', [RoleTemplateController::class, 'apply'])->middleware('permission:roles.manage');
         Route::post('roles', [RoleController::class, 'store'])->middleware('permission:roles.manage');
         Route::put('roles/{role}', [RoleController::class, 'update'])->middleware('permission:roles.manage');
         Route::post('roles/{role}/clone', [RoleController::class, 'clone'])->middleware('permission:roles.manage');
@@ -183,7 +239,12 @@ Route::prefix('api')->group(function () {
         Route::post('impersonate/stop', [ImpersonationController::class, 'stop'])->middleware('throttle:30,1');
     });
 
-    Route::middleware(['switch_tenant', 'auth', 'tenant', 'tenant_context', 'onboarding_complete'])->group(function () {
+    Route::middleware(['switch_tenant', 'auth', 'tenant', 'tenant_context', 'ensure_subscribed', 'onboarding_complete'])->group(function () {
+        // Saved filters for listing pages (own + shared); the SA twin lives under system/saved-filters.
+        Route::get('saved-filters', [ListSavedFilterController::class, 'index']);
+        Route::post('saved-filters', [ListSavedFilterController::class, 'store'])->middleware('throttle:60,1');
+        Route::put('saved-filters/{filter}', [ListSavedFilterController::class, 'update'])->whereNumber('filter');
+        Route::delete('saved-filters/{filter}', [ListSavedFilterController::class, 'destroy'])->whereNumber('filter');
         // Tenant user administration. Lives in the tenant_context group because
         // the users table lives in the tenant's own database: a non-impersonating
         // super admin has nothing to route to and is rejected by the middleware
@@ -218,6 +279,12 @@ Route::prefix('api')->group(function () {
 
         Route::get('analytics/overview', [AnalyticsController::class, '__invoke'])->middleware(['permission:dashboard.view', 'ensure_product:tms']);
 
+        Route::get('report-builder', [ReportBuilderController::class, 'index'])->middleware(['permission:reports.view', 'ensure_module:reports']);
+        Route::post('report-builder/preview', [ReportBuilderController::class, 'preview'])->middleware(['permission:reports.view', 'ensure_module:reports', 'throttle:30,1']);
+        Route::post('report-builder', [ReportBuilderController::class, 'store'])->middleware(['permission:reports.view', 'ensure_module:reports']);
+        Route::delete('report-builder/{report}', [ReportBuilderController::class, 'destroy'])->middleware(['permission:reports.view', 'ensure_module:reports']);
+        Route::get('report-builder/{report}/export', [ReportBuilderController::class, 'export'])->middleware(['permission:reports.view', 'ensure_module:reports', 'throttle:20,1']);
+
         Route::get('reports/overview', [ReportsController::class, 'overview'])->middleware(['permission:reports.view', 'ensure_product:tms', 'ensure_module:reports']);
 
         Route::post('workspaces', [WorkspaceController::class, 'store'])->middleware(['permission:workspaces.create', 'ensure_product:tms']);
@@ -237,7 +304,7 @@ Route::prefix('api')->group(function () {
     // central DB in production) and every bound HRMS route answers 500
     // instead of data. The signed file routes further below stay outside —
     // the signature is their credential.
-    Route::middleware(['switch_tenant', 'auth', 'tenant', 'tenant_context', 'onboarding_complete', 'ensure_product:hrms'])->group(function () {
+    Route::middleware(['switch_tenant', 'auth', 'tenant', 'tenant_context', 'ensure_subscribed', 'onboarding_complete', 'ensure_product:hrms'])->group(function () {
 
         require __DIR__.'/web/hrms_people.php';
 

@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react';
+import UserChip from '../ui/UserChip';
 import { useTranslation } from 'react-i18next';
 import api from '../../services/api';
 import Alert from '../ui/Alert';
-import Spinner from '../ui/Spinner';
+import ContentSkeleton from '../ui/ContentSkeleton';
 import Timestamp from '../ui/Timestamp';
 
 const ACTION_KEYS = {
@@ -19,11 +20,18 @@ const ACTION_KEYS = {
     'task.checklist_item_checked': 'checklistChecked',
     'task.checklist_item_unchecked': 'checklistUnchecked',
     'task.checklist_item_removed': 'checklistRemoved',
+    'task.sla_breached': 'slaBreached',
+    'task.move_requested': 'moveRequested',
+    'task.move_approved': 'moveApproved',
+    'task.move_rejected': 'moveRejected',
+    'task.vcs_event': 'vcsEvent',
 };
 
 function describe(t, action, data) {
     if (action === 'task.moved' && data?.from_status && data?.to_status) {
-        return t('tms.activity.movedFromTo', { from: data.from_status.name, to: data.to_status.name });
+        // Stored as plain names by the server; older rows / other writers may carry {id, name}.
+        const label = (status) => (typeof status === 'string' ? status : status?.name ?? '');
+        return t('tms.activity.movedFromTo', { from: label(data.from_status), to: label(data.to_status) });
     }
     if (action === 'task.commented' && data?.snippet) {
         return t('tms.activity.commentedSnippet', { snippet: data.snippet });
@@ -42,6 +50,12 @@ function describe(t, action, data) {
     }
     if (action === 'task.checklist_item_removed') {
         return t('tms.activity.checklistRemovedTitle', { title: data?.title ?? '' });
+    }
+    if (action === 'task.vcs_event') {
+        return t('tms.activity.vcsLine', { kind: t(`tms.activity.vcsKind.${data?.kind}`, { defaultValue: data?.kind ?? '' }), state: data?.state ?? '', title: data?.title ?? '' });
+    }
+    if (action === 'task.sla_breached') {
+        return t('tms.activity.slaLine', { sla: data?.sla ?? '', hours: data?.target_hours ?? '' });
     }
     const key = ACTION_KEYS[action];
     return key ? t(`tms.activity.${key}`) : action;
@@ -72,9 +86,7 @@ export default function ActivityFeed({ task, projectId }) {
 
     if (!activities) {
         return (
-            <div className="flex justify-center py-10">
-                <Spinner />
-            </div>
+            <ContentSkeleton size="md" />
         );
     }
 
@@ -88,7 +100,7 @@ export default function ActivityFeed({ task, projectId }) {
                 <li key={activity.id} className="relative py-1.5">
                     <span className="absolute -left-[21px] top-3 h-2.5 w-2.5 rounded-full border-2 border-white bg-[var(--accent)] shadow" />
                     <p className="text-sm text-gray-700">
-                        <span className="font-medium text-gray-900">{activity.actor?.name ?? t('tms.activity.someone')}</span>{' '}
+                        <UserChip user={activity.actor} name={activity.actor?.name ?? t('tms.activity.someone')} className="align-middle" nameClassName="font-medium text-gray-900" />{' '}
                         {describe(t, activity.action, activity.data)}
                     </p>
                     <p className="text-xs text-gray-400"><Timestamp date={activity.created_at} /></p>

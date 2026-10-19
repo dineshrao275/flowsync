@@ -88,6 +88,18 @@ class PayrollRunController extends Controller
         ]);
     }
 
+    public function reopen(Request $request, PayrollRun $run): JsonResponse
+    {
+        $this->authorize('reopen', $run);
+
+        $data = $request->validate(['reason' => ['required', 'string', 'max:500']]);
+
+        return response()->json([
+            'message' => __('Payroll run reopened.'),
+            'run' => $this->present($this->lifecycle->reopen($run, $data['reason'], $request->user())),
+        ]);
+    }
+
     public function markPaid(Request $request, PayrollRun $run): JsonResponse
     {
         $this->authorize('markPaid', $run);

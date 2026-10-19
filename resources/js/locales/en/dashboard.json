@@ -9,14 +9,33 @@
     "loadFailed": "Unable to load the dashboard.",
     "loading": "Loading dashboard",
     "heroes": {
-        "myOpen": { "label": "My open tasks", "hintAll": "Every task in the tenant", "hintMine": "Tasks in your projects" },
-        "overdue": { "label": "Overdue", "hint": "Open tasks past their due date" }
+        "myOpen": {
+            "label": "My open tasks",
+            "hintAll": "Every task in the tenant",
+            "hintMine": "Tasks in your projects"
+        },
+        "overdue": {
+            "label": "Overdue",
+            "hint": "Open tasks past their due date"
+        }
     },
     "stats": {
-        "dueSoon": { "label": "Due soon", "hint": "Next 7 days" },
-        "inProgress": { "label": "In progress", "hint": "Being worked on" },
-        "allOpen": { "label": "All open", "hint": "Across the tenant" },
-        "completed": { "label": "Completed", "hint": "All done" }
+        "dueSoon": {
+            "label": "Due soon",
+            "hint": "Next 7 days"
+        },
+        "inProgress": {
+            "label": "In progress",
+            "hint": "Being worked on"
+        },
+        "allOpen": {
+            "label": "All open",
+            "hint": "Across the tenant"
+        },
+        "completed": {
+            "label": "Completed",
+            "hint": "All done"
+        }
     },
     "scope": {
         "all": "Showing: every task in the tenant",
@@ -24,9 +43,18 @@
         "title": "The aggregates below are scoped to what your role can see"
     },
     "charts": {
-        "projectProgress": { "title": "Project progress", "subtitle": "Open vs completed tasks by project" },
-        "hours": { "title": "Hours logged", "subtitle": "{{range}} · {{total}} total" },
-        "created": { "title": "Tasks created", "subtitle": "{{range}} · {{count}} created" },
+        "projectProgress": {
+            "title": "Project progress",
+            "subtitle": "Open vs completed tasks by project"
+        },
+        "hours": {
+            "title": "Hours logged",
+            "subtitle": "{{range}} · {{total}} total"
+        },
+        "created": {
+            "title": "Tasks created",
+            "subtitle": "{{range}} · {{count}} created"
+        },
         "emptyProjects": "No projects to report on yet.",
         "emptyHours": "No work logged in this range.",
         "emptyTasks": "No tasks created in this range.",
@@ -36,10 +64,26 @@
         "done": "Done"
     },
     "lists": {
-        "overdue": { "title": "Overdue", "subtitle": "Open tasks past their due date", "empty": "Nothing overdue." },
-        "dueSoon": { "title": "Due soon", "subtitle": "Next seven days, assigned to you", "empty": "Nothing due in the next week." },
-        "inProgress": { "title": "In progress", "subtitle": "Currently being worked on", "empty": "No tasks in progress." },
-        "recent": { "title": "Recently updated", "subtitle": "Your open tasks, newest activity first", "empty": "No recent changes." }
+        "overdue": {
+            "title": "Overdue",
+            "subtitle": "Open tasks past their due date",
+            "empty": "Nothing overdue."
+        },
+        "dueSoon": {
+            "title": "Due soon",
+            "subtitle": "Next seven days, assigned to you",
+            "empty": "Nothing due in the next week."
+        },
+        "inProgress": {
+            "title": "In progress",
+            "subtitle": "Currently being worked on",
+            "empty": "No tasks in progress."
+        },
+        "recent": {
+            "title": "Recently updated",
+            "subtitle": "Your open tasks, newest activity first",
+            "empty": "No recent changes."
+        }
     },
     "dueLabels": {
         "due": "Due {{date}} · {{project}}",
@@ -71,7 +115,12 @@
         "pageTitle": "Reports",
         "subtitle": "Distribution and time overview across the tasks you can see.",
         "loadFailed": "Unable to load reports.",
-        "stats": { "total": "Total tasks", "open": "Open", "done": "Done", "overdue": "Overdue" },
+        "stats": {
+            "total": "Total tasks",
+            "open": "Open",
+            "done": "Done",
+            "overdue": "Overdue"
+        },
         "openVsDone": "Open vs done",
         "rangeSubtitle": "Tasks created or completed {{range}}",
         "byPriority": "By priority",
@@ -102,7 +151,41 @@
         "thLabel": "Label",
         "thOpen": "Open",
         "thDone": "Done",
-        "thTotal": "Total"
+        "thTotal": "Total",
+        "builder": {
+            "title": "Report builder",
+            "subtitle": "Pick a dataset and columns, preview, save, and have it emailed to you on a schedule. You only ever see rows you could already see.",
+            "loadFailed": "Could not load the report builder.",
+            "build": "Build a report",
+            "dataset": "Dataset",
+            "columns": "Columns",
+            "preview": "Preview",
+            "name": "Report name",
+            "schedule": "Email me",
+            "schedules": {
+                "none": "Never",
+                "daily": "Every day",
+                "weekly": "Every week"
+            },
+            "save": "Save report",
+            "saved": "Report saved.",
+            "previewNote": "{{count}} rows",
+            "moreRows": "(preview is capped; the download has everything up to the limit)",
+            "mine": "My saved reports",
+            "none": "No saved reports yet.",
+            "download": "Download CSV",
+            "delete": "Delete",
+            "filters": {
+                "project_id": "Project id",
+                "assignee_id": "Assignee id",
+                "open_only": "Open tasks only",
+                "due_from": "Due from",
+                "due_to": "Due to",
+                "status": "Status",
+                "period_year": "Year",
+                "period_month": "Month"
+            }
+        }
     },
     "search": {
         "pageTitle": "Search",

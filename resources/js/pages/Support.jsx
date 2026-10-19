@@ -1,9 +1,10 @@
 import { useCallback, useEffect, useState } from 'react';
+import ListSavedFilters from '../components/ui/ListSavedFilters';
 import { useTranslation } from 'react-i18next';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import api, { fieldErrors } from '../services/api';
 import Card from '../components/ui/Card';
-import Spinner from '../components/ui/Spinner';
+import ContentSkeleton from '../components/ui/ContentSkeleton';
 import Button from '../components/ui/Button';
 import Input from '../components/ui/Input';
 import Alert from '../components/ui/Alert';
@@ -105,9 +106,10 @@ function TicketList() {
                 {[['open', t('admin.support.filterOpen')], ['closed', t('admin.support.filterClosed')], ['', t('admin.support.filterAll')]].map(([v, l]) => (
                     <button key={l} onClick={() => setFilter(v)} className={`rounded-full px-3 py-1 ${filter === v ? 'bg-[var(--accent)] text-[var(--accent-contrast)]' : 'bg-gray-100 text-gray-600'}`}>{l}</button>
                 ))}
+                <ListSavedFilters page="support-tickets" value={{ status: filter }} onApply={(saved) => setFilter(saved.status ?? '')} />
             </div>
 
-            {tickets === null ? <div className="flex justify-center py-10"><Spinner /></div> : tickets.length === 0 ? (
+            {tickets === null ? <ContentSkeleton size="md" /> : tickets.length === 0 ? (
                 <p className="py-10 text-center text-sm text-gray-400">{t('admin.support.noTickets')}</p>
             ) : (
                 <ul className="divide-y divide-gray-100 rounded-xl border border-gray-200 bg-white">
@@ -198,7 +200,7 @@ function TicketDetail({ id }) {
         toast.success(data.message);
     }
 
-    if (ticket === null) return <div className="flex justify-center py-20"><Spinner /></div>;
+    if (ticket === null) return <ContentSkeleton size="lg" />;
     if (ticket === false) return <div className="mx-auto max-w-md py-20"><Alert>{t('admin.support.notFound')}</Alert></div>;
 
     return (

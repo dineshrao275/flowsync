@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import ListSavedFilters from '../../components/ui/ListSavedFilters';
 import { Link, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import api from '../../services/api';
@@ -8,7 +9,7 @@ import Button from '../../components/ui/Button';
 import Input from '../../components/ui/Input';
 import Pagination from '../../components/ui/Pagination';
 import Select from '../../components/ui/Select';
-import Spinner from '../../components/ui/Spinner';
+import ContentSkeleton from '../../components/ui/ContentSkeleton';
 import { Table, Th, Td, TableEmpty } from '../../components/ui/Table';
 import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
@@ -238,6 +239,16 @@ export default function Employees() {
                     value={filters.joined_to}
                     onChange={(e) => setFilter('joined_to', e.target.value)}
                 />
+                <div className="flex items-end">
+                    <ListSavedFilters
+                        page="hrms-employees"
+                        value={filters}
+                        onApply={(saved) => {
+                            setPage(1);
+                            setFilters({ ...FILTER_DEFAULTS, ...saved });
+                        }}
+                    />
+                </div>
             </div>
 
             {error && <Alert>{error}</Alert>}
@@ -273,7 +284,7 @@ export default function Employees() {
                     {rows === null ? (
                         <tr>
                             <Td colSpan={COLUMNS.length} className="py-12 text-center">
-                                <Spinner />
+                                <ContentSkeleton size="sm" />
                             </Td>
                         </tr>
                     ) : rows.length === 0 ? (

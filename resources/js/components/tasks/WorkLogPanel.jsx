@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import UserChip from '../ui/UserChip';
 import { useTranslation } from 'react-i18next';
 import api, { fieldErrors } from '../../services/api';
 import { formatMinutes } from '../../utils/time';
@@ -6,10 +7,12 @@ import i18n, { intlTag } from '../../i18n';
 import { useAuth } from '../../context/AuthContext';
 import Button from '../ui/Button';
 import Alert from '../ui/Alert';
-import Spinner from '../ui/Spinner';
+import ContentSkeleton from '../ui/ContentSkeleton';
 import Input from '../ui/Input';
 import { fieldClass } from '../ui/fieldStyles';
 import { useConfirm } from '../ui/ConfirmDialog';
+import Switch from '../ui/Switch';
+import { TIMER_EVENT } from '../time/TimerPill';
 
 function toLocalInput(iso) {
     if (!iso) return '';
@@ -37,7 +40,7 @@ export default function WorkLogPanel({ task, projectId, canLog, canManage }) {
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
     const [errors, setErrors] = useState({});
-    const [form, setForm] = useState({ started_at: '', ended_at: '', description: '' });
+    const [form, setForm] = useState({ started_at: '', ended_at: '', description: '', billable: true });
     const [editingId, setEditingId] = useState(null);
 
     const base = `/projects/${projectId}/tasks/${task.id}/work-logs`;
@@ -74,20 +77,21 @@ export default function WorkLogPanel({ task, projectId, canLog, canManage }) {
             started_at: toLocalInput(log.started_at),
             ended_at: toLocalInput(log.ended_at),
             description: log.description || '',
+            billable: log.billable !== false,
         });
     }
 
     function reset() {
         setEditingId(null);
         setErrors({});
-        setForm({ started_at: '', ended_at: '', description: '' });
+        setForm({ started_at: '', ended_at: '', description: '', billable: true });
     }
 
     function submit(e) {
         e.preventDefault();
         setSaving(true);
         setErrors({});
-        const payload = { ...form, description: form.description || null };
+        const payload = { ...form, description: form.description.trim() };
         const req = editingId ? api.put(`${base}/${editingId}`, payload) : api.post(base, payload);
         req.then(() => {
             reset();
@@ -101,6 +105,25 @@ export default function WorkLogPanel({ task, projectId, canLog, canManage }) {
         if (!(await confirm({ title: t('tms.worklogs.removeTitle'), message: t('tms.worklogs.removeMessage'), variant: 'danger' }))) return;
         api.delete(`${base}/${log.id}`).then(() => load()).catch((e) => setErrors(fieldErrors(e)));
     }
+
+    async function startTimer() {
+        setErrors({});
+        try {
+            await api.post(`/projects/${projectId}/tasks/${task.id}/timer/start`, { billable: form.billable });
+            window.dispatchEvent(new Event(TIMER_EVENT));
+            await load();
+        } catch (err) {
+            setErrors(fieldErrors(err));
+        }
+    }
+
+    // Reload when the top-bar timer is stopped from elsewhere.
+    useEffect(() => {
+        const reload = () => load();
+        window.addEventListener('flowsync:worklogs-changed', reload);
+        return () => window.removeEventListener('flowsync:worklogs-changed', reload);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [task.id]);
 
     const canEditLog = (log) => (canLog && log.user?.id === user?.id) || canManage;
 
@@ -137,9 +160,10 @@ export default function WorkLogPanel({ task, projectId, canLog, canManage }) {
                         />
                     </div>
                     <div>
-                        <label className="mb-1.5 block text-sm font-medium text-gray-700">{t('tms.worklogs.description')}</label>
+                        <label className="mb-1.5 block text-sm font-medium text-gray-700">{t('tms.worklogs.description')} <span className="text-red-600" aria-hidden="true">*</span></label>
                         <input
                             type="text"
+                            required
                             className={fieldClass}
                             placeholder={t('tms.worklogs.descriptionPlaceholder')}
                             value={form.description}
@@ -147,9 +171,17 @@ export default function WorkLogPanel({ task, projectId, canLog, canManage }) {
                         />
                         {errors.description && <p className="mt-1.5 text-sm text-red-600">{errors.description}</p>}
                     </div>
-                    <Button type="submit" loading={saving}>
-                        {editingId ? t('tms.worklogs.save') : t('tms.worklogs.add')}
-                    </Button>
+                    <Switch label={t('tms.worklogs.billable')} checked={form.billable} onChange={(billable) => setForm((f) => ({ ...f, billable }))} />
+                    <div className="flex flex-wrap gap-2">
+                        <Button type="submit" loading={saving}>
+                            {editingId ? t('tms.worklogs.save') : t('tms.worklogs.add')}
+                        </Button>
+                        {!editingId && (
+                            <Button type="button" variant="secondary" onClick={startTimer}>
+                                {t('tms.timer.start')}
+                            </Button>
+                        )}
+                    </div>
                 </form>
             ) : null}
 
@@ -169,9 +201,7 @@ export default function WorkLogPanel({ task, projectId, canLog, canManage }) {
             </div>
 
             {loading ? (
-                <div className="flex justify-center py-8">
-                    <Spinner />
-                </div>
+                <ContentSkeleton size="md" />
             ) : logs.length === 0 ? (
                 <p className="py-6 text-center text-sm text-gray-500">{t('tms.worklogs.empty')}</p>
             ) : (
@@ -180,7 +210,7 @@ export default function WorkLogPanel({ task, projectId, canLog, canManage }) {
                         <li key={log.id} className="flex flex-wrap items-center justify-between gap-3 py-3">
                             <div className="min-w-0">
                                 <p className="text-sm font-medium text-gray-900">
-                                    {log.user?.name || t('tms.worklogs.unknown')}{' '}
+                                    <UserChip user={log.user} name={log.user?.name || t('tms.worklogs.unknown')} />{' '}
                                     {log.user?.id === user?.id && <span className="text-gray-400">{t('tms.worklogs.you')}</span>}
                                 </p>
                                 <p className="text-xs text-gray-500">{formatRange(log, t)}</p>

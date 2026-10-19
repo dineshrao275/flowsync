@@ -6,6 +6,7 @@ import { useToast } from '../context/ToastContext';
 import usePageTitle from '../hooks/usePageTitle';
 import Button from '../components/ui/Button';
 import Spinner from '../components/ui/Spinner';
+import ContentSkeleton from '../components/ui/ContentSkeleton';
 import Alert from '../components/ui/Alert';
 import Badge from '../components/ui/Badge';
 import Timestamp from '../components/ui/Timestamp';
@@ -172,9 +173,7 @@ export default function DataExport() {
             <section>
                 <h3 className="mb-3 text-sm font-semibold text-gray-900">{t('admin.dataExport.recentExports')}</h3>
                 {loading ? (
-                    <div className="flex justify-center py-8">
-                        <Spinner />
-                    </div>
+                    <ContentSkeleton size="md" />
                 ) : runs.length === 0 ? (
                     <p className="rounded-lg border border-dashed border-gray-200 py-8 text-center text-sm text-gray-400">
                         {t('admin.dataExport.empty')}

@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
+import PersonSelect from '../../components/ui/PersonSelect';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import api, { fieldErrors } from '../../services/api';
@@ -9,7 +10,7 @@ import EmptyState from '../../components/ui/EmptyState';
 import Input from '../../components/ui/Input';
 import Modal from '../../components/ui/Modal';
 import Select from '../../components/ui/Select';
-import Spinner from '../../components/ui/Spinner';
+import ContentSkeleton from '../../components/ui/ContentSkeleton';
 import { Table, Th, Td } from '../../components/ui/Table';
 import { useToast } from '../../context/ToastContext';
 import { useConfirm } from '../../components/ui/ConfirmDialog';
@@ -202,20 +203,13 @@ export default function CompOff() {
 
             <Card dense title={t('hrms.comp.bank')}>
                 <div className="mb-3">
-                    <Select aria-label={t('hrms.comp.employee')} value={employeeId} onChange={(e) => setEmployeeId(e.target.value)} className="w-56">
-                        <option value="">{t('hrms.comp.selectEmployee')}</option>
-                        {employees.map((employee) => (
-                            <option key={employee.id} value={employee.id}>
-                                {employee.name}
-                            </option>
-                        ))}
-                    </Select>
+                    <PersonSelect aria-label={t('hrms.comp.employee')} value={employeeId} onChange={(e) => setEmployeeId(e.target.value)} className="w-56" placeholder={t('hrms.comp.selectEmployee')} people={employees} />
                 </div>
 
                 {!employeeId ? (
                     <EmptyState title={t('hrms.comp.noEmployee')} description={t('hrms.comp.noEmployeeHint')} />
                 ) : !bank ? (
-                    <div className="flex justify-center py-6"><Spinner /></div>
+                    <ContentSkeleton size="sm" />
                 ) : (
                     <>
                         <dl className="mb-3 grid grid-cols-3 gap-2 text-sm">
@@ -264,7 +258,7 @@ export default function CompOff() {
                 </div>
 
                 {!requests ? (
-                    <div className="flex justify-center py-6"><Spinner /></div>
+                    <ContentSkeleton size="sm" />
                 ) : requests.length === 0 ? (
                     <EmptyState title={t('hrms.comp.emptyTitle')} description={t('hrms.comp.emptyHint')} />
                 ) : (
@@ -324,14 +318,7 @@ export default function CompOff() {
 
             <Modal open={granting} onClose={() => setGranting(false)} title={t('hrms.comp.grantTitle')}>
                 <form onSubmit={submitGrant} className="space-y-3 px-6 py-5">
-                    <Select label={t('hrms.comp.employee')} value={grant.employee_id} onChange={(e) => setGrant({ ...grant, employee_id: e.target.value })} error={grantErrors.employee_id}>
-                        <option value="">{t('hrms.comp.select')}</option>
-                        {employees.map((employee) => (
-                            <option key={employee.id} value={employee.id}>
-                                {employee.name}
-                            </option>
-                        ))}
-                    </Select>
+                    <PersonSelect label={t('hrms.comp.employee')} value={grant.employee_id} onChange={(e) => setGrant({ ...grant, employee_id: e.target.value })} error={grantErrors.employee_id} placeholder={t('hrms.comp.select')} people={employees} />
                     <div className="grid grid-cols-2 gap-3">
                         <Input type="date" label={t('hrms.comp.workDate')} value={grant.work_date} onChange={(e) => setGrant({ ...grant, work_date: e.target.value })} error={grantErrors.work_date} />
                         <Input type="number" label={t('hrms.comp.minutes')} value={grant.minutes} onChange={(e) => setGrant({ ...grant, minutes: e.target.value })} error={grantErrors.minutes} />

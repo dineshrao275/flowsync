@@ -5,7 +5,9 @@ import enAuth from './locales/en/auth.json';
 import enDashboard from './locales/en/dashboard.json';
 import enTms from './locales/en/tms.json';
 import enHrms from './locales/en/hrms.json';
+import { getAppName } from './utils/appName';
 import enAdmin from './locales/en/admin.json';
+import enBilling from './locales/en/billing.json';
 
 const STORAGE_PREFIX = (typeof window !== 'undefined' && window.__FLOWSYNC_CONFIG__?.storagePrefix) || 'flowsync';
 
@@ -107,13 +109,14 @@ i18n.use(initReactI18next).init({
     // chunk. Until a screen migrates, `t()` returns the key, so
     // partially-migrated screens degrade to visible keys, never blanks.
     resources: {
-        en: { common: { ...enCommon, auth: enAuth, dashboard: enDashboard, tms: enTms, hrms: enHrms, admin: enAdmin } },
+        en: { common: { ...enCommon, auth: enAuth, dashboard: enDashboard, tms: enTms, hrms: enHrms, admin: enAdmin, billing: enBilling } },
     },
     lng: DEFAULT_LOCALE,
     fallbackLng: DEFAULT_LOCALE,
     ns: ['common'],
     defaultNS: 'common',
-    interpolation: { escapeValue: false },
+    // `{{app}}` in any string is the configured product name (see utils/appName.js).
+    interpolation: { escapeValue: false, defaultVariables: { app: getAppName() } },
     returnEmptyString: false,
     // No save backend: untranslated keys only warn in dev (missingKeyHandler
     // below) and fall back to the key via fallbackLng — never a blank.

@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
+import PersonSelect from '../ui/PersonSelect';
 import { useTranslation } from 'react-i18next';
 import api, { fieldErrors } from '../../services/api';
 import Card from '../ui/Card';
@@ -6,7 +7,7 @@ import Badge from '../ui/Badge';
 import Button from '../ui/Button';
 import Input from '../ui/Input';
 import Alert from '../ui/Alert';
-import Spinner from '../ui/Spinner';
+import ContentSkeleton from '../ui/ContentSkeleton';
 import { useToast } from '../../context/ToastContext';
 import { useConfirm } from '../ui/ConfirmDialog';
 import Timestamp from '../ui/Timestamp';
@@ -50,14 +51,14 @@ export default function AutomationPanel({ projectId, members, statuses, labels, 
         setRuns({ id, items: data.runs });
     }
 
-    if (!catalog || !rules) return <div className="flex justify-center py-10"><Spinner /></div>;
+    if (!catalog || !rules) return <ContentSkeleton size="md" />;
 
     function valueInput(c, i) {
         if (['is_empty', 'is_not_empty', 'is_overdue'].includes(c.op)) return null;
         if (c.field === 'status') return <select className={sel} value={c.value ?? ''} onChange={(e) => setCondition(i, { value: e.target.value })}><option value="">{t('tms.automation.choose')}</option>{statuses.map((s) => <option key={s.id} value={s.slug}>{s.name}</option>)}</select>;
         if (c.field === 'status_category') return <select className={sel} value={c.value ?? ''} onChange={(e) => setCondition(i, { value: e.target.value })}><option value="">{t('tms.automation.choose')}</option>{['todo', 'in_progress', 'done'].map((v) => <option key={v}>{v}</option>)}</select>;
         if (c.field === 'priority') return <select className={sel} value={c.value ?? ''} onChange={(e) => setCondition(i, { value: e.target.value })}><option value="">{t('tms.automation.choose')}</option>{priorities.map((p) => <option key={p.id} value={p.slug}>{p.name}</option>)}</select>;
-        if (['assignee', 'reporter'].includes(c.field)) return <select className={sel} value={c.value ?? ''} onChange={(e) => setCondition(i, { value: e.target.value })}><option value="">{t('tms.automation.choose')}</option>{members.map((m) => <option key={m.id} value={m.id}>{m.name}</option>)}</select>;
+        if (['assignee', 'reporter'].includes(c.field)) return <PersonSelect value={c.value ?? ''} onChange={(e) => setCondition(i, { value: e.target.value })} placeholder={t('tms.automation.choose')} people={members} />;
         if (c.field === 'label') return <select className={sel} value={c.value ?? ''} onChange={(e) => setCondition(i, { value: e.target.value })}><option value="">{t('tms.automation.choose')}</option>{labels.map((l) => <option key={l.id} value={l.id}>{l.name}</option>)}</select>;
         return <input className={`${sel} w-40`} value={c.value ?? ''} onChange={(e) => setCondition(i, { value: e.target.value })} />;
     }

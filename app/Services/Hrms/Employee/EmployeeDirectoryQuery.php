@@ -5,6 +5,7 @@ namespace App\Services\Hrms\Employee;
 use App\Enums\Hrms\EmployeeStatus;
 use App\Enums\Hrms\WorkMode;
 use App\Models\Hrms\Employee\Employee;
+use App\Services\CustomFields\CustomFieldService;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Collection;
@@ -38,6 +39,7 @@ class EmployeeDirectoryQuery
         $this->applyWorkMode($query, $filters);
         $this->applyRelations($query, $filters);
         $this->applyJoinedRange($query, $filters);
+        $this->applyCustomFields($query, $filters);
 
         return $query;
     }
@@ -233,6 +235,22 @@ class EmployeeDirectoryQuery
      * @param  array<string, mixed>  $filters
      * @param  Builder<Employee>  $query
      */
+    /** Custom-field filters (`cf[key]`), applied only when the tenant's plan has the module. */
+    private function applyCustomFields(Builder $query, array $filters): void
+    {
+        $cf = $filters['cf'] ?? null;
+
+        if (! is_array($cf) || $cf === []) {
+            return;
+        }
+
+        $service = app(CustomFieldService::class);
+
+        if ($service->enabled()) {
+            $service->applyFilters($query, 'employee', $cf, 'employees.id');
+        }
+    }
+
     private function applyJoinedRange(Builder $query, array $filters): void
     {
         if (! empty($filters['joined_from'])) {

@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next';
 import api, { fieldErrors } from '../services/api';
 import Card from '../components/ui/Card';
 import Badge from '../components/ui/Badge';
-import Spinner from '../components/ui/Spinner';
+import ContentSkeleton from '../components/ui/ContentSkeleton';
 import Button from '../components/ui/Button';
 import Input from '../components/ui/Input';
 import { useToast } from '../context/ToastContext';
@@ -61,7 +61,7 @@ export default function FeatureFlags() {
         }
     }
 
-    if (flags === null) return <Spinner />;
+    if (flags === null) return <ContentSkeleton size="sm" />;
 
     return (
         <div className="space-y-6">

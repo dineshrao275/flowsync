@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
+import ListSavedFilters from '../../components/ui/ListSavedFilters';
 import { Link, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import api from '../../services/api';
@@ -9,7 +10,7 @@ import Input from '../../components/ui/Input';
 import Modal from '../../components/ui/Modal';
 import Pagination from '../../components/ui/Pagination';
 import Select from '../../components/ui/Select';
-import Spinner from '../../components/ui/Spinner';
+import ContentSkeleton from '../../components/ui/ContentSkeleton';
 import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
 import { useConfirm, usePrompt } from '../../components/ui/ConfirmDialog';
@@ -252,12 +253,13 @@ export default function Documents() {
                         </option>
                     ))}
                 </Select>
+                <div className="flex items-end">
+                    <ListSavedFilters page="hrms-documents" value={filters} onApply={(saved) => { setPage(1); setFilters({ ...FILTER_DEFAULTS, ...saved }); }} />
+                </div>
             </div>
 
             {!rows ? (
-                <div className="flex justify-center py-10">
-                    <Spinner />
-                </div>
+                <ContentSkeleton size="md" />
             ) : (
                 <>
                     <DocumentList

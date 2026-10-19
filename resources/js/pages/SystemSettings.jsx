@@ -1,8 +1,9 @@
+import { getAppName, setAppName } from '../utils/appName';
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import api, { fieldErrors } from '../services/api';
 import Card from '../components/ui/Card';
-import Spinner from '../components/ui/Spinner';
+import ContentSkeleton from '../components/ui/ContentSkeleton';
 import Button from '../components/ui/Button';
 import Input from '../components/ui/Input';
 import { useToast } from '../context/ToastContext';
@@ -54,9 +55,15 @@ export default function SystemSettings() {
         setErrors({});
         try {
             const { data } = await api.put('/system/settings', settings);
+            const renamed = data.settings.app_name !== getAppName();
             setSettings(data.settings);
             setSaved(true);
             toast.success(t('admin.systemSettings.saved'));
+            if (renamed) {
+                // The name is baked into the shell, page titles and translations: reload so every surface picks it up.
+                setAppName(data.settings.app_name);
+                setTimeout(() => window.location.reload(), 600);
+            }
         } catch (e) {
             setErrors(fieldErrors(e));
         } finally {
@@ -64,7 +71,7 @@ export default function SystemSettings() {
         }
     }
 
-    if (!settings) return <Spinner />;
+    if (!settings) return <ContentSkeleton size="sm" />;
 
     return (
         <div className="max-w-2xl space-y-6">

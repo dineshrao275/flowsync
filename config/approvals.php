@@ -67,6 +67,33 @@ return [
             'fields' => ['days', 'department_id'],
             'steps' => [['type' => 'manager']],
         ],
+        'resignation' => [
+            'label' => 'Resignations',
+            'action' => 'resignation.request',
+            'fields' => ['department_id'],
+            'steps' => [
+                ['type' => 'manager'],
+                ['type' => 'role', 'role_slug' => 'hr_manager', 'omit_if_requester_holds' => true],
+            ],
+        ],
+        'employee_change' => [
+            'label' => 'Transfers, promotions and confirmations',
+            'action' => 'employee.change',
+            'fields' => ['department_id'],
+            'steps' => [
+                ['type' => 'department_head'],
+                ['type' => 'role', 'role_slug' => 'hr_manager', 'omit_if_requester_holds' => true],
+            ],
+        ],
+        'loan' => [
+            'label' => 'Loans and salary advances',
+            'action' => 'loan.request',
+            'fields' => ['amount', 'department_id'],
+            'steps' => [
+                ['type' => 'manager'],
+                ['type' => 'role', 'role_slug' => 'hr_manager', 'omit_if_requester_holds' => true],
+            ],
+        ],
         'salary_revision' => [
             'label' => 'Salary revisions',
             'action' => 'compensation.revise',

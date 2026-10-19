@@ -27,6 +27,8 @@ class ExpenseCategoryRequest extends FormRequest
             ],
             'description' => ['sometimes', 'nullable', 'string', 'max:2000'],
             'requires_receipt_above' => ['sometimes', 'nullable', 'numeric'],
+            'max_per_line' => ['sometimes', 'nullable', 'numeric', 'min:0'],
+            'monthly_limit' => ['sometimes', 'nullable', 'numeric', 'min:0'],
             'is_reimbursable' => ['sometimes', 'boolean'],
             'payroll_component_id' => ['sometimes', 'nullable', 'integer', 'exists:salary_components,id'],
             'is_active' => ['sometimes', 'boolean'],

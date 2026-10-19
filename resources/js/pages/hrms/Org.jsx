@@ -6,7 +6,7 @@ import Alert from '../../components/ui/Alert';
 import Button from '../../components/ui/Button';
 import Card from '../../components/ui/Card';
 import EmptyState from '../../components/ui/EmptyState';
-import Spinner from '../../components/ui/Spinner';
+import ContentSkeleton from '../../components/ui/ContentSkeleton';
 import DepartmentTreeColumn from '../../components/hrms/DepartmentTreeColumn';
 import RichText from '../../components/ui/RichText';
 import { useAuth } from '../../context/AuthContext';
@@ -156,7 +156,7 @@ export default function Org() {
     if (!data) {
         return (
             <div className="py-16 text-center">
-                <Spinner />
+                <ContentSkeleton size="sm" />
             </div>
         );
     }

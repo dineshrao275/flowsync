@@ -11,7 +11,7 @@ import Button from '../../components/ui/Button';
 import Card from '../../components/ui/Card';
 import EmptyState from '../../components/ui/EmptyState';
 import Input from '../../components/ui/Input';
-import Spinner from '../../components/ui/Spinner';
+import ContentSkeleton from '../../components/ui/ContentSkeleton';
 import { Table, Th, Td, TableEmpty } from '../../components/ui/Table';
 import { Tiles, HBar } from '../../components/hrms/AnalyticsWidgets';
 import { formatMinutes } from '../../utils/time';
@@ -190,7 +190,7 @@ export default function Analytics() {
             {error && <Alert type="error">{error}</Alert>}
 
             {loading && !data ? (
-                <Spinner />
+                <ContentSkeleton size="sm" />
             ) : (
                 data && (
                     <>

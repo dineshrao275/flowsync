@@ -16,6 +16,8 @@ class Activity extends Model
         'action',
         'data',
         'ip_address',
+        'request_id',
+        'impersonator_id',
     ];
 
     protected function casts(): array

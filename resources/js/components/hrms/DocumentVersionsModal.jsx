@@ -5,7 +5,7 @@ import Alert from '../ui/Alert';
 import Button from '../ui/Button';
 import Input from '../ui/Input';
 import Modal from '../ui/Modal';
-import Spinner from '../ui/Spinner';
+import ContentSkeleton from '../ui/ContentSkeleton';
 import { Table, Th, Td } from '../ui/Table';
 import { useToast } from '../../context/ToastContext';
 
@@ -59,7 +59,7 @@ export default function DocumentVersionsModal({ document, canReplace, onClose, o
             <div className="space-y-3 px-6 py-5">
                 {error && <Alert>{error}</Alert>}
                 {!versions ? (
-                    <div className="flex justify-center py-6"><Spinner /></div>
+                    <ContentSkeleton size="sm" />
                 ) : (
                     <Table>
                         <thead><tr><Th>{t('hrms.docs.thVersion')}</Th><Th>{t('hrms.docs.thFile')}</Th><Th>{t('hrms.docs.thStatus')}</Th><Th>{t('hrms.docs.thExpires')}</Th><Th>{t('hrms.docs.download')}</Th></tr></thead>

@@ -21,7 +21,8 @@
         "comments": "Comentarios",
         "commentsCount": "{{count}} comentarios",
         "estimate": "Estimación",
-        "estimateShort": "est. {{value}}"
+        "estimateShort": "est. {{value}}",
+        "subtasksProgress": "{{done}} de {{total}} subtareas hechas"
     },
     "table": {
         "empty": "Ninguna tarea coincide con los filtros actuales.",
@@ -60,7 +61,17 @@
         "needs": "requiere {{label}}",
         "save": "Guardar flujo de trabajo",
         "saved": "Flujo de trabajo guardado.",
-        "saveFailed": "No se pudo guardar el flujo de trabajo."
+        "saveFailed": "No se pudo guardar el flujo de trabajo.",
+        "pendingTitle": "Movimientos pendientes de aprobación",
+        "pendingLine": "{{key}}: {{from}} → {{to}} (solicitado por {{who}})",
+        "reject": "Rechazar",
+        "approve": "Aprobar",
+        "rejectReason": "¿Por qué se rechaza este movimiento?",
+        "moveFailed": "No se pudo completar la acción.",
+        "moveDone": {
+            "approve": "Movimiento aprobado.",
+            "reject": "Movimiento rechazado."
+        }
     },
     "transfer": {
         "clone": "Clonar",
@@ -123,7 +134,29 @@
         "remove": "Quitar",
         "removeTitle": "¿Quitar la dependencia?",
         "removeMessage": "¿Quitar esta relación de dependencia?",
-        "taskFallback": "Tarea n.º {{id}}"
+        "taskFallback": "Tarea n.º {{id}}",
+        "links": "Otros vínculos",
+        "typeLabel": "Tipo de vínculo",
+        "types": {
+            "blocks": "está bloqueada por",
+            "related_to": "se relaciona con",
+            "duplicates": "duplica a",
+            "clones": "es un clon de"
+        },
+        "linkWording": {
+            "related_to": {
+                "outward": "se relaciona con",
+                "inward": "se relaciona con"
+            },
+            "duplicates": {
+                "outward": "duplica a",
+                "inward": "está duplicada por"
+            },
+            "clones": {
+                "outward": "clona a",
+                "inward": "está clonada por"
+            }
+        }
     },
     "worklogs": {
         "editTitle": "Editar registro de trabajo",
@@ -145,7 +178,8 @@
         "edit": "Editar",
         "delete": "Eliminar",
         "removeTitle": "¿Quitar el registro de trabajo?",
-        "removeMessage": "¿Quitar este registro de trabajo? Esta acción no se puede deshacer."
+        "removeMessage": "¿Quitar este registro de trabajo? Esta acción no se puede deshacer.",
+        "billable": "Tiempo facturable"
     },
     "create": {
         "title": "Nueva tarea",
@@ -198,7 +232,18 @@
         "checklistRemovedTitle": "quitó el elemento «{{title}}» de la lista de verificación",
         "someone": "Alguien",
         "empty": "Aún no hay actividad.",
-        "loadFailed": "No se pudo cargar la actividad."
+        "loadFailed": "No se pudo cargar la actividad.",
+        "slaBreached": "incumplió su SLA",
+        "slaLine": "incumplió el SLA «{{sla}}» ({{hours}} h)",
+        "moveRequested": "pidió aprobación para mover",
+        "moveApproved": "movimiento aprobado",
+        "moveRejected": "movimiento rechazado",
+        "vcsEvent": "vinculada desde GitHub",
+        "vcsLine": "GitHub {{kind}} {{state}}: {{title}}",
+        "vcsKind": {
+            "pull_request": "pull request",
+            "commit": "commit"
+        }
     },
     "workspaces": {
         "pageTitle": "Espacios de trabajo",
@@ -306,7 +351,19 @@
         "settingsDesc": "Descripción",
         "settingsDescPlaceholder": "¿Para qué sirve este espacio de trabajo?",
         "save": "Guardar cambios",
-        "deleteWorkspace": "Eliminar espacio de trabajo"
+        "deleteWorkspace": "Eliminar espacio de trabajo",
+        "boardType": "Tipo de tablero",
+        "boardTypes": {
+            "kanban": "Kanban",
+            "scrum": "Scrum",
+            "basic": "Básico"
+        },
+        "boardTypeHint": {
+            "kanban": "Flujo continuo con límites WIP; todos los tipos de incidencia.",
+            "scrum": "Backlog y sprints; épicas, historias, tareas y errores.",
+            "basic": "Un tablero simple: tres columnas, tareas y subtareas."
+        },
+        "searchPeople": "Buscar personas por nombre o correo…"
     },
     "detail": {
         "fallbackTitle": "Tarea",
@@ -344,6 +401,8 @@
         "parent": "Tarea principal",
         "labels": "Etiquetas",
         "watchers": "Seguidores ({{count}})",
+        "lastSeen": "Visto por última vez",
+        "you": "Tú",
         "watching": "Siguiendo",
         "watch": "Seguir",
         "removeWatcher": "Quitar seguidor",
@@ -379,7 +438,11 @@
         "allComponents": "Todos los componentes",
         "dueFrom": "Vence desde",
         "dueTo": "Vence hasta",
-        "clear": "Borrar"
+        "clear": "Borrar",
+        "jql": "Búsqueda avanzada",
+        "jqlPlaceholder": "status = \"In Progress\" AND assignee = currentUser() ORDER BY due",
+        "jqlHelp": "Pulsa Intro para ejecutar. Campos: status, assignee, priority, type, label, due, created, title, text, cf.<campo> …",
+        "done": "Listo"
     },
     "projectsList": {
         "pageTitle": "Proyectos",
@@ -413,7 +476,9 @@
             "time": "Tiempo",
             "sprints": "Sprints",
             "automation": "Automatización",
-            "settings": "Ajustes"
+            "settings": "Ajustes",
+            "workload": "Carga",
+            "dashboard": "Panel"
         },
         "detailsTitle": "Detalles",
         "detailsSubtitle": "Espacio de trabajo · {{id}}",
@@ -528,7 +593,10 @@
         "deleteTypeMessage": "¿Eliminar el tipo de incidencia «{{name}}»?",
         "typeDeleted": "Tipo de incidencia eliminado.",
         "typeDeleteFailed": "No se pudo eliminar el tipo de incidencia.",
-        "taskCreateFailed": "No se pudo crear la tarea."
+        "taskCreateFailed": "No se pudo crear la tarea.",
+        "progress": "Progreso",
+        "progressDone": "{{done}} de {{total}} tareas hechas",
+        "searchPeople": "Buscar personas por nombre o correo…"
     },
     "hierarchy": {
         "collapse": "Contraer",
@@ -633,7 +701,11 @@
         "cycleAvg": "Tiempo de ciclo (media)",
         "cycleMedian": "Tiempo de ciclo (mediana)",
         "daysSuffix": "d",
-        "flowFootnote": "Tiempo de entrega = creada → completada. Tiempo de ciclo = primer paso a un estado en curso → completada."
+        "flowFootnote": "Tiempo de entrega = creada → completada. Tiempo de ciclo = primer paso a un estado en curso → completada.",
+        "burnup": "Burnup",
+        "burnupSubtitle": "Trabajo completado frente al alcance total: los cambios de alcance se ven como escalones.",
+        "scope": "Alcance",
+        "done": "Hecho"
     },
     "columns": {
         "title": "Ajustes del tablero",
@@ -683,5 +755,154 @@
         "categoryHint": "Determina si las tareas de esta columna cuentan como abiertas o hechas.",
         "customColor": "Color personalizado",
         "wipHint": "Máximo de tareas abiertas en esta columna. Déjalo vacío para no tener límite."
+    },
+    "savedFilters": {
+        "title": "Guardados",
+        "menu": "Filtros guardados",
+        "saveCurrent": "Guardar filtros actuales…",
+        "name": "Nombre del filtro",
+        "shareLabel": "Compartir con el proyecto",
+        "shareHint": "Todos los miembros del proyecto podrán usarlo.",
+        "shared": "compartido",
+        "saved": "Filtro guardado.",
+        "saveFailed": "No se pudo guardar el filtro.",
+        "delete": "Eliminar «{{name}}»",
+        "deleteTitle": "¿Eliminar este filtro?",
+        "deleteMessage": "«{{name}}» se eliminará para todos los que puedan verlo.",
+        "deleteFailed": "No se pudo eliminar el filtro."
+    },
+    "timesheets": {
+        "title": "Partes de horas",
+        "subtitle": "Revisa tu semana, envíala para aprobación y aprueba el tiempo de tu equipo.",
+        "loadFailed": "No se pudo cargar el parte de horas.",
+        "submit": "Enviar semana",
+        "submitted": "Parte de horas enviado.",
+        "submitFailed": "No se pudo enviar el parte de horas.",
+        "previous": "Semana anterior",
+        "next": "Semana siguiente",
+        "total": "Total",
+        "billable": "Facturable",
+        "nonBillable": "No facturable",
+        "billableShort": "facturables",
+        "task": "Tarea",
+        "project": "Proyecto",
+        "empty": "No hay tiempo registrado esta semana.",
+        "sentBack": "Devuelto: {{note}}",
+        "status": {
+            "open": "Abierto",
+            "submitted": "Enviado",
+            "approved": "Aprobado",
+            "rejected": "Devuelto"
+        },
+        "tab": {
+            "mine": "Mi semana",
+            "approvals": "Aprobaciones"
+        },
+        "nothingPending": "No hay partes de horas pendientes para ti.",
+        "weekOf": "Semana del {{date}}",
+        "noteLabel": "Nota (obligatoria para devolver)",
+        "sendBack": "Devolver",
+        "approve": "Aprobar",
+        "approved": "Parte de horas aprobado.",
+        "rejected": "Parte de horas devuelto.",
+        "decideFailed": "No se pudo registrar la decisión."
+    },
+    "timer": {
+        "start": "Iniciar temporizador",
+        "stop": "Detener temporizador",
+        "stopped": "Temporizador detenido.",
+        "stopFailed": "No se pudo detener el temporizador.",
+        "running": "Temporizador en marcha en {{key}}"
+    },
+    "calendar": {
+        "view": "Calendario",
+        "label": "Calendario de vencimientos",
+        "previous": "Mes anterior",
+        "next": "Mes siguiente",
+        "today": "Hoy",
+        "more": "+{{count}} más",
+        "empty": "Ninguna tarea vence en este periodo.",
+        "rescheduleFailed": "No se pudo mover la tarea a ese día."
+    },
+    "timeline": {
+        "view": "Cronograma",
+        "previous": "Antes",
+        "next": "Después",
+        "empty": "No hay tareas con fecha en este periodo.",
+        "noVersion": "Sin versión"
+    },
+    "workload": {
+        "title": "Carga de trabajo",
+        "subtitle": "Trabajo planificado frente a la capacidad de cada persona. Planificado = estimación restante de las tareas abiertas que vencen en el periodo.",
+        "window": "Periodo",
+        "weeks_one": "{{count}} semana",
+        "weeks_other": "{{count}} semanas",
+        "member": "Miembro",
+        "capacity": "Capacidad",
+        "planned": "Planificado",
+        "utilization": "Utilización",
+        "notes": "Notas",
+        "leave_one": "{{count}} día de permiso",
+        "leave_other": "{{count}} días de permiso",
+        "over": "Sobrecarga",
+        "unestimated_one": "{{count}} tarea sin estimación",
+        "unestimated_other": "{{count}} tareas sin estimación",
+        "unscheduled_one": "{{count}} tarea sin fecha límite",
+        "unscheduled_other": "{{count}} tareas sin fecha límite",
+        "utilizationLabel": "Utilización de {{name}}",
+        "loadFailed": "No se pudo cargar la carga de trabajo."
+    },
+    "templates": {
+        "startFrom": "Empezar desde",
+        "blank": "Proyecto en blanco",
+        "title": "Guardar como plantilla",
+        "hint": "Copia el flujo de trabajo de este proyecto (columnas, movimientos permitidos, límites WIP) y sus componentes para empezar nuevos proyectos igual.",
+        "name": "Nombre de la plantilla",
+        "includeTasks": "Incluir tareas abiertas",
+        "includeTasksHint": "Copia hasta 100 tareas abiertas de primer nivel como trabajo inicial (sin responsables ni fechas).",
+        "save": "Guardar plantilla",
+        "saved": "Plantilla guardada.",
+        "saveFailed": "No se pudo guardar la plantilla."
+    },
+    "dashboard": {
+        "customize": "Personalizar",
+        "cancel": "Cancelar",
+        "pick": "Elige los widgets",
+        "saveMine": "Guardar para mí",
+        "saveTeam": "Guardar como predeterminado del equipo",
+        "reset": "Restablecer",
+        "saved": "Panel guardado.",
+        "saveFailed": "No se pudo guardar el panel.",
+        "loadFailed": "No se pudo cargar el panel.",
+        "noData": "Aún no hay nada que mostrar.",
+        "total": "Tareas",
+        "open": "Abiertas",
+        "done": "Hechas",
+        "overdue": "Vencidas",
+        "created": "Creadas",
+        "completed": "Completadas",
+        "due": "vence {{date}}",
+        "widgets": {
+            "overview": "Resumen",
+            "status_breakdown": "Tareas por estado",
+            "priority_breakdown": "Tareas por prioridad",
+            "assignee_load": "Trabajo abierto por persona",
+            "overdue_list": "Tareas vencidas",
+            "due_soon": "Vencen en los próximos 7 días",
+            "created_vs_done": "Creadas vs completadas (14 días)"
+        }
+    },
+    "sla": {
+        "title": "Niveles de servicio (SLA)",
+        "subtitle": "Las tareas aún abiertas pasado el tiempo objetivo se marcan y se avisa a su responsable.",
+        "empty": "Aún no hay políticas de SLA.",
+        "within": "resolver en {{hours}} h",
+        "allPriorities": "todas las prioridades",
+        "onePriority": "una prioridad",
+        "remove": "Quitar",
+        "name": "Nombre",
+        "hours": "Objetivo (horas)",
+        "priority": "Prioridad",
+        "add": "Añadir política"
     }
 }

@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import CustomFieldInputs, { useCustomFieldDefinitions } from '../../components/customFields/CustomFieldInputs';
 import { useTranslation } from 'react-i18next';
 import { fieldErrors } from '../../services/api';
 import Alert from '../../components/ui/Alert';
@@ -26,6 +27,8 @@ export default function EmployeeEditModal({ employee, options, saving, onClose, 
     const { t } = useTranslation();
     const [form, setForm] = useState(() => initial(employee));
     const [errors, setErrors] = useState({});
+    const cfDefs = useCustomFieldDefinitions('employee');
+    const [cf, setCf] = useState(() => ({ ...(employee.custom_fields || {}) }));
 
     function set(key, value) {
         setForm((f) => ({ ...f, [key]: value }));
@@ -35,7 +38,10 @@ export default function EmployeeEditModal({ employee, options, saving, onClose, 
         e.preventDefault();
         setErrors({});
 
-        onSave(payload(form, employee.restricted)).catch((err) => setErrors(fieldErrors(err)));
+        const body = payload(form, employee.restricted);
+        if (cfDefs.length) body.custom_fields = cf;
+
+        onSave(body).catch((err) => setErrors(fieldErrors(err)));
     }
 
     const typeOptions = options?.employment_types ?? [];
@@ -185,6 +191,8 @@ export default function EmployeeEditModal({ employee, options, saving, onClose, 
                         />
                     </div>
                 </fieldset>
+
+                <CustomFieldInputs fields={cfDefs} values={cf} onChange={setCf} errors={errors} />
 
                 <div className="flex justify-end gap-2 border-t border-gray-200 pt-4">
                     <Button type="button" variant="secondary" onClick={onClose}>

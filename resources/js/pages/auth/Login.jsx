@@ -25,6 +25,8 @@ export default function Login() {
     const [needsCode, setNeedsCode] = useState(false);
     const [code, setCode] = useState('');
     const formRef = useRef(null);
+    const [ssoSlug, setSsoSlug] = useState('');
+    const ssoError = new URLSearchParams(location.search).get('sso_error');
     useErrorFocus(errors, formRef);
 
     function update(field, value) {
@@ -73,6 +75,7 @@ export default function Login() {
         >
             <form ref={formRef} onSubmit={handleSubmit} className="space-y-4" noValidate>
                 <Alert>{errors.form}</Alert>
+                {ssoError && <Alert>{t(`auth.login.sso.errors.${ssoError}`, { defaultValue: t('auth.login.sso.errors.sso_failed') })}</Alert>}
                 {needsCode ? (
                     <Input
                         label={t('auth.login.code')}
@@ -130,6 +133,18 @@ export default function Login() {
                     {needsCode ? t('auth.login.verify') : t('auth.login.signIn')}
                 </Button>
             </form>
+            {!needsCode && (
+                <form
+                    className="mt-5 flex items-end gap-2 border-t border-slate-200 pt-4"
+                    onSubmit={(e) => {
+                        e.preventDefault();
+                        if (ssoSlug.trim()) window.location.assign(`/api/sso/${encodeURIComponent(ssoSlug.trim().toLowerCase())}/start`);
+                    }}
+                >
+                    <div className="flex-1"><Input label={t('auth.login.sso.workspace')} name="workspace" placeholder="acme" value={ssoSlug} onChange={(e) => setSsoSlug(e.target.value)} /></div>
+                    <Button type="submit" variant="secondary" disabled={!ssoSlug.trim()}>{t('auth.login.sso.button')}</Button>
+                </form>
+            )}
         </AuthShell>
     );
 }

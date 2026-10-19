@@ -2,8 +2,12 @@
 
 namespace App\Http\Controllers;
 
+use App\Billing\PriceChanges\PlanPriceChanges;
+use App\Billing\Stripe\CatalogSync;
 use App\Http\Controllers\Concerns\NormalizesBooleanInput;
 use App\Http\Controllers\Concerns\ValidatesResourceLimits;
+use App\Jobs\ArchiveStripePlan;
+use App\Jobs\SyncPlanToStripe;
 use App\Models\SubscriptionPlan;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -33,7 +37,14 @@ class PlanController extends Controller
             $query->where('is_active', true);
         }
 
-        return response()->json(['plans' => $query->get()]);
+        $plans = $query->get();
+
+        // Stripe ids and sync errors are the platform's business, not something a tenant needs to see.
+        if (! $isSuperAdmin) {
+            $plans->each->makeHidden(['stripe_product_id', 'stripe_price_id', 'stripe_price_key', 'stripe_sync_error', 'stripe_synced_at']);
+        }
+
+        return response()->json(['plans' => $plans]);
     }
 
     public function store(Request $request): JsonResponse
@@ -47,8 +58,9 @@ class PlanController extends Controller
         ]);
 
         $this->ensureSingleDefault($plan);
+        $this->syncToStripe($plan);
 
-        return response()->json(['plan' => $plan], 201);
+        return response()->json(['plan' => $plan->fresh()], 201);
     }
 
     public function update(Request $request, SubscriptionPlan $plan): JsonResponse
@@ -60,6 +72,24 @@ class PlanController extends Controller
             abort(422, __('A plan that tenants are subscribed to cannot change product.'));
         }
 
+        $oldCents = (int) $plan->price_cents;
+        $oldPriceId = $plan->stripe_price_id;
+
+        // Raising a paying subscribers' price is deliberate: say who it reaches and make the admin confirm it.
+        $newCents = array_key_exists('price_cents', $data) ? (int) ($data['price_cents'] ?? 0) : $oldCents;
+        $changes = app(PlanPriceChanges::class);
+        if ($newCents > $oldCents && $oldCents > 0 && ! $request->boolean('confirm_price_change')) {
+            $affected = $changes->affectedCount($plan);
+            if ($affected > 0) {
+                return response()->json([
+                    'message' => trans_choice('This price change reaches :count paying subscription.|This price change reaches :count paying subscriptions. Confirm to email them the new amount and the date it starts.', $affected, ['count' => $affected]),
+                    'code' => 'price_change_confirmation_required',
+                    'affected_subscriptions' => $affected,
+                    'notice_days' => (int) config('billing.price_change_notice_days', 30),
+                ], 409);
+            }
+        }
+
         $plan->update([
             ...$data,
             'limits' => $this->cleanResourceLimits($data['limits'] ?? null),
@@ -67,7 +97,21 @@ class PlanController extends Controller
 
         $this->ensureSingleDefault($plan);
 
+        $plan->refresh();
+        $changes->announce($plan, $oldCents, $oldPriceId);
+        $this->syncToStripe($plan);
+
         return response()->json(['plan' => $plan->fresh()]);
+    }
+
+    /** Push this plan to Stripe now (the nightly job does it too): shows the result — or the error — on the plan. */
+    public function sync(SubscriptionPlan $plan, CatalogSync $catalog): JsonResponse
+    {
+        abort_unless($catalog->enabled(), 422, __('Stripe is not configured on this installation.'));
+
+        $catalog->syncPlan($plan); // a provider failure is answered as 503 and recorded on the plan
+
+        return response()->json(['plan' => $plan->fresh(), 'message' => __('Plan synchronised with Stripe.')]);
     }
 
     public function destroy(SubscriptionPlan $plan): JsonResponse
@@ -80,7 +124,13 @@ class PlanController extends Controller
             abort(422, __('Cannot delete the default plan.'));
         }
 
+        $productId = $plan->stripe_product_id;
+        $priceId = $plan->stripe_price_id;
         $plan->delete();
+
+        if ($productId || $priceId) {
+            ArchiveStripePlan::dispatch($productId, $priceId)->afterCommit();
+        }
 
         return response()->json(['message' => __('Plan deleted.')]);
     }
@@ -109,6 +159,12 @@ class PlanController extends Controller
             'sort_order' => ['nullable', 'integer', 'min:0'],
             ...$this->resourceLimitRules(),
         ]);
+    }
+
+    /** Queue the Stripe product/price sync (a no-op job while Stripe is not configured). */
+    private function syncToStripe(SubscriptionPlan $plan): void
+    {
+        SyncPlanToStripe::dispatch($plan)->afterCommit();
     }
 
     private function ensureSingleDefault(SubscriptionPlan $plan): void

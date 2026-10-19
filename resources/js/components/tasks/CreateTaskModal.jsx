@@ -1,4 +1,6 @@
 import { useState } from 'react';
+import PersonSelect from '../ui/PersonSelect';
+import CustomFieldInputs, { useCustomFieldDefinitions } from '../customFields/CustomFieldInputs';
 import { useTranslation } from 'react-i18next';
 import { fieldErrors } from '../../services/api';
 import Button from '../ui/Button';
@@ -10,7 +12,9 @@ import RichTextEditor from '../ui/RichTextEditor';
 
 export default function CreateTaskModal({ options, topLevelTasks, projectKey, saving, onClose, onCreate }) {
     const { t } = useTranslation();
+    const cfDefs = useCustomFieldDefinitions('task');
     const [form, setForm] = useState({
+        custom_fields: {},
         title: '',
         description: '',
         issue_type_id: options.issue_types?.find((t) => !t.is_subtask)?.id ?? options.issue_types?.[0]?.id ?? '',
@@ -149,19 +153,12 @@ export default function CreateTaskModal({ options, topLevelTasks, projectKey, sa
                     </Select>
                 </div>
                 <div className="grid gap-4 sm:grid-cols-2">
-                    <Select
+                    <PersonSelect
                         label={t('tms.create.assignee')}
                         value={form.assignee_id}
                         onChange={(e) => set('assignee_id', e.target.value)}
                         error={errors.assignee_id}
-                    >
-                        <option value="">{t('tms.create.unassigned')}</option>
-                        {options.assignees.map((u) => (
-                            <option key={u.id} value={u.id}>
-                                {u.name}
-                            </option>
-                        ))}
-                    </Select>
+                     placeholder={t('tms.create.unassigned')} people={options.assignees} />
                     <Select
                         label={t('tms.create.parent')}
                         value={form.parent_id}
@@ -265,6 +262,7 @@ export default function CreateTaskModal({ options, topLevelTasks, projectKey, sa
                         error={errors.estimate_minutes}
                     />
                 </div>
+                <CustomFieldInputs fields={cfDefs} values={form.custom_fields} onChange={(v) => set('custom_fields', v)} errors={errors} />
                 <div className="flex justify-end gap-2 pt-2">
                     <Button type="button" variant="secondary" onClick={onClose}>
                         {t('tms.create.cancel')}

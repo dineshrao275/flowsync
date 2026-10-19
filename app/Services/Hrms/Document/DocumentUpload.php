@@ -11,6 +11,7 @@ use App\Models\Hrms\Shared\HrmsSetting;
 use App\Models\User;
 use App\Services\Hrms\DocumentService;
 use App\Support\TenantContext;
+use App\Support\UploadScanner;
 use Carbon\Carbon;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Validator;
@@ -181,6 +182,8 @@ class DocumentUpload
 
     private function storeFile(Employee $employee, UploadedFile $file): string
     {
+        app(UploadScanner::class)->assertSafe($file);
+
         $extension = strtolower($file->getClientOriginalExtension() ?: pathinfo($file->getClientOriginalName(), PATHINFO_EXTENSION));
 
         if ($extension === '') {
