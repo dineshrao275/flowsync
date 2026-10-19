@@ -338,5 +338,24 @@
         "body": "{{app}} is undergoing scheduled maintenance. Your data is safe — please check back in a few minutes.",
         "retry": "Check again",
         "adminLogin": "Administrator sign in"
+    },
+    "savedFilters": {
+        "title": "Saved filters",
+        "menu": "Saved filters",
+        "saved": "Filter saved.",
+        "updated": "Filter updated.",
+        "saveFailed": "Could not save the filter.",
+        "deleteFailed": "Could not delete the filter.",
+        "deleteTitle": "Delete saved filter",
+        "deleteMessage": "Delete “{{name}}”? This cannot be undone.",
+        "shared": "shared",
+        "saveCurrent": "Save current filters…",
+        "update": "Update “{{name}}” with current filters",
+        "delete": "Delete “{{name}}”",
+        "name": "Name",
+        "shareLabel": "Share with everyone",
+        "shareHint": "Everyone with access to this list can use it.",
+        "cancel": "Cancel",
+        "save": "Save"
     }
 }

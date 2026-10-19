@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import ListSavedFilters from '../../components/ui/ListSavedFilters';
 import { Link, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import api, { fieldErrors } from '../../services/api';
@@ -365,6 +366,7 @@ export default function Attendance() {
                         </option>
                     ))}
                 </Select>
+                <ListSavedFilters page="hrms-attendance" value={{ status: statusFilter }} onApply={(saved) => setStatusFilter(saved.status || '')} />
             </div>
 
             <div className="grid grid-cols-1 gap-4 xl:grid-cols-3">

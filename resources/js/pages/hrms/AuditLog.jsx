@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
+import ListSavedFilters from '../../components/ui/ListSavedFilters';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import api from '../../services/api';
@@ -107,6 +108,14 @@ export default function AuditLog() {
                         <Button type="button" variant="secondary" onClick={reset}>
                             {t('hrms.auditLog.reset')}
                         </Button>
+                        <ListSavedFilters
+                            page="hrms-audit-log"
+                            value={draft}
+                            onApply={(saved) => {
+                                setDraft({ ...emptyFilters, ...saved });
+                                setSearchParams(saved);
+                            }}
+                        />
                     </div>
                 </form>
             </Card>

@@ -26,6 +26,7 @@ use App\Http\Controllers\ImpersonationController;
 use App\Http\Controllers\InvoiceController;
 use App\Http\Controllers\IssueTypeController;
 use App\Http\Controllers\LanguageController;
+use App\Http\Controllers\ListSavedFilterController;
 use App\Http\Controllers\MetricsController;
 use App\Http\Controllers\MySubscriptionController;
 use App\Http\Controllers\NotificationController;
@@ -239,6 +240,11 @@ Route::prefix('api')->group(function () {
     });
 
     Route::middleware(['switch_tenant', 'auth', 'tenant', 'tenant_context', 'ensure_subscribed', 'onboarding_complete'])->group(function () {
+        // Saved filters for listing pages (own + shared); the SA twin lives under system/saved-filters.
+        Route::get('saved-filters', [ListSavedFilterController::class, 'index']);
+        Route::post('saved-filters', [ListSavedFilterController::class, 'store'])->middleware('throttle:60,1');
+        Route::put('saved-filters/{filter}', [ListSavedFilterController::class, 'update'])->whereNumber('filter');
+        Route::delete('saved-filters/{filter}', [ListSavedFilterController::class, 'destroy'])->whereNumber('filter');
         // Tenant user administration. Lives in the tenant_context group because
         // the users table lives in the tenant's own database: a non-impersonating
         // super admin has nothing to route to and is rejected by the middleware

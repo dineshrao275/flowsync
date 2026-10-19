@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
+import ListSavedFilters from '../components/ui/ListSavedFilters';
 import { useTranslation } from 'react-i18next';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import api, { fieldErrors } from '../services/api';
@@ -105,6 +106,7 @@ function TicketList() {
                 {[['open', t('admin.support.filterOpen')], ['closed', t('admin.support.filterClosed')], ['', t('admin.support.filterAll')]].map(([v, l]) => (
                     <button key={l} onClick={() => setFilter(v)} className={`rounded-full px-3 py-1 ${filter === v ? 'bg-[var(--accent)] text-[var(--accent-contrast)]' : 'bg-gray-100 text-gray-600'}`}>{l}</button>
                 ))}
+                <ListSavedFilters page="support-tickets" value={{ status: filter }} onApply={(saved) => setFilter(saved.status ?? '')} />
             </div>
 
             {tickets === null ? <ContentSkeleton size="md" /> : tickets.length === 0 ? (

@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link, useNavigate } from 'react-router-dom';
+import ListSavedFilters from '../components/ui/ListSavedFilters';
 import api, { fieldErrors } from '../services/api';
 import Card from '../components/ui/Card';
 import Badge from '../components/ui/Badge';
@@ -295,6 +296,8 @@ function ActionButton({ children, onClick, disabled, danger = false }) {
     );
 }
 
+const DEFAULT_FILTERS = { q: '', status: '', plan_id: '', subscription_status: '', sort: 'name', trashed: false };
+
 export default function Tenants() {
     const { t } = useTranslation();
     usePageTitle(t('admin.tenants.pageTitle'));
@@ -307,7 +310,7 @@ export default function Tenants() {
     const [summary, setSummary] = useState(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
-    const [filters, setFilters] = useState({ q: '', status: '', plan_id: '', subscription_status: '', sort: 'name', trashed: false });
+    const [filters, setFilters] = useState(DEFAULT_FILTERS);
     const [page, setPage] = useState(1);
     const [pagination, setPagination] = useState({ current_page: 1, last_page: 1, total: 0 });
 
@@ -475,6 +478,12 @@ export default function Tenants() {
                         />
                         {t('admin.tenants.includeDeleted')}
                     </label>
+                    <ListSavedFilters
+                        page="tenants"
+                        scope="system"
+                        value={filters}
+                        onApply={(saved) => applyFilter({ ...DEFAULT_FILTERS, ...saved })}
+                    />
                 </div>
 
                 <div className="overflow-x-auto">

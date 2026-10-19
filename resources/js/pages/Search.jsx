@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import ListSavedFilters from '../components/ui/ListSavedFilters';
 import UserChip from '../components/ui/UserChip';
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
@@ -176,6 +177,14 @@ export default function Search() {
                 <Button type="button" variant="secondary" onClick={reset}>
                     {t('dashboard.search.reset')}
                 </Button>
+                <ListSavedFilters
+                    page="task-search"
+                    value={filters}
+                    onApply={(saved) => {
+                        setFilters(saved);
+                        updateUrl(Object.fromEntries(FILTER_KEYS.map((key) => [key, saved[key] ?? ''])));
+                    }}
+                />
             </form>
 
             <Table>

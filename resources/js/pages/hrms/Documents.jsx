@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
+import ListSavedFilters from '../../components/ui/ListSavedFilters';
 import { Link, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import api from '../../services/api';
@@ -252,6 +253,9 @@ export default function Documents() {
                         </option>
                     ))}
                 </Select>
+                <div className="flex items-end">
+                    <ListSavedFilters page="hrms-documents" value={filters} onApply={(saved) => { setPage(1); setFilters({ ...FILTER_DEFAULTS, ...saved }); }} />
+                </div>
             </div>
 
             {!rows ? (

@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
+import ListSavedFilters from '../components/ui/ListSavedFilters';
 import Avatar from '../components/ui/Avatar';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
@@ -293,6 +294,16 @@ export default function Users() {
                         <option value="default">{t('admin.users.defaultOnly')}</option>
                         <option value="standard">{t('admin.users.standardOnly')}</option>
                     </select>
+                    <ListSavedFilters
+                        page="users"
+                        value={{ q: search, role: selectedRole, type: selectedType }}
+                        onApply={(saved) => {
+                            setSearch(saved.q || '');
+                            setSelectedRole(saved.role || '');
+                            setSelectedType(saved.type || '');
+                            setPage(1);
+                        }}
+                    />
                     {hasActiveFilters && (
                         <Button
                             type="button"

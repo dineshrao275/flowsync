@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
+import ListSavedFilters from '../components/ui/ListSavedFilters';
 import { useTranslation } from 'react-i18next';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import api, { fieldErrors } from '../services/api';
@@ -62,6 +63,12 @@ function Inbox() {
                 <select className={sel} value={filters.assigned} onChange={(e) => set({ assigned: e.target.value })}>
                     <option value="">{t('admin.support.anyone')}</option><option value="me">{t('admin.support.assignedToMe')}</option><option value="none">{t('admin.support.unassigned')}</option>
                 </select>
+                <ListSavedFilters
+                    page="platform-support"
+                    scope="system"
+                    value={filters}
+                    onApply={(saved) => setFilters({ status: 'open_all', priority: '', assigned: '', q: '', ...saved })}
+                />
             </div>
             {!data ? <ContentSkeleton size="md" /> : data.tickets.length === 0 ? (
                 <p className="py-10 text-center text-sm text-gray-400">{t('admin.support.inboxZero')}</p>

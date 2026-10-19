@@ -11,6 +11,7 @@ use App\Http\Controllers\MediaController;
 use App\Http\Controllers\OnboardingController;
 use App\Http\Controllers\PlanController;
 use App\Http\Controllers\PlatformHealthController;
+use App\Http\Controllers\PlatformListSavedFilterController;
 use App\Http\Controllers\SiteSettingsController;
 use App\Http\Controllers\SystemAnalyticsController;
 use App\Http\Controllers\SystemInvoiceController;
@@ -97,6 +98,10 @@ Route::middleware('super_admin')->group(function () {
     Route::delete('system/queue/failed/{id}', [SystemQueueController::class, 'forget'])->whereNumber('id');
     Route::get('system/features', [FeatureManagementController::class, 'index']);
     Route::put('system/features/{subscriptionPlan}', [FeatureManagementController::class, 'update']);
+    Route::get('system/saved-filters', [PlatformListSavedFilterController::class, 'index']);
+    Route::post('system/saved-filters', [PlatformListSavedFilterController::class, 'store'])->middleware('throttle:60,1');
+    Route::put('system/saved-filters/{filter}', [PlatformListSavedFilterController::class, 'update'])->whereNumber('filter');
+    Route::delete('system/saved-filters/{filter}', [PlatformListSavedFilterController::class, 'destroy'])->whereNumber('filter');
     Route::get('system/pages', [CmsController::class, 'index']);
     Route::post('system/pages', [CmsController::class, 'store']);
     Route::get('system/pages/{websitePage}', [CmsController::class, 'show']);

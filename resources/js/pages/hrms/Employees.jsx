@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import ListSavedFilters from '../../components/ui/ListSavedFilters';
 import { Link, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import api from '../../services/api';
@@ -238,6 +239,16 @@ export default function Employees() {
                     value={filters.joined_to}
                     onChange={(e) => setFilter('joined_to', e.target.value)}
                 />
+                <div className="flex items-end">
+                    <ListSavedFilters
+                        page="hrms-employees"
+                        value={filters}
+                        onApply={(saved) => {
+                            setPage(1);
+                            setFilters({ ...FILTER_DEFAULTS, ...saved });
+                        }}
+                    />
+                </div>
             </div>
 
             {error && <Alert>{error}</Alert>}

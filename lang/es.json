@@ -949,5 +949,9 @@
     "This price change reaches :count paying subscription.|This price change reaches :count paying subscriptions. Confirm to email them the new amount and the date it starts.": "Este cambio de precio afecta a :count suscripción de pago.|Este cambio de precio afecta a :count suscripciones de pago. Confirma para enviarles por correo el nuevo importe y la fecha en que empieza.",
     "Stripe is not configured on this installation.": "Stripe no está configurado en esta instalación.",
     "Plan synchronised with Stripe.": "Plan sincronizado con Stripe.",
-    "The platform is undergoing scheduled maintenance. Please try again shortly.": "La plataforma está en mantenimiento programado. Inténtalo de nuevo en unos minutos."
+    "The platform is undergoing scheduled maintenance. Please try again shortly.": "La plataforma está en mantenimiento programado. Inténtalo de nuevo en unos minutos.",
+    "You can save up to 50 filters per page.": "Puedes guardar hasta 50 filtros por página.",
+    "You are not allowed to share filters.": "No tienes permiso para compartir filtros.",
+    "Only the owner or an administrator can change a shared filter.": "Solo el propietario o un administrador puede cambiar un filtro compartido.",
+    "Those filters cannot be saved.": "Esos filtros no se pueden guardar."
 }

@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import ListSavedFilters from '../components/ui/ListSavedFilters';
 import { useTranslation } from 'react-i18next';
 import api from '../services/api';
 import usePageTitle from '../hooks/usePageTitle';
@@ -51,7 +52,14 @@ export default function AuditTimeline() {
                     <h2 className="text-2xl font-bold text-gray-900">{t('admin.auditTimeline.title')}</h2>
                     <p className="mt-1 text-sm text-gray-500">{t('admin.auditTimeline.subtitle')}</p>
                 </div>
-                <Button variant="secondary" onClick={exportCsv}>{t('admin.auditTimeline.export')}</Button>
+                <div className="flex items-center gap-2">
+                    <ListSavedFilters
+                        page="audit-timeline"
+                        value={{ source: filters.source, action: filters.action, from: filters.from, to: filters.to }}
+                        onApply={(saved) => setFilters({ source: saved.source || '', action: saved.action || '', from: saved.from || '', to: saved.to || '' })}
+                    />
+                    <Button variant="secondary" onClick={exportCsv}>{t('admin.auditTimeline.export')}</Button>
+                </div>
             </div>
 
             <Card>

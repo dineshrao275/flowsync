@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
+import ListSavedFilters from '../../components/ui/ListSavedFilters';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import api, { fieldErrors } from '../../services/api';
@@ -178,6 +179,9 @@ export default function Expenses() {
                     </Select>
                     <Input label={t('hrms.expenses.year')} value={filters.period_year} onChange={(e) => setFilters({ ...filters, period_year: e.target.value })} />
                     <Input label={t('hrms.expenses.month')} value={filters.period_month} onChange={(e) => setFilters({ ...filters, period_month: e.target.value })} />
+                    <div className="flex items-end">
+                        <ListSavedFilters page="hrms-expenses" value={filters} onApply={(saved) => setFilters({ status: '', period_year: '', period_month: '', ...saved })} />
+                    </div>
                 </div>
             </Card>
 

@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
+import ListSavedFilters from '../../components/ui/ListSavedFilters';
 import PersonSelect from '../../components/ui/PersonSelect';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
@@ -213,6 +214,9 @@ export default function Assets() {
                         {categories.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
                     </Select>
                     <Input label={t('hrms.common.search')} value={filters.q} onChange={(e) => setFilters({ ...filters, q: e.target.value })} placeholder={t('hrms.assets.searchPlaceholder')} />
+                    <div className="flex items-end">
+                        <ListSavedFilters page="hrms-assets" value={filters} onApply={(saved) => setFilters({ status: '', category_id: '', q: '', ...saved })} />
+                    </div>
                 </div>
             </Card>
 

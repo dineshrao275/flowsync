@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
+import ListSavedFilters from '../components/ui/ListSavedFilters';
 import { useTranslation } from 'react-i18next';
 import api, { fieldErrors } from '../services/api';
 import Card from '../components/ui/Card';
@@ -102,6 +103,15 @@ export default function SystemUsers() {
                 />
                 <Button type="submit">{t('admin.common.search')}</Button>
             </form>
+            <ListSavedFilters
+                page="platform-users"
+                scope="system"
+                value={{ q }}
+                onApply={(saved) => {
+                    setQ(saved.q || '');
+                    fetchUsers(1, saved.q || '');
+                }}
+            />
 
             <Card>
                 {loading ? (

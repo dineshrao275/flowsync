@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import ListSavedFilters from '../components/ui/ListSavedFilters';
 import { useTranslation } from 'react-i18next';
 import api, { fieldErrors } from '../services/api';
 import Card from '../components/ui/Card';
@@ -270,6 +271,7 @@ export default function BlogPosts() {
                             <option value="draft">{t('admin.cmsPages.draft')}</option>
                         </select>
                     </div>
+                    <ListSavedFilters page="platform-blog" scope="system" value={{ status }} onApply={(saved) => { setStatus(saved.status || ''); setPage(1); }} />
                 </div>
                 {loading ? (
                     <ContentSkeleton size="sm" />

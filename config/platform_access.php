@@ -81,6 +81,7 @@ return [
         ['api/tenants/{tenant}/subscription*', 'billing.view', 'billing.manage'],
         ['api/tenants/{tenant}/products', 'billing.view', 'billing.manage'],
         ['api/system/feature-flags*', 'flags.view', 'flags.manage'],
+        ['api/system/saved-filters*', 'tenants.view', 'tenants.view'],
         ['api/system/pages*', 'content.view', 'content.manage'],
         ['api/system/blog*', 'content.view', 'content.manage'],
         ['api/system/leads*', 'leads.view', 'leads.manage'],

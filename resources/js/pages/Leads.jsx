@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import ListSavedFilters from '../components/ui/ListSavedFilters';
 import { useTranslation } from 'react-i18next';
 import api from '../services/api';
 import Card from '../components/ui/Card';
@@ -108,6 +109,16 @@ export default function Leads() {
                             ))}
                         </select>
                     </div>
+                    <ListSavedFilters
+                        page="platform-leads"
+                        scope="system"
+                        value={{ q, status }}
+                        onApply={(saved) => {
+                            setQ(saved.q || '');
+                            setStatus(saved.status || '');
+                            setPage(1);
+                        }}
+                    />
                 </div>
                 {loading ? (
                     <ContentSkeleton size="sm" />

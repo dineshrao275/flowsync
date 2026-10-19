@@ -338,5 +338,24 @@
         "body": "{{app}} está en mantenimiento programado. Tus datos están a salvo; vuelve en unos minutos.",
         "retry": "Comprobar de nuevo",
         "adminLogin": "Acceso de administrador"
+    },
+    "savedFilters": {
+        "title": "Filtros guardados",
+        "menu": "Filtros guardados",
+        "saved": "Filtro guardado.",
+        "updated": "Filtro actualizado.",
+        "saveFailed": "No se pudo guardar el filtro.",
+        "deleteFailed": "No se pudo eliminar el filtro.",
+        "deleteTitle": "Eliminar filtro guardado",
+        "deleteMessage": "¿Eliminar «{{name}}»? Esta acción no se puede deshacer.",
+        "shared": "compartido",
+        "saveCurrent": "Guardar filtros actuales…",
+        "update": "Actualizar «{{name}}» con los filtros actuales",
+        "delete": "Eliminar «{{name}}»",
+        "name": "Nombre",
+        "shareLabel": "Compartir con todos",
+        "shareHint": "Cualquiera con acceso a este listado podrá usarlo.",
+        "cancel": "Cancelar",
+        "save": "Guardar"
     }
 }

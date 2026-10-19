@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
+import ListSavedFilters from '../components/ui/ListSavedFilters';
 import { useTranslation } from 'react-i18next';
 import api from '../services/api';
 import Badge from '../components/ui/Badge';
@@ -114,6 +115,15 @@ export default function AuditLogs() {
                     />
                     <Button type="submit">{t('admin.auditLogs.filter')}</Button>
                 </form>
+                <ListSavedFilters
+                    page="platform-audit-logs"
+                    scope="system"
+                    value={{ type: type === 'all' ? '' : type, q }}
+                    onApply={(saved) => {
+                        setType(saved.type || 'all');
+                        setQ(saved.q || '');
+                    }}
+                />
                 <Button type="button" variant="secondary" className="ml-auto" onClick={verifyChain}>{t('admin.auditLogs.verifyChain')}</Button>
                 <a
                     href={`/api/system/audit-logs/export?${new URLSearchParams({
