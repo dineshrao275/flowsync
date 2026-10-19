@@ -49,13 +49,13 @@
 
     <header class="sticky top-0 z-50 border-b border-slate-200/70 bg-white/80 backdrop-blur-xl">
         <div class="mx-auto flex h-16 max-w-6xl items-center justify-between gap-4 px-4 sm:px-6">
-            <a href="/" class="flex items-center gap-2.5" aria-label="{{ __('site.brand.home', ['name' => $siteName ?? config('app.name', 'FlowSync')]) }}">
+            <a href="/" class="flex items-center gap-2.5" aria-label="{{ __('site.brand.home', ['name' => $siteName ?? config('app.name')]) }}">
                 @if(!empty($site['logo']))
-                    <img src="{{ $site['logo']->url() }}" alt="{{ $site['logo']->alt ?: ($siteName ?? config('app.name', 'FlowSync')) }}" class="h-9 w-auto rounded-lg" @if($site['logo']->width)width="{{ $site['logo']->width }}" @endif @if($site['logo']->height)height="{{ $site['logo']->height }}" @endif>
+                    <img src="{{ $site['logo']->url() }}" alt="{{ $site['logo']->alt ?: ($siteName ?? config('app.name')) }}" class="h-9 w-auto rounded-lg" @if($site['logo']->width)width="{{ $site['logo']->width }}" @endif @if($site['logo']->height)height="{{ $site['logo']->height }}" @endif>
                 @else
                     <span class="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-blue-500 to-violet-600 text-lg font-extrabold text-white shadow-lg shadow-blue-600/25" aria-hidden="true">S</span>
                 @endif
-                <span class="text-lg font-extrabold tracking-tight text-slate-900">{{ $siteName ?? config('app.name', 'FlowSync') }}</span>
+                <span class="text-lg font-extrabold tracking-tight text-slate-900">{{ $siteName ?? config('app.name') }}</span>
             </a>
             <nav class="hidden items-center gap-1 lg:flex" aria-label="{{ __('site.nav.primary') }}">
                 @foreach($site['nav'] as $link)
@@ -125,13 +125,13 @@
     <footer class="scale-fixed bg-ink text-slate-400">
         <div class="mx-auto grid max-w-6xl gap-10 px-4 py-14 sm:px-6 md:[grid-template-columns:1.4fr_repeat(var(--cols),1fr)]" style="--cols: {{ count($site['footer_columns']) }}">
             <div>
-                <a href="/" class="flex items-center gap-2.5" aria-label="{{ __('site.brand.home', ['name' => $siteName ?? config('app.name', 'FlowSync')]) }}">
+                <a href="/" class="flex items-center gap-2.5" aria-label="{{ __('site.brand.home', ['name' => $siteName ?? config('app.name')]) }}">
                     @if(!empty($site['logo']))
-                        <img src="{{ $site['logo']->url() }}" alt="{{ $site['logo']->alt ?: ($siteName ?? config('app.name', 'FlowSync')) }}" class="h-9 w-auto rounded-lg">
+                        <img src="{{ $site['logo']->url() }}" alt="{{ $site['logo']->alt ?: ($siteName ?? config('app.name')) }}" class="h-9 w-auto rounded-lg">
                     @else
                         <span class="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-blue-500 to-violet-600 text-lg font-extrabold text-white" aria-hidden="true">S</span>
                     @endif
-                    <span class="text-lg font-extrabold tracking-tight text-white">{{ $siteName ?? config('app.name', 'FlowSync') }}</span>
+                    <span class="text-lg font-extrabold tracking-tight text-white">{{ $siteName ?? config('app.name') }}</span>
                 </a>
                 <p class="mt-4 max-w-xs text-sm leading-relaxed">{{ $site['tagline'] }}</p>
                 @if(!empty($site['social']))
@@ -155,7 +155,7 @@
         </div>
         <div class="border-t border-white/10">
             <div class="mx-auto flex max-w-6xl flex-col items-center justify-between gap-2 px-4 py-5 text-xs sm:flex-row sm:px-6">
-                <p>{{ __('site.footer.copyright', ['year' => date('Y'), 'name' => $siteName ?? config('app.name', 'FlowSync')]) }}</p>
+                <p>{{ __('site.footer.copyright', ['year' => date('Y'), 'name' => $siteName ?? config('app.name')]) }}</p>
                 <p class="flex gap-4">
                     <a href="/privacy" class="transition hover:text-white">{{ __('site.footer.privacy') }}</a>
                     <a href="/terms" class="transition hover:text-white">{{ __('site.footer.terms') }}</a>

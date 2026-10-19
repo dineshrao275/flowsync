@@ -112,6 +112,7 @@ import MediaLibrary from './pages/MediaLibrary';
 import WebsiteSettings from './pages/WebsiteSettings';
 import BlogPosts from './pages/BlogPosts';
 import Forbidden from './pages/Forbidden';
+import Maintenance from './pages/Maintenance';
 import ModuleDenied from './pages/ModuleDenied';
 import NotFound from './pages/NotFound';
 import { homeRouteFor } from './utils/deepLinks';
@@ -610,6 +611,7 @@ function AppRoutes() {
                 </Route>
 
                 <Route path="/403" element={<Forbidden />} />
+                <Route path="/maintenance" element={<Maintenance />} />
                 <Route path="/module-denied" element={<ModuleDenied />} />
                 <Route path="*" element={<NotFound />} />
             </Routes>

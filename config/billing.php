@@ -16,7 +16,7 @@ return [
         // Invoice numbers read "FS-000042"; the digits are the invoice row id.
         'prefix' => env('BILLING_INVOICE_PREFIX', 'FS'),
         // Shown in the PDF header and footer.
-        'issuer' => env('BILLING_ISSUER_NAME', env('APP_NAME', 'FlowSync')),
+        'issuer' => env('BILLING_ISSUER_NAME'),
         'footer' => env('BILLING_INVOICE_FOOTER', 'Thank you for your business.'),
     ],
 

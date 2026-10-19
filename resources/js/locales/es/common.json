@@ -114,7 +114,7 @@
         "breadcrumb": "Ruta de navegación",
         "superAdmin": "Superadministrador",
         "admin": "Administrador",
-        "footer": "FlowSync Admin · Laravel + React",
+        "footer": "{{app}} · Laravel + React",
         "dismiss": "Descartar notificación",
         "sidebar": {
             "superAdminPanel": "Panel de superadministrador",
@@ -194,7 +194,7 @@
         },
         "errorBoundary": {
             "title": "Esta página encontró un error inesperado",
-            "desc": "El resto de FlowSync sigue funcionando. Inténtalo de nuevo o vuelve a tu panel.",
+            "desc": "El resto de {{app}} sigue funcionando. Inténtalo de nuevo o vuelve a tu panel.",
             "fallback": "Error desconocido",
             "retry": "Intentar de nuevo",
             "dashboard": "Ir al panel"
@@ -332,5 +332,11 @@
             "queue": "Cola en segundo plano",
             "activity": "Actividad de inquilinos"
         }
+    },
+    "maintenance": {
+        "title": "Enseguida volvemos",
+        "body": "{{app}} está en mantenimiento programado. Tus datos están a salvo; vuelve en unos minutos.",
+        "retry": "Comprobar de nuevo",
+        "adminLogin": "Acceso de administrador"
     }
 }

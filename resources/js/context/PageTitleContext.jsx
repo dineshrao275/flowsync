@@ -1,6 +1,7 @@
 import { createContext, useContext, useMemo, useState } from 'react';
 import { useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
+import { getAppName } from '../utils/appName';
 
 const PageTitleContext = createContext(null);
 
@@ -22,7 +23,7 @@ const DEFAULT_TITLE_KEYS = {
 function defaultTitleFor(pathname, t) {
     const key = DEFAULT_TITLE_KEYS[pathname];
 
-    return key ? t(key, { defaultValue: 'FlowSync' }) : 'FlowSync';
+    return key ? t(key, { defaultValue: getAppName() }) : getAppName();
 }
 
 export function PageTitleProvider({ children }) {

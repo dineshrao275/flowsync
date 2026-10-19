@@ -28,9 +28,9 @@ final class WebhookFormatter
             'teams' => [
                 '@type' => 'MessageCard',
                 '@context' => 'https://schema.org/extensions',
-                'summary' => $payload['type'] ?? 'FlowSync',
+                'summary' => $payload['type'] ?? config('app.name'),
                 'themeColor' => '2563EB',
-                'title' => 'FlowSync',
+                'title' => config('app.name'),
                 'text' => $text,
             ],
             default => $payload,

@@ -16,7 +16,7 @@
 ])
 
 @php
-    $siteName = $siteName ?? config('app.name', 'FlowSync');
+    $siteName = $siteName ?? config('app.name');
     $title = $title ?? $siteName;
     $canonical = $canonical ?? url()->current();
     $ogTitle = $ogTitle ?? $title;

@@ -79,7 +79,7 @@ class CatalogSync
     private function ensureProduct(SubscriptionPlan $plan): string
     {
         $params = array_filter([
-            'name' => "FlowSync {$plan->name} Plan",
+            'name' => config('app.name')." {$plan->name} Plan",
             'description' => $plan->description ?: null,
             'active' => $plan->is_active ? 'true' : 'false',
             'metadata[plan_id]' => (string) $plan->id,

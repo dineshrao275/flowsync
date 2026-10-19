@@ -275,7 +275,7 @@ class BackupTenants extends Command
                 return false;
             }
 
-            fwrite($dumpHandle, "-- FlowSync Database Backup\n-- Database: {$database}\n-- Timestamp: ".date('Y-m-d H:i:s')."\n\n");
+            fwrite($dumpHandle, '-- '.config('app.name')." Database Backup\n-- Database: {$database}\n-- Timestamp: ".date('Y-m-d H:i:s')."\n\n");
 
             // Fetch all user tables in public schema
             $stmt = $pdo->query("SELECT tablename FROM pg_tables WHERE schemaname = 'public' ORDER BY tablename");

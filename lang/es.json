@@ -601,7 +601,7 @@
     "This export link has expired. Please request a new export.": "Este enlace de exportación ha caducado. Solicita una nueva exportación.",
     "This feature is not enabled.": "Esta funcionalidad no está habilitada.",
     "This impersonation session is read-only. Start a new session with changes enabled to do this.": "Esta sesión de suplantación es de solo lectura. Inicia una sesión nueva con los cambios habilitados para hacerlo.",
-    "This is a test event from FlowSync.": "Este es un evento de prueba de FlowSync.",
+    "This is a test event from :app.": "Este es un evento de prueba de :app.",
     "This issue has sub-tasks and must stay a task, story or bug.": "Esta incidencia tiene subtareas y debe seguir siendo una tarea, una historia o un error.",
     "This item already has a project task.": "Este elemento ya tiene una tarea de proyecto.",
     "This item is already :status.": "Este elemento ya está :status.",
@@ -948,5 +948,6 @@
     "The billing provider could not complete that request. Nothing was changed; please contact support if it keeps happening.": "El proveedor de facturación no pudo completar esa solicitud. No se cambió nada; contacta con soporte si sigue ocurriendo.",
     "This price change reaches :count paying subscription.|This price change reaches :count paying subscriptions. Confirm to email them the new amount and the date it starts.": "Este cambio de precio afecta a :count suscripción de pago.|Este cambio de precio afecta a :count suscripciones de pago. Confirma para enviarles por correo el nuevo importe y la fecha en que empieza.",
     "Stripe is not configured on this installation.": "Stripe no está configurado en esta instalación.",
-    "Plan synchronised with Stripe.": "Plan sincronizado con Stripe."
+    "Plan synchronised with Stripe.": "Plan sincronizado con Stripe.",
+    "The platform is undergoing scheduled maintenance. Please try again shortly.": "La plataforma está en mantenimiento programado. Inténtalo de nuevo en unos minutos."
 }

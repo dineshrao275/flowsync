@@ -30,7 +30,7 @@ class TaskDigestMail extends Mailable
 
     public function envelope(): Envelope
     {
-        return new Envelope(subject: trans_choice('notifications.digest.subject', count($this->items), ['count' => count($this->items)], $this->locale));
+        return new Envelope(subject: trans_choice('notifications.digest.subject', count($this->items), ['count' => count($this->items), 'app' => config('app.name')], $this->locale));
     }
 
     public function content(): Content

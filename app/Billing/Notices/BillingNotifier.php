@@ -32,6 +32,7 @@ class BillingNotifier
         $sent = $this->send($tenant, function () use ($notice, $change, $tenant): array {
             $plan = $change->plan->name;
             $params = [
+                'app' => config('app.name'),
                 'organisation' => $tenant->name,
                 'plan' => $plan,
                 'old' => $this->money($notice->old_amount_cents, $notice->currency),
@@ -57,9 +58,9 @@ class BillingNotifier
     public function trialEnding(Tenant $tenant, Carbon $endsAt): bool
     {
         return $this->send($tenant, fn () => [
-            __('billing.trial_ending.subject', ['date' => $this->date($endsAt)]),
+            __('billing.trial_ending.subject', ['app' => config('app.name'), 'date' => $this->date($endsAt)]),
             __('billing.price_change.greeting', ['organisation' => $tenant->name]),
-            [__('billing.trial_ending.body', ['organisation' => $tenant->name, 'date' => $this->date($endsAt)])],
+            [__('billing.trial_ending.body', ['app' => config('app.name'), 'organisation' => $tenant->name, 'date' => $this->date($endsAt)])],
         ]);
     }
 
@@ -67,7 +68,7 @@ class BillingNotifier
     public function cardExpiring(Tenant $tenant, array $card): bool
     {
         return $this->send($tenant, fn () => [
-            __('billing.card_expiring.subject'),
+            __('billing.card_expiring.subject', ['app' => config('app.name')]),
             __('billing.price_change.greeting', ['organisation' => $tenant->name]),
             [__('billing.card_expiring.body', ['brand' => ucfirst((string) ($card['brand'] ?? 'card')), 'last4' => (string) ($card['last4'] ?? '••••'), 'expires' => sprintf('%02d/%d', $card['exp_month'] ?? 0, $card['exp_year'] ?? 0)])],
         ]);
@@ -76,9 +77,9 @@ class BillingNotifier
     public function paymentActionRequired(Tenant $tenant): bool
     {
         return $this->send($tenant, fn () => [
-            __('billing.payment_action_required.subject'),
+            __('billing.payment_action_required.subject', ['app' => config('app.name')]),
             __('billing.price_change.greeting', ['organisation' => $tenant->name]),
-            [__('billing.payment_action_required.body')],
+            [__('billing.payment_action_required.body', ['app' => config('app.name')])],
         ]);
     }
 

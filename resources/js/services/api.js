@@ -43,6 +43,17 @@ api.interceptors.response.use(
             requestId: error.response?.headers?.['x-request-id'],
         });
 
+        // Platform maintenance: the server answers 503 {code:'maintenance'} to tenant traffic; show the holding page.
+        if (
+            error.response?.status === 503 &&
+            error.response?.data?.code === 'maintenance' &&
+            !error.config?.url?.includes('/auth/login') &&
+            !window.location.pathname.startsWith('/app/maintenance') &&
+            !window.location.pathname.startsWith('/app/login')
+        ) {
+            window.location.href = '/app/maintenance';
+        }
+
         if (error.response?.status === 401 && !error.config?.url?.includes('/auth/')) {
             if (!window.location.pathname.startsWith('/app/login')) {
                 window.location.href = '/app/login';

@@ -1,3 +1,4 @@
+import { getAppName, setAppName } from '../utils/appName';
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import api, { fieldErrors } from '../services/api';
@@ -54,9 +55,15 @@ export default function SystemSettings() {
         setErrors({});
         try {
             const { data } = await api.put('/system/settings', settings);
+            const renamed = data.settings.app_name !== getAppName();
             setSettings(data.settings);
             setSaved(true);
             toast.success(t('admin.systemSettings.saved'));
+            if (renamed) {
+                // The name is baked into the shell, page titles and translations: reload so every surface picks it up.
+                setAppName(data.settings.app_name);
+                setTimeout(() => window.location.reload(), 600);
+            }
         } catch (e) {
             setErrors(fieldErrors(e));
         } finally {

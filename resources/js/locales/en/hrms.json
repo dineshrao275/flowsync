@@ -1358,7 +1358,7 @@
     },
     "errorBoundary": {
         "title": "This HRMS section encountered an unexpected error",
-        "desc": "An isolated problem occurred loading this tab. The rest of FlowSync and the sidebar stay fully functional.",
+        "desc": "An isolated problem occurred loading this tab. The rest of {{app}} and the sidebar stay fully functional.",
         "fallback": "An unexpected error occurred while rendering this section.",
         "retry": "Try again",
         "back": "Back to HRMS Overview",

@@ -11,7 +11,7 @@ return [
     'fallback' => ['task' => 'una tarea', 'key' => 'Tarea', 'status' => 'un nuevo estado', 'actor' => 'Alguien', 'project' => 'Tu proyecto'],
     'labels' => ['project' => 'Proyecto', 'task' => 'Tarea', 'comment' => 'Comentario', 'status' => 'Estado', 'unblocked_by' => 'Desbloqueada por', 'open_task' => 'Abrir tarea'],
     'digest' => [
-        'subject' => 'Tu resumen de FlowSync: :count novedad|Tu resumen de FlowSync: :count novedades',
+        'subject' => 'Tu resumen de :app: :count novedad|Tu resumen de :app: :count novedades',
         'intro' => 'Esto ocurrió desde tu último correo:',
     ],
 ];

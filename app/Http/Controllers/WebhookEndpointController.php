@@ -81,7 +81,7 @@ class WebhookEndpointController extends Controller
     public function test(WebhookEndpoint $webhook): JsonResponse
     {
         $event = new DomainEvent([
-            'uuid' => (string) Str::uuid(), 'type' => 'webhook.test', 'data' => ['message' => __('This is a test event from FlowSync.')],
+            'uuid' => (string) Str::uuid(), 'type' => 'webhook.test', 'data' => ['message' => __('This is a test event from :app.', ['app' => config('app.name')])],
             'occurred_at' => now(),
         ]);
         $tenantId = app(TenantContext::class)->currentId();

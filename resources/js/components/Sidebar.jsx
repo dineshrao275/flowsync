@@ -6,6 +6,7 @@ import { useAuth } from '../context/AuthContext';
 import { useNotifications } from '../context/NotificationContext';
 import { hrmsSections, superAdminSections, tmsSections } from '../utils/nav';
 import { productForPath } from '../utils/product';
+import { getAppName } from '../utils/appName';
 
 // Sidebar sections live in utils/nav.js: `tmsSections` for the task shell,
 // `hrmsSections` (derived from the HRMS_NAV hub catalog, never re-listed)
@@ -269,7 +270,7 @@ export default function Sidebar({ open, collapsed, onClose, onToggleCollapse }) 
                     {!collapsed && (
                         <div className="min-w-0">
                             <p className="truncate text-base font-semibold" style={{ color: 'var(--header-bg)' }}>
-                                FlowSync
+                                {getAppName()}
                             </p>
                             <p className="truncate text-xs" style={{ color: 'var(--sidebar-text)' }}>
                                 {isSuperAdmin ? t('shell.sidebar.superAdminPanel') : user?.tenant?.name || t('shell.sidebar.adminPanel')}

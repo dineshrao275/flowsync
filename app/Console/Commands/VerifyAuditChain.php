@@ -52,7 +52,7 @@ class VerifyAuditChain extends Command
 
         foreach ((array) config('security.audit_alert_emails', []) as $to) {
             Mail::raw($message."\nRun `php artisan audit:verify` on the server for details.", function ($mail) use ($to): void {
-                $mail->to($to)->subject('[FlowSync] Audit log integrity check failed');
+                $mail->to($to)->subject('['.config('app.name').'] Audit log integrity check failed');
             });
         }
     }

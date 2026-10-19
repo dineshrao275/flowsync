@@ -56,11 +56,23 @@ use App\Http\Controllers\UserImportController;
 use App\Http\Controllers\WebhookController;
 use App\Http\Controllers\WebhookEndpointController;
 use App\Http\Controllers\WorkspaceController;
+use App\Http\Middleware\PlatformMaintenance;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Broadcast;
 use Illuminate\Support\Facades\Route;
 
+// PWA manifest: dynamic so the installed app carries the configured product name.
+Route::get('manifest.webmanifest', fn () => response()->json([
+    'name' => config('app.name'), 'short_name' => config('app.name'),
+    'description' => 'Tasks, people and payroll in one workspace.',
+    'start_url' => '/app/', 'scope' => '/app/', 'display' => 'standalone',
+    'background_color' => '#ffffff', 'theme_color' => '#2563eb',
+    'icons' => [['src' => '/favicon.svg', 'sizes' => 'any', 'type' => 'image/svg+xml', 'purpose' => 'any maskable']],
+], 200, ['Content-Type' => 'application/manifest+json']));
+
 Route::prefix('api')->group(function () {
+    // Public status probe for the SPA's maintenance screen (never leaks tenant data).
+    Route::get('maintenance', fn () => response()->json(['enabled' => PlatformMaintenance::active(), 'app_name' => config('app.name')]));
     Route::get('health', [PlatformHealthController::class, 'ping']);
     Route::get('metrics', MetricsController::class)->middleware('throttle:120,1');
     // OpenID Connect sign-in (F10.2): public by nature, tenant-addressed by slug, always throttled.

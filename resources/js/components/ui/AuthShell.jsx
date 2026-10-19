@@ -1,4 +1,5 @@
 import { useTranslation } from 'react-i18next';
+import { getAppName } from '../../utils/appName';
 
 export default function AuthShell({ title, subtitle, children, footer }) {
     const { t } = useTranslation();
@@ -14,7 +15,7 @@ export default function AuthShell({ title, subtitle, children, footer }) {
                     <div className="flex h-10 w-10 animate-bounce-soft items-center justify-center rounded-xl bg-[var(--accent)] text-lg font-bold text-[var(--accent-contrast)] shadow-lg shadow-[var(--accent-ring)]">
                         F
                     </div>
-                    <span className="text-xl font-semibold text-slate-900">FlowSync Admin</span>
+                    <span className="text-xl font-semibold text-slate-900">{getAppName()}</span>
                 </div>
 
                 <div className="animate-fade-in-up rounded-2xl border border-slate-200 bg-white p-8 shadow-xl shadow-slate-200/50" style={{ animationDelay: '60ms' }}>

@@ -17,6 +17,7 @@ use App\Services\Notifications\NotificationDispatcher;
 use App\Services\ReportsTo;
 use App\Services\Security\PlatformAccess;
 use App\Services\TenantLimits;
+use App\Support\AppName;
 use App\Support\Hrms\HrmsSchema;
 use App\Support\Integration\BridgeSchema;
 use App\Support\RequestId;
@@ -130,6 +131,10 @@ class AppServiceProvider extends ServiceProvider
             BridgeSchema::flush();
         });
         Event::listen(JobProcessing::class, function (): void {
+            try {
+                AppName::apply();
+            } catch (\Throwable) {
+            }
             TenantLimits::resetMemo();
             ReportsTo::resetMemo();
             TmsSchema::flush();

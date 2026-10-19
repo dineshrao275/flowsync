@@ -114,7 +114,7 @@
         "breadcrumb": "Breadcrumb",
         "superAdmin": "Super Admin",
         "admin": "Admin",
-        "footer": "FlowSync Admin · Laravel + React",
+        "footer": "{{app}} · Laravel + React",
         "dismiss": "Dismiss notification",
         "sidebar": {
             "superAdminPanel": "Super Admin Panel",
@@ -194,7 +194,7 @@
         },
         "errorBoundary": {
             "title": "This page hit an unexpected error",
-            "desc": "The rest of FlowSync is still working. Try again, or head back to your dashboard.",
+            "desc": "The rest of {{app}} is still working. Try again, or head back to your dashboard.",
             "fallback": "Unknown error",
             "retry": "Try again",
             "dashboard": "Go to dashboard"
@@ -332,5 +332,11 @@
             "queue": "Background queue",
             "activity": "Tenant activity"
         }
+    },
+    "maintenance": {
+        "title": "We'll be right back",
+        "body": "{{app}} is undergoing scheduled maintenance. Your data is safe — please check back in a few minutes.",
+        "retry": "Check again",
+        "adminLogin": "Administrator sign in"
     }
 }

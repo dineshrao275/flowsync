@@ -1,6 +1,7 @@
 <?php
 
 use App\Billing\Stripe\BillingProviderException;
+use App\Http\Middleware\ApplyAppName;
 use App\Http\Middleware\AssignRequestId;
 use App\Http\Middleware\AuthenticateApiToken;
 use App\Http\Middleware\EnforceIdempotency;
@@ -15,6 +16,7 @@ use App\Http\Middleware\EnsureSuperAdmin;
 use App\Http\Middleware\EnsureTenantContext;
 use App\Http\Middleware\EnsureTwoFactorEnrolled;
 use App\Http\Middleware\LogHttpRequests;
+use App\Http\Middleware\PlatformMaintenance;
 use App\Http\Middleware\SecurityHeaders;
 use App\Http\Middleware\SetRequestLocale;
 use App\Http\Middleware\SetTenantContext;
@@ -55,8 +57,10 @@ return Application::configure(basePath: dirname(__DIR__))
         // middleware (CSRF, session, throttle) carries an id in its logs.
         $middleware->prepend(LogHttpRequests::class);
         $middleware->prepend(AssignRequestId::class);
+        $middleware->append(ApplyAppName::class);
         $middleware->append(SecurityHeaders::class);
         $middleware->appendToGroup('web', EnsureTwoFactorEnrolled::class);
+        $middleware->appendToGroup('web', PlatformMaintenance::class);
 
         $middleware->alias([
             'permission' => EnsurePermission::class,
@@ -90,6 +94,7 @@ return Application::configure(basePath: dirname(__DIR__))
             StartSession::class,
             ShareErrorsFromSession::class,
             ValidateCsrfToken::class,
+            PlatformMaintenance::class,
             SwitchTenant::class,
             AuthenticateApiToken::class,
             Authenticate::class,
