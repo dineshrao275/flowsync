@@ -52,4 +52,21 @@ class PublicSiteLocaleTest extends TestCase
         $response->assertSee('Something went wrong', false);
         $response->assertSee('We usually reply within one business day.', false);
     }
+
+    public function test_the_header_offers_a_language_switcher_and_theme_toggle(): void
+    {
+        $html = $this->get('/')->assertOk()->getContent();
+
+        $this->assertStringContainsString('locale=es', $html);
+        $this->assertStringContainsString('data-theme-toggle', $html);
+        $this->assertStringContainsString('flowsync.site.theme', $html);
+    }
+
+    public function test_guests_see_log_in_and_signed_in_visitors_see_the_dashboard(): void
+    {
+        $this->get('/')->assertSee('/app/login', false)->assertDontSee('>Dashboard<', false);
+
+        $this->withSession([auth()->guard('web')->getName() => 1])->get('/')
+            ->assertSee('>Dashboard<', false);
+    }
 }

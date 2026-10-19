@@ -218,6 +218,7 @@ Hierarchy: **Tenant → Workspace → Project → Task** (subtask `tasks.parent_
   faq/changelog published + in sitemap; privacy/terms/dpa/cookies/refunds published but
   `sitemap_include=false`), `seedWebsiteConfig()` (nav/footer/social/announcement/contact via
   `firstOrCreate` — admin owns after), and `seedBlogContent()` (Guides/Company categories + 2 posts).
+- **Site chrome (header):** language menu (`<details data-dropdown>`, complete locales from `config/locales.php`, links `?locale=xx`), dark-mode toggle (`flowsync.site.theme` in localStorage, no-flash init script in `<head>`, default follows `prefers-color-scheme`) and an auth-aware button (`session()->has(auth()->guard('web')->getName())` → Dashboard `/app`, else Log in/Start free). Dark mode flips the slate/blue scale variables under `.dark` in `resources/css/site.css`; sections dark in both modes use `scale-fixed bg-ink` (never `bg-slate-950`). SPA auth pages show a full-page "Back to website" link (`AuthShell`).
 - **Public server-rendered site** (`PublicSiteController`, no auth): `GET /` renders the published
   `home` page (404-ish text if unseeded), `GET /page/{slug}` (published only, drafts 404),
   `GET /sitemap.xml` (published pages with `sitemap_include=true`, home always first; `lastmod` from

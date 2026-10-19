@@ -52,7 +52,7 @@
 
             @case('cta')
                 <section class="mx-auto max-w-6xl px-4 py-14 sm:px-6">
-                    <div class="relative overflow-hidden rounded-3xl bg-slate-950 px-6 py-14 text-center sm:px-12 sm:py-16">
+                    <div class="relative overflow-hidden rounded-3xl scale-fixed bg-ink px-6 py-14 text-center sm:px-12 sm:py-16">
                         <div class="pointer-events-none absolute inset-0" aria-hidden="true">
                             <div class="absolute -left-24 -top-24 h-72 w-72 rounded-full bg-blue-600/30 blur-3xl"></div>
                             <div class="absolute -bottom-24 -right-24 h-72 w-72 rounded-full bg-violet-600/30 blur-3xl"></div>
@@ -130,7 +130,7 @@
                             @if($splitMedia)
                                 <x-site.img :media="$splitMedia" :eager="$loop->first" class="w-full rounded-3xl shadow-2xl shadow-slate-900/10 ring-1 ring-slate-900/5" />
                             @else
-                                <div class="relative aspect-[4/3] w-full overflow-hidden rounded-3xl bg-slate-950 shadow-2xl shadow-slate-900/10 ring-1 ring-slate-900/5" aria-hidden="true">
+                                <div class="relative aspect-[4/3] w-full overflow-hidden rounded-3xl scale-fixed bg-ink shadow-2xl shadow-slate-900/10 ring-1 ring-slate-900/5" aria-hidden="true">
                                     <div class="absolute -left-16 -top-16 h-64 w-64 rounded-full bg-blue-600/40 blur-3xl"></div>
                                     <div class="absolute -bottom-20 -right-16 h-72 w-72 rounded-full bg-violet-600/40 blur-3xl"></div>
                                     <div class="absolute inset-6 rounded-2xl border border-white/10 bg-white/5"></div>
@@ -231,7 +231,7 @@
                         <div class="grid items-stretch gap-5 {{ $planCols }}">
                             @foreach ($plans as $plan)
                                 @php($modules = array_values(array_filter((array) ($plan->limits['modules'] ?? []))))
-                                <div class="relative flex flex-col rounded-3xl p-7 {{ $plan->is_default ? 'bg-slate-950 text-white shadow-2xl shadow-slate-900/20 ring-2 ring-blue-500' : 'border border-slate-200/80 bg-white shadow-sm' }}">
+                                <div class="relative flex flex-col rounded-3xl p-7 {{ $plan->is_default ? 'scale-fixed bg-ink text-white shadow-2xl shadow-slate-900/20 ring-2 ring-blue-500' : 'border border-slate-200/80 bg-white shadow-sm' }}">
                                     @if($plan->is_default)
                                         <span class="absolute -top-3.5 left-1/2 -translate-x-1/2 rounded-full bg-blue-600 px-3 py-1 text-xs font-bold uppercase tracking-wider text-white shadow-lg shadow-blue-600/30">{{ __('site.pricing.mostPopular') }}</span>
                                     @endif

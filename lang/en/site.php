@@ -14,6 +14,14 @@ return [
         'home' => ':name home',
     ],
 
+    'language' => [
+        'label' => 'Language',
+    ],
+
+    'theme' => [
+        'toggle' => 'Toggle dark mode',
+    ],
+
     'nav' => [
         'primary' => 'Primary',
         'mobile' => 'Mobile',
@@ -23,6 +31,7 @@ return [
     'actions' => [
         'logIn' => 'Log in',
         'startFree' => 'Start free',
+        'dashboard' => 'Dashboard',
         'bookDemo' => 'Book a demo',
     ],
 

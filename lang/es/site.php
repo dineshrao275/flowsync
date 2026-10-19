@@ -12,6 +12,14 @@ return [
         'home' => 'Inicio de :name',
     ],
 
+    'language' => [
+        'label' => 'Idioma',
+    ],
+
+    'theme' => [
+        'toggle' => 'Cambiar modo oscuro',
+    ],
+
     'nav' => [
         'primary' => 'Principal',
         'mobile' => 'Móvil',
@@ -21,6 +29,7 @@ return [
     'actions' => [
         'logIn' => 'Iniciar sesión',
         'startFree' => 'Empieza gratis',
+        'dashboard' => 'Panel',
         'bookDemo' => 'Reservar una demostración',
     ],
 
