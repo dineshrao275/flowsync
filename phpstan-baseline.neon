@@ -4822,79 +4822,79 @@ parameters:
 			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$asset_code\.$#'
 			identifier: property.notFound
 			count: 2
-			path: app/Services/Hrms/InboxService.php
+			path: app/Services/Hrms/InboxSources.php
 
 		-
 			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$name\.$#'
 			identifier: property.notFound
 			count: 1
-			path: app/Services/Hrms/InboxService.php
+			path: app/Services/Hrms/InboxSources.php
 
 		-
 			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$period_month\.$#'
 			identifier: property.notFound
 			count: 1
-			path: app/Services/Hrms/InboxService.php
+			path: app/Services/Hrms/InboxSources.php
 
 		-
 			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$period_year\.$#'
 			identifier: property.notFound
 			count: 1
-			path: app/Services/Hrms/InboxService.php
+			path: app/Services/Hrms/InboxSources.php
 
 		-
 			message: '#^Call to an undefined method Illuminate\\Database\\Eloquent\\Model\:\:displayName\(\)\.$#'
 			identifier: method.notFound
 			count: 1
-			path: app/Services/Hrms/InboxService.php
+			path: app/Services/Hrms/InboxSources.php
 
 		-
-			message: '#^Method App\\Services\\Hrms\\InboxService\:\:approvalItems\(\) should return Illuminate\\Support\\Collection\<int, array\<string, mixed\>\> but returns Illuminate\\Support\\Collection\<int, non\-empty\-array\<string, mixed\>\>\.$#'
+			message: '#^Method App\\Services\\Hrms\\InboxSources\:\:approvalItems\(\) should return Illuminate\\Support\\Collection\<int, array\<string, mixed\>\> but returns Illuminate\\Support\\Collection\<int, non\-empty\-array\<string, mixed\>\>\.$#'
 			identifier: return.type
 			count: 1
-			path: app/Services/Hrms/InboxService.php
+			path: app/Services/Hrms/InboxSources.php
 
 		-
-			message: '#^Method App\\Services\\Hrms\\InboxService\:\:assetItems\(\) should return Illuminate\\Support\\Collection\<int, array\<string, mixed\>\> but returns Illuminate\\Support\\Collection\<int, array\{key\: string, type\: string, title\: string, subtitle\: mixed, priority\: string, due_at\: null, meta\: array\{asset_assignment_id\: int, asset_id\: int\}, source_id\: int\}\>\.$#'
+			message: '#^Method App\\Services\\Hrms\\InboxSources\:\:assetItems\(\) should return Illuminate\\Support\\Collection\<int, array\<string, mixed\>\> but returns Illuminate\\Support\\Collection\<int, array\{key\: string, type\: string, title\: string, subtitle\: mixed, priority\: string, due_at\: null, meta\: array\{asset_assignment_id\: int, asset_id\: int\}, source_id\: int\}\>\.$#'
 			identifier: return.type
 			count: 1
-			path: app/Services/Hrms/InboxService.php
+			path: app/Services/Hrms/InboxSources.php
 
 		-
-			message: '#^Method App\\Services\\Hrms\\InboxService\:\:disputeItems\(\) should return Illuminate\\Support\\Collection\<int, array\<string, mixed\>\> but returns Illuminate\\Support\\Collection\<int, array\{key\: string, type\: string, title\: string, subtitle\: string\|null, priority\: string, due_at\: null, meta\: array\{payslip_id\: int, payroll_run_id\: int\}, source_id\: int\}\>\.$#'
+			message: '#^Method App\\Services\\Hrms\\InboxSources\:\:disputeItems\(\) should return Illuminate\\Support\\Collection\<int, array\<string, mixed\>\> but returns Illuminate\\Support\\Collection\<int, array\{key\: string, type\: string, title\: string, subtitle\: string\|null, priority\: string, due_at\: null, meta\: array\{payslip_id\: int, payroll_run_id\: int\}, source_id\: int\}\>\.$#'
 			identifier: return.type
 			count: 1
-			path: app/Services/Hrms/InboxService.php
+			path: app/Services/Hrms/InboxSources.php
 
 		-
-			message: '#^Method App\\Services\\Hrms\\InboxService\:\:documentAskItems\(\) should return Illuminate\\Support\\Collection\<int, array\<string, mixed\>\> but returns Illuminate\\Support\\Collection\<int, array\{key\: string, type\: string, title\: string, subtitle\: string\|null, priority\: string, due_at\: string\|null, meta\: array\{document_request_id\: int\}, source_id\: int\}\>\.$#'
+			message: '#^Method App\\Services\\Hrms\\InboxSources\:\:documentAskItems\(\) should return Illuminate\\Support\\Collection\<int, array\<string, mixed\>\> but returns Illuminate\\Support\\Collection\<int, array\{key\: string, type\: string, title\: string, subtitle\: string\|null, priority\: string, due_at\: string\|null, meta\: array\{document_request_id\: int\}, source_id\: int\}\>\.$#'
 			identifier: return.type
 			count: 1
-			path: app/Services/Hrms/InboxService.php
+			path: app/Services/Hrms/InboxSources.php
 
 		-
-			message: '#^Method App\\Services\\Hrms\\InboxService\:\:regularizationItems\(\) should return Illuminate\\Support\\Collection\<int, array\<string, mixed\>\> but returns Illuminate\\Support\\Collection\<int, array\{key\: string, type\: string, title\: string, subtitle\: mixed, priority\: string, due_at\: string, meta\: array\{regularization_id\: int\}, source_id\: int\}\>\.$#'
+			message: '#^Method App\\Services\\Hrms\\InboxSources\:\:regularizationItems\(\) should return Illuminate\\Support\\Collection\<int, array\<string, mixed\>\> but returns Illuminate\\Support\\Collection\<int, array\{key\: string, type\: string, title\: string, subtitle\: mixed, priority\: string, due_at\: string, meta\: array\{regularization_id\: int\}, source_id\: int\}\>\.$#'
 			identifier: return.type
 			count: 1
-			path: app/Services/Hrms/InboxService.php
+			path: app/Services/Hrms/InboxSources.php
 
 		-
 			message: '#^Parameter \#1 \$callback of method Illuminate\\Database\\Eloquent\\Collection\<int,App\\Models\\Hrms\\Asset\\AssetAssignment\>\:\:map\(\) contains unresolvable type\.$#'
 			identifier: argument.unresolvableType
 			count: 1
-			path: app/Services/Hrms/InboxService.php
+			path: app/Services/Hrms/InboxSources.php
 
 		-
 			message: '#^Parameter \#1 \$callback of method Illuminate\\Database\\Eloquent\\Collection\<int,App\\Models\\Hrms\\Attendance\\AttendanceRegularizationRequest\>\:\:map\(\) contains unresolvable type\.$#'
 			identifier: argument.unresolvableType
 			count: 1
-			path: app/Services/Hrms/InboxService.php
+			path: app/Services/Hrms/InboxSources.php
 
 		-
-			message: '#^Parameter &\$seen by\-ref type of method App\\Services\\Hrms\\InboxService\:\:approvalItem\(\) expects array\<string, bool\>, array\<bool\> given\.$#'
+			message: '#^Parameter &\$seen by\-ref type of method App\\Services\\Hrms\\InboxSources\:\:approvalItem\(\) expects array\<string, bool\>, array\<bool\> given\.$#'
 			identifier: parameterByRef.type
 			count: 1
-			path: app/Services/Hrms/InboxService.php
+			path: app/Services/Hrms/InboxSources.php
 
 		-
 			message: '#^Cannot call method balanceColumn\(\) on string\.$#'

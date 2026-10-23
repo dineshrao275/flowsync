@@ -33,7 +33,6 @@ class ClassSizeCeilingTest extends TestCase
         'app/Services/ExportService.php' => 314,
         'app/Services/Hrms/Employee/EmployeeService.php' => 321,
         'app/Services/Hrms/Expense/ExpenseService.php' => 441,
-        'app/Services/Hrms/InboxService.php' => 399,
         'app/Services/Hrms/Leave/LeaveRequestDecisions.php' => 302,
         'app/Services/Hrms/Lifecycle/OnboardingCases.php' => 304,
         'app/Services/Hrms/MyHrService.php' => 357,
