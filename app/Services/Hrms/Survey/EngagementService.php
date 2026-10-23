@@ -114,13 +114,15 @@ class EngagementService
     public function invite(SurveyCampaign $campaign, ?User $actor = null): int
     {
         $invited = 0;
+        $audience = $this->audience($campaign);
+        $recipients = User::whereIn('id', $audience->pluck('user_id')->filter()->map(fn ($id) => (int) $id))->get()->keyBy('id');
 
-        foreach ($this->audience($campaign) as $employee) {
+        foreach ($audience as $employee) {
             if ($employee->user_id === null) {
                 continue;
             }
 
-            $recipient = User::find((int) $employee->user_id);
+            $recipient = $recipients->get((int) $employee->user_id);
 
             if ($recipient === null || ($actor !== null && (int) $recipient->id === (int) $actor->id)) {
                 continue;

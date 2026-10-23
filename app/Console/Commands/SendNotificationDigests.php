@@ -38,9 +38,13 @@ class SendNotificationDigests extends Command
             $users = 0;
             $items = 0;
 
-            NotificationDigestItem::query()->whereNull('sent_at')->orderBy('id')->get()->groupBy('user_id')
-                ->each(function ($held, $userId) use (&$users, &$items): void {
-                    $user = User::find($userId);
+            $groups = NotificationDigestItem::query()->whereNull('sent_at')->orderBy('id')->get()->groupBy('user_id');
+            // One query for every recipient (and their settings, read for the locale) instead of one per group.
+            $recipients = User::with('settings')->whereIn('id', $groups->keys())->get()->keyBy('id');
+
+            $groups
+                ->each(function ($held, $userId) use (&$users, &$items, $recipients): void {
+                    $user = $recipients->get($userId);
 
                     if ($user === null) {
                         NotificationDigestItem::whereIn('id', $held->pluck('id'))->update(['sent_at' => now()]);
