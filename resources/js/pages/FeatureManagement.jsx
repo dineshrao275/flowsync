@@ -1,8 +1,10 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import api from '../services/api';
 import Card from '../components/ui/Card';
 import ContentSkeleton from '../components/ui/ContentSkeleton';
+import ErrorState from '../components/ui/ErrorState';
+import { useResource } from '../hooks/useResource';
 import { useToast } from '../context/ToastContext';
 import usePageTitle from '../hooks/usePageTitle';
 import { useSetCrumbs } from '../context/BreadcrumbContext';
@@ -12,12 +14,8 @@ export default function FeatureManagement() {
     usePageTitle(t('admin.featureManagement.pageTitle'));
     useSetCrumbs([{ label: t('admin.platform.breadcrumb'), to: '/admin' }, { label: t('admin.featureManagement.pageTitle') }]);
     const toast = useToast();
-    const [data, setData] = useState(null);
+    const { data, setData, error, reload } = useResource((signal) => api.get('/system/features', { signal }).then(({ data: res }) => res), []);
     const [busy, setBusy] = useState(null);
-
-    useEffect(() => {
-        api.get('/system/features').then(({ data }) => setData(data)).catch(() => {});
-    }, []);
 
     function isOn(plan, module) {
         return (plan.modules || []).includes(module);
@@ -66,7 +64,7 @@ export default function FeatureManagement() {
         );
     }
 
-    if (!data) return <ContentSkeleton size="sm" />;
+    if (!data) return error ? <ErrorState onRetry={reload} /> : <ContentSkeleton size="sm" />;
 
     return (
         <div className="space-y-6">

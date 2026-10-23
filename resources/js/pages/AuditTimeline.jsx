@@ -1,4 +1,3 @@
-import { useEffect, useState } from 'react';
 import ListSavedFilters from '../components/ui/ListSavedFilters';
 import { useTranslation } from 'react-i18next';
 import api from '../services/api';
@@ -11,6 +10,8 @@ import Badge from '../components/ui/Badge';
 import Input from '../components/ui/Input';
 import ContentSkeleton from '../components/ui/ContentSkeleton';
 import Alert from '../components/ui/Alert';
+import Resource from '../components/ui/Resource';
+import { useResource } from '../hooks/useResource';
 import Pagination from '../components/ui/Pagination';
 import { fieldClass } from '../components/ui/fieldStyles';
 
@@ -19,19 +20,11 @@ export default function AuditTimeline() {
     const { t } = useTranslation();
     usePageTitle(t('admin.auditTimeline.title'));
     const [filters, setFilters] = useUrlState({ source: '', action: '', from: '', to: '', page: '1' });
-    const [data, setData] = useState(null);
-    const [error, setError] = useState(null);
-
     const params = Object.fromEntries(Object.entries({ ...filters, page: filters.page || 1 }).filter(([, v]) => v !== '' && v != null));
     const key = JSON.stringify(params);
 
-    useEffect(() => {
-        let live = true;
-        api.get('/audit/timeline', { params: JSON.parse(key) })
-            .then(({ data: res }) => { if (live) { setData(res); setError(null); } })
-            .catch(() => live && setError(t('admin.auditTimeline.loadFailed')));
-        return () => { live = false; };
-    }, [key, t]);
+    const res = useResource((signal) => api.get('/audit/timeline', { params: JSON.parse(key), signal }).then(({ data: body }) => body), [key]);
+    const { data, error } = res;
 
     async function exportCsv() {
         const rest = JSON.parse(key);
@@ -78,9 +71,10 @@ export default function AuditTimeline() {
                 </div>
             </Card>
 
-            {error && <Alert>{error}</Alert>}
-            {!data && !error && <ContentSkeleton size="lg" />}
-            {data && (
+            {/* A failed refetch keeps the previous page on screen and says so; a failed first load gets the retry state. */}
+            {error && data && <Alert>{t('admin.auditTimeline.loadFailed')}</Alert>}
+            <Resource {...res} skeleton={<ContentSkeleton size="lg" />} errorTitle={t('admin.auditTimeline.loadFailed')}>
+                {() => (
                 <Card>
                     {data.entries.length === 0 ? <p className="py-8 text-center text-sm text-gray-500">{t('admin.auditTimeline.empty')}</p> : (
                         <ul className="divide-y divide-gray-100">
@@ -98,7 +92,8 @@ export default function AuditTimeline() {
                     )}
                     <Pagination page={data.pagination.current_page} pages={data.pagination.last_page} total={data.pagination.total} onChange={(p) => setFilters({ page: p })} />
                 </Card>
-            )}
+                )}
+            </Resource>
         </div>
     );
 }
