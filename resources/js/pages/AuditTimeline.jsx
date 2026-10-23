@@ -65,9 +65,9 @@ export default function AuditTimeline() {
                             {(data?.sources || []).includes('hrms') && <option value="hrms">{t('admin.auditTimeline.hrms')}</option>}
                         </select>
                     </div>
-                    <Input label={t('admin.auditTimeline.action')} value={filters.action} onChange={(e) => setFilters({ action: e.target.value })} />
-                    <Input label={t('admin.auditTimeline.from')} type="date" value={filters.from} onChange={(e) => setFilters({ from: e.target.value })} />
-                    <Input label={t('admin.auditTimeline.to')} type="date" value={filters.to} onChange={(e) => setFilters({ to: e.target.value })} />
+                    <Input id="audit-action" label={t('admin.auditTimeline.action')} value={filters.action} onChange={(e) => setFilters({ action: e.target.value })} />
+                    <Input id="audit-from" label={t('admin.auditTimeline.from')} type="date" value={filters.from} onChange={(e) => setFilters({ from: e.target.value })} />
+                    <Input id="audit-to" label={t('admin.auditTimeline.to')} type="date" value={filters.to} onChange={(e) => setFilters({ to: e.target.value })} />
                 </div>
             </Card>
 
