@@ -23,7 +23,7 @@ class ClassSizeCeilingTest extends TestCase
     /** @var array<string, int> path => frozen maximum line count */
     private const FROZEN = [
         'app/Billing/Gateways/StripeGateway.php' => 499,
-        'app/Billing/PaymentService.php' => 586,
+        'app/Billing/PaymentService.php' => 494,
         'app/Console/Commands/BackupTenants.php' => 376,
         'app/Http/Controllers/AuthController.php' => 379,
         'app/Http/Controllers/Hrms/Asset/AssetController.php' => 323,

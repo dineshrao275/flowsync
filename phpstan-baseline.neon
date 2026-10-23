@@ -223,37 +223,7 @@ parameters:
 			path: app/Billing/PaymentMethods.php
 
 		-
-			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$billing_provider\.$#'
-			identifier: property.notFound
-			count: 1
-			path: app/Billing/PaymentService.php
-
-		-
-			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$plan\.$#'
-			identifier: property.notFound
-			count: 1
-			path: app/Billing/PaymentService.php
-
-		-
-			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$product\.$#'
-			identifier: property.notFound
-			count: 1
-			path: app/Billing/PaymentService.php
-
-		-
-			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$provider_subscription_id\.$#'
-			identifier: property.notFound
-			count: 2
-			path: app/Billing/PaymentService.php
-
-		-
 			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$subscription\.$#'
-			identifier: property.notFound
-			count: 1
-			path: app/Billing/PaymentService.php
-
-		-
-			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$trial_ends_at\.$#'
 			identifier: property.notFound
 			count: 1
 			path: app/Billing/PaymentService.php
@@ -285,12 +255,6 @@ parameters:
 		-
 			message: '#^Parameter \#1 \$tenant of method App\\Services\\SubscriptionService\:\:suspend\(\) expects App\\Models\\Tenant, Illuminate\\Database\\Eloquent\\Model given\.$#'
 			identifier: argument.type
-			count: 1
-			path: app/Billing/PaymentService.php
-
-		-
-			message: '#^Using nullsafe property access "\?\-\>price_cents" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
-			identifier: nullsafe.neverNull
 			count: 1
 			path: app/Billing/PaymentService.php
 
@@ -473,6 +437,42 @@ parameters:
 			identifier: method.nonObject
 			count: 1
 			path: app/Billing/Proration/ProrationCalculator.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$billing_provider\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Billing/ProviderTrials.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$plan\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Billing/ProviderTrials.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$product\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Billing/ProviderTrials.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$provider_subscription_id\.$#'
+			identifier: property.notFound
+			count: 2
+			path: app/Billing/ProviderTrials.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$trial_ends_at\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Billing/ProviderTrials.php
+
+		-
+			message: '#^Using nullsafe property access "\?\-\>price_cents" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: app/Billing/ProviderTrials.php
 
 		-
 			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$price_cents\.$#'
