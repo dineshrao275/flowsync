@@ -1,0 +1,15 @@
+export const emptyForm = {
+    slug: '',
+    title: '',
+    status: 'draft',
+    content: [],
+    seo_title: '',
+    meta_description: '',
+    og_image: '',
+    canonical_url: '',
+    noindex: false,
+    og_title: '',
+    og_description: '',
+    sitemap_include: true,
+    sort_order: 0,
+};
