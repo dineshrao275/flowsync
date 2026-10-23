@@ -883,19 +883,7 @@ parameters:
 			path: app/Http/Controllers/AttachmentController.php
 
 		-
-			message: '#^Cannot call method toISOString\(\) on string\.$#'
-			identifier: method.nonObject
-			count: 1
-			path: app/Http/Controllers/AuditLogsController.php
-
-		-
-			message: '#^Method App\\Http\\Controllers\\AuditLogsController\:\:hydrate\(\) should return Illuminate\\Support\\Collection\<int, array\<string, mixed\>\> but returns Illuminate\\Support\\Collection\<int, non\-empty\-array\>\.$#'
-			identifier: return.type
-			count: 1
-			path: app/Http/Controllers/AuditLogsController.php
-
-		-
-			message: '#^Parameter \#1 \$rows of method App\\Http\\Controllers\\AuditLogsController\:\:hydrate\(\) expects Illuminate\\Support\\Collection\<int, object\>, Illuminate\\Support\\Collection\<int, stdClass\> given\.$#'
+			message: '#^Parameter \#1 \$rows of method App\\Services\\Platform\\AuditFeed\:\:hydrate\(\) expects Illuminate\\Support\\Collection\<int, object\>, Illuminate\\Support\\Collection\<int, stdClass\> given\.$#'
 			identifier: argument.type
 			count: 2
 			path: app/Http/Controllers/AuditLogsController.php
@@ -6209,6 +6197,18 @@ parameters:
 			identifier: nullsafe.neverNull
 			count: 1
 			path: app/Services/Notifications/NotificationDispatcher.php
+
+		-
+			message: '#^Cannot call method toISOString\(\) on string\.$#'
+			identifier: method.nonObject
+			count: 1
+			path: app/Services/Platform/AuditFeed.php
+
+		-
+			message: '#^Method App\\Services\\Platform\\AuditFeed\:\:hydrate\(\) should return Illuminate\\Support\\Collection\<int, array\<string, mixed\>\> but returns Illuminate\\Support\\Collection\<int, non\-empty\-array\>\.$#'
+			identifier: return.type
+			count: 1
+			path: app/Services/Platform/AuditFeed.php
 
 		-
 			message: '#^Access to an undefined property App\\Models\\User\:\:\$is_super_admin\.$#'

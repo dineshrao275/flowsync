@@ -28,7 +28,10 @@ Routine for any structural change: `scripts/route-snapshot.sh --check` must prin
 
 **Full ParaTest suite not run since the baseline above (deferred by the owner to the end).** Test counts in AGENTS.md are therefore unverified; the new unit tests add 5 (2 size ceiling + 3 architecture ratchets).
 
+### Second pass (focused tests only)
+Done: membership row scope single-sourced in `TaskScope`; 59 first-statement inline validations moved to FormRequests (inline count 204 -> 145, 482 focused tests green); route files `hrms_p5`/`security` moved under `routes/web/` (snapshot identical); 14 unused lint directives removed + exhaustive-deps fixed, `npm run lint` now fails above 123 warnings; AdminActivity and OrgChart on `useResource` with specs (Vitest 197); user lookups batched in the digest/survey loops; `PostgresDumper` extracted from `BackupTenants`; strict_types on all new classes; larastan baseline refreshed (still 1,735).
+
 ### Remaining backlog (each needs the full-suite gate or a browser)
-- Backend: strict_types for Models/Services/Controllers/Support; ~400 missing return types; 204 inline validate() calls -> FormRequests; thin controllers (Reports, Analytics, SystemAnalytics, Career, SkillExpectation, User, Tenant, Sprint); ScopesVisibleTasks -> TaskScope; 82 controller presenters; domain exceptions replacing service abort(); split the 25 files over 300 lines; route file consolidation; unbounded get()/loop queries; larastan baseline triage (1,735).
-- Frontend: useResource migration (~110 pages), raw select/button/confirm replacement, 141 lint warnings (exhaustive-deps), split 18 files over 400 lines, page smoke tests, Playwright, Prettier.
+- Backend: strict_types for Models/Services/Controllers/Support (only enums + new classes done); ~400 missing return types; 145 inline validate() calls (calls that are not the method's first statement, or whose rules reference `$`/`->`, were left because converting them could reorder 403/422); 82 controller presenters; domain exceptions replacing service abort(); split the other 24 files over 300 lines; other unbounded get()/loop queries; larastan baseline triage (1,735).
+- Frontend: useResource migration (~108 pages left), the 108 raw `<select>` and 15 raw `<table>` (lint ratchet at 123), split 18 files over 400 lines, page smoke tests, Playwright, Prettier.
 - Docs: slim remaining AGENTS.md sections (Stripe v2, F-phase, TMS phases) the same move-only way.
