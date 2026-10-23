@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Http\Controllers;
 
 use App\Http\Requests\FeatureFlagSetOverrideRequest;
+use App\Http\Requests\FeatureFlagStoreRequest;
 use App\Http\Requests\FeatureFlagUpdateRequest;
 use App\Models\FeatureFlag;
 use App\Models\FlagOverride;
@@ -13,7 +14,6 @@ use App\Services\FeatureFlags;
 use App\Services\PlatformAudit;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Validation\Rule;
 
 /** Super admin console for runtime feature flags and their tenant overrides (P8.7). */
 class FeatureFlagController extends Controller
@@ -25,14 +25,9 @@ class FeatureFlagController extends Controller
         return response()->json(['flags' => $flags->map(fn (FeatureFlag $f) => $this->present($f))]);
     }
 
-    public function store(Request $request): JsonResponse
+    public function store(FeatureFlagStoreRequest $request): JsonResponse
     {
-        $data = $request->validate([
-            'key' => ['required', 'string', 'max:100', 'regex:/^[a-z][a-z0-9_.-]*$/', Rule::unique(FeatureFlag::class, 'key')],
-            'description' => ['nullable', 'string', 'max:255'],
-            'enabled' => ['sometimes', 'boolean'],
-            'rollout_percent' => ['sometimes', 'integer', 'between:0,100'],
-        ]);
+        $data = $request->validated();
 
         $flag = FeatureFlag::create($data);
         $this->audit($request, 'feature_flag.created', $flag, null, $flag->only(['key', 'enabled', 'rollout_percent']));

@@ -6,6 +6,7 @@ namespace App\Http\Controllers;
 
 use App\Http\Requests\TenantSubscriptionAssignRequest;
 use App\Http\Requests\TenantSubscriptionProductsRequest;
+use App\Http\Requests\TenantSubscriptionSplitRequest;
 use App\Http\Requests\TenantSubscriptionStartTrialRequest;
 use App\Http\Requests\TenantSubscriptionSuspendRequest;
 use App\Models\SubscriptionPlan;
@@ -107,12 +108,9 @@ class TenantSubscriptionController extends Controller
     }
 
     /** Move a bundle tenant onto per-product plans in one step (one TMS and/or one HRMS plan). */
-    public function split(Request $request, Tenant $tenant): JsonResponse
+    public function split(TenantSubscriptionSplitRequest $request, Tenant $tenant): JsonResponse
     {
-        $data = $request->validate([
-            'tms_plan_id' => ['nullable', 'integer', Rule::exists('subscription_plans', 'id')->where('product', 'tms')],
-            'hrms_plan_id' => ['nullable', 'integer', Rule::exists('subscription_plans', 'id')->where('product', 'hrms')],
-        ]);
+        $data = $request->validated();
 
         $plans = SubscriptionPlan::whereIn('id', array_filter([$data['tms_plan_id'] ?? null, $data['hrms_plan_id'] ?? null]))->get()->all();
         $this->subscriptions->splitBundle($tenant, $plans, auth()->id());

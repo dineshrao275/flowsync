@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Tests\Unit;
 
 use PHPUnit\Framework\TestCase;
@@ -61,7 +63,6 @@ class ArchitectureRatchetTest extends TestCase
         'app/Http/Controllers/Concerns/ResolvesDateRange.php' => 1,
         'app/Http/Controllers/CustomFieldController.php' => 1,
         'app/Http/Controllers/ExportController.php' => 1,
-        'app/Http/Controllers/FeatureFlagController.php' => 1,
         'app/Http/Controllers/Hrms/Asset/AssetController.php' => 1,
         'app/Http/Controllers/Hrms/Attendance/RegularizationController.php' => 1,
         'app/Http/Controllers/Hrms/CompOff/CompOffRequestController.php' => 1,
@@ -123,18 +124,16 @@ class ArchitectureRatchetTest extends TestCase
         'app/Http/Controllers/SprintController.php' => 3,
         'app/Http/Controllers/SsoSettingsController.php' => 1,
         'app/Http/Controllers/SupportTicketController.php' => 2,
-        'app/Http/Controllers/SystemSupportController.php' => 1,
         'app/Http/Controllers/TaskController.php' => 3,
         'app/Http/Controllers/TaskMoveController.php' => 1,
         'app/Http/Controllers/TaskMoveRequestController.php' => 2,
         'app/Http/Controllers/TaskWatcherController.php' => 1,
         'app/Http/Controllers/TenantController.php' => 3,
         'app/Http/Controllers/TenantIntakeController.php' => 3,
-        'app/Http/Controllers/TenantSubscriptionController.php' => 2,
+        'app/Http/Controllers/TenantSubscriptionController.php' => 1,
         'app/Http/Controllers/TimerController.php' => 1,
         'app/Http/Controllers/TwoFactorController.php' => 1,
         'app/Http/Controllers/UnifiedAuditController.php' => 1,
-        'app/Http/Controllers/UserAccessController.php' => 1,
         'app/Http/Controllers/UserController.php' => 2,
         'app/Http/Controllers/UserImportController.php' => 3,
         'app/Http/Controllers/WebhookEndpointController.php' => 1,

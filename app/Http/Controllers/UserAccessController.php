@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\UserAccessShowRequest;
 use App\Models\Permission;
 use App\Models\Tenant;
 use App\Models\User;
@@ -11,7 +12,6 @@ use App\Services\TenantLimits;
 use App\Support\PermissionScope;
 use App\Support\TenantContext;
 use Illuminate\Http\JsonResponse;
-use Illuminate\Http\Request;
 
 /**
  * "Why can't they?" (R14): explains one permission for one user.
@@ -32,11 +32,9 @@ class UserAccessController extends Controller
         private readonly TenantLimits $limits,
     ) {}
 
-    public function show(Request $request, User $user): JsonResponse
+    public function show(UserAccessShowRequest $request, User $user): JsonResponse
     {
-        $data = $request->validate([
-            'check' => ['required', 'string', 'max:100', 'regex:/^[a-z0-9._]+$/'],
-        ]);
+        $data = $request->validated();
         $slug = $data['check'];
 
         $known = Permission::where('slug', $slug)->exists();
