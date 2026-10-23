@@ -2,7 +2,7 @@
 
 The single source of truth for how code is written, reviewed and refactored here. It holds **rules, not history** (history lives in `AGENTS.md` and `docs/`). `CLAUDE.md` imports this file, so AI-assisted work follows it by default. If code and this file disagree, fix one of them in the same change.
 
-Ceilings marked **(ratchet)** are enforced by tooling against a committed baseline: existing violations are frozen, new ones fail CI, and the baseline only shrinks.
+Ceilings marked **(ratchet)** are enforced by tooling against a committed baseline (`ClassSizeCeilingTest`, `ArchitectureRatchetTest`, `phpstan-baseline.neon`, the ESLint warning count): existing violations are frozen, new ones fail CI, and the baseline only shrinks.
 
 ## 1. Definition of done
 - Behaviour is covered by a test that fails without the change (bug fixes: a regression test first).
