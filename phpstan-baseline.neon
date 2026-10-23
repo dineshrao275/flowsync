@@ -4699,7 +4699,7 @@ parameters:
 			path: app/Services/Hrms/Expense/ExpenseService.php
 
 		-
-			message: '#^Parameter \#1 \$employee of method App\\Services\\Hrms\\Expense\\ExpenseService\:\:validatedItems\(\) expects App\\Models\\Hrms\\Employee\\Employee, Illuminate\\Database\\Eloquent\\Model\|null given\.$#'
+			message: '#^Parameter \#1 \$employee of method App\\Services\\Hrms\\Expense\\ExpenseItemRules\:\:validatedItems\(\) expects App\\Models\\Hrms\\Employee\\Employee, Illuminate\\Database\\Eloquent\\Model\|null given\.$#'
 			identifier: argument.type
 			count: 1
 			path: app/Services/Hrms/Expense/ExpenseService.php
