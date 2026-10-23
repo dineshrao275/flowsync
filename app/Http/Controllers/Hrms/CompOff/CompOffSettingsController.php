@@ -3,12 +3,12 @@
 namespace App\Http\Controllers\Hrms\CompOff;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Hrms\CompOff\CompOffSettingsAccrueRequest;
 use App\Http\Requests\Hrms\CompOff\CompOffSettingsRequest;
 use App\Models\Hrms\Employee\Employee;
 use App\Models\Hrms\Shared\HrmsSetting;
 use App\Services\Hrms\CompOff\CompOffCredits;
 use Illuminate\Http\JsonResponse;
-use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 
 /**
@@ -50,13 +50,9 @@ class CompOffSettingsController extends Controller
         ]);
     }
 
-    public function accrue(Request $request): JsonResponse
+    public function accrue(CompOffSettingsAccrueRequest $request): JsonResponse
     {
-        $filters = $request->validate([
-            'employee_id' => ['sometimes', 'nullable', 'integer', 'exists:employees,id'],
-            'from' => ['required', 'date'],
-            'to' => ['required', 'date', 'after_or_equal:from'],
-        ]);
+        $filters = $request->validated();
 
         $employees = isset($filters['employee_id'])
             ? Employee::whereKey((int) $filters['employee_id'])->get()

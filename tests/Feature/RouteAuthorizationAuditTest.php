@@ -57,6 +57,8 @@ class RouteAuthorizationAuditTest extends TestCase
         'SsoController@info' => 'public: whether the workspace has SSO switched on, nothing else',
         'SsoController@start' => 'public: starts an OIDC redirect for a workspace slug; no data returned',
         'SsoController@callback' => 'public: state + PKCE + RS256-verified ID token are the check',
+        'Closure:api/maintenance' => 'public: maintenance-mode status probe the SPA polls, returns only the flag',
+        'ListSavedFilterController@index' => 'self-scoped: lists the caller\'s own and tenant-shared filters only',
         'CalendarFeedController@destroy' => 'self-scoped: deletes only the caller\'s own feed row',
     ];
 

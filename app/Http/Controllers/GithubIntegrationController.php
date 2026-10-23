@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\GithubIntegrationUpdateRequest;
 use App\Models\Tenant;
 use App\Services\Integrations\GithubIntegration;
 use App\Support\TenantContext;
@@ -45,9 +46,9 @@ class GithubIntegrationController extends Controller
         return response()->json(['enabled' => (bool) ($tenant->settings['github']['enabled'] ?? false), 'has_secret' => ! empty($tenant->settings['github']['secret']), 'payload_url' => url("/api/integrations/github/{$tenant->id}")]);
     }
 
-    public function update(Request $request): JsonResponse
+    public function update(GithubIntegrationUpdateRequest $request): JsonResponse
     {
-        $data = $request->validate(['enabled' => ['required', 'boolean'], 'rotate' => ['sometimes', 'boolean']]);
+        $data = $request->validated();
         $tenant = $this->tenant();
         $secret = $this->github->configure($tenant, $data['enabled'], (bool) ($data['rotate'] ?? false));
 

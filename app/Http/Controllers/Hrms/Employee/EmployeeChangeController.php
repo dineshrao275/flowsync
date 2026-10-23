@@ -3,6 +3,8 @@
 namespace App\Http\Controllers\Hrms\Employee;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Hrms\Employee\EmployeeChangeApproveRequest;
+use App\Http\Requests\Hrms\Employee\EmployeeChangeRejectRequest;
 use App\Models\Hrms\Employee\Employee;
 use App\Models\Hrms\Employee\EmployeeChange;
 use App\Services\Hrms\Employee\ReportingLine;
@@ -66,16 +68,16 @@ class EmployeeChangeController extends Controller
         return response()->json(['message' => __('Change requested.'), 'change' => $this->present($change->load('employee:id,name,employee_code'), $user)], 201);
     }
 
-    public function approve(Request $request, EmployeeChange $change): JsonResponse
+    public function approve(EmployeeChangeApproveRequest $request, EmployeeChange $change): JsonResponse
     {
-        $data = $request->validate(['note' => ['nullable', 'string', 'max:500']]);
+        $data = $request->validated();
 
         return response()->json(['message' => __('Change decided.'), 'change' => $this->present($this->service->approve($change, $request->user(), $data['note'] ?? null)->load('employee:id,name,employee_code'), $request->user())]);
     }
 
-    public function reject(Request $request, EmployeeChange $change): JsonResponse
+    public function reject(EmployeeChangeRejectRequest $request, EmployeeChange $change): JsonResponse
     {
-        $data = $request->validate(['note' => ['required', 'string', 'max:500']]);
+        $data = $request->validated();
 
         return response()->json(['message' => __('Change rejected.'), 'change' => $this->present($this->service->reject($change, $request->user(), $data['note'])->load('employee:id,name,employee_code'), $request->user())]);
     }

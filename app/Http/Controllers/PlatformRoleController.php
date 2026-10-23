@@ -2,12 +2,12 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\PlatformRoleAssignRequest;
 use App\Models\PlatformRole;
 use App\Models\SystemUser;
 use App\Services\PlatformAudit;
 use App\Services\Security\PlatformAccess;
 use Illuminate\Http\JsonResponse;
-use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
@@ -30,9 +30,9 @@ class PlatformRoleController extends Controller
     }
 
     /** Replace the persona set; an empty list makes the account unrestricted break-glass again. */
-    public function assign(Request $request, SystemUser $user): JsonResponse
+    public function assign(PlatformRoleAssignRequest $request, SystemUser $user): JsonResponse
     {
-        $data = $request->validate(['roles' => ['present', 'array'], 'roles.*' => ['string']]);
+        $data = $request->validated();
 
         if (! $user->is_super_admin) {
             abort(404);

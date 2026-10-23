@@ -4,6 +4,9 @@ namespace App\Http\Controllers\Hrms\Attendance;
 
 use App\Enums\Hrms\DataAccessAction;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Hrms\Attendance\AttendanceRecordsExportRequest;
+use App\Http\Requests\Hrms\Attendance\AttendanceRecordsMonthRequest;
+use App\Http\Requests\Hrms\Attendance\AttendanceRecordsTodayRequest;
 use App\Models\Hrms\Attendance\AttendanceDay;
 use App\Models\Hrms\Employee\Employee;
 use App\Services\Hrms\Attendance\DayPresenter;
@@ -32,13 +35,9 @@ class AttendanceRecordsController extends Controller
         private readonly HrmsAuditLogger $audit,
     ) {}
 
-    public function month(Request $request): JsonResponse
+    public function month(AttendanceRecordsMonthRequest $request): JsonResponse
     {
-        $filters = $request->validate([
-            'employee_id' => ['sometimes', 'nullable', 'integer', 'exists:employees,id'],
-            'year' => ['sometimes', 'nullable', 'integer', 'min:2000', 'max:2100'],
-            'month' => ['sometimes', 'nullable', 'integer', 'min:1', 'max:12'],
-        ]);
+        $filters = $request->validated();
 
         $employee = $this->employee($request, $filters['employee_id'] ?? null);
 
@@ -55,11 +54,9 @@ class AttendanceRecordsController extends Controller
         ]);
     }
 
-    public function today(Request $request): JsonResponse
+    public function today(AttendanceRecordsTodayRequest $request): JsonResponse
     {
-        $filters = $request->validate([
-            'employee_id' => ['sometimes', 'nullable', 'integer', 'exists:employees,id'],
-        ]);
+        $filters = $request->validated();
 
         $employee = $this->employee($request, $filters['employee_id'] ?? null);
 
@@ -77,13 +74,9 @@ class AttendanceRecordsController extends Controller
      * anyone asks for. The download writes an access row like any other
      * bulk read of working-time data.
      */
-    public function export(Request $request): StreamedResponse
+    public function export(AttendanceRecordsExportRequest $request): StreamedResponse
     {
-        $filters = $request->validate([
-            'employee_id' => ['sometimes', 'nullable', 'integer', 'exists:employees,id'],
-            'from' => ['required', 'date'],
-            'to' => ['required', 'date', 'after_or_equal:from'],
-        ]);
+        $filters = $request->validated();
 
         $employee = $this->employee($request, $filters['employee_id'] ?? null, authorize: false);
 

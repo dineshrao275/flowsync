@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Hrms\Leave;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Hrms\Leave\LeaveAccrueRequest;
+use App\Http\Requests\Hrms\Leave\LeaveBalanceIndexRequest;
 use App\Models\Hrms\Employee\Employee;
 use App\Models\Hrms\Leave\LeaveBalance;
 use App\Models\Hrms\Leave\LeaveType;
@@ -30,12 +31,9 @@ class LeaveBalanceController extends Controller
         private readonly LeavePresenter $presenter,
     ) {}
 
-    public function index(Request $request): JsonResponse
+    public function index(LeaveBalanceIndexRequest $request): JsonResponse
     {
-        $filters = $request->validate([
-            'employee_id' => ['sometimes', 'nullable', 'integer', 'exists:employees,id'],
-            'year' => ['sometimes', 'nullable', 'integer', 'min:2000', 'max:2100'],
-        ]);
+        $filters = $request->validated();
 
         $employee = $this->employee($request, $filters['employee_id'] ?? null);
 

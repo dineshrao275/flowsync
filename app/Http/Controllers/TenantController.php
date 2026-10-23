@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Http\Controllers\Concerns\NormalizesBooleanInput;
 use App\Http\Controllers\Concerns\RequiresTenantAdmin;
 use App\Http\Controllers\Concerns\ValidatesResourceLimits;
+use App\Http\Requests\TenantUpdateProfileRequest;
 use App\Models\Tenant;
 use App\Models\TenantUserRouting;
 use App\Models\User;
@@ -190,30 +191,9 @@ class TenantController extends Controller
         ]);
     }
 
-    public function updateProfile(Request $request, Tenant $tenant): JsonResponse
+    public function updateProfile(TenantUpdateProfileRequest $request, Tenant $tenant): JsonResponse
     {
-        $data = $request->validate([
-            'legal_name' => ['nullable', 'string', 'max:255'],
-            'registration_number' => ['nullable', 'string', 'max:255'],
-            'tax_id' => ['nullable', 'string', 'max:255'],
-            'country' => ['nullable', 'string', 'max:2'],
-            'street' => ['nullable', 'string', 'max:255'],
-            'city' => ['nullable', 'string', 'max:255'],
-            'state' => ['nullable', 'string', 'max:255'],
-            'postal_code' => ['nullable', 'string', 'max:32'],
-            'website' => ['nullable', 'url', 'max:255'],
-            'industry' => ['nullable', 'string', 'max:255'],
-            'company_size' => ['nullable', 'string', 'max:255'],
-            'contact_phone' => ['nullable', 'string', 'max:64'],
-            'billing_email' => ['nullable', 'email', 'max:255'],
-            'billing_address' => ['nullable', 'string', 'max:500'],
-            'billing_currency' => ['nullable', 'string', 'max:3'],
-            'timezone' => ['nullable', 'string', 'max:128'],
-            'locale' => ['nullable', 'string', 'max:16'],
-            'brand_domain' => ['nullable', 'string', 'max:255'],
-            'brand_logo_url' => ['nullable', 'url', 'max:255'],
-            'brand_primary_color' => ['nullable', 'string', 'max:9'],
-        ]);
+        $data = $request->validated();
 
         $tenant->update($data);
 

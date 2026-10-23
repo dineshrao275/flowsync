@@ -2,6 +2,8 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\FeatureFlagSetOverrideRequest;
+use App\Http\Requests\FeatureFlagUpdateRequest;
 use App\Models\FeatureFlag;
 use App\Models\FlagOverride;
 use App\Models\Tenant;
@@ -36,13 +38,9 @@ class FeatureFlagController extends Controller
         return response()->json(['message' => __('Flag created.'), 'flag' => $this->present($flag->load('overrides.tenant:id,name,slug'))], 201);
     }
 
-    public function update(Request $request, FeatureFlag $flag): JsonResponse
+    public function update(FeatureFlagUpdateRequest $request, FeatureFlag $flag): JsonResponse
     {
-        $data = $request->validate([
-            'description' => ['nullable', 'string', 'max:255'],
-            'enabled' => ['sometimes', 'boolean'],
-            'rollout_percent' => ['sometimes', 'integer', 'between:0,100'],
-        ]);
+        $data = $request->validated();
 
         $before = $flag->only(['description', 'enabled', 'rollout_percent']);
         $flag->update($data);
@@ -61,9 +59,9 @@ class FeatureFlagController extends Controller
         return response()->json(['message' => __('Flag deleted.')]);
     }
 
-    public function setOverride(Request $request, FeatureFlag $flag, Tenant $tenant): JsonResponse
+    public function setOverride(FeatureFlagSetOverrideRequest $request, FeatureFlag $flag, Tenant $tenant): JsonResponse
     {
-        $data = $request->validate(['enabled' => ['required', 'boolean']]);
+        $data = $request->validated();
 
         $existing = FlagOverride::where('feature_flag_id', $flag->id)->where('tenant_id', $tenant->id)->first();
         FlagOverride::updateOrCreate(

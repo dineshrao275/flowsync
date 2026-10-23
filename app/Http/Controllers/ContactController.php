@@ -2,11 +2,11 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\ContactStoreRequest;
 use App\Mail\LeadReceivedMail;
 use App\Models\MarketingLead;
 use App\Support\SiteConfig;
 use Illuminate\Http\JsonResponse;
-use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Mail;
 
 /**
@@ -16,18 +16,9 @@ use Illuminate\Support\Facades\Mail;
  */
 class ContactController extends Controller
 {
-    public function store(Request $request): JsonResponse
+    public function store(ContactStoreRequest $request): JsonResponse
     {
-        $data = $request->validate([
-            'name' => ['required', 'string', 'max:255'],
-            'email' => ['required', 'email', 'max:255'],
-            'company' => ['nullable', 'string', 'max:255'],
-            'phone' => ['nullable', 'string', 'max:64'],
-            'message' => ['required', 'string', 'min:10', 'max:5000'],
-            'source' => ['nullable', 'string', 'in:contact,demo'],
-            'plan_interest' => ['nullable', 'string', 'max:255'],
-            'website' => ['nullable', 'string', 'max:255'],
-        ]);
+        $data = $request->validated();
 
         // Honeypot: a filled `website` field means a bot — succeed silently.
         if (! empty($data['website'])) {

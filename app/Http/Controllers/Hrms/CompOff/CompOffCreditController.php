@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Hrms\CompOff;
 use App\Enums\Hrms\CompOffSource;
 use App\Http\Controllers\Concerns\NormalizesFilters;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Hrms\CompOff\CompOffCreditIndexRequest;
 use App\Http\Requests\Hrms\CompOff\CompOffCreditRequest;
 use App\Models\Hrms\CompOff\CompOffCredit;
 use App\Models\Hrms\Employee\Employee;
@@ -33,13 +34,9 @@ class CompOffCreditController extends Controller
         private readonly CompOffPresenter $presenter,
     ) {}
 
-    public function index(Request $request): JsonResponse
+    public function index(CompOffCreditIndexRequest $request): JsonResponse
     {
-        $filters = $request->validate([
-            'employee_id' => ['sometimes', 'nullable', 'integer', 'exists:employees,id'],
-            'from' => ['sometimes', 'nullable', 'date'],
-            'to' => ['sometimes', 'nullable', 'date', 'after_or_equal:from'],
-        ]);
+        $filters = $request->validated();
 
         $employee = $this->employee($request, $filters['employee_id'] ?? null);
 

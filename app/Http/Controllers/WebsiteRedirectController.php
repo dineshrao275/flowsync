@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\WebsiteRedirectStoreRequest;
 use App\Models\WebsiteRedirect;
 use App\Services\PlatformAudit;
 use Illuminate\Http\JsonResponse;
@@ -21,13 +22,9 @@ class WebsiteRedirectController extends Controller
         return response()->json(['redirects' => $redirects]);
     }
 
-    public function store(Request $request): JsonResponse
+    public function store(WebsiteRedirectStoreRequest $request): JsonResponse
     {
-        $data = $request->validate([
-            'from_path' => ['required', 'string', 'max:500', 'unique:website_redirects,from_path'],
-            'to_path' => ['required', 'string', 'max:500'],
-            'status_code' => ['nullable', 'integer', 'in:301,302'],
-        ]);
+        $data = $request->validated();
 
         $redirect = WebsiteRedirect::create([
             'from_path' => ltrim($data['from_path'], '/'),

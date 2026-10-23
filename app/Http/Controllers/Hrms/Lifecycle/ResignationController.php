@@ -4,6 +4,8 @@ namespace App\Http\Controllers\Hrms\Lifecycle;
 
 use App\Enums\Hrms\ResignationStatus;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Hrms\Lifecycle\ResignationApproveRequest;
+use App\Http\Requests\Hrms\Lifecycle\ResignationRejectRequest;
 use App\Models\Hrms\Employee\Employee;
 use App\Models\Hrms\Lifecycle\ResignationRequest;
 use App\Services\Hrms\Lifecycle\ResignationService;
@@ -63,9 +65,9 @@ class ResignationController extends Controller
         return response()->json(['message' => __('Resignation submitted.'), 'resignation' => $this->present($resignation->load('employee:id,name'))], 201);
     }
 
-    public function approve(Request $request, ResignationRequest $resignation): JsonResponse
+    public function approve(ResignationApproveRequest $request, ResignationRequest $resignation): JsonResponse
     {
-        $data = $request->validate(['note' => ['nullable', 'string', 'max:500']]);
+        $data = $request->validated();
 
         return response()->json([
             'message' => __('Resignation decided.'),
@@ -73,9 +75,9 @@ class ResignationController extends Controller
         ]);
     }
 
-    public function reject(Request $request, ResignationRequest $resignation): JsonResponse
+    public function reject(ResignationRejectRequest $request, ResignationRequest $resignation): JsonResponse
     {
-        $data = $request->validate(['note' => ['required', 'string', 'max:500']]);
+        $data = $request->validated();
 
         return response()->json([
             'message' => __('Resignation rejected.'),

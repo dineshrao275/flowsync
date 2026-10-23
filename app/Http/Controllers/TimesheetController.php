@@ -2,6 +2,10 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\TimesheetApproveRequest;
+use App\Http\Requests\TimesheetRejectRequest;
+use App\Http\Requests\TimesheetSubmitRequest;
+use App\Http\Requests\TimesheetWeekRequest;
 use App\Models\Timesheet;
 use App\Services\Time\TimesheetService;
 use Illuminate\Http\JsonResponse;
@@ -12,16 +16,16 @@ class TimesheetController extends Controller
 {
     public function __construct(private readonly TimesheetService $service) {}
 
-    public function week(Request $request): JsonResponse
+    public function week(TimesheetWeekRequest $request): JsonResponse
     {
-        $data = $request->validate(['week' => ['sometimes', 'date']]);
+        $data = $request->validated();
 
         return response()->json(['timesheet' => $this->service->week($request->user(), $data['week'] ?? now())]);
     }
 
-    public function submit(Request $request): JsonResponse
+    public function submit(TimesheetSubmitRequest $request): JsonResponse
     {
-        $data = $request->validate(['week' => ['sometimes', 'date']]);
+        $data = $request->validated();
 
         $sheet = $this->service->submit($request->user(), $data['week'] ?? now());
 
@@ -53,9 +57,9 @@ class TimesheetController extends Controller
         ]);
     }
 
-    public function approve(Request $request, Timesheet $timesheet): JsonResponse
+    public function approve(TimesheetApproveRequest $request, Timesheet $timesheet): JsonResponse
     {
-        $data = $request->validate(['note' => ['nullable', 'string', 'max:500']]);
+        $data = $request->validated();
 
         return response()->json([
             'message' => __('Timesheet approved.'),
@@ -63,9 +67,9 @@ class TimesheetController extends Controller
         ]);
     }
 
-    public function reject(Request $request, Timesheet $timesheet): JsonResponse
+    public function reject(TimesheetRejectRequest $request, Timesheet $timesheet): JsonResponse
     {
-        $data = $request->validate(['note' => ['required', 'string', 'max:500']]);
+        $data = $request->validated();
 
         return response()->json([
             'message' => __('Timesheet sent back.'),

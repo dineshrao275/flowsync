@@ -3,6 +3,8 @@
 namespace App\Http\Controllers\Hrms\Document;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Hrms\Document\SignatureDeclineRequest;
+use App\Http\Requests\Hrms\Document\SignatureSignRequest;
 use App\Models\Hrms\Document\DocumentSignature;
 use App\Models\Hrms\Document\EmployeeDocument;
 use App\Models\Hrms\Employee\Employee;
@@ -48,17 +50,17 @@ class SignatureController extends Controller
         return response()->json(['message' => __('Signature requested.'), 'signature' => $this->present($sig->load(['document', 'employee']), $request->user())], 201);
     }
 
-    public function sign(Request $request, DocumentSignature $signature): JsonResponse
+    public function sign(SignatureSignRequest $request, DocumentSignature $signature): JsonResponse
     {
-        $data = $request->validate(['typed_name' => ['required', 'string', 'max:255'], 'password' => ['required', 'string']]);
+        $data = $request->validated();
         $sig = $this->service->sign($signature, $request->user(), $data['typed_name'], $data['password'], $request->ip(), $request->userAgent());
 
         return response()->json(['message' => __('Signed.'), 'signature' => $this->present($sig->load(['document', 'employee']), $request->user())]);
     }
 
-    public function decline(Request $request, DocumentSignature $signature): JsonResponse
+    public function decline(SignatureDeclineRequest $request, DocumentSignature $signature): JsonResponse
     {
-        $data = $request->validate(['reason' => ['required', 'string', 'max:500']]);
+        $data = $request->validated();
 
         return response()->json(['message' => __('Declined.'), 'signature' => $this->present($this->service->decline($signature, $request->user(), $data['reason'])->load(['document', 'employee']), $request->user())]);
     }

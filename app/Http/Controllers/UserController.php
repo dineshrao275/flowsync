@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Http\Controllers\Concerns\AuditsTenantAdminActions;
+use App\Http\Requests\UserUpdateRolesRequest;
 use App\Models\Role;
 use App\Models\SystemUser;
 use App\Models\TenantUserRouting;
@@ -179,12 +180,9 @@ class UserController extends Controller
         return response()->json(['message' => __('User updated.'), 'user' => $this->present($user->load('roles'))]);
     }
 
-    public function updateRoles(Request $request, User $user): JsonResponse
+    public function updateRoles(UserUpdateRolesRequest $request, User $user): JsonResponse
     {
-        $data = $request->validate([
-            'roles' => ['required', 'array'],
-            'roles.*' => ['string', 'exists:roles,slug'],
-        ]);
+        $data = $request->validated();
 
         $roles = Role::whereIn('slug', $data['roles'])->pluck('id');
 

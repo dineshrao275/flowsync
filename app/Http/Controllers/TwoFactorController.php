@@ -2,6 +2,10 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\TwoFactorChallengeRequest;
+use App\Http\Requests\TwoFactorConfirmRequest;
+use App\Http\Requests\TwoFactorUpdatePlatformPolicyRequest;
+use App\Http\Requests\TwoFactorUpdateTenantPolicyRequest;
 use App\Models\PlatformSetting;
 use App\Models\Role;
 use App\Models\Tenant;
@@ -29,9 +33,9 @@ class TwoFactorController extends Controller
     ) {}
 
     /** Second sign-in step; unauthenticated by design (the password step already passed). */
-    public function challenge(Request $request, TwoFactorLogin $login): JsonResponse
+    public function challenge(TwoFactorChallengeRequest $request, TwoFactorLogin $login): JsonResponse
     {
-        $data = $request->validate(['code' => ['required', 'string', 'max:32']]);
+        $data = $request->validated();
 
         return $login->complete($request, $data['code']);
     }
@@ -46,9 +50,9 @@ class TwoFactorController extends Controller
         return response()->json($this->twoFactor->beginEnrollment($request->user()));
     }
 
-    public function confirm(Request $request): JsonResponse
+    public function confirm(TwoFactorConfirmRequest $request): JsonResponse
     {
-        $data = $request->validate(['code' => ['required', 'string', 'max:16']]);
+        $data = $request->validated();
         $codes = $this->twoFactor->confirm($request->user(), $data['code']);
         $request->session()->forget(TwoFactorLogin::ENROLL_KEY);
 
@@ -86,9 +90,9 @@ class TwoFactorController extends Controller
         return response()->json($this->tenantPolicyPayload($this->currentTenant()));
     }
 
-    public function updateTenantPolicy(Request $request): JsonResponse
+    public function updateTenantPolicy(TwoFactorUpdateTenantPolicyRequest $request): JsonResponse
     {
-        $data = $request->validate(['roles' => ['present', 'array'], 'roles.*' => ['string', 'max:100']]);
+        $data = $request->validated();
         $tenant = $this->currentTenant() ?? abort(404);
         $before = $this->policy->tenantRoles($tenant);
 
@@ -105,9 +109,9 @@ class TwoFactorController extends Controller
         return response()->json(['require_super_admins' => PlatformSetting::bool(TwoFactorPolicy::PLATFORM_KEY, false)]);
     }
 
-    public function updatePlatformPolicy(Request $request): JsonResponse
+    public function updatePlatformPolicy(TwoFactorUpdatePlatformPolicyRequest $request): JsonResponse
     {
-        $data = $request->validate(['require_super_admins' => ['required', 'boolean']]);
+        $data = $request->validated();
         $before = PlatformSetting::bool(TwoFactorPolicy::PLATFORM_KEY, false);
 
         PlatformSetting::set(TwoFactorPolicy::PLATFORM_KEY, (bool) $data['require_super_admins']);

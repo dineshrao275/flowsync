@@ -2,6 +2,10 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\TenantSubscriptionAssignRequest;
+use App\Http\Requests\TenantSubscriptionProductsRequest;
+use App\Http\Requests\TenantSubscriptionStartTrialRequest;
+use App\Http\Requests\TenantSubscriptionSuspendRequest;
 use App\Models\SubscriptionPlan;
 use App\Models\Tenant;
 use App\Services\PlatformAudit;
@@ -30,15 +34,9 @@ class TenantSubscriptionController extends Controller
      * Assign a plan (creates the row or re-stamps it — plan_changed when the
      * current plan differs) and records the audit event.
      */
-    public function assign(Request $request, Tenant $tenant): JsonResponse
+    public function assign(TenantSubscriptionAssignRequest $request, Tenant $tenant): JsonResponse
     {
-        $data = $request->validate([
-            'plan_id' => ['required', 'integer', 'exists:subscription_plans,id'],
-            'seats' => ['nullable', 'integer', 'min:1', 'max:100000'],
-            'auto_renew' => ['nullable', 'boolean'],
-            'billing_provider' => ['nullable', 'string', 'max:64'],
-            'billing_reference' => ['nullable', 'string', 'max:255'],
-        ]);
+        $data = $request->validated();
 
         $plan = SubscriptionPlan::findOrFail($data['plan_id']);
 
@@ -60,12 +58,9 @@ class TenantSubscriptionController extends Controller
         ]);
     }
 
-    public function startTrial(Request $request, Tenant $tenant): JsonResponse
+    public function startTrial(TenantSubscriptionStartTrialRequest $request, Tenant $tenant): JsonResponse
     {
-        $data = $request->validate([
-            'plan_id' => ['required', 'integer', 'exists:subscription_plans,id'],
-            'days' => ['nullable', 'integer', 'min:1', 'max:3650'],
-        ]);
+        $data = $request->validated();
 
         $plan = SubscriptionPlan::findOrFail($data['plan_id']);
 
@@ -97,11 +92,9 @@ class TenantSubscriptionController extends Controller
         ]);
     }
 
-    public function suspend(Request $request, Tenant $tenant): JsonResponse
+    public function suspend(TenantSubscriptionSuspendRequest $request, Tenant $tenant): JsonResponse
     {
-        $data = $request->validate([
-            'reason' => ['nullable', 'string', 'max:1000'],
-        ]);
+        $data = $request->validated();
 
         $this->subscriptions->suspend($tenant, ['data' => ['reason' => $data['reason'] ?? null]], auth()->id(), $this->product($request));
 
@@ -126,9 +119,9 @@ class TenantSubscriptionController extends Controller
     }
 
     /** Super Admin switch per product: true = on regardless of plan, false = off regardless of plan, null = follow the plan. */
-    public function products(Request $request, Tenant $tenant): JsonResponse
+    public function products(TenantSubscriptionProductsRequest $request, Tenant $tenant): JsonResponse
     {
-        $data = $request->validate(['tms' => ['present', 'nullable', 'boolean'], 'hrms' => ['present', 'nullable', 'boolean']]);
+        $data = $request->validated();
 
         $override = $tenant->features_override ?? [];
         foreach (['tms', 'hrms'] as $product) {

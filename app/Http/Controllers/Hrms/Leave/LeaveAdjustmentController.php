@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Hrms\Leave;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Hrms\Leave\LeaveAdjustmentLedgerRequest;
 use App\Http\Requests\Hrms\Leave\LeaveAdjustRequest;
 use App\Http\Requests\Hrms\Leave\LeaveRolloverRequest;
 use App\Models\Hrms\Employee\Employee;
@@ -11,7 +12,6 @@ use App\Models\Hrms\Leave\LeaveType;
 use App\Services\Hrms\Leave\LeaveManualAdjustment;
 use App\Services\Hrms\Leave\LeaveYearRollover;
 use Illuminate\Http\JsonResponse;
-use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 
 /**
@@ -25,13 +25,9 @@ class LeaveAdjustmentController extends Controller
         private readonly LeaveYearRollover $rollover,
     ) {}
 
-    public function ledger(Request $request): JsonResponse
+    public function ledger(LeaveAdjustmentLedgerRequest $request): JsonResponse
     {
-        $filters = $request->validate([
-            'employee_id' => ['required', 'integer', 'exists:employees,id'],
-            'leave_type_id' => ['sometimes', 'nullable', 'integer', 'exists:leave_types,id'],
-            'year' => ['sometimes', 'nullable', 'integer', 'min:2000', 'max:2100'],
-        ]);
+        $filters = $request->validated();
 
         $rows = $this->adjustments->ledger(
             Employee::findOrFail($filters['employee_id']),

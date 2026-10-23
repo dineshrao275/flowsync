@@ -2,6 +2,8 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\SupportAccessStoreRequest;
+use App\Http\Requests\SupportAccessUpdatePolicyRequest;
 use App\Models\ImpersonationLog;
 use App\Models\PlatformSetting;
 use App\Models\SupportAccessGrant;
@@ -35,15 +37,9 @@ class SupportAccessController extends Controller
         ]);
     }
 
-    public function store(Request $request): JsonResponse
+    public function store(SupportAccessStoreRequest $request): JsonResponse
     {
-        $data = $request->validate([
-            'mode' => ['sometimes', 'in:read_only,write'],
-            'hours' => ['sometimes', 'integer', 'min:1', 'max:'.(int) config('tenancy.support_access.max_hours', 72)],
-            'session_minutes' => ['sometimes', 'integer', 'min:5', 'max:'.(int) config('tenancy.support_access.max_session_minutes', 120)],
-            'note' => ['required', 'string', 'min:8', 'max:500'],
-            'support_ticket_id' => ['nullable', 'integer'],
-        ]);
+        $data = $request->validated();
 
         $tenant = $this->tenant();
         $grant = $this->grants->grant($tenant, $request->user(), $data);
@@ -85,9 +81,9 @@ class SupportAccessController extends Controller
         ]);
     }
 
-    public function updatePolicy(Request $request): JsonResponse
+    public function updatePolicy(SupportAccessUpdatePolicyRequest $request): JsonResponse
     {
-        $data = $request->validate(['consent_required' => ['required', 'boolean']]);
+        $data = $request->validated();
         $before = $this->grants->consentRequired();
 
         PlatformSetting::set(SupportAccessGrants::POLICY_KEY, (bool) $data['consent_required']);

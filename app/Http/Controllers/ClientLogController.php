@@ -2,8 +2,8 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\ClientLogStoreRequest;
 use Illuminate\Http\JsonResponse;
-use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 
 /**
@@ -12,14 +12,9 @@ use Illuminate\Support\Facades\Log;
  */
 class ClientLogController extends Controller
 {
-    public function store(Request $request): JsonResponse
+    public function store(ClientLogStoreRequest $request): JsonResponse
     {
-        $validated = $request->validate([
-            'level' => 'sometimes|string|in:debug,info,warn,warning,error',
-            'message' => 'required|string|max:2000',
-            'context' => 'sometimes|array',
-            'url' => 'sometimes|nullable|string|max:1000',
-        ]);
+        $validated = $request->validated();
 
         $rawLevel = strtolower($validated['level'] ?? 'error');
         $level = match ($rawLevel) {

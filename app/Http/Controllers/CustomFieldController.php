@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\CustomFieldIndexRequest;
 use App\Models\CustomFieldDefinition;
 use App\Services\CustomFields\CustomFieldService;
 use Illuminate\Http\JsonResponse;
@@ -16,12 +17,9 @@ class CustomFieldController extends Controller
 {
     public function __construct(private readonly CustomFieldService $fields) {}
 
-    public function index(Request $request): JsonResponse
+    public function index(CustomFieldIndexRequest $request): JsonResponse
     {
-        $data = $request->validate([
-            'entity' => ['required', Rule::in(CustomFieldService::ENTITIES)],
-            'include_inactive' => ['sometimes', 'boolean'],
-        ]);
+        $data = $request->validated();
 
         $manage = $request->user()->hasPermission('custom_fields.manage');
         $definitions = $this->fields->definitions($data['entity'], ! ($manage && $request->boolean('include_inactive')));
