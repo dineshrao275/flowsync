@@ -40,7 +40,7 @@ class ClassSizeCeilingTest extends TestCase
         'app/Services/Hrms/PerformanceService.php' => 321,
         'app/Services/Hrms/Shared/ApprovalService.php' => 409,
         'app/Services/Hrms/Statutory/StatutoryEngine.php' => 346,
-        'app/Services/Hrms/Survey/EngagementService.php' => 446,
+        'app/Services/Hrms/Survey/EngagementService.php' => 358,
         'app/Services/Jql/JqlCompiler.php' => 418,
         'app/Services/ProjectService.php' => 361,
         'app/Services/SubscriptionService.php' => 378,
