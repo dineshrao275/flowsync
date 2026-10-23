@@ -19,7 +19,7 @@ class BrandSweepTest extends TestCase
     {
         $response = $this->get('/app/login');
         $response->assertOk();
-        $response->assertSee('<title>FlowSync Admin</title>', false);
+        $response->assertSee('<title>FlowSync</title>', false);
         $response->assertSee('__FLOWSYNC_CONFIG__', false);
         $response->assertSee('storagePrefix: "flowsync"', false);
     }
