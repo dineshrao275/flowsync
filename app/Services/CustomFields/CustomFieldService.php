@@ -7,11 +7,9 @@ namespace App\Services\CustomFields;
 use App\Models\CustomFieldDefinition;
 use App\Models\CustomFieldValue;
 use App\Models\Tenant;
-use App\Models\User;
 use App\Services\TenantLimits;
 use App\Support\TenantContext;
 use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -163,7 +161,7 @@ class CustomFieldService
                 continue;
             }
 
-            if ($definition->required && $this->isEmpty($value)) {
+            if ($definition->required && FieldValueNormalizer::isEmpty($value)) {
                 $errors["custom_fields.$key"] = __('This field is required.');
 
                 continue;
@@ -202,7 +200,7 @@ class CustomFieldService
 
                 $query = CustomFieldValue::query()->where('definition_id', $definitionId)->where('entity_id', $entityId);
 
-                if ($this->isEmpty($value)) {
+                if (FieldValueNormalizer::isEmpty($value)) {
                     $query->delete();
 
                     continue;
@@ -276,140 +274,10 @@ class CustomFieldService
     /** @return mixed the normalized value, or null when empty */
     public function normalize(CustomFieldDefinition $definition, mixed $raw): mixed
     {
-        if ($this->isEmpty($raw)) {
-            return null;
-        }
-
-        return match ($definition->type) {
-            'text' => $this->string($raw, 255),
-            'textarea' => $this->string($raw, 5000),
-            'number', 'currency' => $this->number($raw),
-            'date' => $this->date($raw, false),
-            'datetime' => $this->date($raw, true),
-            'boolean' => $this->boolean($raw),
-            'select' => $this->select($definition, $raw),
-            'multiselect' => $this->multiselect($definition, $raw),
-            'url' => $this->url($raw),
-            'email' => $this->email($raw),
-            'user' => $this->user($raw),
-            default => throw new \InvalidArgumentException(__('Unsupported field type.')),
-        };
-    }
-
-    // -- type rules --------------------------------------------------------------------------
-
-    private function string(mixed $raw, int $max): string
-    {
-        if (! is_scalar($raw)) {
-            throw new \InvalidArgumentException(__('Enter text.'));
-        }
-        $value = trim((string) $raw);
-
-        if (mb_strlen($value) > $max) {
-            throw new \InvalidArgumentException(__('Must be at most :max characters.', ['max' => $max]));
-        }
-
-        return $value;
-    }
-
-    private function number(mixed $raw): int|float
-    {
-        if (! is_numeric($raw)) {
-            throw new \InvalidArgumentException(__('Enter a number.'));
-        }
-
-        return $raw + 0;
-    }
-
-    private function date(mixed $raw, bool $withTime): string
-    {
-        try {
-            $date = Carbon::parse((string) $raw);
-        } catch (\Throwable) {
-            throw new \InvalidArgumentException(__('Enter a valid date.'));
-        }
-
-        return $withTime ? $date->format('Y-m-d\TH:i') : $date->format('Y-m-d');
-    }
-
-    private function boolean(mixed $raw): bool
-    {
-        $value = filter_var($raw, FILTER_VALIDATE_BOOLEAN, FILTER_NULL_ON_FAILURE);
-
-        if ($value === null) {
-            throw new \InvalidArgumentException(__('Choose yes or no.'));
-        }
-
-        return $value;
-    }
-
-    private function select(CustomFieldDefinition $definition, mixed $raw): string
-    {
-        $value = (string) $raw;
-
-        if (! in_array($value, $this->optionValues($definition), true)) {
-            throw new \InvalidArgumentException(__('Choose one of the listed options.'));
-        }
-
-        return $value;
-    }
-
-    /** @return list<string> */
-    private function multiselect(CustomFieldDefinition $definition, mixed $raw): array
-    {
-        if (! is_array($raw)) {
-            throw new \InvalidArgumentException(__('Choose from the listed options.'));
-        }
-
-        $allowed = $this->optionValues($definition);
-        $values = array_values(array_unique(array_map('strval', $raw)));
-
-        foreach ($values as $value) {
-            if (! in_array($value, $allowed, true)) {
-                throw new \InvalidArgumentException(__('Choose from the listed options.'));
-            }
-        }
-
-        return $values;
-    }
-
-    private function url(mixed $raw): string
-    {
-        $value = $this->string($raw, 500);
-
-        if (filter_var($value, FILTER_VALIDATE_URL) === false || ! in_array(parse_url($value, PHP_URL_SCHEME), ['http', 'https'], true)) {
-            throw new \InvalidArgumentException(__('Enter a valid http(s) URL.'));
-        }
-
-        return $value;
-    }
-
-    private function email(mixed $raw): string
-    {
-        $value = $this->string($raw, 255);
-
-        if (filter_var($value, FILTER_VALIDATE_EMAIL) === false) {
-            throw new \InvalidArgumentException(__('Enter a valid email address.'));
-        }
-
-        return $value;
-    }
-
-    private function user(mixed $raw): int
-    {
-        if (! is_numeric($raw) || ! User::query()->whereKey((int) $raw)->exists()) {
-            throw new \InvalidArgumentException(__('Choose an existing user.'));
-        }
-
-        return (int) $raw;
+        return (new FieldValueNormalizer)->normalize($definition, $raw);
     }
 
     // -- helpers -----------------------------------------------------------------------------
-
-    private function isEmpty(mixed $value): bool
-    {
-        return $value === null || $value === '' || $value === [];
-    }
 
     /** @return array{value_text: ?string, value_number: ?float, value_date: ?string} */
     private function shadow(CustomFieldDefinition $definition, mixed $value): array
@@ -479,12 +347,6 @@ class CustomFieldService
         }
     }
 
-    /** @return list<string> */
-    private function optionValues(CustomFieldDefinition $definition): array
-    {
-        return array_map(fn ($o) => (string) $o['value'], $definition->options ?? []);
-    }
-
     /**
      * @return list<array{value: string, label: string}>|null
      */
@@ -524,7 +386,7 @@ class CustomFieldService
     private function assertNoUsedOptionRemoved(CustomFieldDefinition $definition, array $options): void
     {
         $kept = array_column($options, 'value');
-        $removed = array_diff($this->optionValues($definition), $kept);
+        $removed = array_diff(FieldValueNormalizer::optionValues($definition), $kept);
 
         foreach ($removed as $value) {
             $inUse = CustomFieldValue::query()->where('definition_id', $definition->id)->get()->contains(

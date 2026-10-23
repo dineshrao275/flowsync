@@ -29,7 +29,7 @@ class ClassSizeCeilingTest extends TestCase
         'app/Http/Controllers/Hrms/Asset/AssetController.php' => 323,
         'app/Http/Controllers/Hrms/EmployeeController.php' => 302,
         'app/Http/Controllers/TenantController.php' => 353,
-        'app/Services/CustomFields/CustomFieldService.php' => 567,
+        'app/Services/CustomFields/CustomFieldService.php' => 429,
         'app/Services/ExportService.php' => 314,
         'app/Services/Hrms/Defaults/HrmsDefaultsProvisioner.php' => 409,
         'app/Services/Hrms/Employee/EmployeeService.php' => 321,
