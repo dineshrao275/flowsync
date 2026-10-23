@@ -123,7 +123,7 @@ i18n.use(initReactI18next).init({
     missingKeyHandler: (languages, namespace, key) => {
         if (import.meta.env?.DEV !== true) return;
 
-        // eslint-disable-next-line no-console
+         
         console.warn(`[i18n] missing key "${namespace}:${key}" for [${languages.join(', ')}]`);
     },
 });

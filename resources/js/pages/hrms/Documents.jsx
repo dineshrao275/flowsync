@@ -90,7 +90,7 @@ export default function Documents() {
         [navigate, t],
     );
 
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+     
     useEffect(() => {
         load(page, filters);
     }, [page, filters, load]);
@@ -173,7 +173,7 @@ export default function Documents() {
                 // Sequential, not parallel: each verify is a state transition
                 // with its own audit row, and a burst of them is how two
                 // reviewers approve the same pile twice without noticing.
-                // eslint-disable-next-line no-await-in-loop
+                 
                 await api.post(`/hrms/documents/${document.id}/verify`);
             }
 

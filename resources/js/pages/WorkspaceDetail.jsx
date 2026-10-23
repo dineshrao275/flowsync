@@ -124,7 +124,7 @@ export default function WorkspaceDetail() {
                 ]
                 : [{ label: t('tms.workspaceDetail.crumbWorkspaces'), to: '/workspaces' }],
         );
-    }, [workspace, setCrumbs]);
+    }, [workspace, setCrumbs, t]);
 
     function updateWorkspace(fields) {
         setUpdating(true);

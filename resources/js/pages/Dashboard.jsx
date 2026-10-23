@@ -212,7 +212,7 @@ export default function Dashboard() {
         api.get('/analytics/overview', { params: { from: range.from, to: range.to } })
             .then(({ data: response }) => setAnalytics(response))
             .catch(() => setAnalytics(null));
-        // eslint-disable-next-line react-hooks/exhaustive-deps
+         
     }, [range.from, range.to]);
 
     // The one orchestrated moment on this page: the greeting settles in

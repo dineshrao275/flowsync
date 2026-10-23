@@ -70,7 +70,7 @@ export default function ProjectDetail() {
         const next = searchParams.get('tab')
             ?? (searchParams.get('task') ? 'tasks' : 'overview');
         setTab((cur) => (cur === next ? cur : next));
-        // eslint-disable-next-line react-hooks/exhaustive-deps
+         
     }, [searchParams]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);

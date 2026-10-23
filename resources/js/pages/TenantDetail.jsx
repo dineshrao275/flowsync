@@ -93,6 +93,8 @@ export default function TenantDetail() {
         return () => {
             active = false;
         };
+        // Only a tenant change refetches; `t` is omitted so a language switch does not discard edits.
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [tenantId]);
 
     usePageTitle(tenant?.name ? `${tenant.name} · ${t('admin.tenantDetail.title')}` : t('admin.tenantDetail.title'));
