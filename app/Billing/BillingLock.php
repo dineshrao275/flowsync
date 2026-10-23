@@ -18,7 +18,7 @@ final class BillingLock
     private static array $held = [];
 
     /** @template T @param callable(): T $callback @return T */
-    public static function for(Tenant|int $tenant, callable $callback)
+    public static function for(Tenant|int $tenant, callable $callback): mixed
     {
         $id = $tenant instanceof Tenant ? $tenant->id : $tenant;
 

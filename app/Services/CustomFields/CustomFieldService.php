@@ -61,7 +61,7 @@ class CustomFieldService
     }
 
     /** @return Collection<int, CustomFieldDefinition> */
-    public function definitions(string $entity, bool $activeOnly = true)
+    public function definitions(string $entity, bool $activeOnly = true): Collection
     {
         return CustomFieldDefinition::query()
             ->where('entity', $entity)

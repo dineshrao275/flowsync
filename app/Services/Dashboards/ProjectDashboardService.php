@@ -72,8 +72,7 @@ class ProjectDashboardService
         return $out;
     }
 
-    /** @return mixed */
-    private function widget(string $widget, Project $project, User $user)
+    private function widget(string $widget, Project $project, User $user): mixed
     {
         $base = fn (): Builder => $this->reader->filteredQuery($project, [], $user)->setEagerLoads([])->reorder();
 

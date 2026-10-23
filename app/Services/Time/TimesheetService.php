@@ -167,7 +167,7 @@ class TimesheetService
     }
 
     /** @return Collection<int, Timesheet> submitted sheets this approver may decide */
-    public function pendingFor(User $approver)
+    public function pendingFor(User $approver): Collection
     {
         return Timesheet::query()
             ->with('user:id,name,email')
@@ -193,7 +193,7 @@ class TimesheetService
     }
 
     /** @return Collection<int, array<string, mixed>> */
-    private function logs(int $userId, Carbon $start)
+    private function logs(int $userId, Carbon $start): Collection
     {
         return $this->logsQuery($userId, $start)
             ->with('task:id,key,title,project_id', 'task.project:id,name')
