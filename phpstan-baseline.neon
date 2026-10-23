@@ -891,19 +891,13 @@ parameters:
 		-
 			message: '#^Access to an undefined property App\\Models\\User\:\:\$is_super_admin\.$#'
 			identifier: property.notFound
-			count: 3
+			count: 2
 			path: app/Http/Controllers/AuthController.php
 
 		-
 			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$id\.$#'
 			identifier: property.notFound
 			count: 8
-			path: app/Http/Controllers/AuthController.php
-
-		-
-			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$settings\.$#'
-			identifier: property.notFound
-			count: 4
 			path: app/Http/Controllers/AuthController.php
 
 		-
@@ -933,18 +927,6 @@ parameters:
 		-
 			message: '#^Parameter \#3 \$tenant of method App\\Services\\Security\\TwoFactorLogin\:\:challengeIfNeeded\(\) expects App\\Models\\Tenant\|null, Illuminate\\Database\\Eloquent\\Model given\.$#'
 			identifier: argument.type
-			count: 1
-			path: app/Http/Controllers/AuthController.php
-
-		-
-			message: '#^Using nullsafe property access "\?\-\>locale" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
-			identifier: nullsafe.neverNull
-			count: 1
-			path: app/Http/Controllers/AuthController.php
-
-		-
-			message: '#^Using nullsafe property access "\?\-\>timezone" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
-			identifier: nullsafe.neverNull
 			count: 1
 			path: app/Http/Controllers/AuthController.php
 
@@ -3881,6 +3863,30 @@ parameters:
 			identifier: nullsafe.neverNull
 			count: 1
 			path: app/Providers/AppServiceProvider.php
+
+		-
+			message: '#^Access to an undefined property App\\Models\\User\:\:\$is_super_admin\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Services/Auth/SessionPayload.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$settings\.$#'
+			identifier: property.notFound
+			count: 4
+			path: app/Services/Auth/SessionPayload.php
+
+		-
+			message: '#^Using nullsafe property access "\?\-\>locale" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: app/Services/Auth/SessionPayload.php
+
+		-
+			message: '#^Using nullsafe property access "\?\-\>timezone" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: app/Services/Auth/SessionPayload.php
 
 		-
 			message: '#^Access to an undefined property App\\Models\\Task\:\:\$reporter_user_id\.$#'
