@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Http\Requests\Hrms;
 
 use App\Services\Hrms\Document\DocumentUpload;

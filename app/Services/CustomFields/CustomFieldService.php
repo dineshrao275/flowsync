@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Services\CustomFields;
 
 use App\Models\CustomFieldDefinition;

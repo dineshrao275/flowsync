@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Billing\Reconciliation;
 
 use App\Billing\Gateways\RazorpayGateway;

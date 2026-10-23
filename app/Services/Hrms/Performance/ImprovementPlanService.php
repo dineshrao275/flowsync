@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Services\Hrms\Performance;
 
 use App\Models\Hrms\Employee\Employee;

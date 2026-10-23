@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Policies\Hrms\Holiday;
 
 use App\Models\Hrms\Employee\Employee;

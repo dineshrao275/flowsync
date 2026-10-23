@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Http\Controllers\Hrms\Leave;
 
 use App\Http\Controllers\Controller;
@@ -35,11 +37,11 @@ class LeaveBalanceController extends Controller
     {
         $filters = $request->validated();
 
-        $employee = $this->employee($request, $filters['employee_id'] ?? null);
+        $employee = $this->employee($request, isset($filters['employee_id']) ? (int) $filters['employee_id'] : null);
 
         return response()->json([
             'employee' => ['id' => $employee->id, 'name' => $employee->name, 'employee_code' => $employee->employee_code],
-            'balances' => $this->reading->balancesFor($employee, $filters['year'] ?? null)
+            'balances' => $this->reading->balancesFor($employee, isset($filters['year']) ? (int) $filters['year'] : null)
                 ->map(fn (LeaveBalance $balance): array => $this->presenter->balance($balance))
                 ->all(),
         ]);

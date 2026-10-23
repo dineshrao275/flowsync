@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Support;
 
 /** The set of permission slugs the platform defines (config/permissions.php, scope variants included). */

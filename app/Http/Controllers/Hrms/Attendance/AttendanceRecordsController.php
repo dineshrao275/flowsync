@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Http\Controllers\Hrms\Attendance;
 
 use App\Enums\Hrms\DataAccessAction;
@@ -39,7 +41,7 @@ class AttendanceRecordsController extends Controller
     {
         $filters = $request->validated();
 
-        $employee = $this->employee($request, $filters['employee_id'] ?? null);
+        $employee = $this->employee($request, isset($filters['employee_id']) ? (int) $filters['employee_id'] : null);
 
         $now = today();
         $presented = $this->presenter->month($this->attendance->month(
@@ -58,7 +60,7 @@ class AttendanceRecordsController extends Controller
     {
         $filters = $request->validated();
 
-        $employee = $this->employee($request, $filters['employee_id'] ?? null);
+        $employee = $this->employee($request, isset($filters['employee_id']) ? (int) $filters['employee_id'] : null);
 
         return response()->json([
             'employee' => ['id' => $employee->id, 'name' => $employee->name, 'employee_code' => $employee->employee_code],
@@ -78,7 +80,7 @@ class AttendanceRecordsController extends Controller
     {
         $filters = $request->validated();
 
-        $employee = $this->employee($request, $filters['employee_id'] ?? null, authorize: false);
+        $employee = $this->employee($request, isset($filters['employee_id']) ? (int) $filters['employee_id'] : null, authorize: false);
 
         $from = Carbon::parse($filters['from'])->startOfDay();
         $to = Carbon::parse($filters['to'])->startOfDay();

@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Services\Hrms\Statutory;
 
 use App\Models\Hrms\Employee\Employee;
@@ -194,6 +196,7 @@ class StatutoryResolver
     {
         $end = $this->fiscalStart($payDate, $yearStartMonth)->addMonths(11)->startOfMonth();
 
-        return $payDate->copy()->startOfMonth()->diffInMonths($end) + 1;
+        // Carbon 3 returns a float; whole months by construction (both dates are month starts).
+        return (int) $payDate->copy()->startOfMonth()->diffInMonths($end) + 1;
     }
 }

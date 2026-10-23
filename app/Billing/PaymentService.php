@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Billing;
 
 use App\Billing\DTOs\PaymentResult;

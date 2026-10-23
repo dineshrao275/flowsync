@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Http\Controllers\Hrms\CompOff;
 
 use App\Enums\Hrms\CompOffSource;
@@ -38,7 +40,7 @@ class CompOffCreditController extends Controller
     {
         $filters = $request->validated();
 
-        $employee = $this->employee($request, $filters['employee_id'] ?? null);
+        $employee = $this->employee($request, isset($filters['employee_id']) ? (int) $filters['employee_id'] : null);
 
         $this->authorize('view', [CompOffCredit::class, $employee]);
 

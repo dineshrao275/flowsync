@@ -5923,12 +5923,6 @@ parameters:
 			path: app/Services/Hrms/Statutory/StatutoryResolver.php
 
 		-
-			message: '#^Method App\\Services\\Hrms\\Statutory\\StatutoryResolver\:\:monthsRemaining\(\) should return int but returns float\.$#'
-			identifier: return.type
-			count: 1
-			path: app/Services/Hrms/Statutory/StatutoryResolver.php
-
-		-
 			message: '#^Empty array passed to foreach\.$#'
 			identifier: foreach.emptyArray
 			count: 1

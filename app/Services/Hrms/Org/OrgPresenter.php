@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Services\Hrms\Org;
 
 use App\Models\Hrms\Org\Department;

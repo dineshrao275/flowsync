@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Services\Hrms\Talent;
 
 use App\Enums\Hrms\PerformanceCycleStage;
