@@ -8,6 +8,7 @@ use App\Models\Task;
 use App\Models\User;
 use App\Services\ReportsTo;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\Facades\DB;
 
 /**
  * Resolves a user's effective task row-scope for a project-role permission.
@@ -128,5 +129,54 @@ final class TaskScope
         }
 
         return array_values(array_unique($ids));
+    }
+
+    /**
+     * Membership AND row scope, per project (R10).
+     *
+     * A project role that reads only `tasks.view_own` / `_assigned` sees just
+     * those rows on its board; the multi-project reads (search, dashboard,
+     * reports, analytics) must not widen that. Projects are grouped by the
+     * widest scope the caller's role there qualifies for, and each group is
+     * constrained by `TaskScope` — the same rule the board and TaskPolicy use.
+     * A role with no `tasks.view*` grant contributes no projects at all.
+     */
+    public static function constrainToMemberships(Builder $query, User $user): void
+    {
+        $memberships = DB::table('project_members')
+            ->where('user_id', $user->id)
+            ->pluck('project_role_id', 'project_id');
+
+        $roles = ProjectRole::whereIn('id', $memberships->filter()->unique()->all())->get()->keyBy('id');
+
+        $byScope = ['all' => [], 'assigned' => [], 'own' => []];
+        foreach ($memberships as $projectId => $roleId) {
+            $role = $roles->get($roleId);
+            $scope = $role ? self::widestFor($role, 'tasks.view') : null;
+
+            if ($scope !== null) {
+                $byScope[$scope][] = (int) $projectId;
+            }
+        }
+
+        $query->where(function (Builder $outer) use ($byScope, $user): void {
+            $any = false;
+
+            foreach ($byScope as $scope => $projectIds) {
+                if ($projectIds === []) {
+                    continue;
+                }
+
+                $any = true;
+                $outer->orWhere(function (Builder $group) use ($projectIds, $scope, $user): void {
+                    $group->whereIn('tasks.project_id', $projectIds);
+                    self::constrainQuery($group, $user, $scope);
+                });
+            }
+
+            if (! $any) {
+                $outer->whereRaw('1 = 0');
+            }
+        });
     }
 }
