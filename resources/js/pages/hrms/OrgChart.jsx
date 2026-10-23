@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import api from '../../services/api';
 import usePageTitle from '../../hooks/usePageTitle';
@@ -6,6 +6,8 @@ import Card from '../../components/ui/Card';
 import Input from '../../components/ui/Input';
 import ContentSkeleton from '../../components/ui/ContentSkeleton';
 import Alert from '../../components/ui/Alert';
+import Resource from '../../components/ui/Resource';
+import { useResource } from '../../hooks/useResource';
 import Avatar from '../../components/ui/Avatar';
 
 function Node({ node, byParent, open, toggle, match, depth }) {
@@ -39,14 +41,19 @@ function Node({ node, byParent, open, toggle, match, depth }) {
 export default function OrgChart() {
     const { t } = useTranslation();
     usePageTitle(t('hrms.orgChart.pageTitle'));
-    const [data, setData] = useState(null);
-    const [error, setError] = useState(null);
+    const res = useResource((signal) => api.get('/hrms/org-chart', { signal }).then(({ data }) => data), []);
+
+    return (
+        <Resource {...res} skeleton={<ContentSkeleton size="lg" />} errorTitle={t('hrms.orgChart.loadFailed')}>
+            {(data) => <OrgChartBody data={data} />}
+        </Resource>
+    );
+}
+
+function OrgChartBody({ data }) {
+    const { t } = useTranslation();
     const [open, setOpen] = useState(new Set());
     const [q, setQ] = useState('');
-
-    useEffect(() => {
-        api.get('/hrms/org-chart').then(({ data: res }) => setData(res)).catch(() => setError(t('hrms.orgChart.loadFailed')));
-    }, [t]);
 
     const { roots, byParent } = useMemo(() => {
         const map = new Map();
@@ -70,9 +77,6 @@ export default function OrgChart() {
             return next;
         });
     }
-
-    if (error) return <Alert>{error}</Alert>;
-    if (!data) return <ContentSkeleton size="lg" />;
 
     return (
         <div className="space-y-6">
