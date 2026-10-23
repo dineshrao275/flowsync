@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Tests\Unit;
 
 use PHPUnit\Framework\TestCase;
@@ -20,7 +22,7 @@ class ClassSizeCeilingTest extends TestCase
 
     /** @var array<string, int> path => frozen maximum line count */
     private const FROZEN = [
-        'app/Billing/Gateways/StripeGateway.php' => 628,
+        'app/Billing/Gateways/StripeGateway.php' => 499,
         'app/Billing/PaymentService.php' => 586,
         'app/Console/Commands/BackupTenants.php' => 376,
         'app/Http/Controllers/AuthController.php' => 379,
