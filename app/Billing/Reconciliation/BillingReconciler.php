@@ -12,6 +12,7 @@ use App\Models\Payment;
 use App\Models\PaymentEvent;
 use App\Models\Subscription;
 use App\Models\Tenant;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
@@ -100,7 +101,7 @@ class BillingReconciler
 
             $end = $remote['current_period_end'] ?? $remote['items']['data'][0]['current_period_end'] ?? null;
             if ($end && ($subscription->current_period_end === null || $end > $subscription->current_period_end->timestamp)) {
-                $subscription->update(['current_period_end' => \Illuminate\Support\Carbon::createFromTimestamp((int) $end)]);
+                $subscription->update(['current_period_end' => Carbon::createFromTimestamp((int) $end)]);
             }
         });
 
