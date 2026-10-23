@@ -18,6 +18,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
@@ -149,7 +150,9 @@ class TenantController extends Controller
 
         try {
             $user = app(TenantDatabaseManager::class)->using($tenant, fn () => User::defaultUser());
-        } catch (\Throwable) {
+        } catch (\Throwable $e) {
+            Log::warning('Tenant default user lookup failed', ['tenant_id' => $tenant->id, 'error' => $e->getMessage()]);
+
             return null;
         }
 
