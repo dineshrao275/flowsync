@@ -28,7 +28,7 @@ System (`php artisan migrate --database=system --path=database/migrations/system
 Tenant (`tenants:provision` runs them on existing tenants): `2026_10_29_000048_create_two_factor_credentials`.
 A tenant DB that has not run it simply reports nobody enrolled (`TwoFactorService::isEnabled` swallows `QueryException`).
 
-## Routes (all in the new `routes/security.php`, required by ONE line appended to `routes/web.php`)
+## Routes (all in the new `routes/web/security.php`, required by ONE line appended to `routes/web.php`)
 Public: `POST api/auth/2fa/challenge` (throttle 10/min).
 Any signed-in account: `GET auth/2fa`, `POST auth/2fa/setup|confirm|disable|recovery-codes`.
 Tenant `tenant_context` + `permission:roles.manage`: `GET|PUT security/two-factor-policy`.
@@ -72,7 +72,7 @@ Add a new section after "Request correlation (P2.2)":
 - **Platform personas (P8.3):** `config/platform_access.php`; `platform_roles` seeded with Billing Admin/Support/Auditor/Operator; `EnsureSuperAdmin` enforces the route->permission map; no persona = unrestricted break-glass; `platform:<slug>` middleware for explicit gates; assignment via `PUT system/users/{user}/platform-roles`.
 - **Support access (P8.4):** tenant admin (`support.manage`) grants time-boxed read-only/write windows (`support_access_grants`); impersonation accepts `grant_id` (caps mode + session length; revocation ends a running session); platform setting `require_support_consent` makes it mandatory.
 - **Audit chain (P8.6):** `audit_logs.hash/prev_hash` sealed by `AuditChain` on create; `php artisan audit:verify`, `GET system/audit-logs/verify`; export carries hashes + `X-Audit-Chain-Head`; `audit:prune` applies plan limit `audit_retention_days` and leaves `audit_log_tombstones`.
-- Security routes live in `routes/security.php` (required from `routes/web.php`).
+- Security routes live in `routes/web/security.php` (required from `routes/web.php`).
 ```
 Also: in "Commands" add focused test files `SecurityHeadersTest`, `FeatureFlagTest`, `TwoFactorTest` (+ `Unit/TotpTest`), `PlatformAccessTest`, `SupportAccessTest`, `AuditChainTest`; counts are not verified (not run).
 Pitfalls: add "`EnsureSuperAdmin` is persona-aware: every new `super_admin` route needs an entry in `config/platform_access.php` `routes` or restricted accounts get 403 (`PlatformAccessTest` fails)."

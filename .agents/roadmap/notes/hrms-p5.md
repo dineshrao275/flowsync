@@ -61,7 +61,7 @@ Final sandbox runs, all green: `HrmsShiftApiTest` 7, `HrmsRosterApiTest` 6, `Hrm
 ## Files changed (merge diff)
 
 107 files +6384/−152. 6 tenant migrations (`database/migrations/tenant*/2026_11_01_00010{1..6}`),
-new `routes/hrms_p5.php` (required from `routes/web.php` inside the tenant HRMS stack), controllers
+new `routes/web/hrms_shifts_p5.php` (required from `routes/web.php` inside the tenant HRMS stack), controllers
 under `app/Http/Controllers/Hrms/{Asset,DocumentVersion,Employee/Bulk,Holiday,Leave,Shift}/`,
 services under `app/Services/Hrms/{Asset,Document/Bulk→DocumentVersioning,Employee/Bulk,Holiday,
 Leave,Shift}/`, SPA pages/components listed above, tests `HrmsShiftApiTest`, `HrmsRosterApiTest`,
