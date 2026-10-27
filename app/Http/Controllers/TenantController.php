@@ -308,6 +308,61 @@ class TenantController extends Controller
 
     public function users(Tenant $tenant): JsonResponse
     {
+        $roleWeight = function (array $roles, bool $isDefault): int {
+            if ($isDefault) {
+                return 0;
+            }
+            if (in_array('admin', $roles, true)) {
+                return 1;
+            }
+            if (in_array('manager', $roles, true)) {
+                return 2;
+            }
+            if (in_array('editor', $roles, true)) {
+                return 3;
+            }
+            if (in_array('member', $roles, true)) {
+                return 4;
+            }
+            if (in_array('viewer', $roles, true)) {
+                return 5;
+            }
+
+            return 10;
+        };
+
+        try {
+            $users = app(TenantDatabaseManager::class)->using($tenant, function () use ($roleWeight) {
+                return User::with('roles')
+                    ->get()
+                    ->sort(function (User $a, User $b) use ($roleWeight) {
+                        $wA = $roleWeight($a->roles->pluck('slug')->all(), (bool) $a->is_default);
+                        $wB = $roleWeight($b->roles->pluck('slug')->all(), (bool) $b->is_default);
+                        if ($wA !== $wB) {
+                            return $wA <=> $wB;
+                        }
+
+                        return strcasecmp($a->name, $b->name);
+                    })
+                    ->values()
+                    ->map(fn (User $user) => [
+                        'id' => $user->id,
+                        'name' => $user->name,
+                        'email' => $user->email,
+                        'roles' => $user->roles->pluck('slug')->values()->all(),
+                        'role_names' => $user->roles->pluck('name')->values()->all(),
+                        'is_default' => (bool) $user->is_default,
+                    ])
+                    ->all();
+            });
+
+            if (! empty($users)) {
+                return response()->json(['users' => $users]);
+            }
+        } catch (\Throwable) {
+            // fall through to central routing table
+        }
+
         $users = TenantUserRouting::where('tenant_id', $tenant->id)
             ->orderBy('name')
             ->get()
@@ -316,6 +371,8 @@ class TenantController extends Controller
                 'name' => $route->name,
                 'email' => $route->email,
                 'roles' => [],
+                'role_names' => [],
+                'is_default' => false,
             ]);
 
         return response()->json(['users' => $users]);
