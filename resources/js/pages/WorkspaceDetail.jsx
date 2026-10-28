@@ -96,8 +96,11 @@ export default function WorkspaceDetail() {
                 );
             })
             .catch((err) => {
-                if (!active) return;
-                setError(err.response?.data?.message || t('tms.workspaceDetail.failedToLoad'));
+                if (active && err?.response?.status === 403) {
+                    navigate('/403', { replace: true });
+                    return;
+                }
+                if (active) setError(t('tms.workspaceDetail.loadFailed'));
             })
             .finally(() => {
                 if (active) setLoading(false);
@@ -106,223 +109,211 @@ export default function WorkspaceDetail() {
         return () => {
             active = false;
         };
-    }, [workspaceId, can, t]);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [workspaceId]);
 
     useEffect(() => {
-        if (!workspace) return;
-        setCrumbs([
-            { label: t('tms.workspaceDetail.crumbsWorkspaces'), to: '/workspaces' },
-            { label: workspace.name },
-        ]);
+        setCrumbs(
+            workspace
+                ? [
+                    { label: t('tms.workspaceDetail.crumbWorkspaces'), to: '/workspaces' },
+                    { label: workspace.name },
+                ]
+                : [{ label: t('tms.workspaceDetail.crumbWorkspaces'), to: '/workspaces' }],
+        );
     }, [workspace, setCrumbs, t]);
 
-    const activeTab = searchParams.get('tab') || 'projects';
-    const changeTab = (key) => {
-        setSearchParams((prev) => {
-            const next = new URLSearchParams(prev);
-            if (key === 'projects') next.delete('tab');
-            else next.set('tab', key);
-            return next;
-        });
-    };
+    function updateWorkspace(fields) {
+        setUpdating(true);
+        setFormErrors({});
+        api.put(`/workspaces/${workspaceId}`, fields)
+            .then(({ data }) => {
+                setWorkspace(data.workspace);
+                toast.success(t('tms.workspaceDetail.updated'));
+            })
+            .catch((e) => setFormErrors(fieldErrors(e)))
+            .finally(() => setUpdating(false));
+    }
 
-    const addMember = async (e) => {
+    async function archiveWorkspace() {
+        if (!(await confirm({ title: t('tms.workspaceDetail.archiveTitle'), message: t('tms.workspaceDetail.archiveMessage') }))) return;
+        try {
+            const { data } = await api.post(`/workspaces/${workspaceId}/archive`);
+            setWorkspace(data.workspace);
+            toast.success(t('tms.workspaceDetail.archived'));
+        } catch (e) {
+            toast.error(fieldErrors(e).form || t('tms.workspaceDetail.archiveFailed'));
+        }
+    }
+
+    async function restoreWorkspace() {
+        try {
+            const { data } = await api.post(`/workspaces/${workspaceId}/restore`);
+            setWorkspace(data.workspace);
+            toast.success(t('tms.workspaceDetail.restored'));
+        } catch (e) {
+            toast.error(fieldErrors(e).form || t('tms.workspaceDetail.restoreFailed'));
+        }
+    }
+
+    async function deleteWorkspace() {
+        if (!(await confirm({ title: t('tms.workspaceDetail.deleteTitle'), message: t('tms.workspaceDetail.deleteMessage'), variant: 'danger' }))) return;
+        try {
+            await api.delete(`/workspaces/${workspaceId}`);
+            toast.success(t('tms.workspaceDetail.deleted'));
+            navigate('/workspaces');
+        } catch (e) {
+            toast.error(fieldErrors(e).form || t('tms.workspaceDetail.deleteFailed'));
+        }
+    }
+
+    function loadMembers() {
+        return Promise.all([
+            api.get(`/workspaces/${workspaceId}/members`),
+            can('users.view') ? api.get('/users', { params: { all: 1 } }) : Promise.resolve({ data: { users: [] } }),
+        ]).then(([mem, users]) => {
+            setMembers(mem.data.members);
+            setCandidateUsers(
+                users.data.users.filter((u) => !mem.data.members.some((m) => m.id === u.id)),
+            );
+        });
+    }
+
+    async function addMember(e) {
         e.preventDefault();
         setSavingMember(true);
         setFormErrors({});
-
         try {
-            const res = await api.post(`/workspaces/${workspaceId}/members`, memberForm);
-            setMembers((prev) => [...prev, res.data.member]);
-            setCandidateUsers((prev) => prev.filter((u) => u.id !== Number(memberForm.user_id)));
-            setMemberForm({ user_id: '', role: 'member' });
+            await api.post(`/workspaces/${workspaceId}/members`, memberForm);
+            await loadMembers();
+            setMemberForm((f) => ({ ...f, user_id: '' }));
             toast.success(t('tms.workspaceDetail.memberAdded'));
-        } catch (err) {
-            setFormErrors(fieldErrors(err));
-            toast.error(err.response?.data?.message || t('tms.workspaceDetail.failedToAddMember'));
+        } catch (e) {
+            setFormErrors(fieldErrors(e));
         } finally {
             setSavingMember(false);
         }
-    };
+    }
 
-    const changeRole = async (member, role) => {
+    async function changeRole(member, role) {
         try {
-            const res = await api.put(`/workspaces/${workspaceId}/members/${member.id}`, { role });
-            setMembers((prev) => prev.map((m) => (m.id === member.id ? res.data.member : m)));
+            await api.put(`/workspaces/${workspaceId}/members/${member.id}`, { role });
+            await loadMembers();
             toast.success(t('tms.workspaceDetail.roleUpdated'));
-        } catch (err) {
-            toast.error(err.response?.data?.message || t('tms.workspaceDetail.failedToUpdateRole'));
+        } catch (e) {
+            toast.error(fieldErrors(e).form || t('tms.workspaceDetail.roleFailed'));
         }
-    };
+    }
 
-    const removeMember = async (member) => {
-        const ok = await confirm({
-            title: t('tms.workspaceDetail.removeConfirmTitle'),
-            message: t('tms.workspaceDetail.removeConfirmMessage', { name: member.name }),
-            confirmText: t('tms.workspaceDetail.removeConfirmButton'),
-            confirmVariant: 'danger',
-        });
-        if (!ok) return;
-
+    async function removeMember(member) {
+        if (!(await confirm({ title: t('tms.workspaceDetail.removeMemberTitle'), message: t('tms.workspaceDetail.removeMemberMessage', { name: member.name }), variant: 'danger' }))) return;
         try {
             await api.delete(`/workspaces/${workspaceId}/members/${member.id}`);
-            setMembers((prev) => prev.filter((m) => m.id !== member.id));
-            setCandidateUsers((prev) => [...prev, member]);
-            toast.success(t('tms.workspaceDetail.memberRemoved'));
-        } catch (err) {
-            toast.error(err.response?.data?.message || t('tms.workspaceDetail.failedToRemoveMember'));
+            await loadMembers();
+            toast.success(t('tms.workspaceDetail.memberRemoved', { name: member.name }));
+        } catch (e) {
+            toast.error(fieldErrors(e).form || t('tms.workspaceDetail.removeFailed'));
         }
-    };
+    }
 
-    const addLabel = async (e) => {
+    async function addLabel(e) {
         e.preventDefault();
         setSavingLabel(true);
         setFormErrors({});
-
         try {
-            const res = await api.post(`/workspaces/${workspaceId}/labels`, labelForm);
-            setLabels((prev) => [...prev, res.data.label]);
-            setLabelForm({ name: '', color: '#2563eb' });
+            const { data } = await api.post(`/workspaces/${workspaceId}/labels`, labelForm);
+            setLabels((l) => [...l, data.label]);
+            setLabelForm((f) => ({ ...f, name: '' }));
             toast.success(t('tms.workspaceDetail.labelCreated'));
-        } catch (err) {
-            setFormErrors(fieldErrors(err));
-            toast.error(err.response?.data?.message || t('tms.workspaceDetail.failedToCreateLabel'));
+        } catch (e) {
+            setFormErrors(fieldErrors(e));
         } finally {
             setSavingLabel(false);
         }
-    };
+    }
 
-    const deleteLabel = async (label) => {
-        const ok = await confirm({
-            title: t('tms.workspaceDetail.deleteLabelConfirmTitle'),
-            message: t('tms.workspaceDetail.deleteLabelConfirmMessage', { name: label.name }),
-            confirmText: t('tms.workspaceDetail.deleteLabelConfirmButton'),
-            confirmVariant: 'danger',
-        });
-        if (!ok) return;
-
+    async function deleteLabel(label) {
+        if (!(await confirm({ title: t('tms.workspaceDetail.deleteLabelTitle'), message: t('tms.workspaceDetail.deleteLabelMessage', { name: label.name }), variant: 'danger' }))) return;
         try {
             await api.delete(`/labels/${label.id}`);
-            setLabels((prev) => prev.filter((l) => l.id !== label.id));
+            setLabels((l) => l.filter((x) => x.id !== label.id));
             toast.success(t('tms.workspaceDetail.labelDeleted'));
-        } catch (err) {
-            toast.error(err.response?.data?.message || t('tms.workspaceDetail.failedToDeleteLabel'));
+        } catch {
+            toast.error(t('tms.workspaceDetail.deleteLabelFailed'));
         }
-    };
+    }
 
-    const createProject = async (e) => {
+    async function createProject(e) {
         e.preventDefault();
+        setCreatingProject(false);
         setSavingProject(true);
         setFormErrors({});
-
         try {
-            const res = await api.post('/projects', {
-                ...projectForm,
-                workspace_id: workspaceId,
-            });
-            setProjects((prev) => [res.data.project, ...prev]);
+            const payload = {
+                name: projectForm.name,
+                key: projectForm.key || undefined,
+                description: projectForm.description || undefined,
+                board_type: projectForm.template_id ? undefined : projectForm.board_type,
+            };
+            const { data } = projectForm.template_id
+                ? await api.post(`/workspaces/${workspaceId}/projects/from-template`, { ...payload, template_id: Number(projectForm.template_id) })
+                : await api.post(`/workspaces/${workspaceId}/projects`, payload);
+            // The from-template reply is minimal; refetch the list so the new project card is complete.
+            if (projectForm.template_id) {
+                const list = await api.get(`/workspaces/${workspaceId}/projects`);
+                setProjects(list.data.projects);
+            } else {
+                setProjects((current) => [...current, data.project]);
+            }
             setProjectForm({ name: '', key: '', description: '', template_id: '', board_type: 'kanban' });
-            setCreatingProject(false);
-            toast.success(t('tms.workspaceDetail.projectCreated'));
-            navigate(`/projects/${res.data.project.id}`);
-        } catch (err) {
-            setFormErrors(fieldErrors(err));
-            toast.error(err.response?.data?.message || t('tms.workspaceDetail.failedToCreateProject'));
+            toast.success(t('tms.workspaceDetail.projectCreated', { key: data.project.key }));
+        } catch (e) {
+            setCreatingProject(true);
+            setFormErrors(fieldErrors(e));
         } finally {
             setSavingProject(false);
         }
-    };
-
-    const updateWorkspace = async (patch) => {
-        setUpdating(true);
-        setFormErrors({});
-
-        try {
-            const res = await api.put(`/workspaces/${workspaceId}`, patch);
-            setWorkspace(res.data.workspace);
-            toast.success(t('tms.workspaceDetail.workspaceUpdated'));
-        } catch (err) {
-            setFormErrors(fieldErrors(err));
-            toast.error(err.response?.data?.message || t('tms.workspaceDetail.failedToUpdateWorkspace'));
-        } finally {
-            setUpdating(false);
-        }
-    };
-
-    const archiveWorkspace = async () => {
-        const ok = await confirm({
-            title: t('tms.workspaceDetail.archiveConfirmTitle'),
-            message: t('tms.workspaceDetail.archiveConfirmMessage', { name: workspace.name }),
-            confirmText: t('tms.workspaceDetail.archiveConfirmButton'),
-            confirmVariant: 'danger',
-        });
-        if (!ok) return;
-
-        try {
-            const res = await api.post(`/workspaces/${workspaceId}/archive`);
-            setWorkspace(res.data.workspace);
-            toast.success(t('tms.workspaceDetail.workspaceArchived'));
-        } catch (err) {
-            toast.error(err.response?.data?.message || t('tms.workspaceDetail.failedToArchiveWorkspace'));
-        }
-    };
-
-    const restoreWorkspace = async () => {
-        try {
-            const res = await api.post(`/workspaces/${workspaceId}/restore`);
-            setWorkspace(res.data.workspace);
-            toast.success(t('tms.workspaceDetail.workspaceRestored'));
-        } catch (err) {
-            toast.error(err.response?.data?.message || t('tms.workspaceDetail.failedToRestoreWorkspace'));
-        }
-    };
-
-    const deleteWorkspace = async () => {
-        const ok = await confirm({
-            title: t('tms.workspaceDetail.deleteWorkspaceConfirmTitle'),
-            message: t('tms.workspaceDetail.deleteWorkspaceConfirmMessage', { name: workspace.name }),
-            confirmText: t('tms.workspaceDetail.deleteWorkspaceConfirmButton'),
-            confirmVariant: 'danger',
-        });
-        if (!ok) return;
-
-        try {
-            await api.delete(`/workspaces/${workspaceId}`);
-            toast.success(t('tms.workspaceDetail.workspaceDeleted'));
-            navigate('/workspaces');
-        } catch (err) {
-            toast.error(err.response?.data?.message || t('tms.workspaceDetail.failedToDeleteWorkspace'));
-        }
-    };
+    }
 
     if (loading) {
-        return <ContentSkeleton size="lg" />;
+        return (
+            <ContentSkeleton size="lg" />
+        );
     }
 
     if (error || !workspace) {
         return (
-            <Card>
-                <div className="py-6 text-center">
-                    <p className="text-sm text-red-600">{error || t('tms.workspaceDetail.workspaceNotFound')}</p>
-                </div>
-            </Card>
+            <div className="max-w-md">
+                <Alert>{error || t('tms.workspaceDetail.notFound')}</Alert>
+            </div>
         );
     }
 
     const tabs = [
-        { key: 'projects', label: t('tms.workspaceDetail.tabProjects'), count: projects.length },
-        { key: 'members', label: t('tms.workspaceDetail.tabMembers'), count: members.length },
-        { key: 'labels', label: t('tms.workspaceDetail.tabLabels'), count: labels.length },
-        { key: 'time', label: t('tms.workspaceDetail.tabTime') },
+        { key: 'projects', label: t('tms.workspaceDetail.tabProjects') },
+        { key: 'members', label: t('tms.workspaceDetail.tabMembers', { count: members.length }) },
+        { key: 'labels', label: t('tms.workspaceDetail.tabLabels', { count: labels.length }) },
+        ...(hasModule('time_tracking') ? [{ key: 'time', label: t('tms.workspaceDetail.tabTime') }] : []),
         ...(isOwner ? [{ key: 'settings', label: t('tms.workspaceDetail.tabSettings') }] : []),
     ];
 
+    const tabParam = searchParams.get('tab');
+    const activeTab = tabs.some((t) => t.key === tabParam) ? tabParam : 'projects';
+
+    function changeTab(next) {
+        if (next === 'projects') {
+            setSearchParams({});
+        } else {
+            setSearchParams({ tab: next });
+        }
+    }
+
     return (
         <div className="space-y-6">
-            <div className="flex flex-wrap items-center justify-between gap-4">
-                <div className="flex items-center gap-3">
+            <div className="flex flex-wrap items-start justify-between gap-3">
+                <div className="flex items-center gap-4">
                     <span
-                        className="flex h-12 w-12 items-center justify-center rounded-xl text-lg font-bold text-white shadow-sm"
+                        className="flex h-14 w-14 flex-shrink-0 items-center justify-center rounded-xl text-xl font-bold text-white shadow-md"
                         style={{ backgroundColor: 'var(--accent)' }}
                     >
                         {workspace.name.charAt(0).toUpperCase()}
