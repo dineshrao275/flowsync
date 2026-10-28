@@ -49,3 +49,14 @@ Done:
 - **`TenantController` brought under the 300-line ceiling (410 -> 285 lines)**: extracted `App\Services\Tenancy\TenantUserDirectory` (user directory listing and default owner account lookup) and `App\Services\Tenancy\TenantStats` (live domain counts); converted inline validations to FormRequests `TenantUpdateRequest` and `TenantSelfProfileRequest`. `TenantController.php` successfully removed from `ClassSizeCeilingTest::FROZEN`, and its inline validation ratchet lowered from 3 to 1 in `ArchitectureRatchetTest`.
 - **AGENTS.md further slimmed (511 -> 407 lines)**: moved 4 architecture sections verbatim into `docs/architecture/` (`api-tokens-and-security.md`, `realtime.md`, `rbac-and-permissions.md`, `impersonation-and-users.md`), replaced with concise reference links.
 - **`WorkspaceDetail.jsx` component split (669 -> 425 lines)**: extracted tab bodies into `components/workspace/` (`WorkspaceProjectsTab`, `WorkspaceMembersTab`, `WorkspaceLabelsTab`, `WorkspaceSettingsTab`); added to `extractedModules.test.jsx` (Vitest 217 tests / 48 files green).
+
+### Sixth pass (focused tests and static verification)
+Static gate at the end of this pass: Pint, route snapshot (`scripts/route-snapshot.sh --check`), `ClassSizeCeilingTest`, ESLint (0 errors / 123 warnings), Vitest (221 tests / 48 files), and the production build all pass.
+
+Done:
+- **`EmployeeController` brought under ceiling (303 -> 294 lines)**: removed duplicate stacked docblock on `photo()`; removed from `ClassSizeCeilingTest::FROZEN`.
+- **`LeaveRequestDecisions` split (303 -> 227 lines)**: extracted `App\Services\Hrms\Leave\LeaveDecisionLedger` (92 lines) for adjustments and date rebuilds; removed from `ClassSizeCeilingTest::FROZEN`. Guarded by `HrmsLeaveRequestTest` (16 tests) and `HrmsLeaveApprovalRoutingTest` (7 tests).
+- **`OnboardingCases` split (305 -> 272 lines)**: delegated participant and open state verification to `App\Services\Hrms\Lifecycle\CaseProgress`; removed from `ClassSizeCeilingTest::FROZEN`. Guarded by `HrmsLifecycleServiceTest` (19 tests) and `HrmsLifecycleApiTest` (10 tests).
+- **`ExportService` split (315 -> 228 lines)**: extracted `App\Services\Export\ExportCsvWriter` (47 lines) and `App\Services\Export\HrmsExportCategories` (91 lines); removed from `ClassSizeCeilingTest::FROZEN`. Guarded by `TenantExportTest` (8 tests).
+- **`Leave.jsx` component split (698 -> 538 lines)**: extracted tab bodies into `components/hrms/leave/` (`LeaveRequestsTab`, `LeaveTypesTab`, `LeavePoliciesTab`, `LeaveExemptionsTab`); added to `extractedModules.test.jsx` (Vitest 221 tests / 48 files green).
+

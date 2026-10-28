@@ -11,7 +11,6 @@ import Input from '../../components/ui/Input';
 import Modal from '../../components/ui/Modal';
 import Select from '../../components/ui/Select';
 import ContentSkeleton from '../../components/ui/ContentSkeleton';
-import { Table, Th, Td, TableEmpty } from '../../components/ui/Table';
 import { useToast } from '../../context/ToastContext';
 import { useConfirm, usePrompt } from '../../components/ui/ConfirmDialog';
 import { useAuth } from '../../context/AuthContext';
@@ -22,6 +21,10 @@ import LeaveAdjustPanel from '../../components/hrms/LeaveAdjustPanel';
 import LeaveBlackoutPanel from '../../components/hrms/LeaveBlackoutPanel';
 import LeaveRequestModal from '../../components/hrms/LeaveRequestModal';
 import RecordComments from '../../components/hrms/RecordComments';
+import LeaveRequestsTab from '../../components/hrms/leave/LeaveRequestsTab';
+import LeaveTypesTab from '../../components/hrms/leave/LeaveTypesTab';
+import LeavePoliciesTab from '../../components/hrms/leave/LeavePoliciesTab';
+import LeaveExemptionsTab from '../../components/hrms/leave/LeaveExemptionsTab';
 
 const TABS = [
     { key: 'requests', labelKey: 'hrms.leave.tabs.requests' },
@@ -31,15 +34,6 @@ const TABS = [
     { key: 'adjustments', labelKey: 'hrms.leave.tabs.adjustments' },
     { key: 'blackouts', labelKey: 'hrms.leave.tabs.blackouts' },
     { key: 'exemptions', labelKey: 'hrms.leave.tabs.exemptions' },
-];
-
-const REQUEST_STATUSES = [
-    { value: '', key: 'stAllOpen' },
-    { value: 'submitted', key: 'stSubmitted' },
-    { value: 'pending', key: 'stPending' },
-    { value: 'approved', key: 'stApproved' },
-    { value: 'rejected', key: 'stRejected' },
-    { value: 'cancelled', key: 'stCancelled' },
 ];
 
 const ACCRUAL_METHODS = [
@@ -379,144 +373,32 @@ export default function Leave() {
             </div>
 
             {tab === 'requests' && (
-                <Card dense>
-                    <div className="mb-3 flex items-center gap-2">
-                        <Select aria-label={t('hrms.leave.statusFilter')} value={requestStatus} onChange={(e) => setRequestStatus(e.target.value)} className="w-44">
-                            {REQUEST_STATUSES.map((option) => (
-                                <option key={option.value} value={option.value}>
-                                    {t(`hrms.leave.${option.key}`)}
-                                </option>
-                            ))}
-                        </Select>
-                    </div>
-
-                    {!requests ? (
-                        <ContentSkeleton size="md" />
-                    ) : requests.length === 0 ? (
-                        <EmptyState title={t('hrms.leave.emptyTitle')} description={t('hrms.leave.emptyHint')} />
-                    ) : (
-                        <Table>
-                            <thead>
-                                <tr>
-                                    <Th>{t('hrms.leave.thEmployee')}</Th>
-                                    <Th>{t('hrms.leave.thDates')}</Th>
-                                    <Th>{t('hrms.leave.thType')}</Th>
-                                    <Th>{t('hrms.leave.thDays')}</Th>
-                                    <Th>{t('hrms.leave.thStatus')}</Th>
-                                    <Th><span className="sr-only">{t('hrms.leave.thActions')}</span></Th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {requests.map((request) => (
-                                    <tr key={request.id}>
-                                        <Td>{request.employee?.name ?? '—'}</Td>
-                                        <Td>{request.from_date} → {request.to_date}</Td>
-                                        <Td>{request.type?.name ?? '—'}</Td>
-                                        <Td>{request.total_days}</Td>
-                                        <Td>{request.status_label}</Td>
-                                        <Td>
-                                            {request.status === 'submitted' || request.status === 'pending' ? (
-                                                <div className="flex justify-end gap-2">
-                                                    <Button variant="secondary" onClick={() => { setDeciding({ ...request, verdict: 'approve' }); setDecisionNote(''); setDecisionErrors({}); }}>
-                                                        {t('hrms.leave.approve')}
-                                                    </Button>
-                                                    <Button variant="secondary" onClick={() => { setDeciding({ ...request, verdict: 'reject' }); setDecisionNote(''); setDecisionErrors({}); }}>
-                                                        {t('hrms.leave.reject')}
-                                                    </Button>
-                                                </div>
-                                            ) : null}
-                                        </Td>
-                                    </tr>
-                                ))}
-                            </tbody>
-                        </Table>
-                    )}
-                </Card>
+                <LeaveRequestsTab
+                    requests={requests}
+                    requestStatus={requestStatus}
+                    setRequestStatus={setRequestStatus}
+                    onStartDecision={(request, verdict) => {
+                        setDeciding({ ...request, verdict });
+                        setDecisionNote('');
+                        setDecisionErrors({});
+                    }}
+                />
             )}
 
             {tab === 'types' && (
-                <Card
-                    dense
-                    title={t('hrms.leave.typesTitle')}
-                    actions={<Button onClick={() => openTypeEditor(null)}>{t('hrms.leave.newType')}</Button>}
-                >
-                    {!types ? (
-                        <ContentSkeleton size="md" />
-                    ) : (
-                        <Table>
-                            <thead>
-                                <tr>
-                                    <Th>{t('hrms.leave.thName')}</Th>
-                                    <Th>{t('hrms.leave.thAccrual')}</Th>
-                                    <Th>{t('hrms.leave.thMax')}</Th>
-                                    <Th>{t('hrms.leave.thActive')}</Th>
-                                    <Th><span className="sr-only">{t('hrms.leave.thActions')}</span></Th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {types.map((type) => (
-                                    <tr key={type.id}>
-                                        <Td>
-                                            <span className="font-medium">{type.name}</span>
-                                            {type.is_system && <span className="ml-2 text-xs text-gray-400">{t('hrms.leave.system')}</span>}
-                                        </Td>
-                                        <Td>{type.accrual_method_label} · {type.accrual_rate}</Td>
-                                        <Td>{type.max_balance ?? '—'}</Td>
-                                        <Td>{type.is_active ? t('hrms.leave.yes') : t('hrms.leave.no')}</Td>
-                                        <Td>
-                                            <div className="flex justify-end gap-2">
-                                                <Button variant="secondary" onClick={() => openTypeEditor(type)}>{t('hrms.leave.edit')}</Button>
-                                                <Button variant="secondary" onClick={() => deleteType(type.id)}>{t('hrms.leave.delete')}</Button>
-                                            </div>
-                                        </Td>
-                                    </tr>
-                                ))}
-                                {types.length === 0 && <TableEmpty colSpan={5}>{t('hrms.leave.emptyTypes')}</TableEmpty>}
-                            </tbody>
-                        </Table>
-                    )}
-                </Card>
+                <LeaveTypesTab
+                    types={types}
+                    openTypeEditor={openTypeEditor}
+                    deleteType={deleteType}
+                />
             )}
 
             {tab === 'policies' && (
-                <Card
-                    dense
-                    title={t('hrms.leave.policiesTitle')}
-                    actions={<Button onClick={() => openPolicyEditor(null)}>{t('hrms.leave.newPolicy')}</Button>}
-                >
-                    {!policies ? (
-                        <ContentSkeleton size="md" />
-                    ) : (
-                        <Table>
-                            <thead>
-                                <tr>
-                                    <Th>{t('hrms.leave.thName')}</Th>
-                                    <Th>{t('hrms.leave.thPeriod')}</Th>
-                                    <Th>{t('hrms.leave.thYearStarts')}</Th>
-                                    <Th>{t('hrms.leave.thDefault')}</Th>
-                                    <Th><span className="sr-only">{t('hrms.leave.thActions')}</span></Th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {policies.map((policy) => (
-                                    <tr key={policy.id}>
-                                        <Td><span className="font-medium">{policy.name}</span></Td>
-                                        <Td>{policy.accrual_period_label}</Td>
-                                        <Td>{t('hrms.leave.month', { month: policy.start_month })}</Td>
-                                        <Td>{policy.is_default ? t('hrms.leave.yes') : t('hrms.leave.no')}</Td>
-                                        <Td>
-                                            <div className="flex justify-end gap-2">
-                                                <Button variant="secondary" onClick={() => openPolicyEditor(policy)}>{t('hrms.leave.edit')}</Button>
-                                                <Button variant="secondary" onClick={() => deletePolicy(policy.id)}>{t('hrms.leave.delete')}</Button>
-                                            </div>
-                                        </Td>
-                                    </tr>
-                                ))}
-                                {policies.length === 0 && <TableEmpty colSpan={5}>{t('hrms.leave.emptyPolicies')}</TableEmpty>}
-                            </tbody>
-                        </Table>
-                    )}
-                </Card>
+                <LeavePoliciesTab
+                    policies={policies}
+                    openPolicyEditor={openPolicyEditor}
+                    deletePolicy={deletePolicy}
+                />
             )}
 
             {tab === 'balances' && (
@@ -540,56 +422,15 @@ export default function Leave() {
             {tab === 'blackouts' && <LeaveBlackoutPanel types={types ?? []} />}
 
             {tab === 'exemptions' && (
-                <>
-                    <div className="flex justify-end">
-                        <Button
-                            onClick={() => {
-                                setExemptionForm(emptyExemption);
-                                setExemptionErrors({});
-                                setFilingExemption(true);
-                            }}
-                        >
-                            {t('hrms.leave.fileExemption')}
-                        </Button>
-                    </div>
-                    <Card dense title={t('hrms.leave.exemptionsTitle')}>
-                    {!exemptions ? (
-                        <ContentSkeleton size="md" />
-                    ) : exemptions.length === 0 ? (
-                        <EmptyState title={t('hrms.leave.exemptionsEmptyTitle')} description={t('hrms.leave.exemptionsEmptyHint')} />
-                    ) : (
-                        <Table>
-                            <thead>
-                                <tr>
-                                    <Th>{t('hrms.leave.thEmployee')}</Th>
-                                    <Th>{t('hrms.leave.thDates')}</Th>
-                                    <Th>{t('hrms.leave.thDays')}</Th>
-                                    <Th>{t('hrms.leave.thStatus')}</Th>
-                                    <Th><span className="sr-only">{t('hrms.leave.thActions')}</span></Th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {exemptions.map((exemption) => (
-                                    <tr key={exemption.id}>
-                                        <Td>{exemption.employee?.name ?? '—'}</Td>
-                                        <Td>{exemption.from_date} → {exemption.to_date}</Td>
-                                        <Td>{exemption.days}</Td>
-                                        <Td>{exemption.status_label}</Td>
-                                        <Td>
-                                            {exemption.status === 'pending' && (
-                                                <div className="flex justify-end gap-2">
-                                                    <Button variant="secondary" onClick={() => decideExemption(exemption.id, 'approve')}>{t('hrms.leave.approve')}</Button>
-                                                    <Button variant="secondary" onClick={() => decideExemption(exemption.id, 'reject')}>{t('hrms.leave.reject')}</Button>
-                                                </div>
-                                            )}
-                                        </Td>
-                                    </tr>
-                                ))}
-                            </tbody>
-                        </Table>
-                    )}
-                </Card>
-                </>
+                <LeaveExemptionsTab
+                    exemptions={exemptions}
+                    onFileExemption={() => {
+                        setExemptionForm(emptyExemption);
+                        setExemptionErrors({});
+                        setFilingExemption(true);
+                    }}
+                    decideExemption={decideExemption}
+                />
             )}
 
             <Modal open={!!deciding} onClose={() => setDeciding(null)} title={deciding?.verdict === 'approve' ? t('hrms.leave.decideApproveTitle') : t('hrms.leave.decideRejectTitle')}>

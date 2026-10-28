@@ -15,6 +15,10 @@ const modules = {
     WorkspaceMembersTab: () => import('../components/workspace/WorkspaceMembersTab'),
     WorkspaceLabelsTab: () => import('../components/workspace/WorkspaceLabelsTab'),
     WorkspaceSettingsTab: () => import('../components/workspace/WorkspaceSettingsTab'),
+    LeaveRequestsTab: () => import('../components/hrms/leave/LeaveRequestsTab'),
+    LeaveTypesTab: () => import('../components/hrms/leave/LeaveTypesTab'),
+    LeavePoliciesTab: () => import('../components/hrms/leave/LeavePoliciesTab'),
+    LeaveExemptionsTab: () => import('../components/hrms/leave/LeaveExemptionsTab'),
 };
 
 describe('split page modules', () => {
@@ -38,5 +42,9 @@ describe('split page modules', () => {
         expect(Object.keys(await import('../components/workspace/WorkspaceMembersTab'))).toEqual(expect.arrayContaining(['WorkspaceMembersTab']));
         expect(Object.keys(await import('../components/workspace/WorkspaceLabelsTab'))).toEqual(expect.arrayContaining(['WorkspaceLabelsTab']));
         expect(Object.keys(await import('../components/workspace/WorkspaceSettingsTab'))).toEqual(expect.arrayContaining(['WorkspaceSettingsTab']));
+        expect(Object.keys(await import('../components/hrms/leave/LeaveRequestsTab'))).toEqual(expect.arrayContaining(['default']));
+        expect(Object.keys(await import('../components/hrms/leave/LeaveTypesTab'))).toEqual(expect.arrayContaining(['default']));
+        expect(Object.keys(await import('../components/hrms/leave/LeavePoliciesTab'))).toEqual(expect.arrayContaining(['default']));
+        expect(Object.keys(await import('../components/hrms/leave/LeaveExemptionsTab'))).toEqual(expect.arrayContaining(['default']));
     });
 });
