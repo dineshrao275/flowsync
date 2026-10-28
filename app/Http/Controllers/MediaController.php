@@ -1,7 +1,11 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Http\Controllers;
 
+use App\Http\Requests\MediaIndexRequest;
+use App\Http\Requests\MediaUpdateRequest;
 use App\Http\Requests\MediaUploadRequest;
 use App\Models\Media;
 use App\Services\PlatformAudit;
@@ -18,12 +22,9 @@ use Illuminate\Support\Str;
  */
 class MediaController extends Controller
 {
-    public function index(Request $request): JsonResponse
+    public function index(MediaIndexRequest $request): JsonResponse
     {
-        $data = $request->validate([
-            'q' => ['nullable', 'string', 'max:255'],
-            'per_page' => ['nullable', 'integer', 'min:1', 'max:100'],
-        ]);
+        $data = $request->validated();
 
         $query = Media::orderByDesc('id');
 
@@ -81,9 +82,9 @@ class MediaController extends Controller
         return response()->json(['media' => $this->present($media)], 201);
     }
 
-    public function update(Request $request, Media $medium): JsonResponse
+    public function update(MediaUpdateRequest $request, Media $medium): JsonResponse
     {
-        $data = $request->validate(['alt' => ['nullable', 'string', 'max:255']]);
+        $data = $request->validated();
 
         $medium->update(['alt' => $data['alt']]);
 

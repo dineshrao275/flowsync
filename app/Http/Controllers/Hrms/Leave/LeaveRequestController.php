@@ -1,12 +1,14 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Http\Controllers\Hrms\Leave;
 
-use App\Enums\Hrms\LeaveHalf;
 use App\Enums\Hrms\LeaveRequestStatus;
 use App\Http\Controllers\Concerns\NormalizesFilters;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Hrms\Leave\LeaveDecisionRequest;
+use App\Http\Requests\Hrms\Leave\LeaveRequestAvailabilityRequest;
 use App\Http\Requests\Hrms\Leave\LeaveRequestRequest;
 use App\Models\Hrms\Employee\Employee;
 use App\Models\Hrms\Leave\LeaveRequest;
@@ -63,16 +65,9 @@ class LeaveRequestController extends Controller
      * shortfall spelled out. Never 422s on affordability — a preview that
      * refuses to preview an empty balance could never warn about it.
      */
-    public function availability(Request $request): JsonResponse
+    public function availability(LeaveRequestAvailabilityRequest $request): JsonResponse
     {
-        $filters = $request->validate([
-            'employee_id' => ['sometimes', 'nullable', 'integer', 'exists:employees,id'],
-            'leave_type_id' => ['required', 'integer', 'exists:leave_types,id'],
-            'from_date' => ['required', 'date'],
-            'to_date' => ['required', 'date', 'after_or_equal:from_date'],
-            'from_half' => ['sometimes', 'nullable', Rule::enum(LeaveHalf::class)],
-            'to_half' => ['sometimes', 'nullable', Rule::enum(LeaveHalf::class)],
-        ]);
+        $filters = $request->validated();
 
         $employee = $this->targetEmployee($request, $filters['employee_id'] ?? null);
 

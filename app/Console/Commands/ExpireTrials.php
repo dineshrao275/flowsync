@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Console\Commands;
 
 use App\Billing\Reconciliation\BillingReconciler;
@@ -84,8 +86,9 @@ class ExpireTrials extends Command
                 try {
                     app(BillingReconciler::class)->run($tenant);
                     $tenant->refresh();
-                } catch (\Throwable) {
+                } catch (\Throwable $e) {
                     // provider unreachable: fall through to the local rule
+                    Log::warning('Trial expiry: provider reconcile failed, using the local rule', ['tenant_id' => $tenant->id, 'error' => $e->getMessage()]);
                 }
             }
 

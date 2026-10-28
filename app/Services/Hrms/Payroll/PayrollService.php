@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Services\Hrms\Payroll;
 
 use App\Enums\Hrms\PayrollRunStatus;

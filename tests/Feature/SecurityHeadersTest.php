@@ -3,11 +3,15 @@
 namespace Tests\Feature;
 
 use Illuminate\Support\Facades\Log;
+use Tests\IsolatesDatabase;
 use Tests\TestCase;
 
 /** P8.5 - baseline headers and the report-only/enforce CSP toggle. */
 class SecurityHeadersTest extends TestCase
 {
+    // The app-name middleware reads platform_settings from the system DB on every request.
+    use IsolatesDatabase;
+
     public function test_baseline_headers_are_present_and_csp_defaults_to_report_only(): void
     {
         $r = $this->getJson('/api/health');

@@ -1,12 +1,15 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Http\Controllers;
 
+use App\Http\Requests\LeadIndexRequest;
+use App\Http\Requests\LeadUpdateRequest;
 use App\Models\MarketingLead;
 use App\Services\PlatformAudit;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Validation\Rule;
 
 /**
  * SA inbox for marketing-site leads. Status pipeline only — leads are
@@ -14,14 +17,9 @@ use Illuminate\Validation\Rule;
  */
 class LeadController extends Controller
 {
-    public function index(Request $request): JsonResponse
+    public function index(LeadIndexRequest $request): JsonResponse
     {
-        $data = $request->validate([
-            'status' => ['nullable', 'string', 'in:new,contacted,qualified,won,lost'],
-            'source' => ['nullable', 'string', 'in:contact,demo'],
-            'q' => ['nullable', 'string', 'max:255'],
-            'per_page' => ['nullable', 'integer', 'min:1', 'max:100'],
-        ]);
+        $data = $request->validated();
 
         $query = MarketingLead::orderByDesc('id');
 
@@ -59,17 +57,9 @@ class LeadController extends Controller
         return response()->json(['lead' => $lead]);
     }
 
-    public function update(Request $request, MarketingLead $lead): JsonResponse
+    public function update(LeadUpdateRequest $request, MarketingLead $lead): JsonResponse
     {
-        $data = $request->validate([
-            'status' => ['required', 'string', Rule::in([
-                MarketingLead::STATUS_NEW,
-                MarketingLead::STATUS_CONTACTED,
-                MarketingLead::STATUS_QUALIFIED,
-                MarketingLead::STATUS_WON,
-                MarketingLead::STATUS_LOST,
-            ])],
-        ]);
+        $data = $request->validated();
 
         $before = $lead->only(['status']);
         $lead->update(['status' => $data['status']]);

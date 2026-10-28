@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Http\Controllers;
 
 use App\Models\Hrms\Employee\Employee;
@@ -13,6 +15,7 @@ use App\Services\Sso\SsoSettings;
 use App\Services\TenantLimits;
 use App\Support\Hrms\HrmsSchema;
 use App\Support\TenantDatabaseManager;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
@@ -34,7 +37,7 @@ class SsoController extends Controller
         private readonly TenantDatabaseManager $dbm,
     ) {}
 
-    public function info(string $slug)
+    public function info(string $slug): JsonResponse
     {
         $tenant = $this->tenant($slug);
         $on = $tenant && $this->settings->isUsable($tenant);

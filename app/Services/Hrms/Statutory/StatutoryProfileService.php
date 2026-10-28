@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Services\Hrms\Statutory;
 
 use App\Enums\Hrms\DataAccessAction;

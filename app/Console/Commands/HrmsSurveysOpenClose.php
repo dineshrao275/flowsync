@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Console\Commands;
 
 use App\Enums\Hrms\SurveyCampaignStatus;
@@ -191,12 +193,15 @@ class HrmsSurveysOpenClose extends Command
         $notifications = app(NotificationService::class);
         $nudged = 0;
 
-        foreach ($service->audience($campaign) as $employee) {
+        $audience = $service->audience($campaign);
+        $recipients = User::whereIn('id', $audience->pluck('user_id')->filter()->map(fn ($id) => (int) $id))->get()->keyBy('id');
+
+        foreach ($audience as $employee) {
             if ($employee->user_id === null) {
                 continue;
             }
 
-            $recipient = User::find((int) $employee->user_id);
+            $recipient = $recipients->get((int) $employee->user_id);
 
             if ($recipient === null) {
                 continue;

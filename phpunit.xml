@@ -28,6 +28,14 @@
         <env name="DB_DATABASE" value=":memory:"/>
         <env name="DB_URL" value=""/>
         <env name="MAIL_MAILER" value="array"/>
+        <!-- Tests must never reach a payment provider because a developer .env holds live keys. -->
+        <env name="STRIPE_SECRET" value=""/>
+        <env name="STRIPE_KEY" value=""/>
+        <env name="STRIPE_PUBLIC" value=""/>
+        <env name="STRIPE_WEBHOOK_SECRET" value=""/>
+        <env name="RAZORPAY_KEY" value=""/>
+        <env name="RAZORPAY_SECRET" value=""/>
+        <env name="RAZORPAY_WEBHOOK_SECRET" value=""/>
         <env name="QUEUE_CONNECTION" value="sync"/>
         <env name="SESSION_DRIVER" value="array"/>
         <env name="PULSE_ENABLED" value="false"/>

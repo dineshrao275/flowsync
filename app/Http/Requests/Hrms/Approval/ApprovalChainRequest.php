@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Http\Requests\Hrms\Approval;
 
 use App\Enums\Hrms\ApprovalStepMode;

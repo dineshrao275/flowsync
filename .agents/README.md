@@ -5,6 +5,9 @@
 
 ## Read order for a cold agent
 
+0. `docs/coding-standards.md` — the binding rules for all new code, fixes and refactors.
+   Where `02-backend-conventions.md` / `03-frontend-conventions.md` disagree, the standards doc wins.
+
 1. `00-product-overview.md` — what the product is, who uses it, environments.
 2. `01-architecture.md` — tenancy model and request lifecycle. **Read before touching any backend code.**
 3. `02-backend-conventions.md` + `03-frontend-conventions.md` — how code is shaped here.

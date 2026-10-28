@@ -1,10 +1,13 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Http\Controllers;
 
 use App\Http\Controllers\Concerns\NormalizesBooleanInput;
 use App\Http\Controllers\Concerns\RequiresTenantAdmin;
 use App\Http\Controllers\Concerns\ValidatesResourceLimits;
+use App\Http\Requests\TenantUpdateProfileRequest;
 use App\Models\Tenant;
 use App\Models\TenantUserRouting;
 use App\Models\User;
@@ -18,6 +21,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
@@ -149,7 +153,9 @@ class TenantController extends Controller
 
         try {
             $user = app(TenantDatabaseManager::class)->using($tenant, fn () => User::defaultUser());
-        } catch (\Throwable) {
+        } catch (\Throwable $e) {
+            Log::warning('Tenant default user lookup failed', ['tenant_id' => $tenant->id, 'error' => $e->getMessage()]);
+
             return null;
         }
 
@@ -187,30 +193,9 @@ class TenantController extends Controller
         ]);
     }
 
-    public function updateProfile(Request $request, Tenant $tenant): JsonResponse
+    public function updateProfile(TenantUpdateProfileRequest $request, Tenant $tenant): JsonResponse
     {
-        $data = $request->validate([
-            'legal_name' => ['nullable', 'string', 'max:255'],
-            'registration_number' => ['nullable', 'string', 'max:255'],
-            'tax_id' => ['nullable', 'string', 'max:255'],
-            'country' => ['nullable', 'string', 'max:2'],
-            'street' => ['nullable', 'string', 'max:255'],
-            'city' => ['nullable', 'string', 'max:255'],
-            'state' => ['nullable', 'string', 'max:255'],
-            'postal_code' => ['nullable', 'string', 'max:32'],
-            'website' => ['nullable', 'url', 'max:255'],
-            'industry' => ['nullable', 'string', 'max:255'],
-            'company_size' => ['nullable', 'string', 'max:255'],
-            'contact_phone' => ['nullable', 'string', 'max:64'],
-            'billing_email' => ['nullable', 'email', 'max:255'],
-            'billing_address' => ['nullable', 'string', 'max:500'],
-            'billing_currency' => ['nullable', 'string', 'max:3'],
-            'timezone' => ['nullable', 'string', 'max:128'],
-            'locale' => ['nullable', 'string', 'max:16'],
-            'brand_domain' => ['nullable', 'string', 'max:255'],
-            'brand_logo_url' => ['nullable', 'url', 'max:255'],
-            'brand_primary_color' => ['nullable', 'string', 'max:9'],
-        ]);
+        $data = $request->validated();
 
         $tenant->update($data);
 
@@ -323,6 +308,61 @@ class TenantController extends Controller
 
     public function users(Tenant $tenant): JsonResponse
     {
+        $roleWeight = function (array $roles, bool $isDefault): int {
+            if ($isDefault) {
+                return 0;
+            }
+            if (in_array('admin', $roles, true)) {
+                return 1;
+            }
+            if (in_array('manager', $roles, true)) {
+                return 2;
+            }
+            if (in_array('editor', $roles, true)) {
+                return 3;
+            }
+            if (in_array('member', $roles, true)) {
+                return 4;
+            }
+            if (in_array('viewer', $roles, true)) {
+                return 5;
+            }
+
+            return 10;
+        };
+
+        try {
+            $users = app(TenantDatabaseManager::class)->using($tenant, function () use ($roleWeight) {
+                return User::with('roles')
+                    ->get()
+                    ->sort(function (User $a, User $b) use ($roleWeight) {
+                        $wA = $roleWeight($a->roles->pluck('slug')->all(), (bool) $a->is_default);
+                        $wB = $roleWeight($b->roles->pluck('slug')->all(), (bool) $b->is_default);
+                        if ($wA !== $wB) {
+                            return $wA <=> $wB;
+                        }
+
+                        return strcasecmp($a->name, $b->name);
+                    })
+                    ->values()
+                    ->map(fn (User $user) => [
+                        'id' => $user->id,
+                        'name' => $user->name,
+                        'email' => $user->email,
+                        'roles' => $user->roles->pluck('slug')->values()->all(),
+                        'role_names' => $user->roles->pluck('name')->values()->all(),
+                        'is_default' => (bool) $user->is_default,
+                    ])
+                    ->all();
+            });
+
+            if (! empty($users)) {
+                return response()->json(['users' => $users]);
+            }
+        } catch (\Throwable) {
+            // fall through to central routing table
+        }
+
         $users = TenantUserRouting::where('tenant_id', $tenant->id)
             ->orderBy('name')
             ->get()
@@ -331,6 +371,8 @@ class TenantController extends Controller
                 'name' => $route->name,
                 'email' => $route->email,
                 'roles' => [],
+                'role_names' => [],
+                'is_default' => false,
             ]);
 
         return response()->json(['users' => $users]);

@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import api from '../services/api';
 import Modal from './ui/Modal';
 import Button from './ui/Button';
+import Badge from './ui/Badge';
 import { fieldClass } from './ui/fieldStyles';
 import { formatDateTime } from '../utils/format';
 
@@ -63,6 +64,22 @@ export default function ImpersonateModal({ target, onCancel, onConfirm }) {
             title={t('shell.impersonate.title')}
             subtitle={target ? `${target.user.name} · ${target.tenant.name}` : undefined}
         >
+            {target?.user?.roles && target.user.roles.length > 0 && (
+                <div className="flex items-center gap-2 border-b border-gray-100 bg-gray-50/50 px-6 py-2.5 text-xs text-gray-600">
+                    <span className="font-medium text-gray-500">{t('admin.users.roles', 'Roles')}:</span>
+                    <div className="flex flex-wrap items-center gap-1.5">
+                        {target.user.roles.map((role) => {
+                            const roleSlug = typeof role === 'string' ? role : (role.slug || role.name);
+                            const roleName = typeof role === 'string' ? role : (role.name || role.slug);
+                            return (
+                                <Badge key={roleSlug} className="text-[11px] px-2 py-0.5 capitalize">
+                                    {roleName}
+                                </Badge>
+                            );
+                        })}
+                    </div>
+                </div>
+            )}
             <form onSubmit={submit} className="space-y-4 px-6 py-5">
                 <div>
                     <label htmlFor="impersonation-reason" className="mb-1 block text-sm font-medium text-gray-700">

@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Services\Hrms\Attendance;
 
 use Illuminate\Support\Carbon;

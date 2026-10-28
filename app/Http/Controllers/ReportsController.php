@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Http\Controllers;
 
 use App\Http\Controllers\Concerns\ResolvesDateRange;
@@ -77,6 +79,11 @@ class ReportsController extends Controller
      */
     private function distribution(Builder $query, string $column, string $fallbackLabel, string $related, callable $describe): array
     {
+        // The column is interpolated into SQL below; only the four task dimensions are valid.
+        if (! in_array($column, ['status_id', 'priority_id', 'assignee_id', 'project_id'], true)) {
+            throw new \InvalidArgumentException("Unsupported report dimension [{$column}].");
+        }
+
         $rows = (clone $query)->reorder()
             ->selectRaw("tasks.{$column} as group_id, count(*) as total, sum(case when tasks.completed_at is null then 1 else 0 end) as open_count")
             ->groupBy("tasks.{$column}")

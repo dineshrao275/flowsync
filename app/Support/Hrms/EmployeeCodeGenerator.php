@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Support\Hrms;
 
 use App\Models\Hrms\Employee\Employee;

@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Policies\Hrms\CompOff;
 
 use App\Models\Hrms\CompOff\CompOffCredit;

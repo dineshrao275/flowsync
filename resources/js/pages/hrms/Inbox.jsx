@@ -70,7 +70,7 @@ export default function Inbox() {
         [navigate, t],
     );
 
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+     
     useEffect(() => {
         load(page);
     }, [page, load]);

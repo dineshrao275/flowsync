@@ -44,7 +44,7 @@ export default function CalendarView({ projectId, filters, canEdit, onOpen }) {
         Object.keys(params).forEach((k) => (params[k] == null || params[k] === '') && delete params[k]);
         let all = [];
         for (let page = 1; page <= MAX_PAGES; page++) {
-            // eslint-disable-next-line no-await-in-loop
+             
             const { data } = await api.get(`/projects/${projectId}/tasks`, { params: { ...params, page } });
             all = all.concat(data.tasks);
             if (page >= data.pagination.last_page) break;

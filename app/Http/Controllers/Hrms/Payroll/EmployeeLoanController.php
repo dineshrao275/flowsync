@@ -1,8 +1,12 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Http\Controllers\Hrms\Payroll;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Hrms\Payroll\EmployeeLoanApproveRequest;
+use App\Http\Requests\Hrms\Payroll\EmployeeLoanRejectRequest;
 use App\Models\Hrms\Employee\Employee;
 use App\Models\Hrms\Payroll\EmployeeLoan;
 use App\Models\User;
@@ -59,16 +63,16 @@ class EmployeeLoanController extends Controller
         return response()->json(['message' => __('Loan requested.'), 'loan' => $this->present($this->load($loan), $user)], 201);
     }
 
-    public function approve(Request $request, EmployeeLoan $loan): JsonResponse
+    public function approve(EmployeeLoanApproveRequest $request, EmployeeLoan $loan): JsonResponse
     {
-        $data = $request->validate(['note' => ['nullable', 'string', 'max:500']]);
+        $data = $request->validated();
 
         return response()->json(['message' => __('Loan decided.'), 'loan' => $this->present($this->load($this->service->approve($loan, $request->user(), $data['note'] ?? null)), $request->user())]);
     }
 
-    public function reject(Request $request, EmployeeLoan $loan): JsonResponse
+    public function reject(EmployeeLoanRejectRequest $request, EmployeeLoan $loan): JsonResponse
     {
-        $data = $request->validate(['note' => ['required', 'string', 'max:500']]);
+        $data = $request->validated();
 
         return response()->json(['message' => __('Loan rejected.'), 'loan' => $this->present($this->load($this->service->reject($loan, $request->user(), $data['note'])), $request->user())]);
     }

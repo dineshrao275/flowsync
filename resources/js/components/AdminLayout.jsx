@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Outlet, useLocation, useNavigate } from 'react-router-dom';
 import Sidebar from './Sidebar';
@@ -7,6 +7,7 @@ import ThemeSettingsDrawer from './ThemeSettingsDrawer';
 import ImpersonationBanner from './ImpersonationBanner';
 import Breadcrumbs from './Breadcrumbs';
 import ErrorBoundary from './ErrorBoundary';
+import ContentSkeleton from './ui/ContentSkeleton';
 import CommandPalette from './search/CommandPalette';
 import ShortcutsModal from './ShortcutsModal';
 import useGlobalShortcuts from '../hooks/useGlobalShortcuts';
@@ -155,7 +156,9 @@ export default function AdminLayout() {
                         <div key={location.pathname} className="animate-fade-in-up">
                             <Breadcrumbs />
                             <ErrorBoundary resetKey={location.pathname}>
-                                <Outlet />
+                                <Suspense fallback={<ContentSkeleton size="lg" />}>
+                                    <Outlet />
+                                </Suspense>
                             </ErrorBoundary>
                         </div>
                     </BreadcrumbProvider>

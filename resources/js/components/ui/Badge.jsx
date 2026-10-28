@@ -1,7 +1,10 @@
 const palette = {
     admin: 'bg-[var(--accent-soft)] text-[var(--accent-soft-text)]',
+    manager: 'bg-purple-100 text-purple-700',
     editor: 'bg-amber-100 text-amber-700',
     viewer: 'bg-sky-100 text-sky-700',
+    employee: 'bg-emerald-100 text-emerald-700',
+    member: 'bg-blue-100 text-blue-700',
 };
 
 // Semantic tones read the colour-role tokens (app.css), so they stay AA in
