@@ -1,0 +1,22 @@
+# Plain HTTP on :80 (no domain yet). To add HTTPS later, replace ":80" with your hostname and
+# Caddy obtains a certificate automatically (ports 80 and 443 must then be open).
+:80 {
+	encode gzip
+
+	# Laravel Reverb: the browser WebSocket is /app/<key>, which shares its prefix with the SPA
+	# (/app/login ...), so only a real WebSocket upgrade is sent to Reverb; plain GETs go to the app.
+	@reverb {
+		path /app/*
+		header Connection *Upgrade*
+		header Upgrade websocket
+	}
+	reverse_proxy @reverb reverb:8080
+
+	reverse_proxy app:8000 {
+		header_up X-Forwarded-Proto {scheme}
+	}
+
+	request_body {
+		max_size 20MB
+	}
+}
