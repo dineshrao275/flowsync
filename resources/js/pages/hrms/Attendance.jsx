@@ -506,10 +506,10 @@ export default function Attendance() {
                                     className="mt-1 h-4 w-4 rounded border-gray-300 accent-[var(--accent)]"
                                 />
                                 <div>
-                                    <span className="text-sm font-semibold text-gray-900 dark:text-gray-100">
+                                    <span className="text-sm font-semibold text-gray-900 dark:text-blue-100">
                                         {t('hrms.attendance.derive')}
                                     </span>
-                                    <p className="mt-0.5 text-xs text-gray-500 dark:text-gray-400">
+                                    <p className="mt-0.5 text-xs text-gray-500 dark:text-blue-400">
                                         {t('hrms.attendance.deriveHint')}
                                     </p>
                                 </div>
@@ -554,7 +554,7 @@ export default function Attendance() {
                                     }
                                     className="h-4 w-4 rounded border-gray-300 accent-[var(--accent)]"
                                 />
-                                <span className="text-sm text-gray-700 dark:text-gray-300">
+                                <span className="text-sm text-gray-700 dark:text-blue-300">
                                     {t('hrms.attendance.allowNegative')}
                                 </span>
                             </label>
@@ -571,7 +571,7 @@ export default function Attendance() {
                                     }
                                     className="h-4 w-4 rounded border-gray-300 accent-[var(--accent)]"
                                 />
-                                <span className="text-sm text-gray-700 dark:text-gray-300">
+                                <span className="text-sm text-gray-700 dark:text-blue-300">
                                     {t('hrms.attendance.remoteEnabled')}
                                 </span>
                             </label>

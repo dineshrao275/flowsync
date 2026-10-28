@@ -114,7 +114,7 @@
         "breadcrumb": "Ruta de navegación",
         "superAdmin": "Superadministrador",
         "admin": "Administrador",
-        "footer": "{{app}} · Laravel + React",
+        "footer": "{{app}}",
         "dismiss": "Descartar notificación",
         "sidebar": {
             "superAdminPanel": "Panel de superadministrador",

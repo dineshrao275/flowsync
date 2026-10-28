@@ -1,16 +1,17 @@
-import { caretRect } from '../../utils/caret';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
+import { useTranslation } from 'react-i18next';
 import UserChip from '../ui/UserChip';
 import Avatar from '../ui/Avatar';
-import { useCallback, useEffect, useRef, useState } from 'react';
-import { useTranslation } from 'react-i18next';
-import api from '../../services/api';
 import Button from '../ui/Button';
 import Alert from '../ui/Alert';
 import ContentSkeleton from '../ui/ContentSkeleton';
+import Timestamp from '../ui/Timestamp';
 import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
 import { useConfirm, usePrompt } from '../ui/ConfirmDialog';
-import Timestamp from '../ui/Timestamp';
+import api from '../../services/api';
+import { caretRect } from '../../utils/caret';
 import { onRealtimeReconnect } from '../../utils/realtimeAuth';
 
 export default function CommentThread({ task, projectId, isManager, targetCommentId = null }) {
@@ -19,6 +20,7 @@ export default function CommentThread({ task, projectId, isManager, targetCommen
     const toast = useToast();
     const confirm = useConfirm();
     const prompt = usePrompt();
+    const resolvedProjectId = projectId || task?.project_id || task?.project?.id;
     const [comments, setComments] = useState(null);
     const [error, setError] = useState(null);
     const [newComment, setNewComment] = useState('');
@@ -29,28 +31,30 @@ export default function CommentThread({ task, projectId, isManager, targetCommen
     const [sugField, setSugField] = useState(null);
     const [suggestions, setSuggestions] = useState([]);
     const [sugActive, setSugActive] = useState(0);
-    const [sugPos, setSugPos] = useState({ top: 0, left: 0 });
+    const [sugPos, setSugPos] = useState({ top: 0, left: 0, width: 300 });
     const [sugText, setSugText] = useState({ value: '', at: 0, caret: 0 });
     const sugAnchor = useRef(null);
+    const sugMenuRef = useRef(null);
     const sugFieldRef = useRef(null);
     const debounceRef = useRef(null);
 
     const fetchComments = useCallback(() => {
-        api.get(`/projects/${projectId}/tasks/${task.id}/comments`)
+        if (!resolvedProjectId || !task?.id) return;
+        api.get(`/projects/${resolvedProjectId}/tasks/${task.id}/comments`)
             .then(({ data }) => {
                 setComments(data.comments);
                 setError(null);
             })
             .catch(() => setError(t('tms.comments.loadFailed')));
-    }, [projectId, task.id, t]);
+    }, [resolvedProjectId, task?.id, t]);
 
     useEffect(() => {
         fetchComments();
     }, [fetchComments]);
 
     useEffect(() => {
-        if (!window.Echo) return undefined;
-        const channel = window.Echo.private(`project.${projectId}`);
+        if (!window.Echo || !resolvedProjectId) return undefined;
+        const channel = window.Echo.private(`project.${resolvedProjectId}`);
         channel.listen('.comment.synced', fetchComments);
         const stopReconnect = onRealtimeReconnect(fetchComments);
 
@@ -60,7 +64,7 @@ export default function CommentThread({ task, projectId, isManager, targetCommen
             channel.stopListening('.comment.synced', fetchComments);
             stopReconnect();
         };
-    }, [fetchComments, projectId]);
+    }, [fetchComments, resolvedProjectId]);
 
     useEffect(() => () => clearTimeout(debounceRef.current), []);
 
@@ -84,10 +88,10 @@ export default function CommentThread({ task, projectId, isManager, targetCommen
         return () => clearTimeout(timer);
     }, [comments, targetCommentId]);
 
-    function closeSuggestions() {
+    const closeSuggestions = useCallback(() => {
         setSugField(null);
         setSuggestions([]);
-    }
+    }, []);
 
     function openSuggestions(field, el, value, caret) {
         const before = value.slice(0, caret);
@@ -98,28 +102,34 @@ export default function CommentThread({ task, projectId, isManager, targetCommen
         }
 
         const query = before.slice(at + 1, caret);
-        // Anchor the list to the "@" itself, not the bottom of the field.
+        const box = el?.getBoundingClientRect?.() || { left: 8, top: 0, bottom: 0 };
         const caretAt = caretRect(el, at);
-        const width = 300;
+        const safeLeft = Number.isFinite(caretAt?.left) ? caretAt.left : box.left;
+        const safeBottom = Number.isFinite(caretAt?.bottom) ? caretAt.bottom : (box.bottom || 0);
+        const safeTop = Number.isFinite(caretAt?.top) ? caretAt.top : (box.top || 0);
+        const width = Math.min(300, window.innerWidth - 16);
         const rowsHeight = 224;
-        const left = Math.max(8, Math.min(caretAt.left, window.innerWidth - width - 8));
-        const top = caretAt.bottom + 4 + rowsHeight > window.innerHeight && caretAt.top - 4 - rowsHeight > 0
-            ? caretAt.top - 4 - rowsHeight
-            : caretAt.bottom + 4;
+        const left = Math.max(8, Math.min(safeLeft, window.innerWidth - width - 8));
+        let top = safeBottom + 4;
+        // If it would go below viewport, show above instead
+        if (top + rowsHeight > window.innerHeight && safeTop - rowsHeight - 4 > 0) {
+            top = safeTop - rowsHeight - 4;
+        }
+        setSugPos({ top, left, width });
 
         setSugField(field);
         setSugActive(0);
         setSugText({ value, at, caret });
-        setSugPos({ top, left, width });
         sugAnchor.current = el;
         sugFieldRef.current = field;
 
         clearTimeout(debounceRef.current);
         debounceRef.current = setTimeout(() => {
-            api.get(`/projects/${projectId}/members/autocomplete`, { params: { q: query } })
+            if (!resolvedProjectId) return;
+            api.get(`/projects/${resolvedProjectId}/members/autocomplete`, { params: { q: query } })
                 .then(({ data }) => {
                     if (sugFieldRef.current !== field) return;
-                    setSuggestions(data.members);
+                    setSuggestions(data.members || []);
                 })
                 .catch(() => {
                     if (sugFieldRef.current === field) setSuggestions([]);
@@ -127,9 +137,53 @@ export default function CommentThread({ task, projectId, isManager, targetCommen
         }, 200);
     }
 
+    useEffect(() => {
+        if (!sugField || !sugAnchor.current) return undefined;
+
+        function updatePosition() {
+            if (!sugAnchor.current) return;
+            const el = sugAnchor.current;
+            const box = el.getBoundingClientRect();
+            const caretAt = caretRect(el, sugText.at);
+            const safeLeft = Number.isFinite(caretAt?.left) ? caretAt.left : box.left;
+            const safeBottom = Number.isFinite(caretAt?.bottom) ? caretAt.bottom : (box.bottom || 0);
+            const safeTop = Number.isFinite(caretAt?.top) ? caretAt.top : (box.top || 0);
+            const width = Math.min(300, window.innerWidth - 16);
+            const rowsHeight = 224;
+            const left = Math.max(8, Math.min(safeLeft, window.innerWidth - width - 8));
+            let top = safeBottom + 4;
+            if (top + rowsHeight > window.innerHeight && safeTop - rowsHeight - 4 > 0) {
+                top = safeTop - rowsHeight - 4;
+            }
+            setSugPos({ top, left, width });
+        }
+
+        window.addEventListener('scroll', updatePosition, true);
+        window.addEventListener('resize', updatePosition);
+        return () => {
+            window.removeEventListener('scroll', updatePosition, true);
+            window.removeEventListener('resize', updatePosition);
+        };
+    }, [sugField, sugText.at]);
+
+    useEffect(() => {
+        if (!sugField) return undefined;
+        function handleOutsideClick(e) {
+            if (sugMenuRef.current?.contains(e.target) || sugAnchor.current?.contains(e.target)) {
+                return;
+            }
+            closeSuggestions();
+        }
+        document.addEventListener('mousedown', handleOutsideClick);
+        return () => document.removeEventListener('mousedown', handleOutsideClick);
+    }, [sugField, closeSuggestions]);
+
     function handleTyping(field, value, caret, el) {
         if (field === 'comment') setNewComment(value);
-        else setReplyText(value);
+        else if (field === 'reply') setReplyText(value);
+        else if (field === 'edit') {
+            // For edit, we'll handle differently
+        }
 
         openSuggestions(field, el, value, caret);
     }
@@ -138,7 +192,11 @@ export default function CommentThread({ task, projectId, isManager, targetCommen
         const { value, at, caret } = sugText;
         const next = `${value.slice(0, at)}@${member.name} ${value.slice(caret)}`;
         if (sugField === 'comment') setNewComment(next);
-        else setReplyText(next);
+        else if (sugField === 'reply') setReplyText(next);
+        else if (sugField === 'edit') {
+            // For edit mode, we'll need to update the prompt - but easier to handle in place
+            setNewComment(next); // fallback
+        }
 
         closeSuggestions();
         requestAnimationFrame(() => {
@@ -175,7 +233,7 @@ export default function CommentThread({ task, projectId, isManager, targetCommen
         e.preventDefault();
         const body = { comment: newComment.trim() };
         setBusy(true);
-        api.post(`/projects/${projectId}/tasks/${task.id}/comments`, body)
+        api.post(`/projects/${resolvedProjectId}/tasks/${task.id}/comments`, body)
             .then(({ data }) => {
                 setNewComment('');
                 fetchComments();
@@ -191,7 +249,7 @@ export default function CommentThread({ task, projectId, isManager, targetCommen
         e.preventDefault();
         const body = { comment: replyText.trim(), parent_id: parentId };
         setBusy(true);
-        api.post(`/projects/${projectId}/tasks/${task.id}/comments`, body)
+        api.post(`/projects/${resolvedProjectId}/tasks/${task.id}/comments`, body)
             .then(({ data }) => {
                 setReplyText('');
                 setReplyTo(null);
@@ -213,16 +271,18 @@ export default function CommentThread({ task, projectId, isManager, targetCommen
             multiline: true,
             required: true,
             confirmLabel: t('tms.comments.editConfirm'),
+            mention: true,
+            projectId: resolvedProjectId,
         });
         if (!next || !next.trim()) return;
-        api.put(`/projects/${projectId}/tasks/${task.id}/comments/${id}`, { comment: next.trim() })
+        api.put(`/projects/${resolvedProjectId}/tasks/${task.id}/comments/${id}`, { comment: next.trim() })
             .then(fetchComments)
             .catch(() => {});
     }
 
     async function deleteComment(id) {
         if (!(await confirm({ title: t('tms.comments.deleteTitle'), message: t('tms.comments.deleteMessage'), variant: 'danger' }))) return;
-        api.delete(`/projects/${projectId}/tasks/${task.id}/comments/${id}`)
+        api.delete(`/projects/${resolvedProjectId}/tasks/${task.id}/comments/${id}`)
             .then(fetchComments)
             .catch(() => {});
     }
@@ -353,9 +413,10 @@ export default function CommentThread({ task, projectId, isManager, targetCommen
                 </ul>
             )}
 
-            {sugField && suggestions.length > 0 && (
+            {sugField && suggestions.length > 0 && createPortal(
                 <div
-                    className="fixed z-[95] max-h-56 overflow-auto rounded-lg border border-gray-200 bg-white py-1 shadow-popover"
+                    ref={sugMenuRef}
+                    className="fixed z-[9999] max-h-56 overflow-auto rounded-lg border border-gray-200 bg-white py-1 shadow-popover"
                     style={{ top: sugPos.top, left: sugPos.left, width: sugPos.width }}
                 >
                     {suggestions.map((member, index) => (
@@ -363,8 +424,9 @@ export default function CommentThread({ task, projectId, isManager, targetCommen
                             type="button"
                             key={member.id}
                             className={`flex w-full items-center gap-2 px-3 py-1.5 text-left text-sm ${
-                                 index === sugActive ? 'bg-[var(--accent-soft)]' : 'hover:bg-gray-50'
+                                index === sugActive ? 'bg-[var(--accent-soft)]' : 'hover:bg-gray-50'
                             }`}
+                            onMouseDown={(e) => e.preventDefault()}
                             onMouseEnter={() => setSugActive(index)}
                             onClick={() => selectSuggestion(member)}
                         >
@@ -375,7 +437,8 @@ export default function CommentThread({ task, projectId, isManager, targetCommen
                             </span>
                         </button>
                     ))}
-                </div>
+                </div>,
+                document.body,
             )}
         </div>
     );

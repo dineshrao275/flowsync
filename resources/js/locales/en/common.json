@@ -114,7 +114,7 @@
         "breadcrumb": "Breadcrumb",
         "superAdmin": "Super Admin",
         "admin": "Admin",
-        "footer": "{{app}} · Laravel + React",
+        "footer": "{{app}}",
         "dismiss": "Dismiss notification",
         "sidebar": {
             "superAdminPanel": "Super Admin Panel",

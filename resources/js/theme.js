@@ -185,11 +185,11 @@ export const DARK_SURFACES = {
 export function dangerTokens(dark = false) {
     return dark
         ? {
-            '--danger': '#ef4444',
-            '--danger-hover': '#f87171',
-            '--danger-active': '#dc2626',
+            '--danger': '#dc2626',
+            '--danger-hover': '#ef4444',
+            '--danger-active': '#b91c1c',
             '--danger-contrast': '#ffffff',
-            '--danger-ring': '#fca5a5',
+            '--danger-ring': '#f87171',
         }
         : {
             '--danger': '#dc2626',

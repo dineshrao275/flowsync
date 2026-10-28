@@ -1,7 +1,7 @@
 <?php
 
 return [
-    // Local development / tests may point webhooks at http://localhost; production must not.
+    // Local development / tests may point webhooks at http://flowsync.local; production must not.
     'allow_http' => (bool) env('WEBHOOKS_ALLOW_HTTP', false),
     'allow_private' => (bool) env('WEBHOOKS_ALLOW_PRIVATE', false),
 

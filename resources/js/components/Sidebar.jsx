@@ -306,7 +306,7 @@ export default function Sidebar({ open, collapsed, onClose, onToggleCollapse }) 
                     </div>
                     {!collapsed && (
                         <div className="min-w-0">
-                            <p className="truncate text-base font-semibold" style={{ color: 'var(--header-bg)' }}>
+                            <p className="truncate text-base font-semibold text-white">
                                 {getAppName()}
                             </p>
                             <p className="truncate text-xs" style={{ color: 'var(--sidebar-text)' }}>
