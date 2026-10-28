@@ -134,11 +134,15 @@ const remembered = storedLocale();
 if (remembered && remembered !== DEFAULT_LOCALE) changeLocale(remembered);
 
 if (typeof document !== 'undefined') {
-    document.documentElement.lang = i18n.language;
+    if (document.documentElement) {
+        document.documentElement.lang = i18n.language;
+    }
     // Every path that changes language (guest guess, server preference,
     // switcher) flows through here, so `<html lang>` never drifts.
     i18n.on('languageChanged', (language) => {
-        document.documentElement.lang = language;
+        if (typeof document !== 'undefined' && document.documentElement) {
+            document.documentElement.lang = language;
+        }
     });
 }
 

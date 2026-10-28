@@ -1,5 +1,6 @@
 import {
     Archive,
+    Bell,
     Buildings,
     ChartBar,
     ChartLine,
@@ -47,6 +48,7 @@ import { HRMS_NAV } from './hrmsNav';
 
 const ICONS = {
     dashboard: SquaresFour,
+    notifications: Bell,
     myHr: UserCircle,
     workspaces: Folders,
     projects: Kanban,
@@ -176,7 +178,7 @@ export const superAdminSections = [
             { to: '/admin/features', label: 'nav.platform.features', capabilities: ['billing.view'], icon: Gift },
             { to: '/admin/feature-flags', label: 'nav.platform.featureFlags', capabilities: ['flags.view'], icon: Flag },
             { to: '/admin/activity', label: 'nav.platform.activity', capabilities: ['analytics.view'], icon: ICONS.grid },
-            { to: '/admin/queue', label: 'nav.platform.queue', capabilities: ['analytics.view'], icon: Lightning },
+            { to: '/admin/queue', label: 'nav.platform.queue', capabilities: ['analytics.view'], icon: Lightning, badge: 'queue' },
             { to: '/admin/pages', label: 'nav.platform.website', capabilities: ['content.view'], icon: Globe },
             { to: '/admin/media', label: 'nav.platform.media', capabilities: ['content.view'], icon: Image },
             { to: '/admin/site-settings', label: 'nav.platform.siteSettings', capabilities: ['content.view'], icon: SlidersHorizontal },
@@ -187,8 +189,8 @@ export const superAdminSections = [
         label: 'nav.groups.platform',
         items: [
             { to: '/admin/users', label: 'nav.admin.users', capabilities: ['platform_users.view'], icon: ICONS.users },
-            { to: '/admin/support', label: 'nav.admin.support', capabilities: ['support.view'], icon: ICONS.support },
-            { to: '/admin/leads', label: 'nav.platform.leads', capabilities: ['leads.view'], icon: Envelope },
+            { to: '/admin/support', label: 'nav.admin.support', capabilities: ['support.view'], icon: ICONS.support, badge: 'support' },
+            { to: '/admin/leads', label: 'nav.platform.leads', capabilities: ['leads.view'], icon: Envelope, badge: 'leads' },
             { to: '/admin/audit-logs', label: 'nav.platform.auditLogs', capabilities: ['audit.view'], icon: ICONS.archive },
             { to: '/admin/settings', label: 'nav.admin.settings', capabilities: ['settings.view'], icon: ICONS.settings },
             { to: '/security', label: 'nav.admin.security', icon: ICONS.security },

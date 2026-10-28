@@ -10,6 +10,7 @@ use App\Http\Controllers\LeadController;
 use App\Http\Controllers\MediaController;
 use App\Http\Controllers\OnboardingController;
 use App\Http\Controllers\PlanController;
+use App\Http\Controllers\PlatformBadgeCountsController;
 use App\Http\Controllers\PlatformHealthController;
 use App\Http\Controllers\PlatformListSavedFilterController;
 use App\Http\Controllers\SiteSettingsController;
@@ -89,6 +90,7 @@ Route::middleware('super_admin')->group(function () {
     Route::get('system/audit-logs', [AuditLogsController::class, 'index']);
     Route::get('system/audit-logs/export', [AuditLogsController::class, 'export'])->middleware('throttle:30,1');
     Route::get('system/analytics', [SystemAnalyticsController::class, 'index']);
+    Route::get('system/badge-counts', [PlatformBadgeCountsController::class, 'index']);
     Route::get('platform/health', [PlatformHealthController::class, 'show']);
     Route::get('system/health', [PlatformHealthController::class, 'show']);
     Route::get('system/tenant-activity', SystemTenantActivityController::class);

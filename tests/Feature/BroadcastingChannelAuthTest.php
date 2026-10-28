@@ -203,6 +203,16 @@ class BroadcastingChannelAuthTest extends TestCase
         $this->assertFalse($staffCallback($this->member, $ticket->id));
     }
 
+    public function test_platform_admin_channel_allows_super_admin_only(): void
+    {
+        $platformAdminCallback = $this->channels['platform.admin'];
+        $superAdmin = $this->systemUser('superadmin@flowsync.test');
+
+        $this->assertNotFalse($platformAdminCallback($superAdmin));
+        $this->assertFalse($platformAdminCallback($this->member));
+        $this->assertFalse($platformAdminCallback($this->outsider));
+    }
+
     /**
      * The suite runs with BROADCAST_CONNECTION=null, whose auth() is a no-op
      * that always returns 200/empty, so the real channel callbacks would never

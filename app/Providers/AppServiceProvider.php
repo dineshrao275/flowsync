@@ -8,6 +8,7 @@ use App\Billing\PaymentResolver;
 use App\Billing\PaymentService;
 use App\Billing\Stripe\StripeClient;
 use App\Contracts\Notifications\NotificationSender;
+use App\Events\PlatformQueueJobFailed;
 use App\Http\Middleware\EnsurePermission;
 use App\Jobs\SyncStripeCustomer;
 use App\Listeners\SwitchesTenantConnectionForQueuedJobs;
@@ -22,6 +23,7 @@ use App\Services\TenantLimits;
 use App\Support\AppName;
 use App\Support\Hrms\HrmsSchema;
 use App\Support\Integration\BridgeSchema;
+use App\Support\Realtime;
 use App\Support\RequestId;
 use App\Support\TenantContext;
 use App\Support\TenantDatabaseManager;
@@ -199,5 +201,17 @@ class AppServiceProvider extends ServiceProvider
 
         Event::listen(JobProcessing::class, [$listener, 'handleProcessing']);
         Event::listen([JobProcessed::class, JobExceptionOccurred::class, JobFailed::class], [$listener, 'handleFinished']);
+        Event::listen(JobFailed::class, function (JobFailed $event): void {
+            try {
+                $payload = $event->job->payload();
+                $jobName = $event->job->resolveName();
+                $queue = $event->job->getQueue();
+                $error = $event->exception->getMessage();
+                $tenantId = isset($payload['tenant_id']) ? (int) $payload['tenant_id'] : null;
+
+                Realtime::send(new PlatformQueueJobFailed($jobName, $queue, $error, $tenantId));
+            } catch (\Throwable) {
+            }
+        });
     }
 }

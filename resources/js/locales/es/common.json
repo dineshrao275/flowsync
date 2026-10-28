@@ -232,6 +232,7 @@
         }
     },
     "nav": {
+        "notifications": "Notificaciones",
         "groups": {
             "main": "Principal",
             "insights": "Análisis",

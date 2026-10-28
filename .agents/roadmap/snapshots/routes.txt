@@ -326,6 +326,7 @@ GET|HEAD	api/system/analytics		App\Http\Controllers\SystemAnalyticsController@in
 GET|HEAD	api/system/audit-logs		App\Http\Controllers\AuditLogsController@index	web,switch_tenant,auth,tenant,ensure_subscribed,locale,super_admin
 GET|HEAD	api/system/audit-logs/export		App\Http\Controllers\AuditLogsController@export	web,switch_tenant,auth,tenant,ensure_subscribed,locale,super_admin,throttle:30,1
 GET|HEAD	api/system/audit-logs/verify		App\Http\Controllers\AuditLogsController@verifyChain	web,switch_tenant,auth,tenant,super_admin
+GET|HEAD	api/system/badge-counts		App\Http\Controllers\PlatformBadgeCountsController@index	web,switch_tenant,auth,tenant,ensure_subscribed,locale,super_admin
 GET|HEAD	api/system/blog-categories		App\Http\Controllers\BlogCategoryController@index	web,switch_tenant,auth,tenant,ensure_subscribed,locale,super_admin
 GET|HEAD	api/system/blog-posts		App\Http\Controllers\BlogPostController@index	web,switch_tenant,auth,tenant,ensure_subscribed,locale,super_admin
 GET|HEAD	api/system/blog-posts/{blogPost}		App\Http\Controllers\BlogPostController@show	web,switch_tenant,auth,tenant,ensure_subscribed,locale,super_admin

@@ -112,3 +112,12 @@ Broadcast::channel('support.ticket.{id}.staff', function (User $user, $id) {
 
     return ['id' => $user->id, 'name' => $user->name, 'type' => 'staff'];
 });
+
+Broadcast::channel('platform.admin', function (User $user) {
+    if (! $user->is_super_admin || app(TenantContext::class)->impersonating()) {
+        return false;
+    }
+
+    return ['id' => $user->id, 'name' => $user->name, 'type' => 'platform_admin'];
+});
+

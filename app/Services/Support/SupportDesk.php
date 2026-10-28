@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Services\Support;
 
+use App\Events\PlatformSupportTicketEvent;
 use App\Events\SupportMessageSent;
 use App\Events\SupportTicketUpdated;
 use App\Models\SupportTicket;
@@ -60,6 +61,8 @@ class SupportDesk
                 'category' => $ticket->category, 'priority' => $ticket->priority,
             ]);
 
+            Realtime::send(new PlatformSupportTicketEvent($ticket->fresh(['tenant']), 'created', $author->name));
+
             return $ticket;
         });
     }
@@ -80,6 +83,7 @@ class SupportDesk
         ])->save();
 
         Realtime::send(new SupportMessageSent($ticket->fresh(), $message));
+        Realtime::send(new PlatformSupportTicketEvent($ticket->fresh(['tenant']), 'replied', $author->name));
 
         return $message;
     }

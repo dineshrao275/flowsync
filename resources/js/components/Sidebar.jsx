@@ -26,9 +26,16 @@ function ItemIcon({ icon }) {
 function SidebarLink({ item, collapsed, onClose }) {
     const { t } = useTranslation();
     const location = useLocation();
-    const { inboxUnread } = useNotifications();
+    const { inboxUnread, unreadCount, effectivePlatformCounts } = useNotifications();
     const isActive = location.pathname === item.to;
     const labelClass = collapsed ? 'hidden lg:hidden' : 'block';
+
+    let badgeCount = 0;
+    if (item.badge === 'inbox') badgeCount = inboxUnread;
+    else if (item.badge === 'notifications') badgeCount = unreadCount;
+    else if (item.badge === 'leads') badgeCount = effectivePlatformCounts?.leads ?? 0;
+    else if (item.badge === 'support') badgeCount = effectivePlatformCounts?.support ?? 0;
+    else if (item.badge === 'queue') badgeCount = effectivePlatformCounts?.queue ?? 0;
 
     return (
         <Link
@@ -50,13 +57,23 @@ function SidebarLink({ item, collapsed, onClose }) {
                     aria-hidden="true"
                 />
             )}
-            <ItemIcon icon={item.icon} />
-            <span className={`min-w-0 ${labelClass}`}>
+            <span className="relative flex items-center justify-center">
+                <ItemIcon icon={item.icon} />
+                {collapsed && badgeCount > 0 && (
+                    <span
+                        className="absolute -right-1.5 -top-1.5 flex h-4 min-w-4 shrink-0 items-center justify-center rounded-full bg-red-600 px-1 text-[10px] font-bold leading-none text-white shadow-sm"
+                        aria-hidden="true"
+                    >
+                        {badgeCount > 99 ? '99+' : badgeCount}
+                    </span>
+                )}
+            </span>
+            <span className={`min-w-0 flex-1 ${labelClass}`}>
                 <span className="flex items-center justify-between gap-2">
                     <span className="truncate">{t(item.label)}</span>
-                    {item.badge === 'inbox' && inboxUnread > 0 && (
+                    {badgeCount > 0 && (
                         <span className="flex h-5 min-w-5 shrink-0 items-center justify-center rounded-full bg-red-600 px-1 text-caption font-bold normal-case tracking-normal text-white">
-                            {inboxUnread > 99 ? '99+' : inboxUnread}
+                            {badgeCount > 99 ? '99+' : badgeCount}
                         </span>
                     )}
                 </span>
@@ -119,14 +136,25 @@ function isItemActive(item, pathname) {
  */
 function CollapsibleSection({ section, collapsed, onClose, open, onToggle }) {
     const { t } = useTranslation();
-    const { inboxUnread } = useNotifications();
+    const { inboxUnread, unreadCount, effectivePlatformCounts } = useNotifications();
     const { pathname } = useLocation();
     const [first] = section.items;
     const activeInside = section.items.some((item) => isItemActive(item, pathname));
-    const showBadge = section.items.some((item) => item.badge === 'inbox') && inboxUnread > 0;
-    const badge = showBadge && (
+
+    const getBadgeCount = (item) => {
+        if (!item?.badge) return 0;
+        if (item.badge === 'inbox') return inboxUnread;
+        if (item.badge === 'notifications') return unreadCount;
+        if (item.badge === 'leads') return effectivePlatformCounts?.leads ?? 0;
+        if (item.badge === 'support') return effectivePlatformCounts?.support ?? 0;
+        if (item.badge === 'queue') return effectivePlatformCounts?.queue ?? 0;
+        return 0;
+    };
+
+    const totalGroupBadgeCount = section.items.reduce((sum, item) => sum + getBadgeCount(item), 0);
+    const badge = totalGroupBadgeCount > 0 && (
         <span className="flex h-5 min-w-5 shrink-0 items-center justify-center rounded-full bg-red-600 px-1 text-caption font-bold normal-case tracking-normal text-white">
-            {inboxUnread > 99 ? '99+' : inboxUnread}
+            {totalGroupBadgeCount > 99 ? '99+' : totalGroupBadgeCount}
         </span>
     );
 
@@ -137,7 +165,7 @@ function CollapsibleSection({ section, collapsed, onClose, open, onToggle }) {
             <Link
                 to={first.to}
                 onClick={onClose}
-                    aria-current={active ? 'page' : undefined}
+                aria-current={active ? 'page' : undefined}
                 title={t(section.label)}
                 aria-label={t(section.label)}
                 className={`group relative flex items-center justify-center rounded-lg px-3 py-2.5 text-sm font-medium transition-colors duration-150 ${
@@ -145,8 +173,17 @@ function CollapsibleSection({ section, collapsed, onClose, open, onToggle }) {
                 }`}
                 style={{ color: active ? '#ffffff' : 'var(--sidebar-text)' }}
             >
-                <ItemIcon icon={first.icon} />
-                {badge}
+                <span className="relative flex items-center justify-center">
+                    <ItemIcon icon={first.icon} />
+                    {totalGroupBadgeCount > 0 && (
+                        <span
+                            className="absolute -right-1.5 -top-1.5 flex h-4 min-w-4 shrink-0 items-center justify-center rounded-full bg-red-600 px-1 text-[10px] font-bold leading-none text-white shadow-sm"
+                            aria-hidden="true"
+                        >
+                            {totalGroupBadgeCount > 99 ? '99+' : totalGroupBadgeCount}
+                        </span>
+                    )}
+                </span>
             </Link>
         );
     }
