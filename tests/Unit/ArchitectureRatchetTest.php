@@ -63,7 +63,6 @@ class ArchitectureRatchetTest extends TestCase
         'app/Http/Controllers/Concerns/ResolvesDateRange.php' => 1,
         'app/Http/Controllers/CustomFieldController.php' => 1,
         'app/Http/Controllers/ExportController.php' => 1,
-        'app/Http/Controllers/Hrms/Asset/AssetController.php' => 1,
         'app/Http/Controllers/Hrms/Attendance/RegularizationController.php' => 1,
         'app/Http/Controllers/Hrms/CompOff/CompOffRequestController.php' => 1,
         'app/Http/Controllers/Hrms/Document/LetterController.php' => 2,
