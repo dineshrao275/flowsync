@@ -59,6 +59,27 @@ class HrmsLifecycleApiTest extends TestCase
         $this->postJson('/api/hrms/onboarding/cases', [])->assertForbidden();
     }
 
+    public function test_a_template_item_without_category_or_owner_gets_the_editor_defaults(): void
+    {
+        $this->login('admin@flowsync.test');
+
+        // Create with items that omit both optional fields (found by the form audit: this used to be a 500).
+        $templateId = $this->postJson('/api/hrms/onboarding/templates', [
+            'name' => 'Defaults',
+            'tasks' => [['title' => 'Say hello']],
+        ])->assertCreated()->json('template.id');
+
+        // And adding a single item the same way.
+        $this->postJson("/api/hrms/onboarding/templates/{$templateId}/tasks", ['title' => 'Meet the team'])
+            ->assertCreated()
+            ->assertJsonPath('task.category', 'task')
+            ->assertJsonPath('task.owner_scope', 'hr');
+
+        $this->getJson("/api/hrms/onboarding/templates/{$templateId}")
+            ->assertOk()
+            ->assertJsonCount(2, 'template.tasks');
+    }
+
     public function test_templates_are_managed_but_readable(): void
     {
         $reader = $this->userWith(['hrms.view', 'hrms.onboarding.view']);

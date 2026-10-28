@@ -55,6 +55,17 @@ class HrmsGoalTaskLinkTest extends TestCase
         ])->assertCreated()->assertJsonPath('goal.tasks.0.id', $task->id);
     }
 
+    public function test_linking_without_a_task_id_or_key_is_a_validation_error_not_a_404(): void
+    {
+        [$goal] = $this->linked(false);
+        $this->actAs($this->userWith(['hrms.view', 'hrms.performance.view', 'hrms.performance.manage']));
+
+        // Found by the form audit: with neither field the lookup used to answer 404 for an incomplete request.
+        $this->postJson("/api/hrms/performance/goals/{$goal->id}/tasks", [])
+            ->assertStatus(422)
+            ->assertJsonValidationErrors(['task_id', 'task_key']);
+    }
+
     public function test_unlinking_needs_belonging(): void
     {
         [$goal, $task] = $this->linked(true);

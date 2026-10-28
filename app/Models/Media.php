@@ -42,6 +42,17 @@ class Media extends Model
 
     public function url(): string
     {
-        return Storage::disk($this->disk)->url($this->path);
+        $url = Storage::disk($this->disk)->url($this->path);
+
+        try {
+            if (request()->hasHeader('Host')) {
+                $host = request()->getHost();
+                $url = preg_replace('/:\/\/localhost(:|\/|$)/', "://{$host}$1", $url);
+                $url = preg_replace('/:\/\/127\.0\.0\.1(:|\/|$)/', "://{$host}$1", $url);
+            }
+        } catch (\Throwable) {
+        }
+
+        return $url;
     }
 }

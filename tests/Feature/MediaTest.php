@@ -64,6 +64,23 @@ class MediaTest extends TestCase
         $this->assertDatabaseHas('audit_logs', ['action' => 'cms.media_deleted']);
     }
 
+    public function test_updating_alt_text_without_the_field_is_a_validation_error_not_a_crash(): void
+    {
+        Storage::fake('public');
+        $this->loginSuperAdmin();
+
+        $id = $this->postJson('/api/system/media', [
+            'file' => UploadedFile::fake()->image('hero.png', 300, 200),
+            'alt' => 'Original',
+        ])->assertStatus(201)->json('media.id');
+
+        // Found by the form audit: a request with no `alt` used to be a 500 (undefined array key).
+        $this->putJson("/api/system/media/{$id}", [])->assertStatus(422)->assertJsonValidationErrors('alt');
+
+        // Sending the field empty is how the screen clears it, and still works.
+        $this->putJson("/api/system/media/{$id}", ['alt' => null])->assertOk()->assertJsonPath('media.alt', null);
+    }
+
     public function test_media_upload_validation(): void
     {
         Storage::fake('public');

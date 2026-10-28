@@ -117,8 +117,9 @@ class PerformanceGoalController extends Controller
         $this->authorize('update', $goal);
 
         $validated = $request->validate([
-            'task_id' => ['sometimes', 'integer', 'exists:tasks,id'],
-            'task_key' => ['sometimes', 'string', 'max:32'],
+            // One of the two is needed; with neither the lookup below would answer 404 for a request that is simply incomplete.
+            'task_id' => ['required_without:task_key', 'integer', 'exists:tasks,id'],
+            'task_key' => ['required_without:task_id', 'string', 'max:32'],
         ]);
 
         $task = isset($validated['task_id'])

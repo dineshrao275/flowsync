@@ -266,6 +266,10 @@ class OnboardingTemplates
         $resolved = $this->taskAttributes($attributes, false);
 
         return OnboardingTemplateTask::create([
+            // Both columns are NOT NULL while the request marks them optional; an item sent without them gets the
+            // same defaults the template editor pre-selects (a plain task owned by HR) instead of a database error.
+            'category' => TemplateTaskCategory::Task,
+            'owner_scope' => TaskOwnerScope::Hr,
             ...$resolved,
             'template_id' => $template->id,
             'due_offset_days' => (int) ($resolved['due_offset_days'] ?? 0),
