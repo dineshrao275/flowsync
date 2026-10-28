@@ -128,7 +128,7 @@ class ArchitectureRatchetTest extends TestCase
         'app/Http/Controllers/TaskMoveController.php' => 1,
         'app/Http/Controllers/TaskMoveRequestController.php' => 2,
         'app/Http/Controllers/TaskWatcherController.php' => 1,
-        'app/Http/Controllers/TenantController.php' => 3,
+        'app/Http/Controllers/TenantController.php' => 1,
         'app/Http/Controllers/TenantIntakeController.php' => 3,
         'app/Http/Controllers/TenantSubscriptionController.php' => 1,
         'app/Http/Controllers/TimerController.php' => 1,

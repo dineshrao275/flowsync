@@ -147,81 +147,17 @@ Details moved verbatim to `docs/architecture/billing.md` (covers: Stripe billing
 ## Request correlation (P2.2)
 - `App\Http\Middleware\AssignRequestId` is prepended to the global stack (`bootstrap/app.php`): it reuses an inbound `X-Request-Id` only if it matches `^[A-Za-z0-9._-]{8,64}$`, otherwise mints a UUID, binds it as shared log context (`Log::shareContext(['request_id' => …])`, so every log line of the request carries it) and echoes it on the response. Quote it when reporting a failure. Not yet in audit rows or queued-job payloads (follow-up).
 
-## API tokens (P2.7, track/platform-engines)
-- A user can mint **personal API tokens** (`GET|POST api/api-tokens`, `DELETE api/api-tokens/{apiToken}`, `GET …/logs`; gated `ensure_module:api` + `permission:api.manage` in the tenant domain group). Plaintext looks like `fst_<tenant_id>_<40 random>`; **only a SHA-256 is stored** (`fake`-able cast). A token carries `abilities` (from `config/api.php` — the only slugs a `/api/v1` route may gate on, currently `workspaces.view` and `hrms.view`), `can_write`, expiry ≤ `config('api.max_expiry_days')`, and per-token rate limit (default `api.default_rate_limit` 60/min, cap 600). Revoking the user or the token kills it; a token's effective rights are its abilities AND what its owner still holds (`token_can` + the same policies/row scopes the session controllers use).
-- `App\Http\Middleware\AuthenticateApiToken` (`api_token`) is the bearer door for the `/api/v1` routes in `routes/web/platform_engines_v1.php` (required at top level in `routes/web.php` — it replaces the session trio for those routes only, **outside** `switch_tenant`/`auth`/`tenant`): it decodes the tenant id from the prefix, connects that tenant's DB *before* the hash lookup, loads the owner as the request user, refuses non-safe verbs for read-only tokens, and logs every call (incl. refusals) to `integration_logs`. Every bad credential answers the same 401 (unknown token, revoked token, suspended tenant — indistinguishable). `api/v1` endpoints: `me`, `projects`, `projects/{p}/tasks` (GET + idempotent POST), `search/tasks`, `hrms/employees` — each also needs `ensure_product/ensure_module` like its session twin.
-- **Idempotency** (`EnforceIdempotency`, `idempotent`) keys post endpoints on the `Idempotency-Key` header + token + payload fingerprint → `api_idempotency_keys` (TTL `api.idempotency_ttl_hours` 24); a replayed key returns the stored response. `IntegrationLog` rows are pruned after `api.log_retention_days` (30).
-- SPA: `components/settings/ApiTokens.jsx` on the Settings page (create shows the plaintext once, list + logs + revoke). `config/subscriptions.php` module `api` gates the whole surface; new migration `2026_11_02_000033` adds it to existing plan module lists.
+## API tokens & security hardening
 
-## Security hardening (Phase 8, track/security)
-- **Headers/CSP (P8.5):** `SecurityHeaders` (global) + `ContentSecurityPolicy`; `config/security.php`, `SECURITY_CSP_MODE=off|report_only|enforce` (default report-only). Allows self, inline script/style (theme bootstrap), Stripe js/api/frames, Google Fonts, the Reverb ws(s) origin from `config('reverb')`, and the Vite dev origin only while `public/hot` exists. nosniff, X-Frame-Options, Referrer-Policy, Permissions-Policy, HSTS on https only.
-- **Feature flags (P8.7):** system `feature_flags`/`flag_overrides`; `FeatureFlags::enabled($key, ?$tenantId)` = tenant override → global switch → stable crc32 rollout bucket; unknown = off. Route gate `ensure_flag:<key>`; SA console `/admin/feature-flags`; `user.flags` in `/auth/me`.
-- **2FA (P8.1):** self-implemented RFC 6238 `App\Support\Totp` (no package); `two_factor_credentials` lives in each tenant DB AND the system DB (encrypted secret, hashed-at-rest 50-bit recovery codes, replay-guarded step counter). Sign-in: password → `{two_factor_required:true}` + a `2fa.pending` session record → `POST api/auth/2fa/challenge` (throttle 10/min, 5 attempts). Enforce-per-role: `tenants.settings.security.two_factor_roles` (tenant, `roles.manage`) and platform setting `require_2fa_super_admin`; a required-but-unenrolled session is limited to enrolment by `EnsureTwoFactorEnrolled` (skips auth/me, logout, 2fa\*). SPA: Login step + `/security`.
-- **Platform personas (P8.3):** `config/platform_access.php` (route→permission map + 4 seeded personas: Billing Admin/Support/Auditor/Operator). `EnsureSuperAdmin` is persona-aware — a persona account is denied on any unmapped super_admin route (fail-closed; `PlatformAccessTest::test_every_super_admin_route_maps_to_a_catalogued_permission` fails the day a new one is added). **No persona = unrestricted break-glass** (all existing super admins keep working). `platform:<slug>` middleware for explicit gates; assignment via `PUT system/users/{user}/platform-roles`.
-- **Consent-based support access (P8.4):** tenant admin (`support.manage`) grants time-boxed read-only/write windows (`support_access_grants`, system DB, `config/tenancy.php` `support_access` caps: 72h max window / 120 min max session); impersonation accepts `grant_id` (caps mode + session length); revoking a grant ends its running session (401 `support_access_revoked`). Platform setting `require_support_consent` makes a grant mandatory before impersonation.
-- **Audit hash-chain + retention (P8.6):** `audit_logs.hash/prev_hash` sealed by `AuditChain` on create (cache-locked, id order, never fails a write); `php artisan audit:verify`, `GET system/audit-logs/verify`, export carries hashes + `X-Audit-Chain-Head`; `audit:prune` (nightly 03:50) applies the plan limit `audit_retention_days` (starter 90/pro 365/business 730) and leaves `audit_log_tombstones`. Rows before the first seal report as `legacy`.
-- Security routes live in `routes/web/security.php` (required from `routes/web.php`): `auth/2fa*`, `security/two-factor-policy`, `support-access*`, `system/two-factor-policy`, `system/support-access*`, `system/platform-roles`, `system/users/{user}/platform-roles`, `system/audit-logs/verify`, `system/feature-flags*`. `ImpersonationGuard` blocks writes to `auth/2fa*`, `security/*`, `support-access*` in write mode.
+Details moved verbatim to `docs/architecture/api-tokens-and-security.md` (covers: Personal API tokens, Bearer auth, idempotency, security headers/CSP, feature flags, 2FA Totp, platform personas, support access grants, and audit chain verification). **Read it before working in this area.**
 
-## Realtime (Reverb + Echo, Phase 0 base)
-- Composer `laravel/reverb`; npm `laravel-echo` + `pusher-js` (+ `@dnd-kit/*` for the board, `recharts` for analytics, `@tiptap/*` + `dompurify` for the description editor). `BROADCAST_CONNECTION=reverb`.
-- `app/Events/NotificationSent` broadcasts on `PrivateChannel('user.{id}')` (queued, `broadcastWith` includes `actor {id,name}` for client rendering). `app/Events/TaskSynced` broadcasts on `PrivateChannel('project.{id}')` (`broadcastAs('task.synced')`, queued). `app/Events/CommentSynced` broadcasts on `PrivateChannel('project.{id}')` (`broadcastAs('comment.synced')`, queued). Broadcast channel auth in `routes/channels.php`: `user.{id}` (self only), `workspace.{id}` + `project.{id}` (membership). Same checks used for realtime sync events.
-- **`/broadcasting/auth` is registered in `routes/web.php`**, not via `withRouting(channels:)` in `bootstrap/app.php`: the framework would register it with the bare `web` group, so the session user resolves on the central connection (where tenant users don't exist) and every channel auth answers 403. It now runs `web → switch_tenant → auth`.
-- **Queued jobs carry their tenant** (`App\Listeners\SwitchesTenantConnectionForQueuedJobs`): `AppServiceProvider` registers `Queue::createPayloadUsing()` to stamp `tenant_id` onto every job payload while a tenant context is active, and a `JobProcessing` listener connects that tenant's DB **before** the job command is unserialized (`SerializesModels` re-queries models at that point, so without this every queued broadcast — TaskSynced/CommentSynced/NotificationSent — failed with "relation tasks does not exist"). `JobProcessed`/`JobExceptionOccurred`/`JobFailed` release the connection again — except for `SyncJob` (`QUEUE_CONNECTION=sync`, `dispatchSync`), where the connection belongs to the dispatching request.
-- **Realtime hardening (verified end to end against the docker stack: login → `/broadcasting/auth` 200 own / 403 foreign → WebSocket client received `task.synced`, `comment.synced`, `notification.sent` from real API calls).** Root causes fixed: (1) `routes/channels.php` was `require`d from `routes/web.php`, which `route:cache` (docker entrypoint) never executes → **zero channels registered → every `/broadcasting/auth` 403** — it is now required by `AppServiceProvider::boot()`; (2) pusher-js authenticated with the CSRF `<meta>` token baked into the page at load, stale after an SPA login (419) — `echo.js` now uses `authorizer: channelAuthorizer` (`utils/realtimeAuth.js`, posts through axios with the live XSRF cookie); (3) `NotificationSent`/`CommentSynced` were queued behind the worker — all five events are now `ShouldBroadcastNow` and fired through `App\Support\Realtime::send()`, which logs and swallows a dead Reverb server instead of 500-ing the write (never call `broadcast()` directly); (4) pushes missed during a socket outage are not replayed — `watchReconnects` emits `flowsync:realtime-reconnected` and `NotificationContext`, `ProjectDetail`, `CommentThread` and both support pages refetch on it; (5) listeners now unsubscribe with their own handler (the project channel is shared by board + comments) and `NotificationContext` leaves `user.{id}` on sign-out/impersonation. (6) `project.{id}`/`workspace.{id}` channel auth mirrors `ProjectPolicy::view`/`WorkspacePolicy::view` — tenant admin (`workspaces.manage`) OR member; membership alone left admins who open a project they don't belong to with a 403 and no live updates (one side of a two-user session updated, the other didn't). Docker note: containers run the **baked image** (`docker compose build app && docker compose up -d app queue reverb` after code changes; `REVERB_API_HOST=reverb` is what lets the app container reach the reverb container). Guards: `RealtimeResilienceTest`, `utils/realtimeAuth.test.js`.
-- Client: `resources/js/echo.js` bootstraps `window.Echo` from `VITE_REVERB_*` env (`.env` only; `.env.example` has blank reverb keys so tests are unaffected).
-- **Channel/event name rule:** events MUST broadcast on the channel clients subscribe to (`private-` prefix is applied by `PrivateChannel`/Echo automatically — never hardcode `private-` twice).
+## Realtime (Reverb + Echo)
 
-## RBAC & provisioning
-- `config/permissions.php` — the canonical permission catalog (base slugs plus the generated scope
-  variants below; ~99 entries today) + role definitions: `admin` = `*`, `editor`/`viewer` =
-  self-service reads (`*_own`) plus broad non-HRMS grants, **`manager`** = `*_own` + `*_assigned`
-  (team scope, stops at the reporting line), `hr_manager`/`payroll_manager` = prefix selectors. **R4 adds the named defaults the product brief uses:** `employee` (self-service `*_own` only), `hr_executive` (day-to-day HR, no payroll/compensation/sensitive documents), `finance_admin` (expenses + tenant-wide payslip/compensation reads + billing view), `auditor` (read-only views + audit trail + analytics, no `.manage`, no sensitive reveal). `editor`/`viewer` remain the legacy names existing tenants assign; `tenants:provision` creates the new roles in existing tenants and reassigns **no** user.
-  A role's `permissions` is a list of *selectors* (`*`, `hrms.*`, `!hrms.payroll.*`, exact slug)
-  resolved against the catalog by `app/Support/PermissionSelector` at provision time and
-  snapshotted onto the role.
-- **Scope variants (member-access plan, Phase B — additive and inert until Phase C).** A base
-  permission with a "my rows" reading gets three suffixes, generated from `$scopeDomains` in the
-  same config so a new domain is one line: `X.view_own` (rows about you), `X.view_assigned` (you +
-  your direct reports' rows), `X.view_all` (every row). `app/Support/PermissionScope` answers
-  *which grants satisfy a scoped check* — a wider scope, or the legacy unsuffixed slug, which has
-  always meant `all`; `User::granted($slug)` is the scope-aware check while `hasPermission()`
-  stays exact-match, so nothing changes for callers outside the `scopes` map. The single legacy
-  exception is `hrms.payroll.view` (always "runs + own payslip" → answers `_own` only, declared in
-  `legacy_scope_aliases`). `.manage` is deliberately **not** in the lattice: folding it in would
-  widen e.g. `hrms.payroll.manage` into "read every payslip". `App\Services\ReportsTo::idsFor(User)`
-  is the single definition of `_assigned` (one hop down `employees.manager_id`, direct reports' user
-  ids; memoized per unit of work like `TenantLimits`, flush wired into the same boundaries). **The
-  Phase C enforcement cutover (steps 9–11) is shipped**: `TaskScope` (Row scoping section) and HRMS's
-  `App\Services\Hrms\HrmsScope` deploy the lattice — `widestView()`/`seesAll()`/`canRead()`/
-  `employeeIdsFor()`/`coversEmployee()` are the one shared answer for every HRMS list and per-record
-  policy (leave/expense/document/comp-off flipped; the attendance-month/leave-balance/comp-off-credit
-  employee-keyed reads and the performance goal/check-in/1:1/feedback lists+show all intersect a
-  client-supplied `employee_id` with the caller's real scope — spoofed params resolve to `[]`/403,
-  never wider; leave exemptions + the leave team calendar stay
-  manage-only / subtree-team by design). Before the alias is ever removed, `tenants:scope-grants
-  --force` makes the implicit explicit: every role holding a legacy scoped base gets the variant(s)
-  it has always meant (`X.view_all` + `X.view_own`; payroll `view_own` only), idempotently
-  (`ScopeGrantBackfill`, `syncWithoutDetaching`).
+Details moved verbatim to `docs/architecture/realtime.md` (covers: Laravel Reverb, private channels, queued tenant connection resolution, Echo reconnect resilience, and channel auth). **Read it before working in this area.**
 
-### Own/Assigned/All Policy & Scope Matrix
+## RBAC, provisioning & scope matrix
 
-| Domain | Grant Base | `_own` Scope | `_assigned` Scope | `_all` Scope | Policy / Service Enforcement |
-|---|---|---|---|---|---|
-| Tasks (TMS) | `tasks.view\|edit\|delete\|move\|assign` | Assignee or reporter = caller | Caller + direct reports (`ReportsTo::idsFor()`) | All project tasks | `TaskScope::rowMatches()`, `TaskScope::constrainQuery()`, `TaskPolicy` |
-| Leave Requests | `hrms.leave.view` | Caller's own requests | Caller + direct reports' requests | All tenant requests | `HrmsScope`, `LeaveRequestDirectory::listFor`, `LeaveRequestPolicy` |
-| Expense Claims | `hrms.expenses.view` | Caller's own claims | Caller + direct reports' claims | All tenant claims | `HrmsScope`, `ExpenseClaimController::index`, `ExpenseClaimPolicy` |
-| Documents | `hrms.documents.view` | Caller's own files | Caller + direct reports' files | All non-confidential tenant files | `HrmsScope`, `DocumentService::listFor`, `EmployeeDocumentPolicy` |
-| Performance Goals | `hrms.performance.view` | Caller's own goals | Caller + direct reports' goals | All cycle goals | `HrmsScope`, `PerformanceGoalController::index`, `PerformanceGoalPolicy` |
-| Check-Ins & 1:1s | `hrms.performance.view` | Caller's own sessions | Caller + direct reports' sessions | All cycle sessions | `HrmsScope`, `CheckInController`, `OneOnOneController` |
-| Attendance & Records | `hrms.attendance.view` | Caller's own month grid | Caller + direct reports' grids | All tenant employee grids | `HrmsScope`, `AttendanceRecordsController`, `AttendanceDayPolicy` |
-| Comp-Off Requests | `hrms.comp_off.view` | Caller's own credits/asks | Caller + direct reports' credits/asks | All tenant comp-off asks | `HrmsScope`, `CompOffRequestDirectory`, `CompOffRequestPolicy` |
-| Payroll & Payslips | `hrms.payroll.view` | Caller's own payslips | Caller's own payslips (1:1, never widened) | All tenant payslips (`view_all` explicit) | `PayslipPolicy`, `PayrollRunController`, `PermissionScope::legacyScope()` |
-
-- `config/project_roles.php` — project-permission catalog (view/create/edit/delete/assign/move/comments/attachments/work_logs/members/settings + `tasks` scope variants `view|edit|delete|move|assign × {own,assigned,all}`, exported as `scope_domains`/`scope_text`; 35 slugs) + system roles lead/developer/viewer.**Project-role resolution is scope-aware like the tenant catalog** — `ProjectRole::hasPermission()` stays literal (`['*']` → all) while `ProjectRole::grants()` answers `satisfying()` like `User::granted()`, so a `tasks.view_all` grant satisfies a `tasks.view_own` request and the legacy `tasks.view` means `_all`. The default roles deliberately keep the UNSCOPED slugs (`legacy = _all`); narrowing a team is what a custom role is for. `TenantProvisioner::provisionProjectRoles()` now UNION-adds configured slugs into system roles (additions only, never revoke; `['*']` on either side wins) so a pre-variant provisioned role picks up new slugs on repair.
-- `app/Support/TenantProvisioner.php` — clones catalog + roles + priorities + project roles + owner admin per tenant; **idempotent** (`firstOrCreate`, pins tenant context null internally), safe to call repeatedly. `seed()` gives a NEW config role its full permission set and thereafter only ever ADDS to an existing one (`syncWithoutDetaching` — a plain `sync()` used to revert tenant edits on every repair); config roles are flagged `roles.is_system` (migration `2026_10_19_000040`) and are **read-only through the API** — `PUT/DELETE roles/{role}` on one is a 422 `form`; a tenant customises via `POST roles/{role}/clone` (the copy needs the actor to hold every permission, `GrantCeiling`) and a custom role is deletable only while unassigned (`DELETE roles/{role}`; both audited) — custom tenant roles are never touched by provisioning — and `provisionProjectRoles()` **union-adds** config slugs into system project roles idempotently (additions only, `['*']` guard), so system roles pick up config additions on re-provision while a config edit can never revoke what a tenant already holds.
-- **Access explainer (R14):** `GET api/users/{user}/access?check=<slug>` (`UserAccessController`, `permission:roles.view`) answers "why can't they?": which of the user's roles grant the slug — exactly, or through a wider scope / the legacy unsuffixed slug (`PermissionScope::satisfying`) — then the plan module the slug lives under (longest module key prefix; `hrms.*` falls back to `hrms.core`) via `TenantLimits::hasModule`, and a plain-language `reason`. Read-only. No SPA panel yet.
-- `app/Models/Tenant.php`, `Role`, `Permission`, `User`; pivots `role_user`, `permission_role`.
-- `TenantSeeder` = super admin + Acme (demo users) + Globex; called from `DatabaseSeeder`.
+Details moved verbatim to `docs/architecture/rbac-and-permissions.md` (covers: Permission catalog, role definitions, scope variants `own|assigned|all`, policy matrix, project roles, idempotent tenant provisioning, and access explainer). **Read it before working in this area.**
 
 ## Task-management services (Phase 0 shells, grown in P1+)
 - `app/Services/ActivityLogger.php` — append-only polymorphic audit (`log()` + `forSubject()`).
@@ -232,48 +168,9 @@ Details moved verbatim to `docs/architecture/billing.md` (covers: Stripe billing
 - `app/Services/TaskService.php` — task CRUD + board/list/move + filters (see Tasks section); board/list/`show` payloads include `open_blockers_count` (`withCount('openBlockers')`), and `show` lazy-loads comments/attachments/subtasks counts. The service stays a thin orchestrator under the 300-line ceiling (`TaskServiceSplitTest`): writes share `Services/Tasks/TaskLifecycle.php` (WIP/blocker guards, status history, goal refresh) and updates run through `Services/Tasks/TaskUpdater.php` — all 12 public methods stay on the service.
 - `app/Services/WorkLogService.php` — work-log CRUD + overlap/duration rules + task/project/workspace time summaries (see Time Tracking section).
 
-## Impersonation (super admin → tenant user)
-- Session key `impersonate` = `['log_id', 'tenant_id', 'original_user_id', 'original_user_name']`; then `Auth::login($target)` + `session()->regenerate()`.
-- Controllers: `ImpersonationController@start` (super_admin | `POST api/impersonate`) and `@stop` (`POST api/impersonate/stop`, only `auth`, works while impersonating).
-- **Tenant-local id collision gotcha:** `user_id` is a per-tenant DB id (every tenant's owner is local id
-  1), so the routing lookup must be disambiguated by `tenant_id` — `start` accepts an optional
-  `tenant_id` and scopes `TenantUserRouting` `where('tenant_id', …)`; the super-admin UI always sends it.
-- Audit rows in `impersonation_logs` (`super_admin_id`, `tenant_id`, `impersonated_user_id`, `ip_address`, `started_at`, `ended_at`).
-- Stop must resolve the original super admin from the system DB (`connectSystem()` before the lookup).
-- Cannot impersonate super admins; `AuthController::me`/`logout` include impersonation state.
-- **Controls (R7/R8):** `POST api/impersonate` requires a `reason` (8–500 chars) and takes `mode`
-  (`read_only` default | `write`); both land on `impersonation_logs` with `expires_at`
-  (`tenancy.impersonation.ttl_minutes`, default 30). `App\Support\ImpersonationGuard`, called from
-  `SwitchTenant`, ends a lapsed session on its next request (401 `impersonation_expired`, log closed at
-  `expires_at`), refuses every non-safe verb in `read_only` (403 `impersonation_read_only`), and even in
-  `write` refuses roles/project-roles/users/my-subscription/billing/my-export/tenant-profile/onboarding/
-  re-impersonation (403 `impersonation_blocked`); `impersonate/stop`, `auth/logout`, `broadcasting/auth` are
-  always allowed. `tenants:close-impersonations` (every 10 min) closes sessions nobody touched again.
-  `me()` carries `impersonation_mode` / `impersonation_expires_at`; the banner shows both; the SA UI collects
-  the reason through `ImpersonateModal`. Tenant-admin audit rows (`AuditsTenantAdminActions`) carry
-  `impersonator_id`. **Not yet attributed:** `ActivityLogger` and `HrmsAuditLogger` rows written while
-  impersonating still show only the impersonated user (follow-up under R7).
+## Impersonation & protected default tenant user
 
-## Protected default tenant user
-- Migration `database/migrations/tenant/2026_09_26_000013_add_default_user_to_users_table.php` adds
-  `users.is_default` (boolean, default false) **plus a partial unique index** so a tenant DB can have at
-  most one default (`CREATE UNIQUE INDEX users_default_unique ON users (is_default) WHERE is_default = true`).
-  The predicate **must** be `true`, never `1` — `is_default` is a boolean column and PostgreSQL rejects
-  `boolean = integer` (sqlite silently accepts it, so this only explodes on the PG path). The migration is
-  repair-safe (`Schema::hasColumn` + `DROP INDEX IF EXISTS` first) because `tenants:provision` re-runs
-  migrations that failed partway.
-- `TenantProvisioner::ensureDefaultUser()` runs on every `provisionIsolated()`: the default is the oldest
-  **admin** (falling back to the oldest user) — so `owner@{slug}.test` is the default for freshly
-  provisioned tenants.
-- `App\Models\User` — `scopeDefault()`, `defaultUser()`, `fillable += is_default`, and a `deleting` hook that
-  throws `ValidationException` (`form`) so the default can never be deleted by any code path.
-- `UserController`: `updateRoles()` refuses to drop `admin` from the default user, `destroy()` refuses
-  self-deletion, `makeDefault()` (422 `form`) requires the target to be an admin. `/api/users*` now sits in
-  the **tenant_context group** (the users table lives in the tenant DB — a non-impersonating super admin
-  gets 403 instead of a "no such table: roles" 500), and every user response carries `is_default`.
-- `makeDefault()` must clear + set through the **query builder**, not `$model->update()`: shifting onto the
-  user who is *already* the default is a no-op for Eloquent's dirty check, which would clear the flag and
-  never re-set it, leaving the tenant with **no** default user (regression-tested in `DefaultUserTest`).
+Details moved verbatim to `docs/architecture/impersonation-and-users.md` (covers: Super admin impersonation controls, audit logs, routing keys, and protected tenant default user lifecycle). **Read it before working in this area.**
 
 ## Theming
 - Per-user theme stored in `user_settings.settings['theme']`; defaults in `config/theme.php`.

@@ -41,10 +41,11 @@ Static gate at the end of this pass: Pint, `php -l` on app/ and routes/, larasta
 
 Done: AGENTS.md 968 -> 510 lines (five section groups moved verbatim into `docs/architecture/`); four more first-statement validations converted (inline count 141); splits of HrmsDefaultsProvisioner (407 -> 98), InboxService (397 -> 143), ExpenseService (439 -> 318), EngagementService (442 -> 358) and AuthController (379 -> 281). Tools added: `scripts/inline-validation-to-formrequest.py`, `scripts/extract-php-methods.py`.
 
-### Deliberately not done
-- **PayrollService, TenantDatabaseManager, TenantLimits, SubscriptionService, JqlCompiler, ApprovalService, StatutoryEngine and the other oversized classes**: their helpers share state or sit on the money and tenancy paths, so splitting them without running the suite is a risk this pass would not take. They stay frozen by `ClassSizeCeilingTest` and are the next candidates once a full run is available.
-- **141 inline `validate()` calls**: each has code before the call (an authorize, a merge, a quota check) so moving validation first changes behaviour. `UserController::store` proved it. Convert by hand, case by case, with tests.
-- **Raw `<table>` (15) and `<select>` (108)**: the `Table`/`Select` primitives add a panel border, sticky headers and a wrapper element, so swapping changes the visuals; needs a browser review. Lint ratchet holds the count at 123.
-- **~104 pages still hand-roll fetching**: the remaining ones poll or reload after mutations and need per-page care and specs.
-- **Service `abort()` calls** (download 404/403 and a 422 whose JSON shape would change) and **presenters in controllers**: no behaviour-preserving mechanical path.
-- **Playwright and Prettier**: cannot be run or verified in this environment, so not added unverified.
+### Fifth pass (focused tests and static verification)
+Static gate at the end of this pass: Pint, route snapshot (`scripts/route-snapshot.sh --check`), `ClassSizeCeilingTest`, `ArchitectureRatchetTest`, ESLint (0 errors / 123 warnings), Vitest (217 tests / 48 files), and the production build all pass.
+
+Done:
+- **`PlatformBadgeCountsController` direct `DB::` call fixed**: extracted `App\Services\Platform\PlatformBadgeCounts` service, satisfying `ArchitectureRatchetTest`.
+- **`TenantController` brought under the 300-line ceiling (410 -> 285 lines)**: extracted `App\Services\Tenancy\TenantUserDirectory` (user directory listing and default owner account lookup) and `App\Services\Tenancy\TenantStats` (live domain counts); converted inline validations to FormRequests `TenantUpdateRequest` and `TenantSelfProfileRequest`. `TenantController.php` successfully removed from `ClassSizeCeilingTest::FROZEN`, and its inline validation ratchet lowered from 3 to 1 in `ArchitectureRatchetTest`.
+- **AGENTS.md further slimmed (511 -> 407 lines)**: moved 4 architecture sections verbatim into `docs/architecture/` (`api-tokens-and-security.md`, `realtime.md`, `rbac-and-permissions.md`, `impersonation-and-users.md`), replaced with concise reference links.
+- **`WorkspaceDetail.jsx` component split (669 -> 425 lines)**: extracted tab bodies into `components/workspace/` (`WorkspaceProjectsTab`, `WorkspaceMembersTab`, `WorkspaceLabelsTab`, `WorkspaceSettingsTab`); added to `extractedModules.test.jsx` (Vitest 217 tests / 48 files green).

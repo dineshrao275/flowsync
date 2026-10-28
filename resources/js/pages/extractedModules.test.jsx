@@ -11,6 +11,10 @@ const modules = {
     OrgPanels: () => import('../components/hrms/OrgPanels'),
     Dashboard: () => import('./Dashboard'),
     DashboardCharts: () => import('../components/dashboard/DashboardCharts'),
+    WorkspaceProjectsTab: () => import('../components/workspace/WorkspaceProjectsTab'),
+    WorkspaceMembersTab: () => import('../components/workspace/WorkspaceMembersTab'),
+    WorkspaceLabelsTab: () => import('../components/workspace/WorkspaceLabelsTab'),
+    WorkspaceSettingsTab: () => import('../components/workspace/WorkspaceSettingsTab'),
 };
 
 describe('split page modules', () => {
@@ -30,5 +34,9 @@ describe('split page modules', () => {
             expect.arrayContaining(['DepartmentPanel', 'CatalogPanel', 'CatalogList']),
         );
         expect(Object.keys(await import('../components/tenant/TenantActions'))).toEqual(expect.arrayContaining(['TenantActions']));
+        expect(Object.keys(await import('../components/workspace/WorkspaceProjectsTab'))).toEqual(expect.arrayContaining(['WorkspaceProjectsTab']));
+        expect(Object.keys(await import('../components/workspace/WorkspaceMembersTab'))).toEqual(expect.arrayContaining(['WorkspaceMembersTab']));
+        expect(Object.keys(await import('../components/workspace/WorkspaceLabelsTab'))).toEqual(expect.arrayContaining(['WorkspaceLabelsTab']));
+        expect(Object.keys(await import('../components/workspace/WorkspaceSettingsTab'))).toEqual(expect.arrayContaining(['WorkspaceSettingsTab']));
     });
 });
