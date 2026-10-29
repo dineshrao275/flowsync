@@ -1,7 +1,7 @@
-import { useLocation, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../context/AuthContext';
-import { productForPath } from '../utils/product';
+import { useActiveProduct } from '../context/ProductContext';
 
 /**
  * The TMS ↔ HRMS switch in the topbar.
@@ -16,13 +16,13 @@ import { productForPath } from '../utils/product';
  */
 export default function ProductSwitcher() {
     const { user, check, can, hasModule } = useAuth();
+    const { activeProduct, switchProduct } = useActiveProduct();
     const { t } = useTranslation();
-    const location = useLocation();
     const navigate = useNavigate();
 
     if (!user || (user.is_super_admin && !user.impersonating)) return null;
 
-    const product = productForPath(location.pathname);
+    const product = activeProduct;
     const canReachTms = check('product:tms') && (can('dashboard.view') || can('workspaces.view'));
     const canReachHrms = check('product:hrms') && hasModule('hrms.core');
 
@@ -37,7 +37,10 @@ export default function ProductSwitcher() {
     return (
         <button
             type="button"
-            onClick={() => navigate(target)}
+            onClick={() => {
+                switchProduct(toHrms ? 'hrms' : 'tms');
+                navigate(target);
+            }}
             title={title}
             aria-label={title}
             className="flex items-center gap-1.5 rounded-lg border border-gray-300 bg-white px-2.5 py-1.5 text-xs font-semibold text-gray-700 shadow-sm transition hover:bg-gray-50 active:scale-95"

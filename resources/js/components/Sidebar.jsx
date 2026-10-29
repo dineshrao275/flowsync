@@ -3,15 +3,15 @@ import { useTranslation } from 'react-i18next';
 import { Link, useLocation } from 'react-router-dom';
 import { CaretDoubleLeft, CaretDoubleRight, CaretDown } from '@phosphor-icons/react';
 import { useAuth } from '../context/AuthContext';
+import { useActiveProduct } from '../context/ProductContext';
 import { useNotifications } from '../context/NotificationContext';
 import { hrmsSections, superAdminSections, tmsSections } from '../utils/nav';
-import { productForPath } from '../utils/product';
 import { getAppName } from '../utils/appName';
 
 // Sidebar sections live in utils/nav.js: `tmsSections` for the task shell,
 // `hrmsSections` (derived from the HRMS_NAV hub catalog, never re-listed)
 // for the HR shell, `superAdminSections` for the platform. The component
-// below picks by the current path and filters by capability.
+// below picks the active product from ProductContext and filters by capability.
 
 // Glyphs are Phosphor components from the nav catalog (regular weight,
 // currentColor) — one icon family at one optical size across the shell.
@@ -248,6 +248,7 @@ export default function Sidebar({ open, collapsed, onClose, onToggleCollapse }) 
     }, [open, onClose]);
 
     const { check, user } = useAuth();
+    const { activeProduct } = useActiveProduct();
     const { pathname } = useLocation();
     const isSuperAdmin = user?.is_super_admin && !user?.impersonating;
 
@@ -256,12 +257,12 @@ export default function Sidebar({ open, collapsed, onClose, onToggleCollapse }) 
     // land on a visible, highlighted item.
     const [manualGroups, setManualGroups] = useState({});
 
-    // The product shell follows the URL: /hrms* and /my render the HR shell,
-    // everything else the task shell. Crossing shells is the topbar
-    // ProductSwitcher's job, not the sidebar's.
+    // Product-owned URLs set the active product; shared Administration/Billing
+    // pages keep the shell the caller arrived from. Crossing shells is the
+    // topbar ProductSwitcher's job, not the sidebar's.
     const shellSections = isSuperAdmin
         ? superAdminSections
-        : productForPath(pathname) === 'hrms' ? hrmsSections : tmsSections;
+        : activeProduct === 'hrms' ? hrmsSections : tmsSections;
 
     // A section that filtered to zero because every item was module-gated
     // (not permission-gated) survives with a "locked by your plan" note —

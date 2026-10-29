@@ -1,6 +1,7 @@
 import { BrowserRouter, Navigate, Outlet, Route, Routes, useLocation } from 'react-router-dom';
 import { lazy, Suspense, useEffect } from 'react';
 import { AuthProvider, useAuth } from './context/AuthContext';
+import { ProductProvider } from './context/ProductContext';
 import { ThemeProvider } from './context/ThemeContext';
 import { ToastProvider } from './context/ToastContext';
 import { NotificationProvider } from './context/NotificationContext';
@@ -626,13 +627,15 @@ export default function App() {
         <BrowserRouter basename="/app">
             <ScrollToTop />
             <AuthProvider>
-                <ToastProvider>
-                    <NotificationProvider>
-                        <ConfirmProvider>
-                            <AppRoutes />
-                        </ConfirmProvider>
-                    </NotificationProvider>
-                </ToastProvider>
+                <ProductProvider>
+                    <ToastProvider>
+                        <NotificationProvider>
+                            <ConfirmProvider>
+                                <AppRoutes />
+                            </ConfirmProvider>
+                        </NotificationProvider>
+                    </ToastProvider>
+                </ProductProvider>
             </AuthProvider>
         </BrowserRouter>
     );

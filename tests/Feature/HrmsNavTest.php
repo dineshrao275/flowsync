@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Tests\Feature;
 
 use Tests\TestCase;
@@ -198,8 +200,9 @@ class HrmsNavTest extends TestCase
 
         $sidebar = file_get_contents(resource_path('js/components/Sidebar.jsx'));
 
-        $this->assertStringContainsString('productForPath', $sidebar);
+        $this->assertStringContainsString('useActiveProduct', $sidebar);
         $this->assertStringContainsString('hrmsSections', $sidebar);
+        $this->assertStringNotContainsString('productForPath', $sidebar);
     }
 
     public function test_every_hrms_route_is_a_hub_tab_and_vice_versa(): void
