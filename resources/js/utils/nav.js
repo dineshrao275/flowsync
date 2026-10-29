@@ -109,19 +109,23 @@ function hrmsGroups() {
     return sections;
 }
 
+// `shared` marks a destination both shells administer. The Sidebar attaches
+// the active product as navigation state so the target page keeps the caller's
+// shell even before the product preference has been persisted (or when storage
+// is unavailable).
 const SHARED_ADMIN = [
-    { to: '/users', label: 'nav.admin.users', capabilities: ['users.view'], icon: ICONS.users },
-    { to: '/roles', label: 'nav.admin.roles', capabilities: ['roles.view'], icon: ICONS.roles },
-    { to: '/custom-fields', label: 'nav.admin.customFields', capabilities: ['custom_fields.manage', 'module:custom_fields'], icon: SlidersHorizontal },
-    { to: '/settings', label: 'nav.admin.settings', capabilities: ['settings.view'], icon: ICONS.settings },
-    { to: '/security', label: 'nav.admin.security', icon: ICONS.security },
-    { to: '/audit', label: 'nav.admin.audit', capabilities: ['tenant.manage'], icon: ICONS.security },
+    { to: '/users', label: 'nav.admin.users', capabilities: ['users.view'], icon: ICONS.users, shared: true },
+    { to: '/roles', label: 'nav.admin.roles', capabilities: ['roles.view'], icon: ICONS.roles, shared: true },
+    { to: '/custom-fields', label: 'nav.admin.customFields', capabilities: ['custom_fields.manage', 'module:custom_fields'], icon: SlidersHorizontal, shared: true },
+    { to: '/settings', label: 'nav.admin.settings', capabilities: ['settings.view'], icon: ICONS.settings, shared: true },
+    { to: '/security', label: 'nav.admin.security', icon: ICONS.security, shared: true },
+    { to: '/audit', label: 'nav.admin.audit', capabilities: ['tenant.manage'], icon: ICONS.security, shared: true },
 ];
 
 const SHARED_BILLING = [
-    { to: '/subscription', label: 'nav.admin.subscription', capabilities: ['billing.view'], icon: ICONS.subscription },
-    { to: '/support', label: 'nav.admin.support', capabilities: ['support.manage'], icon: ICONS.support },
-    { to: '/export', label: 'nav.admin.dataExport', capabilities: ['module:export.full', 'billing.view'], icon: ICONS.dataExport },
+    { to: '/subscription', label: 'nav.admin.subscription', capabilities: ['billing.view'], icon: ICONS.subscription, shared: true },
+    { to: '/support', label: 'nav.admin.support', capabilities: ['support.manage'], icon: ICONS.support, shared: true },
+    { to: '/export', label: 'nav.admin.dataExport', capabilities: ['module:export.full', 'billing.view'], icon: ICONS.dataExport, shared: true },
 ];
 
 export const tmsSections = [

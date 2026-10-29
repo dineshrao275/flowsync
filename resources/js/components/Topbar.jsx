@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { Check, Globe, List, MagnifyingGlass, Palette } from '@phosphor-icons/react';
 import { useAuth } from '../context/AuthContext';
+import { useActiveProduct } from '../context/ProductContext';
 import { useToast } from '../context/ToastContext';
 import { usePageTitleContext } from '../context/PageTitleContext';
 import { useClickOutside } from '../hooks/useClickOutside';
@@ -86,6 +87,7 @@ function LanguageMenu() {
 
 export default function Topbar({ onOpenTheme, onToggleSidebar, onOpenSearch, showSearch, showTheme = true }) {
     const { user, logout } = useAuth();
+    const { activeProduct } = useActiveProduct();
     const { t } = useTranslation();
     const toast = useToast();
     const navigate = useNavigate();
@@ -215,7 +217,7 @@ export default function Topbar({ onOpenTheme, onToggleSidebar, onOpenSearch, sho
                                 </div>
                             </div>
                             <button
-                                onClick={() => navigate('/settings')}
+                                onClick={() => navigate('/settings', { state: { product: activeProduct } })}
                                 role="menuitem"
                                 className="flex w-full items-center gap-2 px-4 py-2.5 text-sm text-gray-700 transition hover:bg-gray-50"
                             >

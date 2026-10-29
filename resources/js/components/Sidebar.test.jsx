@@ -36,7 +36,7 @@ function Probe() {
 
     return (
         <p data-testid="probe">
-            {activeProduct}|{location.pathname}
+            {activeProduct}|{location.pathname}|{location.state?.product ?? '-'}
         </p>
     );
 }
@@ -70,6 +70,14 @@ describe('Sidebar product context', () => {
         await waitFor(() => expect(screen.getByTestId('probe')).toHaveTextContent('hrms|/users'));
         expect(screen.getByRole('button', { name: 'Overview' })).toBeInTheDocument();
         expect(screen.queryByRole('link', { name: 'Workspaces' })).not.toBeInTheDocument();
+    });
+
+    it('tags shared links with the active product', async () => {
+        renderAt('/hrms');
+
+        fireEvent.click(screen.getByRole('link', { name: 'Users' }));
+
+        await waitFor(() => expect(screen.getByTestId('probe')).toHaveTextContent('hrms|/users|hrms'));
     });
 
     it('keeps the TMS shell when opening shared Administration', async () => {

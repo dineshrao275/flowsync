@@ -26,6 +26,7 @@ function ItemIcon({ icon }) {
 function SidebarLink({ item, collapsed, onClose }) {
     const { t } = useTranslation();
     const location = useLocation();
+    const { activeProduct } = useActiveProduct();
     const { inboxUnread, unreadCount, effectivePlatformCounts, effectiveInboxUnread, markSectionViewed } = useNotifications();
     const isActive = location.pathname === item.to;
     const labelClass = collapsed ? 'hidden lg:hidden' : 'block';
@@ -40,6 +41,7 @@ function SidebarLink({ item, collapsed, onClose }) {
     return (
         <Link
             to={item.to}
+            state={item.shared ? { product: activeProduct } : undefined}
             onClick={() => {
                 if (item.badge) {
                     markSectionViewed?.(item.badge);
@@ -89,6 +91,7 @@ function SidebarLink({ item, collapsed, onClose }) {
 
 function SidebarSection({ section, collapsed, onClose, canViewPlans }) {
     const { t } = useTranslation();
+    const { activeProduct } = useActiveProduct();
 
     return (
         <div className="space-y-0.5">
@@ -107,7 +110,7 @@ function SidebarSection({ section, collapsed, onClose, canViewPlans }) {
                 >
                     <span>{t('shell.sidebar.lockedByPlan')}</span>{' '}
                     {canViewPlans ? (
-                        <Link to="/subscription" className="underline transition-colors hover:opacity-80">
+                        <Link to="/subscription" state={{ product: activeProduct }} className="underline transition-colors hover:opacity-80">
                             {t('shell.sidebar.viewPlans')}
                         </Link>
                     ) : (

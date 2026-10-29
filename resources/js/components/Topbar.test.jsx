@@ -2,6 +2,7 @@ import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { AuthProvider } from '../context/AuthContext';
+import { ProductProvider } from '../context/ProductContext';
 import { ToastProvider } from '../context/ToastContext';
 import { PageTitleProvider } from '../context/PageTitleContext';
 import i18n, { DEFAULT_LOCALE } from '../i18n';
@@ -34,11 +35,13 @@ function Shell() {
     return (
         <MemoryRouter>
             <AuthProvider>
-                <ToastProvider>
-                    <PageTitleProvider>
-                        <Topbar showSearch={false} showTheme={false} />
-                    </PageTitleProvider>
-                </ToastProvider>
+                <ProductProvider>
+                    <ToastProvider>
+                        <PageTitleProvider>
+                            <Topbar showSearch={false} showTheme={false} />
+                        </PageTitleProvider>
+                    </ToastProvider>
+                </ProductProvider>
             </AuthProvider>
         </MemoryRouter>
     );
