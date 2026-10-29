@@ -11,6 +11,25 @@ const NotificationContext = createContext(null);
 
 const STORAGE_KEY_ALERTS = 'flowsync_platform_alerts';
 const STORAGE_KEY_VIEWED = 'flowsync_platform_viewed_sections';
+const STORAGE_KEY_SEEN_COUNTS = 'flowsync_seen_section_counts';
+
+function getUserStorageKey(baseKey, userId) {
+    return userId ? `${baseKey}_${userId}` : baseKey;
+}
+
+function readStorageJson(key, userId, fallback) {
+    try {
+        const userSpecific = localStorage.getItem(getUserStorageKey(key, userId));
+        if (userSpecific !== null) return JSON.parse(userSpecific);
+        const legacyLocal = localStorage.getItem(key);
+        if (legacyLocal !== null) return JSON.parse(legacyLocal);
+        const legacySession = sessionStorage.getItem(key);
+        if (legacySession !== null) return JSON.parse(legacySession);
+    } catch {
+        // ignore
+    }
+    return fallback;
+}
 
 export function NotificationProvider({ children }) {
     const { t } = useTranslation();
@@ -21,112 +40,161 @@ export function NotificationProvider({ children }) {
     const [inboxUnread, setInboxUnread] = useState(0);
     const [platformCounts, setPlatformCounts] = useState({ leads: 0, support: 0, queue: 0 });
 
-    const [viewedSections, setViewedSections] = useState(() => {
-        try {
-            return JSON.parse(sessionStorage.getItem(STORAGE_KEY_VIEWED) || '{}');
-        } catch {
-            return {};
-        }
-    });
+    const [viewedSections, setViewedSections] = useState(() =>
+        readStorageJson(STORAGE_KEY_VIEWED, user?.id, {}),
+    );
 
-    const [platformAlerts, setPlatformAlerts] = useState(() => {
-        try {
-            return JSON.parse(sessionStorage.getItem(STORAGE_KEY_ALERTS) || '[]');
-        } catch {
-            return [];
+    const [seenCounts, setSeenCounts] = useState(() =>
+        readStorageJson(STORAGE_KEY_SEEN_COUNTS, user?.id, {}),
+    );
+
+    const [platformAlerts, setPlatformAlerts] = useState(() =>
+        readStorageJson(STORAGE_KEY_ALERTS, user?.id, []),
+    );
+
+    // Synchronize storage when user authentication resolves or changes
+    useEffect(() => {
+        if (!user?.id) {
+            setViewedSections({});
+            setSeenCounts({});
+            setPlatformAlerts([]);
+            return;
         }
-    });
+
+        setViewedSections(readStorageJson(STORAGE_KEY_VIEWED, user.id, {}));
+        setSeenCounts(readStorageJson(STORAGE_KEY_SEEN_COUNTS, user.id, {}));
+        setPlatformAlerts(readStorageJson(STORAGE_KEY_ALERTS, user.id, []));
+    }, [user?.id]);
 
     // A non-impersonating super admin has no tenant database: personal
     // notifications live in the tenant DB only, but they monitor platform-wide
     // events (marketing leads, support tickets, background queue failures).
     const platformOnly = Boolean(user?.is_super_admin && !user?.impersonating);
 
-    const markPlatformSectionViewed = useCallback((sectionKey) => {
+    const markSectionViewed = useCallback((sectionKey) => {
+        const userId = user?.id;
+
         setViewedSections((prev) => {
             const next = { ...prev, [sectionKey]: true };
-            try {
-                sessionStorage.setItem(STORAGE_KEY_VIEWED, JSON.stringify(next));
-            } catch {
-                // ignore
+            if (userId) {
+                try {
+                    localStorage.setItem(getUserStorageKey(STORAGE_KEY_VIEWED, userId), JSON.stringify(next));
+                } catch {
+                    // ignore
+                }
             }
             return next;
         });
 
-        setPlatformAlerts((prev) => {
-            const next = prev.map((alert) =>
-                alert.type === sectionKey ? { ...alert, read: true } : alert,
-            );
-            try {
-                sessionStorage.setItem(STORAGE_KEY_ALERTS, JSON.stringify(next));
-            } catch {
-                // ignore
+        setSeenCounts((prev) => {
+            const currentCount = sectionKey === 'inbox'
+                ? inboxUnread
+                : (platformCounts[sectionKey] ?? 0);
+            const next = { ...prev, [sectionKey]: currentCount };
+            if (userId) {
+                try {
+                    localStorage.setItem(getUserStorageKey(STORAGE_KEY_SEEN_COUNTS, userId), JSON.stringify(next));
+                } catch {
+                    // ignore
+                }
             }
             return next;
         });
-    }, []);
+
+        if (sectionKey !== 'inbox') {
+            setPlatformAlerts((prev) => {
+                const next = prev.map((alert) =>
+                    alert.type === sectionKey ? { ...alert, read: true } : alert,
+                );
+                if (userId) {
+                    try {
+                        localStorage.setItem(getUserStorageKey(STORAGE_KEY_ALERTS, userId), JSON.stringify(next));
+                    } catch {
+                        // ignore
+                    }
+                }
+                return next;
+            });
+        }
+    }, [user?.id, platformCounts, inboxUnread]);
+
+    const markPlatformSectionViewed = markSectionViewed;
 
     const markPlatformAlertRead = useCallback((alertId) => {
         let alertType = null;
+        const userId = user?.id;
         setPlatformAlerts((prev) => {
             const target = prev.find((a) => a.id === alertId);
             if (target) alertType = target.type;
             const next = prev.map((alert) =>
                 alert.id === alertId ? { ...alert, read: true } : alert,
             );
-            try {
-                sessionStorage.setItem(STORAGE_KEY_ALERTS, JSON.stringify(next));
-            } catch {
-                // ignore
+            if (userId) {
+                try {
+                    localStorage.setItem(getUserStorageKey(STORAGE_KEY_ALERTS, userId), JSON.stringify(next));
+                } catch {
+                    // ignore
+                }
             }
             return next;
         });
 
         if (alertType) {
-            setViewedSections((prev) => {
-                const next = { ...prev, [alertType]: true };
+            markSectionViewed(alertType);
+        }
+    }, [user?.id, markSectionViewed]);
+
+    const markAllPlatformAlertsRead = useCallback(() => {
+        const userId = user?.id;
+        setPlatformAlerts((prev) => {
+            const next = prev.map((alert) => ({ ...alert, read: true }));
+            if (userId) {
                 try {
-                    sessionStorage.setItem(STORAGE_KEY_VIEWED, JSON.stringify(next));
+                    localStorage.setItem(getUserStorageKey(STORAGE_KEY_ALERTS, userId), JSON.stringify(next));
                 } catch {
                     // ignore
                 }
-                return next;
-            });
-        }
-    }, []);
+            }
+            return next;
+        });
 
-    const markAllPlatformAlertsRead = useCallback(() => {
-        setPlatformAlerts((prev) => {
-            const next = prev.map((alert) => ({ ...alert, read: true }));
+        const allViewed = { leads: true, support: true, queue: true, inbox: true };
+        setViewedSections((prev) => ({ ...prev, ...allViewed }));
+        const allCounts = {
+            leads: platformCounts.leads,
+            support: platformCounts.support,
+            queue: platformCounts.queue,
+            inbox: inboxUnread,
+        };
+        setSeenCounts((prev) => ({ ...prev, ...allCounts }));
+
+        if (userId) {
             try {
-                sessionStorage.setItem(STORAGE_KEY_ALERTS, JSON.stringify(next));
+                localStorage.setItem(getUserStorageKey(STORAGE_KEY_VIEWED, userId), JSON.stringify(allViewed));
+                localStorage.setItem(getUserStorageKey(STORAGE_KEY_SEEN_COUNTS, userId), JSON.stringify(allCounts));
             } catch {
                 // ignore
             }
-            return next;
-        });
-        setViewedSections(() => {
-            const next = { leads: true, support: true, queue: true };
-            try {
-                sessionStorage.setItem(STORAGE_KEY_VIEWED, JSON.stringify(next));
-            } catch {
-                // ignore
-            }
-            return next;
-        });
-    }, []);
+        }
+    }, [user?.id, platformCounts, inboxUnread]);
 
     // Dismiss badge as soon as the user navigates to the corresponding page to view the info
     useEffect(() => {
-        if (!platformOnly) return;
-        if (location.pathname === '/admin/leads') {
-            markPlatformSectionViewed('leads');
-        } else if (location.pathname === '/admin/support') {
-            markPlatformSectionViewed('support');
-        } else if (location.pathname === '/admin/queue') {
-            markPlatformSectionViewed('queue');
+        const path = location.pathname;
+        if (platformOnly) {
+            if (path === '/admin/leads' || path.startsWith('/admin/leads/')) {
+                markSectionViewed('leads');
+            } else if (path === '/admin/support' || path.startsWith('/admin/support/')) {
+                markSectionViewed('support');
+            } else if (path === '/admin/queue' || path.startsWith('/admin/queue/')) {
+                markSectionViewed('queue');
+            }
+        } else {
+            if (path === '/hrms/inbox' || path.startsWith('/hrms/inbox/')) {
+                markSectionViewed('inbox');
+            }
         }
-    }, [location.pathname, platformOnly, markPlatformSectionViewed]);
+    }, [location.pathname, platformOnly, markSectionViewed]);
 
     const refreshTenant = useCallback(async () => {
         if (!user || platformOnly) {
@@ -217,10 +285,12 @@ export function NotificationProvider({ children }) {
             setPlatformCounts((counts) => ({ ...counts, leads: counts.leads + 1 }));
             setViewedSections((prev) => {
                 const next = { ...prev, leads: false };
-                try {
-                    sessionStorage.setItem(STORAGE_KEY_VIEWED, JSON.stringify(next));
-                } catch {
-                    // ignore
+                if (user?.id) {
+                    try {
+                        localStorage.setItem(getUserStorageKey(STORAGE_KEY_VIEWED, user.id), JSON.stringify(next));
+                    } catch {
+                        // ignore
+                    }
                 }
                 return next;
             });
@@ -236,10 +306,12 @@ export function NotificationProvider({ children }) {
             };
             setPlatformAlerts((prev) => {
                 const next = [newAlert, ...prev.filter((a) => a.id !== newAlert.id)].slice(0, 50);
-                try {
-                    sessionStorage.setItem(STORAGE_KEY_ALERTS, JSON.stringify(next));
-                } catch {
-                    // ignore
+                if (user?.id) {
+                    try {
+                        localStorage.setItem(getUserStorageKey(STORAGE_KEY_ALERTS, user.id), JSON.stringify(next));
+                    } catch {
+                        // ignore
+                    }
                 }
                 return next;
             });
@@ -253,10 +325,12 @@ export function NotificationProvider({ children }) {
             setPlatformCounts((counts) => ({ ...counts, support: counts.support + 1 }));
             setViewedSections((prev) => {
                 const next = { ...prev, support: false };
-                try {
-                    sessionStorage.setItem(STORAGE_KEY_VIEWED, JSON.stringify(next));
-                } catch {
-                    // ignore
+                if (user?.id) {
+                    try {
+                        localStorage.setItem(getUserStorageKey(STORAGE_KEY_VIEWED, user.id), JSON.stringify(next));
+                    } catch {
+                        // ignore
+                    }
                 }
                 return next;
             });
@@ -272,10 +346,12 @@ export function NotificationProvider({ children }) {
             };
             setPlatformAlerts((prev) => {
                 const next = [newAlert, ...prev.filter((a) => a.id !== newAlert.id)].slice(0, 50);
-                try {
-                    sessionStorage.setItem(STORAGE_KEY_ALERTS, JSON.stringify(next));
-                } catch {
-                    // ignore
+                if (user?.id) {
+                    try {
+                        localStorage.setItem(getUserStorageKey(STORAGE_KEY_ALERTS, user.id), JSON.stringify(next));
+                    } catch {
+                        // ignore
+                    }
                 }
                 return next;
             });
@@ -289,10 +365,12 @@ export function NotificationProvider({ children }) {
             setPlatformCounts((counts) => ({ ...counts, queue: counts.queue + 1 }));
             setViewedSections((prev) => {
                 const next = { ...prev, queue: false };
-                try {
-                    sessionStorage.setItem(STORAGE_KEY_VIEWED, JSON.stringify(next));
-                } catch {
-                    // ignore
+                if (user?.id) {
+                    try {
+                        localStorage.setItem(getUserStorageKey(STORAGE_KEY_VIEWED, user.id), JSON.stringify(next));
+                    } catch {
+                        // ignore
+                    }
                 }
                 return next;
             });
@@ -307,10 +385,12 @@ export function NotificationProvider({ children }) {
             };
             setPlatformAlerts((prev) => {
                 const next = [newAlert, ...prev].slice(0, 50);
-                try {
-                    sessionStorage.setItem(STORAGE_KEY_ALERTS, JSON.stringify(next));
-                } catch {
-                    // ignore
+                if (user?.id) {
+                    try {
+                        localStorage.setItem(getUserStorageKey(STORAGE_KEY_ALERTS, user.id), JSON.stringify(next));
+                    } catch {
+                        // ignore
+                    }
                 }
                 return next;
             });
@@ -349,22 +429,44 @@ export function NotificationProvider({ children }) {
         return platformAlerts.filter((alert) => !alert.read).length;
     }, [platformAlerts]);
 
+    const calculateEffective = useCallback((current, seen, viewed) => {
+        if (viewed) {
+            if (seen !== undefined && current <= seen) {
+                return 0;
+            }
+            if (seen === undefined) {
+                return 0;
+            }
+            return Math.max(0, current - seen);
+        }
+        if (seen !== undefined) {
+            return Math.max(0, current - seen);
+        }
+        return current;
+    }, []);
+
     const effectivePlatformCounts = useMemo(() => {
         return {
-            leads: viewedSections.leads ? 0 : platformCounts.leads,
-            support: viewedSections.support ? 0 : platformCounts.support,
-            queue: viewedSections.queue ? 0 : platformCounts.queue,
+            leads: calculateEffective(platformCounts.leads ?? 0, seenCounts.leads, viewedSections.leads),
+            support: calculateEffective(platformCounts.support ?? 0, seenCounts.support, viewedSections.support),
+            queue: calculateEffective(platformCounts.queue ?? 0, seenCounts.queue, viewedSections.queue),
         };
-    }, [viewedSections, platformCounts]);
+    }, [viewedSections, platformCounts, seenCounts, calculateEffective]);
+
+    const effectiveInboxUnread = useMemo(() => {
+        return calculateEffective(inboxUnread ?? 0, seenCounts.inbox, viewedSections.inbox);
+    }, [viewedSections.inbox, inboxUnread, seenCounts.inbox, calculateEffective]);
 
     const value = useMemo(
         () => ({
             unreadCount,
             inboxUnread,
+            effectiveInboxUnread,
             platformCounts,
             effectivePlatformCounts,
             platformAlerts,
             platformUnreadCount,
+            markSectionViewed,
             markPlatformSectionViewed,
             markPlatformAlertRead,
             markAllPlatformAlertsRead,
@@ -377,10 +479,12 @@ export function NotificationProvider({ children }) {
         [
             unreadCount,
             inboxUnread,
+            effectiveInboxUnread,
             platformCounts,
             effectivePlatformCounts,
             platformAlerts,
             platformUnreadCount,
+            markSectionViewed,
             markPlatformSectionViewed,
             markPlatformAlertRead,
             markAllPlatformAlertsRead,

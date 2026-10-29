@@ -26,12 +26,12 @@ function ItemIcon({ icon }) {
 function SidebarLink({ item, collapsed, onClose }) {
     const { t } = useTranslation();
     const location = useLocation();
-    const { inboxUnread, unreadCount, effectivePlatformCounts } = useNotifications();
+    const { inboxUnread, unreadCount, effectivePlatformCounts, effectiveInboxUnread, markSectionViewed } = useNotifications();
     const isActive = location.pathname === item.to;
     const labelClass = collapsed ? 'hidden lg:hidden' : 'block';
 
     let badgeCount = 0;
-    if (item.badge === 'inbox') badgeCount = inboxUnread;
+    if (item.badge === 'inbox') badgeCount = effectiveInboxUnread ?? inboxUnread;
     else if (item.badge === 'notifications') badgeCount = unreadCount;
     else if (item.badge === 'leads') badgeCount = effectivePlatformCounts?.leads ?? 0;
     else if (item.badge === 'support') badgeCount = effectivePlatformCounts?.support ?? 0;
@@ -40,7 +40,12 @@ function SidebarLink({ item, collapsed, onClose }) {
     return (
         <Link
             to={item.to}
-            onClick={onClose}
+            onClick={() => {
+                if (item.badge) {
+                    markSectionViewed?.(item.badge);
+                }
+                onClose?.();
+            }}
             aria-current={isActive ? 'page' : undefined}
             title={collapsed ? t(item.label) : undefined}
             aria-label={collapsed ? t(item.label) : undefined}
@@ -136,14 +141,14 @@ function isItemActive(item, pathname) {
  */
 function CollapsibleSection({ section, collapsed, onClose, open, onToggle }) {
     const { t } = useTranslation();
-    const { inboxUnread, unreadCount, effectivePlatformCounts } = useNotifications();
+    const { inboxUnread, unreadCount, effectivePlatformCounts, effectiveInboxUnread, markSectionViewed } = useNotifications();
     const { pathname } = useLocation();
     const [first] = section.items;
     const activeInside = section.items.some((item) => isItemActive(item, pathname));
 
     const getBadgeCount = (item) => {
         if (!item?.badge) return 0;
-        if (item.badge === 'inbox') return inboxUnread;
+        if (item.badge === 'inbox') return effectiveInboxUnread ?? inboxUnread;
         if (item.badge === 'notifications') return unreadCount;
         if (item.badge === 'leads') return effectivePlatformCounts?.leads ?? 0;
         if (item.badge === 'support') return effectivePlatformCounts?.support ?? 0;
@@ -164,7 +169,12 @@ function CollapsibleSection({ section, collapsed, onClose, open, onToggle }) {
         return (
             <Link
                 to={first.to}
-                onClick={onClose}
+                onClick={() => {
+                    if (first.badge) {
+                        markSectionViewed?.(first.badge);
+                    }
+                    onClose?.();
+                }}
                 aria-current={active ? 'page' : undefined}
                 title={t(section.label)}
                 aria-label={t(section.label)}
