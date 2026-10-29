@@ -75,7 +75,7 @@ export default function Subscription() {
     usePageTitle(t('admin.subscription.pageTitle'));
     const toast = useToast();
     const confirm = useConfirm();
-    const { user, can } = useAuth();
+    const { user, can, refresh } = useAuth();
     const [subscription, setSubscription] = useState(null);
     const [tenant, setTenant] = useState(null);
     const [events, setEvents] = useState([]);
@@ -175,7 +175,7 @@ export default function Subscription() {
             api.post('/billing/verify', { payment_id: Number(paymentId), provider_payment_id: sessionId })
                 .then(() => {
                     toast.success(t('admin.subscription.paymentConfirmed'));
-                    return load();
+                    return Promise.all([load(), refresh()]);
                 })
                 .catch((e) => toast.error(fieldErrors(e).form || e.response?.data?.message || t('admin.subscription.paymentUnconfirmed')))
                 .finally(clean);
@@ -201,7 +201,7 @@ export default function Subscription() {
         try {
             const res = await fn();
             toast.success(res?.data?.message || successMessage);
-            await load();
+            await Promise.all([load(), refresh()]);
         } catch (e) {
             toast.error(fieldErrors(e).form || fieldErrors(e).message || t('admin.subscription.somethingWrong'));
         } finally {
@@ -216,7 +216,7 @@ export default function Subscription() {
                 const res = await api.post('/billing/checkout', { plan_id: plan.id });
                 if (res.data.changed) {
                     toast.success(res.data.message);
-                    await load();
+                    await Promise.all([load(), refresh()]);
                     return;
                 }
                 if (res.data.session?.redirect_url) {
@@ -224,7 +224,7 @@ export default function Subscription() {
                     return;
                 }
                 toast.success(t('admin.subscription.checkoutCreated'));
-                await load();
+                await Promise.all([load(), refresh()]);
             } catch (e) {
                 toast.error(fieldErrors(e).form || fieldErrors(e).message || t('admin.subscription.checkoutFailed'));
             } finally {
