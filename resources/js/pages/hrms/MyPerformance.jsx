@@ -116,7 +116,7 @@ export default function MyPerformance() {
         // The record this login drafts under: the directory row whose user
         // block names the login. Resolved once here and passed down, so no
         // form ever asks the person to type their own id.
-        api.get('/hrms/employees', { params: { per_page: 100 } })
+        api.get('/hrms/employees', { params: { per_page: 250 } })
             .then(({ data }) => setEmployeeId((data.employees ?? []).find((e) => e.user?.id === user?.id)?.id ?? null))
             .catch(() => setEmployeeId(null));
         // eslint-disable-next-line react-hooks/exhaustive-deps

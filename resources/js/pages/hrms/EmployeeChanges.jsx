@@ -52,7 +52,7 @@ export default function EmployeeChanges() {
 
     useEffect(() => {
         load();
-        api.get('/hrms/employees', { params: { per_page: 100 } }).then(({ data: res }) => { setOptions(res.filters || {}); setPeople(res.employees || []); }).catch(() => {});
+        api.get('/hrms/employees', { params: { per_page: 250 } }).then(({ data: res }) => { setOptions(res.filters || {}); setPeople(res.employees || []); }).catch(() => {});
     }, [load]);
 
     const set = (key) => (value) => setForm((f) => ({ ...f, [key]: value }));

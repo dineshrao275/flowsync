@@ -37,4 +37,17 @@ describe('PersonSelect', () => {
         const listbox = screen.getByRole('listbox');
         expect(listbox.className).toContain('z-[9999]');
     });
+
+    it('renders all employees in large lists beyond previous 8-item cap', () => {
+        const largeList = Array.from({ length: 50 }, (_, i) => ({
+            id: i + 1,
+            name: `Employee ${i + 1}`,
+            email: `emp${i + 1}@test.com`,
+        }));
+        render(<PersonSelect people={largeList} value="" onChange={() => {}} />);
+        const input = screen.getByRole('combobox');
+        fireEvent.focus(input);
+        const options = screen.getAllByRole('option');
+        expect(options.length).toBe(50);
+    });
 });

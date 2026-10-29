@@ -32,7 +32,7 @@ export default function Letters() {
 
     useEffect(() => {
         load();
-        api.get('/hrms/employees', { params: { per_page: 100 } }).then(({ data: res }) => setPeople(res.employees || [])).catch(() => {});
+        api.get('/hrms/employees', { params: { per_page: 250 } }).then(({ data: res }) => setPeople(res.employees || [])).catch(() => {});
     }, [load]);
 
     const template = data?.templates.find((tpl) => String(tpl.id) === String(gen.template_id));
