@@ -11,6 +11,7 @@ use App\Models\Task;
 use App\Models\User;
 use App\Services\Hrms\Performance\PerformanceGoalEvidence;
 use App\Services\HrmsAuditLogger;
+use App\Support\Integration\BridgeSchema;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
@@ -63,6 +64,10 @@ class PerformanceService
      */
     public function linkTask(PerformanceGoal $goal, Task $task, ?User $actor = null): GoalTaskLink
     {
+        if (! BridgeSchema::present()) {
+            throw ValidationException::withMessages(['task' => __('Task linking is only available when both HRMS and TMS are active.')]);
+        }
+
         if ($goal->cycle->stage->value === 'completed') {
             throw ValidationException::withMessages(['form' => __('That cycle is sealed — history gains no new links.')]);
         }
@@ -91,6 +96,10 @@ class PerformanceService
      */
     public function unlinkTask(PerformanceGoal $goal, Task $task, ?User $actor = null): void
     {
+        if (! BridgeSchema::present()) {
+            return;
+        }
+
         DB::transaction(function () use ($goal, $task, $actor): void {
             $goal->taskLinks()->where('task_id', $task->id)->delete();
 
