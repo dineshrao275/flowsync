@@ -24,6 +24,7 @@ const signedIn = (overrides = {}) => ({
     loading: false,
     can: () => true,
     hasModule: () => true,
+    hasProduct: () => true,
     ...overrides,
 });
 
@@ -73,5 +74,14 @@ describe('ProtectedRoute', () => {
         renderAt('/page', <Route path="/page" element={<ProtectedRoute module="reports"><p>the page</p></ProtectedRoute>} />);
 
         expect(screen.getByText('module denied page')).toBeInTheDocument();
+    });
+
+    it('sends a user whose tenant lacks the product to the module-denied page', () => {
+        auth = signedIn({ hasProduct: () => false });
+
+        renderAt('/page', <Route path="/page" element={<ProtectedRoute product="tms"><p>the page</p></ProtectedRoute>} />);
+
+        expect(screen.getByText('module denied page')).toBeInTheDocument();
+        expect(screen.queryByText('the page')).not.toBeInTheDocument();
     });
 });

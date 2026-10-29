@@ -205,7 +205,15 @@ function AppRoutes() {
                                 dashboard endpoints 403 — send them to the platform overview. */}
                             <Route
                                 path="/dashboard"
-                                element={homeRouteFor(user) !== '/dashboard' ? <Navigate to={homeRouteFor(user)} replace /> : <Dashboard />}
+                                element={
+                                    homeRouteFor(user) !== '/dashboard'
+                                        ? <Navigate to={homeRouteFor(user)} replace />
+                                        : (
+                                            <ProtectedRoute product="tms">
+                                                <Dashboard />
+                                            </ProtectedRoute>
+                                        )
+                                }
                             />
                         </Route>
                         <Route path="/notifications" element={<Notifications />} />
@@ -224,7 +232,7 @@ function AppRoutes() {
                         </Route>
                         {/* My HR home (P17.5): the employee surface, module-gated
                             like every self-service page. */}
-                        <Route element={<ProtectedRoute module="hrms.core" />}>
+                        <Route element={<ProtectedRoute module="hrms.core" product="hrms" />}>
                             <Route path="/my" element={<MyHr />} />
                         </Route>
                         <Route element={<ProtectedRoute permission="workspaces.view" product="tms" />}>
@@ -243,7 +251,7 @@ function AppRoutes() {
                             <Route path="/reports" element={<Reports />} />
                             <Route path="/reports/builder" element={<ReportBuilder />} />
                         </Route>
-                        <Route element={<ProtectedRoute module="hrms.core" />}>
+                        <Route element={<ProtectedRoute module="hrms.core" product="hrms" />}>
                             <Route path="/hrms" element={<HrmsErrorScope />}>
                                 <Route index element={<HrmsOverview />} />
                                 {/* The queue sits first: it is self-scoped, so it

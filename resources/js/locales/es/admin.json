@@ -1,5 +1,6 @@
 {
     "common": {
+        "backToHome": "Volver al inicio",
         "backToDashboard": "Volver al panel",
         "viewPlans": "Ver planes",
         "save": "Guardar",

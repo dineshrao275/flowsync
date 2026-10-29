@@ -1,5 +1,6 @@
 {
     "common": {
+        "backToHome": "Back to home",
         "backToDashboard": "Back to dashboard",
         "viewPlans": "View plans",
         "save": "Save",
