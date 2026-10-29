@@ -16,6 +16,15 @@ describe('Menu', () => {
         expect(screen.getByTestId('clip').contains(item)).toBe(false);
         expect(document.body.contains(item)).toBe(true);
     });
+
+    it('has z-[9999] so floating panels render above portalled modals', () => {
+        render(
+            <Menu label="Actions" trigger={(p) => <button {...p}>open</button>} items={[{ key: 'a', label: 'Alpha', onSelect() {} }]} />
+        );
+        fireEvent.click(screen.getByText('open'));
+        const menu = screen.getByRole('menu');
+        expect(menu.className).toContain('z-[9999]');
+    });
 });
 
 describe('ContentSkeleton', () => {

@@ -29,4 +29,12 @@ describe('PersonSelect', () => {
         fireEvent.click(screen.getByRole('button', { name: /change/i }));
         expect(onChange).toHaveBeenCalledWith({ target: { value: '' } });
     });
+
+    it('renders dropdown with z-[9999] so it sits above modals', () => {
+        render(<PersonSelect people={people} value="" onChange={() => {}} />);
+        const input = screen.getByRole('combobox');
+        fireEvent.focus(input);
+        const listbox = screen.getByRole('listbox');
+        expect(listbox.className).toContain('z-[9999]');
+    });
 });
