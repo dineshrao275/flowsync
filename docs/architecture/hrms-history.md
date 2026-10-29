@@ -246,6 +246,17 @@ Phase 13
   add it to `HRMS_NAV`; `tests/Feature/HrmsNavTest.php` asserts the TMS shell offers no `/hrms` entry,
   HRMS sections derive from the hub catalog, My HR lives in the HR shell only, no rail element/file
   remains, route↔tab parity and per-tab gate equality.
+- **The SPA product context survives shared pages.** `ProductProvider` (`context/ProductContext.jsx`)
+  resolves `activeProduct` in this order: entitled owned path (`productForPath`) → router
+  `location.state.product` → the per-user/tenant stored choice (`<prefix>.activeProduct.<tenant|platform>.<user|anonymous>`)
+  → entitlement fallback (HRMS only when HRMS is on and TMS is off). `Sidebar.jsx` chooses the shell
+  from that value rather than the raw path. Shared nav entries (`utils/nav.js` `shared: true`) carry
+  `state.product`, and the same state rides the Topbar account link, the locked `/subscription` link
+  and the account breadcrumb (tenant name → `/hrms` in the HR shell, else `/workspaces`; super admin →
+  `/tenants`), so opening Administration/Billing does not snap an HRMS caller back to TMS.
+  `ProductSwitcher.jsx` is the only explicit switch. Entitlement changes from the Subscription page
+  refresh `/auth/me` immediately (no re-login). Guards: `ProductContext.test.jsx`, `Sidebar.test.jsx`,
+  `nav.test.js`, `ProductAccessTest`.
 - **Never submit a masked value back, and never build a picker from a report list.**
   `EmployeeEditModal` omits the whole personal block when the record arrived `restricted`, because
   prefilling it from masked values and posting them would store `p***@***` as somebody's real address.

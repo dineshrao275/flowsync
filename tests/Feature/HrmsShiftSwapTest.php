@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Tests\Feature;
 
 use App\Models\Hrms\Attendance\AttendanceShift;
@@ -46,7 +48,7 @@ class HrmsShiftSwapTest extends TestCase
         // shift_id is not mass-assignable (raw column), so set it directly.
         DB::table('employees')->where('id', $this->annEmp->id)->update(['shift_id' => $morning->id]);
         DB::table('employees')->where('id', $this->bobEmp->id)->update(['shift_id' => $evening->id]);
-        $this->date = now()->addDays(3)->toDateString();
+        $this->date = now()->startOfWeek()->addDays(6)->toDateString();
     }
 
     private function ask(): array
@@ -70,7 +72,7 @@ class HrmsShiftSwapTest extends TestCase
 
         $this->assertSame('applied', $done['status']);
         $service = app(ShiftSwapService::class);
-        $day = now()->addDays(3);
+        $day = now()->startOfWeek()->addDays(6);
         $this->assertSame($swap['counterparty_shift_id'], $service->shiftOn($this->annEmp->fresh(), $day));
         $this->assertSame($swap['requester_shift_id'], $service->shiftOn($this->bobEmp->fresh(), $day));
         // Only that day moved.

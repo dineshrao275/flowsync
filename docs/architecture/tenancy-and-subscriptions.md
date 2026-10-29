@@ -158,7 +158,11 @@
   subscription step can read plans). `MySubscriptionController` self-scopes via `TenantContext`.
   Frontend: `pages/Subscription.jsx` at `/subscription` (current plan card, usage meters, included/
   excluded modules, upgrade grid, cancel/renew only for admins) + a Billing sidebar section (items with
-  no `permission` are always shown — sidebar filter now keeps `!item.permission`).
+  no `permission` are always shown — sidebar filter now keeps `!item.permission`). After every successful
+  entitlement change (switch/cancel/renew/withdraw/checkout verification) the page reloads subscription
+  data **and** calls `AuthContext.refresh()`, so `/auth/me` `products`/`modules` update without a
+  re-login; `ProductContext` then re-resolves the active shell against the new entitlements. Guard:
+  `ProductAccessTest::test_session_entitlements_follow_a_plan_change_without_relogin`.
   **`actor_id` gotcha:** tenant admins are NOT central `users` rows, so passing `auth()->id()` as
   `SubscriptionEvent.actor_id` violates the FK → tenant-side actions omit the actor (the actor travels
   in `data.actor` for switches; null for cancel/renew).
