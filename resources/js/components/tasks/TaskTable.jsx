@@ -1,5 +1,6 @@
 import { useTranslation } from 'react-i18next';
 import UserChip from '../ui/UserChip';
+import TaskBadge from '../ui/TaskBadge';
 
 export default function TaskTable({ tasks, canEdit, onOpen }) {
     const { t } = useTranslation();
@@ -33,7 +34,9 @@ export default function TaskTable({ tasks, canEdit, onOpen }) {
                             onClick={() => canEdit && onOpen(task)}
                             className={`bg-white align-middle transition ${canEdit ? 'cursor-pointer hover:bg-[var(--accent-soft)]' : ''}`}
                         >
-                            <td className="px-4 py-3 font-semibold text-gray-500">{task.key}</td>
+                            <td className="px-4 py-3">
+                                <TaskBadge taskKey={task.key} taskId={task.id} projectId={task.project_id} onClick={canEdit ? () => onOpen(task) : null} />
+                            </td>
                             <td className="px-4 py-3">
                                 {task.issue_type ? (
                                     <span

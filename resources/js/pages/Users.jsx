@@ -10,6 +10,9 @@ import ContentSkeleton from '../components/ui/ContentSkeleton';
 import Alert from '../components/ui/Alert';
 import Button from '../components/ui/Button';
 import Input from '../components/ui/Input';
+import PasswordInput from '../components/ui/PasswordInput';
+import PasswordMatchHint from '../components/ui/PasswordMatchHint';
+import MultiSelect from '../components/ui/MultiSelect';
 import Pagination from '../components/ui/Pagination';
 import { Table, Th, Td, TableEmpty } from '../components/ui/Table';
 import { useAuth } from '../context/AuthContext';
@@ -130,8 +133,21 @@ export default function Users() {
         }
     }
 
+    function clearPasswordConfirmationError() {
+        setFormErrors((current) => {
+            if (!current.password_confirmation) return current;
+            const next = { ...current };
+            delete next.password_confirmation;
+            return next;
+        });
+    }
+
     async function createUser(e) {
         e.preventDefault();
+        if (form.password !== form.password_confirmation) {
+            setFormErrors({ password_confirmation: t('ui.passwordsMismatch') });
+            return;
+        }
         setSaving(true);
         setFormErrors({});
         try {
@@ -154,7 +170,11 @@ export default function Users() {
         );
     }
 
-    const roleOptions = roles.map((role) => ({ label: role.name, value: role.slug }));
+    const roleOptions = roles.map((role) => ({
+        label: role.name,
+        value: role.slug,
+        description: role.description || (role.slug !== role.name ? role.slug : null),
+    }));
     const hasActiveFilters = Boolean(search || selectedRole || selectedType);
 
     return (
@@ -200,48 +220,44 @@ export default function Users() {
                                 error={formErrors.email}
                                 required
                             />
-                            <Input
+                            <PasswordInput
                                 label={t('admin.users.password')}
                                 name="password"
-                                type="password"
                                 placeholder={t('admin.users.passwordPlaceholder')}
                                 value={form.password}
-                                onChange={(e) => setForm((f) => ({ ...f, password: e.target.value }))}
+                                onChange={(e) => {
+                                    setForm((f) => ({ ...f, password: e.target.value }));
+                                    clearPasswordConfirmationError();
+                                }}
                                 error={formErrors.password}
                                 required
                             />
-                            <Input
+                            <PasswordInput
                                 label={t('admin.users.confirmPassword')}
                                 name="password_confirmation"
-                                type="password"
                                 placeholder={t('admin.users.confirmPasswordPlaceholder')}
                                 value={form.password_confirmation}
-                                onChange={(e) => setForm((f) => ({ ...f, password_confirmation: e.target.value }))}
+                                onChange={(e) => {
+                                    setForm((f) => ({ ...f, password_confirmation: e.target.value }));
+                                    clearPasswordConfirmationError();
+                                }}
                                 error={formErrors.password_confirmation}
                                 required
                             />
+                            <div className="sm:col-span-2">
+                                <PasswordMatchHint password={form.password} confirmation={form.password_confirmation} />
+                            </div>
                         </div>
-                        <div>
-                            <label className="mb-1.5 block text-sm font-medium text-gray-700">{t('admin.users.roles')}</label>
-                            <select
-                                multiple
-                                value={form.roles}
-                                onChange={(e) =>
-                                    setForm((f) => ({
-                                        ...f,
-                                        roles: Array.from(e.target.selectedOptions, (o) => o.value),
-                                    }))
-                                }
-                                className="block w-full rounded-lg border border-gray-300 bg-white px-3.5 py-2.5 text-sm shadow-sm transition focus:border-[var(--accent)] focus:outline-none"
-                            >
-                                {roleOptions.map((r) => (
-                                    <option key={r.value} value={r.value}>
-                                        {r.label}
-                                    </option>
-                                ))}
-                            </select>
-                            {formErrors.roles && <p className="mt-1.5 text-sm text-red-600">{formErrors.roles}</p>}
-                        </div>
+                        <MultiSelect
+                            label={t('admin.users.roles')}
+                            options={roleOptions}
+                            value={form.roles}
+                            onChange={(roles) => setForm((f) => ({ ...f, roles }))}
+                            placeholder={t('admin.users.selectRoles', 'Select user roles…')}
+                            searchPlaceholder={t('admin.users.searchRoles', 'Search roles…')}
+                            error={formErrors.roles}
+                            showQuickPills
+                        />
                         <div className="flex gap-2 pt-1">
                             <Button type="button" variant="secondary" onClick={() => setCreating(false)}>
                                 {t('admin.common.cancel')}

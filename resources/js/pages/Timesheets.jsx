@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import UserChip from '../components/ui/UserChip';
+import TaskBadge from '../components/ui/TaskBadge';
 import { useTranslation } from 'react-i18next';
 import { CaretLeft, CaretRight } from '@phosphor-icons/react';
 import api, { fieldErrors } from '../services/api';
@@ -100,7 +101,12 @@ function MyWeek() {
                     <tbody>
                         {sheet.entries.map((e) => (
                             <tr key={e.task_id}>
-                                <Td><span className="font-mono text-xs text-gray-500">{e.task_key}</span> {e.task_title}</Td>
+                                <Td>
+                                    <div className="flex items-center gap-2">
+                                        <TaskBadge taskKey={e.task_key} taskId={e.task_id} projectId={e.project_id} title={e.task_title} />
+                                        <span className="font-medium text-gray-900">{e.task_title}</span>
+                                    </div>
+                                </Td>
                                 <Td>{e.project}</Td>
                                 <Td align="right">{formatMinutes(e.minutes)}</Td>
                                 <Td align="right">{formatMinutes(e.billable_minutes)}</Td>

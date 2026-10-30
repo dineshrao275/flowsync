@@ -2,6 +2,8 @@ import { useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import Button from '../ui/Button';
 import Input from '../ui/Input';
+import PasswordInput from '../ui/PasswordInput';
+import PasswordMatchHint from '../ui/PasswordMatchHint';
 import Alert from '../ui/Alert';
 import Card from '../ui/Card';
 import useErrorFocus from '../../hooks/useErrorFocus';
@@ -65,6 +67,15 @@ export default function IntakeWizard({
     }, [localErrors, errors]), wizardRef);
 
     const set = (key, value) => onChange({ ...values, [key]: value });
+
+    function clearPasswordMismatch() {
+        setLocalErrors((current) => {
+            if (!current.admin_password_confirmation) return current;
+            const next = { ...current };
+            delete next.admin_password_confirmation;
+            return next;
+        });
+    }
 
     function requiredFor(stepKey) {
         const base = REQUIRED[stepKey] || [];
@@ -254,8 +265,27 @@ export default function IntakeWizard({
                             <Row k={t('auth.wizard.rowTrial')} v={values.start_trial ? t('auth.wizard.trialDays', { days: trialDays }) : t('auth.wizard.noTrial')} />
                         </dl>
                         <div className="mt-5 grid grid-cols-1 gap-4 sm:grid-cols-2">
-                            <Input label={isRegister ? t('auth.wizard.password') : t('auth.wizard.passwordDefault')} name="admin_password" type="password" autoComplete="new-password" required value={password} onChange={(e) => setPassword(e.target.value)} error={err('admin_password')} />
-                            <Input label={t('auth.wizard.confirmPassword')} name="admin_password_confirmation" type="password" autoComplete="new-password" required value={confirmation} onChange={(e) => setConfirmation(e.target.value)} error={err('admin_password_confirmation')} />
+                            <PasswordInput
+                                label={isRegister ? t('auth.wizard.password') : t('auth.wizard.passwordDefault')}
+                                name="admin_password"
+                                autoComplete="new-password"
+                                required
+                                value={password}
+                                onChange={(e) => { setPassword(e.target.value); clearPasswordMismatch(); }}
+                                error={err('admin_password')}
+                            />
+                            <PasswordInput
+                                label={t('auth.wizard.confirmPassword')}
+                                name="admin_password_confirmation"
+                                autoComplete="new-password"
+                                required
+                                value={confirmation}
+                                onChange={(e) => { setConfirmation(e.target.value); clearPasswordMismatch(); }}
+                                error={err('admin_password_confirmation')}
+                            />
+                            <div className="sm:col-span-2">
+                                <PasswordMatchHint password={password} confirmation={confirmation} />
+                            </div>
                         </div>
                         <div className="mt-5 flex gap-2">
                             <Button type="button" variant="secondary" onClick={() => setIndex(index - 1)}>{t('auth.wizard.back')}</Button>

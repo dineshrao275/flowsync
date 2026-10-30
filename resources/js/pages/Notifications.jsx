@@ -18,6 +18,7 @@ import { usePaginated } from '../hooks/useResource';
 import Timestamp from '../components/ui/Timestamp';
 import UserTooltip from '../components/ui/UserTooltip';
 import TaskBadge from '../components/ui/TaskBadge';
+import HighlightedContent from '../components/ui/HighlightedContent';
 
 export default function Notifications() {
     const { t } = useTranslation();
@@ -92,14 +93,17 @@ export default function Notifications() {
                                 >
                                     <Td>
                                         <Badge>{notification.type}</Badge>
-                                        <span className="mt-1 block font-medium text-gray-800">
-                                            {describeNotification(
-                                                t,
-                                                notification.type,
-                                                payload,
-                                                notification.actor?.name ?? null,
-                                            )}
-                                        </span>
+                                        <div className="mt-1 font-medium text-gray-800">
+                                            <HighlightedContent
+                                                content={describeNotification(
+                                                    t,
+                                                    notification.type,
+                                                    payload,
+                                                    notification.actor?.name ?? null,
+                                                )}
+                                                projectId={payload.project_id}
+                                            />
+                                        </div>
                                     </Td>
                                     <Td>
                                         <UserTooltip user={notification.actor} name={notification.actor?.name}>

@@ -3,31 +3,36 @@ import { createPortal } from 'react-dom';
 import { useTranslation } from 'react-i18next';
 import UserChip from '../ui/UserChip';
 import Avatar from '../ui/Avatar';
-import Button from '../ui/Button';
 import Alert from '../ui/Alert';
 import ContentSkeleton from '../ui/ContentSkeleton';
 import Timestamp from '../ui/Timestamp';
 import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
-import { useConfirm, usePrompt } from '../ui/ConfirmDialog';
+import { useConfirm } from '../ui/ConfirmDialog';
 import api from '../../services/api';
 import { caretRect } from '../../utils/caret';
 import { onRealtimeReconnect } from '../../utils/realtimeAuth';
 import HighlightedContent from '../ui/HighlightedContent';
+import CommentRichEditor from './CommentRichEditor';
 
 export default function CommentThread({ task, projectId, isManager, targetCommentId = null }) {
     const { t } = useTranslation();
     const { user } = useAuth();
     const toast = useToast();
     const confirm = useConfirm();
-    const prompt = usePrompt();
     const resolvedProjectId = projectId || task?.project_id || task?.project?.id;
     const [comments, setComments] = useState(null);
     const [error, setError] = useState(null);
     const [newComment, setNewComment] = useState('');
     const [replyTo, setReplyTo] = useState(null);
     const [replyText, setReplyText] = useState('');
+    const [editingCommentId, setEditingCommentId] = useState(null);
+    const [editingText, setEditingText] = useState('');
     const [busy, setBusy] = useState(false);
+
+    const mainTextareaRef = useRef(null);
+    const replyTextareaRef = useRef(null);
+    const editTextareaRef = useRef(null);
 
     const [sugField, setSugField] = useState(null);
     const [suggestions, setSuggestions] = useState([]);
@@ -60,8 +65,6 @@ export default function CommentThread({ task, projectId, isManager, targetCommen
         const stopReconnect = onRealtimeReconnect(fetchComments);
 
         return () => {
-            // Pass the handler: the channel is shared with the board, and a bare
-            // stopListening would also drop other listeners of this event.
             channel.stopListening('.comment.synced', fetchComments);
             stopReconnect();
         };
@@ -112,7 +115,6 @@ export default function CommentThread({ task, projectId, isManager, targetCommen
         const rowsHeight = 224;
         const left = Math.max(8, Math.min(safeLeft, window.innerWidth - width - 8));
         let top = safeBottom + 4;
-        // If it would go below viewport, show above instead
         if (top + rowsHeight > window.innerHeight && safeTop - rowsHeight - 4 > 0) {
             top = safeTop - rowsHeight - 4;
         }
@@ -182,9 +184,7 @@ export default function CommentThread({ task, projectId, isManager, targetCommen
     function handleTyping(field, value, caret, el) {
         if (field === 'comment') setNewComment(value);
         else if (field === 'reply') setReplyText(value);
-        else if (field === 'edit') {
-            // For edit, we'll handle differently
-        }
+        else if (field === 'edit') setEditingText(value);
 
         openSuggestions(field, el, value, caret);
     }
@@ -194,10 +194,7 @@ export default function CommentThread({ task, projectId, isManager, targetCommen
         const next = `${value.slice(0, at)}@${member.name} ${value.slice(caret)}`;
         if (sugField === 'comment') setNewComment(next);
         else if (sugField === 'reply') setReplyText(next);
-        else if (sugField === 'edit') {
-            // For edit mode, we'll need to update the prompt - but easier to handle in place
-            setNewComment(next); // fallback
-        }
+        else if (sugField === 'edit') setEditingText(next);
 
         closeSuggestions();
         requestAnimationFrame(() => {
@@ -231,8 +228,9 @@ export default function CommentThread({ task, projectId, isManager, targetCommen
     }
 
     function submitComment(e) {
-        e.preventDefault();
+        if (e?.preventDefault) e.preventDefault();
         const body = { comment: newComment.trim() };
+        if (!body.comment) return;
         setBusy(true);
         api.post(`/projects/${resolvedProjectId}/tasks/${task.id}/comments`, body)
             .then(({ data }) => {
@@ -247,8 +245,9 @@ export default function CommentThread({ task, projectId, isManager, targetCommen
     }
 
     function submitReply(e, parentId) {
-        e.preventDefault();
+        if (e?.preventDefault) e.preventDefault();
         const body = { comment: replyText.trim(), parent_id: parentId };
+        if (!body.comment) return;
         setBusy(true);
         api.post(`/projects/${resolvedProjectId}/tasks/${task.id}/comments`, body)
             .then(({ data }) => {
@@ -263,22 +262,30 @@ export default function CommentThread({ task, projectId, isManager, targetCommen
             .finally(() => setBusy(false));
     }
 
-    async function editComment(id, currentComment = '') {
-        const next = await prompt({
-            title: t('tms.comments.editTitle'),
-            message: t('tms.comments.editMessage'),
-            defaultValue: currentComment,
-            placeholder: t('tms.comments.editPlaceholder'),
-            multiline: true,
-            required: true,
-            confirmLabel: t('tms.comments.editConfirm'),
-            mention: true,
-            projectId: resolvedProjectId,
-        });
-        if (!next || !next.trim()) return;
-        api.put(`/projects/${resolvedProjectId}/tasks/${task.id}/comments/${id}`, { comment: next.trim() })
-            .then(fetchComments)
-            .catch(() => {});
+    function startEdit(id, currentComment = '') {
+        setEditingCommentId(id);
+        setEditingText(currentComment);
+        setReplyTo(null);
+    }
+
+    function cancelEdit() {
+        setEditingCommentId(null);
+        setEditingText('');
+        closeSuggestions();
+    }
+
+    function saveEditComment(e, id) {
+        if (e?.preventDefault) e.preventDefault();
+        if (!editingText.trim()) return;
+        setBusy(true);
+        api.put(`/projects/${resolvedProjectId}/tasks/${task.id}/comments/${id}`, { comment: editingText.trim() })
+            .then(() => {
+                setEditingCommentId(null);
+                setEditingText('');
+                fetchComments();
+            })
+            .catch(() => {})
+            .finally(() => setBusy(false));
     }
 
     async function deleteComment(id) {
@@ -300,19 +307,19 @@ export default function CommentThread({ task, projectId, isManager, targetCommen
 
     return (
         <div className="space-y-4">
-            <form onSubmit={submitComment} className="relative flex gap-2">
-                <textarea
-                    rows="2"
-                    className="flex-1 rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm shadow-sm focus:border-[var(--accent)] focus:outline-none"
-                    placeholder={t('tms.comments.composerPlaceholder')}
-                    value={newComment}
-                    onChange={(e) => handleTyping('comment', e.target.value, e.target.selectionStart, e.currentTarget)}
-                    onKeyDown={handleKeyDown}
-                />
-                <Button type="submit" loading={busy} disabled={!newComment.trim()}>
-                    {t('tms.comments.post')}
-                </Button>
-            </form>
+            {/* Top Main Comment Composer */}
+            <CommentRichEditor
+                value={newComment}
+                onChange={(val, caret, el) => handleTyping('comment', val, caret, el)}
+                onSubmit={submitComment}
+                onKeyDown={handleKeyDown}
+                placeholder={t('tms.comments.composerPlaceholder')}
+                submitLabel={t('tms.comments.post')}
+                busy={busy}
+                projectId={resolvedProjectId}
+                textareaRef={mainTextareaRef}
+                minRows={3}
+            />
 
             {comments.length === 0 ? (
                 <p className="py-6 text-center text-sm text-gray-400">{t('tms.comments.empty')}</p>
@@ -322,24 +329,44 @@ export default function CommentThread({ task, projectId, isManager, targetCommen
                         const own = comment.user?.id && comment.user.id === user?.id;
                         const canEdit = own || isManager;
                         return (
-                            <li key={comment.id} id={`comment-${comment.id}`} className="rounded-lg border border-gray-100 px-3 py-2.5 transition-all">
+                            <li key={comment.id} id={`comment-${comment.id}`} className="rounded-xl border border-gray-100 bg-white p-3.5 shadow-2xs transition-all">
                                 <div className="flex items-start justify-between gap-2">
-                                    <div className="min-w-0">
+                                    <div className="min-w-0 flex-1">
                                         <p className="text-xs text-gray-400">
                                             <UserChip user={comment.user} name={comment.user?.name ?? t('tms.comments.unknown')} nameClassName="font-semibold text-gray-700" />
                                             {comment.edited_at ? t('tms.comments.edited') : ''} · <Timestamp date={comment.created_at} />
                                         </p>
-                                        <p className="mt-1 text-sm text-gray-800">
-                                            <HighlightedContent content={comment.comment} projectId={resolvedProjectId} />
-                                        </p>
+                                        {editingCommentId === comment.id ? (
+                                            <div className="mt-2.5">
+                                                <CommentRichEditor
+                                                    value={editingText}
+                                                    onChange={(val, caret, el) => handleTyping('edit', val, caret, el)}
+                                                    onSubmit={(e) => saveEditComment(e, comment.id)}
+                                                    onCancel={cancelEdit}
+                                                    onKeyDown={handleKeyDown}
+                                                    placeholder={t('tms.comments.editPlaceholder')}
+                                                    submitLabel={t('tms.comments.editConfirm')}
+                                                    cancelLabel={t('common.cancel') || 'Cancel'}
+                                                    busy={busy}
+                                                    autoFocus
+                                                    projectId={resolvedProjectId}
+                                                    textareaRef={editTextareaRef}
+                                                    minRows={2}
+                                                />
+                                            </div>
+                                        ) : (
+                                            <div className="mt-1.5 text-sm text-gray-800">
+                                                <HighlightedContent content={comment.comment} projectId={resolvedProjectId} />
+                                            </div>
+                                        )}
                                     </div>
                                     <div className="flex flex-shrink-0 items-center gap-1">
-                                        {canEdit && (
+                                        {canEdit && editingCommentId !== comment.id && (
                                             <>
                                                 <button
                                                     type="button"
                                                     className="text-xs text-gray-400 transition hover:text-[var(--accent-soft-text)]"
-                                                    onClick={() => editComment(comment.id, comment.comment)}
+                                                    onClick={() => startEdit(comment.id, comment.comment)}
                                                 >
                                                     {t('tms.comments.edit')}
                                                 </button>
@@ -365,52 +392,79 @@ export default function CommentThread({ task, projectId, isManager, targetCommen
                                 {comment.replies?.length > 0 && (
                                     <ul className="mt-3 space-y-2 border-l-2 border-gray-100 pl-3">
                                         {comment.replies.map((reply) => (
-                                            <li key={reply.id} id={`comment-${reply.id}`} className="rounded-md p-1.5 transition-all">
-                                                <p className="text-xs text-gray-400">
-                                                    <UserChip user={reply.user} name={reply.user?.name ?? t('tms.comments.unknown')} nameClassName="font-semibold text-gray-700" />
-                                                    {reply.edited_at ? t('tms.comments.edited') : ''} · <Timestamp date={reply.created_at} />
-                                                </p>
-                                                <p className="mt-0.5 text-sm text-gray-700">
-                                                    <HighlightedContent content={reply.comment} projectId={resolvedProjectId} />
-                                                </p>
-                                                {(reply.user?.id && reply.user.id === user?.id) || isManager ? (
-                                                    <div className="mt-1 flex gap-2">
-                                                        <button
-                                                            type="button"
-                                                            className="text-xs text-gray-400 transition hover:text-[var(--accent-soft-text)]"
-                                                            onClick={() => editComment(reply.id, reply.comment)}
-                                                        >
-                                                            {t('tms.comments.edit')}
-                                                        </button>
-                                                        <button
-                                                            type="button"
-                                                            className="text-xs text-gray-400 transition hover:text-red-600"
-                                                            onClick={() => deleteComment(reply.id)}
-                                                        >
-                                                            {t('tms.comments.delete')}
-                                                        </button>
+                                            <li key={reply.id} id={`comment-${reply.id}`} className="rounded-lg p-2 transition-all hover:bg-gray-50/50">
+                                                <div className="flex items-start justify-between gap-2">
+                                                    <div className="min-w-0 flex-1">
+                                                        <p className="text-xs text-gray-400">
+                                                            <UserChip user={reply.user} name={reply.user?.name ?? t('tms.comments.unknown')} nameClassName="font-semibold text-gray-700" />
+                                                            {reply.edited_at ? t('tms.comments.edited') : ''} · <Timestamp date={reply.created_at} />
+                                                        </p>
+                                                        {editingCommentId === reply.id ? (
+                                                            <div className="mt-2">
+                                                                <CommentRichEditor
+                                                                    value={editingText}
+                                                                    onChange={(val, caret, el) => handleTyping('edit', val, caret, el)}
+                                                                    onSubmit={(e) => saveEditComment(e, reply.id)}
+                                                                    onCancel={cancelEdit}
+                                                                    onKeyDown={handleKeyDown}
+                                                                    placeholder={t('tms.comments.editPlaceholder')}
+                                                                    submitLabel={t('tms.comments.editConfirm')}
+                                                                    cancelLabel={t('common.cancel') || 'Cancel'}
+                                                                    busy={busy}
+                                                                    autoFocus
+                                                                    projectId={resolvedProjectId}
+                                                                    textareaRef={editTextareaRef}
+                                                                    minRows={2}
+                                                                />
+                                                            </div>
+                                                        ) : (
+                                                            <div className="mt-0.5 text-sm text-gray-700">
+                                                                <HighlightedContent content={reply.comment} projectId={resolvedProjectId} />
+                                                            </div>
+                                                        )}
                                                     </div>
-                                                ) : null}
+                                                    {((reply.user?.id && reply.user.id === user?.id) || isManager) && editingCommentId !== reply.id && (
+                                                        <div className="flex flex-shrink-0 items-center gap-1">
+                                                            <button
+                                                                type="button"
+                                                                className="text-xs text-gray-400 transition hover:text-[var(--accent-soft-text)]"
+                                                                onClick={() => startEdit(reply.id, reply.comment)}
+                                                            >
+                                                                {t('tms.comments.edit')}
+                                                            </button>
+                                                            <button
+                                                                type="button"
+                                                                className="text-xs text-gray-400 transition hover:text-red-600"
+                                                                onClick={() => deleteComment(reply.id)}
+                                                            >
+                                                                {t('tms.comments.delete')}
+                                                            </button>
+                                                        </div>
+                                                    )}
+                                                </div>
                                             </li>
                                         ))}
                                     </ul>
                                 )}
 
                                 {replyTo === comment.id && (
-                                    <form onSubmit={(e) => submitReply(e, comment.id)} className="relative mt-3 flex gap-2">
-                                        <textarea
-                                            rows="2"
-                                            className="flex-1 rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm shadow-sm focus:border-[var(--accent)] focus:outline-none"
-                                            placeholder={t('tms.comments.replyPlaceholder')}
+                                    <div className="mt-3">
+                                        <CommentRichEditor
                                             value={replyText}
-                                            onChange={(e) => handleTyping('reply', e.target.value, e.target.selectionStart, e.currentTarget)}
+                                            onChange={(val, caret, el) => handleTyping('reply', val, caret, el)}
+                                            onSubmit={(e) => submitReply(e, comment.id)}
+                                            onCancel={() => setReplyTo(null)}
                                             onKeyDown={handleKeyDown}
+                                            placeholder={t('tms.comments.replyPlaceholder')}
+                                            submitLabel={t('tms.comments.reply')}
+                                            cancelLabel={t('common.cancel') || 'Cancel'}
+                                            busy={busy}
                                             autoFocus
+                                            projectId={resolvedProjectId}
+                                            textareaRef={replyTextareaRef}
+                                            minRows={2}
                                         />
-                                        <Button type="submit" loading={busy} disabled={!replyText.trim()}>
-                                            {t('tms.comments.reply')}
-                                        </Button>
-                                    </form>
+                                    </div>
                                 )}
                             </li>
                         );

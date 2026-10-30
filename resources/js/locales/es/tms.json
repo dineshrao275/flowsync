@@ -367,6 +367,8 @@
     },
     "detail": {
         "fallbackTitle": "Tarea",
+        "fullSize": "Pantalla completa",
+        "restoreSize": "Restaurar tamaño",
         "tabs": {
             "details": "Detalles",
             "comments": "Comentarios",

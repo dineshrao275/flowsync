@@ -27,7 +27,11 @@
         "pricePerMonthAnnual": "{{value}}/mes facturado anualmente",
         "change": "Cambiar",
         "noMatches": "Nadie coincide",
-        "searchPeople": "Buscar personas…"
+        "searchPeople": "Buscar personas…",
+        "showPassword": "Mostrar contraseña",
+        "hidePassword": "Ocultar contraseña",
+        "passwordsMatch": "Las contraseñas coinciden.",
+        "passwordsMismatch": "Las contraseñas no coinciden."
     },
     "errors": {
         "generic": "Algo salió mal. Inténtalo de nuevo."

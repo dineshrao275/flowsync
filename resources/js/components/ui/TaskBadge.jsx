@@ -1,8 +1,10 @@
 import { memo } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useInRouterContext } from 'react-router-dom';
 import { taskUrl } from '../../utils/deepLinks';
 
-function TaskBadge({ taskKey, taskId, projectId, title = null, className = '', onClick = null }) {
+function TaskBadge({ taskKey, taskId, projectId, title = null, className = '', onClick = null, as = null }) {
+    const inRouter = useInRouterContext();
+
     if (!taskKey && !taskId) return null;
     const rawKey = String(taskKey || taskId);
     const displayKey = rawKey.startsWith('#') ? rawKey : rawKey;
@@ -31,6 +33,22 @@ function TaskBadge({ taskKey, taskId, projectId, title = null, className = '', o
             >
                 {content}
             </button>
+        );
+    }
+
+    if (as === 'span') {
+        return content;
+    }
+
+    if (!inRouter) {
+        return (
+            <a
+                href={to}
+                onClick={(e) => e.stopPropagation()}
+                className="inline-flex focus:outline-none focus:ring-2 focus:ring-blue-500/50 rounded-md"
+            >
+                {content}
+            </a>
         );
     }
 

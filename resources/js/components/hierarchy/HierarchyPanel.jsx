@@ -1,11 +1,10 @@
 import { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import api from '../../services/api';
 import Alert from '../ui/Alert';
 import Card from '../ui/Card';
 import ContentSkeleton from '../ui/ContentSkeleton';
-import { taskUrl } from '../../utils/deepLinks';
+import TaskBadge from '../ui/TaskBadge';
 
 function Node({ node, projectId, depth }) {
     const { t } = useTranslation();
@@ -27,7 +26,7 @@ function Node({ node, projectId, depth }) {
                 </button>
                 {node.issue_type && <span className="h-2.5 w-2.5 rounded-sm" title={node.issue_type.name} style={{ backgroundColor: node.issue_type.color || '#94a3b8' }} />}
                 {node.key ? (
-                    <Link to={taskUrl(projectId, node.key)} className="font-mono text-xs text-gray-500 hover:underline">{node.key}</Link>
+                    <TaskBadge taskKey={node.key} taskId={node.id} projectId={projectId} />
                 ) : null}
                 <span className={`min-w-0 flex-1 truncate ${node.status?.is_done ? 'text-gray-400 line-through' : 'text-gray-800'}`}>{node.title}</span>
                 {node.status && <span className="text-xs text-gray-500">{node.status.name}</span>}

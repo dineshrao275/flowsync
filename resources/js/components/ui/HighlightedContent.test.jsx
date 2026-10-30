@@ -46,4 +46,27 @@ describe('HighlightedContent component', () => {
         );
         expect(container.firstChild).toBeNull();
     });
+
+    it('renders rich text formatting including bold, inline code, checklists, and markdown links', () => {
+        const markdown = `
+### Task Summary
+Here is **important info** with \`const id = 42\` and [FlowSync](https://flowsync.test).
+- [ ] First todo item
+- [x] Completed task
+> Important note from team
+`;
+        render(
+            <MemoryRouter>
+                <HighlightedContent content={markdown} />
+            </MemoryRouter>
+        );
+
+        expect(screen.getByText('Task Summary')).toBeInTheDocument();
+        expect(screen.getByText('important info')).toBeInTheDocument();
+        expect(screen.getByText('const id = 42')).toBeInTheDocument();
+        expect(screen.getByRole('link', { name: 'FlowSync' })).toHaveAttribute('href', 'https://flowsync.test');
+        expect(screen.getByText('First todo item')).toBeInTheDocument();
+        expect(screen.getByText('Completed task')).toBeInTheDocument();
+        expect(screen.getByText('Important note from team')).toBeInTheDocument();
+    });
 });

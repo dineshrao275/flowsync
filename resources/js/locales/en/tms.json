@@ -367,6 +367,8 @@
     },
     "detail": {
         "fallbackTitle": "Task",
+        "fullSize": "Full size",
+        "restoreSize": "Restore size",
         "tabs": {
             "details": "Details",
             "comments": "Comments",

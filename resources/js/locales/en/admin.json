@@ -429,6 +429,8 @@
         "confirmPassword": "Confirm password",
         "confirmPasswordPlaceholder": "Repeat password",
         "roles": "Roles",
+        "selectRoles": "Select roles…",
+        "searchRoles": "Search roles…",
         "empty": "No users yet.",
         "defaultBadge": "Default",
         "defaultBadgeTitle": "Protected from deletion",
