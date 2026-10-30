@@ -11,6 +11,8 @@ import usePageTitle from '../hooks/usePageTitle';
 import { useSetCrumbs } from '../context/BreadcrumbContext';
 import { useToast } from '../context/ToastContext';
 import Timestamp from '../components/ui/Timestamp';
+import UserTooltip from '../components/ui/UserTooltip';
+import TaskBadge from '../components/ui/TaskBadge';
 
 const TYPE_LABEL = { all: 'typeAll', audit: 'typeAudit', impersonation: 'typeImpersonation' };
 
@@ -167,9 +169,11 @@ export default function AuditLogs() {
                                             <Timestamp date={item.created_at} />
                                         </Td>
                                         <Td>
-                                            <span className="block truncate font-medium text-gray-800">
-                                                {item.actor?.name || t('admin.auditLogs.system')}
-                                            </span>
+                                            <UserTooltip user={item.actor} name={item.actor?.name}>
+                                                <span className="block truncate font-medium text-gray-800 hover:text-[var(--accent)] hover:underline cursor-pointer">
+                                                    {item.actor?.name || t('admin.auditLogs.system')}
+                                                </span>
+                                            </UserTooltip>
                                             {item.actor?.email && (
                                                 <span className="block truncate text-xs text-gray-400">{item.actor.email}</span>
                                             )}
@@ -181,7 +185,9 @@ export default function AuditLogs() {
                                             </span>
                                         </Td>
                                         <Td className="whitespace-nowrap text-gray-600">
-                                            {item.subject_type || targetId ? (
+                                            {item.subject_type?.toLowerCase().includes('task') && targetId ? (
+                                                <TaskBadge taskId={targetId} taskKey={`#${targetId}`} />
+                                            ) : item.subject_type || targetId ? (
                                                 <span>
                                                     {item.subject_type ?? '—'}
                                                     {targetId ? <span className="tabular-nums"> #{targetId}</span> : null}

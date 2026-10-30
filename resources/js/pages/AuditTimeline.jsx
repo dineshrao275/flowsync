@@ -14,6 +14,8 @@ import Resource from '../components/ui/Resource';
 import { useResource } from '../hooks/useResource';
 import Pagination from '../components/ui/Pagination';
 import { fieldClass } from '../components/ui/fieldStyles';
+import UserTooltip from '../components/ui/UserTooltip';
+import TaskBadge from '../components/ui/TaskBadge';
 
 /** One timeline over task activity and the HR audit ledger, filterable and exportable. */
 export default function AuditTimeline() {
@@ -83,9 +85,25 @@ export default function AuditTimeline() {
                                     <div className="flex flex-wrap items-center gap-2">
                                         <Badge tone={e.source === 'hrms' ? 'accent' : 'info'}>{t(`admin.auditTimeline.${e.source === 'hrms' ? 'hrms' : 'activity'}`)}</Badge>
                                         <span className="font-medium text-gray-900">{e.action}</span>
-                                        <span className="text-sm text-gray-500">{e.subject_type} #{e.subject_id}</span>
+                                        {e.subject_type?.toLowerCase().includes('task') ? (
+                                            <TaskBadge taskId={e.subject_id} taskKey={`#${e.subject_id}`} />
+                                        ) : (
+                                            <span className="text-sm text-gray-500">{e.subject_type} #{e.subject_id}</span>
+                                        )}
                                     </div>
-                                    <p className="mt-0.5 text-xs text-gray-500">{formatDateTime(e.created_at)} · {e.actor || t('admin.auditTimeline.system')}{e.ip_address ? ` · ${e.ip_address}` : ''}</p>
+                                    <p className="mt-0.5 text-xs text-gray-500">
+                                        {formatDateTime(e.created_at)} ·{' '}
+                                        {e.actor ? (
+                                            <UserTooltip name={e.actor}>
+                                                <span className="font-medium text-gray-700 hover:text-[var(--accent)] hover:underline cursor-pointer">
+                                                    {e.actor}
+                                                </span>
+                                            </UserTooltip>
+                                        ) : (
+                                            t('admin.auditTimeline.system')
+                                        )}
+                                        {e.ip_address ? ` · ${e.ip_address}` : ''}
+                                    </p>
                                 </li>
                             ))}
                         </ul>

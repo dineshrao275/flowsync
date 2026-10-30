@@ -1,5 +1,6 @@
 import { useSortable } from '@dnd-kit/sortable';
 import Avatar from '../ui/Avatar';
+import UserTooltip from '../ui/UserTooltip';
 import ProgressBar from '../ui/ProgressBar';
 import { CSS } from '@dnd-kit/utilities';
 import { useTranslation } from 'react-i18next';
@@ -127,7 +128,9 @@ export function TaskCardBody({ task, compact = false }) {
                     {due && <span className={due.className}>{due.label}</span>}
                 </div>
                 {task.assignee ? (
-                    <Avatar name={task.assignee.name} photoUrl={task.assignee.photo_url} size="xs" />
+                    <UserTooltip user={task.assignee} name={task.assignee.name}>
+                        <Avatar name={task.assignee.name} photoUrl={task.assignee.photo_url} size="xs" />
+                    </UserTooltip>
                 ) : (
                     <span className="h-5 w-5 rounded-full border border-dashed border-gray-300" />
                 )}

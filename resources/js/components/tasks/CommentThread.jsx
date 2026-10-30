@@ -13,6 +13,7 @@ import { useConfirm, usePrompt } from '../ui/ConfirmDialog';
 import api from '../../services/api';
 import { caretRect } from '../../utils/caret';
 import { onRealtimeReconnect } from '../../utils/realtimeAuth';
+import HighlightedContent from '../ui/HighlightedContent';
 
 export default function CommentThread({ task, projectId, isManager, targetCommentId = null }) {
     const { t } = useTranslation();
@@ -328,7 +329,9 @@ export default function CommentThread({ task, projectId, isManager, targetCommen
                                             <UserChip user={comment.user} name={comment.user?.name ?? t('tms.comments.unknown')} nameClassName="font-semibold text-gray-700" />
                                             {comment.edited_at ? t('tms.comments.edited') : ''} · <Timestamp date={comment.created_at} />
                                         </p>
-                                        <p className="mt-1 whitespace-pre-wrap text-sm text-gray-800">{comment.comment}</p>
+                                        <p className="mt-1 text-sm text-gray-800">
+                                            <HighlightedContent content={comment.comment} projectId={resolvedProjectId} />
+                                        </p>
                                     </div>
                                     <div className="flex flex-shrink-0 items-center gap-1">
                                         {canEdit && (
@@ -367,7 +370,9 @@ export default function CommentThread({ task, projectId, isManager, targetCommen
                                                     <UserChip user={reply.user} name={reply.user?.name ?? t('tms.comments.unknown')} nameClassName="font-semibold text-gray-700" />
                                                     {reply.edited_at ? t('tms.comments.edited') : ''} · <Timestamp date={reply.created_at} />
                                                 </p>
-                                                <p className="mt-0.5 whitespace-pre-wrap text-sm text-gray-700">{reply.comment}</p>
+                                                <p className="mt-0.5 text-sm text-gray-700">
+                                                    <HighlightedContent content={reply.comment} projectId={resolvedProjectId} />
+                                                </p>
                                                 {(reply.user?.id && reply.user.id === user?.id) || isManager ? (
                                                     <div className="mt-1 flex gap-2">
                                                         <button

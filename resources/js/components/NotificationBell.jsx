@@ -10,6 +10,7 @@ import { useClickOutside } from '../hooks/useClickOutside';
 import { describeNotification, notificationHref } from '../utils/notifications';
 import Avatar from './ui/Avatar';
 import Timestamp from './ui/Timestamp';
+import UserTooltip from './ui/UserTooltip';
 
 export default function NotificationBell() {
     const { t } = useTranslation();
@@ -133,7 +134,9 @@ export default function NotificationBell() {
                                                         <Users size={16} aria-hidden="true" />
                                                     </span>
                                                 ) : (
-                                                    <Avatar name={notification.actor?.name} size="md" />
+                                                    <UserTooltip user={notification.actor} name={notification.actor?.name}>
+                                                        <Avatar name={notification.actor?.name} size="md" />
+                                                    </UserTooltip>
                                                 )}
                                             </span>
                                             <span className="min-w-0 flex-1">

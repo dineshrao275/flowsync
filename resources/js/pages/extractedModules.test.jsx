@@ -21,6 +21,8 @@ const modules = {
     LeaveExemptionsTab: () => import('../components/hrms/leave/LeaveExemptionsTab'),
     ProjectTasksTab: () => import('../components/project/ProjectTasksTab'),
     ProjectSettingsTab: () => import('../components/project/ProjectSettingsTab'),
+    ComponentsPanel: () => import('../components/project/ComponentsPanel'),
+    VersionsPanel: () => import('../components/project/VersionsPanel'),
 };
 
 describe('split page modules', () => {
@@ -50,5 +52,7 @@ describe('split page modules', () => {
         expect(Object.keys(await import('../components/hrms/leave/LeaveExemptionsTab'))).toEqual(expect.arrayContaining(['default']));
         expect(Object.keys(await import('../components/project/ProjectTasksTab'))).toEqual(expect.arrayContaining(['default']));
         expect(Object.keys(await import('../components/project/ProjectSettingsTab'))).toEqual(expect.arrayContaining(['default']));
+        expect(Object.keys(await import('../components/project/ComponentsPanel'))).toEqual(expect.arrayContaining(['default']));
+        expect(Object.keys(await import('../components/project/VersionsPanel'))).toEqual(expect.arrayContaining(['default']));
     });
 });

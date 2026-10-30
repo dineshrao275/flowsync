@@ -5,10 +5,13 @@ import Alert from '../ui/Alert';
 import Button from '../ui/Button';
 import Input from '../ui/Input';
 import RichTextEditor from '../ui/RichTextEditor';
+import ComponentsPanel from './ComponentsPanel';
 import SaveAsTemplate from './SaveAsTemplate';
+import VersionsPanel from './VersionsPanel';
 
 /**
- * Project settings tab: name/description and project duration settings.
+ * Project settings tab: profile/dates plus the project catalog (components,
+ * versions/releases) the task forms draw their options from.
  */
 export default function ProjectSettingsTab({
     project,
@@ -20,22 +23,28 @@ export default function ProjectSettingsTab({
     deleteProject,
     hasModule,
     projectId,
+    members,
+    canManage,
 }) {
     const { t } = useTranslation();
 
     return (
-        <Card title={t('tms.project.settingsTitle')} subtitle={t('tms.project.settingsSubtitle', { key: project.key })}>
-            <SettingsForm
-                project={project}
-                settingsDates={settingsDates}
-                onDatesChange={onDatesChange}
-                formErrors={formErrors}
-                updating={updating}
-                updateProject={updateProject}
-                deleteProject={deleteProject}
-            />
-            {hasModule('project_templates') && <SaveAsTemplate projectId={projectId} defaultName={project.name} />}
-        </Card>
+        <div className="space-y-5">
+            <Card title={t('tms.project.settingsTitle')} subtitle={t('tms.project.settingsSubtitle', { key: project.key })}>
+                <SettingsForm
+                    project={project}
+                    settingsDates={settingsDates}
+                    onDatesChange={onDatesChange}
+                    formErrors={formErrors}
+                    updating={updating}
+                    updateProject={updateProject}
+                    deleteProject={deleteProject}
+                />
+                {hasModule('project_templates') && <SaveAsTemplate projectId={projectId} defaultName={project.name} />}
+            </Card>
+            <ComponentsPanel projectId={projectId} members={members} canManage={canManage} />
+            <VersionsPanel projectId={projectId} canManage={canManage} />
+        </div>
     );
 }
 
