@@ -68,7 +68,7 @@ function SidebarLink({ item, collapsed, onClose }) {
                 <ItemIcon icon={item.icon} />
                 {collapsed && badgeCount > 0 && (
                     <span
-                        className="absolute -right-1.5 -top-1.5 flex h-4 min-w-4 shrink-0 items-center justify-center rounded-full bg-red-600 px-1 text-[10px] font-bold leading-none text-white shadow-sm"
+                        className="absolute -right-1.5 -top-1.5 flex h-4 min-w-4 shrink-0 items-center justify-center rounded-full bg-red-600 dark:bg-red-500 px-1 text-[10px] font-bold leading-none text-white shadow-sm"
                         aria-hidden="true"
                     >
                         {badgeCount > 99 ? '99+' : badgeCount}
@@ -79,7 +79,7 @@ function SidebarLink({ item, collapsed, onClose }) {
                 <span className="flex items-center justify-between gap-2">
                     <span className="truncate">{t(item.label)}</span>
                     {badgeCount > 0 && (
-                        <span className="flex h-5 min-w-5 shrink-0 items-center justify-center rounded-full bg-red-600 px-1 text-caption font-bold normal-case tracking-normal text-white">
+                        <span className="flex h-5 min-w-5 shrink-0 items-center justify-center rounded-full bg-red-600 dark:bg-red-500 px-1 text-caption font-bold normal-case tracking-normal text-white">
                             {badgeCount > 99 ? '99+' : badgeCount}
                         </span>
                     )}
@@ -161,7 +161,7 @@ function CollapsibleSection({ section, collapsed, onClose, open, onToggle }) {
 
     const totalGroupBadgeCount = section.items.reduce((sum, item) => sum + getBadgeCount(item), 0);
     const badge = totalGroupBadgeCount > 0 && (
-        <span className="flex h-5 min-w-5 shrink-0 items-center justify-center rounded-full bg-red-600 px-1 text-caption font-bold normal-case tracking-normal text-white">
+        <span className="flex h-5 min-w-5 shrink-0 items-center justify-center rounded-full bg-red-600 dark:bg-red-500 px-1 text-caption font-bold normal-case tracking-normal text-white">
             {totalGroupBadgeCount > 99 ? '99+' : totalGroupBadgeCount}
         </span>
     );
@@ -190,7 +190,7 @@ function CollapsibleSection({ section, collapsed, onClose, open, onToggle }) {
                     <ItemIcon icon={first.icon} />
                     {totalGroupBadgeCount > 0 && (
                         <span
-                            className="absolute -right-1.5 -top-1.5 flex h-4 min-w-4 shrink-0 items-center justify-center rounded-full bg-red-600 px-1 text-[10px] font-bold leading-none text-white shadow-sm"
+                            className="absolute -right-1.5 -top-1.5 flex h-4 min-w-4 shrink-0 items-center justify-center rounded-full bg-red-600 dark:bg-red-500 px-1 text-[10px] font-bold leading-none text-white shadow-sm"
                             aria-hidden="true"
                         >
                             {totalGroupBadgeCount > 99 ? '99+' : totalGroupBadgeCount}

@@ -57,7 +57,7 @@ class MySubscriptionController extends Controller
         $tenant = $this->currentTenant();
 
         $usage = [];
-        foreach (['users', 'seats', 'workspaces', 'projects', 'tasks'] as $resource) {
+        foreach (['users', 'seats', 'workspaces', 'projects', 'tasks', 'employees'] as $resource) {
             $usage[$resource] = $this->limits->currentCount($resource);
         }
 

@@ -8,6 +8,7 @@ import { useConfirm } from '../components/ui/ConfirmDialog';
 import usePageTitle from '../hooks/usePageTitle';
 import Badge from '../components/ui/Badge';
 import PaymentMethodsPanel from '../components/billing/PaymentMethodsPanel';
+import PlanFeaturesExplorer from '../components/billing/PlanFeaturesExplorer';
 import ContentSkeleton from '../components/ui/ContentSkeleton';
 import Alert from '../components/ui/Alert';
 import Button from '../components/ui/Button';
@@ -15,13 +16,7 @@ import { Table, Th, Td, TableEmpty } from '../components/ui/Table';
 import { formatDate, formatPrice, formatNumber } from '../utils/format';
 import Timestamp from '../components/ui/Timestamp';
 
-const RESOURCES = ['users', 'seats', 'workspaces', 'projects', 'tasks', 'api_calls_per_month', 'automation_runs_per_month'];
-
-const MODULE_KEYS = { 'export.full': 'exportFull' };
-
-function moduleLabel(t, m) {
-    return t(`admin.subscription.modules.${MODULE_KEYS[m] || m}`, { defaultValue: m });
-}
+const RESOURCES = ['users', 'seats', 'workspaces', 'projects', 'tasks', 'employees', 'api_calls_per_month', 'automation_runs_per_month'];
 
 function statusLabel(t, status) {
     return status ? t(`admin.subscription.statuses.${status}`, { defaultValue: status }) : status;
@@ -34,40 +29,6 @@ function productName(t, product) {
 function daysRemaining(iso) {
     if (!iso) return null;
     return Math.max(0, Math.ceil((new Date(iso) - new Date()) / 86400000));
-}
-
-function ModuleList({ title, modules, tone }) {
-    const { t } = useTranslation();
-    return (
-        <div>
-            <p className="text-xs font-semibold uppercase tracking-wide text-gray-400">{title}</p>
-            {modules.length === 0 ? (
-                <p className="mt-2 text-sm text-gray-500">{t('admin.subscription.none')}</p>
-            ) : (
-                <ul className="mt-2 space-y-1.5">
-                    {modules.map((m) => (
-                        <li
-                            key={m}
-                            className={`flex items-center gap-2 text-sm ${
-                                tone === 'included' ? 'font-medium text-emerald-700' : 'text-gray-500'
-                            }`}
-                        >
-                            {tone === 'included' ? (
-                                <svg className="h-4 w-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                    <path d="M20 6L9 17l-5-5" />
-                                </svg>
-                            ) : (
-                                <svg className="h-4 w-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                    <path d="M18 6L6 18M6 6l12 12" />
-                                </svg>
-                            )}
-                            {moduleLabel(t, m)}
-                        </li>
-                    ))}
-                </ul>
-            )}
-        </div>
-    );
 }
 
 export default function Subscription() {
@@ -270,7 +231,6 @@ export default function Subscription() {
     const visiblePlans = plans.filter((p) => (onBundle ? (p.product ?? 'suite') === 'suite' : (p.product ?? 'suite') !== 'suite' || subscriptions.length === 0));
     const endDate = subscription?.trial_ends_at || subscription?.current_period_end;
     const includedModules = modules || plan?.limits?.modules || [];
-    const excludedModules = modulesAvailable.filter((m) => !includedModules.includes(m));
     const usageResources = RESOURCES.filter((r) => limits[r] !== undefined);
 
     return (
@@ -443,20 +403,19 @@ export default function Subscription() {
                 </section>
             )}
 
-            <section>
-                <h3 className="mb-2 text-sm font-semibold text-gray-900">{t('admin.subscription.includedFeatures')}</h3>
-                <p className="mb-3 text-xs text-gray-500">{t('admin.subscription.includedFeaturesSubtitle')}</p>
-                {includedModules.length === 0 && <p className="mb-3 text-sm text-gray-500">{t('admin.subscription.noFeatureModules')}</p>}
-                <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
-                    {includedModules.length > 0 && (
-                        <ModuleList title={t('admin.subscription.includedModulesTitle')} modules={includedModules} tone="included" />
-                    )}
-                    <ModuleList title={t('admin.subscription.notIncludedTitle')} modules={excludedModules} />
-                </div>
-            </section>
+            <PlanFeaturesExplorer
+                includedModules={includedModules}
+                availableModules={modulesAvailable}
+                onComparePlans={() => {
+                    const el = document.getElementById('compare-plans');
+                    if (el) {
+                        el.scrollIntoView({ behavior: 'smooth' });
+                    }
+                }}
+            />
 
-            <section>
-                <h3 className="mb-3 text-lg font-bold text-gray-900">{t('admin.subscription.comparePlans')}</h3>
+            <section id="compare-plans" className="scroll-mt-6">
+                <h3 className="mb-3 text-lg font-bold text-gray-900 dark:text-gray-100">{t('admin.subscription.comparePlans')}</h3>
                 {visiblePlans.length === 0 && <Alert>{t('admin.subscription.noPlans')}</Alert>}
                 {visiblePlans.length > 0 && (
                     <Table>
