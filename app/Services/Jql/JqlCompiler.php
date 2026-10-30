@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Services\Jql;
 
 use App\Models\User;
@@ -157,11 +159,15 @@ final class JqlCompiler
     {
         $this->requireOps($field, $op, ['=', '~', 'in', 'empty']);
 
+        // $col is a FIELDS constant; wrapping through the grammar keeps the identifier quoted
+        // correctly on both PostgreSQL and sqlite and makes interpolation safe by construction.
+        $wrapped = $q->getQuery()->getGrammar()->wrap($col);
+
         match ($op) {
             'empty' => $q->where(fn ($w) => $w->whereNull($col)->orWhere($col, '')),
             '~' => Like::any($q, [$col], $this->text1($values)),
-            'in' => $q->whereIn(DB::raw("LOWER($col)"), array_map('mb_strtolower', $this->texts($values))),
-            default => $q->whereRaw("LOWER($col) = ?", [mb_strtolower($this->text1($values))]),
+            'in' => $q->whereIn(DB::raw("LOWER($wrapped)"), array_map('mb_strtolower', $this->texts($values))),
+            default => $q->whereRaw("LOWER($wrapped) = ?", [mb_strtolower($this->text1($values))]),
         };
     }
 

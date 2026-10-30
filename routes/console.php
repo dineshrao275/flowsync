@@ -39,6 +39,7 @@ Schedule::command('audit:verify')->dailyAt('04:10')->withoutOverlapping();
 
 // Billing: failed-payment dunning (reminders, final notice, suspension after the grace period).
 // Billing: lapsed paid periods are expired / renewed / sent to dunning first (08:00), then dunning runs.
+Schedule::command('billing:reconcile')->hourly()->withoutOverlapping();
 Schedule::command('billing:period-ends')->dailyAt('08:00')->withoutOverlapping();
 Schedule::command('billing:dunning')->dailyAt('09:00')->withoutOverlapping();
 Schedule::command('billing:sync-plans')->dailyAt('02:30')->withoutOverlapping();

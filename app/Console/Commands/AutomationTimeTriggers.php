@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Console\Commands;
 
 use App\Models\AutomationRule;
@@ -43,7 +45,7 @@ class AutomationTimeTriggers extends Command
     }
 
     /** @return Collection<int, DomainEvent> */
-    private function emitFor(string $type, int $windowDays)
+    private function emitFor(string $type, int $windowDays): Collection
     {
         $projects = AutomationRule::where('trigger', $type)->where('is_active', true)->pluck('project_id')->unique();
         if ($projects->isEmpty()) {

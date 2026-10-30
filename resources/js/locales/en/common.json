@@ -27,7 +27,11 @@
         "pricePerMonthAnnual": "{{value}}/mo billed annually",
         "change": "Change",
         "noMatches": "No matching people",
-        "searchPeople": "Search people…"
+        "searchPeople": "Search people…",
+        "showPassword": "Show password",
+        "hidePassword": "Hide password",
+        "passwordsMatch": "Passwords match.",
+        "passwordsMismatch": "Passwords do not match."
     },
     "errors": {
         "generic": "Something went wrong. Please try again."
@@ -114,7 +118,7 @@
         "breadcrumb": "Breadcrumb",
         "superAdmin": "Super Admin",
         "admin": "Admin",
-        "footer": "{{app}} · Laravel + React",
+        "footer": "{{app}}",
         "dismiss": "Dismiss notification",
         "sidebar": {
             "superAdminPanel": "Super Admin Panel",
@@ -232,6 +236,7 @@
         }
     },
     "nav": {
+        "notifications": "Notifications",
         "groups": {
             "main": "Main",
             "insights": "Insights",

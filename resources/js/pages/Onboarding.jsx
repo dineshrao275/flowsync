@@ -36,6 +36,8 @@ export default function Onboarding() {
         } finally {
             setLoading(false);
         }
+        // `t` is deliberately omitted: a language switch must not refetch the wizard state.
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
     useEffect(() => {

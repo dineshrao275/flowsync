@@ -1,7 +1,10 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Http\Controllers;
 
+use App\Http\Requests\ProjectRoleStoreRequest;
 use App\Models\ProjectRole;
 use App\Support\UniqueSlug;
 use Illuminate\Http\JsonResponse;
@@ -21,13 +24,9 @@ class ProjectRoleController extends Controller
         return response()->json(['roles' => $roles]);
     }
 
-    public function store(Request $request): JsonResponse
+    public function store(ProjectRoleStoreRequest $request): JsonResponse
     {
-        $data = $request->validate([
-            'name' => ['required', 'string', 'max:255'],
-            'permissions' => ['required', 'array'],
-            'permissions.*' => ['string', Rule::in(config('project_roles.permissions'))],
-        ]);
+        $data = $request->validated();
 
         $slug = $this->uniqueSlug(Str::slug($data['name']));
 

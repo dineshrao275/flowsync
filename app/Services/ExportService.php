@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Services;
 
 use App\Models\ExportRun;
@@ -8,7 +10,8 @@ use App\Models\Task;
 use App\Models\User;
 use App\Models\WorkLog;
 use App\Models\Workspace;
-use App\Support\Hrms\HrmsSchema;
+use App\Services\Export\ExportCsvWriter;
+use App\Services\Export\HrmsExportCategories;
 use App\Support\Tms\TmsSchema;
 use ZipArchive;
 
@@ -40,6 +43,18 @@ class ExportService
     ];
 
     private const CHUNK = 500;
+
+    private readonly ExportCsvWriter $writer;
+
+    private readonly HrmsExportCategories $hrms;
+
+    public function __construct(
+        ?ExportCsvWriter $writer = null,
+        ?HrmsExportCategories $hrms = null,
+    ) {
+        $this->writer = $writer ?? new ExportCsvWriter;
+        $this->hrms = $hrms ?? new HrmsExportCategories($this->writer);
+    }
 
     /**
      * Build the ZIP for the given ExportRun.
@@ -81,9 +96,9 @@ class ExportService
                 'tasks' => $this->addTasks($zip),
                 'work_logs' => $this->addWorkLogs($zip),
                 'members' => $this->addMembers($zip),
-                'employees' => $this->addEmployees($zip),
-                'leave_requests' => $this->addLeaveRequests($zip),
-                'payslips' => $this->addPayslips($zip),
+                'employees' => $this->hrms->addEmployees($zip, self::CHUNK),
+                'leave_requests' => $this->hrms->addLeaveRequests($zip, self::CHUNK),
+                'payslips' => $this->hrms->addPayslips($zip, self::CHUNK),
                 default => null,
             };
         }
@@ -101,30 +116,7 @@ class ExportService
      */
     private function writeCsv(ZipArchive $zip, string $filename, array $headers, iterable $rows): void
     {
-        $buffer = fopen('php://temp', 'r+');
-        fputcsv($buffer, $headers);
-
-        foreach ($rows as $row) {
-            fputcsv($buffer, array_map($this->csvCell(...), $row));
-        }
-
-        rewind($buffer);
-        $zip->addFromString($filename, stream_get_contents($buffer));
-        fclose($buffer);
-    }
-
-    /** Backed enums and dates arrive as objects; fputcsv only stringifies scalars. */
-    private function csvCell(mixed $value): mixed
-    {
-        return match (true) {
-            $value instanceof \BackedEnum => $value->value,
-            $value instanceof \UnitEnum => $value->name,
-            $value instanceof \DateTimeInterface => $value->format('c'),
-            is_array($value) => json_encode($value),
-            is_object($value) && method_exists($value, '__toString') => (string) $value,
-            is_object($value) => null,
-            default => $value,
-        };
+        $this->writer->write($zip, $filename, $headers, $rows);
     }
 
     // ---------------------------------------------------------------- categories
@@ -232,81 +224,5 @@ class ExportService
         });
 
         $this->writeCsv($zip, 'members.csv', $headers, $rows);
-    }
-
-    /**
-     * HRMS employees — only present when the model class exists (HRMS module
-     * provisioned). We check with class_exists so this category degrades
-     * gracefully to an empty CSV on Starter/Pro tenants.
-     */
-    private function addEmployees(ZipArchive $zip): void
-    {
-        $headers = [
-            'id', 'employee_code', 'user_id', 'status',
-            'joining_date', 'exit_date', 'created_at',
-        ];
-        $rows = [];
-
-        $modelClass = 'App\\Models\\Hrms\\Employee\\Employee';
-        if (class_exists($modelClass) && HrmsSchema::present()) {
-            $modelClass::chunk(self::CHUNK, function ($batch) use (&$rows) {
-                foreach ($batch as $e) {
-                    $rows[] = [
-                        $e->id, $e->employee_code, $e->user_id, $e->status,
-                        $e->joining_date?->toDateString(), $e->exit_date?->toDateString(),
-                        $e->created_at?->toIso8601String(),
-                    ];
-                }
-            });
-        }
-
-        $this->writeCsv($zip, 'employees.csv', $headers, $rows);
-    }
-
-    private function addLeaveRequests(ZipArchive $zip): void
-    {
-        $headers = [
-            'id', 'employee_id', 'leave_type_id', 'status',
-            'from_date', 'to_date', 'days', 'created_at',
-        ];
-        $rows = [];
-
-        $modelClass = 'App\\Models\\Hrms\\Leave\\LeaveRequest';
-        if (class_exists($modelClass)) {
-            $modelClass::chunk(self::CHUNK, function ($batch) use (&$rows) {
-                foreach ($batch as $lr) {
-                    $rows[] = [
-                        $lr->id, $lr->employee_id, $lr->leave_type_id, $lr->status,
-                        $lr->from_date?->toDateString(), $lr->to_date?->toDateString(),
-                        $lr->days, $lr->created_at?->toIso8601String(),
-                    ];
-                }
-            });
-        }
-
-        $this->writeCsv($zip, 'leave_requests.csv', $headers, $rows);
-    }
-
-    private function addPayslips(ZipArchive $zip): void
-    {
-        // Payslips contain sensitive financial data — export headers only (no
-        // salary values). A future permission expansion can enable the values
-        // behind an explicit consent gate.
-        $headers = ['id', 'employee_id', 'period_month', 'period_year', 'status', 'created_at'];
-        $rows = [];
-
-        $modelClass = 'App\\Models\\Hrms\\Payroll\\Payslip';
-        if (class_exists($modelClass)) {
-            $modelClass::chunk(self::CHUNK, function ($batch) use (&$rows) {
-                foreach ($batch as $ps) {
-                    $rows[] = [
-                        $ps->id, $ps->employee_id, $ps->period_month, $ps->period_year,
-                        $ps->status, $ps->created_at?->toIso8601String(),
-                    ];
-                }
-            });
-        }
-
-        $this->writeCsv($zip, 'payslips.csv', $headers, $rows);
     }
 }

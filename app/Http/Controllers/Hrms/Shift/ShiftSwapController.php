@@ -1,8 +1,12 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Http\Controllers\Hrms\Shift;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Hrms\Shift\ShiftSwapApproveRequest;
+use App\Http\Requests\Hrms\Shift\ShiftSwapRejectRequest;
 use App\Models\Hrms\Attendance\ShiftSwap;
 use App\Models\Hrms\Employee\Employee;
 use App\Services\Hrms\Shared\ApprovalService;
@@ -54,16 +58,16 @@ class ShiftSwapController extends Controller
         return response()->json(['message' => __('Swap requested.'), 'swap' => $this->present($this->load($swap), $user)], 201);
     }
 
-    public function approve(Request $request, ShiftSwap $swap): JsonResponse
+    public function approve(ShiftSwapApproveRequest $request, ShiftSwap $swap): JsonResponse
     {
-        $data = $request->validate(['note' => ['nullable', 'string', 'max:500']]);
+        $data = $request->validated();
 
         return response()->json(['message' => __('Swap decided.'), 'swap' => $this->present($this->load($this->service->approve($swap, $request->user(), $data['note'] ?? null)), $request->user())]);
     }
 
-    public function reject(Request $request, ShiftSwap $swap): JsonResponse
+    public function reject(ShiftSwapRejectRequest $request, ShiftSwap $swap): JsonResponse
     {
-        $data = $request->validate(['note' => ['required', 'string', 'max:500']]);
+        $data = $request->validated();
 
         return response()->json(['message' => __('Swap rejected.'), 'swap' => $this->present($this->load($this->service->reject($swap, $request->user(), $data['note'])), $request->user())]);
     }

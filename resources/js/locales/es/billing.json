@@ -22,7 +22,8 @@
         "cardSaved": "Tarjeta guardada y establecida como predeterminada.",
         "cardSetupCanceled": "Se canceló la configuración de la tarjeta.",
         "thReceipt": "Recibo",
-        "viewReceipt": "Ver"
+        "viewReceipt": "Ver",
+        "paymentMethodRequired": "Añade un método de pago para continuar tu prueba gratuita. No se te cobrará hasta que termine la prueba."
     },
     "plan": {
         "priceChangeTitle": "¿Subir el precio a los suscriptores actuales?",

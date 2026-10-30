@@ -1,8 +1,13 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Http\Controllers;
 
 use App\Http\Controllers\Concerns\AuditsTenantAdminActions;
+use App\Http\Requests\RoleCloneRequest;
+use App\Http\Requests\RoleStoreRequest;
+use App\Http\Requests\RoleUpdateRequest;
 use App\Models\Permission;
 use App\Models\Role;
 use App\Models\Tenant;
@@ -12,7 +17,6 @@ use App\Support\ProductCatalog;
 use App\Support\TenantContext;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 
 class RoleController extends Controller
@@ -50,14 +54,9 @@ class RoleController extends Controller
         ]);
     }
 
-    public function store(Request $request): JsonResponse
+    public function store(RoleStoreRequest $request): JsonResponse
     {
-        $data = $request->validate([
-            'name' => ['required', 'string', 'max:255'],
-            'slug' => ['required', 'string', 'max:255', 'alpha_dash', Rule::unique('roles', 'slug')],
-            'permissions' => ['required', 'array'],
-            'permissions.*' => ['integer'],
-        ]);
+        $data = $request->validated();
 
         $permissionIds = $this->resolvePermissionIds($data['permissions']);
         $this->assertPermissionsInProducts($permissionIds);
@@ -77,13 +76,9 @@ class RoleController extends Controller
         ], 201);
     }
 
-    public function update(Request $request, Role $role): JsonResponse
+    public function update(RoleUpdateRequest $request, Role $role): JsonResponse
     {
-        $data = $request->validate([
-            'name' => ['required', 'string', 'max:255'],
-            'permissions' => ['required', 'array'],
-            'permissions.*' => ['integer'],
-        ]);
+        $data = $request->validated();
 
         $this->refuseSystemRole($role, __('edited'));
         GrantCeiling::assertCanEditRole($request->user(), $role);
@@ -117,12 +112,9 @@ class RoleController extends Controller
      * customises a built-in role now that those are read-only. The copy carries
      * the source's permissions, so the actor must hold all of them (GrantCeiling).
      */
-    public function clone(Request $request, Role $role): JsonResponse
+    public function clone(RoleCloneRequest $request, Role $role): JsonResponse
     {
-        $data = $request->validate([
-            'name' => ['required', 'string', 'max:255'],
-            'slug' => ['required', 'string', 'max:255', 'alpha_dash', Rule::unique('roles', 'slug')],
-        ]);
+        $data = $request->validated();
 
         $permissionIds = $role->permissions()->pluck('permissions.id');
         $this->assertPermissionsInProducts($permissionIds->all());

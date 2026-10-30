@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Services;
 
 use App\Models\Hrms\Employee\Employee;
@@ -10,7 +12,9 @@ use App\Models\Task;
 use App\Models\Tenant;
 use App\Models\User;
 use App\Models\Workspace;
+use App\Support\Hrms\HrmsSchema;
 use App\Support\TenantContext;
+use App\Support\Tms\TmsSchema;
 use Illuminate\Support\Collection;
 use Illuminate\Validation\ValidationException;
 
@@ -359,13 +363,11 @@ class TenantLimits
 
         return match ($resource) {
             'users' => User::count(),
-            'workspaces' => Workspace::count(),
-            'projects' => Project::count(),
-            'tasks' => Task::count(),
+            'workspaces', 'projects', 'tasks' => TmsSchema::present() ? ['workspaces' => Workspace::class, 'projects' => Project::class, 'tasks' => Task::class][$resource]::count() : 0,
             // HRMS headcount (Phase 15). Without this the key returns 0 for an
             // unknown resource, so assertQuota('employees') would be a no-op that
             // looks like it is working.
-            'employees' => Employee::count(),
+            'employees' => HrmsSchema::present() ? Employee::count() : 0,
             default => 0,
         };
     }

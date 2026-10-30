@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Http\Controllers;
 
 use App\Models\Tenant;
@@ -45,7 +47,8 @@ class SsoSettingsController extends Controller
         }
 
         if ($data['enabled']) {
-            if (! $data['client_secret'] && ! $this->settings->secret($tenant)) {
+            // An omitted secret means "keep the stored one", exactly like the blank field the form sends.
+            if (empty($data['client_secret']) && ! $this->settings->secret($tenant)) {
                 throw ValidationException::withMessages(['client_secret' => __('Enter the client secret from your identity provider.')]);
             }
             // Prove the provider answers before we let the tenant depend on it (also runs the SSRF guard).

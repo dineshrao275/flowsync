@@ -1,7 +1,10 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Console\Commands;
 
+use App\Mail\AuditAlertMail;
 use App\Services\Security\AuditChain;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Log;
@@ -50,10 +53,12 @@ class VerifyAuditChain extends Command
             'checked' => $report['checked'],
         ]);
 
+        $breakId = (string) $report['break']['id'];
+        $breakReason = (string) $report['break']['reason'];
+        $checked = (int) $report['checked'];
+
         foreach ((array) config('security.audit_alert_emails', []) as $to) {
-            Mail::raw($message."\nRun `php artisan audit:verify` on the server for details.", function ($mail) use ($to): void {
-                $mail->to($to)->subject('['.config('app.name').'] Audit log integrity check failed');
-            });
+            Mail::to($to)->queue(new AuditAlertMail($breakId, $breakReason, $checked));
         }
     }
 }

@@ -74,7 +74,7 @@ export default function MyExpenses() {
         // block names the login. No picker, so no way to file into
         // someone else's name — and when the directory is unreachable the
         // file button simply stays hidden.
-        api.get('/hrms/employees', { params: { per_page: 100 } })
+        api.get('/hrms/employees', { params: { per_page: 250 } })
             .then(({ data }) => setEmployeeId((data.employees ?? []).find((e) => e.user?.id === user?.id)?.id ?? null))
             .catch(() => setEmployeeId(null));
         // eslint-disable-next-line react-hooks/exhaustive-deps

@@ -97,7 +97,7 @@ export default function Employees() {
 
     // `page` is read for its side effect of re-running on change; the value it
     // carries is unused here because the page number travels inside `filters`.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+     
     useEffect(() => {
         load(page, filters);
     }, [page, filters, load]);

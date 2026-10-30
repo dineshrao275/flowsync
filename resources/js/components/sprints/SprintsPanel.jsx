@@ -10,16 +10,24 @@ import ContentSkeleton from '../ui/ContentSkeleton';
 import { useToast } from '../../context/ToastContext';
 import { useConfirm } from '../ui/ConfirmDialog';
 import { formatDate } from '../../utils/format';
+import { taskUrl } from '../../utils/deepLinks';
+import TaskBadge from '../ui/TaskBadge';
+import { Link } from 'react-router-dom';
 import Timestamp from '../ui/Timestamp';
 
 const sel = 'rounded-lg border border-gray-300 px-2 py-1.5 text-sm';
 
-function TaskRow({ task, sprints, onMove, canPlan }) {
+function TaskRow({ task, sprints, onMove, canPlan, projectId }) {
     const { t } = useTranslation();
     return (
         <li className="flex flex-wrap items-center gap-2 border-t border-gray-100 px-3 py-2 text-sm">
-            <span className="font-mono text-xs text-gray-400">{task.key}</span>
-            <span className={`min-w-0 flex-1 truncate ${task.status?.is_done ? 'text-gray-400 line-through' : 'text-gray-800'}`}>{task.title}</span>
+            <TaskBadge taskKey={task.key} taskId={task.id} projectId={projectId} />
+            <Link
+                to={taskUrl(projectId, task.key)}
+                className={`min-w-0 flex-1 truncate hover:underline ${task.status?.is_done ? 'text-gray-400 line-through' : 'text-gray-800'}`}
+            >
+                {task.title}
+            </Link>
             <span className="text-xs text-gray-500">{task.story_points != null ? t('tms.sprints.storyPts', { count: task.story_points }) : t('tms.sprints.noPts')}</span>
             <span className="w-24 truncate text-xs text-gray-500">{task.assignee?.name || t('tms.sprints.unassigned')}</span>
             {canPlan && (
@@ -130,14 +138,14 @@ export default function SprintsPanel({ projectId, canPlan }) {
                                     </div>
                                 </div>
                             )}
-                            <ul>{(sprintTasks[s.id] || []).map((task) => <TaskRow key={task.id} task={task} sprints={data.sprints} onMove={move} canPlan={canPlan} />)}</ul>
+                            <ul>{(sprintTasks[s.id] || []).map((task) => <TaskRow key={task.id} task={task} sprints={data.sprints} onMove={move} canPlan={canPlan} projectId={projectId} />)}</ul>
                             {(sprintTasks[s.id] || []).length === 0 && <p className="border-t border-gray-100 px-4 py-3 text-sm text-gray-400">{t('tms.sprints.emptySprint')}</p>}
                         </div>
                     ))}
 
                     <div className="rounded-xl border border-gray-200 bg-white">
                         <p className="px-4 py-3 font-semibold text-gray-900">{t('tms.sprints.backlog')} <span className="text-sm font-normal text-gray-400">({data.backlog.length})</span></p>
-                        <ul>{data.backlog.map((task) => <TaskRow key={task.id} task={task} sprints={data.sprints} onMove={move} canPlan={canPlan} />)}</ul>
+                        <ul>{data.backlog.map((task) => <TaskRow key={task.id} task={task} sprints={data.sprints} onMove={move} canPlan={canPlan} projectId={projectId} />)}</ul>
                         {data.backlog.length === 0 && <p className="border-t border-gray-100 px-4 py-3 text-sm text-gray-400">{t('tms.sprints.backlogEmpty')}</p>}
                     </div>
 

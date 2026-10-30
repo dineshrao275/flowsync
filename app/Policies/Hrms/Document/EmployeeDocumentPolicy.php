@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Policies\Hrms\Document;
 
 use App\Models\Hrms\Document\EmployeeDocument;

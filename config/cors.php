@@ -19,7 +19,7 @@ return [
     'allowed_methods' => ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
 
     'allowed_origins' => array_values(array_filter([
-        env('APP_URL', 'http://localhost'),
+        env('APP_URL', 'http://flowsync.local'),
         env('FRONTEND_URL'),
     ])),
 

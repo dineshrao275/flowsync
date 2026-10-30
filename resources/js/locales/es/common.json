@@ -27,7 +27,11 @@
         "pricePerMonthAnnual": "{{value}}/mes facturado anualmente",
         "change": "Cambiar",
         "noMatches": "Nadie coincide",
-        "searchPeople": "Buscar personas…"
+        "searchPeople": "Buscar personas…",
+        "showPassword": "Mostrar contraseña",
+        "hidePassword": "Ocultar contraseña",
+        "passwordsMatch": "Las contraseñas coinciden.",
+        "passwordsMismatch": "Las contraseñas no coinciden."
     },
     "errors": {
         "generic": "Algo salió mal. Inténtalo de nuevo."
@@ -114,7 +118,7 @@
         "breadcrumb": "Ruta de navegación",
         "superAdmin": "Superadministrador",
         "admin": "Administrador",
-        "footer": "{{app}} · Laravel + React",
+        "footer": "{{app}}",
         "dismiss": "Descartar notificación",
         "sidebar": {
             "superAdminPanel": "Panel de superadministrador",
@@ -232,6 +236,7 @@
         }
     },
     "nav": {
+        "notifications": "Notificaciones",
         "groups": {
             "main": "Principal",
             "insights": "Análisis",

@@ -1,11 +1,14 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Services;
 
 use App\Models\AutomationRun;
 use App\Models\IntegrationLog;
 use App\Models\Tenant;
 use App\Support\TenantContext;
+use App\Support\Tms\TmsSchema;
 use Illuminate\Support\Facades\Cache;
 
 /**
@@ -75,7 +78,9 @@ class UsageMeter
 
         return match ($metric) {
             self::API_CALLS => IntegrationLog::query()->where('created_at', '>=', $start)->count(),
-            self::AUTOMATION_RUNS => AutomationRun::query()->where('created_at', '>=', $start)->whereIn('status', ['success', 'failed'])->count(),
+            self::AUTOMATION_RUNS => TmsSchema::present()
+                ? AutomationRun::query()->where('created_at', '>=', $start)->whereIn('status', ['success', 'failed'])->count()
+                : 0,
             default => 0,
         };
     }

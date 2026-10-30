@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Billing\Gateways;
 
 use App\Billing\CardCaptureGateway;
@@ -92,8 +94,8 @@ class FakePaymentGateway implements CardCaptureGateway, PaymentGateway
         return new PaymentResult(
             success: true,
             providerPaymentId: $providerPaymentId,
-            providerOrderId: 'fake_order_1',
-            amountCents: (int) ($payload['amount_cents'] ?? 2900),
+            providerOrderId: $payload['order_id'] ?? null,
+            amountCents: (int) ($payload['amount_cents'] ?? 0),
             currency: $payload['currency'] ?? 'usd',
             status: Payment::STATUS_COMPLETED,
             feeCents: 85,
@@ -193,8 +195,27 @@ class FakePaymentGateway implements CardCaptureGateway, PaymentGateway
         ];
     }
 
-    public function startTrialSubscription(Tenant $tenant, SubscriptionPlan $plan, string $currency, string $paymentMethod, int $trialDays): array
+    public array $customers = [];
+
+    public function ensureCustomer(Tenant $tenant): string
     {
+        if ($this->shouldFail) {
+            throw new \RuntimeException($this->failureReason ?? 'Customer creation failed');
+        }
+
+        $id = $tenant->billing_customer_id ?: 'fake_cus_'.$tenant->id;
+        $this->customers[$tenant->id] = $id;
+        $tenant->forceFill(['billing_customer_id' => $id])->save();
+
+        return $id;
+    }
+
+    public function startTrialSubscription(Tenant $tenant, SubscriptionPlan $plan, string $currency, ?string $paymentMethod, int $trialDays): array
+    {
+        if ($this->shouldFail) {
+            throw new \RuntimeException($this->failureReason ?? 'Trial subscription failed');
+        }
+
         $this->trialSubscriptions[] = compact('paymentMethod', 'trialDays') + ['tenant_id' => $tenant->id, 'plan_id' => $plan->id];
 
         return ['subscription_id' => 'sub_fake_'.count($this->trialSubscriptions), 'period_end' => now()->addDays($trialDays)->timestamp];

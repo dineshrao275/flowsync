@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import UserChip from '../ui/UserChip';
+import HighlightedContent from '../ui/HighlightedContent';
 import { useTranslation } from 'react-i18next';
 import api, { fieldErrors } from '../../services/api';
 import { formatMinutes } from '../../utils/time';
@@ -214,7 +215,11 @@ export default function WorkLogPanel({ task, projectId, canLog, canManage }) {
                                     {log.user?.id === user?.id && <span className="text-gray-400">{t('tms.worklogs.you')}</span>}
                                 </p>
                                 <p className="text-xs text-gray-500">{formatRange(log, t)}</p>
-                                {log.description && <p className="mt-0.5 text-sm text-gray-600">{log.description}</p>}
+                                {log.description && (
+                                    <div className="mt-0.5 text-sm text-gray-600">
+                                        <HighlightedContent content={log.description} projectId={projectId || task?.project_id} />
+                                    </div>
+                                )}
                             </div>
                             <div className="flex items-center gap-2">
                                 <span className="rounded-full bg-[var(--accent-soft)] px-2.5 py-1 text-xs font-semibold text-[var(--accent-soft-text)]">

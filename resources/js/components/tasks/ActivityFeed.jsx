@@ -27,35 +27,100 @@ const ACTION_KEYS = {
     'task.vcs_event': 'vcsEvent',
 };
 
-function describe(t, action, data) {
+import StatusBadge from '../ui/StatusBadge';
+import TaskBadge from '../ui/TaskBadge';
+
+function describe(t, action, data, task, projectId) {
+    const label = (status) => (typeof status === 'string' ? status : status?.name ?? '');
+
     if (action === 'task.moved' && data?.from_status && data?.to_status) {
-        // Stored as plain names by the server; older rows / other writers may carry {id, name}.
-        const label = (status) => (typeof status === 'string' ? status : status?.name ?? '');
-        return t('tms.activity.movedFromTo', { from: label(data.from_status), to: label(data.to_status) });
+        return (
+            <span className="inline-flex flex-wrap items-center gap-1.5 align-middle">
+                {task?.key && (
+                    <TaskBadge taskKey={task.key} taskId={task.id} projectId={projectId} />
+                )}
+                <span className="text-gray-600 dark:text-gray-400">{t('tms.activity.movedAction', { defaultValue: 'moved from' })}</span>
+                <StatusBadge status={label(data.from_status)} />
+                <span className="text-gray-600 dark:text-gray-400">{t('tms.activity.toAction', { defaultValue: 'to' })}</span>
+                <StatusBadge status={label(data.to_status)} />
+            </span>
+        );
     }
     if (action === 'task.commented' && data?.snippet) {
-        return t('tms.activity.commentedSnippet', { snippet: data.snippet });
+        return (
+            <span className="align-middle">
+                <span className="text-gray-600 dark:text-gray-400">{t('tms.activity.commented', { defaultValue: 'commented' })}:</span>{' '}
+                <span className="inline-block rounded-md border border-gray-200 bg-gray-50 px-2 py-0.5 text-xs italic text-gray-700 dark:border-slate-800 dark:bg-slate-800 dark:text-gray-300">
+                    &ldquo;{data.snippet}&rdquo;
+                </span>
+            </span>
+        );
     }
     if (action === 'task.dependency_created' || action === 'task.dependency_deleted') {
-        return t('tms.activity.dependencyOn', { id: data?.depends_on_task_id });
+        const isCreated = action === 'task.dependency_created';
+        return (
+            <span className="inline-flex flex-wrap items-center gap-1.5 align-middle">
+                <span className="text-gray-600 dark:text-gray-400">
+                    {isCreated ? t('tms.activity.depAdded', { defaultValue: 'added dependency on' }) : t('tms.activity.depRemoved', { defaultValue: 'removed dependency on' })}
+                </span>
+                <TaskBadge
+                    taskId={data?.depends_on_task_id}
+                    taskKey={data?.depends_on_task_key || `#${data?.depends_on_task_id}`}
+                    projectId={projectId}
+                />
+            </span>
+        );
     }
     if (action === 'task.checklist_item_added') {
-        return t('tms.activity.checklistAddedTitle', { title: data?.title ?? '' });
+        return (
+            <span className="align-middle">
+                <span className="text-gray-600 dark:text-gray-400">{t('tms.activity.checklistAdded', { defaultValue: 'added checklist item' })}</span>{' '}
+                <strong className="font-semibold text-gray-900 dark:text-gray-100">&ldquo;{data?.title ?? ''}&rdquo;</strong>
+            </span>
+        );
     }
     if (action === 'task.checklist_item_checked') {
-        return t('tms.activity.checklistCheckedTitle', { title: data?.title ?? '' });
+        return (
+            <span className="align-middle">
+                <span className="text-gray-600 dark:text-gray-400">{t('tms.activity.checklistChecked', { defaultValue: 'completed checklist item' })}</span>{' '}
+                <strong className="font-semibold text-gray-900 dark:text-gray-100">&ldquo;{data?.title ?? ''}&rdquo;</strong>
+            </span>
+        );
     }
     if (action === 'task.checklist_item_unchecked') {
-        return t('tms.activity.checklistUncheckedTitle', { title: data?.title ?? '' });
+        return (
+            <span className="align-middle">
+                <span className="text-gray-600 dark:text-gray-400">{t('tms.activity.checklistUnchecked', { defaultValue: 'unchecked checklist item' })}</span>{' '}
+                <strong className="font-semibold text-gray-900 dark:text-gray-100">&ldquo;{data?.title ?? ''}&rdquo;</strong>
+            </span>
+        );
     }
     if (action === 'task.checklist_item_removed') {
-        return t('tms.activity.checklistRemovedTitle', { title: data?.title ?? '' });
+        return (
+            <span className="align-middle">
+                <span className="text-gray-600 dark:text-gray-400">{t('tms.activity.checklistRemoved', { defaultValue: 'removed checklist item' })}</span>{' '}
+                <strong className="font-semibold text-gray-900 dark:text-gray-100">&ldquo;{data?.title ?? ''}&rdquo;</strong>
+            </span>
+        );
     }
     if (action === 'task.vcs_event') {
-        return t('tms.activity.vcsLine', { kind: t(`tms.activity.vcsKind.${data?.kind}`, { defaultValue: data?.kind ?? '' }), state: data?.state ?? '', title: data?.title ?? '' });
+        return (
+            <span className="align-middle">
+                {t('tms.activity.vcsLine', {
+                    kind: t(`tms.activity.vcsKind.${data?.kind}`, { defaultValue: data?.kind ?? '' }),
+                    state: data?.state ?? '',
+                    title: data?.title ?? '',
+                })}
+            </span>
+        );
     }
     if (action === 'task.sla_breached') {
-        return t('tms.activity.slaLine', { sla: data?.sla ?? '', hours: data?.target_hours ?? '' });
+        return (
+            <span className="inline-flex items-center gap-1.5 align-middle">
+                <StatusBadge status={t('tms.activity.slaBreachedBadge', { defaultValue: 'SLA Breached' })} tone="danger" />
+                <span className="text-xs text-gray-500">{t('tms.activity.slaLine', { sla: data?.sla ?? '', hours: data?.target_hours ?? '' })}</span>
+            </span>
+        );
     }
     const key = ACTION_KEYS[action];
     return key ? t(`tms.activity.${key}`) : action;
@@ -101,7 +166,7 @@ export default function ActivityFeed({ task, projectId }) {
                     <span className="absolute -left-[21px] top-3 h-2.5 w-2.5 rounded-full border-2 border-white bg-[var(--accent)] shadow" />
                     <p className="text-sm text-gray-700">
                         <UserChip user={activity.actor} name={activity.actor?.name ?? t('tms.activity.someone')} className="align-middle" nameClassName="font-medium text-gray-900" />{' '}
-                        {describe(t, activity.action, activity.data)}
+                        {describe(t, activity.action, activity.data, task, projectId)}
                     </p>
                     <p className="text-xs text-gray-400"><Timestamp date={activity.created_at} /></p>
                 </li>

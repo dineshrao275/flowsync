@@ -10,5 +10,5 @@ export default function usePageTitle(title) {
     useEffect(() => {
         document.title = effective === appName ? appName : `${effective} · ${appName}`;
         if (context) context.setTitle(effective);
-    }, [effective, context]);
+    }, [effective, appName, context]);
 }

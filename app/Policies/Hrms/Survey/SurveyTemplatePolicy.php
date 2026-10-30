@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Policies\Hrms\Survey;
 
 use App\Models\Hrms\Survey\SurveyTemplate;

@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Http\Controllers\Hrms;
 
 use App\Enums\Hrms\EmployeeStatus;
@@ -239,14 +241,6 @@ class EmployeeController extends Controller
      * tenant-local and resolves to nothing on the central connection.
      *
      * @param  int  $employee  Tenant-local id, deliberately unbound.
-     */
-    /**
-     * The photo, served from its signed link.
-     *
-     * Intentionally outside the auth/tenant groups, like the task attachment
-     * download: the signature is the credential, so a fresh browser tab or an
-     * <img> tag works. Every value it needs therefore arrives inside the signed
-     * query string.
      */
     public function photo(Request $request, int $employee): StreamedResponse
     {

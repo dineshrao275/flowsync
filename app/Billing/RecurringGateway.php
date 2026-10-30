@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Billing;
 
 use App\Models\SubscriptionPlan;
@@ -43,4 +45,7 @@ interface RecurringGateway
 
     /** The provider's own record of a subscription (status, period, price) — used to reconcile after missed webhooks. @return array<string, mixed> */
     public function retrieveSubscription(string $providerSubscriptionId): array;
+
+    /** Cancel a provider subscription immediately (used to undo a subscription whose local record could not be saved). */
+    public function cancelSubscription(string $providerSubscriptionId): void;
 }

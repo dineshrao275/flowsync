@@ -15,7 +15,8 @@ import usePageTitle from '../hooks/usePageTitle';
 import useUrlState from '../hooks/useUrlState';
 import { useResource } from '../hooks/useResource';
 import ErrorState from '../components/ui/ErrorState';
-import { projectUrl } from '../utils/deepLinks';
+import { taskUrl } from '../utils/deepLinks';
+import TaskBadge from '../components/ui/TaskBadge';
 
 const FILTER_KEYS = ['q', 'workspace_id', 'project_id', 'status_id', 'priority_id', 'assignee_id', 'label_id', 'due_from', 'due_to'];
 const URL_DEFAULTS = { ...Object.fromEntries(FILTER_KEYS.map((key) => [key, ''])), page: '1' };
@@ -218,17 +219,20 @@ export default function Search() {
                                 style={{ animationDelay: `${index * 30}ms` }}
                             >
                                 <Td>
-                                    <Link to={projectUrl(task.project.id, 'tasks')} className="flex min-w-0 items-start gap-2">
+                                    <div className="flex min-w-0 items-start gap-2">
                                         <span
                                             className="mt-1.5 h-2.5 w-2.5 shrink-0 rounded-full"
                                             style={{ backgroundColor: task.priority?.color || '#94a3b8' }}
                                         />
-                                        <span className="min-w-0">
-                                            <span className="block truncate font-medium text-gray-800">
-                                                <span className="text-gray-400">{task.project?.key}</span> · {task.title}
-                                            </span>
-                                        </span>
-                                    </Link>
+                                        <div className="min-w-0 flex-1">
+                                            <div className="flex items-center gap-2 truncate font-medium text-gray-800">
+                                                <TaskBadge taskKey={task.key} projectId={task.project?.id} />
+                                                <Link to={taskUrl(task.project?.id, task.key)} className="truncate hover:text-[var(--accent)] hover:underline">
+                                                    {task.title}
+                                                </Link>
+                                            </div>
+                                        </div>
+                                    </div>
                                 </Td>
                                 <Td className="whitespace-nowrap">{task.project?.name}</Td>
                                 <Td className="whitespace-nowrap">{task.workspace?.name}</Td>

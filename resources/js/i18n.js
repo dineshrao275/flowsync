@@ -123,7 +123,7 @@ i18n.use(initReactI18next).init({
     missingKeyHandler: (languages, namespace, key) => {
         if (import.meta.env?.DEV !== true) return;
 
-        // eslint-disable-next-line no-console
+         
         console.warn(`[i18n] missing key "${namespace}:${key}" for [${languages.join(', ')}]`);
     },
 });
@@ -134,11 +134,15 @@ const remembered = storedLocale();
 if (remembered && remembered !== DEFAULT_LOCALE) changeLocale(remembered);
 
 if (typeof document !== 'undefined') {
-    document.documentElement.lang = i18n.language;
+    if (document.documentElement) {
+        document.documentElement.lang = i18n.language;
+    }
     // Every path that changes language (guest guess, server preference,
     // switcher) flows through here, so `<html lang>` never drifts.
     i18n.on('languageChanged', (language) => {
-        document.documentElement.lang = language;
+        if (typeof document !== 'undefined' && document.documentElement) {
+            document.documentElement.lang = language;
+        }
     });
 }
 

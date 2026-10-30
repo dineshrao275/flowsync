@@ -1,27 +1,24 @@
 import { useEffect, useState } from 'react';
-import MemberPicker from '../components/ui/MemberPicker';
-import Avatar from '../components/ui/Avatar';
-import ProgressBar from '../components/ui/ProgressBar';
-import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom';
+import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import api, { fieldErrors } from '../services/api';
 import Card from '../components/ui/Card';
 import Badge from '../components/ui/Badge';
 import ContentSkeleton from '../components/ui/ContentSkeleton';
-import Alert from '../components/ui/Alert';
-import { fieldClass } from '../components/ui/fieldStyles';
 import Button from '../components/ui/Button';
-import Input from '../components/ui/Input';
 import Tabs from '../components/ui/Tabs';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
 import { useConfirm } from '../components/ui/ConfirmDialog';
 import { useSetCrumbs } from '../context/BreadcrumbContext';
 import TimeSummary from '../components/time/TimeSummary';
-import RichTextEditor from '../components/ui/RichTextEditor';
-import RichText, { stripRichText } from '../components/ui/RichText';
+import RichText from '../components/ui/RichText';
 import usePageTitle from '../hooks/usePageTitle';
-import { projectRoleLabel, workspaceRoleLabel } from '../utils/roles';
+import { workspaceRoleLabel } from '../utils/roles';
+import { WorkspaceProjectsTab } from '../components/workspace/WorkspaceProjectsTab';
+import { WorkspaceMembersTab } from '../components/workspace/WorkspaceMembersTab';
+import { WorkspaceLabelsTab } from '../components/workspace/WorkspaceLabelsTab';
+import { WorkspaceSettingsTab } from '../components/workspace/WorkspaceSettingsTab';
 
 const roleOptions = [
     { value: 'admin', labelKey: 'tms.workspaceDetail.roleAdmin' },
@@ -124,7 +121,7 @@ export default function WorkspaceDetail() {
                 ]
                 : [{ label: t('tms.workspaceDetail.crumbWorkspaces'), to: '/workspaces' }],
         );
-    }, [workspace, setCrumbs]);
+    }, [workspace, setCrumbs, t]);
 
     function updateWorkspace(fields) {
         setUpdating(true);
@@ -351,271 +348,50 @@ export default function WorkspaceDetail() {
             <Tabs tabs={tabs} active={activeTab} onChange={changeTab} />
 
             {activeTab === 'projects' && (
-                <div className="space-y-5">
-                    <Card
-                        title={t('tms.workspaceDetail.projectsIn', { name: workspace.name })}
-                        actions={
-                            canCreateProject &&
-                            !archived && (
-                                <Button size="sm" variant="secondary" onClick={() => setCreatingProject((open) => !open)}>
-                                    {t('tms.workspaceDetail.newProject')}
-                                </Button>
-                            )
-                        }
-                    >
-                        {creatingProject && (
-                            <form onSubmit={createProject} className="mb-5 space-y-4 rounded-lg border border-gray-200 p-4">
-                                {formErrors.form && <Alert>{formErrors.form}</Alert>}
-                                <div className="grid gap-4 sm:grid-cols-2">
-                                    <Input
-                                        label={t('tms.workspaceDetail.projectName')}
-                                        name="project-name"
-                                        placeholder={t('tms.workspaceDetail.projectNamePlaceholder')}
-                                        value={projectForm.name}
-                                        onChange={(e) => setProjectForm((f) => ({ ...f, name: e.target.value }))}
-                                        error={formErrors.name}
-                                        required
-                                    />
-                                    <Input
-                                        label={t('tms.workspaceDetail.projectKey')}
-                                        name="project-key"
-                                        placeholder={t('tms.workspaceDetail.projectKeyPlaceholder')}
-                                        value={projectForm.key}
-                                        onChange={(e) => setProjectForm((f) => ({ ...f, key: e.target.value }))}
-                                        error={formErrors.key}
-                                    />
-                                </div>
-                                {!projectForm.template_id && (
-                                    <div>
-                                        <label htmlFor="project-board-type" className="mb-1.5 block text-sm font-medium text-gray-700">{t('tms.workspaceDetail.boardType')}</label>
-                                        <select id="project-board-type" className={fieldClass} value={projectForm.board_type} onChange={(e) => setProjectForm((f) => ({ ...f, board_type: e.target.value }))}>
-                                            {['kanban', 'scrum', 'basic'].map((bt) => <option key={bt} value={bt}>{t(`tms.workspaceDetail.boardTypes.${bt}`)}</option>)}
-                                        </select>
-                                        <p className="mt-1 text-xs text-gray-500">{t(`tms.workspaceDetail.boardTypeHint.${projectForm.board_type}`)}</p>
-                                    </div>
-                                )}
-                                {templates.length > 0 && (
-                                    <div>
-                                        <label htmlFor="project-template" className="mb-1.5 block text-sm font-medium text-gray-700">{t('tms.templates.startFrom')}</label>
-                                        <select id="project-template" className={fieldClass} value={projectForm.template_id} onChange={(e) => setProjectForm((f) => ({ ...f, template_id: e.target.value }))}>
-                                            <option value="">{t('tms.templates.blank')}</option>
-                                            {templates.map((tpl) => (
-                                                <option key={tpl.id} value={tpl.id}>{tpl.name} — {tpl.statuses.join(' → ')}</option>
-                                            ))}
-                                        </select>
-                                    </div>
-                                )}
-                                <div>
-                                    <label className="mb-1.5 block text-sm font-medium text-gray-700">{t('tms.workspaceDetail.projectDesc')}</label>
-                                    <RichTextEditor
-                                        value={projectForm.description}
-                                        onChange={(html) => setProjectForm((f) => ({ ...f, description: html }))}
-                                        placeholder={t('tms.workspaceDetail.projectDescPlaceholder')}
-                                        error={formErrors.description}
-                                    />
-                                </div>
-                                <div className="flex gap-2 pt-1">
-                                    <Button type="button" variant="secondary" onClick={() => setCreatingProject(false)}>
-                                        {t('tms.workspaceDetail.cancel')}
-                                    </Button>
-                                    <Button type="submit" loading={savingProject}>
-                                        {t('tms.workspaceDetail.createProject')}
-                                    </Button>
-                                </div>
-                            </form>
-                        )}
-
-                        {projects.length === 0 ? (
-                            <p className="text-sm text-gray-500">
-                                {workspace.my_role === 'member' && !can('workspaces.manage')
-                                    ? t('tms.workspaceDetail.emptyProjectsMember')
-                                    : t('tms.workspaceDetail.emptyProjectsCta')}
-                            </p>
-                        ) : (
-                            <ul className="divide-y divide-gray-100">
-                                {projects.map((project) => (
-                                    <li key={project.id}>
-                                        <Link
-                                            to={`/projects/${project.id}`}
-                                            className="flex flex-wrap items-center justify-between gap-3 py-4 transition hover:bg-gray-50"
-                                        >
-                                            <div className="flex items-center gap-3">
-                                                <span
-                                                    className="flex h-10 w-10 items-center justify-center rounded-lg text-xs font-bold text-white"
-                                                    style={{ backgroundColor: 'var(--accent)' }}
-                                                >
-                                                    {project.key}
-                                                </span>
-                                                <div>
-                                                    <p className="flex flex-wrap items-center gap-2 text-sm font-medium text-gray-900">
-                                                        {project.name}
-                                                        {project.my_role && (
-                                                            <Badge>{projectRoleLabel(project.my_role)}</Badge>
-                                                        )}
-                                                        {project.archived_at && <Badge>{t('tms.workspaceDetail.archivedBadge')}</Badge>}
-                                                    </p>
-                                                        <p className="mt-0.5 line-clamp-1 text-xs text-gray-400">
-                                                            {stripRichText(project.description) || t('tms.workspaceDetail.noDescription')}
-                                                        </p>
-                                                </div>
-                                            </div>
-                                            <div className="flex items-center gap-4 text-xs text-gray-400">
-                                                <span>{t('tms.workspaceDetail.tasksCount', { count: project.tasks_count })}</span>
-                                                <span>{t('tms.workspaceDetail.membersCount', { count: project.members_count })}</span>
-                                                {project.tasks_count > 0 && (
-                                                    <ProgressBar className="w-28" value={project.done_tasks_count ?? 0} max={project.tasks_count} label={t('tms.project.progress')} showPercent />
-                                                )}
-                                            </div>
-                                        </Link>
-                                    </li>
-                                ))}
-                            </ul>
-                        )}
-                    </Card>
-                </div>
+                <WorkspaceProjectsTab
+                    workspace={workspace}
+                    projects={projects}
+                    canCreateProject={canCreateProject}
+                    archived={archived}
+                    creatingProject={creatingProject}
+                    setCreatingProject={setCreatingProject}
+                    createProject={createProject}
+                    projectForm={projectForm}
+                    setProjectForm={setProjectForm}
+                    formErrors={formErrors}
+                    templates={templates}
+                    savingProject={savingProject}
+                />
             )}
 
             {activeTab === 'members' && (
-                <div className="space-y-5">
-                    {isManager && (
-                        <Card title={t('tms.workspaceDetail.addMemberTitle')} subtitle={t('tms.workspaceDetail.addMemberSubtitle')}>
-                            <form onSubmit={addMember} className="flex flex-col gap-3 sm:flex-row sm:items-end">
-                                <div className="flex-1">
-                                    <MemberPicker
-                                        users={candidateUsers}
-                                        value={memberForm.user_id}
-                                        onChange={(id) => setMemberForm((f) => ({ ...f, user_id: id }))}
-                                        placeholder={t('tms.workspaceDetail.searchPeople')}
-                                    />
-                                    {formErrors.user_id && <p className="mt-1.5 text-sm text-red-600">{formErrors.user_id}</p>}
-                                </div>
-                                <div>
-                                    <select
-                                        className="block w-full rounded-lg border border-gray-300 bg-white px-3.5 py-2.5 text-sm shadow-sm focus:border-[var(--accent)] focus:outline-none"
-                                        value={memberForm.role}
-                                        onChange={(e) => setMemberForm((f) => ({ ...f, role: e.target.value }))}
-                                    >
-                                        {roleOptions.map((r) => (
-                                            <option key={r.value} value={r.value}>
-                                                {t(r.labelKey)}
-                                            </option>
-                                        ))}
-                                    </select>
-                                </div>
-                                <Button type="submit" loading={savingMember}>
-                                    {t('tms.workspaceDetail.add')}
-                                </Button>
-                            </form>
-                        </Card>
-                    )}
-
-                    <Card title={t('tms.workspaceDetail.membersTitle')}>
-                        <ul className="divide-y divide-gray-100">
-                            {members.map((member) => {
-                                const self = member.id === user?.id;
-                                const canDemote = isManager && member.role !== 'owner' && !self;
-                                const canRemove = isManager && member.role !== 'owner';
-                                return (
-                                    <li key={member.id} className="flex flex-wrap items-center justify-between gap-3 py-3">
-                                        <div className="flex items-center gap-3">
-                                            <Avatar name={member.name} photoUrl={member.photo_url} size="lg" />
-                                            <div>
-                                                <p className="text-sm font-medium text-gray-900">
-                                                    {member.name} {self && <span className="text-gray-400">{t('tms.workspaceDetail.you')}</span>}
-                                                </p>
-                                                <p className="text-xs text-gray-400">{member.email}</p>
-                                            </div>
-                                        </div>
-                                        <div className="flex items-center gap-2">
-                                            <Badge>{member.role}</Badge>
-                                            {canDemote && (
-                                                <select
-                                                    className="rounded-lg border border-gray-300 bg-white px-2 py-1 text-xs shadow-sm focus:outline-none"
-                                                    value={member.role}
-                                                    onChange={(e) => changeRole(member, e.target.value)}
-                                                >
-                                                    {roleOptions.map((r) => (
-                                                        <option key={r.value} value={r.value}>
-                                                            {t(r.labelKey)}
-                                                        </option>
-                                                    ))}
-                                                </select>
-                                            )}
-                                            {canRemove && (
-                                                <Button size="sm" variant="ghost" onClick={() => removeMember(member)}>
-                                                    {t('tms.workspaceDetail.remove')}
-                                                </Button>
-                                            )}
-                                        </div>
-                                    </li>
-                                );
-                            })}
-                        </ul>
-                    </Card>
-                </div>
+                <WorkspaceMembersTab
+                    isManager={isManager}
+                    candidateUsers={candidateUsers}
+                    memberForm={memberForm}
+                    setMemberForm={setMemberForm}
+                    formErrors={formErrors}
+                    roleOptions={roleOptions}
+                    savingMember={savingMember}
+                    addMember={addMember}
+                    members={members}
+                    user={user}
+                    changeRole={changeRole}
+                    removeMember={removeMember}
+                />
             )}
 
             {activeTab === 'labels' && (
-                <div className="space-y-5">
-                    {isManager && (
-                        <Card title={t('tms.workspaceDetail.newLabelTitle')}>
-                            <form onSubmit={addLabel} className="flex flex-col gap-3 sm:flex-row sm:items-end">
-                                <div className="flex-1">
-                                    <Input
-                                        label={t('tms.workspaceDetail.labelName')}
-                                        name="label-name"
-                                        placeholder={t('tms.workspaceDetail.labelNamePlaceholder')}
-                                        value={labelForm.name}
-                                        onChange={(e) => setLabelForm((f) => ({ ...f, name: e.target.value }))}
-                                        error={formErrors.name}
-                                        required
-                                    />
-                                </div>
-                                <div>
-                                    <label className="mb-1.5 block text-sm font-medium text-gray-700">{t('tms.workspaceDetail.color')}</label>
-                                    <input
-                                        type="color"
-                                        className="h-[42px] w-16 rounded-lg border border-gray-300 bg-white p-1 shadow-sm focus:outline-none"
-                                        value={labelForm.color}
-                                        onChange={(e) => setLabelForm((f) => ({ ...f, color: e.target.value }))}
-                                    />
-                                </div>
-                                <Button type="submit" loading={savingLabel}>
-                                    {t('tms.workspaceDetail.addLabel')}
-                                </Button>
-                            </form>
-                        </Card>
-                    )}
-
-                    <Card title={t('tms.workspaceDetail.labelsTitle')}>
-                        {labels.length === 0 ? (
-                            <p className="text-sm text-gray-500">{t('tms.workspaceDetail.labelsEmpty')}</p>
-                        ) : (
-                            <ul className="flex flex-wrap gap-2">
-                                {labels.map((label) => (
-                                    <li
-                                        key={label.id}
-                                        className="inline-flex items-center gap-2 rounded-full px-3 py-1 text-sm"
-                                        style={{ backgroundColor: `${label.color}1a`, color: label.color }}
-                                    >
-                                        <span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: label.color }} />
-                                        {label.name}
-                                        {isManager && (
-                                            <button
-                                                type="button"
-                                                className="text-inherit opacity-60 transition hover:opacity-100"
-                                                onClick={() => deleteLabel(label)}
-                                                aria-label={t('tms.workspaceDetail.deleteLabelAria', { name: label.name })}
-                                            >
-                                                ×
-                                            </button>
-                                        )}
-                                    </li>
-                                ))}
-                            </ul>
-                        )}
-                    </Card>
-                </div>
+                <WorkspaceLabelsTab
+                    isManager={isManager}
+                    addLabel={addLabel}
+                    labelForm={labelForm}
+                    setLabelForm={setLabelForm}
+                    formErrors={formErrors}
+                    savingLabel={savingLabel}
+                    labels={labels}
+                    deleteLabel={deleteLabel}
+                />
             )}
 
             {activeTab === 'time' && (
@@ -625,44 +401,15 @@ export default function WorkspaceDetail() {
             )}
 
             {activeTab === 'settings' && isOwner && (
-                <Card title={t('tms.workspaceDetail.settingsTitle')} subtitle={`slug: ${workspace.slug}`}>
-                    <form
-                        className="space-y-4"
-                        onSubmit={(e) => {
-                            e.preventDefault();
-                            updateWorkspace({
-                                name: e.currentTarget.name.value,
-                                description: settingsDescription || undefined,
-                            });
-                        }}
-                    >
-                        {formErrors.form && <Alert>{formErrors.form}</Alert>}
-                        <Input
-                            label={t('tms.workspaceDetail.settingsName')}
-                            name="name"
-                            defaultValue={workspace.name}
-                            error={formErrors.name}
-                            required
-                        />
-                        <div>
-                            <label className="mb-1.5 block text-sm font-medium text-gray-700">{t('tms.workspaceDetail.settingsDesc')}</label>
-                            <RichTextEditor
-                                value={settingsDescription}
-                                onChange={setSettingsDescription}
-                                placeholder={t('tms.workspaceDetail.settingsDescPlaceholder')}
-                                error={formErrors.description}
-                            />
-                        </div>
-                        <div className="flex gap-2">
-                            <Button type="submit" loading={updating}>
-                                {t('tms.workspaceDetail.save')}
-                            </Button>
-                            <Button type="button" variant="danger" onClick={deleteWorkspace}>
-                                {t('tms.workspaceDetail.deleteWorkspace')}
-                            </Button>
-                        </div>
-                    </form>
-                </Card>
+                <WorkspaceSettingsTab
+                    workspace={workspace}
+                    updateWorkspace={updateWorkspace}
+                    settingsDescription={settingsDescription}
+                    setSettingsDescription={setSettingsDescription}
+                    formErrors={formErrors}
+                    updating={updating}
+                    deleteWorkspace={deleteWorkspace}
+                />
             )}
         </div>
     );

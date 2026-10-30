@@ -15,6 +15,8 @@ import { useToast } from '../../context/ToastContext';
 import { useSetCrumbs } from '../../context/BreadcrumbContext';
 import usePageTitle from '../../hooks/usePageTitle';
 import Timestamp from '../../components/ui/Timestamp';
+import UserChip from '../../components/ui/UserChip';
+import StatusBadge from '../../components/ui/StatusBadge';
 
 const STATUS_OPTIONS = [
     { value: '', key: 'optPending' },
@@ -146,7 +148,7 @@ export default function AttendanceApprovals() {
                         <tbody>
                             {requests.map((request) => (
                                 <tr key={request.id}>
-                                    <Td>{request.employee?.name ?? '—'}</Td>
+                                    <Td>{request.employee ? <UserChip user={request.employee} /> : '—'}</Td>
                                     <Td>{request.work_date}</Td>
                                     <Td>
                                         <Timestamp date={request.requested_first_in_at} />
@@ -158,7 +160,7 @@ export default function AttendanceApprovals() {
                                             {request.reason}
                                         </span>
                                     </Td>
-                                    <Td>{request.status_label}</Td>
+                                    <Td><StatusBadge status={request.status_label || request.status} /></Td>
                                     <Td>
                                         {request.status === 'pending' && (
                                             <div className="flex justify-end gap-2">

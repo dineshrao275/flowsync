@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Http\Controllers;
 
 use App\Billing\BillingLock;
@@ -55,7 +57,7 @@ class MySubscriptionController extends Controller
         $tenant = $this->currentTenant();
 
         $usage = [];
-        foreach (['users', 'seats', 'workspaces', 'projects', 'tasks'] as $resource) {
+        foreach (['users', 'seats', 'workspaces', 'projects', 'tasks', 'employees'] as $resource) {
             $usage[$resource] = $this->limits->currentCount($resource);
         }
 
@@ -270,7 +272,8 @@ class MySubscriptionController extends Controller
             ] : null,
             'billing' => [
                 'card' => $tenant->settings['billing']['card'] ?? null,
-                'subscription_required' => $tenant->status === Tenant::STATUS_EXPIRED,
+                'subscription_required' => $tenant->status === Tenant::STATUS_EXPIRED || $tenant->needsPaymentMethod(),
+                'payment_method_required' => $tenant->needsPaymentMethod(),
             ],
             'tenant' => [
                 'id' => $tenant->id,

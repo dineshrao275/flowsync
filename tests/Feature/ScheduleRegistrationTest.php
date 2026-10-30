@@ -50,6 +50,7 @@ class ScheduleRegistrationTest extends TestCase
             'reports:send-scheduled --all',
             'tenants:close-impersonations',
             'tenants:expire-trials',
+            'billing:reconcile',
             'billing:period-ends',
             'billing:dunning',
             'billing:sync-plans',

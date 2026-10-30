@@ -33,6 +33,22 @@ jobs:
       - run: php artisan key:generate --no-interaction
       - run: ./vendor/bin/pint --test
 
+  phpstan:
+    name: Larastan (static analysis, baseline ratchet)
+    runs-on: ubuntu-latest
+    # Non-blocking until the baseline has proven stable across PHP patch versions.
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          coverage: none
+      - run: cp .env.example .env
+      - run: composer install --no-interaction --no-progress --prefer-dist
+      - run: php artisan key:generate --no-interaction
+      - run: composer analyse
+
   js:
     name: Lint, Vitest and build
     runs-on: ubuntu-latest

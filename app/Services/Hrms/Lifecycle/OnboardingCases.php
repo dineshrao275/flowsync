@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Services\Hrms\Lifecycle;
 
 use App\Enums\Hrms\CaseTaskStatus;
@@ -111,8 +113,8 @@ class OnboardingCases
      */
     public function completeTask(OnboardingCaseTask $task, ?User $actor = null, ?string $note = null): OnboardingCaseTask
     {
-        $this->requireOpen($task);
-        $this->requireParticipant($task, $actor);
+        $this->progress->requireOpen($task);
+        $this->progress->requireParticipant($task, $actor);
 
         return DB::transaction(function () use ($task, $actor, $note): OnboardingCaseTask {
             $task->update([
@@ -144,13 +146,13 @@ class OnboardingCases
             throw ValidationException::withMessages(['reason' => __('A waived item still needs its reason on record.')]);
         }
 
-        $this->requireOpen($task);
+        $this->progress->requireOpen($task);
 
-        if ($this->progress->isMandatory($task) && ! $this->canManage($actor)) {
+        if ($this->progress->isMandatory($task) && ! $this->progress->canManage($actor)) {
             throw ValidationException::withMessages(['form' => __('Only someone with the onboarding-manage permission can waive a mandatory item.')]);
         }
 
-        $this->requireParticipant($task, $actor);
+        $this->progress->requireParticipant($task, $actor);
 
         return DB::transaction(function () use ($task, $reason, $actor): OnboardingCaseTask {
             $task->update([
@@ -242,38 +244,6 @@ class OnboardingCases
             'manager' => $employee->manager_id,
             default => null,
         };
-    }
-
-    private function requireOpen(OnboardingCaseTask $task): void
-    {
-        if ($task->status->isResolved()) {
-            throw ValidationException::withMessages(['form' => __('This item is already :status.', ['status' => $task->status->value])]);
-        }
-
-        if (! $task->case->status->isOpen()) {
-            throw ValidationException::withMessages(['form' => __('This case is closed.')]);
-        }
-    }
-
-    /**
-     * The completer is the owner or someone with the manage permission. An
-     * ownerless pool item (hr/it) needs manage: anybody completing those
-     * without it is volunteering for work nobody assigned them.
-     */
-    private function requireParticipant(OnboardingCaseTask $task, ?User $actor): void
-    {
-        $isOwner = $actor !== null
-            && $task->owner_employee_id !== null
-            && $actor->employee?->id === (int) $task->owner_employee_id;
-
-        if (! $isOwner && ! $this->canManage($actor)) {
-            throw ValidationException::withMessages(['form' => __('Only the item’s owner or someone with the onboarding-manage permission can do this.')]);
-        }
-    }
-
-    private function canManage(?User $actor): bool
-    {
-        return $actor !== null && $actor->hasPermission('hrms.onboarding.manage');
     }
 
     /**

@@ -1,22 +1,25 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Http\Controllers;
 
 use App\Http\Controllers\Concerns\NormalizesBooleanInput;
 use App\Http\Controllers\Concerns\RequiresTenantAdmin;
 use App\Http\Controllers\Concerns\ValidatesResourceLimits;
+use App\Http\Requests\TenantSelfProfileRequest;
+use App\Http\Requests\TenantUpdateProfileRequest;
+use App\Http\Requests\TenantUpdateRequest;
 use App\Models\Tenant;
 use App\Models\TenantUserRouting;
-use App\Models\User;
 use App\Services\PlatformAudit;
+use App\Services\Tenancy\TenantStats;
+use App\Services\Tenancy\TenantUserDirectory;
 use App\Services\TenantLifecycle;
 use App\Support\Like;
 use App\Support\TenantContext;
-use App\Support\TenantDatabaseManager;
-use App\Support\Tms\TmsSchema;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
@@ -29,6 +32,11 @@ class TenantController extends Controller
     use ValidatesResourceLimits;
 
     protected const SORTABLE = ['name', 'slug', 'status', 'created_at', 'updated_at', 'users_count'];
+
+    public function __construct(
+        private readonly TenantUserDirectory $userDirectory,
+        private readonly TenantStats $tenantStats,
+    ) {}
 
     public function index(Request $request): JsonResponse
     {
@@ -130,42 +138,14 @@ class TenantController extends Controller
     {
         return response()->json([
             'tenant' => $this->counts($tenant),
-            'default_user' => $this->defaultUser($tenant),
+            'default_user' => $this->userDirectory->defaultUser($tenant),
             'subscription' => $tenant->subscription?->load('plan'),
         ]);
     }
 
-    /**
-     * The tenant's default user, read from its own database. Null while the
-     * tenant is a draft or not provisioned (there is no database to read).
-     *
-     * @return array{id: int, name: string, email: string}|null
-     */
-    private function defaultUser(Tenant $tenant): ?array
+    public function update(TenantUpdateRequest $request, Tenant $tenant): JsonResponse
     {
-        if (! $tenant->isProvisioned()) {
-            return null;
-        }
-
-        try {
-            $user = app(TenantDatabaseManager::class)->using($tenant, fn () => User::defaultUser());
-        } catch (\Throwable) {
-            return null;
-        }
-
-        return $user ? ['id' => $user->id, 'name' => $user->name, 'email' => $user->email] : null;
-    }
-
-    public function update(Request $request, Tenant $tenant): JsonResponse
-    {
-        $data = $request->validate([
-            'name' => ['required', 'string', 'max:255'],
-            'slug' => ['required', 'string', 'max:255', 'alpha_dash', 'unique:tenants,slug,'.$tenant->id],
-            'description' => ['nullable', 'string', 'max:255'],
-            // Per-tenant caps that win over the plan's (null key = unlimited).
-            'limits_override' => ['nullable', 'array'],
-            ...$this->resourceLimitRules('limits_override'),
-        ]);
+        $data = $request->validated();
 
         $tenant->update([
             'name' => $data['name'],
@@ -182,37 +162,12 @@ class TenantController extends Controller
 
     public function getProfile(Tenant $tenant): JsonResponse
     {
-        return response()->json([
-            'tenant' => $tenant,
-        ]);
+        return response()->json(['tenant' => $tenant]);
     }
 
-    public function updateProfile(Request $request, Tenant $tenant): JsonResponse
+    public function updateProfile(TenantUpdateProfileRequest $request, Tenant $tenant): JsonResponse
     {
-        $data = $request->validate([
-            'legal_name' => ['nullable', 'string', 'max:255'],
-            'registration_number' => ['nullable', 'string', 'max:255'],
-            'tax_id' => ['nullable', 'string', 'max:255'],
-            'country' => ['nullable', 'string', 'max:2'],
-            'street' => ['nullable', 'string', 'max:255'],
-            'city' => ['nullable', 'string', 'max:255'],
-            'state' => ['nullable', 'string', 'max:255'],
-            'postal_code' => ['nullable', 'string', 'max:32'],
-            'website' => ['nullable', 'url', 'max:255'],
-            'industry' => ['nullable', 'string', 'max:255'],
-            'company_size' => ['nullable', 'string', 'max:255'],
-            'contact_phone' => ['nullable', 'string', 'max:64'],
-            'billing_email' => ['nullable', 'email', 'max:255'],
-            'billing_address' => ['nullable', 'string', 'max:500'],
-            'billing_currency' => ['nullable', 'string', 'max:3'],
-            'timezone' => ['nullable', 'string', 'max:128'],
-            'locale' => ['nullable', 'string', 'max:16'],
-            'brand_domain' => ['nullable', 'string', 'max:255'],
-            'brand_logo_url' => ['nullable', 'url', 'max:255'],
-            'brand_primary_color' => ['nullable', 'string', 'max:9'],
-        ]);
-
-        $tenant->update($data);
+        $tenant->update($request->validated());
 
         return response()->json([
             'message' => __('Tenant profile updated.'),
@@ -222,8 +177,7 @@ class TenantController extends Controller
 
     /**
      * Tenant-facing profile read: the current tenant user resolves their own
-     * (central) tenant via TenantContext and reads its profile. Requires a
-     * tenant context (a non-impersonating super admin has none).
+     * (central) tenant via TenantContext and reads its profile.
      */
     public function selfProfile(Request $request): JsonResponse
     {
@@ -235,30 +189,17 @@ class TenantController extends Controller
     }
 
     /**
-     * Tenant-facing profile write: the onboarding wizard's business step calls
-     * this. Deliberately a narrow subset of `updateProfile` (which is
-     * `super_admin`-gated and takes a route-bound Tenant) — a tenant user may
-     * only fill in the fields the wizard owns, never billing, plan, or
-     * entitlement fields. `nullable` throughout so a partial save cannot blank
-     * a field the wizard did not send.
+     * Tenant-facing profile write: the onboarding wizard's business step calls this.
      */
-    public function updateSelfProfile(Request $request): JsonResponse
+    public function updateSelfProfile(TenantSelfProfileRequest $request): JsonResponse
     {
         abort_unless(app(TenantContext::class)->currentId(), 404);
         $this->requireTenantAdmin($request, 'Only tenant admins can edit the company profile.');
 
-        $data = $request->validate([
-            'legal_name' => ['nullable', 'string', 'max:255'],
-            'industry' => ['nullable', 'string', 'max:255'],
-            'company_size' => ['nullable', 'string', 'max:255'],
-            'country' => ['nullable', 'string', 'max:2'],
-            'website' => ['nullable', 'url', 'max:255'],
-        ]);
-
+        $data = $request->validated();
         $tenant = Tenant::findOrFail(app(TenantContext::class)->currentId());
 
-        // Only write keys the request actually sent, so `null` (absent) does not
-        // overwrite an existing value with null.
+        // Only write keys the request actually sent, so `null` (absent) does not overwrite.
         $tenant->update(array_filter($data, fn ($value) => $value !== null));
 
         return response()->json([
@@ -323,17 +264,7 @@ class TenantController extends Controller
 
     public function users(Tenant $tenant): JsonResponse
     {
-        $users = TenantUserRouting::where('tenant_id', $tenant->id)
-            ->orderBy('name')
-            ->get()
-            ->map(fn ($route) => [
-                'id' => $route->user_id,
-                'name' => $route->name,
-                'email' => $route->email,
-                'roles' => [],
-            ]);
-
-        return response()->json(['users' => $users]);
+        return response()->json(['users' => $this->userDirectory->users($tenant)]);
     }
 
     /**
@@ -342,21 +273,7 @@ class TenantController extends Controller
      */
     public function stats(Tenant $tenant): JsonResponse
     {
-        $stats = Cache::remember("tenants.stats.{$tenant->id}", 60, function () use ($tenant) {
-            return app(TenantDatabaseManager::class)->using($tenant, function () {
-                $db = DB::connection('tenant');
-
-                return [
-                    'users' => $db->table('users')->count(),
-                    // Single-product tenants hold no TMS tables: zero, not a 500.
-                    'workspaces' => TmsSchema::present() ? $db->table('workspaces')->count() : 0,
-                    'projects' => TmsSchema::present() ? $db->table('projects')->count() : 0,
-                    'tasks' => TmsSchema::present() ? $db->table('tasks')->whereNull('deleted_at')->count() : 0,
-                ];
-            });
-        });
-
-        return response()->json(['stats' => $stats]);
+        return response()->json(['stats' => $this->tenantStats->forTenant($tenant)]);
     }
 
     private function counts(Tenant $tenant): Tenant

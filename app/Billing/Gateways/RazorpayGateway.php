@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Billing\Gateways;
 
 use App\Billing\DTOs\CheckoutSession;
@@ -175,6 +177,41 @@ class RazorpayGateway implements PaymentGateway
         );
     }
 
+    /**
+     * Ask Razorpay what became of an order whose webhook/callback never reached us (reconciliation).
+     * Returns the captured payment, or null when nothing was captured (yet).
+     */
+    public function capturedPaymentForOrder(string $orderId): ?PaymentResult
+    {
+        $key = $this->config['key'] ?? '';
+        $secret = $this->config['secret'] ?? '';
+        if ($key === '' || $secret === '') {
+            return null;
+        }
+
+        $response = Http::withBasicAuth($key, $secret)->get(self::API_URL."/orders/{$orderId}/payments");
+        if (! $response->successful()) {
+            return null;
+        }
+
+        foreach ((array) $response->json('items', []) as $item) {
+            if (($item['status'] ?? '') === 'captured') {
+                return new PaymentResult(
+                    success: true,
+                    providerPaymentId: $item['id'],
+                    providerOrderId: $orderId,
+                    amountCents: (int) ($item['amount'] ?? 0),
+                    currency: strtolower($item['currency'] ?? 'inr'),
+                    status: Payment::STATUS_COMPLETED,
+                    feeCents: isset($item['fee']) ? (int) $item['fee'] : null,
+                    metadata: $item['notes'] ?? [],
+                );
+            }
+        }
+
+        return null;
+    }
+
     public function verifyWebhookSignature(Request $request): bool
     {
         $signature = $request->header('X-Razorpay-Signature');
@@ -193,11 +230,13 @@ class RazorpayGateway implements PaymentGateway
     {
         $payload = $request->json()->all();
         $eventType = $payload['event'] ?? 'unknown';
-        $entity = $payload['payload']['payment']['entity'] ?? $payload['payload']['order']['entity'] ?? [];
+        $isRefund = str_starts_with($eventType, 'refund.');
+        $entity = $payload['payload']['refund']['entity'] ?? $payload['payload']['payment']['entity'] ?? $payload['payload']['order']['entity'] ?? [];
 
         $paymentId = $entity['notes']['payment_id'] ?? null;
         $idempotencyKey = $entity['notes']['idempotency_key'] ?? null;
-        $providerPaymentId = $entity['id'] ?? null;
+        // A refund event's entity is the refund; the payment it belongs to is `payment_id`.
+        $providerPaymentId = $isRefund ? ($entity['payment_id'] ?? null) : ($entity['id'] ?? null);
         $providerOrderId = $entity['order_id'] ?? null;
 
         $status = match ($eventType) {
@@ -210,7 +249,9 @@ class RazorpayGateway implements PaymentGateway
         return new WebhookResult(
             handled: $status !== 'unhandled',
             eventType: $eventType,
-            providerEventId: $payload['account_id'].':'.($payload['created_at'] ?? time()).':'.$eventType,
+            // Razorpay's own delivery id when it sends one; otherwise event + entity (NOT the timestamp: two different payments
+            // captured in the same second must not look like a replay of each other).
+            providerEventId: $request->header('X-Razorpay-Event-Id') ?: ($payload['account_id'] ?? 'rzp').':'.$eventType.':'.($entity['id'] ?? ($payload['created_at'] ?? time())),
             providerPaymentId: $providerPaymentId,
             providerOrderId: $providerOrderId,
             idempotencyKey: $idempotencyKey,

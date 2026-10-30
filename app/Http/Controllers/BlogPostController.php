@@ -1,7 +1,10 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Http\Controllers;
 
+use App\Http\Requests\BlogPostIndexRequest;
 use App\Http\Requests\BlogPostRequest;
 use App\Models\BlogPost;
 use App\Services\PlatformAudit;
@@ -22,14 +25,9 @@ class BlogPostController extends Controller
         'noindex', 'reading_minutes', 'published_at',
     ];
 
-    public function index(Request $request): JsonResponse
+    public function index(BlogPostIndexRequest $request): JsonResponse
     {
-        $data = $request->validate([
-            'status' => ['nullable', 'string', 'in:draft,published'],
-            'category_id' => ['nullable', 'integer'],
-            'q' => ['nullable', 'string', 'max:255'],
-            'per_page' => ['nullable', 'integer', 'min:1', 'max:100'],
-        ]);
+        $data = $request->validated();
 
         $query = BlogPost::with('category')->orderByDesc('id');
 

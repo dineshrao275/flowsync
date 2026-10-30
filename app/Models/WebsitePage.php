@@ -1,14 +1,19 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Models;
 
 use App\Models\Concerns\CentralConnection;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Carbon;
 
 /**
  * CMS pages for the public marketing site (system DB). `content` is an ordered
  * array of typed blocks (hero/text/features/cta) rendered server-side by the
  * public site controllers.
+ *
+ * @property Carbon|null $published_at
  */
 class WebsitePage extends Model
 {

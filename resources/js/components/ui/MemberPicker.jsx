@@ -24,7 +24,7 @@ function PersonCard({ person, active, ...rest }) {
  * chosen person stays shown as a card. `users` is `[{id, name, email, photo_url?}]`; `value` is an id
  * (or ''), `onChange(id)` gets the new id ('' when cleared).
  */
-export default function MemberPicker({ users, value, onChange, placeholder, emptyText, id, disabled = false }) {
+export default function MemberPicker({ users, value, onChange, placeholder, emptyText, id, disabled = false, maxDisplay = 250 }) {
     const { t } = useTranslation();
     const listId = useId();
     const rootRef = useRef(null);
@@ -36,8 +36,9 @@ export default function MemberPicker({ users, value, onChange, placeholder, empt
     const selected = users.find((u) => String(u.id) === String(value)) ?? null;
     const matches = useMemo(() => {
         const q = query.trim().toLowerCase();
-        return (q ? users.filter((u) => `${u.name} ${u.email ?? ''}`.toLowerCase().includes(q)) : users).slice(0, 8);
-    }, [users, query]);
+        const filtered = q ? users.filter((u) => `${u.name} ${u.email ?? ''}`.toLowerCase().includes(q)) : users;
+        return maxDisplay ? filtered.slice(0, maxDisplay) : filtered;
+    }, [users, query, maxDisplay]);
 
     useEffect(() => {
         const onDown = (e) => { if (!rootRef.current?.contains(e.target) && !panelRef.current?.contains(e.target)) setOpen(false); };
@@ -103,6 +104,11 @@ export default function MemberPicker({ users, value, onChange, placeholder, empt
                             <PersonCard person={person} active={index === active} />
                         </button>
                     ))}
+                    {users.length > matches.length && (
+                        <p className="px-2 py-1.5 text-center text-xs text-gray-400">
+                            {t('ui.showingCount', { count: matches.length, total: users.length, defaultValue: `Showing ${matches.length} of ${users.length}. Type to search.` })}
+                        </p>
+                    )}
                 </FloatingPanel>
             )}
         </div>

@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Mail;
 
 use Illuminate\Bus\Queueable;
@@ -27,6 +29,9 @@ class BillingNoticeMail extends Mailable
 
     public function content(): Content
     {
-        return new Content(text: 'emails.billing-notice');
+        return new Content(
+            view: 'emails.billing-notice',
+            text: 'emails.billing-notice-text',
+        );
     }
 }

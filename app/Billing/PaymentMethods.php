@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Billing;
 
 use App\Models\Subscription;
@@ -64,6 +66,14 @@ class PaymentMethods
 
         $gateway->setDefaultPaymentMethod($tenant, $paymentMethodId, $this->providerSubscriptionIds($tenant));
         $this->list($tenant); // refresh the cached default
+
+        // A card-less trial is complete now: the product opens, and any trial the provider does not know yet starts with this card.
+        $settings = (array) $tenant->settings;
+        if (! empty($settings['billing']['card_required'])) {
+            unset($settings['billing']['card_required']);
+            $tenant->forceFill(['settings' => $settings])->saveQuietly();
+        }
+        app(PaymentService::class)->syncProviderTrials($tenant->refresh(), $paymentMethodId);
     }
 
     public function remove(Tenant $tenant, string $paymentMethodId): void

@@ -1,30 +1,26 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Http\Controllers;
 
 use App\Events\SupportTicketUpdated;
+use App\Http\Requests\SystemSupportIndexRequest;
+use App\Http\Requests\SystemSupportReplyRequest;
+use App\Http\Requests\SystemSupportUpdateRequest;
 use App\Models\SupportTicket;
 use App\Services\Support\SupportDesk;
 use App\Support\Realtime;
 use Illuminate\Http\JsonResponse;
-use Illuminate\Http\Request;
-use Illuminate\Validation\Rule;
 
 /** Super Admin inbox: every tenant's tickets, internal notes, assignment and status. */
 class SystemSupportController extends Controller
 {
     public function __construct(private readonly SupportDesk $desk) {}
 
-    public function index(Request $request): JsonResponse
+    public function index(SystemSupportIndexRequest $request): JsonResponse
     {
-        $data = $request->validate([
-            'status' => ['nullable', Rule::in([...SupportTicket::STATUSES, 'open_all'])],
-            'priority' => ['nullable', Rule::in(SupportTicket::PRIORITIES)],
-            'tenant_id' => ['nullable', 'integer'],
-            'assigned' => ['nullable', Rule::in(['me', 'none'])],
-            'q' => ['nullable', 'string', 'max:255'],
-            'per_page' => ['nullable', 'integer', 'min:1', 'max:100'],
-        ]);
+        $data = $request->validated();
 
         $query = SupportTicket::with(['tenant:id,name,slug', 'assignee:id,name'])
             ->when(($data['status'] ?? null) === 'open_all', fn ($q) => $q->whereNotIn('status', [SupportTicket::STATUS_RESOLVED, SupportTicket::STATUS_CLOSED]))
@@ -52,22 +48,18 @@ class SystemSupportController extends Controller
         return response()->json(['ticket' => $this->present($ticket->load(['tenant:id,name,slug', 'assignee:id,name']), true)]);
     }
 
-    public function reply(Request $request, SupportTicket $ticket): JsonResponse
+    public function reply(SystemSupportReplyRequest $request, SupportTicket $ticket): JsonResponse
     {
-        $data = $request->validate(['body' => ['required', 'string', SupportTicketController::bodyLength(null, 10000)], 'internal' => ['sometimes', 'boolean']]);
+        $data = $request->validated();
 
         $this->desk->replyAsStaff($ticket, $request->user(), $data['body'], (bool) ($data['internal'] ?? false));
 
         return response()->json(['message' => __('Sent.'), 'ticket' => $this->present($ticket->refresh()->load(['tenant:id,name,slug', 'assignee:id,name']), true)], 201);
     }
 
-    public function update(Request $request, SupportTicket $ticket): JsonResponse
+    public function update(SystemSupportUpdateRequest $request, SupportTicket $ticket): JsonResponse
     {
-        $data = $request->validate([
-            'status' => ['sometimes', Rule::in(SupportTicket::STATUSES)],
-            'priority' => ['sometimes', Rule::in(SupportTicket::PRIORITIES)],
-            'assigned_to' => ['sometimes', 'nullable', 'integer', Rule::exists('users', 'id')->where('is_super_admin', true)],
-        ]);
+        $data = $request->validated();
 
         if (isset($data['priority']) || array_key_exists('assigned_to', $data)) {
             $ticket->update(array_intersect_key($data, array_flip(['priority', 'assigned_to'])) + ['last_activity_at' => now()]);

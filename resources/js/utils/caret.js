@@ -9,16 +9,21 @@ const COPIED = [
  * Mirrors the field's text into an off-screen div with the same typography and measures a marker.
  */
 export function caretRect(el, index) {
+    if (!el) return { left: 0, top: 0, bottom: 0 };
     const style = window.getComputedStyle(el);
     const mirror = document.createElement('div');
     mirror.style.position = 'absolute';
+    mirror.style.top = '0px';
+    mirror.style.left = '0px';
     mirror.style.visibility = 'hidden';
+    mirror.style.pointerEvents = 'none';
     mirror.style.whiteSpace = 'pre-wrap';
     mirror.style.wordWrap = 'break-word';
     COPIED.forEach((prop) => { mirror.style[prop] = style[prop]; });
-    mirror.textContent = el.value.slice(0, index);
+    const val = el.value || '';
+    mirror.textContent = val.slice(0, index);
     const marker = document.createElement('span');
-    marker.textContent = el.value.slice(index) || '.';
+    marker.textContent = val.slice(index) || '.';
     mirror.appendChild(marker);
     document.body.appendChild(mirror);
 

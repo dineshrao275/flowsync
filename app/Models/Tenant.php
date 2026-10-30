@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Models;
 
 use App\Models\Concerns\CentralConnection;
@@ -8,7 +10,11 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Support\Carbon;
 
+/**
+ * @property Carbon|null $provisioned_at
+ */
 class Tenant extends Model
 {
     use CentralConnection;
@@ -189,5 +195,16 @@ class Tenant extends Model
     public function isDeactivated(): bool
     {
         return $this->status === self::STATUS_DEACTIVATED;
+    }
+
+    /**
+     * A trial that must have a card on file before the product opens: set when the tenant was created without one
+     * (an administrator cannot enter somebody else's card) and cleared the moment any card becomes the default.
+     */
+    public function needsPaymentMethod(): bool
+    {
+        return (bool) ($this->settings['billing']['card_required'] ?? false)
+            && config('onboarding.require_card_for_trial')
+            && $this->status === self::STATUS_TRIAL;
     }
 }

@@ -16,6 +16,10 @@ return [
         'label' => 'Idioma',
     ],
 
+    'showcase' => [
+        'label' => 'Recorrido del producto',
+    ],
+
     'theme' => [
         'toggle' => 'Cambiar modo oscuro',
     ],

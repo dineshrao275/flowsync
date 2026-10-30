@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Console\Commands;
 
 use App\Models\Attachment;
@@ -10,7 +12,9 @@ use App\Models\Tenant;
 use App\Models\UsageMetric;
 use App\Models\User;
 use App\Models\Workspace;
+use App\Support\Hrms\HrmsSchema;
 use App\Support\TenantDatabaseManager;
+use App\Support\Tms\TmsSchema;
 use Illuminate\Console\Command;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
@@ -36,8 +40,8 @@ class CollectTenantUsage extends Command
 
         foreach ($tenants as $tenant) {
             $metrics = $dbm->using($tenant, function () {
-                $storageBytes = (int) Attachment::sum('size');
-                if (class_exists(EmployeeDocument::class)) {
+                $storageBytes = TmsSchema::present() ? (int) Attachment::sum('size') : 0;
+                if (HrmsSchema::present() && class_exists(EmployeeDocument::class)) {
                     $storageBytes += (int) EmployeeDocument::sum('size');
                 }
 
@@ -49,9 +53,9 @@ class CollectTenantUsage extends Command
                     'active_users_30d' => $active(30),
                     'activity_30d' => (int) DB::table('activities')->where('created_at', '>=', now()->subDays(30))->count(),
                     'users' => User::count(),
-                    'workspaces' => Workspace::count(),
-                    'projects' => Project::count(),
-                    'tasks' => Task::count(),
+                    'workspaces' => TmsSchema::present() ? Workspace::count() : 0,
+                    'projects' => TmsSchema::present() ? Project::count() : 0,
+                    'tasks' => TmsSchema::present() ? Task::count() : 0,
                     'storage_bytes' => $storageBytes,
                 ];
             });

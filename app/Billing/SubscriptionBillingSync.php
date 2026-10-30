@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Billing;
 
 use App\Billing\DTOs\WebhookResult;
@@ -34,6 +36,10 @@ class SubscriptionBillingSync
         // A card event is about the customer, not a subscription.
         if ($event->kind === 'payment_method') {
             return $this->paymentMethodEvent($event, $provider);
+        }
+
+        if ($event->kind === 'customer') {
+            return $this->customerEvent($event, $provider);
         }
 
         $subscription = $event->providerSubscriptionId
@@ -73,6 +79,23 @@ class SubscriptionBillingSync
             'provider_event_id' => $event->providerEventId,
             'data' => $event->payload,
         ]);
+
+        return ['status' => 'processed', 'event_type' => $event->eventType, 'kind' => $event->kind];
+    }
+
+    /** A customer created/updated at the provider: remember the id when the tenant lost it (a crash after the provider call). */
+    private function customerEvent(WebhookResult $event, string $provider): array
+    {
+        $tenant = $event->tenantId ? Tenant::find($event->tenantId) : null;
+        if (! $tenant || ! $event->providerCustomerId) {
+            return ['status' => 'tenant_not_found', 'event_type' => $event->eventType];
+        }
+
+        if (! $tenant->billing_customer_id) {
+            $tenant->forceFill(['billing_customer_id' => $event->providerCustomerId])->save();
+        }
+
+        PaymentEvent::create(['payment_id' => null, 'tenant_id' => $tenant->id, 'type' => $event->eventType, 'provider' => $provider, 'provider_event_id' => $event->providerEventId, 'data' => $event->payload]);
 
         return ['status' => 'processed', 'event_type' => $event->eventType, 'kind' => $event->kind];
     }
@@ -189,8 +212,8 @@ class SubscriptionBillingSync
 
     private function updated(Subscription $subscription, WebhookResult $event): void
     {
-        // The provider moved the subscription onto the price we queued (a schedule phase starting): mirror it.
         $object = $event->payload['data']['object'] ?? [];
+        // The provider moved the subscription onto the price we queued (a schedule phase starting): mirror it.
         $price = $object['items']['data'][0]['price'] ?? null;
         $priceId = is_array($price) ? ($price['id'] ?? null) : $price;
         $mirrored = $this->scheduler->mirror(
@@ -203,10 +226,38 @@ class SubscriptionBillingSync
             return;
         }
 
+        $this->mirrorStatus($subscription, (string) ($object['status'] ?? ''), $object);
         $this->applyPeriodEnd($subscription, $event->periodEnd);
 
         if ($event->cancelAtPeriodEnd !== null) {
             $subscription->update(['auto_renew' => ! $event->cancelAtPeriodEnd]);
+        }
+    }
+
+    /**
+     * Provider status → local status, only in the directions that are safe and never against a newer local fact:
+     *  - provider `active` while we still say trialing/expired/past_due → the trial converted (or a retry succeeded): active;
+     *  - provider `trialing` while we say expired → the trial is alive at the provider, so it is alive here;
+     *  - provider `past_due`/`unpaid` → suspend (access stays, dunning runs); `canceled`/`incomplete_expired` are handled by deleted().
+     *
+     * @param  array<string, mixed>  $object
+     */
+    public function mirrorStatus(Subscription $subscription, string $status, array $object = []): void
+    {
+        $tenant = $subscription->tenant;
+        if (! $tenant || $status === '') {
+            return;
+        }
+
+        $local = $subscription->status;
+        if ($status === 'active' && in_array($local, [Subscription::STATUS_TRIALING, Subscription::STATUS_EXPIRED, Subscription::STATUS_PAST_DUE], true)) {
+            $this->subscriptions->renew($tenant, null, $subscription->product);
+        } elseif ($status === 'trialing' && $local === Subscription::STATUS_EXPIRED && ($object['trial_end'] ?? 0) > time()) {
+            $subscription->update(['status' => Subscription::STATUS_TRIALING, 'trial_ends_at' => Carbon::createFromTimestamp((int) $object['trial_end'])]);
+        } elseif (in_array($status, ['past_due', 'unpaid'], true) && $local !== Subscription::STATUS_PAST_DUE) {
+            $this->subscriptions->suspend($tenant, ['data' => ['provider_status' => $status]], null, $subscription->product);
+        } elseif (in_array($status, ['canceled', 'incomplete_expired'], true) && $local !== Subscription::STATUS_CANCELED) {
+            $this->deleted($tenant, $subscription);
         }
     }
 

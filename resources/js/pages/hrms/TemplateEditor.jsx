@@ -142,11 +142,11 @@ export default function TemplateEditor({ templateId, onSaved }) {
                 };
 
                 if (item.id) {
-                    // eslint-disable-next-line no-await-in-loop
+                     
                     await api.put(`/hrms/onboarding/templates/${templateId}/tasks/${item.id}`, payload);
                     idByIndex.push(item.id);
                 } else {
-                    // eslint-disable-next-line no-await-in-loop
+                     
                     const { data } = await api.post(`/hrms/onboarding/templates/${templateId}/tasks`, payload);
 
                     idByIndex.push(data.task.id);
@@ -154,7 +154,7 @@ export default function TemplateEditor({ templateId, onSaved }) {
             }
 
             for (const id of removedIds) {
-                // eslint-disable-next-line no-await-in-loop
+                 
                 await api.delete(`/hrms/onboarding/templates/${templateId}/tasks/${id}`);
             }
 

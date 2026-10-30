@@ -66,13 +66,13 @@ class HrmsErrorBoundary extends React.Component {
                             </svg>
                         </div>
                         <div className="min-w-0 flex-1">
-                            <h3 className="text-base font-semibold text-gray-900 dark:text-gray-100">
+                            <h3 className="text-base font-semibold text-gray-900 dark:text-blue-100">
                                 {t('hrms.errorBoundary.title')}
                             </h3>
-                            <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">
+                            <p className="mt-1 text-sm text-gray-600 dark:text-blue-400">
                                 {t('hrms.errorBoundary.desc')}
                             </p>
-                            <div className="mt-3 rounded-md bg-gray-50 p-3 text-xs font-mono text-gray-700 dark:bg-gray-800/80 dark:text-gray-300 overflow-x-auto">
+                            <div className="mt-3 rounded-md bg-gray-50 p-3 text-xs font-mono text-gray-700 dark:bg-gray-800/80 dark:text-blue-300 overflow-x-auto">
                                 {message}
                             </div>
                             <div className="mt-4 flex flex-wrap items-center gap-3">

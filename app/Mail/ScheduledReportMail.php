@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Mail;
 
 use Illuminate\Bus\Queueable;
@@ -23,7 +25,10 @@ class ScheduledReportMail extends Mailable
 
     public function content(): Content
     {
-        return new Content(text: 'emails.scheduled-report');
+        return new Content(
+            view: 'emails.scheduled-report',
+            text: 'emails.scheduled-report-text',
+        );
     }
 
     public function attachments(): array

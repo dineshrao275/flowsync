@@ -56,7 +56,7 @@ describe('tones', () => {
 
     it('StatusPill supports tone and falls back to hex colour', () => {
         const { rerender } = render(<StatusPill tone="danger" label="Overdue" />);
-        expect(screen.getByText('Overdue').parentElement.className).toContain('text-danger-fg');
+        expect(screen.getByText('Overdue').parentElement.className).toContain('text-[var(--danger)]');
 
         rerender(<StatusPill color="#10b981" label="Done" />);
         expect(screen.getByText('Done').parentElement.style.backgroundColor).not.toBe('');

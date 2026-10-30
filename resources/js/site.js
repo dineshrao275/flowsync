@@ -47,6 +47,35 @@ document.addEventListener('DOMContentLoaded', () => {
         toggle.setAttribute('aria-pressed', document.documentElement.classList.contains('dark') ? 'true' : 'false');
     });
 
+    // Product tour: tabs swap the screenshot panels. Without JS every panel simply stays visible, stacked.
+    document.querySelectorAll('[data-showcase]').forEach((tour) => {
+        const tabs = [...tour.querySelectorAll('[data-showcase-tab]')];
+        const panels = [...tour.querySelectorAll('[data-showcase-panel]')];
+        if (!tabs.length) return;
+
+        const show = (n, focus = false) => {
+            tabs.forEach((tab, i) => {
+                tab.setAttribute('aria-selected', i === n ? 'true' : 'false');
+                tab.tabIndex = i === n ? 0 : -1;
+                if (focus && i === n) tab.focus();
+            });
+            panels.forEach((panel, i) => {
+                panel.hidden = i !== n;
+                panel.setAttribute('data-ready', '');
+            });
+        };
+
+        tabs.forEach((tab, i) => {
+            tab.addEventListener('click', () => show(i));
+            tab.addEventListener('keydown', (event) => {
+                if (event.key === 'ArrowRight') show((i + 1) % tabs.length, true);
+                if (event.key === 'ArrowLeft') show((i - 1 + tabs.length) % tabs.length, true);
+            });
+        });
+
+        show(0);
+    });
+
     // Language menu (<details>): close on outside click or Escape.
     const dropdowns = document.querySelectorAll('details[data-dropdown]');
     document.addEventListener('click', (event) => {

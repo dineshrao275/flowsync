@@ -59,6 +59,7 @@ function DateField({ label, labelClassName = '', error, id, className = '', lead
                 )}
                 <DatePicker
                     id={inputId}
+                    wrapperClassName="w-full block"
                     selected={selected}
                     onChange={emit}
                     onBlur={props.onBlur}
@@ -92,7 +93,7 @@ function DateField({ label, labelClassName = '', error, id, className = '', lead
     );
 }
 
-export default function Input({ label, labelClassName = '', error, id, className = '', leadingIcon, compact = false, placeholder, ...props }) {
+export default function Input({ label, labelClassName = '', error, id, className = '', leadingIcon, trailingIcon, compact = false, placeholder, ...props }) {
     // Every input shows a hint: explicit prop first, then the label text.
     // (Labels stay the accessible name; the placeholder is a visual echo.)
     const hint = placeholder ?? label;
@@ -120,7 +121,7 @@ export default function Input({ label, labelClassName = '', error, id, className
                     placeholder={typeof hint === 'string' ? hint : undefined}
                     className={`block w-full border text-sm shadow-sm transition focus:outline-none ${
                         compact ? 'rounded-md px-2.5 py-1.5' : 'rounded-lg px-3.5 py-2.5'
-                    } ${leadingIcon ? 'pl-9' : ''} ${
+                    } ${leadingIcon ? 'pl-9' : ''} ${trailingIcon ? 'pr-11' : ''} ${
                         error
                             ? 'border-red-400 focus:border-red-500'
                             : 'border-gray-300 focus:border-[var(--accent)]'
@@ -129,6 +130,9 @@ export default function Input({ label, labelClassName = '', error, id, className
                     aria-invalid={error ? true : undefined}
                     {...props}
                 />
+                {trailingIcon && (
+                    <span className="absolute right-1.5 top-1/2 -translate-y-1/2">{trailingIcon}</span>
+                )}
             </div>
             {error && <p id={inputId ? `${inputId}-error` : undefined} className="mt-1.5 text-sm text-red-600">{error}</p>}
         </div>

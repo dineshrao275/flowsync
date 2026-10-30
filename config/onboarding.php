@@ -19,9 +19,10 @@ return [
 
     'trial_days' => (int) env('ONBOARDING_TRIAL_DAYS', 14),
 
-    // A trial needs a payment method on file. Off until the Stripe SetupIntent
-    // flow (roadmap FB-6) can actually capture one; flip it on with that work.
-    'require_card_for_trial' => (bool) env('ONBOARDING_REQUIRE_CARD', false),
+    // A trial needs a payment method on file (on by default). Self-service sign-ups add the card before the workspace is
+    // built; a tenant created by an administrator is held at the Subscription page until a card is added. Nothing is free
+    // without either a card-backed trial or a payment.
+    'require_card_for_trial' => (bool) env('ONBOARDING_REQUIRE_CARD', true),
 
     'steps' => [
         'business' => [

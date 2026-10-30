@@ -102,7 +102,7 @@ class TenantIntakeTest extends TestCase
         $this->postJson('/api/auth/login', ['email' => 'dana@intake.test', 'password' => 'password123'])->assertOk();
     }
 
-    public function test_no_trial_means_an_active_tenant(): void
+    public function test_no_trial_on_a_paid_plan_is_not_a_free_month(): void
     {
         $this->sa();
         $tenant = $this->draft();
@@ -111,9 +111,13 @@ class TenantIntakeTest extends TestCase
             'admin_password' => 'password123', 'admin_password_confirmation' => 'password123',
         ])->assertStatus(202);
 
+        // A paid plan without a trial (and without a payment) grants nothing: the tenant waits for payment.
         $tenant->refresh();
-        $this->assertSame('active', $tenant->status);
+        $this->assertSame('expired', $tenant->status);
         $this->assertNull($tenant->trial_ends_at);
+        $subscription = $tenant->subscription()->first();
+        $this->assertSame('expired', $subscription->status);
+        $this->assertNull($subscription->current_period_end);
     }
 
     public function test_a_hand_made_tenant_is_exempt_from_the_card_rule_that_binds_self_service(): void

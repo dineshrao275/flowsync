@@ -1,7 +1,10 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Console\Commands;
 
+use App\Billing\Reconciliation\BillingReconciler;
 use App\Models\Subscription;
 use App\Models\Tenant;
 use App\Services\SubscriptionService;
@@ -77,6 +80,18 @@ class ExpireTrials extends Command
         $skipped = 0;
 
         foreach ($tenants as $tenant) {
+            // A trial the provider bills converts (or fails) there, and the webhook may not have arrived yet: ask the
+            // provider first so a customer who just paid is never locked out by this sweep.
+            if (! $this->option('dry-run') && $tenant->subscriptions()->whereNotNull('provider_subscription_id')->exists()) {
+                try {
+                    app(BillingReconciler::class)->run($tenant);
+                    $tenant->refresh();
+                } catch (\Throwable $e) {
+                    // provider unreachable: fall through to the local rule
+                    Log::warning('Trial expiry: provider reconcile failed, using the local rule', ['tenant_id' => $tenant->id, 'error' => $e->getMessage()]);
+                }
+            }
+
             $subscription = $tenant->subscription;
             $subscriptionEnds = $subscription !== null
                 && $subscription->status === Subscription::STATUS_TRIALING

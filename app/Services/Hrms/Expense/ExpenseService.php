@@ -1,13 +1,12 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Services\Hrms\Expense;
 
 use App\Enums\Hrms\ExpenseClaimStatus;
-use App\Models\Hrms\Document\EmployeeDocument;
 use App\Models\Hrms\Employee\Employee;
-use App\Models\Hrms\Expense\ExpenseCategory;
 use App\Models\Hrms\Expense\ExpenseClaim;
-use App\Models\Hrms\Expense\ExpenseClaimItem;
 use App\Models\Hrms\Payroll\PayrollRun;
 use App\Models\Hrms\Payroll\PayslipAdjustment;
 use App\Models\User;
@@ -17,7 +16,6 @@ use App\Services\HrmsAuditLogger;
 use App\Services\NotificationService;
 use App\Support\Hrms\Auditable;
 use App\Support\Hrms\Money;
-use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
@@ -40,6 +38,8 @@ class ExpenseService
         private readonly ChainBuilder $chains,
         private readonly HrmsAuditLogger $audit,
         private readonly NotificationService $notifications,
+        private readonly ExpenseItemRules $rules,
+        private readonly ExpenseReimbursement $reimbursement,
     ) {}
 
     /**
@@ -54,7 +54,7 @@ class ExpenseService
      */
     public function create(Employee $employee, array $data, array $items, ?User $actor = null): ExpenseClaim
     {
-        $lines = $this->validatedItems($employee, $items);
+        $lines = $this->rules->validatedItems($employee, $items);
 
         if ($lines === []) {
             throw ValidationException::withMessages(['items' => __('A claim names at least one line.')]);
@@ -70,13 +70,13 @@ class ExpenseService
                 'purpose' => $data['purpose'],
                 'description' => $data['description'] ?? null,
                 'currency' => $data['currency'] ?? 'USD',
-                'total_amount' => $this->sum($lines),
+                'total_amount' => $this->rules->sum($lines),
                 'status' => ExpenseClaimStatus::Draft,
             ]);
 
             $claim->update(['claim_number' => $this->claimNumber($claim)]);
             $claim->items()->createMany($lines);
-            $claim->update(['total_amount' => $this->sum($lines)]);
+            $claim->update(['total_amount' => $this->rules->sum($lines)]);
 
             $this->audit->log($claim->refresh(), 'expense.filed', null, $this->snapshot($claim->refresh()), $actor);
 
@@ -96,7 +96,7 @@ class ExpenseService
     public function setItems(ExpenseClaim $claim, array $items, ?User $actor = null): ExpenseClaim
     {
         $this->requireStatus($claim, ExpenseClaimStatus::Draft, 'Only a draft claim can be edited.');
-        $lines = $this->validatedItems($claim->employee, $items);
+        $lines = $this->rules->validatedItems($claim->employee, $items);
 
         if ($lines === []) {
             throw ValidationException::withMessages(['items' => __('A claim names at least one line.')]);
@@ -105,7 +105,7 @@ class ExpenseService
         return DB::transaction(function () use ($claim, $lines, $actor): ExpenseClaim {
             $claim->items()->delete();
             $claim->items()->createMany($lines);
-            $claim->update(['total_amount' => $this->sum($lines)]);
+            $claim->update(['total_amount' => $this->rules->sum($lines)]);
 
             $this->audit->log($claim->refresh(), 'expense.items_set', null, $this->snapshot($claim->refresh()), $actor);
 
@@ -221,46 +221,11 @@ class ExpenseService
 
     /**
      * Pay an approved claim through a run: one earning line referencing the
-     * claim, and the claim stamped paid. Returns null when there is nothing
-     * to pay — no payslip for the employee on the run, or an already-paid
-     * claim — so a recalculation can call this per claim without ever
-     * double-paying (the acceptance's "exactly once").
+     * claim, and the claim stamped paid.
      */
     public function reimburse(ExpenseClaim $claim, PayrollRun $run, ?User $actor = null): ?PayslipAdjustment
     {
-        if ($claim->status !== ExpenseClaimStatus::Approved) {
-            return null;
-        }
-
-        return DB::transaction(function () use ($claim, $run, $actor): ?PayslipAdjustment {
-            $payslip = $run->payslips()->where('employee_id', $claim->employee_id)->first();
-
-            if ($payslip === null || $claim->paid_in_payroll_run_id !== null) {
-                return null;
-            }
-
-            $adjustment = $payslip->adjustments()->create([
-                'kind' => 'earning',
-                'label' => "Expense {$claim->claim_number}: {$claim->purpose}",
-                'amount' => (string) $claim->approved_amount,
-                'reference_type' => 'expense_claim',
-                'reference_id' => $claim->id,
-                'actor_user_id' => $actor?->id,
-                'created_at' => now(),
-            ]);
-
-            $claim->update([
-                'status' => ExpenseClaimStatus::Paid,
-                'reimbursed_amount' => (string) $claim->approved_amount,
-                'paid_in_payroll_run_id' => $run->id,
-                'paid_via' => 'payroll',
-            ]);
-
-            $this->audit->log($claim->refresh(), 'expense.reimbursed', null, $this->snapshot($claim->refresh()), $actor);
-            $this->notifications->expensePaid($claim->refresh(), $actor);
-
-            return $adjustment;
-        });
+        return $this->reimbursement->reimburse($claim, $run, $actor);
     }
 
     /**
@@ -272,13 +237,7 @@ class ExpenseService
      */
     public function payableFor(Employee $employee, PayrollRun $run): Collection
     {
-        return ExpenseClaim::query()->where('employee_id', $employee->id)
-            ->where('status', ExpenseClaimStatus::Approved)
-            ->where('period_year', $run->period_year)
-            ->where('period_month', $run->period_month)
-            ->whereNull('paid_in_payroll_run_id')
-            ->orderBy('id')
-            ->get();
+        return $this->reimbursement->payableFor($employee, $run);
     }
 
     /**
@@ -301,125 +260,6 @@ class ExpenseService
         if ($claim->status !== $expected) {
             throw ValidationException::withMessages(['form' => $message]);
         }
-    }
-
-    /**
-     * One line per item, validated: an active catalogue row (or none — an
-     * ad-hoc line names no head), a positive amount, and a receipt where
-     * the category demands one. Receipts must belong to the employee, like
-     * declaration proofs: evidence for somebody else's money is refused.
-     *
-     * @param  list<array<string, mixed>>  $items
-     * @return list<array<string, mixed>>
-     *
-     * @throws ValidationException on a bad line
-     */
-    private function validatedItems(Employee $employee, array $items): array
-    {
-        $lines = [];
-
-        foreach (array_values($items) as $index => $item) {
-            $category = ! empty($item['category_id'])
-                ? ExpenseCategory::find($item['category_id'])
-                : null;
-
-            if (! empty($item['category_id']) && $category === null) {
-                throw ValidationException::withMessages(["items.{$index}.category_id" => __('That category does not exist.')]);
-            }
-
-            if ($category !== null && ! $category->is_active) {
-                throw ValidationException::withMessages(["items.{$index}.category_id" => __('That category is retired.')]);
-            }
-
-            $amount = Money::fromDecimal((string) ($item['amount'] ?? '0'));
-
-            if ($amount->isNegative() || $amount->isZero()) {
-                throw ValidationException::withMessages(["items.{$index}.amount" => __('A line prices positive money.')]);
-            }
-
-            $receiptId = $item['receipt_document_id'] ?? null;
-
-            if ($receiptId !== null) {
-                $receipt = EmployeeDocument::find($receiptId);
-
-                if ($receipt === null || (int) $receipt->employee_id !== (int) $employee->id) {
-                    throw ValidationException::withMessages(["items.{$index}.receipt_document_id" => __('That file does not belong to this employee.')]);
-                }
-            }
-
-            $threshold = $category?->requires_receipt_above;
-
-            if ($threshold !== null && $amount->minor > Money::fromDecimal((string) $threshold)->minor && $receiptId === null) {
-                throw ValidationException::withMessages(["items.{$index}.receipt_document_id" => __('Lines over :threshold need a receipt.', ['threshold' => $threshold])]);
-            }
-
-            $spentAt = isset($item['spent_at']) ? Carbon::parse((string) $item['spent_at']) : now();
-            $this->assertWithinLimits($employee, $category, $amount, $spentAt, $lines, $index);
-
-            $lines[] = [
-                'category_id' => $category?->id,
-                'description' => (string) ($item['description'] ?? ''),
-                'amount' => $amount->toDecimal(),
-                'spent_at' => isset($item['spent_at']) ? Carbon::parse((string) $item['spent_at'])->toDateString() : null,
-                'vendor' => $item['vendor'] ?? null,
-                'receipt_document_id' => $receiptId,
-                'is_billable' => (bool) ($item['is_billable'] ?? false),
-                'notes' => $item['notes'] ?? null,
-            ];
-        }
-
-        return $lines;
-    }
-
-    /**
-     * Category ceilings: one line may not exceed `max_per_line`, and an employee's lines in the category for
-     * the month (counting claims already filed and the lines of this very request) may not exceed `monthly_limit`.
-     *
-     * @param  list<array<string, mixed>>  $earlier  lines of this request validated so far
-     */
-    private function assertWithinLimits(Employee $employee, ?ExpenseCategory $category, Money $amount, Carbon $spentAt, array $earlier, int $index): void
-    {
-        if ($category === null) {
-            return;
-        }
-
-        if ($category->max_per_line !== null && $amount->minor > Money::fromDecimal((string) $category->max_per_line)->minor) {
-            throw ValidationException::withMessages(["items.{$index}.amount" => __('This category allows at most :limit per line.', ['limit' => $category->max_per_line])]);
-        }
-
-        if ($category->monthly_limit === null) {
-            return;
-        }
-
-        $month = [$spentAt->copy()->startOfMonth()->toDateString(), $spentAt->copy()->endOfMonth()->toDateString()];
-        $used = Money::fromDecimal((string) ExpenseClaimItem::query()
-            ->where('category_id', $category->id)
-            ->whereBetween('spent_at', $month)
-            ->whereHas('claim', fn ($q) => $q->where('employee_id', $employee->id)
-                ->whereIn('status', [ExpenseClaimStatus::Submitted, ExpenseClaimStatus::Pending, ExpenseClaimStatus::Approved, ExpenseClaimStatus::Paid]))
-            ->sum('amount') ?: '0');
-
-        $minor = $used->minor + $amount->minor;
-        foreach ($earlier as $line) {
-            if ((int) $line['category_id'] === $category->id && $line['spent_at'] !== null && $line['spent_at'] >= $month[0] && $line['spent_at'] <= $month[1]) {
-                $minor += Money::fromDecimal((string) $line['amount'])->minor;
-            }
-        }
-
-        if ($minor > Money::fromDecimal((string) $category->monthly_limit)->minor) {
-            throw ValidationException::withMessages(["items.{$index}.amount" => __('This would take you over the :limit monthly limit for this category.', ['limit' => $category->monthly_limit])]);
-        }
-    }
-
-    private function sum(array $lines): string
-    {
-        $total = Money::zero();
-
-        foreach ($lines as $line) {
-            $total = $total->add(Money::fromDecimal((string) $line['amount']));
-        }
-
-        return $total->toDecimal();
     }
 
     private function claimNumber(ExpenseClaim $claim): string

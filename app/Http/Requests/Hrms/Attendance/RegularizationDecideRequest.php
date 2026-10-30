@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Http\Requests\Hrms\Attendance;
 
 use Illuminate\Foundation\Http\FormRequest;

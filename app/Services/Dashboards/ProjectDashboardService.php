@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Services\Dashboards;
 
 use App\Models\Project;
@@ -70,8 +72,7 @@ class ProjectDashboardService
         return $out;
     }
 
-    /** @return mixed */
-    private function widget(string $widget, Project $project, User $user)
+    private function widget(string $widget, Project $project, User $user): mixed
     {
         $base = fn (): Builder => $this->reader->filteredQuery($project, [], $user)->setEagerLoads([])->reorder();
 

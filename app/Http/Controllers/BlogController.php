@@ -1,10 +1,13 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Http\Controllers;
 
 use App\Models\BlogCategory;
 use App\Models\BlogPost;
 use App\Support\AppName;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Illuminate\View\View;
@@ -155,7 +158,8 @@ class BlogController extends Controller
         return $urls;
     }
 
-    private function visible()
+    /** @return Builder<BlogPost> */
+    private function visible(): Builder
     {
         return BlogPost::with(['category', 'cover'])
             ->where('status', BlogPost::STATUS_PUBLISHED)

@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Http\Controllers;
 
 use App\Models\User;
@@ -71,7 +73,7 @@ class UnifiedAuditController extends Controller
 
     private function leg(string $table, string $source): Builder
     {
-        return DB::table($table)->selectRaw("'$source' as source, id, actor_user_id, subject_type, subject_id, action, data, ip_address, created_at");
+        return DB::table($table)->selectRaw('? as source, id, actor_user_id, subject_type, subject_id, action, data, ip_address, created_at', [$source]);
     }
 
     /** @param array<string, mixed> $f */

@@ -1,9 +1,12 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Http\Controllers\Hrms\Holiday;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Hrms\Holiday\HolidayAssignmentRequest;
+use App\Http\Requests\Hrms\Holiday\HolidayAssignmentResolvedRequest;
 use App\Models\Hrms\Employee\Employee;
 use App\Models\Hrms\Holiday\EmployeeHolidayCalendar;
 use App\Models\Hrms\Holiday\HolidayCalendar;
@@ -73,12 +76,9 @@ class HolidayAssignmentController extends Controller
         return response()->json(['message' => __('Calendar unassigned.')]);
     }
 
-    public function resolved(Request $request): JsonResponse
+    public function resolved(HolidayAssignmentResolvedRequest $request): JsonResponse
     {
-        $filters = $request->validate([
-            'employee_id' => ['sometimes', 'nullable', 'integer', 'exists:employees,id'],
-            'year' => ['sometimes', 'nullable', 'integer', 'min:2000', 'max:2100'],
-        ]);
+        $filters = $request->validated();
 
         $employee = isset($filters['employee_id'])
             ? Employee::findOrFail((int) $filters['employee_id'])

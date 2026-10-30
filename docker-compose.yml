@@ -205,6 +205,19 @@ services:
       - .:/app
       - flowsync_node_modules:/app/node_modules
 
+  # ---------------------------------------------------------------------------
+  # MailHog — dummy SMTP server and webmail UI for local testing
+  # Web UI: http://localhost:8025
+  # SMTP:   localhost:1025 (host) or mailhog:1025 (inside docker)
+  # ---------------------------------------------------------------------------
+  mailhog:
+    image: mailhog/mailhog:latest
+    container_name: flowsync-mailhog
+    restart: unless-stopped
+    ports:
+      - "1025:1025"   # SMTP server
+      - "8025:8025"   # Web UI
+
 volumes:
   flowsync_vendor:
     driver: local

@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Services\Hrms\Employee;
 
 use App\Enums\Hrms\EmployeeStatus;
@@ -267,6 +269,6 @@ class EmployeeDirectoryQuery
      */
     private function perPage(array $filters): int
     {
-        return (int) min(max((int) ($filters['per_page'] ?? 25), 1), 100);
+        return (int) min(max((int) ($filters['per_page'] ?? 25), 1), 500);
     }
 }

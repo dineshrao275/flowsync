@@ -315,7 +315,7 @@ Route::prefix('api')->group(function () {
         require __DIR__.'/web/hrms_talent.php';
 
         // HRMS Phase 5 completion slices (shifts, rosters, bulk ops, …) — isolated file.
-        require base_path('routes/hrms_p5.php');
+        require base_path('routes/web/hrms_shifts_p5.php');
 
         require __DIR__.'/web/hrms_approvals.php';
 
@@ -437,7 +437,7 @@ Broadcast::routes(['middleware' => ['switch_tenant', 'auth', 'tenant']]);
 // left zero channels registered and made every /broadcasting/auth answer 403.
 
 // Security track (P8.x) routes live in their own file.
-require __DIR__.'/security.php';
+require __DIR__.'/web/security.php';
 
 // Published CMS pages at top-level slugs (SEO-canonical URLs). These come
 // last on purpose: `/{slug}` and the fallback only see requests no other

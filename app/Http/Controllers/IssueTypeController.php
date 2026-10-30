@@ -1,11 +1,14 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Http\Controllers;
 
+use App\Http\Requests\IssueTypeStoreRequest;
+use App\Http\Requests\IssueTypeUpdateRequest;
 use App\Models\IssueType;
 use App\Services\IssueTypeService;
 use Illuminate\Http\JsonResponse;
-use Illuminate\Http\Request;
 
 class IssueTypeController extends Controller
 {
@@ -20,18 +23,9 @@ class IssueTypeController extends Controller
         ]);
     }
 
-    public function store(Request $request): JsonResponse
+    public function store(IssueTypeStoreRequest $request): JsonResponse
     {
-        $data = $request->validate([
-            'name' => ['required', 'string', 'max:255'],
-            'slug' => ['nullable', 'string', 'max:255'],
-            'description' => ['nullable', 'string'],
-            'icon' => ['nullable', 'string', 'max:50'],
-            'color' => ['nullable', 'string', 'max:50'],
-            'is_subtask' => ['nullable', 'boolean'],
-            'hierarchy_level' => ['nullable', 'integer', 'between:0,2'],
-            'position' => ['nullable', 'integer', 'min:0'],
-        ]);
+        $data = $request->validated();
 
         $issueType = $this->service->create($data);
 
@@ -41,18 +35,9 @@ class IssueTypeController extends Controller
         ], 201);
     }
 
-    public function update(Request $request, IssueType $issueType): JsonResponse
+    public function update(IssueTypeUpdateRequest $request, IssueType $issueType): JsonResponse
     {
-        $data = $request->validate([
-            'name' => ['nullable', 'string', 'max:255'],
-            'slug' => ['nullable', 'string', 'max:255'],
-            'description' => ['nullable', 'string'],
-            'icon' => ['nullable', 'string', 'max:50'],
-            'color' => ['nullable', 'string', 'max:50'],
-            'is_subtask' => ['nullable', 'boolean'],
-            'hierarchy_level' => ['nullable', 'integer', 'between:0,2'],
-            'position' => ['nullable', 'integer', 'min:0'],
-        ]);
+        $data = $request->validated();
 
         $updated = $this->service->update($issueType, $data);
 

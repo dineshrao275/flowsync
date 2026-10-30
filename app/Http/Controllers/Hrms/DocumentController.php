@@ -1,10 +1,13 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Http\Controllers\Hrms;
 
 use App\Enums\Hrms\DocumentStatus;
 use App\Http\Controllers\Concerns\NormalizesFilters;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Hrms\DocumentMineRequest;
 use App\Http\Requests\Hrms\DocumentUploadRequest;
 use App\Models\Hrms\Document\DocumentType;
 use App\Models\Hrms\Document\EmployeeDocument;
@@ -172,14 +175,9 @@ class DocumentController extends Controller
      * upload without a second lookup: there is no “my employee” endpoint, and
      * deriving it from the first row breaks the day the list is empty.
      */
-    public function mine(Request $request): JsonResponse
+    public function mine(DocumentMineRequest $request): JsonResponse
     {
-        $filters = $request->validate([
-            'document_type_id' => ['sometimes', 'nullable', 'integer', 'exists:document_types,id'],
-            'status' => ['sometimes', 'nullable', Rule::enum(DocumentStatus::class)],
-            'q' => ['sometimes', 'nullable', 'string', 'max:120'],
-            'per_page' => ['sometimes', 'nullable', 'integer', 'min:1', 'max:100'],
-        ]);
+        $filters = $request->validated();
         $page = $this->documents->mine($request->user(), $this->clean($filters));
 
         return response()->json([

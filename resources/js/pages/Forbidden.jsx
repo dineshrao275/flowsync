@@ -2,6 +2,7 @@ import { Link, useLocation } from 'react-router-dom';
 import { Trans, useTranslation } from 'react-i18next';
 import { useAuth } from '../context/AuthContext';
 import usePageTitle from '../hooks/usePageTitle';
+import { homeRouteFor } from '../utils/deepLinks';
 
 export default function Forbidden() {
     const { t } = useTranslation();
@@ -31,10 +32,10 @@ export default function Forbidden() {
                     )}
                 </p>
                 <Link
-                    to="/dashboard"
+                    to={homeRouteFor(user)}
                     className="mt-6 inline-block rounded-lg bg-[var(--accent)] px-4 py-2.5 text-sm font-medium text-[var(--accent-contrast)] transition hover:bg-[var(--accent-hover)]"
                 >
-                    {t('admin.common.backToDashboard')}
+                    {t('admin.common.backToHome')}
                 </Link>
             </div>
         </div>

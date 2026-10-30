@@ -67,7 +67,7 @@ export default function MyDocuments() {
         [navigate, t],
     );
 
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+     
     useEffect(() => {
         load(page);
     }, [page, load]);
@@ -84,7 +84,7 @@ export default function MyDocuments() {
         api.get('/hrms/documents/expiring', { params: { days: 30 } })
             .then(({ data }) => setExpiring(data.documents ?? []))
             .catch(() => setExpiring([]));
-        // eslint-disable-next-line react-hooks/exhaustive-deps
+         
     }, []);
 
     const rows = data?.documents ?? null;

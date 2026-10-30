@@ -139,4 +139,18 @@ class SsoTest extends TestCase
         $this->assertStringNotContainsString('s3cret', $res->getContent());
         $this->assertArrayNotHasKey('client_secret', $res->json('sso'));
     }
+
+    public function test_saving_settings_without_a_secret_keeps_the_stored_one(): void
+    {
+        $this->postJson('/api/auth/login', ['email' => 'admin@flowsync.test', 'password' => 'password'])->assertOk();
+        $this->assertTrue($this->getJson('/api/sso-settings')->json('sso.has_secret'));
+
+        // Found by the form audit: an omitted client_secret used to be a 500; it means "keep what is stored".
+        $this->putJson('/api/sso-settings', [
+            'enabled' => false, 'enforce' => false, 'jit' => false,
+            'allowed_domains' => [], 'default_role' => 'viewer',
+        ])->assertOk();
+
+        $this->assertTrue($this->getJson('/api/sso-settings')->json('sso.has_secret'));
+    }
 }

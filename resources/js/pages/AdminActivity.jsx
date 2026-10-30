@@ -1,10 +1,10 @@
-import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import api from '../services/api';
 import Card from '../components/ui/Card';
 import Badge from '../components/ui/Badge';
-import Alert from '../components/ui/Alert';
 import ContentSkeleton from '../components/ui/ContentSkeleton';
+import Resource from '../components/ui/Resource';
+import { useResource } from '../hooks/useResource';
 import { Table, Th, Td } from '../components/ui/Table';
 import usePageTitle from '../hooks/usePageTitle';
 import { useSetCrumbs } from '../context/BreadcrumbContext';
@@ -23,16 +23,17 @@ export default function AdminActivity() {
     const { t } = useTranslation();
     usePageTitle(t('admin.activity.title'));
     useSetCrumbs([{ label: t('admin.activity.title') }]);
-    const [data, setData] = useState(null);
-    const [error, setError] = useState(null);
+    const res = useResource((signal) => api.get('/system/tenant-activity', { signal }).then(({ data }) => data), []);
 
-    useEffect(() => {
-        api.get('/system/tenant-activity').then(({ data: res }) => setData(res)).catch(() => setError(t('admin.activity.loadFailed')));
-    }, [t]);
+    return (
+        <Resource {...res} skeleton={<ContentSkeleton size="lg" />} errorTitle={t('admin.activity.loadFailed')}>
+            {(data) => <ActivityBody data={data} />}
+        </Resource>
+    );
+}
 
-    if (error) return <Alert>{error}</Alert>;
-    if (!data) return <ContentSkeleton size="lg" />;
-
+function ActivityBody({ data }) {
+    const { t } = useTranslation();
     const dash = (v) => (v ?? '—');
 
     return (

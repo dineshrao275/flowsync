@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Services\Hrms\Audit;
 
 use App\Models\Hrms\Shared\HrmsAuditLog;

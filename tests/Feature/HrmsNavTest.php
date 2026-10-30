@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Tests\Feature;
 
 use Tests\TestCase;
@@ -34,7 +36,7 @@ class HrmsNavTest extends TestCase
         $layout = strpos($src, '<Route path="/hrms" element={<HrmsErrorScope />}>');
         $this->assertNotFalse($layout, 'App.jsx no longer renders the HRMS hub at /hrms.');
 
-        $parent = strrpos(substr($src, 0, $layout), '<Route element={<ProtectedRoute module="hrms.core" />}>');
+        $parent = strrpos(substr($src, 0, $layout), '<Route element={<ProtectedRoute module="hrms.core"');
         $this->assertNotFalse($parent, 'the /hrms hub is no longer wrapped in the hrms.core module gate.');
 
         $catchAll = strpos($src, '<Route path="/hrms/:section"', $layout);
@@ -91,8 +93,10 @@ class HrmsNavTest extends TestCase
             $indent = strlen($line) - strlen(ltrim($line));
 
             if (str_starts_with($trim, '<Route element')) {
-                if (preg_match('/<Route element=\{<ProtectedRoute (?:module|permission)="([^"]+)"\s*\/>\}>/', $trim, $m)) {
-                    $stack[] = [$indent, $m[1]];
+                if (str_contains($trim, '<ProtectedRoute')) {
+                    foreach ($this->gateNames($trim) as $gate) {
+                        $stack[] = [$indent, $gate];
+                    }
                 }
 
                 continue;
@@ -198,8 +202,9 @@ class HrmsNavTest extends TestCase
 
         $sidebar = file_get_contents(resource_path('js/components/Sidebar.jsx'));
 
-        $this->assertStringContainsString('productForPath', $sidebar);
+        $this->assertStringContainsString('useActiveProduct', $sidebar);
         $this->assertStringContainsString('hrmsSections', $sidebar);
+        $this->assertStringNotContainsString('productForPath', $sidebar);
     }
 
     public function test_every_hrms_route_is_a_hub_tab_and_vice_versa(): void
@@ -257,12 +262,33 @@ class HrmsNavTest extends TestCase
         $this->assertSame([], $failures, implode("\n", $failures));
     }
 
+    public function test_product_owned_routes_declare_their_product_boundary(): void
+    {
+        $app = file_get_contents(resource_path('js/App.jsx'));
+
+        $this->assertMatchesRegularExpression(
+            '#<Route element=\{<ProtectedRoute module="hrms\.core" product="hrms" />\}>\s*<Route path="/my"#',
+            $app,
+            'My HR must be gated by both the HRMS core module and the HRMS product.'
+        );
+        $this->assertMatchesRegularExpression(
+            '#<Route element=\{<ProtectedRoute module="hrms\.core" product="hrms" />\}>\s*<Route path="/hrms"#',
+            $app,
+            'The HRMS hub must be gated by both the HRMS core module and the HRMS product.'
+        );
+        $this->assertMatchesRegularExpression(
+            '#<ProtectedRoute product="tms">\s*<Dashboard />#',
+            $app,
+            'The task dashboard must be gated by the TMS product after the home redirect.'
+        );
+    }
+
     public function test_the_hub_renders_without_a_secondary_rail(): void
     {
         $app = file_get_contents(resource_path('js/App.jsx'));
 
         $this->assertMatchesRegularExpression(
-            '#<Route element=\{<ProtectedRoute module="hrms\.core" />\}>\s*<Route path="/hrms" element=\{<HrmsErrorScope />\}>\s*<Route index element=\{<HrmsOverview />\}\s*/>#',
+            '#<Route element=\{<ProtectedRoute module="hrms\.core"[^>]*\/>\}>\s*<Route path="/hrms" element=\{<HrmsErrorScope />\}>\s*<Route index element=\{<HrmsOverview />\}\s*/>#',
             $app,
             '/hrms must render the overview as its index route inside the error scope.'
         );

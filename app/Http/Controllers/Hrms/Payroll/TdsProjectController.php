@@ -1,9 +1,12 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Http\Controllers\Hrms\Payroll;
 
 use App\Enums\Hrms\DataAccessAction;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Hrms\Payroll\TdsProjectRecomputeRequest;
 use App\Http\Requests\Hrms\TdsProjectionRequest;
 use App\Http\Requests\Hrms\TdsSurrenderRequest;
 use App\Models\Hrms\Employee\Employee;
@@ -120,12 +123,9 @@ class TdsProjectController extends Controller
         ]);
     }
 
-    public function recompute(Request $request): JsonResponse
+    public function recompute(TdsProjectRecomputeRequest $request): JsonResponse
     {
-        $validated = $request->validate([
-            'run_id' => ['required', 'integer', 'exists:payroll_runs,id'],
-            'force' => ['sometimes', 'boolean'],
-        ]);
+        $validated = $request->validated();
 
         $run = PayrollRun::findOrFail((int) $validated['run_id']);
 
