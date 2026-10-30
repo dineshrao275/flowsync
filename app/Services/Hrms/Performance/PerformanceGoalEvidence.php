@@ -14,6 +14,7 @@ use App\Models\Hrms\TaskLink\TaskLink;
 use App\Models\Task;
 use App\Models\User;
 use App\Models\WorkLog;
+use App\Support\Integration\BridgeSchema;
 use App\Support\Tms\TmsSchema;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Carbon;
@@ -97,6 +98,10 @@ class PerformanceGoalEvidence
      */
     public function refreshTaskGoals(Task $task): array
     {
+        if (! BridgeSchema::present()) {
+            return ['goals' => 0];
+        }
+
         $goalIds = GoalTaskLink::query()
             ->where('task_id', $task->id)
             ->pluck('goal_id')
@@ -122,9 +127,11 @@ class PerformanceGoalEvidence
     {
         [$from, $to] = $this->window($goal);
 
-        $ids = (clone $this->assignedTasks($goal, $user))->pluck('tasks.id')
-            ->merge((clone $this->linkedTasks($goal, $user))->pluck('tasks.id'))
-            ->unique()->values();
+        $ids = (clone $this->assignedTasks($goal, $user))->pluck('tasks.id');
+        if (BridgeSchema::present()) {
+            $ids = $ids->merge((clone $this->linkedTasks($goal, $user))->pluck('tasks.id'));
+        }
+        $ids = $ids->unique()->values();
 
         $pool = Task::query()->whereIn('tasks.id', $ids);
 
@@ -155,7 +162,7 @@ class PerformanceGoalEvidence
                 'created' => $created,
                 'overdue' => $overdue,
                 'task_ids' => array_values($completedIds),
-                'linked_task_ids' => $this->linkedTasks($goal, $user)->pluck('tasks.id')->all(),
+                'linked_task_ids' => BridgeSchema::present() ? $this->linkedTasks($goal, $user)->pluck('tasks.id')->all() : [],
                 'window' => [$from, $to],
             ],
         ]);
@@ -225,6 +232,10 @@ class PerformanceGoalEvidence
      */
     private function linkedTasks(PerformanceGoal $goal, User $user): Builder
     {
+        if (! BridgeSchema::present()) {
+            return Task::query()->whereRaw('1 = 0');
+        }
+
         $ids = TaskLink::query()
             ->where('employee_id', $goal->employee_id)
             ->where('kind', TaskLinkKind::Goal->value)

@@ -7,7 +7,7 @@ import MemberPicker from './MemberPicker';
  * string, '' when cleared) but the choices are `people` — `[{id, name, email?, photo_url?}]` — shown as
  * avatar cards with search. Existing call sites keep their handlers unchanged.
  */
-export default function PersonSelect({ label, error, id, className = '', people, value, onChange, placeholder, required, disabled }) {
+export default function PersonSelect({ label, error, id, className = '', people, value, onChange, placeholder, required, disabled, maxDisplay }) {
     const autoId = useId();
     const fieldId = id || autoId;
 
@@ -20,6 +20,7 @@ export default function PersonSelect({ label, error, id, className = '', people,
                 value={value ?? ''}
                 disabled={disabled}
                 placeholder={placeholder}
+                maxDisplay={maxDisplay}
                 onChange={(next) => onChange?.({ target: { value: next === '' ? '' : String(next) } })}
             />
             {required && (

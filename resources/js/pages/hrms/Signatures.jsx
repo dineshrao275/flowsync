@@ -39,7 +39,7 @@ export default function Signatures() {
 
     useEffect(() => {
         load();
-        if (manage) api.get('/hrms/employees', { params: { per_page: 100 } }).then(({ data }) => setPeople(data.employees || [])).catch(() => {});
+        if (manage) api.get('/hrms/employees', { params: { per_page: 250 } }).then(({ data }) => setPeople(data.employees || [])).catch(() => {});
     }, [load, manage]);
 
     useEffect(() => {

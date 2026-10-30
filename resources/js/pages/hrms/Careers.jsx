@@ -159,7 +159,7 @@ export default function Careers() {
     const tabs = useMemo(() => ['paths', ...(manage ? ['succession'] : [])], [manage]);
 
     useEffect(() => {
-        api.get('/hrms/employees', { params: { per_page: 100 } }).then(({ data }) => { setDesignations(data.filters?.designations || []); setPeople(data.employees || []); }).catch(() => {});
+        api.get('/hrms/employees', { params: { per_page: 250 } }).then(({ data }) => { setDesignations(data.filters?.designations || []); setPeople(data.employees || []); }).catch(() => {});
     }, []);
 
     return (

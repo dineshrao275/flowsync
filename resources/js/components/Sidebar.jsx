@@ -3,15 +3,15 @@ import { useTranslation } from 'react-i18next';
 import { Link, useLocation } from 'react-router-dom';
 import { CaretDoubleLeft, CaretDoubleRight, CaretDown } from '@phosphor-icons/react';
 import { useAuth } from '../context/AuthContext';
+import { useActiveProduct } from '../context/ProductContext';
 import { useNotifications } from '../context/NotificationContext';
 import { hrmsSections, superAdminSections, tmsSections } from '../utils/nav';
-import { productForPath } from '../utils/product';
 import { getAppName } from '../utils/appName';
 
 // Sidebar sections live in utils/nav.js: `tmsSections` for the task shell,
 // `hrmsSections` (derived from the HRMS_NAV hub catalog, never re-listed)
 // for the HR shell, `superAdminSections` for the platform. The component
-// below picks by the current path and filters by capability.
+// below picks the active product from ProductContext and filters by capability.
 
 // Glyphs are Phosphor components from the nav catalog (regular weight,
 // currentColor) — one icon family at one optical size across the shell.
@@ -26,12 +26,13 @@ function ItemIcon({ icon }) {
 function SidebarLink({ item, collapsed, onClose }) {
     const { t } = useTranslation();
     const location = useLocation();
-    const { inboxUnread, unreadCount, effectivePlatformCounts } = useNotifications();
+    const { activeProduct } = useActiveProduct();
+    const { inboxUnread, unreadCount, effectivePlatformCounts, effectiveInboxUnread, markSectionViewed } = useNotifications();
     const isActive = location.pathname === item.to;
     const labelClass = collapsed ? 'hidden lg:hidden' : 'block';
 
     let badgeCount = 0;
-    if (item.badge === 'inbox') badgeCount = inboxUnread;
+    if (item.badge === 'inbox') badgeCount = effectiveInboxUnread ?? inboxUnread;
     else if (item.badge === 'notifications') badgeCount = unreadCount;
     else if (item.badge === 'leads') badgeCount = effectivePlatformCounts?.leads ?? 0;
     else if (item.badge === 'support') badgeCount = effectivePlatformCounts?.support ?? 0;
@@ -40,7 +41,13 @@ function SidebarLink({ item, collapsed, onClose }) {
     return (
         <Link
             to={item.to}
-            onClick={onClose}
+            state={item.shared ? { product: activeProduct } : undefined}
+            onClick={() => {
+                if (item.badge) {
+                    markSectionViewed?.(item.badge);
+                }
+                onClose?.();
+            }}
             aria-current={isActive ? 'page' : undefined}
             title={collapsed ? t(item.label) : undefined}
             aria-label={collapsed ? t(item.label) : undefined}
@@ -61,7 +68,7 @@ function SidebarLink({ item, collapsed, onClose }) {
                 <ItemIcon icon={item.icon} />
                 {collapsed && badgeCount > 0 && (
                     <span
-                        className="absolute -right-1.5 -top-1.5 flex h-4 min-w-4 shrink-0 items-center justify-center rounded-full bg-red-600 px-1 text-[10px] font-bold leading-none text-white shadow-sm"
+                        className="absolute -right-1.5 -top-1.5 flex h-4 min-w-4 shrink-0 items-center justify-center rounded-full bg-red-600 dark:bg-red-500 px-1 text-[10px] font-bold leading-none text-white shadow-sm"
                         aria-hidden="true"
                     >
                         {badgeCount > 99 ? '99+' : badgeCount}
@@ -72,7 +79,7 @@ function SidebarLink({ item, collapsed, onClose }) {
                 <span className="flex items-center justify-between gap-2">
                     <span className="truncate">{t(item.label)}</span>
                     {badgeCount > 0 && (
-                        <span className="flex h-5 min-w-5 shrink-0 items-center justify-center rounded-full bg-red-600 px-1 text-caption font-bold normal-case tracking-normal text-white">
+                        <span className="flex h-5 min-w-5 shrink-0 items-center justify-center rounded-full bg-red-600 dark:bg-red-500 px-1 text-caption font-bold normal-case tracking-normal text-white">
                             {badgeCount > 99 ? '99+' : badgeCount}
                         </span>
                     )}
@@ -84,6 +91,7 @@ function SidebarLink({ item, collapsed, onClose }) {
 
 function SidebarSection({ section, collapsed, onClose, canViewPlans }) {
     const { t } = useTranslation();
+    const { activeProduct } = useActiveProduct();
 
     return (
         <div className="space-y-0.5">
@@ -102,7 +110,7 @@ function SidebarSection({ section, collapsed, onClose, canViewPlans }) {
                 >
                     <span>{t('shell.sidebar.lockedByPlan')}</span>{' '}
                     {canViewPlans ? (
-                        <Link to="/subscription" className="underline transition-colors hover:opacity-80">
+                        <Link to="/subscription" state={{ product: activeProduct }} className="underline transition-colors hover:opacity-80">
                             {t('shell.sidebar.viewPlans')}
                         </Link>
                     ) : (
@@ -136,14 +144,14 @@ function isItemActive(item, pathname) {
  */
 function CollapsibleSection({ section, collapsed, onClose, open, onToggle }) {
     const { t } = useTranslation();
-    const { inboxUnread, unreadCount, effectivePlatformCounts } = useNotifications();
+    const { inboxUnread, unreadCount, effectivePlatformCounts, effectiveInboxUnread, markSectionViewed } = useNotifications();
     const { pathname } = useLocation();
     const [first] = section.items;
     const activeInside = section.items.some((item) => isItemActive(item, pathname));
 
     const getBadgeCount = (item) => {
         if (!item?.badge) return 0;
-        if (item.badge === 'inbox') return inboxUnread;
+        if (item.badge === 'inbox') return effectiveInboxUnread ?? inboxUnread;
         if (item.badge === 'notifications') return unreadCount;
         if (item.badge === 'leads') return effectivePlatformCounts?.leads ?? 0;
         if (item.badge === 'support') return effectivePlatformCounts?.support ?? 0;
@@ -153,7 +161,7 @@ function CollapsibleSection({ section, collapsed, onClose, open, onToggle }) {
 
     const totalGroupBadgeCount = section.items.reduce((sum, item) => sum + getBadgeCount(item), 0);
     const badge = totalGroupBadgeCount > 0 && (
-        <span className="flex h-5 min-w-5 shrink-0 items-center justify-center rounded-full bg-red-600 px-1 text-caption font-bold normal-case tracking-normal text-white">
+        <span className="flex h-5 min-w-5 shrink-0 items-center justify-center rounded-full bg-red-600 dark:bg-red-500 px-1 text-caption font-bold normal-case tracking-normal text-white">
             {totalGroupBadgeCount > 99 ? '99+' : totalGroupBadgeCount}
         </span>
     );
@@ -164,7 +172,12 @@ function CollapsibleSection({ section, collapsed, onClose, open, onToggle }) {
         return (
             <Link
                 to={first.to}
-                onClick={onClose}
+                onClick={() => {
+                    if (first.badge) {
+                        markSectionViewed?.(first.badge);
+                    }
+                    onClose?.();
+                }}
                 aria-current={active ? 'page' : undefined}
                 title={t(section.label)}
                 aria-label={t(section.label)}
@@ -177,7 +190,7 @@ function CollapsibleSection({ section, collapsed, onClose, open, onToggle }) {
                     <ItemIcon icon={first.icon} />
                     {totalGroupBadgeCount > 0 && (
                         <span
-                            className="absolute -right-1.5 -top-1.5 flex h-4 min-w-4 shrink-0 items-center justify-center rounded-full bg-red-600 px-1 text-[10px] font-bold leading-none text-white shadow-sm"
+                            className="absolute -right-1.5 -top-1.5 flex h-4 min-w-4 shrink-0 items-center justify-center rounded-full bg-red-600 dark:bg-red-500 px-1 text-[10px] font-bold leading-none text-white shadow-sm"
                             aria-hidden="true"
                         >
                             {totalGroupBadgeCount > 99 ? '99+' : totalGroupBadgeCount}
@@ -238,6 +251,7 @@ export default function Sidebar({ open, collapsed, onClose, onToggleCollapse }) 
     }, [open, onClose]);
 
     const { check, user } = useAuth();
+    const { activeProduct } = useActiveProduct();
     const { pathname } = useLocation();
     const isSuperAdmin = user?.is_super_admin && !user?.impersonating;
 
@@ -246,12 +260,12 @@ export default function Sidebar({ open, collapsed, onClose, onToggleCollapse }) 
     // land on a visible, highlighted item.
     const [manualGroups, setManualGroups] = useState({});
 
-    // The product shell follows the URL: /hrms* and /my render the HR shell,
-    // everything else the task shell. Crossing shells is the topbar
-    // ProductSwitcher's job, not the sidebar's.
+    // Product-owned URLs set the active product; shared Administration/Billing
+    // pages keep the shell the caller arrived from. Crossing shells is the
+    // topbar ProductSwitcher's job, not the sidebar's.
     const shellSections = isSuperAdmin
         ? superAdminSections
-        : productForPath(pathname) === 'hrms' ? hrmsSections : tmsSections;
+        : activeProduct === 'hrms' ? hrmsSections : tmsSections;
 
     // A section that filtered to zero because every item was module-gated
     // (not permission-gated) survives with a "locked by your plan" note —

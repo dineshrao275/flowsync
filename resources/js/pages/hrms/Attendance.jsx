@@ -184,8 +184,8 @@ export default function Attendance() {
     useEffect(() => {
         if (!canViewOthers) return;
 
-        api.get('/hrms/employees', { params: { per_page: 100 } })
-            .then(({ data }) => setEmployees((data.employees ?? []).map((e) => ({ id: e.id, name: e.display_name ?? e.name, userId: e.user?.id ?? null }))))
+        api.get('/hrms/employees', { params: { per_page: 250 } })
+            .then(({ data }) => setEmployees((data.employees ?? []).map((e) => ({ id: e.id, name: e.display_name ?? e.name, email: e.user?.email, userId: e.user?.id ?? null }))))
             .catch(() => setEmployees([]));
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);

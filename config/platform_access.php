@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 /*
  | Platform (super admin side) access model (P8.3).
  |
@@ -72,6 +74,7 @@ return [
         ['api/system/audit-logs/export', 'audit.export', 'audit.export'],
         ['api/system/audit-logs*', 'audit.view', 'audit.view'],
         ['api/system/analytics', 'analytics.view', 'analytics.view'],
+        ['api/system/badge-counts', 'tenants.view', 'tenants.view'],
         ['api/platform/health', 'analytics.view', 'analytics.view'],
         ['api/system/health', 'analytics.view', 'analytics.view'],
         ['api/system/queue*', 'analytics.view', 'queue.manage'],

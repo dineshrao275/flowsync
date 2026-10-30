@@ -24,4 +24,22 @@ describe('sidebar nav icons', () => {
             }
         });
     }
+
+    it('marks cross-shell administration and billing destinations as shared', () => {
+        const shared = ['/users', '/roles', '/custom-fields', '/settings', '/security', '/audit', '/subscription', '/support', '/export'];
+
+        for (const [shell, sections] of cases) {
+            if (shell === 'platform') continue;
+
+            const items = sections.flatMap((section) => section.items);
+
+            for (const to of shared) {
+                const item = items.find((candidate) => candidate.to === to);
+                expect(item, `${shell} is missing ${to}`).toBeDefined();
+                expect(item.shared, `${shell}/${to} must preserve the active product`).toBe(true);
+            }
+        }
+
+        expect(tmsSections.flatMap((section) => section.items).find((item) => item.to === '/webhooks')?.shared).toBeUndefined();
+    });
 });

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { taskUrl, projectUrl, workspaceUrl } from './deepLinks';
+import { homeRouteFor, taskUrl, projectUrl, workspaceUrl } from './deepLinks';
 import { notificationHref } from './notifications';
 
 describe('deepLinks and notificationHref', () => {
@@ -45,5 +45,21 @@ describe('deepLinks and notificationHref', () => {
         expect(projectUrl(2, 'tasks')).toBe('/projects/2?tab=tasks');
         expect(workspaceUrl(3)).toBe('/workspaces/3');
         expect(workspaceUrl(3, 'members')).toBe('/workspaces/3?tab=members');
+    });
+});
+
+describe('homeRouteFor', () => {
+    it('sends a platform super admin to the platform overview', () => {
+        expect(homeRouteFor({ is_super_admin: true, impersonating: false })).toBe('/admin');
+    });
+
+    it('sends an HRMS-only tenant to the HR hub', () => {
+        expect(homeRouteFor({ products: { tms: false, hrms: true } })).toBe('/hrms');
+    });
+
+    it('sends TMS and dual-product callers to the task dashboard', () => {
+        expect(homeRouteFor({ products: { tms: true, hrms: false } })).toBe('/dashboard');
+        expect(homeRouteFor({ products: { tms: true, hrms: true } })).toBe('/dashboard');
+        expect(homeRouteFor(null)).toBe('/dashboard');
     });
 });

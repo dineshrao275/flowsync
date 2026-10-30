@@ -13,6 +13,7 @@ use App\Models\Hrms\Performance\PerformanceGoal;
 use App\Models\Task;
 use App\Services\Hrms\HrmsScope;
 use App\Services\Hrms\PerformanceService;
+use App\Support\Integration\BridgeSchema;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
@@ -37,7 +38,12 @@ class PerformanceGoalController extends Controller
     {
         $this->authorize('viewAny', PerformanceGoal::class);
 
-        $query = $cycle->goals()->with(['employee:id,employee_code,name'])->orderBy('id');
+        $with = ['employee:id,employee_code,name'];
+        if (BridgeSchema::present()) {
+            $with[] = 'taskLinks.task:id,key,title,status_id';
+        }
+
+        $query = $cycle->goals()->with($with)->orderBy('id');
 
         if (! $this->seesAll($request->user())) {
             $query->whereIn('employee_id', HrmsScope::employeeIdsFor($request->user(), 'hrms.performance'));
@@ -115,6 +121,7 @@ class PerformanceGoalController extends Controller
     public function linkTask(Request $request, PerformanceGoal $goal): JsonResponse
     {
         $this->authorize('update', $goal);
+        abort_unless(BridgeSchema::present(), 404);
 
         $validated = $request->validate([
             // One of the two is needed; with neither the lookup below would answer 404 for a request that is simply incomplete.
@@ -141,6 +148,7 @@ class PerformanceGoalController extends Controller
     public function unlinkTask(Request $request, PerformanceGoal $goal, Task $task): JsonResponse
     {
         $this->authorize('update', $goal);
+        abort_unless(BridgeSchema::present(), 404);
         abort_if(! $goal->taskLinks()->where('task_id', $task->id)->exists(), 404);
 
         $this->performance->unlinkTask($goal, $task, $request->user());
@@ -164,7 +172,12 @@ class PerformanceGoalController extends Controller
      */
     private function present(PerformanceGoal $goal): array
     {
-        $goal->loadMissing(['employee:id,employee_code,name', 'cycle:id,name,slug,period_start,period_end', 'taskLinks.task:id,key,title,status_id']);
+        $relations = ['employee:id,employee_code,name', 'cycle:id,name,slug,period_start,period_end'];
+        if (BridgeSchema::present()) {
+            $relations[] = 'taskLinks.task:id,key,title,status_id';
+        }
+
+        $goal->loadMissing($relations);
 
         return [
             'id' => $goal->id,
@@ -187,12 +200,14 @@ class PerformanceGoalController extends Controller
             'progress_source' => $goal->progress_source->value,
             'progress_evidence' => $goal->progress_evidence,
             'achieved_at' => $goal->achieved_at?->toIso8601String(),
-            'tasks' => $goal->taskLinks->map(fn ($link): ?array => $link->task === null ? null : [
-                'id' => $link->task->id,
-                'key' => $link->task->key,
-                'title' => $link->task->title,
-                'completed_at' => $link->task->completed_at?->toDateString(),
-            ])->filter()->values()->all(),
+            'tasks' => BridgeSchema::present()
+                ? $goal->taskLinks->map(fn ($link): ?array => $link->task === null ? null : [
+                    'id' => $link->task->id,
+                    'key' => $link->task->key,
+                    'title' => $link->task->title,
+                    'completed_at' => $link->task->completed_at?->toDateString(),
+                ])->filter()->values()->all()
+                : [],
         ];
     }
 }
