@@ -4,7 +4,7 @@ Test tenant: **globex** (`owner@globex.test`, no subscription => every module), 
 
 | # | Path | Group | Gating capabilities | Status |
 |---|---|---|---|---|
-| 1 | `/hrms` | overview | m:hrms.core | Partial: UI pass (count, checklist, tile nav, Planned tiles); 1 bug fixed (BUG-1); role/permission tests pending |
+| 1 | `/hrms` | overview | m:hrms.core | **Pass** — admin + Employee, 4 UI tests; BUG-1 fixed |
 | 2 | `/hrms/inbox` | workforce | m:hrms.core | Not run |
 | 3 | `/hrms/team` | workforce | m:hrms.core | Not run |
 | 4 | `/hrms/employees` | workforce | m:hrms.core, p:hrms.employees.view | Not run |
@@ -62,3 +62,23 @@ Test tenant: **globex** (`owner@globex.test`, no subscription => every module), 
 ## Environment notes
 
 - Acme (`admin@flowsync.test`) is on the `starter` suite plan with no HRMS modules, so the whole HR sidebar is locked. That is plan data, not a defect. Globex has no subscription and gets every module, so it is the HRMS test tenant.
+
+## Test personas (created through the real Add user form, Globex)
+
+| Persona | Email | Role |
+|---|---|---|
+| Tenant admin | `owner@globex.test` | admin, editor, hr_manager, payroll_manager, finance_admin |
+| QA Employee | `qa.employee@globex.test` | Employee |
+| QA HR Executive | `qa.hrexec@globex.test` | HR Executive |
+
+Creating a user also creates its employee record, so the Overview setup checklist counts them; tests must not assume an empty directory.
+The login endpoint is throttled (`Too Many Attempts` after a burst, working as designed), so specs reuse a saved session (`helpers.js` `useSession`).
+
+## Leads from the Employee route scan (NOT confirmed bugs; verify in each tab)
+
+Typed-URL gating works: every restricted page answers a 403 naming the missing permission. These need a decision in their own tab:
+
+- **Holidays (`/hrms/holidays`)**: sidebar shows it to an Employee, but the page is a full "Access denied" and `hrms/holidays/calendars` + `/assignments` return 403. Nav entry has no permission, API does.
+- **My performance (`/hrms/performance/mine`)**: shown in the sidebar, page is "Access denied" (`hrms/employees`, `hrms/performance/cycles` 403).
+- Pages that render but fire a 403 background call (possible console noise or half-empty UI): `shift-swaps`, `statutory`, `expenses/mine` (`expenses/categories`), `careers`, `improvement-plans`, `changes` (all `hrms/employees`).
+- The Theme Settings drawer is a `role=dialog` present in the DOM when closed (a11y: check it is hidden from assistive tech).

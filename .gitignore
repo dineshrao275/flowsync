@@ -27,3 +27,4 @@ Thumbs.db
 .agents/workflow/
 .claude/
 figmatests/e2e/.results/
+tests/e2e/.auth/
