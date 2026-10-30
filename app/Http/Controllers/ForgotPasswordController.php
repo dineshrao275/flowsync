@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Http\Controllers;
 
 use App\Http\Requests\ForgotPasswordRequest;
+use App\Models\SystemUser;
 use App\Models\TenantUserRouting;
 use App\Support\TenantDatabaseManager;
 use Illuminate\Http\JsonResponse;
@@ -16,6 +17,14 @@ class ForgotPasswordController extends Controller
     public function create(ForgotPasswordRequest $request): JsonResponse
     {
         $email = Str::lower(trim((string) $request->input('email')));
+
+        // Super admin accounts must never be reset via the public forgot-password flow.
+        if (SystemUser::where('email', $email)->where('is_super_admin', true)->exists()) {
+            return response()->json([
+                'message' => __('If that address belongs to an account, a reset link is on its way.'),
+            ]);
+        }
+
         $routes = TenantUserRouting::where('email', $email)->with('tenant')->get();
 
         if ($tenantSlug = $request->input('tenant')) {
@@ -28,8 +37,6 @@ class ForgotPasswordController extends Controller
             app(TenantDatabaseManager::class)->using($tenant, function () use ($request) {
                 Password::sendResetLink($request->only('email'));
             });
-        } else {
-            Password::sendResetLink($request->only('email'));
         }
 
         // Uniform response either way: echoing RESET_LINK_SENT vs INVALID_USER

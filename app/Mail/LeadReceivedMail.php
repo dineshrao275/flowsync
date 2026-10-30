@@ -35,6 +35,9 @@ class LeadReceivedMail extends Mailable
 
     public function content(): Content
     {
-        return new Content(text: 'emails.lead-received');
+        return new Content(
+            view: 'emails.lead-received',
+            text: 'emails.lead-received-text',
+        );
     }
 }
