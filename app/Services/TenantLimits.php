@@ -363,9 +363,7 @@ class TenantLimits
 
         return match ($resource) {
             'users' => User::count(),
-            'workspaces' => TmsSchema::present() ? Workspace::count() : 0,
-            'projects' => TmsSchema::present() ? Project::count() : 0,
-            'tasks' => TmsSchema::present() ? Task::count() : 0,
+            'workspaces', 'projects', 'tasks' => TmsSchema::present() ? ['workspaces' => Workspace::class, 'projects' => Project::class, 'tasks' => Task::class][$resource]::count() : 0,
             // HRMS headcount (Phase 15). Without this the key returns 0 for an
             // unknown resource, so assertQuota('employees') would be a no-op that
             // looks like it is working.

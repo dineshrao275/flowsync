@@ -42,7 +42,7 @@ class SuperAdminPasswordResetTest extends TestCase
         // Verify no token was created in central system password_reset_tokens table
         $this->assertDatabaseMissing('password_reset_tokens', [
             'email' => 'superadmin@flowsync.test',
-        ], 'system');
+        ], config('tenancy.system.connection'));
     }
 
     public function test_tenant_user_can_request_password_reset(): void
