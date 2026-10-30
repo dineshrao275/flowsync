@@ -10,10 +10,15 @@ use App\Models\Permission;
 use App\Models\Project;
 use App\Models\ProjectRole;
 use App\Models\Role;
+use App\Models\Subscription;
+use App\Models\SubscriptionPlan;
 use App\Models\Task;
 use App\Models\TaskStatus;
+use App\Models\Tenant;
 use App\Models\User;
 use App\Models\Workspace;
+use App\Services\TenantLifecycle;
+use App\Support\TenantProvisioner;
 use Tests\IsolatesDatabase;
 use Tests\TestCase;
 
@@ -53,6 +58,17 @@ class HrmsGoalTaskLinkTest extends TestCase
         $this->postJson("/api/hrms/performance/goals/{$goal->id}/tasks", [
             'task_key' => $task->key,
         ])->assertCreated()->assertJsonPath('goal.tasks.0.id', $task->id);
+    }
+
+    public function test_linking_without_a_task_id_or_key_is_a_validation_error_not_a_404(): void
+    {
+        [$goal] = $this->linked(false);
+        $this->actAs($this->userWith(['hrms.view', 'hrms.performance.view', 'hrms.performance.manage']));
+
+        // Found by the form audit: with neither field the lookup used to answer 404 for an incomplete request.
+        $this->postJson("/api/hrms/performance/goals/{$goal->id}/tasks", [])
+            ->assertStatus(422)
+            ->assertJsonValidationErrors(['task_id', 'task_key']);
     }
 
     public function test_unlinking_needs_belonging(): void
@@ -100,6 +116,67 @@ class HrmsGoalTaskLinkTest extends TestCase
         $this->postJson("/api/hrms/performance/goals/{$goal->id}/tasks", [
             'task_id' => $task->id,
         ])->assertForbidden();
+    }
+
+    public function test_an_hrms_only_tenant_without_bridge_schema_can_list_and_view_goals(): void
+    {
+        $tenant = Tenant::create(['slug' => 'hrmsonlygoals', 'name' => 'HRMS Only Goals']);
+        $plan = SubscriptionPlan::where('slug', 'hrms-enterprise')->firstOrFail();
+        Subscription::create([
+            'tenant_id' => $tenant->id,
+            'product' => $plan->product,
+            'plan_id' => $plan->id,
+            'status' => Subscription::STATUS_ACTIVE,
+            'current_period_start' => now(),
+            'current_period_end' => now()->addMonth(),
+        ]);
+        app(TenantProvisioner::class)->provisionIsolated(
+            $tenant->fresh(),
+            $this->dbm,
+            app(TenantLifecycle::class),
+        );
+
+        $this->dbm->connect($tenant);
+
+        $user = User::create([
+            'name' => 'HRMS User', 'email' => 'hrms.user@flowsync.test', 'password' => 'password',
+        ]);
+        $employee = Employee::create([
+            'employee_code' => 'EMP-HRMS-1', 'name' => 'HRMS Employee',
+            'status' => EmployeeStatus::Active, 'user_id' => $user->id,
+        ]);
+        $role = Role::create([
+            'name' => 'HRMS Admin',
+            'slug' => 'hrms-admin',
+        ]);
+        $role->permissions()->sync(
+            Permission::whereIn('slug', ['hrms.view', 'hrms.performance.view', 'hrms.performance.manage'])->pluck('id')->all()
+        );
+        $user->roles()->sync([$role->id]);
+
+        $cycle = PerformanceCycle::create([
+            'name' => 'Standalone Cycle', 'slug' => 'standalone-cycle',
+            'period_start' => '2026-01-01', 'period_end' => '2026-12-31',
+        ]);
+        $goal = PerformanceGoal::create([
+            'cycle_id' => $cycle->id, 'employee_id' => $employee->id,
+            'title' => 'Standalone goal.', 'metric_type' => 'manual',
+            'weight' => '100', 'status' => 'active',
+        ]);
+
+        $this->actingAs($user)->withSession(['login.tenant_id' => $tenant->id]);
+
+        $indexRes = $this->getJson("/api/hrms/performance/cycles/{$cycle->id}/goals");
+        $indexRes->assertOk();
+        $this->assertCount(1, $indexRes->json('goals'));
+        $this->assertSame([], $indexRes->json('goals.0.tasks'));
+
+        $showRes = $this->getJson("/api/hrms/performance/goals/{$goal->id}");
+        $showRes->assertOk();
+        $this->assertSame([], $showRes->json('goal.tasks'));
+
+        // Linking is product-gated with TMS: 403 Forbidden on an HRMS-only tenant
+        $this->postJson("/api/hrms/performance/goals/{$goal->id}/tasks", ['task_id' => 1])->assertForbidden();
     }
 
     // ------------------------------------------------------------ helpers

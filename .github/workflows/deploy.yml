@@ -1,0 +1,61 @@
+name: Deploy to AWS
+
+# Merging to master runs CI; when CI passes on master this workflow ships that exact commit to the EC2
+# instance (deploy/aws/). There are no stored AWS keys: the job proves its identity to AWS through
+# GitHub OIDC, and the IAM role only trusts this repository's master branch.
+# A manual run (Actions -> Deploy to AWS -> Run workflow) redeploys master without waiting for CI.
+
+on:
+  workflow_run:
+    workflows: [CI]
+    types: [completed]
+    branches: [master]
+  workflow_dispatch:
+
+# One deploy at a time; a second merge waits for the first instead of racing it.
+concurrency:
+  group: deploy-production
+  cancel-in-progress: false
+
+permissions:
+  id-token: write   # OIDC token for AWS
+  contents: read
+
+env:
+  AWS_REGION: ap-south-1
+  AWS_ROLE_ARN: arn:aws:iam::287629436523:role/flowsync-github-deploy
+  BUCKET: flowsync-deploy-287629436523-ap-south-1
+  INSTANCE_ID: i-0d3118b1be943cef5
+  APP_URL: http://3.7.184.44
+
+jobs:
+  deploy:
+    name: Release to EC2
+    runs-on: ubuntu-latest
+    timeout-minutes: 50
+    if: >-
+      (github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/master') ||
+      (github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event == 'push')
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.workflow_run.head_sha || github.sha }}
+
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ env.AWS_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Package, upload and deploy
+        env:
+          GIT_SHA: ${{ github.event.workflow_run.head_sha || github.sha }}
+        run: deploy/aws/release.sh
+
+      - name: Smoke test
+        run: |
+          for i in $(seq 1 12); do
+            code=$(curl -s -o /dev/null -w '%{http_code}' --max-time 15 "$APP_URL/up" || true)
+            [ "$code" = "200" ] && echo "up (HTTP $code)" && exit 0
+            sleep 10
+          done
+          echo "site did not answer 200 after deploy" >&2; exit 1

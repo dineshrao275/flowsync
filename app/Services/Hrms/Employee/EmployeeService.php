@@ -119,8 +119,8 @@ class EmployeeService
         // the sign-in path and cannot be repaired from the UI, whereas a spare
         // account left behind by a later failure is a visible, deletable record.
         // This is a lesser evil, not an atomic guarantee — see the note on
-        // {@see self::resolveUser()}.
-        $user = $this->resolveUser($data, $actor);
+        // {@see EmployeeUserProvisioner::resolve()}.
+        $user = $this->provisioner->resolve($data);
 
         // The code is re-derived per attempt, so the whole write — not just the
         // code allocation — is what gets retried on a collision. Five exhausted
@@ -286,36 +286,6 @@ class EmployeeService
             'work_mode' => $profile->workMode(),
             'user_id' => $user?->id,
             'created_by' => $actor?->id ?? $user?->id,
-        ]);
-    }
-
-    /**
-     * The account this employee will be reachable through, if any.
-     *
-     * @param  array<string, mixed>  $data
-     */
-    private function resolveUser(array $data, ?User $actor): ?User
-    {
-        if (! empty($data['user_id'])) {
-            return User::findOrFail((int) $data['user_id']);
-        }
-
-        if (empty($data['email'])) {
-            return null;
-        }
-
-        // The login is NOT inside the employee row's transaction, despite the
-        // two being written one after the other. `users` is in the tenant
-        // database and `tenant_users` routing is central, so the pair spans two
-        // connections and no transaction covers both; `retrying()` only wraps the
-        // employee insert. `TenantProvisioner::syncRouting()` reconciles a
-        // routing row that went missing, which is what makes writing the
-        // routing row first safe enough to do at all.
-        return $this->provisioner->create([
-            'name' => $data['name'] ?? '',
-            'email' => (string) $data['email'],
-            'password' => (string) ($data['password'] ?? ''),
-            'roles' => (array) ($data['roles'] ?? []),
         ]);
     }
 }

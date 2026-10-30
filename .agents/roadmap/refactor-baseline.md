@@ -41,10 +41,30 @@ Static gate at the end of this pass: Pint, `php -l` on app/ and routes/, larasta
 
 Done: AGENTS.md 968 -> 510 lines (five section groups moved verbatim into `docs/architecture/`); four more first-statement validations converted (inline count 141); splits of HrmsDefaultsProvisioner (407 -> 98), InboxService (397 -> 143), ExpenseService (439 -> 318), EngagementService (442 -> 358) and AuthController (379 -> 281). Tools added: `scripts/inline-validation-to-formrequest.py`, `scripts/extract-php-methods.py`.
 
-### Deliberately not done
-- **PayrollService, TenantDatabaseManager, TenantLimits, SubscriptionService, JqlCompiler, ApprovalService, StatutoryEngine and the other oversized classes**: their helpers share state or sit on the money and tenancy paths, so splitting them without running the suite is a risk this pass would not take. They stay frozen by `ClassSizeCeilingTest` and are the next candidates once a full run is available.
-- **141 inline `validate()` calls**: each has code before the call (an authorize, a merge, a quota check) so moving validation first changes behaviour. `UserController::store` proved it. Convert by hand, case by case, with tests.
-- **Raw `<table>` (15) and `<select>` (108)**: the `Table`/`Select` primitives add a panel border, sticky headers and a wrapper element, so swapping changes the visuals; needs a browser review. Lint ratchet holds the count at 123.
-- **~104 pages still hand-roll fetching**: the remaining ones poll or reload after mutations and need per-page care and specs.
-- **Service `abort()` calls** (download 404/403 and a 422 whose JSON shape would change) and **presenters in controllers**: no behaviour-preserving mechanical path.
-- **Playwright and Prettier**: cannot be run or verified in this environment, so not added unverified.
+### Fifth pass (focused tests and static verification)
+Static gate at the end of this pass: Pint, route snapshot (`scripts/route-snapshot.sh --check`), `ClassSizeCeilingTest`, `ArchitectureRatchetTest`, ESLint (0 errors / 123 warnings), Vitest (217 tests / 48 files), and the production build all pass.
+
+Done:
+- **`PlatformBadgeCountsController` direct `DB::` call fixed**: extracted `App\Services\Platform\PlatformBadgeCounts` service, satisfying `ArchitectureRatchetTest`.
+- **`TenantController` brought under the 300-line ceiling (410 -> 285 lines)**: extracted `App\Services\Tenancy\TenantUserDirectory` (user directory listing and default owner account lookup) and `App\Services\Tenancy\TenantStats` (live domain counts); converted inline validations to FormRequests `TenantUpdateRequest` and `TenantSelfProfileRequest`. `TenantController.php` successfully removed from `ClassSizeCeilingTest::FROZEN`, and its inline validation ratchet lowered from 3 to 1 in `ArchitectureRatchetTest`.
+- **AGENTS.md further slimmed (511 -> 407 lines)**: moved 4 architecture sections verbatim into `docs/architecture/` (`api-tokens-and-security.md`, `realtime.md`, `rbac-and-permissions.md`, `impersonation-and-users.md`), replaced with concise reference links.
+- **`WorkspaceDetail.jsx` component split (669 -> 425 lines)**: extracted tab bodies into `components/workspace/` (`WorkspaceProjectsTab`, `WorkspaceMembersTab`, `WorkspaceLabelsTab`, `WorkspaceSettingsTab`); added to `extractedModules.test.jsx` (Vitest 217 tests / 48 files green).
+
+### Sixth pass (focused tests and static verification)
+Static gate at the end of this pass: Pint, route snapshot (`scripts/route-snapshot.sh --check`), `ClassSizeCeilingTest`, ESLint (0 errors / 123 warnings), Vitest (221 tests / 48 files), and the production build all pass.
+
+Done:
+- **`EmployeeController` brought under ceiling (303 -> 294 lines)**: removed duplicate stacked docblock on `photo()`; removed from `ClassSizeCeilingTest::FROZEN`.
+- **`LeaveRequestDecisions` split (303 -> 227 lines)**: extracted `App\Services\Hrms\Leave\LeaveDecisionLedger` (92 lines) for adjustments and date rebuilds; removed from `ClassSizeCeilingTest::FROZEN`. Guarded by `HrmsLeaveRequestTest` (16 tests) and `HrmsLeaveApprovalRoutingTest` (7 tests).
+- **`OnboardingCases` split (305 -> 272 lines)**: delegated participant and open state verification to `App\Services\Hrms\Lifecycle\CaseProgress`; removed from `ClassSizeCeilingTest::FROZEN`. Guarded by `HrmsLifecycleServiceTest` (19 tests) and `HrmsLifecycleApiTest` (10 tests).
+- **`ExportService` split (315 -> 228 lines)**: extracted `App\Services\Export\ExportCsvWriter` (47 lines) and `App\Services\Export\HrmsExportCategories` (91 lines); removed from `ClassSizeCeilingTest::FROZEN`. Guarded by `TenantExportTest` (8 tests).
+- **`Leave.jsx` component split (698 -> 538 lines)**: extracted tab bodies into `components/hrms/leave/` (`LeaveRequestsTab`, `LeaveTypesTab`, `LeavePoliciesTab`, `LeaveExemptionsTab`); added to `extractedModules.test.jsx` (Vitest 221 tests / 48 files green).
+### Seventh pass (focused tests and static verification)
+Static gate at the end of this pass: Pint, route snapshot (`scripts/route-snapshot.sh --check`), `ClassSizeCeilingTest`, `ArchitectureRatchetTest`, ESLint (0 errors / 123 warnings), Vitest (221 tests / 48 files), and the production build all pass.
+
+Done:
+- **`AssetController` split and inline validation converted (324 -> 229 lines)**: extracted `App\Services\Hrms\Asset\AssetPresenter` (107 lines) and `App\Http\Requests\Hrms\AssetIndexRequest` (27 lines). Removed from `ClassSizeCeilingTest::FROZEN` and removed from `ArchitectureRatchetTest::CONTROLLER_INLINE_VALIDATION`. Guarded by `HrmsAssetApiTest` (6 tests) and `HrmsAssetReplacementTest` (4 tests).
+- **`ExpenseService` split (319 -> 279 lines)**: extracted `App\Services\Hrms\Expense\ExpenseReimbursement` (90 lines). Injected `ExpenseItemRules` and `ExpenseReimbursement`. Removed from `ClassSizeCeilingTest::FROZEN`. Guarded by `HrmsExpenseServiceTest` (9 tests).
+- **`EmployeeService` brought under ceiling (322 -> 291 lines)**: delegated user provisioning and resolution to `App\Services\Hrms\Employee\EmployeeUserProvisioner`; removed from `ClassSizeCeilingTest::FROZEN`. Guarded by `HrmsEmployeeServiceTest` (61 tests).
+- **`PerformanceService` split (322 -> 114 lines)**: extracted `App\Services\Hrms\Performance\PerformanceGoalEvidence` (253 lines) for task-derived goal evidence calculations and queries; removed from `ClassSizeCeilingTest::FROZEN`. Guarded by `HrmsPerformanceEvidenceTest` (6 tests) and `TaskCompletionRulesTest` (2 tests).
+- **`ProjectDetail.jsx` component split (1,068 -> 903 lines)**: extracted `ProjectTasksTab.jsx` (180 lines) and `ProjectSettingsTab.jsx` (104 lines) under `components/project/`; added to `extractedModules.test.jsx`.

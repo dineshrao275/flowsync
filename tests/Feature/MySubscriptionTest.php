@@ -4,10 +4,13 @@ namespace Tests\Feature;
 
 use App\Models\Permission;
 use App\Models\Role;
+use App\Models\Subscription;
 use App\Models\SubscriptionPlan;
 use App\Models\Tenant;
 use App\Models\User;
 use App\Services\SubscriptionService;
+use App\Services\TenantLifecycle;
+use App\Support\TenantProvisioner;
 use Illuminate\Support\Facades\Artisan;
 use Tests\IsolatesDatabase;
 use Tests\TestCase;
@@ -238,5 +241,38 @@ class MySubscriptionTest extends TestCase
 
         $this->getJson('/api/my-subscription')->assertNotFound();
         $this->getJson('/api/my-usage')->assertNotFound();
+    }
+
+    public function test_an_hrms_only_tenant_without_tms_tables_can_read_usage(): void
+    {
+        $tenant = Tenant::create(['slug' => 'hrmsonlyusage', 'name' => 'HRMS Only Usage']);
+        $plan = SubscriptionPlan::where('slug', 'hrms-starter')->firstOrFail();
+        Subscription::create([
+            'tenant_id' => $tenant->id,
+            'product' => $plan->product,
+            'plan_id' => $plan->id,
+            'status' => Subscription::STATUS_ACTIVE,
+            'current_period_start' => now(),
+            'current_period_end' => now()->addMonth(),
+        ]);
+        app(TenantProvisioner::class)->provisionIsolated(
+            $tenant->fresh(),
+            $this->dbm,
+            app(TenantLifecycle::class),
+        );
+
+        $this->connectTenant($tenant->slug);
+        $user = User::where('email', "owner@{$tenant->slug}.test")->firstOrFail();
+        $this->actingAs($user)->withSession(['login.tenant_id' => $tenant->id]);
+
+        $this->getJson('/api/my-usage')
+            ->assertOk()
+            ->assertJsonPath('usage.workspaces', 0)
+            ->assertJsonPath('usage.projects', 0)
+            ->assertJsonPath('usage.tasks', 0)
+            ->assertJsonPath('usage.users', 1)
+            ->assertJsonPath('usage.employees', 0)
+            ->assertJsonPath('limits.users', 25)
+            ->assertJsonPath('limits.employees', 25);
     }
 }

@@ -1,5 +1,6 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
+import api from '../../services/api';
 import { ConfirmProvider, useAlert, useConfirm, usePrompt } from './ConfirmDialog';
 
 function Harness({ options, onResult }) {
@@ -202,6 +203,54 @@ describe('PromptDialog / usePrompt', () => {
 
         const textarea = screen.getByPlaceholderText('Type feedback…');
         expect(textarea.tagName).toBe('TEXTAREA');
+    });
+
+    it('shows mention autocomplete portalled outside modal when typing @ and selects suggestion', async () => {
+        vi.spyOn(api, 'get').mockResolvedValueOnce({
+            data: {
+                members: [
+                    { id: 42, name: 'Adrian Lopez', email: 'adrian@flowsync.test' },
+                ],
+            },
+        });
+
+        const results = mountPrompt({
+            title: 'Edit comment',
+            defaultValue: 'Checking this ticket ',
+            multiline: true,
+            mention: true,
+            projectId: 99,
+            confirmLabel: 'Update',
+        });
+
+        fireEvent.click(screen.getByText('trigger-prompt'));
+        const dialog = await screen.findByRole('dialog');
+        expect(dialog).toBeInTheDocument();
+
+        const textarea = screen.getByRole('textbox');
+        fireEvent.change(textarea, {
+            target: { value: 'Checking this ticket @', selectionStart: 22 },
+        });
+
+        await waitFor(() => {
+            expect(api.get).toHaveBeenCalledWith('/projects/99/members/autocomplete', {
+                params: { q: '' },
+            });
+        });
+
+        const memberOption = await screen.findByText('Adrian Lopez');
+        expect(memberOption).toBeInTheDocument();
+
+        // The suggestions menu should be portalled to body, not trapped inside the dialog role
+        const suggestionItem = screen.getByRole('button', { name: /Adrian Lopez/i });
+        expect(suggestionItem).toBeInTheDocument();
+
+        fireEvent.click(suggestionItem);
+
+        expect(textarea.value).toBe('Checking this ticket @Adrian Lopez ');
+
+        fireEvent.click(screen.getByText('Update'));
+        await waitFor(() => expect(results).toEqual(['Checking this ticket @Adrian Lopez ']));
     });
 
     it('throws when usePrompt is used outside a ConfirmProvider', () => {

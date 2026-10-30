@@ -32,7 +32,7 @@ class ProjectComponentController extends Controller
         $data = $request->validate([
             'name' => ['required', 'string', 'max:255'],
             'description' => ['nullable', 'string'],
-            'lead_user_id' => ['nullable', 'integer'],
+            'lead_user_id' => ['nullable', 'integer', 'exists:users,id'],
         ]);
 
         $component = $this->service->create($project, $data);
@@ -52,7 +52,7 @@ class ProjectComponentController extends Controller
         $data = $request->validate([
             'name' => ['nullable', 'string', 'max:255'],
             'description' => ['nullable', 'string'],
-            'lead_user_id' => ['nullable', 'integer'],
+            'lead_user_id' => ['nullable', 'integer', 'exists:users,id'],
         ]);
 
         $updated = $this->service->update($component, $data);

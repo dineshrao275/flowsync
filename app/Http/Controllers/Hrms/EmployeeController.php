@@ -242,14 +242,6 @@ class EmployeeController extends Controller
      *
      * @param  int  $employee  Tenant-local id, deliberately unbound.
      */
-    /**
-     * The photo, served from its signed link.
-     *
-     * Intentionally outside the auth/tenant groups, like the task attachment
-     * download: the signature is the credential, so a fresh browser tab or an
-     * <img> tag works. Every value it needs therefore arrives inside the signed
-     * query string.
-     */
     public function photo(Request $request, int $employee): StreamedResponse
     {
         $actor = $request->query('actor');

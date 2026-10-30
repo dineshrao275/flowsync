@@ -11,6 +11,18 @@ const modules = {
     OrgPanels: () => import('../components/hrms/OrgPanels'),
     Dashboard: () => import('./Dashboard'),
     DashboardCharts: () => import('../components/dashboard/DashboardCharts'),
+    WorkspaceProjectsTab: () => import('../components/workspace/WorkspaceProjectsTab'),
+    WorkspaceMembersTab: () => import('../components/workspace/WorkspaceMembersTab'),
+    WorkspaceLabelsTab: () => import('../components/workspace/WorkspaceLabelsTab'),
+    WorkspaceSettingsTab: () => import('../components/workspace/WorkspaceSettingsTab'),
+    LeaveRequestsTab: () => import('../components/hrms/leave/LeaveRequestsTab'),
+    LeaveTypesTab: () => import('../components/hrms/leave/LeaveTypesTab'),
+    LeavePoliciesTab: () => import('../components/hrms/leave/LeavePoliciesTab'),
+    LeaveExemptionsTab: () => import('../components/hrms/leave/LeaveExemptionsTab'),
+    ProjectTasksTab: () => import('../components/project/ProjectTasksTab'),
+    ProjectSettingsTab: () => import('../components/project/ProjectSettingsTab'),
+    ComponentsPanel: () => import('../components/project/ComponentsPanel'),
+    VersionsPanel: () => import('../components/project/VersionsPanel'),
 };
 
 describe('split page modules', () => {
@@ -30,5 +42,17 @@ describe('split page modules', () => {
             expect.arrayContaining(['DepartmentPanel', 'CatalogPanel', 'CatalogList']),
         );
         expect(Object.keys(await import('../components/tenant/TenantActions'))).toEqual(expect.arrayContaining(['TenantActions']));
+        expect(Object.keys(await import('../components/workspace/WorkspaceProjectsTab'))).toEqual(expect.arrayContaining(['WorkspaceProjectsTab']));
+        expect(Object.keys(await import('../components/workspace/WorkspaceMembersTab'))).toEqual(expect.arrayContaining(['WorkspaceMembersTab']));
+        expect(Object.keys(await import('../components/workspace/WorkspaceLabelsTab'))).toEqual(expect.arrayContaining(['WorkspaceLabelsTab']));
+        expect(Object.keys(await import('../components/workspace/WorkspaceSettingsTab'))).toEqual(expect.arrayContaining(['WorkspaceSettingsTab']));
+        expect(Object.keys(await import('../components/hrms/leave/LeaveRequestsTab'))).toEqual(expect.arrayContaining(['default']));
+        expect(Object.keys(await import('../components/hrms/leave/LeaveTypesTab'))).toEqual(expect.arrayContaining(['default']));
+        expect(Object.keys(await import('../components/hrms/leave/LeavePoliciesTab'))).toEqual(expect.arrayContaining(['default']));
+        expect(Object.keys(await import('../components/hrms/leave/LeaveExemptionsTab'))).toEqual(expect.arrayContaining(['default']));
+        expect(Object.keys(await import('../components/project/ProjectTasksTab'))).toEqual(expect.arrayContaining(['default']));
+        expect(Object.keys(await import('../components/project/ProjectSettingsTab'))).toEqual(expect.arrayContaining(['default']));
+        expect(Object.keys(await import('../components/project/ComponentsPanel'))).toEqual(expect.arrayContaining(['default']));
+        expect(Object.keys(await import('../components/project/VersionsPanel'))).toEqual(expect.arrayContaining(['default']));
     });
 });

@@ -200,6 +200,7 @@ export default function TaskDetail({
         <Drawer
             open={!!task}
             onClose={handleClose}
+            allowFullscreen
             title={form ? task.title : t('tms.detail.fallbackTitle')}
             subtitle={form ? `${projectKey} · ${task.key}` : ''}
             footer={
@@ -262,8 +263,8 @@ export default function TaskDetail({
                                 required
                             />
 
-                            <div className="grid gap-5 sm:grid-cols-3">
-                                <div className="space-y-4 sm:col-span-2">
+                            <div className="grid gap-6 md:grid-cols-3 min-w-0">
+                                <div className="space-y-4 md:col-span-2 min-w-0">
                                     <div>
                                         <label className="mb-1.5 block text-sm font-medium text-gray-700">{t('tms.detail.description')}</label>
                                         {canEdit ? (
@@ -304,9 +305,9 @@ export default function TaskDetail({
                                         </div>
                                     )}
 
-                                    <div className="rounded-lg border border-gray-100 bg-gray-50/50 p-3.5 space-y-3">
+                                    <div className="rounded-lg border border-gray-100 bg-gray-50/50 p-3.5 space-y-3 min-w-0">
                                         <h4 className="text-xs font-semibold uppercase tracking-wider text-gray-500">{t('tms.detail.datesEffort')}</h4>
-                                        <div className="grid gap-3 sm:grid-cols-2">
+                                        <div className="grid gap-3 sm:grid-cols-2 min-w-0">
                                             <Input
                                                 label={t('tms.detail.startDate')}
                                                 type="date"
@@ -324,7 +325,7 @@ export default function TaskDetail({
                                                 error={errors.due_date}
                                             />
                                         </div>
-                                        <div className="grid gap-3 sm:grid-cols-2">
+                                        <div className="grid gap-3 sm:grid-cols-2 min-w-0">
                                             <Input
                                                 label={t('tms.detail.storyPoints')}
                                                 type="number"
@@ -349,7 +350,7 @@ export default function TaskDetail({
                                     </div>
                                 </div>
 
-                                <aside className="space-y-4">
+                                <aside className="space-y-4 min-w-0">
                                     {options.issue_types?.length > 0 && (
                                         <Select
                                             label={t('tms.detail.issueType')}
@@ -563,7 +564,7 @@ export default function TaskDetail({
                             <CustomFieldInputs fields={cfDefs} values={form.custom_fields || {}} onChange={(v) => set('custom_fields', v)} errors={errors} />
                         </form>
                     ) : (
-                        <div className="px-6 py-5">
+                        <div className="px-6 py-5 min-w-0">
                             {tab === 'comments' && (
                                 <CommentThread
                                     task={task}

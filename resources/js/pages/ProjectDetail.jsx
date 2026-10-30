@@ -4,18 +4,13 @@ import { useTranslation } from 'react-i18next';
 import api, { fieldErrors } from '../services/api';
 import Card from '../components/ui/Card';
 import Badge from '../components/ui/Badge';
-import Spinner from '../components/ui/Spinner';
 import ContentSkeleton from '../components/ui/ContentSkeleton';
 import Alert from '../components/ui/Alert';
 import Button from '../components/ui/Button';
-import Input from '../components/ui/Input';
 import Tabs from '../components/ui/Tabs';
-import Pagination from '../components/ui/Pagination';
 import ColumnSettingsDrawer from '../components/tasks/ColumnSettingsDrawer';
 import ColumnEditModal from '../components/tasks/ColumnEditModal';
 import useBoardPreferences from '../hooks/useBoardPreferences';
-import Icon from '../components/ui/Icon';
-import { Columns } from '@phosphor-icons/react';
 import { useAuth } from '../context/AuthContext';
 import AutomationPanel from '../components/automation/AutomationPanel';
 import SprintsPanel from '../components/sprints/SprintsPanel';
@@ -23,18 +18,11 @@ import HierarchyPanel from '../components/hierarchy/HierarchyPanel';
 import { useToast } from '../context/ToastContext';
 import { useConfirm } from '../components/ui/ConfirmDialog';
 import { useSetCrumbs } from '../context/BreadcrumbContext';
-import KanbanBoard from '../components/tasks/KanbanBoard';
 import { moveCardInBoard } from '../utils/board';
 import { optimistic } from '../utils/optimistic';
 import { onRealtimeReconnect } from '../utils/realtimeAuth';
-import TaskTable from '../components/tasks/TaskTable';
-import RichTextEditor from '../components/ui/RichTextEditor';
 import RichText from '../components/ui/RichText';
-import FiltersBar from '../components/tasks/FiltersBar';
-import CalendarView from '../components/tasks/CalendarView';
-import TimelineView from '../components/tasks/TimelineView';
 import WorkloadPanel from '../components/project/WorkloadPanel';
-import SaveAsTemplate from '../components/project/SaveAsTemplate';
 import DashboardPanel from '../components/project/DashboardPanel';
 import CreateTaskModal from '../components/tasks/CreateTaskModal';
 import TaskDetail from '../components/tasks/TaskDetail';
@@ -44,6 +32,8 @@ import { projectRoleLabel } from '../utils/roles';
 import ProjectOverviewTab from '../components/project/ProjectOverviewTab';
 import ProjectMembersTab from '../components/project/ProjectMembersTab';
 import ProjectWorkflowTab from '../components/project/ProjectWorkflowTab';
+import ProjectTasksTab from '../components/project/ProjectTasksTab';
+import ProjectSettingsTab from '../components/project/ProjectSettingsTab';
 
 const DEFAULT_COLORS = ['#2563eb', '#0ea5e9', '#f59e0b', '#10b981', '#ef4444', '#8b5cf6'];
 
@@ -777,128 +767,40 @@ export default function ProjectDetail() {
             )}
 
             {tab === 'tasks' && (
-                <div className="space-y-5">
-                    <div className="flex flex-wrap items-center gap-3">
-                        <div className="flex items-center gap-3">
-                            <div className="flex rounded-lg border border-gray-300 p-0.5">
-                                <button
-                                    type="button"
-                                    onClick={() => {
-                                        setView('board');
-                                        setPage(1);
-                                    }}
-                                    className={`rounded-md px-3 py-1.5 text-sm font-medium transition ${view === 'board' ? 'bg-[var(--accent)] text-[var(--accent-contrast)]' : 'text-gray-600 hover:bg-gray-100'
-                                        }`}
-                                >
-                                    {t('tms.project.board')}
-                                </button>
-                                <button
-                                    type="button"
-                                    onClick={() => {
-                                        setView('list');
-                                        setPage(1);
-                                    }}
-                                    className={`rounded-md px-3 py-1.5 text-sm font-medium transition ${view === 'list' ? 'bg-[var(--accent)] text-[var(--accent-contrast)]' : 'text-gray-600 hover:bg-gray-100'
-                                        }`}
-                                >
-                                    {t('tms.project.list')}
-                                </button>
-                                <button
-                                    type="button"
-                                    onClick={() => {
-                                        setView('calendar');
-                                        setPage(1);
-                                    }}
-                                    className={`rounded-md px-3 py-1.5 text-sm font-medium transition ${view === 'calendar' ? 'bg-[var(--accent)] text-[var(--accent-contrast)]' : 'text-gray-600 hover:bg-gray-100'
-                                        }`}
-                                >
-                                    {t('tms.calendar.view')}
-                                </button>
-                                <button
-                                    type="button"
-                                    onClick={() => {
-                                        setView('timeline');
-                                        setPage(1);
-                                    }}
-                                    className={`rounded-md px-3 py-1.5 text-sm font-medium transition ${view === 'timeline' ? 'bg-[var(--accent)] text-[var(--accent-contrast)]' : 'text-gray-600 hover:bg-gray-100'
-                                        }`}
-                                >
-                                    {t('tms.timeline.view')}
-                                </button>
-                            </div>
-                            {view === 'board' && (
-                                <select
-                                    value={swimlane}
-                                    onChange={(e) => setSwimlane(e.target.value)}
-                                    className="rounded-lg border border-gray-300 bg-white px-2 py-1.5 text-sm text-gray-600 shadow-sm focus:outline-none"
-                                    title={t('tms.project.swimlaneTitle')}
-                                >
-                                    <option value="none">{t('tms.project.noSwimlanes')}</option>
-                                    <option value="assignee">{t('tms.project.swimlanesByAssignee')}</option>
-                                </select>
-                            )}
-                            {loadingTasks && <Spinner className="h-5 w-5" />}
-                        </div>
-
-                <FiltersBar
+                <ProjectTasksTab
+                    view={view}
+                    setView={setView}
+                    setPage={setPage}
+                    swimlane={swimlane}
+                    setSwimlane={setSwimlane}
+                    loadingTasks={loadingTasks}
                     filters={filters}
-                    options={{ ...taskOptions, sprints: hasModule('sprints'), savedFilters: hasModule('saved_filters'), jql: hasModule('jql') }}
+                    setFilters={setFilters}
+                    taskOptions={taskOptions}
+                    hasModule={hasModule}
                     jqlError={jqlError}
                     projectId={projectId}
-                    canShareFilters={isProjectManager}
-                    onChange={(next) => {
-                        setFilters(next);
-                        setPage(1);
-                    }}
+                    isProjectManager={isProjectManager}
+                    boardPrefs={boardPrefs}
+                    setShowColumns={setShowColumns}
+                    canCreateTask={canCreateTask}
+                    setShowCreate={setShowCreate}
+                    tasksError={tasksError}
+                    board={board}
+                    canMoveTask={canMoveTask}
+                    canEditTask={canEditTask}
+                    openTask={openTask}
+                    handleDragEnd={handleDragEnd}
+                    quickAddTask={quickAddTask}
+                    updateBoardPrefs={updateBoardPrefs}
+                    archived={archived}
+                    setEditingColumn={setEditingColumn}
+                    moveColumn={moveColumn}
+                    removeColumn={removeColumn}
+                    statuses={statuses}
+                    listTasks={listTasks}
+                    pagination={pagination}
                 />
-                        <div className="ml-auto flex items-center gap-2">
-                            {view === 'board' && (
-                                <Button type="button" variant="secondary" onClick={() => setShowColumns(true)}>
-                                    <Icon as={Columns} size="sm" className="mr-1.5" />
-                                    {t('tms.columns.button')}
-                                    {boardPrefs.hidden.length > 0 && (
-                                        <span className="ml-1.5 rounded-full bg-gray-200 px-1.5 text-xs font-semibold text-gray-700">{boardPrefs.hidden.length}</span>
-                                    )}
-                                </Button>
-                            )}
-                            {canCreateTask && (
-                                <Button onClick={() => setShowCreate(true)}>{t('tms.project.newTask')}</Button>
-                            )}
-                        </div>
-                    </div>
-
-                    {tasksError ? (
-                        <Alert>{tasksError}</Alert>
-                    ) : view === 'board' && board ? (
-                        <KanbanBoard
-                            board={board}
-                            canMove={canMoveTask}
-                            canEdit={canEditTask}
-                            canCreate={canCreateTask}
-                            onOpen={openTask}
-                            onDragEnd={handleDragEnd}
-                            onQuickAdd={quickAddTask}
-                            prefs={{ ...boardPrefs, save: updateBoardPrefs }}
-                            manage={isProjectManager && !archived ? { onEdit: setEditingColumn, onMove: moveColumn, onDelete: removeColumn, order: statuses.map((s) => s.id) } : null}
-                        />
-                    ) : view === 'timeline' ? (
-                        <TimelineView projectId={projectId} filters={filters} onOpen={openTask} />
-                    ) : view === 'calendar' ? (
-                        <CalendarView projectId={projectId} filters={filters} canEdit={canEditTask} onOpen={openTask} />
-                    ) : view === 'list' ? (
-                        <div className="space-y-3">
-                            <TaskTable tasks={listTasks} canEdit={canEditTask} onOpen={openTask} />
-                            {pagination && (
-                                <Pagination
-                                    page={pagination.current_page}
-                                    pages={pagination.last_page}
-                                    total={pagination.total}
-                                    onChange={setPage}
-                                />
-                            )}
-                        </div>
-                    ) : null}
-                </div>
             )}
 
             {tab === 'members' && (
@@ -934,18 +836,19 @@ export default function ProjectDetail() {
             )}
 
             {tab === 'settings' && isProjectManager && (
-                <Card title={t('tms.project.settingsTitle')} subtitle={t('tms.project.settingsSubtitle', { key: project.key })}>
-                    <SettingsForm
-                        project={project}
-                        settingsDates={settingsDates}
-                        onDatesChange={setSettingsDates}
-                        formErrors={formErrors}
-                        updating={updating}
-                        updateProject={updateProject}
-                        deleteProject={deleteProject}
-                    />
-                    {hasModule('project_templates') && <SaveAsTemplate projectId={projectId} defaultName={project.name} />}
-                </Card>
+                <ProjectSettingsTab
+                    project={project}
+                    settingsDates={settingsDates}
+                    onDatesChange={setSettingsDates}
+                    formErrors={formErrors}
+                    updating={updating}
+                    updateProject={updateProject}
+                    deleteProject={deleteProject}
+                    hasModule={hasModule}
+                    projectId={projectId}
+                    members={members}
+                    canManage={isProjectManager && !archived}
+                />
             )}
 
             <ColumnSettingsDrawer
@@ -998,70 +901,5 @@ export default function ProjectDetail() {
                 />
             )}
         </div>
-    );
-}
-/**
- * Project settings form: name/description stay uncontrolled (read on
- * submit, exactly as before) while the two dates are controlled through
- * the shared calendar Input — which has no uncontrolled mode. Dates fall
- * back to the loaded project until typed, and reset on project switch
- * (settingsDates null) and after a successful save.
- */
-function SettingsForm({ project, settingsDates, onDatesChange, formErrors, updating, updateProject, deleteProject }) {
-    const { t } = useTranslation();
-    const dates = settingsDates ?? { start_date: project.start_date ?? '', due_date: project.due_date ?? '' };
-    // Editor-controlled description (the form remounts per project, and a
-    // same-id refetch after save already matches what was typed).
-    const [description, setDescription] = useState(project.description ?? '');
-
-    return (
-        <form
-            className="space-y-4"
-            onSubmit={(e) => {
-                e.preventDefault();
-                updateProject({
-                    name: e.currentTarget.name.value,
-                    description: description || undefined,
-                    start_date: dates.start_date || null,
-                    due_date: dates.due_date || null,
-                });
-            }}
-        >
-            {formErrors.form && <Alert>{formErrors.form}</Alert>}
-            <Input label={t('tms.project.settingsName')} name="name" defaultValue={project.name} error={formErrors.name} required />
-            <div>
-                <label className="mb-1.5 block text-sm font-medium text-gray-700">{t('tms.project.settingsDesc')}</label>
-                <RichTextEditor
-                    value={description}
-                    onChange={setDescription}
-                    placeholder={t('tms.project.settingsDescPlaceholder')}
-                    error={formErrors.description}
-                />
-            </div>
-            <div className="grid gap-4 sm:grid-cols-2">
-                <Input
-                    label={t('tms.project.settingsStart')}
-                    type="date"
-                    value={dates.start_date}
-                    onChange={(e) => onDatesChange({ ...dates, start_date: e.target.value })}
-                    error={formErrors.start_date}
-                />
-                <Input
-                    label={t('tms.project.settingsEnd')}
-                    type="date"
-                    value={dates.due_date}
-                    onChange={(e) => onDatesChange({ ...dates, due_date: e.target.value })}
-                    error={formErrors.due_date}
-                />
-            </div>
-            <div className="flex gap-2">
-                <Button type="submit" loading={updating}>
-                    {t('tms.project.save')}
-                </Button>
-                <Button type="button" variant="danger" onClick={deleteProject}>
-                    {t('tms.project.deleteProject')}
-                </Button>
-            </div>
-        </form>
     );
 }

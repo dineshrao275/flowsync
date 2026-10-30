@@ -71,7 +71,8 @@ if [[ "${RUN_INIT:-false}" == "true" ]]; then
 
     if [[ "${user_count}" == "0" || "${user_count}" == "-1" ]]; then
         echo "== seeding demo data =="
-        php artisan db:seed --force --no-interaction
+        # SEEDER_CLASS lets production seed only platform data (no demo tenants or default passwords).
+        php artisan db:seed --force --no-interaction --class="${SEEDER_CLASS:-Database\Seeders\DatabaseSeeder}"
         echo "== seed complete =="
     else
         echo "== users already exist — skipping seed =="

@@ -5,6 +5,7 @@ import api from '../../services/api';
 import { taskUrl } from '../../utils/deepLinks';
 import ContentSkeleton from '../ui/ContentSkeleton';
 import EmptyState from '../ui/EmptyState';
+import TaskBadge from '../ui/TaskBadge';
 
 /**
  * The profile's Tasks tab: this person's linked work with status pills
@@ -36,12 +37,15 @@ export default function EmployeeTasks({ employeeId }) {
         <ul className="divide-y divide-gray-100">
             {tasks.map((task) => (
                 <li key={`${task.id}-${task.link?.id ?? 'none'}`} className="flex flex-wrap items-center gap-x-3 gap-y-1 py-2.5">
-                    <Link
-                        to={taskUrl(task.project?.id, task.key)}
-                        className="text-sm font-medium text-[var(--accent-soft-text)] hover:text-[var(--accent)]"
-                    >
-                        {task.key} · {task.title}
-                    </Link>
+                    <div className="flex items-center gap-2 min-w-0">
+                        <TaskBadge taskKey={task.key} taskId={task.id} projectId={task.project?.id} />
+                        <Link
+                            to={taskUrl(task.project?.id, task.key)}
+                            className="truncate text-sm font-medium text-gray-800 hover:text-[var(--accent)]"
+                        >
+                            {task.title}
+                        </Link>
+                    </div>
                     {task.status && (
                         <span
                             className="rounded-full px-2 py-0.5 text-xs font-medium"

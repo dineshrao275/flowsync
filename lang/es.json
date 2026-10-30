@@ -161,6 +161,7 @@
     "Configuration deleted.": "Configuración eliminada.",
     "Configuration updated.": "Configuración actualizada.",
     "Converting checklist items needs both products.": "Convertir elementos de la lista de verificación requiere ambos productos.",
+    "Task linking is only available when both HRMS and TMS are active.": "La vinculación de tareas solo está disponible cuando HRMS y TMS están activos.",
     "Correction approved and applied.": "Corrección aprobada y aplicada.",
     "Correction rejected.": "Corrección rechazada.",
     "Correction requested.": "Corrección solicitada.",

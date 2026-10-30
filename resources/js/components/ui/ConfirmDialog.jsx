@@ -1,7 +1,11 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { useTranslation } from 'react-i18next';
 import Modal from './Modal';
 import Button from './Button';
+import Avatar from './Avatar';
+import api from '../../services/api';
+import { caretRect } from '../../utils/caret';
 
 /**
  * Promise-based dialog system, the sanctioned replacement for raw
@@ -104,16 +108,33 @@ export function PromptDialog({
     required = false,
     onConfirm,
     onCancel,
+    mention = false,
+    projectId = null,
 }) {
     const { t } = useTranslation();
     const [val, setVal] = useState(defaultValue);
     const [touched, setTouched] = useState(false);
     const inputRef = useRef(null);
 
+    const [sugField, setSugField] = useState(null);
+    const [suggestions, setSuggestions] = useState([]);
+    const [sugActive, setSugActive] = useState(0);
+    const [sugPos, setSugPos] = useState({ top: 0, left: 0, width: 280 });
+    const [sugText, setSugText] = useState({ value: '', at: 0, caret: 0 });
+    const sugAnchor = useRef(null);
+    const sugMenuRef = useRef(null);
+    const debounceRef = useRef(null);
+
+    const closeSuggestions = useCallback(() => {
+        setSugField(null);
+        setSuggestions([]);
+    }, []);
+
     useEffect(() => {
         setVal(defaultValue);
         setTouched(false);
-    }, [defaultValue, open]);
+        closeSuggestions();
+    }, [defaultValue, open, closeSuggestions]);
 
     useEffect(() => {
         if (!open) return undefined;
@@ -126,17 +147,152 @@ export function PromptDialog({
         return () => clearTimeout(timer);
     }, [open]);
 
+    useEffect(() => () => clearTimeout(debounceRef.current), []);
+
     const isInvalid = required && !val.trim();
+
+    const openSuggestions = (el, value, caret) => {
+        if (!mention || !projectId) {
+            closeSuggestions();
+            return;
+        }
+        const before = value.slice(0, caret);
+        const at = before.lastIndexOf('@');
+        if (at === -1 || /\s/.test(before.slice(at + 1))) {
+            closeSuggestions();
+            return;
+        }
+
+        const query = before.slice(at + 1, caret);
+        const box = el?.getBoundingClientRect?.() || { left: 8, top: 0, bottom: 0 };
+        const caretAt = caretRect(el, at);
+        const safeLeft = Number.isFinite(caretAt?.left) ? caretAt.left : box.left;
+        const safeBottom = Number.isFinite(caretAt?.bottom) ? caretAt.bottom : (box.bottom || 0);
+        const safeTop = Number.isFinite(caretAt?.top) ? caretAt.top : (box.top || 0);
+        const width = Math.min(300, window.innerWidth - 16);
+        const rowsHeight = 200;
+        const left = Math.max(8, Math.min(safeLeft, window.innerWidth - width - 8));
+        let top = safeBottom + 4;
+        if (top + rowsHeight > window.innerHeight && safeTop - rowsHeight - 4 > 0) {
+            top = safeTop - rowsHeight - 4;
+        }
+
+        setSugPos({ top, left, width });
+        setSugField('prompt');
+        setSugActive(0);
+        setSugText({ value, at, caret });
+        sugAnchor.current = el;
+
+        clearTimeout(debounceRef.current);
+        debounceRef.current = setTimeout(() => {
+            api.get(`/projects/${projectId}/members/autocomplete`, { params: { q: query } })
+                .then(({ data }) => {
+                    setSuggestions(data.members || []);
+                })
+                .catch(() => {
+                    setSuggestions([]);
+                });
+        }, 200);
+    };
+
+    useEffect(() => {
+        if (!sugField || !sugAnchor.current) return undefined;
+
+        function updatePosition() {
+            if (!sugAnchor.current) return;
+            const el = sugAnchor.current;
+            const box = el.getBoundingClientRect();
+            const caretAt = caretRect(el, sugText.at);
+            const safeLeft = Number.isFinite(caretAt?.left) ? caretAt.left : box.left;
+            const safeBottom = Number.isFinite(caretAt?.bottom) ? caretAt.bottom : (box.bottom || 0);
+            const safeTop = Number.isFinite(caretAt?.top) ? caretAt.top : (box.top || 0);
+            const width = Math.min(300, window.innerWidth - 16);
+            const rowsHeight = 200;
+            const left = Math.max(8, Math.min(safeLeft, window.innerWidth - width - 8));
+            let top = safeBottom + 4;
+            if (top + rowsHeight > window.innerHeight && safeTop - rowsHeight - 4 > 0) {
+                top = safeTop - rowsHeight - 4;
+            }
+            setSugPos({ top, left, width });
+        }
+
+        window.addEventListener('scroll', updatePosition, true);
+        window.addEventListener('resize', updatePosition);
+        return () => {
+            window.removeEventListener('scroll', updatePosition, true);
+            window.removeEventListener('resize', updatePosition);
+        };
+    }, [sugField, sugText.at]);
+
+    useEffect(() => {
+        if (!sugField) return undefined;
+        function handleOutsideClick(e) {
+            if (sugMenuRef.current?.contains(e.target) || sugAnchor.current?.contains(e.target)) {
+                return;
+            }
+            closeSuggestions();
+        }
+        document.addEventListener('mousedown', handleOutsideClick);
+        return () => document.removeEventListener('mousedown', handleOutsideClick);
+    }, [sugField, closeSuggestions]);
+
+    const handleTyping = (e) => {
+        const value = e.target.value;
+        const caret = e.target.selectionStart;
+        setVal(value);
+        openSuggestions(e.currentTarget, value, caret);
+    };
+
+    const selectSuggestion = (member) => {
+        const { value, at, caret } = sugText;
+        const next = `${value.slice(0, at)}@${member.name} ${value.slice(caret)}`;
+        setVal(next);
+        closeSuggestions();
+        requestAnimationFrame(() => {
+            const el = inputRef.current;
+            if (el) {
+                el.focus();
+                const pos = at + member.name.length + 2;
+                el.setSelectionRange(pos, pos);
+            }
+        });
+    };
+
+    const handleKeyDown = (e) => {
+        if (!sugField || suggestions.length === 0) {
+            if (e.key === 'Escape') closeSuggestions();
+            return;
+        }
+
+        if (e.key === 'ArrowDown') {
+            e.preventDefault();
+            setSugActive((i) => (i + 1) % suggestions.length);
+        } else if (e.key === 'ArrowUp') {
+            e.preventDefault();
+            setSugActive((i) => (i - 1 + suggestions.length) % suggestions.length);
+        } else if (e.key === 'Enter' || e.key === 'Tab') {
+            e.preventDefault();
+            selectSuggestion(suggestions[sugActive]);
+        } else if (e.key === 'Escape') {
+            closeSuggestions();
+        }
+    };
 
     const handleSubmit = (e) => {
         if (e) e.preventDefault();
         setTouched(true);
         if (isInvalid) return;
+        closeSuggestions();
         onConfirm(val);
     };
 
+    const handleCancel = () => {
+        closeSuggestions();
+        onCancel();
+    };
+
     return (
-        <Modal open={open} onClose={onCancel} title={title ?? t('admin.dialog.inputRequired')} size="sm">
+        <Modal open={open} onClose={handleCancel} title={title ?? t('admin.dialog.inputRequired')} size="sm">
             <form onSubmit={handleSubmit}>
                 <div className="px-6 py-5">
                     <div className="flex items-start gap-3.5">
@@ -147,25 +303,29 @@ export function PromptDialog({
                                     {message}
                                 </p>
                             )}
-                            {multiline ? (
-                                <textarea
-                                    ref={inputRef}
-                                    rows={3}
-                                    value={val}
-                                    placeholder={placeholder}
-                                    onChange={(e) => setVal(e.target.value)}
-                                    className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 shadow-sm focus:border-[var(--accent)] focus:outline-none"
-                                />
-                            ) : (
-                                <input
-                                    ref={inputRef}
-                                    type="text"
-                                    value={val}
-                                    placeholder={placeholder}
-                                    onChange={(e) => setVal(e.target.value)}
-                                    className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 shadow-sm focus:border-[var(--accent)] focus:outline-none"
-                                />
-                            )}
+                            <div className="relative">
+                                {multiline ? (
+                                    <textarea
+                                        ref={inputRef}
+                                        rows={3}
+                                        value={val}
+                                        placeholder={placeholder}
+                                        onChange={handleTyping}
+                                        onKeyDown={handleKeyDown}
+                                        className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 shadow-sm focus:border-[var(--accent)] focus:outline-none"
+                                    />
+                                ) : (
+                                    <input
+                                        ref={inputRef}
+                                        type="text"
+                                        value={val}
+                                        placeholder={placeholder}
+                                        onChange={handleTyping}
+                                        onKeyDown={handleKeyDown}
+                                        className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 shadow-sm focus:border-[var(--accent)] focus:outline-none"
+                                    />
+                                )}
+                            </div>
                             {touched && isInvalid && (
                                 <p className="text-xs text-red-600">{t('admin.dialog.required')}</p>
                             )}
@@ -173,7 +333,7 @@ export function PromptDialog({
                     </div>
                 </div>
                 <div className="flex justify-end gap-2 border-t border-gray-100 px-6 py-4">
-                    <Button type="button" variant="secondary" onClick={onCancel}>
+                    <Button type="button" variant="secondary" onClick={handleCancel}>
                         {cancelLabel ?? t('admin.common.cancel')}
                     </Button>
                     <Button type="submit" variant={variant} disabled={required && !val.trim()}>
@@ -181,6 +341,33 @@ export function PromptDialog({
                     </Button>
                 </div>
             </form>
+            {mention && sugField && suggestions.length > 0 && createPortal(
+                <div
+                    ref={sugMenuRef}
+                    className="fixed z-[9999] max-h-56 overflow-auto rounded-lg border border-gray-200 bg-white py-1 shadow-popover"
+                    style={{ top: sugPos.top, left: sugPos.left, width: sugPos.width }}
+                >
+                    {suggestions.map((member, index) => (
+                        <button
+                            type="button"
+                            key={member.id}
+                            className={`flex w-full items-center gap-2 px-3 py-1.5 text-left text-sm ${
+                                index === sugActive ? 'bg-[var(--accent-soft)]' : 'hover:bg-gray-50'
+                            }`}
+                            onMouseDown={(e) => e.preventDefault()}
+                            onMouseEnter={() => setSugActive(index)}
+                            onClick={() => selectSuggestion(member)}
+                        >
+                            <Avatar name={member.name} photoUrl={member.photo_url} size="sm" />
+                            <span className="min-w-0">
+                                <span className="block truncate font-medium text-gray-800">{member.name}</span>
+                                <span className="block truncate text-xs text-gray-400">{member.email}</span>
+                            </span>
+                        </button>
+                    ))}
+                </div>,
+                document.body,
+            )}
         </Modal>
     );
 }
@@ -253,6 +440,8 @@ export function ConfirmProvider({ children }) {
                 variant: opts.variant ?? 'primary',
                 multiline: opts.multiline ?? false,
                 required: opts.required ?? false,
+                mention: opts.mention ?? false,
+                projectId: opts.projectId ?? null,
             });
         });
     }, [t]);

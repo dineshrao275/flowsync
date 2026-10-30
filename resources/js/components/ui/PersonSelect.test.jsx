@@ -29,4 +29,25 @@ describe('PersonSelect', () => {
         fireEvent.click(screen.getByRole('button', { name: /change/i }));
         expect(onChange).toHaveBeenCalledWith({ target: { value: '' } });
     });
+
+    it('renders dropdown with z-[9999] so it sits above modals', () => {
+        render(<PersonSelect people={people} value="" onChange={() => {}} />);
+        const input = screen.getByRole('combobox');
+        fireEvent.focus(input);
+        const listbox = screen.getByRole('listbox');
+        expect(listbox.className).toContain('z-[9999]');
+    });
+
+    it('renders all employees in large lists beyond previous 8-item cap', () => {
+        const largeList = Array.from({ length: 50 }, (_, i) => ({
+            id: i + 1,
+            name: `Employee ${i + 1}`,
+            email: `emp${i + 1}@test.com`,
+        }));
+        render(<PersonSelect people={largeList} value="" onChange={() => {}} />);
+        const input = screen.getByRole('combobox');
+        fireEvent.focus(input);
+        const options = screen.getAllByRole('option');
+        expect(options.length).toBe(50);
+    });
 });

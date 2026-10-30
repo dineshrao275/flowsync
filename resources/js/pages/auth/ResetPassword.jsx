@@ -4,6 +4,8 @@ import { useTranslation } from 'react-i18next';
 import api, { fieldErrors } from '../../services/api';
 import Button from '../../components/ui/Button';
 import Input from '../../components/ui/Input';
+import PasswordInput from '../../components/ui/PasswordInput';
+import PasswordMatchHint from '../../components/ui/PasswordMatchHint';
 import Alert from '../../components/ui/Alert';
 import AuthShell from '../../components/ui/AuthShell';
 import useErrorFocus from '../../hooks/useErrorFocus';
@@ -32,8 +34,21 @@ export default function ResetPassword() {
         setForm((current) => ({ ...current, [field]: value }));
     }
 
+    function clearPasswordConfirmationError() {
+        setErrors((current) => {
+            if (!current.password_confirmation) return current;
+            const next = { ...current };
+            delete next.password_confirmation;
+            return next;
+        });
+    }
+
     async function handleSubmit(e) {
         e.preventDefault();
+        if (form.password !== form.password_confirmation) {
+            setErrors({ password_confirmation: t('ui.passwordsMismatch') });
+            return;
+        }
         setSubmitting(true);
         setErrors({});
 
@@ -69,28 +84,33 @@ export default function ResetPassword() {
                     onChange={(e) => update('email', e.target.value)}
                     error={errors.email}
                 />
-                <Input
+                <PasswordInput
                     label={t('auth.reset.newPassword')}
                     name="password"
-                    type="password"
                     autoComplete="new-password"
                     required
                     placeholder={t('auth.reset.newPasswordPlaceholder')}
                     value={form.password}
-                    onChange={(e) => update('password', e.target.value)}
+                    onChange={(e) => {
+                        update('password', e.target.value);
+                        clearPasswordConfirmationError();
+                    }}
                     error={errors.password}
                 />
-                <Input
+                <PasswordInput
                     label={t('auth.reset.confirmPassword')}
                     name="password_confirmation"
-                    type="password"
                     autoComplete="new-password"
                     required
                     placeholder={t('auth.reset.confirmPlaceholder')}
                     value={form.password_confirmation}
-                    onChange={(e) => update('password_confirmation', e.target.value)}
+                    onChange={(e) => {
+                        update('password_confirmation', e.target.value);
+                        clearPasswordConfirmationError();
+                    }}
                     error={errors.password_confirmation}
                 />
+                <PasswordMatchHint password={form.password} confirmation={form.password_confirmation} />
                 <Button type="submit" className="w-full" loading={submitting}>
                     {t('auth.reset.resetPassword')}
                 </Button>

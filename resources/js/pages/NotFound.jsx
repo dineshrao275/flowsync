@@ -1,9 +1,12 @@
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
+import { useAuth } from '../context/AuthContext';
 import usePageTitle from '../hooks/usePageTitle';
+import { homeRouteFor } from '../utils/deepLinks';
 
 export default function NotFound() {
     const { t } = useTranslation();
+    const { user } = useAuth();
     usePageTitle(t('admin.notFound.pageTitle'));
     return (
         <div className="flex min-h-screen items-center justify-center bg-gray-100 px-4">
@@ -14,10 +17,10 @@ export default function NotFound() {
                     {t('admin.notFound.body')}
                 </p>
                 <Link
-                    to="/dashboard"
+                    to={homeRouteFor(user)}
                     className="mt-6 inline-block rounded-lg bg-[var(--accent)] px-4 py-2.5 text-sm font-medium text-[var(--accent-contrast)] transition hover:bg-[var(--accent-hover)]"
                 >
-                    {t('admin.common.backToDashboard')}
+                    {t('admin.common.backToHome')}
                 </Link>
             </div>
         </div>

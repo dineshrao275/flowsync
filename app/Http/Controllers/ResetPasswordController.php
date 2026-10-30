@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Http\Controllers;
 
 use App\Http\Requests\ResetPasswordRequest;
+use App\Models\SystemUser;
 use App\Models\TenantUserRouting;
 use App\Models\User;
 use App\Support\TenantDatabaseManager;
@@ -17,6 +18,14 @@ class ResetPasswordController extends Controller
     public function update(ResetPasswordRequest $request): JsonResponse
     {
         $email = Str::lower(trim((string) $request->input('email')));
+
+        if (SystemUser::where('email', $email)->where('is_super_admin', true)->exists()) {
+            return response()->json([
+                'message' => __('passwords.user'),
+                'status' => Password::INVALID_USER,
+            ], 422);
+        }
+
         $routes = TenantUserRouting::where('email', $email)->with('tenant')->get();
 
         if ($tenantSlug = $request->input('tenant')) {

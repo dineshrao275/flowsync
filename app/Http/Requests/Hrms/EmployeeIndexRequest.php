@@ -44,7 +44,7 @@ class EmployeeIndexRequest extends FormRequest
             'cf' => ['sometimes', 'nullable', 'array', 'max:20'],
             'sort' => ['sometimes', 'nullable', 'string', 'max:32'],
             'dir' => ['sometimes', 'nullable', 'in:asc,desc'],
-            'per_page' => ['sometimes', 'nullable', 'integer', 'min:1', 'max:100'],
+            'per_page' => ['sometimes', 'nullable', 'integer', 'min:1', 'max:500'],
         ];
     }
 

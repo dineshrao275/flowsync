@@ -68,6 +68,7 @@ class TaskColumnOrder
 
     public function nextPosition(TaskStatus $status): int
     {
-        return $status->tasks()->max('position') + 1;
+        // `position` is a decimal column, so max() comes back as float/numeric string; strict_types rejects it as int.
+        return (int) $status->tasks()->max('position') + 1;
     }
 }

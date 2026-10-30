@@ -178,6 +178,27 @@ class StripeCatalogSyncTest extends TestCase
         Bus::assertDispatched(SyncPlanToStripe::class, fn ($job) => $job->plan->id === $created->json('plan.id'));
     }
 
+    public function test_the_manual_resync_button_syncs_one_plan_for_the_super_admin_only(): void
+    {
+        // Found by the form audit: POST /api/plans/{plan}/sync had no HTTP-level test at all.
+        $this->fakeStripe();
+        $plan = $this->plan('pro');
+
+        $this->loginAdmin();
+        $this->postJson("/api/plans/{$plan->id}/sync")->assertForbidden();
+        $this->postJson('/api/auth/logout');
+
+        $this->loginSuperAdmin();
+        $this->postJson("/api/plans/{$plan->id}/sync")->assertOk()->assertJsonPath('message', 'Plan synchronised with Stripe.');
+        $this->assertSame('prod_1', $plan->fresh()->stripe_product_id);
+        $this->assertSame('price_1', $plan->fresh()->stripe_price_id);
+
+        // Without Stripe credentials the button explains itself instead of failing.
+        config(['payments.gateways.stripe.secret' => '']);
+        $this->app->forgetInstance(CatalogSync::class);
+        $this->postJson("/api/plans/{$plan->id}/sync")->assertStatus(422);
+    }
+
     public function test_deleting_a_plan_archives_what_it_left_at_stripe(): void
     {
         Bus::fake([SyncPlanToStripe::class, ArchiveStripePlan::class]);

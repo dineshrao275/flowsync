@@ -1,0 +1,117 @@
+# FlowSync production stack for a single EC2 host (see deploy/aws/README.md).
+#
+#   proxy     Caddy on :80 -> app (HTTP) and reverb (WebSocket, /app/*)
+#   app       Laravel + built SPA (artisan serve); first boot migrates, provisions, seeds platform data
+#   queue     queue:work (database driver)
+#   reverb    WebSocket server (not published; only the proxy reaches it)
+#   scheduler schedule:work (fires everything in routes/console.php)
+#   db        PostgreSQL 17 on a named volume (the EBS data disk)
+#
+# Only port 80 is published. Secrets live in .env.production on the host, never in this file.
+# VITE_* values are baked into the JS bundle at build time, so they come from build args.
+
+x-app: &app
+  image: flowsync:prod
+  env_file: .env.production
+  restart: unless-stopped
+  logging:
+    driver: json-file
+    options: { max-size: "20m", max-file: "5" }
+
+services:
+  db:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: flowsync_system
+      POSTGRES_USER: flowsync
+      POSTGRES_PASSWORD: ${DB_PASSWORD:?set DB_PASSWORD}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ../../docker/postgres-init.sql:/docker-entrypoint-initdb.d/01-init.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U flowsync -d flowsync_system"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 10s
+    logging:
+      driver: json-file
+      options: { max-size: "20m", max-file: "3" }
+
+  app:
+    <<: *app
+    build:
+      context: ../..
+      dockerfile: Dockerfile
+      args:
+        VITE_APP_NAME: "FlowSync"
+        VITE_REVERB_APP_KEY: ${REVERB_APP_KEY:?set REVERB_APP_KEY}
+        VITE_REVERB_HOST: ${PUBLIC_HOST:?set PUBLIC_HOST}
+        VITE_REVERB_PORT: "80"
+        VITE_REVERB_SCHEME: "http"
+    environment:
+      RUN_INIT: "true"
+      SEEDER_CLASS: Database\Seeders\ProductionSeeder
+      PHP_CLI_SERVER_WORKERS: "8"
+    command: ["php", "artisan", "serve", "--host=0.0.0.0", "--port=8000", "--no-reload"]
+    depends_on:
+      db:
+        condition: service_healthy
+    volumes:
+      - storage:/app/storage/app
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://localhost:8000/up || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 20
+      start_period: 90s
+
+  queue:
+    <<: *app
+    environment:
+      RUN_INIT: "false"
+    command: ["php", "artisan", "queue:work", "database", "--tries=3", "--backoff=3", "--sleep=1", "--max-time=3600"]
+    depends_on:
+      app:
+        condition: service_healthy
+    volumes:
+      - storage:/app/storage/app
+
+  reverb:
+    <<: *app
+    environment:
+      RUN_INIT: "false"
+    command: ["php", "artisan", "reverb:start", "--host=0.0.0.0", "--port=8080", "--no-interaction"]
+    depends_on:
+      app:
+        condition: service_healthy
+
+  scheduler:
+    <<: *app
+    environment:
+      RUN_INIT: "false"
+    command: ["php", "artisan", "schedule:work"]
+    depends_on:
+      app:
+        condition: service_healthy
+    volumes:
+      - storage:/app/storage/app
+
+  proxy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    ports:
+      - "80:80"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+    depends_on:
+      app:
+        condition: service_healthy
+    logging:
+      driver: json-file
+      options: { max-size: "20m", max-file: "3" }
+
+volumes:
+  pgdata:
+  storage:

@@ -24,7 +24,7 @@ export default function Modal({ open, onClose, title, subtitle, size = 'md', chi
     // block/stacking context that would otherwise trap a nested `fixed` modal.
     return createPortal(
         <div
-            className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-gray-900/40 p-0 animate-backdrop-in sm:p-6"
+            className="fixed inset-0 z-[100] flex items-start justify-center overflow-y-auto bg-gray-900/40 p-0 animate-backdrop-in sm:p-6"
             onMouseDown={(e) => { pressedBackdrop.current = e.target === e.currentTarget; }}
             onClick={(e) => {
                 if (pressedBackdrop.current && e.target === e.currentTarget) onClose?.();

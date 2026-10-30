@@ -4,7 +4,8 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { gsap } from 'gsap';
 import { CalendarBlank, CheckCircle, ClipboardText, ClockCountdown, Lightning, Stack } from '@phosphor-icons/react';
-import { projectUrl } from '../utils/deepLinks';
+import { taskUrl } from '../utils/deepLinks';
+import TaskBadge from '../components/ui/TaskBadge';
 import api from '../services/api';
 import Card from '../components/ui/Card';
 import EmptyState from '../components/ui/EmptyState';
@@ -20,22 +21,23 @@ import Timestamp from '../components/ui/Timestamp';
 import { formatHours, ProjectProgressChart, HoursLoggedChart, TasksCreatedChart } from '../components/dashboard/DashboardCharts';
 
 function TaskRow({ task, dateLabel = null }) {
+    const to = taskUrl(task.project.id, task.key);
     return (
-        <Link
-            to={projectUrl(task.project.id, 'tasks')}
-            className="flex items-start gap-3 rounded-lg px-2 py-2 transition hover:bg-gray-50"
-        >
+        <div className="flex items-start gap-3 rounded-lg px-2 py-2 transition hover:bg-gray-50">
             <span
                 className="mt-1.5 h-2.5 w-2.5 shrink-0 rounded-full"
                 style={{ backgroundColor: task.priority?.color || '#94a3b8' }}
             />
             <span className="min-w-0 flex-1">
-                <span className="block truncate text-sm font-medium text-gray-800">
-                    <span className="text-gray-400">{task.key}</span> · {task.title}
+                <span className="flex items-center gap-2 truncate text-sm font-medium text-gray-800">
+                    <TaskBadge taskKey={task.key} projectId={task.project.id} />
+                    <Link to={to} className="truncate hover:text-[var(--accent)] hover:underline">
+                        {task.title}
+                    </Link>
                 </span>
                 <span className="mt-0.5 block text-xs text-gray-400">{dateLabel}</span>
             </span>
-        </Link>
+        </div>
     );
 }
 

@@ -80,6 +80,36 @@ class EmployeeUserProvisioner
     }
 
     /**
+     * Resolve an existing or newly provisioned account for an employee record.
+     *
+     * @param  array<string, mixed>  $data
+     */
+    public function resolve(array $data): ?User
+    {
+        if (! empty($data['user_id'])) {
+            return User::findOrFail((int) $data['user_id']);
+        }
+
+        if (empty($data['email'])) {
+            return null;
+        }
+
+        // The login is NOT inside the employee row's transaction, despite the
+        // two being written one after the other. `users` is in the tenant
+        // database and `tenant_users` routing is central, so the pair spans two
+        // connections and no transaction covers both; `retrying()` only wraps the
+        // employee insert. `TenantProvisioner::syncRouting()` reconciles a
+        // routing row that went missing, which is what makes writing the
+        // routing row first safe enough to do at all.
+        return $this->create([
+            'name' => $data['name'] ?? '',
+            'email' => (string) $data['email'],
+            'password' => (string) ($data['password'] ?? ''),
+            'roles' => (array) ($data['roles'] ?? []),
+        ]);
+    }
+
+    /**
      * Whether this address is already in use inside the tenant.
      *
      * Public so the employee form can check before submitting rather than

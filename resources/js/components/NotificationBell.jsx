@@ -10,6 +10,8 @@ import { useClickOutside } from '../hooks/useClickOutside';
 import { describeNotification, notificationHref } from '../utils/notifications';
 import Avatar from './ui/Avatar';
 import Timestamp from './ui/Timestamp';
+import UserTooltip from './ui/UserTooltip';
+import HighlightedContent from './ui/HighlightedContent';
 
 export default function NotificationBell() {
     const { t } = useTranslation();
@@ -133,18 +135,23 @@ export default function NotificationBell() {
                                                         <Users size={16} aria-hidden="true" />
                                                     </span>
                                                 ) : (
-                                                    <Avatar name={notification.actor?.name} size="md" />
+                                                    <UserTooltip user={notification.actor} name={notification.actor?.name}>
+                                                        <Avatar name={notification.actor?.name} size="md" />
+                                                    </UserTooltip>
                                                 )}
                                             </span>
                                             <span className="min-w-0 flex-1">
-                                                <span className="block text-sm text-gray-800">
-                                                    {describeNotification(
-                                                        t,
-                                                        notification.type,
-                                                        notification.data ?? {},
-                                                        notification.actor?.name ?? null,
-                                                    )}
-                                                </span>
+                                                <div className="text-sm text-gray-800">
+                                                    <HighlightedContent
+                                                        content={describeNotification(
+                                                            t,
+                                                            notification.type,
+                                                            notification.data ?? {},
+                                                            notification.actor?.name ?? null,
+                                                        )}
+                                                        projectId={notification.data?.project_id}
+                                                    />
+                                                </div>
                                                 <span className="block text-xs text-gray-400">
                                                     <Timestamp date={notification.created_at} placement="bottom" />
                                                 </span>

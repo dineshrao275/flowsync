@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import TaskBadge from '../ui/TaskBadge';
 
 /**
  * One goal with its progress bar, its evidence disclosure, and its linked
@@ -92,9 +93,12 @@ export default function GoalCard({ goal, onRefresh, refreshing = false, actions 
                         <ul className="mt-1 space-y-1 text-xs">
                             {goal.tasks.map((task) => (
                                 <li key={task.id} className="flex items-center justify-between gap-2">
-                                    <span className="text-gray-600">
-                                        {task.key} · {task.title}
-                                        {task.completed_at ? t('hrms.goalCard.doneSuffix') : ''}
+                                    <span className="flex items-center gap-1.5 min-w-0 text-gray-600">
+                                        <TaskBadge taskKey={task.key} taskId={task.id} projectId={task.project_id || task.project?.id} />
+                                        <span className="truncate">
+                                            {task.title}
+                                            {task.completed_at ? t('hrms.goalCard.doneSuffix') : ''}
+                                        </span>
                                     </span>
                                     {onUnlink && (
                                         <button

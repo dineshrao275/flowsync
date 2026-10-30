@@ -172,7 +172,7 @@ class ShiftSwapService
 
     private function put(Employee $employee, ?int $shiftId, Carbon $day, ?User $actor): void
     {
-        $this->rosters->assign($employee, $shiftId, $day, $day, $shiftId === null ? [1, 1, 1, 1, 1, 1, 1] : null, false, $actor);
+        $this->rosters->assign($employee, $shiftId, $day, $day, array_fill(0, 7, $shiftId === null ? 1 : 0), false, $actor);
     }
 
     private function requireOpen(ShiftSwap $swap): void

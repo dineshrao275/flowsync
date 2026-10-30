@@ -16,6 +16,7 @@ class MediaUpdateRequest extends FormRequest
     /** @return array<string, mixed> */
     public function rules(): array
     {
-        return ['alt' => ['nullable', 'string', 'max:255']];
+        // `present`: the screen always sends the field (empty clears it); a request without it would otherwise crash the update.
+        return ['alt' => ['present', 'nullable', 'string', 'max:255']];
     }
 }

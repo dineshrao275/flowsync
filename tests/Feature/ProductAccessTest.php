@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Tests\Feature;
 
 use App\Models\SubscriptionPlan;
@@ -84,6 +86,45 @@ class ProductAccessTest extends TestCase
         $this->assignPlan('hrms-starter');
         $this->login('admin@flowsync.test');
 
+        $this->getJson('/api/workspaces')->assertOk();
+        $this->getJson('/api/my/hr')->assertOk();
+    }
+
+    public function test_session_entitlements_follow_a_plan_change_without_relogin(): void
+    {
+        $this->login('admin@flowsync.test');
+
+        $this->getJson('/api/auth/me')
+            ->assertOk()
+            ->assertJsonPath('user.products.tms', true)
+            ->assertJsonPath('user.products.hrms', true)
+            ->assertJsonPath('user.modules', config('subscriptions.modules'));
+
+        $this->assignPlan('hrms-starter');
+
+        $modules = $this->getJson('/api/auth/me')
+            ->assertOk()
+            ->assertJsonPath('user.products.tms', false)
+            ->assertJsonPath('user.products.hrms', true)
+            ->json('user.modules');
+
+        $this->assertContains('hrms.core', $modules);
+        $this->assertNotContains('time_tracking', $modules);
+        $this->getJson('/api/workspaces')
+            ->assertForbidden()
+            ->assertHeader('X-Product-Denied', 'tms');
+        $this->getJson('/api/my/hr')->assertOk();
+
+        $this->assignPlan('tms-starter');
+
+        $modules = $this->getJson('/api/auth/me')
+            ->assertOk()
+            ->assertJsonPath('user.products.tms', true)
+            ->assertJsonPath('user.products.hrms', true)
+            ->json('user.modules');
+
+        $this->assertContains('hrms.core', $modules);
+        $this->assertContains('time_tracking', $modules);
         $this->getJson('/api/workspaces')->assertOk();
         $this->getJson('/api/my/hr')->assertOk();
     }

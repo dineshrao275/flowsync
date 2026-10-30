@@ -141,9 +141,9 @@
 .dark {
     /* Semantic roles — dark (fg roles >= 4.9:1 on --surface #171d2b). */
     --surface-sunken: #121826;
-    --fg: #f2f4f8;
-    --fg-muted: #c2c9d5;
-    --fg-subtle: #a7afbe;
+    --fg: #e8f0ff;
+    --fg-muted: #b8c5e6;
+    --fg-subtle: #93a4d6;
     --line: #28303f;
     --line-strong: #364052;
     --line-input: #6b7689;
@@ -153,9 +153,9 @@
     --warning: #fcd34d;
     --warning-soft: #362d22;
     --warning-line: #5f461d;
-    --danger-fg: #fca5a5;
-    --danger-soft: #351f2b;
-    --danger-line: #5d2730;
+    --danger-fg: #f87171;
+    --danger-soft: #450a0a;
+    --danger-line: #7f1d1d;
     --info: #7dd3fc;
     --info-soft: #112f45;
     --info-line: #114868;
@@ -164,10 +164,10 @@
     --color-gray-100: #1e2534;
     --color-gray-200: #28303f;
     --color-gray-300: #364052;
-    --color-gray-400: #8a93a5;
-    --color-gray-500: #a7afbe;
-    --color-gray-600: #c2c9d5;
-    --color-gray-700: #d8dce3;
+    --color-gray-400: #93a4d6;
+    --color-gray-500: #b8c5e6;
+    --color-gray-600: #cdd8ff;
+    --color-gray-700: #e1e8ff;
     --color-gray-800: #e8eaef;
     --color-gray-900: #f2f4f8;
     --color-gray-950: #ffffff;
@@ -691,6 +691,8 @@ body {
     padding: 0.625rem 0.75rem;
     font-size: 0.875rem;
     color: #1f2937;
+    overflow-wrap: anywhere;
+    word-break: break-word;
 }
 .rich-text-editor-content p.is-empty::before {
     content: attr(data-placeholder);
@@ -721,6 +723,18 @@ select:focus-visible,
 textarea:focus-visible {
     outline: 2px solid var(--accent) !important;
     outline-offset: 1px;
+}
+
+.dark select {
+    color-scheme: dark;
+    background-color: #151b2b !important;
+    color: #e8f0ff !important;
+    border-color: #2a3347 !important;
+}
+
+.dark select option {
+    background-color: #151b2b;
+    color: #e8f0ff;
 }
 
 /* Calendar popups render in document.body (Input.jsx) and must sit above modals/drawers (z-50). */

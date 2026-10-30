@@ -5,16 +5,12 @@ declare(strict_types=1);
 namespace App\Services\Hrms\Leave;
 
 use App\Enums\Hrms\ApprovalStatus;
-use App\Enums\Hrms\LeaveAdjustmentKind;
 use App\Enums\Hrms\LeaveRequestStatus;
-use App\Models\Hrms\Leave\LeaveAdjustment;
 use App\Models\Hrms\Leave\LeaveRequest;
 use App\Models\User;
-use App\Services\Hrms\AttendanceService;
 use App\Services\Hrms\Shared\ApprovalService;
 use App\Services\HrmsAuditLogger;
 use App\Services\NotificationService;
-use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
@@ -30,12 +26,10 @@ use Illuminate\Validation\ValidationException;
 class LeaveRequestDecisions
 {
     public function __construct(
-        private readonly LeaveBalanceService $balances,
         private readonly ApprovalService $approvals,
-        private readonly AttendanceService $attendance,
-        private readonly LeaveCalendar $calendar,
         private readonly NotificationService $notifications,
         private readonly HrmsAuditLogger $audit,
+        private readonly LeaveDecisionLedger $ledger,
     ) {}
 
     /**
@@ -78,10 +72,7 @@ class LeaveRequestDecisions
                 'decision_note' => $note,
             ]);
 
-            LeaveAdjustment::create($this->ledgerRow($request, LeaveAdjustmentKind::Availed, -1 * abs((float) $request->total_days), $actor));
-
-            $this->balances->rebuildBalance($request->employee, $request->type, $this->calendar->leaveYearFor($request->from_date));
-            $this->regenerateDates($request);
+            $this->ledger->postAvailed($request, $actor);
 
             $this->audit->log($request, 'leave.approved', ['status' => $from], $this->snapshot($request->refresh()), $actor);
             $this->notifications->leaveDecided($request->refresh(), $from, $actor);
@@ -159,7 +150,7 @@ class LeaveRequestDecisions
             ]);
 
             if ($wasApproved) {
-                $this->reversePosting($request, $actor, 'Cancellation of approved leave — time returned.');
+                $this->ledger->reversePosting($request, $actor, 'Cancellation of approved leave — time returned.');
             }
 
             $this->audit->log($request, 'leave.cancelled', ['status' => $wasApproved ? 'approved' : 'pending'], $this->snapshot($request->refresh()), $actor);
@@ -186,18 +177,8 @@ class LeaveRequestDecisions
         }
 
         return DB::transaction(function () use ($request, $actor): LeaveRequest {
-            $this->reversePosting($request, $actor, 'Encashment — posted time returned for payout.');
-
-            LeaveAdjustment::create($this->ledgerRow(
-                $request,
-                LeaveAdjustmentKind::Encashment,
-                -1 * abs((float) $request->total_days),
-                $actor,
-                'Payable — picked up by the payroll run.',
-            ));
-
-            $this->balances->rebuildBalance($request->employee, $request->type, $this->calendar->leaveYearFor($request->from_date));
-            $this->regenerateDates($request);
+            $this->ledger->reversePosting($request, $actor, 'Encashment — posted time returned for payout.');
+            $this->ledger->postEncashment($request, $actor, 'Payable — picked up by the payroll run.');
 
             $this->audit->log($request, 'leave.encashed', ['status' => 'approved'], $this->snapshot($request->refresh()), $actor);
 
@@ -230,62 +211,6 @@ class LeaveRequestDecisions
             'decided_by_user_id' => $actor->id,
             'decision_note' => $note,
         ]);
-    }
-
-    /**
-     * Return posted time with an offsetting row, then rebuild and
-     * regenerate: the shared repair half of cancellation and encashment.
-     * The availed row stays — the ledger is append-only, so history keeps
-     * both the posting and its return.
-     */
-    private function reversePosting(LeaveRequest $request, ?User $actor, string $note): void
-    {
-        LeaveAdjustment::create($this->ledgerRow(
-            $request,
-            LeaveAdjustmentKind::Adjustment,
-            abs((float) $request->total_days),
-            $actor,
-            $note,
-        ));
-
-        $this->balances->rebuildBalance($request->employee, $request->type, $this->calendar->leaveYearFor($request->from_date));
-        $this->regenerateDates($request);
-    }
-
-    /**
-     * One ledger row against an ask: every posting names the request as its
-     * reference, so the ledger tells which ask moved each day.
-     *
-     * @return array{employee_id: int, leave_type_id: int, year: int, kind: string, quantity: float, reference_type: string, reference_id: int, note: string|null, actor_user_id: int|null, created_at: Carbon}
-     */
-    private function ledgerRow(LeaveRequest $request, LeaveAdjustmentKind $kind, float $quantity, ?User $actor, ?string $note = null): array
-    {
-        return [
-            'employee_id' => $request->employee_id,
-            'leave_type_id' => $request->leave_type_id,
-            'year' => $this->calendar->leaveYearFor($request->from_date),
-            'kind' => $kind->value,
-            'quantity' => $quantity,
-            'reference_type' => 'leave_request',
-            'reference_id' => $request->id,
-            'note' => $note,
-            'actor_user_id' => $actor?->id,
-            'created_at' => now(),
-        ];
-    }
-
-    /**
-     * Recompute every date the ask covers, so approval, cancellation and
-     * encashment all land on the attendance the merge reads.
-     */
-    private function regenerateDates(LeaveRequest $request): void
-    {
-        // pluck() skips casts, so the SQLite time part rides along — parsing
-        // normalizes it, and the recompute is idempotent either way.
-        $request->days()->pluck('date')->each(fn ($date): mixed => $this->attendance->regenerate(
-            $request->employee,
-            $date instanceof Carbon ? $date->toDateString() : (string) $date,
-        ));
     }
 
     /** @return array<string, mixed> */

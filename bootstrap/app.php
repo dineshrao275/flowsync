@@ -55,6 +55,12 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withMiddleware(function (Middleware $middleware): void {
         // First in the global stack so even a request rejected by a later
         // middleware (CSRF, session, throttle) carries an id in its logs.
+        // Behind a reverse proxy (the AWS deployment's Caddy) every request would otherwise appear to come from
+        // the proxy: one shared login throttle bucket and wrong attendance IP checks. Opt in with TRUSTED_PROXIES
+        // (`*` or a comma list); unset keeps the framework default, so nothing changes elsewhere.
+        if (($trusted = env('TRUSTED_PROXIES')) !== null && $trusted !== '') {
+            $middleware->trustProxies(at: $trusted === '*' ? '*' : array_map('trim', explode(',', (string) $trusted)));
+        }
         $middleware->prepend(LogHttpRequests::class);
         $middleware->prepend(AssignRequestId::class);
         $middleware->append(ApplyAppName::class);

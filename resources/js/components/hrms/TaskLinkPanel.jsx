@@ -57,7 +57,7 @@ export default function TaskLinkPanel({ task, canManage }) {
     useEffect(() => {
         if (!canReadDirectory) return;
 
-        api.get('/hrms/employees', { params: { per_page: 100 } })
+        api.get('/hrms/employees', { params: { per_page: 250 } })
             .then(({ data }) => setEmployees(data.employees ?? []))
             .catch(() => setEmployees([]));
     }, [canReadDirectory]);

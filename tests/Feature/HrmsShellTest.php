@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Tests\Feature;
 
 use App\Models\SubscriptionPlan;
@@ -220,7 +222,8 @@ class HrmsShellTest extends TestCase
         $this->assertStringContainsString("item.key !== 'exemptions' || showExemptions", $page);
         $this->assertStringContainsString('if (showExemptions)', $page);
         $this->assertStringContainsString("await api.post('/hrms/leave/exemptions'", $page);
-        $this->assertStringContainsString("t('hrms.leave.fileExemption')", $page);
+        $tab = file_get_contents(resource_path('js/components/hrms/leave/LeaveExemptionsTab.jsx'));
+        $this->assertStringContainsString("t('hrms.leave.fileExemption')", $tab);
     }
 
     public function test_the_notification_helpers_cover_comp_off_nudges(): void

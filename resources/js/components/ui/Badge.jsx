@@ -1,10 +1,10 @@
 const palette = {
     admin: 'bg-[var(--accent-soft)] text-[var(--accent-soft-text)]',
-    manager: 'bg-purple-100 text-purple-700',
-    editor: 'bg-amber-100 text-amber-700',
-    viewer: 'bg-sky-100 text-sky-700',
-    employee: 'bg-emerald-100 text-emerald-700',
-    member: 'bg-blue-100 text-blue-700',
+    manager: 'bg-purple-100 text-purple-700 dark:bg-purple-900/40 dark:text-purple-300',
+    editor: 'bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300',
+    viewer: 'bg-sky-100 text-sky-700 dark:bg-sky-900/40 dark:text-sky-300',
+    employee: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300',
+    member: 'bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300',
 };
 
 // Semantic tones read the colour-role tokens (app.css), so they stay AA in
@@ -14,7 +14,7 @@ export const TONES = {
     neutral: 'bg-surface-sunken text-fg-muted ring-1 ring-inset ring-line',
     success: 'bg-success-soft text-success',
     warning: 'bg-warning-soft text-warning',
-    danger: 'bg-danger-soft text-danger-fg',
+    danger: 'bg-[var(--danger-soft)] text-[var(--danger)] dark:bg-red-950/60 dark:text-red-400',
     info: 'bg-info-soft text-info',
 };
 

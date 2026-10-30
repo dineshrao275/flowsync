@@ -39,7 +39,7 @@ export default function EmployeeBulkModal({ mode, onClose, onDone }) {
     useEffect(() => {
         if (mode !== 'status') return;
 
-        api.get('/hrms/employees', { params: { per_page: 100 } })
+        api.get('/hrms/employees', { params: { per_page: 250 } })
             .then(({ data }) => setPeople((data.employees ?? []).map((e) => ({ id: e.id, name: e.display_name ?? e.name, code: e.employee_code, status: e.status }))))
             .catch(() => setPeople([]));
     }, [mode]);
