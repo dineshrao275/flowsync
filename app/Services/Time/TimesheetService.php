@@ -74,7 +74,8 @@ class TimesheetService
 
                 return [
                     'task_id' => $first['task_id'], 'task_key' => $first['task_key'], 'task_title' => $first['task_title'],
-                    'project' => $first['project'], 'minutes' => $g->sum('minutes'), 'billable_minutes' => $g->where('billable', true)->sum('minutes'),
+                    'project_id' => $first['project_id'], 'project' => $first['project'], 'minutes' => $g->sum('minutes'),
+                    'billable_minutes' => $g->where('billable', true)->sum('minutes'),
                 ];
             })->values(),
         ];
@@ -207,6 +208,7 @@ class TimesheetService
                     'task_id' => $log->task_id,
                     'task_key' => $log->task?->key,
                     'task_title' => $log->task?->title,
+                    'project_id' => $log->task?->project_id,
                     'project' => $log->task?->project?->name,
                     'date' => $log->started_at->toDateString(),
                     'minutes' => $minutes,

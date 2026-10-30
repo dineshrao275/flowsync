@@ -7,6 +7,7 @@ import ContentSkeleton from '../ui/ContentSkeleton';
 import { useAuth } from '../../context/AuthContext';
 import { HRMS_MODULE_META, HRMS_MODULE_ROUTES } from '../../utils/hrmsModules';
 import { employeeUrl, projectUrl, taskUrl, workspaceUrl } from '../../utils/deepLinks';
+import TaskBadge from '../ui/TaskBadge';
 
 const groupDefs = [
     {
@@ -235,9 +236,16 @@ export default function CommandPalette({ open, onClose }) {
                                             />
                                             <span className="min-w-0 flex-1">
                                                 <span className="block truncate text-sm font-medium text-gray-800">
-                                                    {group.key === 'tasks' || group.key === 'projects'
-                                                        ? `${item.key} · ${item.title ?? item.name}`
-                                                        : item.name}
+                                                    {group.key === 'tasks' ? (
+                                                        <span className="flex items-center gap-2 truncate">
+                                                            <TaskBadge taskKey={item.key} projectId={item.project?.id} />
+                                                            <span className="truncate">{item.title}</span>
+                                                        </span>
+                                                    ) : group.key === 'projects' ? (
+                                                        `${item.key} · ${item.name}`
+                                                    ) : (
+                                                        item.name
+                                                    )}
                                                 </span>
                                                 <span className="block truncate text-xs text-gray-400">
                                                     {subtitleFor(t, group.key, item)}

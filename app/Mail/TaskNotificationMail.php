@@ -76,7 +76,10 @@ class TaskNotificationMail extends Mailable
 
     public function content(): Content
     {
-        return new Content(text: 'emails.task-notification');
+        return new Content(
+            view: 'emails.task-notification',
+            text: 'emails.task-notification-text',
+        );
     }
 
     private function composeLine(): string

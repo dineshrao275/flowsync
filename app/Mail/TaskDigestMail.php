@@ -37,6 +37,9 @@ class TaskDigestMail extends Mailable
 
     public function content(): Content
     {
-        return new Content(text: 'emails.task-digest');
+        return new Content(
+            view: 'emails.task-digest',
+            text: 'emails.task-digest-text',
+        );
     }
 }

@@ -5,6 +5,7 @@ import Card from '../ui/Card';
 import Button from '../ui/Button';
 import Alert from '../ui/Alert';
 import ContentSkeleton from '../ui/ContentSkeleton';
+import HighlightedContent from '../ui/HighlightedContent';
 import { useToast } from '../../context/ToastContext';
 
 const key = (from, to) => `${from ?? 'any'}>${to}`;
@@ -115,7 +116,9 @@ export default function WorkflowRules({ projectId, onSaved }) {
                     <ul className="divide-y divide-gray-100 text-sm">
                         {pending.requests.map((r) => (
                             <li key={r.id} className="flex flex-wrap items-center justify-between gap-2 py-2">
-                                <span>{t('tms.workflow.pendingLine', { key: r.task.key, from: r.from, to: r.to, who: r.requested_by })}</span>
+                                <span className="flex items-center gap-1.5 flex-wrap">
+                                    <HighlightedContent content={t('tms.workflow.pendingLine', { key: r.task.key, from: r.from, to: r.to, who: r.requested_by })} projectId={r.task.project_id || projectId} />
+                                </span>
                                 {pending.can_decide && (
                                     <span className="flex gap-2">
                                         <Button size="sm" variant="secondary" onClick={() => decide(r.id, 'reject')}>{t('tms.workflow.reject')}</Button>

@@ -3,10 +3,10 @@ import { MemoryRouter } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import Users from './Users';
 
-const get = vi.fn();
+const { get, post } = vi.hoisted(() => ({ get: vi.fn(), post: vi.fn() }));
 
 vi.mock('../services/api', () => ({
-    default: { get: (...a) => get(...a), put: vi.fn(), post: vi.fn(), delete: vi.fn() },
+    default: { get: (...a) => get(...a), put: vi.fn(), post: (...a) => post(...a), delete: vi.fn() },
     fieldErrors: () => ({}),
 }));
 vi.mock('../context/AuthContext', () => ({
@@ -33,6 +33,7 @@ const mockUsers = [
 describe('Users page', () => {
     beforeEach(() => {
         get.mockReset();
+        post.mockReset();
         get.mockImplementation((url) => {
             if (url === '/roles') {
                 return Promise.resolve({ data: { roles: mockRoles } });
@@ -96,6 +97,40 @@ describe('Users page', () => {
                 params: expect.objectContaining({ page: 2 }),
             }));
         });
+    });
+
+    it('blocks adding a user until the passwords match', async () => {
+        post.mockResolvedValue({ data: { user: { name: 'New Person' } } });
+
+        render(
+            <MemoryRouter>
+                <Users />
+            </MemoryRouter>,
+        );
+
+        await screen.findByText('Admin User');
+        fireEvent.click(screen.getByRole('button', { name: 'Add user' }));
+
+        fireEvent.change(screen.getByLabelText('Full name'), { target: { value: 'New Person' } });
+        fireEvent.change(screen.getByLabelText('Email address'), { target: { value: 'new@example.test' } });
+        fireEvent.change(screen.getByLabelText('Password'), { target: { value: 'secret123' } });
+        fireEvent.change(screen.getByLabelText('Confirm password'), { target: { value: 'secret124' } });
+
+        expect(screen.getByText('Passwords do not match.')).toBeInTheDocument();
+        fireEvent.click(screen.getAllByRole('button', { name: 'Add user' }).at(-1));
+
+        await waitFor(() => expect(post).not.toHaveBeenCalled());
+
+        fireEvent.change(screen.getByLabelText('Confirm password'), { target: { value: 'secret123' } });
+        expect(screen.getByText('Passwords match.')).toBeInTheDocument();
+        fireEvent.click(screen.getAllByRole('button', { name: 'Add user' }).at(-1));
+
+        await waitFor(() =>
+            expect(post).toHaveBeenCalledWith('/users', expect.objectContaining({
+                password: 'secret123',
+                password_confirmation: 'secret123',
+            })),
+        );
     });
 
     it('filters users when role is selected', async () => {

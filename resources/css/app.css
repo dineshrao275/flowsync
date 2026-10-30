@@ -691,6 +691,8 @@ body {
     padding: 0.625rem 0.75rem;
     font-size: 0.875rem;
     color: #1f2937;
+    overflow-wrap: anywhere;
+    word-break: break-word;
 }
 .rich-text-editor-content p.is-empty::before {
     content: attr(data-placeholder);

@@ -16,6 +16,9 @@ import { projectUrl } from '../utils/deepLinks';
 import usePageTitle from '../hooks/usePageTitle';
 import { usePaginated } from '../hooks/useResource';
 import Timestamp from '../components/ui/Timestamp';
+import UserTooltip from '../components/ui/UserTooltip';
+import TaskBadge from '../components/ui/TaskBadge';
+import HighlightedContent from '../components/ui/HighlightedContent';
 
 export default function Notifications() {
     const { t } = useTranslation();
@@ -90,34 +93,37 @@ export default function Notifications() {
                                 >
                                     <Td>
                                         <Badge>{notification.type}</Badge>
-                                        <span className="mt-1 block font-medium text-gray-800">
-                                            {describeNotification(
-                                                t,
-                                                notification.type,
-                                                payload,
-                                                notification.actor?.name ?? null,
-                                            )}
-                                        </span>
+                                        <div className="mt-1 font-medium text-gray-800">
+                                            <HighlightedContent
+                                                content={describeNotification(
+                                                    t,
+                                                    notification.type,
+                                                    payload,
+                                                    notification.actor?.name ?? null,
+                                                )}
+                                                projectId={payload.project_id}
+                                            />
+                                        </div>
                                     </Td>
                                     <Td>
-                                        <span className="flex items-center gap-2">
-                                            <Avatar name={notification.actor?.name} size="sm" />
-                                            <span className="truncate">
-                                                {notification.actor?.name ?? t('notifications.someone')}
-                                                {notification.actor?.email && (
-                                                    <span className="block truncate text-xs text-gray-400">{notification.actor.email}</span>
-                                                )}
+                                        <UserTooltip user={notification.actor} name={notification.actor?.name}>
+                                            <span className="flex items-center gap-2 cursor-pointer">
+                                                <Avatar name={notification.actor?.name} size="sm" />
+                                                <span className="truncate">
+                                                    {notification.actor?.name ?? t('notifications.someone')}
+                                                    {notification.actor?.email && (
+                                                        <span className="block truncate text-xs text-gray-400">{notification.actor.email}</span>
+                                                    )}
+                                                </span>
                                             </span>
-                                        </span>
+                                        </UserTooltip>
                                     </Td>
                                     <Td className="whitespace-nowrap">
                                         {payload.project_id && payload.key ? (
-                                            <Link
-                                                to={notificationHref(notification.data ?? {}, notification.type)}
-                                                className="font-medium text-[var(--accent-soft-text)] hover:text-[var(--accent)]"
-                                            >
-                                                {payload.key} · {payload.project_name ?? payload.title}
-                                            </Link>
+                                            <span className="inline-flex items-center gap-1.5">
+                                                <TaskBadge taskKey={payload.key} projectId={payload.project_id} title={payload.title} />
+                                                <span className="text-xs text-gray-500">· {payload.project_name ?? payload.title}</span>
+                                            </span>
                                         ) : payload.project_id ? (
                                             <Link
                                                 to={projectUrl(payload.project_id)}

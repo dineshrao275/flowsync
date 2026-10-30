@@ -846,6 +846,8 @@ export default function ProjectDetail() {
                     deleteProject={deleteProject}
                     hasModule={hasModule}
                     projectId={projectId}
+                    members={members}
+                    canManage={isProjectManager && !archived}
                 />
             )}
 

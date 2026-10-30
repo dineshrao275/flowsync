@@ -174,6 +174,12 @@ class TmsExpansionTest extends TestCase
             'name' => 'Backend API',
         ])->assertStatus(422)->assertJsonValidationErrors('name');
 
+        // An unknown lead is a validation error, never an FK 500.
+        $this->postJson("/api/projects/{$project->id}/components", [
+            'name' => 'Orphan Lead',
+            'lead_user_id' => 999999,
+        ])->assertStatus(422)->assertJsonValidationErrors('lead_user_id');
+
         // List components
         $listRes = $this->getJson("/api/projects/{$project->id}/components")->assertOk();
         $this->assertCount(1, $listRes->json('components'));

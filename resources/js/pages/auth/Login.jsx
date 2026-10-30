@@ -6,6 +6,7 @@ import { useToast } from '../../context/ToastContext';
 import { fieldErrors } from '../../services/api';
 import Button from '../../components/ui/Button';
 import Input from '../../components/ui/Input';
+import PasswordInput from '../../components/ui/PasswordInput';
 import Alert from '../../components/ui/Alert';
 import AuthShell from '../../components/ui/AuthShell';
 import useErrorFocus from '../../hooks/useErrorFocus';
@@ -100,10 +101,9 @@ export default function Login() {
                     onChange={(e) => update('email', e.target.value)}
                     error={errors.email}
                 />
-                <Input
+                <PasswordInput
                     label={t('auth.login.password')}
                     name="password"
-                    type="password"
                     autoComplete="current-password"
                     required
                     placeholder="••••••••"

@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import api, { fieldErrors } from '../../services/api';
 import Badge from '../ui/Badge';
@@ -6,6 +7,8 @@ import Alert from '../ui/Alert';
 import ContentSkeleton from '../ui/ContentSkeleton';
 import Button from '../ui/Button';
 import { useConfirm } from '../ui/ConfirmDialog';
+import TaskBadge from '../ui/TaskBadge';
+import { taskUrl } from '../../utils/deepLinks';
 
 export default function DependencyPanel({ task, projectId, canManage, allTasks }) {
     const { t } = useTranslation();
@@ -74,14 +77,24 @@ export default function DependencyPanel({ task, projectId, canManage, allTasks }
     const candidates = allTasks.filter((t) => t.id !== task.id);
 
     function DepRow({ dependency }) {
-        const name = dependency.task
-            ? `${dependency.task.key} · ${dependency.task.title}`
-            : dependency.dependsOn
-                ? `${dependency.dependsOn.key} · ${dependency.dependsOn.title}`
-                : t('tms.dependencies.taskFallback', { id: dependency.depends_on_task_id });
+        const depTask = dependency.task || dependency.dependsOn;
         return (
             <li className="flex items-center justify-between gap-3 rounded-lg border border-gray-100 px-3 py-2">
-                <span className="text-sm text-gray-700">{name}</span>
+                <div className="flex items-center gap-2 min-w-0">
+                    {depTask?.key ? (
+                        <>
+                            <TaskBadge taskKey={depTask.key} taskId={depTask.id} projectId={depTask.project_id || projectId} />
+                            <Link
+                                to={taskUrl(depTask.project_id || projectId, depTask.key)}
+                                className="truncate text-sm text-gray-700 hover:text-[var(--accent)] hover:underline"
+                            >
+                                {depTask.title}
+                            </Link>
+                        </>
+                    ) : (
+                        <span className="text-sm text-gray-700">{t('tms.dependencies.taskFallback', { id: dependency.depends_on_task_id })}</span>
+                    )}
+                </div>
                 {canManage && (
                     <button
                         type="button"
@@ -133,7 +146,20 @@ export default function DependencyPanel({ task, projectId, canManage, allTasks }
                     <ul className="space-y-2">
                         {data.links.map((link) => (
                             <li key={`${link.direction}-${link.id}`} className="flex items-center justify-between gap-3 rounded-lg border border-gray-100 px-3 py-2 text-sm text-gray-700">
-                                <span><span className="text-gray-500">{t(`tms.dependencies.linkWording.${link.type}.${link.direction}`)}</span> {link.task ? `${link.task.key} · ${link.task.title}` : ''}</span>
+                                <div className="flex items-center gap-2 min-w-0">
+                                    <span className="text-gray-500">{t(`tms.dependencies.linkWording.${link.type}.${link.direction}`)}</span>
+                                    {link.task ? (
+                                        <>
+                                            <TaskBadge taskKey={link.task.key} taskId={link.task.id} projectId={link.task.project_id || projectId} />
+                                            <Link
+                                                to={taskUrl(link.task.project_id || projectId, link.task.key)}
+                                                className="truncate text-sm text-gray-700 hover:text-[var(--accent)] hover:underline"
+                                            >
+                                                {link.task.title}
+                                            </Link>
+                                        </>
+                                    ) : null}
+                                </div>
                                 {canManage && <button type="button" className="text-xs text-gray-400 transition hover:text-red-600" onClick={() => remove(link.id)}>{t('tms.dependencies.remove')}</button>}
                             </li>
                         ))}
