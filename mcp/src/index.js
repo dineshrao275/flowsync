@@ -26,6 +26,13 @@ import { listCommentsTool } from './tools/comments.js';
 import { listWorklogsTool } from './tools/worklogs.js';
 import { listSprintsTool } from './tools/sprints.js';
 import { searchTasksTool } from './tools/search.js';
+import {
+    createTaskTool,
+    updateTaskTool,
+    moveTaskTool,
+    addCommentTool,
+    logTimeTool,
+} from './tools/tasksWrite.js';
 import { resources, resolveDynamicResource } from './resources.js';
 
 export function createServer(options = {}) {
@@ -53,7 +60,14 @@ export function createServer(options = {}) {
     registerTool(listSprintsTool);
     registerTool(searchTasksTool);
 
-    // Register any additional tools (e.g. Write Tools in Phase 4)
+    // Register all Write Tools
+    registerTool(createTaskTool);
+    registerTool(updateTaskTool);
+    registerTool(moveTaskTool);
+    registerTool(addCommentTool);
+    registerTool(logTimeTool);
+
+    // Register any additional tools
     if (options.additionalTools) {
         for (const t of options.additionalTools) {
             registerTool(t);
