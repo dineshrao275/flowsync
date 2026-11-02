@@ -1,0 +1,21 @@
+{
+  "name": "flowsync-mcp",
+  "version": "1.0.0",
+  "description": "FlowSync Task Management (TMS) Model Context Protocol Server",
+  "type": "module",
+  "main": "src/index.js",
+  "bin": {
+    "flowsync-mcp": "./src/index.js"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "scripts": {
+    "start": "node src/index.js",
+    "test": "node --test test/*.test.js",
+    "inspect": "npx @modelcontextprotocol/inspector node src/index.js"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.6.0"
+  }
+}

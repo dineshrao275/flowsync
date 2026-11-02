@@ -24,6 +24,7 @@ Homestead.json
 Homestead.yaml
 Thumbs.db
 .agents/orchestrator/mcp-server/node_modules/
+mcp/node_modules/
 .agents/workflow/
 .claude/
 figma

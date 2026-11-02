@@ -1,0 +1,14 @@
+{
+  "servers": {
+    "flowsync": {
+      "command": "node",
+      "args": [
+        "${workspaceFolder}/mcp/src/index.js"
+      ],
+      "env": {
+        "FLOWSYNC_URL": "http://localhost",
+        "FLOWSYNC_TOKEN": "${env:FLOWSYNC_TOKEN}"
+      }
+    }
+  }
+}
