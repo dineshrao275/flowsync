@@ -21,7 +21,11 @@ Scope: all 47 HRMS sidebar entries (`resources/js/utils/hrmsNav.js`) plus the HR
 - **Soft-delete bugs:** employee code allocation failed after any delete; onboarding/offboarding lists 500'd for a deleted employee.
 - **UI crashes and dead ends:** approval-chain editor crash on close, Leave "New type/policy" did nothing, Overview module count, org-chart collapse, empty exit interview never reported an error, letter template deleted without confirmation, native `prompt()` used for declines.
 - **Accessibility:** form fields without ids (label not tied to control), `Textarea` ignoring label/error, closed Theme drawer exposed to assistive tech, always-403 background requests.
-- **FU-1 (was HIGH, BUG-PY-8):** expense approval steps now complete over HTTP and the UI (`approve-step` / `reject-step`, `can_act_step`, `HrmsExpenseApprovalStepTest`, Playwright `hrms-23b`).
+- **FU-1 (was HIGH, BUG-PY-8):** expense approval steps now complete over HTTP and the UI (`approve-step` / `reject-step`, `can_act_step`, `HrmsExpenseApprovalStepTest`, Playwright `hrms-23b`); clearing a step now nudges the next approver.
+- **BUG-T6 (second pass):** the Employee shift-swap picker uses a names-only colleague endpoint (`HrmsShiftSwapColleaguesTest`, Playwright `hrms-17`).
+- **Chain approvers could not reach the Expenses queue:** any viewing scope (`view|view_assigned|view_all`) now opens it; gates accept `a|b|c` any-of (`permissions.test.js`, Playwright `hrms-23c`).
+- **Payroll:** a payslip line written by a loan instalment or a paid claim could be deleted by hand, desyncing the loan balance or claim state; it is now refused and the page hides Remove (`HrmsPayrollRunApiTest`, `PayrollRunDetail.test.jsx`).
+- **Notifications UI:** a claim number such as `EXP-2026-000002` was split into a task-key chip plus plain text (`HighlightedContent.test.jsx`).
 
 ## Permission and tenant-isolation findings
 
@@ -32,16 +36,15 @@ Scope: all 47 HRMS sidebar entries (`resources/js/utils/hrmsNav.js`) plus the HR
 
 ## Outstanding
 
-- **BUG-T6 (open, decision recorded):** the Employee's "swap with" picker on Shift swaps is empty because it loads `GET /hrms/employees` (403 for Employees). Needs a names-only colleague endpoint, which is a privacy decision.
-- A chain approver who lacks `hrms.expenses.view` cannot open the Expenses page (route gate); they still see the item in the Inbox.
+- Open improvements recorded in `follow-ups.md`: FU-3 (a rejected statutory declaration gives no reason) and FU-4 (no audited reversal for a generated payslip line).
 - Attendance correction times are stored in the tenant zone and shown in the browser zone.
 - 53 confirm dialogs fall back to the generic "Delete" label; Careers removals have no confirmation.
 - Dev tooling: `scripts/dev.sh` / `docker-compose.yml` changes and a rotated `APP_KEY` on 2026-10-31 broke all local logins until the original key was restored (not part of this work; see the conversation notes).
 
-## Not verified (honest coverage gaps)
+## Verified in the second pass (2026-11-02)
 
-Payroll bank file, adjustments and reopen; loan instalment deduction inside a payroll run; statutory proofs and shortfall surrender; notifications and audit-log rows in the UI for most tabs; a rule firing from the browser (covered in PHP only); change requests applied on their effective date; Spanish rendering of new strings in the browser (parity tests pass); five Time tests that self-skip once the 7-day attendance window is used up; a second-tenant browser session for isolation.
+Payroll payout (bank) file: runner-only, approved-only, decrypted account + audited export, NEFT template, missing-bank count, formula-cell neutralisation (`HrmsPayrollBankFileTest`). Payroll adjustments and reopen: already pinned in `HrmsPayrollRunApiTest`. Loan deduction in a run: already pinned in `HrmsExpenseServiceTest` (deducted once, balance reduced, recalculation idempotent). Statutory declaration proofs: a foreign proof file is refused (`HrmsStatutoryConfigApiTest`). TDS shortfall surrender: pinned at API level (`HrmsTdsProjectionTest`, `HrmsStatutoryTdsApiTest`). Audit rows and the claimant's notification after the expense flow are visible in the UI (`hrms-48`). No raw translation key on any of the 47 pages in English or Spanish (`hrms-49`). A second tenant sees none of Globex's data and vice versa, in a real browser (`hrms-50`). An HR automation rule fires from the browser (`hrms-51`). A change request applying on its effective date: pinned in `HrmsEmployeeChangeTest` (the nightly command applies a future-dated change).
 
-## Test data left in local Globex
+## Still not verified
 
-`QA-*` records the product cannot delete: locked pay runs and salary revisions for QA Employee, a statutory profile, a loan, deactivated departments, onboarding templates, leave and comp-off adjustments, approved/rejected expense claims, development plans and OKRs. Personas: `qa.employee@globex.test`, `qa.hrexec@globex.test`, plus two Insight fixtures. Password for all: `password`. Local database only.
+Surrender and declaration review driven through the browser (needs a configured tax rulebook and salary data to produce a shortfall); loan instalments on a payroll run driven through the browser; the five Time tests that self-skip once the 7-day attendance window is used up; Spanish wording quality (the sweep checks for leaked keys, not translation quality, and the strings await native review).
