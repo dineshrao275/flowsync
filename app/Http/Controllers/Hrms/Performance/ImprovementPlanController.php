@@ -30,7 +30,10 @@ class ImprovementPlanController extends Controller
         $rows = ImprovementPlan::query()->with('employee:id,name,employee_code,user_id,manager_id')->latest('id')->limit(200)->get()
             ->filter(fn (ImprovementPlan $p) => $this->canSee($user, $p))->values();
 
-        return response()->json(['plans' => $rows->map(fn ($p) => $this->present($p, $user))->values()]);
+        return response()->json([
+            'plans' => $rows->map(fn ($p) => $this->present($p, $user))->values(),
+            'can_open' => $this->canOpenAny($user),
+        ]);
     }
 
     public function store(Request $request, Employee $employee): JsonResponse
@@ -74,6 +77,21 @@ class ImprovementPlanController extends Controller
         $data = $request->validate(['status' => ['required', 'string'], 'outcome' => ['required', 'string', 'max:3000']]);
 
         return response()->json(['message' => __('Plan closed.'), 'plan' => $this->present($this->service->close($plan, $data['status'], $data['outcome'], $request->user())->load('employee'), $request->user())]);
+    }
+
+    /**
+     * Whether this login can open a plan for anyone at all — the same rule as {@see self::canRun()}
+     * (a performance manager, or the direct manager of somebody), asked without a target person.
+     */
+    private function canOpenAny(User $user): bool
+    {
+        if ($user->hasPermission('hrms.performance.manage')) {
+            return true;
+        }
+
+        $own = Employee::query()->where('user_id', $user->id)->value('id');
+
+        return $own !== null && Employee::query()->where('manager_id', $own)->exists();
     }
 
     private function canRun(User $user, ?Employee $employee): bool

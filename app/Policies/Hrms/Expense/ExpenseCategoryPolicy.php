@@ -6,6 +6,7 @@ namespace App\Policies\Hrms\Expense;
 
 use App\Models\Hrms\Expense\ExpenseCategory;
 use App\Models\User;
+use App\Services\Hrms\HrmsScope;
 
 /**
  * Expense/HRMS — who may read or change the claim catalogue.
@@ -44,7 +45,8 @@ class ExpenseCategoryPolicy
 
     private function canView(User $user): bool
     {
-        return $user->hasPermission('hrms.expenses.view')
-            || $user->hasPermission('hrms.expenses.manage');
+        // Any view scope (own/assigned/all or the legacy slug) or manage: an Employee holding only
+        // `view_own` needs the catalogue to file a claim, the same door the claim policy uses.
+        return HrmsScope::canRead($user, 'hrms.expenses');
     }
 }

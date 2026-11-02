@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Tests\Feature;
 
 use App\Enums\Hrms\EmployeeStatus;
@@ -44,6 +46,24 @@ class HrmsCompensationApiTest extends TestCase
             'ctc_annual' => '600000',
             'effective_from' => '2026-04-01',
         ])->assertForbidden();
+    }
+
+    public function test_a_pay_head_code_is_unique_because_payslip_lines_resolve_names_by_it(): void
+    {
+        $this->actAs($this->userWith(['hrms.view', 'hrms.compensation.view', 'hrms.compensation.manage']));
+
+        $first = $this->postJson('/api/hrms/payroll/components', [
+            'name' => 'Night Allowance', 'code' => 'night_allowance', 'type' => 'earning',
+        ])->assertCreated()->json('component');
+
+        $this->postJson('/api/hrms/payroll/components', [
+            'name' => 'Night Allowance Two', 'code' => 'night_allowance', 'type' => 'earning',
+        ])->assertUnprocessable()->assertJsonValidationErrors('code');
+
+        // A head may keep its own code on edit, and codeless heads stay allowed.
+        $this->putJson("/api/hrms/payroll/components/{$first['id']}", ['name' => 'Night Pay', 'code' => 'night_allowance'])->assertOk();
+        $this->postJson('/api/hrms/payroll/components', ['name' => 'No Code A', 'type' => 'earning'])->assertCreated();
+        $this->postJson('/api/hrms/payroll/components', ['name' => 'No Code B', 'type' => 'earning'])->assertCreated();
     }
 
     public function test_a_manager_runs_the_component_catalogue(): void

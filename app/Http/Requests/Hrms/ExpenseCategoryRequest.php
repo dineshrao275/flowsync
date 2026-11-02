@@ -26,9 +26,11 @@ class ExpenseCategoryRequest extends FormRequest
                 Rule::requiredIf(fn (): bool => $this->isMethod('POST')),
                 'string',
                 'max:255',
+                // Two categories with one name are indistinguishable in the claim form.
+                Rule::unique('expense_categories', 'name')->ignore($this->route('category')),
             ],
             'description' => ['sometimes', 'nullable', 'string', 'max:2000'],
-            'requires_receipt_above' => ['sometimes', 'nullable', 'numeric'],
+            'requires_receipt_above' => ['sometimes', 'nullable', 'numeric', 'min:0'],
             'max_per_line' => ['sometimes', 'nullable', 'numeric', 'min:0'],
             'monthly_limit' => ['sometimes', 'nullable', 'numeric', 'min:0'],
             'is_reimbursable' => ['sometimes', 'boolean'],

@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Tests\Feature;
 
 use App\Models\Hrms\Employee\Employee;
@@ -59,6 +61,16 @@ class HrmsExitInterviewTest extends TestCase
             ->assertJsonValidationErrors(['answers.primary_reason', 'answers.would_return']);
         $this->putJson('/api/hrms/exit-interview', ['answers' => $this->answers(['manager_support' => 9])])->assertUnprocessable()->assertJsonValidationErrors('answers.manager_support');
         $this->putJson('/api/hrms/exit-interview', ['answers' => $this->answers(['primary_reason' => 'aliens'])])->assertUnprocessable();
+    }
+
+    public function test_submitting_with_no_answers_names_every_required_question(): void
+    {
+        $this->actAs($this->leaverUser);
+
+        // The SPA sends {"answers":{}} when nothing is filled in; that must reach the per-question
+        // check instead of dying on an "answers is required" error the page never shows.
+        $this->putJson('/api/hrms/exit-interview', ['answers' => []])->assertUnprocessable()
+            ->assertJsonValidationErrors(['answers.primary_reason', 'answers.manager_support', 'answers.would_return']);
     }
 
     public function test_someone_with_no_exit_in_progress_has_nothing_to_fill_in(): void

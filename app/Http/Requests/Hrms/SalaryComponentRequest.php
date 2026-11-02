@@ -28,7 +28,9 @@ class SalaryComponentRequest extends FormRequest
 
         return [
             'name' => [$required, 'string', 'max:255'],
-            'code' => ['sometimes', 'nullable', 'string', 'max:32'],
+            // Payslip lines resolve a head's name by code (PayslipCalculator::componentName),
+            // so two heads sharing one would make those lines ambiguous. Codeless heads stay allowed.
+            'code' => ['sometimes', 'nullable', 'string', 'max:32', Rule::unique('salary_components', 'code')->ignore($this->route('component'))],
             'type' => [$required, Rule::enum(SalaryComponentType::class)],
             'calculation_type' => ['sometimes', Rule::enum(CalculationType::class)],
             'default_value' => ['sometimes', 'numeric'],
