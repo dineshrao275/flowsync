@@ -5,52 +5,52 @@ Test tenant: **globex** (`owner@globex.test`, no subscription => every module), 
 | # | Path | Group | Gating capabilities | Status |
 |---|---|---|---|---|
 | 1 | `/hrms` | overview | m:hrms.core | **Pass** — admin + Employee, 4 UI tests; BUG-1 fixed |
-| 2 | `/hrms/inbox` | workforce | m:hrms.core | Not run |
-| 3 | `/hrms/team` | workforce | m:hrms.core | Not run |
-| 4 | `/hrms/employees` | workforce | m:hrms.core, p:hrms.employees.view | Not run |
-| 5 | `/hrms/org` | workforce | m:hrms.core, p:hrms.org.view | Not run |
-| 6 | `/hrms/documents` | workforce | m:hrms.core, p:hrms.documents.view | Not run |
-| 7 | `/hrms/documents/mine` | workforce | m:hrms.core | Not run |
-| 8 | `/hrms/onboarding` | workforce | m:hrms.core, p:hrms.onboarding.view | Not run |
-| 9 | `/hrms/offboarding` | workforce | m:hrms.core, p:hrms.offboarding.view | Not run |
-| 10 | `/hrms/attendance` | time | m:hrms.core, m:hrms.attendance | Not run |
-| 11 | `/hrms/attendance/approvals` | time | m:hrms.core, m:hrms.attendance, p:hrms.attendance.regularize | Not run |
-| 12 | `/hrms/leave` | time | m:hrms.core, m:hrms.leave, p:hrms.leave.manage | Not run |
-| 13 | `/hrms/leave/mine` | time | m:hrms.core, m:hrms.leave | Not run |
-| 14 | `/hrms/comp-off` | time | m:hrms.core, m:hrms.comp_off, p:hrms.comp_off.manage | Not run |
-| 15 | `/hrms/comp-off/mine` | time | m:hrms.core, m:hrms.comp_off | Not run |
-| 16 | `/hrms/holidays` | time | m:hrms.core, m:hrms.holidays | Not run |
-| 17 | `/hrms/shift-swaps` | time | m:hrms.core, m:hrms.shifts | Not run |
-| 18 | `/hrms/shifts` | time | m:hrms.core, m:hrms.shifts | Not run |
-| 19 | `/hrms/compensation` | pay | m:hrms.core, m:hrms.compensation, p:hrms.compensation.view | Not run |
-| 20 | `/hrms/payroll` | pay | m:hrms.core, m:hrms.payroll, p:hrms.payroll.run | Not run |
-| 21 | `/hrms/payroll/mine` | pay | m:hrms.core, m:hrms.payroll | Not run |
-| 22 | `/hrms/statutory` | pay | m:hrms.core, m:hrms.payroll.statutory | Not run |
-| 23 | `/hrms/expenses` | pay | m:hrms.core, m:hrms.expenses, p:hrms.expenses.view | Not run |
-| 24 | `/hrms/expenses/mine` | pay | m:hrms.core, m:hrms.expenses | Not run |
-| 25 | `/hrms/performance` | performance | m:hrms.core, m:hrms.performance, p:hrms.performance.view | Not run |
-| 26 | `/hrms/performance/mine` | performance | m:hrms.core, m:hrms.performance | Not run |
-| 27 | `/hrms/engagement` | performance | m:hrms.core, m:hrms.engagement, p:hrms.engagement.view | Not run |
-| 28 | `/hrms/engagement/mine` | performance | m:hrms.core, m:hrms.engagement | Not run |
-| 29 | `/hrms/skills` | performance | m:hrms.core, m:hrms.talent | Not run |
-| 30 | `/hrms/talent` | performance | m:hrms.core, m:hrms.talent, p:hrms.talent.manage | Not run |
-| 31 | `/hrms/assets` | records | m:hrms.core, m:hrms.assets, p:hrms.assets.view | Not run |
-| 32 | `/hrms/resignation` | records | m:hrms.core, m:hrms.offboarding | Not run |
-| 33 | `/hrms/exit-interview` | records | m:hrms.core, m:hrms.offboarding | Not run |
-| 34 | `/hrms/automation` | records | m:hrms.core, m:automation, p:hrms.onboarding.manage | Not run |
-| 35 | `/hrms/careers` | records | m:hrms.core, m:hrms.talent | Not run |
-| 36 | `/hrms/signatures` | records | m:hrms.core, m:hrms.documents | Not run |
-| 37 | `/hrms/okrs` | records | m:hrms.core, m:hrms.performance | Not run |
-| 38 | `/hrms/development-plans` | records | m:hrms.core, m:hrms.performance | Not run |
-| 39 | `/hrms/improvement-plans` | records | m:hrms.core, m:hrms.performance | Not run |
-| 40 | `/hrms/loans` | records | m:hrms.core, m:hrms.payroll | Not run |
-| 41 | `/hrms/letters` | records | m:hrms.core, m:hrms.documents, p:hrms.documents.manage | Not run |
-| 42 | `/hrms/org-chart` | workforce | m:hrms.core, p:hrms.employees.view | Not run |
-| 43 | `/hrms/changes` | records | m:hrms.core | Not run |
-| 44 | `/hrms/assets/mine` | records | m:hrms.core, m:hrms.assets | Not run |
-| 45 | `/hrms/approvals/chains` | records | m:hrms.core, p:hrms.approvals.manage | Not run |
-| 46 | `/hrms/analytics` | insight | m:hrms.core, m:hrms.analytics, p:hrms.analytics.view | Not run |
-| 47 | `/hrms/audit` | insight | m:hrms.core, p:hrms.audit.view | Not run |
+| 2 | `/hrms/inbox` | workforce | m:hrms.core | Pass (empty + populated via tab 8) |
+| 3 | `/hrms/team` | workforce | m:hrms.core | Pass (+ manager with reports) |
+| 4 | `/hrms/employees` | workforce | m:hrms.core, p:hrms.employees.view | Pass |
+| 5 | `/hrms/org` | workforce | m:hrms.core, p:hrms.org.view | Pass |
+| 6 | `/hrms/documents` | workforce | m:hrms.core, p:hrms.documents.view | Pass |
+| 7 | `/hrms/documents/mine` | workforce | m:hrms.core | Pass |
+| 8 | `/hrms/onboarding` | workforce | m:hrms.core, p:hrms.onboarding.view | Pass |
+| 9 | `/hrms/offboarding` | workforce | m:hrms.core, p:hrms.offboarding.view | Pass |
+| 10 | `/hrms/attendance` | time | m:hrms.core, m:hrms.attendance | Pass (2 tests self-skip once the 7-day window is used up) |
+| 11 | `/hrms/attendance/approvals` | time | m:hrms.core, m:hrms.attendance, p:hrms.attendance.regularize | Pass (3 of 4 tests self-skip in re-runs for the same reason) |
+| 12 | `/hrms/leave` | time | m:hrms.core, m:hrms.leave, p:hrms.leave.manage | Pass |
+| 13 | `/hrms/leave/mine` | time | m:hrms.core, m:hrms.leave | Pass |
+| 14 | `/hrms/comp-off` | time | m:hrms.core, m:hrms.comp_off, p:hrms.comp_off.manage | Pass |
+| 15 | `/hrms/comp-off/mine` | time | m:hrms.core, m:hrms.comp_off | Pass (redemption, withdraw, override approval) |
+| 16 | `/hrms/holidays` | time | m:hrms.core, m:hrms.holidays | Pass |
+| 17 | `/hrms/shift-swaps` | time | m:hrms.core, m:hrms.shifts | Pass; BUG-T6 open (picker empty for Employees, pinned by an expected-failure test) |
+| 18 | `/hrms/shifts` | time | m:hrms.core, m:hrms.shifts | Pass (roster, rotations incl. Apply) |
+| 19 | `/hrms/compensation` | pay | m:hrms.core, m:hrms.compensation, p:hrms.compensation.view | Pass |
+| 20 | `/hrms/payroll` | pay | m:hrms.core, m:hrms.payroll, p:hrms.payroll.run | Pass |
+| 21 | `/hrms/payroll/mine` | pay | m:hrms.core, m:hrms.payroll | Pass |
+| 22 | `/hrms/statutory` | pay | m:hrms.core, m:hrms.payroll.statutory | Pass |
+| 23 | `/hrms/expenses` | pay | m:hrms.core, m:hrms.expenses, p:hrms.expenses.view | Pass; approval steps added by FU-1 (hrms-23b) |
+| 24 | `/hrms/expenses/mine` | pay | m:hrms.core, m:hrms.expenses | Pass |
+| 25 | `/hrms/performance` | performance | m:hrms.core, m:hrms.performance, p:hrms.performance.view | Pass |
+| 26 | `/hrms/performance/mine` | performance | m:hrms.core, m:hrms.performance | Pass |
+| 27 | `/hrms/engagement` | performance | m:hrms.core, m:hrms.engagement, p:hrms.engagement.view | Pass |
+| 28 | `/hrms/engagement/mine` | performance | m:hrms.core, m:hrms.engagement | Pass |
+| 29 | `/hrms/skills` | performance | m:hrms.core, m:hrms.talent | Pass |
+| 30 | `/hrms/talent` | performance | m:hrms.core, m:hrms.talent, p:hrms.talent.manage | Pass |
+| 31 | `/hrms/assets` | records | m:hrms.core, m:hrms.assets, p:hrms.assets.view | Pass |
+| 32 | `/hrms/resignation` | records | m:hrms.core, m:hrms.offboarding | Pass |
+| 33 | `/hrms/exit-interview` | records | m:hrms.core, m:hrms.offboarding | Pass |
+| 34 | `/hrms/automation` | records | m:hrms.core, m:automation, p:hrms.onboarding.manage | Pass |
+| 35 | `/hrms/careers` | records | m:hrms.core, m:hrms.talent | Pass |
+| 36 | `/hrms/signatures` | records | m:hrms.core, m:hrms.documents | Pass |
+| 37 | `/hrms/okrs` | records | m:hrms.core, m:hrms.performance | Pass |
+| 38 | `/hrms/development-plans` | records | m:hrms.core, m:hrms.performance | Pass |
+| 39 | `/hrms/improvement-plans` | records | m:hrms.core, m:hrms.performance | Pass |
+| 40 | `/hrms/loans` | records | m:hrms.core, m:hrms.payroll | Pass |
+| 41 | `/hrms/letters` | records | m:hrms.core, m:hrms.documents, p:hrms.documents.manage | Pass |
+| 42 | `/hrms/org-chart` | workforce | m:hrms.core, p:hrms.employees.view | Pass |
+| 43 | `/hrms/changes` | records | m:hrms.core | Pass |
+| 44 | `/hrms/assets/mine` | records | m:hrms.core, m:hrms.assets | Pass |
+| 45 | `/hrms/approvals/chains` | records | m:hrms.core, p:hrms.approvals.manage | Pass |
+| 46 | `/hrms/analytics` | insight | m:hrms.core, m:hrms.analytics, p:hrms.analytics.view | Pass |
+| 47 | `/hrms/audit` | insight | m:hrms.core, p:hrms.audit.view | Pass |
 
 
 ## Bug register

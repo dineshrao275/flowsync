@@ -13,6 +13,8 @@ async function openPayroll(page) {
     await as(page, ADMIN);
     await page.goto('/app/hrms/payroll');
     await expect(page.getByRole('button', { name: 'Open a run' })).toBeVisible();
+    // The re-run guards below count rows: wait until the list has loaded or they see an empty table.
+    await expect(page.getByText(/\d+ runs?/).first()).toBeVisible();
     await page.waitForLoadState('networkidle');
 }
 
