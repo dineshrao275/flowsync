@@ -7,6 +7,8 @@ import {
     CallToolRequestSchema,
     ListResourcesRequestSchema,
     ReadResourceRequestSchema,
+    ListPromptsRequestSchema,
+    GetPromptRequestSchema,
     McpError,
     ErrorCode,
 } from '@modelcontextprotocol/sdk/types.js';
@@ -34,6 +36,7 @@ import {
     logTimeTool,
 } from './tools/tasksWrite.js';
 import { resources, resolveDynamicResource } from './resources.js';
+import { prompts } from './prompts.js';
 
 export function createServer(options = {}) {
     const config = options.config || loadConfig(options.env || process.env);
@@ -161,7 +164,37 @@ export function createServer(options = {}) {
         throw new McpError(ErrorCode.InvalidRequest, `Resource not found: "${uri}"`);
     });
 
-    return { server, client, config, logger, tools };
+    // Prompts Handlers
+    server.setRequestHandler(ListPromptsRequestSchema, async () => {
+        return {
+            prompts: prompts.map((p) => ({
+                name: p.name,
+                description: p.description,
+                arguments: p.arguments,
+            })),
+        };
+    });
+
+    server.setRequestHandler(GetPromptRequestSchema, async (request) => {
+        const { name, arguments: args } = request.params;
+        const prompt = prompts.find((p) => p.name === name);
+
+        if (!prompt) {
+            throw new McpError(ErrorCode.MethodNotFound, `Unknown prompt: "${name}"`);
+        }
+
+        try {
+            return await prompt.execute(args || {}, client);
+        } catch (error) {
+            logger.error(`Error executing prompt "${name}": ${error.message}`);
+            if (error instanceof McpError) {
+                throw error;
+            }
+            throw new McpError(ErrorCode.InternalError, error.message || 'Internal prompt execution error');
+        }
+    });
+
+    return { server, client, config, logger, tools, prompts };
 }
 
 export async function runServer() {
