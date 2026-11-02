@@ -54,7 +54,9 @@ export default function Okrs() {
             load();
         } catch (err) {
             const fe = fieldErrors(err);
-            setErrors({ ...fe, form: fe.form || fe.scope || err.response?.data?.message });
+            // `scope` has no field of its own, so it is shown in the banner; the generic message only
+            // duplicates a field error, so it is used when nothing else explains the refusal.
+            setErrors({ ...fe, form: fe.form || fe.scope || (Object.keys(fe).length === 0 ? err.response?.data?.message : undefined) });
         }
     }
 

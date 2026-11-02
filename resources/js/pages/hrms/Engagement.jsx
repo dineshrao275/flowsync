@@ -94,11 +94,15 @@ export default function Engagement() {
         e.preventDefault();
         setTemplateErrors({});
 
+        // Blank questions are not sent, so a server error `questions.N.*` names the N-th SENT
+        // question; `sentAt[N]` is where it sits on screen.
+        const sentAt = questions.map((q, i) => (q.text.trim() !== '' ? i : -1)).filter((i) => i >= 0);
+
         try {
             await api.post('/hrms/engagement/templates', {
                 ...templateForm,
-                questions: questions
-                    .filter((q) => q.text.trim() !== '')
+                questions: sentAt
+                    .map((at) => questions[at])
                     .map((q, i) => ({
                         ...q,
                         options: q.type === 'multiple_choice' && q.options.trim() !== ''
@@ -115,7 +119,13 @@ export default function Engagement() {
             setQuestions([{ ...emptyQuestion }]);
             load();
         } catch (err) {
-            setTemplateErrors(fieldErrors(err));
+            const raw = fieldErrors(err);
+            const mapped = {};
+            Object.entries(raw).forEach(([key, message]) => {
+                const hit = /^questions\.(\d+)\.(.+)$/.exec(key);
+                mapped[hit ? `questions.${sentAt[Number(hit[1])] ?? hit[1]}.${hit[2]}` : key] = message;
+            });
+            setTemplateErrors(mapped);
         }
     }
 
@@ -262,6 +272,7 @@ export default function Engagement() {
 
             <Modal open={templateModal} onClose={() => setTemplateModal(false)} title={t('hrms.engagement.newTemplateTitle')} size="lg">
                 <form onSubmit={saveTemplate} className="grid gap-3 px-6 py-5">
+                    {(templateErrors.form || templateErrors.questions) && <Alert>{templateErrors.form || templateErrors.questions}</Alert>}
                     <div className="grid gap-3 sm:grid-cols-2">
                         <Input label={t('hrms.engagement.name')} value={templateForm.name} error={templateErrors.name} onChange={(e) => setTemplateForm({ ...templateForm, name: e.target.value })} required />
                         <Select label={t('hrms.engagement.type')} value={templateForm.type} error={templateErrors.type} onChange={(e) => setTemplateForm({ ...templateForm, type: e.target.value })}>
@@ -284,13 +295,13 @@ export default function Engagement() {
                     <h4 className="text-sm font-semibold text-gray-900">{t('hrms.engagement.questions')}</h4>
                     {questions.map((question, index) => (
                         <div key={index} className="rounded-lg border border-gray-200 p-3">
-                            <Input label={t('hrms.engagement.question', { n: index + 1 })} value={question.text} onChange={(e) => setQuestions((rows) => rows.map((r, i) => (i === index ? { ...r, text: e.target.value } : r)))} required={index === 0} />
+                            <Input label={t('hrms.engagement.question', { n: index + 1 })} value={question.text} error={templateErrors[`questions.${index}.text`]} onChange={(e) => setQuestions((rows) => rows.map((r, i) => (i === index ? { ...r, text: e.target.value } : r)))} required={index === 0} />
                             <div className="mt-2 grid gap-3 sm:grid-cols-3">
                                 <Select label={t('hrms.engagement.type')} value={question.type} onChange={(e) => setQuestions((rows) => rows.map((r, i) => (i === index ? { ...r, type: e.target.value } : r)))}>
                                     {QUESTION_TYPES.map((value) => <option key={value} value={value}>{t(`hrms.engagement.questionTypes.${value}`)}</option>)}
                                 </Select>
-                                <Input label={t('hrms.engagement.min')} value={question.min} onChange={(e) => setQuestions((rows) => rows.map((r, i) => (i === index ? { ...r, min: e.target.value } : r)))} />
-                                <Input label={t('hrms.engagement.max')} value={question.max} onChange={(e) => setQuestions((rows) => rows.map((r, i) => (i === index ? { ...r, max: e.target.value } : r)))} />
+                                <Input label={t('hrms.engagement.min')} value={question.min} error={templateErrors[`questions.${index}.min`]} onChange={(e) => setQuestions((rows) => rows.map((r, i) => (i === index ? { ...r, min: e.target.value } : r)))} />
+                                <Input label={t('hrms.engagement.max')} value={question.max} error={templateErrors[`questions.${index}.max`]} onChange={(e) => setQuestions((rows) => rows.map((r, i) => (i === index ? { ...r, max: e.target.value } : r)))} />
                             </div>
                             {question.type === 'multiple_choice' && (
                                 <div className="mt-2">

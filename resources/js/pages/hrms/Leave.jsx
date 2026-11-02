@@ -95,11 +95,14 @@ export default function Leave() {
 
     const [types, setTypes] = useState(null);
     const [editingType, setEditingType] = useState(null);
+    // `editingType === null` means "create", so open-ness needs its own flag or New never opens the modal.
+    const [typeOpen, setTypeOpen] = useState(false);
     const [typeForm, setTypeForm] = useState(emptyType);
     const [typeErrors, setTypeErrors] = useState({});
 
     const [policies, setPolicies] = useState(null);
     const [editingPolicy, setEditingPolicy] = useState(null);
+    const [policyOpen, setPolicyOpen] = useState(false);
     const [policyForm, setPolicyForm] = useState(emptyPolicy);
     const [policyErrors, setPolicyErrors] = useState({});
 
@@ -226,7 +229,7 @@ export default function Leave() {
                 toast.success(t('hrms.leave.typeCreated'));
             }
 
-            setEditingType(null);
+            closeTypeEditor();
             loadCatalog();
         } catch (err) {
             setTypeErrors(fieldErrors(err));
@@ -261,7 +264,7 @@ export default function Leave() {
                 toast.success(t('hrms.leave.policyCreated'));
             }
 
-            setEditingPolicy(null);
+            closePolicyEditor();
             loadCatalog();
         } catch (err) {
             setPolicyErrors(fieldErrors(err));
@@ -328,14 +331,26 @@ export default function Leave() {
         }
     }
 
+    function closeTypeEditor() {
+        setEditingType(null);
+        setTypeOpen(false);
+    }
+
+    function closePolicyEditor() {
+        setEditingPolicy(null);
+        setPolicyOpen(false);
+    }
+
     function openTypeEditor(type) {
         setEditingType(type ?? null);
+        setTypeOpen(true);
         setTypeForm(type ? { ...emptyType, ...type } : emptyType);
         setTypeErrors({});
     }
 
     function openPolicyEditor(policy) {
         setEditingPolicy(policy ?? null);
+        setPolicyOpen(true);
         setPolicyForm(policy ? { ...emptyPolicy, ...policy } : emptyPolicy);
         setPolicyErrors({});
     }
@@ -452,7 +467,7 @@ export default function Leave() {
                 </div>
             </Modal>
 
-            <Modal open={!!editingType} onClose={() => setEditingType(null)} title={editingType ? t('hrms.leave.editTypeTitle') : t('hrms.leave.newTypeTitle')}>
+            <Modal open={typeOpen} onClose={closeTypeEditor} title={editingType ? t('hrms.leave.editTypeTitle') : t('hrms.leave.newTypeTitle')}>
                 <form
                     onSubmit={saveType}
                     className="grid grid-cols-1 gap-3 px-6 py-5 sm:grid-cols-2"
@@ -471,14 +486,14 @@ export default function Leave() {
                         <option value="false">{t('hrms.leave.no')}</option>
                     </Select>
                     <div className="sm:col-span-2 flex justify-end gap-2">
-                        <Button type="button" variant="secondary" onClick={() => setEditingType(null)}>{t('hrms.leave.cancel')}</Button>
+                        <Button type="button" variant="secondary" onClick={closeTypeEditor}>{t('hrms.leave.cancel')}</Button>
                         <Button type="submit">{t('hrms.leave.save')}</Button>
                     </div>
                     {typeErrors.form && <Alert>{typeErrors.form}</Alert>}
                 </form>
             </Modal>
 
-            <Modal open={!!editingPolicy} onClose={() => setEditingPolicy(null)} title={editingPolicy ? t('hrms.leave.editPolicyTitle') : t('hrms.leave.newPolicyTitle')}>
+            <Modal open={policyOpen} onClose={closePolicyEditor} title={editingPolicy ? t('hrms.leave.editPolicyTitle') : t('hrms.leave.newPolicyTitle')}>
                 <form
                     onSubmit={savePolicy}
                     className="grid grid-cols-1 gap-3 px-6 py-5 sm:grid-cols-2"
@@ -492,7 +507,7 @@ export default function Leave() {
                     <Input label={t('hrms.leave.yearStarts')} type="number" min="1" max="12" value={policyForm.start_month} onChange={(e) => setPolicyForm({ ...policyForm, start_month: e.target.value })} error={policyErrors.start_month} />
                     <Input label={t('hrms.leave.policyDesc')} value={policyForm.description} onChange={(e) => setPolicyForm({ ...policyForm, description: e.target.value })} error={policyErrors.description} />
                     <div className="sm:col-span-2 flex justify-end gap-2">
-                        <Button type="button" variant="secondary" onClick={() => setEditingPolicy(null)}>{t('hrms.leave.cancel')}</Button>
+                        <Button type="button" variant="secondary" onClick={closePolicyEditor}>{t('hrms.leave.cancel')}</Button>
                         <Button type="submit">{t('hrms.leave.save')}</Button>
                     </div>
                     {policyErrors.form && <Alert>{policyErrors.form}</Alert>}

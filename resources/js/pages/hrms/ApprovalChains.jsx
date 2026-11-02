@@ -219,7 +219,8 @@ export default function ApprovalChains() {
                 title={editing ? t('hrms.approvalChains.editTitle', { label: editing.label }) : ''}
                 size="lg"
             >
-                {draft && (
+                {/* `editing` clears on close while the modal still renders its content during the transition. */}
+                {draft && editing && (
                     <div className="space-y-4 px-6 py-5">
                         {errors.form && <Alert type="error">{errors.form}</Alert>}
                         {errors.steps && <Alert type="error">{errors.steps}</Alert>}

@@ -82,9 +82,15 @@ function Succession({ people }) {
 
     async function addPosition(e) {
         e.preventDefault();
-        await api.post('/hrms/succession', { ...form, incumbent_employee_id: form.incumbent_employee_id ? Number(form.incumbent_employee_id) : null });
-        setForm({ title: '', incumbent_employee_id: '', risk: 'medium' });
-        load();
+        setError(null);
+        try {
+            await api.post('/hrms/succession', { ...form, incumbent_employee_id: form.incumbent_employee_id ? Number(form.incumbent_employee_id) : null });
+            setForm({ title: '', incumbent_employee_id: '', risk: 'medium' });
+            load();
+        } catch (err) {
+            const fe = fieldErrors(err);
+            setError(fe.title || fe.form || t('hrms.careers.failed'));
+        }
     }
 
     async function addCandidate(position) {
@@ -159,8 +165,10 @@ export default function Careers() {
     const tabs = useMemo(() => ['paths', ...(manage ? ['succession'] : [])], [manage]);
 
     useEffect(() => {
+        // Both lists feed manager-only forms; for anyone else this call is a guaranteed 403.
+        if (!manage) return;
         api.get('/hrms/employees', { params: { per_page: 250 } }).then(({ data }) => { setDesignations(data.filters?.designations || []); setPeople(data.employees || []); }).catch(() => {});
-    }, []);
+    }, [manage]);
 
     return (
         <div className="space-y-6">

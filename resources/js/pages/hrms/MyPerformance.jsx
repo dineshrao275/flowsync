@@ -10,7 +10,6 @@ import Input from '../../components/ui/Input';
 import Modal from '../../components/ui/Modal';
 import ContentSkeleton from '../../components/ui/ContentSkeleton';
 import { useToast } from '../../context/ToastContext';
-import { useAuth } from '../../context/AuthContext';
 import { useSetCrumbs } from '../../context/BreadcrumbContext';
 import usePageTitle from '../../hooks/usePageTitle';
 import GoalCard from '../../components/hrms/GoalCard';
@@ -35,7 +34,6 @@ export default function MyPerformance() {
     const setCrumbs = useSetCrumbs();
     const navigate = useNavigate();
     const toast = useToast();
-    const { user } = useAuth();
 
     const [cycles, setCycles] = useState(null);
     const [cycleId, setCycleId] = useState('');
@@ -113,11 +111,12 @@ export default function MyPerformance() {
 
         api.get('/hrms/performance/one-on-ones', { params: employeeId ? { employee_id: employeeId } : {} }).then(({ data }) => setOneOnOnes(data.one_on_ones ?? [])).catch(() => setOneOnOnes([]));
 
-        // The record this login drafts under: the directory row whose user
-        // block names the login. Resolved once here and passed down, so no
+        // The record this login drafts under, from `/my/hr` — the self-scoped endpoint. The
+        // employee directory needs `hrms.employees.view`, which a plain Employee lacks, and its
+        // 100-row page could miss the caller anyway. Resolved once here and passed down, so no
         // form ever asks the person to type their own id.
-        api.get('/hrms/employees', { params: { per_page: 250 } })
-            .then(({ data }) => setEmployeeId((data.employees ?? []).find((e) => e.user?.id === user?.id)?.id ?? null))
+        api.get('/my/hr')
+            .then(({ data }) => setEmployeeId(data.profile?.id ?? null))
             .catch(() => setEmployeeId(null));
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
@@ -233,7 +232,7 @@ export default function MyPerformance() {
                         }}
                     />
                 ) : (
-                    <p className="text-sm text-gray-500">{t('hrms.myPerformance.noRecord')}</p>
+                    <p className="px-6 py-5 text-sm text-gray-500">{t('hrms.myPerformance.noRecord')}</p>
                 )}
             </Modal>
         </div>

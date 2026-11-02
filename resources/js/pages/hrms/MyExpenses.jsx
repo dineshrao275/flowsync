@@ -8,7 +8,6 @@ import Card from '../../components/ui/Card';
 import EmptyState from '../../components/ui/EmptyState';
 import ContentSkeleton from '../../components/ui/ContentSkeleton';
 import { useToast } from '../../context/ToastContext';
-import { useAuth } from '../../context/AuthContext';
 import { useSetCrumbs } from '../../context/BreadcrumbContext';
 import usePageTitle from '../../hooks/usePageTitle';
 import ExpenseClaimModal from '../../components/hrms/ExpenseClaimModal';
@@ -28,7 +27,6 @@ export default function MyExpenses() {
     const setCrumbs = useSetCrumbs();
     const navigate = useNavigate();
     const toast = useToast();
-    const { user } = useAuth();
 
     const [claims, setClaims] = useState(null);
     const [categories, setCategories] = useState([]);
@@ -70,12 +68,11 @@ export default function MyExpenses() {
             .then(({ data }) => setTypes(data.document_types ?? []))
             .catch(() => setTypes([]));
 
-        // The record this login files under: the directory row whose user
-        // block names the login. No picker, so no way to file into
-        // someone else's name — and when the directory is unreachable the
-        // file button simply stays hidden.
-        api.get('/hrms/employees', { params: { per_page: 250 } })
-            .then(({ data }) => setEmployeeId((data.employees ?? []).find((e) => e.user?.id === user?.id)?.id ?? null))
+        // The record this login files under, from the caller's own My HR profile: the employee directory
+        // is a manager read (403 for the Employee role), so it cannot be the source. No picker, so no way
+        // to file into someone else's name — and when there is no employment record the file button stays hidden.
+        api.get('/my/hr')
+            .then(({ data }) => setEmployeeId(data.profile?.id ?? null))
             .catch(() => setEmployeeId(null));
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);

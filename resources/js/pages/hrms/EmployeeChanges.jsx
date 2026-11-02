@@ -50,10 +50,14 @@ export default function EmployeeChanges() {
         api.get('/hrms/employee-changes').then(({ data: res }) => setData(res)).catch(() => setError(t('hrms.changes.loadFailed')));
     }, [t]);
 
+    const canListEmployees = can('hrms.employees.view');
+
     useEffect(() => {
         load();
+        // The directory only feeds the request form; without view access it is a guaranteed 403.
+        if (!canListEmployees) return;
         api.get('/hrms/employees', { params: { per_page: 250 } }).then(({ data: res }) => { setOptions(res.filters || {}); setPeople(res.employees || []); }).catch(() => {});
-    }, [load]);
+    }, [load, canListEmployees]);
 
     const set = (key) => (value) => setForm((f) => ({ ...f, [key]: value }));
     const canRequest = can('hrms.employees.manage') || people.length > 0;

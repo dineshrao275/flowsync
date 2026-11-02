@@ -13,6 +13,7 @@ import Modal from '../../components/ui/Modal';
 import Select from '../../components/ui/Select';
 import ContentSkeleton from '../../components/ui/ContentSkeleton';
 import AssetReplaceModal from '../../components/hrms/AssetReplaceModal';
+import AssetCategoryQuickAdd from '../../components/hrms/AssetCategoryQuickAdd';
 import { Table, Th, Td } from '../../components/ui/Table';
 import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
@@ -266,6 +267,12 @@ export default function Assets() {
                         <option value="">{t('hrms.common.select')}</option>
                         {categories.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
                     </Select>
+                    {canManage && (
+                        <AssetCategoryQuickAdd
+                            empty={categories.length === 0}
+                            onCreated={(c) => { setCategories((list) => [...list, c]); setRegisterForm((f) => ({ ...f, category_id: String(c.id) })); }}
+                        />
+                    )}
                     <Input label={t('hrms.assets.brand')} value={registerForm.brand} error={registerErrors.brand} onChange={(e) => setRegisterForm({ ...registerForm, brand: e.target.value })} />
                     <Input label={t('hrms.assets.model')} value={registerForm.model} error={registerErrors.model} onChange={(e) => setRegisterForm({ ...registerForm, model: e.target.value })} />
                     <Input label={t('hrms.assets.serialNumber')} value={registerForm.serial_number} error={registerErrors.serial_number} onChange={(e) => setRegisterForm({ ...registerForm, serial_number: e.target.value })} />

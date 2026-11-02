@@ -248,6 +248,7 @@ export default function Expenses() {
 
             <Modal open={!!deciding} onClose={() => setDeciding(null)} title={t('hrms.expenses.decideTitle', { number: deciding?.claim_number ?? '' })}>
                 <form onSubmit={decide} className="grid gap-3 px-6 py-5">
+                    {decideErrors.form && <Alert>{decideErrors.form}</Alert>}
                     <p className="text-sm text-gray-500">{t('hrms.expenses.filedTotal', { amount: deciding?.total_amount })}</p>
                     <Select label={t('hrms.expenses.verdict')} value={verdict} error={decideErrors.verdict} onChange={(e) => setVerdict(e.target.value)}>
                         <option value="approve">{t('hrms.expenses.approve')}</option>
