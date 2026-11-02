@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 use App\Http\Controllers\Hrms\Asset\AssetReplacementController;
 use App\Http\Controllers\Hrms\DocumentVersionController;
 use App\Http\Controllers\Hrms\Employee\EmployeeBulkController;
@@ -27,6 +29,7 @@ use Illuminate\Support\Facades\Route;
 // `{shift}` sibling so they never bind as an id (the P3.3 lesson).
 Route::group(['middleware' => ['ensure_module:hrms.core', 'ensure_module:hrms.shifts', 'permission:hrms.view']], function () {
     Route::get('hrms/shift-swaps', [ShiftSwapController::class, 'index']);
+    Route::get('hrms/shift-swaps/colleagues', [ShiftSwapController::class, 'colleagues']);
     Route::post('hrms/shift-swaps', [ShiftSwapController::class, 'store']);
     Route::post('hrms/shift-swaps/{swap}/approve', [ShiftSwapController::class, 'approve']);
     Route::post('hrms/shift-swaps/{swap}/reject', [ShiftSwapController::class, 'reject']);

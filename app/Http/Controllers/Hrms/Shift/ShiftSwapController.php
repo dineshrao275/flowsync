@@ -41,6 +41,16 @@ class ShiftSwapController extends Controller
         return response()->json(['swaps' => $rows->map(fn ($s) => $this->present($s, $user))->values()]);
     }
 
+    public function colleagues(Request $request): JsonResponse
+    {
+        $requester = Employee::query()->where('user_id', $request->user()->id)->first();
+        abort_if($requester === null, 403, __('You need an employment record to swap shifts.'));
+
+        $search = $request->validate(['q' => ['sometimes', 'nullable', 'string', 'max:100']])['q'] ?? null;
+
+        return response()->json(['colleagues' => $this->service->colleaguesFor($requester, $search)]);
+    }
+
     public function store(Request $request): JsonResponse
     {
         $user = $request->user();

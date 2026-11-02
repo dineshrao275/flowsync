@@ -20,11 +20,8 @@ test.describe('HRMS tab 17 — Shift swaps (/hrms/shift-swaps)', () => {
         await expect(page.getByRole('button', { name: 'Request a swap' })).toBeVisible();
     });
 
-    // DEFECT (BUG-T5, not fixed — needs a product decision): the page loads its "swap with" people from
-    // GET /hrms/employees, which an Employee may not call (403), so the picker is empty and the page's
-    // main self-service action is unusable. test.fail() pins the desired behaviour; remove it when fixed.
+    // BUG-T6 (fixed): the picker reads GET /hrms/shift-swaps/colleagues, a names-only list an Employee may call.
     test('Employee: can choose a colleague to swap with', async ({ page }) => {
-        test.fail(true, 'BUG-T5: /hrms/employees is 403 for Employee, so the colleague picker is empty');
         await useSession(page, PERSONAS.employee);
         await gotoHrms(page, '/hrms/shift-swaps');
         await page.getByRole('button', { name: 'Request a swap' }).click();
