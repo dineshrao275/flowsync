@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Services\Hrms\Audit;
 
 use App\Models\Hrms\Shared\HrmsDataAccessLog;
+use App\Support\Like;
 use BackedEnum;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Eloquent\Builder;
@@ -65,8 +66,7 @@ class DataAccessQuery
         }
 
         if (! empty($filters['q'])) {
-            $term = '%'.(string) $filters['q'].'%';
-            $query->where('model', 'like', $term);
+            Like::any($query, ['model'], (string) $filters['q']);
         }
 
         return $query;

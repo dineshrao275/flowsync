@@ -28,15 +28,16 @@ class LifecycleReading extends AnalyticsReading
     public function read(array $filters = []): array
     {
         return $this->remember('lifecycle', $filters, function (): array {
+            // Carbon 3's diffInDays() is a signed float; whole, absolute days is what the averages were built on.
             $onboardingDays = OnboardingCase::query()->whereNotNull('completed_at')
                 ->get(['started_at', 'completed_at'])
-                ->map(fn (OnboardingCase $case): int => $case->started_at->diffInDays($case->completed_at));
+                ->map(fn (OnboardingCase $case): int => (int) $case->started_at->diffInDays($case->completed_at, true));
             $offboardingDays = OffboardingCase::query()->where('status', 'completed')
                 ->get(['created_at', 'updated_at'])
-                ->map(fn (OffboardingCase $case): int => $case->created_at->diffInDays($case->updated_at));
+                ->map(fn (OffboardingCase $case): int => (int) $case->created_at->diffInDays($case->updated_at, true));
             $firstDay = Employee::query()->whereNotNull('joining_date')
                 ->get(['created_at', 'joining_date'])
-                ->map(fn (Employee $employee): int => $employee->created_at->diffInDays($employee->joining_date));
+                ->map(fn (Employee $employee): int => (int) $employee->created_at->diffInDays($employee->joining_date, true));
 
             return [
                 'onboarding_avg_days' => $onboardingDays->isEmpty() ? null : round($onboardingDays->avg(), 1),
