@@ -24,7 +24,9 @@ die()  { echo "${C_RED} ✗ $*${C_RESET}" >&2; exit 1; }
 have() { command -v "$1" >/dev/null 2>&1; }
 
 rand() { # rand <chars>
-    LC_ALL=C tr -dc 'a-z0-9' </dev/urandom | head -c "$1"
+    # `head` closing the pipe sends SIGPIPE to `tr`; under `set -o pipefail` that
+    # would be a fatal 141. The trailing `|| true` keeps the function's status 0.
+    LC_ALL=C tr -dc 'a-z0-9' </dev/urandom | head -c "$1" || true
 }
 
 # Set KEY=value in an env file (adds the key when missing; keeps other lines).
@@ -75,8 +77,9 @@ docker_prepare() {
         set_env .env.docker REVERB_APP_SECRET "$(rand 20)"
         ok "Generated Reverb credentials"
     fi
-    # The browser key must match the server key.
+    # The browser key must match the server key (also fed to the image build arg).
     set_env .env.docker VITE_REVERB_APP_KEY "$key"
+    export VITE_REVERB_APP_KEY="$key"
 
     # Folders the bind mount needs to be writable by your user.
     mkdir -p storage/framework/{cache/data,sessions,views} storage/logs bootstrap/cache

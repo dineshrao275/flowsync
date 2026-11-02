@@ -78,7 +78,7 @@ services:
       dockerfile: Dockerfile
       args:
         VITE_APP_NAME: "FlowSync"
-        VITE_REVERB_APP_KEY: "3epdhhaqs959bljmaety"
+        VITE_REVERB_APP_KEY: "${VITE_REVERB_APP_KEY:-3epdhhaqs959bljmaety}"
         VITE_REVERB_HOST: "localhost"
         VITE_REVERB_PORT: "8080"
         VITE_REVERB_SCHEME: "http"
