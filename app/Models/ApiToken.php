@@ -49,6 +49,21 @@ class ApiToken extends Model
     {
         $abilities = (array) $this->abilities;
 
-        return in_array('*', $abilities, true) || in_array($ability, $abilities, true);
+        if (in_array('*', $abilities, true) || in_array($ability, $abilities, true)) {
+            return true;
+        }
+
+        // Backward compatibility: legacy workspaces.view satisfies tms.read and (if writable) tms.write
+        if ($ability === 'tms.read' && in_array('workspaces.view', $abilities, true)) {
+            return true;
+        }
+        if ($ability === 'workspaces.view' && in_array('tms.read', $abilities, true)) {
+            return true;
+        }
+        if ($ability === 'tms.write' && $this->can_write && in_array('workspaces.view', $abilities, true)) {
+            return true;
+        }
+
+        return false;
     }
 }

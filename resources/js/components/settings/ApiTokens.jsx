@@ -24,9 +24,21 @@ export default function ApiTokens() {
     const [logsFor, setLogsFor] = useState(null);
     const [logs, setLogs] = useState([]);
     const [confirming, setConfirming] = useState(null);
+    const [moduleDenied, setModuleDenied] = useState(null);
 
     const load = useCallback(
-        () => api.get('/api-tokens').then(({ data: d }) => setData(d)).catch(() => setData({ tokens: [], abilities: [] })),
+        () => api.get('/api-tokens')
+            .then(({ data: d }) => {
+                setData(d);
+                setModuleDenied(null);
+            })
+            .catch((err) => {
+                const denied = err.response?.headers?.['x-module-denied'] || err.response?.headers?.['x-module-reason'];
+                if (denied || err.response?.status === 403) {
+                    setModuleDenied(denied || 'api');
+                }
+                setData({ tokens: [], abilities: [] });
+            }),
         [],
     );
     useEffect(() => { load(); }, [load]);
@@ -85,11 +97,20 @@ export default function ApiTokens() {
 
     return (
         <div className="space-y-4">
+            {moduleDenied && (
+                <Alert type="warning">
+                    <p className="font-semibold">{t('admin.apiTokens.moduleRequired', 'API Access Module Required')}</p>
+                    <p className="mt-1 text-xs">
+                        {t('admin.apiTokens.upgradePlan', 'Personal API tokens and MCP server integration require the API module on your subscription plan (Pro or Enterprise).')}
+                    </p>
+                </Alert>
+            )}
+
             <div className="flex flex-wrap items-center justify-between gap-2">
                 <p className="text-sm text-gray-500">
                     {t('admin.apiTokens.intro')}
                 </p>
-                <Button size="sm" onClick={() => setCreating((v) => !v)}>{t('admin.apiTokens.newToken')}</Button>
+                <Button size="sm" onClick={() => setCreating((v) => !v)} disabled={Boolean(moduleDenied)}>{t('admin.apiTokens.newToken')}</Button>
             </div>
 
             {plaintext && (
@@ -113,10 +134,40 @@ export default function ApiTokens() {
                         ))}
                         {errors.abilities && <p className="mt-1 text-sm text-red-600">{errors.abilities}</p>}
                     </div>
-                    <label className="flex items-center gap-2 text-sm text-gray-700">
-                        <input type="checkbox" checked={form.can_write} onChange={(e) => setForm((f) => ({ ...f, can_write: e.target.checked }))} />
-                        {t('admin.apiTokens.allowWrites')}
-                    </label>
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                        <label className="flex items-center gap-2 text-sm text-gray-700">
+                            <input
+                                type="checkbox"
+                                checked={form.can_write}
+                                onChange={(e) => {
+                                    const checked = e.target.checked;
+                                    setForm((f) => ({
+                                        ...f,
+                                        can_write: checked,
+                                        expires_at: checked && !f.expires_at ? new Date(Date.now() + 30 * 86400000).toISOString().split('T')[0] : f.expires_at,
+                                    }));
+                                }}
+                            />
+                            {t('admin.apiTokens.allowWrites')}
+                        </label>
+                        <button
+                            type="button"
+                            className="text-xs font-medium text-[var(--accent)] hover:underline"
+                            onClick={() => {
+                                const allAbilities = data.abilities.map((a) => a.slug);
+                                setForm((f) => ({
+                                    ...f,
+                                    name: f.name || 'AI Coding Agent',
+                                    abilities: allAbilities,
+                                    can_write: true,
+                                    rate_limit: 120,
+                                    expires_at: new Date(Date.now() + 30 * 86400000).toISOString().split('T')[0],
+                                }));
+                            }}
+                        >
+                            {t('admin.apiTokens.agentPreset', 'Apply Agent Preset (30d, write, 120 rpm)')}
+                        </button>
+                    </div>
                     <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                         <Input label={t('admin.apiTokens.rateLimit', { default: data.default_rate_limit })} name="rate_limit" type="number" value={form.rate_limit} onChange={(e) => setForm((f) => ({ ...f, rate_limit: e.target.value }))} error={errors.rate_limit} />
                         <Input label={t('admin.apiTokens.expiresOptional')} name="expires_at" type="date" value={form.expires_at} onChange={(e) => setForm((f) => ({ ...f, expires_at: e.target.value }))} error={errors.expires_at} />
@@ -139,7 +190,14 @@ export default function ApiTokens() {
                                         {token.abilities.join(', ')} · {token.can_write ? t('admin.apiTokens.readWrite') : t('admin.apiTokens.readOnly')}
                                         {token.expires_at ? <> · {t('admin.apiTokens.expires')} <Timestamp date={token.expires_at} /></> : ` · ${t('admin.apiTokens.noExpiry')}`}
                                     </p>
-                                    <p className="text-xs text-gray-400">{token.last_used_at ? <>{t('admin.apiTokens.lastUsed')} <Timestamp date={token.last_used_at} /></> : t('admin.apiTokens.neverUsed')}</p>
+                                    <p className="text-xs text-gray-400">
+                                        {token.last_used_at ? (
+                                            <>
+                                                {t('admin.apiTokens.lastUsed')} <Timestamp date={token.last_used_at} />
+                                                {token.last_used_ip && ` · ${token.last_used_ip}`}
+                                            </>
+                                        ) : t('admin.apiTokens.neverUsed')}
+                                    </p>
                                 </div>
                                 <Badge>{token.active ? t('admin.apiTokens.active') : token.revoked_at ? t('admin.apiTokens.revoked') : t('admin.apiTokens.expired')}</Badge>
                             </div>

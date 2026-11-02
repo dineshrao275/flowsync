@@ -73,8 +73,12 @@ class ProjectController extends Controller
     {
         $this->authorize('view', $project);
 
+        $payload = $this->withCustomFields([[...$this->present($project, $request->user()), 'my_role' => $project->memberRole($request->user())?->slug]], 'project', false)[0];
+        $payload['statuses'] = $project->statuses()->orderBy('position')->get(['id', 'name', 'category', 'color', 'position']);
+        $payload['members'] = $project->members()->withPivot('project_role_id')->get(['users.id', 'users.name', 'users.email']);
+
         return response()->json([
-            'project' => $this->withCustomFields([[...$this->present($project, $request->user()), 'my_role' => $project->memberRole($request->user())?->slug]], 'project', false)[0],
+            'project' => $payload,
         ]);
     }
 

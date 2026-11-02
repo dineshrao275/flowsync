@@ -139,8 +139,10 @@ class TaskController extends Controller
     {
         $this->authorize('view', $task);
 
+        $recordView = ! (bool) $request->attributes->get('api_token');
+
         return response()->json([
-            'task' => $this->presentSeen($task, $request->user()),
+            'task' => $this->presentSeen($task, $request->user(), $recordView),
         ]);
     }
 
@@ -157,8 +159,10 @@ class TaskController extends Controller
 
         $this->authorize('view', $task);
 
+        $recordView = ! (bool) $request->attributes->get('api_token');
+
         return response()->json([
-            'task' => $this->presentSeen($task, $request->user()),
+            'task' => $this->presentSeen($task, $request->user(), $recordView),
         ]);
     }
 
@@ -280,8 +284,12 @@ class TaskController extends Controller
 
     /** @return array<string, mixed> one task with its custom-field values (when the plan has them) */
     /** Opening a task counts as seeing it: stamp the viewer, then return the payload with the "seen by" list. */
-    private function presentSeen(Task $task, User $viewer): array
+    private function presentSeen(Task $task, User $viewer, bool $recordView = true): array
     {
+        if (! $recordView) {
+            return $this->presentOne($task);
+        }
+
         $views = app(TaskViews::class);
         $views->record($task, $viewer);
 

@@ -21,7 +21,11 @@ class TokenCan
         $token = $request->attributes->get('api_token');
 
         if (! $token instanceof ApiToken || ! $token->allows($ability)) {
-            abort(403, "This API token lacks the \"{$ability}\" ability.");
+            return response()->json([
+                'message' => "This API token lacks the \"{$ability}\" ability.",
+                'code' => 'token_ability_missing',
+                'ability' => $ability,
+            ], 403);
         }
 
         return $next($request);

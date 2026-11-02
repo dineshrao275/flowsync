@@ -10,6 +10,7 @@ use App\Models\Hrms\Employee\Employee;
 use App\Models\Hrms\Employee\EmployeeStatusHistory;
 use App\Models\Hrms\Lifecycle\OffboardingCase;
 use App\Models\User;
+use App\Services\Api\ApiTokenService;
 use App\Services\Hrms\OffboardingService;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
@@ -78,6 +79,9 @@ class EmployeeStatusTransition
         if ($to->isOffboarding()) {
             $employee->exit_date = $effectiveDate ? Carbon::parse($effectiveDate) : now();
             $employee->exited_reason = $reason;
+            if ($employee->user_id) {
+                app(ApiTokenService::class)->revokeAllFor($employee->user_id);
+            }
         }
 
         $employee->save();

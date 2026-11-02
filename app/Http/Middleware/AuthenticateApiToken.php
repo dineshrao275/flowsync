@@ -5,10 +5,12 @@ declare(strict_types=1);
 namespace App\Http\Middleware;
 
 use App\Models\ApiToken;
+use App\Models\Hrms\Employee\Employee;
 use App\Models\IntegrationLog;
 use App\Models\User;
 use App\Services\Api\ApiTokenService;
 use App\Services\UsageMeter;
+use App\Support\Hrms\HrmsSchema;
 use App\Support\TenantContext;
 use App\Support\TenantDatabaseManager;
 use Closure;
@@ -58,6 +60,18 @@ class AuthenticateApiToken
             $this->dbm->connectSystem();
 
             return $this->unauthenticated();
+        }
+
+        if (HrmsSchema::present()) {
+            $employee = Employee::where('user_id', $user->id)->first();
+            if ($employee?->status?->isOffboarding()) {
+                $this->dbm->connectSystem();
+
+                return response()->json([
+                    'message' => __('Invalid or expired API token.'),
+                    'code' => 'employee_exited',
+                ], 401, ['WWW-Authenticate' => 'Bearer']);
+            }
         }
 
         Auth::setUser($user);
