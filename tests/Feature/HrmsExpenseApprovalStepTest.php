@@ -11,6 +11,7 @@ use App\Models\Hrms\Shared\HrmsAuditLog;
 use App\Models\Permission;
 use App\Models\Role;
 use App\Models\User;
+use App\Models\UserNotification;
 use Tests\IsolatesDatabase;
 use Tests\TestCase;
 
@@ -43,6 +44,20 @@ class HrmsExpenseApprovalStepTest extends TestCase
             ->assertOk()->assertJsonPath('claim.status', 'approved');
 
         $this->assertDatabaseHas('hrms_audit_logs', ['action' => 'approval.approved'], $this->tenantConnection());
+    }
+
+    public function test_clearing_a_step_nudges_whoever_must_act_next(): void
+    {
+        [$manager, , $finance, $claimId] = $this->submittedClaim();
+
+        $this->actAs($manager->user);
+        $this->postJson("/api/hrms/expenses/claims/{$claimId}/approve-step", [])->assertOk();
+
+        // The finance leg is now current; submitting only nudged the manager's leg.
+        $this->assertTrue(
+            UserNotification::query()->where('user_id', $finance->id)->where('type', 'hrms.expense.submitted')->exists(),
+            'The next approver is told the claim is waiting on them.',
+        );
     }
 
     public function test_someone_who_is_not_the_approver_is_refused(): void

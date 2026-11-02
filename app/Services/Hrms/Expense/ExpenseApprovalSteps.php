@@ -7,6 +7,7 @@ namespace App\Services\Hrms\Expense;
 use App\Models\Hrms\Expense\ExpenseClaim;
 use App\Models\User;
 use App\Services\Hrms\Shared\ApprovalService;
+use App\Services\NotificationService;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
@@ -22,6 +23,7 @@ class ExpenseApprovalSteps
     public function __construct(
         private readonly ApprovalService $approvals,
         private readonly ExpenseService $expenses,
+        private readonly NotificationService $notifications,
     ) {}
 
     /**
@@ -49,7 +51,12 @@ class ExpenseApprovalSteps
      */
     public function approve(ExpenseClaim $claim, User $actor, ?string $note = null): ExpenseClaim
     {
-        $this->approvals->approve($claim->approval, $actor, $note);
+        $approval = $this->approvals->approve($claim->approval, $actor, $note);
+
+        // The submit nudge only reached the first leg; whoever holds the next one is told it is theirs now.
+        if ($approval->isOpen()) {
+            $this->notifications->expenseSubmitted($claim->refresh(), $actor);
+        }
 
         return $claim->refresh();
     }
