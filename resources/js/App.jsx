@@ -406,13 +406,14 @@ function AppRoutes() {
                                     />
                                     <Route path="/hrms/comp-off/mine" element={<MyCompOff />} />
                                 </Route>
-                                {/* Holidays: shared reference data with internal
-                                    gating — the route needs the module, reads
-                                    ride it, mutations hide without manage. */}
+                                {/* Holidays: shared reference data. Reads need
+                                    `hrms.holidays.view` (HolidayCalendarPolicy has no
+                                    self-service leg), so the route and the sidebar
+                                    entry say so; mutations hide without manage. */}
                                 <Route
                                     path="/hrms/holidays"
                                     element={
-                                        <ProtectedRoute module="hrms.holidays">
+                                        <ProtectedRoute module="hrms.holidays" permission="hrms.holidays.view">
                                             <Holidays />
                                         </ProtectedRoute>
                                     }

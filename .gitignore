@@ -26,5 +26,7 @@ Thumbs.db
 .agents/orchestrator/mcp-server/node_modules/
 .agents/workflow/
 .claude/
-figmatests/e2e/.results/
+figma
+tests/e2e/.results/
 tests/e2e/.auth/
+tests/e2e/.results-time/
