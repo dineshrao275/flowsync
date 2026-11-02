@@ -5,6 +5,8 @@ import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js'
 import {
     ListToolsRequestSchema,
     CallToolRequestSchema,
+    ListResourcesRequestSchema,
+    ReadResourceRequestSchema,
     McpError,
     ErrorCode,
 } from '@modelcontextprotocol/sdk/types.js';
@@ -12,6 +14,19 @@ import { loadConfig } from './config.js';
 import { createLogger } from './logger.js';
 import { FlowSyncClient } from './client.js';
 import { meTool } from './tools/me.js';
+import { listWorkspacesTool, getWorkspaceTool } from './tools/workspaces.js';
+import { listProjectsTool, getProjectTool } from './tools/projects.js';
+import {
+    listTasksTool,
+    getTaskTool,
+    getTaskTransitionsTool,
+    listTaskActivityTool,
+} from './tools/tasksRead.js';
+import { listCommentsTool } from './tools/comments.js';
+import { listWorklogsTool } from './tools/worklogs.js';
+import { listSprintsTool } from './tools/sprints.js';
+import { searchTasksTool } from './tools/search.js';
+import { resources, resolveDynamicResource } from './resources.js';
 
 export function createServer(options = {}) {
     const config = options.config || loadConfig(options.env || process.env);
@@ -23,8 +38,22 @@ export function createServer(options = {}) {
         tools.set(tool.name, tool);
     }
 
-    // Register base tools
+    // Register all Read Tools
     registerTool(meTool);
+    registerTool(listWorkspacesTool);
+    registerTool(getWorkspaceTool);
+    registerTool(listProjectsTool);
+    registerTool(getProjectTool);
+    registerTool(listTasksTool);
+    registerTool(getTaskTool);
+    registerTool(getTaskTransitionsTool);
+    registerTool(listTaskActivityTool);
+    registerTool(listCommentsTool);
+    registerTool(listWorklogsTool);
+    registerTool(listSprintsTool);
+    registerTool(searchTasksTool);
+
+    // Register any additional tools (e.g. Write Tools in Phase 4)
     if (options.additionalTools) {
         for (const t of options.additionalTools) {
             registerTool(t);
@@ -46,6 +75,7 @@ export function createServer(options = {}) {
         }
     );
 
+    // Tools Handlers
     server.setRequestHandler(ListToolsRequestSchema, async () => {
         return {
             tools: Array.from(tools.values()).map((tool) => ({
@@ -74,6 +104,47 @@ export function createServer(options = {}) {
             }
             throw new McpError(ErrorCode.InternalError, error.message || 'Internal tool execution error');
         }
+    });
+
+    // Resources Handlers
+    server.setRequestHandler(ListResourcesRequestSchema, async () => {
+        return {
+            resources: resources.map((r) => ({
+                uri: r.uri,
+                name: r.name,
+                description: r.description,
+                mimeType: r.mimeType,
+            })),
+        };
+    });
+
+    server.setRequestHandler(ReadResourceRequestSchema, async (request) => {
+        const { uri } = request.params;
+
+        // Check static resources
+        const staticRes = resources.find((r) => r.uri === uri);
+        if (staticRes) {
+            const text = await staticRes.read(client);
+            return {
+                contents: [
+                    {
+                        uri,
+                        mimeType: staticRes.mimeType,
+                        text,
+                    },
+                ],
+            };
+        }
+
+        // Check dynamic resources
+        const dynamicRes = await resolveDynamicResource(uri, client);
+        if (dynamicRes) {
+            return {
+                contents: [dynamicRes],
+            };
+        }
+
+        throw new McpError(ErrorCode.InvalidRequest, `Resource not found: "${uri}"`);
     });
 
     return { server, client, config, logger, tools };
