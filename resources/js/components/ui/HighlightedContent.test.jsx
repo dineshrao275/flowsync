@@ -27,6 +27,17 @@ describe('HighlightedContent component', () => {
         expect(projLink).toHaveAttribute('href', '/projects/3?tab=tasks&task=PROJ-10');
     });
 
+    it('leaves a dash-number identifier such as a claim number whole instead of chipping its first half', () => {
+        render(
+            <MemoryRouter>
+                <HighlightedContent content="Your claim EXP-2026-000002 was approved" projectId={3} />
+            </MemoryRouter>
+        );
+
+        expect(screen.queryByRole('link')).toBeNull();
+        expect(screen.getByText('Your claim EXP-2026-000002 was approved')).toBeInTheDocument();
+    });
+
     it('converts URLs into clickable external links', () => {
         render(
             <MemoryRouter>

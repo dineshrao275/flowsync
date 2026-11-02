@@ -45,6 +45,7 @@ export default function Statutory() {
     const [configs, setConfigs] = useState(null);
     const [declarations, setDeclarations] = useState(null);
     const [employees, setEmployees] = useState([]);
+    const [selfId, setSelfId] = useState('');
     const [error, setError] = useState(null);
 
     const [configModal, setConfigModal] = useState(false);
@@ -130,9 +131,24 @@ export default function Statutory() {
             setDeclarations([]);
         }
 
-        api.get('/hrms/employees', { params: { per_page: 250 } })
-            .then(({ data }) => setEmployees((data.employees ?? []).map((e) => ({ id: e.id, name: e.display_name ?? e.name, email: e.user?.email }))))
-            .catch(() => setEmployees([]));
+        if (canManage) {
+            api.get('/hrms/employees', { params: { per_page: 250 } })
+                .then(({ data }) => setEmployees((data.employees ?? []).map((e) => ({ id: e.id, name: e.display_name ?? e.name, email: e.user?.email }))))
+                .catch(() => setEmployees([]));
+        } else {
+            // Self-service: the directory is a manager read (403 otherwise), so a person is offered only
+            // themselves, from their own My HR profile.
+            api.get('/my/hr')
+                .then(({ data }) => {
+                    const me = data.profile;
+                    if (!me) return;
+                    setEmployees([{ id: me.id, name: me.name }]);
+                    setSelfId(String(me.id));
+                    setEmployeeId(String(me.id));
+                    setDeclForm((form) => ({ ...form, employee_id: String(me.id) }));
+                })
+                .catch(() => setEmployees([]));
+        }
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
@@ -235,7 +251,10 @@ export default function Statutory() {
         setProfileErrors({});
 
         try {
-            const { data } = await api.put(`/hrms/payroll/statutory/profiles/${employeeId}`, profileForm);
+            // Blank fields are omitted, not sent: the form can never show stored values, so sending them
+            // would erase every identifier the user did not retype.
+            const filled = Object.fromEntries(Object.entries(profileForm).filter(([, value]) => value !== '' && value != null));
+            const { data } = await api.put(`/hrms/payroll/statutory/profiles/${employeeId}`, filled);
             toast.success(t('hrms.statutory.profileSaved'));
             setProfile(data.profile);
             setProfileForm(emptyProfile);
@@ -262,8 +281,9 @@ export default function Statutory() {
             await api.post('/hrms/payroll/statutory/declarations', declForm);
             toast.success(t('hrms.statutory.claimFiled'));
             setDeclModal(false);
-            setDeclForm(emptyDeclaration);
-            loadDeclarations();
+            setDeclForm({ ...emptyDeclaration, employee_id: selfId });
+            // The claims queue is a manager read: refetching it as an Employee 403s and bounces them off the page.
+            if (canManage) loadDeclarations();
         } catch (err) {
             setDeclErrors(fieldErrors(err));
         }
@@ -288,8 +308,9 @@ export default function Statutory() {
                 fiscal_year: Number(projYear),
             });
             setProjection(data);
-        } catch {
-            setError(t('hrms.statutory.projectionFailed'));
+        } catch (err) {
+            // The server names the real blocker (e.g. no rulebook for the jurisdiction); the generic line is the fallback.
+            setError(fieldErrors(err).form ?? t('hrms.statutory.projectionFailed'));
         }
     }
 

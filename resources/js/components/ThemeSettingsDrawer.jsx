@@ -102,10 +102,15 @@ export default function ThemeSettingsDrawer({ open, onClose }) {
             )}
 
             <aside
-                className={`fixed inset-y-0 right-0 z-50 flex w-full max-w-md transform flex-col bg-white shadow-2xl transition-transform duration-300 ease-out ${
-                    open ? 'translate-x-0' : 'translate-x-full'
+                // Off-screen alone leaves the panel in the accessibility tree and the tab order, so a closed
+                // drawer is also inert + hidden (visibility transitions, so the slide-out still animates).
+                className={`fixed inset-y-0 right-0 z-50 flex w-full max-w-md transform flex-col bg-white shadow-2xl transition-[transform,visibility] duration-300 ease-out ${
+                    open ? 'translate-x-0' : 'invisible translate-x-full'
                 }`}
                 role="dialog"
+                aria-modal={open ? 'true' : undefined}
+                aria-hidden={open ? undefined : 'true'}
+                inert={!open}
                 aria-label={t('shell.theme.ariaLabel')}
             >
                 <div className="flex animate-fade-in-up items-center justify-between border-b border-gray-200 px-6 py-4">

@@ -1,3 +1,4 @@
+import { useId } from 'react';
 import { createPortal } from 'react-dom';
 import DatePicker from 'react-datepicker';
 import 'react-datepicker/dist/react-datepicker.css';
@@ -31,7 +32,9 @@ function parseDateTime(value) {
  */
 function DateField({ label, labelClassName = '', error, id, className = '', leadingIcon, compact = false, placeholder, ...props }) {
     const { t } = useTranslation();
-    const inputId = id || props.name;
+    // Falls back to a generated id so a label with no id/name is still tied to its input.
+    const autoId = useId();
+    const inputId = id || props.name || autoId;
     const withTime = props.type === 'datetime-local';
     const selected = withTime ? parseDateTime(props.value) : parseDate(props.value);
 
@@ -94,6 +97,7 @@ function DateField({ label, labelClassName = '', error, id, className = '', lead
 }
 
 export default function Input({ label, labelClassName = '', error, id, className = '', leadingIcon, trailingIcon, compact = false, placeholder, ...props }) {
+    const autoId = useId();
     // Every input shows a hint: explicit prop first, then the label text.
     // (Labels stay the accessible name; the placeholder is a visual echo.)
     const hint = placeholder ?? label;
@@ -101,7 +105,7 @@ export default function Input({ label, labelClassName = '', error, id, className
         return <DateField label={label} labelClassName={labelClassName} error={error} id={id} className={className} leadingIcon={leadingIcon} compact={compact} placeholder={hint} {...props} />;
     }
 
-    const inputId = id || props.name;
+    const inputId = id || props.name || autoId;
 
     return (
         <div className={className}>

@@ -36,7 +36,7 @@ export default function ShiftSwaps() {
 
     useEffect(() => {
         load();
-        api.get('/hrms/employees', { params: { per_page: 250 } }).then(({ data }) => setPeople(data.employees || [])).catch(() => {});
+        api.get('/hrms/shift-swaps/colleagues').then(({ data }) => setPeople(data.colleagues || [])).catch(() => {});
     }, [load]);
 
     async function submit(e) {

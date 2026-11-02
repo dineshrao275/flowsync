@@ -51,7 +51,7 @@ class MyHrService
      */
     public function aggregate(User $user): array
     {
-        return Cache::remember("hrms.myhr.{$user->id}", 60, function () use ($user): array {
+        return Cache::remember($this->inbox->userCacheKey('hrms.myhr', $user), 60, function () use ($user): array {
             $employee = Employee::where('user_id', $user->id)->first();
 
             if ($employee === null) {
@@ -105,7 +105,7 @@ class MyHrService
         $all['hrms'] = array_merge(self::preferenceDefaults(), array_intersect_key($preferences, self::preferenceDefaults()));
         $settings->update(['settings' => $all]);
 
-        Cache::forget("hrms.myhr.{$user->id}");
+        Cache::forget($this->inbox->userCacheKey('hrms.myhr', $user));
 
         return $this->preferences($user);
     }

@@ -24,6 +24,7 @@ export default function ImprovementPlans() {
     const toast = useToast();
     const [plans, setPlans] = useState(null);
     const [people, setPeople] = useState([]);
+    const [canOpen, setCanOpen] = useState(false);
     const [open, setOpen] = useState(false);
     const [form, setForm] = useState(BLANK);
     const [errors, setErrors] = useState({});
@@ -32,13 +33,22 @@ export default function ImprovementPlans() {
     const [error, setError] = useState(null);
 
     const load = useCallback(() => {
-        api.get('/hrms/improvement-plans').then(({ data }) => setPlans(data.plans)).catch(() => setError(t('hrms.pip.loadFailed')));
+        api.get('/hrms/improvement-plans').then(({ data }) => {
+            setPlans(data.plans);
+            setCanOpen(Boolean(data.can_open));
+        }).catch(() => setError(t('hrms.pip.loadFailed')));
     }, [t]);
 
     useEffect(() => {
         load();
-        api.get('/hrms/employees', { params: { per_page: 250 } }).then(({ data }) => setPeople(data.employees || [])).catch(() => {});
     }, [load]);
+
+    // The person picker needs the employee directory, which only people who may open a plan have a
+    // reason to read; everyone else would just trigger a refused request and see a form they cannot submit.
+    useEffect(() => {
+        if (!canOpen) return;
+        api.get('/hrms/employees', { params: { per_page: 250 } }).then(({ data }) => setPeople(data.employees || [])).catch(() => {});
+    }, [canOpen]);
 
     async function submit(e) {
         e.preventDefault();
@@ -89,7 +99,7 @@ export default function ImprovementPlans() {
                     <h2 className="text-2xl font-bold text-gray-900">{t('hrms.pip.pageTitle')}</h2>
                     <p className="mt-1 text-sm text-gray-500">{t('hrms.pip.subtitle')}</p>
                 </div>
-                <Button onClick={() => setOpen(true)}>{t('hrms.pip.open')}</Button>
+                {canOpen && <Button onClick={() => setOpen(true)}>{t('hrms.pip.open')}</Button>}
             </div>
             {error && <Alert>{error}</Alert>}
 

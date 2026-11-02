@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Tests\Feature;
 
 use App\Enums\Hrms\EmployeeStatus;
@@ -132,6 +134,32 @@ class HrmsExpenseApiTest extends TestCase
         // And a verdict is required, not guessed.
         $this->actAs($finance);
         $this->postJson("/api/hrms/expenses/claims/{$claim['id']}/decide", [])->assertStatus(422);
+    }
+
+    public function test_a_view_own_holder_can_read_the_category_catalogue_to_file_a_claim_but_not_change_it(): void
+    {
+        // The seeded Employee role holds the scoped `hrms.expenses.view_own`; without the catalogue read the
+        // claim form has no categories to offer.
+        [$manager, $employee] = $this->reportingLine();
+        $this->actAs($this->userWith(['hrms.view', 'hrms.expenses.view_own'], $employee));
+
+        $this->getJson('/api/hrms/expenses/categories')->assertOk();
+        $this->postJson('/api/hrms/expenses/categories', ['name' => 'Nope'])->assertForbidden();
+    }
+
+    public function test_a_category_name_is_unique_and_a_receipt_threshold_cannot_be_negative(): void
+    {
+        $this->actAs($this->userWith(['hrms.view', 'hrms.expenses.view', 'hrms.expenses.manage']));
+
+        $created = $this->postJson('/api/hrms/expenses/categories', ['name' => 'Client Gifts'])->assertCreated()->json('category');
+
+        $this->postJson('/api/hrms/expenses/categories', ['name' => 'Client Gifts'])
+            ->assertUnprocessable()->assertJsonValidationErrors('name');
+        $this->postJson('/api/hrms/expenses/categories', ['name' => 'Gifts Two', 'requires_receipt_above' => -1])
+            ->assertUnprocessable()->assertJsonValidationErrors('requires_receipt_above');
+
+        // A row keeps its own name on edit.
+        $this->putJson("/api/hrms/expenses/categories/{$created['id']}", ['name' => 'Client Gifts', 'monthly_limit' => 100])->assertOk();
     }
 
     public function test_a_plain_employee_lists_only_their_own(): void

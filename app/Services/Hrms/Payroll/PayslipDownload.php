@@ -124,7 +124,7 @@ class PayslipDownload
             && $employee->user_id !== null
             && (int) $employee->user_id === (int) $reader->id;
 
-        if (! $isSelf || ! $reader->hasPermission('hrms.payroll.view')) {
+        if (! $isSelf || ! $reader->granted('hrms.payroll.view_own')) {
             abort(403, __('This payslip is not yours to download.'));
         }
     }

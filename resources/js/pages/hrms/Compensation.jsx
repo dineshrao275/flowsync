@@ -485,7 +485,7 @@ export default function Compensation() {
                         );
                     })}
                 </div>
-                <div className="mt-4"><Button onClick={saveLinks}>{t('hrms.compensation.saveHeads')}</Button></div>
+                <div className="mt-4 px-6 pb-5"><Button onClick={saveLinks}>{t('hrms.compensation.saveHeads')}</Button></div>
             </Modal>
         </div>
     );

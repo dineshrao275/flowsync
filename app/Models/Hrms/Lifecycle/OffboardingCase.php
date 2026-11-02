@@ -76,7 +76,8 @@ class OffboardingCase extends Model
 
     public function employee(): BelongsTo
     {
-        return $this->belongsTo(Employee::class);
+        // A case is history: it keeps its person even after the employee record is soft-deleted.
+        return $this->belongsTo(Employee::class)->withTrashed();
     }
 
     public function tasks(): HasMany

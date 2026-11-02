@@ -186,8 +186,9 @@ export default function Talent() {
                             label={t('hrms.talent.reviewCycle')}
                             value={cycleId}
                             onChange={(e) => setCycleId(e.target.value)}
-                            options={cycles.map((cycle) => ({ value: String(cycle.id), label: cycle.name }))}
-                        />
+                        >
+                            {cycles.map((cycle) => <option key={cycle.id} value={String(cycle.id)}>{cycle.name}</option>)}
+                        </Select>
                     </div>
 
                     <Card title={t('hrms.talent.ratingDistribution')}>
@@ -326,9 +327,10 @@ export default function Talent() {
                             label={t('hrms.talent.calibratedRating')}
                             value={rating}
                             onChange={(e) => setRating(e.target.value)}
-                            options={RATING_OPTIONS}
                             error={formError}
-                        />
+                        >
+                            {RATING_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+                        </Select>
                         <div className="flex justify-end gap-2">
                             <Button variant="secondary" type="button" onClick={() => setCalibrating(null)}>
                                 {t('hrms.common.cancel')}

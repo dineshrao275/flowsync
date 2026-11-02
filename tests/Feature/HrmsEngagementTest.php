@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Tests\Feature;
 
 use App\Enums\Hrms\EmployeeStatus;
@@ -7,6 +9,7 @@ use App\Models\Hrms\Employee\Employee;
 use App\Models\User;
 use App\Models\UserNotification;
 use App\Services\Hrms\Survey\EngagementService;
+use App\Services\Hrms\Survey\SurveyResults;
 use App\Services\Hrms\Survey\SurveyTemplateService;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Validation\ValidationException;
@@ -124,7 +127,7 @@ class HrmsEngagementTest extends TestCase
         $this->assertSame(1, $quiet['response_count']);
 
         $campaign->update(['anonymity_threshold' => 1]);
-        Cache::forget("hrms.survey.results.{$campaign->id}");
+        Cache::forget(SurveyResults::resultsKey($campaign));
 
         $loud = $services->engagement->results($campaign->refresh());
 

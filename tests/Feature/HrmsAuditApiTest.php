@@ -1,13 +1,17 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Tests\Feature;
 
+use App\Enums\Hrms\DataAccessAction;
 use App\Enums\Hrms\EmployeeStatus;
 use App\Models\Hrms\Employee\Employee;
 use App\Models\Permission;
 use App\Models\Role;
 use App\Models\User;
 use App\Services\HrmsAuditLogger;
+use Illuminate\Support\Facades\DB;
 use Tests\IsolatesDatabase;
 use Tests\TestCase;
 
@@ -59,6 +63,35 @@ class HrmsAuditApiTest extends TestCase
         );
         $this->assertSame(1, $this->getJson('/api/hrms/audit?q=status_changed')->json('pagination.total'));
         $this->assertSame(3, $this->getJson('/api/hrms/audit')->json('pagination.total'));
+    }
+
+    public function test_free_text_search_treats_wildcards_literally_and_ignores_case_via_the_shared_like_helper(): void
+    {
+        $auditor = $this->userWith(['hrms.view', 'hrms.audit.view']);
+        $anna = $this->employee('EMP-AUD-WLD', 'Audit Wild');
+        $this->log($anna, 'employee.created', $auditor);
+        $this->log($anna, 'employee.status_changed', $auditor);
+        $this->actAs($auditor);
+
+        // A bare `%` or `_` must match literally (no action here contains them), not "everything".
+        $this->getJson('/api/hrms/audit?q=%25')->assertOk()->assertJsonPath('pagination.total', 0);
+        $this->getJson('/api/hrms/audit?q=e_p')->assertOk()->assertJsonPath('pagination.total', 0);
+
+        // The data-access ledger search shares the helper.
+        app(HrmsAuditLogger::class)->accessed(Employee::class, $anna->id, DataAccessAction::View, ['name'], $auditor);
+        $this->getJson('/api/hrms/audit/data-access?q=%25')->assertOk()->assertJsonPath('pagination.total', 0);
+        $this->getJson('/api/hrms/audit/data-access?q=EMPLOYEE')->assertOk()->assertJsonPath('pagination.total', 1);
+
+        // PostgreSQL's LIKE is case-sensitive (sqlite's is not): the helper uses ILIKE there. Pin the shape.
+        $sql = null;
+        DB::listen(function ($query) use (&$sql): void {
+            if (str_contains($query->sql, 'hrms_audit_logs') && str_contains(strtolower($query->sql), 'like') && ! str_contains($query->sql, 'count(')) {
+                $sql = $query->sql;
+            }
+        });
+        $this->getJson('/api/hrms/audit?q=STATUS')->assertOk()->assertJsonPath('pagination.total', 1);
+        $this->assertNotNull($sql);
+        $this->assertStringContainsString("escape '!'", $sql);
     }
 
     public function test_the_trail_returns_one_records_history_newest_first(): void

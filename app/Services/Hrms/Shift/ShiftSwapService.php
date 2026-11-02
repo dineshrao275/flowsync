@@ -14,6 +14,7 @@ use App\Services\Hrms\Shared\ApprovalService;
 use App\Services\Hrms\Shared\ValueObjects\ApproverSpec;
 use App\Services\HrmsAuditLogger;
 use App\Support\Hrms\Auditable;
+use App\Support\Like;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
@@ -55,6 +56,29 @@ class ShiftSwapService
     }
 
     /** @throws ValidationException */
+    /** Most names one picker request returns; the search box narrows past it. */
+    public const COLLEAGUE_LIMIT = 200;
+
+    /**
+     * Who the caller can ask to swap with: active people who have a login to agree, never the caller.
+     * Names and ids only. The directory behind `hrms.employees.view` is deliberately not exposed here.
+     *
+     * @return list<array{id: int, name: string}>
+     */
+    public function colleaguesFor(Employee $requester, ?string $search = null): array
+    {
+        return Employee::query()
+            ->active()
+            ->whereNotNull('user_id')
+            ->where('id', '!=', $requester->id)
+            ->when($search !== null && trim($search) !== '', fn ($query) => Like::any($query, ['name'], trim((string) $search)))
+            ->orderBy('name')
+            ->limit(self::COLLEAGUE_LIMIT)
+            ->get(['id', 'name'])
+            ->map(fn (Employee $employee): array => ['id' => (int) $employee->id, 'name' => (string) $employee->name])
+            ->all();
+    }
+
     public function request(Employee $requester, Employee $counterparty, Carbon|string $date, ?string $reason, User $actor): ShiftSwap
     {
         $day = Carbon::parse($date)->startOfDay();

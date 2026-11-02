@@ -14,13 +14,13 @@ function renderInline(text, projectId, depth = 0) {
     // 1: inline code `code`
     // 2: markdown link [title](url) (3: title, 4: url)
     // 5: raw url https://...
-    // 6: task key TASK-123
+    // 6: task key TASK-123 (not the head of a longer dash-number id such as a claim number EXP-2026-000002)
     // 7: mention @Name
     // 8: bold **text** or __text__ (9: text1, 10: text2)
     // 11: italic *text* or _text_ (12: text1, 13: text2)
     // 14: strike ~~text~~ (15: text)
     // 16: underline <u>text</u> (17: text)
-    const tokenRegex = /(`[^`\n]+`)|(\[([^\]]+)\]\((https?:\/\/[^\s)]+)\))|(https?:\/\/[^\s<]+)|(\b[A-Z]{2,10}-\d+\b)|(@[A-Za-z0-9_.-]+(?:\s[A-Za-z0-9_.-]+)?)|(\*\*([^*\n]+)\*\*|__([^_]+)__)|(\*([^*\n]+)\*|_([^_\n]+)_)|(~~([^~\n]+)~~)|(<u>([\s\S]*?)<\/u>)/g;
+    const tokenRegex = /(`[^`\n]+`)|(\[([^\]]+)\]\((https?:\/\/[^\s)]+)\))|(https?:\/\/[^\s<]+)|(\b[A-Z]{2,10}-\d+\b(?!-\d))|(@[A-Za-z0-9_.-]+(?:\s[A-Za-z0-9_.-]+)?)|(\*\*([^*\n]+)\*\*|__([^_]+)__)|(\*([^*\n]+)\*|_([^_\n]+)_)|(~~([^~\n]+)~~)|(<u>([\s\S]*?)<\/u>)/g;
 
     const elements = [];
     let lastIndex = 0;

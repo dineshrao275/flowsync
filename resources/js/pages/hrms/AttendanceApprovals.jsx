@@ -14,7 +14,7 @@ import { Table, Th, Td } from '../../components/ui/Table';
 import { useToast } from '../../context/ToastContext';
 import { useSetCrumbs } from '../../context/BreadcrumbContext';
 import usePageTitle from '../../hooks/usePageTitle';
-import Timestamp from '../../components/ui/Timestamp';
+import { formatTime } from '../../utils/format';
 import UserChip from '../../components/ui/UserChip';
 import StatusBadge from '../../components/ui/StatusBadge';
 
@@ -151,9 +151,10 @@ export default function AttendanceApprovals() {
                                     <Td>{request.employee ? <UserChip user={request.employee} /> : '—'}</Td>
                                     <Td>{request.work_date}</Td>
                                     <Td>
-                                        <Timestamp date={request.requested_first_in_at} />
+                                        {/* The ask IS a clock time; a relative "4 days ago" hides what the approver is signing off. */}
+                                        {formatTime(request.requested_first_in_at)}
                                         {' → '}
-                                        <Timestamp date={request.requested_punch_at} />
+                                        {formatTime(request.requested_punch_at)}
                                     </Td>
                                     <Td>
                                         <span className="block max-w-xs truncate" title={request.reason}>

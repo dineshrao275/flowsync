@@ -133,10 +133,17 @@ export default function Holidays() {
             .catch(fail('hrms.holidays.loadHolidaysFailed'));
     }, [calendarId, fail]);
 
+    // Assignments and optional answers have their own read rules: a viewer of the calendars may be
+    // refused them. That empties those two panels; it must not eject the viewer from the whole page.
     const loadPeople = useCallback(() => {
+        const soft = (request, apply) => request.then(apply).catch((err) => {
+            if (err.response?.status !== 403) throw err;
+            apply({ data: {} });
+        });
+
         return Promise.all([
-            api.get('/hrms/holidays/assignments').then(({ data }) => setAssignments(data.assignments ?? [])),
-            api.get('/hrms/holidays/optional').then(({ data }) => setOptionals(data.optionals ?? [])),
+            soft(api.get('/hrms/holidays/assignments'), ({ data }) => setAssignments(data.assignments ?? [])),
+            soft(api.get('/hrms/holidays/optional'), ({ data }) => setOptionals(data.optionals ?? [])),
         ]).catch(fail('hrms.holidays.loadAssignmentsFailed'));
     }, [fail]);
 

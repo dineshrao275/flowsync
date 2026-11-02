@@ -93,7 +93,7 @@ export default function Resignation() {
     }
 
     async function withdraw(r) {
-        if (await confirm({ title: t('hrms.resignation.withdrawTitle'), message: t('hrms.resignation.withdrawMessage'), variant: 'danger' })) act(r, 'withdraw');
+        if (await confirm({ title: t('hrms.resignation.withdrawTitle'), message: t('hrms.resignation.withdrawMessage'), confirmLabel: t('hrms.resignation.withdraw'), variant: 'danger' })) act(r, 'withdraw');
     }
 
     if (!data) return (error ? <Alert>{error}</Alert> : <ContentSkeleton size="lg" />);

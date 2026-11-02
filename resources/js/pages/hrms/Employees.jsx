@@ -71,7 +71,7 @@ export default function Employees() {
     }, [setCrumbs, t]);
 
     const load = useCallback(
-        (targetPage, activeFilters) => {
+        (targetPage, activeFilters, signal) => {
             setError(null);
 
             const params = { page: targetPage, per_page: 20 };
@@ -81,9 +81,12 @@ export default function Employees() {
             });
 
             return api
-                .get('/hrms/employees', { params })
+                .get('/hrms/employees', { params, signal })
                 .then(({ data: response }) => setData(response))
                 .catch((err) => {
+                    // A superseded request (newer filters) is aborted, not failed.
+                    if (err.code === 'ERR_CANCELED') return;
+
                     if (err.response?.status === 403) {
                         navigate('/403', { replace: true });
                         return;
@@ -99,7 +102,12 @@ export default function Employees() {
     // carries is unused here because the page number travels inside `filters`.
      
     useEffect(() => {
-        load(page, filters);
+        // Abort the previous request so a slow, stale response can never overwrite newer filters.
+        const controller = new AbortController();
+
+        load(page, filters, controller.signal);
+
+        return () => controller.abort();
     }, [page, filters, load]);
 
     function setFilter(key, value) {

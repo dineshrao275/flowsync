@@ -91,6 +91,7 @@ export default function ExitInterview() {
             {!interview ? <Alert type="info">{t('hrms.exitInterview.none')}</Alert> : interview.status === 'waived' ? <Alert type="info">{t('hrms.exitInterview.waived')}</Alert> : (
                 <Card>
                     {interview.status === 'completed' && <Alert type="success">{t('hrms.exitInterview.completed')}</Alert>}
+                    {errors.form && <Alert>{errors.form}</Alert>}
                     <form onSubmit={submit} className="mt-4 space-y-5">
                         {data.questions.map((q) => (
                             <Question key={q.key} q={q} value={answers[q.key]} error={errors[`answers.${q.key}`]} onChange={(v) => setAnswers((a) => ({ ...a, [q.key]: v }))} />

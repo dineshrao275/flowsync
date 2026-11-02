@@ -41,7 +41,8 @@ class ExitInterviewController extends Controller
         $case = $employee ? OffboardingCase::query()->where('employee_id', $employee->id)->open()->latest('id')->first() : null;
         abort_if($case === null, 404, __('You have no exit in progress.'));
 
-        $data = $request->validate(['answers' => ['required', 'array']]);
+        // `present`, not `required`: an empty set must reach the per-question checks (named errors).
+        $data = $request->validate(['answers' => ['present', 'array']]);
 
         return response()->json([
             'message' => __('Thank you — your exit interview was saved.'),
@@ -59,7 +60,8 @@ class ExitInterviewController extends Controller
     public function record(Request $request, OffboardingCase $case): JsonResponse
     {
         $this->requireHr($request, 'manage');
-        $data = $request->validate(['answers' => ['required', 'array']]);
+        // `present`, not `required`: an empty set must reach the per-question checks (named errors).
+        $data = $request->validate(['answers' => ['present', 'array']]);
 
         return response()->json([
             'message' => __('Exit interview recorded.'),

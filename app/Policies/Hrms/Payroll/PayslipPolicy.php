@@ -32,8 +32,10 @@ class PayslipPolicy
             return true;
         }
 
+        // `granted()` so the scoped `view_own` the Employee role holds counts, as does the
+        // legacy `hrms.payroll.view` that has always meant "own".
         return $this->isSelf($user, $payslip)
-            && $user->hasPermission('hrms.payroll.view');
+            && $user->granted('hrms.payroll.view_own');
     }
 
     /**

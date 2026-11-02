@@ -8,6 +8,7 @@ use App\Models\Hrms\Survey\SurveyAnswer;
 use App\Models\Hrms\Survey\SurveyCampaign;
 use App\Models\Hrms\Survey\SurveyQuestion;
 use App\Models\Hrms\Survey\SurveyResult;
+use App\Support\TenantContext;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Cache;
 
@@ -111,6 +112,6 @@ class SurveyResults
 
     public static function resultsKey(SurveyCampaign $campaign): string
     {
-        return "hrms.survey.results.{$campaign->id}";
+        return 'hrms.survey.results.t'.(app(TenantContext::class)->currentId() ?? 0).".{$campaign->id}";
     }
 }

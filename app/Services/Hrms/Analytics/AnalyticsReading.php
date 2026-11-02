@@ -6,6 +6,7 @@ namespace App\Services\Hrms\Analytics;
 
 use App\Enums\Hrms\CaseTaskStatus;
 use App\Models\Hrms\Employee\Employee;
+use App\Support\TenantContext;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Cache;
@@ -77,8 +78,12 @@ abstract class AnalyticsReading
 
     protected function remember(string $method, array $filters, callable $build): array
     {
+        // The cache lives in the shared system database in production, so the key must carry the tenant:
+        // without it tenant B is served tenant A's dashboard for the whole TTL (UsageMeter's precedent).
+        $tenantId = app(TenantContext::class)->currentId() ?? 0;
+
         return Cache::remember(
-            'hrms.analytics.'.$method.'.'.md5((string) json_encode($filters)),
+            "hrms.analytics.t{$tenantId}.{$method}.".md5((string) json_encode($filters)),
             300,
             $build,
         );

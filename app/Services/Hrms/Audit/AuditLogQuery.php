@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Services\Hrms\Audit;
 
 use App\Models\Hrms\Shared\HrmsAuditLog;
+use App\Support\Like;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Carbon;
@@ -64,10 +65,7 @@ class AuditLogQuery
         }
 
         if (! empty($filters['q'])) {
-            $term = '%'.(string) $filters['q'].'%';
-            $query->where(fn (Builder $nested): Builder => $nested
-                ->where('action', 'like', $term)
-                ->orWhere('subject_type', 'like', $term));
+            Like::any($query, ['action', 'subject_type'], (string) $filters['q']);
         }
 
         return $query;

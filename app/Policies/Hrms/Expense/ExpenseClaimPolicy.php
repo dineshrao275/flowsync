@@ -4,10 +4,12 @@ declare(strict_types=1);
 
 namespace App\Policies\Hrms\Expense;
 
+use App\Enums\Hrms\ExpenseClaimStatus;
 use App\Models\Hrms\Employee\Employee;
 use App\Models\Hrms\Expense\ExpenseClaim;
 use App\Models\User;
 use App\Services\Hrms\HrmsScope;
+use App\Services\Hrms\Shared\ApprovalService;
 
 /**
  * Expense/HRMS — who may file, see, or decide a claim.
@@ -22,6 +24,8 @@ use App\Services\Hrms\HrmsScope;
  */
 class ExpenseClaimPolicy
 {
+    public function __construct(private readonly ApprovalService $approvals) {}
+
     public function viewAny(User $user): bool
     {
         return $this->hasEmployee($user) || $this->canRead($user);
@@ -47,6 +51,17 @@ class ExpenseClaimPolicy
     public function decide(User $user, ExpenseClaim $claim): bool
     {
         return $user->hasPermission('hrms.expenses.approve');
+    }
+
+    /**
+     * Moving an approval step belongs to the step's approver (or delegate / audited override), not to a
+     * permission: a manager holds no expense permission. The engine is the single source of that answer.
+     */
+    public function decideStep(User $user, ExpenseClaim $claim): bool
+    {
+        return $claim->status === ExpenseClaimStatus::Submitted
+            && $claim->approval?->isOpen() === true
+            && $this->approvals->canAct($claim->approval, $user);
     }
 
     private function canRead(User $user): bool
