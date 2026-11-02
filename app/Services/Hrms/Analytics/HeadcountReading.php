@@ -47,11 +47,12 @@ class HeadcountReading extends AnalyticsReading
      */
     private function breakdown($base, ?string $table, ?string $field = null): array
     {
+        // reorder(): the base carries `order by employees.id`, which PostgreSQL rejects next to a GROUP BY.
         if ($table === null) {
-            return (clone $base)->select('status', DB::raw('count(*) as total'))->groupBy('status')->pluck('total', 'status')->all();
+            return (clone $base)->reorder()->select('status', DB::raw('count(*) as total'))->groupBy('status')->pluck('total', 'status')->all();
         }
 
-        return (clone $base)->join($table, "{$table}.id", '=', "employees.{$field}")
+        return (clone $base)->reorder()->join($table, "{$table}.id", '=', "employees.{$field}")
             ->select("{$table}.name", DB::raw('count(*) as total'))->groupBy("{$table}.name")->pluck('total', 'name')->all();
     }
 

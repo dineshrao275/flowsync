@@ -22,19 +22,32 @@ class StatutoryProfileRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'pan' => ['sometimes', 'nullable', 'string', 'max:20'],
+            'pan' => ['sometimes', 'nullable', 'string', 'regex:/^[A-Z]{5}[0-9]{4}[A-Z]$/'],
             'aadhaar' => ['sometimes', 'nullable', 'digits:12'],
-            'uan' => ['sometimes', 'nullable', 'string', 'max:20'],
+            'uan' => ['sometimes', 'nullable', 'digits:12'],
             'esi_number' => ['sometimes', 'nullable', 'string', 'max:50'],
             'pf_number' => ['sometimes', 'nullable', 'string', 'max:50'],
             'pt_state' => ['sometimes', 'nullable', 'string', 'max:100'],
             'lwf_registration' => ['sometimes', 'boolean'],
             'bank_name' => ['sometimes', 'nullable', 'string', 'max:255'],
             'bank_account' => ['sometimes', 'nullable', 'string', 'max:50'],
-            'bank_ifsc' => ['sometimes', 'nullable', 'string', 'max:20'],
+            'bank_ifsc' => ['sometimes', 'nullable', 'string', 'regex:/^[A-Z]{4}0[A-Z0-9]{6}$/'],
             'tax_declaration' => ['sometimes', 'nullable', 'array'],
             'declarations' => ['sometimes', 'nullable', 'array'],
         ];
+    }
+
+    /**
+     * PAN and IFSC are case-insensitive identifiers; store one canonical form so the
+     * format rule and every later comparison see the same spelling.
+     */
+    protected function prepareForValidation(): void
+    {
+        foreach (['pan', 'bank_ifsc'] as $field) {
+            if (is_string($this->input($field))) {
+                $this->merge([$field => strtoupper(trim($this->input($field)))]);
+            }
+        }
     }
 
     public function authorize(): bool

@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Tests\Feature;
 
 use App\Enums\Hrms\EmployeeStatus;
@@ -9,6 +11,7 @@ use App\Models\Hrms\Shared\HrmsDataAccessLog;
 use App\Models\Permission;
 use App\Models\Role;
 use App\Models\User;
+use Illuminate\Support\Facades\DB;
 use Tests\IsolatesDatabase;
 use Tests\TestCase;
 
@@ -35,6 +38,67 @@ class HrmsAnalyticsApiTest extends TestCase
         $this->getJson('/api/hrms/analytics/performance')->assertOk();
         $this->getJson('/api/hrms/analytics/documents')->assertForbidden();
         $this->getJson('/api/hrms/analytics/assets')->assertForbidden();
+    }
+
+    public function test_headcount_breakdowns_never_order_a_grouped_query_by_a_bare_column(): void
+    {
+        $this->actAs($this->userWith(['hrms.view', 'hrms.analytics.view']));
+
+        $queries = [];
+        DB::listen(function ($query) use (&$queries): void {
+            $queries[] = strtolower($query->sql);
+        });
+
+        $this->getJson('/api/hrms/analytics/overview')->assertOk();
+
+        // PostgreSQL answers 42803 for `group by x order by employees.id`; sqlite tolerates it,
+        // so the shape is pinned here instead of waiting for a Postgres tenant to 500.
+        $offenders = array_values(array_filter(
+            $queries,
+            fn (string $sql): bool => str_contains($sql, ' group by ') && str_contains($sql, ' order by '),
+        ));
+
+        $this->assertSame([], $offenders);
+    }
+
+    public function test_lifecycle_time_to_first_day_survives_fractional_day_differences(): void
+    {
+        $this->actAs($this->userWith(['hrms.view', 'hrms.analytics.view']));
+
+        // Carbon 3's diffInDays() is a signed float; the reader once typed it `int` and 500d the moment an
+        // employee had a joining date (fractional day vs created_at). Backdated joiners are the common case.
+        Employee::create([
+            'employee_code' => 'EMP-ANA-JOIN', 'name' => 'Analytics Joiner',
+            'status' => EmployeeStatus::Active, 'joining_date' => now()->subDays(40)->toDateString(),
+        ]);
+
+        $this->getJson('/api/hrms/analytics/lifecycle')
+            ->assertOk()
+            ->assertJsonPath('time_to_first_day_avg', fn ($days) => is_numeric($days) && $days >= 0);
+    }
+
+    public function test_cached_analytics_never_cross_tenants(): void
+    {
+        // Production keeps the cache in the shared system database (DB_CACHE_CONNECTION=system), so a key
+        // without the tenant in it serves tenant A's dashboard to tenant B for the length of the TTL.
+        $acme = $this->userWith(['hrms.view', 'hrms.analytics.view']);
+        foreach (['EMP-LEAK-1', 'EMP-LEAK-2'] as $code) {
+            Employee::create(['employee_code' => $code, 'name' => $code, 'status' => EmployeeStatus::Active]);
+        }
+        $acmeTotal = Employee::count();
+        $this->actAs($acme);
+        $this->getJson('/api/hrms/analytics/overview')->assertOk()->assertJsonPath('headcount.total', $acmeTotal);
+
+        $this->connectTenant('globex');
+        $globex = User::create(['name' => 'Globex Analyst', 'email' => 'analyst@globex.test', 'password' => 'password']);
+        $role = Role::create(['name' => 'Globex Analytics', 'slug' => 'globex-analytics']);
+        $role->permissions()->sync(Permission::whereIn('slug', ['hrms.view', 'hrms.analytics.view'])->pluck('id')->all());
+        $globex->roles()->sync([$role->id]);
+        $globexTotal = Employee::count();
+        $this->assertNotSame($acmeTotal, $globexTotal);
+
+        $this->actingAs($globex->fresh(['roles.permissions']))->withSession(['login.tenant_id' => $this->globex()->id]);
+        $this->getJson('/api/hrms/analytics/overview')->assertOk()->assertJsonPath('headcount.total', $globexTotal);
     }
 
     public function test_unknown_filters_422_against_tenant_tables(): void

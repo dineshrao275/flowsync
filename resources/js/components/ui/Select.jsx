@@ -1,7 +1,10 @@
+import { useId } from 'react';
 import { fieldClass } from './fieldStyles';
 
 export default function Select({ label, error, id, className = '', children, ...props }) {
-    const selectId = id || props.name;
+    // Generated fallback: a label with no `for` target leaves the control unnamed for assistive tech.
+    const generatedId = useId();
+    const selectId = id || props.name || generatedId;
 
     return (
         <div className={className}>

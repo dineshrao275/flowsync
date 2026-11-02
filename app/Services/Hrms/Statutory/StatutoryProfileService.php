@@ -36,20 +36,36 @@ class StatutoryProfileService
      */
     public function upsert(Employee $employee, array $data, ?User $actor = null): StatutoryProfile
     {
-        $attributes = [
-            'pan' => $data['pan'] ?? null,
-            'aadhaar_last4' => isset($data['aadhaar']) ? substr((string) $data['aadhaar'], -4) : null,
-            'uan' => $data['uan'] ?? null,
-            'esi_number' => $data['esi_number'] ?? null,
-            'pf_number' => $data['pf_number'] ?? null,
-            'pt_state' => $data['pt_state'] ?? null,
-            'lwf_registration' => (bool) ($data['lwf_registration'] ?? false),
-            'bank_name' => $data['bank_name'] ?? null,
-            'bank_account_encrypted' => $data['bank_account'] ?? null,
-            'bank_ifsc' => $data['bank_ifsc'] ?? null,
-            'tax_declaration' => $data['tax_declaration'] ?? null,
-            'declarations' => $data['declarations'] ?? null,
+        // An absent key keeps what is stored (the SPA form is blank, because masked values are never
+        // submitted back); an explicit null clears it.
+        $columns = [
+            'pan' => 'pan',
+            'uan' => 'uan',
+            'esi_number' => 'esi_number',
+            'pf_number' => 'pf_number',
+            'pt_state' => 'pt_state',
+            'bank_name' => 'bank_name',
+            'bank_account' => 'bank_account_encrypted',
+            'bank_ifsc' => 'bank_ifsc',
+            'tax_declaration' => 'tax_declaration',
+            'declarations' => 'declarations',
         ];
+
+        $attributes = [];
+
+        foreach ($columns as $input => $column) {
+            if (array_key_exists($input, $data)) {
+                $attributes[$column] = $data[$input];
+            }
+        }
+
+        if (array_key_exists('aadhaar', $data)) {
+            $attributes['aadhaar_last4'] = $data['aadhaar'] === null ? null : substr((string) $data['aadhaar'], -4);
+        }
+
+        if (array_key_exists('lwf_registration', $data)) {
+            $attributes['lwf_registration'] = (bool) $data['lwf_registration'];
+        }
 
         $profile = StatutoryProfile::query()->firstOrNew(['employee_id' => $employee->id]);
         $isNew = ! $profile->exists;

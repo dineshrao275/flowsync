@@ -29,6 +29,9 @@ api.interceptors.response.use(
         return response;
     },
     (error) => {
+        // An intentionally aborted request (superseded filters, unmounted page) is not a failure.
+        if (axios.isCancel(error)) return Promise.reject(error);
+
         const duration = error.config?.metadata?.startTime
             ? Date.now() - error.config.metadata.startTime
             : null;

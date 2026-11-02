@@ -6,11 +6,15 @@ namespace App\Policies\Hrms\Performance;
 
 use App\Models\Hrms\Performance\PerformanceCycle;
 use App\Models\User;
+use App\Services\Hrms\HrmsScope;
 
 /**
  * Performance/HRMS — who may see or move a cycle.
  *
- * Reads take the view permission (or manage); every stage move takes
+ * Reads take any performance view scope (`_own`/`_assigned`/`_all`, or the legacy
+ * `view`) or manage: a cycle is tenant-level metadata, and an employee must be able to
+ * open the cycle their own goals live in. Which goals/reviews they then see is still
+ * decided per record by their own policies. Every stage move takes
  * manage alone — opening rooms and sealing history are HR decisions, and
  * the service still refuses out-of-order moves underneath.
  */
@@ -39,6 +43,6 @@ class PerformanceCyclePolicy
     private function canView(User $user): bool
     {
         return $user->hasPermission('hrms.performance.view')
-            || $user->hasPermission('hrms.performance.manage');
+            || HrmsScope::canRead($user, 'hrms.performance');
     }
 }

@@ -14,6 +14,7 @@ import Modal from '../../components/ui/Modal';
 import ContentSkeleton from '../../components/ui/ContentSkeleton';
 import Alert from '../../components/ui/Alert';
 import { fieldClass } from '../../components/ui/fieldStyles';
+import { usePrompt } from '../../components/ui/ConfirmDialog';
 
 const TONE = { pending: 'warning', signed: 'success', declined: 'danger', cancelled: 'neutral' };
 
@@ -23,6 +24,7 @@ export default function Signatures() {
     usePageTitle(t('hrms.signatures.pageTitle'));
     const { can } = useAuth();
     const toast = useToast();
+    const prompt = usePrompt();
     const manage = can('hrms.documents.manage');
     const [rows, setRows] = useState(null);
     const [people, setPeople] = useState([]);
@@ -128,7 +130,7 @@ export default function Signatures() {
                                 <div className="flex gap-2">
                                     {s.can_sign && <>
                                         <Button size="sm" onClick={() => setSigning(s)}>{t('hrms.signatures.sign')}</Button>
-                                        <Button size="sm" variant="secondary" onClick={() => { const reason = window.prompt(t('hrms.signatures.declineReason')); if (reason) act(s, 'decline', { reason }); }}>{t('hrms.signatures.decline')}</Button>
+                                        <Button size="sm" variant="secondary" onClick={async () => { const reason = await prompt({ title: t('hrms.signatures.decline'), message: t('hrms.signatures.declineReason'), confirmLabel: t('hrms.signatures.decline'), required: true, multiline: true }); if (reason) act(s, 'decline', { reason }); }}>{t('hrms.signatures.decline')}</Button>
                                     </>}
                                     {s.can_cancel && !s.can_sign && <Button size="sm" variant="ghost" onClick={() => act(s, 'cancel')}>{t('hrms.signatures.cancel')}</Button>}
                                 </div>

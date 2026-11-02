@@ -43,7 +43,8 @@ export default function DevelopmentPlans() {
             load();
         } catch (err) {
             const fe = fieldErrors(err);
-            setErrors({ ...fe, form: fe.form || err.response?.data?.message });
+            // The generic message duplicates the first field error, so use it only when no field owns one.
+            setErrors({ ...fe, form: fe.form || (Object.keys(fe).length === 0 ? err.response?.data?.message : undefined) });
         }
     }
 

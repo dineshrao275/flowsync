@@ -25,7 +25,9 @@ export default defineConfig({
         origin: process.env.VITE_DEV_SERVER_ORIGIN || undefined,
         cors: true,
         watch: {
-            ignored: ['**/storage/framework/views/**'],
+            // Playwright writes trace .html files under tests/e2e while a suite runs; without
+            // this Vite full-reloads the page under test on every write.
+            ignored: ['**/storage/framework/views/**', '**/tests/e2e/**'],
             // Bind mounts on Docker Desktop / network drives don't emit file events.
             usePolling: process.env.CHOKIDAR_USEPOLLING === 'true',
         },

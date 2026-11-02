@@ -11,6 +11,7 @@ import Modal from '../../components/ui/Modal';
 import ContentSkeleton from '../../components/ui/ContentSkeleton';
 import Alert from '../../components/ui/Alert';
 import { fieldClass } from '../../components/ui/fieldStyles';
+import { useConfirm } from '../../components/ui/ConfirmDialog';
 
 const BLANK = { id: null, name: '', document_type_slug: 'experience_letter', body: '' };
 
@@ -19,6 +20,7 @@ export default function Letters() {
     const { t } = useTranslation();
     usePageTitle(t('hrms.letters.pageTitle'));
     const toast = useToast();
+    const confirm = useConfirm();
     const [data, setData] = useState(null);
     const [people, setPeople] = useState([]);
     const [editing, setEditing] = useState(null);
@@ -53,6 +55,16 @@ export default function Letters() {
             load();
         } catch (err) {
             setErrors(fieldErrors(err));
+        }
+    }
+
+    async function removeTemplate(x) {
+        if (!(await confirm({ title: t('hrms.letters.deleteTitle'), message: t('hrms.letters.deleteMessage', { name: x.name }), variant: 'danger' }))) return;
+        try {
+            await api.delete(`/hrms/letter-templates/${x.id}`);
+            load();
+        } catch (err) {
+            setError(fieldErrors(err).form || t('hrms.letters.generateFailed'));
         }
     }
 
@@ -118,7 +130,7 @@ export default function Letters() {
                                 <span className="text-sm font-medium text-gray-900">{x.name}</span>
                                 <span className="flex gap-2">
                                     <Button size="sm" variant="secondary" onClick={() => setEditing(x)}>{t('hrms.common.edit')}</Button>
-                                    <Button size="sm" variant="danger" onClick={async () => { await api.delete(`/hrms/letter-templates/${x.id}`); load(); }}>{t('hrms.common.delete')}</Button>
+                                    <Button size="sm" variant="danger" onClick={() => removeTemplate(x)}>{t('hrms.common.delete')}</Button>
                                 </span>
                             </li>
                         ))}

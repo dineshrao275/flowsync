@@ -30,13 +30,15 @@ export default function HrmsOverview() {
 
     const modules = user?.modules ?? [];
     const groups = hrmsModuleGroups(modules);
+    // `user.modules` also carries TMS keys; the headline counts only the tiles shown below.
+    const shown = groups.reduce((n, g) => n + g.modules.length, 0);
 
     return (
         <div className="space-y-6">
             <div>
                 <h1 className="text-xl font-semibold text-gray-900">{t('hrms.overview.heading')}</h1>
                 <p className="mt-1 text-sm text-gray-500">
-                    {modules.length === 1 ? t('hrms.overview.modulesOne') : t('hrms.overview.modules', { count: modules.length })}
+                    {shown === 1 ? t('hrms.overview.modulesOne') : t('hrms.overview.modules', { count: shown })}
                 </p>
             </div>
 

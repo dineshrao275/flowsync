@@ -26,6 +26,22 @@ describe('OrgChart page', () => {
         expect(get).toHaveBeenCalledWith('/hrms/org-chart', expect.objectContaining({ signal: expect.anything() }));
     });
 
+    it('lets a top-level manager collapse and re-open their team', async () => {
+        get.mockResolvedValue({ data: { nodes, truncated: false } });
+        renderPage();
+
+        expect(await screen.findByText('Bob Report')).toBeInTheDocument();
+        const toggle = screen.getByRole('button', { name: /1/ });
+        expect(toggle).toHaveAttribute('aria-expanded', 'true');
+
+        fireEvent.click(toggle);
+        expect(screen.queryByText('Bob Report')).not.toBeInTheDocument();
+        expect(toggle).toHaveAttribute('aria-expanded', 'false');
+
+        fireEvent.click(toggle);
+        expect(screen.getByText('Bob Report')).toBeInTheDocument();
+    });
+
     it('shows the empty state when nobody is on the chart', async () => {
         get.mockResolvedValue({ data: { nodes: [], truncated: false } });
         renderPage();

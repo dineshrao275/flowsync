@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Tests\Feature;
 
 use App\Enums\Hrms\EmployeeStatus;
@@ -47,6 +49,44 @@ class HrmsStatutoryProfileTest extends TestCase
         $this->assertFalse($body['has_pf_number']);
         $this->assertStringNotContainsString('ABCDE1234F', json_encode($body));
         $this->assertStringNotContainsString('123456789012', json_encode($body));
+    }
+
+    public function test_saving_one_field_keeps_the_others_and_only_an_explicit_null_clears(): void
+    {
+        $employee = $this->makeEmployee();
+        $this->actAs($this->userWith(['hrms.view', 'hrms.payroll.statutory.manage']));
+        $url = "/api/hrms/payroll/statutory/profiles/{$employee->id}";
+
+        $this->putJson($url, ['pan' => 'ABCDE1234F', 'aadhaar' => '123456789012', 'bank_account' => '123456789012'])->assertOk();
+
+        // The SPA form is always blank (masked values are never re-submitted), so a one-field save
+        // must not wipe the identifiers it did not send.
+        $body = $this->putJson($url, ['bank_name' => 'Test Bank'])->assertOk()->json('profile');
+        $this->assertTrue($body['has_pan']);
+        $this->assertSame('9012', $body['aadhaar_last4']);
+        $this->assertTrue($body['has_bank_account']);
+        $this->assertSame('Test Bank', $body['bank_name']);
+
+        $cleared = $this->putJson($url, ['pan' => null])->assertOk()->json('profile');
+        $this->assertFalse($cleared['has_pan']);
+        $this->assertSame('9012', $cleared['aadhaar_last4']);
+    }
+
+    public function test_identifier_formats_are_enforced_and_pan_is_stored_upper_case(): void
+    {
+        $employee = $this->makeEmployee();
+        $this->actAs($this->userWith(['hrms.view', 'hrms.payroll.statutory.manage']));
+        $url = "/api/hrms/payroll/statutory/profiles/{$employee->id}";
+
+        $this->putJson($url, ['pan' => 'abc'])->assertUnprocessable()->assertJsonValidationErrors('pan');
+        $this->putJson($url, ['pan' => 'ABCDE1234'])->assertUnprocessable()->assertJsonValidationErrors('pan');
+        $this->putJson($url, ['uan' => 'xx'])->assertUnprocessable()->assertJsonValidationErrors('uan');
+        $this->putJson($url, ['bank_ifsc' => 'zzz'])->assertUnprocessable()->assertJsonValidationErrors('bank_ifsc');
+
+        $this->putJson($url, ['pan' => 'abcde1234f', 'bank_ifsc' => 'test0001234', 'uan' => '101234567890'])
+            ->assertOk()->assertJsonPath('profile.pan', 'XXXXX1234F');
+
+        $this->assertSame('ABCDE1234F', StatutoryProfile::query()->where('employee_id', $employee->id)->value('pan'));
     }
 
     public function test_secrets_rest_encrypted_or_truncated(): void

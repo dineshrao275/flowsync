@@ -173,7 +173,9 @@ export default function Attendance() {
                 return;
             }
 
-            setError(t('hrms.attendance.loadFailed'));
+            // A login with no employment record gets a 404 whose message says so; show it
+            // instead of the generic failure so the reader knows to pick an employee.
+            setError(err.response?.status === 404 && err.response?.data?.message ? err.response.data.message : t('hrms.attendance.loadFailed'));
         });
     }, [params, employeeId, navigate, t]);
 
@@ -450,6 +452,8 @@ export default function Attendance() {
                     <p className="text-sm text-gray-500">
                         {t('hrms.attendance.correctIntro')}
                     </p>
+                    {/* `work_date` carries the window rule ("up to 7 days back"); no field shows it, so surface it here. */}
+                    {(correctionErrors.work_date || correctionErrors.form) && <Alert>{correctionErrors.work_date ?? correctionErrors.form}</Alert>}
                     <div className="grid grid-cols-2 gap-3">
                         <Input
                             type="time"

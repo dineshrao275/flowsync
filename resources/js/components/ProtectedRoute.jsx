@@ -29,7 +29,7 @@ export default function ProtectedRoute({ permission, module, product, children }
         // The missing grant rides in location state so /403 can name it: a
         // bare "Access denied" sends an admin hunting for a route-level rule
         // that the sidebar already implied the user had.
-        return <Navigate to="/403" state={{ permission }} replace />;
+        return <Navigate to="/403" state={{ permission: String(permission).split('|')[0] }} replace />;
     }
 
     if (product && !hasProduct(product)) {

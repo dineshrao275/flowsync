@@ -105,7 +105,13 @@ export default function MySurvey() {
             toast.success(t('hrms.mySurvey.recorded'));
             navigate('/hrms/engagement/mine');
         } catch (err) {
-            setErrors(fieldErrors(err));
+            const next = fieldErrors(err);
+            setErrors(next);
+
+            // A refusal is keyed by question id; if it belongs to a question that is not on screen
+            // (a required one skipped earlier), go back to it so the message is actually seen.
+            const firstBad = (form?.questions ?? []).findIndex((question) => next[`questions.${question.id}`]);
+            if (firstBad >= 0) setStep(firstBad);
         }
     }
 

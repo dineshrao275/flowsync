@@ -10,9 +10,11 @@ import Resource from '../../components/ui/Resource';
 import { useResource } from '../../hooks/useResource';
 import Avatar from '../../components/ui/Avatar';
 
-function Node({ node, byParent, open, toggle, match, depth }) {
+function Node({ node, byParent, open, toggle, match, depth, forceOpen }) {
     const kids = byParent.get(node.id) || [];
-    const isOpen = open.has(node.id) || depth < 1;
+    // `open` holds the nodes the user flipped away from their default (roots open, deeper nodes closed),
+    // so a top-level manager can be collapsed; a search expands everything so matches are visible.
+    const isOpen = forceOpen || (depth < 1) !== open.has(node.id);
     const dim = match && !match(node);
 
     return (
@@ -31,7 +33,7 @@ function Node({ node, byParent, open, toggle, match, depth }) {
                 )}
             </div>
             {isOpen && kids.length > 0 && (
-                <ul>{kids.map((k) => <Node key={k.id} node={k} byParent={byParent} open={open} toggle={toggle} match={match} depth={depth + 1} />)}</ul>
+                <ul>{kids.map((k) => <Node key={k.id} node={k} byParent={byParent} open={open} toggle={toggle} match={match} depth={depth + 1} forceOpen={forceOpen} />)}</ul>
             )}
         </li>
     );
@@ -91,7 +93,7 @@ function OrgChartBody({ data }) {
             <Card>
                 {roots.length === 0 ? <p className="py-8 text-center text-sm text-gray-500">{t('hrms.orgChart.empty')}</p> : (
                     <ul className="overflow-x-auto">
-                        {roots.map((r) => <Node key={r.id} node={r} byParent={byParent} open={needle ? new Set(data.nodes.map((n) => n.id)) : open} toggle={toggle} match={match} depth={0} />)}
+                        {roots.map((r) => <Node key={r.id} node={r} byParent={byParent} open={open} toggle={toggle} match={match} depth={0} forceOpen={Boolean(needle)} />)}
                     </ul>
                 )}
             </Card>

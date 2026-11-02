@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 use App\Http\Controllers\Hrms\Asset\AssetCategoryController;
 use App\Http\Controllers\Hrms\Asset\AssetController;
 use App\Http\Controllers\Hrms\Attendance\AttendanceController;
@@ -48,6 +50,8 @@ Route::group(['middleware' => ['ensure_module:hrms.core', 'ensure_module:hrms.ex
     Route::put('hrms/expenses/claims/{claim}/items', [ExpenseClaimController::class, 'setItems']);
     Route::post('hrms/expenses/claims/{claim}/submit', [ExpenseClaimController::class, 'submit']);
     Route::post('hrms/expenses/claims/{claim}/decide', [ExpenseClaimController::class, 'decide']);
+    Route::post('hrms/expenses/claims/{claim}/approve-step', [ExpenseClaimController::class, 'approveStep']);
+    Route::post('hrms/expenses/claims/{claim}/reject-step', [ExpenseClaimController::class, 'rejectStep']);
 });
 
 // HRMS engagement surveys (Phase 15 P16.3a). Same two gates plus the

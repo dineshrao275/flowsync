@@ -100,7 +100,9 @@ class EmployeeCodeGenerator
      */
     private function nextSequence(): int
     {
-        $highest = Employee::query()
+        // Trashed rows count: the unique index spans them, and a deleted employee's code must not
+        // be reissued (it may already be on a payslip or an audit trail).
+        $highest = Employee::withTrashed()
             ->where('employee_code', 'like', self::PREFIX.'%')
             ->pluck('employee_code')
             ->map(fn (string $code) => (int) substr($code, strlen(self::PREFIX)))

@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Tests\Feature;
 
 use App\Enums\Hrms\EmployeeStatus;
@@ -76,6 +78,23 @@ class HrmsPayslipAccessTest extends TestCase
 
         $this->getJson("/api/hrms/payroll/payslips/{$first->id}")->assertOk();
         $this->getJson("/api/hrms/payroll/payslips/{$second->id}")->assertForbidden();
+    }
+
+    public function test_a_view_own_holder_reads_and_downloads_their_own_payslip_only(): void
+    {
+        // The seeded Employee role holds the scoped `hrms.payroll.view_own`, not the legacy slug.
+        [$run, $first, $second] = $this->calculatedRun(2);
+
+        $owner = $this->userWith(['hrms.view', 'hrms.payroll.view_own'], $first->employee);
+        $this->actAs($owner);
+
+        $url = $this->getJson("/api/hrms/payroll/payslips/{$first->id}")->assertOk()->json('payslip.download_url');
+        $this->getJson("/api/hrms/payroll/payslips/{$second->id}")->assertForbidden();
+
+        $this->flushSession();
+        \DB::setDefaultConnection(config('tenancy.system.connection'));
+
+        $this->get($url)->assertOk()->assertHeader('Content-Type', 'application/pdf');
     }
 
     public function test_self_without_the_view_permission_reads_nothing(): void

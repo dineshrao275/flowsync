@@ -113,6 +113,7 @@ class PayslipReading
                 'kind' => $row->kind,
                 'label' => $row->label,
                 'amount' => (string) $row->amount,
+                'generated' => $row->isGenerated(),
             ])->all(),
             'gross_pay' => (string) $payslip->gross_pay,
             'total_deductions' => (string) $payslip->total_deductions,

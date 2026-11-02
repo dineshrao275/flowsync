@@ -62,10 +62,16 @@ class InboxService
         );
     }
 
+    /** Tenant-qualified: the cache is shared across tenants and user ids are tenant-local. */
+    public function userCacheKey(string $prefix, User $user): string
+    {
+        return "{$prefix}.t{$this->context->currentId()}.{$user->id}";
+    }
+
     public function unreadCount(User $user): int
     {
         return (int) Cache::remember(
-            "hrms.inbox.unread.{$user->id}",
+            $this->userCacheKey('hrms.inbox.unread', $user),
             30,
             fn (): int => $this->unreadKeys($user)->count(),
         );
@@ -95,7 +101,7 @@ class InboxService
             $marked++;
         }
 
-        Cache::forget("hrms.inbox.unread.{$user->id}");
+        Cache::forget($this->userCacheKey('hrms.inbox.unread', $user));
 
         return $marked;
     }
