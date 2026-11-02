@@ -1,6 +1,10 @@
-# HRMS QA follow-ups (decided: implement AFTER the current QA pass)
+# HRMS QA follow-ups
 
-## FU-1 — Expense claims cannot be approved (BUG-PY-8, HIGH)
+## FU-1 — Expense claims cannot be approved (BUG-PY-8, HIGH) — DONE 2026-11-02
+
+**Implemented:** `POST hrms/expenses/claims/{claim}/approve-step` and `.../reject-step` (`ExpenseClaimController`, `ExpenseApprovalSteps`, policy ability `decideStep` = submitted + open chain + `ApprovalService::canAct`; override keeps its audited reason rule). The claim list and detail carry `can_act_step`; `Expenses.jsx` shows "Clear my step" / "Reject at my step" to whoever can act, and the priced decision form only to `hrms.expenses.approve` holders. Tests: `HrmsExpenseApprovalStepTest` (7), `Expenses.test.jsx` (2), Playwright `hrms-23b` (employee files -> admin clears both legs via the override -> priced approval). Known gap: a chain approver who lacks `hrms.expenses.view` cannot open the Expenses page (route gate); they still see the item in the Inbox.
+
+Original analysis:
 
 - **Found by:** Pay-group QA fork, tab `/hrms/expenses` (see `docs/qa/results-pay.md`).
 - **Symptom:** every expense claim from an employee who has a manager stays `submitted` forever.

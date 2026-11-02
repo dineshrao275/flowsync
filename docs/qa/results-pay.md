@@ -99,3 +99,8 @@ New test-only files: `resources/js/components/ui/Input.test.jsx`, `resources/js/
 
 QA Employee: salary basis + two revisions, two locked pay runs (Apr/May 2026) with payslips, statutory profile, claims, an
 expense claim (rejected), an advance (active). `QA-PY-Template` (in use). No other tenant, user or credential was changed.
+
+
+## Update 2026-11-02 — BUG-PY-8 resolved
+
+Expense approval steps now complete over HTTP and the UI (see `docs/qa/follow-ups.md` FU-1). The previously skipped approve path is covered by `tests/e2e/hrms-23b-expense-approval-steps.spec.js` and `HrmsExpenseApprovalStepTest`.

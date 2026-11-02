@@ -49,11 +49,15 @@ export default function Expenses() {
     const [filters, setFilters] = useState({ status: '', period_year: '', period_month: '' });
     const [error, setError] = useState(null);
 
+    const showActions = canDecide || (claims ?? []).some((c) => c.can_act_step);
+
     const [deciding, setDeciding] = useState(null);
     const [verdict, setVerdict] = useState('approve');
     const [approvedAmount, setApprovedAmount] = useState('');
     const [reason, setReason] = useState('');
     const [decideErrors, setDecideErrors] = useState({});
+    const [stepNote, setStepNote] = useState('');
+    const [stepErrors, setStepErrors] = useState({});
 
     const [categoryForm, setCategoryForm] = useState({ name: '', requires_receipt_above: '', max_per_line: '', monthly_limit: '' });
     const [categoryErrors, setCategoryErrors] = useState({});
@@ -101,10 +105,30 @@ export default function Expenses() {
 
     function openDecide(claim) {
         setDeciding(claim);
+        // The detail carries the policy's exact answer, which also covers the audited override.
+        api.get(`/hrms/expenses/claims/${claim.id}`)
+            .then(({ data }) => setDeciding((current) => (current?.id === claim.id ? { ...current, can_act_step: data.claim.can_act_step } : current)))
+            .catch(() => {});
         setVerdict('approve');
         setApprovedAmount(claim.total_amount ?? '');
         setReason('');
         setDecideErrors({});
+        setStepNote('');
+        setStepErrors({});
+    }
+
+    // Clearing (or rejecting at) the caller's own approval step; the priced decision is `decide`, after the chain resolves.
+    async function actOnStep(kind) {
+        setStepErrors({});
+
+        try {
+            await api.post(`/hrms/expenses/claims/${deciding.id}/${kind}-step`, { note: stepNote || null });
+            toast.success(kind === 'approve' ? t('hrms.expenses.stepCleared') : t('hrms.expenses.claimRejected'));
+            setDeciding(null);
+            load();
+        } catch (err) {
+            setStepErrors(fieldErrors(err));
+        }
     }
 
     async function decide(e) {
@@ -193,7 +217,7 @@ export default function Expenses() {
                 <Card dense>
                     <Table>
                         <thead>
-                            <tr><Th>{t('hrms.expenses.claim')}</Th><Th>{t('hrms.expenses.employee')}</Th><Th>{t('hrms.expenses.period')}</Th><Th>{t('hrms.expenses.total')}</Th><Th>{t('hrms.expenses.approved')}</Th><Th>{t('hrms.expenses.status')}</Th>{canDecide && <Th><span className="sr-only">{t('hrms.common.actions')}</span></Th>}</tr>
+                            <tr><Th>{t('hrms.expenses.claim')}</Th><Th>{t('hrms.expenses.employee')}</Th><Th>{t('hrms.expenses.period')}</Th><Th>{t('hrms.expenses.total')}</Th><Th>{t('hrms.expenses.approved')}</Th><Th>{t('hrms.expenses.status')}</Th>{showActions && <Th><span className="sr-only">{t('hrms.common.actions')}</span></Th>}</tr>
                         </thead>
                         <tbody>
                             {claims.map((claim) => (
@@ -207,9 +231,9 @@ export default function Expenses() {
                                     <Td>{claim.total_amount}</Td>
                                     <Td>{claim.approved_amount ?? '—'}</Td>
                                     <Td>{claim.status}</Td>
-                                    {canDecide && (
+                                    {showActions && (
                                         <Td>
-                                            {claim.status === 'submitted' && (
+                                            {claim.status === 'submitted' && (canDecide || claim.can_act_step) && (
                                                 <Button size="sm" variant="secondary" onClick={() => openDecide(claim)}>{t('hrms.expenses.decide')}</Button>
                                             )}
                                         </Td>
@@ -248,17 +272,33 @@ export default function Expenses() {
 
             <Modal open={!!deciding} onClose={() => setDeciding(null)} title={t('hrms.expenses.decideTitle', { number: deciding?.claim_number ?? '' })}>
                 <form onSubmit={decide} className="grid gap-3 px-6 py-5">
-                    {decideErrors.form && <Alert>{decideErrors.form}</Alert>}
                     <p className="text-sm text-gray-500">{t('hrms.expenses.filedTotal', { amount: deciding?.total_amount })}</p>
-                    <Select label={t('hrms.expenses.verdict')} value={verdict} error={decideErrors.verdict} onChange={(e) => setVerdict(e.target.value)}>
-                        <option value="approve">{t('hrms.expenses.approve')}</option>
-                        <option value="reject">{t('hrms.expenses.reject')}</option>
-                    </Select>
-                    {verdict === 'approve' && (
-                        <Input label={t('hrms.expenses.approvedAmount')} value={approvedAmount} error={decideErrors.approved_amount} onChange={(e) => setApprovedAmount(e.target.value)} />
+                    {deciding?.can_act_step && (
+                        <div className="grid gap-3 rounded-lg border border-line p-3">
+                            <p className="text-sm font-medium text-gray-900">{t('hrms.expenses.stepTitle')}</p>
+                            <p className="text-sm text-gray-500">{t('hrms.expenses.stepHint')}</p>
+                            {stepErrors.form && <Alert>{stepErrors.form}</Alert>}
+                            <Input label={t('hrms.expenses.stepNote')} value={stepNote} error={stepErrors.note} onChange={(e) => setStepNote(e.target.value)} />
+                            <div className="flex gap-2">
+                                <Button type="button" onClick={() => actOnStep('approve')}>{t('hrms.expenses.stepApprove')}</Button>
+                                <Button type="button" variant="danger" onClick={() => actOnStep('reject')}>{t('hrms.expenses.stepReject')}</Button>
+                            </div>
+                        </div>
                     )}
-                    <Input label={verdict === 'approve' ? t('hrms.expenses.reasonForCut') : t('hrms.expenses.reason')} value={reason} error={decideErrors.reason} onChange={(e) => setReason(e.target.value)} />
-                    <div><Button type="submit">{t('hrms.expenses.recordDecision')}</Button></div>
+                    {canDecide && decideErrors.form && <Alert>{decideErrors.form}</Alert>}
+                    {canDecide && (
+                        <>
+                        <Select label={t('hrms.expenses.verdict')} value={verdict} error={decideErrors.verdict} onChange={(e) => setVerdict(e.target.value)}>
+                            <option value="approve">{t('hrms.expenses.approve')}</option>
+                            <option value="reject">{t('hrms.expenses.reject')}</option>
+                        </Select>
+                        {verdict === 'approve' && (
+                            <Input label={t('hrms.expenses.approvedAmount')} value={approvedAmount} error={decideErrors.approved_amount} onChange={(e) => setApprovedAmount(e.target.value)} />
+                        )}
+                        <Input label={verdict === 'approve' ? t('hrms.expenses.reasonForCut') : t('hrms.expenses.reason')} value={reason} error={decideErrors.reason} onChange={(e) => setReason(e.target.value)} />
+                        <div><Button type="submit">{t('hrms.expenses.recordDecision')}</Button></div>
+                        </>
+                    )}
                     {deciding && <RecordComments type="expense" id={deciding.id} />}
                 </form>
             </Modal>

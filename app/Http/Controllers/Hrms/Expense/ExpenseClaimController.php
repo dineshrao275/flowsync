@@ -9,8 +9,10 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Hrms\ExpenseClaimItemsRequest;
 use App\Http\Requests\Hrms\ExpenseClaimRequest;
 use App\Http\Requests\Hrms\ExpenseDecideRequest;
+use App\Http\Requests\Hrms\ExpenseStepRequest;
 use App\Models\Hrms\Employee\Employee;
 use App\Models\Hrms\Expense\ExpenseClaim;
+use App\Services\Hrms\Expense\ExpenseApprovalSteps;
 use App\Services\Hrms\Expense\ExpenseService;
 use App\Services\Hrms\HrmsScope;
 use Illuminate\Http\JsonResponse;
@@ -31,7 +33,10 @@ class ExpenseClaimController extends Controller
 {
     use HandlesCustomFields;
 
-    public function __construct(private readonly ExpenseService $expenses) {}
+    public function __construct(
+        private readonly ExpenseService $expenses,
+        private readonly ExpenseApprovalSteps $steps,
+    ) {}
 
     public function index(Request $request): JsonResponse
     {
@@ -56,16 +61,22 @@ class ExpenseClaimController extends Controller
             $query->where($field, $value);
         }
 
+        $actable = $this->steps->actableApprovalIds($request->user());
+
         return response()->json([
-            'claims' => $query->get()->map(fn (ExpenseClaim $claim): array => $this->present($claim))->all(),
+            'claims' => $query->get()->map(fn (ExpenseClaim $claim): array => $this->present($claim) + [
+                'can_act_step' => $claim->approval_id !== null && in_array((int) $claim->approval_id, $actable, true),
+            ])->all(),
         ]);
     }
 
-    public function show(ExpenseClaim $claim): JsonResponse
+    public function show(Request $request, ExpenseClaim $claim): JsonResponse
     {
         $this->authorize('view', $claim);
 
-        return response()->json(['claim' => $this->present($claim->load(['employee', 'items.category']))]);
+        return response()->json(['claim' => $this->present($claim->load(['employee', 'items.category'])) + [
+            'can_act_step' => $request->user()->can('decideStep', $claim),
+        ]]);
     }
 
     public function store(ExpenseClaimRequest $request): JsonResponse
@@ -126,6 +137,30 @@ class ExpenseClaimController extends Controller
         return response()->json([
             'message' => $data['verdict'] === 'approve' ? 'Claim approved.' : 'Claim rejected.',
             'claim' => $this->present($decided),
+        ]);
+    }
+
+    public function approveStep(ExpenseStepRequest $request, ExpenseClaim $claim): JsonResponse
+    {
+        $this->authorize('decideStep', $claim);
+
+        $stepped = $this->steps->approve($claim, $request->user(), $request->validated()['note'] ?? null);
+
+        return response()->json([
+            'message' => __('Approval step cleared.'),
+            'claim' => $this->present($stepped),
+        ]);
+    }
+
+    public function rejectStep(ExpenseStepRequest $request, ExpenseClaim $claim): JsonResponse
+    {
+        $this->authorize('decideStep', $claim);
+
+        $rejected = $this->steps->reject($claim, $request->user(), $request->validated()['note'] ?? null);
+
+        return response()->json([
+            'message' => __('Claim rejected.'),
+            'claim' => $this->present($rejected),
         ]);
     }
 

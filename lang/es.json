@@ -956,5 +956,7 @@
     "Only the owner or an administrator can change a shared filter.": "Solo el propietario o un administrador puede cambiar un filtro compartido.",
     "Those filters cannot be saved.": "Esos filtros no se pueden guardar.",
     "Add a payment method to continue your free trial. You will not be charged until the trial ends.": "Añade un método de pago para continuar tu prueba gratuita. No se te cobrará hasta que termine la prueba.",
-    "That payment does not match this checkout.": "Ese pago no corresponde a esta compra."
+    "That payment does not match this checkout.": "Ese pago no corresponde a esta compra.",
+    "Approval step cleared.": "Paso de aprobación completado.",
+    "Claim rejected.": "Reclamación rechazada."
 }
