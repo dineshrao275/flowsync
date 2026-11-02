@@ -221,7 +221,8 @@ export default function PayrollRunDetail() {
                                 {selected.adjustments.map((adjustment) => (
                                     <div key={adjustment.id} className="flex items-center justify-between gap-2 py-1 text-sm">
                                         <span>{adjustment.label}</span>
-                                        <Button size="sm" variant="danger" onClick={() => removeAdjustment(adjustment)}>{t('hrms.common.remove')}</Button>
+                                        {/* A loan instalment / paid claim wrote this line itself; it is reversed through that record. */}
+                                        {!adjustment.generated && <Button size="sm" variant="danger" onClick={() => removeAdjustment(adjustment)}>{t('hrms.common.remove')}</Button>}
                                     </div>
                                 ))}
                             </div>

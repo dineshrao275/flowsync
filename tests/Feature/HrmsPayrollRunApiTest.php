@@ -1,10 +1,13 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Tests\Feature;
 
 use App\Enums\Hrms\EmployeeStatus;
 use App\Models\Hrms\Employee\Employee;
 use App\Models\Hrms\Payroll\PayrollRun;
+use App\Models\Hrms\Payroll\Payslip;
 use App\Models\Hrms\Payroll\SalaryComponent;
 use App\Models\Hrms\Shared\HrmsAuditLog;
 use App\Models\Permission;
@@ -110,6 +113,32 @@ class HrmsPayrollRunApiTest extends TestCase
 
         $this->assertTrue(HrmsAuditLog::query()->where('action', 'payroll.adjustment_added')->exists());
         $this->assertTrue(HrmsAuditLog::query()->where('action', 'payroll.adjustment_removed')->exists());
+    }
+
+    /**
+     * A loan instalment or a paid expense claim writes its own payslip line and flips its own record
+     * (instalment paid + balance down, claim paid). Deleting only the line by hand would leave the
+     * employee un-deducted while the loan shrinks, or a claim "paid" with nothing paid.
+     */
+    public function test_a_line_generated_by_a_loan_or_a_claim_cannot_be_removed_by_hand(): void
+    {
+        $this->pricedEmployee();
+        $this->actAs($this->userWith(['hrms.view', 'hrms.payroll.run', 'hrms.payroll.view_all']));
+
+        $runId = $this->openRun()['id'];
+        $this->postJson("/api/hrms/payroll/runs/{$runId}/calculate", [])->assertOk();
+        $payslip = Payslip::findOrFail($this->payslipId($runId));
+
+        foreach (['loan_installment' => 'deduction', 'expense_claim' => 'earning'] as $reference => $kind) {
+            $line = $payslip->adjustments()->create([
+                'kind' => $kind, 'label' => "Generated {$reference}", 'amount' => '100.00',
+                'reference_type' => $reference, 'reference_id' => 1, 'created_at' => now(),
+            ]);
+
+            $this->deleteJson("/api/hrms/payroll/payslips/{$payslip->id}/adjustments/{$line->id}")
+                ->assertStatus(422)->assertJsonValidationErrors('form');
+            $this->assertDatabaseHas('payslip_adjustments', ['id' => $line->id], $line->getConnectionName());
+        }
     }
 
     public function test_adjustments_refuse_past_review_and_foreign_ids(): void

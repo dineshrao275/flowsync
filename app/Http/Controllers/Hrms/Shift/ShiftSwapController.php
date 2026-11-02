@@ -6,6 +6,7 @@ namespace App\Http\Controllers\Hrms\Shift;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Hrms\Shift\ShiftSwapApproveRequest;
+use App\Http\Requests\Hrms\Shift\ShiftSwapColleaguesRequest;
 use App\Http\Requests\Hrms\Shift\ShiftSwapRejectRequest;
 use App\Models\Hrms\Attendance\ShiftSwap;
 use App\Models\Hrms\Employee\Employee;
@@ -41,14 +42,12 @@ class ShiftSwapController extends Controller
         return response()->json(['swaps' => $rows->map(fn ($s) => $this->present($s, $user))->values()]);
     }
 
-    public function colleagues(Request $request): JsonResponse
+    public function colleagues(ShiftSwapColleaguesRequest $request): JsonResponse
     {
         $requester = Employee::query()->where('user_id', $request->user()->id)->first();
         abort_if($requester === null, 403, __('You need an employment record to swap shifts.'));
 
-        $search = $request->validate(['q' => ['sometimes', 'nullable', 'string', 'max:100']])['q'] ?? null;
-
-        return response()->json(['colleagues' => $this->service->colleaguesFor($requester, $search)]);
+        return response()->json(['colleagues' => $this->service->colleaguesFor($requester, $request->validated()['q'] ?? null)]);
     }
 
     public function store(Request $request): JsonResponse

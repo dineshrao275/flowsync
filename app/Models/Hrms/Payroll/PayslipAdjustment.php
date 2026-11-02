@@ -36,6 +36,12 @@ class PayslipAdjustment extends Model
         'created_at',
     ];
 
+    /** A line a loan instalment or a paid claim wrote itself; it is reversed through that record, never by hand. */
+    public function isGenerated(): bool
+    {
+        return $this->reference_type !== null;
+    }
+
     protected function casts(): array
     {
         return [
