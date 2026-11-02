@@ -1,6 +1,7 @@
 # FlowSync MCP Server — Phase-wise Implementation Plan
 
-> Status: **plan only — do not implement until approved.**
+> Status: **implemented (v1.0.0)** in `mcp/`; remaining gates are the manual pilot matrix in
+> `docs/mcp-runbook.md` §4 and the real-agent smoke in §2.2. This document stays as the design record.
 > Scope: application-data MCP for TMS, so coding agents (Claude Code, opencode, Cursor, VS Code)
 > can read and write workspaces, projects, tasks, comments and work logs through `/api/v1`.
 > This is **separate** from `.agents/orchestrator/mcp-server/` (the dev-workflow MCP).

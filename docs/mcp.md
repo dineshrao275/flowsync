@@ -2,7 +2,7 @@
 
 > **Version**: 1.0.0 (v1 TMS)  
 > **Target Audience**: AI coding agents (Claude Code, opencode, Cursor, VS Code), developers, and platform operators.  
-> **Status**: Specification & Architectural Decisions (Phase 0).
+> **Status**: Implemented (v1.0.0). Package: `mcp/`. Operations: `docs/mcp-runbook.md`.
 
 ---
 
@@ -169,3 +169,37 @@ All endpoints sit under `/api/v1` with the shared middleware pipeline:
 - HRMS tools (employee directory, leave, attendance, payroll).
 - Hard delete operations for tasks, projects, or comments.
 - Bulk batch operations and full workspace export.
+
+---
+
+## 9. Token Setup for a Tenant Administrator
+
+A developer using an agent needs a **personal** token, not a shared tenant credential:
+
+1. The user must hold `api.manage` (the default `editor`, `manager` and `admin` roles do; a custom
+   role can be granted it) and the tenant plan must include the `api` module (Pro/Enterprise).
+2. The user opens **Settings → API Tokens**, chooses the **Coding Agent** preset (or builds one):
+   `tms.read` for read-only agents, `tms.write` for agents that create/update/move/comment/log time.
+3. The **Agent Preset** fills write abilities, a 30-day expiry and a higher per-token rate limit (all
+   editable); the owner can revoke a token at any time. `last_used_at` / `last_used_ip` show whether an agent token is still in use.
+4. The token is shown **once** (`fst_<tenantId>_<40chars>`) and stored hashed. It can never grant more
+   than its creator holds, and every policy / row scope still applies at call time.
+
+Tokens are tenant-wide for the owner's rights (no per-project allowlist in v1). A token stops working
+when revoked, expired, when the tenant is suspended, when the `api` module is removed, or when the owner
+is moved to an exit status in HRMS.
+
+---
+
+## 10. Operations, Verification and Limits
+
+- **Runtime pacing:** the MCP client keeps one request in flight, spaces calls to the token's per-minute
+  budget (`FLOWSYNC_MAX_RPM`, default 60), and can read the monthly quota from `flowsync_me` before a
+  large crawl.
+- **Tests:** `npm --prefix mcp test` covers the contract guard (OpenAPI `operationId` +
+  `php artisan route:list` when available), protocol conformance, stdout hygiene, read/write tools, and
+  client error/retry/pacing behaviour. `mcp/scripts/e2e.mjs` is the end-to-end harness.
+- **Runbook:** `docs/mcp-runbook.md` covers the pilot matrix, inspector and real-agent smoke steps,
+  token rotation/revocation, and 401/403/429 troubleshooting.
+- **Failure modes:** see §7; the client maps errors by status and machine `code`/headers (never by
+  English prose) and includes the response `X-Request-Id` in every message.

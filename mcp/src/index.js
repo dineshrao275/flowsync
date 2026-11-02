@@ -197,12 +197,43 @@ export function createServer(options = {}) {
     return { server, client, config, logger, tools, prompts };
 }
 
-export async function runServer() {
+/**
+ * Verify the token before the protocol loop starts. Authentication refusals
+ * (401/403) are fatal; a transient network/API failure is only a warning so a
+ * temporary outage never stops the agent's server from booting.
+ */
+export async function verifyToken(client, logger) {
     try {
-        const { server, logger } = createServer();
+        const me = await client.getMe(true);
+        const tenant = me?.tenant?.slug || me?.tenant?.name || 'unknown tenant';
+        logger.info(`Authenticated as ${me?.user?.name ?? 'unknown user'} (${tenant})`);
+        return me;
+    } catch (err) {
+        if (err.status === 401 || err.status === 403) {
+            throw new Error(`Token verification failed: ${err.message}`);
+        }
+        logger.warn(`Could not verify token at startup: ${err.message}`);
+        return null;
+    }
+}
+
+export async function runServer(options = {}) {
+    try {
+        const config = options.config || loadConfig(options.env || process.env);
+        const logger = options.logger || createLogger(config.debug);
+        const client = options.client || new FlowSyncClient(config, logger);
+
+        const { server } = createServer({ ...options, config, logger, client });
         const transport = new StdioServerTransport();
         await server.connect(transport);
         logger.info('FlowSync MCP Server running on stdio');
+
+        // Verify the token in the background: a bad token is fatal, but a
+        // temporary network/API outage must not block the stdio handshake.
+        verifyToken(client, logger).catch((err) => {
+            logger.error(err.message);
+            process.exit(1);
+        });
     } catch (err) {
         process.stderr.write(`Fatal error during server startup: ${err.message}\n`);
         process.exit(1);

@@ -4,7 +4,7 @@ import { loadConfig } from '../src/config.js';
 import { createLogger, redact } from '../src/logger.js';
 import { mapHttpError } from '../src/errors.js';
 import { FlowSyncClient } from '../src/client.js';
-import { createServer } from '../src/index.js';
+import { createServer, verifyToken } from '../src/index.js';
 import { McpError, ErrorCode } from '@modelcontextprotocol/sdk/types.js';
 
 test('loadConfig validates environment variables properly', () => {
@@ -146,4 +146,29 @@ test('createServer registers flowsync_me and initializes schema', async () => {
     assert.ok(result.content[0].text.includes('Alice (alice@test.com)'));
     assert.ok(result.content[0].text.includes('Tenant: Acme (acme)'));
     assert.equal(result.structuredContent.user.id, 1);
+});
+
+test('verifyToken fails on auth refusal but tolerates a transient outage', async () => {
+    const mockLogger = { debug: () => {}, info: () => {}, warn: () => {}, error: () => {} };
+    const logLines = [];
+    const logger = { ...mockLogger, info: (m) => logLines.push(m), warn: (m) => logLines.push(m) };
+
+    const okClient = {
+        getMe: async () => ({ user: { name: 'Alice' }, tenant: { slug: 'acme' } }),
+    };
+    const me = await verifyToken(okClient, logger);
+    assert.equal(me.user.name, 'Alice');
+    assert.ok(logLines.some((line) => line.includes('Authenticated as Alice (acme)')));
+
+    const denied = new McpError(ErrorCode.InvalidRequest, 'Token invalid or tenant inactive');
+    denied.status = 401;
+    await assert.rejects(
+        () => verifyToken({ getMe: async () => { throw denied; } }, logger),
+        /Token verification failed/
+    );
+
+    const outage = new McpError(ErrorCode.InternalError, 'Network error');
+    const result = await verifyToken({ getMe: async () => { throw outage; } }, logger);
+    assert.equal(result, null);
+    assert.ok(logLines.some((line) => line.includes('Could not verify token at startup')));
 });

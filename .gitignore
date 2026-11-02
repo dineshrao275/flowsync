@@ -32,3 +32,7 @@ figma
 tests/e2e/.results/
 tests/e2e/.auth/
 tests/e2e/.results-time/
+
+# Local agent MCP configs may contain credentials; keep the tracked examples token-free.
+.mcp.local.json
+.cursor/mcp.local.json

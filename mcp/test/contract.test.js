@@ -2,11 +2,13 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
+import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { createServer } from '../src/index.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const openApiPath = path.resolve(__dirname, '../../docs/openapi-v1.json');
+const repoRoot = path.resolve(__dirname, '../..');
+const openApiPath = path.resolve(repoRoot, 'docs/openapi-v1.json');
 const openApiContent = JSON.parse(fs.readFileSync(openApiPath, 'utf-8'));
 
 // Extract all operationIds from openapi-v1.json
@@ -114,5 +116,55 @@ test('Contract Guard: Tool schemas define required descriptions and annotations'
         assert.equal(typeof tool.annotations.readOnlyHint, 'boolean', `${toolName} must declare boolean readOnlyHint`);
         assert.equal(typeof tool.annotations.destructiveHint, 'boolean', `${toolName} must declare boolean destructiveHint`);
         assert.equal(typeof tool.annotations.idempotentHint, 'boolean', `${toolName} must declare boolean idempotentHint`);
+    }
+});
+
+test('Contract Guard: every MCP tool route exists in php artisan route:list', (t) => {
+    const php = process.env.PHP_BIN || 'php';
+    const result = spawnSync(php, ['artisan', 'route:list', '--json'], {
+        cwd: repoRoot,
+        encoding: 'utf8',
+        timeout: 60000,
+    });
+
+    if (result.error?.code === 'ENOENT') {
+        t.skip('php binary not available; route:list guard runs where PHP is installed');
+        return;
+    }
+
+    if (result.status !== 0) {
+        // No vendor/, no .env, or no app key: this guard is meaningful only in a
+        // bootable checkout (the dedicated CI job installs both).
+        t.skip(`php artisan route:list unavailable: ${(result.stderr || '').trim().split('\n')[0] || 'unknown error'}`);
+        return;
+    }
+
+    const stdout = (result.stdout || '').trim();
+    const jsonStart = stdout.indexOf('[');
+    assert.notEqual(jsonStart, -1, 'route:list --json did not return JSON');
+
+    const routes = JSON.parse(stdout.slice(jsonStart));
+    const available = new Set();
+    for (const route of routes) {
+        const methods = String(route.method || '')
+            .split('|')
+            .filter((method) => method && method !== 'HEAD');
+        for (const method of methods) {
+            available.add(`${method}|${route.uri}`);
+        }
+    }
+
+    for (const [toolName, operationIds] of Object.entries(toolToOperationMap)) {
+        for (const opId of operationIds) {
+            const operation = openApiOperations.get(opId);
+            assert.ok(operation, `${toolName} references unknown operationId ${opId}`);
+
+            const uri = `api/v1${operation.path}`.replace(/\/+$/, '');
+            const key = `${operation.method}|${uri}`;
+            assert.ok(
+                available.has(key),
+                `Tool ${toolName}: route ${key} is missing from php artisan route:list`
+            );
+        }
     }
 });

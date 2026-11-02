@@ -20,12 +20,14 @@ Enables coding agents (Claude Code, opencode, Cursor, VS Code) to read and write
 3. Click **Generate Token**:
    - Choose the preset: **Coding Agent (Read/Write)** or **Read-Only Agent**.
    - Abilities: `tms.read` for inspection; `tms.write` for creating/updating tasks, logging time, or commenting.
-   - Set expiry (defaults to 30 days for write tokens).
+   - Set expiry (the **Agent Preset** fills 30 days; adjust as needed).
 4. Copy the token string immediately (`fst_<tenantId>_<random40>`). The secret is only displayed once and stored hashed on the server.
 
 > **Security Warning**:
 > Never commit API tokens into git repositories or configuration files (`.mcp.json`, `.cursor/mcp.json`, `.vscode/mcp.json`).
-> Always reference an environment variable such as `${FLOWSYNC_TOKEN}`.
+> Always reference an environment variable such as `${FLOWSYNC_TOKEN}`. If you keep a project-level
+> config, use a `.local` variant (`.mcp.local.json`, `.cursor/mcp.local.json`) and add it to `.gitignore` —
+> a leaked `fst_` token is a working credential until it expires or is revoked.
 
 ---
 
@@ -92,6 +94,12 @@ Example Claude Code config (`.mcp.json` or `~/.claude.json`):
 | `FLOWSYNC_TIMEOUT_MS` | No | `15000` | HTTP request timeout in milliseconds. |
 | `FLOWSYNC_READ_ONLY` | No | `false` | If `true` or `1`, write tools are blocked at the MCP layer before making HTTP requests. |
 | `FLOWSYNC_DEBUG` | No | `false` | If `true` or `1`, logs detailed diagnostics with request IDs to `stderr`. |
+| `FLOWSYNC_MAX_RPM` | No | `60` | Highest requests-per-minute the client spaces calls for. `0` disables client-side pacing (the server still enforces the token limit). |
+
+The client always keeps **one request in flight at a time** and sends `?locale=en`, a
+`User-Agent: flowsync-mcp/<version>` marker, and an `Idempotency-Key` on every write.
+`flowsync_me` reports the token's monthly quota (`used`/`limit`) so an agent can check its budget before
+a large crawl.
 
 ---
 
@@ -152,3 +160,52 @@ Example Claude Code config (`.mcp.json` or `~/.claude.json`):
 | `429 usage_limit` | Monthly tenant API quota exhausted. | Wait until the 1st of next month or increase tenant API call limits. |
 | `429 Rate Limited` | Per-minute burst limit exceeded. | Server automatically retries with backoff according to `Retry-After`. |
 | `503 Maintenance` | Platform maintenance in progress. | Wait until maintenance concludes. |
+
+---
+
+## Distribution outside this repository
+
+Non-repo users can install the package from a packed tarball instead of pointing at a checkout:
+
+```bash
+npm pack ./mcp                 # produces flowsync-mcp-1.0.0.tgz
+npm install -g ./flowsync-mcp-1.0.0.tgz
+flowsync-mcp                   # stdio server on PATH
+```
+
+Then use `"command": "flowsync-mcp"` in the agent config (with `FLOWSYNC_URL` / `FLOWSYNC_TOKEN` in
+`env`). In-repo users should keep using the absolute path to `mcp/src/index.js` shown above.
+
+---
+
+## End-to-end verification
+
+Read-only smoke (works against any tenant with the `api` module):
+
+```bash
+FLOWSYNC_URL="http://localhost" \
+FLOWSYNC_TOKEN="fst_1_..." \
+node mcp/scripts/e2e.mjs
+```
+
+Full lifecycle (`create → get → transitions → move → comment → log time`). This **creates real data**,
+so run it only against a staging/test tenant:
+
+```bash
+FLOWSYNC_E2E_WRITE=1 \
+FLOWSYNC_E2E_PROJECT_ID=10 \
+FLOWSYNC_URL="http://localhost" \
+FLOWSYNC_TOKEN="fst_1_..." \
+node mcp/scripts/e2e.mjs
+```
+
+The MCP test suite (contract, protocol, stdout hygiene, read/write tools, client) runs with:
+
+```bash
+npm --prefix mcp ci
+npm --prefix mcp test
+```
+
+The contract guard also checks every tool's route against `php artisan route:list` when PHP and a
+bootable checkout are available. See `docs/mcp-runbook.md` for the pilot matrix, inspector/real-agent
+smoke steps, token rotation, and troubleshooting.

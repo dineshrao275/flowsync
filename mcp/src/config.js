@@ -33,6 +33,7 @@ export function loadConfig(env = process.env) {
     const timeoutMs = parseInt(env.FLOWSYNC_TIMEOUT_MS ?? '15000', 10);
     const readOnly = env.FLOWSYNC_READ_ONLY === '1' || env.FLOWSYNC_READ_ONLY === 'true';
     const debug = env.FLOWSYNC_DEBUG === '1' || env.FLOWSYNC_DEBUG === 'true';
+    const maxRpm = parseInt(env.FLOWSYNC_MAX_RPM ?? '60', 10);
 
     return {
         baseUrl: rawUrl.replace(/\/+$/, ''),
@@ -40,5 +41,8 @@ export function loadConfig(env = process.env) {
         timeoutMs: Number.isFinite(timeoutMs) && timeoutMs > 0 ? timeoutMs : 15000,
         readOnly,
         debug,
+        // Highest requests-per-minute the client spaces calls for. 0 disables pacing
+        // (the server still enforces the token's own limit).
+        maxRpm: Number.isFinite(maxRpm) && maxRpm >= 0 ? maxRpm : 60,
     };
 }

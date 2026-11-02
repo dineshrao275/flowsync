@@ -230,6 +230,7 @@
         "checklistUncheckedTitle": "unchecked checklist item \"{{title}}\"",
         "checklistRemoved": "removed a checklist item",
         "checklistRemovedTitle": "removed checklist item \"{{title}}\"",
+        "viaApi": "via API",
         "someone": "Someone",
         "empty": "No activity yet.",
         "loadFailed": "Could not load activity.",
