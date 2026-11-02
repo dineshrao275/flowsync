@@ -1,6 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import api from '../services/api';
 import { applyServerLocale } from '../i18n';
+import { grantsAny } from '../utils/permissions';
 
 const MODULE_PREFIX = 'module:';
 const PERMISSION_PREFIX = 'permission:';
@@ -116,7 +117,7 @@ export function AuthProvider({ children }) {
                 // Persona-narrowed platform admin: platform slugs only; product/module gates are tenant concepts.
                 if (typeof capability === 'string' && capability.startsWith('product:')) return true;
                 if (moduleName(capability)) return true;
-                return Boolean(user.platform?.permissions?.includes(permissionName(capability) ?? capability));
+                return grantsAny(user.platform?.permissions, permissionName(capability) ?? capability);
             }
             if (typeof capability === 'string' && capability.startsWith('product:')) {
                 return user.products?.[capability.slice(8)] !== false;
@@ -125,7 +126,7 @@ export function AuthProvider({ children }) {
                 return Boolean(user.modules?.includes(moduleName(capability)));
             }
             const permission = permissionName(capability) ?? capability;
-            return Boolean(user.permissions?.includes(permission));
+            return grantsAny(user.permissions, permission);
         },
         [user, unrestricted],
     );

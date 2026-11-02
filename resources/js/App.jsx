@@ -483,7 +483,7 @@ function AppRoutes() {
                                     <Route
                                         path="/hrms/expenses"
                                         element={
-                                            <ProtectedRoute permission="hrms.expenses.view">
+                                            <ProtectedRoute permission="hrms.expenses.view|hrms.expenses.view_assigned|hrms.expenses.view_all">
                                                 <Expenses />
                                             </ProtectedRoute>
                                         }

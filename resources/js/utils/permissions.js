@@ -41,3 +41,13 @@ export function groupPermissionsByDomain(permissions) {
             items: items.sort((a, b) => a.name.localeCompare(b.name)),
         }));
 }
+/**
+ * Whether a permission list satisfies a gate. A gate may name several slugs separated by `|`
+ * ("any of these"), e.g. `hrms.expenses.view|hrms.expenses.view_assigned`: a manager holding only the
+ * assigned scope reaches a queue that an exact-slug gate would shut them out of.
+ */
+export function grantsAny(permissions, gate) {
+    const held = permissions ?? [];
+
+    return String(gate).split('|').some((slug) => held.includes(slug));
+}

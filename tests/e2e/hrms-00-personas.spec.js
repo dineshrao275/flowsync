@@ -38,7 +38,7 @@ test.describe('Test personas (Users page)', () => {
         await expect(page.getByText(/already|taken|exists/i).first()).toBeVisible();
     });
 
-    for (const key of ['employee', 'hrExec']) {
+    for (const key of ['employee', 'hrExec', 'manager']) {
         test(`creates the ${key} persona (idempotent)`, async ({ page }) => {
             const p = PERSONAS[key];
             await page.goto('/app/users');
@@ -47,7 +47,7 @@ test.describe('Test personas (Users page)', () => {
             const f = form(page);
             await f.name.fill(p.name); await f.email.fill(p.email);
             await f.pw.fill(p.password); await f.confirm.fill(p.password);
-            await page.getByRole('button', { name: new RegExp(`\\+?\\s*${p.role}$`) }).first().click();
+            await page.getByRole('button', { name: new RegExp(`^\\W*${p.role}$`) }).first().click();
             await f.submit.click();
             await expect(page.getByText(p.email).first()).toBeVisible();
         });

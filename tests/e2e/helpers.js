@@ -11,6 +11,7 @@ export async function login(page, { email, password } = TENANT_ADMIN) {
 export const PERSONAS = {
     employee: { name: 'QA Employee', email: 'qa.employee@globex.test', password: 'password', role: 'Employee' },
     hrExec: { name: 'QA HR Executive', email: 'qa.hrexec@globex.test', password: 'password', role: 'HR Executive' },
+    manager: { name: 'QA Manager', email: 'qa.manager@globex.test', password: 'password', role: 'Manager' },
 };
 
 // One real sign-in per persona, then the session cookies are reused: the login endpoint is

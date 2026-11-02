@@ -46,7 +46,7 @@ export const HRMS_NAV = [
     { to: '/hrms/payroll', label: 'nav.hrms.payroll', group: 'nav.groups.pay', capabilities: ['module:hrms.core', 'module:hrms.payroll', 'permission:hrms.payroll.run'] },
     { to: '/hrms/payroll/mine', label: 'nav.hrms.myPayslips', group: 'nav.groups.pay', capabilities: ['module:hrms.core', 'module:hrms.payroll'] },
     { to: '/hrms/statutory', label: 'nav.hrms.statutory', group: 'nav.groups.pay', capabilities: ['module:hrms.core', 'module:hrms.payroll.statutory'] },
-    { to: '/hrms/expenses', label: 'nav.hrms.expenses', group: 'nav.groups.pay', capabilities: ['module:hrms.core', 'module:hrms.expenses', 'permission:hrms.expenses.view'] },
+    { to: '/hrms/expenses', label: 'nav.hrms.expenses', group: 'nav.groups.pay', capabilities: ['module:hrms.core', 'module:hrms.expenses', 'permission:hrms.expenses.view|hrms.expenses.view_assigned|hrms.expenses.view_all'] },
     { to: '/hrms/expenses/mine', label: 'nav.hrms.myExpenses', group: 'nav.groups.pay', capabilities: ['module:hrms.core', 'module:hrms.expenses'] },
 
     { to: '/hrms/performance', label: 'nav.hrms.performance', group: 'nav.groups.performance', capabilities: ['module:hrms.core', 'module:hrms.performance', 'permission:hrms.performance.view'] },
