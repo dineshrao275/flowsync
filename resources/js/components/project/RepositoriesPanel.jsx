@@ -119,9 +119,10 @@ export default function RepositoriesPanel({ projectId, canManage }) {
                                         {manage && <Button size="sm" variant="danger" onClick={() => unlink(repo)}>{t('tms.repositories.unlink')}</Button>}
                                     </div>
                                     {manage && (
-                                        <div className="mt-3 grid gap-3 sm:grid-cols-2">
+                                        <div className="mt-3 grid gap-3 sm:grid-cols-3">
                                             <Switch checked={repo.sync_enabled} onChange={(v) => update(repo, { sync_enabled: v })} label={t('tms.repositories.sync')} description={t('tms.repositories.syncHint')} />
                                             <Switch checked={repo.smart_commits_enabled} onChange={(v) => update(repo, { smart_commits_enabled: v })} label={t('tms.repositories.smartCommits')} description={t('tms.repositories.smartCommitsHint')} />
+                                            <Switch checked={repo.smart_commit_transitions_enabled} disabled={!repo.smart_commits_enabled} onChange={(v) => update(repo, { smart_commit_transitions_enabled: v })} label={t('tms.repositories.smartTransitions')} description={t('tms.repositories.smartTransitionsHint')} />
                                         </div>
                                     )}
                                 </li>

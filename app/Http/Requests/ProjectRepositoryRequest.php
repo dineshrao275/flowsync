@@ -23,6 +23,7 @@ class ProjectRepositoryRequest extends FormRequest
             'repository_uuid' => $creating ? ['required', 'uuid'] : ['prohibited'],
             'sync_enabled' => ['sometimes', 'boolean'],
             'smart_commits_enabled' => ['sometimes', 'boolean'],
+            'smart_commit_transitions_enabled' => ['sometimes', 'boolean'],
             'allow_cross_project' => ['sometimes', 'boolean'],
             'default_branch' => ['sometimes', 'nullable', 'string', 'max:150'],
         ];

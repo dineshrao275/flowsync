@@ -38,7 +38,7 @@ describe('RepositoriesPanel', () => {
     it('lists linked repositories, with write controls only for managers', async () => {
         const { rerender } = render(<RepositoriesPanel projectId={1} canManage />);
         expect(await screen.findByText('acme-org/api')).toBeInTheDocument();
-        expect(screen.getByRole('switch', { name: /smart commits/i })).toBeInTheDocument();
+        expect(screen.getByRole('switch', { name: /^smart commits/i })).toBeInTheDocument();
 
         perms.manage = false;
         rerender(<RepositoriesPanel projectId={1} canManage={false} />);
@@ -65,7 +65,7 @@ describe('RepositoriesPanel', () => {
         confirm.mockResolvedValueOnce(true).mockResolvedValueOnce(false);
         render(<RepositoriesPanel projectId={1} canManage />);
 
-        fireEvent.click(await screen.findByRole('switch', { name: /smart commits/i }));
+        fireEvent.click(await screen.findByRole('switch', { name: /^smart commits/i }));
         await waitFor(() => expect(put).toHaveBeenCalledWith('/projects/1/repositories/5', { smart_commits_enabled: true }));
 
         fireEvent.click(screen.getByRole('button', { name: /^unlink$/i }));

@@ -1590,6 +1590,19 @@
         "failedDeliveries_other": "{{count}} eventos de GitHub no se pudieron procesar en las últimas 24 horas.",
         "syncNow": "Sincronizar repositorios",
         "syncStarted": "Sincronización de repositorios iniciada.",
-        "syncError": "La última sincronización de repositorios falló: {{error}}"
+        "syncError": "La última sincronización de repositorios falló: {{error}}",
+        "identitiesTitle": "Usuarios de GitHub",
+        "identitiesSubtitle": "Asigna aquí los usuarios de GitHub a personas. Los comandos de commit como #comment y #time actúan como la persona asignada y nadie más.",
+        "githubLogin": "Usuario de GitHub",
+        "user": "Usuario",
+        "chooseUser": "Elige un usuario",
+        "mapLogin": "Asignar",
+        "identityMapped": "Usuario de GitHub asignado.",
+        "noIdentities": "Aún no hay usuarios de GitHub asignados.",
+        "noIdentitiesHint": "Hasta que se asigne un usuario, se ignoran los comandos de commit de esa persona.",
+        "unmap": "Quitar",
+        "unmapTitle": "¿Quitar a @{{login}}?",
+        "unmapMessage": "Se ignorarán los comandos de commit de este usuario.",
+        "identitiesLoadFailed": "No se pudieron cargar los usuarios de GitHub."
     }
 }

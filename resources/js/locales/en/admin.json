@@ -1590,6 +1590,19 @@
         "failedDeliveries_other": "{{count}} GitHub events failed to process in the last 24 hours.",
         "syncNow": "Sync repositories",
         "syncStarted": "Repository sync started.",
-        "syncError": "The last repository sync failed: {{error}}"
+        "syncError": "The last repository sync failed: {{error}}",
+        "identitiesTitle": "GitHub users",
+        "identitiesSubtitle": "Map GitHub logins to people here. Commit commands like #comment and #time act as the mapped person and nobody else.",
+        "githubLogin": "GitHub login",
+        "user": "User",
+        "chooseUser": "Choose a user",
+        "mapLogin": "Map login",
+        "identityMapped": "GitHub login mapped.",
+        "noIdentities": "No GitHub logins mapped yet.",
+        "noIdentitiesHint": "Until a login is mapped, commit commands from that person are ignored.",
+        "unmap": "Remove",
+        "unmapTitle": "Remove @{{login}}?",
+        "unmapMessage": "Commit commands from this login will be ignored.",
+        "identitiesLoadFailed": "Could not load GitHub users."
     }
 }

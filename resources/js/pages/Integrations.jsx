@@ -11,6 +11,7 @@ import PageHeader from '../components/ui/PageHeader';
 import Resource from '../components/ui/Resource';
 import Timestamp from '../components/ui/Timestamp';
 import { useConfirm } from '../components/ui/ConfirmDialog';
+import GitIdentities from '../components/settings/GitIdentities';
 import { useAuth } from '../context/AuthContext';
 import { useSetCrumbs } from '../context/BreadcrumbContext';
 import { useToast } from '../context/ToastContext';
@@ -152,10 +153,13 @@ export default function Integrations() {
                     }
 
                     return (
-                        <div className="grid gap-4 lg:grid-cols-2">
-                            {data.connections.map((c) => (
-                                <ConnectionCard key={c.uuid} connection={c} canManage={canManage} onDisconnect={disconnect} onSync={sync} />
-                            ))}
+                        <div className="space-y-6">
+                            <div className="grid gap-4 lg:grid-cols-2">
+                                {data.connections.map((c) => (
+                                    <ConnectionCard key={c.uuid} connection={c} canManage={canManage} onDisconnect={disconnect} onSync={sync} />
+                                ))}
+                            </div>
+                            {canManage && <GitIdentities />}
                         </div>
                     );
                 }}

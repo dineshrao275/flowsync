@@ -1,5 +1,10 @@
+import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import api from '../../services/api';
+import api, { fieldErrors } from '../../services/api';
+import { useToast } from '../../context/ToastContext';
+import Alert from '../ui/Alert';
+import Button from '../ui/Button';
+import Select from '../ui/Select';
 import { useResource } from '../../hooks/useResource';
 import Badge from '../ui/Badge';
 import EmptyState from '../ui/EmptyState';
@@ -29,6 +34,42 @@ function Section({ title, count, children }) {
     );
 }
 
+/** Creates `feature/KEY-slug` on a linked repository. Shown only to people who may (server decides `can_create_branch`). */
+function CreateBranch({ dev, task, projectId, onCreated }) {
+    const { t } = useTranslation();
+    const toast = useToast();
+    const targets = dev.repositories.filter((r) => r.sync_enabled);
+    const [repoId, setRepoId] = useState(targets[0]?.id);
+    const [busy, setBusy] = useState(false);
+    const [error, setError] = useState(null);
+
+    async function create() {
+        setBusy(true);
+        setError(null);
+        try {
+            const { data } = await api.post(`/projects/${projectId}/repositories/${repoId}/branches`, { task_id: task.id });
+            toast.success(t('tms.development.branchCreated', { name: data.branch.name }));
+            onCreated();
+        } catch (err) {
+            setError(fieldErrors(err).form || t('tms.development.branchFailed'));
+        } finally {
+            setBusy(false);
+        }
+    }
+
+    return (
+        <div className="mb-4 flex flex-wrap items-center gap-2">
+            {targets.length > 1 && (
+                <Select aria-label={t('tms.development.repository')} value={repoId} onChange={(e) => setRepoId(Number(e.target.value))}>
+                    {targets.map((r) => <option key={r.id} value={r.id}>{r.full_name}</option>)}
+                </Select>
+            )}
+            <Button size="sm" variant="secondary" onClick={create} disabled={busy || !repoId}>{t('tms.development.createBranch')}</Button>
+            {error && <div className="w-full"><Alert>{error}</Alert></div>}
+        </div>
+    );
+}
+
 /** What GitHub says about this task: pull requests, commits and branches that mention its key. Read-only. */
 export default function DevelopmentPanel({ task, projectId }) {
     const { t } = useTranslation();
@@ -40,15 +81,17 @@ export default function DevelopmentPanel({ task, projectId }) {
     return (
         <Resource {...res} skeleton={<ContentSkeleton size="sm" />} errorTitle={t('tms.development.loadFailed')}>
             {(dev) => {
+                const create = dev.can_create_branch && <CreateBranch dev={dev} task={task} projectId={projectId} onCreated={res.reload} />;
                 if (!dev.has_repository) {
                     return <EmptyState title={t('tms.development.noRepository')} description={t('tms.development.noRepositoryHint')} />;
                 }
                 if (!dev.pull_requests.length && !dev.commits.length && !dev.branches.length) {
-                    return <EmptyState title={t('tms.development.nothingYet')} description={t('tms.development.nothingYetHint', { key: task.key })} />;
+                    return <div>{create}<EmptyState title={t('tms.development.nothingYet')} description={t('tms.development.nothingYetHint', { key: task.key })} /></div>;
                 }
 
                 return (
                     <div>
+                        {create}
                         {dev.pull_requests.length > 0 && (
                             <Section title={t('tms.development.pullRequests')} count={dev.pull_requests.length}>
                                 <ul className="divide-y divide-line">

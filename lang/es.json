@@ -981,5 +981,17 @@
     "This repository is already linked to the project.": "Este repositorio ya está vinculado al proyecto.",
     "Repository linked.": "Repositorio vinculado.",
     "Repository settings saved.": "Ajustes del repositorio guardados.",
-    "Repository unlinked.": "Repositorio desvinculado."
+    "Repository unlinked.": "Repositorio desvinculado.",
+    "GitHub did not return the base branch.": "GitHub no devolvió la rama base.",
+    "That task or repository does not belong to this project.": "Esa tarea o repositorio no pertenece a este proyecto.",
+    "This repository is paused for the project. Turn it back on before creating branches.": "Este repositorio está en pausa para el proyecto. Actívalo de nuevo antes de crear ramas.",
+    "A branch named :name already exists for this task.": "Ya existe una rama llamada :name para esta tarea.",
+    "A branch named :name already exists in the repository.": "Ya existe una rama llamada :name en el repositorio.",
+    "The repository is empty. Make a first commit before creating branches.": "El repositorio está vacío. Haz un primer commit antes de crear ramas.",
+    "The base branch :base was not found, or FlowSync cannot access this repository.": "No se encontró la rama base :base, o FlowSync no puede acceder a este repositorio.",
+    "FlowSync is not allowed to create branches here. Ask the GitHub organization admin to grant the app \"Contents: Read and write\".": "FlowSync no tiene permiso para crear ramas aquí. Pide al administrador de la organización de GitHub que conceda a la aplicación \"Contents: Read and write\".",
+    "Branch created.": "Rama creada.",
+    "That GitHub login is already mapped to another user.": "Ese usuario de GitHub ya está asignado a otro usuario.",
+    "GitHub login mapped.": "Usuario de GitHub asignado.",
+    "GitHub login unmapped.": "Asignación de usuario de GitHub eliminada."
 }

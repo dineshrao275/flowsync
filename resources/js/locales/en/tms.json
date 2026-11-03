@@ -1002,7 +1002,9 @@
         "removeDataTitle": "Also remove linked data?",
         "removeDataMessage": "Delete the pull requests, commits and branches recorded on tasks from this repository. Cancel keeps them.",
         "loadFailed": "Could not load repositories.",
-        "requestFailed": "The request could not be completed."
+        "requestFailed": "The request could not be completed.",
+        "smartTransitions": "Let commits change status",
+        "smartTransitionsHint": "Allows #close and #transition. Needs smart commits."
     },
     "development": {
         "overviewTitle": "Repositories",
@@ -1027,6 +1029,10 @@
             "failure": "Checks failed",
             "pending": "Checks running",
             "neutral": "Checks neutral"
-        }
+        },
+        "createBranch": "Create branch",
+        "branchCreated": "Created {{name}}",
+        "branchFailed": "The branch could not be created.",
+        "repository": "Repository"
     }
 }

@@ -57,6 +57,23 @@ class FakeGitProvider implements GitProvider
         return (string) ($this->browse["{$fullName}:checks:{$ref}"] ?? 'none');
     }
 
+    /** @var list<string> "full_name:branch@sha" for every createBranch call */
+    public array $created = [];
+
+    /** @var list<string> branches that already exist, "full_name:branch" (a create is then a 422) */
+    public array $existingBranches = [];
+
+    public function createBranch(int $installationId, string $fullName, string $name, string $fromBranch): string
+    {
+        $this->failWith && throw $this->failWith;
+        if (in_array("{$fullName}:{$name}", $this->existingBranches, true)) {
+            throw new GitProviderException('exists', 422);
+        }
+        $this->created[] = "{$fullName}:{$name}@{$fromBranch}";
+
+        return 'sha-of-'.$fromBranch;
+    }
+
     public function name(): string
     {
         return 'github';

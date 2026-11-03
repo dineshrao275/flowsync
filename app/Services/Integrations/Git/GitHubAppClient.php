@@ -152,6 +152,24 @@ class GitHubAppClient implements GitProvider
         };
     }
 
+    public function createBranch(int $installationId, string $fullName, string $name, string $fromBranch): string
+    {
+        if (! preg_match('#^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$#', $fullName)) {
+            throw new GitProviderException(__('Invalid repository name.'));
+        }
+
+        $request = $this->installationRequest($installationId);
+        $base = $this->decode($request->get("/repos/{$fullName}/git/ref/heads/".implode('/', array_map('rawurlencode', explode('/', $fromBranch)))));
+        $sha = (string) ($base['object']['sha'] ?? '');
+        if ($sha === '') {
+            throw new GitProviderException(__('GitHub did not return the base branch.'), 404);
+        }
+
+        $this->decode($request->post("/repos/{$fullName}/git/refs", ['ref' => 'refs/heads/'.$name, 'sha' => $sha]));
+
+        return $sha;
+    }
+
     /**
      * One page of a repository collection. Pages are capped at `git.per_page` on purpose: callers get a
      * bounded, cacheable slice, never an unbounded crawl of a big repository.

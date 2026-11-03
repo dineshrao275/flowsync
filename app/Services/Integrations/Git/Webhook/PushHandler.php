@@ -6,12 +6,13 @@ namespace App\Services\Integrations\Git\Webhook;
 
 use App\Models\GitConnection;
 use App\Models\TaskCommit;
+use App\Services\Integrations\Git\Smart\GitSmartCommitService;
 use Illuminate\Support\Str;
 
 /** `push`: record the (capped) commits that mention a task key, once each. Branches are the create/delete handler's. */
 class PushHandler implements GitEventHandler
 {
-    public function __construct(private readonly GitLinker $linker) {}
+    public function __construct(private readonly GitLinker $linker, private readonly GitSmartCommitService $smart) {}
 
     public function handle(GitConnection $connection, string $event, string $action, array $payload, string $delivery): string
     {
@@ -51,6 +52,12 @@ class PushHandler implements GitEventHandler
                             'kind' => 'commit', 'state' => 'pushed', 'title' => Str::limit($first, 140, ''), 'url' => $row->html_url, 'sha' => substr((string) $commit['id'], 0, 40),
                         ]);
                         $changed = true;
+                    }
+                    // Only the first time a commit is seen for a task: a merge that re-delivers it must not re-run it.
+                    if ($row->wasRecentlyCreated) {
+                        $this->smart->apply($link, $task, [
+                            'sha' => (string) $commit['id'], 'message' => (string) ($commit['message'] ?? ''), 'login' => $login, 'timestamp' => $commit['timestamp'] ?? null,
+                        ], $delivery);
                     }
                 }
             }

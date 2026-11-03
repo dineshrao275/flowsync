@@ -41,6 +41,13 @@ interface GitProvider
     /** Rolled-up check state of a commit/branch: none|pending|success|failure|neutral. */
     public function checks(int $installationId, string $fullName, string $ref): string;
 
+    /**
+     * Creates `refs/heads/{name}` pointing at the tip of `$fromBranch`; returns the commit sha it points at.
+     *
+     * @throws GitProviderException 404 base branch/permission, 409 empty repository, 422 the branch already exists
+     */
+    public function createBranch(int $installationId, string $fullName, string $name, string $fromBranch): string;
+
     /** Short-lived token for acting as the installation; cached encrypted until shortly before it expires. */
     public function installationToken(int $installationId): string;
 }

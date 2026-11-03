@@ -1002,7 +1002,9 @@
         "removeDataTitle": "¿Eliminar también los datos vinculados?",
         "removeDataMessage": "Elimina los pull requests, commits y ramas registrados en las tareas desde este repositorio. Cancelar los conserva.",
         "loadFailed": "No se pudieron cargar los repositorios.",
-        "requestFailed": "No se pudo completar la solicitud."
+        "requestFailed": "No se pudo completar la solicitud.",
+        "smartTransitions": "Permitir que los commits cambien el estado",
+        "smartTransitionsHint": "Permite #close y #transition. Requiere commits inteligentes."
     },
     "development": {
         "overviewTitle": "Repositorios",
@@ -1027,6 +1029,10 @@
             "failure": "Comprobaciones fallidas",
             "pending": "Comprobaciones en curso",
             "neutral": "Comprobaciones neutrales"
-        }
+        },
+        "createBranch": "Crear rama",
+        "branchCreated": "Se creó {{name}}",
+        "branchFailed": "No se pudo crear la rama.",
+        "repository": "Repositorio"
     }
 }

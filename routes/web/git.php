@@ -1,6 +1,8 @@
 <?php
 
+use App\Http\Controllers\GitBranchController;
 use App\Http\Controllers\GitConnectionController;
+use App\Http\Controllers\GitIdentityController;
 use App\Http\Controllers\GitRepositoryController;
 use App\Http\Controllers\GitWebhookController;
 use App\Http\Controllers\ProjectRepositoryController;
@@ -34,6 +36,10 @@ Route::prefix('api')->group(function () {
         Route::get('projects/{project}/repositories/{link}/branches', [ProjectRepositoryController::class, 'branches'])->middleware(['permission:git.view', 'throttle:60,1']);
         Route::get('projects/{project}/repositories/{link}/commits', [ProjectRepositoryController::class, 'commits'])->middleware(['permission:git.view', 'throttle:60,1']);
         Route::get('projects/{project}/repositories/{link}/pull-requests', [ProjectRepositoryController::class, 'pullRequests'])->middleware(['permission:git.view', 'throttle:60,1']);
+        Route::post('projects/{project}/repositories/{link}/branches', [GitBranchController::class, 'store'])->middleware(['permission:git.manage', 'throttle:20,1']);
+        Route::get('integrations/git/identities', [GitIdentityController::class, 'index'])->middleware('permission:git.manage');
+        Route::post('integrations/git/identities', [GitIdentityController::class, 'store'])->middleware(['permission:git.manage', 'throttle:30,1']);
+        Route::delete('integrations/git/identities/{identity}', [GitIdentityController::class, 'destroy'])->whereNumber('identity')->middleware('permission:git.manage');
         Route::get('projects/{project}/development/summary', [TaskDevelopmentController::class, 'summary'])->middleware('permission:git.view');
         Route::get('projects/{project}/tasks/{task}/development', [TaskDevelopmentController::class, 'show'])->middleware('permission:git.view');
         Route::post('integrations/git/connections/{uuid}/sync', [GitConnectionController::class, 'sync'])->whereUuid('uuid')->middleware(['permission:git.manage', 'throttle:10,1']);

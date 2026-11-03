@@ -17,7 +17,7 @@ class ProjectRepository extends Model
 {
     protected $fillable = [
         'project_id', 'git_connection_uuid', 'provider', 'provider_repo_id', 'full_name', 'default_branch', 'html_url',
-        'sync_enabled', 'smart_commits_enabled', 'allow_cross_project', 'linked_by', 'linked_at',
+        'sync_enabled', 'smart_commits_enabled', 'smart_commit_transitions_enabled', 'allow_cross_project', 'linked_by', 'linked_at',
     ];
 
     protected function casts(): array
@@ -25,6 +25,7 @@ class ProjectRepository extends Model
         return [
             'sync_enabled' => 'boolean',
             'smart_commits_enabled' => 'boolean',
+            'smart_commit_transitions_enabled' => 'boolean',
             'allow_cross_project' => 'boolean',
             'linked_at' => 'datetime',
         ];

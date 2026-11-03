@@ -105,6 +105,7 @@ class ProjectRepositoryController extends Controller
         return [
             'id' => $link->id, 'provider' => $link->provider, 'full_name' => $link->full_name, 'default_branch' => $link->default_branch,
             'html_url' => $link->html_url, 'sync_enabled' => $link->sync_enabled, 'smart_commits_enabled' => $link->smart_commits_enabled,
+            'smart_commit_transitions_enabled' => $link->smart_commit_transitions_enabled,
             'allow_cross_project' => $link->allow_cross_project, 'linked_at' => $link->linked_at?->toIso8601String(),
         ];
     }

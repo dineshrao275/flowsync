@@ -32,7 +32,7 @@ class ProjectRepositoryService
     }
 
     /**
-     * @param  array{repository_uuid: string, sync_enabled?: bool, smart_commits_enabled?: bool, allow_cross_project?: bool, default_branch?: ?string}  $data
+     * @param  array{repository_uuid: string, sync_enabled?: bool, smart_commits_enabled?: bool, smart_commit_transitions_enabled?: bool, allow_cross_project?: bool, default_branch?: ?string}  $data
      */
     public function link(Tenant $tenant, Project $project, array $data, User $actor): ProjectRepository
     {
@@ -71,7 +71,7 @@ class ProjectRepositoryService
         return $link;
     }
 
-    /** @param  array{sync_enabled?: bool, smart_commits_enabled?: bool, allow_cross_project?: bool, default_branch?: ?string}  $data */
+    /** @param  array{sync_enabled?: bool, smart_commits_enabled?: bool, smart_commit_transitions_enabled?: bool, allow_cross_project?: bool, default_branch?: ?string}  $data */
     public function update(ProjectRepository $link, array $data): ProjectRepository
     {
         $link->update($data);
