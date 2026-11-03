@@ -26,6 +26,12 @@ export function mapHttpError(status, data = {}, headers = new Headers()) {
 
             if (data.code === 'token_read_only') {
                 message = 'This token cannot do that; use a write token with tms.write.' + reqSuffix;
+            } else if (data.code === 'hrms_linked_task_read_only') {
+                message = 'This task is linked to HR data (a performance goal or an HR task link), so it is read-only through the API. Do not retry; change it in the app.' + reqSuffix;
+            } else if (data.code === 'hrms_attendance_derivation_enabled') {
+                message = 'HR derives attendance from work logs in this workspace, so time cannot be logged through the API. Do not retry; log it in the app.' + reqSuffix;
+            } else if (data.code === 'hrms_read_only') {
+                message = 'HR data is read-only through API tokens. Do not retry; make the change in the app.' + reqSuffix;
             } else if (data.code === 'token_ability_missing') {
                 message = `This token lacks required ability (${data.ability || 'tms.read/tms.write'}).` + reqSuffix;
             } else if (moduleDenied || moduleReason || productDenied) {

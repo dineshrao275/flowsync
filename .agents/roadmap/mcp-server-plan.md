@@ -742,3 +742,15 @@ Deliberately not done, and why:
 - **Admin listing/revoking other users' tokens** — the token endpoints are own-only; mitigated by revoke-on-exit. Needs its own UI and permission decision.
 - **Server-side comment pagination** — the comments endpoint returns the whole thread; the MCP tool caps it (newest 100).
 - **Inspector smoke, real-agent smoke (Claude Code, opencode) and the pilot matrix** remain manual gates (`docs/mcp-runbook.md` §2, §4).
+
+### 13.1 Authorization matrix and HR read-only (2026-11-03)
+
+Checked first, then fixed. Already correct (now pinned by `ApiV1AuthorizationMatrixTest`): a token is only as strong as its owner's role
+in each project (a project Viewer cannot edit, move, create or log time even with a write token; comments are allowed because the
+role grants `comments.create`), a user with no write grant anywhere cannot mint `tms.write`, a non-member reaches nothing,
+`tasks.edit_own` limits a token to the owner's own tasks, a bearer token is refused by every session route, the Viewer tenant role
+cannot create a token, and the HRMS directory through a token equals what the owner sees in the app. Gaps found and closed: the
+HRMS routes had no structural read-only guard (`hrms_read_only`); a task HR links could be edited/moved/commented/time-logged
+through a token (completing it refreshed the linked goal's evidence) and is now read-only (`protect_hrms:linked_task`); and time
+logged through a token fed attendance derivation, so it is refused while derivation is on (`protect_hrms:…,attendance`).
+

@@ -106,7 +106,7 @@ export const createTaskTool = {
 
 export const updateTaskTool = {
     name: 'flowsync_update_task',
-    description: 'Update an existing task\'s fields. Requires a write token with tms.write. Changes data and can notify people or trigger automation. Only the fields you send change. The description is Markdown (converted to HTML by the server). To change status use flowsync_move_task: a status that needs approval is refused here.',
+    description: 'Update an existing task\'s fields. Requires a write token with tms.write. Changes data and can notify people or trigger automation. Only the fields you send change. The description is Markdown (converted to HTML by the server). To change status use flowsync_move_task: a status that needs approval is refused here. A task linked to HR data (a performance goal or an HR task link) is read-only through the API and is refused.',
     inputSchema: {
         type: 'object',
         required: ['project_id', 'task_id'],
@@ -207,7 +207,7 @@ export const updateTaskTool = {
 
 export const moveTaskTool = {
     name: 'flowsync_move_task',
-    description: 'Move a task to a different workflow status column. Changes data and can trigger automation and notifications; confirm with the user before moving a task they did not ask to move. If workflow approval is required by project policy, returns HTTP 202 and records a pending request instead of completing immediately. Check flowsync_get_task_transitions first to inspect allowed target statuses.',
+    description: 'Move a task to a different workflow status column. Changes data and can trigger automation and notifications; confirm with the user before moving a task they did not ask to move. A task linked to HR data (a performance goal or an HR task link) is read-only through the API and is refused. If workflow approval is required by project policy, returns HTTP 202 and records a pending request instead of completing immediately. Check flowsync_get_task_transitions first to inspect allowed target statuses.',
     inputSchema: {
         type: 'object',
         required: ['project_id', 'task_id', 'status_id'],
@@ -274,7 +274,7 @@ export const moveTaskTool = {
 
 export const addCommentTool = {
     name: 'flowsync_add_comment',
-    description: 'Add a comment or reply to a task thread. Requires a write token with tms.write. Changes data: a comment is visible to everyone on the task and @mentions notify (and email) those people, so mention someone only when asked to. Confirm with the user before posting on their behalf when the content matters.',
+    description: 'Add a comment or reply to a task thread. Requires a write token with tms.write. Changes data: a comment is visible to everyone on the task and @mentions notify (and email) those people, so mention someone only when asked to. Confirm with the user before posting on their behalf when the content matters. A task linked to HR data (a performance goal or an HR task link) is read-only through the API and is refused.',
     inputSchema: {
         type: 'object',
         required: ['project_id', 'task_id', 'comment'],
@@ -325,7 +325,7 @@ export const addCommentTool = {
 
 export const logTimeTool = {
     name: 'flowsync_log_time',
-    description: 'Log time spent on a task. Requires the time_tracking module and a write token with tms.write. Changes data (and billable time). Give duration_minutes (the entry then ends now) or both started_at and ended_at; the tool never guesses a duration. Overlapping entries are refused.',
+    description: 'Log time spent on a task. Requires the time_tracking module and a write token with tms.write. Changes data (and billable time). Give duration_minutes (the entry then ends now) or both started_at and ended_at; the tool never guesses a duration. Overlapping entries are refused. It is also refused while HR derives attendance from work logs in this workspace, and on a task linked to HR data: log that time in the app.',
     inputSchema: {
         type: 'object',
         required: ['project_id', 'task_id', 'description'],

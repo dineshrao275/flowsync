@@ -63,6 +63,7 @@ FlowSync Tenant Gateway (`/api/v1`)
 7. **`User-Agent` marker**: the client sends `flowsync-mcp/<version>`, which shows in web-server access logs. `integration_logs` has no user-agent column, so it is not stored there; adding one is a tenant migration and is deferred.
 8. **Legacy `workspaces.view` tokens** keep what they always had (read access, and for a write token creating a task) and gain nothing: `tms.write` is never inferred from them, and the token form no longer offers the legacy ability. Admins cannot list or revoke other users' tokens (the token endpoints are own-only); a token also stops working when its owner is offboarded.
 9. **Tool failures are results, not protocol errors**: a failing tool returns `isError: true` with the reason in `content` and `structuredContent.error {message, status, code, request_id}`; arguments are validated against the tool's schema first. Only an unknown tool name is a JSON-RPC error. A write that ends with an unknown outcome (timeout, dropped connection, 5xx, in-flight 409) is retried by repeating the identical call: the client reuses its `Idempotency-Key` for 10 minutes.
+10. **HR data is view-only through tokens.** The MCP has no HR tool and the contract test keeps it that way (no tool name, call or description may mention HR data, and the write tools are exactly create/update/move/comment/log-time). On the server the `/api/v1` HRMS routes sit behind `hrms_read_only` (non-GET → 403 `hrms_read_only`). Three indirect paths from TMS writes into HR data are closed for tokens: a task HR links (`goal_task_links`, `hrms_task_links`, or an HR-owned `tasks.hrms_employee_id`) is read-only for edit/move/comment/work-log (403 `hrms_linked_task_read_only`, because completing it would refresh the linked goal's evidence); and a work log is refused (403 `hrms_attendance_derivation_enabled`) while `attendance.auto_derive_from_work_logs` is on. Reads of those tasks stay allowed. Session-API routes never accept a bearer token.
 
 ---
 
@@ -155,6 +156,7 @@ All endpoints sit under `/api/v1` with the shared middleware pipeline:
 | **401** | `Invalid or expired API token.` | Abort immediately. Prompt developer to generate a new token. |
 | **401** | `code: employee_exited` | The token owner is no longer an active employee; a new token will not help. Ask an administrator. |
 | **403** | `token_read_only` / `token_ability_missing` | Token lacks write capability or required ability group. |
+| **403** | `hrms_linked_task_read_only` / `hrms_attendance_derivation_enabled` / `hrms_read_only` | HR protection: final, do not retry. Make the change in the app. |
 | **403** | `X-Module-Reason` / `X-Product-Denied` | Plan lacks required module (e.g. `time_tracking`, `sprints`). |
 | **403** | `X-Onboarding-Redirect` | Tenant onboarding incomplete. |
 | **404** | Not Found | Entity does not exist or caller lacks access. Never disclose existence. |

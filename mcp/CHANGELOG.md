@@ -2,6 +2,19 @@
 
 All notable changes to the `flowsync-mcp` package are recorded here.
 
+## 1.0.2 — 2026-11-03
+
+HR data is view-only through the MCP, and the per-user authorization is now pinned by a matrix test.
+
+### Changed
+
+- Writes through a token can no longer change HR data. Server side: the `/api/v1` HRMS routes are behind `hrms_read_only`
+  (any non-GET is refused with `code: hrms_read_only`); a task that HR links (performance-goal evidence, an HR task link, an
+  HR-owned ask) is read-only (`hrms_linked_task_read_only`) for edit, move, comment and time logging; and time cannot be logged
+  through a token while HR derives attendance from work logs (`hrms_attendance_derivation_enabled`).
+- The client explains these refusals as final ("do not retry; change it in the app"), and the write-tool descriptions say so.
+- Contract test: no tool may be, call or describe HR data, and the set of write tools is pinned to the five task writes.
+
 ## 1.0.1 — 2026-11-03
 
 Fixes from the post-implementation review against `.agents/roadmap/mcp-server-plan.md`.

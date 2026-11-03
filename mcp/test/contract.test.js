@@ -272,3 +272,31 @@ test('Contract Guard: each tool route is gated by a token_can middleware that in
         }
     }
 });
+
+test('HR data is view-only through the MCP: no HRMS tool, no HRMS call, and exactly the five task writes exist', () => {
+    const { tools } = createServer({
+        config: { baseUrl: 'http://localhost', token: 'fst_1_test', timeoutMs: 1000, readOnly: false, debug: false },
+        client: {},
+    });
+    const calls = extractToolCalls();
+
+    for (const [name, tool] of tools) {
+        assert.doesNotMatch(name, /hrms|employee|payroll|leave|attendance|salary/i, `${name} must not be an HR tool`);
+        for (const call of calls[name] ?? []) {
+            assert.doesNotMatch(call.path, /hrms/i, `${name} calls an HRMS path: ${call.path}`);
+            assert.match(call.path, /^(me|workspaces|projects|search)(\/|$)/, `${name} calls a path outside the TMS surface: ${call.path}`);
+        }
+        assert.doesNotMatch(tool.description, /hrms|payroll|salary/i, `${name} must not advertise HR data`);
+    }
+
+    // A new write tool must be a conscious decision: this list is the whole write surface.
+    const writers = [...tools].filter(([, tool]) => tool.annotations.readOnlyHint === false).map(([name]) => name).sort();
+    assert.deepEqual(writers, [
+        'flowsync_add_comment',
+        'flowsync_create_task',
+        'flowsync_log_time',
+        'flowsync_move_task',
+        'flowsync_update_task',
+    ]);
+});
+

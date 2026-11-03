@@ -52,11 +52,16 @@ Route::prefix('api/v1')
         });
 
         Route::middleware(['token_can:tms.write', 'ensure_product:tms', 'idempotent', 'throttle:30,1'])->group(function () {
-            Route::put('projects/{project}/tasks/{task}', [TaskController::class, 'update'])->middleware('api_markdown');
-            Route::post('projects/{project}/tasks/{task}/move', [TaskMoveController::class, 'move']);
-            Route::post('projects/{project}/tasks/{task}/comments', [CommentController::class, 'store']);
-            Route::post('projects/{project}/tasks/{task}/work-logs', [WorkLogController::class, 'store'])->middleware('ensure_module:time_tracking');
+            // `protect_hrms` keeps these writes from changing HR data: a task HR links is read-only, and time cannot
+            // be logged while HR derives attendance from work logs.
+            Route::put('projects/{project}/tasks/{task}', [TaskController::class, 'update'])->middleware(['protect_hrms:linked_task', 'api_markdown']);
+            Route::post('projects/{project}/tasks/{task}/move', [TaskMoveController::class, 'move'])->middleware('protect_hrms:linked_task');
+            Route::post('projects/{project}/tasks/{task}/comments', [CommentController::class, 'store'])->middleware('protect_hrms:linked_task');
+            Route::post('projects/{project}/tasks/{task}/work-logs', [WorkLogController::class, 'store'])->middleware(['ensure_module:time_tracking', 'protect_hrms:linked_task,attendance']);
         });
 
-        Route::get('hrms/employees', [EmployeeController::class, 'index'])->middleware(['ensure_module:hrms.core', 'token_can:hrms.view']);
+        // HR data is view-only through tokens: the group is GET-only by rule (`hrms_read_only`), not by accident.
+        Route::middleware('hrms_read_only')->group(function () {
+            Route::get('hrms/employees', [EmployeeController::class, 'index'])->middleware(['ensure_module:hrms.core', 'token_can:hrms.view']);
+        });
     });

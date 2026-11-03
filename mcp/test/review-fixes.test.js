@@ -249,3 +249,19 @@ test('add_comment tells the agent when mentions were capped', async () => {
     assert.match(result.content[0].text, /only some people were notified/);
     assert.equal(result.structuredContent.truncated_mentions, true);
 });
+
+test('HR protections are explained to the agent as final, with what to do instead', async () => {
+    const client = makeClient();
+    const cases = [
+        ['hrms_linked_task_read_only', /linked to HR data.*read-only.*Do not retry/],
+        ['hrms_attendance_derivation_enabled', /derives attendance.*Do not retry.*log it in the app/],
+        ['hrms_read_only', /HR data is read-only through API tokens.*Do not retry/],
+    ];
+
+    for (const [code, expected] of cases) {
+        await withFetch(async () => json(403, { code, message: 'x' }), async () => {
+            await assert.rejects(() => client.post('projects/1/tasks/2/comments', { comment: 'c' }), expected);
+        });
+    }
+});
+
