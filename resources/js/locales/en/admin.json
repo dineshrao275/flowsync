@@ -1545,7 +1545,9 @@
         "enable": "Turn on",
         "rotate": "New secret",
         "disable": "Turn off",
-        "saved": "GitHub integration saved."
+        "saved": "GitHub integration saved.",
+        "deprecated": "This per-tenant webhook is the legacy way to link GitHub. The GitHub App adds repositories, branches and pull request status, and replaces this setup.",
+        "deprecatedLink": "Connect the GitHub App"
     },
     "calendarFeed": {
         "title": "Calendar subscription",

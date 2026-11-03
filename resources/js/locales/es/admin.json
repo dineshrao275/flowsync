@@ -1545,7 +1545,9 @@
         "enable": "Activar",
         "rotate": "Nuevo secreto",
         "disable": "Desactivar",
-        "saved": "Integración con GitHub guardada."
+        "saved": "Integración con GitHub guardada.",
+        "deprecated": "Este webhook por inquilino es la forma antigua de vincular GitHub. La aplicación de GitHub añade repositorios, ramas y el estado de los pull requests, y sustituye esta configuración.",
+        "deprecatedLink": "Conectar la aplicación de GitHub"
     },
     "calendarFeed": {
         "title": "Suscripción de calendario",

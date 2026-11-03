@@ -108,6 +108,21 @@ class GitWebhookTest extends TestCase
         Queue::assertPushed(ProcessGitWebhook::class, 1);
     }
 
+    public function test_a_failed_delivery_can_be_redelivered_but_a_settled_one_cannot(): void
+    {
+        $payload = ['action' => 'suspend', 'installation' => ['id' => 501]];
+        $this->deliver('installation', $payload, 'deliv-redeliver1')->assertJsonPath('status', 'accepted');
+        $this->connection->update(['status' => 'active']);
+        GitWebhookDelivery::where('delivery_uuid', 'deliv-redeliver1')->update(['status' => 'failed', 'error' => 'boom']);
+
+        $this->deliver('installation', $payload, 'deliv-redeliver1')->assertJsonPath('status', 'accepted');
+        $this->assertSame('suspended', $this->connection->fresh()->status, 'the retry ran');
+        $this->assertSame(['processed', null], [GitWebhookDelivery::firstOrFail()->status, GitWebhookDelivery::firstOrFail()->error]);
+
+        $this->deliver('installation', $payload, 'deliv-redeliver1')->assertJsonPath('status', 'duplicate');
+        $this->assertSame(1, GitWebhookDelivery::count());
+    }
+
     public function test_ping_answers_pong_and_is_recorded(): void
     {
         $this->deliver('ping', ['zen' => 'Keep it logically awesome.'])->assertOk()->assertJsonPath('message', 'pong');

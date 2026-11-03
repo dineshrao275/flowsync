@@ -54,7 +54,12 @@ class GitWebhookIntake
             'received_at' => now(),
         ]);
         if (! $delivery->wasRecentlyCreated) {
-            return $this->reply(202, 'duplicate');
+            // GitHub's "Redeliver" reuses the delivery id. A delivery that FAILED may be retried (handlers are idempotent
+            // and the event ledger stops a second activity); anything else is the replay guard doing its job.
+            if ($delivery->status !== GitWebhookDelivery::STATUS_FAILED) {
+                return $this->reply(202, 'duplicate');
+            }
+            $delivery->forceFill(['status' => GitWebhookDelivery::STATUS_RECEIVED, 'error' => null, 'processed_at' => null])->save();
         }
         Log::info('git.webhook.received', ['delivery' => $uuid, 'event' => $event]);
 

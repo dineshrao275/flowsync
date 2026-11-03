@@ -407,3 +407,47 @@ Numbers to act on, not to admire. Review when a dashboard crosses a line; do not
 | Failed jobs | > 0 for 10 min | Read the cause on **Admin → Queue**; retry or discard |
 
 Every migration must be safe to re-run on a populated database (repair path); `MigrationRepairTest` enforces it.
+
+---
+
+## 9. Git integration (GitHub App)
+
+Reference: `docs/architecture/git-integration.md`. Off until `GIT_ENABLED=true`.
+
+### 9.1 Register the app (once, by the operator)
+1. GitHub -> Settings -> Developer settings -> GitHub Apps -> New. Webhook URL `https://<host>/api/integrations/git/github/webhook`,
+   Setup URL `https://<host>/api/integrations/git/github/setup`, "Redirect on update" on, and **"Request user authorization (OAuth)
+   during installation" on** (callback = the setup URL). Without it no tenant can complete an install.
+2. Repository permissions: Metadata read, Contents read & write, Pull requests read, Commit statuses read, Checks read.
+   Events: Pull request, Pull request review, Push, Create, Delete, Release, Check suite, Check run, Status, Repository,
+   Installation, Installation repositories.
+3. Set `GIT_ENABLED`, `GITHUB_APP_ID`, `GITHUB_APP_SLUG`, `GITHUB_APP_PRIVATE_KEY` (base64) **or** `GITHUB_APP_PRIVATE_KEY_PATH`
+   (file mode 0600, outside the repo), `GITHUB_APP_WEBHOOK_SECRET` (>= 32 random bytes), `GITHUB_APP_CLIENT_ID`,
+   `GITHUB_APP_CLIENT_SECRET`; then `php artisan config:clear && php artisan queue:restart`.
+4. Run `php artisan git:check-config` - every line must be `[OK]`. GitHub's "Recent deliveries" should show the `ping` as 200.
+
+### 9.2 Rollout order
+`migrate --database=system --path=database/migrations/system` -> `tenants:provision` (new permissions + tenant_tms tables) ->
+`billing:sync-plans` (module `git` on paid plans) -> set env -> pilot tenant install -> everyone.
+
+### 9.3 Rotation
+- **Webhook secret**: generate a new one, set it in GitHub **and** `GITHUB_APP_WEBHOOK_SECRET` within the same minute
+  (deliveries signed with the old one answer 404 until both match; GitHub's "Redeliver" replays the gap), `config:clear`,
+  `queue:restart`.
+- **Private key**: generate a second key in GitHub, deploy it, run `git:check-config`, then delete the old key in GitHub.
+- **OAuth client secret**: generate, deploy, delete the old one. Installs started before the swap must be restarted.
+- Suspected leak: rotate all three, then `git:sync-installations --all`; installation tokens expire within the hour.
+
+### 9.4 Incidents
+- *Deliveries failing*: `/admin/integrations` -> Deliveries filtered to `failed`; a `git.webhook.repeated_failures` critical
+  line names the connection. Fix the cause, then use GitHub "Redeliver": a delivery that **failed** is processed again
+  (a processed or ignored one is answered `duplicate` - that is the replay guard).
+- *Pause a tenant's connection*: `/admin/integrations` -> Disable (survives a GitHub "unsuspend"; Enable reverses it).
+- *Catalog out of date*: Sync on the connection, or `git:sync-installations --tenant=ID`.
+- *Move tenants off the legacy webhook*: `php artisan git:legacy-status`.
+
+### 9.5 Backups
+Connections and the repository catalog are in the **system** database snapshot; project links, task pull requests,
+commits, branches and identities are in each **tenant** snapshot. Both are covered by `tenants:backup --all` and its restore
+drill (pinned by `GitHardeningTest`). After restoring a system DB to another environment, installation tokens are not
+valid there: run `git:sync-installations --all` and re-check `git:check-config`.

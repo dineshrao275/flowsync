@@ -447,6 +447,8 @@ branch name validation, provider failures, audit rows; `GitBranchTest`.
 
 ### Phase 9 — Hardening, ops, legacy migration
 
+> **Status: done (2026-11-03).** Deviations: private-key hardening is an operator command (`git:check-config`) plus tests rather than runtime enforcement; rotation and incident steps are in `docs/runbook.md` §9; the legacy deprecation notice shows only when the tenant's plan has the `git` module. Found and fixed on the way: the request logger wrote webhook/OAuth input to the log.
+
 1. Secret/token hardening: private key permissions, rotation runbook, `$hidden`, no logs,
    no secrets in error responses.
 2. Replay/SSRF/rate-limit/retention final pass; payload privacy (no code bodies).
