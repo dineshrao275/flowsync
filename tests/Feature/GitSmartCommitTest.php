@@ -97,9 +97,25 @@ class GitSmartCommitTest extends TestCase
         $this->assertSame([$this->dev->id, 'looks good'], [$comment->user_id, $comment->comment]);
         $log = WorkLog::where('task_id', $task->id)->firstOrFail();
         $this->assertSame([$this->dev->id, 90], [$log->user_id, $log->duration_minutes]);
+        $this->assertSame('git', $log->source, 'commit time is marked so HR attendance derivation ignores it');
         $this->assertTrue((bool) TaskStatus::find($task->status_id)->is_done, '#close moved the task to a done status');
         $this->assertSame(3, $this->audits('git.smart_commit_applied'));
         $this->assertTrue(Activity::where('subject_id', $task->id)->where('action', 'task.moved')->where('actor_user_id', $this->dev->id)->exists());
+    }
+
+    public function test_time_logged_by_a_commit_never_becomes_hr_attendance(): void
+    {
+        $this->connectTenant('acme');
+        $employee = \App\Models\Hrms\Employee\Employee::firstOrCreate(['user_id' => $this->dev->id], ['employee_code' => 'EMP-GIT-1', 'name' => $this->dev->name, 'status' => \App\Enums\Hrms\EmployeeStatus::Active]);
+        $settings = \App\Models\Hrms\Shared\HrmsSetting::current();
+        $settings->update(['attendance' => [...($settings->attendance ?? []), 'auto_derive_from_work_logs' => true]]);
+
+        $this->push("{$this->key()} #time 1h", 'sha-attendance');
+
+        $this->connectTenant('acme');
+        $this->assertSame('git', WorkLog::where('task_id', $this->task['id'])->firstOrFail()->source);
+        $this->assertSame(0, app(\App\Services\Hrms\Attendance\WorkLogDerivation::class)->derive(\Illuminate\Support\Carbon::parse('2026-11-03'))['derived']);
+        $this->assertSame(0, \App\Models\Hrms\Attendance\AttendanceDay::where('employee_id', $employee->id)->count());
     }
 
     public function test_assign_and_transition_by_name(): void

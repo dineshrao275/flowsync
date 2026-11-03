@@ -132,6 +132,8 @@ class GitSmartCommitService
         $this->workLogs->create($task, [
             'started_at' => $end->copy()->subMinutes($minutes)->toDateTimeString(), 'ended_at' => $end->toDateTimeString(),
             'description' => 'Logged from commit '.substr($commit['sha'], 0, 8), 'billable' => true,
+            // Time written by a commit message is not a clock-in: HR attendance derivation ignores it (like API time).
+            'source' => 'git',
         ], $actor);
     }
 
