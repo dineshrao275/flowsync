@@ -46,7 +46,8 @@ class WorkLogService
             'duration_minutes' => $this->duration($startedAt, $endedAt),
             'description' => $data['description'] ?? null,
             'billable' => $data['billable'] ?? true,
-        ]);
+            // Only an API-written log carries a source, so an app-written one never depends on the column existing yet.
+        ] + (isset($data['source']) ? ['source' => $data['source']] : []));
     }
 
     public function update(WorkLog $log, array $data): WorkLog

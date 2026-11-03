@@ -167,6 +167,11 @@ export default function ActivityFeed({ task, projectId }) {
                     <p className="text-sm text-gray-700">
                         <UserChip user={activity.actor} name={activity.actor?.name ?? t('tms.activity.someone')} className="align-middle" nameClassName="font-medium text-gray-900" />{' '}
                         {describe(t, activity.action, activity.data, task, projectId)}
+                        {activity.data?.via === 'api' && (
+                            <span className="ml-1.5 inline-flex items-center rounded border border-line bg-surface px-1.5 py-0.5 align-middle text-xs font-medium text-fg-subtle">
+                                {t('tms.activity.viaApi', { defaultValue: 'via API' })}
+                            </span>
+                        )}
                     </p>
                     <p className="text-xs text-gray-400"><Timestamp date={activity.created_at} /></p>
                 </li>

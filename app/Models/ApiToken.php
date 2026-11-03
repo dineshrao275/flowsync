@@ -44,11 +44,22 @@ class ApiToken extends Model
         return $this->revoked_at === null && ($this->expires_at === null || $this->expires_at->isFuture());
     }
 
-    /** Whether the token carries an ability (`*` = every supported ability). */
+    /**
+     * Whether the token carries an ability (`*` = every supported ability).
+     *
+     * Legacy `workspaces.view` tokens predate the capability groups. They keep exactly what they always had —
+     * read access (`tms.read`) — and nothing more: `tms.write` is never inferred from them, so a token minted
+     * to create tasks does not silently gain edit/move/comment/log-time. Routes that a legacy token could
+     * already reach name `workspaces.view` themselves (see `routes/web/platform_engines_v1.php`).
+     */
     public function allows(string $ability): bool
     {
         $abilities = (array) $this->abilities;
 
-        return in_array('*', $abilities, true) || in_array($ability, $abilities, true);
+        if (in_array('*', $abilities, true) || in_array($ability, $abilities, true)) {
+            return true;
+        }
+
+        return $ability === 'tms.read' && in_array('workspaces.view', $abilities, true);
     }
 }

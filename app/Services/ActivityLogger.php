@@ -20,6 +20,14 @@ class ActivityLogger
         ?User $actor = null,
         ?string $ipAddress = null,
     ): Activity {
+        $token = request()?->attributes?->get('api_token');
+        if ($token) {
+            $data = array_merge($data ?? [], [
+                'via' => 'api',
+                'api_token_id' => $token->id,
+            ]);
+        }
+
         $activity = Activity::create([
             'actor_user_id' => $actor?->id,
             'subject_type' => $subjectType,

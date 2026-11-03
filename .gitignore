@@ -19,14 +19,20 @@
 /public/storage
 /storage/*.key
 /storage/pail
+/storage/.dev-local.pids
 /vendor
 Homestead.json
 Homestead.yaml
 Thumbs.db
 .agents/orchestrator/mcp-server/node_modules/
+mcp/node_modules/
 .agents/workflow/
 .claude/
 figma
 tests/e2e/.results/
 tests/e2e/.auth/
 tests/e2e/.results-time/
+
+# Local agent MCP configs may contain credentials; keep the tracked examples token-free.
+.mcp.local.json
+.cursor/mcp.local.json
