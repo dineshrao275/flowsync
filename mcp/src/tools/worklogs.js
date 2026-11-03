@@ -2,9 +2,11 @@
  * Work logs tools for FlowSync MCP.
  */
 
+import { UNTRUSTED_NOTE } from '../text.js';
+
 export const listWorklogsTool = {
     name: 'flowsync_list_worklogs',
-    description: 'List work logs and time tracking records logged against a task. Requires time_tracking module.',
+    description: `List work logs and time tracking records logged against a task. Requires the time_tracking module. ${UNTRUSTED_NOTE}`,
     inputSchema: {
         type: 'object',
         required: ['project_id', 'task_id'],

@@ -154,7 +154,8 @@ export default function ApiTokens() {
                             type="button"
                             className="text-xs font-medium text-[var(--accent)] hover:underline"
                             onClick={() => {
-                                const allAbilities = data.abilities.map((a) => a.slug);
+                                // Least privilege for an agent: the TMS read/write groups only, never the HRMS directory.
+                                const allAbilities = data.abilities.map((a) => a.slug).filter((slug) => slug.startsWith('tms.'));
                                 setForm((f) => ({
                                     ...f,
                                     name: f.name || 'AI Coding Agent',

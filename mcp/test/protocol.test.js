@@ -1,3 +1,4 @@
+import { VERSION } from '../src/config.js';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { Client } from '@modelcontextprotocol/sdk/client/index.js';
@@ -90,7 +91,7 @@ test('Protocol Conformance: Client handshake, capabilities, ping, and lifecycle 
     // 2. Server identity & instructions
     const serverVersion = client.getServerVersion();
     assert.equal(serverVersion.name, 'flowsync-app');
-    assert.equal(serverVersion.version, '1.0.0');
+    assert.equal(serverVersion.version, VERSION);
 
     const instructions = client.getInstructions();
     assert.match(instructions, /FlowSync Task Management/);

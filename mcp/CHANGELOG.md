@@ -2,6 +2,34 @@
 
 All notable changes to the `flowsync-mcp` package are recorded here.
 
+## 1.0.1 — 2026-11-03
+
+Fixes from the post-implementation review against `.agents/roadmap/mcp-server-plan.md`.
+
+### Fixed
+
+- **Launching through a symlink** (`npx flowsync-mcp`, `node_modules/.bin`, `npm link`) exited silently: the "am I the main
+  script" check compared the symlink path with the module URL. It now compares real paths.
+- **Markdown vs HTML.** The app stores task descriptions as HTML. `flowsync_get_task` and the task resource now return compact
+  Markdown, capped at 20,000 characters in both the text and the structured result (it was 50 KB, text only), and
+  `create_task` / `update_task` descriptions are Markdown that the server converts to HTML. The tool descriptions no longer
+  claim more Markdown than comments support.
+- **A failed tool call is now an `isError` result** (reason in `content`, detail in `structuredContent.error`) instead of a
+  JSON-RPC error; arguments are validated against the tool schema before any request, so a missing id is reported as
+  such rather than becoming `projects/undefined/...`. An unknown tool name remains a protocol error.
+- **Writes that time out** no longer risk a duplicate: the error says the write may have been applied, and repeating the
+  identical call reuses its `Idempotency-Key` for 10 minutes.
+- `flowsync_log_time` no longer invents a 30-minute duration; it needs `duration_minutes` or both timestamps.
+- `flowsync_add_comment` reports capped @mentions; write-tool descriptions state their side effects.
+- `flowsync_list_comments` (newest 100) and `flowsync_list_projects` (first 100) are capped and report what was left out;
+  tools returning user text carry an untrusted-content note and banner.
+- A token whose owner has left the company gets an accurate message (a new token will not help).
+- `http://[::1]` is accepted as a loopback URL; the version is read from `package.json` (server info and `User-Agent`).
+- `examples/opencode.json` follows opencode's current schema (`mcp.<name>`, `type: local`, `command` array, `{env:VAR}`).
+- Contract test now reads the tools' real calls from source, checks them against OpenAPI and `route:list`, and verifies the
+  route's `token_can` middleware; in CI a missing `route:list` fails instead of skipping. The stdout-hygiene test no longer
+  depends on a running app and asserts the initialize response.
+
 ## 1.0.0 — 2026-11-03
 
 Initial v1 release (TMS over local stdio).

@@ -236,4 +236,125 @@ class ApiV1Test extends TestCase
             'can_write' => true,
         ])->assertCreated();
     }
+
+    public function test_a_legacy_workspaces_view_write_token_keeps_read_and_create_but_gains_nothing(): void
+    {
+        $ctx = $this->setupProject();
+        $project = $ctx['project']->id;
+        $legacy = $this->issue(['abilities' => ['workspaces.view'], 'can_write' => true]);
+        $full = $this->issue(['name' => 'FullAgent']);
+
+        $this->getJson('/api/v1/projects', $this->bearer($legacy))->assertOk();
+        $taskId = $this->postJson("/api/v1/projects/{$project}/tasks", ['title' => 'Legacy create'], $this->bearer($legacy))
+            ->assertCreated()->json('task.id');
+
+        // Before the capability groups a write token could only create a task; it must not gain the rest.
+        $this->putJson("/api/v1/projects/{$project}/tasks/{$taskId}", ['title' => 'x'], $this->bearer($legacy))
+            ->assertForbidden()->assertJsonPath('code', 'token_ability_missing');
+        $this->postJson("/api/v1/projects/{$project}/tasks/{$taskId}/move", ['status_id' => 1], $this->bearer($legacy))->assertForbidden();
+        $this->postJson("/api/v1/projects/{$project}/tasks/{$taskId}/comments", ['comment' => 'x'], $this->bearer($legacy))->assertForbidden();
+        $this->postJson("/api/v1/projects/{$project}/tasks/{$taskId}/work-logs", ['description' => 'x', 'started_at' => now()->subHour()->toIso8601String()], $this->bearer($legacy))->assertForbidden();
+
+        // A token that carries tms.write is unaffected.
+        $this->putJson("/api/v1/projects/{$project}/tasks/{$taskId}", ['title' => 'Renamed'], $this->bearer($full))->assertOk();
+    }
+
+    public function test_a_token_with_tms_read_but_not_tms_write_cannot_create_even_if_writable(): void
+    {
+        $ctx = $this->setupProject();
+        $token = $this->issue(['abilities' => ['tms.read'], 'can_write' => true]);
+
+        $this->postJson("/api/v1/projects/{$ctx['project']->id}/tasks", ['title' => 'No'], $this->bearer($token))
+            ->assertForbidden()->assertJsonPath('code', 'token_ability_missing');
+    }
+
+    public function test_a_read_only_token_is_refused_on_every_write_route(): void
+    {
+        $ctx = $this->setupProject();
+        $project = $ctx['project']->id;
+        $writer = $this->issue();
+        $taskId = $this->postJson("/api/v1/projects/{$project}/tasks", ['title' => 'Target'], $this->bearer($writer))->assertCreated()->json('task.id');
+        $readOnly = $this->issue(['name' => 'ReadOnly', 'can_write' => false]);
+
+        foreach ([
+            ['post', "/api/v1/projects/{$project}/tasks", ['title' => 'x']],
+            ['put', "/api/v1/projects/{$project}/tasks/{$taskId}", ['title' => 'x']],
+            ['post', "/api/v1/projects/{$project}/tasks/{$taskId}/move", ['status_id' => 1]],
+            ['post', "/api/v1/projects/{$project}/tasks/{$taskId}/comments", ['comment' => 'x']],
+            ['post', "/api/v1/projects/{$project}/tasks/{$taskId}/work-logs", ['description' => 'x', 'started_at' => now()->subHour()->toIso8601String()]],
+        ] as [$method, $uri, $body]) {
+            $this->{$method.'Json'}($uri, $body, $this->bearer($readOnly))
+                ->assertForbidden()->assertJsonPath('code', 'token_read_only');
+        }
+    }
+
+    public function test_an_agent_written_markdown_description_is_stored_as_sanitised_html(): void
+    {
+        $ctx = $this->setupProject();
+        $project = $ctx['project']->id;
+        $token = $this->issue();
+
+        $created = $this->postJson("/api/v1/projects/{$project}/tasks", [
+            'title' => 'Markdown task',
+            'description' => "**Goal**\n\n- one\n- two\n\n<script>alert(1)</script>",
+        ], $this->bearer($token))->assertCreated()->json('task');
+
+        $html = Task::findOrFail($created['id'])->description;
+        $this->assertStringContainsString('<strong>Goal</strong>', $html);
+        $this->assertStringContainsString('<li>one</li>', $html);
+        $this->assertStringNotContainsString('<script', $html);
+
+        $this->putJson("/api/v1/projects/{$project}/tasks/{$created['id']}", ['description' => '_edited_'], $this->bearer($token))->assertOk();
+        $this->assertStringContainsString('<em>edited</em>', Task::findOrFail($created['id'])->description);
+    }
+
+    public function test_the_token_form_offers_the_capability_groups_and_no_longer_the_legacy_ability(): void
+    {
+        $this->postJson('/api/auth/login', ['email' => 'admin@flowsync.test', 'password' => 'password'])->assertOk();
+
+        $slugs = collect($this->getJson('/api/api-tokens')->assertOk()->json('abilities'))->pluck('slug')->all();
+
+        $this->assertContains('tms.read', $slugs);
+        $this->assertContains('tms.write', $slugs);
+        $this->assertNotContains('workspaces.view', $slugs);
+    }
+
+    public function test_a_refused_exited_employee_token_leaves_an_audit_row(): void
+    {
+        $token = $this->issue(['abilities' => ['tms.read'], 'can_write' => false], 'editor@flowsync.test');
+        $this->connectTenant('acme');
+        Employee::factory()->for(User::where('email', 'editor@flowsync.test')->firstOrFail())->create(['status' => EmployeeStatus::Exited]);
+
+        $this->getJson('/api/v1/me', $this->bearer($token))->assertUnauthorized();
+
+        $row = DB::connection(config('tenancy.system.connection'))->table('audit_logs')
+            ->where('action', 'auth.login_failed')->latest('id')->first();
+        $this->assertNotNull($row);
+        $this->assertStringContainsString('employee_exited', (string) $row->data);
+    }
+
+    public function test_a_move_that_needs_approval_answers_202_and_does_not_move_the_task(): void
+    {
+        $this->connectTenant('acme');
+        $editor = User::where('email', 'editor@flowsync.test')->firstOrFail();
+        $ctx = $this->setupProject();
+        $ctx['project']->members()->attach($editor->id, [
+            'project_role_id' => ProjectRole::where('slug', 'developer')->firstOrFail()->id,
+            'added_by' => $ctx['user']->id,
+        ]);
+        $token = $this->issue(['abilities' => ['tms.read', 'tms.write'], 'can_write' => true], 'editor@flowsync.test');
+
+        $project = $ctx['project']->id;
+        $task = $this->postJson("/api/v1/projects/{$project}/tasks", ['title' => 'Needs approval'], $this->bearer($token))->assertCreated()->json('task');
+        $target = TaskStatus::where('project_id', $project)->where('id', '!=', $task['status_id'])->orderBy('position')->firstOrFail();
+        $target->update(['entry_rules' => ['approval']]);
+
+        $this->postJson("/api/v1/projects/{$project}/tasks/{$task['id']}/move", ['status_id' => $target->id], $this->bearer($token))
+            ->assertStatus(202)->assertJsonPath('pending_approval', true);
+        $this->assertSame((int) $task['status_id'], (int) Task::findOrFail($task['id'])->status_id);
+
+        // The edit route refuses the same status change instead of moving silently.
+        $this->putJson("/api/v1/projects/{$project}/tasks/{$task['id']}", ['status_id' => $target->id], $this->bearer($token))
+            ->assertStatus(422);
+    }
 }

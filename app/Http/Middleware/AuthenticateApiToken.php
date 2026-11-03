@@ -9,6 +9,7 @@ use App\Models\Hrms\Employee\Employee;
 use App\Models\IntegrationLog;
 use App\Models\User;
 use App\Services\Api\ApiTokenService;
+use App\Services\PlatformAudit;
 use App\Services\UsageMeter;
 use App\Support\Hrms\HrmsSchema;
 use App\Support\TenantContext;
@@ -66,6 +67,7 @@ class AuthenticateApiToken
             $employee = Employee::where('user_id', $user->id)->first();
             if ($employee?->status?->isOffboarding()) {
                 $this->dbm->connectSystem();
+                app(PlatformAudit::class)->auth($request, 'auth.login_failed', ['email' => $user->email, 'tenant_id' => $tenant->id, 'reason' => 'employee_exited', 'via' => 'api_token']);
 
                 return response()->json([
                     'message' => __('Invalid or expired API token.'),

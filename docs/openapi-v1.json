@@ -169,7 +169,8 @@
             "maxLength": 255
           },
           "description": {
-            "type": "string"
+            "type": "string",
+            "description": "Task description. Through the token API this is Markdown: the server converts it to the sanitised HTML the app stores and displays (raw HTML in the input is stripped). Reads return the stored HTML."
           },
           "status_id": {
             "type": "integer"

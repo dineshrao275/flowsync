@@ -69,6 +69,73 @@ const toolToAbilityMap = {
     flowsync_log_time: 'tms.write',
 };
 
+// --- Source-derived contract: what the tools actually call --------------------------------------------------
+// The two maps above are written by hand, so on their own they cannot notice a tool whose URL was changed or
+// mistyped. These helpers read the calls straight out of src/tools/*.js.
+
+const toolsDir = path.resolve(__dirname, '../src/tools');
+const normalize = (p) => p.replace(/^\/+/, '').replace(/\$\{[^}]*\}|\{[^}]*\}/g, '{}');
+
+/** { tool name -> [{ method, path }] } read from the tool sources. */
+function extractToolCalls() {
+    const calls = {};
+    for (const file of fs.readdirSync(toolsDir).filter((f) => f.endsWith('.js'))) {
+        const source = fs.readFileSync(path.join(toolsDir, file), 'utf-8');
+        const parts = source.split(/(?=^\s{4}name:\s*'flowsync_)/m).slice(1);
+        for (const part of parts) {
+            const name = part.match(/name:\s*'(flowsync_[a-z_]+)'/)[1];
+            const literals = [...part.matchAll(/path\s*=\s*([`'])((?:(?!\1).)*)\1/g)].map((m) => m[2]);
+            const found = [];
+            for (const m of part.matchAll(/client\.(get|post|put)\(\s*(?:([`'])((?:(?!\2).)*)\2|(path)\b)/g)) {
+                const method = m[1].toUpperCase();
+                if (m[4]) {
+                    literals.forEach((lit) => found.push({ method, path: normalize(lit) }));
+                } else {
+                    found.push({ method, path: normalize(m[3]) });
+                }
+            }
+            calls[name] = found;
+        }
+    }
+    return calls;
+}
+
+const openApiOperationKeys = new Set(
+    [...openApiOperations.values()].map((op) => `${op.method} ${normalize(op.path)}`),
+);
+
+test('Contract Guard: every call a tool makes is a documented operation (reads the tool source)', () => {
+    const calls = extractToolCalls();
+    const { tools } = createServer({
+        config: { baseUrl: 'http://localhost', token: 'fst_1_test', timeoutMs: 1000, readOnly: false, debug: false },
+        client: {},
+    });
+
+    for (const [toolName] of tools) {
+        assert.ok(calls[toolName]?.length > 0, `${toolName}: no client.get/post/put call found in its source`);
+        for (const call of calls[toolName]) {
+            assert.ok(
+                openApiOperationKeys.has(`${call.method} ${call.path}`),
+                `${toolName} calls ${call.method} /${call.path}, which is not in docs/openapi-v1.json`,
+            );
+        }
+    }
+});
+
+test('Contract Guard: the hand-written operationId map matches what the tools really call', () => {
+    const calls = extractToolCalls();
+
+    for (const [toolName, operationIds] of Object.entries(toolToOperationMap)) {
+        const called = new Set((calls[toolName] ?? []).map((c) => `${c.method} ${c.path}`));
+        const mapped = new Set(operationIds.map((id) => {
+            const op = openApiOperations.get(id);
+            return `${op.method} ${normalize(op.path)}`;
+        }));
+
+        assert.deepEqual([...called].sort(), [...mapped].sort(), `${toolName}: toolToOperationMap disagrees with the tool's real calls`);
+    }
+});
+
 test('Contract Guard: Every MCP tool maps to an existing OpenAPI operationId', () => {
     const { tools } = createServer({
         config: { baseUrl: 'http://localhost', token: 'fst_1_test', timeoutMs: 1000, readOnly: false, debug: false },
@@ -127,16 +194,21 @@ test('Contract Guard: every MCP tool route exists in php artisan route:list', (t
         timeout: 60000,
     });
 
+    // Locally a checkout without PHP/vendor may skip this guard; in CI a skip would silently switch it off.
+    const unavailable = (reason) => {
+        if (process.env.CI) {
+            assert.fail(`route:list guard cannot run in CI: ${reason}`);
+        }
+        t.skip(reason);
+    };
+
     if (result.error?.code === 'ENOENT') {
-        t.skip('php binary not available; route:list guard runs where PHP is installed');
-        return;
+        return unavailable('php binary not available; route:list guard runs where PHP is installed');
     }
 
     if (result.status !== 0) {
-        // No vendor/, no .env, or no app key: this guard is meaningful only in a
-        // bootable checkout (the dedicated CI job installs both).
-        t.skip(`php artisan route:list unavailable: ${(result.stderr || '').trim().split('\n')[0] || 'unknown error'}`);
-        return;
+        // No vendor/, no .env, or no app key: meaningful only in a bootable checkout (the CI job installs both).
+        return unavailable(`php artisan route:list unavailable: ${(result.stderr || '').trim().split('\n')[0] || 'unknown error'}`);
     }
 
     const stdout = (result.stdout || '').trim();
@@ -165,6 +237,38 @@ test('Contract Guard: every MCP tool route exists in php artisan route:list', (t
                 available.has(key),
                 `Tool ${toolName}: route ${key} is missing from php artisan route:list`
             );
+        }
+    }
+});
+
+test('Contract Guard: each tool route is gated by a token_can middleware that includes the tool ability', (t) => {
+    const php = process.env.PHP_BIN || 'php';
+    const result = spawnSync(php, ['artisan', 'route:list', '--json'], { cwd: repoRoot, encoding: 'utf8', timeout: 60000 });
+    if (result.error?.code === 'ENOENT' || result.status !== 0) {
+        if (process.env.CI) assert.fail('route:list guard cannot run in CI');
+        t.skip('php artisan route:list unavailable');
+        return;
+    }
+
+    const stdout = (result.stdout || '').trim();
+    const routes = JSON.parse(stdout.slice(stdout.indexOf('[')));
+    const byKey = new Map();
+    for (const route of routes) {
+        for (const method of String(route.method || '').split('|').filter((m) => m && m !== 'HEAD')) {
+            byKey.set(`${method} ${normalize(route.uri)}`, route);
+        }
+    }
+
+    const calls = extractToolCalls();
+    for (const [toolName, ability] of Object.entries(toolToAbilityMap)) {
+        if (!ability) continue;
+        for (const call of calls[toolName] ?? []) {
+            const route = byKey.get(`${call.method} api/v1/${call.path}`);
+            assert.ok(route, `${toolName}: no route for ${call.method} /api/v1/${call.path}`);
+            const gated = (route.middleware || []).some(
+                (m) => m.startsWith('token_can:') && m.slice('token_can:'.length).split(',').includes(ability),
+            );
+            assert.ok(gated, `${toolName}: route ${call.method} /api/v1/${call.path} is not gated by token_can:${ability}`);
         }
     }
 });

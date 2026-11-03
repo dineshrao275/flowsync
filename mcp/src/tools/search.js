@@ -2,9 +2,11 @@
  * Task search tool for FlowSync MCP.
  */
 
+import { UNTRUSTED_NOTE } from '../text.js';
+
 export const searchTasksTool = {
     name: 'flowsync_search_tasks',
-    description: 'Search tasks across all projects visible to the caller. Requires global_search module.',
+    description: `Search tasks across all projects visible to the caller. Requires the global_search module. ${UNTRUSTED_NOTE}`,
     inputSchema: {
         type: 'object',
         required: ['q'],

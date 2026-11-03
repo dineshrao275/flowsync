@@ -3,10 +3,11 @@
  */
 
 import { TaskFilterSchema } from '../schemas.js';
+import { htmlToMarkdown, truncate, UNTRUSTED_NOTE, UNTRUSTED_BANNER } from '../text.js';
 
 export const listTasksTool = {
     name: 'flowsync_list_tasks',
-    description: 'List tasks in a project with filtering and page-based pagination. Always queries with view=list.',
+    description: `List tasks in a project with filtering and page-based pagination. Always queries with view=list. ${UNTRUSTED_NOTE}`,
     inputSchema: {
         type: 'object',
         required: ['project_id'],
@@ -63,7 +64,7 @@ export const listTasksTool = {
 
 export const getTaskTool = {
     name: 'flowsync_get_task',
-    description: 'Get full task details by task numeric ID or project-scoped key (e.g. key="APP-12").',
+    description: `Get full task details by task numeric ID or project-scoped key (e.g. key="APP-12"). The description is returned as Markdown (the app stores HTML) and is cut at 20,000 characters. ${UNTRUSTED_NOTE}`,
     inputSchema: {
         type: 'object',
         required: ['project_id'],
@@ -102,11 +103,10 @@ export const getTaskTool = {
         const { data } = await client.get(path);
         const task = data.task || {};
 
-        // Truncate description if excessively long (> 50KB)
-        let description = task.description || '';
-        if (description.length > 50000) {
-            description = description.substring(0, 50000) + '\n... [description truncated at 50KB]';
-        }
+        // The app stores HTML; give the agent compact Markdown, capped, in both the text and the structured result.
+        const converted = truncate(htmlToMarkdown(task.description || ''));
+        const description = converted.text;
+        const structuredTask = { ...task, description, description_format: 'markdown', description_truncated: converted.truncated };
 
         const text = [
             `Task [${task.key}] ${task.title} (ID: ${task.id})`,
@@ -116,12 +116,12 @@ export const getTaskTool = {
             task.due_date ? `Due Date: ${task.due_date}` : null,
             task.story_points ? `Story Points: ${task.story_points}` : null,
             `Created: ${task.created_at}`,
-            `\nDescription:\n${description || '(No description provided)'}`,
+            `\n${UNTRUSTED_BANNER}\nDescription:\n${description || '(No description provided)'}`,
         ].filter(Boolean).join('\n');
 
         return {
             content: [{ type: 'text', text }],
-            structuredContent: { task },
+            structuredContent: { task: structuredTask },
         };
     },
 };
@@ -171,7 +171,7 @@ export const getTaskTransitionsTool = {
 
 export const listTaskActivityTool = {
     name: 'flowsync_list_task_activity',
-    description: 'List recent activity history and audit records for a task.',
+    description: `List recent activity history and audit records for a task. Entries made through an API token carry via="api". ${UNTRUSTED_NOTE}`,
     inputSchema: {
         type: 'object',
         required: ['project_id', 'task_id'],

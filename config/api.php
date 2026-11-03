@@ -23,6 +23,10 @@ return [
         'hrms.view' => 'Read the HRMS employee directory',
     ],
 
+    // Abilities that existing tokens may still carry but that the token form no longer offers for new ones.
+    // `workspaces.view` predates the groups: it means read access plus (for a write token) creating a task.
+    'legacy_abilities' => ['workspaces.view'],
+
     // Capability groups map high-level token abilities to one-of permission requirements.
     // A user can mint an ability if they hold ANY of the listed tenant permissions OR project-role grants.
     'ability_groups' => [

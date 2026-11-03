@@ -13,7 +13,9 @@ export function mapHttpError(status, data = {}, headers = new Headers()) {
 
     switch (status) {
         case 401:
-            message = 'Token invalid or tenant inactive — create a new token.' + reqSuffix;
+            message = data.code === 'employee_exited'
+                ? 'The token owner is no longer an active employee, so this token no longer works. Ask a tenant administrator; creating a new token will not help.' + reqSuffix
+                : 'Token invalid or tenant inactive — create a new token.' + reqSuffix;
             break;
 
         case 403: {
@@ -28,7 +30,9 @@ export function mapHttpError(status, data = {}, headers = new Headers()) {
                 message = `This token lacks required ability (${data.ability || 'tms.read/tms.write'}).` + reqSuffix;
             } else if (moduleDenied || moduleReason || productDenied) {
                 const missing = moduleDenied || moduleReason || productDenied;
-                message = `This tenant plan does not include access to the '${missing}' capability.` + reqSuffix;
+                // `X-Module-Reason` says why (plan, expired trial, switched off); show it when it names the module separately.
+                const why = moduleDenied && moduleReason && moduleReason !== moduleDenied ? ` (${moduleReason})` : '';
+                message = `This tenant plan does not include access to the '${missing}' capability${why}.` + reqSuffix;
             } else if (onboardingRedirect) {
                 message = 'Finish tenant onboarding before using the API.' + reqSuffix;
             } else {

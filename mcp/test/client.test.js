@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { FlowSyncClient } from '../src/client.js';
+import { VERSION } from '../src/config.js';
 import { McpError } from '@modelcontextprotocol/sdk/types.js';
 
 const logger = { debug: () => {}, info: () => {}, warn: () => {}, error: () => {} };
@@ -140,7 +141,7 @@ test('sends locale=en and the MCP User-Agent marker', async () => {
     });
 
     assert.equal(url.searchParams.get('locale'), 'en');
-    assert.match(headers.get('user-agent'), /^flowsync-mcp\/1\.0\.0$/);
+    assert.equal(headers.get('user-agent'), `flowsync-mcp/${VERSION}`);
 });
 
 test('serialises concurrent calls so at most one request is in flight', async () => {

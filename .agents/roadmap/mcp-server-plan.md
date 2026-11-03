@@ -718,3 +718,27 @@ time; `Idempotency-Key` length and the 409/422 replay semantics; `usage_limit` v
 `config/subscriptions.php`; `token_can` honours `*`; `integration_logs` is written for 403/422/429 as well as 2xx; the task
 list is page-based with `per_page` ≤ 100 and `page`; task create, update (with `assign` authorization), move, comment and
 work-log routes all exist on the session side and can be reused.
+
+## 13. Post-implementation review (2026-11-03) — what was found in the built code and what was done
+
+The implementation (branch `feat/mcp-server`, `mcp/` v1.0.0) was compared with this plan and run. Fixed in `mcp/` v1.0.1
+and the matching server commit:
+
+| Finding | Resolution |
+|---|---|
+| `TaskController` was 303 lines (limit 300): the branch failed `ClassSizeCeilingTest`, i.e. CI shard 1 | `presentSeen` now takes the request; 299 lines |
+| A legacy `workspaces.view` write token silently gained `tms.write` (edit, move, comment, log time) | `ApiToken::allows` never infers `tms.write`; `TokenCan` is any-of; only `POST …/tasks` also accepts the legacy ability; the token form stops offering it |
+| Task descriptions are HTML in the app but the tools promised Markdown (and the ADR claimed markup was stripped) | `api_markdown` middleware converts Markdown → sanitised HTML on token task writes; read tools return capped Markdown |
+| `npx flowsync-mcp` / `.bin` symlink launches exited silently | `isMainModule()` compares real paths; covered by a spawn-through-symlink test |
+| A timed-out write could be re-run as a duplicate; no guidance | the same identical call reuses its `Idempotency-Key` for 10 min; the error says the write may have been applied |
+| Tool failures were JSON-RPC errors; no argument validation | `isError` results with `structuredContent.error`; arguments validated before any request |
+| Contract test used hand-written maps and skipped in CI when `route:list` failed | it reads the tools' real calls from source, checks OpenAPI + `route:list` + each route's `token_can`; fails (not skips) in CI |
+| opencode example used a wrong schema and `${VAR}` | rewritten to opencode's current schema with `{env:VAR}` |
+| "Agent Preset" selected every ability including `hrms.view` | selects `tms.read` + `tms.write` only |
+| `log_time` invented a 30-minute duration; comments/projects unbounded; untrusted-data note only in server instructions; `::1` check never matched; version in two places; exited-owner 401 message misleading and not audited | fixed (see `mcp/CHANGELOG.md` 1.0.1) |
+
+Deliberately not done, and why:
+- **User-Agent stored in `integration_logs`** — needs a tenant migration; the claim was removed from the docs (ADR 004 §7).
+- **Admin listing/revoking other users' tokens** — the token endpoints are own-only; mitigated by revoke-on-exit. Needs its own UI and permission decision.
+- **Server-side comment pagination** — the comments endpoint returns the whole thread; the MCP tool caps it (newest 100).
+- **Inspector smoke, real-agent smoke (Claude Code, opencode) and the pilot matrix** remain manual gates (`docs/mcp-runbook.md` §2, §4).

@@ -61,9 +61,14 @@ Enables coding agents (Claude Code, opencode, Cursor, VS Code) to read and write
 Configuration templates are provided in `mcp/examples/`:
 
 - **Claude Code / Desktop**: `mcp/examples/claude.mcp.json`
-- **opencode**: `mcp/examples/opencode.json`
+- **opencode**: `mcp/examples/opencode.json` (opencode's own schema: the server sits directly under `mcp`, `command` is an
+  array, and the environment is referenced as `{env:FLOWSYNC_TOKEN}`, not `${…}`)
 - **Cursor**: `mcp/examples/cursor.mcp.json`
-- **VS Code**: `mcp/examples/vscode.mcp.json`
+- **VS Code**: `mcp/examples/vscode.mcp.json` (`${env:NAME}` works; for a secret you may prefer an `inputs` entry with
+  `"password": true` and `${input:flowsync-token}`)
+
+> An agent config that does not expand the variable passes the literal text `${FLOWSYNC_TOKEN}` as the token; the server
+> then refuses to start with "must begin with fst_". Check the exact variable syntax of your agent.
 
 Example Claude Code config (`.mcp.json` or `~/.claude.json`):
 ```json
@@ -98,6 +103,22 @@ Example Claude Code config (`.mcp.json` or `~/.claude.json`):
 
 The client always keeps **one request in flight at a time** and sends `?locale=en`, a
 `User-Agent: flowsync-mcp/<version>` marker, and an `Idempotency-Key` on every write.
+
+### What the tools return and accept
+
+- **Descriptions are Markdown for the agent, HTML in the app.** The app stores task descriptions as HTML. The read tools
+  return them as compact Markdown (cut at 20,000 characters, with `description_truncated`), and `create_task` /
+  `update_task` take Markdown, which the server converts to HTML (raw HTML in the input is stripped). Comments are plain
+  text with inline Markdown only (bold, italic, code, links, @mentions).
+- **A failed tool call is a normal tool result** with `isError: true`, the reason in `content`, and
+  `structuredContent.error` (`status`, `code`, `request_id`), so the model can read it and correct itself. Only an unknown
+  tool name is a protocol error. Arguments are checked before any request is sent.
+- **A write that times out may already have been applied.** The error says so. Repeating the identical call reuses the
+  same `Idempotency-Key` (for 10 minutes), so the server replays the first result instead of creating a duplicate; after a
+  definitive answer the next identical call is a new write.
+- **Output caps:** `flowsync_list_comments` returns the newest 100 comments, `flowsync_list_projects` the first 100; each
+  result says how many were left out. Text written by users is labelled as untrusted data.
+
 `flowsync_me` reports the token's monthly quota (`used`/`limit`) so an agent can check its budget before
 a large crawl.
 
@@ -173,7 +194,7 @@ npm install -g ./flowsync-mcp-1.0.0.tgz
 flowsync-mcp                   # stdio server on PATH
 ```
 
-Then use `"command": "flowsync-mcp"` in the agent config (with `FLOWSYNC_URL` / `FLOWSYNC_TOKEN` in
+Then use `"command": "flowsync-mcp"` (the launcher works through the `.bin` symlink) in the agent config (with `FLOWSYNC_URL` / `FLOWSYNC_TOKEN` in
 `env`). In-repo users should keep using the absolute path to `mcp/src/index.js` shown above.
 
 ---

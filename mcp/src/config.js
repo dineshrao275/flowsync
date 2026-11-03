@@ -3,6 +3,11 @@
  * Validates environment variables and enforces safe defaults.
  */
 
+import { readFileSync } from 'node:fs';
+
+/** The one place the version lives: package.json (used for the server info and the User-Agent). */
+export const VERSION = JSON.parse(readFileSync(new URL('../package.json', import.meta.url), 'utf8')).version;
+
 export function loadConfig(env = process.env) {
     const rawUrl = env.FLOWSYNC_URL?.trim();
     if (!rawUrl) {
@@ -16,7 +21,8 @@ export function loadConfig(env = process.env) {
         throw new Error(`FLOWSYNC_URL is not a valid URL: "${rawUrl}"`);
     }
 
-    const isLocalhost = url.hostname === 'localhost' || url.hostname === '127.0.0.1' || url.hostname === '::1';
+    // URL keeps the brackets of an IPv6 literal in `hostname`, so `http://[::1]` is "[::1]", not "::1".
+    const isLocalhost = ['localhost', '127.0.0.1', '[::1]', '::1'].includes(url.hostname);
     if (!isLocalhost && url.protocol !== 'https:') {
         throw new Error(`FLOWSYNC_URL must use HTTPS for remote hosts (received: "${rawUrl}")`);
     }

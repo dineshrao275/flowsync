@@ -2,6 +2,8 @@
  * Resource providers for FlowSync MCP.
  */
 
+import { htmlToMarkdown, truncate } from './text.js';
+
 export const resources = [
     {
         uri: 'flowsync://context/architecture',
@@ -54,10 +56,14 @@ export async function resolveDynamicResource(uri, client) {
     if (taskMatch) {
         const [, projectId, key] = taskMatch;
         const { data } = await client.get(`projects/${projectId}/tasks/key/${encodeURIComponent(key)}`);
+        // Same shape as flowsync_get_task: the app stores HTML, so hand the agent capped Markdown.
+        const description = truncate(htmlToMarkdown(data.task?.description || ''));
+        const task = { ...data.task, description: description.text, description_format: 'markdown', description_truncated: description.truncated };
+
         return {
             uri,
             mimeType: 'application/json',
-            text: JSON.stringify(data.task, null, 2),
+            text: JSON.stringify(task, null, 2),
         };
     }
 

@@ -222,7 +222,7 @@ test('Read tools execute correctly and format both text and structured content',
     assert.equal(wsGetRes.structuredContent.workspace.slug, 'acme-core');
 
     // 3. flowsync_list_projects
-    const projListRes = await callHandler({ params: { name: 'flowsync_list_projects', arguments: { workspace_id: 1 } } });
+    const projListRes = await callHandler({ params: { name: 'flowsync_list_projects', arguments: {} } });
     assert.match(projListRes.content[0].text, /Web App/);
     assert.equal(projListRes.structuredContent.projects[0].key, 'WEB');
 
@@ -251,10 +251,9 @@ test('Read tools execute correctly and format both text and structured content',
     assert.match(taskGetResId.content[0].text, /\[WEB-1\] Setup auth/);
 
     // 8. flowsync_get_task requires either task_id or task_key
-    await assert.rejects(
-        () => callHandler({ params: { name: 'flowsync_get_task', arguments: { project_id: 10 } } }),
-        /Either task_id or task_key must be provided/
-    );
+    const missingId = await callHandler({ params: { name: 'flowsync_get_task', arguments: { project_id: 10 } } });
+    assert.equal(missingId.isError, true);
+    assert.match(missingId.content[0].text, /Either task_id or task_key must be provided/);
 
     // 9. flowsync_get_task_transitions
     const transRes = await callHandler({

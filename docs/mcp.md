@@ -57,9 +57,12 @@ FlowSync Tenant Gateway (`/api/v1`)
 1. **Per-Token Project Allowlist**: Deferred to v1.1. In v1, token capabilities are tenant-wide for the owner's authorized projects.
 2. **Comment Mentions**: Comments posted via API trigger standard notifications and emails. The tool description explicitly informs the agent of this side effect.
 3. **Write Attribution**: All mutations made via API tokens record `via: "api"` and the `token_id` in activity history to distinguish human from agent actions.
-4. **Task Descriptions**: Rendered as Markdown text with a sensible size cap (50 KB). Raw markup is omitted to save context tokens.
+4. **Task Descriptions**: the app stores a task description as **HTML** (the rich-text editor writes it, `RichText` renders it through DOMPurify). The agent works in Markdown at both ends: the read tools convert HTML to compact Markdown and cap it at 20,000 characters (in the text and in `structuredContent`, with `description_truncated`); on `POST`/`PUT /api/v1/projects/{project}/tasks…` the `api_markdown` middleware converts the agent's Markdown to HTML (raw HTML is stripped) before the controller sees it. Session (SPA) routes are untouched. Comments are not converted: they render as inline Markdown only.
 5. **Read Side Effects**: Task view tracking (`TaskViews::record()`) is disabled for API token callers so agent read crawling does not mark the human token owner as having viewed the task.
-6. **Machine-Readable Error Codes**: All token refusal paths (`TokenCan`, `EnsureModule`, etc.) emit structured machine error codes (e.g. `token_ability_missing`, `token_read_only`, `usage_limit`).
+6. **Machine-Readable Error Codes**: `TokenCan` (`token_ability_missing`), the read-only gate (`token_read_only`), the usage quota (`usage_limit`), maintenance (`maintenance`) and an exited owner (`employee_exited`) carry a JSON `code`. Module and product refusals (`EnsureModule`, `EnsureProduct`) are identified by their `X-Module-Denied` / `X-Module-Reason` / `X-Product-Denied` headers, not a body code.
+7. **`User-Agent` marker**: the client sends `flowsync-mcp/<version>`, which shows in web-server access logs. `integration_logs` has no user-agent column, so it is not stored there; adding one is a tenant migration and is deferred.
+8. **Legacy `workspaces.view` tokens** keep what they always had (read access, and for a write token creating a task) and gain nothing: `tms.write` is never inferred from them, and the token form no longer offers the legacy ability. Admins cannot list or revoke other users' tokens (the token endpoints are own-only); a token also stops working when its owner is offboarded.
+9. **Tool failures are results, not protocol errors**: a failing tool returns `isError: true` with the reason in `content` and `structuredContent.error {message, status, code, request_id}`; arguments are validated against the tool's schema first. Only an unknown tool name is a JSON-RPC error. A write that ends with an unknown outcome (timeout, dropped connection, 5xx, in-flight 409) is retried by repeating the identical call: the client reuses its `Idempotency-Key` for 10 minutes.
 
 ---
 
@@ -68,7 +71,7 @@ FlowSync Tenant Gateway (`/api/v1`)
 | Ability | Required Capabilities (Any Of) | HTTP Middleware Gate |
 |---|---|---|
 | `tms.read` | Tenant `workspaces.view`, OR project-level `tasks.view`, `tasks.view_own`, `tasks.view_assigned`, `tasks.view_all` | `token_can:tms.read` |
-| `tms.write` | Project-level `tasks.create`, `tasks.edit`, `tasks.move` | `token_can:tms.write` + `can_write=true` |
+| `tms.write` | Project-level `tasks.create`, `tasks.edit`, `tasks.move` | `token_can:tms.write` + `can_write=true` (`POST …/tasks` also accepts a legacy `workspaces.view` write token: `token_can:tms.write,workspaces.view`) |
 
 A token can never exceed the permissions held by its creator. Write operations also verify `can_write: true` on the token row.
 
@@ -150,6 +153,7 @@ All endpoints sit under `/api/v1` with the shared middleware pipeline:
 | HTTP Status | Condition / Code | Client Handling Strategy |
 |---|---|---|
 | **401** | `Invalid or expired API token.` | Abort immediately. Prompt developer to generate a new token. |
+| **401** | `code: employee_exited` | The token owner is no longer an active employee; a new token will not help. Ask an administrator. |
 | **403** | `token_read_only` / `token_ability_missing` | Token lacks write capability or required ability group. |
 | **403** | `X-Module-Reason` / `X-Product-Denied` | Plan lacks required module (e.g. `time_tracking`, `sprints`). |
 | **403** | `X-Onboarding-Redirect` | Tenant onboarding incomplete. |

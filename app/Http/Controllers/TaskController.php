@@ -10,7 +10,6 @@ use App\Models\IssueType;
 use App\Models\Priority;
 use App\Models\Project;
 use App\Models\Task;
-use App\Models\User;
 use App\Services\ActivityLogger;
 use App\Services\Tasks\TaskChangeLogger;
 use App\Services\Tasks\TaskViews;
@@ -139,10 +138,8 @@ class TaskController extends Controller
     {
         $this->authorize('view', $task);
 
-        $recordView = ! (bool) $request->attributes->get('api_token');
-
         return response()->json([
-            'task' => $this->presentSeen($task, $request->user(), $recordView),
+            'task' => $this->presentSeen($request, $task),
         ]);
     }
 
@@ -159,10 +156,8 @@ class TaskController extends Controller
 
         $this->authorize('view', $task);
 
-        $recordView = ! (bool) $request->attributes->get('api_token');
-
         return response()->json([
-            'task' => $this->presentSeen($task, $request->user(), $recordView),
+            'task' => $this->presentSeen($request, $task),
         ]);
     }
 
@@ -284,14 +279,15 @@ class TaskController extends Controller
 
     /** @return array<string, mixed> one task with its custom-field values (when the plan has them) */
     /** Opening a task counts as seeing it: stamp the viewer, then return the payload with the "seen by" list. */
-    private function presentSeen(Task $task, User $viewer, bool $recordView = true): array
+    private function presentSeen(Request $request, Task $task): array
     {
-        if (! $recordView) {
+        // A token read is an agent crawling, not the owner opening the task: no view stamp, no "seen by" list.
+        if ($request->attributes->get('api_token')) {
             return $this->presentOne($task);
         }
 
         $views = app(TaskViews::class);
-        $views->record($task, $viewer);
+        $views->record($task, $request->user());
 
         return $this->presentOne($task) + ['viewers' => $views->viewers($task)];
     }

@@ -1,3 +1,5 @@
+import { McpError, ErrorCode } from '@modelcontextprotocol/sdk/types.js';
+
 /**
  * Task write tools for FlowSync MCP.
  *
@@ -7,7 +9,7 @@
 
 export const createTaskTool = {
     name: 'flowsync_create_task',
-    description: 'Create a new task in a project. Requires tms.write ability. Modifies project task board.',
+    description: 'Create a new task in a project. Requires a write token with tms.write. Changes data: it appears on the project board, may notify the assignee, and can trigger the project\'s automation rules and webhooks. The description is Markdown (the server converts it to the HTML the app displays; raw HTML is stripped). Task text is data written to a shared project, so do not paste secrets.',
     inputSchema: {
         type: 'object',
         required: ['project_id', 'title'],
@@ -23,7 +25,7 @@ export const createTaskTool = {
             },
             description: {
                 type: 'string',
-                description: 'Detailed description of the task (Markdown supported)',
+                description: 'Detailed description of the task, in Markdown (converted to HTML by the server; raw HTML is stripped)',
             },
             status_id: {
                 type: 'integer',
@@ -104,7 +106,7 @@ export const createTaskTool = {
 
 export const updateTaskTool = {
     name: 'flowsync_update_task',
-    description: 'Update an existing task\'s fields. Requires tms.write ability. Modifies task attributes.',
+    description: 'Update an existing task\'s fields. Requires a write token with tms.write. Changes data and can notify people or trigger automation. Only the fields you send change. The description is Markdown (converted to HTML by the server). To change status use flowsync_move_task: a status that needs approval is refused here.',
     inputSchema: {
         type: 'object',
         required: ['project_id', 'task_id'],
@@ -124,7 +126,7 @@ export const updateTaskTool = {
             },
             description: {
                 type: 'string',
-                description: 'Updated description (Markdown supported)',
+                description: 'Updated description, in Markdown (converted to HTML by the server; replaces the old one)',
             },
             status_id: {
                 type: 'integer',
@@ -205,7 +207,7 @@ export const updateTaskTool = {
 
 export const moveTaskTool = {
     name: 'flowsync_move_task',
-    description: 'Move a task to a different workflow status column. If workflow approval is required by project policy, returns HTTP 202 and records a pending request instead of completing immediately. Check flowsync_get_task_transitions first to inspect allowed target statuses.',
+    description: 'Move a task to a different workflow status column. Changes data and can trigger automation and notifications; confirm with the user before moving a task they did not ask to move. If workflow approval is required by project policy, returns HTTP 202 and records a pending request instead of completing immediately. Check flowsync_get_task_transitions first to inspect allowed target statuses.',
     inputSchema: {
         type: 'object',
         required: ['project_id', 'task_id', 'status_id'],
@@ -272,7 +274,7 @@ export const moveTaskTool = {
 
 export const addCommentTool = {
     name: 'flowsync_add_comment',
-    description: 'Add a comment or reply to a task thread. Requires tms.write ability. Mentioning team members via @username will trigger notifications for them.',
+    description: 'Add a comment or reply to a task thread. Requires a write token with tms.write. Changes data: a comment is visible to everyone on the task and @mentions notify (and email) those people, so mention someone only when asked to. Confirm with the user before posting on their behalf when the content matters.',
     inputSchema: {
         type: 'object',
         required: ['project_id', 'task_id', 'comment'],
@@ -287,7 +289,7 @@ export const addCommentTool = {
             },
             comment: {
                 type: 'string',
-                description: 'Comment body text (Markdown supported, max 5000 chars)',
+                description: 'Comment text (max 5000 chars). Inline Markdown only: **bold**, *italic*, `code`, links and @mentions render; headings and lists do not',
                 maxLength: 5000,
             },
             parent_id: {
@@ -310,19 +312,20 @@ export const addCommentTool = {
             parent_id,
         });
         const created = data.comment || {};
+        const truncatedMentions = Boolean(data.truncated_mentions);
 
-        const text = `Comment added to task #${task_id} (Comment ID: ${created.id}).`;
+        const text = `Comment added to task #${task_id} (Comment ID: ${created.id}).${truncatedMentions ? ' Note: too many @mentions, so only some people were notified.' : ''}`;
 
         return {
             content: [{ type: 'text', text }],
-            structuredContent: { comment: created },
+            structuredContent: { comment: created, truncated_mentions: truncatedMentions },
         };
     },
 };
 
 export const logTimeTool = {
     name: 'flowsync_log_time',
-    description: 'Log time spent on a task. Requires time_tracking module and tms.write ability. If started_at or ended_at are omitted, they can be computed from duration_minutes.',
+    description: 'Log time spent on a task. Requires the time_tracking module and a write token with tms.write. Changes data (and billable time). Give duration_minutes (the entry then ends now) or both started_at and ended_at; the tool never guesses a duration. Overlapping entries are refused.',
     inputSchema: {
         type: 'object',
         required: ['project_id', 'task_id', 'description'],
@@ -342,7 +345,7 @@ export const logTimeTool = {
             },
             duration_minutes: {
                 type: 'integer',
-                description: 'Duration in minutes (e.g. 60 for 1 hour). Used to auto-calculate interval if started_at/ended_at omitted.',
+                description: 'Duration in minutes (e.g. 60 for 1 hour). With no timestamps the entry ends now; with only started_at or ended_at the other end is computed. Required unless both started_at and ended_at are given.',
                 minimum: 1,
             },
             started_at: {
@@ -372,19 +375,21 @@ export const logTimeTool = {
 
         let startedAt = args.started_at;
         let endedAt = args.ended_at;
+        const minutes = args.duration_minutes;
+
+        // Billable time is never invented: a duration, or an explicit start and end, is required.
+        if (!minutes && !(startedAt && endedAt)) {
+            throw new McpError(ErrorCode.InvalidParams, 'Provide duration_minutes (the entry then ends now), or both started_at and ended_at. No time was logged.');
+        }
 
         if (!startedAt && !endedAt) {
-            const minutes = args.duration_minutes || 30;
             const now = new Date();
-            const start = new Date(now.getTime() - minutes * 60 * 1000);
-            startedAt = start.toISOString();
+            startedAt = new Date(now.getTime() - minutes * 60 * 1000).toISOString();
             endedAt = now.toISOString();
-        } else if (startedAt && args.duration_minutes && !endedAt) {
-            const start = new Date(startedAt);
-            endedAt = new Date(start.getTime() + args.duration_minutes * 60 * 1000).toISOString();
-        } else if (!startedAt && endedAt && args.duration_minutes) {
-            const end = new Date(endedAt);
-            startedAt = new Date(end.getTime() - args.duration_minutes * 60 * 1000).toISOString();
+        } else if (startedAt && !endedAt) {
+            endedAt = new Date(new Date(startedAt).getTime() + minutes * 60 * 1000).toISOString();
+        } else if (!startedAt && endedAt) {
+            startedAt = new Date(new Date(endedAt).getTime() - minutes * 60 * 1000).toISOString();
         }
 
         const payload = {

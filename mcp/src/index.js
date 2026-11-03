@@ -12,7 +12,10 @@ import {
     McpError,
     ErrorCode,
 } from '@modelcontextprotocol/sdk/types.js';
-import { loadConfig } from './config.js';
+import { realpathSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
+import { loadConfig, VERSION } from './config.js';
+import { validateArgs } from './validate.js';
 import { createLogger } from './logger.js';
 import { FlowSyncClient } from './client.js';
 import { meTool } from './tools/me.js';
@@ -37,6 +40,17 @@ import {
 } from './tools/tasksWrite.js';
 import { resources, resolveDynamicResource } from './resources.js';
 import { prompts } from './prompts.js';
+
+/** A failed tool call as a result the model can read (MCP `isError`), with the machine-readable detail beside it. */
+export function toolError(message, detail = {}) {
+    const text = String(message).replace(/^MCP error -?\d+:\s*/, '');
+
+    return {
+        isError: true,
+        content: [{ type: 'text', text }],
+        structuredContent: { error: { message: text, ...detail } },
+    };
+}
 
 export function createServer(options = {}) {
     const config = options.config || loadConfig(options.env || process.env);
@@ -80,7 +94,7 @@ export function createServer(options = {}) {
     const server = new Server(
         {
             name: 'flowsync-app',
-            version: '1.0.0',
+            version: VERSION,
         },
         {
             capabilities: {
@@ -108,18 +122,27 @@ export function createServer(options = {}) {
         const { name, arguments: args } = request.params;
         const tool = tools.get(name);
 
+        // An unknown tool is a protocol error; anything that goes wrong while a known tool runs is a tool
+        // result the model can read and act on (`isError`), not a JSON-RPC failure some clients hide.
         if (!tool) {
             throw new McpError(ErrorCode.MethodNotFound, `Unknown tool: "${name}"`);
+        }
+
+        const problems = validateArgs(tool.inputSchema, args || {});
+        if (problems.length > 0) {
+            return toolError(`Invalid arguments for ${name}: ${problems.join('; ')}.`, { code: 'invalid_arguments' });
         }
 
         try {
             return await tool.execute(args || {}, client);
         } catch (error) {
             logger.error(`Error executing tool "${name}": ${error.message}`);
-            if (error instanceof McpError) {
-                throw error;
-            }
-            throw new McpError(ErrorCode.InternalError, error.message || 'Internal tool execution error');
+
+            return toolError(error.message || 'Internal tool execution error', {
+                status: error.status ?? null,
+                code: error.data?.code ?? null,
+                request_id: error.requestId ?? null,
+            });
         }
     });
 
@@ -240,12 +263,20 @@ export async function runServer(options = {}) {
     }
 }
 
-// Auto-run if executed as main CLI script
-const isDirectRun = process.argv[1] && (
-    import.meta.url.endsWith(process.argv[1]) ||
-    import.meta.url.endsWith(process.argv[1].replace(/\\/g, '/'))
-);
+// Auto-run when executed as the main script. Compare real paths: `npx flowsync-mcp`, `npm link` and
+// `node_modules/.bin/flowsync-mcp` all start this file through a symlink, and argv[1] is then the link's
+// path, which never matches this module's own URL.
+function isMainModule() {
+    if (!process.argv[1]) {
+        return false;
+    }
+    try {
+        return realpathSync(process.argv[1]) === realpathSync(fileURLToPath(import.meta.url));
+    } catch {
+        return false;
+    }
+}
 
-if (isDirectRun) {
+if (isMainModule()) {
     runServer();
 }

@@ -11,7 +11,8 @@ test('server process strictly isolates stdout from logs and diagnostics', async 
     const child = spawn(process.execPath, [indexPath], {
         env: {
             ...process.env,
-            FLOWSYNC_URL: 'http://localhost:8000',
+            // Nothing listens on port 9: the test must not depend on (or hit) a developer's running app.
+            FLOWSYNC_URL: 'http://127.0.0.1:9',
             FLOWSYNC_TOKEN: 'fst_1_test_token_12345678901234567890',
             FLOWSYNC_DEBUG: '1',
         },
@@ -53,6 +54,10 @@ test('server process strictly isolates stdout from logs and diagnostics', async 
 
     // Any output on stdout must be valid JSON-RPC
     const lines = stdoutData.trim().split('\n').filter(Boolean);
+
+    // ... and the server must really have answered, or "every line is JSON-RPC" would hold for an empty stream.
+    assert.ok(lines.length >= 1, 'the initialize request must be answered on stdout');
+    assert.equal(JSON.parse(lines[0]).id, 1);
     for (const line of lines) {
         let parsed;
         assert.doesNotThrow(() => {

@@ -266,23 +266,13 @@ test('FLOWSYNC_READ_ONLY blocks write tools before any HTTP call is made', async
     const rawCallHandler = server._requestHandlers.get('tools/call');
     const callHandler = (payload) => rawCallHandler({ method: 'tools/call', ...payload });
 
-    await assert.rejects(
-        () => callHandler({
-            params: {
-                name: 'flowsync_create_task',
-                arguments: { project_id: 10, title: 'Blocked write' },
-            },
-        }),
-        (err) => err instanceof McpError && /read-only mode/.test(err.message)
-    );
-
-    await assert.rejects(
-        () => callHandler({
-            params: {
-                name: 'flowsync_move_task',
-                arguments: { project_id: 10, task_id: 2001, status_id: 2 },
-            },
-        }),
-        (err) => err instanceof McpError && /read-only mode/.test(err.message)
-    );
+    // A refused write is a tool result the model can read (isError), not a protocol failure.
+    for (const [name, args] of [
+        ['flowsync_create_task', { project_id: 10, title: 'Blocked write' }],
+        ['flowsync_move_task', { project_id: 10, task_id: 2001, status_id: 2 }],
+    ]) {
+        const result = await callHandler({ params: { name, arguments: args } });
+        assert.equal(result.isError, true, `${name} must be refused in read-only mode`);
+        assert.match(result.content[0].text, /read-only mode/);
+    }
 });

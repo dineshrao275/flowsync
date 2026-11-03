@@ -1,6 +1,25 @@
 import crypto from 'node:crypto';
 import { mapHttpError } from './errors.js';
 import { McpError, ErrorCode } from '@modelcontextprotocol/sdk/types.js';
+import { VERSION } from './config.js';
+
+// A write whose outcome is unknown (timeout, dropped connection, 5xx, in-flight duplicate) may already have
+// been applied. The next identical call reuses its Idempotency-Key for this long, so the server replays the
+// first result instead of creating a duplicate.
+const PENDING_WRITE_TTL_MS = 10 * 60 * 1000;
+
+const WRITE_HINT = 'The write may already have been applied. Repeat the identical call to retry safely (the same request is de-duplicated), or read the record first to check.';
+
+/** Same error with extra guidance appended (McpError builds its own message prefix, so rebuild it). */
+function withHint(error, hint) {
+    const plain = error.message.replace(/^MCP error -?\d+:\s*/, '');
+    const next = new McpError(error.code, `${plain} ${hint}`);
+    next.status = error.status;
+    next.data = error.data;
+    next.requestId = error.requestId;
+
+    return next;
+}
 
 export class FlowSyncClient {
     constructor(config, logger) {
@@ -16,6 +35,9 @@ export class FlowSyncClient {
         this.minIntervalMs = this.maxRpm > 0 ? Math.ceil(60000 / this.maxRpm) : 0;
         this._lastRequestAt = 0;
         this._chain = Promise.resolve();
+
+        // fingerprint (method|path|body) -> {key, at} for writes whose outcome is unknown.
+        this._pendingWrites = new Map();
 
         // `flowsync_me` is cached briefly so tools can inspect the monthly budget
         // without spending a fresh API call every time.
@@ -92,7 +114,7 @@ export class FlowSyncClient {
         const headers = new Headers({
             'Authorization': `Bearer ${this.token}`,
             'Accept': 'application/json',
-            'User-Agent': 'flowsync-mcp/1.0.0',
+            'User-Agent': `flowsync-mcp/${VERSION}`,
             ...(options.headers || {}),
         });
 
@@ -102,10 +124,21 @@ export class FlowSyncClient {
             body = typeof options.body === 'string' ? options.body : JSON.stringify(options.body);
         }
 
-        // Writes require an Idempotency-Key
+        // Writes require an Idempotency-Key. A fresh key per call, except when the identical request just ended
+        // with an unknown outcome: then the same key is reused so the retry cannot create a duplicate.
+        const fingerprint = isSafe ? null : crypto.createHash('sha256').update(`${method}|${path}|${body ?? ''}`).digest('hex');
         if (!isSafe && !headers.has('Idempotency-Key')) {
-            headers.set('Idempotency-Key', crypto.randomUUID());
+            const pending = this._pendingWrites.get(fingerprint);
+            headers.set('Idempotency-Key', pending && Date.now() - pending.at < PENDING_WRITE_TTL_MS ? pending.key : crypto.randomUUID());
         }
+        const settle = (unknownOutcome) => {
+            if (isSafe) return;
+            if (unknownOutcome) {
+                this._pendingWrites.set(fingerprint, { key: headers.get('Idempotency-Key'), at: Date.now() });
+            } else {
+                this._pendingWrites.delete(fingerprint);
+            }
+        };
 
         const maxAttempts = isSafe ? 3 : 1;
         let attempt = 0;
@@ -157,6 +190,7 @@ export class FlowSyncClient {
                 }
 
                 if (response.ok || response.status === 202) {
+                    settle(false);
                     this.logger.debug(`HTTP ${response.status} Success`, { requestId });
                     return {
                         status: response.status,
@@ -177,6 +211,7 @@ export class FlowSyncClient {
                 // Maintenance is platform-wide: retrying here just burns the agent's
                 // budget. Surface it immediately so the agent can back off.
                 if (response.status === 503 && responseData?.code === 'maintenance') {
+                    settle(false); // refused before it ran: nothing to de-duplicate
                     throw mapHttpError(response.status, responseData, response.headers);
                 }
 
@@ -188,15 +223,20 @@ export class FlowSyncClient {
                     continue;
                 }
 
-                throw mapHttpError(response.status, responseData, response.headers);
+                const refusal = mapHttpError(response.status, responseData, response.headers);
+                // 5xx and an in-flight duplicate (409) leave the outcome unknown; any other refusal is final.
+                const unknown = response.status >= 500 || response.status === 409;
+                settle(unknown);
+                throw !isSafe && response.status >= 500 ? withHint(refusal, WRITE_HINT) : refusal;
             } catch (err) {
                 cleanup();
                 if (err.name === 'AbortError') {
+                    settle(true);
                     // A caller-supplied cancellation is never retried, even for reads.
                     if (options.signal?.aborted) {
-                        throw new McpError(ErrorCode.RequestTimeout, 'Request cancelled.');
+                        throw new McpError(ErrorCode.RequestTimeout, `Request cancelled.${isSafe ? '' : ` ${WRITE_HINT}`}`);
                     }
-                    throw new McpError(ErrorCode.RequestTimeout, `Request timed out after ${this.timeoutMs}ms.`);
+                    throw new McpError(ErrorCode.RequestTimeout, `Request timed out after ${this.timeoutMs}ms.${isSafe ? '' : ` ${WRITE_HINT}`}`);
                 }
                 if (err instanceof McpError) {
                     throw err;
@@ -205,7 +245,8 @@ export class FlowSyncClient {
                     await new Promise((r) => setTimeout(r, 1000 * attempt));
                     continue;
                 }
-                throw new McpError(ErrorCode.InternalError, `Network error communicating with FlowSync: ${err.message}`);
+                settle(true);
+                throw new McpError(ErrorCode.InternalError, `Network error communicating with FlowSync: ${err.message}${isSafe ? '' : ` ${WRITE_HINT}`}`);
             }
         }
     }

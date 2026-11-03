@@ -43,10 +43,16 @@ Route::prefix('api/v1')
             Route::get('search/tasks', [SearchController::class, 'tasks'])->middleware('ensure_module:global_search');
         });
 
-        // TMS Write Surface (can_write enforced in AuthenticateApiToken, idempotent writes, throttled)
-        Route::middleware(['token_can:tms.write', 'ensure_product:tms', 'idempotent', 'throttle:30,1'])->group(function () {
+        // TMS Write Surface (can_write enforced in AuthenticateApiToken, idempotent writes, throttled).
+        // `token_can` stays first in each group so a refused request never reaches idempotency. A legacy
+        // `workspaces.view` write token could only ever create a task, so only that route also accepts it;
+        // edit/move/comment/log-time need `tms.write`.
+        Route::middleware(['token_can:tms.write,workspaces.view', 'ensure_product:tms', 'idempotent', 'throttle:30,1', 'api_markdown'])->group(function () {
             Route::post('projects/{project}/tasks', [TaskController::class, 'store']);
-            Route::put('projects/{project}/tasks/{task}', [TaskController::class, 'update']);
+        });
+
+        Route::middleware(['token_can:tms.write', 'ensure_product:tms', 'idempotent', 'throttle:30,1'])->group(function () {
+            Route::put('projects/{project}/tasks/{task}', [TaskController::class, 'update'])->middleware('api_markdown');
             Route::post('projects/{project}/tasks/{task}/move', [TaskMoveController::class, 'move']);
             Route::post('projects/{project}/tasks/{task}/comments', [CommentController::class, 'store']);
             Route::post('projects/{project}/tasks/{task}/work-logs', [WorkLogController::class, 'store'])->middleware('ensure_module:time_tracking');
