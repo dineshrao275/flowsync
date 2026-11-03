@@ -225,6 +225,14 @@ Full suite at phase gates marked “cross-cutting”.
 
 ### Phase 1 — GitHub App connection lifecycle
 
+> **Status: done (2026-11-03).** Deviations from the text below, all deliberate:
+> - **Installer proof (security).** The setup redirect carries a forgeable `installation_id`; without a check a tenant admin could claim another organisation's installation by guessing the (sequential) id. The app must have *Request user authorization (OAuth) during installation* on, and `GitHubAppClient::userCanAccessInstallation` exchanges the returned `code` and checks `/user/installations`. Fails closed when `GITHUB_APP_CLIENT_ID`/`GITHUB_APP_CLIENT_SECRET` are unset. Added to §5 registration steps.
+> - `GET integrations/git/github/install` returns `{url}` JSON (the SPA navigates) instead of a 302.
+> - `GitHubAppClient` implements `GitProvider` directly (no separate `GitHubAppProvider`); `createRef`/`listCommits`/`listPullRequests`/`checksFor` land with the phases that use them.
+> - Permissions `git.view`/`git.manage`, module `git` and plan wiring (suite Pro/Business/Enterprise, TMS Professional/Enterprise) were pulled forward from Phase 4: the routes need them. `editor` holds `git.view`.
+> - `SyncGitInstallation` + `GitRepositorySync` ship now (basic upsert, unavailable-not-deleted); Phase 3 adds scheduler, caches, picker.
+> - Disconnect revokes the row and wipes tokens; unlinking project links arrives with `project_repositories` (Phase 4).
+
 **Goal:** a tenant admin installs the app and gets a connection.
 
 1. Central migrations (next numbers, suggested):
@@ -470,6 +478,7 @@ branch name validation, provider failures, audit rows; `GitBranchTest`.
    - Webhook URL: `https://<host>/api/integrations/git/github/webhook`.
    - Webhook secret: generate 32+ random bytes → `GITHUB_APP_WEBHOOK_SECRET`.
    - Setup URL (post-installation): `https://<host>/api/integrations/git/github/setup`.
+   - Tick **Request user authorization (OAuth) during installation**; note the **Client ID** and generate a **Client secret** (`GITHUB_APP_CLIENT_ID`/`GITHUB_APP_CLIENT_SECRET`). Callback URL: the same setup URL.
    - “Redirect on update”: enabled.
 3. Repository permissions:
    - Metadata: **Read** (mandatory).

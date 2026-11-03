@@ -23,6 +23,10 @@ return [
             'private_key' => env('GITHUB_APP_PRIVATE_KEY'),
             'private_key_path' => env('GITHUB_APP_PRIVATE_KEY_PATH'),
             'webhook_secret' => env('GITHUB_APP_WEBHOOK_SECRET'),
+            // The app's OAuth pair. Only used once per install to prove the installer can see the
+            // installation they claim ("Request user authorization during installation" must be on).
+            'client_id' => env('GITHUB_APP_CLIENT_ID'),
+            'client_secret' => env('GITHUB_APP_CLIENT_SECRET'),
             // GitHub Enterprise Server uses https://<host>/api/v3.
             'api_url' => env('GITHUB_APP_API_URL', 'https://api.github.com'),
         ],

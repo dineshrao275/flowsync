@@ -24,6 +24,7 @@ const ProjectDetail = lazy(() => import('./pages/ProjectDetail'));
 const Projects = lazy(() => import('./pages/Projects'));
 const Support = lazy(() => import('./pages/Support'));
 const Webhooks = lazy(() => import('./pages/Webhooks'));
+const Integrations = lazy(() => import('./pages/Integrations'));
 const AuditTimeline = lazy(() => import('./pages/AuditTimeline'));
 const CustomFields = lazy(() => import('./pages/CustomFields'));
 const AdminSupport = lazy(() => import('./pages/AdminSupport'));
@@ -607,6 +608,9 @@ function AppRoutes() {
                         </Route>
                         <Route element={<ProtectedRoute permission="webhooks.manage" module="webhooks" />}>
                             <Route path="/webhooks" element={<Webhooks />} />
+                        </Route>
+                        <Route element={<ProtectedRoute permission="git.view" module="git" />}>
+                            <Route path="/integrations" element={<Integrations />} />
                         </Route>
                         <Route element={<ProtectedRoute permission="support.manage" />}>
                             <Route path="/support" element={<Support />} />

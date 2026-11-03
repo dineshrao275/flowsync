@@ -682,7 +682,8 @@
             "hrmsDocuments": "Gestión documental",
             "hrmsAssets": "Registro de activos",
             "hrmsInbox": "Bandeja unificada de RR. HH.",
-            "hrmsAnalytics": "Analítica de RR. HH."
+            "hrmsAnalytics": "Analítica de RR. HH.",
+            "git": "Git y repositorios"
         },
         "moduleDescriptions": {
             "time_tracking": "Registra el tiempo facturable y horas de trabajo en las tareas.",
@@ -719,7 +720,8 @@
             "hrmsDocuments": "Almacén de contratos laborales, firmas y políticas de empresa.",
             "hrmsAssets": "Control de equipos portátiles, periféricos y activos de la empresa.",
             "hrmsInbox": "Bandeja unificada para que los responsables aprueben solicitudes.",
-            "hrmsAnalytics": "Tendencias de plantilla, índices de rotación y diversidad del equipo."
+            "hrmsAnalytics": "Tendencias de plantilla, índices de rotación y diversidad del equipo.",
+            "git": "Conexión con GitHub, vinculación de repositorios y estado de pull requests en las tareas."
         },
         "statuses": {
             "trialing": "Prueba",
@@ -1552,5 +1554,35 @@
         "create": "Crear enlace",
         "rotate": "Generar un enlace nuevo",
         "revoke": "Revocar"
+    },
+    "git": {
+        "pageTitle": "Integraciones",
+        "title": "Git y repositorios",
+        "subtitle": "Conecta tu organización de GitHub para que los proyectos puedan vincular repositorios. Solo se comparten los repositorios que elijas en GitHub.",
+        "install": "Conectar GitHub",
+        "installing": "Redirigiendo a GitHub…",
+        "reconnect": "Añadir otra cuenta",
+        "empty": "Todavía no hay ninguna cuenta de GitHub conectada.",
+        "emptyHint": "Al conectar se abre GitHub, donde eliges la organización y los repositorios que FlowSync puede ver.",
+        "notEnabled": "La integración con Git aún no está activada en este servidor. Pide al operador de la plataforma que la habilite.",
+        "connectedFlash": "Cuenta de GitHub conectada. Los repositorios se están sincronizando.",
+        "account": "Cuenta",
+        "repositories": "Repositorios",
+        "lastSynced": "Última sincronización",
+        "connectedBy": "Conectada por",
+        "neverSynced": "Aún sin sincronizar",
+        "status": {
+            "active": "Conectada",
+            "suspended": "Suspendida",
+            "revoked": "Desconectada"
+        },
+        "disconnect": "Desconectar",
+        "disconnectTitle": "¿Desconectar {{account}}?",
+        "disconnectMessage": "Los proyectos dejarán de recibir actualizaciones de pull requests y commits de esta cuenta. Puedes volver a conectarla más tarde.",
+        "disconnected": "Cuenta de GitHub desconectada.",
+        "requestFailed": "No se pudo completar la solicitud.",
+        "cardAria": "Cuenta de GitHub {{account}}",
+        "repoCount_one": "{{count}} repositorio",
+        "repoCount_other": "{{count}} repositorios"
     }
 }

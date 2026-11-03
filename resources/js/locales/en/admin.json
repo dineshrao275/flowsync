@@ -682,7 +682,8 @@
             "hrmsDocuments": "Document management",
             "hrmsAssets": "Asset registry",
             "hrmsInbox": "Unified HR inbox",
-            "hrmsAnalytics": "HR analytics"
+            "hrmsAnalytics": "HR analytics",
+            "git": "Git & repositories"
         },
         "moduleDescriptions": {
             "time_tracking": "Track billable time and log work hours directly on tasks.",
@@ -719,7 +720,8 @@
             "hrmsDocuments": "Employee contract storage, signed agreements, and policies.",
             "hrmsAssets": "Company laptop and hardware property tracking and allocations.",
             "hrmsInbox": "Consolidated manager inbox for leave, expense, and request approvals.",
-            "hrmsAnalytics": "Headcount trends, attrition analysis, and workforce diversity metrics."
+            "hrmsAnalytics": "Headcount trends, attrition analysis, and workforce diversity metrics.",
+            "git": "GitHub connection, repository linking and pull request status on tasks."
         },
         "statuses": {
             "trialing": "Trial",
@@ -1552,5 +1554,35 @@
         "create": "Create link",
         "rotate": "Make a new link",
         "revoke": "Revoke"
+    },
+    "git": {
+        "pageTitle": "Integrations",
+        "title": "Git & repositories",
+        "subtitle": "Connect your GitHub organization so projects can link repositories. Only the repositories you choose on GitHub are shared.",
+        "install": "Connect GitHub",
+        "installing": "Redirecting to GitHub…",
+        "reconnect": "Add another account",
+        "empty": "No GitHub account is connected yet.",
+        "emptyHint": "Connecting opens GitHub, where you pick the organization and the repositories FlowSync may see.",
+        "notEnabled": "Git integration is not switched on for this server yet. Ask your platform operator to enable it.",
+        "connectedFlash": "GitHub account connected. Repositories are syncing.",
+        "account": "Account",
+        "repositories": "Repositories",
+        "lastSynced": "Last synced",
+        "connectedBy": "Connected by",
+        "neverSynced": "Not synced yet",
+        "status": {
+            "active": "Connected",
+            "suspended": "Suspended",
+            "revoked": "Disconnected"
+        },
+        "disconnect": "Disconnect",
+        "disconnectTitle": "Disconnect {{account}}?",
+        "disconnectMessage": "Projects will stop receiving pull request and commit updates from this account. You can connect it again later.",
+        "disconnected": "GitHub account disconnected.",
+        "requestFailed": "The request could not be completed.",
+        "cardAria": "GitHub account {{account}}",
+        "repoCount_one": "{{count}} repository",
+        "repoCount_other": "{{count}} repositories"
     }
 }

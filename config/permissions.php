@@ -144,6 +144,8 @@ return [
         ['name' => 'Manage Billing', 'slug' => 'billing.manage', 'description' => 'Change plans and manage the subscription'],
         ['name' => 'Manage Webhooks', 'slug' => 'webhooks.manage', 'description' => 'Create and manage outbound webhook endpoints'],
         ['name' => 'Manage Custom Fields', 'slug' => 'custom_fields.manage', 'description' => 'Define custom fields on employees, tasks, projects and other records'],
+        ['name' => 'View Git Integration', 'slug' => 'git.view', 'description' => 'See connected Git accounts, linked repositories and the task Development panel'],
+        ['name' => 'Manage Git Integration', 'slug' => 'git.manage', 'description' => 'Connect or disconnect a Git account, link repositories and create branches'],
         ['name' => 'Manage API Tokens', 'slug' => 'api.manage', 'description' => 'Create and revoke personal API access tokens'],
         ['name' => 'Support Tickets', 'slug' => 'support.manage', 'description' => 'Raise and follow support tickets with the platform team'],
         ['name' => 'Manage Organization', 'slug' => 'tenant.manage', 'description' => 'Edit the company profile and complete onboarding'],
@@ -258,7 +260,7 @@ return [
             'permissions' => [
                 'dashboard.view', 'users.view', 'reports.view',
                 'content.manage', 'settings.theme', 'settings.view',
-                'workspaces.view', 'workspaces.create',
+                'workspaces.view', 'workspaces.create', 'git.view',
                 'hrms.view',
                 // Self-service reads only: no legacy `hrms.*.view`, so no
                 // tenant-wide rows.

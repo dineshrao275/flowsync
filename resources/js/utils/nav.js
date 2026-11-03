@@ -9,6 +9,7 @@ import {
     DownloadSimple,
     Envelope,
     FileText,
+    GitBranch,
     Flag,
     Folders,
     Gear,
@@ -120,6 +121,7 @@ const SHARED_ADMIN = [
     { to: '/settings', label: 'nav.admin.settings', capabilities: ['settings.view'], icon: ICONS.settings, shared: true },
     { to: '/security', label: 'nav.admin.security', icon: ICONS.security, shared: true },
     { to: '/audit', label: 'nav.admin.audit', capabilities: ['tenant.manage'], icon: ICONS.security, shared: true },
+    { to: '/integrations', label: 'nav.admin.integrations', capabilities: ['module:git', 'git.view'], icon: GitBranch, shared: true },
 ];
 
 const SHARED_BILLING = [
