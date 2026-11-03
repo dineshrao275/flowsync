@@ -749,8 +749,11 @@ Checked first, then fixed. Already correct (now pinned by `ApiV1AuthorizationMat
 in each project (a project Viewer cannot edit, move, create or log time even with a write token; comments are allowed because the
 role grants `comments.create`), a user with no write grant anywhere cannot mint `tms.write`, a non-member reaches nothing,
 `tasks.edit_own` limits a token to the owner's own tasks, a bearer token is refused by every session route, the Viewer tenant role
-cannot create a token, and the HRMS directory through a token equals what the owner sees in the app. Gaps found and closed: the
-HRMS routes had no structural read-only guard (`hrms_read_only`); a task HR links could be edited/moved/commented/time-logged
-through a token (completing it refreshed the linked goal's evidence) and is now read-only (`protect_hrms:linked_task`); and time
-logged through a token fed attendance derivation, so it is refused while derivation is on (`protect_hrms:…,attendance`).
+cannot create a token, and the HRMS directory through a token equals what the owner sees in the app.
 
+HR data: the rule is "task work is allowed, HR writes are not". Gaps closed: the HRMS routes had no structural read-only guard
+(`hrms_read_only`); completing a task through a token refreshed the linked performance goal's evidence from inside the call (now
+skipped for tokens via `ApiCallContext`; the app still refreshes it); and time logged through a token fed the nightly attendance
+derivation (token logs now carry `work_logs.source = 'api'` and are excluded). An earlier cut of this work made HR-linked tasks
+read-only for tokens; that was too strict and was removed. Not changed: the nightly goal sweep (HR's own job) still reflects a
+completed task's real state, and goal metrics that count work-log hours still include agent-written hours.

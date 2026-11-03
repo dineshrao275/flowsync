@@ -246,9 +246,10 @@ Details moved verbatim to `docs/architecture/impersonation-and-users.md` (covers
   `EmployeeStatusTransition` revokes their tokens on exit. A legacy `workspaces.view` token keeps read + create-task only
   (`ApiToken::allows` never infers `tms.write`; `POST …/tasks` is `token_can:tms.write,workspaces.view`); `TokenCan` takes any-of.
   `api_markdown` converts an agent's Markdown `description` to HTML on the token task writes (the SPA stores HTML).
-  **HR data is view-only through tokens:** the v1 HRMS routes are behind `hrms_read_only`; `protect_hrms:linked_task` makes a task HR links
-  (goal/HR task link/HR-owned) read-only for token edit/move/comment/work-log, and `protect_hrms:…,attendance` refuses a token work log
-  while HR derives attendance from work logs (`HrmsReadOnly`, `ProtectHrmsData`, `Support\Hrms\HrmsTaskLinks`; pinned by `ApiV1AuthorizationMatrixTest`). Reads through a token skip `TaskViews::record()`;
+  **HR data is view-only through tokens, task work is not:** the v1 HRMS routes are behind `hrms_read_only`; a token may edit/move/comment/time-log
+  any task (even one HR links), but never writes HR data from inside the call: `Support\ApiCallContext::viaToken()` makes
+  `TaskLifecycle::refreshGoalsOnCompletion` skip the goal-evidence refresh, and a token work log is stored with `work_logs.source='api'`
+  (tenant_tms migration `…000063`), which `WorkLogDerivation` excludes from attendance (pinned by `ApiV1AuthorizationMatrixTest`). Reads through a token skip `TaskViews::record()`;
   activity rows carry `data.via='api'` + `api_token_id` and the SPA activity feed renders a "via API" badge.
 - **Tools** (18): `flowsync_me`; workspaces/projects/tasks (id or key)/transitions/activity/comments/
   worklogs/sprints/search; create/update/move/comment/log-time. Move handles `202 pending_approval` as

@@ -20,6 +20,7 @@ class WorkLog extends Model
         'duration_minutes',
         'description',
         'billable',
+        'source',
     ];
 
     protected function casts(): array

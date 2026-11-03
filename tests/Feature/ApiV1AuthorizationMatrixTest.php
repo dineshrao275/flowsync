@@ -7,6 +7,7 @@ namespace Tests\Feature;
 use App\Enums\Hrms\EmployeeStatus;
 use App\Enums\Hrms\GoalMetricType;
 use App\Enums\Hrms\GoalProgressSource;
+use App\Models\Hrms\Attendance\AttendanceDay;
 use App\Models\Hrms\Employee\Employee;
 use App\Models\Hrms\Performance\GoalTaskLink;
 use App\Models\Hrms\Performance\PerformanceCycle;
@@ -18,7 +19,9 @@ use App\Models\ProjectRole;
 use App\Models\Task;
 use App\Models\TaskStatus;
 use App\Models\User;
+use App\Models\WorkLog;
 use App\Models\Workspace;
+use App\Services\Hrms\Attendance\WorkLogDerivation;
 use Illuminate\Support\Facades\Route;
 use Tests\IsolatesDatabase;
 use Tests\TestCase;
@@ -27,8 +30,9 @@ use Tests\TestCase;
  * Who can do what through a personal API token (the MCP's only door).
  *
  * A token narrows its owner and never widens them: every call is judged by the same policy the app applies to
- * that person in that project. HRMS is read-only through tokens, structurally, and nothing a token does to TMS
- * data may write HR data (goal evidence, HR-linked tasks, attendance derived from work logs).
+ * that person in that project. HRMS is read-only through tokens, structurally. A token may change TMS data (even a
+ * task HR links), but never write HR data from inside the call: goal evidence is not refreshed and time written
+ * through a token is never used for attendance.
  */
 class ApiV1AuthorizationMatrixTest extends TestCase
 {
@@ -210,55 +214,71 @@ class ApiV1AuthorizationMatrixTest extends TestCase
 
     // ------------------------------------------------------------ TMS writes must not write HR data
 
-    public function test_a_task_that_hr_links_is_read_only_for_a_token(): void
+    public function test_a_task_that_hr_links_can_still_be_worked_on_through_a_token_but_hr_data_does_not_change(): void
     {
         $admin = User::where('email', 'admin@flowsync.test')->firstOrFail();
-        [$p] = $this->project('HRLINK', $admin);
+        [$p, $statuses] = $this->project('HRLINK', $admin);
         $token = $this->issue();
-        $linkedToGoal = $this->createTask($p, $token);
-        $linkedByHr = $this->createTask($p, $token);
-        $plain = $this->createTask($p, $token);
+        $viaToken = $this->createTask($p, $token, ['assignee_id' => $admin->id]);
+        $viaApp = $this->createTask($p, $token, ['assignee_id' => $admin->id]);
+        $hrLinked = $this->createTask($p, $token);
 
         $employee = $this->employeeFor($admin);
         $goal = $this->goal($employee);
-        GoalTaskLink::create(['goal_id' => $goal->id, 'task_id' => $linkedToGoal]);
-        TaskLink::create(['employee_id' => $employee->id, 'task_id' => $linkedByHr, 'kind' => 'onboarding']);
-        $before = $goal->fresh()->progress_evidence;
+        GoalTaskLink::create(['goal_id' => $goal->id, 'task_id' => $viaToken]);
+        GoalTaskLink::create(['goal_id' => $goal->id, 'task_id' => $viaApp]);
+        TaskLink::create(['employee_id' => $employee->id, 'task_id' => $hrLinked, 'kind' => 'onboarding']);
+        $this->assertNull($goal->fresh()->progress_evidence);
 
-        foreach ([$linkedToGoal, $linkedByHr] as $taskId) {
-            $other = $this->otherStatus($p, $taskId);
-            foreach ([
-                ['put', "/api/v1/projects/{$p->id}/tasks/{$taskId}", ['title' => 'Changed']],
-                ['post', "/api/v1/projects/{$p->id}/tasks/{$taskId}/move", ['status_id' => $other]],
-                ['post', "/api/v1/projects/{$p->id}/tasks/{$taskId}/comments", ['comment' => 'Changed']],
-                ['post', "/api/v1/projects/{$p->id}/tasks/{$taskId}/work-logs", $this->log()],
-            ] as [$method, $uri, $body]) {
-                $this->{$method.'Json'}($uri, $body, $this->bearer($token))
-                    ->assertForbidden()->assertJsonPath('code', 'hrms_linked_task_read_only');
-            }
-            $this->getJson("/api/v1/projects/{$p->id}/tasks/{$taskId}", $this->bearer($token))->assertOk();
-        }
+        // Task work is allowed on a task HR links: edit, comment, log time, complete it.
+        $done = $statuses['done']->id;
+        $this->putJson("/api/v1/projects/{$p->id}/tasks/{$viaToken}", ['title' => 'Edited by an agent'], $this->bearer($token))->assertOk();
+        $this->postJson("/api/v1/projects/{$p->id}/tasks/{$viaToken}/comments", ['comment' => 'Note'], $this->bearer($token))->assertCreated();
+        $this->postJson("/api/v1/projects/{$p->id}/tasks/{$viaToken}/work-logs", $this->log(), $this->bearer($token))->assertCreated();
+        $this->postJson("/api/v1/projects/{$p->id}/tasks/{$viaToken}/move", ['status_id' => $done], $this->bearer($token))->assertOk();
+        $this->putJson("/api/v1/projects/{$p->id}/tasks/{$hrLinked}", ['title' => 'HR task, edited'], $this->bearer($token))->assertOk();
 
-        $this->assertSame($before, $goal->fresh()->progress_evidence, 'HR goal evidence must not be touched through a token');
+        $this->connectTenant('acme');
+        $this->assertSame('Edited by an agent', Task::findOrFail($viaToken)->title);
+        $this->assertNotNull(Task::findOrFail($viaToken)->completed_at, 'the TMS change itself happened');
 
-        // An ordinary task is unaffected.
-        $this->putJson("/api/v1/projects/{$p->id}/tasks/{$plain}", ['title' => 'Fine'], $this->bearer($token))->assertOk();
+        // ... but nothing was written to HR: the goal's evidence was not refreshed from inside the token call.
+        $this->assertNull($goal->fresh()->progress_evidence, 'a token call must not write HR goal evidence');
+
+        // Control: the same completion done in the app (a session request) does refresh it, so the skip is token-only.
+        $this->postJson('/api/auth/login', ['email' => 'admin@flowsync.test', 'password' => 'password'])->assertOk();
+        $this->postJson("/api/projects/{$p->id}/tasks/{$viaApp}/move", ['status_id' => $done])->assertOk();
+        $this->connectTenant('acme');
+        $this->assertNotNull($goal->fresh()->progress_evidence, 'the app still refreshes HR evidence');
     }
 
-    public function test_time_logged_through_a_token_is_refused_while_hr_derives_attendance_from_work_logs(): void
+    public function test_time_logged_through_a_token_is_never_used_for_hr_attendance(): void
     {
         $admin = User::where('email', 'admin@flowsync.test')->firstOrFail();
         [$p] = $this->project('ATT', $admin);
         $token = $this->issue();
         $taskId = $this->createTask($p, $token);
+        $employee = $this->employeeFor($admin);
 
-        $this->postJson("/api/v1/projects/{$p->id}/tasks/{$taskId}/work-logs", $this->log(), $this->bearer($token))->assertCreated();
-
+        $this->connectTenant('acme');
         $settings = HrmsSetting::current();
         $settings->update(['attendance' => [...($settings->attendance ?? []), 'auto_derive_from_work_logs' => true]]);
 
-        $this->postJson("/api/v1/projects/{$p->id}/tasks/{$taskId}/work-logs", $this->log(30, 600), $this->bearer($token))
-            ->assertForbidden()->assertJsonPath('code', 'hrms_attendance_derivation_enabled');
+        // The agent logs time: allowed, and marked as written through the API.
+        $this->postJson("/api/v1/projects/{$p->id}/tasks/{$taskId}/work-logs", $this->log(30, 5), $this->bearer($token))->assertCreated();
+        $this->connectTenant('acme');
+        $this->assertSame('api', WorkLog::query()->latest('id')->firstOrFail()->source);
+
+        $derivation = app(WorkLogDerivation::class);
+        $this->assertSame(0, $derivation->derive(now())['derived'], 'agent-written time must not become an attendance record');
+        $this->assertSame(0, AttendanceDay::query()->where('employee_id', $employee->id)->count());
+
+        // Control: the same time logged in the app does feed attendance.
+        $this->postJson('/api/auth/login', ['email' => 'admin@flowsync.test', 'password' => 'password'])->assertOk();
+        $this->postJson("/api/projects/{$p->id}/tasks/{$taskId}/work-logs", $this->log(60, 120))->assertCreated();
+        $this->connectTenant('acme');
+        $this->assertNull(WorkLog::query()->latest('id')->firstOrFail()->source);
+        $this->assertSame(1, $derivation->derive(now())['derived']);
     }
 
     // ------------------------------------------------------------ helpers
