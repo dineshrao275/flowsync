@@ -336,7 +336,8 @@
             "leads": "Contactos",
             "auditLogs": "Registros de auditoría",
             "queue": "Cola en segundo plano",
-            "activity": "Actividad de inquilinos"
+            "activity": "Actividad de inquilinos",
+            "integrations": "Integraciones"
         }
     },
     "maintenance": {

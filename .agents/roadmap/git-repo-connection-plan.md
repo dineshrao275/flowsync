@@ -432,6 +432,8 @@ branch name validation, provider failures, audit rows; `GitBranchTest`.
 
 ### Phase 8 — Platform/SA management & health
 
+> **Status: done (2026-11-03).** Deviations: an `enable` route was added next to `disable` (a pause that cannot be undone from the UI is a trap); the delivery list intentionally omits `payload_excerpt` (it names tenant repositories and people) and the connection list omits repository names.
+
 1. `/admin/integrations` (SA): connections across tenants, delivery health, failed deliveries,
    re-sync, disable; `config/platform_access.php` entries.
 2. Metrics/log counters: `git.webhook.received|processed|failed`, repeated-failure critical log.

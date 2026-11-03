@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Http\Controllers;
 
 use App\Models\Tenant;
+use App\Services\Integrations\Git\GitPlatformService;
 use App\Support\TenantDatabaseManager;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Carbon;
@@ -166,6 +167,10 @@ class PlatformHealthController extends Controller
             'status' => 'ok',
             'driver' => config('queue.default'),
         ];
+
+        // 6. Git integration: informational only - a stale connection or a failing webhook never takes the platform "unhealthy".
+        $git = app(GitPlatformService::class)->health();
+        $services['git'] = ['status' => $git['failed_deliveries_24h'] > 0 || $git['stale_connections'] > 0 ? 'degraded' : 'ok'] + $git;
 
         $statusCode = $overallHealthy ? 200 : 503;
 

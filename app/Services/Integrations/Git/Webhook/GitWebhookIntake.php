@@ -9,6 +9,7 @@ use App\Models\GitConnection;
 use App\Models\GitWebhookDelivery;
 use App\Models\Tenant;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 
 /**
@@ -55,6 +56,7 @@ class GitWebhookIntake
         if (! $delivery->wasRecentlyCreated) {
             return $this->reply(202, 'duplicate');
         }
+        Log::info('git.webhook.received', ['delivery' => $uuid, 'event' => $event]);
 
         if ($payload === null) {
             return $this->settle($delivery, GitWebhookDelivery::STATUS_IGNORED, 'Malformed payload.');

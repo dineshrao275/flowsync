@@ -993,5 +993,9 @@
     "Branch created.": "Rama creada.",
     "That GitHub login is already mapped to another user.": "Ese usuario de GitHub ya está asignado a otro usuario.",
     "GitHub login mapped.": "Usuario de GitHub asignado.",
-    "GitHub login unmapped.": "Asignación de usuario de GitHub eliminada."
+    "GitHub login unmapped.": "Asignación de usuario de GitHub eliminada.",
+    "Only an active connection can be synced.": "Solo se puede sincronizar una conexión activa.",
+    "This connection was not disabled by the platform.": "Esta conexión no fue deshabilitada por la plataforma.",
+    "Connection disabled.": "Conexión deshabilitada.",
+    "Connection enabled.": "Conexión habilitada."
 }

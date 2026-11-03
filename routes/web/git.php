@@ -3,6 +3,7 @@
 use App\Http\Controllers\GitBranchController;
 use App\Http\Controllers\GitConnectionController;
 use App\Http\Controllers\GitIdentityController;
+use App\Http\Controllers\GitPlatformController;
 use App\Http\Controllers\GitRepositoryController;
 use App\Http\Controllers\GitWebhookController;
 use App\Http\Controllers\ProjectRepositoryController;
@@ -44,5 +45,14 @@ Route::prefix('api')->group(function () {
         Route::get('projects/{project}/tasks/{task}/development', [TaskDevelopmentController::class, 'show'])->middleware('permission:git.view');
         Route::post('integrations/git/connections/{uuid}/sync', [GitConnectionController::class, 'sync'])->whereUuid('uuid')->middleware(['permission:git.manage', 'throttle:10,1']);
         Route::delete('integrations/git/connections/{uuid}', [GitConnectionController::class, 'destroy'])->whereUuid('uuid')->middleware('permission:git.manage');
+    });
+
+    // Platform staff (route map: config/platform_access.php `api/system/git*`). Metadata only, never repository content.
+    Route::middleware(['switch_tenant', 'auth', 'tenant', 'super_admin'])->group(function () {
+        Route::get('system/git/connections', [GitPlatformController::class, 'connections']);
+        Route::get('system/git/deliveries', [GitPlatformController::class, 'deliveries']);
+        Route::post('system/git/connections/{uuid}/sync', [GitPlatformController::class, 'sync'])->whereUuid('uuid')->middleware('throttle:20,1');
+        Route::post('system/git/connections/{uuid}/disable', [GitPlatformController::class, 'disable'])->whereUuid('uuid')->middleware('throttle:20,1');
+        Route::post('system/git/connections/{uuid}/enable', [GitPlatformController::class, 'enable'])->whereUuid('uuid')->middleware('throttle:20,1');
     });
 });

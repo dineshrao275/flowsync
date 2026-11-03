@@ -53,6 +53,10 @@ class InstallationHandler
 
     private function resume(GitConnection $connection): bool
     {
+        if (! empty(((array) $connection->settings)['disabled_by_platform'])) {
+            return false;   // paused by platform staff: only they can turn it back on
+        }
+
         $connection->forceFill(['status' => GitConnection::STATUS_ACTIVE, 'suspended_at' => null])->save();
         SyncGitInstallation::dispatch($connection->id);
 

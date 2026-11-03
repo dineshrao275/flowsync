@@ -27,6 +27,8 @@ class ProcessGitWebhook implements ShouldQueue
     use InteractsWithQueue;
     use Queueable;
 
+    public const FAILURE_ALARM = 5;
+
     public int $tries = 1;
 
     /** @param  array<string, mixed>  $payload */
@@ -50,6 +52,17 @@ class ProcessGitWebhook implements ShouldQueue
             // Class and message only: the payload (PR text, commit messages) is never logged.
             $delivery->forceFill(['status' => GitWebhookDelivery::STATUS_FAILED, 'error' => Str::limit($e::class.': '.$e->getMessage(), 500), 'processed_at' => now()])->save();
             Log::error('git.webhook.failed', ['delivery' => $delivery->delivery_uuid, 'event' => $this->event, 'error' => $e::class]);
+            $this->alarmOnRepeatedFailures($delivery);
+        }
+    }
+
+    /** Five failures in an hour for one connection is an incident, not noise: one critical line when the threshold is crossed. */
+    private function alarmOnRepeatedFailures(GitWebhookDelivery $delivery): void
+    {
+        $recent = GitWebhookDelivery::query()->where('git_connection_id', $delivery->git_connection_id)
+            ->where('status', GitWebhookDelivery::STATUS_FAILED)->where('received_at', '>=', now()->subHour())->count();
+        if ($recent === self::FAILURE_ALARM) {
+            Log::critical('git.webhook.repeated_failures', ['connection_id' => $delivery->git_connection_id, 'failures_last_hour' => $recent]);
         }
     }
 }
