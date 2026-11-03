@@ -25,6 +25,8 @@ Schedule::command('tasks:sla-sweep --all')->hourly()->withoutOverlapping();
 Schedule::command('reports:send-scheduled --all')->hourly()->withoutOverlapping();
 // Processed domain events and settled webhook deliveries are kept 30 days.
 Schedule::command('events:prune --all')->dailyAt('03:45')->withoutOverlapping();
+// Git webhook delivery rows (replay guard + health log) past the retention window.
+Schedule::command('git:prune-deliveries')->dailyAt('03:35')->withoutOverlapping();
 // Sign-up drafts that never finished (no database exists for them) are removed after a week.
 Schedule::command('tenants:prune-drafts')->dailyAt('03:30')->withoutOverlapping();
 // Impersonation is time-boxed; close the logs of sessions nobody touched again.

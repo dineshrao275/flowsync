@@ -269,6 +269,8 @@ cross-tenant refusal, disconnect, token cache, JWT signature, secrets never in J
 
 ### Phase 2 — Webhook infrastructure
 
+> **Status: done (2026-11-03).** Deviations: the job receives the payload through the queue (bodies > 1 MB are recorded but not queued) because only an excerpt is stored; `git:sync-installations` is Phase 3; the SA health view is Phase 8 (the tenant sees its own last-delivery/failure count now). The full-suite gate is deferred to the end-of-programme run by instruction.
+
 **Goal:** secure, idempotent event intake.
 
 1. `GitWebhookController@receive`:

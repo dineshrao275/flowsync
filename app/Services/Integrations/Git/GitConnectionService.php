@@ -6,12 +6,14 @@ namespace App\Services\Integrations\Git;
 
 use App\Jobs\SyncGitInstallation;
 use App\Models\GitConnection;
+use App\Models\GitWebhookDelivery;
 use App\Models\Tenant;
 use App\Models\User;
 use App\Services\PlatformAudit;
 use App\Services\TenantLimits;
 use App\Support\TenantDatabaseManager;
 use Illuminate\Http\Request;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
 
 /**
@@ -105,6 +107,38 @@ class GitConnectionService
             ->where('status', '!=', GitConnection::STATUS_REVOKED)
             ->withCount(['repositories' => fn ($q) => $q->where('available', true)])
             ->orderBy('account_login')->get();
+    }
+
+    /**
+     * Webhook health per connection id: when GitHub last reached us and how many deliveries failed in 24h.
+     *
+     * @param  Collection<int, GitConnection>  $connections
+     * @return array<int, array{last_delivery_at: ?string, failed_24h: int}>
+     */
+    public function healthFor(Collection $connections): array
+    {
+        $ids = $connections->pluck('id')->all();
+        $rows = GitWebhookDelivery::query()->whereIn('git_connection_id', $ids)
+            ->selectRaw('git_connection_id, max(received_at) as last_at')->groupBy('git_connection_id')->pluck('last_at', 'git_connection_id');
+        $failed = GitWebhookDelivery::query()->whereIn('git_connection_id', $ids)->where('status', GitWebhookDelivery::STATUS_FAILED)
+            ->where('received_at', '>=', now()->subDay())->selectRaw('git_connection_id, count(*) as n')->groupBy('git_connection_id')->pluck('n', 'git_connection_id');
+
+        return $connections->mapWithKeys(fn (GitConnection $c) => [$c->id => [
+            'last_delivery_at' => isset($rows[$c->id]) ? Carbon::parse($rows[$c->id])->toIso8601String() : null,
+            'failed_24h' => (int) ($failed[$c->id] ?? 0),
+        ]])->all();
+    }
+
+    /** Queues a catalog re-sync. @throws GitConnectionException when the connection is not this tenant's active one */
+    public function sync(Tenant $tenant, string $uuid): void
+    {
+        $connection = GitConnection::query()->where('tenant_id', $tenant->id)->where('uuid', $uuid)
+            ->where('status', GitConnection::STATUS_ACTIVE)->first();
+        if ($connection === null) {
+            throw new GitConnectionException(__('Connection not found.'), 404);
+        }
+
+        SyncGitInstallation::dispatch($connection->id);
     }
 
     /** @throws GitConnectionException when the connection is not this tenant's */

@@ -21,9 +21,12 @@ class GitConnectionController extends Controller
 
     public function index(): JsonResponse
     {
+        $connections = $this->connections->listForTenant($this->tenant());
+        $health = $this->connections->healthFor($connections);
+
         return response()->json([
             'enabled' => (bool) config('git.enabled'),
-            'connections' => $this->connections->listForTenant($this->tenant())->map(GitConnectionPresenter::present(...))->all(),
+            'connections' => $connections->map(fn ($c) => GitConnectionPresenter::present($c, $health[$c->id] ?? []))->values()->all(),
         ]);
     }
 
@@ -35,6 +38,17 @@ class GitConnectionController extends Controller
         } catch (GitConnectionException|GitProviderException $e) {
             return $this->failure($e);
         }
+    }
+
+    public function sync(string $uuid): JsonResponse
+    {
+        try {
+            $this->connections->sync($this->tenant(), $uuid);
+        } catch (GitConnectionException $e) {
+            return $this->failure($e);
+        }
+
+        return response()->json(['message' => __('Repository sync started.')], 202);
     }
 
     public function destroy(Request $request, string $uuid): JsonResponse

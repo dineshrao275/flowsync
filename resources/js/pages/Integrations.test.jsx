@@ -3,10 +3,10 @@ import { MemoryRouter } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import Integrations from './Integrations';
 
-const { get, del, confirm, can } = vi.hoisted(() => ({ get: vi.fn(), del: vi.fn(), confirm: vi.fn(), can: vi.fn() }));
+const { get, post, del, confirm, can } = vi.hoisted(() => ({ get: vi.fn(), post: vi.fn(), del: vi.fn(), confirm: vi.fn(), can: vi.fn() }));
 
 vi.mock('../services/api', () => ({
-    default: { get: (...a) => get(...a), delete: (...a) => del(...a) },
+    default: { get: (...a) => get(...a), post: (...a) => post(...a), delete: (...a) => del(...a) },
     fieldErrors: () => ({}),
 }));
 vi.mock('../context/AuthContext', () => ({ useAuth: () => ({ can: (p) => can(p) }) }));
@@ -25,7 +25,7 @@ function renderPage(url = '/integrations') {
 
 describe('Integrations page', () => {
     beforeEach(() => {
-        get.mockReset(); del.mockReset(); confirm.mockReset(); can.mockReset();
+        get.mockReset(); post.mockReset(); del.mockReset(); confirm.mockReset(); can.mockReset();
         can.mockReturnValue(true);
     });
 
@@ -68,6 +68,16 @@ describe('Integrations page', () => {
 
         fireEvent.click(button);
         await waitFor(() => expect(del).toHaveBeenCalledWith('/integrations/git/connections/u-1'));
+    });
+
+    it('shows failed deliveries and queues a sync on request', async () => {
+        get.mockResolvedValue({ data: { enabled: true, connections: [{ ...connection, failed_deliveries_24h: 2, last_delivery_at: '2026-11-03T10:00:00Z' }] } });
+        post.mockResolvedValue({ data: {} });
+        renderPage();
+
+        expect(await screen.findByText(/2 GitHub events failed/i)).toBeInTheDocument();
+        fireEvent.click(screen.getByRole('button', { name: /sync repositories/i }));
+        await waitFor(() => expect(post).toHaveBeenCalledWith('/integrations/git/connections/u-1/sync'));
     });
 
     it('shows the result GitHub redirected back with', async () => {

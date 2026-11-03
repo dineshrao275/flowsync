@@ -20,7 +20,7 @@ import { useResource } from '../hooks/useResource';
 const STATUS_TONE = { active: 'success', suspended: 'warning', revoked: 'neutral' };
 
 /** One connected GitHub account (App installation) with its repository count and a disconnect action. */
-function ConnectionCard({ connection, canManage, onDisconnect }) {
+function ConnectionCard({ connection, canManage, onDisconnect, onSync }) {
     const { t } = useTranslation();
 
     return (
@@ -33,7 +33,7 @@ function ConnectionCard({ connection, canManage, onDisconnect }) {
                 </div>
                 <Badge tone={STATUS_TONE[connection.status] ?? 'neutral'}>{t(`admin.git.status.${connection.status}`)}</Badge>
             </div>
-            <dl className="mt-4 grid gap-3 text-body sm:grid-cols-3">
+            <dl className="mt-4 grid gap-3 text-body sm:grid-cols-2">
                 <div>
                     <dt className="text-caption text-fg-muted">{t('admin.git.repositories')}</dt>
                     <dd className="text-fg">{t('admin.git.repoCount', { count: connection.repositories_count })}</dd>
@@ -43,12 +43,22 @@ function ConnectionCard({ connection, canManage, onDisconnect }) {
                     <dd className="text-fg"><Timestamp date={connection.last_synced_at} fallback={t('admin.git.neverSynced')} /></dd>
                 </div>
                 <div>
+                    <dt className="text-caption text-fg-muted">{t('admin.git.lastDelivery')}</dt>
+                    <dd className="text-fg"><Timestamp date={connection.last_delivery_at} fallback={t('admin.git.noDeliveries')} /></dd>
+                </div>
+                <div>
                     <dt className="text-caption text-fg-muted">{t('admin.git.connectedBy')}</dt>
                     <dd className="truncate text-fg">{connection.connected_by_name ?? '—'}</dd>
                 </div>
             </dl>
+            {connection.failed_deliveries_24h > 0 && (
+                <div className="mt-3"><Alert type="warning">{t('admin.git.failedDeliveries', { count: connection.failed_deliveries_24h })}</Alert></div>
+            )}
             {canManage && (
-                <div className="mt-4 flex justify-end">
+                <div className="mt-4 flex justify-end gap-2">
+                    {connection.status === 'active' && (
+                        <Button variant="secondary" onClick={() => onSync(connection)}>{t('admin.git.syncNow')}</Button>
+                    )}
                     <Button variant="secondary" onClick={() => onDisconnect(connection)}>{t('admin.git.disconnect')}</Button>
                 </div>
             )}
@@ -87,6 +97,15 @@ export default function Integrations() {
             window.location.assign(data.url);
         } catch (err) {
             setRedirecting(false);
+            toast.error(fieldErrors(err).form || err.response?.data?.message || t('admin.git.requestFailed'));
+        }
+    }
+
+    async function sync(connection) {
+        try {
+            await api.post(`/integrations/git/connections/${connection.uuid}/sync`);
+            toast.success(t('admin.git.syncStarted'));
+        } catch (err) {
             toast.error(fieldErrors(err).form || err.response?.data?.message || t('admin.git.requestFailed'));
         }
     }
@@ -132,7 +151,7 @@ export default function Integrations() {
                     return (
                         <div className="grid gap-4 lg:grid-cols-2">
                             {data.connections.map((c) => (
-                                <ConnectionCard key={c.uuid} connection={c} canManage={canManage} onDisconnect={disconnect} />
+                                <ConnectionCard key={c.uuid} connection={c} canManage={canManage} onDisconnect={disconnect} onSync={sync} />
                             ))}
                         </div>
                     );

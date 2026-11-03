@@ -28,6 +28,7 @@ class RouteAuthAuditTest extends TestCase
         'GET api/calendar/{tenantId}/{token}',
         'POST api/integrations/github/{tenantId}',
         'GET api/integrations/git/github/setup',
+        'POST api/integrations/git/github/webhook',
         'GET api/sso/{slug}/callback',
         'GET api/sso/{slug}/info',
         'GET api/sso/{slug}/start',
