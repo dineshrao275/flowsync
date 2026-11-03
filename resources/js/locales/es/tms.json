@@ -22,7 +22,9 @@
         "commentsCount": "{{count}} comentarios",
         "estimate": "Estimación",
         "estimateShort": "est. {{value}}",
-        "subtasksProgress": "{{done}} de {{total}} subtareas hechas"
+        "subtasksProgress": "{{done}} de {{total}} subtareas hechas",
+        "pullRequests_one": "{{count}} pull request",
+        "pullRequests_other": "{{count}} pull requests"
     },
     "table": {
         "empty": "Ninguna tarea coincide con los filtros actuales.",
@@ -380,7 +382,8 @@
             "dependencies": "Dependencias",
             "time": "Tiempo",
             "links": "Enlaces",
-            "activity": "Actividad"
+            "activity": "Actividad",
+            "development": "Desarrollo"
         },
         "delete": "Eliminar",
         "save": "Guardar cambios",
@@ -1000,5 +1003,30 @@
         "removeDataMessage": "Elimina los pull requests, commits y ramas registrados en las tareas desde este repositorio. Cancelar los conserva.",
         "loadFailed": "No se pudieron cargar los repositorios.",
         "requestFailed": "No se pudo completar la solicitud."
+    },
+    "development": {
+        "overviewTitle": "Repositorios",
+        "loadFailed": "No se pudo cargar la actividad de desarrollo.",
+        "noRepository": "No hay ningún repositorio vinculado.",
+        "noRepositoryHint": "Un responsable del proyecto puede vincular un repositorio de GitHub en los ajustes del proyecto.",
+        "nothingYet": "Aún no hay actividad de desarrollo.",
+        "nothingYetHint": "Incluye {{key}} en el nombre de una rama, un mensaje de commit o el título de un pull request y aparecerá aquí.",
+        "pullRequests": "Pull requests",
+        "commits": "Commits",
+        "branches": "Ramas",
+        "branchDeleted": "eliminada",
+        "prState": {
+            "open": "Abierto",
+            "draft": "Borrador",
+            "merged": "Fusionado",
+            "closed": "Cerrado",
+            "dismissed": "Descartado"
+        },
+        "checks": {
+            "success": "Comprobaciones superadas",
+            "failure": "Comprobaciones fallidas",
+            "pending": "Comprobaciones en curso",
+            "neutral": "Comprobaciones neutrales"
+        }
     }
 }

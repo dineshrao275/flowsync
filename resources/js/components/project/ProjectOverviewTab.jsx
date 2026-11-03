@@ -1,11 +1,14 @@
 import { useTranslation } from 'react-i18next';
 import ProgressBar from '../ui/ProgressBar';
 import Card from '../../components/ui/Card';
+import { DevelopmentSummaryProvider } from '../../hooks/DevelopmentSummary';
+import RepositoriesOverview from './RepositoriesOverview';
 
 export default function ProjectOverviewTab({ lead, members, project, statuses }) {
     const { t } = useTranslation();
 
     return (
+        <DevelopmentSummaryProvider projectId={project.id}>
                 <div className="grid grid-cols-1 gap-5 lg:grid-cols-3">
                     <div className="space-y-5 lg:col-span-2">
                         <Card title={t('tms.project.detailsTitle')} subtitle={t('tms.project.detailsSubtitle', { id: project.workspace_id })}>
@@ -28,6 +31,7 @@ export default function ProjectOverviewTab({ lead, members, project, statuses })
                                 </div>
                             </dl>
                         </Card>
+                        <RepositoriesOverview />
                     </div>
                     <div className="space-y-5">
                         <Card title={t('tms.project.workflowTitle')}>
@@ -75,5 +79,6 @@ export default function ProjectOverviewTab({ lead, members, project, statuses })
                         </Card>
                     </div>
                 </div>
+        </DevelopmentSummaryProvider>
     );
 }

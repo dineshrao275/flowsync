@@ -106,11 +106,9 @@ function describe(t, action, data, task, projectId) {
     if (action === 'task.vcs_event') {
         return (
             <span className="align-middle">
-                {t('tms.activity.vcsLine', {
-                    kind: t(`tms.activity.vcsKind.${data?.kind}`, { defaultValue: data?.kind ?? '' }),
-                    state: data?.state ?? '',
-                    title: data?.title ?? '',
-                })}
+                {data?.url ? (
+                    <a href={data.url} target="_blank" rel="noreferrer" className="hover:underline">{vcsText(t, data)}</a>
+                ) : vcsText(t, data)}
             </span>
         );
     }
@@ -124,6 +122,14 @@ function describe(t, action, data, task, projectId) {
     }
     const key = ACTION_KEYS[action];
     return key ? t(`tms.activity.${key}`) : action;
+}
+
+function vcsText(t, data) {
+    return t('tms.activity.vcsLine', {
+        kind: t(`tms.activity.vcsKind.${data?.kind}`, { defaultValue: data?.kind ?? '' }),
+        state: data?.state ?? '',
+        title: data?.title ?? '',
+    });
 }
 
 export default function ActivityFeed({ task, projectId }) {

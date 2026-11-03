@@ -380,6 +380,8 @@ activity written once.
 
 ### Phase 6 — Development UI
 
+> **Status: done (2026-11-03).** Deviations: the board badge and Overview read one project-level `development/summary` (a single grouped query) instead of widening the board/list payloads; the Vitest error-path case for the panel was dropped because vitest's mock registry reports an intentionally rejected mock promise as unhandled (the shared `useResource`/`Resource` error path is covered by their own tests).
+
 **Goal:** developers see repo activity on the task.
 
 1. `GET projects/{project}/tasks/{task}/development` → `GitTaskPresenter`:
