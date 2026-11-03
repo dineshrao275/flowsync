@@ -80,6 +80,13 @@ describe('Integrations page', () => {
         await waitFor(() => expect(post).toHaveBeenCalledWith('/integrations/git/connections/u-1/sync'));
     });
 
+    it('surfaces the last sync failure', async () => {
+        get.mockResolvedValue({ data: { enabled: true, connections: [{ ...connection, sync_error: 'GitHub refused the request (500).' }] } });
+        renderPage();
+
+        expect(await screen.findByText(/last repository sync failed: GitHub refused the request/i)).toBeInTheDocument();
+    });
+
     it('shows the result GitHub redirected back with', async () => {
         get.mockResolvedValue({ data: { enabled: true, connections: [] } });
         renderPage('/integrations?git_error=This+installation+is+taken');

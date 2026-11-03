@@ -51,6 +51,9 @@ function ConnectionCard({ connection, canManage, onDisconnect, onSync }) {
                     <dd className="truncate text-fg">{connection.connected_by_name ?? '—'}</dd>
                 </div>
             </dl>
+            {connection.sync_error && (
+                <div className="mt-3"><Alert type="error">{t('admin.git.syncError', { error: connection.sync_error })}</Alert></div>
+            )}
             {connection.failed_deliveries_24h > 0 && (
                 <div className="mt-3"><Alert type="warning">{t('admin.git.failedDeliveries', { count: connection.failed_deliveries_24h })}</Alert></div>
             )}

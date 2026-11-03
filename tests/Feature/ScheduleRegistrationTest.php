@@ -45,6 +45,7 @@ class ScheduleRegistrationTest extends TestCase
             'tenants:prune-exports',
             'tenants:prune-drafts',
             'git:prune-deliveries',
+            'git:sync-installations --all',
             'events:prune --all',
             'automation:time-triggers --all',
             'tasks:sla-sweep --all',

@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\GitConnectionController;
+use App\Http\Controllers\GitRepositoryController;
 use App\Http\Controllers\GitWebhookController;
 use Illuminate\Support\Facades\Route;
 
@@ -19,6 +20,10 @@ Route::prefix('api')->group(function () {
     Route::middleware(['switch_tenant', 'auth', 'tenant', 'tenant_context', 'ensure_subscribed', 'onboarding_complete', 'ensure_product:tms', 'ensure_module:git'])->group(function () {
         Route::get('integrations/git/connections', [GitConnectionController::class, 'index'])->middleware('permission:git.view');
         Route::get('integrations/git/github/install', [GitConnectionController::class, 'install'])->middleware(['permission:git.manage', 'throttle:20,1']);
+        Route::get('integrations/git/repositories', [GitRepositoryController::class, 'index'])->middleware('permission:git.view');
+        Route::get('integrations/git/repositories/{uuid}/branches', [GitRepositoryController::class, 'branches'])->whereUuid('uuid')->middleware(['permission:git.view', 'throttle:60,1']);
+        Route::get('integrations/git/repositories/{uuid}/commits', [GitRepositoryController::class, 'commits'])->whereUuid('uuid')->middleware(['permission:git.view', 'throttle:60,1']);
+        Route::get('integrations/git/repositories/{uuid}/pull-requests', [GitRepositoryController::class, 'pullRequests'])->whereUuid('uuid')->middleware(['permission:git.view', 'throttle:60,1']);
         Route::post('integrations/git/connections/{uuid}/sync', [GitConnectionController::class, 'sync'])->whereUuid('uuid')->middleware(['permission:git.manage', 'throttle:10,1']);
         Route::delete('integrations/git/connections/{uuid}', [GitConnectionController::class, 'destroy'])->whereUuid('uuid')->middleware('permission:git.manage');
     });

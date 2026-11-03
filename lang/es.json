@@ -971,5 +971,10 @@
     "Connection not found.": "Conexión no encontrada.",
     "Git integration is not enabled on this server.": "La integración con Git no está habilitada en este servidor.",
     "Git account disconnected.": "Cuenta de Git desconectada.",
-    "Repository sync started.": "Sincronización de repositorios iniciada."
+    "Repository sync started.": "Sincronización de repositorios iniciada.",
+    "Invalid repository name.": "Nombre de repositorio no válido.",
+    "This repository is not available.": "Este repositorio no está disponible.",
+    "Repository not found.": "Repositorio no encontrado.",
+    "GitHub is not reachable right now. Try again shortly.": "GitHub no está disponible en este momento. Inténtalo de nuevo en breve.",
+    "GitHub is rate limiting requests; the next sync will retry.": "GitHub está limitando las solicitudes; la próxima sincronización lo reintentará."
 }

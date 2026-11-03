@@ -27,6 +27,8 @@ Schedule::command('reports:send-scheduled --all')->hourly()->withoutOverlapping(
 Schedule::command('events:prune --all')->dailyAt('03:45')->withoutOverlapping();
 // Git webhook delivery rows (replay guard + health log) past the retention window.
 Schedule::command('git:prune-deliveries')->dailyAt('03:35')->withoutOverlapping();
+// Git repository catalogs: webhooks keep them current, this daily sweep repairs any missed event.
+Schedule::command('git:sync-installations --all')->dailyAt('02:30')->withoutOverlapping();
 // Sign-up drafts that never finished (no database exists for them) are removed after a week.
 Schedule::command('tenants:prune-drafts')->dailyAt('03:30')->withoutOverlapping();
 // Impersonation is time-boxed; close the logs of sessions nobody touched again.

@@ -23,6 +23,7 @@ final class GitConnectionPresenter
             'connected_by_name' => $connection->connected_by_name,
             'connected_at' => $connection->created_at?->toIso8601String(),
             'last_synced_at' => $connection->last_synced_at?->toIso8601String(),
+            'sync_error' => ((array) $connection->settings)['sync_error'] ?? null,
             'last_delivery_at' => $health['last_delivery_at'] ?? null,
             'failed_deliveries_24h' => $health['failed_24h'] ?? 0,
         ];

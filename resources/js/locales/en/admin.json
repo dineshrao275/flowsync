@@ -1589,6 +1589,7 @@
         "failedDeliveries_one": "{{count}} GitHub event failed to process in the last 24 hours.",
         "failedDeliveries_other": "{{count}} GitHub events failed to process in the last 24 hours.",
         "syncNow": "Sync repositories",
-        "syncStarted": "Repository sync started."
+        "syncStarted": "Repository sync started.",
+        "syncError": "The last repository sync failed: {{error}}"
     }
 }

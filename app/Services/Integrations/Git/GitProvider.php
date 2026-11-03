@@ -29,6 +29,18 @@ interface GitProvider
      */
     public function installationRepositories(int $installationId, int $page = 1): array;
 
+    /** @return list<array{name: string, sha: string, protected: bool}> */
+    public function branches(int $installationId, string $fullName): array;
+
+    /** @return list<array{sha: string, message: string, author_login: ?string, author_name: ?string, html_url: ?string, committed_at: ?string}> */
+    public function commits(int $installationId, string $fullName, ?string $branch = null): array;
+
+    /** @return list<array{number: int, title: string, state: string, draft: bool, author_login: ?string, html_url: ?string, head_branch: ?string, base_branch: ?string, merged_at: ?string, updated_at: ?string}> */
+    public function pullRequests(int $installationId, string $fullName, string $state = 'all'): array;
+
+    /** Rolled-up check state of a commit/branch: none|pending|success|failure|neutral. */
+    public function checks(int $installationId, string $fullName, string $ref): string;
+
     /** Short-lived token for acting as the installation; cached encrypted until shortly before it expires. */
     public function installationToken(int $installationId): string;
 }

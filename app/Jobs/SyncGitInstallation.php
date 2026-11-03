@@ -7,6 +7,7 @@ namespace App\Jobs;
 use App\Models\GitConnection;
 use App\Services\Integrations\Git\GitProviderException;
 use App\Services\Integrations\Git\GitRepositorySync;
+use App\Services\PlatformAudit;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
@@ -32,9 +33,24 @@ class SyncGitInstallation implements ShouldQueue
         }
 
         try {
-            $sync->sync($connection);
+            $count = $sync->sync($connection);
+            $this->remember($connection, null);
+            app(PlatformAudit::class)->record(null, 'git.synced', 'git_connection', $connection->id, ['tenant_id' => $connection->tenant_id, 'repositories' => $count]);
         } catch (GitProviderException $e) {
             Log::warning('git.sync_failed', ['connection' => $connection->uuid, 'status' => $e->status]);
+            $this->remember($connection, $e->isRateLimited() ? __('GitHub is rate limiting requests; the next sync will retry.') : $e->getMessage());
         }
+    }
+
+    /** The last failure is shown to the tenant admin until a sync succeeds. */
+    private function remember(GitConnection $connection, ?string $error): void
+    {
+        $settings = (array) $connection->settings;
+        if ($error === null) {
+            unset($settings['sync_error']);
+        } else {
+            $settings['sync_error'] = $error;
+        }
+        $connection->forceFill(['settings' => $settings === [] ? null : $settings])->save();
     }
 }

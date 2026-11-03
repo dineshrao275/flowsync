@@ -297,6 +297,8 @@ unknown installation, disabled/revoked connection, malformed JSON, ping, disable
 
 ### Phase 3 — Repository catalog & browse APIs
 
+> **Status: done (2026-11-03).** Deviation: browse endpoints are keyed by repository uuid under `integrations/git/repositories/{uuid}/…` (picker preview); the project-scoped `projects/{p}/repositories/{link}/…` aliases arrive with the link table in Phase 4 and delegate to the same `GitRepositoryBrowser`.
+
 **Goal:** installation repositories are listed and browsable.
 
 1. `SyncGitInstallation` job:

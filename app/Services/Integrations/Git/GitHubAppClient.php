@@ -97,6 +97,79 @@ class GitHubAppClient implements GitProvider
         return ['repositories' => $repositories, 'next_page' => count($repositories) >= $perPage ? $page + 1 : null];
     }
 
+    public function branches(int $installationId, string $fullName): array
+    {
+        $rows = $this->repoGet($installationId, $fullName, 'branches');
+
+        return array_map(fn (array $b) => [
+            'name' => (string) $b['name'], 'sha' => (string) ($b['commit']['sha'] ?? ''), 'protected' => (bool) ($b['protected'] ?? false),
+        ], $rows);
+    }
+
+    public function commits(int $installationId, string $fullName, ?string $branch = null): array
+    {
+        $rows = $this->repoGet($installationId, $fullName, 'commits', array_filter(['sha' => $branch]));
+
+        return array_map(fn (array $c) => [
+            'sha' => (string) $c['sha'],
+            'message' => (string) strtok((string) ($c['commit']['message'] ?? ''), "\n"),
+            'author_login' => $c['author']['login'] ?? null,
+            'author_name' => $c['commit']['author']['name'] ?? null,
+            'html_url' => $c['html_url'] ?? null,
+            'committed_at' => $c['commit']['committer']['date'] ?? null,
+        ], $rows);
+    }
+
+    public function pullRequests(int $installationId, string $fullName, string $state = 'all'): array
+    {
+        $rows = $this->repoGet($installationId, $fullName, 'pulls', ['state' => $state, 'sort' => 'updated', 'direction' => 'desc']);
+
+        return array_map(fn (array $pr) => [
+            'number' => (int) $pr['number'],
+            'title' => (string) ($pr['title'] ?? ''),
+            'state' => ! empty($pr['merged_at']) ? 'merged' : (($pr['state'] ?? 'open') === 'closed' ? 'closed' : (! empty($pr['draft']) ? 'draft' : 'open')),
+            'draft' => (bool) ($pr['draft'] ?? false),
+            'author_login' => $pr['user']['login'] ?? null,
+            'html_url' => $pr['html_url'] ?? null,
+            'head_branch' => $pr['head']['ref'] ?? null,
+            'base_branch' => $pr['base']['ref'] ?? null,
+            'merged_at' => $pr['merged_at'] ?? null,
+            'updated_at' => $pr['updated_at'] ?? null,
+        ], $rows);
+    }
+
+    public function checks(int $installationId, string $fullName, string $ref): string
+    {
+        $runs = $this->repoGet($installationId, $fullName, 'commits/'.rawurlencode($ref).'/check-runs', [], 'check_runs');
+        $states = array_map(fn (array $r) => ($r['status'] ?? '') !== 'completed' ? 'pending' : (string) ($r['conclusion'] ?? 'neutral'), $runs);
+
+        return match (true) {
+            $states === [] => 'none',
+            array_intersect($states, ['failure', 'timed_out', 'cancelled', 'action_required', 'startup_failure']) !== [] => 'failure',
+            in_array('pending', $states, true) => 'pending',
+            in_array('success', $states, true) => 'success',
+            default => 'neutral',
+        };
+    }
+
+    /**
+     * One page of a repository collection. Pages are capped at `git.per_page` on purpose: callers get a
+     * bounded, cacheable slice, never an unbounded crawl of a big repository.
+     *
+     * @param  array<string, mixed>  $query
+     * @return list<array<string, mixed>>
+     */
+    private function repoGet(int $installationId, string $fullName, string $path, array $query = [], ?string $key = null): array
+    {
+        if (! preg_match('#^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$#', $fullName)) {
+            throw new GitProviderException(__('Invalid repository name.'));
+        }
+
+        $body = $this->decode($this->installationRequest($installationId)->get("/repos/{$fullName}/{$path}", $query + ['per_page' => (int) config('git.per_page')]));
+
+        return array_values((array) ($key === null ? $body : ($body[$key] ?? [])));
+    }
+
     public function installationToken(int $installationId): string
     {
         $key = "git:token:{$installationId}";
