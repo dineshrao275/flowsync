@@ -401,7 +401,7 @@ activity written once.
 
 ### Phase 7 — Write actions & smart commits (in scope)
 
-> **Status: done (2026-11-03).** Deviations: status-changing commands (`#close`, `#transition`) have their own per-link switch `smart_commit_transitions_enabled` (new migration `2026_12_15_000065`) on top of `smart_commits_enabled`; e-mail auto-match of identities is **not** built (explicit mapping only); `#time` logs are not yet marked with a `source` because `work_logs.source` lives on `feat/mcp-server` (see the merge note in AGENTS.md); identities are unique per `(provider, login)` and per user.
+> **Status: done (2026-11-03).** Deviations: status-changing commands (`#close`, `#transition`) have their own per-link switch `smart_commit_transitions_enabled` (new migration `2026_12_15_000065`) on top of `smart_commits_enabled`; e-mail auto-match of identities is **not** built (explicit mapping only); `#time` logs are stored with `work_logs.source='git'` (after the MCP merge) and excluded from HR attendance derivation; identities are unique per `(provider, login)` and per user.
 
 **Goal:** create branches and apply commit commands safely.
 
