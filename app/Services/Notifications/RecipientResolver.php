@@ -43,6 +43,12 @@ class RecipientResolver
     private const MAX_NAME_WORDS = 4;
 
     /**
+     * What the comment editor's autocomplete inserts: `@[Display Name](user:42)`. The id is the identity; the
+     * name is only what people read, so a rename or two people with the same name can never misdirect it.
+     */
+    private const ID_TOKEN = '/@\[[^\]\n]{1,100}\]\(user:(\d+)\)/';
+
+    /**
      * Resolves @mention tokens in text to users in the current tenant database.
      * A bare token (@viewer) matches email local part or name; a full mailbox
      * token (@viewer@flowsync.test) matches the exact email only; and a full
@@ -57,9 +63,15 @@ class RecipientResolver
      */
     public function mentionUsers(string $text): Collection
     {
-        preg_match_all('/@([\p{L}\p{N}._-]+(?:@[\p{L}\p{N}._-]+)?)((?:[ \t]+[\p{L}\p{N}._\'-]+){0,'.(self::MAX_NAME_WORDS - 1).'})/u', $text, $matches, PREG_SET_ORDER);
+        // 1) Explicit ids: one indexed lookup, exact by construction.
+        preg_match_all(self::ID_TOKEN, $text, $idMatches);
+        $byId = $idMatches[1] === [] ? collect() : User::query()->whereIn('id', array_unique(array_map('intval', $idMatches[1])))->get();
 
-        $users = collect();
+        // 2) Typed forms (API clients, MCP, hand-written): the rest of the text, tokens removed.
+        $rest = (string) preg_replace(self::ID_TOKEN, ' ', $text);
+        preg_match_all('/@([\p{L}\p{N}._-]+(?:@[\p{L}\p{N}._-]+)?)((?:[ \t]+[\p{L}\p{N}._\'-]+){0,'.(self::MAX_NAME_WORDS - 1).'})/u', $rest, $matches, PREG_SET_ORDER);
+
+        $users = $byId;
         foreach ($matches as $match) {
             $token = mb_strtolower($match[1]);
 
@@ -90,6 +102,12 @@ class RecipientResolver
         }
 
         return $users->unique('id')->values();
+    }
+
+    /** The comment as a person reads it: `@[Acme Corp Owner](user:1)` -> `@Acme Corp Owner` (notification snippets, mail). */
+    public static function plainText(string $text): string
+    {
+        return (string) preg_replace('/@\[([^\]\n]{1,100})\]\(user:\d+\)/', '@$1', $text);
     }
 
     /**

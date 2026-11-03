@@ -14,6 +14,16 @@ describe('HighlightedContent component', () => {
         expect(screen.getByText('@')).toBeInTheDocument();
     });
 
+    it('shows the name of an id-based mention, never the raw token', () => {
+        render(
+            <MemoryRouter>
+                <HighlightedContent content="Hi @[Acme Corp Owner](user:1), can you check?" />
+            </MemoryRouter>
+        );
+        expect(screen.getByText('Acme Corp Owner')).toBeInTheDocument();
+        expect(screen.queryByText(/user:1/)).not.toBeInTheDocument();
+    });
+
     it('highlights task keys with clickable TaskBadge', () => {
         render(
             <MemoryRouter>

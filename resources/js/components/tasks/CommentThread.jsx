@@ -191,7 +191,9 @@ export default function CommentThread({ task, projectId, isManager, targetCommen
 
     function selectSuggestion(member) {
         const { value, at, caret } = sugText;
-        const next = `${value.slice(0, at)}@${member.name} ${value.slice(caret)}`;
+        // The id is what the server resolves; the name is only what people read.
+        const token = `@[${member.name}](user:${member.id}) `;
+        const next = `${value.slice(0, at)}${token}${value.slice(caret)}`;
         if (sugField === 'comment') setNewComment(next);
         else if (sugField === 'reply') setReplyText(next);
         else if (sugField === 'edit') setEditingText(next);
@@ -201,7 +203,7 @@ export default function CommentThread({ task, projectId, isManager, targetCommen
             const el = sugAnchor.current;
             if (el) {
                 el.focus();
-                const pos = at + member.name.length + 2;
+                const pos = at + token.length;
                 el.setSelectionRange(pos, pos);
             }
         });

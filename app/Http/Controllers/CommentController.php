@@ -9,6 +9,7 @@ use App\Models\Comment;
 use App\Models\Project;
 use App\Models\Task;
 use App\Services\ActivityLogger;
+use App\Services\Notifications\RecipientResolver;
 use App\Services\NotificationService;
 use App\Support\Realtime;
 use Illuminate\Http\JsonResponse;
@@ -53,7 +54,7 @@ class CommentController extends Controller
             subjectType: Task::class,
             subjectId: $task->id,
             action: 'task.commented',
-            data: ['comment_id' => $comment->id, 'snippet' => mb_strimwidth($data['comment'], 0, 120, '…')],
+            data: ['comment_id' => $comment->id, 'snippet' => mb_strimwidth(RecipientResolver::plainText($data['comment']), 0, 120, '…')],
             actor: $request->user(),
             ipAddress: $request->ip(),
         );

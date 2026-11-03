@@ -89,14 +89,14 @@ describe('CommentThread', () => {
 
         fireEvent.click(memberOption);
 
-        expect(composer.value).toBe('Hey @Adrian Lopez ');
+        expect(composer.value).toBe('Hey @[Adrian Lopez](user:42) ');
 
         const postBtn = screen.getByRole('button', { name: /^post/i });
         fireEvent.click(postBtn);
 
         await waitFor(() => {
             expect(postSpy).toHaveBeenCalledWith('/projects/5/tasks/10/comments', {
-                comment: 'Hey @Adrian Lopez',
+                comment: 'Hey @[Adrian Lopez](user:42)',
             });
         });
     });
@@ -139,7 +139,7 @@ describe('CommentThread', () => {
         // Press Enter to choose
         fireEvent.keyDown(composer, { key: 'Enter' });
 
-        expect(composer.value).toBe('@Chloe Alvarez ');
+        expect(composer.value).toBe('@[Chloe Alvarez](user:43) ');
         expect(screen.queryByText('adrian@flowsync.test')).not.toBeInTheDocument();
     });
 });
