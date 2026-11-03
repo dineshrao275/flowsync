@@ -28,7 +28,8 @@ class ApiTokenController extends Controller
             'tokens' => ApiToken::where('user_id', $request->user()->id)->orderByDesc('id')->get()->map(fn (ApiToken $t) => $this->present($t)),
             // Only what the caller actually holds can be granted.
             'abilities' => collect((array) config('api.abilities'))
-                ->filter(fn ($label, $slug) => $request->user()->hasPermission($slug))
+                ->reject(fn ($label, $slug) => in_array($slug, (array) config('api.legacy_abilities'), true))
+                ->filter(fn ($label, $slug) => $this->tokens->userHoldsAbility($request->user(), $slug))
                 ->map(fn ($label, $slug) => ['slug' => $slug, 'label' => $label])->values(),
             'max_rate_limit' => (int) config('api.max_rate_limit'),
             'default_rate_limit' => (int) config('api.default_rate_limit'),

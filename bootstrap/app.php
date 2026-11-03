@@ -4,6 +4,8 @@ use App\Billing\Stripe\BillingProviderException;
 use App\Http\Middleware\ApplyAppName;
 use App\Http\Middleware\AssignRequestId;
 use App\Http\Middleware\AuthenticateApiToken;
+use App\Http\Middleware\ConvertApiMarkdown;
+use App\Http\Middleware\HrmsReadOnly;
 use App\Http\Middleware\EnforceIdempotency;
 use App\Http\Middleware\EnsureFeatureFlag;
 use App\Http\Middleware\EnsureModule;
@@ -85,6 +87,8 @@ return Application::configure(basePath: dirname(__DIR__))
             'api_token' => AuthenticateApiToken::class,
             'token_can' => TokenCan::class,
             'idempotent' => EnforceIdempotency::class,
+            'api_markdown' => ConvertApiMarkdown::class,
+            'hrms_read_only' => HrmsReadOnly::class,
         ]);
 
         // Middleware priority (Laravel SortedMiddleware) — the framework sorts the

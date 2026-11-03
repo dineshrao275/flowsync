@@ -153,7 +153,7 @@ class ApiTokenTest extends TestCase
         $this->postJson('/api/auth/logout');
         $this->flushSession();
 
-        $this->getJson('/api/v1/projects', $this->bearer($plain))->assertForbidden()->assertSee('workspaces.view');
+        $this->getJson('/api/v1/projects', $this->bearer($plain))->assertForbidden()->assertSee('tms.read');
     }
 
     public function test_the_owner_losing_their_rights_narrows_the_token(): void

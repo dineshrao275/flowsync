@@ -261,6 +261,7 @@ return [
                 'dashboard.view', 'users.view', 'reports.view',
                 'content.manage', 'settings.theme', 'settings.view',
                 'workspaces.view', 'workspaces.create', 'git.view',
+                'api.manage',
                 'hrms.view',
                 // Self-service reads only: no legacy `hrms.*.view`, so no
                 // tenant-wide rows.
@@ -284,6 +285,7 @@ return [
             'name' => 'Manager',
             'permissions' => [
                 'dashboard.view', 'users.view', 'reports.view', 'workspaces.view',
+                'api.manage',
                 'hrms.view',
                 ...$scopeOwnSlugs,
                 ...$managerAssignedSlugs,

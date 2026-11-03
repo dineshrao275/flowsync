@@ -63,6 +63,30 @@ jobs:
       - run: npm test
       - run: npm run build
 
+  mcp:
+    name: MCP server (contract, protocol, client)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          coverage: none
+      - uses: actions/cache@v4
+        with:
+          path: vendor
+          key: composer-${{ hashFiles('composer.lock') }}
+      - run: cp .env.example .env
+      - run: composer install --no-interaction --no-progress --prefer-dist
+      - run: php artisan key:generate --no-interaction
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: mcp/package-lock.json
+      - run: npm --prefix mcp ci
+      - run: npm --prefix mcp test
+
   # The suite (~1900 tests, each seeding fresh sqlite DBs) takes hours
   # sequentially. It shards by test-class prefix — five disjoint,
   # letter-balanced filters (verified: every class in exactly one shard,

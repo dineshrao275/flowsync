@@ -3,7 +3,7 @@
   "info": {
     "title": "FlowSync API",
     "version": "1.0.0",
-    "description": "Bearer-token API. Create a personal API token in Settings \u2192 API tokens (needs the API module). A token carries abilities and may be read-only; its effective rights are its abilities AND what its owner still holds. Errors: 401 for any bad credential (indistinguishable by design), 403 for missing ability/module/permission, 422 for validation, 429 when the per-token rate limit is exceeded."
+    "description": "Bearer-token API. Create a personal API token in Settings → API tokens (needs the API module). A token carries abilities and may be read-only; its effective rights are its abilities AND what its owner still holds. Errors: 401 for any bad credential (indistinguishable by design), 403 for missing ability/module/permission, 422 for validation, 429 when the per-token rate limit is exceeded."
   },
   "servers": [
     {
@@ -30,6 +30,30 @@
         "required": true,
         "schema": {
           "type": "integer"
+        }
+      },
+      "workspace": {
+        "name": "workspace",
+        "in": "path",
+        "required": true,
+        "schema": {
+          "type": "integer"
+        }
+      },
+      "task": {
+        "name": "task",
+        "in": "path",
+        "required": true,
+        "schema": {
+          "type": "integer"
+        }
+      },
+      "key": {
+        "name": "key",
+        "in": "path",
+        "required": true,
+        "schema": {
+          "type": "string"
         }
       },
       "idempotencyKey": {
@@ -121,13 +145,16 @@
             "nullable": true
           },
           "story_points": {
-            "type": "number",
+            "type": "integer",
             "nullable": true
           },
-          "custom_fields": {
-            "type": "object",
-            "description": "Present when the plan includes custom fields.",
-            "additionalProperties": true
+          "created_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time"
           }
         }
       },
@@ -143,7 +170,7 @@
           },
           "description": {
             "type": "string",
-            "nullable": true
+            "description": "Task description. Through the token API this is Markdown: the server converts it to the sanitised HTML the app stores and displays (raw HTML in the input is stripped). Reads return the stored HTML."
           },
           "status_id": {
             "type": "integer"
@@ -163,44 +190,112 @@
             "format": "date"
           },
           "estimate_minutes": {
-            "type": "integer",
-            "minimum": 0
+            "type": "integer"
           },
           "story_points": {
-            "type": "number"
-          },
-          "labels": {
-            "type": "array",
-            "items": {
-              "type": "integer"
-            }
-          },
-          "custom_fields": {
-            "type": "object",
-            "additionalProperties": true
+            "type": "integer"
           }
         }
       }
-    },
-    "responses": {}
+    }
   },
   "paths": {
     "/me": {
       "get": {
-        "summary": "The token's owner and its abilities",
+        "operationId": "getMe",
+        "summary": "Caller identity, token metadata, enabled modules and usage",
         "responses": {
           "200": {
             "description": "OK"
           },
           "401": {
-            "description": "Invalid credential"
+            "description": "Invalid or expired token"
+          }
+        }
+      }
+    },
+    "/workspaces": {
+      "get": {
+        "operationId": "listWorkspaces",
+        "summary": "List workspaces the caller can access",
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "403": {
+            "description": "Missing ability or module"
+          }
+        }
+      }
+    },
+    "/workspaces/{workspace}": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/workspace"
+        }
+      ],
+      "get": {
+        "operationId": "getWorkspace",
+        "summary": "Get workspace details",
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "403": {
+            "description": "Missing ability or module"
+          },
+          "404": {
+            "description": "Workspace not found"
           }
         }
       }
     },
     "/projects": {
       "get": {
+        "operationId": "listProjects",
         "summary": "Projects the token's owner can see",
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "403": {
+            "description": "Missing ability or module"
+          }
+        }
+      }
+    },
+    "/projects/{project}": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/project"
+        }
+      ],
+      "get": {
+        "operationId": "getProject",
+        "summary": "Get project details with statuses and members",
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "403": {
+            "description": "Missing ability or module"
+          },
+          "404": {
+            "description": "Project not found"
+          }
+        }
+      }
+    },
+    "/projects/{project}/sprints": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/project"
+        }
+      ],
+      "get": {
+        "operationId": "listSprints",
+        "summary": "List project sprints",
+        "description": "Needs the sprints module.",
         "responses": {
           "200": {
             "description": "OK"
@@ -218,8 +313,9 @@
         }
       ],
       "get": {
+        "operationId": "listTasks",
         "summary": "List a project's tasks",
-        "description": "Use view=list for a paginated list (per_page \u2264 100). Filters: status_id, priority_id, assignee_id, label_id, issue_type_id, version_id, epic_id, component_id, sprint, q, due_from, due_to, cf[key], jql (advanced query; needs the JQL module).",
+        "description": "Use view=list for a paginated list (per_page ≤ 100). Filters: status_id, priority_id, assignee_id, label_id, issue_type_id, version_id, epic_id, component_id, sprint, q, due_from, due_to, cf[key], jql (advanced query; needs the JQL module).",
         "parameters": [
           {
             "name": "view",
@@ -276,6 +372,7 @@
         }
       },
       "post": {
+        "operationId": "createTask",
         "summary": "Create a task",
         "description": "Requires a write token. Send an Idempotency-Key header to make retries safe.",
         "parameters": [
@@ -321,8 +418,317 @@
         }
       }
     },
+    "/projects/{project}/tasks/key/{key}": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/project"
+        },
+        {
+          "$ref": "#/components/parameters/key"
+        }
+      ],
+      "get": {
+        "operationId": "getTaskByKey",
+        "summary": "Get task by project key (e.g. QA-12)",
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "403": {
+            "description": "Missing ability or no access"
+          },
+          "404": {
+            "description": "Task not found"
+          }
+        }
+      }
+    },
+    "/projects/{project}/tasks/{task}": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/project"
+        },
+        {
+          "$ref": "#/components/parameters/task"
+        }
+      ],
+      "get": {
+        "operationId": "getTask",
+        "summary": "Get task by ID",
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "403": {
+            "description": "Missing ability or no access"
+          },
+          "404": {
+            "description": "Task not found"
+          }
+        }
+      },
+      "put": {
+        "operationId": "updateTask",
+        "summary": "Update task fields",
+        "description": "Requires a write token.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/idempotencyKey"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TaskInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "403": {
+            "description": "Read-only token or forbidden"
+          },
+          "422": {
+            "description": "Validation or workflow refusal"
+          }
+        }
+      }
+    },
+    "/projects/{project}/tasks/{task}/comments": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/project"
+        },
+        {
+          "$ref": "#/components/parameters/task"
+        }
+      ],
+      "get": {
+        "operationId": "listComments",
+        "summary": "List task comments",
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "403": {
+            "description": "Missing ability or no access"
+          }
+        }
+      },
+      "post": {
+        "operationId": "addComment",
+        "summary": "Add a comment to a task",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/idempotencyKey"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "comment"
+                ],
+                "properties": {
+                  "comment": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Created"
+          },
+          "403": {
+            "description": "Read-only token or forbidden"
+          },
+          "422": {
+            "description": "Validation failed"
+          }
+        }
+      }
+    },
+    "/projects/{project}/tasks/{task}/work-logs": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/project"
+        },
+        {
+          "$ref": "#/components/parameters/task"
+        }
+      ],
+      "get": {
+        "operationId": "listWorkLogs",
+        "summary": "List work logs on a task",
+        "description": "Needs the time_tracking module.",
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "403": {
+            "description": "Missing ability or module"
+          }
+        }
+      },
+      "post": {
+        "operationId": "logTime",
+        "summary": "Log time on a task",
+        "description": "Needs the time_tracking module and write token.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/idempotencyKey"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "duration_minutes"
+                ],
+                "properties": {
+                  "duration_minutes": {
+                    "type": "integer",
+                    "minimum": 1
+                  },
+                  "description": {
+                    "type": "string"
+                  },
+                  "started_at": {
+                    "type": "string",
+                    "format": "date-time"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Created"
+          },
+          "403": {
+            "description": "Read-only token or forbidden"
+          },
+          "422": {
+            "description": "Validation failed"
+          }
+        }
+      }
+    },
+    "/projects/{project}/tasks/{task}/transitions": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/project"
+        },
+        {
+          "$ref": "#/components/parameters/task"
+        }
+      ],
+      "get": {
+        "operationId": "getTaskTransitions",
+        "summary": "Allowed workflow target statuses and blocker reasons",
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "403": {
+            "description": "Missing ability or no access"
+          }
+        }
+      }
+    },
+    "/projects/{project}/tasks/{task}/activities": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/project"
+        },
+        {
+          "$ref": "#/components/parameters/task"
+        }
+      ],
+      "get": {
+        "operationId": "listTaskActivities",
+        "summary": "Audit history and activity feed of a task",
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "403": {
+            "description": "Missing ability or no access"
+          }
+        }
+      }
+    },
+    "/projects/{project}/tasks/{task}/move": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/project"
+        },
+        {
+          "$ref": "#/components/parameters/task"
+        },
+        {
+          "$ref": "#/components/parameters/idempotencyKey"
+        }
+      ],
+      "post": {
+        "operationId": "moveTask",
+        "summary": "Move task to another status or position",
+        "description": "Returns 200 on immediate move, or 202 if the move requires workflow manager approval.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "status_id"
+                ],
+                "properties": {
+                  "status_id": {
+                    "type": "integer"
+                  },
+                  "index": {
+                    "type": "integer"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Task moved"
+          },
+          "202": {
+            "description": "Move requested, pending approval"
+          },
+          "403": {
+            "description": "Read-only token or forbidden"
+          },
+          "422": {
+            "description": "Workflow or blocker refusal"
+          }
+        }
+      }
+    },
     "/search/tasks": {
       "get": {
+        "operationId": "searchTasks",
         "summary": "Search tasks across the projects the owner can see",
         "description": "Needs the global_search module.",
         "parameters": [
@@ -368,6 +774,7 @@
     },
     "/hrms/employees": {
       "get": {
+        "operationId": "listEmployees",
         "summary": "Employee directory (masked personal fields)",
         "description": "Needs the hrms.view ability and the HRMS core module.",
         "parameters": [

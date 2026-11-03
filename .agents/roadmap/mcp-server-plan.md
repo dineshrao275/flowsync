@@ -1,6 +1,7 @@
 # FlowSync MCP Server — Phase-wise Implementation Plan
 
-> Status: **plan only — do not implement until approved.**
+> Status: **implemented (v1.0.0)** in `mcp/`; remaining gates are the manual pilot matrix in
+> `docs/mcp-runbook.md` §4 and the real-agent smoke in §2.2. This document stays as the design record.
 > Scope: application-data MCP for TMS, so coding agents (Claude Code, opencode, Cursor, VS Code)
 > can read and write workspaces, projects, tasks, comments and work logs through `/api/v1`.
 > This is **separate** from `.agents/orchestrator/mcp-server/` (the dev-workflow MCP).
@@ -717,3 +718,42 @@ time; `Idempotency-Key` length and the 409/422 replay semantics; `usage_limit` v
 `config/subscriptions.php`; `token_can` honours `*`; `integration_logs` is written for 403/422/429 as well as 2xx; the task
 list is page-based with `per_page` ≤ 100 and `page`; task create, update (with `assign` authorization), move, comment and
 work-log routes all exist on the session side and can be reused.
+
+## 13. Post-implementation review (2026-11-03) — what was found in the built code and what was done
+
+The implementation (branch `feat/mcp-server`, `mcp/` v1.0.0) was compared with this plan and run. Fixed in `mcp/` v1.0.1
+and the matching server commit:
+
+| Finding | Resolution |
+|---|---|
+| `TaskController` was 303 lines (limit 300): the branch failed `ClassSizeCeilingTest`, i.e. CI shard 1 | `presentSeen` now takes the request; 299 lines |
+| A legacy `workspaces.view` write token silently gained `tms.write` (edit, move, comment, log time) | `ApiToken::allows` never infers `tms.write`; `TokenCan` is any-of; only `POST …/tasks` also accepts the legacy ability; the token form stops offering it |
+| Task descriptions are HTML in the app but the tools promised Markdown (and the ADR claimed markup was stripped) | `api_markdown` middleware converts Markdown → sanitised HTML on token task writes; read tools return capped Markdown |
+| `npx flowsync-mcp` / `.bin` symlink launches exited silently | `isMainModule()` compares real paths; covered by a spawn-through-symlink test |
+| A timed-out write could be re-run as a duplicate; no guidance | the same identical call reuses its `Idempotency-Key` for 10 min; the error says the write may have been applied |
+| Tool failures were JSON-RPC errors; no argument validation | `isError` results with `structuredContent.error`; arguments validated before any request |
+| Contract test used hand-written maps and skipped in CI when `route:list` failed | it reads the tools' real calls from source, checks OpenAPI + `route:list` + each route's `token_can`; fails (not skips) in CI |
+| opencode example used a wrong schema and `${VAR}` | rewritten to opencode's current schema with `{env:VAR}` |
+| "Agent Preset" selected every ability including `hrms.view` | selects `tms.read` + `tms.write` only |
+| `log_time` invented a 30-minute duration; comments/projects unbounded; untrusted-data note only in server instructions; `::1` check never matched; version in two places; exited-owner 401 message misleading and not audited | fixed (see `mcp/CHANGELOG.md` 1.0.1) |
+
+Deliberately not done, and why:
+- **User-Agent stored in `integration_logs`** — needs a tenant migration; the claim was removed from the docs (ADR 004 §7).
+- **Admin listing/revoking other users' tokens** — the token endpoints are own-only; mitigated by revoke-on-exit. Needs its own UI and permission decision.
+- **Server-side comment pagination** — the comments endpoint returns the whole thread; the MCP tool caps it (newest 100).
+- **Inspector smoke, real-agent smoke (Claude Code, opencode) and the pilot matrix** remain manual gates (`docs/mcp-runbook.md` §2, §4).
+
+### 13.1 Authorization matrix and HR read-only (2026-11-03)
+
+Checked first, then fixed. Already correct (now pinned by `ApiV1AuthorizationMatrixTest`): a token is only as strong as its owner's role
+in each project (a project Viewer cannot edit, move, create or log time even with a write token; comments are allowed because the
+role grants `comments.create`), a user with no write grant anywhere cannot mint `tms.write`, a non-member reaches nothing,
+`tasks.edit_own` limits a token to the owner's own tasks, a bearer token is refused by every session route, the Viewer tenant role
+cannot create a token, and the HRMS directory through a token equals what the owner sees in the app.
+
+HR data: the rule is "task work is allowed, HR writes are not". Gaps closed: the HRMS routes had no structural read-only guard
+(`hrms_read_only`); completing a task through a token refreshed the linked performance goal's evidence from inside the call (now
+skipped for tokens via `ApiCallContext`; the app still refreshes it); and time logged through a token fed the nightly attendance
+derivation (token logs now carry `work_logs.source = 'api'` and are excluded). An earlier cut of this work made HR-linked tasks
+read-only for tokens; that was too strict and was removed. Not changed: the nightly goal sweep (HR's own job) still reflects a
+completed task's real state, and goal metrics that count work-log hours still include agent-written hours.

@@ -232,6 +232,7 @@
         "checklistUncheckedTitle": "desmarcó el elemento «{{title}}» de la lista de verificación",
         "checklistRemoved": "quitó un elemento de la lista de verificación",
         "checklistRemovedTitle": "quitó el elemento «{{title}}» de la lista de verificación",
+        "viaApi": "vía API",
         "someone": "Alguien",
         "empty": "Aún no hay actividad.",
         "loadFailed": "No se pudo cargar la actividad.",
