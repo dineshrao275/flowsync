@@ -31,6 +31,7 @@ class GitConnectionService
         private readonly TenantDatabaseManager $databases,
         private readonly TenantLimits $limits,
         private readonly PlatformAudit $audit,
+        private readonly ProjectRepositoryService $links,
     ) {}
 
     public function installUrl(Tenant $tenant, User $user): string
@@ -154,6 +155,9 @@ class GitConnectionService
         $connection->forceFill([
             'status' => GitConnection::STATUS_REVOKED, 'revoked_at' => now(), 'access_token' => null, 'refresh_token' => null,
         ])->save();
+
+        // Projects keep their links (history) but stop following a connection that no longer exists.
+        $this->databases->using($tenant, fn () => $this->links->pauseForConnection($connection->uuid));
 
         $this->audit->record($request, 'git.disconnected', 'git_connection', $connection->id, [
             'tenant_id' => $tenant->id, 'installation_id' => $connection->installation_id, 'account' => $connection->account_login,

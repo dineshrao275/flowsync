@@ -6,6 +6,7 @@ namespace App\Services\Integrations\Git;
 
 use App\Models\GitConnection;
 use App\Models\GitRepository;
+use App\Models\ProjectRepository;
 use App\Models\Tenant;
 use App\Support\Like;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
@@ -34,6 +35,16 @@ class GitRepositoryCatalog
     {
         return GitRepository::query()->with('connection')->where('uuid', $uuid)
             ->whereIn('git_connection_id', $this->connectionIds($tenant))->first()
+            ?? throw new GitConnectionException(__('Repository not found.'), 404);
+    }
+
+    /** The catalog row a project link follows, still restricted to this tenant's active connections. */
+    public function findForLink(Tenant $tenant, ProjectRepository $link): GitRepository
+    {
+        $connection = GitConnection::query()->where('tenant_id', $tenant->id)->where('uuid', $link->git_connection_uuid)->first();
+
+        return GitRepository::query()->with('connection')->where('git_connection_id', $connection?->id ?? 0)
+            ->where('provider_repo_id', $link->provider_repo_id)->first()
             ?? throw new GitConnectionException(__('Repository not found.'), 404);
     }
 

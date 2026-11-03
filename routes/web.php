@@ -376,11 +376,8 @@ Route::prefix('api')->group(function () {
         ->name('exports.download');
 });
 
-// Bearer-token API (/api/v1, P2.7): its own middleware stack, no session group.
-require __DIR__.'/web/platform_engines_v1.php';
-
-// Git integration (GitHub App): connection lifecycle, then repositories and webhooks in later phases.
-require __DIR__.'/web/git.php';
+// Bearer-token API (/api/v1, P2.7) and the Git integration (GitHub App), each with its own middleware stack.
+require __DIR__.'/web/platform_engines_v1.php'; require __DIR__.'/web/git.php';
 
 // Public contact endpoint (outside auth/tenant groups).
 Route::post('api/contact', [ContactController::class, 'store'])->middleware('throttle:10,1');

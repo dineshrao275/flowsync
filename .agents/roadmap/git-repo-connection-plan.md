@@ -321,6 +321,8 @@ HTTP fake contract, 429/backoff, no cross-tenant leak.
 
 ### Phase 4 — Per-project repository linking
 
+> **Status: done (2026-11-03).** Deviations: permissions/module/plans were already added in Phase 1; the `repositories` summary on the project payload is not added (the panel and the Phase 6 Overview read the list endpoint, so project lists pay no extra query); unlink with linked data uses the explicit `remove_linked_data` flag and a second confirm in the UI. Phases 1-3 had left two ratchet tests red (inline `validate()` in controllers, `routes/web.php` size); fixed here with FormRequests and a merged `require` line.
+
 **Goal:** project managers link repositories to a project.
 
 1. tenant_tms migration `..._create_project_repositories_table.php` (SQLite/PG safe).

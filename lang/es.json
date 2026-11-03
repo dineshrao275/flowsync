@@ -976,5 +976,10 @@
     "This repository is not available.": "Este repositorio no está disponible.",
     "Repository not found.": "Repositorio no encontrado.",
     "GitHub is not reachable right now. Try again shortly.": "GitHub no está disponible en este momento. Inténtalo de nuevo en breve.",
-    "GitHub is rate limiting requests; the next sync will retry.": "GitHub está limitando las solicitudes; la próxima sincronización lo reintentará."
+    "GitHub is rate limiting requests; the next sync will retry.": "GitHub está limitando las solicitudes; la próxima sincronización lo reintentará.",
+    "That repository is not available to this organization.": "Ese repositorio no está disponible para esta organización.",
+    "This repository is already linked to the project.": "Este repositorio ya está vinculado al proyecto.",
+    "Repository linked.": "Repositorio vinculado.",
+    "Repository settings saved.": "Ajustes del repositorio guardados.",
+    "Repository unlinked.": "Repositorio desvinculado."
 }

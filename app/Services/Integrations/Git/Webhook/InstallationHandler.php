@@ -6,13 +6,14 @@ namespace App\Services\Integrations\Git\Webhook;
 
 use App\Jobs\SyncGitInstallation;
 use App\Models\GitConnection;
+use App\Services\Integrations\Git\ProjectRepositoryService;
 use App\Services\PlatformAudit;
 use Illuminate\Support\Facades\Cache;
 
 /** `installation` events: GitHub tells us the app was removed, suspended, resumed or re-permissioned. */
 class InstallationHandler
 {
-    public function __construct(private readonly PlatformAudit $audit) {}
+    public function __construct(private readonly PlatformAudit $audit, private readonly ProjectRepositoryService $links) {}
 
     /** @param  array<string, mixed>  $payload */
     public function handle(GitConnection $connection, string $action, array $payload): string
@@ -34,6 +35,8 @@ class InstallationHandler
             'status' => GitConnection::STATUS_REVOKED, 'revoked_at' => now(), 'access_token' => null, 'refresh_token' => null,
         ])->save();
         Cache::forget("git:token:{$connection->installation_id}");
+        // Runs inside the tenant DB (ProcessGitWebhook), where the project links live.
+        $this->links->pauseForConnection($connection->uuid);
         $this->audit->record(null, 'git.revoked_by_provider', 'git_connection', $connection->id, [
             'tenant_id' => $connection->tenant_id, 'account' => $connection->account_login,
         ]);

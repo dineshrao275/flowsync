@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\GitSetupRequest;
 use App\Models\Tenant;
 use App\Services\Integrations\Git\GitConnectionException;
 use App\Services\Integrations\Git\GitConnectionPresenter;
@@ -66,13 +67,9 @@ class GitConnectionController extends Controller
      * GitHub's post-installation redirect. Public by nature (the state it carries is the proof),
      * so it never answers with data: it sends the browser back to the SPA with a result flag.
      */
-    public function setup(Request $request): RedirectResponse
+    public function setup(GitSetupRequest $request): RedirectResponse
     {
-        $data = $request->validate([
-            'state' => ['required', 'string', 'max:2000'],
-            'installation_id' => ['required', 'integer', 'min:1'],
-            'code' => ['nullable', 'string', 'max:255'],
-        ]);
+        $data = $request->validated();
 
         try {
             $this->connections->handleSetup($data['state'], (int) $data['installation_id'], $data['code'] ?? null, $request);
