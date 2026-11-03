@@ -39,23 +39,29 @@ class RecipientResolver
             ->all();
     }
 
+    /** Words after an `@` that may still belong to a full name ("@Acme Corp Owner"). */
+    private const MAX_NAME_WORDS = 4;
+
     /**
      * Resolves @mention tokens in text to users in the current tenant database.
      * A bare token (@viewer) matches email local part or name; a full mailbox
-     * token (@viewer@flowsync.test) matches the exact email only. Both are
-     * case-insensitive, and a full mailbox that belongs to a different tenant
-     * resolves to nobody rather than pinging a same-tenant user who happens to
-     * share its local part (owner@globex.test must never notify owner@acme.test).
+     * token (@viewer@flowsync.test) matches the exact email only; and a full
+     * display name, which is what the comment editor's autocomplete inserts
+     * (`@Acme Corp Owner`), matches that name exactly (the longest run of words
+     * wins, so trailing prose is ignored). All are case-insensitive, and a full
+     * mailbox that belongs to a different tenant resolves to nobody rather than
+     * pinging a same-tenant user who happens to share its local part
+     * (owner@globex.test must never notify owner@acme.test).
      *
      * @return Collection<int, User>
      */
     public function mentionUsers(string $text): Collection
     {
-        preg_match_all('/@([A-Za-z0-9._-]+(?:@[A-Za-z0-9._-]+)?)/', $text, $matches);
+        preg_match_all('/@([\p{L}\p{N}._-]+(?:@[\p{L}\p{N}._-]+)?)((?:[ \t]+[\p{L}\p{N}._\'-]+){0,'.(self::MAX_NAME_WORDS - 1).'})/u', $text, $matches, PREG_SET_ORDER);
 
         $users = collect();
-        foreach ($matches[1] as $token) {
-            $token = mb_strtolower($token);
+        foreach ($matches as $match) {
+            $token = mb_strtolower($match[1]);
 
             $query = User::query()->where(function ($query) use ($token) {
                 if (str_contains($token, '@')) {
@@ -65,8 +71,22 @@ class RecipientResolver
                         ->orWhereRaw('LOWER(name) = ?', [$token]);
                 }
             });
+            $found = $query->get();
 
-            $users = $users->concat($query->get());
+            // "@Acme Corp Owner": try the longest run of words first, then shorter ones.
+            if (! str_contains($token, '@') && trim($match[2] ?? '') !== '') {
+                $words = preg_split('/[ \t]+/', trim($match[2]));
+                for ($n = count($words); $n >= 1; $n--) {
+                    $name = mb_strtolower($match[1].' '.implode(' ', array_slice($words, 0, $n)));
+                    $named = User::query()->whereRaw('LOWER(name) = ?', [$name])->get();
+                    if ($named->isNotEmpty()) {
+                        $found = $found->concat($named);
+                        break;
+                    }
+                }
+            }
+
+            $users = $users->concat($found);
         }
 
         return $users->unique('id')->values();
