@@ -9,6 +9,7 @@ import Timestamp from '../ui/Timestamp';
 import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
 import { useConfirm } from '../ui/ConfirmDialog';
+import { embedMentions, revealMentions } from '../../utils/mentions';
 import api from '../../services/api';
 import { caretRect } from '../../utils/caret';
 import { onRealtimeReconnect } from '../../utils/realtimeAuth';
@@ -33,6 +34,8 @@ export default function CommentThread({ task, projectId, isManager, targetCommen
     const mainTextareaRef = useRef(null);
     const replyTextareaRef = useRef(null);
     const editTextareaRef = useRef(null);
+    // Who was picked from the autocomplete in each box: ids stay here, out of the text people see.
+    const pickedRef = useRef({ comment: [], reply: [], edit: [] });
 
     const [sugField, setSugField] = useState(null);
     const [suggestions, setSuggestions] = useState([]);
@@ -191,8 +194,9 @@ export default function CommentThread({ task, projectId, isManager, targetCommen
 
     function selectSuggestion(member) {
         const { value, at, caret } = sugText;
-        // The id is what the server resolves; the name is only what people read.
-        const token = `@[${member.name}](user:${member.id}) `;
+        // The box shows a plain "@Name"; the id is remembered beside it and joined back in on send.
+        const token = `@${member.name} `;
+        pickedRef.current[sugField] = [...pickedRef.current[sugField], { id: member.id, name: member.name }];
         const next = `${value.slice(0, at)}${token}${value.slice(caret)}`;
         if (sugField === 'comment') setNewComment(next);
         else if (sugField === 'reply') setReplyText(next);
@@ -231,12 +235,13 @@ export default function CommentThread({ task, projectId, isManager, targetCommen
 
     function submitComment(e) {
         if (e?.preventDefault) e.preventDefault();
-        const body = { comment: newComment.trim() };
+        const body = { comment: embedMentions(newComment.trim(), pickedRef.current.comment) };
         if (!body.comment) return;
         setBusy(true);
         api.post(`/projects/${resolvedProjectId}/tasks/${task.id}/comments`, body)
             .then(({ data }) => {
                 setNewComment('');
+                pickedRef.current.comment = [];
                 fetchComments();
                 if (data.truncated_mentions) {
                     toast.warning(t('tms.comments.truncated'));
@@ -248,12 +253,13 @@ export default function CommentThread({ task, projectId, isManager, targetCommen
 
     function submitReply(e, parentId) {
         if (e?.preventDefault) e.preventDefault();
-        const body = { comment: replyText.trim(), parent_id: parentId };
+        const body = { comment: embedMentions(replyText.trim(), pickedRef.current.reply), parent_id: parentId };
         if (!body.comment) return;
         setBusy(true);
         api.post(`/projects/${resolvedProjectId}/tasks/${task.id}/comments`, body)
             .then(({ data }) => {
                 setReplyText('');
+                pickedRef.current.reply = [];
                 setReplyTo(null);
                 fetchComments();
                 if (data.truncated_mentions) {
@@ -265,12 +271,15 @@ export default function CommentThread({ task, projectId, isManager, targetCommen
     }
 
     function startEdit(id, currentComment = '') {
+        const { text, mentions } = revealMentions(currentComment);
+        pickedRef.current.edit = mentions;
         setEditingCommentId(id);
-        setEditingText(currentComment);
+        setEditingText(text);
         setReplyTo(null);
     }
 
     function cancelEdit() {
+        pickedRef.current.edit = [];
         setEditingCommentId(null);
         setEditingText('');
         closeSuggestions();
@@ -280,8 +289,9 @@ export default function CommentThread({ task, projectId, isManager, targetCommen
         if (e?.preventDefault) e.preventDefault();
         if (!editingText.trim()) return;
         setBusy(true);
-        api.put(`/projects/${resolvedProjectId}/tasks/${task.id}/comments/${id}`, { comment: editingText.trim() })
+        api.put(`/projects/${resolvedProjectId}/tasks/${task.id}/comments/${id}`, { comment: embedMentions(editingText.trim(), pickedRef.current.edit) })
             .then(() => {
+                pickedRef.current.edit = [];
                 setEditingCommentId(null);
                 setEditingText('');
                 fetchComments();

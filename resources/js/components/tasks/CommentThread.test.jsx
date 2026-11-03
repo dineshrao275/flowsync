@@ -89,7 +89,8 @@ describe('CommentThread', () => {
 
         fireEvent.click(memberOption);
 
-        expect(composer.value).toBe('Hey @[Adrian Lopez](user:42) ');
+        // The box stays clean; the id travels separately.
+        expect(composer.value).toBe('Hey @Adrian Lopez ');
 
         const postBtn = screen.getByRole('button', { name: /^post/i });
         fireEvent.click(postBtn);
@@ -139,7 +140,7 @@ describe('CommentThread', () => {
         // Press Enter to choose
         fireEvent.keyDown(composer, { key: 'Enter' });
 
-        expect(composer.value).toBe('@[Chloe Alvarez](user:43) ');
+        expect(composer.value).toBe('@Chloe Alvarez ');
         expect(screen.queryByText('adrian@flowsync.test')).not.toBeInTheDocument();
     });
 });
