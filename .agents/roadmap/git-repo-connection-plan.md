@@ -215,12 +215,6 @@ Full suite at phase gates marked “cross-cutting”.
 
 **Gate:** focused ParaTest + Pint.
 
-> **Deviation (2026-11-03):** the CSRF and maintenance exceptions are scoped to the **inbound webhook**
-> paths only (`api/integrations/github/*`, `api/integrations/git/github/webhook`). The broad
-> `api/integrations/git/*` pattern in task 1 would also exempt the tenant session routes
-> (`.../git/connections`, …) from CSRF; those, and the setup callback, stay protected and are refused
-> during maintenance like every other tenant action.
-
 ---
 
 ### Phase 1 — GitHub App connection lifecycle

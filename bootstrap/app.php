@@ -126,13 +126,8 @@ return Application::configure(basePath: dirname(__DIR__))
             Authorize::class,
         ]);
 
-        // Token routes, client log beacons and inbound provider webhooks (no browser session) are
-        // exempted from CSRF. Tenant git routes (/api/integrations/git/connections, …) stay protected:
-        // they are session calls that change state and must not be exempted by a broad prefix.
-        $middleware->validateCsrfTokens(except: [
-            'api/v1/*', 'api/logs/client', 'api/csp-report', 'api/webhooks/stripe', 'api/webhooks/razorpay',
-            'api/integrations/github/*', 'api/integrations/git/github/webhook',
-        ]);
+        // Token routes and client log beacon routes are exempted from CSRF.
+        $middleware->validateCsrfTokens(except: ['api/v1/*', 'api/logs/client', 'api/csp-report', 'api/webhooks/stripe', 'api/webhooks/razorpay']);
 
         $middleware->redirectGuestsTo('/login');
     })
