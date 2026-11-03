@@ -346,6 +346,8 @@ module/plan gate, migration outcome, tenant isolation.
 
 ### Phase 5 — Event processing & task links v2
 
+> **Status: done (2026-11-03).** Deviations: `git_identities` is unique on `(provider, login)` (identities are admin-mapped by login in Phase 7, `provider_user_id` is optional); `task_branches` gains `deleted_at` (a deleted branch is marked, not removed); derived task tables use `ON DELETE SET NULL` for `project_repository_id` so unlinking keeps history unless `remove_linked_data`; releases/reviews dedupe by provider object id (`claimOnce`) rather than by delivery; `git_event_links` pruning is added with the Phase 9 retention pass.
+
 **Goal:** PR/commit/branch/release/checks become queryable task state.
 
 1. tenant_tms migration `..._create_task_vcs_tables.php`:

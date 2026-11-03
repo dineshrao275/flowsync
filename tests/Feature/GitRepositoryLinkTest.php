@@ -142,23 +142,23 @@ class GitRepositoryLinkTest extends TestCase
     {
         $this->login();
         $pid = $this->project();
+        $taskId = (int) $this->postJson("/api/projects/$pid/tasks", ['title' => 'Linked work'])->assertCreated()->json('task.id');
         $link = $this->postJson("/api/projects/$pid/repositories", ['repository_uuid' => $this->repo->uuid])->assertCreated()->json('repository.id');
+        $other = ProjectRepository::create(['project_id' => $pid, 'git_connection_uuid' => $this->connection->uuid, 'provider' => 'github', 'provider_repo_id' => 999, 'full_name' => 'acme-org/other']);
         $this->connectTenant('acme');
-        \Illuminate\Support\Facades\Schema::create('task_commits', function ($t) {
-            $t->id();
-            $t->unsignedBigInteger('project_repository_id');
-        });
-        \Illuminate\Support\Facades\DB::table('task_commits')->insert([['project_repository_id' => $link], ['project_repository_id' => 999]]);
+        $commit = fn (int $linkId, string $sha) => \App\Models\TaskCommit::create(['task_id' => $taskId, 'project_repository_id' => $linkId, 'sha' => $sha, 'message' => 'm']);
+        $commit($link, 'aaa');
+        $commit($other->id, 'bbb');
 
         $this->deleteJson("/api/projects/$pid/repositories/$link")->assertOk();
-        $this->assertSame(2, \Illuminate\Support\Facades\DB::table('task_commits')->count(), 'default keeps history');
+        $this->assertSame(2, \App\Models\TaskCommit::count(), 'default keeps the history');
+        $this->assertNull(\App\Models\TaskCommit::where('sha', 'aaa')->value('project_repository_id'), 'but it no longer points at a repository link');
 
-        $second = $this->postJson("/api/projects/$pid/repositories", ['repository_uuid' => $this->repo->uuid])->assertCreated()->json('repository.id');
-        \Illuminate\Support\Facades\DB::table('task_commits')->insert(['project_repository_id' => $second]);
-        $this->deleteJson("/api/projects/$pid/repositories/$second", ['remove_linked_data' => true])->assertOk();
-        $this->assertSame(0, \Illuminate\Support\Facades\DB::table('task_commits')->where('project_repository_id', $second)->count());
-        $this->assertSame(2, \Illuminate\Support\Facades\DB::table('task_commits')->count(), 'only that link\'s rows go');
-        Schema::drop('task_commits');
+        $again = $this->postJson("/api/projects/$pid/repositories", ['repository_uuid' => $this->repo->uuid])->assertCreated()->json('repository.id');
+        $this->connectTenant('acme');
+        $commit($again, 'ccc');
+        $this->deleteJson("/api/projects/$pid/repositories/$again", ['remove_linked_data' => true])->assertOk();
+        $this->assertSame(['aaa', 'bbb'], \App\Models\TaskCommit::orderBy('sha')->pluck('sha')->all(), 'only that link\'s rows go');
     }
 
     public function test_project_scoped_browsing_reads_the_linked_repository(): void

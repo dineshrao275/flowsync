@@ -242,7 +242,11 @@
         "vcsLine": "GitHub {{kind}} {{state}}: {{title}}",
         "vcsKind": {
             "pull_request": "pull request",
-            "commit": "commit"
+            "commit": "commit",
+            "branch": "branch",
+            "release": "release",
+            "review": "review",
+            "checks": "checks"
         }
     },
     "workspaces": {

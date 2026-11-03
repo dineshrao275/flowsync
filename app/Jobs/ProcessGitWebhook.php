@@ -42,7 +42,7 @@ class ProcessGitWebhook implements ShouldQueue
         try {
             $connection = GitConnection::query()->findOrFail($delivery->git_connection_id);
             $tenant = Tenant::query()->findOrFail($connection->tenant_id);
-            $status = $databases->using($tenant, fn () => $processor->handle($connection, $this->event, $this->payload));
+            $status = $databases->using($tenant, fn () => $processor->handle($connection, $this->event, $this->payload, $delivery->delivery_uuid));
 
             $delivery->forceFill(['status' => $status, 'processed_at' => now()])->save();
             Log::info('git.webhook.processed', ['delivery' => $delivery->delivery_uuid, 'event' => $this->event, 'status' => $status]);

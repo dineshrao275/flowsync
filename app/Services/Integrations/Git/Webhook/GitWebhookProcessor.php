@@ -21,13 +21,26 @@ class GitWebhookProcessor
         private readonly RepositoryCatalogHandler $catalog,
     ) {}
 
+    /** event => handler for events that change tenant data (task links, activity). */
+    private const EVENT_HANDLERS = [
+        'pull_request' => PullRequestHandler::class,
+        'pull_request_review' => PullRequestHandler::class,
+        'push' => PushHandler::class,
+        'create' => BranchHandler::class,
+        'delete' => BranchHandler::class,
+        'release' => ReleaseHandler::class,
+        'check_suite' => ChecksHandler::class,
+        'check_run' => ChecksHandler::class,
+        'status' => ChecksHandler::class,
+    ];
+
     /**
      * Runs inside the tenant's database (the job wraps it), so tenant-side handlers can query directly.
      *
      * @param  array<string, mixed>  $payload
      * @return 'processed'|'ignored'
      */
-    public function handle(GitConnection $connection, string $event, array $payload): string
+    public function handle(GitConnection $connection, string $event, array $payload, string $delivery = ''): string
     {
         $action = is_string($payload['action'] ?? null) ? $payload['action'] : '';
 
@@ -35,7 +48,9 @@ class GitWebhookProcessor
             'installation' => $this->installation->handle($connection, $action, $payload),
             'installation_repositories' => $this->catalog->handleSelection($connection, $action, $payload),
             'repository' => $this->catalog->handleRepository($connection, $action, $payload),
-            default => self::IGNORED,
+            default => isset(self::EVENT_HANDLERS[$event])
+                ? app(self::EVENT_HANDLERS[$event])->handle($connection, $event, $action, $payload, $delivery)
+                : self::IGNORED,
         };
     }
 }

@@ -7,6 +7,8 @@ namespace App\Services\Integrations\Git\Webhook;
 use App\Jobs\SyncGitInstallation;
 use App\Models\GitConnection;
 use App\Models\GitRepository;
+use App\Models\ProjectRepository;
+use Illuminate\Support\Facades\Schema;
 
 /** Keeps the mirrored repository catalog current from `installation_repositories` and `repository` events. */
 class RepositoryCatalogHandler
@@ -54,7 +56,17 @@ class RepositoryCatalogHandler
             'archived' => (bool) ($repo['archived'] ?? $row->archived),
             'html_url' => $repo['html_url'] ?? $row->html_url,
         ])->save();
+        $this->refreshLinks($connection, $row);
 
         return GitWebhookProcessor::PROCESSED;
+    }
+
+    /** A rename or transfer changes the name every following project shows. Runs inside the tenant DB. */
+    private function refreshLinks(GitConnection $connection, GitRepository $row): void
+    {
+        if (Schema::hasTable('project_repositories')) {
+            ProjectRepository::query()->where('git_connection_uuid', $connection->uuid)->where('provider_repo_id', $row->provider_repo_id)
+                ->update(['full_name' => $row->full_name, 'html_url' => $row->html_url]);
+        }
     }
 }
