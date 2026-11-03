@@ -1,6 +1,6 @@
 # GitHub App — Full Repository Connection Plan
 
-> Status: approved decisions locked, ready for execution.
+> Status: Phases 0-9 built and verified with focused runs (2026-11-03). Phase 10: code and docs complete; the full-suite run and the real-GitHub-App E2E are the two open gates (see Phase 10).
 > Scope: FlowSync TMS ↔ GitHub repositories (installation-based).
 > Mode: build — one reviewed commit per task, focused ParaTest per task, full suite at phase gates.
 > Owner: Dinesh Rao. Last updated: 2026-11-02.
@@ -468,6 +468,11 @@ branch name validation, provider failures, audit rows; `GitBranchTest`.
 ---
 
 ### Phase 10 — QA, docs, rollout
+
+> **Status: code and docs complete (2026-11-03); two gates still open.**
+> 1. **Full PHP suite** (`php artisan test --parallel`, Docker stopped, never `down -v`) - deliberately deferred to the end by instruction; not run on this branch yet. Expected: `HrmsShellTest::test_every_commit_is_pushed` fails until the branch is pushed. Focused runs of every Git suite, the architecture ratchets, route/authorization audits, translation parity, schedule registration, tenant module schema, `tests/Unit`, ESLint (0 errors, warning count unchanged), full Vitest and the build were green at each phase commit. One Vitest case (`extractedModules` Tenants) timed out under full-suite load and passed alone.
+> 2. **Real GitHub App E2E** (needs the operator's app, credentials and a public URL): follow `docs/runbook.md` section 9 - `git:check-config`, install, ping 200, PR open/merge, checks, create branch, smart commit (`#comment`, `#time`, `#close`), two-tenant isolation on a real org.
+> Test counts added by this programme: `GitConnectionTest` 15, `GitWebhookTest` 23, `GitRepositorySyncTest` 8, `GitRepositoryLinkTest` 10, `GitEventProcessingTest` 16, `GitTaskDevelopmentTest` 6, `GitSmartCommitTest` 9, `GitBranchIdentityTest` 6, `GitPlatformTest` 8, `GitHardeningTest` 8, `Unit/SmartCommitParserTest` 6 (= 115 PHP) and 5 Vitest files (Integrations, RepositoriesPanel, DevelopmentPanel, PlatformIntegrations, GithubSettings). Update the `AGENTS.md` totals from the full run.
 
 1. Full test matrix (§7), i18n parity, Pint, ESLint, Vitest, build.
 2. Real GitHub App E2E on a test repo via ngrok/cloudflared:
