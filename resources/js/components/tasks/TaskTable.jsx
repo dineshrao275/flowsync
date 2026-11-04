@@ -40,11 +40,8 @@ export default function TaskTable({ tasks, canEdit, onOpen }) {
                             <td className="px-4 py-3">
                                 {task.issue_type ? (
                                     <span
-                                        className="inline-flex items-center rounded px-2 py-0.5 text-xs font-semibold"
-                                        style={{
-                                            backgroundColor: `${task.issue_type.color || '#2563eb'}18`,
-                                            color: task.issue_type.color || '#2563eb',
-                                        }}
+                                        className="chip-tint inline-flex items-center rounded px-2 py-0.5 text-xs font-semibold"
+                                        style={{ '--chip': task.issue_type.color || 'var(--accent)' }}
                                     >
                                         {task.issue_type.name}
                                     </span>
@@ -76,11 +73,8 @@ export default function TaskTable({ tasks, canEdit, onOpen }) {
                                         {task.labels?.map((label) => (
                                             <span
                                                 key={label.id}
-                                                className="rounded-full px-2 py-0.5 text-xs font-medium"
-                                                style={{
-                                                    backgroundColor: `${label.color || '#e2e8f0'}22`,
-                                                    color: label.color || '#475569',
-                                                }}
+                                                className="chip-tint rounded-full px-2 py-0.5 text-xs font-medium"
+                                                style={{ '--chip': label.color || '#64748b' }}
                                             >
                                                 {label.name}
                                             </span>

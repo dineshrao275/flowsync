@@ -107,7 +107,7 @@ export default function PlanFeaturesExplorer({
                 className="flex cursor-pointer select-none flex-col gap-3 transition-colors sm:flex-row sm:items-center sm:justify-between"
             >
                 <div>
-                    <h3 className="text-base font-bold text-gray-900 dark:text-gray-100 sm:text-lg">
+                    <h3 className="text-base font-bold text-gray-900 sm:text-lg">
                         {t('admin.subscription.featuresHeading')}
                     </h3>
                     <p className="mt-0.5 text-xs text-gray-500 dark:text-gray-400 sm:text-sm">
@@ -159,7 +159,7 @@ export default function PlanFeaturesExplorer({
                                     <button
                                         type="button"
                                         onClick={() => setSearchQuery('')}
-                                        className="absolute inset-y-0 right-0 flex items-center pr-2.5 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200"
+                                        className="absolute inset-y-0 right-0 flex items-center pr-2.5 text-gray-400 hover:text-gray-600"
                                     >
                                         <X className="h-3.5 w-3.5" weight="bold" />
                                     </button>
@@ -174,7 +174,7 @@ export default function PlanFeaturesExplorer({
                                     className={`rounded-md px-3 py-1.5 text-xs font-medium transition-colors ${
                                         statusFilter === 'all'
                                             ? 'bg-white text-gray-900 shadow-xs dark:bg-gray-700 dark:text-gray-100'
-                                            : 'text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-200'
+                                            : 'text-gray-600 hover:text-gray-900 dark:text-gray-400'
                                     }`}
                                 >
                                     {t('admin.subscription.filterAll')} ({moduleItems.length})
@@ -185,7 +185,7 @@ export default function PlanFeaturesExplorer({
                                     className={`inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium transition-colors ${
                                         statusFilter === 'included'
                                             ? 'bg-white text-emerald-700 shadow-xs dark:bg-gray-700 dark:text-emerald-400'
-                                            : 'text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-200'
+                                            : 'text-gray-600 hover:text-gray-900 dark:text-gray-400'
                                     }`}
                                 >
                                     <span className="h-1.5 w-1.5 rounded-full bg-emerald-500"></span>
@@ -198,7 +198,7 @@ export default function PlanFeaturesExplorer({
                                         className={`inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium transition-colors ${
                                             statusFilter === 'locked'
                                                 ? 'bg-white text-gray-900 shadow-xs dark:bg-gray-700 dark:text-gray-100'
-                                                : 'text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-200'
+                                                : 'text-gray-600 hover:text-gray-900 dark:text-gray-400'
                                         }`}
                                     >
                                         <LockSimple className="h-3 w-3 text-gray-400" weight="bold" />
@@ -235,7 +235,7 @@ export default function PlanFeaturesExplorer({
                         {filteredItems.length === 0 ? (
                             <div className="rounded-xl border border-dashed border-gray-200 bg-gray-50/50 p-8 text-center dark:border-gray-800 dark:bg-gray-800/30">
                                 <MagnifyingGlass className="mx-auto h-7 w-7 text-gray-400" />
-                                <p className="mt-2 text-sm font-medium text-gray-700 dark:text-gray-300">
+                                <p className="mt-2 text-sm font-medium text-gray-700">
                                     {t('admin.subscription.noMatchingFeatures')}
                                 </p>
                                 <button
@@ -277,7 +277,7 @@ export default function PlanFeaturesExplorer({
                                                             )}
                                                         </div>
                                                         <div className="min-w-0">
-                                                            <h4 className="truncate text-sm font-semibold text-gray-900 dark:text-gray-100">
+                                                            <h4 className="truncate text-sm font-semibold text-gray-900">
                                                                 {label}
                                                             </h4>
                                                             <p className="truncate text-[11px] font-medium text-gray-400 dark:text-gray-500">

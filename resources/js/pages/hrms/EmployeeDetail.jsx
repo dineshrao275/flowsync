@@ -180,8 +180,8 @@ export default function EmployeeDetail() {
                             <span className="font-mono text-xs">{employee.employee_code}</span>
                             {employee.designation && <span>· {employee.designation}</span>}
                             <span
-                                className="inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-xs font-medium"
-                                style={{ backgroundColor: `${employee.status_color}22`, color: employee.status_color }}
+                                className="chip-tint inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-xs font-medium"
+                                style={{ '--chip': employee.status_color }}
                             >
                                 <span className="h-1.5 w-1.5 rounded-full" style={{ backgroundColor: employee.status_color }} />
                                 {employee.status_label}

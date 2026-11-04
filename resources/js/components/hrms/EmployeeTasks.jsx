@@ -48,8 +48,8 @@ export default function EmployeeTasks({ employeeId }) {
                     </div>
                     {task.status && (
                         <span
-                            className="rounded-full px-2 py-0.5 text-xs font-medium"
-                            style={{ backgroundColor: `${task.status.color ?? '#6b7280'}22`, color: task.status.color ?? '#6b7280' }}
+                            className="chip-tint rounded-full px-2 py-0.5 text-xs font-medium"
+                            style={{ '--chip': task.status.color ?? '#6b7280' }}
                         >
                             {task.status.name}
                         </span>

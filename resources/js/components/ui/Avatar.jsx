@@ -25,7 +25,7 @@ export default function Avatar({ name, photoUrl = null, size = 'md', className =
 
     return (
         <span
-            className={`inline-flex shrink-0 items-center justify-center overflow-hidden rounded-full font-semibold text-white ${SIZES[size] ?? SIZES.md} ${className}`}
+            className={`inline-flex shrink-0 items-center justify-center overflow-hidden rounded-full font-semibold text-[var(--accent-contrast)] ${SIZES[size] ?? SIZES.md} ${className}`}
             style={{ backgroundColor: 'var(--accent)' }}
             title={name}
         >

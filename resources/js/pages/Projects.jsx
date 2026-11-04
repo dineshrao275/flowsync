@@ -103,7 +103,7 @@ export default function Projects() {
                                                 className="flex items-center gap-3 font-medium text-gray-900 hover:text-[var(--accent-soft-text)]"
                                             >
                                                 <span
-                                                    className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-xs font-bold text-white"
+                                                    className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-xs font-bold text-[var(--accent-contrast)]"
                                                     style={{ backgroundColor: 'var(--accent)' }}
                                                 >
                                                     {project.key}

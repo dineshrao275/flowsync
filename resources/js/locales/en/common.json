@@ -189,11 +189,8 @@
                 "accent": "Accent color"
             },
             "contrast": {
-                "title": "Some colour pairs are hard to read",
-                "sidebar_text": "Sidebar text on the sidebar background is {{ratio}}:1 (needs {{min}}:1).",
-                "active_menu": "The active menu colour on the sidebar is {{ratio}}:1 (needs {{min}}:1).",
-                "header_text": "Header text on the header background is {{ratio}}:1 (needs {{min}}:1).",
-                "accent": "The accent colour on cards is {{ratio}}:1 (needs {{min}}:1)."
+                "title": "Some colours were adjusted so text stays readable",
+                "adjusted": "{{field}}: {{from}} is shown as {{to}}."
             }
         },
         "errorBoundary": {

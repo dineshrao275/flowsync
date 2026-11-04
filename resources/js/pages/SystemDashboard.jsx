@@ -33,13 +33,13 @@ function Bar({ label, count, max, color }) {
 }
 
 const STATUS_COLOR = {
-    active: '#16a34a',
-    trial: '#f59e0b',
-    suspended: '#ef4444',
-    pending: '#94a3b8',
-    expired: '#64748b',
-    deactivated: '#64748b',
-    provisioning_failed: '#0ea5e9',
+    active: 'var(--chart-green)',
+    trial: 'var(--chart-amber)',
+    suspended: 'var(--chart-red)',
+    pending: 'var(--chart-neutral)',
+    expired: 'var(--chart-neutral)',
+    deactivated: 'var(--chart-neutral)',
+    provisioning_failed: 'var(--chart-sky)',
 };
 
 /**
@@ -97,7 +97,7 @@ export default function SystemDashboard() {
                 <Card title={t('admin.systemDashboard.tenantsByStatus')} subtitle={t('admin.systemDashboard.tenantsByStatusSubtitle')}>
                     <ul className="space-y-2">
                         {data.tenants.by_status.map((s) => (
-                            <Bar key={s.status} label={statusLabel(s.status)} count={s.count} max={tenantMax} color={STATUS_COLOR[s.status] || '#94a3b8'} />
+                            <Bar key={s.status} label={statusLabel(s.status)} count={s.count} max={tenantMax} color={STATUS_COLOR[s.status] || 'var(--chart-neutral)'} />
                         ))}
                         {data.tenants.by_status.length === 0 && <li className="text-sm text-gray-400">{t('admin.systemDashboard.noTenants')}</li>}
                     </ul>

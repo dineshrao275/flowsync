@@ -34,7 +34,7 @@ export default function Maintenance() {
                 <h1 className="text-xl font-bold text-gray-900">{t('maintenance.title')}</h1>
                 <p className="mt-2 text-sm text-gray-600">{t('maintenance.body', { app: getAppName() })}</p>
                 <div className="mt-6 flex justify-center gap-3">
-                    <button type="button" onClick={check} disabled={checking} className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white disabled:opacity-60">
+                    <button type="button" onClick={check} disabled={checking} className="rounded-lg bg-[var(--accent)] px-4 py-2 text-sm font-semibold text-[var(--accent-contrast)] disabled:opacity-60">
                         {t('maintenance.retry')}
                     </button>
                     <a href="/app/login" className="rounded-lg px-4 py-2 text-sm font-medium text-gray-600 ring-1 ring-inset ring-gray-200">{t('maintenance.adminLogin')}</a>

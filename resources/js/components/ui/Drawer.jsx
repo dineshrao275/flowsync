@@ -77,7 +77,7 @@ export default function Drawer({
                                     onClick={toggleFullscreen}
                                     aria-label={isFullscreen ? t('tms.detail.restoreSize', 'Restore size') : t('tms.detail.fullSize', 'Full size')}
                                     title={isFullscreen ? t('tms.detail.restoreSize', 'Restore size') : t('tms.detail.fullSize', 'Full size')}
-                                    className="rounded-lg p-1.5 text-gray-400 transition hover:bg-gray-100 hover:text-gray-600 dark:hover:bg-slate-800 dark:hover:text-gray-300"
+                                    className="rounded-lg p-1.5 text-gray-400 transition hover:bg-gray-100 hover:text-gray-600 dark:hover:bg-slate-800"
                                 >
                                     {isFullscreen ? (
                                         <ArrowsInSimple size={18} aria-hidden="true" />
@@ -91,7 +91,7 @@ export default function Drawer({
                                     type="button"
                                     onClick={onClose}
                                     aria-label={t('admin.common.close')}
-                                    className="rounded-lg p-1.5 text-gray-400 transition hover:bg-gray-100 hover:text-gray-600 dark:hover:bg-slate-800 dark:hover:text-gray-300"
+                                    className="rounded-lg p-1.5 text-gray-400 transition hover:bg-gray-100 hover:text-gray-600 dark:hover:bg-slate-800"
                                 >
                                     <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
                                         <path d="M6 6l12 12M18 6L6 18" />

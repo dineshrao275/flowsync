@@ -33,11 +33,11 @@ export default function StatusPill({ color, tone, label, className = '' }) {
 
     return (
         <span
-            className={`inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-xs font-medium capitalize ${className}`}
-            style={{ backgroundColor: `${hue}22` }}
+            className={`chip-tint inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-xs font-medium capitalize ${className}`}
+            style={{ '--chip': hue }}
         >
             <span className="h-1.5 w-1.5 shrink-0 rounded-full" style={{ backgroundColor: hue }} aria-hidden="true" />
-            <span className="text-gray-800">{label}</span>
+            <span>{label}</span>
         </span>
     );
 }
