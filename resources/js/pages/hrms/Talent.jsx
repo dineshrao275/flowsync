@@ -17,10 +17,10 @@ import { useConfirm } from '../../components/ui/ConfirmDialog';
 
 // Server enum hexes (ReviewStatus::color): mirrored, never palette names.
 const STATUS_COLORS = {
-    draft: '#6b7280',
-    calibrating: '#d97706',
-    final: '#0284cb',
-    acknowledged: '#059669',
+    draft: 'var(--chart-neutral)',
+    calibrating: 'var(--chart-amber)',
+    final: 'var(--chart-sky)',
+    acknowledged: 'var(--chart-green)',
 };
 
 const RATING_OPTIONS = [1, 2, 3, 4, 5].map((value) => ({ value: String(value), label: String(value) }));
@@ -246,7 +246,7 @@ export default function Talent() {
                                                 <td className="px-3 py-2">{review.manager_rating ?? '—'}</td>
                                                 <td className="px-3 py-2">{review.calibrated_rating ?? '—'}</td>
                                                 <td className="px-3 py-2">
-                                                    <StatusPill color={STATUS_COLORS[review.status] ?? '#6b7280'} label={review.status} />
+                                                    <StatusPill color={STATUS_COLORS[review.status] ?? 'var(--chart-neutral)'} label={review.status} />
                                                 </td>
                                                 <td className="px-3 py-2 text-right">
                                                     {['final', 'acknowledged'].includes(review.status) ? (

@@ -241,8 +241,8 @@ export default function Search() {
                                         {task.labels.map((label) => (
                                             <span
                                                 key={label.id}
-                                                className="rounded-full px-2 py-0.5 text-xs font-medium"
-                                                style={{ backgroundColor: `${label.color}22`, color: label.color }}
+                                                className="chip-tint rounded-full px-2 py-0.5 text-xs font-medium"
+                                                style={{ '--chip': label.color }}
                                             >
                                                 {label.name}
                                             </span>

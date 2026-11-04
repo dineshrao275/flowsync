@@ -167,8 +167,8 @@ export default function SprintsPanel({ projectId, canPlan }) {
                                 <ResponsiveContainer>
                                     <LineChart data={reports.burndown.days}>
                                         <CartesianGrid strokeDasharray="3 3" /><XAxis dataKey="date" tick={{ fontSize: 11 }} /><YAxis tick={{ fontSize: 11 }} /><Tooltip /><Legend />
-                                        <Line type="monotone" dataKey="remaining" stroke="#2563eb" name={t('tms.sprints.remaining')} dot={false} />
-                                        <Line type="monotone" dataKey="ideal" stroke="#9ca3af" strokeDasharray="5 5" name={t('tms.sprints.ideal')} dot={false} />
+                                        <Line type="monotone" dataKey="remaining" stroke="var(--chart-blue)" name={t('tms.sprints.remaining')} dot={false} />
+                                        <Line type="monotone" dataKey="ideal" stroke="var(--chart-neutral)" strokeDasharray="5 5" name={t('tms.sprints.ideal')} dot={false} />
                                     </LineChart>
                                 </ResponsiveContainer>
                             </div>
@@ -180,8 +180,8 @@ export default function SprintsPanel({ projectId, canPlan }) {
                                 <ResponsiveContainer>
                                     <LineChart data={reports.burndown.days}>
                                         <CartesianGrid strokeDasharray="3 3" /><XAxis dataKey="date" tick={{ fontSize: 11 }} /><YAxis tick={{ fontSize: 11 }} /><Tooltip /><Legend />
-                                        <Line type="stepAfter" dataKey="scope" stroke="#9ca3af" name={t('tms.sprints.scope')} dot={false} />
-                                        <Line type="monotone" dataKey="done" stroke="#10b981" name={t('tms.sprints.done')} dot={false} />
+                                        <Line type="stepAfter" dataKey="scope" stroke="var(--chart-neutral)" name={t('tms.sprints.scope')} dot={false} />
+                                        <Line type="monotone" dataKey="done" stroke="var(--chart-green)" name={t('tms.sprints.done')} dot={false} />
                                     </LineChart>
                                 </ResponsiveContainer>
                             </div>
@@ -190,11 +190,11 @@ export default function SprintsPanel({ projectId, canPlan }) {
                     <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
                         <Card title={t('tms.sprints.velocity')} subtitle={t('tms.sprints.velocitySubtitle')}>
                             {reports.velocity.length ? (
-                                <div style={{ height: 220 }}><ResponsiveContainer><BarChart data={reports.velocity}><CartesianGrid strokeDasharray="3 3" /><XAxis dataKey="sprint" tick={{ fontSize: 11 }} /><YAxis tick={{ fontSize: 11 }} /><Tooltip /><Legend /><Bar dataKey="committed" fill="#c8d8fa" name={t('tms.sprints.committed')} /><Bar dataKey="completed" fill="#2563eb" name={t('tms.sprints.completed')} /></BarChart></ResponsiveContainer></div>
+                                <div style={{ height: 220 }}><ResponsiveContainer><BarChart data={reports.velocity}><CartesianGrid strokeDasharray="3 3" /><XAxis dataKey="sprint" tick={{ fontSize: 11 }} /><YAxis tick={{ fontSize: 11 }} /><Tooltip /><Legend /><Bar dataKey="committed" fill="#c8d8fa" name={t('tms.sprints.committed')} /><Bar dataKey="completed" fill="var(--chart-blue)" name={t('tms.sprints.completed')} /></BarChart></ResponsiveContainer></div>
                             ) : <p className="text-sm text-gray-400">{t('tms.sprints.velocityEmpty')}</p>}
                         </Card>
                         <Card title={t('tms.sprints.throughput')} subtitle={t('tms.sprints.throughputSubtitle')}>
-                            <div style={{ height: 220 }}><ResponsiveContainer><BarChart data={reports.throughput}><CartesianGrid strokeDasharray="3 3" /><XAxis dataKey="week" tick={{ fontSize: 11 }} /><YAxis allowDecimals={false} tick={{ fontSize: 11 }} /><Tooltip /><Bar dataKey="completed" fill="#10b981" name={t('tms.sprints.completed')} /></BarChart></ResponsiveContainer></div>
+                            <div style={{ height: 220 }}><ResponsiveContainer><BarChart data={reports.throughput}><CartesianGrid strokeDasharray="3 3" /><XAxis dataKey="week" tick={{ fontSize: 11 }} /><YAxis allowDecimals={false} tick={{ fontSize: 11 }} /><Tooltip /><Bar dataKey="completed" fill="var(--chart-green)" name={t('tms.sprints.completed')} /></BarChart></ResponsiveContainer></div>
                         </Card>
                     </div>
                     <Card title={t('tms.sprints.flow')} subtitle={t('tms.sprints.flowSubtitle', { days: reports.flow.window_days, completed: reports.flow.completed })}>

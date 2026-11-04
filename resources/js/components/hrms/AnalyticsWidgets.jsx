@@ -1,11 +1,11 @@
 import { useTranslation } from 'react-i18next';
 import { Bar as BarShape, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 
-const axisProps = { tick: { fontSize: 11, fill: '#9aa3b2' }, tickMargin: 8 };
+const axisProps = { tick: { fontSize: 11, fill: 'var(--fg-muted)' }, tickMargin: 8 };
 const tooltipProps = {
     contentStyle: {
-        backgroundColor: '#ffffff',
-        border: '1px solid #e5e7eb',
+        backgroundColor: 'var(--card-bg)', color: 'var(--fg)',
+        border: '1px solid var(--line)',
         borderRadius: '8px',
         fontSize: '12px',
         boxShadow: '0 4px 12px rgba(0,0,0,0.08)',
@@ -43,7 +43,7 @@ export function Tiles({ items }) {
  * One horizontal bar chart over `{ name, value }` rows. Zero rows render a
  * sentence, never an empty frame that reads as broken (the Dashboard rule).
  */
-export function HBar({ data, color = '#2563eb', format = (value) => value, emptyHint }) {
+export function HBar({ data, color = 'var(--chart-blue)', format = (value) => value, emptyHint }) {
     const { t } = useTranslation();
     const empty = emptyHint ?? t('hrms.analytics.nothingToChart');
 

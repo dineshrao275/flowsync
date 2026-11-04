@@ -225,7 +225,7 @@ function DocumentsTab({ payload }) {
             <Card title={t('hrms.analytics.cards.compliance')} subtitle={t('hrms.analytics.cards.shareActive')}>
                 <HBar
                     data={(payload.compliance ?? []).map((row) => ({ name: row.type, value: Number(row.percent) || 0 }))}
-                    color="#059669"
+                    color="var(--chart-green)"
                     format={(value) => `${value}%`}
                     emptyHint={t('hrms.analytics.empties.noMandatoryDocs')}
                 />
@@ -274,7 +274,7 @@ function AssetsTab({ payload }) {
                 <Card title={t('hrms.analytics.cards.assignedPerDept')} subtitle={t('hrms.analytics.cards.byHolderDept')}>
                     <HBar
                         data={(payload.per_department ?? []).map((row) => ({ name: row.department, value: Number(row.assigned) || 0 }))}
-                        color="#059669"
+                        color="var(--chart-green)"
                         emptyHint={t('hrms.analytics.empties.nothingAssigned')}
                     />
                 </Card>

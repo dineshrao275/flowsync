@@ -59,7 +59,7 @@ describe('tones', () => {
         expect(screen.getByText('Overdue').parentElement.className).toContain('text-[var(--danger)]');
 
         rerender(<StatusPill color="#10b981" label="Done" />);
-        expect(screen.getByText('Done').parentElement.style.backgroundColor).not.toBe('');
+        expect(screen.getByText('Done').parentElement.style.getPropertyValue('--chip')).toBe('#10b981');
     });
 
     it('Alert errors interrupt, others are polite', () => {

@@ -21,7 +21,7 @@ export const TONES = {
 export default function Badge({ children, tone, className = '', ...props }) {
     // An explicit `tone` wins; without one the colour is derived from the
     // label (role slugs) for the call sites that predate tones.
-    const colors = TONES[tone] ?? palette[String(children).toLowerCase()] ?? 'bg-gray-100 text-gray-700';
+    const colors = TONES[tone] ?? palette[String(children).toLowerCase()] ?? TONES.neutral;
 
     return (
         <span

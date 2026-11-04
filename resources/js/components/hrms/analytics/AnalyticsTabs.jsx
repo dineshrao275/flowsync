@@ -38,7 +38,7 @@ export function OverviewTab({ payload }) {
                 <Card title={t('hrms.analytics.cards.leaveByType')} subtitle={t('hrms.analytics.cards.approvedDaysPerType')}>
                     <HBar
                         data={(leave.by_type ?? []).map((row) => ({ name: row.type, value: Number(row.days) || 0 }))}
-                        color="#059669"
+                        color="var(--chart-green)"
                         emptyHint={t('hrms.analytics.empties.noApprovedLeave')}
                     />
                 </Card>
@@ -66,7 +66,7 @@ export function AttendanceTab({ payload }) {
                 <Card title={t('hrms.analytics.cards.mostLate')} subtitle={t('hrms.analytics.cards.top5LateMinutes')}>
                     <HBar
                         data={(payload.top_late ?? []).map((row) => ({ name: row.name, value: Number(row.minutes) || 0 }))}
-                        color="#d97706"
+                        color="var(--chart-amber)"
                         format={(value) => formatMinutes(value)}
                         emptyHint={t('hrms.analytics.empties.nobodyLate')}
                     />
@@ -74,7 +74,7 @@ export function AttendanceTab({ payload }) {
                 <Card title={t('hrms.analytics.cards.mostOvertime')} subtitle={t('hrms.analytics.cards.top5OvertimeMinutes')}>
                     <HBar
                         data={(payload.top_overtime ?? []).map((row) => ({ name: row.name, value: Number(row.minutes) || 0 }))}
-                        color="#2563eb"
+                        color="var(--chart-blue)"
                         format={(value) => formatMinutes(value)}
                         emptyHint={t('hrms.analytics.empties.noOvertime')}
                     />
@@ -100,7 +100,7 @@ export function LeaveTab({ payload }) {
                 <Card title={t('hrms.analytics.cards.leaveByType')} subtitle={t('hrms.analytics.cards.approvedDaysPerType')}>
                     <HBar
                         data={(payload.by_type ?? []).map((row) => ({ name: row.type, value: Number(row.days) || 0 }))}
-                        color="#059669"
+                        color="var(--chart-green)"
                         emptyHint={t('hrms.analytics.empties.noApprovedLeave')}
                     />
                 </Card>
@@ -159,7 +159,7 @@ export function LifecycleTab({ payload }) {
                         { name: t('hrms.analytics.onboarding'), value: Number(payload.onboarding_completion_percent) || 0 },
                         { name: t('hrms.analytics.offboarding'), value: Number(payload.offboarding_completion_percent) || 0 },
                     ]}
-                    color="#059669"
+                    color="var(--chart-green)"
                     format={(value) => `${value}%`}
                 />
             </Card>
@@ -228,7 +228,7 @@ export function PayrollTab({ payload }) {
             <Card title={t('hrms.analytics.cards.costByDept')} subtitle={t('hrms.analytics.cards.annualCtcFromStructures')}>
                 <HBar
                     data={(payload.department_cost ?? []).map((row) => ({ name: row.department, value: Number(row.annual_ctc) || 0 }))}
-                    color="#059669"
+                    color="var(--chart-green)"
                     emptyHint={t('hrms.analytics.empties.noSalaryStructures')}
                 />
             </Card>

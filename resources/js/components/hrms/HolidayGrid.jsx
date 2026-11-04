@@ -3,9 +3,9 @@ import { useTranslation } from 'react-i18next';
 import i18n, { intlTag } from '../../i18n';
 
 const TYPE_COLORS = {
-    public: '#059669',
-    restricted: '#d97706',
-    optional: '#0284cb',
+    public: 'var(--chart-green)',
+    restricted: 'var(--chart-amber)',
+    optional: 'var(--chart-sky)',
 };
 
 const TYPE_KEYS = {
@@ -78,7 +78,7 @@ export default function HolidayGrid({ holidays = [], year }) {
     for (let day = 1; day <= daysInMonth; day++) {
         const date = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
         const entries = byDate[date] ?? [];
-        const color = entries.length > 0 ? TYPE_COLORS[entries[0].type] ?? '#6b7280' : null;
+        const color = entries.length > 0 ? TYPE_COLORS[entries[0].type] ?? 'var(--chart-neutral)' : null;
 
         cells.push(
             <span
@@ -87,7 +87,7 @@ export default function HolidayGrid({ holidays = [], year }) {
                 className={`flex min-h-10 flex-col items-center justify-center rounded-lg border text-xs ${
                     entries.length === 0 ? 'border-gray-100 text-gray-500' : 'border-transparent font-semibold text-gray-900'
                 }`}
-                style={entries.length === 0 ? {} : { backgroundColor: `${color}33` }}
+                style={entries.length === 0 ? {} : { backgroundColor: `color-mix(in srgb, ${color} 20%, transparent)` }}
             >
                 {day}
             </span>,

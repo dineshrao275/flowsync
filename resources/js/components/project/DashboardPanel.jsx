@@ -76,7 +76,7 @@ function Widget({ type, data, projectId }) {
                 <ResponsiveContainer>
                     <BarChart data={data} layout="vertical" margin={{ left: 20 }}>
                         <CartesianGrid strokeDasharray="3 3" /><XAxis type="number" allowDecimals={false} tick={{ fontSize: 11 }} /><YAxis type="category" dataKey="label" width={110} tick={{ fontSize: 11 }} /><Tooltip />
-                        <Bar dataKey="open" fill="#2563eb" name={t('tms.dashboard.open')} />
+                        <Bar dataKey="open" fill="var(--chart-blue)" name={t('tms.dashboard.open')} />
                     </BarChart>
                 </ResponsiveContainer>
             </div>
@@ -89,8 +89,8 @@ function Widget({ type, data, projectId }) {
                 <ResponsiveContainer>
                     <LineChart data={data}>
                         <CartesianGrid strokeDasharray="3 3" /><XAxis dataKey="date" tick={{ fontSize: 10 }} /><YAxis allowDecimals={false} tick={{ fontSize: 11 }} /><Tooltip /><Legend />
-                        <Line type="monotone" dataKey="created" stroke="#9ca3af" name={t('tms.dashboard.created')} dot={false} />
-                        <Line type="monotone" dataKey="done" stroke="#10b981" name={t('tms.dashboard.completed')} dot={false} />
+                        <Line type="monotone" dataKey="created" stroke="var(--chart-neutral)" name={t('tms.dashboard.created')} dot={false} />
+                        <Line type="monotone" dataKey="done" stroke="var(--chart-green)" name={t('tms.dashboard.completed')} dot={false} />
                     </LineChart>
                 </ResponsiveContainer>
             </div>

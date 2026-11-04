@@ -146,7 +146,7 @@ export default function UserTooltip({
                     className="ring-2 ring-gray-100 dark:ring-slate-800"
                 />
                 <div className="min-w-0 flex-1">
-                    <p className="truncate text-sm font-semibold text-gray-900 dark:text-gray-100">
+                    <p className="truncate text-sm font-semibold text-gray-900">
                         {displayName}
                     </p>
                     {role && (

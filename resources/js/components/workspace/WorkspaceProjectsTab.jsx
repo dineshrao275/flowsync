@@ -142,7 +142,7 @@ export function WorkspaceProjectsTab({
                                 >
                                     <div className="flex items-center gap-3">
                                         <span
-                                            className="flex h-10 w-10 items-center justify-center rounded-lg text-xs font-bold text-white"
+                                            className="flex h-10 w-10 items-center justify-center rounded-lg text-xs font-bold text-[var(--accent-contrast)]"
                                             style={{ backgroundColor: 'var(--accent)' }}
                                         >
                                             {project.key}

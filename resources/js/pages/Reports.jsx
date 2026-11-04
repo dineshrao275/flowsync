@@ -280,7 +280,7 @@ export default function Reports() {
                 <section className="rounded-xl border border-gray-200/70 p-4 shadow-sm" style={{ backgroundColor: 'var(--card-bg)' }}>
                     <h3 className="text-sm font-semibold text-gray-900">{t('dashboard.reports.byProject')}</h3>
                     <p className="mb-2 text-xs text-gray-500">{t('dashboard.reports.projectSubtitle')}</p>
-                    <TotalsBars items={data.by_project} emptyText={t('dashboard.reports.emptyProjects')} color="#0ea5e9" />
+                    <TotalsBars items={data.by_project} emptyText={t('dashboard.reports.emptyProjects')} color="var(--chart-sky)" />
                 </section>
                 <section className="rounded-xl border border-gray-200/70 p-4 shadow-sm lg:col-span-2" style={{ backgroundColor: 'var(--card-bg)' }}>
                     <h3 className="text-sm font-semibold text-gray-900">{t('dashboard.reports.byAssignee')}</h3>

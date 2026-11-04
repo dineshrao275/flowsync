@@ -8,7 +8,7 @@ export default function AuthShell({ title, subtitle, children, footer }) {
         <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-slate-100 via-white to-slate-100 px-4 py-10 dark:bg-gradient-to-br dark:from-[#0b1020] dark:via-[#0f1629] dark:to-[#0b1020]">
             <div className="w-full max-w-md">
                 {/* A full-page link: the marketing site is server-rendered outside the SPA router. */}
-                <a href="/" className="mb-6 inline-flex items-center gap-1.5 rounded-lg px-2 py-1 text-sm font-medium text-slate-500 transition hover:bg-slate-100 hover:text-slate-900 dark:text-blue-400 dark:hover:bg-[#1a2235] dark:hover:text-gray-100">
+                <a href="/" className="mb-6 inline-flex items-center gap-1.5 rounded-lg px-2 py-1 text-sm font-medium text-slate-500 transition hover:bg-slate-100 hover:text-slate-900 dark:text-blue-400 dark:hover:bg-[#1a2235]">
                     <span aria-hidden="true">←</span> {t('auth.backToSite')}
                 </a>
                 <div className="mb-8 flex animate-fade-in-up items-center justify-center gap-3">

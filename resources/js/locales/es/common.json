@@ -189,11 +189,8 @@
                 "accent": "Color de acento"
             },
             "contrast": {
-                "title": "Algunas combinaciones de color son difíciles de leer",
-                "sidebar_text": "El texto de la barra lateral sobre su fondo tiene {{ratio}}:1 (se necesita {{min}}:1).",
-                "active_menu": "El color del menú activo sobre la barra lateral tiene {{ratio}}:1 (se necesita {{min}}:1).",
-                "header_text": "El texto del encabezado sobre su fondo tiene {{ratio}}:1 (se necesita {{min}}:1).",
-                "accent": "El color de acento sobre las tarjetas tiene {{ratio}}:1 (se necesita {{min}}:1)."
+                "title": "Algunos colores se ajustaron para que el texto siga siendo legible",
+                "adjusted": "{{field}}: {{from}} se muestra como {{to}}."
             }
         },
         "errorBoundary": {

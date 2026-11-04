@@ -75,7 +75,7 @@ function describe(t, action, data, task, projectId) {
         return (
             <span className="align-middle">
                 <span className="text-gray-600 dark:text-gray-400">{t('tms.activity.checklistAdded', { defaultValue: 'added checklist item' })}</span>{' '}
-                <strong className="font-semibold text-gray-900 dark:text-gray-100">&ldquo;{data?.title ?? ''}&rdquo;</strong>
+                <strong className="font-semibold text-gray-900">&ldquo;{data?.title ?? ''}&rdquo;</strong>
             </span>
         );
     }
@@ -83,7 +83,7 @@ function describe(t, action, data, task, projectId) {
         return (
             <span className="align-middle">
                 <span className="text-gray-600 dark:text-gray-400">{t('tms.activity.checklistChecked', { defaultValue: 'completed checklist item' })}</span>{' '}
-                <strong className="font-semibold text-gray-900 dark:text-gray-100">&ldquo;{data?.title ?? ''}&rdquo;</strong>
+                <strong className="font-semibold text-gray-900">&ldquo;{data?.title ?? ''}&rdquo;</strong>
             </span>
         );
     }
@@ -91,7 +91,7 @@ function describe(t, action, data, task, projectId) {
         return (
             <span className="align-middle">
                 <span className="text-gray-600 dark:text-gray-400">{t('tms.activity.checklistUnchecked', { defaultValue: 'unchecked checklist item' })}</span>{' '}
-                <strong className="font-semibold text-gray-900 dark:text-gray-100">&ldquo;{data?.title ?? ''}&rdquo;</strong>
+                <strong className="font-semibold text-gray-900">&ldquo;{data?.title ?? ''}&rdquo;</strong>
             </span>
         );
     }
@@ -99,7 +99,7 @@ function describe(t, action, data, task, projectId) {
         return (
             <span className="align-middle">
                 <span className="text-gray-600 dark:text-gray-400">{t('tms.activity.checklistRemoved', { defaultValue: 'removed checklist item' })}</span>{' '}
-                <strong className="font-semibold text-gray-900 dark:text-gray-100">&ldquo;{data?.title ?? ''}&rdquo;</strong>
+                <strong className="font-semibold text-gray-900">&ldquo;{data?.title ?? ''}&rdquo;</strong>
             </span>
         );
     }

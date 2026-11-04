@@ -14,7 +14,7 @@ export default function Forbidden() {
     return (
         <div className="flex min-h-screen items-center justify-center bg-gray-100 px-4">
             <div className="max-w-md animate-fade-in-up text-center">
-                <p className="text-7xl font-black" style={{ color: 'var(--active-menu)' }}>
+                <p className="text-7xl font-black" style={{ color: 'var(--accent)' }}>
                     403
                 </p>
                 <h1 className="mt-4 text-2xl font-bold text-gray-900">{t('admin.forbidden.heading')}</h1>

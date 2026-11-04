@@ -24,7 +24,7 @@ export default function Tooltip({ content, children, side = 'top' }) {
                 <span
                     id={id}
                     role="tooltip"
-                    className={`pointer-events-none absolute z-[70] whitespace-nowrap rounded-md bg-slate-900 px-2 py-1 text-caption font-medium text-white shadow-popover ${position} ${horizontal}`}
+                    className={`pointer-events-none absolute z-[70] whitespace-nowrap rounded-md bg-fg px-2 py-1 text-caption font-medium text-[var(--card-bg)] shadow-popover ${position} ${horizontal}`}
                 >
                     {content}
                 </span>

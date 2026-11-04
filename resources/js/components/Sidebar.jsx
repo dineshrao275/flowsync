@@ -54,7 +54,7 @@ function SidebarLink({ item, collapsed, onClose }) {
             className={`group relative flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors duration-150 ${
                 isActive ? 'bg-[var(--active-menu)]' : 'hover:bg-[var(--sidebar-hover)]'
             } ${collapsed ? 'justify-center lg:justify-center' : ''}`}
-            style={{ color: isActive ? '#ffffff' : 'var(--sidebar-text)' }}
+            style={{ color: isActive ? 'var(--active-menu-contrast)' : 'var(--sidebar-text)' }}
         >
             {isActive && (
                 <span
@@ -68,7 +68,7 @@ function SidebarLink({ item, collapsed, onClose }) {
                 <ItemIcon icon={item.icon} />
                 {collapsed && badgeCount > 0 && (
                     <span
-                        className="absolute -right-1.5 -top-1.5 flex h-4 min-w-4 shrink-0 items-center justify-center rounded-full bg-red-600 dark:bg-red-500 px-1 text-[10px] font-bold leading-none text-white shadow-sm"
+                        className="absolute -right-1.5 -top-1.5 flex h-4 min-w-4 shrink-0 items-center justify-center rounded-full bg-[var(--danger)] px-1 text-[10px] font-bold leading-none text-[var(--danger-contrast)] shadow-sm"
                         aria-hidden="true"
                     >
                         {badgeCount > 99 ? '99+' : badgeCount}
@@ -79,7 +79,7 @@ function SidebarLink({ item, collapsed, onClose }) {
                 <span className="flex items-center justify-between gap-2">
                     <span className="truncate">{t(item.label)}</span>
                     {badgeCount > 0 && (
-                        <span className="flex h-5 min-w-5 shrink-0 items-center justify-center rounded-full bg-red-600 dark:bg-red-500 px-1 text-caption font-bold normal-case tracking-normal text-white">
+                        <span className="flex h-5 min-w-5 shrink-0 items-center justify-center rounded-full bg-[var(--danger)] px-1 text-caption font-bold normal-case tracking-normal text-[var(--danger-contrast)]">
                             {badgeCount > 99 ? '99+' : badgeCount}
                         </span>
                     )}
@@ -98,7 +98,7 @@ function SidebarSection({ section, collapsed, onClose, canViewPlans }) {
             {!collapsed && (
                 <p
                     className="flex items-center justify-between px-3 pb-1.5 pt-4 text-xs font-semibold normal-case tracking-normal"
-                    style={{ color: 'var(--sidebar-text)', opacity: 0.55 }}
+                    style={{ color: 'var(--sidebar-text-muted)' }}
                 >
                     <span>{t(section.label)}</span>
                 </p>
@@ -106,7 +106,7 @@ function SidebarSection({ section, collapsed, onClose, canViewPlans }) {
             {section.items.length === 0 && !collapsed && (
                 <div
                     className="rounded-lg px-3 py-2 text-xs leading-relaxed"
-                    style={{ color: 'var(--sidebar-text)', opacity: 0.6 }}
+                    style={{ color: 'var(--sidebar-text-muted)' }}
                 >
                     <span>{t('shell.sidebar.lockedByPlan')}</span>{' '}
                     {canViewPlans ? (
@@ -161,7 +161,7 @@ function CollapsibleSection({ section, collapsed, onClose, open, onToggle }) {
 
     const totalGroupBadgeCount = section.items.reduce((sum, item) => sum + getBadgeCount(item), 0);
     const badge = totalGroupBadgeCount > 0 && (
-        <span className="flex h-5 min-w-5 shrink-0 items-center justify-center rounded-full bg-red-600 dark:bg-red-500 px-1 text-caption font-bold normal-case tracking-normal text-white">
+        <span className="flex h-5 min-w-5 shrink-0 items-center justify-center rounded-full bg-[var(--danger)] px-1 text-caption font-bold normal-case tracking-normal text-[var(--danger-contrast)]">
             {totalGroupBadgeCount > 99 ? '99+' : totalGroupBadgeCount}
         </span>
     );
@@ -184,13 +184,13 @@ function CollapsibleSection({ section, collapsed, onClose, open, onToggle }) {
                 className={`group relative flex items-center justify-center rounded-lg px-3 py-2.5 text-sm font-medium transition-colors duration-150 ${
                     active ? 'bg-[var(--active-menu)]' : 'hover:bg-[var(--sidebar-hover)]'
                 }`}
-                style={{ color: active ? '#ffffff' : 'var(--sidebar-text)' }}
+                style={{ color: active ? 'var(--active-menu-contrast)' : 'var(--sidebar-text)' }}
             >
                 <span className="relative flex items-center justify-center">
                     <ItemIcon icon={first.icon} />
                     {totalGroupBadgeCount > 0 && (
                         <span
-                            className="absolute -right-1.5 -top-1.5 flex h-4 min-w-4 shrink-0 items-center justify-center rounded-full bg-red-600 dark:bg-red-500 px-1 text-[10px] font-bold leading-none text-white shadow-sm"
+                            className="absolute -right-1.5 -top-1.5 flex h-4 min-w-4 shrink-0 items-center justify-center rounded-full bg-[var(--danger)] px-1 text-[10px] font-bold leading-none text-[var(--danger-contrast)] shadow-sm"
                             aria-hidden="true"
                         >
                             {totalGroupBadgeCount > 99 ? '99+' : totalGroupBadgeCount}
@@ -313,14 +313,14 @@ export default function Sidebar({ open, collapsed, onClose, onToggleCollapse }) 
             >
                 <div className={`flex shrink-0 items-center gap-3 px-4 py-5 ${collapsed ? 'justify-center lg:justify-center px-0' : ''}`}>
                     <div
-                        className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-sm font-bold text-white shadow-lg"
+                        className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-sm font-bold text-[var(--accent-contrast)] shadow-lg"
                         style={{ backgroundColor: 'var(--accent)' }}
                     >
                         F
                     </div>
                     {!collapsed && (
                         <div className="min-w-0">
-                            <p className="truncate text-base font-semibold text-white">
+                            <p className="truncate text-base font-semibold" style={{ color: 'var(--sidebar-title)' }}>
                                 {getAppName()}
                             </p>
                             <p className="truncate text-xs" style={{ color: 'var(--sidebar-text)' }}>

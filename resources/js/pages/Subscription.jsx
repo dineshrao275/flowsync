@@ -415,7 +415,7 @@ export default function Subscription() {
             />
 
             <section id="compare-plans" className="scroll-mt-6">
-                <h3 className="mb-3 text-lg font-bold text-gray-900 dark:text-gray-100">{t('admin.subscription.comparePlans')}</h3>
+                <h3 className="mb-3 text-lg font-bold text-gray-900">{t('admin.subscription.comparePlans')}</h3>
                 {visiblePlans.length === 0 && <Alert>{t('admin.subscription.noPlans')}</Alert>}
                 {visiblePlans.length > 0 && (
                     <Table>

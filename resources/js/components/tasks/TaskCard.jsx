@@ -68,11 +68,8 @@ export function TaskCardBody({ task, compact = false }) {
                 <div className="flex min-w-0 flex-1 flex-wrap items-center gap-1.5">
                     {task.issue_type && (
                         <span
-                            className="inline-flex max-w-[9rem] items-center truncate rounded px-1.5 py-0.5 text-xs font-semibold"
-                            style={{
-                                backgroundColor: `${task.issue_type.color || '#2563eb'}18`,
-                                color: task.issue_type.color || '#2563eb',
-                            }}
+                            className="chip-tint inline-flex max-w-[9rem] items-center truncate rounded px-1.5 py-0.5 text-xs font-semibold"
+                            style={{ '--chip': task.issue_type.color || 'var(--accent)' }}
                             title={task.issue_type.name}
                         >
                             {task.issue_type.name}
@@ -102,7 +99,7 @@ export function TaskCardBody({ task, compact = false }) {
             </div>
             <p
                 title={task.title}
-                className={`mt-1.5 line-clamp-3 break-words text-sm font-medium leading-snug text-gray-900 dark:text-gray-100 [overflow-wrap:anywhere] ${task.completed_at ? 'line-through opacity-60' : ''}`}
+                className={`mt-1.5 line-clamp-3 break-words text-sm font-medium leading-snug text-gray-900 [overflow-wrap:anywhere] ${task.completed_at ? 'line-through opacity-60' : ''}`}
             >
                 {task.title}
             </p>
@@ -125,9 +122,9 @@ export function TaskCardBody({ task, compact = false }) {
                     {task.labels.map((label) => (
                         <span
                             key={label.id}
-                            className="max-w-full truncate rounded-full px-2 py-0.5 text-xs font-medium"
+                            className="chip-tint max-w-full truncate rounded-full px-2 py-0.5 text-xs font-medium"
                             title={label.name}
-                            style={{ backgroundColor: `${label.color || '#e2e8f0'}22`, color: label.color || '#475569' }}
+                            style={{ '--chip': label.color || '#64748b' }}
                         >
                             {label.name}
                         </span>

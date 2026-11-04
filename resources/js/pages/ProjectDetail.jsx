@@ -726,7 +726,7 @@ export default function ProjectDetail() {
             <div className="flex flex-wrap items-start justify-between gap-3">
                 <div className="flex items-center gap-4">
                     <span
-                        className="flex h-14 w-14 flex-shrink-0 items-center justify-center rounded-xl text-xl font-bold text-white shadow-md"
+                        className="flex h-14 w-14 flex-shrink-0 items-center justify-center rounded-xl text-xl font-bold text-[var(--accent-contrast)] shadow-md"
                         style={{ backgroundColor: 'var(--accent)' }}
                     >
                         {project.key}
