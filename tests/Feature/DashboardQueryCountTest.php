@@ -72,4 +72,23 @@ class DashboardQueryCountTest extends TestCase
         $this->assertSame('admin@flowsync.test', $task['assignee']['email']);
         $this->assertNotEmpty($task['assignee']['roles']);
     }
+
+    public function test_the_project_feed_merges_task_and_project_activity_newest_first_without_a_task_id_list(): void
+    {
+        $this->addTasks(3);
+
+        $binds = [];
+        DB::listen(function ($query) use (&$binds): void {
+            $binds[] = count($query->bindings);
+        });
+        $feed = $this->getJson("/api/projects/{$this->project}/activities")->assertOk()->json('activities');
+
+        $ids = array_column($feed, 'id');
+        $sorted = $ids;
+        rsort($sorted);
+        $this->assertNotEmpty($feed);
+        $this->assertSame($sorted, $ids, 'newest first');
+        $this->assertLessThan(20, max($binds), 'no per-task bind list');
+    }
 }
+
