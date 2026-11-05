@@ -222,11 +222,7 @@ class GlobalSearchController extends Controller
         $tenantId = $request->session()->get('impersonate.tenant_id')
             ?? $request->session()->get('login.tenant_id');
 
-        if (! $tenantId) {
-            return null;
-        }
-
-        return Tenant::whereKey($tenantId)->first();
+        return Tenant::resolve($tenantId);
     }
 
     /**

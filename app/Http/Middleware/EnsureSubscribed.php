@@ -27,7 +27,7 @@ class EnsureSubscribed
             return $next($request); // platform super admin
         }
 
-        $tenant = Tenant::find($tenantId);
+        $tenant = Tenant::resolve($tenantId);
         $expired = $tenant?->status === Tenant::STATUS_EXPIRED;
         $needsCard = $tenant && ! $expired && $tenant->needsPaymentMethod();
         if (! $tenant || (! $expired && ! $needsCard)) {

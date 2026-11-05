@@ -98,6 +98,14 @@ class Subscription extends Model
         ];
     }
 
+    /** A plan change must not be answered from the per-request tenant cache that carries loaded subscriptions. */
+    protected static function booted(): void
+    {
+        foreach (['saved', 'deleted'] as $event) {
+            static::$event(static fn () => Tenant::forgetResolved());
+        }
+    }
+
     public function tenant(): BelongsTo
     {
         return $this->belongsTo(Tenant::class);

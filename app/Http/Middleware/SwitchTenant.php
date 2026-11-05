@@ -37,7 +37,7 @@ class SwitchTenant
         }
 
         $tenantId = $impersonation['tenant_id'] ?? $session->get('login.tenant_id');
-        $tenant = $tenantId ? Tenant::find($tenantId) : null;
+        $tenant = Tenant::resolve($tenantId);
 
         if ($tenant && $tenant->canSignIn()) {
             Log::shareContext([

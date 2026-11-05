@@ -35,7 +35,7 @@ class SessionPayload
         }
 
         $tenantId = $impersonation['tenant_id'] ?? $request->session()->get('login.tenant_id');
-        $tenant = $tenantId ? Tenant::find($tenantId) : null;
+        $tenant = Tenant::resolve($tenantId);
 
         return [
             'user' => [
