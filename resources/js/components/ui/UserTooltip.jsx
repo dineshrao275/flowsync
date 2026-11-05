@@ -217,17 +217,17 @@ export default function UserTooltip({
             }}
             onMouseEnter={() => clearTimeout(leaveTimeoutRef.current)}
             onMouseLeave={handleMouseLeave}
-            className="relative rounded-xl border border-gray-200/95 bg-white p-3.5 text-left shadow-2xl animate-fade-in before:absolute before:inset-x-0 before:-bottom-3 before:h-3 after:absolute after:inset-x-0 after:-top-3 after:h-3 dark:border-slate-800 dark:bg-slate-900"
+            className="relative rounded-xl border border-line bg-surface p-3.5 text-left shadow-popover animate-fade-in before:absolute before:inset-x-0 before:-bottom-3 before:h-3 after:absolute after:inset-x-0 after:-top-3 after:h-3"
         >
             <div className="flex items-start gap-3">
                 <Avatar
                     name={displayName}
                     photoUrl={typeof user === 'object' ? user?.photo_url : null}
                     size="md"
-                    className="ring-2 ring-gray-100 dark:ring-slate-800"
+                    className="ring-2 ring-line"
                 />
                 <div className="min-w-0 flex-1">
-                    <p className="truncate text-sm font-semibold text-gray-900 dark:text-gray-100">
+                    <p className="truncate text-sm font-semibold text-fg">
                         {displayName}
                     </p>
                     {role && (
@@ -238,7 +238,7 @@ export default function UserTooltip({
                         </div>
                     )}
                     {jobTitle && (
-                        <p className="mt-0.5 truncate text-xs text-gray-500 dark:text-gray-400">
+                        <p className="mt-0.5 truncate text-xs text-fg-muted">
                             {jobTitle}
                         </p>
                     )}
@@ -246,10 +246,10 @@ export default function UserTooltip({
             </div>
 
             {(email || department) && (
-                <div className="mt-2.5 space-y-1 border-t border-gray-100 pt-2 text-xs text-gray-600 dark:border-slate-800 dark:text-gray-400">
+                <div className="mt-2.5 space-y-1 border-t border-line pt-2 text-xs text-fg-muted">
                     {email && (
                         <p className="truncate">
-                            <span className="font-medium text-gray-500 dark:text-gray-400">Email:</span>{' '}
+                            <span className="font-medium text-fg-subtle">Email:</span>{' '}
                             <a
                                 href={`mailto:${email}`}
                                 className="text-[var(--accent-soft-text)] hover:underline"
@@ -261,14 +261,14 @@ export default function UserTooltip({
                     )}
                     {department && (
                         <p className="truncate">
-                            <span className="font-medium text-gray-500 dark:text-gray-400">Dept:</span> {department}
+                            <span className="font-medium text-fg-subtle">Dept:</span> {department}
                         </p>
                     )}
                 </div>
             )}
 
             {profileUrl && (
-                <div className="mt-2.5 border-t border-gray-100 pt-2 text-right dark:border-slate-800">
+                <div className="mt-2.5 border-t border-line pt-2 text-right">
                     <Link
                         to={profileUrl}
                         onClick={(e) => {

@@ -701,6 +701,70 @@ body {
     background-color: #24304a !important;
 }
 
+/* Datepicker input container and clear button: vertically center and align with theme */
+.react-datepicker__input-container {
+    position: relative;
+    display: block;
+    width: 100%;
+}
+
+.react-datepicker__close-icon {
+    position: absolute;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    height: 100% !important;
+    width: 2.25rem !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    background: transparent !important;
+    border: 0 !important;
+    outline: none !important;
+    cursor: pointer !important;
+    z-index: 2;
+}
+
+.react-datepicker__close-icon::after {
+    content: "" !important;
+    display: block !important;
+    width: 1.125rem !important;
+    height: 1.125rem !important;
+    border-radius: 9999px !important;
+    background-color: var(--line-strong, #cbd5e1) !important;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='%23475569' stroke-width='2.2' stroke-linecap='round'%3E%3Cpath d='M4.5 4.5l7 7M11.5 4.5l-7 7'/%3E%3C/svg%3E") !important;
+    background-repeat: no-repeat !important;
+    background-position: center !important;
+    background-size: 8px 8px !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    box-sizing: border-box !important;
+    transition: background-color 0.15s ease, opacity 0.15s ease !important;
+}
+
+.react-datepicker__close-icon:hover::after {
+    background-color: var(--fg-subtle, #94a3b8) !important;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='%23ffffff' stroke-width='2.2' stroke-linecap='round'%3E%3Cpath d='M4.5 4.5l7 7M11.5 4.5l-7 7'/%3E%3C/svg%3E") !important;
+}
+
+.react-datepicker__close-icon:focus-visible {
+    outline: 2px solid var(--accent, #6366f1) !important;
+    outline-offset: -2px;
+    border-radius: 0.375rem;
+}
+
+.dark .react-datepicker__close-icon::after {
+    background-color: #2a3348 !important;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='%2393a4d6' stroke-width='2.2' stroke-linecap='round'%3E%3Cpath d='M4.5 4.5l7 7M11.5 4.5l-7 7'/%3E%3C/svg%3E") !important;
+}
+
+.dark .react-datepicker__close-icon:hover::after {
+    background-color: #364052 !important;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='%23e8f0ff' stroke-width='2.2' stroke-linecap='round'%3E%3Cpath d='M4.5 4.5l7 7M11.5 4.5l-7 7'/%3E%3C/svg%3E") !important;
+}
+
 /* Rich text (task descriptions): shared by the editor surface and the
  * read-only render, so what you format is what you read. Task-list rows
  * are pointer-dead in the read-only render — the checkboxes show state,
