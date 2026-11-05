@@ -36,3 +36,6 @@ tests/e2e/.results-time/
 # Local agent MCP configs may contain credentials; keep the tracked examples token-free.
 .mcp.local.json
 .cursor/mcp.local.json
+
+# GitHub App credentials from scripts/github-app-manifest.mjs
+/github-app.generated/
