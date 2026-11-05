@@ -334,7 +334,8 @@
             "auditLogs": "Audit Logs",
             "queue": "Background queue",
             "activity": "Tenant activity",
-            "integrations": "Integrations"
+            "integrations": "Integrations",
+            "errors": "Application errors"
         }
     },
     "maintenance": {

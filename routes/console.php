@@ -40,6 +40,8 @@ Schedule::command('tenants:expire-trials')->dailyAt('00:05')->withoutOverlapping
 Schedule::command('audit:prune')->dailyAt('03:50')->withoutOverlapping();
 // Tamper check of the audit hash chain; a break is logged critical and emailed (SECURITY_AUDIT_ALERT_EMAILS).
 Schedule::command('audit:verify')->dailyAt('04:10')->withoutOverlapping();
+// Application error console retention (default 90 days; rollups + per-event occurrences).
+Schedule::command('errors:prune')->dailyAt('04:20')->withoutOverlapping();
 
 // Billing: failed-payment dunning (reminders, final notice, suspension after the grace period).
 // Billing: lapsed paid periods are expired / renewed / sent to dunning first (08:00), then dunning runs.

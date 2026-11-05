@@ -73,6 +73,10 @@ class LogHttpRequests
             'ip' => $request->ip(),
             'user_id' => $userId,
             'tenant_id' => $tenantId,
+            // The error console captures the reported exception (or the
+            // explicit Log::error elsewhere); a per-response line would
+            // duplicate it and turn routine 4xx into "errors".
+            'error_capture' => false,
         ];
 
         // Format message

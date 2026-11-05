@@ -105,6 +105,7 @@ const SystemDashboard = lazy(() => import('./pages/SystemDashboard'));
 const SystemUsers = lazy(() => import('./pages/SystemUsers'));
 const SystemSettings = lazy(() => import('./pages/SystemSettings'));
 const AuditLogs = lazy(() => import('./pages/AuditLogs'));
+const SystemErrors = lazy(() => import('./pages/SystemErrors'));
 const FeatureManagement = lazy(() => import('./pages/FeatureManagement'));
 const AdminQueue = lazy(() => import('./pages/AdminQueue'));
 const AdminActivity = lazy(() => import('./pages/AdminActivity'));
@@ -184,6 +185,7 @@ function AppRoutes() {
                                 <Route path="/admin/users" element={<SystemUsers />} />
                                 <Route path="/admin/settings" element={<SystemSettings />} />
                                 <Route path="/admin/audit-logs" element={<AuditLogs />} />
+                                <Route path="/admin/errors" element={<SystemErrors />} />
                                 <Route path="/admin/support" element={<AdminSupport />} />
                                 <Route path="/admin/support/:ticketId" element={<AdminSupport />} />
                                 <Route path="/admin/leads" element={<Leads />} />

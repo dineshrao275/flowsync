@@ -334,7 +334,8 @@
             "auditLogs": "Registros de auditoría",
             "queue": "Cola en segundo plano",
             "activity": "Actividad de inquilinos",
-            "integrations": "Integraciones"
+            "integrations": "Integraciones",
+            "errors": "Errores de la aplicación"
         }
     },
     "maintenance": {

@@ -37,6 +37,7 @@ function SidebarLink({ item, collapsed, onClose }) {
     else if (item.badge === 'leads') badgeCount = effectivePlatformCounts?.leads ?? 0;
     else if (item.badge === 'support') badgeCount = effectivePlatformCounts?.support ?? 0;
     else if (item.badge === 'queue') badgeCount = effectivePlatformCounts?.queue ?? 0;
+    else if (item.badge === 'errors') badgeCount = effectivePlatformCounts?.errors ?? 0;
 
     return (
         <Link
@@ -156,6 +157,7 @@ function CollapsibleSection({ section, collapsed, onClose, open, onToggle }) {
         if (item.badge === 'leads') return effectivePlatformCounts?.leads ?? 0;
         if (item.badge === 'support') return effectivePlatformCounts?.support ?? 0;
         if (item.badge === 'queue') return effectivePlatformCounts?.queue ?? 0;
+        if (item.badge === 'errors') return effectivePlatformCounts?.errors ?? 0;
         return 0;
     };
 

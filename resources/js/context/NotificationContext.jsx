@@ -38,7 +38,7 @@ export function NotificationProvider({ children }) {
     const toast = useToast();
     const [unreadCount, setUnreadCount] = useState(0);
     const [inboxUnread, setInboxUnread] = useState(0);
-    const [platformCounts, setPlatformCounts] = useState({ leads: 0, support: 0, queue: 0 });
+    const [platformCounts, setPlatformCounts] = useState({ leads: 0, support: 0, queue: 0, errors: 0 });
 
     const [viewedSections, setViewedSections] = useState(() =>
         readStorageJson(STORAGE_KEY_VIEWED, user?.id, {}),
@@ -158,12 +158,13 @@ export function NotificationProvider({ children }) {
             return next;
         });
 
-        const allViewed = { leads: true, support: true, queue: true, inbox: true };
+        const allViewed = { leads: true, support: true, queue: true, errors: true, inbox: true };
         setViewedSections((prev) => ({ ...prev, ...allViewed }));
         const allCounts = {
             leads: platformCounts.leads,
             support: platformCounts.support,
             queue: platformCounts.queue,
+            errors: platformCounts.errors,
             inbox: inboxUnread,
         };
         setSeenCounts((prev) => ({ ...prev, ...allCounts }));
@@ -188,6 +189,8 @@ export function NotificationProvider({ children }) {
                 markSectionViewed('support');
             } else if (path === '/admin/queue' || path.startsWith('/admin/queue/')) {
                 markSectionViewed('queue');
+            } else if (path === '/admin/errors' || path.startsWith('/admin/errors/')) {
+                markSectionViewed('errors');
             }
         } else {
             if (path === '/hrms/inbox' || path.startsWith('/hrms/inbox/')) {
@@ -220,7 +223,7 @@ export function NotificationProvider({ children }) {
 
     const refreshPlatform = useCallback(async () => {
         if (!user || !platformOnly) {
-            setPlatformCounts({ leads: 0, support: 0, queue: 0 });
+            setPlatformCounts({ leads: 0, support: 0, queue: 0, errors: 0 });
             return;
         }
         try {
@@ -229,6 +232,7 @@ export function NotificationProvider({ children }) {
                 leads: Number(data.leads || 0),
                 support: Number(data.support || 0),
                 queue: Number(data.queue || 0),
+                errors: Number(data.errors || 0),
             });
         } catch {
             // keep current count on transient failures
@@ -450,6 +454,7 @@ export function NotificationProvider({ children }) {
             leads: calculateEffective(platformCounts.leads ?? 0, seenCounts.leads, viewedSections.leads),
             support: calculateEffective(platformCounts.support ?? 0, seenCounts.support, viewedSections.support),
             queue: calculateEffective(platformCounts.queue ?? 0, seenCounts.queue, viewedSections.queue),
+            errors: calculateEffective(platformCounts.errors ?? 0, seenCounts.errors, viewedSections.errors),
         };
     }, [viewedSections, platformCounts, seenCounts, calculateEffective]);
 
