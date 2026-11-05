@@ -29,6 +29,16 @@ trait ScopesVisibleTasks
         return $query;
     }
 
+    /**
+     * {@see visibleTaskQuery()} plus every relation {@see presentTask()} reads, so listing N
+     * tasks costs one query per relation instead of up to three more per task (the dashboard
+     * ran 59 queries, 24 of them lazy loads, before this).
+     */
+    protected function presentableTaskQuery(User $user): Builder
+    {
+        return $this->visibleTaskQuery($user)->with(['assignee.roles', 'issueType', 'version', 'components', 'watchers:users.id,name,email']);
+    }
+
     protected function userManagesAllTasks(User $user): bool
     {
         return ($user->is_super_admin && ! request()->session()->has('impersonate'))

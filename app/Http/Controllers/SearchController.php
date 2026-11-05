@@ -28,7 +28,7 @@ class SearchController extends Controller
 
         $user = $request->user();
 
-        $query = $this->visibleTaskQuery($user)->withCount([
+        $query = $this->presentableTaskQuery($user)->withCount([
             'subtasks',
             'comments',
             'attachments',

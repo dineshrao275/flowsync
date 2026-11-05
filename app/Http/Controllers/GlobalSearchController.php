@@ -179,7 +179,7 @@ class GlobalSearchController extends Controller
             return [];
         }
 
-        return $this->visibleTaskQuery($user)
+        return $this->presentableTaskQuery($user)
             ->tap(fn ($b) => Like::any($b, ['tasks.title', 'tasks.key', 'tasks.description'], $q))
             ->orderByDesc('tasks.updated_at')
             ->limit($limit)
