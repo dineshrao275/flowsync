@@ -142,7 +142,10 @@ describe('UserTooltip component', () => {
             vi.advanceTimersByTime(150);
         });
 
-        expect(screen.getByText('Carol Danvers')).toBeInTheDocument();
+        const nameEl = screen.getByText('Carol Danvers');
+        expect(nameEl).toBeInTheDocument();
+        expect(nameEl).toHaveClass('text-fg');
+        expect(screen.getByRole('tooltip')).toHaveClass('bg-surface', 'border-line');
         expect(screen.getByText('admin')).toBeInTheDocument();
         expect(screen.getByText('Senior Architect')).toBeInTheDocument();
     });
