@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Models\ErrorLog;
 use App\Models\PlatformPermission;
 use App\Models\PlatformRole;
 use App\Models\SystemUser;
@@ -36,6 +37,16 @@ class PlatformAccessTest extends TestCase
     {
         $this->postJson('/api/auth/logout');
         $this->postJson('/api/auth/login', ['email' => $email, 'password' => 'password'])->assertOk();
+    }
+
+    private function errorRow(): ErrorLog
+    {
+        return ErrorLog::create([
+            'fingerprint' => hash('sha256', uniqid('persona-error', true)),
+            'message' => 'Access fixture',
+            'severity' => 'error',
+            'status' => ErrorLog::STATUS_OPEN,
+        ]);
     }
 
     public function test_the_catalog_and_four_personas_are_seeded_by_the_migration(): void
@@ -95,6 +106,8 @@ class PlatformAccessTest extends TestCase
 
         $this->getJson('/api/tenants')->assertOk();
         $this->getJson('/api/system/features')->assertOk();
+        $this->getJson('/api/system/errors')->assertForbidden()
+            ->assertJsonPath('code', 'platform_permission_denied')->assertJsonPath('permission', 'errors.view');
         $this->getJson('/api/system/audit-logs')->assertForbidden()
             ->assertJsonPath('code', 'platform_permission_denied')->assertJsonPath('permission', 'audit.view');
         $this->postJson("/api/tenants/{$this->acme()->id}/suspend")->assertForbidden()->assertJsonPath('permission', 'tenants.manage');
@@ -110,6 +123,9 @@ class PlatformAccessTest extends TestCase
         $this->getJson('/api/system/audit-logs')->assertOk();
         $this->getJson('/api/system/settings')->assertOk();
         $this->getJson('/api/system/users')->assertOk();
+        $this->getJson('/api/system/errors/summary')->assertOk();
+        $this->putJson('/api/system/errors/'.$this->errorRow()->id, ['status' => ErrorLog::STATUS_RESOLVED])
+            ->assertForbidden()->assertJsonPath('permission', 'errors.manage');
         $this->putJson('/api/system/settings', ['maintenance_mode' => true])->assertForbidden();
         $this->postJson('/api/system/feature-flags', ['key' => 'x_flag'])->assertForbidden();
         $this->postJson("/api/tenants/{$this->acme()->id}/suspend")->assertForbidden();
@@ -121,6 +137,9 @@ class PlatformAccessTest extends TestCase
         $this->signIn('support@flowsync.test');
 
         $this->getJson('/api/system/support/tickets')->assertOk();
+        $this->getJson('/api/system/errors/summary')->assertOk();
+        $this->putJson('/api/system/errors/'.$this->errorRow()->id, ['status' => ErrorLog::STATUS_RESOLVED])
+            ->assertForbidden()->assertJsonPath('permission', 'errors.manage');
         $this->postJson("/api/tenants/{$this->acme()->id}/subscription/cancel")->assertForbidden()->assertJsonPath('permission', 'billing.manage');
         // Reaches the controller (validation, not the persona gate): impersonate.start is held.
         $this->postJson('/api/impersonate', [])->assertStatus(422);

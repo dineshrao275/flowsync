@@ -6,11 +6,11 @@ import { usePrompt } from '../ui/ConfirmDialog';
 import { formatDateOnly } from '../../utils/format';
 
 const STATUS_COLORS = {
-    pending: '#f59e0b',
-    in_progress: '#0ea5e9',
-    done: '#10b981',
-    skipped: '#6b7280',
-    waived: '#8b5cf6',
+    pending: 'var(--chart-amber)',
+    in_progress: 'var(--chart-sky)',
+    done: 'var(--chart-green)',
+    skipped: 'var(--chart-neutral)',
+    waived: 'var(--chart-violet)',
 };
 
 const SCOPE_KEYS = {

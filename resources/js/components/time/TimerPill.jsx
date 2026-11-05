@@ -22,7 +22,10 @@ export default function TimerPill() {
     const toast = useToast();
     const [timer, setTimer] = useState(null);
     const [now, setNow] = useState(() => Date.now());
-    const enabled = Boolean(user) && hasModule('time_tracking');
+    // A non-impersonating super admin has no tenant database, so the tenant-only
+    // timer endpoint would 403 and surface as an application error.
+    const platformOnly = Boolean(user?.is_super_admin && !user?.impersonating);
+    const enabled = Boolean(user) && !platformOnly && hasModule('time_tracking');
 
     const load = useCallback(() => {
         if (!enabled) return;

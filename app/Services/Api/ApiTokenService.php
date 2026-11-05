@@ -5,8 +5,10 @@ declare(strict_types=1);
 namespace App\Services\Api;
 
 use App\Models\ApiToken;
+use App\Models\ProjectRole;
 use App\Models\Tenant;
 use App\Models\User;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 
@@ -77,6 +79,47 @@ class ApiTokenService
         return ApiToken::where('user_id', $userId)->whereNull('revoked_at')->update(['revoked_at' => now()]);
     }
 
+    public function userHoldsAbility(User $user, string $ability): bool
+    {
+        if ($user->hasRole('admin')) {
+            return true;
+        }
+
+        $groups = (array) config('api.ability_groups');
+        if (isset($groups[$ability]['any_of'])) {
+            $candidates = (array) $groups[$ability]['any_of'];
+
+            foreach ($candidates as $candidate) {
+                if ($user->hasPermission($candidate)) {
+                    return true;
+                }
+            }
+
+            // Also check project memberships
+            $roleIds = DB::table('project_members')
+                ->where('user_id', $user->id)
+                ->pluck('project_role_id')
+                ->filter()
+                ->unique()
+                ->all();
+
+            if (! empty($roleIds)) {
+                $roles = ProjectRole::whereIn('id', $roleIds)->get();
+                foreach ($roles as $role) {
+                    foreach ($candidates as $candidate) {
+                        if ($role->grants($candidate)) {
+                            return true;
+                        }
+                    }
+                }
+            }
+
+            return false;
+        }
+
+        return $user->hasPermission($ability);
+    }
+
     /**
      * A token can never be granted more than its creator holds, nor anything outside
      * the catalog of abilities a /api/v1 route is gated on.
@@ -91,7 +134,7 @@ class ApiTokenService
         $requested = in_array('*', $requested, true) ? $catalog : $requested;
 
         $unknown = array_diff($requested, $catalog);
-        $notHeld = array_filter($requested, fn (string $slug) => ! $user->hasPermission($slug));
+        $notHeld = array_filter($requested, fn (string $slug) => ! $this->userHoldsAbility($user, $slug));
 
         if ($requested === [] || $unknown !== [] || $notHeld !== []) {
             throw ValidationException::withMessages([

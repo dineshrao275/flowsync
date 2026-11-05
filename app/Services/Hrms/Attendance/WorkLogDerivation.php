@@ -11,6 +11,7 @@ use App\Models\Hrms\Shared\HrmsSetting;
 use App\Models\WorkLog;
 use App\Support\Tms\TmsSchema;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Schema;
 
 /**
  * Attendance/HRMS — marking days from voluntarily logged work.
@@ -79,6 +80,8 @@ class WorkLogDerivation
         $logs = WorkLog::query()
             ->whereNotNull('ended_at')
             ->whereDate('started_at', $day)
+            // Time written through an API token is never HR attendance (skipped until the column exists on this tenant).
+            ->when(Schema::hasColumn('work_logs', 'source'), fn ($query) => $query->where(fn ($q) => $q->whereNull('source')->orWhereNotIn('source', ['api', 'git'])))
             ->get(['user_id', 'started_at', 'ended_at', 'duration_minutes']);
 
         $employeeIds = Employee::query()->active()->whereNotNull('user_id')->pluck('id', 'user_id');

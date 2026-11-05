@@ -24,7 +24,7 @@ export default function ImpersonationBanner() {
 
     return (
         <div className="fixed inset-x-0 top-0 z-50">
-            <div className="flex items-center justify-between gap-4 bg-gradient-to-r from-amber-500 to-orange-600 px-4 py-2.5 text-sm text-white shadow-md sm:px-6">
+            <div className="flex items-center justify-between gap-4 px-4 py-2.5 text-sm text-white shadow-md sm:px-6" style={{ background: 'linear-gradient(90deg, #92400e, #9a3412)' }}>
                 <div className="flex min-w-0 items-center gap-2">
                     <svg className="h-5 w-5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                         <path d="M12 9v4m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />

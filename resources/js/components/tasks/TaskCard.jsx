@@ -6,7 +6,8 @@ import TaskBadge from '../ui/TaskBadge';
 import { CSS } from '@dnd-kit/utilities';
 import { useTranslation } from 'react-i18next';
 import { formatMinutes } from '../../utils/time';
-import { CalendarBlank, ChatCircle, CheckSquare, Clock } from '@phosphor-icons/react';
+import { CalendarBlank, ChatCircle, CheckSquare, Clock, GitPullRequest } from '@phosphor-icons/react';
+import { useTaskDevelopment } from '../../hooks/DevelopmentSummary';
 
 const PRIORITY_DOT = {
     highest: '#ef4444',
@@ -61,6 +62,7 @@ export const CARD_CLASS =
 export function TaskCardBody({ task, compact = false }) {
     const { t } = useTranslation();
     const due = formatDue(task.due_date, t);
+    const dev = useTaskDevelopment(task.id);
 
     return (
         <>
@@ -68,11 +70,8 @@ export function TaskCardBody({ task, compact = false }) {
                 <div className="flex min-w-0 flex-1 flex-wrap items-center gap-1.5">
                     {task.issue_type && (
                         <span
-                            className="inline-flex max-w-[9rem] items-center truncate rounded px-1.5 py-0.5 text-xs font-semibold"
-                            style={{
-                                backgroundColor: `${task.issue_type.color || '#2563eb'}18`,
-                                color: task.issue_type.color || '#2563eb',
-                            }}
+                            className="chip-tint inline-flex max-w-[9rem] items-center truncate rounded px-1.5 py-0.5 text-xs font-semibold"
+                            style={{ '--chip': task.issue_type.color || 'var(--accent)' }}
                             title={task.issue_type.name}
                         >
                             {task.issue_type.name}
@@ -102,7 +101,7 @@ export function TaskCardBody({ task, compact = false }) {
             </div>
             <p
                 title={task.title}
-                className={`mt-1.5 line-clamp-3 break-words text-sm font-medium leading-snug text-gray-900 dark:text-gray-100 [overflow-wrap:anywhere] ${task.completed_at ? 'line-through opacity-60' : ''}`}
+                className={`mt-1.5 line-clamp-3 break-words text-sm font-medium leading-snug text-gray-900 [overflow-wrap:anywhere] ${task.completed_at ? 'line-through opacity-60' : ''}`}
             >
                 {task.title}
             </p>
@@ -125,9 +124,9 @@ export function TaskCardBody({ task, compact = false }) {
                     {task.labels.map((label) => (
                         <span
                             key={label.id}
-                            className="max-w-full truncate rounded-full px-2 py-0.5 text-xs font-medium"
+                            className="chip-tint max-w-full truncate rounded-full px-2 py-0.5 text-xs font-medium"
                             title={label.name}
-                            style={{ backgroundColor: `${label.color || '#e2e8f0'}22`, color: label.color || '#475569' }}
+                            style={{ '--chip': label.color || '#64748b' }}
                         >
                             {label.name}
                         </span>
@@ -160,6 +159,15 @@ export function TaskCardBody({ task, compact = false }) {
                         >
                             <ChatCircle size={13} weight="bold" className="text-gray-400 shrink-0" />
                             <span>{task.comments_count}</span>
+                        </span>
+                    )}
+                    {dev && (
+                        <span
+                            className={`inline-flex items-center gap-1 font-medium ${dev.checks_state === 'failure' ? 'text-danger-fg' : dev.checks_state === 'success' ? 'text-success' : ''}`}
+                            title={t('tms.card.pullRequests', { count: dev.pull_requests })}
+                        >
+                            <GitPullRequest size={13} weight="bold" className="shrink-0" />
+                            <span>{dev.pull_requests}</span>
                         </span>
                     )}
                     {task.estimate_minutes != null && task.estimate_minutes > 0 && (

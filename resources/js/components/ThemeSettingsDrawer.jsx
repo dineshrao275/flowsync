@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '../context/ThemeContext';
 import { useToast } from '../context/ToastContext';
-import { THEME_FIELDS, THEME_PRESETS, themeContrastIssues } from '../theme';
+import { THEME_FIELDS, THEME_PRESETS, resolveTheme } from '../theme';
 import Button from './ui/Button';
 
 const SCHEMES = [
@@ -79,6 +79,8 @@ function ColorField({ field, value, onChange }) {
 export default function ThemeSettingsDrawer({ open, onClose }) {
     const { t } = useTranslation();
     const { draft, preview, previewFull, save, reset } = useTheme();
+    // What the resolver had to change so text stays readable (hue kept, only as far as WCAG AA needs).
+    const { adjustments } = resolveTheme(draft);
     const toast = useToast();
     const [saving, setSaving] = useState(false);
 
@@ -164,13 +166,17 @@ export default function ThemeSettingsDrawer({ open, onClose }) {
 
                     <section>
                         <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-gray-500">{t('shell.theme.colors')}</h3>
-                        {themeContrastIssues(draft).length > 0 && (
+                        {adjustments.length > 0 && (
                             <div role="status" className="mb-3 rounded-lg border border-warning-line bg-warning-soft px-3 py-2 text-xs text-warning">
                                 <p className="font-semibold">{t('shell.theme.contrast.title')}</p>
                                 <ul className="mt-1 list-disc space-y-0.5 pl-4">
-                                    {themeContrastIssues(draft).map((issue) => (
-                                        <li key={issue.id}>
-                                            {t(`shell.theme.contrast.${issue.id}`, { ratio: issue.ratio.toFixed(1), min: issue.min })}
+                                    {adjustments.map((a) => (
+                                        <li key={a.key}>
+                                            {t('shell.theme.contrast.adjusted', {
+                                                field: t(`shell.theme.fields.${a.key}`, { defaultValue: a.key }),
+                                                from: a.from.toUpperCase(),
+                                                to: a.to.toUpperCase(),
+                                            })}
                                         </li>
                                     ))}
                                 </ul>

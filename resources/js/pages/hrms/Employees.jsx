@@ -330,8 +330,8 @@ export default function Employees() {
                                 <Td className="text-gray-600">{employee.designation ?? '—'}</Td>
                                 <Td>
                                     <span
-                                        className="inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-xs font-medium"
-                                        style={{ backgroundColor: `${employee.status_color}22`, color: employee.status_color }}
+                                        className="chip-tint inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-xs font-medium"
+                                        style={{ '--chip': employee.status_color }}
                                     >
                                         <span
                                             className="h-1.5 w-1.5 rounded-full"

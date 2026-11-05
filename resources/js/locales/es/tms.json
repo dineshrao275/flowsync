@@ -22,7 +22,9 @@
         "commentsCount": "{{count}} comentarios",
         "estimate": "Estimación",
         "estimateShort": "est. {{value}}",
-        "subtasksProgress": "{{done}} de {{total}} subtareas hechas"
+        "subtasksProgress": "{{done}} de {{total}} subtareas hechas",
+        "pullRequests_one": "{{count}} pull request",
+        "pullRequests_other": "{{count}} pull requests"
     },
     "table": {
         "empty": "Ninguna tarea coincide con los filtros actuales.",
@@ -230,6 +232,7 @@
         "checklistUncheckedTitle": "desmarcó el elemento «{{title}}» de la lista de verificación",
         "checklistRemoved": "quitó un elemento de la lista de verificación",
         "checklistRemovedTitle": "quitó el elemento «{{title}}» de la lista de verificación",
+        "viaApi": "vía API",
         "someone": "Alguien",
         "empty": "Aún no hay actividad.",
         "loadFailed": "No se pudo cargar la actividad.",
@@ -242,7 +245,11 @@
         "vcsLine": "GitHub {{kind}} {{state}}: {{title}}",
         "vcsKind": {
             "pull_request": "pull request",
-            "commit": "commit"
+            "commit": "commit",
+            "branch": "rama",
+            "release": "versión",
+            "review": "revisión",
+            "checks": "comprobaciones"
         }
     },
     "workspaces": {
@@ -376,7 +383,8 @@
             "dependencies": "Dependencias",
             "time": "Tiempo",
             "links": "Enlaces",
-            "activity": "Actividad"
+            "activity": "Actividad",
+            "development": "Desarrollo"
         },
         "delete": "Eliminar",
         "save": "Guardar cambios",
@@ -967,5 +975,65 @@
         "deleteFailed": "No se pudo eliminar la versión.",
         "loadFailed": "No se pudieron cargar las versiones.",
         "archivedHint": "Restaura el proyecto para cambiar sus versiones."
+    },
+    "repositories": {
+        "title": "Repositorios",
+        "subtitle": "Repositorios de GitHub que sigue este proyecto. Los pull requests, commits y ramas que mencionan la clave de una tarea aparecen en esa tarea.",
+        "linkRepository": "Vincular repositorio",
+        "search": "Buscar repositorios",
+        "link": "Vincular",
+        "alreadyLinked": "Vinculado",
+        "cancel": "Cancelar",
+        "private": "Privado",
+        "public": "Público",
+        "noMatches": "No se encontraron repositorios.",
+        "noMatchesHint": "Solo aparecen los repositorios compartidos con FlowSync en GitHub. Conecta una cuenta en Integraciones.",
+        "empty": "Aún no hay ningún repositorio vinculado.",
+        "emptyHint": "Vincula un repositorio para ver sus pull requests y commits en las tareas de este proyecto.",
+        "paused": "En pausa",
+        "unlink": "Desvincular",
+        "sync": "Seguir este repositorio",
+        "syncHint": "Desactívalo para pausar las actualizaciones sin desvincular.",
+        "smartCommits": "Commits inteligentes",
+        "smartCommitsHint": "Permite que los mensajes de commit comenten, registren tiempo o cierren tareas. Requiere usuarios de GitHub asignados.",
+        "linked": "Repositorio vinculado.",
+        "unlinked": "Repositorio desvinculado.",
+        "unlinkTitle": "¿Desvincular {{name}}?",
+        "unlinkMessage": "El proyecto dejará de seguir este repositorio.",
+        "removeDataTitle": "¿Eliminar también los datos vinculados?",
+        "removeDataMessage": "Elimina los pull requests, commits y ramas registrados en las tareas desde este repositorio. Cancelar los conserva.",
+        "loadFailed": "No se pudieron cargar los repositorios.",
+        "requestFailed": "No se pudo completar la solicitud.",
+        "smartTransitions": "Permitir que los commits cambien el estado",
+        "smartTransitionsHint": "Permite #close y #transition. Requiere commits inteligentes."
+    },
+    "development": {
+        "overviewTitle": "Repositorios",
+        "loadFailed": "No se pudo cargar la actividad de desarrollo.",
+        "noRepository": "No hay ningún repositorio vinculado.",
+        "noRepositoryHint": "Un responsable del proyecto puede vincular un repositorio de GitHub en los ajustes del proyecto.",
+        "nothingYet": "Aún no hay actividad de desarrollo.",
+        "nothingYetHint": "Incluye {{key}} en el nombre de una rama, un mensaje de commit o el título de un pull request y aparecerá aquí.",
+        "pullRequests": "Pull requests",
+        "commits": "Commits",
+        "branches": "Ramas",
+        "branchDeleted": "eliminada",
+        "prState": {
+            "open": "Abierto",
+            "draft": "Borrador",
+            "merged": "Fusionado",
+            "closed": "Cerrado",
+            "dismissed": "Descartado"
+        },
+        "checks": {
+            "success": "Comprobaciones superadas",
+            "failure": "Comprobaciones fallidas",
+            "pending": "Comprobaciones en curso",
+            "neutral": "Comprobaciones neutrales"
+        },
+        "createBranch": "Crear rama",
+        "branchCreated": "Se creó {{name}}",
+        "branchFailed": "No se pudo crear la rama.",
+        "repository": "Repositorio"
     }
 }

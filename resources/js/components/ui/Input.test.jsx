@@ -22,4 +22,13 @@ describe('Input label association', () => {
         render(<Input label="Code" id="code-field" />);
         expect(screen.getByLabelText('Code').id).toBe('code-field');
     });
+
+    it('applies pr-9 padding and renders clear button when date value is present', () => {
+        render(<Input label="Start Date" type="date" value="2025-11-23" onChange={() => {}} />);
+        const input = screen.getByLabelText('Start Date');
+        expect(input).toBeInTheDocument();
+        expect(input).toHaveClass('pr-9');
+        const clearBtn = document.querySelector('.react-datepicker__close-icon');
+        expect(clearBtn).toBeInTheDocument();
+    });
 });

@@ -45,3 +45,5 @@ tests/
 docs/
 README.md
 IMPLEMENTATION_TRACKER.md
+# GitHub App credentials (never bake into the image)
+github-app.generated

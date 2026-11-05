@@ -1,6 +1,6 @@
 # GitHub App — Full Repository Connection Plan
 
-> Status: approved decisions locked, ready for execution.
+> Status: Phases 0-9 built and verified with focused runs (2026-11-03). Phase 10: code and docs complete; the full-suite run and the real-GitHub-App E2E are the two open gates (see Phase 10).
 > Scope: FlowSync TMS ↔ GitHub repositories (installation-based).
 > Mode: build — one reviewed commit per task, focused ParaTest per task, full suite at phase gates.
 > Owner: Dinesh Rao. Last updated: 2026-11-02.
@@ -215,9 +215,23 @@ Full suite at phase gates marked “cross-cutting”.
 
 **Gate:** focused ParaTest + Pint.
 
+> **Deviation (2026-11-03):** the CSRF and maintenance exceptions are scoped to the **inbound webhook**
+> paths only (`api/integrations/github/*`, `api/integrations/git/github/webhook`). The broad
+> `api/integrations/git/*` pattern in task 1 would also exempt the tenant session routes
+> (`.../git/connections`, …) from CSRF; those, and the setup callback, stay protected and are refused
+> during maintenance like every other tenant action.
+
 ---
 
 ### Phase 1 — GitHub App connection lifecycle
+
+> **Status: done (2026-11-03).** Deviations from the text below, all deliberate:
+> - **Installer proof (security).** The setup redirect carries a forgeable `installation_id`; without a check a tenant admin could claim another organisation's installation by guessing the (sequential) id. The app must have *Request user authorization (OAuth) during installation* on, and `GitHubAppClient::userCanAccessInstallation` exchanges the returned `code` and checks `/user/installations`. Fails closed when `GITHUB_APP_CLIENT_ID`/`GITHUB_APP_CLIENT_SECRET` are unset. Added to §5 registration steps.
+> - `GET integrations/git/github/install` returns `{url}` JSON (the SPA navigates) instead of a 302.
+> - `GitHubAppClient` implements `GitProvider` directly (no separate `GitHubAppProvider`); `createRef`/`listCommits`/`listPullRequests`/`checksFor` land with the phases that use them.
+> - Permissions `git.view`/`git.manage`, module `git` and plan wiring (suite Pro/Business/Enterprise, TMS Professional/Enterprise) were pulled forward from Phase 4: the routes need them. `editor` holds `git.view`.
+> - `SyncGitInstallation` + `GitRepositorySync` ship now (basic upsert, unavailable-not-deleted); Phase 3 adds scheduler, caches, picker.
+> - Disconnect revokes the row and wipes tokens; unlinking project links arrives with `project_repositories` (Phase 4).
 
 **Goal:** a tenant admin installs the app and gets a connection.
 
@@ -255,6 +269,8 @@ cross-tenant refusal, disconnect, token cache, JWT signature, secrets never in J
 
 ### Phase 2 — Webhook infrastructure
 
+> **Status: done (2026-11-03).** Deviations: the job receives the payload through the queue (bodies > 1 MB are recorded but not queued) because only an excerpt is stored; `git:sync-installations` is Phase 3; the SA health view is Phase 8 (the tenant sees its own last-delivery/failure count now). The full-suite gate is deferred to the end-of-programme run by instruction.
+
 **Goal:** secure, idempotent event intake.
 
 1. `GitWebhookController@receive`:
@@ -281,6 +297,8 @@ unknown installation, disabled/revoked connection, malformed JSON, ping, disable
 
 ### Phase 3 — Repository catalog & browse APIs
 
+> **Status: done (2026-11-03).** Deviation: browse endpoints are keyed by repository uuid under `integrations/git/repositories/{uuid}/…` (picker preview); the project-scoped `projects/{p}/repositories/{link}/…` aliases arrive with the link table in Phase 4 and delegate to the same `GitRepositoryBrowser`.
+
 **Goal:** installation repositories are listed and browsable.
 
 1. `SyncGitInstallation` job:
@@ -302,6 +320,8 @@ HTTP fake contract, 429/backoff, no cross-tenant leak.
 ---
 
 ### Phase 4 — Per-project repository linking
+
+> **Status: done (2026-11-03).** Deviations: permissions/module/plans were already added in Phase 1; the `repositories` summary on the project payload is not added (the panel and the Phase 6 Overview read the list endpoint, so project lists pay no extra query); unlink with linked data uses the explicit `remove_linked_data` flag and a second confirm in the UI. Phases 1-3 had left two ratchet tests red (inline `validate()` in controllers, `routes/web.php` size); fixed here with FormRequests and a merged `require` line.
 
 **Goal:** project managers link repositories to a project.
 
@@ -325,6 +345,8 @@ module/plan gate, migration outcome, tenant isolation.
 ---
 
 ### Phase 5 — Event processing & task links v2
+
+> **Status: done (2026-11-03).** Deviations: `git_identities` is unique on `(provider, login)` (identities are admin-mapped by login in Phase 7, `provider_user_id` is optional); `task_branches` gains `deleted_at` (a deleted branch is marked, not removed); derived task tables use `ON DELETE SET NULL` for `project_repository_id` so unlinking keeps history unless `remove_linked_data`; releases/reviews dedupe by provider object id (`claimOnce`) rather than by delivery; `git_event_links` pruning is added with the Phase 9 retention pass.
 
 **Goal:** PR/commit/branch/release/checks become queryable task state.
 
@@ -358,6 +380,8 @@ activity written once.
 
 ### Phase 6 — Development UI
 
+> **Status: done (2026-11-03).** Deviations: the board badge and Overview read one project-level `development/summary` (a single grouped query) instead of widening the board/list payloads; the Vitest error-path case for the panel was dropped because vitest's mock registry reports an intentionally rejected mock promise as unhandled (the shared `useResource`/`Resource` error path is covered by their own tests).
+
 **Goal:** developers see repo activity on the task.
 
 1. `GET projects/{project}/tasks/{task}/development` → `GitTaskPresenter`:
@@ -376,6 +400,8 @@ activity written once.
 ---
 
 ### Phase 7 — Write actions & smart commits (in scope)
+
+> **Status: done (2026-11-03).** Deviations: status-changing commands (`#close`, `#transition`) have their own per-link switch `smart_commit_transitions_enabled` (new migration `2026_12_15_000065`) on top of `smart_commits_enabled`; e-mail auto-match of identities is **not** built (explicit mapping only); `#time` logs are stored with `work_logs.source='git'` (after the MCP merge) and excluded from HR attendance derivation; identities are unique per `(provider, login)` and per user.
 
 **Goal:** create branches and apply commit commands safely.
 
@@ -406,6 +432,8 @@ branch name validation, provider failures, audit rows; `GitBranchTest`.
 
 ### Phase 8 — Platform/SA management & health
 
+> **Status: done (2026-11-03).** Deviations: an `enable` route was added next to `disable` (a pause that cannot be undone from the UI is a trap); the delivery list intentionally omits `payload_excerpt` (it names tenant repositories and people) and the connection list omits repository names.
+
 1. `/admin/integrations` (SA): connections across tenants, delivery health, failed deliveries,
    re-sync, disable; `config/platform_access.php` entries.
 2. Metrics/log counters: `git.webhook.received|processed|failed`, repeated-failure critical log.
@@ -418,6 +446,8 @@ branch name validation, provider failures, audit rows; `GitBranchTest`.
 ---
 
 ### Phase 9 — Hardening, ops, legacy migration
+
+> **Status: done (2026-11-03).** Deviations: private-key hardening is an operator command (`git:check-config`) plus tests rather than runtime enforcement; rotation and incident steps are in `docs/runbook.md` §9; the legacy deprecation notice shows only when the tenant's plan has the `git` module. Found and fixed on the way: the request logger wrote webhook/OAuth input to the log.
 
 1. Secret/token hardening: private key permissions, rotation runbook, `$hidden`, no logs,
    no secrets in error responses.
@@ -438,6 +468,12 @@ branch name validation, provider failures, audit rows; `GitBranchTest`.
 ---
 
 ### Phase 10 — QA, docs, rollout
+
+> **Status: code and docs complete (2026-11-03); two gates still open.**
+> 0. **Full suite run 2026-11-03 (operator): 2524 tests, 2 failures, both test-side and fixed** - `ScopePermissionTest` (permission catalog 106 -> 108) and `PermissionMatrixTest` (sampled `1` for `whereUuid()` routes, so Git routes 404/405'd before the permission gate; now samples a uuid). Re-run once more to confirm green.
+> 1. **Full PHP suite** (`php artisan test --parallel`, Docker stopped, never `down -v`) - deliberately deferred to the end by instruction; not run on this branch yet. Expected: `HrmsShellTest::test_every_commit_is_pushed` fails until the branch is pushed. Focused runs of every Git suite, the architecture ratchets, route/authorization audits, translation parity, schedule registration, tenant module schema, `tests/Unit`, ESLint (0 errors, warning count unchanged), full Vitest and the build were green at each phase commit. One Vitest case (`extractedModules` Tenants) timed out under full-suite load and passed alone.
+> 2. **Real GitHub App E2E** (needs the operator's app, credentials and a public URL): follow `docs/runbook.md` section 9 - `git:check-config`, install, ping 200, PR open/merge, checks, create branch, smart commit (`#comment`, `#time`, `#close`), two-tenant isolation on a real org.
+> Test counts added by this programme: `GitConnectionTest` 15, `GitWebhookTest` 23, `GitRepositorySyncTest` 8, `GitRepositoryLinkTest` 10, `GitEventProcessingTest` 16, `GitTaskDevelopmentTest` 6, `GitSmartCommitTest` 9, `GitBranchIdentityTest` 6, `GitPlatformTest` 8, `GitHardeningTest` 8, `Unit/SmartCommitParserTest` 6 (= 115 PHP) and 5 Vitest files (Integrations, RepositoriesPanel, DevelopmentPanel, PlatformIntegrations, GithubSettings). Update the `AGENTS.md` totals from the full run.
 
 1. Full test matrix (§7), i18n parity, Pint, ESLint, Vitest, build.
 2. Real GitHub App E2E on a test repo via ngrok/cloudflared:
@@ -464,6 +500,7 @@ branch name validation, provider failures, audit rows; `GitBranchTest`.
    - Webhook URL: `https://<host>/api/integrations/git/github/webhook`.
    - Webhook secret: generate 32+ random bytes → `GITHUB_APP_WEBHOOK_SECRET`.
    - Setup URL (post-installation): `https://<host>/api/integrations/git/github/setup`.
+   - Tick **Request user authorization (OAuth) during installation**; note the **Client ID** and generate a **Client secret** (`GITHUB_APP_CLIENT_ID`/`GITHUB_APP_CLIENT_SECRET`). Callback URL: the same setup URL.
    - “Redirect on update”: enabled.
 3. Repository permissions:
    - Metadata: **Read** (mandatory).

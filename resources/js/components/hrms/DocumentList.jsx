@@ -8,10 +8,10 @@ import { Table, Th, Td } from '../ui/Table';
 import { formatDateOnly } from '../../utils/format';
 
 const STATUS_COLORS = {
-    pending: '#f59e0b',
-    verified: '#10b981',
-    rejected: '#ef4444',
-    expired: '#6b7280',
+    pending: 'var(--chart-amber)',
+    verified: 'var(--chart-green)',
+    rejected: 'var(--chart-red)',
+    expired: 'var(--chart-neutral)',
 };
 
 const STATUS_KEYS = {

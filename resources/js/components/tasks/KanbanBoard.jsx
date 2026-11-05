@@ -110,7 +110,7 @@ function Column({ status, canMove, canEdit, canCreate, collapsed, onToggle, onOp
         return (
             <div
                 ref={setNodeRef}
-                className={`flex w-12 shrink-0 snap-start flex-col items-center rounded-xl border py-2 transition ${
+                className={`flex w-12 max-h-[calc(100vh-14rem)] shrink-0 snap-start flex-col items-center rounded-xl border py-2 transition ${
                     isOver ? 'border-[var(--accent-ring)] bg-[var(--accent-soft)]' : 'border-gray-100 bg-gray-50/80'
                 }`}
             >
@@ -131,11 +131,11 @@ function Column({ status, canMove, canEdit, canCreate, collapsed, onToggle, onOp
     return (
         <div
             ref={setNodeRef}
-            className={`flex w-[85vw] max-w-96 shrink-0 snap-start flex-col rounded-xl border p-2 transition ${WIDTHS[width] ?? WIDTHS.default} ${
+            className={`flex w-[85vw] max-w-96 max-h-[calc(100vh-14rem)] min-h-[16rem] shrink-0 snap-start flex-col rounded-xl border p-2 transition ${WIDTHS[width] ?? WIDTHS.default} ${
                 isOver ? 'border-[var(--accent-ring)] bg-[var(--accent-soft)]' : 'border-gray-100 bg-gray-50/80'
             }`}
         >
-            <div className="flex items-center justify-between px-2 pb-2 pt-1">
+            <div className="flex shrink-0 items-center justify-between px-2 pb-2 pt-1">
                 <button
                     type="button"
                     onClick={onToggle}
@@ -168,7 +168,7 @@ function Column({ status, canMove, canEdit, canCreate, collapsed, onToggle, onOp
                 </div>
             </div>
             {status.wip_limit != null && (
-                <div className="px-2 pb-2">
+                <div className="shrink-0 px-2 pb-2">
                     <ProgressBar
                         value={status.open_count}
                         max={status.wip_limit}
@@ -177,25 +177,31 @@ function Column({ status, canMove, canEdit, canCreate, collapsed, onToggle, onOp
                     />
                 </div>
             )}
-            <SortableContext items={status.tasks.map((task) => task.id)}>
-                <div className="flex flex-col gap-2">
-                    {status.tasks.map((task) => (
-                        <TaskCard
-                            key={task.id}
-                            task={task}
-                            disabled={!canMove}
-                            compact={compact}
-                            onClick={() => canEdit && onOpen(task)}
-                        />
-                    ))}
-                    {status.tasks.length === 0 && (
-                        <div className="rounded-lg border border-dashed border-gray-300 px-3 py-6 text-center text-xs text-gray-500">
-                            {t('tms.board.dropHere')}
-                        </div>
-                    )}
+            <div className="board-scroll flex-1 overflow-y-auto min-h-0 pr-1 -mr-0.5">
+                <SortableContext items={status.tasks.map((task) => task.id)}>
+                    <div className="flex flex-col gap-2 p-0.5">
+                        {status.tasks.map((task) => (
+                            <TaskCard
+                                key={task.id}
+                                task={task}
+                                disabled={!canMove}
+                                compact={compact}
+                                onClick={() => canEdit && onOpen(task)}
+                            />
+                        ))}
+                        {status.tasks.length === 0 && (
+                            <div className="rounded-lg border border-dashed border-gray-300 px-3 py-6 text-center text-xs text-gray-500">
+                                {t('tms.board.dropHere')}
+                            </div>
+                        )}
+                    </div>
+                </SortableContext>
+            </div>
+            {canCreate && onQuickAdd && (
+                <div className="shrink-0 pt-1">
+                    <QuickAdd status={status} onQuickAdd={onQuickAdd} />
                 </div>
-            </SortableContext>
-            {canCreate && onQuickAdd && <QuickAdd status={status} onQuickAdd={onQuickAdd} />}
+            )}
         </div>
     );
 }

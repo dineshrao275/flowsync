@@ -27,7 +27,8 @@ class PlatformMaintenance
     /** API paths reachable by anyone during maintenance. */
     private const OPEN = [
         'api/maintenance', 'api/health', 'api/locales', 'api/language', 'api/csp-report', 'api/contact',
-        'api/webhooks/*', 'api/signatures/verify/*', 'api/auth/logout',
+        'api/webhooks/*', 'api/integrations/github/*', 'api/integrations/git/github/webhook',
+        'api/signatures/verify/*', 'api/auth/logout',
     ];
 
     public static function active(): bool

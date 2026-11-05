@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Http\Controllers;
 
 use App\Models\Tenant;
+use App\Services\Integrations\Git\GitPlatformService;
 use App\Support\TenantDatabaseManager;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
@@ -47,6 +48,13 @@ class MetricsController extends Controller
         foreach (Tenant::query()->selectRaw('status, count(*) as total')->groupBy('status')->pluck('total', 'status') as $status => $total) {
             $emit('flowsync_tenants', 'Tenants by lifecycle status.', $total, ['status' => $status]);
         }
+
+        $git = app(GitPlatformService::class)->health();
+        foreach ($git['connections'] as $status => $total) {
+            $emit('flowsync_git_connections', 'Git connections by status.', $total, ['status' => $status]);
+        }
+        $emit('flowsync_git_deliveries_failed_24h', 'Git webhook deliveries that failed in the last 24 hours.', $git['failed_deliveries_24h']);
+        $emit('flowsync_git_connections_stale', 'Active Git connections with no recent catalog sync.', $git['stale_connections']);
 
         return response(implode("\n", $lines)."\n", 200, ['Content-Type' => 'text/plain; version=0.0.4']);
     }

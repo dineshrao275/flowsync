@@ -22,7 +22,9 @@
         "commentsCount": "{{count}} comments",
         "estimate": "Estimate",
         "estimateShort": "est {{value}}",
-        "subtasksProgress": "{{done}} of {{total}} subtasks done"
+        "subtasksProgress": "{{done}} of {{total}} subtasks done",
+        "pullRequests_one": "{{count}} pull request",
+        "pullRequests_other": "{{count}} pull requests"
     },
     "table": {
         "empty": "No tasks match the current filters.",
@@ -230,6 +232,7 @@
         "checklistUncheckedTitle": "unchecked checklist item \"{{title}}\"",
         "checklistRemoved": "removed a checklist item",
         "checklistRemovedTitle": "removed checklist item \"{{title}}\"",
+        "viaApi": "via API",
         "someone": "Someone",
         "empty": "No activity yet.",
         "loadFailed": "Could not load activity.",
@@ -242,7 +245,11 @@
         "vcsLine": "GitHub {{kind}} {{state}}: {{title}}",
         "vcsKind": {
             "pull_request": "pull request",
-            "commit": "commit"
+            "commit": "commit",
+            "branch": "branch",
+            "release": "release",
+            "review": "review",
+            "checks": "checks"
         }
     },
     "workspaces": {
@@ -376,7 +383,8 @@
             "dependencies": "Dependencies",
             "time": "Time",
             "links": "Links",
-            "activity": "Activity"
+            "activity": "Activity",
+            "development": "Development"
         },
         "delete": "Delete",
         "save": "Save changes",
@@ -967,5 +975,65 @@
         "deleteFailed": "Could not delete the version.",
         "loadFailed": "Could not load versions.",
         "archivedHint": "Restore the project to change its versions."
+    },
+    "repositories": {
+        "title": "Repositories",
+        "subtitle": "GitHub repositories this project follows. Pull requests, commits and branches that mention a task key show up on that task.",
+        "linkRepository": "Link repository",
+        "search": "Search repositories",
+        "link": "Link",
+        "alreadyLinked": "Linked",
+        "cancel": "Cancel",
+        "private": "Private",
+        "public": "Public",
+        "noMatches": "No repositories found.",
+        "noMatchesHint": "Only repositories shared with FlowSync on GitHub appear here. Connect an account under Integrations.",
+        "empty": "No repository linked yet.",
+        "emptyHint": "Link a repository to see its pull requests and commits on this project's tasks.",
+        "paused": "Paused",
+        "unlink": "Unlink",
+        "sync": "Follow this repository",
+        "syncHint": "Turn off to pause updates without unlinking.",
+        "smartCommits": "Smart commits",
+        "smartCommitsHint": "Let commit messages comment on, log time to or close tasks. Needs mapped GitHub users.",
+        "linked": "Repository linked.",
+        "unlinked": "Repository unlinked.",
+        "unlinkTitle": "Unlink {{name}}?",
+        "unlinkMessage": "The project will stop following this repository.",
+        "removeDataTitle": "Also remove linked data?",
+        "removeDataMessage": "Delete the pull requests, commits and branches recorded on tasks from this repository. Cancel keeps them.",
+        "loadFailed": "Could not load repositories.",
+        "requestFailed": "The request could not be completed.",
+        "smartTransitions": "Let commits change status",
+        "smartTransitionsHint": "Allows #close and #transition. Needs smart commits."
+    },
+    "development": {
+        "overviewTitle": "Repositories",
+        "loadFailed": "Could not load development activity.",
+        "noRepository": "No repository linked.",
+        "noRepositoryHint": "A project manager can link a GitHub repository in the project settings.",
+        "nothingYet": "No development activity yet.",
+        "nothingYetHint": "Include {{key}} in a branch name, commit message or pull request title and it will show up here.",
+        "pullRequests": "Pull requests",
+        "commits": "Commits",
+        "branches": "Branches",
+        "branchDeleted": "deleted",
+        "prState": {
+            "open": "Open",
+            "draft": "Draft",
+            "merged": "Merged",
+            "closed": "Closed",
+            "dismissed": "Dismissed"
+        },
+        "checks": {
+            "success": "Checks passed",
+            "failure": "Checks failed",
+            "pending": "Checks running",
+            "neutral": "Checks neutral"
+        },
+        "createBranch": "Create branch",
+        "branchCreated": "Created {{name}}",
+        "branchFailed": "The branch could not be created.",
+        "repository": "Repository"
     }
 }

@@ -82,7 +82,7 @@ export default function WorkflowRules({ projectId, onSaved }) {
                                 <td className="px-2 py-1.5 font-medium text-gray-800">{from.name}</td>
                                 {data.statuses.map((to) => (
                                     <td key={to.id} className="px-2 py-1.5 text-center">
-                                        {from.id === to.id ? <span className="text-gray-300">—</span> : (
+                                        {from.id === to.id ? <span className="text-gray-400">—</span> : (
                                             <input type="checkbox" checked={allowed.has(key(from.id, to.id))} onChange={() => toggle(from.id, to.id)} />
                                         )}
                                     </td>

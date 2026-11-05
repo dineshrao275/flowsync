@@ -75,7 +75,7 @@ function describe(t, action, data, task, projectId) {
         return (
             <span className="align-middle">
                 <span className="text-gray-600 dark:text-gray-400">{t('tms.activity.checklistAdded', { defaultValue: 'added checklist item' })}</span>{' '}
-                <strong className="font-semibold text-gray-900 dark:text-gray-100">&ldquo;{data?.title ?? ''}&rdquo;</strong>
+                <strong className="font-semibold text-gray-900">&ldquo;{data?.title ?? ''}&rdquo;</strong>
             </span>
         );
     }
@@ -83,7 +83,7 @@ function describe(t, action, data, task, projectId) {
         return (
             <span className="align-middle">
                 <span className="text-gray-600 dark:text-gray-400">{t('tms.activity.checklistChecked', { defaultValue: 'completed checklist item' })}</span>{' '}
-                <strong className="font-semibold text-gray-900 dark:text-gray-100">&ldquo;{data?.title ?? ''}&rdquo;</strong>
+                <strong className="font-semibold text-gray-900">&ldquo;{data?.title ?? ''}&rdquo;</strong>
             </span>
         );
     }
@@ -91,7 +91,7 @@ function describe(t, action, data, task, projectId) {
         return (
             <span className="align-middle">
                 <span className="text-gray-600 dark:text-gray-400">{t('tms.activity.checklistUnchecked', { defaultValue: 'unchecked checklist item' })}</span>{' '}
-                <strong className="font-semibold text-gray-900 dark:text-gray-100">&ldquo;{data?.title ?? ''}&rdquo;</strong>
+                <strong className="font-semibold text-gray-900">&ldquo;{data?.title ?? ''}&rdquo;</strong>
             </span>
         );
     }
@@ -99,18 +99,16 @@ function describe(t, action, data, task, projectId) {
         return (
             <span className="align-middle">
                 <span className="text-gray-600 dark:text-gray-400">{t('tms.activity.checklistRemoved', { defaultValue: 'removed checklist item' })}</span>{' '}
-                <strong className="font-semibold text-gray-900 dark:text-gray-100">&ldquo;{data?.title ?? ''}&rdquo;</strong>
+                <strong className="font-semibold text-gray-900">&ldquo;{data?.title ?? ''}&rdquo;</strong>
             </span>
         );
     }
     if (action === 'task.vcs_event') {
         return (
             <span className="align-middle">
-                {t('tms.activity.vcsLine', {
-                    kind: t(`tms.activity.vcsKind.${data?.kind}`, { defaultValue: data?.kind ?? '' }),
-                    state: data?.state ?? '',
-                    title: data?.title ?? '',
-                })}
+                {data?.url ? (
+                    <a href={data.url} target="_blank" rel="noreferrer" className="hover:underline">{vcsText(t, data)}</a>
+                ) : vcsText(t, data)}
             </span>
         );
     }
@@ -124,6 +122,14 @@ function describe(t, action, data, task, projectId) {
     }
     const key = ACTION_KEYS[action];
     return key ? t(`tms.activity.${key}`) : action;
+}
+
+function vcsText(t, data) {
+    return t('tms.activity.vcsLine', {
+        kind: t(`tms.activity.vcsKind.${data?.kind}`, { defaultValue: data?.kind ?? '' }),
+        state: data?.state ?? '',
+        title: data?.title ?? '',
+    });
 }
 
 export default function ActivityFeed({ task, projectId }) {
@@ -167,6 +173,11 @@ export default function ActivityFeed({ task, projectId }) {
                     <p className="text-sm text-gray-700">
                         <UserChip user={activity.actor} name={activity.actor?.name ?? t('tms.activity.someone')} className="align-middle" nameClassName="font-medium text-gray-900" />{' '}
                         {describe(t, activity.action, activity.data, task, projectId)}
+                        {activity.data?.via === 'api' && (
+                            <span className="ml-1.5 inline-flex items-center rounded border border-line bg-surface px-1.5 py-0.5 align-middle text-xs font-medium text-fg-subtle">
+                                {t('tms.activity.viaApi', { defaultValue: 'via API' })}
+                            </span>
+                        )}
                     </p>
                     <p className="text-xs text-gray-400"><Timestamp date={activity.created_at} /></p>
                 </li>

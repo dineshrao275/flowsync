@@ -155,9 +155,9 @@ class TaskReader
             'version',
             'components',
             'watchers:users.id,name,email',
-            'assignee',
-            'reporter',
-            'creator',
+            'assignee.roles',
+            'reporter.roles',
+            'creator.roles',
             'parent:id,key,title',
             'epic:id,key,title',
             'labels',
@@ -178,7 +178,7 @@ class TaskReader
         $query = TaskScope::constrainQuery(
             Task::query()
                 ->where('tasks.project_id', $project->id)
-                ->with(['status', 'priority', 'assignee', 'labels', 'issueType', 'version', 'components', 'watchers:users.id,name,email'])
+                ->with(['status', 'priority', 'assignee.roles', 'labels', 'issueType', 'version', 'components', 'watchers:users.id,name,email'])
                 ->withCount([
                     'subtasks',
                     'subtasks as subtasks_done_count' => fn ($q) => $q->whereNotNull('completed_at'),

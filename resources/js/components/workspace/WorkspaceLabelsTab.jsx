@@ -57,8 +57,8 @@ export function WorkspaceLabelsTab({
                         {labels.map((label) => (
                             <li
                                 key={label.id}
-                                className="inline-flex items-center gap-2 rounded-full px-3 py-1 text-sm"
-                                style={{ backgroundColor: `${label.color}1a`, color: label.color }}
+                                className="chip-tint inline-flex items-center gap-2 rounded-full px-3 py-1 text-sm"
+                                style={{ '--chip': label.color }}
                             >
                                 <span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: label.color }} />
                                 {label.name}

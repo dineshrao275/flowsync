@@ -19,7 +19,9 @@
                 var raw = window.localStorage.getItem(prefix + '.theme');
                 if (!raw) return;
                 var mode = JSON.parse(raw).mode;
-                var dark = mode === 'dark' || (mode !== 'light' && window.matchMedia('(prefers-color-scheme: dark)').matches);
+                // A light-mode theme whose card surface is dark also needs the dark neutral scale (flag written by theme.js).
+                var surfaceDark = window.localStorage.getItem(prefix + '.theme.surfaceDark') === '1';
+                var dark = mode === 'dark' || surfaceDark || (mode !== 'light' && window.matchMedia('(prefers-color-scheme: dark)').matches);
                 var root = document.documentElement;
                 root.classList.toggle('dark', dark);
                 root.style.colorScheme = dark ? 'dark' : 'light';

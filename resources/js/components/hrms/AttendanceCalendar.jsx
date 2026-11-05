@@ -8,15 +8,15 @@ import i18n, { intlTag } from '../../i18n';
  * task-board pills own theirs).
  */
 export const ATTENDANCE_STATUS_COLORS = {
-    present: '#059669',
-    absent: '#dc2626',
-    half_day: '#d97706',
-    late: '#ea580c',
-    leave: '#0284cb',
-    holiday: '#7c3aed',
-    week_off: '#6b7280',
-    remote: '#0891b2',
-    inactive: '#9ca3af',
+    present: 'var(--chart-green)',
+    absent: 'var(--chart-red)',
+    half_day: 'var(--chart-amber)',
+    late: 'var(--chart-orange)',
+    leave: 'var(--chart-sky)',
+    holiday: 'var(--chart-violet)',
+    week_off: 'var(--chart-neutral)',
+    remote: 'var(--chart-sky)',
+    inactive: 'var(--chart-neutral)',
 };
 
 /**
@@ -59,7 +59,7 @@ export default function AttendanceCalendar({ year, month, days = [], selectedDat
     for (let day = 1; day <= daysInMonth; day++) {
         const date = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
         const entry = byDate.get(date) ?? null;
-        const color = entry ? ATTENDANCE_STATUS_COLORS[entry.status] ?? '#6b7280' : null;
+        const color = entry ? ATTENDANCE_STATUS_COLORS[entry.status] ?? 'var(--chart-neutral)' : null;
         const selected = selectedDate === date;
 
         cells.push(
@@ -80,7 +80,7 @@ export default function AttendanceCalendar({ year, month, days = [], selectedDat
                     <span className="w-full">
                         <span
                             className="mb-0.5 block h-1.5 w-full rounded-full"
-                            style={{ backgroundColor: `${color}33` }}
+                            style={{ backgroundColor: `color-mix(in srgb, ${color} 20%, transparent)` }}
                         >
                             <span className="block h-full rounded-full" style={{ backgroundColor: color, width: '100%' }} />
                         </span>
@@ -94,7 +94,7 @@ export default function AttendanceCalendar({ year, month, days = [], selectedDat
                         <span className="block text-xs text-gray-500">{formatMinutes(entry.worked_minutes)}</span>
                     </span>
                 ) : (
-                    <span className="text-xs text-gray-300">—</span>
+                    <span className="text-xs text-gray-400">—</span>
                 )}
             </button>,
         );

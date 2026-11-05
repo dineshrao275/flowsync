@@ -56,7 +56,7 @@ export default function Timestamp({
                 role="tooltip"
                 className={`pointer-events-none absolute left-1/2 -translate-x-1/2 whitespace-nowrap z-50 rounded-lg px-2.5 py-1.5 text-xs font-semibold tracking-tight shadow-xl ring-1 transition-all duration-150 ${
                     isBottom ? 'top-full mt-2' : 'bottom-full mb-2'
-                } bg-slate-900 text-white ring-white/10 dark:bg-slate-800 dark:text-slate-100 dark:ring-white/20 ${
+                } bg-fg text-[var(--card-bg)] ring-1 ring-[var(--card-bg)]/30 ${
                     hovered ? 'visible opacity-100 scale-100' : 'invisible opacity-0 scale-95'
                 } ${tooltipClassName}`}
             >

@@ -1,7 +1,7 @@
 import { useTranslation } from 'react-i18next';
 import { Bar, BarChart, CartesianGrid, Cell, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 
-const NPS_COLORS = { Promoters: '#059669', Passives: '#d97706', Detractors: '#dc2626' };
+const NPS_COLORS = { Promoters: 'var(--chart-green)', Passives: 'var(--chart-amber)', Detractors: 'var(--chart-red)' };
 
 /**
  * One question's aggregates as bars: scale averages, NPS bands, yes/no
@@ -55,9 +55,9 @@ export default function ResultsChart({ result }) {
                     <XAxis type="number" allowDecimals={false} />
                     <YAxis type="category" dataKey="name" width={110} tick={{ fontSize: 12 }} />
                     <Tooltip />
-                    <Bar dataKey="value" fill="#2563eb">
+                    <Bar dataKey="value" fill="var(--chart-blue)">
                         {rows.map((row) => (
-                            <Cell key={row.key} fill={NPS_COLORS[row.key] ?? '#2563eb'} />
+                            <Cell key={row.key} fill={NPS_COLORS[row.key] ?? 'var(--chart-blue)'} />
                         ))}
                     </Bar>
                 </BarChart>

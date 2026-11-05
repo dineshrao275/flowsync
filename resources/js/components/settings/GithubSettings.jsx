@@ -1,6 +1,9 @@
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { Link } from 'react-router-dom';
 import api from '../../services/api';
+import Alert from '../ui/Alert';
+import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
 import Card from '../ui/Card';
 import Button from '../ui/Button';
@@ -10,6 +13,7 @@ import ContentSkeleton from '../ui/ContentSkeleton';
 export default function GithubSettings() {
     const { t } = useTranslation();
     const toast = useToast();
+    const { hasModule } = useAuth();
     const [state, setState] = useState(null);
     const [secret, setSecret] = useState(null);
 
@@ -28,6 +32,11 @@ export default function GithubSettings() {
     return (
         <Card title={t('admin.github.title')} subtitle={t('admin.github.subtitle')}>
             <div className="space-y-3 text-sm text-gray-700">
+                {hasModule('git') && (
+                    <Alert type="info">
+                        {t('admin.github.deprecated')} <Link to="/integrations" className="font-medium underline">{t('admin.github.deprecatedLink')}</Link>
+                    </Alert>
+                )}
                 <p>{t('admin.github.status')}: <strong>{state.enabled ? t('admin.github.on') : t('admin.github.off')}</strong></p>
                 {state.enabled && <p>{t('admin.github.payload')} <code className="rounded bg-gray-100 px-1.5 py-0.5 text-xs">{state.payload_url}</code> ({t('admin.github.contentType')})</p>}
                 {secret && <p className="rounded-md bg-amber-50 p-3 text-amber-900">{t('admin.github.secretOnce')} <code className="break-all font-mono text-xs">{secret}</code></p>}

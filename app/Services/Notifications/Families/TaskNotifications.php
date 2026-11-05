@@ -11,6 +11,7 @@ use App\Models\User;
 use App\Models\UserNotification;
 use App\Models\WorkLog;
 use App\Services\Notifications\BaseNotificationFamily;
+use App\Services\Notifications\RecipientResolver;
 
 /**
  * The `task` notification family (moved verbatim out of NotificationService, P1.6).
@@ -104,7 +105,7 @@ class TaskNotifications extends BaseNotificationFamily
 
             $sent[] = $this->notify($recipient, 'task.commented', array_merge($this->taskPayload($task), [
                 'comment_id' => $comment->id,
-                'snippet' => mb_strimwidth($comment->comment, 0, 120, '…'),
+                'snippet' => mb_strimwidth(RecipientResolver::plainText($comment->comment), 0, 120, '…'),
             ]), $actor);
         }
 

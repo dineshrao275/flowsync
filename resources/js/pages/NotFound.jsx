@@ -11,7 +11,7 @@ export default function NotFound() {
     return (
         <div className="flex min-h-screen items-center justify-center bg-gray-100 px-4">
             <div className="max-w-md animate-fade-in-up text-center">
-                <p className="text-7xl font-black text-slate-300">404</p>
+                <p className="text-7xl font-black text-slate-400">404</p>
                 <h1 className="mt-4 text-2xl font-bold text-gray-900">{t('admin.notFound.heading')}</h1>
                 <p className="mt-2 text-sm text-gray-500">
                     {t('admin.notFound.body')}

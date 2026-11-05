@@ -1,0 +1,14 @@
+{
+  "mcpServers": {
+    "flowsync": {
+      "command": "node",
+      "args": [
+        "/absolute/path/to/flowsync/mcp/src/index.js"
+      ],
+      "env": {
+        "FLOWSYNC_URL": "http://localhost",
+        "FLOWSYNC_TOKEN": "${FLOWSYNC_TOKEN}"
+      }
+    }
+  }
+}

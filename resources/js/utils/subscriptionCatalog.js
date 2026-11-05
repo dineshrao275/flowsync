@@ -335,6 +335,15 @@ export const MODULE_CATALOG = {
         defaultLabel: 'REST API & Tokens',
         defaultDescription: 'Generate personal API tokens with granular scopes for programmatic integrations and scripts.',
     },
+    git: {
+        key: 'git',
+        product: 'platform',
+        category: 'platform',
+        group: 'Platform',
+        i18nKey: 'git',
+        defaultLabel: 'Git & Repositories',
+        defaultDescription: 'Connect GitHub, link repositories to projects and see pull request status on tasks.',
+    },
 };
 
 export const MODULE_CATEGORIES = [

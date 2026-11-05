@@ -5,25 +5,25 @@ const ToastContext = createContext(null);
 
 const styles = {
     success: {
-        primary: '#16a34a',
+        primary: 'var(--success)',
         soft: 'bg-emerald-50',
         border: 'border-l-emerald-500',
         icon: 'M5 13l4 4L19 7',
     },
     info: {
-        primary: '#2563eb',
+        primary: 'var(--info)',
         soft: 'bg-blue-50',
         border: 'border-l-blue-500',
         icon: 'M12 8h.01M12 12v4',
     },
     warning: {
-        primary: '#d97706',
+        primary: 'var(--warning)',
         soft: 'bg-amber-50',
         border: 'border-l-amber-500',
         icon: 'M12 9v4m0 4h.01M10.3 3.9L1.8 18a2 2 0 001.7 3h17a2 2 0 001.7-3L13.7 3.9a2 2 0 00-3.4 0z',
     },
     error: {
-        primary: '#dc2626',
+        primary: 'var(--danger-fg)',
         soft: 'bg-red-50',
         border: 'border-l-red-500',
         icon: 'M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2',

@@ -25,6 +25,10 @@ Schedule::command('tasks:sla-sweep --all')->hourly()->withoutOverlapping();
 Schedule::command('reports:send-scheduled --all')->hourly()->withoutOverlapping();
 // Processed domain events and settled webhook deliveries are kept 30 days.
 Schedule::command('events:prune --all')->dailyAt('03:45')->withoutOverlapping();
+// Git webhook delivery rows (replay guard + health log) past the retention window.
+Schedule::command('git:prune-deliveries')->dailyAt('03:35')->withoutOverlapping();
+// Git repository catalogs: webhooks keep them current, this daily sweep repairs any missed event.
+Schedule::command('git:sync-installations --all')->dailyAt('02:30')->withoutOverlapping();
 // Sign-up drafts that never finished (no database exists for them) are removed after a week.
 Schedule::command('tenants:prune-drafts')->dailyAt('03:30')->withoutOverlapping();
 // Impersonation is time-boxed; close the logs of sessions nobody touched again.
@@ -36,6 +40,8 @@ Schedule::command('tenants:expire-trials')->dailyAt('00:05')->withoutOverlapping
 Schedule::command('audit:prune')->dailyAt('03:50')->withoutOverlapping();
 // Tamper check of the audit hash chain; a break is logged critical and emailed (SECURITY_AUDIT_ALERT_EMAILS).
 Schedule::command('audit:verify')->dailyAt('04:10')->withoutOverlapping();
+// Application error console retention (default 90 days; rollups + per-event occurrences).
+Schedule::command('errors:prune')->dailyAt('04:20')->withoutOverlapping();
 
 // Billing: failed-payment dunning (reminders, final notice, suspension after the grace period).
 // Billing: lapsed paid periods are expired / renewed / sent to dunning first (08:00), then dunning runs.

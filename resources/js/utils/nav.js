@@ -1,6 +1,7 @@
 import {
     Archive,
     Bell,
+    Bug,
     Buildings,
     ChartBar,
     ChartLine,
@@ -9,6 +10,7 @@ import {
     DownloadSimple,
     Envelope,
     FileText,
+    GitBranch,
     Flag,
     Folders,
     Gear,
@@ -120,6 +122,7 @@ const SHARED_ADMIN = [
     { to: '/settings', label: 'nav.admin.settings', capabilities: ['settings.view'], icon: ICONS.settings, shared: true },
     { to: '/security', label: 'nav.admin.security', icon: ICONS.security, shared: true },
     { to: '/audit', label: 'nav.admin.audit', capabilities: ['tenant.manage'], icon: ICONS.security, shared: true },
+    { to: '/integrations', label: 'nav.admin.integrations', capabilities: ['module:git', 'git.view'], icon: GitBranch, shared: true },
 ];
 
 const SHARED_BILLING = [
@@ -194,7 +197,9 @@ export const superAdminSections = [
         items: [
             { to: '/admin/users', label: 'nav.admin.users', capabilities: ['platform_users.view'], icon: ICONS.users },
             { to: '/admin/support', label: 'nav.admin.support', capabilities: ['support.view'], icon: ICONS.support, badge: 'support' },
+            { to: '/admin/errors', label: 'nav.platform.errors', capabilities: ['errors.view'], icon: Bug, badge: 'errors' },
             { to: '/admin/leads', label: 'nav.platform.leads', capabilities: ['leads.view'], icon: Envelope, badge: 'leads' },
+            { to: '/admin/integrations', label: 'nav.platform.integrations', capabilities: ['tenants.view'], icon: GitBranch },
             { to: '/admin/audit-logs', label: 'nav.platform.auditLogs', capabilities: ['audit.view'], icon: ICONS.archive },
             { to: '/admin/settings', label: 'nav.admin.settings', capabilities: ['settings.view'], icon: ICONS.settings },
             { to: '/security', label: 'nav.admin.security', icon: ICONS.security },

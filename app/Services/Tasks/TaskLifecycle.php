@@ -8,6 +8,7 @@ use App\Models\Task;
 use App\Models\TaskStatus;
 use App\Models\TaskStatusHistory;
 use App\Services\Hrms\PerformanceService;
+use App\Support\ApiCallContext;
 use App\Support\Hrms\HrmsSchema;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Validation\ValidationException;
@@ -68,6 +69,12 @@ class TaskLifecycle
      */
     public function refreshGoalsOnCompletion(Task $task): void
     {
+        // Completing a task through an API token (the MCP) is a TMS change only: it must not write HR goal evidence.
+        // The nightly sweep still reflects the task's real state, as it does for any other change.
+        if (ApiCallContext::viaToken()) {
+            return;
+        }
+
         if (HrmsSchema::present()) {
             $this->performance->refreshTaskGoals($task);
         }

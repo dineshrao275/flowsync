@@ -15,6 +15,7 @@ use App\Http\Controllers\PlatformHealthController;
 use App\Http\Controllers\PlatformListSavedFilterController;
 use App\Http\Controllers\SiteSettingsController;
 use App\Http\Controllers\SystemAnalyticsController;
+use App\Http\Controllers\SystemErrorController;
 use App\Http\Controllers\SystemInvoiceController;
 use App\Http\Controllers\SystemQueueController;
 use App\Http\Controllers\SystemSettingsController;
@@ -89,6 +90,14 @@ Route::middleware('super_admin')->group(function () {
     Route::apiResource('system/users', SystemUsersController::class)->only(['index', 'store']);
     Route::get('system/audit-logs', [AuditLogsController::class, 'index']);
     Route::get('system/audit-logs/export', [AuditLogsController::class, 'export'])->middleware('throttle:30,1');
+    // Application error console: rollup list, fleet summary, per-error triage.
+    Route::post('system/errors/bulk', [SystemErrorController::class, 'bulkUpdate'])->middleware('throttle:30,1');
+    Route::get('system/errors', [SystemErrorController::class, 'index']);
+    Route::get('system/errors/summary', [SystemErrorController::class, 'summary']);
+    Route::get('system/errors/{errorLog}', [SystemErrorController::class, 'show'])->whereNumber('errorLog');
+    Route::get('system/errors/{errorLog}/occurrences', [SystemErrorController::class, 'occurrences'])->whereNumber('errorLog');
+    Route::put('system/errors/{errorLog}', [SystemErrorController::class, 'update'])->whereNumber('errorLog');
+    Route::post('system/errors/{errorLog}/notes', [SystemErrorController::class, 'storeNote'])->whereNumber('errorLog')->middleware('throttle:60,1');
     Route::get('system/analytics', [SystemAnalyticsController::class, 'index']);
     Route::get('system/badge-counts', [PlatformBadgeCountsController::class, 'index']);
     Route::get('platform/health', [PlatformHealthController::class, 'show']);

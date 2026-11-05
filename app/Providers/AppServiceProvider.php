@@ -16,6 +16,8 @@ use App\Models\ApiToken;
 use App\Models\Tenant;
 use App\Models\User;
 use App\Services\FeatureFlags;
+use App\Services\Integrations\Git\GitHubAppClient;
+use App\Services\Integrations\Git\GitProvider;
 use App\Services\Notifications\NotificationDispatcher;
 use App\Services\ReportsTo;
 use App\Services\Security\PlatformAccess;
@@ -54,6 +56,7 @@ class AppServiceProvider extends ServiceProvider
         // Fresh per resolution so a runtime change of the Stripe key (tests, `config:cache` refresh) is honoured.
         $this->app->bind(StripeClient::class, fn () => new StripeClient((string) config('payments.gateways.stripe.secret', '')));
 
+        $this->app->bind(GitProvider::class, GitHubAppClient::class);
         $this->app->singleton(TenantContext::class);
         $this->app->singleton(TenantDatabaseManager::class);
         $this->app->singleton(PaymentResolver::class, function ($app) {

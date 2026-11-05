@@ -14,10 +14,52 @@ return [
     'idempotency_ttl_hours' => 24,
     'log_retention_days' => 30,
 
-    // The permission slugs a token may carry: exactly the ones a /api/v1 route is gated on.
+    // The permission slugs / capability groups a token may carry: exactly the ones a /api/v1 route is gated on.
     // A token's effective rights are always its abilities AND what its owner still holds.
     'abilities' => [
-        'workspaces.view' => 'Read workspaces, projects and tasks',
+        'tms.read' => 'Read workspaces, projects, tasks, comments, and work logs',
+        'tms.write' => 'Create and update tasks, move statuses, comment, and log time',
+        'workspaces.view' => 'Read workspaces, projects and tasks (legacy)',
         'hrms.view' => 'Read the HRMS employee directory',
+    ],
+
+    // Abilities that existing tokens may still carry but that the token form no longer offers for new ones.
+    // `workspaces.view` predates the groups: it means read access plus (for a write token) creating a task.
+    'legacy_abilities' => ['workspaces.view'],
+
+    // Capability groups map high-level token abilities to one-of permission requirements.
+    // A user can mint an ability if they hold ANY of the listed tenant permissions OR project-role grants.
+    'ability_groups' => [
+        'tms.read' => [
+            'label' => 'Read workspaces, projects and tasks',
+            'any_of' => [
+                'workspaces.view',
+                'tasks.view',
+                'tasks.view_own',
+                'tasks.view_assigned',
+                'tasks.view_all',
+            ],
+        ],
+        'tms.write' => [
+            'label' => 'Create and modify tasks, move statuses, post comments, and log work',
+            'any_of' => [
+                'workspaces.manage',
+                'tasks.create',
+                'tasks.edit',
+                'tasks.move',
+            ],
+        ],
+        'workspaces.view' => [
+            'label' => 'Read workspaces, projects and tasks (legacy)',
+            'any_of' => [
+                'workspaces.view',
+            ],
+        ],
+        'hrms.view' => [
+            'label' => 'Read the HRMS employee directory',
+            'any_of' => [
+                'hrms.view',
+            ],
+        ],
     ],
 ];

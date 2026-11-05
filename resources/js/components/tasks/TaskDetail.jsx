@@ -15,6 +15,7 @@ import DependencyPanel from './DependencyPanel';
 import ActivityFeed from './ActivityFeed';
 import WorkLogPanel from './WorkLogPanel';
 import TaskLinkPanel from '../hrms/TaskLinkPanel';
+import DevelopmentPanel from './DevelopmentPanel';
 import { useAuth } from '../../context/AuthContext';
 import RichTextEditor from '../ui/RichTextEditor';
 import RichText from '../ui/RichText';
@@ -44,7 +45,7 @@ export default function TaskDetail({
     onUpdate,
     onDelete,
 }) {
-    const { user, hasModule } = useAuth();
+    const { user, hasModule, can } = useAuth();
     const { t } = useTranslation();
     const cfDefs = useCustomFieldDefinitions('task');
     const [form, setForm] = useState(null);
@@ -83,7 +84,7 @@ export default function TaskDetail({
         setWatchers(task?.watchers || []);
         setWatcherError(null);
         setErrors({});
-        setTab(['details', 'comments', 'attachments', 'dependencies', 'time', 'activity'].includes(initialSection)
+        setTab(['details', 'comments', 'attachments', 'dependencies', 'time', 'development', 'activity'].includes(initialSection)
             ? initialSection
             : 'details');
     }, [task, initialSection]);
@@ -189,6 +190,7 @@ export default function TaskDetail({
         { key: 'attachments', label: t('tms.detail.tabs.attachments') },
         { key: 'dependencies', label: t('tms.detail.tabs.dependencies') },
         ...(hasModule('time_tracking') ? [{ key: 'time', label: t('tms.detail.tabs.time') }] : []),
+        ...(hasModule('git') && can('git.view') ? [{ key: 'development', label: t('tms.detail.tabs.development') }] : []),
         // HR bridges ride the core module like every HRMS surface; the
         // panel itself answers 403 through the project policy for logins
         // that may work the task but not read its HR metadata.
@@ -597,6 +599,7 @@ export default function TaskDetail({
                                     canManage={canManageLogs}
                                 />
                             )}
+                            {tab === 'development' && hasModule('git') && <DevelopmentPanel task={task} projectId={projectId} />}
                             {tab === 'activity' && <ActivityFeed task={task} projectId={projectId} />}
                             {tab === 'links' && hasModule('hrms.core') && (
                                 <TaskLinkPanel task={task} canManage={canEdit} />

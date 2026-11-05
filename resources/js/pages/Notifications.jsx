@@ -87,7 +87,7 @@ export default function Notifications() {
                                     }}
                                     tabIndex={0}
                                     className={`animate-fade-in cursor-pointer transition-colors duration-150 hover:bg-gray-50 ${
-                                        notification.read_at ? 'opacity-70' : ''
+                                        notification.read_at ? '' : 'font-medium'
                                     }`}
                                     style={{ animationDelay: `${index * 30}ms` }}
                                 >
@@ -112,7 +112,7 @@ export default function Notifications() {
                                                 <span className="truncate">
                                                     {notification.actor?.name ?? t('notifications.someone')}
                                                     {notification.actor?.email && (
-                                                        <span className="block truncate text-xs text-gray-400">{notification.actor.email}</span>
+                                                        <span className="block truncate text-xs text-gray-500">{notification.actor.email}</span>
                                                     )}
                                                 </span>
                                             </span>
@@ -135,12 +135,12 @@ export default function Notifications() {
                                             <span className="text-gray-400">{payload.project_name ?? payload.title ?? '—'}</span>
                                         )}
                                     </Td>
-                                    <Td align="right" className="whitespace-nowrap text-xs text-gray-400">
+                                    <Td align="right" className="whitespace-nowrap text-xs text-gray-500">
                                         <Timestamp date={notification.created_at} />
                                     </Td>
                                     <Td align="right" className="whitespace-nowrap">
                                         {notification.read_at ? (
-                                            <span className="text-xs text-gray-400">{t('notifications.read')}</span>
+                                            <span className="text-xs text-gray-500">{t('notifications.read')}</span>
                                         ) : (
                                             <span className="inline-flex items-center gap-1.5 text-xs font-medium text-[var(--accent-soft-text)]">
                                                 <span className="h-2 w-2 rounded-full bg-[var(--accent)]" />

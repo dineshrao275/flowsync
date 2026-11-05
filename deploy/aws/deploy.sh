@@ -70,7 +70,7 @@ sync_source() {
   rsync -az --delete -e "ssh ${SSH_OPTS[*]}" \
     --exclude '.git' --exclude 'vendor' --exclude 'node_modules' --exclude 'public/build' --exclude 'public/hot' \
     --exclude 'storage/logs/*' --exclude 'storage/framework/*' --exclude 'database/tenants' --exclude '.env' --exclude '.env.*' \
-    --exclude 'tests' --exclude '.agents' --exclude '.github' --exclude 'docs' --exclude 'deploy/aws/.env.production' \
+    --exclude 'github-app.generated' --exclude 'tests' --exclude '.agents' --exclude '.github' --exclude 'docs' --exclude 'deploy/aws/.env.production' \
     "$ROOT/" "${REMOTE}:/opt/flowsync/"
   scp "${SSH_OPTS[@]}" "$ENV_LOCAL" "${REMOTE}:/opt/flowsync/deploy/aws/.env.production" >/dev/null
   ssh_ 'chmod 600 /opt/flowsync/deploy/aws/.env.production'

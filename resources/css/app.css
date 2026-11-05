@@ -77,6 +77,27 @@
        lines, empty states). The stock value is 2.5:1 on white; this is 4.8:1
        (AA). Dark mode re-maps gray-400 below, so this only affects light. */
     --color-gray-400: #6b7280;
+    --color-slate-400: #64748b;
+    --color-slate-500: #64748b;
+
+    /* Coloured TEXT steps that are below 4.5:1 on white in Tailwind's stock palette (red-500 3.8, amber-600 3.2,
+       emerald-600 3.8, green-600 3.3, sky-600 4.1). They are pulled to the AA step; the dark scheme below
+       re-points them to light shades, so nothing here affects dark mode. */
+    --color-red-400: #dc2626;
+    --color-red-500: #dc2626;
+    --color-amber-500: #b45309;
+    --color-amber-600: #b45309;
+    --color-orange-500: #c2410c;
+    --color-orange-600: #c2410c;
+    --color-yellow-600: #a16207;
+    --color-lime-600: #4d7c0f;
+    --color-green-500: #15803d;
+    --color-green-600: #15803d;
+    --color-emerald-500: #047857;
+    --color-emerald-600: #047857;
+    --color-teal-600: #0f766e;
+    --color-cyan-600: #0e7490;
+    --color-sky-600: #0369a1;
 
     --sidebar-bg: #0f172a;
     --sidebar-hover: #1e293b;
@@ -90,13 +111,25 @@
     /* Accent-derived tokens; re-computed in resources/js/theme.js whenever the
        admin changes `accent`, and mirrored here so the first paint is themed.
        Default accent is trust blue (#2563eb, 5.17:1 on white — AA). */
-    --accent-hover: #467aee;
-    --accent-active: #2055ca;
+    --accent-hover: #2157cf;
+    --accent-active: #1d4db7;
     --accent-contrast: #ffffff;
     --accent-soft: #e9effd;
     --accent-soft-hover: #dce6fc;
-    --accent-soft-text: #1d4db7;
-    --accent-ring: #c8d8fa;
+    --accent-soft-text: #235ddd;
+    --accent-ring: #798bb2;
+    --sidebar-text-muted: #939caa;
+    --sidebar-title: #ffffff;
+    --active-menu-contrast: #ffffff;
+    --danger-ring: #df6666;
+    --chart-blue: #2563eb;
+    --chart-green: #047857;
+    --chart-amber: #b05109;
+    --chart-red: #b91c1c;
+    --chart-violet: #6d28d9;
+    --chart-sky: #0369a1;
+    --chart-orange: #c2410c;
+    --chart-neutral: #4b5563;
 
     /* Semantic roles — light. Text roles are AA on --surface (#fff): fg 16:1,
        fg-muted 7.6:1, fg-subtle 4.8:1. Status fg/soft pairs are all >= 4.8:1. */
@@ -104,7 +137,7 @@
     --surface-sunken: #f8fafc;
     --fg: #0f172a;
     --fg-muted: #475569;
-    --fg-subtle: #64748b;
+    --fg-subtle: #606f85;
     --line: #e2e8f0;
     --line-strong: #cbd5e1;
     /* Form-control boundary: >= 3:1 on white (WCAG 1.4.11). */
@@ -112,7 +145,7 @@
     --success: #047857;
     --success-soft: #ecfdf5;
     --success-line: #a7f3d0;
-    --warning: #b45309;
+    --warning: #b05109;
     --warning-soft: #fffbeb;
     --warning-line: #fde68a;
     --danger-fg: #b91c1c;
@@ -159,6 +192,17 @@
     --info: #7dd3fc;
     --info-soft: #112f45;
     --info-line: #114868;
+    --sidebar-text-muted: #919aa5;
+    --accent-ring: #4f69a3;
+    --danger-ring: #f87171;
+    --chart-blue: #60a5fa;
+    --chart-green: #34d399;
+    --chart-amber: #fbbf24;
+    --chart-red: #f87171;
+    --chart-violet: #a78bfa;
+    --chart-sky: #38bdf8;
+    --chart-orange: #fb923c;
+    --chart-neutral: #9ca3af;
 
     --color-gray-50: #171d2b;
     --color-gray-100: #1e2534;
@@ -235,6 +279,62 @@
     --color-blue-700: #e7f0fe;
     --color-blue-800: #f5f9ff;
 
+    /* Re-point the steps the light scheme darkened, and give the palettes the app uses but never mapped a dark
+       twin (purple, yellow, pink, orange, teal, cyan, violet, lime, fuchsia, zinc/neutral/stone via gray). */
+    --color-red-400: #f87171;
+    --color-red-500: #f87171;
+    --color-amber-500: #fbbf24;
+    --color-orange-500: #fb923c;
+    --color-orange-600: #fed7aa;
+    --color-yellow-600: #fde047;
+    --color-lime-600: #bef264;
+    --color-green-500: #4ade80;
+    --color-emerald-500: #34d399;
+    --color-teal-600: #99f6e4;
+    --color-cyan-600: #a5f3fc;
+
+    --color-purple-50: #25203f;
+    --color-purple-100: #2d2650;
+    --color-purple-200: #3a3166;
+    --color-purple-600: #e6dcfd;
+    --color-purple-700: #f0eafe;
+    --color-purple-800: #f8f5ff;
+
+    --color-violet-50: #231f45;
+    --color-violet-100: #2a2555;
+    --color-violet-200: #342d6b;
+    --color-violet-600: #e4dcff;
+    --color-violet-700: #eee9ff;
+    --color-violet-800: #f7f5ff;
+
+    --color-yellow-50: #332d1c;
+    --color-yellow-100: #3d3520;
+    --color-yellow-200: #51451c;
+    --color-yellow-700: #fdf0b5;
+    --color-yellow-800: #fef6d2;
+
+    --color-orange-50: #36251c;
+    --color-orange-100: #45301e;
+    --color-orange-200: #5b3a1c;
+    --color-orange-700: #ffe5cc;
+    --color-orange-800: #fff1e3;
+
+    --color-pink-50: #361e2d;
+    --color-pink-100: #48213a;
+    --color-pink-200: #5f2548;
+    --color-pink-600: #f9a8d4;
+    --color-pink-700: #fbcfe8;
+    --color-pink-800: #fdf2f8;
+
+    --color-teal-50: #12312f;
+    --color-teal-100: #123e3b;
+    --color-teal-200: #114e48;
+    --color-teal-700: #ccfbf1;
+    --color-cyan-50: #112f3a;
+    --color-cyan-100: #113d4a;
+    --color-cyan-200: #114d5e;
+    --color-cyan-700: #cffafe;
+
     --color-green-50: #15342f;
     --color-green-100: #164233;
     --color-green-200: #175339;
@@ -252,6 +352,18 @@
     background-color: rgb(255 255 255 / 0.12);
 }
 
+
+
+/*
+ * Chips whose colour is DATA (issue type, label, workflow status — an admin picked it). The text is the chosen
+ * colour mixed 30% into the theme's own text colour on a 14% tint of the card, which keeps the hue readable
+ * but guarantees >= 4.5:1 in light and dark for ANY picked colour (worst case over 20,000 random colours:
+ * 6.1:1; pinned by theme.test.js). Usage: className="chip-tint" style={{ '--chip': color }}.
+ */
+.chip-tint {
+    background-color: color-mix(in srgb, var(--chip, #64748b) 14%, var(--card-bg));
+    color: color-mix(in srgb, var(--chip, #64748b) 30%, var(--fg));
+}
 
 @keyframes fade-in {
     from {
@@ -587,6 +699,70 @@ body {
 
 .dark .flowsync-calendar .react-datepicker__time-list-item:hover {
     background-color: #24304a !important;
+}
+
+/* Datepicker input container and clear button: vertically center and align with theme */
+.react-datepicker__input-container {
+    position: relative;
+    display: block;
+    width: 100%;
+}
+
+.react-datepicker__close-icon {
+    position: absolute;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    height: 100% !important;
+    width: 2.25rem !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    background: transparent !important;
+    border: 0 !important;
+    outline: none !important;
+    cursor: pointer !important;
+    z-index: 2;
+}
+
+.react-datepicker__close-icon::after {
+    content: "" !important;
+    display: block !important;
+    width: 1.125rem !important;
+    height: 1.125rem !important;
+    border-radius: 9999px !important;
+    background-color: var(--line-strong, #cbd5e1) !important;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='%23475569' stroke-width='2.2' stroke-linecap='round'%3E%3Cpath d='M4.5 4.5l7 7M11.5 4.5l-7 7'/%3E%3C/svg%3E") !important;
+    background-repeat: no-repeat !important;
+    background-position: center !important;
+    background-size: 8px 8px !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    box-sizing: border-box !important;
+    transition: background-color 0.15s ease, opacity 0.15s ease !important;
+}
+
+.react-datepicker__close-icon:hover::after {
+    background-color: var(--fg-subtle, #94a3b8) !important;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='%23ffffff' stroke-width='2.2' stroke-linecap='round'%3E%3Cpath d='M4.5 4.5l7 7M11.5 4.5l-7 7'/%3E%3C/svg%3E") !important;
+}
+
+.react-datepicker__close-icon:focus-visible {
+    outline: 2px solid var(--accent, #6366f1) !important;
+    outline-offset: -2px;
+    border-radius: 0.375rem;
+}
+
+.dark .react-datepicker__close-icon::after {
+    background-color: #2a3348 !important;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='%2393a4d6' stroke-width='2.2' stroke-linecap='round'%3E%3Cpath d='M4.5 4.5l7 7M11.5 4.5l-7 7'/%3E%3C/svg%3E") !important;
+}
+
+.dark .react-datepicker__close-icon:hover::after {
+    background-color: #364052 !important;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='%23e8f0ff' stroke-width='2.2' stroke-linecap='round'%3E%3Cpath d='M4.5 4.5l7 7M11.5 4.5l-7 7'/%3E%3C/svg%3E") !important;
 }
 
 /* Rich text (task descriptions): shared by the editor surface and the

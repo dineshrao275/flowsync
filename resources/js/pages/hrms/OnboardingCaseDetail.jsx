@@ -17,11 +17,11 @@ import Checklist from '../../components/hrms/Checklist';
 import ConvertTaskModal from '../../components/hrms/ConvertTaskModal';
 
 const REQUEST_COLORS = {
-    pending: '#f59e0b',
-    submitted: '#0ea5e9',
-    accepted: '#10b981',
-    waived: '#8b5cf6',
-    rejected: '#ef4444',
+    pending: 'var(--chart-amber)',
+    submitted: 'var(--chart-sky)',
+    accepted: 'var(--chart-green)',
+    waived: 'var(--chart-violet)',
+    rejected: 'var(--chart-red)',
 };
 
 /**

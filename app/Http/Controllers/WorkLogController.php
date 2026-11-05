@@ -45,7 +45,8 @@ class WorkLogController extends Controller
     {
         $this->authorize('create', [WorkLog::class, $task]);
 
-        $data = $this->validated($request);
+        // Time an agent wrote through a token is marked, so HR attendance is never derived from it.
+        $data = $this->validated($request) + ['source' => $request->attributes->get('api_token') ? 'api' : null];
 
         $log = $this->service->create($task, $data, $request->user());
 
