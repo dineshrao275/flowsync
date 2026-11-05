@@ -128,4 +128,48 @@ describe('NotificationContext sidebar badge persistence', () => {
 
         expect(screen.getByTestId('inbox-count').textContent).toBe('0');
     });
+
+    describe('polling cost', () => {
+        const calls = async () => (await import('../services/api')).default.get.mock.calls.map(([path]) => path);
+
+        afterEach(() => {
+            vi.useRealTimers();
+            Object.defineProperty(document, 'hidden', { configurable: true, value: false });
+        });
+
+        it('does not request the HR inbox for a tenant without the inbox module', async () => {
+            renderWithProviders({ id: 3, is_super_admin: false, modules: ['time_tracking'], products: { tms: true, hrms: false } }, '/dashboard');
+            await act(async () => {});
+
+            const paths = await calls();
+            expect(paths).toContain('/notifications/unread');
+            expect(paths).not.toContain('/hrms/inbox');
+        });
+
+        it('requests the HR inbox when the module is on', async () => {
+            renderWithProviders({ id: 4, is_super_admin: false, modules: ['hrms.core', 'hrms.inbox'], products: { hrms: true } }, '/dashboard');
+            await act(async () => {});
+
+            expect(await calls()).toContain('/hrms/inbox');
+        });
+
+        it('stops polling while the tab is hidden and refreshes once when it returns', async () => {
+            vi.useFakeTimers();
+            renderWithProviders({ id: 5, is_super_admin: false, modules: [], products: {} }, '/dashboard');
+            await act(async () => {});
+            const initial = (await calls()).length;
+
+            Object.defineProperty(document, 'hidden', { configurable: true, value: true });
+            await act(async () => {
+                vi.advanceTimersByTime(180000);
+            });
+            expect((await calls()).length).toBe(initial);
+
+            Object.defineProperty(document, 'hidden', { configurable: true, value: false });
+            await act(async () => {
+                document.dispatchEvent(new Event('visibilitychange'));
+            });
+            expect((await calls()).length).toBeGreaterThan(initial);
+        });
+    });
 });
