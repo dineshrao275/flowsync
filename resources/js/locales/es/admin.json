@@ -1605,7 +1605,29 @@
         "unmap": "Quitar",
         "unmapTitle": "¿Quitar a @{{login}}?",
         "unmapMessage": "Se ignorarán los comandos de commit de este usuario.",
-        "identitiesLoadFailed": "No se pudieron cargar los usuarios de GitHub."
+        "identitiesLoadFailed": "No se pudieron cargar los usuarios de GitHub.",
+        "next": {
+            "title": "Qué hacer ahora",
+            "subtitle": "GitHub está conectado. Una tarea muestra actividad de desarrollo solo cuando su proyecto está vinculado a un repositorio.",
+            "connected": {
+                "title": "GitHub conectado",
+                "body": "FlowSync ya puede ver los repositorios que elegiste en GitHub. Usa Sincronizar ahora si falta alguno."
+            },
+            "link": {
+                "title": "Vincula un repositorio a un proyecto",
+                "body": "Abre un proyecto, ve a Ajustes, luego Repositorios, y elige un repositorio. Cada proyecto puede vincular uno o más.",
+                "cta": "Ir a proyectos"
+            },
+            "work": {
+                "title": "Trabaja desde tus tareas",
+                "body": "Abre una tarea y usa Desarrollo, luego Crear rama. O pon la clave de la tarea (por ejemplo ACME-12) en el nombre de una rama, un commit o el título de un pull request y aparecerá en la tarea automáticamente."
+            },
+            "identities": {
+                "title": "Asigna logins de GitHub a personas (opcional)",
+                "body": "Solo hace falta para los smart commits (#comment, #time, #close): actúan como el usuario asignado, nunca por suposición.",
+                "cta": "Asignar logins abajo"
+            }
+        }
     },
     "platformGit": {
         "pageTitle": "Integraciones de Git",

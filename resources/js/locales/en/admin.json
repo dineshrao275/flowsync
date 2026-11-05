@@ -1605,7 +1605,29 @@
         "unmap": "Remove",
         "unmapTitle": "Remove @{{login}}?",
         "unmapMessage": "Commit commands from this login will be ignored.",
-        "identitiesLoadFailed": "Could not load GitHub users."
+        "identitiesLoadFailed": "Could not load GitHub users.",
+        "next": {
+            "title": "What to do next",
+            "subtitle": "GitHub is connected. A task shows development activity only after its project is linked to a repository.",
+            "connected": {
+                "title": "GitHub connected",
+                "body": "FlowSync can now see the repositories you chose on GitHub. Use Sync now if one is missing."
+            },
+            "link": {
+                "title": "Link a repository to a project",
+                "body": "Open a project, go to Settings, then Repositories, and pick a repository. Each project can link one or more.",
+                "cta": "Go to projects"
+            },
+            "work": {
+                "title": "Work from your tasks",
+                "body": "Open a task and use Development, then Create branch. Or put the task key (for example ACME-12) in any branch name, commit message or pull request title and it appears on the task automatically."
+            },
+            "identities": {
+                "title": "Map GitHub logins to people (optional)",
+                "body": "Needed only for smart commits (#comment, #time, #close): they act as the mapped user, never as a guess.",
+                "cta": "Map logins below"
+            }
+        }
     },
     "platformGit": {
         "pageTitle": "Git integrations",
