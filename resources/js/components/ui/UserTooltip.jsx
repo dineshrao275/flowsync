@@ -34,6 +34,7 @@ export default function UserTooltip({
     const triggerRef = useRef(null);
     const [open, setOpen] = useState(false);
     const [coords, setCoords] = useState(null);
+    const [mousePos, setMousePos] = useState(null);
     const enterTimeoutRef = useRef(null);
     const leaveTimeoutRef = useRef(null);
 
@@ -43,6 +44,16 @@ export default function UserTooltip({
         const handleScroll = () => setOpen(false);
         window.addEventListener('scroll', handleScroll, { passive: true, capture: true });
         return () => window.removeEventListener('scroll', handleScroll, { capture: true });
+    }, [open]);
+
+    useEffect(() => {
+        if (!open) return;
+        const handleMouseMove = (e) => {
+            setMousePos({ x: e.clientX, y: e.clientY });
+            updatePosition();
+        };
+        window.addEventListener('mousemove', handleMouseMove, { passive: true });
+        return () => window.removeEventListener('mousemove', handleMouseMove);
     }, [open]);
 
     const displayName = (typeof user === 'string' ? user : user?.name) || name || '';
@@ -72,10 +83,31 @@ export default function UserTooltip({
     }
 
     const updatePosition = () => {
-        if (!triggerRef.current) return;
-        const rect = triggerRef.current.getBoundingClientRect();
         const tooltipWidth = 264;
         const tooltipHeight = 160;
+        const offset = 10;
+
+        if (mousePos) {
+            const winWidth = typeof window !== 'undefined' ? window.innerWidth : 1024;
+            const winHeight = typeof window !== 'undefined' ? window.innerHeight : 768;
+
+            let left = mousePos.x - tooltipWidth / 2;
+            left = Math.max(12, Math.min(winWidth - tooltipWidth - 12, left));
+
+            let top = mousePos.y - tooltipHeight - offset;
+            if (top < 8) {
+                top = mousePos.y + offset;
+            }
+            if (top + tooltipHeight > winHeight - 8) {
+                top = Math.max(8, winHeight - tooltipHeight - 8);
+            }
+
+            setCoords({ top: Math.round(top), left: Math.round(left) });
+            return;
+        }
+
+        if (!triggerRef.current) return;
+        const rect = triggerRef.current.getBoundingClientRect();
 
         // Determine if tooltip fits on top or should flip to bottom
         const shouldPlaceBottom = placement === 'bottom' || (rect.top < 180 && rect.top >= 0);
@@ -92,8 +124,11 @@ export default function UserTooltip({
         setCoords({ top, left });
     };
 
-    const handleMouseEnter = () => {
+    const handleMouseEnter = (e) => {
         clearTimeout(leaveTimeoutRef.current);
+        if (e?.clientX != null && e?.clientY != null) {
+            setMousePos({ x: e.clientX, y: e.clientY });
+        }
         enterTimeoutRef.current = setTimeout(() => {
             updatePosition();
             setOpen(true);
@@ -150,14 +185,14 @@ export default function UserTooltip({
                         {displayName}
                     </p>
                     {role && (
-                        <div className="mt-0.5">
-                            <Badge tone="accent" className="text-[0.65rem] uppercase tracking-wider">
+                        <div className="mt-1 flex flex-wrap items-center gap-1">
+                            <Badge tone="accent" className="text-[0.7rem] font-semibold uppercase tracking-wide">
                                 {role}
                             </Badge>
                         </div>
                     )}
-                    {jobTitle && !role && (
-                        <p className="truncate text-xs text-gray-500 dark:text-gray-400">
+                    {jobTitle && (
+                        <p className="mt-0.5 truncate text-xs text-gray-500 dark:text-gray-400">
                             {jobTitle}
                         </p>
                     )}
