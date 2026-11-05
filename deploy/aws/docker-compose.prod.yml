@@ -54,6 +54,7 @@ services:
       RUN_INIT: "true"
       SEEDER_CLASS: Database\Seeders\ProductionSeeder
       PHP_CLI_SERVER_WORKERS: "8"
+      OPCACHE_VALIDATE_TIMESTAMPS: "0"   # code only changes with a new image; skip per-request file stats
     command: ["php", "artisan", "serve", "--host=0.0.0.0", "--port=8000", "--no-reload"]
     depends_on:
       db:
