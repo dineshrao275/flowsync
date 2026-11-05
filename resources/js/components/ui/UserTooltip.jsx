@@ -103,10 +103,22 @@ export default function UserTooltip({
         setCoords({ top, left });
     };
 
-    // Close on window scroll so it doesn't detach from the trigger
+    // Close when trigger scrolls out of view, or re-anchor position on scroll
     useEffect(() => {
         if (!open) return;
-        const handleScroll = () => setOpen(false);
+        const handleScroll = (e) => {
+            if (tooltipRef.current && e.target && tooltipRef.current.contains(e.target)) return;
+            if (!triggerRef.current) {
+                setOpen(false);
+                return;
+            }
+            const rect = triggerRef.current.getBoundingClientRect();
+            if (rect.bottom < 0 || rect.top > window.innerHeight || rect.right < 0 || rect.left > window.innerWidth) {
+                setOpen(false);
+            } else {
+                updatePosition(null);
+            }
+        };
         window.addEventListener('scroll', handleScroll, { passive: true, capture: true });
         return () => window.removeEventListener('scroll', handleScroll, { capture: true });
     }, [open]);
@@ -162,7 +174,7 @@ export default function UserTooltip({
 
     const handleMouseLeave = () => {
         clearTimeout(enterTimeoutRef.current);
-        leaveTimeoutRef.current = setTimeout(() => setOpen(false), 160);
+        leaveTimeoutRef.current = setTimeout(() => setOpen(false), 300);
     };
 
     const handleFocus = () => {
@@ -171,7 +183,10 @@ export default function UserTooltip({
         setOpen(true);
     };
 
-    const handleBlur = () => {
+    const handleBlur = (e) => {
+        if (tooltipRef.current && e?.relatedTarget && tooltipRef.current.contains(e.relatedTarget)) {
+            return;
+        }
         clearTimeout(enterTimeoutRef.current);
         setOpen(false);
     };
@@ -198,7 +213,7 @@ export default function UserTooltip({
             }}
             onMouseEnter={() => clearTimeout(leaveTimeoutRef.current)}
             onMouseLeave={handleMouseLeave}
-            className="rounded-xl border border-gray-200/95 bg-white p-3.5 text-left shadow-2xl animate-fade-in dark:border-slate-800 dark:bg-slate-900"
+            className="relative rounded-xl border border-gray-200/95 bg-white p-3.5 text-left shadow-2xl animate-fade-in before:absolute before:inset-x-0 before:-bottom-3 before:h-3 after:absolute after:inset-x-0 after:-top-3 after:h-3 dark:border-slate-800 dark:bg-slate-900"
         >
             <div className="flex items-start gap-3">
                 <Avatar
@@ -278,6 +293,7 @@ export default function UserTooltip({
         >
             {isValidElement(children)
                 ? cloneElement(children, {
+                      title: '',
                       'aria-describedby': open ? id : undefined,
                   })
                 : children}
