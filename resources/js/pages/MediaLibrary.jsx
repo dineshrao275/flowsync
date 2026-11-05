@@ -11,6 +11,7 @@ import { useToast } from '../context/ToastContext';
 import { useConfirm } from '../components/ui/ConfirmDialog';
 import usePageTitle from '../hooks/usePageTitle';
 import { usePaginated } from '../hooks/useResource';
+import useDebouncedValue from '../hooks/useDebouncedValue';
 import { useSetCrumbs } from '../context/BreadcrumbContext';
 
 function formatSize(bytes) {
@@ -26,14 +27,15 @@ export default function MediaLibrary() {
     const toast = useToast();
     const confirm = useConfirm();
     const [q, setQ] = useState('');
+    const searchTerm = useDebouncedValue(q);
     const [file, setFile] = useState(null);
     const [alt, setAlt] = useState('');
     const [uploading, setUploading] = useState(false);
     const [errors, setErrors] = useState({});
     const [editingAlt, setEditingAlt] = useState({});
     const { data, loading, reload, page, setPage } = usePaginated(
-        (p, signal) => api.get('/system/media', { signal, params: { page: p, q: q || undefined, per_page: 24 } }).then(({ data }) => data),
-        [q],
+        (p, signal) => api.get('/system/media', { signal, params: { page: p, q: searchTerm || undefined, per_page: 24 } }).then(({ data }) => data),
+        [searchTerm],
     );
     const items = data?.media || [];
     const pagination = data?.pagination;

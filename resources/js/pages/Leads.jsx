@@ -13,6 +13,7 @@ import { useToast } from '../context/ToastContext';
 import { useConfirm } from '../components/ui/ConfirmDialog';
 import usePageTitle from '../hooks/usePageTitle';
 import { usePaginated } from '../hooks/useResource';
+import useDebouncedValue from '../hooks/useDebouncedValue';
 import { useSetCrumbs } from '../context/BreadcrumbContext';
 import { formatFullDateTime, formatDate } from '../utils/format';
 
@@ -80,10 +81,11 @@ export default function Leads() {
     useSetCrumbs([{ label: t('admin.platform.breadcrumb'), to: '/admin' }, { label: t('admin.leads.crumb') }]);
     const [status, setStatus] = useState('');
     const [q, setQ] = useState('');
+    const searchTerm = useDebouncedValue(q);
     const [detail, setDetail] = useState(null);
     const { data, loading, reload, page, setPage } = usePaginated(
-        (p, signal) => api.get('/system/leads', { signal, params: { page: p, status: status || undefined, q: q || undefined, per_page: 15 } }).then(({ data }) => data),
-        [status, q],
+        (p, signal) => api.get('/system/leads', { signal, params: { page: p, status: status || undefined, q: searchTerm || undefined, per_page: 15 } }).then(({ data }) => data),
+        [status, searchTerm],
     );
     const leads = data?.leads || [];
     const pagination = data?.pagination;
