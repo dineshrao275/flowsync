@@ -332,7 +332,8 @@
             "leads": "Leads",
             "auditLogs": "Audit Logs",
             "queue": "Background queue",
-            "activity": "Tenant activity"
+            "activity": "Tenant activity",
+            "errors": "Application errors"
         }
     },
     "maintenance": {

@@ -1,6 +1,7 @@
 import {
     Archive,
     Bell,
+    Bug,
     Buildings,
     ChartBar,
     ChartLine,
@@ -194,6 +195,7 @@ export const superAdminSections = [
         items: [
             { to: '/admin/users', label: 'nav.admin.users', capabilities: ['platform_users.view'], icon: ICONS.users },
             { to: '/admin/support', label: 'nav.admin.support', capabilities: ['support.view'], icon: ICONS.support, badge: 'support' },
+            { to: '/admin/errors', label: 'nav.platform.errors', capabilities: ['errors.view'], icon: Bug, badge: 'errors' },
             { to: '/admin/leads', label: 'nav.platform.leads', capabilities: ['leads.view'], icon: Envelope, badge: 'leads' },
             { to: '/admin/audit-logs', label: 'nav.platform.auditLogs', capabilities: ['audit.view'], icon: ICONS.archive },
             { to: '/admin/settings', label: 'nav.admin.settings', capabilities: ['settings.view'], icon: ICONS.settings },

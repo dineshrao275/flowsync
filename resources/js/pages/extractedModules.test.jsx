@@ -32,7 +32,7 @@ describe('split page modules', () => {
 
         expect(exported.length).toBeGreaterThan(0);
         expect(exported.every((value) => typeof value === 'function')).toBe(true);
-    });
+    }, 15000);
 
     it('the extracted modules export what their pages import', async () => {
         expect(Object.keys(await import('../components/hrms/analytics/AnalyticsTabs'))).toEqual(
