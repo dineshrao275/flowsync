@@ -267,7 +267,8 @@
             "support": "Support",
             "dataExport": "Data Export",
             "customFields": "Custom fields",
-            "audit": "Audit timeline"
+            "audit": "Audit timeline",
+            "integrations": "Integrations"
         },
         "hrms": {
             "myHr": "My HR",
@@ -333,6 +334,7 @@
             "auditLogs": "Audit Logs",
             "queue": "Background queue",
             "activity": "Tenant activity",
+            "integrations": "Integrations",
             "errors": "Application errors"
         }
     },

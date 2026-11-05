@@ -34,6 +34,12 @@ class LogHttpRequests
         'pin',
     ];
 
+    /**
+     * Provider callbacks and webhooks carry other people's content (PR titles and bodies, commit messages, payment
+     * payloads) or one-time credentials (OAuth code, install state). Their outcome is logged, their input never is.
+     */
+    private const INPUT_NEVER_LOGGED = ['api/integrations/*', 'api/webhooks/*'];
+
     public function handle(Request $request, Closure $next): Response
     {
         $startTime = microtime(true);
@@ -83,11 +89,13 @@ class LogHttpRequests
             return;
         }
 
+        $keepInput = ! $request->is(self::INPUT_NEVER_LOGGED);
+
         if ($status >= 500) {
-            $context['request_input'] = $this->sanitizeInput($request->except(['_token']));
+            $context += $keepInput ? ['request_input' => $this->sanitizeInput($request->except(['_token']))] : [];
             Log::error($message.' - Server Error', $context);
         } elseif ($status >= 400) {
-            $context['request_input'] = $this->sanitizeInput($request->except(['_token']));
+            $context += $keepInput ? ['request_input' => $this->sanitizeInput($request->except(['_token']))] : [];
             if ($status === 422 && method_exists($response, 'getData')) {
                 $data = (array) $response->getData(true);
                 if (isset($data['errors'])) {
@@ -96,7 +104,7 @@ class LogHttpRequests
             }
             Log::warning($message.' - Client Error', $context);
         } elseif (in_array($method, ['POST', 'PUT', 'PATCH', 'DELETE'], true)) {
-            $context['request_input'] = $this->sanitizeInput($request->except(['_token']));
+            $context += $keepInput ? ['request_input' => $this->sanitizeInput($request->except(['_token']))] : [];
             Log::info($message, $context);
         } else {
             Log::debug($message, $context);

@@ -6,6 +6,7 @@ import Button from '../ui/Button';
 import Input from '../ui/Input';
 import RichTextEditor from '../ui/RichTextEditor';
 import ComponentsPanel from './ComponentsPanel';
+import RepositoriesPanel from './RepositoriesPanel';
 import SaveAsTemplate from './SaveAsTemplate';
 import VersionsPanel from './VersionsPanel';
 
@@ -44,6 +45,7 @@ export default function ProjectSettingsTab({
             </Card>
             <ComponentsPanel projectId={projectId} members={members} canManage={canManage} />
             <VersionsPanel projectId={projectId} canManage={canManage} />
+            <RepositoriesPanel projectId={projectId} canManage={canManage} />
         </div>
     );
 }

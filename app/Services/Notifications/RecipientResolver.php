@@ -39,23 +39,41 @@ class RecipientResolver
             ->all();
     }
 
+    /** Words after an `@` that may still belong to a full name ("@Acme Corp Owner"). */
+    private const MAX_NAME_WORDS = 4;
+
+    /**
+     * What the comment editor's autocomplete inserts: `@[Display Name](user:42)`. The id is the identity; the
+     * name is only what people read, so a rename or two people with the same name can never misdirect it.
+     */
+    private const ID_TOKEN = '/@\[[^\]\n]{1,100}\]\(user:(\d+)\)/';
+
     /**
      * Resolves @mention tokens in text to users in the current tenant database.
      * A bare token (@viewer) matches email local part or name; a full mailbox
-     * token (@viewer@flowsync.test) matches the exact email only. Both are
-     * case-insensitive, and a full mailbox that belongs to a different tenant
-     * resolves to nobody rather than pinging a same-tenant user who happens to
-     * share its local part (owner@globex.test must never notify owner@acme.test).
+     * token (@viewer@flowsync.test) matches the exact email only; and a full
+     * display name, which is what the comment editor's autocomplete inserts
+     * (`@Acme Corp Owner`), matches that name exactly (the longest run of words
+     * wins, so trailing prose is ignored). All are case-insensitive, and a full
+     * mailbox that belongs to a different tenant resolves to nobody rather than
+     * pinging a same-tenant user who happens to share its local part
+     * (owner@globex.test must never notify owner@acme.test).
      *
      * @return Collection<int, User>
      */
     public function mentionUsers(string $text): Collection
     {
-        preg_match_all('/@([A-Za-z0-9._-]+(?:@[A-Za-z0-9._-]+)?)/', $text, $matches);
+        // 1) Explicit ids: one indexed lookup, exact by construction.
+        preg_match_all(self::ID_TOKEN, $text, $idMatches);
+        $byId = $idMatches[1] === [] ? collect() : User::query()->whereIn('id', array_unique(array_map('intval', $idMatches[1])))->get();
 
-        $users = collect();
-        foreach ($matches[1] as $token) {
-            $token = mb_strtolower($token);
+        // 2) Typed forms (API clients, MCP, hand-written): the rest of the text, tokens removed.
+        $rest = (string) preg_replace(self::ID_TOKEN, ' ', $text);
+        preg_match_all('/@([\p{L}\p{N}._-]+(?:@[\p{L}\p{N}._-]+)?)((?:[ \t]+[\p{L}\p{N}._\'-]+){0,'.(self::MAX_NAME_WORDS - 1).'})/u', $rest, $matches, PREG_SET_ORDER);
+
+        $users = $byId;
+        foreach ($matches as $match) {
+            $token = mb_strtolower($match[1]);
 
             $query = User::query()->where(function ($query) use ($token) {
                 if (str_contains($token, '@')) {
@@ -65,11 +83,31 @@ class RecipientResolver
                         ->orWhereRaw('LOWER(name) = ?', [$token]);
                 }
             });
+            $found = $query->get();
 
-            $users = $users->concat($query->get());
+            // "@Acme Corp Owner": try the longest run of words first, then shorter ones.
+            if (! str_contains($token, '@') && trim($match[2] ?? '') !== '') {
+                $words = preg_split('/[ \t]+/', trim($match[2]));
+                for ($n = count($words); $n >= 1; $n--) {
+                    $name = mb_strtolower($match[1].' '.implode(' ', array_slice($words, 0, $n)));
+                    $named = User::query()->whereRaw('LOWER(name) = ?', [$name])->get();
+                    if ($named->isNotEmpty()) {
+                        $found = $found->concat($named);
+                        break;
+                    }
+                }
+            }
+
+            $users = $users->concat($found);
         }
 
         return $users->unique('id')->values();
+    }
+
+    /** The comment as a person reads it: `@[Acme Corp Owner](user:1)` -> `@Acme Corp Owner` (notification snippets, mail). */
+    public static function plainText(string $text): string
+    {
+        return (string) preg_replace('/@\[([^\]\n]{1,100})\]\(user:\d+\)/', '@$1', $text);
     }
 
     /**

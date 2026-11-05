@@ -10,6 +10,7 @@ import FiltersBar from '../tasks/FiltersBar';
 import CalendarView from '../tasks/CalendarView';
 import TimelineView from '../tasks/TimelineView';
 import TaskTable from '../tasks/TaskTable';
+import { DevelopmentSummaryProvider } from '../../hooks/DevelopmentSummary';
 
 export default function ProjectTasksTab({
     view,
@@ -48,6 +49,7 @@ export default function ProjectTasksTab({
     const { t } = useTranslation();
 
     return (
+        <DevelopmentSummaryProvider projectId={projectId} refreshKey={board}>
         <div className="space-y-5">
             <div className="flex flex-wrap items-center gap-3">
                 <div className="flex items-center gap-3">
@@ -176,5 +178,6 @@ export default function ProjectTasksTab({
                 </div>
             ) : null}
         </div>
+        </DevelopmentSummaryProvider>
     );
 }

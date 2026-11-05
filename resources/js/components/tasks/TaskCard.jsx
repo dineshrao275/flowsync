@@ -6,7 +6,8 @@ import TaskBadge from '../ui/TaskBadge';
 import { CSS } from '@dnd-kit/utilities';
 import { useTranslation } from 'react-i18next';
 import { formatMinutes } from '../../utils/time';
-import { CalendarBlank, ChatCircle, CheckSquare, Clock } from '@phosphor-icons/react';
+import { CalendarBlank, ChatCircle, CheckSquare, Clock, GitPullRequest } from '@phosphor-icons/react';
+import { useTaskDevelopment } from '../../hooks/DevelopmentSummary';
 
 const PRIORITY_DOT = {
     highest: '#ef4444',
@@ -61,6 +62,7 @@ export const CARD_CLASS =
 export function TaskCardBody({ task, compact = false }) {
     const { t } = useTranslation();
     const due = formatDue(task.due_date, t);
+    const dev = useTaskDevelopment(task.id);
 
     return (
         <>
@@ -157,6 +159,15 @@ export function TaskCardBody({ task, compact = false }) {
                         >
                             <ChatCircle size={13} weight="bold" className="text-gray-400 shrink-0" />
                             <span>{task.comments_count}</span>
+                        </span>
+                    )}
+                    {dev && (
+                        <span
+                            className={`inline-flex items-center gap-1 font-medium ${dev.checks_state === 'failure' ? 'text-danger-fg' : dev.checks_state === 'success' ? 'text-success' : ''}`}
+                            title={t('tms.card.pullRequests', { count: dev.pull_requests })}
+                        >
+                            <GitPullRequest size={13} weight="bold" className="shrink-0" />
+                            <span>{dev.pull_requests}</span>
                         </span>
                     )}
                     {task.estimate_minutes != null && task.estimate_minutes > 0 && (

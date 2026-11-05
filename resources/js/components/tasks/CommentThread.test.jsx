@@ -89,6 +89,7 @@ describe('CommentThread', () => {
 
         fireEvent.click(memberOption);
 
+        // The box stays clean; the id travels separately.
         expect(composer.value).toBe('Hey @Adrian Lopez ');
 
         const postBtn = screen.getByRole('button', { name: /^post/i });
@@ -96,7 +97,7 @@ describe('CommentThread', () => {
 
         await waitFor(() => {
             expect(postSpy).toHaveBeenCalledWith('/projects/5/tasks/10/comments', {
-                comment: 'Hey @Adrian Lopez',
+                comment: 'Hey @[Adrian Lopez](user:42)',
             });
         });
     });

@@ -53,6 +53,8 @@ class RouteAuthorizationAuditTest extends TestCase
         'CspReportController@store' => 'public: browser-sent CSP violation reports, throttled, logs a few trimmed fields',
         'LanguageController@index' => 'public: the list of supported languages, no tenant data',
         'GithubIntegrationController@receive' => 'public: HMAC-SHA256 signature over the raw body with the tenant\'s secret; every failure is the same 404',
+        'GitWebhookController@receive' => 'public: HMAC-SHA256 over the raw body with the GitHub App webhook secret; every refusal is the same bare 404',
+        'GitConnectionController@setup' => 'public: GitHub post-install redirect; the encrypted one-time state, the installer\'s OAuth code and git.manage are the check',
         'SignatureController@verify' => 'public: the unguessable receipt code is the check; answers only what a receipt proves',
         'SsoController@info' => 'public: whether the workspace has SSO switched on, nothing else',
         'SsoController@start' => 'public: starts an OIDC redirect for a workspace slug; no data returned',

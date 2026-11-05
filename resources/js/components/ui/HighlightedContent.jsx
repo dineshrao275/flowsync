@@ -15,12 +15,12 @@ function renderInline(text, projectId, depth = 0) {
     // 2: markdown link [title](url) (3: title, 4: url)
     // 5: raw url https://...
     // 6: task key TASK-123 (not the head of a longer dash-number id such as a claim number EXP-2026-000002)
-    // 7: mention @Name
+    // 7: mention: @[Name](user:ID) from the editor, or a typed @name / @email-prefix
     // 8: bold **text** or __text__ (9: text1, 10: text2)
     // 11: italic *text* or _text_ (12: text1, 13: text2)
     // 14: strike ~~text~~ (15: text)
     // 16: underline <u>text</u> (17: text)
-    const tokenRegex = /(`[^`\n]+`)|(\[([^\]]+)\]\((https?:\/\/[^\s)]+)\))|(https?:\/\/[^\s<]+)|(\b[A-Z]{2,10}-\d+\b(?!-\d))|(@[A-Za-z0-9_.-]+(?:\s[A-Za-z0-9_.-]+)?)|(\*\*([^*\n]+)\*\*|__([^_]+)__)|(\*([^*\n]+)\*|_([^_\n]+)_)|(~~([^~\n]+)~~)|(<u>([\s\S]*?)<\/u>)/g;
+    const tokenRegex = /(`[^`\n]+`)|(\[([^\]]+)\]\((https?:\/\/[^\s)]+)\))|(https?:\/\/[^\s<]+)|(\b[A-Z]{2,10}-\d+\b(?!-\d))|(@\[[^\]\n]{1,100}\]\(user:\d+\)|@[A-Za-z0-9_.-]+(?:\s[A-Za-z0-9_.-]+)?)|(\*\*([^*\n]+)\*\*|__([^_]+)__)|(\*([^*\n]+)\*|_([^_\n]+)_)|(~~([^~\n]+)~~)|(<u>([\s\S]*?)<\/u>)/g;
 
     const elements = [];
     let lastIndex = 0;
@@ -89,7 +89,8 @@ function renderInline(text, projectId, depth = 0) {
         }
         // 7: mention
         else if (match[7]) {
-            const rawName = match[7].slice(1).trim();
+            const idToken = /^@\[([^\]\n]+)\]\(user:\d+\)$/.exec(match[7]);
+            const rawName = idToken ? idToken[1] : match[7].slice(1).trim();
             elements.push(
                 <UserTooltip key={`mention-${depth}-${keyIdx++}`} name={rawName}>
                     <span className="inline-flex items-center gap-0.5 rounded bg-[var(--accent-soft)] px-1.5 py-0.5 font-medium text-[var(--accent-soft-text)] transition-colors hover:bg-[var(--accent)] hover:text-white cursor-pointer">

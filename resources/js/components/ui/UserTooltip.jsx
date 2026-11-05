@@ -64,6 +64,7 @@ export default function UserTooltip({
     const mousePosRef = useRef(null);
     const [open, setOpen] = useState(false);
     const [coords, setCoords] = useState(null);
+    const [mousePos, setMousePos] = useState(null);
     const enterTimeoutRef = useRef(null);
     const leaveTimeoutRef = useRef(null);
 
@@ -160,6 +161,9 @@ export default function UserTooltip({
             mousePosRef.current = { x: e.clientX, y: e.clientY };
         }
         clearTimeout(leaveTimeoutRef.current);
+        if (e?.clientX != null && e?.clientY != null) {
+            setMousePos({ x: e.clientX, y: e.clientY });
+        }
         enterTimeoutRef.current = setTimeout(() => {
             updatePosition(mousePosRef.current);
             setOpen(true);

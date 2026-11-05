@@ -44,10 +44,15 @@ class PermissionMatrixTest extends TestCase
         return $rows;
     }
 
-    /** A value that satisfies the route's own constraint (`whereIn('type', [...])` is a regex alternation), else 1. */
+    /** A value that satisfies the route's own constraint (a `whereIn` regex alternation or a uuid), else 1. */
     private function sample(LaravelRoute $route, string $param): string
     {
         $regex = $route->wheres[$param] ?? null;
+
+        // whereUuid() routes (Git connections/repositories) would 404 on a bare 1 before the permission gate ran.
+        if ($regex !== null && str_contains($regex, '{8}-')) {
+            return '00000000-0000-0000-0000-000000000001';
+        }
 
         return $regex !== null && preg_match('/^[a-z_|]+$/i', $regex) ? explode('|', $regex)[0] : '1';
     }
