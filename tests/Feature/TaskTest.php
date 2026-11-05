@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Tests\Feature;
 
 use App\Enums\TaskDependencyType;
@@ -479,6 +481,36 @@ class TaskTest extends TestCase
 
         $order = $project->tasks()->where('status_id', $todo->id)->orderBy('position')->get()->pluck('key')->all();
         $this->assertSame(['WEB-3', 'WEB-1', 'WEB-2'], $order);
+    }
+
+    public function test_move_to_same_status_and_position_does_not_log_activity_or_broadcast(): void
+    {
+        $ws = $this->makeWorkspace();
+        $project = $this->createProject($ws);
+        $todo = $project->statuses()->where('is_default', true)->first();
+        $a = $this->makeTask($project, 'A', ['status_id' => $todo->id]);
+        $b = $this->makeTask($project, 'B', ['status_id' => $todo->id]);
+
+        Event::fake([TaskSynced::class]);
+
+        $this->login('admin@flowsync.test');
+
+        // Task A is at index 0 of $todo. Move to same status and index 0
+        $response = $this->postJson("/api/projects/{$project->id}/tasks/{$a->id}/move", [
+            'status_id' => $todo->id,
+            'index' => 0,
+        ])->assertOk();
+
+        $response->assertJsonPath('message', 'Task position unchanged.');
+
+        // No activity log created for this move
+        $this->assertDatabaseMissing('activities', [
+            'action' => 'task.moved',
+            'subject_id' => $a->id,
+        ]);
+
+        // No TaskSynced event dispatched
+        Event::assertNotDispatched(TaskSynced::class);
     }
 
     public function test_description_accepts_and_returns_rich_text_html(): void

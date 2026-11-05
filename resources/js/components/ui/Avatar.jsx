@@ -19,15 +19,16 @@ const SIZES = {
 };
 
 /** Circular user icon: the profile photo when there is one (and it loads), otherwise initials. */
-export default function Avatar({ name, photoUrl = null, size = 'md', className = '' }) {
+export default function Avatar({ name, photoUrl = null, size = 'md', className = '', title }) {
     const [broken, setBroken] = useState(false);
     const showPhoto = photoUrl && !broken;
+    const tooltipTitle = title !== undefined ? (title || undefined) : name;
 
     return (
         <span
             className={`inline-flex shrink-0 items-center justify-center overflow-hidden rounded-full font-semibold text-[var(--accent-contrast)] ${SIZES[size] ?? SIZES.md} ${className}`}
             style={{ backgroundColor: 'var(--accent)' }}
-            title={name}
+            title={tooltipTitle}
         >
             {showPhoto ? (
                 <img src={photoUrl} alt="" className="h-full w-full object-cover" onError={() => setBroken(true)} />

@@ -52,7 +52,17 @@ class TaskPresenter
                 'value' => $task->priority->value,
             ] : null,
             'assignee_id' => $task->assignee_id,
-            'assignee' => $task->assignee ? ['id' => $task->assignee->id, 'name' => $task->assignee->name, 'email' => $task->assignee->email] : null,
+            'assignee' => $task->assignee ? [
+                'id' => $task->assignee->id,
+                'name' => $task->assignee->name,
+                'email' => $task->assignee->email,
+                'role' => $task->assignee->relationLoaded('roles')
+                    ? ($task->assignee->roles->first()?->name ?? $task->assignee->roles->first()?->slug)
+                    : ($task->assignee->roles()->first()?->name ?? $task->assignee->roles()->first()?->slug),
+                'roles' => $task->assignee->relationLoaded('roles')
+                    ? $task->assignee->roles->pluck('slug')->all()
+                    : $task->assignee->roles()->pluck('slug')->all(),
+            ] : null,
             'labels' => $task->labels->map(fn (Label $label) => [
                 'id' => $label->id,
                 'name' => $label->name,

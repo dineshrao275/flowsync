@@ -57,4 +57,25 @@ describe('KanbanBoard', () => {
         renderBoard({ canCreate: false });
         expect(screen.queryByRole('button', { name: /Add task/ })).not.toBeInTheDocument();
     });
+
+    it('applies column max-height and internal vertical scrolling with visible header', () => {
+        const { container } = renderBoard();
+
+        const columns = container.querySelectorAll('[class*="max-h-"]');
+        expect(columns.length).toBeGreaterThan(0);
+
+        // Check each expanded column has max-h-[calc(100vh-14rem)]
+        const col = columns[0];
+        expect(col.className).toContain('max-h-[calc(100vh-14rem)]');
+
+        // Check header is shrink-0 and outside the scrollable body
+        const header = col.querySelector('.shrink-0');
+        expect(header).toBeInTheDocument();
+        expect(header).toHaveTextContent('To do');
+
+        // Check scrollable body has overflow-y-auto
+        const scrollBody = col.querySelector('.overflow-y-auto');
+        expect(scrollBody).toBeInTheDocument();
+        expect(scrollBody).toHaveTextContent('First');
+    });
 });

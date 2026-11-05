@@ -72,4 +72,78 @@ describe('UserTooltip component', () => {
         fireEvent.keyDown(trigger, { key: 'Escape' });
         expect(screen.queryByRole('tooltip')).not.toBeInTheDocument();
     });
+
+    it('positions tooltip just above cursor on hover', () => {
+        const { container } = render(
+            <MemoryRouter>
+                <UserTooltip user={{ id: 2, name: 'Alice Smith', email: 'alice@example.com' }}>
+                    <span className="trigger">Alice</span>
+                </UserTooltip>
+            </MemoryRouter>
+        );
+
+        const trigger = container.querySelector('.trigger');
+        fireEvent.mouseEnter(trigger, { clientX: 200, clientY: 300 });
+
+        act(() => {
+            vi.advanceTimersByTime(150);
+        });
+
+        const tooltip = screen.getByRole('tooltip');
+        expect(tooltip).toBeInTheDocument();
+        // Anchor at (200, 300). Height 110 + 8 gap -> top: 182px, left: 200 - 132 = 68px
+        expect(tooltip.style.top).toBe('182px');
+        expect(tooltip.style.left).toBe('68px');
+    });
+
+    it('handles viewport boundary by flipping below when cursor is near top', () => {
+        const { container } = render(
+            <MemoryRouter>
+                <UserTooltip user={{ id: 2, name: 'Alice Smith', email: 'alice@example.com' }}>
+                    <span className="trigger">Alice</span>
+                </UserTooltip>
+            </MemoryRouter>
+        );
+
+        const trigger = container.querySelector('.trigger');
+        fireEvent.mouseEnter(trigger, { clientX: 200, clientY: 50 });
+
+        act(() => {
+            vi.advanceTimersByTime(150);
+        });
+
+        const tooltip = screen.getByRole('tooltip');
+        expect(tooltip).toBeInTheDocument();
+        // Near top (50px): cannot fit 110px above, so flips below cursor: 50 + 14 = 64px
+        expect(tooltip.style.top).toBe('64px');
+    });
+
+    it('displays user role badge and job title', () => {
+        const { container } = render(
+            <MemoryRouter>
+                <UserTooltip
+                    user={{
+                        id: 5,
+                        name: 'Carol Danvers',
+                        email: 'carol@example.com',
+                        role: 'admin',
+                        job_title: 'Senior Architect',
+                    }}
+                >
+                    <span className="trigger">Carol</span>
+                </UserTooltip>
+            </MemoryRouter>
+        );
+
+        const trigger = container.querySelector('.trigger');
+        fireEvent.mouseEnter(trigger);
+
+        act(() => {
+            vi.advanceTimersByTime(150);
+        });
+
+        expect(screen.getByText('Carol Danvers')).toBeInTheDocument();
+        expect(screen.getByText('admin')).toBeInTheDocument();
+        expect(screen.getByText('Senior Architect')).toBeInTheDocument();
+    });
 });
