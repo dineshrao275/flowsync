@@ -18,7 +18,7 @@ import HierarchyPanel from '../components/hierarchy/HierarchyPanel';
 import { useToast } from '../context/ToastContext';
 import { useConfirm } from '../components/ui/ConfirmDialog';
 import { useSetCrumbs } from '../context/BreadcrumbContext';
-import { moveCardInBoard } from '../utils/board';
+import { moveCardInBoard, resolveCardMove } from '../utils/board';
 import { optimistic } from '../utils/optimistic';
 import { onRealtimeReconnect } from '../utils/realtimeAuth';
 import RichText from '../components/ui/RichText';
@@ -383,34 +383,10 @@ export default function ProjectDetail() {
     }
 
     function handleDragEnd({ active, over }) {
-        if (!over || active.id === over.id || !board) return;
+        const resolution = resolveCardMove(board, active, over);
+        if (!resolution.shouldMove) return;
 
-        const columns = board.statuses ?? board.swimlanes.flatMap((lane) => lane.statuses);
-
-        let statusId;
-        let index;
-        const colMatch = String(over.id).match(/^col-(\d+)$/);
-        if (colMatch) {
-            statusId = Number(colMatch[1]);
-            index = columns.find((s) => s.id === statusId)?.tasks.length ?? 0;
-        } else {
-            let found = null;
-            columns.forEach((s) => {
-                const i = s.tasks.findIndex((t) => t.id === over.id);
-                if (i >= 0 && !found) found = { status: s, index: i };
-            });
-            if (!found) return;
-            statusId = found.status.id;
-            index = found.index;
-        }
-
-        const task = columns.flatMap((s) => s.tasks).find((t) => t.id === active.id);
-        if (!task) return;
-
-        const dest = columns.find((s) => s.id === statusId);
-        if (task.status_id === statusId && (dest?.tasks.findIndex((t) => t.id === task.id) ?? -1) === index) {
-            return;
-        }
+        const { task, statusId, index } = resolution;
 
         // The card lands in its new column immediately; a refusal rolls it back
         // (and the refetch below re-syncs counts/positions with the server).

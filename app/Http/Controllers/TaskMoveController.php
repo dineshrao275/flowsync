@@ -38,6 +38,25 @@ class TaskMoveController extends Controller
 
         $oldStatusId = $task->status_id;
         $oldStatus = $task->status;
+
+        $isSameStatus = $oldStatusId === (int) $data['status_id'];
+        if ($isSameStatus) {
+            $currentTasks = $project->tasks()
+                ->where('status_id', $oldStatusId)
+                ->orderBy('position')
+                ->orderBy('id')
+                ->pluck('id');
+            $currentIndex = $currentTasks->search($task->id);
+            $targetIndex = isset($data['index']) ? (int) $data['index'] : $currentIndex;
+            $clampedTargetIndex = max(0, min($targetIndex, max(0, $currentTasks->count() - 1)));
+            if ($currentIndex !== false && $currentIndex === $clampedTargetIndex) {
+                return response()->json([
+                    'message' => __('Task position unchanged.'),
+                    'task' => $this->service->present($this->service->show($task)),
+                ]);
+            }
+        }
+
         $moved = $this->service->move($task, $data['status_id'], $data['index'] ?? null);
 
         $this->changes->moved($moved, $oldStatusId, $oldStatus, $request->user(), $request->ip());

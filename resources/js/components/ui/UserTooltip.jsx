@@ -6,6 +6,34 @@ import { useAuth } from '../../context/AuthContext';
 import Avatar from './Avatar';
 import Badge from './Badge';
 
+function extractRole(user) {
+    if (!user || typeof user !== 'object') return null;
+    if (user.is_super_admin) return 'Super Admin';
+    if (user.role_name) return user.role_name;
+    if (typeof user.role === 'string') return user.role;
+    if (user.role && typeof user.role === 'object') return user.role.name || user.role.label || user.role.slug || null;
+    if (Array.isArray(user.roles) && user.roles.length > 0) {
+        const first = user.roles[0];
+        if (typeof first === 'string') return first;
+        if (first && typeof first === 'object') return first.name || first.label || first.slug || null;
+    }
+    if (user.project_role) {
+        if (typeof user.project_role === 'string') return user.project_role;
+        if (typeof user.project_role === 'object') return user.project_role.name || user.project_role.label || null;
+    }
+    return null;
+}
+
+function resolveBadgeTone(roleStr) {
+    const slug = String(roleStr || '').toLowerCase();
+    if (['admin', 'super admin', 'super_admin'].includes(slug)) return 'accent';
+    if (['manager', 'lead'].includes(slug)) return 'info';
+    if (['editor', 'developer'].includes(slug)) return 'warning';
+    if (['viewer'].includes(slug)) return 'neutral';
+    if (['employee'].includes(slug)) return 'success';
+    return 'accent';
+}
+
 /**
  * Context-aware user tooltip / popover card.
  *
@@ -32,10 +60,48 @@ export default function UserTooltip({
     }
     const id = useId();
     const triggerRef = useRef(null);
+    const tooltipRef = useRef(null);
+    const mousePosRef = useRef(null);
     const [open, setOpen] = useState(false);
     const [coords, setCoords] = useState(null);
     const enterTimeoutRef = useRef(null);
     const leaveTimeoutRef = useRef(null);
+
+    const updatePosition = (cursorPos = mousePosRef.current) => {
+        if (!triggerRef.current) return;
+        const rect = triggerRef.current.getBoundingClientRect();
+        const tooltipEl = tooltipRef.current;
+        const tooltipWidth = tooltipEl?.offsetWidth || 264;
+        const tooltipHeight = tooltipEl?.offsetHeight || 110;
+
+        const winWidth = typeof window !== 'undefined' ? window.innerWidth : 1024;
+        const winHeight = typeof window !== 'undefined' ? window.innerHeight : 768;
+
+        const hasValidCursor = cursorPos && typeof cursorPos.x === 'number' && typeof cursorPos.y === 'number' && (cursorPos.x > 0 || cursorPos.y > 0);
+
+        const anchorX = hasValidCursor ? cursorPos.x : rect.left + rect.width / 2;
+        const anchorY = hasValidCursor ? cursorPos.y : rect.top;
+
+        const GAP = 8;
+        // Check if tooltip fits above the cursor
+        const fitsAbove = anchorY - tooltipHeight - GAP >= 8;
+        const shouldPlaceBottom = placement === 'bottom' || (!fitsAbove && (winHeight - anchorY > tooltipHeight + GAP));
+
+        let top;
+        if (shouldPlaceBottom) {
+            top = hasValidCursor ? Math.round(anchorY + 14) : Math.round(rect.bottom + GAP);
+        } else {
+            top = Math.round(anchorY - tooltipHeight - GAP);
+        }
+
+        // Viewport boundary handling: clamp top and left
+        top = Math.max(8, Math.min(winHeight - tooltipHeight - 8, top));
+
+        const idealLeft = anchorX - tooltipWidth / 2;
+        const left = Math.round(Math.max(12, Math.min(winWidth - tooltipWidth - 12, idealLeft)));
+
+        setCoords({ top, left });
+    };
 
     // Close on window scroll so it doesn't detach from the trigger
     useEffect(() => {
@@ -45,15 +111,21 @@ export default function UserTooltip({
         return () => window.removeEventListener('scroll', handleScroll, { capture: true });
     }, [open]);
 
+    // Re-measure and adjust position once mounted in the DOM
+    useEffect(() => {
+        if (open) {
+            updatePosition(mousePosRef.current);
+        }
+    }, [open]);
+
     const displayName = (typeof user === 'string' ? user : user?.name) || name || '';
     if (!displayName && !user) {
         return children;
     }
 
     const email = typeof user === 'object' ? user?.email : null;
-    const role = typeof user === 'object'
-        ? (user?.role_name || (Array.isArray(user?.roles) ? user?.roles[0]?.name || user?.roles[0] : user?.role) || (user?.is_super_admin ? 'Super Admin' : null))
-        : null;
+    const rawRole = extractRole(user);
+    const role = rawRole || (typeof user === 'object' && (user?.id || user?.email) ? 'Member' : null);
     const department = typeof user === 'object' ? (user?.department?.name || user?.department_name || user?.department) : null;
     const jobTitle = typeof user === 'object' ? (user?.job_title || user?.designation || user?.title) : null;
     const employeeId = typeof user === 'object' ? (user?.employee_id || user?.employee?.id) : null;
@@ -71,33 +143,21 @@ export default function UserTooltip({
         }
     }
 
-    const updatePosition = () => {
-        if (!triggerRef.current) return;
-        const rect = triggerRef.current.getBoundingClientRect();
-        const tooltipWidth = 264;
-        const tooltipHeight = 160;
-
-        // Determine if tooltip fits on top or should flip to bottom
-        const shouldPlaceBottom = placement === 'bottom' || (rect.top < 180 && rect.top >= 0);
-
-        const top = shouldPlaceBottom
-            ? Math.round(rect.bottom + 8)
-            : Math.round(Math.max(8, rect.top - tooltipHeight - 8));
-
-        const triggerCenter = rect.left + rect.width / 2;
-        const idealLeft = triggerCenter - tooltipWidth / 2;
-        const winWidth = typeof window !== 'undefined' ? window.innerWidth : 1024;
-        const left = Math.round(Math.max(12, Math.min(winWidth - tooltipWidth - 12, idealLeft)));
-
-        setCoords({ top, left });
-    };
-
-    const handleMouseEnter = () => {
+    const handleMouseEnter = (e) => {
+        if (e && typeof e.clientX === 'number') {
+            mousePosRef.current = { x: e.clientX, y: e.clientY };
+        }
         clearTimeout(leaveTimeoutRef.current);
         enterTimeoutRef.current = setTimeout(() => {
-            updatePosition();
+            updatePosition(mousePosRef.current);
             setOpen(true);
         }, 120);
+    };
+
+    const handleMouseMove = (e) => {
+        if (e && typeof e.clientX === 'number') {
+            mousePosRef.current = { x: e.clientX, y: e.clientY };
+        }
     };
 
     const handleMouseLeave = () => {
@@ -106,7 +166,8 @@ export default function UserTooltip({
     };
 
     const handleFocus = () => {
-        updatePosition();
+        mousePosRef.current = null;
+        updatePosition(null);
         setOpen(true);
     };
 
@@ -125,6 +186,7 @@ export default function UserTooltip({
 
     const tooltipElement = open && typeof document !== 'undefined' ? (
         <div
+            ref={tooltipRef}
             id={id}
             role="tooltip"
             style={{
@@ -146,18 +208,18 @@ export default function UserTooltip({
                     className="ring-2 ring-gray-100 dark:ring-slate-800"
                 />
                 <div className="min-w-0 flex-1">
-                    <p className="truncate text-sm font-semibold text-gray-900">
+                    <p className="truncate text-sm font-semibold text-gray-900 dark:text-gray-100">
                         {displayName}
                     </p>
                     {role && (
-                        <div className="mt-0.5">
-                            <Badge tone="accent" className="text-[0.65rem] uppercase tracking-wider">
+                        <div className="mt-1">
+                            <Badge tone={resolveBadgeTone(role)} className="text-[0.65rem] font-semibold uppercase tracking-wider">
                                 {role}
                             </Badge>
                         </div>
                     )}
-                    {jobTitle && !role && (
-                        <p className="truncate text-xs text-gray-500 dark:text-gray-400">
+                    {jobTitle && (
+                        <p className="mt-0.5 truncate text-xs text-gray-500 dark:text-gray-400">
                             {jobTitle}
                         </p>
                     )}
@@ -208,6 +270,7 @@ export default function UserTooltip({
             ref={triggerRef}
             className={`inline-flex items-center ${className}`}
             onMouseEnter={handleMouseEnter}
+            onMouseMove={handleMouseMove}
             onMouseLeave={handleMouseLeave}
             onFocus={handleFocus}
             onBlur={handleBlur}

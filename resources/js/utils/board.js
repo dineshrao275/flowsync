@@ -67,3 +67,68 @@ export function moveCardInBoard(board, taskId, statusId, index) {
         ? { ...board, swimlanes: board.swimlanes.map((lane, g) => (g === origin.group ? { ...lane, statuses: nextStatuses } : lane)) }
         : { ...board, statuses: nextStatuses };
 }
+
+/**
+ * Determine whether a drag-and-drop release represents a valid move.
+ * Returns `{ shouldMove: true, task, statusId, index }` or `{ shouldMove: false }`.
+ */
+export function resolveCardMove(board, active, over) {
+    if (!over || !active || active.id === over.id || !board) {
+        return { shouldMove: false };
+    }
+
+    const origin = findCard(board, active.id);
+    if (!origin) {
+        return { shouldMove: false };
+    }
+
+    const laneStatuses = board.swimlanes ? board.swimlanes[origin.group]?.statuses : board.statuses;
+    if (!laneStatuses || !laneStatuses[origin.columnIndex]) {
+        return { shouldMove: false };
+    }
+
+    const sourceColumn = laneStatuses[origin.columnIndex];
+    const originIndex = origin.index;
+    const task = sourceColumn.tasks[originIndex];
+    if (!task) {
+        return { shouldMove: false };
+    }
+
+    let statusId;
+    let index;
+    const colMatch = String(over.id).match(/^col-(\d+)$/);
+    if (colMatch) {
+        statusId = Number(colMatch[1]);
+        const destColumn = laneStatuses.find((s) => s.id === statusId);
+        if (!destColumn) {
+            return { shouldMove: false };
+        }
+        const isSameColumn = sourceColumn.id === statusId;
+        index = isSameColumn
+            ? Math.max(0, destColumn.tasks.length - 1)
+            : destColumn.tasks.length;
+    } else {
+        let found = null;
+        laneStatuses.forEach((s) => {
+            const i = s.tasks.findIndex((t) => t.id === over.id);
+            if (i >= 0 && !found) found = { status: s, index: i };
+        });
+        if (!found) {
+            return { shouldMove: false };
+        }
+        statusId = found.status.id;
+        index = found.index;
+    }
+
+    const isSameColumn = sourceColumn.id === statusId;
+    if (isSameColumn && originIndex === index) {
+        return { shouldMove: false };
+    }
+
+    return {
+        shouldMove: true,
+        task,
+        statusId,
+        index,
+    };
+}
