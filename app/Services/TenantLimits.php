@@ -49,8 +49,6 @@ class TenantLimits
     public static function resetMemo(): void
     {
         self::$memo = [];
-        // Same unit-of-work boundary: the per-request tenant row cache must not outlive it.
-        Tenant::forgetResolved();
     }
 
     /**

@@ -64,6 +64,7 @@ trait IsolatesDatabase
     protected function isolateDatabase(): void
     {
         TenantLimits::resetMemo();
+        \App\Models\Tenant::forgetResolved();
         ReportsTo::resetMemo();
 
         // Provisioning acme + globex (every migration set, catalogs, demo data) costs about a
@@ -130,6 +131,7 @@ trait IsolatesDatabase
     protected function tearDown(): void
     {
         TenantLimits::resetMemo();
+        \App\Models\Tenant::forgetResolved();
         ReportsTo::resetMemo();
 
         if (File::isDirectory($this->isoTenantDir ?? '')) {
