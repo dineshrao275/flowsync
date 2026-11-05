@@ -5,15 +5,19 @@ declare(strict_types=1);
 namespace App\Http\Controllers;
 
 use App\Http\Requests\ClientLogStoreRequest;
+use App\Services\Errors\ErrorRecorder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Log;
 
 /**
  * Ingests frontend client-side logs (React ErrorBoundary crashes, unhandled
- * promise rejections, API network failures) into the daily date-wise Laravel logs.
+ * promise rejections, API network failures) into the daily date-wise Laravel
+ * logs and the central Super Admin error store (`source=frontend`).
  */
 class ClientLogController extends Controller
 {
+    public function __construct(private readonly ErrorRecorder $recorder) {}
+
     public function store(ClientLogStoreRequest $request): JsonResponse
     {
         $validated = $request->validated();
@@ -37,7 +41,11 @@ class ClientLogController extends Controller
             $context['user_email'] = $user->email;
         }
 
-        Log::log($level, "[Frontend] {$message}", $context);
+        // The store record is written explicitly (source=frontend); the file
+        // line below is marked so the global listener does not record it again.
+        $this->recorder->recordMessage($level, "[Frontend] {$message}", $context, $request, 'frontend');
+
+        Log::log($level, "[Frontend] {$message}", $context + ['error_capture' => false]);
 
         return response()->json(['ok' => true]);
     }
