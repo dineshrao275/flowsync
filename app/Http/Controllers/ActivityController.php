@@ -32,21 +32,16 @@ class ActivityController extends Controller
     {
         $this->authorize('view', $project);
 
-        $taskIds = $project->tasks()->pluck('id');
+        // Two bounded reads merged in PHP. The old form plucked every task id of the project into
+        // one IN list: 15k ids per call on a big project, and a hard failure past PDO's 65,535 binds.
+        $limit = 200;
+        $onTasks = Activity::where('subject_type', Task::class)
+            ->whereIn('subject_id', $project->tasks()->select('tasks.id'))
+            ->orderByDesc('id')->limit($limit)->get();
+        $onProject = Activity::where('subject_type', Project::class)->where('subject_id', $project->id)
+            ->orderByDesc('id')->limit($limit)->get();
 
-        $activities = Activity::where(function ($query) use ($project, $taskIds) {
-            $query
-                ->where(function ($q) use ($project) {
-                    $q->where('subject_type', Project::class)->where('subject_id', $project->id);
-                })
-                ->orWhere(function ($q) use ($taskIds) {
-                    $q->where('subject_type', Task::class)->whereIn('subject_id', $taskIds);
-                });
-        })
-            ->with('actor')
-            ->orderByDesc('id')
-            ->limit(200)
-            ->get();
+        $activities = $onTasks->concat($onProject)->sortByDesc('id')->take($limit)->values()->load('actor');
 
         return response()->json([
             'activities' => $activities->map(fn (Activity $activity) => $this->present($activity)),

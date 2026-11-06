@@ -199,6 +199,8 @@ export function NotificationProvider({ children }) {
         }
     }, [location.pathname, platformOnly, markSectionViewed]);
 
+    const inboxEnabled = Boolean(user?.modules?.includes('hrms.inbox') && user?.products?.hrms !== false);
+
     const refreshTenant = useCallback(async () => {
         if (!user || platformOnly) {
             setUnreadCount(0);
@@ -211,15 +213,20 @@ export function NotificationProvider({ children }) {
         } catch {
             // keep current count on transient failures
         }
-        // The HR queue rides the same 30s cadence: one timer, two counts,
-        // so the sidebar badge never drifts a full cycle behind the bell.
+        // The HR queue rides the same cadence: one timer, two counts, so the sidebar badge never
+        // drifts a full cycle behind the bell. Tenants without the HR inbox never ask for it
+        // (it used to be a guaranteed 403/404 on every tick for TMS-only tenants).
+        if (!inboxEnabled) {
+            setInboxUnread(0);
+            return;
+        }
         try {
             const { data } = await api.get('/hrms/inbox', { params: { per_page: 1 } });
             setInboxUnread(data.unread_count ?? 0);
         } catch {
             // keep current count on transient failures
         }
-    }, [user, platformOnly]);
+    }, [user, platformOnly, inboxEnabled]);
 
     const refreshPlatform = useCallback(async () => {
         if (!user || !platformOnly) {
@@ -247,18 +254,26 @@ export function NotificationProvider({ children }) {
         }
     }, [platformOnly, refreshPlatform, refreshTenant]);
 
+    // Poll only while the tab is visible: a background tab refreshes once when it comes back instead
+    // of every 30-60 s forever (at scale, hidden tabs were most of this traffic).
     useEffect(() => {
-        if (platformOnly) {
-            refreshPlatform();
-            const intervalMs = window.Echo ? 60000 : 30000;
-            const timer = window.setInterval(refreshPlatform, intervalMs);
-            return () => window.clearInterval(timer);
-        }
-
-        refreshTenant();
+        const poll = platformOnly ? refreshPlatform : refreshTenant;
         const intervalMs = window.Echo ? 60000 : 30000;
-        const timer = window.setInterval(refreshTenant, intervalMs);
-        return () => window.clearInterval(timer);
+        const visible = () => typeof document === 'undefined' || !document.hidden;
+        const onVisible = () => {
+            if (visible()) poll();
+        };
+
+        poll();
+        const timer = window.setInterval(() => {
+            if (visible()) poll();
+        }, intervalMs);
+        document.addEventListener('visibilitychange', onVisible);
+
+        return () => {
+            window.clearInterval(timer);
+            document.removeEventListener('visibilitychange', onVisible);
+        };
     }, [refreshTenant, refreshPlatform, platformOnly]);
 
     // Tenant real-time notifications via Reverb / Echo (user.{id})

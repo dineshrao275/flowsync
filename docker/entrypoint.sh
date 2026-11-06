@@ -89,6 +89,7 @@ if [[ "${RUN_INIT:-false}" == "true" ]]; then
         php artisan config:cache --no-interaction 2>/dev/null || true
         php artisan route:cache  --no-interaction 2>/dev/null || true
         php artisan view:cache   --no-interaction 2>/dev/null || true
+        php artisan event:cache  --no-interaction 2>/dev/null || true
     fi
 
     echo "== init complete — starting server =="

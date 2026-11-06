@@ -96,13 +96,15 @@ ENV SESSION_CONNECTION=system \
 RUN composer dump-autoload --optimize \
     && php artisan package:discover --ansi
 
-# OPcache configuration for CLI server
+# OPcache configuration for CLI server. validate_timestamps stays on (1) for the bind-mounted dev
+# stack; production sets OPCACHE_VALIDATE_TIMESTAMPS=0 so PHP stops stat()ing every file per request.
 RUN { \
         echo "opcache.enable=1"; \
         echo "opcache.enable_cli=1"; \
-        echo "opcache.memory_consumption=128"; \
-        echo "opcache.max_accelerated_files=10000"; \
+        echo "opcache.memory_consumption=256"; \
+        echo "opcache.max_accelerated_files=20000"; \
         echo "opcache.revalidate_freq=0"; \
+        echo "opcache.validate_timestamps=\${OPCACHE_VALIDATE_TIMESTAMPS:-1}"; \
     } > /usr/local/etc/php/conf.d/opcache.ini
 
 # Storage directories owned by www-data

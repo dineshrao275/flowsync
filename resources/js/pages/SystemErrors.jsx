@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Bug, ArrowClockwise } from '@phosphor-icons/react';
+import useDebouncedValue from '../hooks/useDebouncedValue';
 import api from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
@@ -68,6 +69,7 @@ export default function SystemErrors() {
     const [source, setSource] = useState('');
     const [module, setModule] = useState('');
     const [q, setQ] = useState('');
+    const searchTerm = useDebouncedValue(q);
     const [page, setPage] = useState(1);
     const [selected, setSelected] = useState([]);
     const [bulkStatus, setBulkStatus] = useState('resolved');
@@ -92,7 +94,7 @@ export default function SystemErrors() {
                         severity: severity || undefined,
                         source: source || undefined,
                         module: module || undefined,
-                        q: q || undefined,
+                        q: searchTerm || undefined,
                         page,
                     },
                 }),
@@ -107,7 +109,7 @@ export default function SystemErrors() {
         } finally {
             setLoading(false);
         }
-    }, [status, severity, source, module, q, page, t]);
+    }, [status, severity, source, module, searchTerm, page, t]);
 
     useEffect(() => {
         load();
@@ -115,7 +117,7 @@ export default function SystemErrors() {
 
     useEffect(() => {
         setSelected([]);
-    }, [status, severity, source, module, q, page]);
+    }, [status, severity, source, module, searchTerm, page]);
 
     async function openError(row) {
         setDrawerOpen(true);

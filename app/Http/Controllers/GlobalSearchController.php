@@ -179,7 +179,7 @@ class GlobalSearchController extends Controller
             return [];
         }
 
-        return $this->visibleTaskQuery($user)
+        return $this->presentableTaskQuery($user)
             ->tap(fn ($b) => Like::any($b, ['tasks.title', 'tasks.key', 'tasks.description'], $q))
             ->orderByDesc('tasks.updated_at')
             ->limit($limit)
@@ -222,11 +222,7 @@ class GlobalSearchController extends Controller
         $tenantId = $request->session()->get('impersonate.tenant_id')
             ?? $request->session()->get('login.tenant_id');
 
-        if (! $tenantId) {
-            return null;
-        }
-
-        return Tenant::whereKey($tenantId)->first();
+        return Tenant::resolve($tenantId);
     }
 
     /**

@@ -19,6 +19,24 @@ export default defineConfig({
         tailwindcss(),
         react(),
     ],
+    build: {
+        rollupOptions: {
+            output: {
+                // Libraries change a few times a year, app code on every deploy. Giving the stable
+                // ones their own files keeps them in the browser cache across releases instead of
+                // re-downloading them inside the entry chunk each time. Only packages that already
+                // sit in the entry are grouped: charts/editor stay in their lazy route chunks.
+                manualChunks(id) {
+                    if (!id.includes('node_modules')) return undefined;
+                    if (/node_modules\/(react|react-dom|scheduler|react-router|react-router-dom|@remix-run)\//.test(id)) return 'vendor-react';
+                    if (/node_modules\/(i18next|react-i18next)\//.test(id)) return 'vendor-i18n';
+                    if (/node_modules\/(pusher-js|laravel-echo)\//.test(id)) return 'vendor-realtime';
+                    if (/node_modules\/axios\//.test(id)) return 'vendor-http';
+                    return undefined;
+                },
+            },
+        },
+    },
     server: {
         // Docker dev: the browser must reach Vite at a host-visible URL, not
         // the container's 0.0.0.0 (set by docker-compose's `vite` service).

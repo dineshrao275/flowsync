@@ -32,7 +32,7 @@ class EnsureOnboardingComplete
             return $next($request);
         }
 
-        $tenant = Tenant::find($tenantId);
+        $tenant = Tenant::resolve($tenantId);
 
         if ($tenant && ! $this->onboarding->isComplete($tenant)) {
             if (! $request->expectsJson()) {

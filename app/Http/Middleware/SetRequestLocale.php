@@ -154,6 +154,6 @@ class SetRequestLocale
             $tenantId = $impersonate['tenant_id'] ?? $request->session()->get('login.tenant_id');
         }
 
-        return $tenantId ? Tenant::find($tenantId) : null;
+        return Tenant::resolve($tenantId);
     }
 }

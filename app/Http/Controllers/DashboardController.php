@@ -17,7 +17,7 @@ class DashboardController extends Controller
     public function __invoke(Request $request): JsonResponse
     {
         $user = $request->user();
-        $visible = $this->visibleTaskQuery($user)->withCount(['subtasks', 'comments', 'attachments']);
+        $visible = $this->presentableTaskQuery($user)->withCount(['subtasks', 'comments', 'attachments']);
 
         $open = fn (Builder $query) => $query->whereNull('tasks.completed_at')->whereNull('tasks.archived_at');
 

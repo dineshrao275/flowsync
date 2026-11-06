@@ -132,6 +132,7 @@ class AppServiceProvider extends ServiceProvider
     {
         Event::listen(RequestHandled::class, function (): void {
             TenantLimits::resetMemo();
+            Tenant::forgetResolved();
             ReportsTo::resetMemo();
             TmsSchema::flush();
             HrmsSchema::flush();
@@ -143,6 +144,7 @@ class AppServiceProvider extends ServiceProvider
             } catch (\Throwable) {
             }
             TenantLimits::resetMemo();
+            Tenant::forgetResolved();
             ReportsTo::resetMemo();
             TmsSchema::flush();
             HrmsSchema::flush();

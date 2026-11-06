@@ -21,6 +21,17 @@ class Tenant extends Model
     use HasFactory;
     use SoftDeletes;
 
+    /**
+     * Tenants already read in this unit of work, by id (null = looked up, not found).
+     * The middleware chain asked the central DB for the same row up to nine times per
+     * request; every one now shares this instance (and its loaded subscriptions).
+     * Flushed at the request/job boundaries via {@see TenantLimits::resetMemo()} and
+     * whenever a tenant is saved, deleted or restored, so a write is never served stale.
+     *
+     * @var array<int, ?self>
+     */
+    private static array $resolved = [];
+
     /** Intake in progress: no database exists until every required field is in. */
     public const STATUS_DRAFT = 'draft';
 
@@ -148,6 +159,33 @@ class Tenant extends Model
     public function subscriptionFor(string $product): ?Subscription
     {
         return $this->subscriptions()->where('product', $product)->first();
+    }
+
+    /**
+     * Request-scoped lookup for read-only callers on the hot path (middleware, session payload).
+     * Callers that mutate a tenant keep using find()/findOrFail() and get a fresh instance.
+     */
+    public static function resolve(int|string|null $id): ?self
+    {
+        if ($id === null || $id === '') {
+            return null;
+        }
+
+        $key = (int) $id;
+
+        return array_key_exists($key, self::$resolved) ? self::$resolved[$key] : (self::$resolved[$key] = self::find($key));
+    }
+
+    public static function forgetResolved(): void
+    {
+        self::$resolved = [];
+    }
+
+    protected static function booted(): void
+    {
+        foreach (['saved', 'deleted', 'restored'] as $event) {
+            static::$event(static fn () => self::forgetResolved());
+        }
     }
 
     public function subscriptions(): HasMany
