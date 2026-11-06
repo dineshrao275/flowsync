@@ -1,6 +1,6 @@
 # AI assistant: architecture and design (Phase 1)
 
-Status: **design, awaiting approval**. No AI code exists yet. Implementation phases and their exit gates are in section 11.
+Status: **implemented on `feat/ai-assistant` (Phases 2-5), not merged or deployed.** Sections 1-12 are the design the build followed; section 13 onward is the operating guide and what was actually built, including where it differs from the design. Nothing has been run against a real provider yet: the adapters are verified against recorded wire formats with `Http::fake`, and `php artisan ai:ping --tools` is the live check to run once a key is available.
 
 Core principle: FlowSync owns authorization, retrieval, business rules and execution. A hosted model supplies language and reasoning through a replaceable adapter. The model never decides what a user may see, and unauthorized data never reaches it.
 
@@ -188,3 +188,88 @@ Nothing is merged or deployed without explicit approval.
 - Provider limits and prices change; the evaluation table is dated and must be re-read before a production choice.
 - Streaming through some proxies buffers output; verify Apache and any CDN before relying on it.
 - HRMS PII tools return masked values by default; the assistant cannot reveal more than the UI would.
+
+
+## 13. What was built (and where it differs from the design)
+
+| Area | Where |
+|---|---|
+| Provider contract, DTOs, capabilities, errors | `app/Services/Ai/{Contracts,Dto,Exceptions}` |
+| Adapters (Gemini `generateContent`, OpenAI-compatible for Groq, Fake) | `app/Services/Ai/Providers`, shared transport `HttpAiProvider` (timeouts, retry/backoff, breaker, error normalization) |
+| Provider choice and validation | `AiProviderResolver`, `AiConfigurationService`, `config/ai.php` |
+| Chat orchestration (bounded model/tool loop, SSE) | `AiOrchestrator`, `AiChatController`, `SseEmitter` |
+| Tools (read-only) | `app/Services/Ai/Tools`: `search_tasks`, `get_task`, `list_projects`, `project_summary`, `my_leave_balance`, `leave_requests`, `navigation_help`; registered in `AiServiceProvider` |
+| Document to tasks | `Documents/` (extractor, store), `Proposals/` (generator, items, duplicates, editor, confirmer), `AiProposalService` |
+| Usage, limits, cost, breaker, retention | `AiUsageService`, `AiUsageReport`, `AiCircuitBreaker`, `ai:prune`, `ai:check`, `ai:ping` |
+| SPA | `components/assistant/*`, `pages/Assistant.jsx`, `hooks/useAssistant.js`, `hooks/useDocumentTasks.js`, `services/assistantStream.js` |
+
+Differences from sections 2-9:
+
+- **Conversations/proposals/documents live in the tenant core migration set** (`database/migrations/tenant`), not `tenant_tms`, so an HRMS-only tenant can use the assistant. Task and project ids are plain integers there.
+- **`ai` is a product-agnostic module** (like `branding`): `TenantLimits::productOfModule('ai')` is `null`. Individual tools and the document flow are gated by product (`tms`/`hrms`) and by their own modules and permissions.
+- **No chat-initiated write tools.** The model can only read. The one write path is the document flow, where the model drafts and a person confirms. `propose_task_update`, assignment and HR-request drafting are not built; the `ai_proposals.kind` column and the confirm/revalidate pattern are where they would go.
+- **Structured output is optional per provider.** A provider that cannot enforce a schema is asked for JSON in the prompt and held to the same validation (one retry); this is an application-level strategy, not a provider fallback.
+- **Duplicate detection** compares normalised titles and `similar_text` (88%) against tasks the user may see; it is advice, not a block.
+- **Text extraction runs inline** on upload and again at draft time, bounded by size, page and character caps. A queued extraction job was not needed at those caps; raise the caps only together with moving extraction onto the queue.
+
+## 14. Configuration reference
+
+| Variable | Default | Meaning |
+|---|---|---|
+| `AI_ENABLED` | `false` | Master switch. When false the assistant is hidden, `/api/ai/*` answers unavailable, and no AI config is validated. |
+| `AI_PROVIDER` | `gemini` | `gemini`, `groq` or `fake`. |
+| `AI_MODEL` | provider default | `GEMINI_MODEL` / `GROQ_MODEL` when empty. |
+| `GEMINI_API_KEY`, `GROQ_API_KEY` | | Provider keys. Win over `AI_API_KEY`. |
+| `AI_API_KEY`, `AI_BASE_URL` | | Generic key/base URL for the ACTIVE provider only. |
+| `AI_TIMEOUT_SECONDS`, `AI_MAX_RETRIES`, `AI_RETRY_BASE_MS` | `60`, `2`, `400` | Per call. Only rate-limit, timeout and 5xx are retried. |
+| `AI_MAX_OUTPUT_TOKENS`, `AI_MAX_INPUT_CHARS`, `AI_HISTORY_MESSAGES`, `AI_MAX_TOOL_ROUNDS` | `4096`, `8000`, `20`, `4` | Bounds per turn. |
+| `AI_STREAMING_ENABLED`, `AI_TOOL_CALLING_ENABLED` | `true` | Narrow a model's capabilities. |
+| `AI_DAILY_REQUEST_LIMIT`, `AI_DAILY_TOKEN_LIMIT` | unlimited | Platform default per tenant per day; plan limits `ai_requests_per_day` / `ai_tokens_per_day` (and tenant `limits_override`) win. |
+| `AI_REQUESTS_PER_MINUTE` | `20` | Per user and tenant, on chat and proposal drafting. |
+| `AI_FALLBACK_PROVIDER` | none | Explicit, opt-in. Used only after a transient failure of the active provider. |
+| `AI_ALLOW_FREE_TIER` | `false` | Production refuses a free-tier provider unless true (free tiers may train on prompts). |
+| `AI_BREAKER_THRESHOLD`, `AI_BREAKER_WINDOW`, `AI_BREAKER_COOLDOWN` | `5`, `60`, `30` | Outage failures in the window that pause the provider for the cooldown. |
+| `AI_DOCUMENT_MAX_KB`, `_MAX_CHARS`, `_MAX_PAGES`, `AI_PROPOSAL_MAX_ITEMS` | `10240`, `60000`, `100`, `50` | Document-to-task bounds. |
+| `AI_DOCUMENT_RETENTION_DAYS`, `AI_CONVERSATION_RETENTION_DAYS`, `AI_USAGE_RETENTION_DAYS` | `7`, `90`, `400` | Swept daily by `ai:prune --all`. |
+
+## 15. Switching provider or model (no source change)
+
+1. Edit `.env`: `AI_PROVIDER`, `AI_MODEL` (or leave empty for the provider default) and the matching key (`GEMINI_API_KEY` / `GROQ_API_KEY`).
+2. `php artisan ai:check` validates provider, model, key and capabilities and prints every problem at once. It never prints a key.
+3. `php artisan config:clear` (or `config:cache` if you cache), then restart the long-running processes so they reload env: Apache/php-fpm, `flowsync-queue`, `flowsync-reverb`.
+4. `php artisan ai:ping --tools` makes one synthetic round trip (no tenant data) and checks tool calling.
+5. Conversations survive a switch: history is stored as plain text in FlowSync's own format, and tool data is re-read fresh each turn.
+
+If the new model lacks a capability the assistant needs, `ai:check` says so. Structured output is optional; tool calling is required unless `AI_TOOL_CALLING_ENABLED=false` (the assistant then cannot read data).
+
+## 16. Security and tenant-isolation findings (from the tests)
+
+- Tools read only through `VisibleTasks`/`TaskScope`, `LeaveRequestDirectory`/`HrmsScope`; a project role limited to `tasks.view_own` sees only its own rows through the assistant, and the hidden rows never appear in the request sent to the model (asserted by capturing the outgoing request).
+- A task the user cannot see answers exactly like one that does not exist; a tool the user may not use is neither offered nor executable, even if the model invents the call.
+- Model-supplied tool arguments are validated against the tool's schema; unknown keys and wrong types are rejected.
+- Conversations and proposals are owner-only and tenant-DB resident; another user, or another tenant, gets 404.
+- Document text is quoted as untrusted data, cannot close its own wrapper, and the drafting call carries no tools; injected instructions can at worst change a draft a person reviews.
+- Confirmation re-checks view and create permission, locks the proposal row, records per-item results, and creates nothing for an unselected, rejected or already-created item. Retries never duplicate.
+- Prompts and answers are never logged; request logging skips `api/ai/*` input; logs carry provider, model, token counts, tool names and latency.
+
+## 17. Cost and usage
+
+Per-tenant counts (requests, input/output tokens, failures, document pages, estimated USD) are kept per day in the central `ai_usage` table with no text, and `GET /api/ai/status` returns today's use and limits. `/api/metrics` exposes `flowsync_ai_requests_today`, `flowsync_ai_tokens_today{direction}`, `flowsync_ai_failures_today` and `flowsync_ai_cost_estimate_usd_today`. Estimated cost uses `config/ai.php` `pricing` (USD per 1M tokens) and is for monitoring, not billing; an unpriced model counts as 0. A document draft costs roughly the document size in input tokens plus up to `AI_MAX_OUTPUT_TOKENS`.
+
+## 18. Privacy checklist before real tenant data goes to a provider
+
+- [ ] Confirm the provider's data-processing terms for the plan you will pay for. Free tiers may use content to improve products and allow human review.
+- [ ] Set `AI_ALLOW_FREE_TIER=false` in production (the default).
+- [ ] Confirm retention and logging periods for prompts and responses, and where they are processed.
+- [ ] Tell tenants that the assistant sends question text, tool results and uploaded-document text to the configured provider (the document dialog says so).
+- [ ] Decide retention: `AI_CONVERSATION_RETENTION_DAYS`, `AI_DOCUMENT_RETENTION_DAYS`.
+- [ ] Verify the Groq data-retention terms (the page could not be read when this was written) before enabling Groq for real data.
+
+## 19. Known limitations and next steps
+
+- Not yet exercised against a live provider. Run `ai:ping --tools` for each provider, and confirm Gemini's currently documented endpoint and tool-calling shape (the docs read describe a newer Interactions API; the adapter uses `generateContent`, the long-standing REST shape).
+- The assistant cannot change data from chat. Next: `propose_task_update`, assignment and HR-request drafts, reusing the proposal/confirm pattern.
+- HRMS tools cover leave only. Approvals, attendance, expenses, documents (metadata) and own payslips are the next tools; each must go through its existing directory/policy and write the same access rows as the UI.
+- Duplicate detection is title-based. Embeddings were not added (a second provider capability and a data-residency question).
+- Scanned PDFs have no text layer and are refused; OCR is out of scope.
+- The circuit breaker state lives in the cache store; with the per-process `array` store it does not span workers.

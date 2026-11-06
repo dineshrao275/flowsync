@@ -43,6 +43,17 @@ return [
     'history_messages' => (int) env('AI_HISTORY_MESSAGES', 20),
     'max_input_chars' => (int) env('AI_MAX_INPUT_CHARS', 8000),
 
+    // Provider circuit breaker: after this many outage-type failures inside the window, calls fail fast
+    // (no request sent) for the cooldown, so a down provider cannot pile up slow requests.
+    'breaker_threshold' => (int) env('AI_BREAKER_THRESHOLD', 5),
+    'breaker_window_seconds' => (int) env('AI_BREAKER_WINDOW', 60),
+    'breaker_cooldown_seconds' => (int) env('AI_BREAKER_COOLDOWN', 30),
+
+    // Retention (swept daily by ai:prune): uploaded files, chat history and finished proposals.
+    'document_retention_days' => (int) env('AI_DOCUMENT_RETENTION_DAYS', 7),
+    'conversation_retention_days' => (int) env('AI_CONVERSATION_RETENTION_DAYS', 90),
+    'usage_retention_days' => (int) env('AI_USAGE_RETENTION_DAYS', 400),
+
     // Document-to-task: extraction caps and proposal bounds.
     'document_max_kb' => (int) env('AI_DOCUMENT_MAX_KB', 10240),
     'document_max_chars' => (int) env('AI_DOCUMENT_MAX_CHARS', 60000),

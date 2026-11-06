@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Tests\Feature;
 
 use Illuminate\Console\Scheduling\Event;
@@ -47,6 +49,7 @@ class ScheduleRegistrationTest extends TestCase
             'git:prune-deliveries',
             'git:sync-installations --all',
             'events:prune --all',
+            'ai:prune --all',
             'automation:time-triggers --all',
             'tasks:sla-sweep --all',
             'reports:send-scheduled --all',

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Services\Ai\Providers;
 
+use App\Services\Ai\AiCircuitBreaker;
 use App\Services\Ai\AiResponseNormalizer;
 use App\Services\Ai\Contracts\AiProvider;
 use App\Services\Ai\Dto\AiCapabilities;
@@ -31,6 +32,7 @@ abstract class HttpAiProvider implements AiProvider
         protected readonly array $settings,
         protected readonly AiCapabilities $capabilities,
         protected readonly AiResponseNormalizer $normalizer,
+        protected readonly ?AiCircuitBreaker $breaker = null,
     ) {}
 
     public function name(): string
@@ -52,7 +54,7 @@ abstract class HttpAiProvider implements AiProvider
     {
         $this->assertSupported($request, false);
 
-        $body = $this->withRetries(fn () => $this->send($this->endpoint(false), $this->payload($request, false)));
+        $body = $this->guarded(fn () => $this->withRetries(fn () => $this->send($this->endpoint(false), $this->payload($request, false))));
 
         return $this->parse($body);
     }
@@ -61,7 +63,7 @@ abstract class HttpAiProvider implements AiProvider
     {
         $this->assertSupported($request, true);
 
-        $response = $this->withRetries(fn () => $this->open($this->endpoint(true), $this->payload($request, true)));
+        $response = $this->guarded(fn () => $this->withRetries(fn () => $this->open($this->endpoint(true), $this->payload($request, true))));
 
         yield from $this->chunks(SseReader::events($response->toPsrResponse()->getBody()));
     }
@@ -134,6 +136,24 @@ abstract class HttpAiProvider implements AiProvider
     private function client(): PendingRequest
     {
         return Http::withHeaders($this->headers())->acceptJson()->asJson()->timeout($this->settings['timeout']);
+    }
+
+    /** Fails fast while the breaker is open, and tells it how each call went. */
+    private function guarded(callable $call): mixed
+    {
+        $this->breaker?->assertClosed($this->providerName);
+
+        try {
+            $result = $call();
+        } catch (AiProviderException $e) {
+            $this->breaker?->failure($this->providerName, $e->kind);
+
+            throw $e;
+        }
+
+        $this->breaker?->success($this->providerName);
+
+        return $result;
     }
 
     /** Retries only transient failures (rate limit, timeout, 5xx) and never beyond the configured count. */

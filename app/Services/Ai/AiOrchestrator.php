@@ -42,6 +42,7 @@ final class AiOrchestrator
     {
         $provider = $this->resolver->provider();
         $this->usage->assertWithinLimits();
+        $startedAt = hrtime(true);
 
         $messages = [
             AiMessage::system(AiPrompt::system($user, $context)),
@@ -85,6 +86,18 @@ final class AiOrchestrator
         $answer = trim($answer) !== '' ? $answer : __('I could not put together an answer. Please try rephrasing.');
         $this->conversations->append($conversation, AiMessage::ASSISTANT, $answer, ['cards' => $cards, 'tools' => $used], $total->inputTokens, $total->outputTokens);
         $this->usage->record($total, $provider->model());
+
+        // Metadata only. Never the question, the answer or any tool data.
+        Log::info('ai.chat', [
+            'provider' => $provider->name(),
+            'model' => $provider->model(),
+            'user_id' => $user->id,
+            'rounds' => count($used),
+            'tools' => $used,
+            'input_tokens' => $total->inputTokens,
+            'output_tokens' => $total->outputTokens,
+            'latency_ms' => (int) ((hrtime(true) - $startedAt) / 1_000_000),
+        ]);
 
         return new AiRunResult($conversation->id, $answer, $cards, $used, $total);
     }

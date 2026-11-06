@@ -16,6 +16,7 @@ use App\Services\Ai\Dto\AiRequest;
 use App\Services\Ai\Dto\AiUsage;
 use App\Services\Ai\Exceptions\AiErrorKind;
 use App\Services\Ai\Exceptions\AiProviderException;
+use Illuminate\Support\Facades\Log;
 
 /** Asks the model for task proposals and stores the validated result as a draft. Creates nothing in the project. */
 final class ProposalGenerator
@@ -30,6 +31,7 @@ final class ProposalGenerator
     {
         $provider = $this->resolver->provider();
         $this->usage->assertWithinLimits();
+        $startedAt = hrtime(true);
 
         // Providers that can enforce a schema do; the rest are asked for JSON and held to the same validation.
         $schema = $provider->capabilities()->jsonSchemaOutput ? ProposalItems::schema() : null;
@@ -64,6 +66,17 @@ final class ProposalGenerator
         if ($items === null) {
             throw new AiProviderException(AiErrorKind::BadOutput, 'The model did not return usable task proposals.', $provider->name());
         }
+
+        Log::info('ai.proposal', [
+            'provider' => $provider->name(),
+            'model' => $provider->model(),
+            'user_id' => $user->id,
+            'items' => count($items),
+            'pages' => $doc->pages,
+            'input_tokens' => $total->inputTokens,
+            'output_tokens' => $total->outputTokens,
+            'latency_ms' => (int) ((hrtime(true) - $startedAt) / 1_000_000),
+        ]);
 
         return AiProposal::create([
             'user_id' => $user->id,
