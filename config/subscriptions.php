@@ -30,6 +30,7 @@ return [
         'saved_filters',        // saved and shared task filters (and, later, the JQL-style query language)
         'custom_fields',        // tenant-defined fields on employees, tasks, projects, assets, expenses, documents
         'git',                  // GitHub App connection, project repositories and the task Development panel
+        'ai',                   // AI assistant (product-agnostic): search, explain and propose actions; gated by ensure_module:ai
         'api',                  // personal API tokens + the /api/v1 token routes (gated by ensure_module:api)
 
         // HRMS. Dotted `hrms.*` keys are flat leaves: `TenantLimits::hasModule()`
@@ -76,6 +77,7 @@ return [
         'webhooks' => ['label' => 'Webhooks', 'group' => 'Platform'],
         'api' => ['label' => 'API Access', 'group' => 'Platform'],
         'git' => ['label' => 'Git & Repositories', 'group' => 'Platform'],
+        'ai' => ['label' => 'AI Assistant', 'group' => 'Platform'],
         'custom_fields' => ['label' => 'Custom Fields', 'group' => 'Platform'],
         'saved_filters' => ['label' => 'Saved Filters', 'group' => 'Platform'],
         'jql' => ['label' => 'Advanced Search (JQL)', 'group' => 'Platform'],
@@ -183,9 +185,10 @@ return [
                 'api_calls_per_month' => 10000,
                 'automation_runs_per_month' => 1000,
                 'audit_retention_days' => 365,
+                'ai_requests_per_day' => 100, 'ai_tokens_per_day' => 200000,
                 // Plan B HRMS set — see docs/hrms-implementation-plan.md §3.1.
                 'modules' => [
-                    'time_tracking', 'webhooks', 'api', 'git', 'custom_fields', 'saved_filters', 'jql', 'timesheets', 'project_templates', 'automation', 'sprints', 'reports', 'global_search',
+                    'time_tracking', 'webhooks', 'api', 'ai', 'git', 'custom_fields', 'saved_filters', 'jql', 'timesheets', 'project_templates', 'automation', 'sprints', 'reports', 'global_search',
                     'hrms.core', 'hrms.documents', 'hrms.onboarding', 'hrms.offboarding',
                     'hrms.assets', 'hrms.attendance', 'hrms.attendance.remote', 'hrms.leave',
                     'hrms.comp_off', 'hrms.holidays', 'hrms.shifts', 'hrms.inbox',
@@ -216,10 +219,11 @@ return [
                 'api_calls_per_month' => 100000,
                 'automation_runs_per_month' => 20000,
                 'audit_retention_days' => 730,
+                'ai_requests_per_day' => 500, 'ai_tokens_per_day' => 1000000,
                 // Plan B HRMS set + Plan C (compensation, expenses, performance,
                 // talent, engagement, analytics). No payroll: that is Enterprise.
                 'modules' => [
-                    'time_tracking', 'webhooks', 'api', 'git', 'custom_fields', 'saved_filters', 'jql', 'timesheets', 'project_templates', 'automation', 'sprints', 'reports', 'global_search',
+                    'time_tracking', 'webhooks', 'api', 'ai', 'git', 'custom_fields', 'saved_filters', 'jql', 'timesheets', 'project_templates', 'automation', 'sprints', 'reports', 'global_search',
                     'hrms.core', 'hrms.documents', 'hrms.onboarding', 'hrms.offboarding',
                     'hrms.assets', 'hrms.attendance', 'hrms.attendance.remote', 'hrms.leave',
                     'hrms.comp_off', 'hrms.holidays', 'hrms.shifts', 'hrms.inbox',
@@ -249,10 +253,11 @@ return [
                 'employees' => 1000,
                 'assets' => 10000,
                 'hr_document_bytes' => 500 * 1024 * 1024 * 1024,  // 500 GB
+                'ai_requests_per_day' => 2000, 'ai_tokens_per_day' => 5000000,
                 // Everything: the Plan B set + Plan C + payroll + statutory +
                 // exemption + the platform's own modules + full data export.
                 'modules' => [
-                    'time_tracking', 'webhooks', 'api', 'git', 'custom_fields', 'saved_filters', 'jql', 'timesheets', 'project_templates', 'automation', 'sprints', 'reports', 'global_search', 'branding',
+                    'time_tracking', 'webhooks', 'api', 'ai', 'git', 'custom_fields', 'saved_filters', 'jql', 'timesheets', 'project_templates', 'automation', 'sprints', 'reports', 'global_search', 'branding',
                     'export.full',
                     'hrms.core', 'hrms.documents', 'hrms.onboarding', 'hrms.offboarding',
                     'hrms.assets', 'hrms.attendance', 'hrms.attendance.remote', 'hrms.leave',
@@ -284,7 +289,8 @@ return [
                 'users' => 50, 'workspaces' => 20, 'projects' => 200, 'tasks' => 10000,
                 'api_calls_per_month' => 10000, 'automation_runs_per_month' => 1000,
                 'storage_bytes' => 50 * 1024 * 1024 * 1024, 'attachments_per_task' => 25,
-                'modules' => ['time_tracking', 'webhooks', 'api', 'git', 'custom_fields', 'saved_filters', 'jql', 'timesheets', 'project_templates', 'automation', 'sprints', 'reports', 'global_search'],
+                'ai_requests_per_day' => 100, 'ai_tokens_per_day' => 200000,
+                'modules' => ['time_tracking', 'webhooks', 'api', 'ai', 'git', 'custom_fields', 'saved_filters', 'jql', 'timesheets', 'project_templates', 'automation', 'sprints', 'reports', 'global_search'],
             ],
         ],
         'tms-enterprise' => [
@@ -294,7 +300,8 @@ return [
             'limits' => [
                 'users' => 1000, 'workspaces' => 500, 'projects' => 5000, 'tasks' => 1000000,
                 'storage_bytes' => 500 * 1024 * 1024 * 1024, 'attachments_per_task' => 100,
-                'modules' => ['time_tracking', 'webhooks', 'api', 'git', 'custom_fields', 'saved_filters', 'jql', 'timesheets', 'project_templates', 'automation', 'sprints', 'reports', 'global_search', 'branding', 'export.full'],
+                'ai_requests_per_day' => 2000, 'ai_tokens_per_day' => 5000000,
+                'modules' => ['time_tracking', 'webhooks', 'api', 'ai', 'git', 'custom_fields', 'saved_filters', 'jql', 'timesheets', 'project_templates', 'automation', 'sprints', 'reports', 'global_search', 'branding', 'export.full'],
             ],
         ],
         'hrms-starter' => [
@@ -312,10 +319,11 @@ return [
             'trial_duration_days' => null, 'sort_order' => 220,
             'limits' => [
                 'users' => 200, 'employees' => 200, 'assets' => 1000, 'hr_document_bytes' => 100 * 1024 * 1024 * 1024,
+                'ai_requests_per_day' => 100, 'ai_tokens_per_day' => 200000,
                 'modules' => [
                     'hrms.core', 'hrms.documents', 'hrms.onboarding', 'hrms.offboarding', 'hrms.inbox',
                     'hrms.assets', 'hrms.attendance', 'hrms.attendance.remote', 'hrms.leave', 'hrms.comp_off',
-                    'hrms.holidays', 'hrms.shifts', 'hrms.expenses', 'custom_fields',
+                    'hrms.holidays', 'hrms.shifts', 'hrms.expenses', 'ai', 'custom_fields',
                 ],
             ],
         ],
@@ -325,10 +333,11 @@ return [
             'trial_duration_days' => null, 'sort_order' => 230,
             'limits' => [
                 'users' => 1000, 'employees' => 1000, 'assets' => 10000, 'hr_document_bytes' => 500 * 1024 * 1024 * 1024,
+                'ai_requests_per_day' => 2000, 'ai_tokens_per_day' => 5000000,
                 'modules' => [
                     'hrms.core', 'hrms.documents', 'hrms.onboarding', 'hrms.offboarding', 'hrms.inbox',
                     'hrms.assets', 'hrms.attendance', 'hrms.attendance.remote', 'hrms.leave', 'hrms.comp_off',
-                    'hrms.holidays', 'hrms.shifts', 'hrms.expenses', 'hrms.compensation', 'hrms.performance',
+                    'hrms.holidays', 'hrms.shifts', 'hrms.expenses', 'ai', 'hrms.compensation', 'hrms.performance',
                     'hrms.talent', 'hrms.engagement', 'hrms.analytics', 'hrms.payroll', 'hrms.payroll.statutory',
                     'hrms.leave.exemption', 'custom_fields',
                 ],

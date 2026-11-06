@@ -146,6 +146,8 @@ return [
         ['name' => 'Manage Custom Fields', 'slug' => 'custom_fields.manage', 'description' => 'Define custom fields on employees, tasks, projects and other records'],
         ['name' => 'View Git Integration', 'slug' => 'git.view', 'description' => 'See connected Git accounts, linked repositories and the task Development panel'],
         ['name' => 'Manage Git Integration', 'slug' => 'git.manage', 'description' => 'Connect or disconnect a Git account, link repositories and create branches'],
+        ['name' => 'Use AI Assistant', 'slug' => 'ai.use', 'description' => 'Ask the AI assistant questions and request actions; it only ever sees what this user can already see'],
+        ['name' => 'Manage AI Assistant', 'slug' => 'ai.manage', 'description' => 'See AI usage for the organisation and review all AI-created work'],
         ['name' => 'Manage API Tokens', 'slug' => 'api.manage', 'description' => 'Create and revoke personal API access tokens'],
         ['name' => 'Support Tickets', 'slug' => 'support.manage', 'description' => 'Raise and follow support tickets with the platform team'],
         ['name' => 'Manage Organization', 'slug' => 'tenant.manage', 'description' => 'Edit the company profile and complete onboarding'],
@@ -263,6 +265,7 @@ return [
                 'workspaces.view', 'workspaces.create', 'git.view',
                 'api.manage',
                 'hrms.view',
+                'ai.use',
                 // Self-service reads only: no legacy `hrms.*.view`, so no
                 // tenant-wide rows.
                 ...$scopeOwnSlugs,
@@ -274,6 +277,7 @@ return [
                 'dashboard.view', 'reports.view', 'settings.theme', 'settings.view',
                 'workspaces.view',
                 'hrms.view',
+                'ai.use',
                 ...$scopeOwnSlugs,
             ],
         ],
@@ -287,6 +291,7 @@ return [
                 'dashboard.view', 'users.view', 'reports.view', 'workspaces.view',
                 'api.manage',
                 'hrms.view',
+                'ai.use',
                 ...$scopeOwnSlugs,
                 ...$managerAssignedSlugs,
             ],
@@ -314,6 +319,7 @@ return [
             'permissions' => [
                 'dashboard.view', 'users.view', 'workspaces.view',
                 'hrms.view',
+                'ai.use',
                 'hrms.employees.view',
                 'hrms.documents.view',
                 'hrms.documents.view_sensitive',
@@ -333,6 +339,7 @@ return [
             'permissions' => [
                 'dashboard.view', 'workspaces.view', 'settings.theme', 'settings.view',
                 'hrms.view',
+                'ai.use',
                 ...$scopeOwnSlugs,
             ],
         ],
@@ -343,6 +350,7 @@ return [
             'permissions' => [
                 'dashboard.view', 'users.view', 'workspaces.view',
                 'hrms.view',
+                'ai.use',
                 'hrms.employees.view', 'hrms.employees.manage',
                 'hrms.org.view',
                 'hrms.onboarding.view', 'hrms.onboarding.manage',
@@ -365,6 +373,7 @@ return [
             'permissions' => [
                 'dashboard.view', 'users.view', 'reports.view', 'workspaces.view', 'billing.view',
                 'hrms.view',
+                'ai.use',
                 'hrms.employees.view',
                 'hrms.expenses.*',
                 'hrms.payroll.view_all', 'hrms.payroll.view_own',
@@ -380,6 +389,7 @@ return [
             'permissions' => [
                 'dashboard.view', 'users.view', 'roles.view', 'reports.view', 'workspaces.view', 'billing.view',
                 'hrms.view',
+                'ai.use',
                 'hrms.employees.view', 'hrms.org.view',
                 'hrms.onboarding.view', 'hrms.offboarding.view',
                 'hrms.attendance.view', 'hrms.leave.view', 'hrms.comp_off.view',

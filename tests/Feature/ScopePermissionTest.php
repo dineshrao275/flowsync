@@ -47,7 +47,7 @@ class ScopePermissionTest extends TestCase
         $slugs = array_column(config('permissions.permissions'), 'slug');
 
         // 70 base entries (65 + api.manage + hrms.approvals.manage + custom_fields.manage + git.view + git.manage) + 13 domains x 3 scopes - 1 hand-written duplicate.
-        $this->assertCount(70 + 13 * 3 - 1, $slugs);
+        $this->assertCount(72 + 13 * 3 - 1, $slugs);
     }
 
     public function test_a_wider_scope_satisfies_a_narrower_check(): void

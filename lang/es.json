@@ -997,5 +997,10 @@
     "Only an active connection can be synced.": "Solo se puede sincronizar una conexión activa.",
     "This connection was not disabled by the platform.": "Esta conexión no fue deshabilitada por la plataforma.",
     "Connection disabled.": "Conexión deshabilitada.",
-    "Connection enabled.": "Conexión habilitada."
+    "Connection enabled.": "Conexión habilitada.",
+    "Your organisation has reached its daily AI :limit limit (:allowed). It resets tomorrow.": "Tu organización alcanzó el límite diario de :limit de IA (:allowed). Se restablece mañana.",
+    "Error status updated.": "Estado del error actualizado.",
+    "Errors updated.": "Errores actualizados.",
+    "Note added.": "Nota añadida.",
+    "Task position unchanged.": "La posición de la tarea no cambió."
 }

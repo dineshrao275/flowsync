@@ -150,7 +150,7 @@ class TenantLimits
     {
         return match (true) {
             str_starts_with($module, 'hrms.') => SubscriptionPlan::PRODUCT_HRMS,
-            in_array($module, ['branding', 'export.full'], true) => null,
+            in_array($module, ['branding', 'export.full', 'ai'], true) => null,
             default => SubscriptionPlan::PRODUCT_TMS,
         };
     }

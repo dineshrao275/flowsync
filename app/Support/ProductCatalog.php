@@ -30,6 +30,7 @@ final class ProductCatalog
         'tenant.',
         'webhooks.',
         'api.',
+        'ai.',
         'custom_fields.',
     ];
 
