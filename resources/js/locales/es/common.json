@@ -229,7 +229,8 @@
             "goProjects": "Ir a proyectos",
             "goWorkspaces": "Ir a espacios de trabajo",
             "goNotifications": "Ir a notificaciones",
-            "help": "Mostrar esta lista"
+            "help": "Mostrar esta lista",
+            "assistant": "Abrir el asistente de IA"
         }
     },
     "nav": {
@@ -362,5 +363,58 @@
         "shareHint": "Cualquiera con acceso a este listado podrá usarlo.",
         "cancel": "Cancelar",
         "save": "Guardar"
+    },
+    "assistant": {
+        "title": "Asistente de IA",
+        "open": "Abrir el asistente de IA",
+        "close": "Cerrar el asistente de IA",
+        "expand": "Abrir en el espacio completo",
+        "newChat": "Nuevo chat",
+        "history": "Conversaciones",
+        "loadingHistory": "Cargando conversaciones…",
+        "noHistory": "Aún no hay conversaciones.",
+        "untitled": "Conversación sin título",
+        "deleteConversation": "Eliminar conversación: {{title}}",
+        "intro": "Pregunta sobre tus tareas, proyectos o información de RR. HH. Solo veo lo que tú puedes ver.",
+        "suggestions": "Preguntas sugeridas",
+        "conversation": "Conversación",
+        "inputLabel": "Escribe al asistente",
+        "placeholder": "Haz una pregunta…",
+        "send": "Enviar",
+        "stop": "Detener",
+        "thinking": "Pensando…",
+        "working": "Buscando…",
+        "stopped": "Detenido.",
+        "retry": "Reintentar",
+        "dismiss": "Descartar",
+        "disclaimer": "La IA puede cometer errores. Verifica los datos importantes en el registro.",
+        "unavailable": "El asistente de IA no está disponible en este momento.",
+        "shortcut": "Abrir el asistente de IA",
+        "starters": {
+            "overdue": "Muéstrame todas las tareas vencidas asignadas a mí",
+            "dueSoon": "¿Qué vence en los próximos 7 días?",
+            "projects": "¿En qué proyectos participo?",
+            "leaveBalance": "¿Cuál es mi saldo de permisos?",
+            "leaveRequests": "Muestra mis solicitudes de permiso recientes",
+            "whereIs": "¿Dónde encuentro las pantallas principales?"
+        },
+        "tools": {
+            "search_tasks": "Buscando tareas…",
+            "get_task": "Leyendo la tarea…",
+            "list_projects": "Buscando proyectos…",
+            "project_summary": "Resumiendo el proyecto…",
+            "my_leave_balance": "Consultando tu saldo de permisos…",
+            "leave_requests": "Buscando solicitudes de permiso…",
+            "navigation_help": "Buscando la pantalla adecuada…"
+        },
+        "errors": {
+            "ai_error": "El asistente no pudo responder. Inténtalo de nuevo.",
+            "ai_busy": "El servicio de IA está ocupado. Inténtalo de nuevo en un momento.",
+            "ai_limit": "Tu organización alcanzó el límite diario de IA.",
+            "ai_unavailable": "El asistente de IA no está disponible en este momento.",
+            "ai_unsupported": "El asistente no puede hacer eso con la configuración actual.",
+            "network": "No se pudo conectar con el servidor. Revisa tu conexión e inténtalo de nuevo.",
+            "load": "No se pudieron cargar las conversaciones."
+        }
     }
 }

@@ -1002,5 +1002,12 @@
     "Error status updated.": "Estado del error actualizado.",
     "Errors updated.": "Errores actualizados.",
     "Note added.": "Nota añadida.",
-    "Task position unchanged.": "La posición de la tarea no cambió."
+    "Task position unchanged.": "La posición de la tarea no cambió.",
+    "The AI assistant is not available right now.": "El asistente de IA no está disponible en este momento.",
+    "The AI assistant cannot do that with the current setup.": "El asistente de IA no puede hacer eso con la configuración actual.",
+    "The AI service is busy. Please try again in a moment.": "El servicio de IA está ocupado. Inténtalo de nuevo en un momento.",
+    "The AI assistant could not answer. Please try again.": "El asistente de IA no pudo responder. Inténtalo de nuevo.",
+    "Something went wrong.": "Algo salió mal.",
+    "I could not put together an answer. Please try rephrasing.": "No pude armar una respuesta. Intenta reformular la pregunta.",
+    "Conversation deleted.": "Conversación eliminada."
 }

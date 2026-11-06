@@ -38,7 +38,7 @@ class LogHttpRequests
      * Provider callbacks and webhooks carry other people's content (PR titles and bodies, commit messages, payment
      * payloads) or one-time credentials (OAuth code, install state). Their outcome is logged, their input never is.
      */
-    private const INPUT_NEVER_LOGGED = ['api/integrations/*', 'api/webhooks/*'];
+    private const INPUT_NEVER_LOGGED = ['api/integrations/*', 'api/webhooks/*', 'api/ai/*'];
 
     public function handle(Request $request, Closure $next): Response
     {

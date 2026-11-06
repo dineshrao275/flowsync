@@ -42,7 +42,7 @@ return [
      | Input is never stored for these prefixes (they carry other people's
      | content or one-time credentials). Mirrors LogHttpRequests.
      */
-    'never_store_input' => ['api/integrations/*', 'api/webhooks/*'],
+    'never_store_input' => ['api/integrations/*', 'api/webhooks/*', 'api/ai/*'],
 
     'max_message_chars' => 4000,
     'max_stack_chars' => 20000,

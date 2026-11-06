@@ -377,7 +377,7 @@ Route::prefix('api')->group(function () {
 });
 
 // Bearer-token API (/api/v1, P2.7) and the Git integration (GitHub App), each with its own middleware stack.
-require __DIR__.'/web/platform_engines_v1.php'; require __DIR__.'/web/git.php';
+require __DIR__.'/web/platform_engines_v1.php'; require __DIR__.'/web/git.php'; require __DIR__.'/web/ai.php';
 
 // Public contact endpoint (outside auth/tenant groups).
 Route::post('api/contact', [ContactController::class, 'store'])->middleware('throttle:10,1');

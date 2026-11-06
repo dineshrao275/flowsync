@@ -229,7 +229,8 @@
             "goProjects": "Go to projects",
             "goWorkspaces": "Go to workspaces",
             "goNotifications": "Go to notifications",
-            "help": "Show this list"
+            "help": "Show this list",
+            "assistant": "Open the AI assistant"
         }
     },
     "nav": {
@@ -362,5 +363,58 @@
         "shareHint": "Everyone with access to this list can use it.",
         "cancel": "Cancel",
         "save": "Save"
+    },
+    "assistant": {
+        "title": "AI assistant",
+        "open": "Open the AI assistant",
+        "close": "Close the AI assistant",
+        "expand": "Open in full workspace",
+        "newChat": "New chat",
+        "history": "Conversations",
+        "loadingHistory": "Loading conversations…",
+        "noHistory": "No conversations yet.",
+        "untitled": "Untitled conversation",
+        "deleteConversation": "Delete conversation: {{title}}",
+        "intro": "Ask about your tasks, projects or HR information. I only see what you are allowed to see.",
+        "suggestions": "Suggested questions",
+        "conversation": "Conversation",
+        "inputLabel": "Message the assistant",
+        "placeholder": "Ask a question…",
+        "send": "Send",
+        "stop": "Stop",
+        "thinking": "Thinking…",
+        "working": "Looking that up…",
+        "stopped": "Stopped.",
+        "retry": "Try again",
+        "dismiss": "Dismiss",
+        "disclaimer": "AI can make mistakes. Check important details in the record.",
+        "unavailable": "The AI assistant is not available right now.",
+        "shortcut": "Open the AI assistant",
+        "starters": {
+            "overdue": "Show me all overdue tasks assigned to me",
+            "dueSoon": "What is due in the next 7 days?",
+            "projects": "Which projects am I part of?",
+            "leaveBalance": "What is my leave balance?",
+            "leaveRequests": "Show my recent leave requests",
+            "whereIs": "Where can I find the main screens?"
+        },
+        "tools": {
+            "search_tasks": "Searching tasks…",
+            "get_task": "Reading the task…",
+            "list_projects": "Looking up projects…",
+            "project_summary": "Summarising the project…",
+            "my_leave_balance": "Checking your leave balance…",
+            "leave_requests": "Looking up leave requests…",
+            "navigation_help": "Finding the right screen…"
+        },
+        "errors": {
+            "ai_error": "The assistant could not answer. Please try again.",
+            "ai_busy": "The AI service is busy. Please try again in a moment.",
+            "ai_limit": "Your organisation has reached its daily AI limit.",
+            "ai_unavailable": "The AI assistant is not available right now.",
+            "ai_unsupported": "The assistant cannot do that with the current setup.",
+            "network": "Could not reach the server. Check your connection and try again.",
+            "load": "Could not load conversations."
+        }
     }
 }

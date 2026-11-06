@@ -7,7 +7,7 @@ namespace App\Http\Controllers\Concerns;
 use App\Models\Task;
 use App\Models\User;
 use App\Services\TaskService;
-use App\Support\TaskScope;
+use App\Support\VisibleTasks;
 use Illuminate\Database\Eloquent\Builder;
 
 trait ScopesVisibleTasks
@@ -19,14 +19,7 @@ trait ScopesVisibleTasks
      */
     protected function visibleTaskQuery(User $user): Builder
     {
-        $query = Task::query()
-            ->with(['project', 'workspace', 'status', 'priority', 'assignee', 'labels']);
-
-        if (! $this->userManagesAllTasks($user)) {
-            TaskScope::constrainToMemberships($query, $user);
-        }
-
-        return $query;
+        return VisibleTasks::query($user, $this->userManagesAllTasks($user));
     }
 
     protected function userManagesAllTasks(User $user): bool
