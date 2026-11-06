@@ -12,5 +12,7 @@ final readonly class AiToolCall
         public string $id,
         public string $name,
         public array $arguments = [],
+        // Opaque provider continuation token (Gemini 3 "thought signature"): must be echoed back with the call, never inspected.
+        public ?string $signature = null,
     ) {}
 }

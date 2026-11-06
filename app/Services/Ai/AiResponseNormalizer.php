@@ -109,6 +109,7 @@ final class AiResponseNormalizer
                     'call_'.Str::random(12),
                     (string) ($part['functionCall']['name'] ?? ''),
                     (array) ($part['functionCall']['args'] ?? []),
+                    isset($part['thoughtSignature']) && is_string($part['thoughtSignature']) ? $part['thoughtSignature'] : null,
                 );
             }
         }

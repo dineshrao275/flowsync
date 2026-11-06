@@ -122,6 +122,32 @@ class AiProviderAdaptersTest extends TestCase
         Http::assertSent(fn (Request $r) => str_contains($r->url(), ':streamGenerateContent?alt=sse'));
     }
 
+    public function test_gemini_thought_signatures_are_echoed_back_with_the_function_call(): void
+    {
+        // Gemini 3 answers a 400 ("missing a thought_signature") if the signature of a function call is not returned.
+        Http::fake(['*' => Http::sequence()
+            ->push(['candidates' => [['content' => ['parts' => [['functionCall' => ['name' => 'search_tasks', 'args' => ['overdue' => true]], 'thoughtSignature' => 'sig-abc']]], 'finishReason' => 'STOP']]])
+            ->push(['candidates' => [['content' => ['parts' => [['text' => 'None.']]], 'finishReason' => 'STOP']]]),
+        ]);
+        $provider = $this->provider('gemini');
+        $tool = $this->searchTool();
+        $first = $provider->complete(new AiRequest($this->conversation(), [$tool]));
+
+        $this->assertSame('sig-abc', $first->toolCalls[0]->signature);
+
+        $provider->complete(new AiRequest([
+            ...$this->conversation(),
+            AiMessage::assistant('', $first->toolCalls),
+            AiMessage::tool($first->toolCalls[0]->id, 'search_tasks', '{"total":0}'),
+        ], [$tool]));
+
+        Http::assertSent(function (Request $r) {
+            $model = collect($r->data()['contents'] ?? [])->firstWhere('role', 'model');
+
+            return $model !== null && ($model['parts'][0]['thoughtSignature'] ?? null) === 'sig-abc';
+        });
+    }
+
     // ---- Groq (OpenAI-compatible) ----
 
     public function test_groq_sends_openai_style_tools_and_parses_tool_calls(): void

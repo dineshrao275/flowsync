@@ -121,7 +121,11 @@ class GeminiProvider extends HttpAiProvider
 
         $parts = $m->content !== '' ? [['text' => $m->content]] : [];
         foreach ($m->toolCalls as $call) {
-            $parts[] = ['functionCall' => ['name' => $call->name, 'args' => $call->arguments === [] ? new \stdClass : $call->arguments]];
+            $part = ['functionCall' => ['name' => $call->name, 'args' => $call->arguments === [] ? new \stdClass : $call->arguments]];
+            if ($call->signature !== null) {
+                $part['thoughtSignature'] = $call->signature;
+            }
+            $parts[] = $part;
         }
 
         $contents[] = ['role' => $m->role === AiMessage::ASSISTANT ? 'model' : 'user', 'parts' => $parts ?: [['text' => '']]];
