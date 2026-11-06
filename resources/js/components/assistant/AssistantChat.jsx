@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { ArrowUp, Sparkle, Stop } from '@phosphor-icons/react';
+import { ArrowUp, FileArrowUp, Sparkle, Stop } from '@phosphor-icons/react';
 import ResultCards from './ResultCards';
+import DocumentTasksModal from './DocumentTasksModal';
 import Alert from '../ui/Alert';
 import Button from '../ui/Button';
 import { fieldClass } from '../ui/fieldStyles';
@@ -42,6 +43,7 @@ export default function AssistantChat({ assistant, autoFocus = false }) {
     const { t } = useTranslation();
     const { messages, busy, error, status, send, stop, dismissError } = assistant;
     const [draft, setDraft] = useState('');
+    const [docsOpen, setDocsOpen] = useState(false);
     const logRef = useRef(null);
     const inputRef = useRef(null);
     const tools = status?.tools ?? [];
@@ -75,6 +77,12 @@ export default function AssistantChat({ assistant, autoFocus = false }) {
                 {messages.length === 0 ? (
                     <div className="space-y-4">
                         <p className="text-sm text-fg-muted">{t('assistant.intro')}</p>
+                        {status?.documents ? (
+                            <button type="button" onClick={() => setDocsOpen(true)} className="flex w-full items-start gap-3 rounded-lg border border-dashed border-line px-3 py-3 text-left transition-colors hover:border-[var(--accent)] hover:bg-surface-sunken">
+                                <FileArrowUp size={20} className="mt-0.5 shrink-0 text-[var(--accent)]" aria-hidden="true" />
+                                <span><span className="block text-sm font-medium text-fg">{t('assistant.documents.entry')}</span><span className="block text-caption text-fg-muted">{t('assistant.documents.entryHint')}</span></span>
+                            </button>
+                        ) : null}
                         {starters.length > 0 ? (
                             <ul className="space-y-2" aria-label={t('assistant.suggestions')}>
                                 {starters.map((s) => (
@@ -102,6 +110,8 @@ export default function AssistantChat({ assistant, autoFocus = false }) {
                     </div>
                 ) : null}
             </div>
+
+            {status?.documents ? <DocumentTasksModal open={docsOpen} onClose={() => setDocsOpen(false)} /> : null}
 
             <form onSubmit={submit} className="border-t border-line p-3">
                 <label htmlFor="assistant-input" className="sr-only">{t('assistant.inputLabel')}</label>

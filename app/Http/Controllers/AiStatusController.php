@@ -19,15 +19,18 @@ class AiStatusController extends Controller
         AiProviderResolver $resolver,
         AiConfigurationService $config,
         AiUsageService $usage,
-        AiToolRegistry $tools,
+        AiToolRegistry $toolRegistry,
     ): JsonResponse {
         $user = $request->user();
         $available = $resolver->isAvailable();
+        $tools = $available ? array_keys($toolRegistry->availableFor($user)) : [];
 
         return response()->json([
             'available' => $available,
             'streaming' => $available && $resolver->provider()->capabilities()->streaming,
-            'tools' => $available ? array_keys($tools->availableFor($user)) : [],
+            'tools' => $tools,
+            // Document-to-task needs the same gate as the task tools (TMS product + workspaces.view).
+            'documents' => in_array('search_tasks', $tools, true),
             'usage' => $usage->snapshot(),
             // Setup problems are for people who can fix them.
             'problems' => $user->hasPermission('ai.manage') && $config->enabled() ? $config->problems() : [],

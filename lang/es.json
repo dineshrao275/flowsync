@@ -1009,5 +1009,20 @@
     "The AI assistant could not answer. Please try again.": "El asistente de IA no pudo responder. Inténtalo de nuevo.",
     "Something went wrong.": "Algo salió mal.",
     "I could not put together an answer. Please try rephrasing.": "No pude armar una respuesta. Intenta reformular la pregunta.",
-    "Conversation deleted.": "Conversación eliminada."
+    "Conversation deleted.": "Conversación eliminada.",
+    "That document is no longer available. Upload it again.": "Ese documento ya no está disponible. Vuelve a subirlo.",
+    "This file type is not supported. Use TXT, MD, CSV, JSON, DOCX or PDF.": "Este tipo de archivo no es compatible. Usa TXT, MD, CSV, JSON, DOCX o PDF.",
+    "This document has too many pages (:max at most).": "Este documento tiene demasiadas páginas (máximo :max).",
+    "No readable text was found in this document.": "No se encontró texto legible en este documento.",
+    "This DOCX file could not be read.": "No se pudo leer este archivo DOCX.",
+    "This document is too large to read.": "Este documento es demasiado grande para leerlo.",
+    "This PDF could not be read. It may be scanned, encrypted or damaged.": "No se pudo leer este PDF. Puede estar escaneado, cifrado o dañado.",
+    "This proposal can no longer be edited.": "Esta propuesta ya no se puede editar.",
+    "A proposal needs at least one task.": "Una propuesta necesita al menos una tarea.",
+    "This proposal was rejected.": "Esta propuesta fue rechazada.",
+    "The project is no longer available to you.": "El proyecto ya no está disponible para ti.",
+    "Could not create this task.": "No se pudo crear esta tarea.",
+    "Acceptance criteria": "Criterios de aceptación",
+    "Upload a document or paste some text.": "Sube un documento o pega texto.",
+    "Tasks created.": "Tareas creadas."
 }

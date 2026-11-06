@@ -43,6 +43,13 @@ return [
     'history_messages' => (int) env('AI_HISTORY_MESSAGES', 20),
     'max_input_chars' => (int) env('AI_MAX_INPUT_CHARS', 8000),
 
+    // Document-to-task: extraction caps and proposal bounds.
+    'document_max_kb' => (int) env('AI_DOCUMENT_MAX_KB', 10240),
+    'document_max_chars' => (int) env('AI_DOCUMENT_MAX_CHARS', 60000),
+    'document_max_pages' => (int) env('AI_DOCUMENT_MAX_PAGES', 100),
+    'proposal_max_items' => (int) env('AI_PROPOSAL_MAX_ITEMS', 50),
+    'requests_per_minute' => (int) env('AI_REQUESTS_PER_MINUTE', 20),
+
     'providers' => [
         'gemini' => [
             'driver' => 'gemini',
