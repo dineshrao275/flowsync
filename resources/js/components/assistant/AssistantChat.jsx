@@ -17,7 +17,7 @@ const STARTERS = [
     { key: 'whereIs', needs: 'navigation_help' },
 ];
 
-function Message({ message }) {
+function Message({ message, onNavigate }) {
     const { t } = useTranslation();
     const mine = message.role === 'user';
 
@@ -33,13 +33,14 @@ function Message({ message }) {
                     <p className={`whitespace-pre-wrap break-words text-sm ${mine ? '' : 'text-fg'}`}>{message.content}</p>
                 )}
                 {message.stopped ? <p className="mt-1 text-caption text-fg-subtle">{t('assistant.stopped')}</p> : null}
-                {!mine ? <ResultCards cards={message.cards} /> : null}
+                {!mine ? <ResultCards cards={message.cards} onNavigate={onNavigate} /> : null}
             </div>
         </li>
     );
 }
 
-export default function AssistantChat({ assistant, autoFocus = false }) {
+/** `onNavigate` runs when a result link is followed, so the side panel can get out of the way of the page it opens. */
+export default function AssistantChat({ assistant, autoFocus = false, onNavigate }) {
     const { t } = useTranslation();
     const { messages, busy, error, status, send, stop, dismissError } = assistant;
     const [draft, setDraft] = useState('');
@@ -97,7 +98,7 @@ export default function AssistantChat({ assistant, autoFocus = false }) {
                     </div>
                 ) : (
                     <ul className="space-y-4" role="log" aria-live="polite" aria-label={t('assistant.conversation')}>
-                        {messages.map((m) => <Message key={m.id} message={m} />)}
+                        {messages.map((m) => <Message key={m.id} message={m} onNavigate={onNavigate} />)}
                     </ul>
                 )}
                 {error ? (

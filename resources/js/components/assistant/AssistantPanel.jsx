@@ -73,7 +73,7 @@ export default function AssistantPanel({ open, onClose }) {
                     />
                 </div>
             ) : (
-                <AssistantChat assistant={assistant} autoFocus={open} />
+                <AssistantChat assistant={assistant} autoFocus={open} onNavigate={onClose} />
             )}
         </aside>
     );

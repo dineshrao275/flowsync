@@ -5,7 +5,7 @@ import { ArrowUpRight } from '@phosphor-icons/react';
  * Records the assistant found. Links come from the server (built from ids it just read), and are only
  * ever rendered as in-app routes: a value that is not an app path is shown as plain text.
  */
-export default function ResultCards({ cards }) {
+export default function ResultCards({ cards, onNavigate }) {
     if (!cards?.length) return null;
 
     return (
@@ -32,7 +32,7 @@ export default function ResultCards({ cards }) {
 
                 return (
                     <li key={`${card.link}-${index}`}>
-                        {inApp ? <Link to={card.link} className={`${className} transition-colors hover:border-[var(--accent)]`}>{body}</Link> : <div className={className}>{body}</div>}
+                        {inApp ? <Link to={card.link} onClick={onNavigate} className={`${className} transition-colors hover:border-[var(--accent)]`}>{body}</Link> : <div className={className}>{body}</div>}
                     </li>
                 );
             })}

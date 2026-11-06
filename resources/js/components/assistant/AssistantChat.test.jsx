@@ -61,6 +61,18 @@ describe('AssistantChat', () => {
     });
 });
 
+describe('following a result link from the side panel', () => {
+    it('tells the panel to get out of the way, so the task opens on the page and not behind the panel', () => {
+        const onNavigate = vi.fn();
+        const messages = [{ id: 1, role: 'assistant', content: 'Found one.', cards: [{ title: 'AI-1 · Fix login', link: '/projects/3?tab=tasks&task=AI-1' }] }];
+        render(<MemoryRouter><AssistantChat assistant={{ ...base, messages }} onNavigate={onNavigate} /></MemoryRouter>);
+
+        fireEvent.click(screen.getByRole('link', { name: /AI-1 · Fix login/ }));
+
+        expect(onNavigate).toHaveBeenCalledTimes(1);
+    });
+});
+
 describe('ResultCards', () => {
     it('links in-app paths and refuses anything else as a link', () => {
         render(

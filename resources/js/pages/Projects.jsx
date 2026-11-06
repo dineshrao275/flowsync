@@ -10,6 +10,7 @@ import { Table, Th, Td, TableEmpty } from '../components/ui/Table';
 import { useSetCrumbs } from '../context/BreadcrumbContext';
 import usePageTitle from '../hooks/usePageTitle';
 import { projectRoleLabel } from '../utils/roles';
+import { stripRichText } from '../components/ui/RichText';
 
 export default function Projects() {
     const { t } = useTranslation();
@@ -116,7 +117,7 @@ export default function Projects() {
                                         </Td>
                                         <Td>
                                             <span className="block max-w-md truncate text-gray-500">
-                                                {project.description || t('tms.projectsList.noDescription')}
+                                                {stripRichText(project.description) || t('tms.projectsList.noDescription')}
                                             </span>
                                         </Td>
                                         <Td>
