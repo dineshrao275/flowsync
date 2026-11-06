@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Http\Controllers;
 
 use App\Models\Tenant;
+use App\Services\Ai\AiUsageReport;
 use App\Services\Integrations\Git\GitPlatformService;
 use App\Support\TenantDatabaseManager;
 use Illuminate\Http\Request;
@@ -55,6 +56,13 @@ class MetricsController extends Controller
         }
         $emit('flowsync_git_deliveries_failed_24h', 'Git webhook deliveries that failed in the last 24 hours.', $git['failed_deliveries_24h']);
         $emit('flowsync_git_connections_stale', 'Active Git connections with no recent catalog sync.', $git['stale_connections']);
+
+        $ai = app(AiUsageReport::class)->today();
+        $emit('flowsync_ai_requests_today', 'AI assistant requests today, all tenants.', $ai['requests']);
+        $emit('flowsync_ai_tokens_today', 'AI tokens used today, all tenants.', $ai['input_tokens'], ['direction' => 'input']);
+        $emit('flowsync_ai_tokens_today', 'AI tokens used today, all tenants.', $ai['output_tokens'], ['direction' => 'output']);
+        $emit('flowsync_ai_failures_today', 'AI provider failures today, all tenants.', $ai['failures']);
+        $emit('flowsync_ai_cost_estimate_usd_today', 'Estimated AI spend today in USD (from config/ai.php pricing).', $ai['cost']);
 
         return response(implode("\n", $lines)."\n", 200, ['Content-Type' => 'text/plain; version=0.0.4']);
     }

@@ -12,6 +12,11 @@ describe('stripRichText', () => {
         expect(stripRichText('<h2>Done when</h2><ul><li>ships</li></ul>')).toBe('Done whenships');
     });
 
+    it('shows the text of a project description saved from the editor, not its tags', () => {
+        // The Projects list rendered this verbatim as "<p>koala insulation</p> <p> </p>".
+        expect(stripRichText('<p>koala insulation</p> <p> </p>').trim()).toBe('koala insulation');
+    });
+
     it('leaves plain text alone', () => {
         expect(stripRichText('Just words')).toBe('Just words');
     });

@@ -48,4 +48,46 @@ describe('RichTextEditor', () => {
 
         expect(container.querySelector('.tiptap').textContent).toBe('');
     });
+
+    describe('does not report its own load-time normalization as an edit', () => {
+        // TipTap rewrites stored content into its own schema; forwarding that made the task drawer show
+        // "unsaved changes" the moment it opened.
+        it.each([
+            ['plain text', 'koala insulation'],
+            ['editor html with a stray empty paragraph', '<p>koala insulation</p> <p> </p>'],
+            ['a list', '<ol><li>one</li><li>two</li></ol>'],
+            ['a heading followed by bare text', '<h2>T</h2>text'],
+            ['a blank value', ''],
+            ['an empty paragraph', '<p></p>'],
+        ])('stays silent when opened with %s', async (_name, html) => {
+            const onChange = vi.fn();
+            render(<RichTextEditor value={html} onChange={onChange} />);
+            await new Promise((resolve) => setTimeout(resolve, 30));
+
+            expect(onChange).not.toHaveBeenCalled();
+        });
+
+        it('still reports a real edit', async () => {
+            const onChange = vi.fn();
+            render(<RichTextEditor value="koala" onChange={onChange} />);
+            await new Promise((resolve) => setTimeout(resolve, 30));
+            expect(onChange).not.toHaveBeenCalled();
+
+            fireEvent.click(screen.getByTitle('Heading 1'));
+
+            expect(onChange).toHaveBeenCalledTimes(1);
+            expect(onChange.mock.calls[0][0]).toContain('<h1>koala</h1>');
+        });
+
+        it('treats an external reset as the new baseline, not an edit', async () => {
+            const onChange = vi.fn();
+            const { rerender } = render(<RichTextEditor value="<p>one</p>" onChange={onChange} />);
+            await new Promise((resolve) => setTimeout(resolve, 30));
+
+            rerender(<RichTextEditor value="two" onChange={onChange} />);
+            await new Promise((resolve) => setTimeout(resolve, 30));
+
+            expect(onChange).not.toHaveBeenCalled();
+        });
+    });
 });

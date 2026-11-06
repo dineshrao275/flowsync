@@ -451,3 +451,28 @@ Connections and the repository catalog are in the **system** database snapshot; 
 commits, branches and identities are in each **tenant** snapshot. Both are covered by `tenants:backup --all` and its restore
 drill (pinned by `GitHardeningTest`). After restoring a system DB to another environment, installation tokens are not
 valid there: run `git:sync-installations --all` and re-check `git:check-config`.
+
+
+## 10. AI assistant
+
+Full design, configuration table and findings: `docs/architecture/ai-assistant.md`. Off unless `AI_ENABLED=true`.
+
+**Enable**
+1. Put the provider key in `.env` (`GEMINI_API_KEY` or `GROQ_API_KEY`), set `AI_ENABLED=true`, `AI_PROVIDER`, optionally `AI_MODEL`.
+2. `php artisan ai:check` then `php artisan ai:ping --tools`.
+3. `php artisan config:clear` and restart `flowsync-queue` / `flowsync-reverb` (and Apache/php-fpm).
+4. Give the plan the `ai` module (Feature Management) and roles the `ai.use` permission. Run `php artisan tenants:provision` once so existing default roles pick up `ai.use`.
+
+**Switch provider/model**: change the three variables above, repeat steps 2-3. No code change.
+
+**Streaming**: the chat endpoint sends `text/event-stream` with `X-Accel-Buffering: no`. If tokens arrive all at once, a proxy is buffering: disable response buffering for `/api/ai/chat` (Apache `mod_proxy`: `flushpackets=on`; nginx: `proxy_buffering off`). The assistant still works, only without incremental text.
+
+**Provider outage**: after `AI_BREAKER_THRESHOLD` outage-type failures the provider is paused for `AI_BREAKER_COOLDOWN` seconds and users see "temporarily unavailable"; the rest of FlowSync is unaffected. Provider failures appear in the error log as `ai.provider.failed` (kind only, no prompt text).
+
+**Limits**: per-tenant daily requests/tokens come from the plan (`ai_requests_per_day`, `ai_tokens_per_day`) or tenant `limits_override`, else `AI_DAILY_*`. A tenant that hits one gets 429 `ai_limit` until the next day.
+
+**Retention**: `ai:prune --all` runs daily at 04:05 (see `php artisan schedule:list`).
+
+**Metrics**: `flowsync_ai_*` gauges on `/api/metrics`.
+
+**Kill switch**: `AI_ENABLED=false` + `config:clear`. The topbar button and routes' data disappear; nothing else changes.

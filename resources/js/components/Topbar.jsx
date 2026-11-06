@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { Check, Globe, List, MagnifyingGlass, Palette } from '@phosphor-icons/react';
+import { Check, Globe, List, MagnifyingGlass, Palette, Sparkle } from '@phosphor-icons/react';
 import { useAuth } from '../context/AuthContext';
 import { useActiveProduct } from '../context/ProductContext';
 import { useToast } from '../context/ToastContext';
@@ -85,7 +85,7 @@ function LanguageMenu() {
     );
 }
 
-export default function Topbar({ onOpenTheme, onToggleSidebar, onOpenSearch, showSearch, showTheme = true }) {
+export default function Topbar({ onOpenTheme, onToggleSidebar, onOpenSearch, showSearch, showTheme = true, onOpenAssistant, showAssistant = false, assistantOpen = false }) {
     const { user, logout } = useAuth();
     const { activeProduct } = useActiveProduct();
     const { t } = useTranslation();
@@ -177,6 +177,19 @@ export default function Topbar({ onOpenTheme, onToggleSidebar, onOpenSearch, sho
                     </button>
                 )}
                 <TimerPill />
+                {showAssistant && (
+                    <button
+                        onClick={onOpenAssistant}
+                        className="rounded-lg p-2 transition-all duration-150 hover:bg-black/5 active:scale-90"
+                        title={t('assistant.open')}
+                        aria-label={t('assistant.open')}
+                        aria-expanded={assistantOpen}
+                        aria-keyshortcuts="Control+J Meta+J"
+                        style={{ color: 'var(--header-text)' }}
+                    >
+                        <Sparkle size={20} aria-hidden="true" />
+                    </button>
+                )}
                 <NotificationBell />
                 {showTheme && (
                     <button

@@ -10,6 +10,7 @@ import ErrorBoundary from './ErrorBoundary';
 import ContentSkeleton from './ui/ContentSkeleton';
 import CommandPalette from './search/CommandPalette';
 import ShortcutsModal from './ShortcutsModal';
+import AssistantPanel from './assistant/AssistantPanel';
 import useGlobalShortcuts from '../hooks/useGlobalShortcuts';
 import { BreadcrumbProvider } from '../context/BreadcrumbContext';
 import { PageTitleProvider } from '../context/PageTitleContext';
@@ -24,6 +25,7 @@ export default function AdminLayout() {
     const [searchOpen, setSearchOpen] = useState(false);
     const [themeOpen, setThemeOpen] = useState(false);
     const [helpOpen, setHelpOpen] = useState(false);
+    const [assistantOpen, setAssistantOpen] = useState(false);
     const mainRef = useRef(null);
     const firstRoute = useRef(true);
     const { check, user } = useAuth();
@@ -36,6 +38,22 @@ export default function AdminLayout() {
     // the manager role — which holds `settings.theme` in no default selector —
     // whose every save answered 403.
     const showTheme = check('module:branding') && check('permission:settings.theme');
+    const showAssistant = check('module:ai') && check('permission:ai.use');
+
+    // Ctrl/Cmd+J toggles the assistant from anywhere, including inside a text field (it has a modifier, so it
+    // cannot collide with typing; the single-key shortcuts below stay out of fields).
+    useEffect(() => {
+        if (!showAssistant) return undefined;
+        const onKey = (event) => {
+            if ((event.ctrlKey || event.metaKey) && !event.altKey && event.key.toLowerCase() === 'j') {
+                event.preventDefault();
+                setAssistantOpen((open) => !open);
+            }
+        };
+        document.addEventListener('keydown', onKey);
+
+        return () => document.removeEventListener('keydown', onKey);
+    }, [showAssistant]);
 
     // Route tenants with an unfinished onboarding wizard to the wizard. Tenants
     // that never started onboarding (admin/seed provisioned) and super admins are
@@ -94,6 +112,7 @@ export default function AdminLayout() {
         ...(go.d ? [{ label: t('shell.shortcuts.goDashboard'), keys: ['g', 'd'] }] : []),
         ...(go.p ? [{ label: t('shell.shortcuts.goProjects'), keys: ['g', 'p'] }, { label: t('shell.shortcuts.goWorkspaces'), keys: ['g', 'w'] }] : []),
         { label: t('shell.shortcuts.goNotifications'), keys: ['g', 'n'] },
+        ...(showAssistant ? [{ label: t('shell.shortcuts.assistant'), keys: ['Ctrl J'] }] : []),
         { label: t('shell.shortcuts.help'), keys: ['?'] },
     ];
 
@@ -149,6 +168,9 @@ export default function AdminLayout() {
                     onOpenSearch={() => setSearchOpen(true)}
                     showSearch={showSearch}
                     showTheme={showTheme}
+                    onOpenAssistant={() => setAssistantOpen((open) => !open)}
+                    showAssistant={showAssistant}
+                    assistantOpen={assistantOpen}
                 />
 
                 <main id="main-content" ref={mainRef} tabIndex={-1} className="flex-1 px-4 py-6 focus:outline-none sm:px-6 lg:px-8">
@@ -173,6 +195,7 @@ export default function AdminLayout() {
             </div>
 
             <ThemeSettingsDrawer open={themeOpen} onClose={() => setThemeOpen(false)} />
+            {showAssistant && <AssistantPanel open={assistantOpen} onClose={() => setAssistantOpen(false)} />}
                 <CommandPalette open={searchOpen && showSearch} onClose={() => setSearchOpen(false)} />
                 <ShortcutsModal open={helpOpen} onClose={() => setHelpOpen(false)} rows={shortcutRows} />
             </div>

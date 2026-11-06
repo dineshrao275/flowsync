@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useEditor, EditorContent } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
@@ -45,6 +45,17 @@ function Divider() {
  */
 export default function RichTextEditor({ value = '', onChange, disabled = false, placeholder = '', error = null }) {
     const { t } = useTranslation();
+    // The HTML the editor last agreed on with the parent. TipTap rewrites stored content into its own schema on
+    // load (`koala` -> `<p>koala</p>`) and reports that as an update; forwarding it would make every form that
+    // embeds the editor look edited the moment it opens. Only a real change from this baseline is forwarded.
+    const synced = useRef(null);
+    const emit = (next) => {
+        const html = normalized(next);
+        // `null` = the editor is still being created: whatever it reports now is its own normalization, not an edit.
+        if (synced.current === null || html === synced.current) return;
+        synced.current = html;
+        onChange?.(html);
+    };
     const editor = useEditor({
         extensions: [
             StarterKit.configure({ heading: { levels: [1, 2, 3] } }),
@@ -56,7 +67,8 @@ export default function RichTextEditor({ value = '', onChange, disabled = false,
         content: value || '',
         editable: !disabled,
         editorProps: { attributes: { class: 'rich-text-editor-content' } },
-        onUpdate: ({ editor: next }) => onChange?.(normalized(next)),
+        onCreate: ({ editor: created }) => { synced.current = normalized(created); },
+        onUpdate: ({ editor: next }) => emit(next),
     });
 
     useEffect(() => {
@@ -64,6 +76,7 @@ export default function RichTextEditor({ value = '', onChange, disabled = false,
         const next = value || '';
         if (next !== editor.getHTML() && !(next === '' && editor.isEmpty)) {
             editor.commands.setContent(next, { emitUpdate: false });
+            synced.current = normalized(editor);
         }
     }, [editor, value]);
 

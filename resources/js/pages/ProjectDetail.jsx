@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
+import { refreshSelected } from '../utils/selectedTask';
 import api, { fieldErrors } from '../services/api';
 import Card from '../components/ui/Card';
 import Badge from '../components/ui/Badge';
@@ -255,8 +256,9 @@ export default function ProjectDetail() {
                 loadTasksRef.current();
             }
             if (selectedTaskRef.current && (!event?.task_id || event.task_id === selectedTaskRef.current.id)) {
+                // Functional update: if the tray was closed (e.g. right after saving) before this lands, it stays closed.
                 api.get(`/projects/${projectId}/tasks/${selectedTaskRef.current.id}`)
-                    .then(({ data }) => setSelectedTask(data.task))
+                    .then(({ data }) => setSelectedTask((current) => refreshSelected(current, data.task)))
                     .catch(() => {});
             }
         };

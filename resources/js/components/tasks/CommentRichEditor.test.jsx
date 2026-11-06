@@ -92,4 +92,62 @@ describe('CommentRichEditor component', () => {
 
         expect(handleSubmit).toHaveBeenCalled();
     });
+
+    describe('Enter inside a list', () => {
+        function setup(value, caret = value.length) {
+            const onChange = vi.fn();
+            render(<CommentRichEditor value={value} onChange={onChange} placeholder="Write a comment..." />);
+            const textarea = screen.getByPlaceholderText('Write a comment...');
+            textarea.setSelectionRange(caret, caret);
+
+            return { textarea, onChange };
+        }
+
+        it('continues a numbered list with the next number', () => {
+            const { textarea, onChange } = setup('1. first');
+
+            const notCancelled = fireEvent.keyDown(textarea, { key: 'Enter' });
+
+            expect(notCancelled).toBe(false); // preventDefault: the browser must not add its own newline
+            expect(onChange).toHaveBeenCalledWith('1. first\n2. ', 12, textarea);
+        });
+
+        it('continues bullets', () => {
+            const { textarea, onChange } = setup('- a');
+
+            fireEvent.keyDown(textarea, { key: 'Enter' });
+
+            expect(onChange.mock.calls[0][0]).toBe('- a\n- ');
+        });
+
+        it('continues checklists with an unchecked box', () => {
+            const { textarea, onChange } = setup('- [x] done');
+
+            fireEvent.keyDown(textarea, { key: 'Enter' });
+
+            expect(onChange.mock.calls[0][0]).toBe('- [x] done\n- [ ] ');
+        });
+
+        it('ends the list when Enter is pressed on an empty item', () => {
+            const { textarea, onChange } = setup('1. a\n2. ');
+
+            fireEvent.keyDown(textarea, { key: 'Enter' });
+
+            expect(onChange.mock.calls[0][0]).toBe('1. a\n');
+        });
+
+        it('leaves a normal line to the browser', () => {
+            const { textarea, onChange } = setup('just text');
+
+            expect(fireEvent.keyDown(textarea, { key: 'Enter' })).toBe(true);
+            expect(onChange).not.toHaveBeenCalled();
+        });
+
+        it('leaves Shift+Enter to the browser', () => {
+            const { textarea, onChange } = setup('1. a');
+
+            expect(fireEvent.keyDown(textarea, { key: 'Enter', shiftKey: true })).toBe(true);
+            expect(onChange).not.toHaveBeenCalled();
+        });
+    });
 });

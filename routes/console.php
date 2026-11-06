@@ -25,6 +25,8 @@ Schedule::command('tasks:sla-sweep --all')->hourly()->withoutOverlapping();
 Schedule::command('reports:send-scheduled --all')->hourly()->withoutOverlapping();
 // Processed domain events and settled webhook deliveries are kept 30 days.
 Schedule::command('events:prune --all')->dailyAt('03:45')->withoutOverlapping();
+// AI assistant retention: expired uploads, old chats and finished proposals (no text in the usage counters).
+Schedule::command('ai:prune --all')->dailyAt('04:05')->withoutOverlapping();
 // Git webhook delivery rows (replay guard + health log) past the retention window.
 Schedule::command('git:prune-deliveries')->dailyAt('03:35')->withoutOverlapping();
 // Git repository catalogs: webhooks keep them current, this daily sweep repairs any missed event.

@@ -94,6 +94,7 @@ const MySurvey = lazy(() => import('./pages/hrms/MySurvey'));
 const Analytics = lazy(() => import('./pages/hrms/Analytics'));
 const AuditLog = lazy(() => import('./pages/hrms/AuditLog'));
 const Search = lazy(() => import('./pages/Search'));
+const Assistant = lazy(() => import('./pages/Assistant'));
 const Notifications = lazy(() => import('./pages/Notifications'));
 const Tenants = lazy(() => import('./pages/Tenants'));
 const TenantDetail = lazy(() => import('./pages/TenantDetail'));
@@ -612,6 +613,9 @@ function AppRoutes() {
                         </Route>
                         <Route element={<ProtectedRoute permission="webhooks.manage" module="webhooks" />}>
                             <Route path="/webhooks" element={<Webhooks />} />
+                        </Route>
+                        <Route element={<ProtectedRoute permission="ai.use" module="ai" />}>
+                            <Route path="/assistant" element={<Assistant />} />
                         </Route>
                         <Route element={<ProtectedRoute permission="git.view" module="git" />}>
                             <Route path="/integrations" element={<Integrations />} />

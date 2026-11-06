@@ -18,6 +18,7 @@ import {
 } from '@phosphor-icons/react';
 import Button from '../ui/Button';
 import HighlightedContent from '../ui/HighlightedContent';
+import { continueList } from '../../utils/listContinuation';
 
 function ToolButton({ title, onClick, disabled = false, icon: Icon, label = null, shortcut = null }) {
     return (
@@ -177,6 +178,19 @@ export default function CommentRichEditor({
         if (onKeyDown) {
             onKeyDown(e);
             if (e.defaultPrevented) return;
+        }
+
+        // Plain Enter inside a list item continues the list (next number / bullet) or, on an empty item, ends it.
+        if (e.key === 'Enter' && !e.ctrlKey && !e.metaKey && !e.shiftKey && !e.altKey && !e.nativeEvent?.isComposing) {
+            const el = e.currentTarget;
+            const next = continueList(value, el.selectionStart, el.selectionEnd);
+            if (next) {
+                e.preventDefault();
+                onChange?.(next.value, next.caret, el);
+                requestAnimationFrame(() => el.setSelectionRange(next.caret, next.caret));
+            }
+
+            return;
         }
 
         if ((e.ctrlKey || e.metaKey) && !e.shiftKey && !e.altKey) {
